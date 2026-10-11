@@ -36,8 +36,46 @@ PYTHONPATH=src /path/to/featdepth-env/bin/python \
   --featdepth-repository /path/to/FeatDepth \
   --checkpoint /path/to/fm_depth.pth --frame-count 25 \
   --output-directory /path/to/depth \
-  --artifact-output /path/to/featdepth-provider.json
+  --artifact-output /path/to/featdepth-provider.json \
+  --device cuda --batch-size 2 --preprocess-workers 2 \
+  --timing-output /path/to/featdepth-timing.json
 ```
+
+This command requires CUDA-enabled PyTorch in the external provider environment.
+The runner retains FP32 inference and source-grid disparity output. CPU remains
+the default; omit `--device cuda` for CPU inference and optionally set
+`--cpu-threads N`. That thread option applies only to CPU execution. Increase
+`--batch-size` only within available GPU memory. `--preprocess-workers` overlaps
+PNG decoding with inference using a bounded queue; it does not submit every
+frame at once. Defaults are one image per batch and serial image loading.
+
+The checkpoint is read and hashed once from the same bytes that PyTorch decodes;
+its reference is reused in the manifest. This holds a checkpoint byte buffer
+alongside deserialized weights during loading. Raw files and weights remain
+external. The optional timing output is another schema-valid depth-provider
+artifact, with execution timing appended to preprocessing metadata. Prediction
+batch time is a subset of inference/export time. Main timing excludes Python
+startup; use the comparison tool below for complete subprocess timing.
+
+```bash
+PYTHONPATH=src /path/to/featdepth-env/bin/python \
+  tools/benchmark_featdepth_provider.py /path/to/2011_09_30_drive_0018_sync \
+  --featdepth-repository /path/to/FeatDepth --checkpoint /path/to/fm_depth.pth \
+  --output-dir outputs/featdepth-comparison --repetitions 3 \
+  --gpu-batch-size 2 --preprocess-workers 2
+```
+
+The comparison starts a fresh CPU, serial CUDA and batched CUDA subprocess in
+alternating order for each repetition. All use the same checkpoint and selected
+images. It verifies output references and records depth differences against the
+same-repetition CPU maps. It preserves startup, inference, export and memory
+metadata in standard benchmark artifacts. These timing repetitions are not
+independent calibration trials; check the downstream fit/holdout results before
+substituting newly generated maps for an existing frozen provider.
+
+The [public inference evidence](../assets/featdepth_inference/README.md) retains
+all subprocess timings, explicit CPU thread settings, map differences and
+twenty-four downstream estimates on the six frozen signed-axis problems.
 
 See the [Camera–LiDAR input lock](../research/camera_lidar_sota_plan.md) for the
 repository/checkpoint identity and reproduction limits. The demo does not

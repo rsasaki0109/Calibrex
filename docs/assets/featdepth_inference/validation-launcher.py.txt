@@ -1,0 +1,99 @@
+from pathlib import Path
+import hashlib
+import json
+import sys
+
+from calibrex.core.benchmark import (BenchmarkDefinition, BenchmarkMethodDefinition,
+    BenchmarkMetricDefinition, BenchmarkProvenance, BenchmarkTrial, BenchmarkTrialProvenance,
+    aggregate_benchmark_definition)
+from calibrex.core.camera_lidar_artifacts import CameraLidarArtifactProvenance, CameraLidarCalibrationProblem
+from calibrex.core.provenance import git_commit, sha256_path
+from calibrex.core.result import load_result
+from calibrex.pipelines.camera_lidar_six_dof import run_camera_lidar_six_dof_estimate
+from calibrex.pipelines.public_camera_lidar_demo import _numerical_payload, _reference_difference
+
+root=Path('outputs/public-kitti-featdepth-six-dof-v1')
+assert not root.exists()
+root.mkdir()
+inference=Path('outputs/public-kitti-featdepth-batching-v3')
+methods=['cpu','cuda_serial','cuda_batch']
+cases=['x-positive','x-negative','y-positive','y-negative','z-positive','z-negative']
+holdout=['0000000460','0000001035','0000001611','0000002186','0000002761']
+trials=[]
+sources={'validation_launcher':sha256_path(Path(__file__))}
+command=[sys.executable,str(Path(__file__).resolve())]
+rows=[]
+for case in cases:
+    old=Path('outputs/public-kitti-six-dof-sweep-gtx1660ti-v1')/case
+    base=CameraLidarCalibrationProblem.model_validate_json((old/'demo.problem.json').read_bytes())
+    sources[f'original_problem:{case}']=sha256_path(old/'demo.problem.json')
+    historical=load_result(old/'numpy.result.json')
+    previous=_reference_difference(next(iter(historical.transforms.values())).as_se3(),base.reference_transform_camera_lidar.as_se3())
+    reference=None
+    for method in methods:
+        directory=root/case/method
+        directory.mkdir(parents=True)
+        provider=(inference/f'{method}.repeat-01/provider.json').resolve()
+        problem=base.model_copy(deep=True)
+        problem.depth_provider_path=str(provider)
+        problem.depth_provider_sha256=sha256_path(provider)
+        problem.provenance=CameraLidarArtifactProvenance(generator='manual.featdepth_six_dof_validation',
+            generator_version='v0.1',git_commit=git_commit(),command=command,
+            config_sha256=sha256_path(Path(__file__)),source_sha256=hashlib.sha256(json.dumps({
+                'source_problem':sha256_path(old/'demo.problem.json'),'provider':sha256_path(provider)},sort_keys=True).encode()).hexdigest())
+        path=directory/'problem.json'
+        problem.save(path)
+        result=run_camera_lidar_six_dof_estimate(path,projection_backend='cuda',holdout_frame_ids=holdout,command=command)
+        payload=_numerical_payload(result)
+        if method=='cpu':reference=result
+        pose=next(iter(result.transforms.values())).as_se3()
+        anchor=next(iter(reference.transforms.values())).as_se3()
+        rotation,translation=_reference_difference(pose,base.reference_transform_camera_lidar.as_se3())
+        max_component=max(abs(a-b) for a,b in zip([*pose.translation_m,*pose.rotation_quat_xyzw],
+            [*anchor.translation_m,*anchor.rotation_quat_xyzw],strict=True))
+        metrics={'reference_rotation_error_deg':rotation,'reference_translation_error_m':translation,
+            'final_train_mi':result.metrics['final_d2d_mutual_information'].train,
+            'final_holdout_mi':result.metrics['final_d2d_mutual_information'].holdout,
+            'holdout_mi_absolute_difference_from_cpu':abs(result.metrics['final_d2d_mutual_information'].holdout-reference.metrics['final_d2d_mutual_information'].holdout),
+            'pose_max_component_difference_from_cpu':max_component,
+            'complete_numerical_parity':float(payload==_numerical_payload(reference)),
+            'evaluation_count':result.run.provenance['solver_result']['evaluation_count']}
+        result.run.provenance['featdepth_execution_validation']={'case':case,'method':method,
+            'source_problem_sha256':sha256_path(old/'demo.problem.json'),
+            'validation_launcher_sha256':sha256_path(Path(__file__)),
+            'historical_reference_errors':{'rotation_deg':previous[0],'translation_m':previous[1]},
+            'note':'Historical provider used different Torch version. Comparison anchor is current CPU-generated FP32 provider. Priors/bounds/20fit+5holdout unchanged.'}
+        result_path=directory/'result.json'
+        result.save(result_path)
+        status=result.run.provenance['solver_result']['status']
+        sources[f'provider:{method}']=sha256_path(provider)
+        sources[f'problem:{case}:{method}']=sha256_path(path)
+        sources[f'result:{case}:{method}']=sha256_path(result_path)
+        trials.append(BenchmarkTrial(method_id=method,split_id=case,status='success' if status=='converged' else 'failed',
+            failure_reason=None if status=='converged' else status,metrics=metrics,
+            provenance=BenchmarkTrialProvenance(command=' '.join(command),config_sha256=result.run.config_sha256,
+                input_sha256=sha256_path(path),output_sha256=sha256_path(result_path),
+                notes=[f'Original problem SHA256: {sha256_path(old/"demo.problem.json")}',f'Provider SHA256: {sha256_path(provider)}',
+                    f'Full numerical payload SHA256: {hashlib.sha256(json.dumps(payload,sort_keys=True).encode()).hexdigest()}',
+                    f'Historical reference errors {previous}; current Torch CPU anchor used for parity.'])))
+        rows.append({'case':case,'method':method,'solver_status':status,**metrics,'historical_rotation_deg':previous[0],'historical_translation_m':previous[1]})
+        print(case,method,status,metrics,flush=True)
+original=BenchmarkDefinition.model_validate_json((Path('outputs/public-kitti-six-dof-sweep-gtx1660ti-v1/x-positive')/'comparison.definition.json').read_bytes())
+protocol=original.protocol.model_copy(deep=True)
+protocol.protocol_id='public_featdepth_execution_six_dof_validation/v0.1'
+protocol.splits=[protocol.splits[0].model_copy(update={'split_id':case,'seed':i},deep=True) for i,case in enumerate(cases)]
+protocol.tuning_policy='Frozen six signed-axis problems and checkpoint; FP32 CPU/serial CUDA/batched CUDA depth; no holdout-based tuning.'
+definition=BenchmarkDefinition(benchmark_id='public_featdepth_execution_six_dof_validation',title='FeatDepth execution modes on frozen six-DoF priors',
+    reference_method_id='cpu',protocol=protocol,bootstrap_samples=1,
+    methods=[BenchmarkMethodDefinition(method_id=m,label=m,implementation='calibrex_native',tool_name='Calibrex',source_commit=git_commit()) for m in methods],
+    metrics=[BenchmarkMetricDefinition(name=k,label=k,unit='ratio' if 'parity' in k or 'component' in k else 'count' if k=='evaluation_count' else 'deg' if k.endswith('_deg') else 'm' if k.endswith('_m') else 'nat',
+        direction='higher' if 'parity' in k or k in ['final_train_mi','final_holdout_mi'] else 'lower',
+        interpretation='Same controlled prior and frozen 20fit/5holdout split; CPU depth generated with same Torch version is comparison anchor.') for k in trials[0].metrics],
+    trials=trials,limitations=['Six controlled signed-axis priors on one public drive; not independent calibration recovery or confidence.',
+        'Reference values are never optimized against. Reference errors do not establish accuracy; covariance/observability unknown.',
+        'Raw scans are not motion compensated and FeatDepth training overlap with KITTI raw is possible.',
+        'Historical maps were generated using another Torch version. No claim of exact historical numerical equality.'],
+    provenance=BenchmarkProvenance(generator='manual.featdepth_six_dof_validation',generator_version='v0.1',git_commit=git_commit(),command=' '.join(command),data_verified=True,source_artifacts=sources))
+definition.save(root/'validation.definition.json')
+aggregate_benchmark_definition(definition).save(root/'validation.benchmark.json')
+(root/'summary.json').write_bytes(json.dumps(rows,indent=2).encode())

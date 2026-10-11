@@ -1,0 +1,1761 @@
+{
+  "benchmark_id": "public_featdepth_execution_six_dof_validation",
+  "bootstrap_samples": 1,
+  "bootstrap_seed": 0,
+  "limitations": [
+    "Six controlled signed-axis priors on one public drive; not independent calibration recovery or confidence.",
+    "Reference values are never optimized against. Reference errors do not establish accuracy; covariance/observability unknown.",
+    "Raw scans are not motion compensated and FeatDepth training overlap with KITTI raw is possible.",
+    "Historical maps were generated using another Torch version. No claim of exact historical numerical equality.",
+    "Six default-six-thread CPU-depth estimates added after detecting thread-count-dependent depth differences; fixed priors/split retained, no tuning.",
+    "Parsed values and embedded JSON notes normalize external/workspace paths; original content digests are retained."
+  ],
+  "method_summaries": {
+    "cpu": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "cpu",
+      "metrics": {
+        "complete_numerical_parity": {
+          "distribution": {
+            "count": 6,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "complete_numerical_parity",
+          "rank": 1
+        },
+        "evaluation_count": {
+          "distribution": {
+            "count": 6,
+            "maximum": 313.0,
+            "mean": 261.0,
+            "mean_ci95_high": 269.0,
+            "mean_ci95_low": 269.0,
+            "median": 253.0,
+            "minimum": 229.0,
+            "p90": 295.0,
+            "p95": 304.0,
+            "standard_deviation": 28.284271247461902
+          },
+          "metric": "evaluation_count",
+          "rank": 1
+        },
+        "final_holdout_mi": {
+          "distribution": {
+            "count": 6,
+            "maximum": 1.2941005257659242,
+            "mean": 1.2869334963141317,
+            "mean_ci95_high": 1.2870344935458353,
+            "mean_ci95_low": 1.2870344935458353,
+            "median": 1.28543442044408,
+            "minimum": 1.2814625612452737,
+            "p90": 1.2937975340708137,
+            "p95": 1.293949029918369,
+            "standard_deviation": 0.005206862611706693
+          },
+          "metric": "final_holdout_mi",
+          "rank": 3
+        },
+        "final_train_mi": {
+          "distribution": {
+            "count": 6,
+            "maximum": 1.234752766524902,
+            "mean": 1.2313827842481355,
+            "mean_ci95_high": 1.231459991705828,
+            "mean_ci95_low": 1.231459991705828,
+            "median": 1.2303245183875018,
+            "minimum": 1.2290307193818033,
+            "p90": 1.2345211441518242,
+            "p95": 1.2346369553383632,
+            "standard_deviation": 0.002269609112077144
+          },
+          "metric": "final_train_mi",
+          "rank": 3
+        },
+        "holdout_mi_absolute_difference_from_cpu": {
+          "distribution": {
+            "count": 6,
+            "maximum": 0.0,
+            "mean": 0.0,
+            "mean_ci95_high": 0.0,
+            "mean_ci95_low": 0.0,
+            "median": 0.0,
+            "minimum": 0.0,
+            "p90": 0.0,
+            "p95": 0.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "holdout_mi_absolute_difference_from_cpu",
+          "rank": 1
+        },
+        "pose_max_component_difference_from_cpu": {
+          "distribution": {
+            "count": 6,
+            "maximum": 0.0,
+            "mean": 0.0,
+            "mean_ci95_high": 0.0,
+            "mean_ci95_low": 0.0,
+            "median": 0.0,
+            "minimum": 0.0,
+            "p90": 0.0,
+            "p95": 0.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "pose_max_component_difference_from_cpu",
+          "rank": 1
+        },
+        "reference_rotation_error_deg": {
+          "distribution": {
+            "count": 6,
+            "maximum": 0.5273791109127592,
+            "mean": 0.35652968798723284,
+            "mean_ci95_high": 0.3792723709240023,
+            "mean_ci95_low": 0.3792723709240023,
+            "median": 0.33802624957835903,
+            "minimum": 0.25863973895352027,
+            "p90": 0.46912646188930307,
+            "p95": 0.49825278640103116,
+            "standard_deviation": 0.0967467820556287
+          },
+          "metric": "reference_rotation_error_deg",
+          "rank": 1
+        },
+        "reference_translation_error_m": {
+          "distribution": {
+            "count": 6,
+            "maximum": 0.1677050983124842,
+            "mean": 0.11665098159315822,
+            "mean_ci95_high": 0.11792214698926871,
+            "mean_ci95_low": 0.11792214698926871,
+            "median": 0.09779193846638295,
+            "minimum": 0.08705242673240078,
+            "p90": 0.1638916021241527,
+            "p95": 0.16579835021831846,
+            "standard_deviation": 0.03393616178482764
+          },
+          "metric": "reference_translation_error_m",
+          "rank": 1
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 0
+      },
+      "success_count": 6,
+      "trial_count": 6
+    },
+    "cpu_default6": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "cpu_default6",
+      "metrics": {
+        "complete_numerical_parity": {
+          "distribution": {
+            "count": 6,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "complete_numerical_parity",
+          "rank": 1
+        },
+        "evaluation_count": {
+          "distribution": {
+            "count": 6,
+            "maximum": 313.0,
+            "mean": 261.0,
+            "mean_ci95_high": 269.0,
+            "mean_ci95_low": 269.0,
+            "median": 253.0,
+            "minimum": 229.0,
+            "p90": 295.0,
+            "p95": 304.0,
+            "standard_deviation": 28.284271247461902
+          },
+          "metric": "evaluation_count",
+          "rank": 1
+        },
+        "final_holdout_mi": {
+          "distribution": {
+            "count": 6,
+            "maximum": 1.2941005257659242,
+            "mean": 1.2869334963141317,
+            "mean_ci95_high": 1.2870344935458353,
+            "mean_ci95_low": 1.2870344935458353,
+            "median": 1.28543442044408,
+            "minimum": 1.2814625612452737,
+            "p90": 1.2937975340708137,
+            "p95": 1.293949029918369,
+            "standard_deviation": 0.005206862611706693
+          },
+          "metric": "final_holdout_mi",
+          "rank": 3
+        },
+        "final_train_mi": {
+          "distribution": {
+            "count": 6,
+            "maximum": 1.234752766524902,
+            "mean": 1.2313827842481355,
+            "mean_ci95_high": 1.231459991705828,
+            "mean_ci95_low": 1.231459991705828,
+            "median": 1.2303245183875018,
+            "minimum": 1.2290307193818033,
+            "p90": 1.2345211441518242,
+            "p95": 1.2346369553383632,
+            "standard_deviation": 0.002269609112077144
+          },
+          "metric": "final_train_mi",
+          "rank": 3
+        },
+        "holdout_mi_absolute_difference_from_cpu": {
+          "distribution": {
+            "count": 6,
+            "maximum": 0.0,
+            "mean": 0.0,
+            "mean_ci95_high": 0.0,
+            "mean_ci95_low": 0.0,
+            "median": 0.0,
+            "minimum": 0.0,
+            "p90": 0.0,
+            "p95": 0.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "holdout_mi_absolute_difference_from_cpu",
+          "rank": 1
+        },
+        "pose_max_component_difference_from_cpu": {
+          "distribution": {
+            "count": 6,
+            "maximum": 0.0,
+            "mean": 0.0,
+            "mean_ci95_high": 0.0,
+            "mean_ci95_low": 0.0,
+            "median": 0.0,
+            "minimum": 0.0,
+            "p90": 0.0,
+            "p95": 0.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "pose_max_component_difference_from_cpu",
+          "rank": 1
+        },
+        "reference_rotation_error_deg": {
+          "distribution": {
+            "count": 6,
+            "maximum": 0.5273791109127592,
+            "mean": 0.35652968798723284,
+            "mean_ci95_high": 0.3792723709240023,
+            "mean_ci95_low": 0.3792723709240023,
+            "median": 0.33802624957835903,
+            "minimum": 0.25863973895352027,
+            "p90": 0.46912646188930307,
+            "p95": 0.49825278640103116,
+            "standard_deviation": 0.0967467820556287
+          },
+          "metric": "reference_rotation_error_deg",
+          "rank": 1
+        },
+        "reference_translation_error_m": {
+          "distribution": {
+            "count": 6,
+            "maximum": 0.1677050983124842,
+            "mean": 0.11665098159315822,
+            "mean_ci95_high": 0.11792214698926871,
+            "mean_ci95_low": 0.11792214698926871,
+            "median": 0.09779193846638295,
+            "minimum": 0.08705242673240078,
+            "p90": 0.1638916021241527,
+            "p95": 0.16579835021831846,
+            "standard_deviation": 0.03393616178482764
+          },
+          "metric": "reference_translation_error_m",
+          "rank": 1
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 0
+      },
+      "success_count": 6,
+      "trial_count": 6
+    },
+    "cuda_batch": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "cuda_batch",
+      "metrics": {
+        "complete_numerical_parity": {
+          "distribution": {
+            "count": 6,
+            "maximum": 0.0,
+            "mean": 0.0,
+            "mean_ci95_high": 0.0,
+            "mean_ci95_low": 0.0,
+            "median": 0.0,
+            "minimum": 0.0,
+            "p90": 0.0,
+            "p95": 0.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "complete_numerical_parity",
+          "rank": 3
+        },
+        "evaluation_count": {
+          "distribution": {
+            "count": 6,
+            "maximum": 313.0,
+            "mean": 261.0,
+            "mean_ci95_high": 269.0,
+            "mean_ci95_low": 269.0,
+            "median": 253.0,
+            "minimum": 229.0,
+            "p90": 295.0,
+            "p95": 304.0,
+            "standard_deviation": 28.284271247461902
+          },
+          "metric": "evaluation_count",
+          "rank": 1
+        },
+        "final_holdout_mi": {
+          "distribution": {
+            "count": 6,
+            "maximum": 1.2941011457798641,
+            "mean": 1.2869335996497886,
+            "mean_ci95_high": 1.2870347002171487,
+            "mean_ci95_low": 1.2870347002171487,
+            "median": 1.28543442044408,
+            "minimum": 1.2814625612452737,
+            "p90": 1.2937978440777838,
+            "p95": 1.293949494928824,
+            "standard_deviation": 0.005207004852116978
+          },
+          "metric": "final_holdout_mi",
+          "rank": 1
+        },
+        "final_train_mi": {
+          "distribution": {
+            "count": 6,
+            "maximum": 1.2347541718839632,
+            "mean": 1.2313830428543473,
+            "mean_ci95_high": 1.2314604845385502,
+            "mean_ci95_low": 1.2314604845385502,
+            "median": 1.230324591526607,
+            "minimum": 1.2290307193818033,
+            "p90": 1.2345218468313548,
+            "p95": 1.234638009357659,
+            "standard_deviation": 0.0022699437122808016
+          },
+          "metric": "final_train_mi",
+          "rank": 2
+        },
+        "holdout_mi_absolute_difference_from_cpu": {
+          "distribution": {
+            "count": 6,
+            "maximum": 6.200139399670235e-07,
+            "mean": 1.0333565666117057e-07,
+            "mean_ci95_high": 2.0667131332234115e-07,
+            "mean_ci95_low": 2.0667131332234115e-07,
+            "median": 0.0,
+            "minimum": 0.0,
+            "p90": 3.1000696998351174e-07,
+            "p95": 4.650104549752676e-07,
+            "standard_deviation": 2.3106555279395636e-07
+          },
+          "metric": "holdout_mi_absolute_difference_from_cpu",
+          "rank": 3
+        },
+        "pose_max_component_difference_from_cpu": {
+          "distribution": {
+            "count": 6,
+            "maximum": 0.0,
+            "mean": 0.0,
+            "mean_ci95_high": 0.0,
+            "mean_ci95_low": 0.0,
+            "median": 0.0,
+            "minimum": 0.0,
+            "p90": 0.0,
+            "p95": 0.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "pose_max_component_difference_from_cpu",
+          "rank": 1
+        },
+        "reference_rotation_error_deg": {
+          "distribution": {
+            "count": 6,
+            "maximum": 0.5273791109127592,
+            "mean": 0.35652968798723284,
+            "mean_ci95_high": 0.3792723709240023,
+            "mean_ci95_low": 0.3792723709240023,
+            "median": 0.33802624957835903,
+            "minimum": 0.25863973895352027,
+            "p90": 0.46912646188930307,
+            "p95": 0.49825278640103116,
+            "standard_deviation": 0.0967467820556287
+          },
+          "metric": "reference_rotation_error_deg",
+          "rank": 1
+        },
+        "reference_translation_error_m": {
+          "distribution": {
+            "count": 6,
+            "maximum": 0.1677050983124842,
+            "mean": 0.11665098159315822,
+            "mean_ci95_high": 0.11792214698926871,
+            "mean_ci95_low": 0.11792214698926871,
+            "median": 0.09779193846638295,
+            "minimum": 0.08705242673240078,
+            "p90": 0.1638916021241527,
+            "p95": 0.16579835021831846,
+            "standard_deviation": 0.03393616178482764
+          },
+          "metric": "reference_translation_error_m",
+          "rank": 1
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 0
+      },
+      "success_count": 6,
+      "trial_count": 6
+    },
+    "cuda_serial": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "cuda_serial",
+      "metrics": {
+        "complete_numerical_parity": {
+          "distribution": {
+            "count": 6,
+            "maximum": 0.0,
+            "mean": 0.0,
+            "mean_ci95_high": 0.0,
+            "mean_ci95_low": 0.0,
+            "median": 0.0,
+            "minimum": 0.0,
+            "p90": 0.0,
+            "p95": 0.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "complete_numerical_parity",
+          "rank": 3
+        },
+        "evaluation_count": {
+          "distribution": {
+            "count": 6,
+            "maximum": 313.0,
+            "mean": 261.0,
+            "mean_ci95_high": 269.0,
+            "mean_ci95_low": 269.0,
+            "median": 253.0,
+            "minimum": 229.0,
+            "p90": 295.0,
+            "p95": 304.0,
+            "standard_deviation": 28.284271247461902
+          },
+          "metric": "evaluation_count",
+          "rank": 1
+        },
+        "final_holdout_mi": {
+          "distribution": {
+            "count": 6,
+            "maximum": 1.2941011457798641,
+            "mean": 1.2869335996497886,
+            "mean_ci95_high": 1.2870347002171487,
+            "mean_ci95_low": 1.2870347002171487,
+            "median": 1.28543442044408,
+            "minimum": 1.2814625612452737,
+            "p90": 1.2937978440777838,
+            "p95": 1.293949494928824,
+            "standard_deviation": 0.005207004852116978
+          },
+          "metric": "final_holdout_mi",
+          "rank": 1
+        },
+        "final_train_mi": {
+          "distribution": {
+            "count": 6,
+            "maximum": 1.2347541718839632,
+            "mean": 1.2313831795238908,
+            "mean_ci95_high": 1.2314606212080936,
+            "mean_ci95_low": 1.2314606212080936,
+            "median": 1.2303250015352374,
+            "minimum": 1.2290307193818033,
+            "p90": 1.2345218468313548,
+            "p95": 1.234638009357659,
+            "standard_deviation": 0.002269869625561997
+          },
+          "metric": "final_train_mi",
+          "rank": 1
+        },
+        "holdout_mi_absolute_difference_from_cpu": {
+          "distribution": {
+            "count": 6,
+            "maximum": 6.200139399670235e-07,
+            "mean": 1.0333565666117057e-07,
+            "mean_ci95_high": 2.0667131332234115e-07,
+            "mean_ci95_low": 2.0667131332234115e-07,
+            "median": 0.0,
+            "minimum": 0.0,
+            "p90": 3.1000696998351174e-07,
+            "p95": 4.650104549752676e-07,
+            "standard_deviation": 2.3106555279395636e-07
+          },
+          "metric": "holdout_mi_absolute_difference_from_cpu",
+          "rank": 3
+        },
+        "pose_max_component_difference_from_cpu": {
+          "distribution": {
+            "count": 6,
+            "maximum": 0.0,
+            "mean": 0.0,
+            "mean_ci95_high": 0.0,
+            "mean_ci95_low": 0.0,
+            "median": 0.0,
+            "minimum": 0.0,
+            "p90": 0.0,
+            "p95": 0.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "pose_max_component_difference_from_cpu",
+          "rank": 1
+        },
+        "reference_rotation_error_deg": {
+          "distribution": {
+            "count": 6,
+            "maximum": 0.5273791109127592,
+            "mean": 0.35652968798723284,
+            "mean_ci95_high": 0.3792723709240023,
+            "mean_ci95_low": 0.3792723709240023,
+            "median": 0.33802624957835903,
+            "minimum": 0.25863973895352027,
+            "p90": 0.46912646188930307,
+            "p95": 0.49825278640103116,
+            "standard_deviation": 0.0967467820556287
+          },
+          "metric": "reference_rotation_error_deg",
+          "rank": 1
+        },
+        "reference_translation_error_m": {
+          "distribution": {
+            "count": 6,
+            "maximum": 0.1677050983124842,
+            "mean": 0.11665098159315822,
+            "mean_ci95_high": 0.11792214698926871,
+            "mean_ci95_low": 0.11792214698926871,
+            "median": 0.09779193846638295,
+            "minimum": 0.08705242673240078,
+            "p90": 0.1638916021241527,
+            "p95": 0.16579835021831846,
+            "standard_deviation": 0.03393616178482764
+          },
+          "metric": "reference_translation_error_m",
+          "rank": 1
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 0
+      },
+      "success_count": 6,
+      "trial_count": 6
+    }
+  },
+  "methods": [
+    {
+      "implementation": "calibrex_native",
+      "label": "cpu",
+      "method_id": "cpu",
+      "source_commit": "0b67865",
+      "tool_name": "Calibrex"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "cuda_serial",
+      "method_id": "cuda_serial",
+      "source_commit": "0b67865",
+      "tool_name": "Calibrex"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "cuda_batch",
+      "method_id": "cuda_batch",
+      "source_commit": "0b67865",
+      "tool_name": "Calibrex"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "cpu_default6",
+      "method_id": "cpu_default6",
+      "source_commit": "0b67865",
+      "tool_name": "Calibrex"
+    }
+  ],
+  "metrics": [
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Same controlled prior and frozen 20fit/5holdout split; CPU depth generated with same Torch version is comparison anchor.",
+      "label": "reference_rotation_error_deg",
+      "name": "reference_rotation_error_deg",
+      "primary": false,
+      "unit": "deg"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Same controlled prior and frozen 20fit/5holdout split; CPU depth generated with same Torch version is comparison anchor.",
+      "label": "reference_translation_error_m",
+      "name": "reference_translation_error_m",
+      "primary": false,
+      "unit": "m"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Same controlled prior and frozen 20fit/5holdout split; CPU depth generated with same Torch version is comparison anchor.",
+      "label": "final_train_mi",
+      "name": "final_train_mi",
+      "primary": false,
+      "unit": "nat"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Same controlled prior and frozen 20fit/5holdout split; CPU depth generated with same Torch version is comparison anchor.",
+      "label": "final_holdout_mi",
+      "name": "final_holdout_mi",
+      "primary": false,
+      "unit": "nat"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Same controlled prior and frozen 20fit/5holdout split; CPU depth generated with same Torch version is comparison anchor.",
+      "label": "holdout_mi_absolute_difference_from_cpu",
+      "name": "holdout_mi_absolute_difference_from_cpu",
+      "primary": false,
+      "unit": "nat"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Same controlled prior and frozen 20fit/5holdout split; CPU depth generated with same Torch version is comparison anchor.",
+      "label": "pose_max_component_difference_from_cpu",
+      "name": "pose_max_component_difference_from_cpu",
+      "primary": false,
+      "unit": "ratio"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Same controlled prior and frozen 20fit/5holdout split; CPU depth generated with same Torch version is comparison anchor.",
+      "label": "complete_numerical_parity",
+      "name": "complete_numerical_parity",
+      "primary": false,
+      "unit": "ratio"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Same controlled prior and frozen 20fit/5holdout split; CPU depth generated with same Torch version is comparison anchor.",
+      "label": "evaluation_count",
+      "name": "evaluation_count",
+      "primary": false,
+      "unit": "count"
+    }
+  ],
+  "paired_comparisons": [
+    {
+      "candidate_method_id": "cuda_serial",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "reference_rotation_error_deg",
+      "paired_count": 6,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "cpu"
+    },
+    {
+      "candidate_method_id": "cuda_serial",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "reference_translation_error_m",
+      "paired_count": 6,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "cpu"
+    },
+    {
+      "candidate_method_id": "cuda_serial",
+      "direction": "higher",
+      "improvement_ci95_high": 3.952757553493669e-07,
+      "improvement_ci95_low": 3.952757553493669e-07,
+      "improvement_mean": 3.952757553493669e-07,
+      "metric": "final_train_mi",
+      "paired_count": 6,
+      "raw_delta_mean": 3.952757553493669e-07,
+      "reference_method_id": "cpu"
+    },
+    {
+      "candidate_method_id": "cuda_serial",
+      "direction": "higher",
+      "improvement_ci95_high": 1.0333565666117057e-07,
+      "improvement_ci95_low": 1.0333565666117057e-07,
+      "improvement_mean": 1.0333565666117057e-07,
+      "metric": "final_holdout_mi",
+      "paired_count": 6,
+      "raw_delta_mean": 1.0333565666117057e-07,
+      "reference_method_id": "cpu"
+    },
+    {
+      "candidate_method_id": "cuda_serial",
+      "direction": "lower",
+      "improvement_ci95_high": -1.0333565666117057e-07,
+      "improvement_ci95_low": -1.0333565666117057e-07,
+      "improvement_mean": -1.0333565666117057e-07,
+      "metric": "holdout_mi_absolute_difference_from_cpu",
+      "paired_count": 6,
+      "raw_delta_mean": 1.0333565666117057e-07,
+      "reference_method_id": "cpu"
+    },
+    {
+      "candidate_method_id": "cuda_serial",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "pose_max_component_difference_from_cpu",
+      "paired_count": 6,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "cpu"
+    },
+    {
+      "candidate_method_id": "cuda_serial",
+      "direction": "higher",
+      "improvement_ci95_high": -1.0,
+      "improvement_ci95_low": -1.0,
+      "improvement_mean": -1.0,
+      "metric": "complete_numerical_parity",
+      "paired_count": 6,
+      "raw_delta_mean": -1.0,
+      "reference_method_id": "cpu"
+    },
+    {
+      "candidate_method_id": "cuda_serial",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "evaluation_count",
+      "paired_count": 6,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "cpu"
+    },
+    {
+      "candidate_method_id": "cuda_batch",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "reference_rotation_error_deg",
+      "paired_count": 6,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "cpu"
+    },
+    {
+      "candidate_method_id": "cuda_batch",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "reference_translation_error_m",
+      "paired_count": 6,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "cpu"
+    },
+    {
+      "candidate_method_id": "cuda_batch",
+      "direction": "higher",
+      "improvement_ci95_high": 2.586062119262304e-07,
+      "improvement_ci95_low": 2.586062119262304e-07,
+      "improvement_mean": 2.586062119262304e-07,
+      "metric": "final_train_mi",
+      "paired_count": 6,
+      "raw_delta_mean": 2.586062119262304e-07,
+      "reference_method_id": "cpu"
+    },
+    {
+      "candidate_method_id": "cuda_batch",
+      "direction": "higher",
+      "improvement_ci95_high": 1.0333565666117057e-07,
+      "improvement_ci95_low": 1.0333565666117057e-07,
+      "improvement_mean": 1.0333565666117057e-07,
+      "metric": "final_holdout_mi",
+      "paired_count": 6,
+      "raw_delta_mean": 1.0333565666117057e-07,
+      "reference_method_id": "cpu"
+    },
+    {
+      "candidate_method_id": "cuda_batch",
+      "direction": "lower",
+      "improvement_ci95_high": -1.0333565666117057e-07,
+      "improvement_ci95_low": -1.0333565666117057e-07,
+      "improvement_mean": -1.0333565666117057e-07,
+      "metric": "holdout_mi_absolute_difference_from_cpu",
+      "paired_count": 6,
+      "raw_delta_mean": 1.0333565666117057e-07,
+      "reference_method_id": "cpu"
+    },
+    {
+      "candidate_method_id": "cuda_batch",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "pose_max_component_difference_from_cpu",
+      "paired_count": 6,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "cpu"
+    },
+    {
+      "candidate_method_id": "cuda_batch",
+      "direction": "higher",
+      "improvement_ci95_high": -1.0,
+      "improvement_ci95_low": -1.0,
+      "improvement_mean": -1.0,
+      "metric": "complete_numerical_parity",
+      "paired_count": 6,
+      "raw_delta_mean": -1.0,
+      "reference_method_id": "cpu"
+    },
+    {
+      "candidate_method_id": "cuda_batch",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "evaluation_count",
+      "paired_count": 6,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "cpu"
+    },
+    {
+      "candidate_method_id": "cpu_default6",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "reference_rotation_error_deg",
+      "paired_count": 6,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "cpu"
+    },
+    {
+      "candidate_method_id": "cpu_default6",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "reference_translation_error_m",
+      "paired_count": 6,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "cpu"
+    },
+    {
+      "candidate_method_id": "cpu_default6",
+      "direction": "higher",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "final_train_mi",
+      "paired_count": 6,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "cpu"
+    },
+    {
+      "candidate_method_id": "cpu_default6",
+      "direction": "higher",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "final_holdout_mi",
+      "paired_count": 6,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "cpu"
+    },
+    {
+      "candidate_method_id": "cpu_default6",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "holdout_mi_absolute_difference_from_cpu",
+      "paired_count": 6,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "cpu"
+    },
+    {
+      "candidate_method_id": "cpu_default6",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "pose_max_component_difference_from_cpu",
+      "paired_count": 6,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "cpu"
+    },
+    {
+      "candidate_method_id": "cpu_default6",
+      "direction": "higher",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "complete_numerical_parity",
+      "paired_count": 6,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "cpu"
+    },
+    {
+      "candidate_method_id": "cpu_default6",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "evaluation_count",
+      "paired_count": 6,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "cpu"
+    }
+  ],
+  "protocol": {
+    "data_license": "CC-BY-NC-SA-3.0",
+    "dataset_id": "kitti_raw_2011_09_30_drive_0018",
+    "dataset_source_sha256": "ed5ad3947b2ca94b415ceabbc16d2d767ad084b2e8fd4b83937570c28b6c6e8d",
+    "failure_policy": "Preserve failed/partial trials and available standard results; never replace an unavailable candidate with CPU output.",
+    "initial_estimate_policy": "Controlled demo initialization: dataset reference plus fixed local Euler offsets. Rotation deg xyz=(0.5, 0.0, 0.0); camera-frame translation m xyz=(0.5, 0.0, 0.0). This is not an independently measured prior.",
+    "protocol_id": "public_featdepth_execution_six_dof_validation/v0.1",
+    "split_policy": "25 numeric-ordered, uniformly selected provider positions; every fifth frame is holdout (20 fit / 5 holdout), fixed before optimization.",
+    "splits": [
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "x-positive"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 1,
+        "split_id": "x-negative"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 2,
+        "split_id": "y-positive"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 3,
+        "split_id": "y-negative"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 4,
+        "split_id": "z-positive"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 5,
+        "split_id": "z-negative"
+      }
+    ],
+    "tuning_policy": "Frozen six signed-axis problems and checkpoint; FP32 CPU/serial CUDA/batched CUDA depth; no holdout-based tuning."
+  },
+  "provenance": {
+    "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/.tmp-calibrex-validate-featdepth-calibration.py",
+    "data_verified": true,
+    "generated_at": "2026-10-11T04:20:33.954363+00:00",
+    "generator": "manual.featdepth_six_dof_validation",
+    "generator_version": "v0.1",
+    "git_commit": "0b67865",
+    "source_artifacts": {
+      "default_cpu_validation_launcher": "a1337aa5a5e29a7f0025c2ea4b9507bd565366e3667ae78641094ce114eb014b",
+      "original_18_trial_benchmark": "a6d98d190bfc57f830155ec241b535926c2c8cb733820369e0d3728994a37a00",
+      "original_18_trial_definition": "6ab8a9a95b1a246fafa515a9e20f54670280c7a3e69f695cd9a633bc089b0196",
+      "original_problem:x-negative": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+      "original_problem:x-positive": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+      "original_problem:y-negative": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+      "original_problem:y-positive": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+      "original_problem:z-negative": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+      "original_problem:z-positive": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+      "original_unmodified_artifact": "ceae142bb34162d6ee18d7e141aec8d150205efdaa39274da57bb8eaee556c24",
+      "problem:x-negative:cpu": "a8866ab4a1aa78cbf4a0a5d7a53b63dc06a01fe32885249bb0d3ca15b5889eee",
+      "problem:x-negative:cpu_default6": "48552928287bb488b506f5b32eef6531ccdb2893f76e95709d4c5f87107c2fc5",
+      "problem:x-negative:cuda_batch": "79521dc7ae5dda6d8dc321b732cef08faa3e6e0a71b854c0267477d0783905d0",
+      "problem:x-negative:cuda_serial": "abca788920662d08b3ff95d7eabb46fefd57fd2c3069ef8bb27d38c5494d908f",
+      "problem:x-positive:cpu": "119db260b489c602bab1557803e61ee3e5db9a87e8d1619704837081d029212e",
+      "problem:x-positive:cpu_default6": "fc0c621e895056f1c0b78dd0d56bd3b7536e1786389de43394026697b5f79a75",
+      "problem:x-positive:cuda_batch": "a40a6517ad0822e15a9e2c6f96bb5df24f98e6cbad26aa8d8ae252beb68ead0e",
+      "problem:x-positive:cuda_serial": "ec5907ee1bed69e19467dca73cf8ef50863e4053b456626f970925e7fa85d8fa",
+      "problem:y-negative:cpu": "6ac9008f10c00270865e91463270bc431619d7dc21607631a2a4365adcd2f09c",
+      "problem:y-negative:cpu_default6": "9fc9bfa849fded5df85d19b636cbb3d657a331beef15678e0a93af363d63b7e5",
+      "problem:y-negative:cuda_batch": "bc295a4767d1efc35d120626291ef7cb2e6bae3abfdee37f575a9de1d421289e",
+      "problem:y-negative:cuda_serial": "87f091b9868d442bd4eefdba624a3192f11db557122222d5a20703d255aca89d",
+      "problem:y-positive:cpu": "8616c0bc0038b0d739fc2de9afec46891d27170e9a31b13e1a7479a0803972b4",
+      "problem:y-positive:cpu_default6": "ab7c65b0c5eb3ac71822e08002a7881632f1196f8caf9cf3ac414d1b63733f98",
+      "problem:y-positive:cuda_batch": "0fdbcbff5ad0bdbd26bf7874a133bd17c33850f6a7a4c6d593385c6644e0227e",
+      "problem:y-positive:cuda_serial": "b7556f7b36ca636113619799fe02af0ac4db4a971c2596a40b3704bccc9c03db",
+      "problem:z-negative:cpu": "2ac221a27030d12970720d8962c4f5a98a2e89120eb658410b5182f8994a320a",
+      "problem:z-negative:cpu_default6": "49c5423a984c64bcf288a88f720ebc3a0c75812189e14f825c2cd8e5883654b4",
+      "problem:z-negative:cuda_batch": "b515d19e521f35982e7fdef39c669fc2f886f9f40b78672ab42aac7bd094d2b8",
+      "problem:z-negative:cuda_serial": "0f53fef5921d98934c827033d68d0a30b928919b483410b72afbc4bfdbb040c7",
+      "problem:z-positive:cpu": "9aa0dbcaf5149ce680a069bdb6f07dca78646909d541506b5c6ba1bb213759c7",
+      "problem:z-positive:cpu_default6": "66b96c3d5a138872951b14f6e3f9f9b5159020e13286f08ea2f1539d2d0089f7",
+      "problem:z-positive:cuda_batch": "8bc6cb3beb40278999e67c2290e6c464f0ce761707a09cc9c334994ba0060b0a",
+      "problem:z-positive:cuda_serial": "32d721aa4032b7579b57416cf03dfab8131cb86a1436a5c2adca767739dcf315",
+      "provider:cpu": "c2ab6567dc4074b3d99b58046453c5ca4292a22381299361d32dbbc35a964b70",
+      "provider:cpu_default6": "f1dac4b016ce6df7bbbe6e111a01c73031eceb622e87ff3f143241936b40d452",
+      "provider:cuda_batch": "33603aea34d756622c0f9f9aa2abe072e9b0c249ac73ccb3b37ce3c943eb3647",
+      "provider:cuda_serial": "9560bf84b1862e9b3cd4788a231545d762dbfe76fa63428ab805be1fa5b49f68",
+      "published_result:x-negative.cpu.result.json": "c701c269e3815f7ce41364fb9bffea4e218c8633afcdb936a7be025895ad992b",
+      "published_result:x-negative.cpu_default6.result.json": "c35b8cd5ab3217afd835eb7ec8c7679e13ff6f8f826b4fbc50b989e252b7724e",
+      "published_result:x-negative.cuda_batch.result.json": "98d13de7f7201e560c8ec99c2a504eef5b066cefa9222b319f2506f50d0b11c4",
+      "published_result:x-negative.cuda_serial.result.json": "ec5ab9ecf4a1a0c9c8325452da6eb46c515d90cb728e5735433407ced2a01e9d",
+      "published_result:x-positive.cpu.result.json": "6e697e1fad8be288b5774f9887feb6f14a08f50e589784ccd1d4b04c842d7845",
+      "published_result:x-positive.cpu_default6.result.json": "aa06c6fcd3ae2a7fa000761d94f9c9942c202053552c83f04702d5d82311cfb1",
+      "published_result:x-positive.cuda_batch.result.json": "4ddd8f5adb1a98df60cda7cdb37b6c5338971b638e64909ca3af6542e1e12da2",
+      "published_result:x-positive.cuda_serial.result.json": "51c3014510e965618daa6c1137c99caf6d943fd830d3bf076acab0790d6d70eb",
+      "published_result:y-negative.cpu.result.json": "540fd99e626c8c580892fb00bb5e99ac5a52ae9f2dca7827d0f07870463d6fd9",
+      "published_result:y-negative.cpu_default6.result.json": "ae7d65429d6d76c818a2fb11850c3fb08269d3683b78c381f773f521c32b87e7",
+      "published_result:y-negative.cuda_batch.result.json": "8973b9189dbfc6266a9d829dfd581a81f0ee8b898f8f7252a6bbc1ac6cc8d037",
+      "published_result:y-negative.cuda_serial.result.json": "dc8b918327c576c48ad784f550aac7fb32d58c8a2e1d3e470f5f1011166122d3",
+      "published_result:y-positive.cpu.result.json": "c67f036fd4796b1232e36b8cf293b6c0aa36abd26ab28581ae66b7c4500a4845",
+      "published_result:y-positive.cpu_default6.result.json": "3a08a6a1320979878f2ada603be027683c8b526fa0ebd6fb608be2b8668936c5",
+      "published_result:y-positive.cuda_batch.result.json": "b10a0754e0e3425322b015bd76002a0e1321eb23d377a7dae1597d7942f8f7ab",
+      "published_result:y-positive.cuda_serial.result.json": "6efe3d941e5d8575689c7296d7645b7db2c3809bd16ad277cda027e07c940f39",
+      "published_result:z-negative.cpu.result.json": "f7d8b2edb0510a3be1a5164e7c7867aa17b2ecd9a95641c8ade72d1b357de293",
+      "published_result:z-negative.cpu_default6.result.json": "aa3aeb812b3305db6194906803d47a9a61dcfb1820db6f931b29251fba93cb00",
+      "published_result:z-negative.cuda_batch.result.json": "df288d4c3bf2d6101e8ffe0413219e433779b28ec6be6ca8b0e16f9141ff3abb",
+      "published_result:z-negative.cuda_serial.result.json": "8c4b9a8a4b0ba8700ef6a55ca1603c9e06a18c00b6f9d2986e3ada34db9922c8",
+      "published_result:z-positive.cpu.result.json": "162a48f9693aa906c3e492ec7d32161aa82c2598f52ca540a9c702cf616d3a04",
+      "published_result:z-positive.cpu_default6.result.json": "630769d3158f76adcf41c962848b3a361024c8344f7088d219a7259acd212050",
+      "published_result:z-positive.cuda_batch.result.json": "f46ae21feb2ee06525b070fc9b24c30da65e4fc5ebd71140e64cae5e52d4003c",
+      "published_result:z-positive.cuda_serial.result.json": "c4d5f1d000413d437c07d3f75a9fa41afa635c6b5374318e85f76e12dc33ea76",
+      "result:x-negative:cpu": "e06c3d86c4fcfdb0d271b6224d56cb37efedcbce6f57f1028b92954a7ace0df0",
+      "result:x-negative:cpu_default6": "020987b799bbc29dcd4e94a3dfcf2b2c58276378d7c9422b46884836c19fed7a",
+      "result:x-negative:cuda_batch": "e44da899331975336038096b3219389c1f8be767596db86731c918c9b35d89f4",
+      "result:x-negative:cuda_serial": "34a36d5273136b3fcefca3095ef9fb433325b5d65e6bf4ecc910b573743897eb",
+      "result:x-positive:cpu": "201ac949ea2fc7ed393fa49b6d1067a3d6dee2ea6a941d435a9d43785c513464",
+      "result:x-positive:cpu_default6": "6f5509e1c14185dcc7497ec0d41736128c2685b477c2eb2af2b3c1e769283a40",
+      "result:x-positive:cuda_batch": "be5d288ea09aded617c62f31bb979d4a23bc75a74339d07b93e1c6b133a698e5",
+      "result:x-positive:cuda_serial": "19ab524e34bc1565891c594fc2e11fe94c37610bfd547ba7fe17fa450416546f",
+      "result:y-negative:cpu": "d410e3dc81e7cd3aba1c9f5082c7c7cfddc82e913f2373d6687d7c814a7ec89a",
+      "result:y-negative:cpu_default6": "0389582f8f27cfa7bf6e1b44b352949772f8e1ab880e2c501b5925653148eacd",
+      "result:y-negative:cuda_batch": "c04ae2fae379a85ff2d15debc2f134b1820812f57ab2dff3f33bef6b8b7404ea",
+      "result:y-negative:cuda_serial": "21e9b605dff95baa4421c7d8033e9f5e16e5f1d470cc4042851e35cfd3500a50",
+      "result:y-positive:cpu": "e1e8f53f2010e9f48f673b1ddc5b8c26af8da7d31de2ee1e930fa15c342d7f02",
+      "result:y-positive:cpu_default6": "ee57bc1257d7377950408294cb72b7b7fd684cd8c65833a3fc324e453b4f2627",
+      "result:y-positive:cuda_batch": "110946b1627f03d1ab035a44a6d2e8f2e56f9d2616d38dcabf3f2ba065b06d1f",
+      "result:y-positive:cuda_serial": "909b295c4041feb1c71edf1d2b4a2a20afcfab95777d12c52936bc7c4c9e6a90",
+      "result:z-negative:cpu": "4fc0058e5f78499a3aea4b05ecaf37d13e8e645f25f57bea7ea94a3375d972d0",
+      "result:z-negative:cpu_default6": "31b1b5bf5d09bd0232edcfb944a374967ed69fe86e755d2f88e985e9724e1b41",
+      "result:z-negative:cuda_batch": "02c92d075540147451f6f694eede65d34b03666b488085587f386a12a8e944b5",
+      "result:z-negative:cuda_serial": "e88a0021f8e5f86163cc2e36160fd1b18fef8ec5c822bd1a2fa052e6f0f06226",
+      "result:z-positive:cpu": "25cb5ad6948329e20c367af59d0c27531f0c4300bd22359a273d31fcfdd0cada",
+      "result:z-positive:cpu_default6": "75683971e269b764b5c80139506ec8b8d5d26b01ead15d9dae425551e1830ddb",
+      "result:z-positive:cuda_batch": "f69ab34dd437ab61708aac69cb7033bfc1cf3fcdecd5b6d30cf341b7540df88c",
+      "result:z-positive:cuda_serial": "ea14caec7011db832d202ca6b1d5aefacef1916eab70356390de78a833605961",
+      "validation_launcher": "d6ab6fb26b63e2c3f788277256826593d33a34907274236545ff991e69e08333"
+    }
+  },
+  "reference_method_id": "cpu",
+  "schema_version": "slac.benchmark/v0.1",
+  "title": "FeatDepth execution modes on frozen six-DoF priors",
+  "trials": [
+    {
+      "method_id": "cpu",
+      "metrics": {
+        "complete_numerical_parity": 1.0,
+        "evaluation_count": 229.0,
+        "final_holdout_mi": 1.2934945423757032,
+        "final_train_mi": 1.2342895217787462,
+        "holdout_mi_absolute_difference_from_cpu": 0.0,
+        "pose_max_component_difference_from_cpu": 0.0,
+        "reference_rotation_error_deg": 0.3909230132921424,
+        "reference_translation_error_m": 0.16007810593582122
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/.tmp-calibrex-validate-featdepth-calibration.py",
+        "config_sha256": "7035a8876d871e5770371061b8c6fe407fce4b871b6e1dfe1cb39e6e9121dcc1",
+        "input_sha256": "119db260b489c602bab1557803e61ee3e5db9a87e8d1619704837081d029212e",
+        "notes": [
+          "Original problem SHA256: 324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+          "Provider SHA256: c2ab6567dc4074b3d99b58046453c5ca4292a22381299361d32dbbc35a964b70",
+          "Full numerical payload SHA256: 6c2e1498261357f6aced2ba4cb4e1cb54f84e0cab3f2d68aa73fdad609d0617a",
+          "Historical reference errors (0.3909230132921424, 0.16007810593582122); current Torch CPU anchor used for parity."
+        ],
+        "output_sha256": "201ac949ea2fc7ed393fa49b6d1067a3d6dee2ea6a941d435a9d43785c513464"
+      },
+      "split_id": "x-positive",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_serial",
+      "metrics": {
+        "complete_numerical_parity": 0.0,
+        "evaluation_count": 229.0,
+        "final_holdout_mi": 1.2934945423757032,
+        "final_train_mi": 1.2342895217787462,
+        "holdout_mi_absolute_difference_from_cpu": 0.0,
+        "pose_max_component_difference_from_cpu": 0.0,
+        "reference_rotation_error_deg": 0.3909230132921424,
+        "reference_translation_error_m": 0.16007810593582122
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/.tmp-calibrex-validate-featdepth-calibration.py",
+        "config_sha256": "f612ac7944e7f1ace2586be25944be9a7e5490b7d18ab8c51835b73d1423da52",
+        "input_sha256": "ec5907ee1bed69e19467dca73cf8ef50863e4053b456626f970925e7fa85d8fa",
+        "notes": [
+          "Original problem SHA256: 324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+          "Provider SHA256: 9560bf84b1862e9b3cd4788a231545d762dbfe76fa63428ab805be1fa5b49f68",
+          "Full numerical payload SHA256: 18dccdcefae6c5386d631fdf773158d5e4b9a07ba954ccf4e7f04629680dd4c7",
+          "Historical reference errors (0.3909230132921424, 0.16007810593582122); current Torch CPU anchor used for parity."
+        ],
+        "output_sha256": "19ab524e34bc1565891c594fc2e11fe94c37610bfd547ba7fe17fa450416546f"
+      },
+      "split_id": "x-positive",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_batch",
+      "metrics": {
+        "complete_numerical_parity": 0.0,
+        "evaluation_count": 229.0,
+        "final_holdout_mi": 1.2934945423757032,
+        "final_train_mi": 1.2342895217787462,
+        "holdout_mi_absolute_difference_from_cpu": 0.0,
+        "pose_max_component_difference_from_cpu": 0.0,
+        "reference_rotation_error_deg": 0.3909230132921424,
+        "reference_translation_error_m": 0.16007810593582122
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/.tmp-calibrex-validate-featdepth-calibration.py",
+        "config_sha256": "11b6f56867d4d025d715774e8b9e477860a91da513f681e33c0fc63f60e23456",
+        "input_sha256": "a40a6517ad0822e15a9e2c6f96bb5df24f98e6cbad26aa8d8ae252beb68ead0e",
+        "notes": [
+          "Original problem SHA256: 324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+          "Provider SHA256: 33603aea34d756622c0f9f9aa2abe072e9b0c249ac73ccb3b37ce3c943eb3647",
+          "Full numerical payload SHA256: f767b3733d6ed906514e6bf4f182a25d429d498113a634cdf26d7c682bf1311d",
+          "Historical reference errors (0.3909230132921424, 0.16007810593582122); current Torch CPU anchor used for parity."
+        ],
+        "output_sha256": "be5d288ea09aded617c62f31bb979d4a23bc75a74339d07b93e1c6b133a698e5"
+      },
+      "split_id": "x-positive",
+      "status": "success"
+    },
+    {
+      "method_id": "cpu",
+      "metrics": {
+        "complete_numerical_parity": 1.0,
+        "evaluation_count": 313.0,
+        "final_holdout_mi": 1.2871911679087407,
+        "final_train_mi": 1.2304969677065194,
+        "holdout_mi_absolute_difference_from_cpu": 0.0,
+        "pose_max_component_difference_from_cpu": 0.0,
+        "reference_rotation_error_deg": 0.4108738128658469,
+        "reference_translation_error_m": 0.10458250331675945
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/.tmp-calibrex-validate-featdepth-calibration.py",
+        "config_sha256": "8254e453728b48c2d415251ded7ad4163cc66a8436c59a77d6123ef1a696d3bd",
+        "input_sha256": "a8866ab4a1aa78cbf4a0a5d7a53b63dc06a01fe32885249bb0d3ca15b5889eee",
+        "notes": [
+          "Original problem SHA256: d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+          "Provider SHA256: c2ab6567dc4074b3d99b58046453c5ca4292a22381299361d32dbbc35a964b70",
+          "Full numerical payload SHA256: cdcb31a1f7afd5babe71e73f4c14ba3fe0493a5d28af20fae0c61a6df27dc61c",
+          "Historical reference errors (0.4108738128658469, 0.10458250331675945); current Torch CPU anchor used for parity."
+        ],
+        "output_sha256": "e06c3d86c4fcfdb0d271b6224d56cb37efedcbce6f57f1028b92954a7ace0df0"
+      },
+      "split_id": "x-negative",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_serial",
+      "metrics": {
+        "complete_numerical_parity": 0.0,
+        "evaluation_count": 313.0,
+        "final_holdout_mi": 1.2871911679087407,
+        "final_train_mi": 1.2304969677065194,
+        "holdout_mi_absolute_difference_from_cpu": 0.0,
+        "pose_max_component_difference_from_cpu": 0.0,
+        "reference_rotation_error_deg": 0.4108738128658469,
+        "reference_translation_error_m": 0.10458250331675945
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/.tmp-calibrex-validate-featdepth-calibration.py",
+        "config_sha256": "7d554fe09a399e118147765f88ded8a2daf841ddf84e35443f545930559105ed",
+        "input_sha256": "abca788920662d08b3ff95d7eabb46fefd57fd2c3069ef8bb27d38c5494d908f",
+        "notes": [
+          "Original problem SHA256: d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+          "Provider SHA256: 9560bf84b1862e9b3cd4788a231545d762dbfe76fa63428ab805be1fa5b49f68",
+          "Full numerical payload SHA256: ee9a126d91e687672151bcfb64d4650f7c4ddf50923b67447bf6042d2e3b4860",
+          "Historical reference errors (0.4108738128658469, 0.10458250331675945); current Torch CPU anchor used for parity."
+        ],
+        "output_sha256": "34a36d5273136b3fcefca3095ef9fb433325b5d65e6bf4ecc910b573743897eb"
+      },
+      "split_id": "x-negative",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_batch",
+      "metrics": {
+        "complete_numerical_parity": 0.0,
+        "evaluation_count": 313.0,
+        "final_holdout_mi": 1.2871911679087407,
+        "final_train_mi": 1.2304969677065194,
+        "holdout_mi_absolute_difference_from_cpu": 0.0,
+        "pose_max_component_difference_from_cpu": 0.0,
+        "reference_rotation_error_deg": 0.4108738128658469,
+        "reference_translation_error_m": 0.10458250331675945
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/.tmp-calibrex-validate-featdepth-calibration.py",
+        "config_sha256": "7d60942c2407e8cb4166cc918086fc14732fea52c3bdf53a1899cc83670803a9",
+        "input_sha256": "79521dc7ae5dda6d8dc321b732cef08faa3e6e0a71b854c0267477d0783905d0",
+        "notes": [
+          "Original problem SHA256: d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+          "Provider SHA256: 33603aea34d756622c0f9f9aa2abe072e9b0c249ac73ccb3b37ce3c943eb3647",
+          "Full numerical payload SHA256: fe4cf4c17c5ef00e797c23ce09d96a19a1620f79fe83384d5125e745a5c265b8",
+          "Historical reference errors (0.4108738128658469, 0.10458250331675945); current Torch CPU anchor used for parity."
+        ],
+        "output_sha256": "e44da899331975336038096b3219389c1f8be767596db86731c918c9b35d89f4"
+      },
+      "split_id": "x-negative",
+      "status": "success"
+    },
+    {
+      "method_id": "cpu",
+      "metrics": {
+        "complete_numerical_parity": 1.0,
+        "evaluation_count": 277.0,
+        "final_holdout_mi": 1.2941005257659242,
+        "final_train_mi": 1.234752766524902,
+        "holdout_mi_absolute_difference_from_cpu": 0.0,
+        "pose_max_component_difference_from_cpu": 0.0,
+        "reference_rotation_error_deg": 0.5273791109127592,
+        "reference_translation_error_m": 0.1677050983124842
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/.tmp-calibrex-validate-featdepth-calibration.py",
+        "config_sha256": "0754fd504e3b66ab2b60d0f3b4f077356fc7e4fb2465d6b7a6f242d3bf4eec0f",
+        "input_sha256": "8616c0bc0038b0d739fc2de9afec46891d27170e9a31b13e1a7479a0803972b4",
+        "notes": [
+          "Original problem SHA256: 2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+          "Provider SHA256: c2ab6567dc4074b3d99b58046453c5ca4292a22381299361d32dbbc35a964b70",
+          "Full numerical payload SHA256: 13d1636094180ee553d57a236ebeafe1d95faae858385619c04b0f931284a789",
+          "Historical reference errors (0.5273791109127592, 0.1677050983124842); current Torch CPU anchor used for parity."
+        ],
+        "output_sha256": "e1e8f53f2010e9f48f673b1ddc5b8c26af8da7d31de2ee1e930fa15c342d7f02"
+      },
+      "split_id": "y-positive",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_serial",
+      "metrics": {
+        "complete_numerical_parity": 0.0,
+        "evaluation_count": 277.0,
+        "final_holdout_mi": 1.2941011457798641,
+        "final_train_mi": 1.2347541718839632,
+        "holdout_mi_absolute_difference_from_cpu": 6.200139399670235e-07,
+        "pose_max_component_difference_from_cpu": 0.0,
+        "reference_rotation_error_deg": 0.5273791109127592,
+        "reference_translation_error_m": 0.1677050983124842
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/.tmp-calibrex-validate-featdepth-calibration.py",
+        "config_sha256": "2338f4964cce29c07ae420b96d830caa2d66b0f4c1f0f0a7c6d699ac386e998e",
+        "input_sha256": "b7556f7b36ca636113619799fe02af0ac4db4a971c2596a40b3704bccc9c03db",
+        "notes": [
+          "Original problem SHA256: 2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+          "Provider SHA256: 9560bf84b1862e9b3cd4788a231545d762dbfe76fa63428ab805be1fa5b49f68",
+          "Full numerical payload SHA256: e069a1d37bc512fad45caba59b325ca411bc95eef35e51e96becfbaba01cf162",
+          "Historical reference errors (0.5273791109127592, 0.1677050983124842); current Torch CPU anchor used for parity."
+        ],
+        "output_sha256": "909b295c4041feb1c71edf1d2b4a2a20afcfab95777d12c52936bc7c4c9e6a90"
+      },
+      "split_id": "y-positive",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_batch",
+      "metrics": {
+        "complete_numerical_parity": 0.0,
+        "evaluation_count": 277.0,
+        "final_holdout_mi": 1.2941011457798641,
+        "final_train_mi": 1.2347541718839632,
+        "holdout_mi_absolute_difference_from_cpu": 6.200139399670235e-07,
+        "pose_max_component_difference_from_cpu": 0.0,
+        "reference_rotation_error_deg": 0.5273791109127592,
+        "reference_translation_error_m": 0.1677050983124842
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/.tmp-calibrex-validate-featdepth-calibration.py",
+        "config_sha256": "2772082e56634aae24c2aa88de15519e7baf11b41667f288e9abdd68585f4eec",
+        "input_sha256": "0fdbcbff5ad0bdbd26bf7874a133bd17c33850f6a7a4c6d593385c6644e0227e",
+        "notes": [
+          "Original problem SHA256: 2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+          "Provider SHA256: 33603aea34d756622c0f9f9aa2abe072e9b0c249ac73ccb3b37ce3c943eb3647",
+          "Full numerical payload SHA256: 3656f041979f2aa9dc2d6a5d5306e54ba03b83fdef8df7916e7de2b403569a1d",
+          "Historical reference errors (0.5273791109127592, 0.1677050983124842); current Torch CPU anchor used for parity."
+        ],
+        "output_sha256": "110946b1627f03d1ab035a44a6d2e8f2e56f9d2616d38dcabf3f2ba065b06d1f"
+      },
+      "split_id": "y-positive",
+      "status": "success"
+    },
+    {
+      "method_id": "cpu",
+      "metrics": {
+        "complete_numerical_parity": 1.0,
+        "evaluation_count": 241.0,
+        "final_holdout_mi": 1.2814625612452737,
+        "final_train_mi": 1.2295746610283573,
+        "holdout_mi_absolute_difference_from_cpu": 0.0,
+        "pose_max_component_difference_from_cpu": 0.0,
+        "reference_rotation_error_deg": 0.2662329660345525,
+        "reference_translation_error_m": 0.09100137361600646
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/.tmp-calibrex-validate-featdepth-calibration.py",
+        "config_sha256": "2da50c91a4f708d264f84818475e98b63f91e158feb5cb06b4eba4bb4c857ed0",
+        "input_sha256": "6ac9008f10c00270865e91463270bc431619d7dc21607631a2a4365adcd2f09c",
+        "notes": [
+          "Original problem SHA256: b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+          "Provider SHA256: c2ab6567dc4074b3d99b58046453c5ca4292a22381299361d32dbbc35a964b70",
+          "Full numerical payload SHA256: fbe786a2fabbcf630dec04e5e9ae1f668fa4b978b6d1868b2030ff603ab77f4a",
+          "Historical reference errors (0.2662329660345525, 0.09100137361600646); current Torch CPU anchor used for parity."
+        ],
+        "output_sha256": "d410e3dc81e7cd3aba1c9f5082c7c7cfddc82e913f2373d6687d7c814a7ec89a"
+      },
+      "split_id": "y-negative",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_serial",
+      "metrics": {
+        "complete_numerical_parity": 0.0,
+        "evaluation_count": 241.0,
+        "final_holdout_mi": 1.2814625612452737,
+        "final_train_mi": 1.2295746610283573,
+        "holdout_mi_absolute_difference_from_cpu": 0.0,
+        "pose_max_component_difference_from_cpu": 0.0,
+        "reference_rotation_error_deg": 0.2662329660345525,
+        "reference_translation_error_m": 0.09100137361600646
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/.tmp-calibrex-validate-featdepth-calibration.py",
+        "config_sha256": "4eb767c96546fe2e393e2ce2a8db52ec18c5594605f00b204f99217033c274c3",
+        "input_sha256": "87f091b9868d442bd4eefdba624a3192f11db557122222d5a20703d255aca89d",
+        "notes": [
+          "Original problem SHA256: b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+          "Provider SHA256: 9560bf84b1862e9b3cd4788a231545d762dbfe76fa63428ab805be1fa5b49f68",
+          "Full numerical payload SHA256: e6f982f7eb8755bb4962baead0a981f43707d992ef1913f53ff8f00466021c59",
+          "Historical reference errors (0.2662329660345525, 0.09100137361600646); current Torch CPU anchor used for parity."
+        ],
+        "output_sha256": "21e9b605dff95baa4421c7d8033e9f5e16e5f1d470cc4042851e35cfd3500a50"
+      },
+      "split_id": "y-negative",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_batch",
+      "metrics": {
+        "complete_numerical_parity": 0.0,
+        "evaluation_count": 241.0,
+        "final_holdout_mi": 1.2814625612452737,
+        "final_train_mi": 1.2295746610283573,
+        "holdout_mi_absolute_difference_from_cpu": 0.0,
+        "pose_max_component_difference_from_cpu": 0.0,
+        "reference_rotation_error_deg": 0.2662329660345525,
+        "reference_translation_error_m": 0.09100137361600646
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/.tmp-calibrex-validate-featdepth-calibration.py",
+        "config_sha256": "0456f25930d1ee798a4bd193d874833a0ec0fd8305f4775a706a476976d978ed",
+        "input_sha256": "bc295a4767d1efc35d120626291ef7cb2e6bae3abfdee37f575a9de1d421289e",
+        "notes": [
+          "Original problem SHA256: b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+          "Provider SHA256: 33603aea34d756622c0f9f9aa2abe072e9b0c249ac73ccb3b37ce3c943eb3647",
+          "Full numerical payload SHA256: 247486533502f0871419fa2a39f09d35391dd660f8ed7ee653edfd4aca863480",
+          "Historical reference errors (0.2662329660345525, 0.09100137361600646); current Torch CPU anchor used for parity."
+        ],
+        "output_sha256": "c04ae2fae379a85ff2d15debc2f134b1820812f57ab2dff3f33bef6b8b7404ea"
+      },
+      "split_id": "y-negative",
+      "status": "success"
+    },
+    {
+      "method_id": "cpu",
+      "metrics": {
+        "complete_numerical_parity": 1.0,
+        "evaluation_count": 265.0,
+        "final_holdout_mi": 1.2836776729794193,
+        "final_train_mi": 1.2301520690684842,
+        "holdout_mi_absolute_difference_from_cpu": 0.0,
+        "pose_max_component_difference_from_cpu": 0.0,
+        "reference_rotation_error_deg": 0.25863973895352027,
+        "reference_translation_error_m": 0.08705242673240078
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/.tmp-calibrex-validate-featdepth-calibration.py",
+        "config_sha256": "d54b2895b1b894259a2106f464961ac44f7722a0c0b6c30b2af4e0d153735ff8",
+        "input_sha256": "9aa0dbcaf5149ce680a069bdb6f07dca78646909d541506b5c6ba1bb213759c7",
+        "notes": [
+          "Original problem SHA256: 54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+          "Provider SHA256: c2ab6567dc4074b3d99b58046453c5ca4292a22381299361d32dbbc35a964b70",
+          "Full numerical payload SHA256: d2c68f25eb57d084ad6d8fdbc593b17d5a38c747afe84fd44028d2b5e986920c",
+          "Historical reference errors (0.25863973895352027, 0.08705242673240078); current Torch CPU anchor used for parity."
+        ],
+        "output_sha256": "25cb5ad6948329e20c367af59d0c27531f0c4300bd22359a273d31fcfdd0cada"
+      },
+      "split_id": "z-positive",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_serial",
+      "metrics": {
+        "complete_numerical_parity": 0.0,
+        "evaluation_count": 265.0,
+        "final_holdout_mi": 1.2836776729794193,
+        "final_train_mi": 1.2301530353639551,
+        "holdout_mi_absolute_difference_from_cpu": 0.0,
+        "pose_max_component_difference_from_cpu": 0.0,
+        "reference_rotation_error_deg": 0.25863973895352027,
+        "reference_translation_error_m": 0.08705242673240078
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/.tmp-calibrex-validate-featdepth-calibration.py",
+        "config_sha256": "ac2c200a52c857086f8489216f4e7bb82beb06709b8bebdf73eab27ac5ff2b8a",
+        "input_sha256": "32d721aa4032b7579b57416cf03dfab8131cb86a1436a5c2adca767739dcf315",
+        "notes": [
+          "Original problem SHA256: 54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+          "Provider SHA256: 9560bf84b1862e9b3cd4788a231545d762dbfe76fa63428ab805be1fa5b49f68",
+          "Full numerical payload SHA256: 939a96ac4bb039f6f3dfb4ba2d49ddcdb79db42a0ba0e0fb632a20f153c906fb",
+          "Historical reference errors (0.25863973895352027, 0.08705242673240078); current Torch CPU anchor used for parity."
+        ],
+        "output_sha256": "ea14caec7011db832d202ca6b1d5aefacef1916eab70356390de78a833605961"
+      },
+      "split_id": "z-positive",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_batch",
+      "metrics": {
+        "complete_numerical_parity": 0.0,
+        "evaluation_count": 265.0,
+        "final_holdout_mi": 1.2836776729794193,
+        "final_train_mi": 1.2301522153466946,
+        "holdout_mi_absolute_difference_from_cpu": 0.0,
+        "pose_max_component_difference_from_cpu": 0.0,
+        "reference_rotation_error_deg": 0.25863973895352027,
+        "reference_translation_error_m": 0.08705242673240078
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/.tmp-calibrex-validate-featdepth-calibration.py",
+        "config_sha256": "f9256392f59ceff3c033b02b0141c5a287791ee9d553b667d37025a858bd5caf",
+        "input_sha256": "8bc6cb3beb40278999e67c2290e6c464f0ce761707a09cc9c334994ba0060b0a",
+        "notes": [
+          "Original problem SHA256: 54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+          "Provider SHA256: 33603aea34d756622c0f9f9aa2abe072e9b0c249ac73ccb3b37ce3c943eb3647",
+          "Full numerical payload SHA256: 92c4c509f3c465ce7c59f680cec65fedc311bb865eb7040f4ad32a454888a487",
+          "Historical reference errors (0.25863973895352027, 0.08705242673240078); current Torch CPU anchor used for parity."
+        ],
+        "output_sha256": "f69ab34dd437ab61708aac69cb7033bfc1cf3fcdecd5b6d30cf341b7540df88c"
+      },
+      "split_id": "z-positive",
+      "status": "success"
+    },
+    {
+      "method_id": "cpu",
+      "metrics": {
+        "complete_numerical_parity": 1.0,
+        "evaluation_count": 241.0,
+        "final_holdout_mi": 1.28167450760973,
+        "final_train_mi": 1.2290307193818033,
+        "holdout_mi_absolute_difference_from_cpu": 0.0,
+        "pose_max_component_difference_from_cpu": 0.0,
+        "reference_rotation_error_deg": 0.2851294858645757,
+        "reference_translation_error_m": 0.08948638164547712
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/.tmp-calibrex-validate-featdepth-calibration.py",
+        "config_sha256": "c9fa2fd2c03c5ace578f0e116fdf54d0ae1be072d0bdef84a9d428186f8393b4",
+        "input_sha256": "2ac221a27030d12970720d8962c4f5a98a2e89120eb658410b5182f8994a320a",
+        "notes": [
+          "Original problem SHA256: 4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+          "Provider SHA256: c2ab6567dc4074b3d99b58046453c5ca4292a22381299361d32dbbc35a964b70",
+          "Full numerical payload SHA256: 5151a88e9817fee7ce526d0ac4c63b891a2b4382e7007e76d9e27c3139b119c2",
+          "Historical reference errors (0.2851294858645757, 0.08948638164547712); current Torch CPU anchor used for parity."
+        ],
+        "output_sha256": "4fc0058e5f78499a3aea4b05ecaf37d13e8e645f25f57bea7ea94a3375d972d0"
+      },
+      "split_id": "z-negative",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_serial",
+      "metrics": {
+        "complete_numerical_parity": 0.0,
+        "evaluation_count": 241.0,
+        "final_holdout_mi": 1.28167450760973,
+        "final_train_mi": 1.2290307193818033,
+        "holdout_mi_absolute_difference_from_cpu": 0.0,
+        "pose_max_component_difference_from_cpu": 0.0,
+        "reference_rotation_error_deg": 0.2851294858645757,
+        "reference_translation_error_m": 0.08948638164547712
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/.tmp-calibrex-validate-featdepth-calibration.py",
+        "config_sha256": "c4cb8df2767d8a8560489cedbf4df69ae6f7fbc9efc0bbe3185a0018469c158d",
+        "input_sha256": "0f53fef5921d98934c827033d68d0a30b928919b483410b72afbc4bfdbb040c7",
+        "notes": [
+          "Original problem SHA256: 4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+          "Provider SHA256: 9560bf84b1862e9b3cd4788a231545d762dbfe76fa63428ab805be1fa5b49f68",
+          "Full numerical payload SHA256: 5401d8f0d616a2e64e388ccfd4b597815adc7f0ac24beed87d0ae781067016e9",
+          "Historical reference errors (0.2851294858645757, 0.08948638164547712); current Torch CPU anchor used for parity."
+        ],
+        "output_sha256": "e88a0021f8e5f86163cc2e36160fd1b18fef8ec5c822bd1a2fa052e6f0f06226"
+      },
+      "split_id": "z-negative",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_batch",
+      "metrics": {
+        "complete_numerical_parity": 0.0,
+        "evaluation_count": 241.0,
+        "final_holdout_mi": 1.28167450760973,
+        "final_train_mi": 1.2290307193818033,
+        "holdout_mi_absolute_difference_from_cpu": 0.0,
+        "pose_max_component_difference_from_cpu": 0.0,
+        "reference_rotation_error_deg": 0.2851294858645757,
+        "reference_translation_error_m": 0.08948638164547712
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/.tmp-calibrex-validate-featdepth-calibration.py",
+        "config_sha256": "eb0897fc3565d376f45751c29bc512fa8db9029d999f7a5b0309898a3c12d4c4",
+        "input_sha256": "b515d19e521f35982e7fdef39c669fc2f886f9f40b78672ab42aac7bd094d2b8",
+        "notes": [
+          "Original problem SHA256: 4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+          "Provider SHA256: 33603aea34d756622c0f9f9aa2abe072e9b0c249ac73ccb3b37ce3c943eb3647",
+          "Full numerical payload SHA256: 55541293fc3af2b65801edbc561aa586075459776a51e0a1820760740a87729d",
+          "Historical reference errors (0.2851294858645757, 0.08948638164547712); current Torch CPU anchor used for parity."
+        ],
+        "output_sha256": "02c92d075540147451f6f694eede65d34b03666b488085587f386a12a8e944b5"
+      },
+      "split_id": "z-negative",
+      "status": "success"
+    },
+    {
+      "method_id": "cpu_default6",
+      "metrics": {
+        "complete_numerical_parity": 1.0,
+        "evaluation_count": 229.0,
+        "final_holdout_mi": 1.2934945423757032,
+        "final_train_mi": 1.2342895217787462,
+        "holdout_mi_absolute_difference_from_cpu": 0.0,
+        "pose_max_component_difference_from_cpu": 0.0,
+        "reference_rotation_error_deg": 0.3909230132921424,
+        "reference_translation_error_m": 0.16007810593582122
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/.tmp-calibrex-validate-featdepth-default-cpu.py",
+        "config_sha256": "7035a8876d871e5770371061b8c6fe407fce4b871b6e1dfe1cb39e6e9121dcc1",
+        "input_sha256": "fc0c621e895056f1c0b78dd0d56bd3b7536e1786389de43394026697b5f79a75",
+        "notes": [
+          "Provider SHA256: f1dac4b016ce6df7bbbe6e111a01c73031eceb622e87ff3f143241936b40d452",
+          "Full numerical payload SHA256: 6c2e1498261357f6aced2ba4cb4e1cb54f84e0cab3f2d68aa73fdad609d0617a",
+          "Default six-thread CPU depth versus two-thread CPU anchor; no timing or tuning claim."
+        ],
+        "output_sha256": "6f5509e1c14185dcc7497ec0d41736128c2685b477c2eb2af2b3c1e769283a40"
+      },
+      "split_id": "x-positive",
+      "status": "success"
+    },
+    {
+      "method_id": "cpu_default6",
+      "metrics": {
+        "complete_numerical_parity": 1.0,
+        "evaluation_count": 313.0,
+        "final_holdout_mi": 1.2871911679087407,
+        "final_train_mi": 1.2304969677065194,
+        "holdout_mi_absolute_difference_from_cpu": 0.0,
+        "pose_max_component_difference_from_cpu": 0.0,
+        "reference_rotation_error_deg": 0.4108738128658469,
+        "reference_translation_error_m": 0.10458250331675945
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/.tmp-calibrex-validate-featdepth-default-cpu.py",
+        "config_sha256": "8254e453728b48c2d415251ded7ad4163cc66a8436c59a77d6123ef1a696d3bd",
+        "input_sha256": "48552928287bb488b506f5b32eef6531ccdb2893f76e95709d4c5f87107c2fc5",
+        "notes": [
+          "Provider SHA256: f1dac4b016ce6df7bbbe6e111a01c73031eceb622e87ff3f143241936b40d452",
+          "Full numerical payload SHA256: cdcb31a1f7afd5babe71e73f4c14ba3fe0493a5d28af20fae0c61a6df27dc61c",
+          "Default six-thread CPU depth versus two-thread CPU anchor; no timing or tuning claim."
+        ],
+        "output_sha256": "020987b799bbc29dcd4e94a3dfcf2b2c58276378d7c9422b46884836c19fed7a"
+      },
+      "split_id": "x-negative",
+      "status": "success"
+    },
+    {
+      "method_id": "cpu_default6",
+      "metrics": {
+        "complete_numerical_parity": 1.0,
+        "evaluation_count": 277.0,
+        "final_holdout_mi": 1.2941005257659242,
+        "final_train_mi": 1.234752766524902,
+        "holdout_mi_absolute_difference_from_cpu": 0.0,
+        "pose_max_component_difference_from_cpu": 0.0,
+        "reference_rotation_error_deg": 0.5273791109127592,
+        "reference_translation_error_m": 0.1677050983124842
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/.tmp-calibrex-validate-featdepth-default-cpu.py",
+        "config_sha256": "0754fd504e3b66ab2b60d0f3b4f077356fc7e4fb2465d6b7a6f242d3bf4eec0f",
+        "input_sha256": "ab7c65b0c5eb3ac71822e08002a7881632f1196f8caf9cf3ac414d1b63733f98",
+        "notes": [
+          "Provider SHA256: f1dac4b016ce6df7bbbe6e111a01c73031eceb622e87ff3f143241936b40d452",
+          "Full numerical payload SHA256: 13d1636094180ee553d57a236ebeafe1d95faae858385619c04b0f931284a789",
+          "Default six-thread CPU depth versus two-thread CPU anchor; no timing or tuning claim."
+        ],
+        "output_sha256": "ee57bc1257d7377950408294cb72b7b7fd684cd8c65833a3fc324e453b4f2627"
+      },
+      "split_id": "y-positive",
+      "status": "success"
+    },
+    {
+      "method_id": "cpu_default6",
+      "metrics": {
+        "complete_numerical_parity": 1.0,
+        "evaluation_count": 241.0,
+        "final_holdout_mi": 1.2814625612452737,
+        "final_train_mi": 1.2295746610283573,
+        "holdout_mi_absolute_difference_from_cpu": 0.0,
+        "pose_max_component_difference_from_cpu": 0.0,
+        "reference_rotation_error_deg": 0.2662329660345525,
+        "reference_translation_error_m": 0.09100137361600646
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/.tmp-calibrex-validate-featdepth-default-cpu.py",
+        "config_sha256": "2da50c91a4f708d264f84818475e98b63f91e158feb5cb06b4eba4bb4c857ed0",
+        "input_sha256": "9fc9bfa849fded5df85d19b636cbb3d657a331beef15678e0a93af363d63b7e5",
+        "notes": [
+          "Provider SHA256: f1dac4b016ce6df7bbbe6e111a01c73031eceb622e87ff3f143241936b40d452",
+          "Full numerical payload SHA256: fbe786a2fabbcf630dec04e5e9ae1f668fa4b978b6d1868b2030ff603ab77f4a",
+          "Default six-thread CPU depth versus two-thread CPU anchor; no timing or tuning claim."
+        ],
+        "output_sha256": "0389582f8f27cfa7bf6e1b44b352949772f8e1ab880e2c501b5925653148eacd"
+      },
+      "split_id": "y-negative",
+      "status": "success"
+    },
+    {
+      "method_id": "cpu_default6",
+      "metrics": {
+        "complete_numerical_parity": 1.0,
+        "evaluation_count": 265.0,
+        "final_holdout_mi": 1.2836776729794193,
+        "final_train_mi": 1.2301520690684842,
+        "holdout_mi_absolute_difference_from_cpu": 0.0,
+        "pose_max_component_difference_from_cpu": 0.0,
+        "reference_rotation_error_deg": 0.25863973895352027,
+        "reference_translation_error_m": 0.08705242673240078
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/.tmp-calibrex-validate-featdepth-default-cpu.py",
+        "config_sha256": "d54b2895b1b894259a2106f464961ac44f7722a0c0b6c30b2af4e0d153735ff8",
+        "input_sha256": "66b96c3d5a138872951b14f6e3f9f9b5159020e13286f08ea2f1539d2d0089f7",
+        "notes": [
+          "Provider SHA256: f1dac4b016ce6df7bbbe6e111a01c73031eceb622e87ff3f143241936b40d452",
+          "Full numerical payload SHA256: d2c68f25eb57d084ad6d8fdbc593b17d5a38c747afe84fd44028d2b5e986920c",
+          "Default six-thread CPU depth versus two-thread CPU anchor; no timing or tuning claim."
+        ],
+        "output_sha256": "75683971e269b764b5c80139506ec8b8d5d26b01ead15d9dae425551e1830ddb"
+      },
+      "split_id": "z-positive",
+      "status": "success"
+    },
+    {
+      "method_id": "cpu_default6",
+      "metrics": {
+        "complete_numerical_parity": 1.0,
+        "evaluation_count": 241.0,
+        "final_holdout_mi": 1.28167450760973,
+        "final_train_mi": 1.2290307193818033,
+        "holdout_mi_absolute_difference_from_cpu": 0.0,
+        "pose_max_component_difference_from_cpu": 0.0,
+        "reference_rotation_error_deg": 0.2851294858645757,
+        "reference_translation_error_m": 0.08948638164547712
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/.tmp-calibrex-validate-featdepth-default-cpu.py",
+        "config_sha256": "c9fa2fd2c03c5ace578f0e116fdf54d0ae1be072d0bdef84a9d428186f8393b4",
+        "input_sha256": "49c5423a984c64bcf288a88f720ebc3a0c75812189e14f825c2cd8e5883654b4",
+        "notes": [
+          "Provider SHA256: f1dac4b016ce6df7bbbe6e111a01c73031eceb622e87ff3f143241936b40d452",
+          "Full numerical payload SHA256: 5151a88e9817fee7ce526d0ac4c63b891a2b4382e7007e76d9e27c3139b119c2",
+          "Default six-thread CPU depth versus two-thread CPU anchor; no timing or tuning claim."
+        ],
+        "output_sha256": "31b1b5bf5d09bd0232edcfb944a374967ed69fe86e755d2f88e985e9724e1b41"
+      },
+      "split_id": "z-negative",
+      "status": "success"
+    }
+  ]
+}

@@ -453,3 +453,24 @@ The [public KITTI diagnostic](../assets/cuda_stage_profile/README.md) retains
 ten repetitions of 20 evaluations per mode, numerical parity, source hashes,
 stage timings and an uncached smoke run. It is profiling evidence, not a new
 solver acceleration or an accuracy benchmark.
+
+## Generating public depth maps on GPU
+
+The external FeatDepth adapter accepts `--device cuda --batch-size 2
+--preprocess-workers 2` for FP32 inference with bounded parallel PNG decoding.
+It hashes and decodes one checkpoint byte snapshot and reuses its manifest
+reference. CPU inference remains the default; `--cpu-threads N` controls its
+thread count. PyTorch and FeatDepth stay outside the Calibrex core dependencies.
+
+On the public 25-frame KITTI workload, a single comparison using six default
+CPU threads measured 89.5 s CPU versus 17.8 s batched CUDA (**5.02x**), including
+fresh interpreter startup and artifact writes. A separate three-repetition
+comparison with two CPU threads measured 123.9 / 13.1 s medians (**9.48x**).
+Batching alone gives a small gain on this short clip; moving inference to GPU
+provides the larger difference. Both comparisons use the same FP32 checkpoint.
+All six frozen initializations retain identical final poses and evaluation
+counts; complete traces have small score differences, with a maximum final
+holdout MI difference of 6.2e-7 nat. See the
+[provider commands](public_six_dof_demo.md#prepare-public-inputs) and
+[full inference evidence](../assets/featdepth_inference/README.md) for all
+timings, source hashes, memory counters, output differences and limitations.

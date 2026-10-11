@@ -1,0 +1,88 @@
+from pathlib import Path
+import json
+from calibrex.core.benchmark import BenchmarkDefinition, BenchmarkArtifact
+from calibrex.core.provenance import sha256_path, git_commit
+from calibrex.core.camera_lidar_artifacts import CameraLidarCalibrationProblem
+from calibrex.core.result import CalibrationResult
+from calibrex.data.depth import DepthProviderArtifact, DepthPreprocessingStep, load_depth_provider
+from tools.benchmark_featdepth_provider import _difference
+
+destination=Path('docs/assets/featdepth_inference')
+destination.mkdir(parents=True,exist_ok=True)
+roots=[
+    ('C:\\Users\\rsasa\\Workspace\\Calibrex','/workspace/Calibrex'),
+    ('E:\\datasets\\calibrex_camera_lidar_v06','/external/calibrex-public-inputs'),
+]
+def normalize(value):
+    if isinstance(value,dict):return {normalize(k):normalize(v) for k,v in value.items()}
+    if isinstance(value,list):return [normalize(v) for v in value]
+    if not isinstance(value,str):return value
+    if value.startswith(('{','[')):
+        try:
+            parsed=json.loads(value)
+            if isinstance(parsed,(dict,list)):return json.dumps(normalize(parsed),sort_keys=True)
+        except ValueError:pass
+    for prefix,replacement in roots:
+        value=value.replace(prefix,replacement).replace(prefix.replace('\\','/'),replacement)
+    if '/external/calibrex-public-inputs' in value or '/workspace/Calibrex' in value:
+        value=value.replace('\\','/')
+    return value
+
+bindings={}
+def publish(source,name,extra=None):
+    value=normalize(json.loads(source.read_bytes()))
+    info={'original_path':normalize(str(source.resolve())), 'original_sha256':sha256_path(source),
+        'normalization':'Parsed values and embedded JSON notes normalize external/workspace paths; original content digests are retained.'}
+    if value['schema_version']=='slac.depth_provider/v0.1':
+        artifact=DepthProviderArtifact.model_validate(value)
+        artifact.preprocessing.append(DepthPreprocessingStep(name='publication_paths',parameters=info))
+    elif value['schema_version']=='slac.result/v0.1':
+        artifact=CalibrationResult.model_validate(value)
+        artifact.run.provenance['publication']=info
+    elif value['schema_version']=='slac.camera_lidar_problem/v0.1':
+        artifact=CameraLidarCalibrationProblem.model_validate(value)
+    else:
+        cls=BenchmarkDefinition if value['schema_version']=='slac.benchmark_definition/v0.1' else BenchmarkArtifact
+        artifact=cls.model_validate(value)
+        artifact.provenance.source_artifacts['original_unmodified_artifact']=info['original_sha256']
+        if extra:artifact.provenance.source_artifacts.update(extra)
+        artifact.limitations.append(info['normalization'])
+    target=destination/name
+    artifact.save(target)
+    bindings[name]={**info,'published_sha256':sha256_path(target)}
+
+inference=Path('outputs/public-kitti-featdepth-batching-v3')
+quality=Path('outputs/public-kitti-featdepth-six-dof-v1')
+default=Path('outputs/public-kitti-featdepth-default-cpu-v1')
+for method in ['cpu','cuda_serial','cuda_batch','cpu_default6']:
+    input_dir=default/'cpu.repeat-01' if method=='cpu_default6' else inference/f'{method}.repeat-01'
+    publish(input_dir/'provider.json',f'{method}.provider.json')
+    publish(input_dir/'timing.json',f'{method}.timing.json')
+    for case in ['x-positive','x-negative','y-positive','y-negative','z-positive','z-negative']:
+        publish(quality/case/method/'problem.json',f'{case}.{method}.problem.json')
+        publish(quality/case/method/'result.json',f'{case}.{method}.result.json')
+provider_sources={f'published_provider:{m}':bindings[f'{m}.provider.json']['published_sha256'] for m in ['cpu','cuda_serial','cuda_batch']}
+for suffix in ['definition','benchmark']:
+    publish(inference/f'inference.{suffix}.json',f'inference.{suffix}.json',provider_sources)
+    publish(quality/f'validation.{suffix}.json',f'validation.{suffix}.json',{
+        f'published_result:{name}':item['published_sha256'] for name,item in bindings.items() if name.endswith('.result.json')})
+    publish(default/f'inference.{suffix}.json',f'default_cpu.{suffix}.json')
+manifest=DepthProviderArtifact.model_validate_json((destination/'cuda_batch.provider.json').read_bytes())
+for source,name in [
+    (Path('.tmp-calibrex-validate-featdepth-calibration.py'),'validation-launcher.py.txt'),
+    (Path('.tmp-calibrex-validate-featdepth-default-cpu.py'),'default-cpu-validation-launcher.py.txt'),
+    (Path(__file__),'publication-launcher.py.txt'),
+]:
+    target=destination/name
+    target.write_bytes(source.read_bytes())
+    bindings[name]={'original_path':str(source),'original_sha256':sha256_path(source),'published_sha256':sha256_path(target),'normalization':'none; byte-for-byte source archive'}
+manifest.artifact_id+='-publication'
+manifest.preprocessing.append(DepthPreprocessingStep(name='published_evidence_manifest',parameters={
+    'generator':'manual.publish_featdepth_evidence','generator_version':'v0.1','git_commit':git_commit(),
+    'publication_launcher_sha256':sha256_path(Path(__file__)),
+    'validation_launcher_sha256':sha256_path(Path('.tmp-calibrex-validate-featdepth-calibration.py')),
+    'cpu_thread_depth_difference':_difference(load_depth_provider(inference/'cpu.repeat-01/provider.json'),load_depth_provider(default/'cpu.repeat-01/provider.json')),
+    'artifacts':bindings,
+}))
+manifest.save(destination/'publication.depth-provider.json')
+print('Published',len(bindings),'artifacts plus schema-valid publication manifest',flush=True)

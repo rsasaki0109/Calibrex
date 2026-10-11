@@ -1,0 +1,416 @@
+{
+  "benchmark_id": "featdepth-cpu-cuda-inference",
+  "bootstrap_samples": 1,
+  "bootstrap_seed": 0,
+  "limitations": [
+    "Repeated identical frames on a shared host describe observed timing variation, not statistical confidence, recovery or portable performance.",
+    "No separate warmup. Every subprocess is fresh; OS file caches and concurrent user work may vary. Parent verification and comparison are excluded from wall.",
+    "Only FP32. Torch GPU counters exclude host memory and other device users. Loading holds one checkpoint byte buffer alongside deserialized weights.",
+    "Raw inverse-depth/disparity is retained. FeatDepth training overlap with KITTI raw is possible; no holdout-based model refinement.",
+    "Depth differences alone do not prove calibration equality; evaluate six-DoF search and held-out observations separately.",
+    "Parsed values and embedded JSON notes normalize external/workspace paths; original content digests are retained."
+  ],
+  "methods": [
+    {
+      "adapter_version": "calibrex.featdepth_provider/v0.2",
+      "implementation": "subprocess",
+      "label": "cpu",
+      "method_id": "cpu",
+      "source_commit": "0b67865",
+      "tool_name": "FeatDepth",
+      "tool_version": "550420b3fb51a027549716b74c6fbce41651d3a5"
+    },
+    {
+      "adapter_version": "calibrex.featdepth_provider/v0.2",
+      "implementation": "subprocess",
+      "label": "cuda_serial",
+      "method_id": "cuda_serial",
+      "source_commit": "0b67865",
+      "tool_name": "FeatDepth",
+      "tool_version": "550420b3fb51a027549716b74c6fbce41651d3a5"
+    },
+    {
+      "adapter_version": "calibrex.featdepth_provider/v0.2",
+      "implementation": "subprocess",
+      "label": "cuda_batch",
+      "method_id": "cuda_batch",
+      "source_commit": "0b67865",
+      "tool_name": "FeatDepth",
+      "tool_version": "550420b3fb51a027549716b74c6fbce41651d3a5"
+    }
+  ],
+  "metrics": [
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Prediction batches are a subset of inference_and_export; wall includes fresh interpreter and artifact writes",
+      "label": "subprocess_wall_seconds",
+      "name": "subprocess_wall_seconds",
+      "primary": true,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Prediction batches are a subset of inference_and_export; wall includes fresh interpreter and artifact writes",
+      "label": "inference_and_export",
+      "name": "inference_and_export",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Prediction batches are a subset of inference_and_export; wall includes fresh interpreter and artifact writes",
+      "label": "prediction_batches",
+      "name": "prediction_batches",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Prediction batches are a subset of inference_and_export; wall includes fresh interpreter and artifact writes",
+      "label": "preparation",
+      "name": "preparation",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Difference from same-repetition CPU FP32 maps; relative denominator floored at 1e-12",
+      "label": "depth_max_absolute",
+      "name": "depth_max_absolute",
+      "primary": false,
+      "unit": "disparity"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Difference from same-repetition CPU FP32 maps; relative denominator floored at 1e-12",
+      "label": "depth_max_relative",
+      "name": "depth_max_relative",
+      "primary": false,
+      "unit": "ratio"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Difference from same-repetition CPU FP32 maps; relative denominator floored at 1e-12",
+      "label": "depth_rmse",
+      "name": "depth_rmse",
+      "primary": false,
+      "unit": "disparity"
+    }
+  ],
+  "protocol": {
+    "data_license": "KITTI raw dataset terms; external data and weights are not redistributed",
+    "dataset_id": "2011_09_30_drive_0018_sync",
+    "dataset_source_sha256": "9ee549ffa8240d56de4f110f237fa8629c96d17b5dc16608f1e790852683b170",
+    "failure_policy": "Abort without an aggregate on subprocess, provenance, finite-value or verification failure; preserve per-run evidence",
+    "initial_estimate_policy": "No optimizer; same pinned checkpoint and input images",
+    "protocol_id": "featdepth-identical-images-v1",
+    "split_policy": "Same uniformly selected images; holdout is a CPU prediction anchor, not independent accuracy data",
+    "splits": [
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "0fb482f2ea2979239ca6add39fcd3ce9e83903fae5a2a4eb2ef3bed9ec9f61a8",
+        "holdout_count": 25,
+        "holdout_ids_sha256": "0fb482f2ea2979239ca6add39fcd3ce9e83903fae5a2a4eb2ef3bed9ec9f61a8",
+        "seed": 1,
+        "split_id": "repeat-01"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "0fb482f2ea2979239ca6add39fcd3ce9e83903fae5a2a4eb2ef3bed9ec9f61a8",
+        "holdout_count": 25,
+        "holdout_ids_sha256": "0fb482f2ea2979239ca6add39fcd3ce9e83903fae5a2a4eb2ef3bed9ec9f61a8",
+        "seed": 2,
+        "split_id": "repeat-02"
+      },
+      {
+        "fit_count": 25,
+        "fit_ids_sha256": "0fb482f2ea2979239ca6add39fcd3ce9e83903fae5a2a4eb2ef3bed9ec9f61a8",
+        "holdout_count": 25,
+        "holdout_ids_sha256": "0fb482f2ea2979239ca6add39fcd3ce9e83903fae5a2a4eb2ef3bed9ec9f61a8",
+        "seed": 3,
+        "split_id": "repeat-03"
+      }
+    ],
+    "tuning_policy": "FP32, CPU threads=2, GPU batch=2, workers=2; reverse order every other repetition"
+  },
+  "provenance": {
+    "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/tools/benchmark_featdepth_provider.py /external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --featdepth-repository /external/calibrex-public-inputs/providers/FeatDepth-git --checkpoint /external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth --output-dir outputs/public-kitti-featdepth-batching-v3 --cpu-threads 2 --repetitions 3",
+    "data_verified": true,
+    "generated_at": "2026-10-11T04:15:13.467995+00:00",
+    "generator": "tools.benchmark_featdepth_provider",
+    "generator_version": "v0.1",
+    "git_commit": "0b67865",
+    "source_artifacts": {
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-01/provider.json": "c2ab6567dc4074b3d99b58046453c5ca4292a22381299361d32dbbc35a964b70",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-01/run.log": "938dcff7f1e560db23b86c61cc5f9fd89d471653a3c0d9fb3a3007af29e57495",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-01/timing.json": "0b2edf16ff63c48f9c9ab29b17a87929685fdc2333e83102dfae4a1360220ff0",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-02/provider.json": "5a49a385c7bb11e75a44202c46436c3a6aa1732881fe2130096a144be4c41ac0",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-02/run.log": "49b24b147df373c85c11bd905ebefdab63bb3edc30a28da35bdc9cbbb2898655",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-02/timing.json": "88d08cdd5b33439e97139a0a967970425ed45a8ca76f30e3766b927a31b9933d",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-03/provider.json": "cb455e019c51dce4f275451fd4f69617fd5b5be89068924024308e2cd4ba690d",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-03/run.log": "dd580b120298624e8120492e795d98f0e47bfe96006d0c4265441f78aa079e8f",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-03/timing.json": "f1a14feb784783bb4b98f27f36008b389959dc49f6d699b78d8b74e06ea8798d",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-01/provider.json": "33603aea34d756622c0f9f9aa2abe072e9b0c249ac73ccb3b37ce3c943eb3647",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-01/run.log": "f86e39844fb53369a34a0bff3abcca6cec7f1aded353a7adb21b9a23d813e97f",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-01/timing.json": "52874ad015d379636fe78f91854062a563a6bf057ad05d016e55be4898a08434",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-02/provider.json": "f42747dbd72dc6cbb84805eb049ebe5e20b5733faadbdf1a1ebb222419f9b7fb",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-02/run.log": "eeb212baf8a280a0e51c384ed5ff12eec2354b6523cbefa23c0579f5b146f425",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-02/timing.json": "a68fa30ff78f7eb9ef6fac782961e0f610234a28d3ff32656ec3b755459693ae",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-03/provider.json": "94d5ec4412aff1cb958ee940469e542631f62b31169a2f0ad99f5a95b89596f1",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-03/run.log": "73d71823b623aceabcf458a11e715c098e0d4612d90d61b484f0417022e37ffc",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-03/timing.json": "2797d5848080d52909bc79e29a5e3d8b3313a3ab41d42871eaf7eabcc4e35479",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-01/provider.json": "9560bf84b1862e9b3cd4788a231545d762dbfe76fa63428ab805be1fa5b49f68",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-01/run.log": "fcb80d698ed722104653723706041eb48475cd683687bb66b81067f98514fb64",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-01/timing.json": "180ef28368ceca99b023d749dfe49ff608e0fcdc8bd3035831a668234b02325a",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-02/provider.json": "e97595eb8ab1ba64b0decd90ed09d03ea21209447b58c7e6c0ad0622f6ef65b4",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-02/run.log": "70831689d00dd9b7e1292c3e0216f18eed78c288c8566d0eb5a83662f54cc1f9",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-02/timing.json": "d4d310d1c6a783db44e44412b7c611c0fb3d58d687a2f40110afa1152853b77a",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-03/provider.json": "57bad8976687beb57b6d280b96d2537c10247d60b2143d57de563bfe5e23c60a",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-03/run.log": "553c8586ca2d326c023f6501cc55c44561e99035e6861c76ea9a0405db276aa1",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-03/timing.json": "ff548e761f9c63a5cb875fdedbc74c8de663df4bc2f6c0ce7001afa2f714b61f",
+      "/workspace/Calibrex/tools/benchmark_featdepth_provider.py": "801b664c330a0763f95600e20fa40b94de7a68ae1d901fe1f69609a2377e7f4b",
+      "/workspace/Calibrex/tools/run_featdepth_provider.py": "df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552",
+      "original_unmodified_artifact": "45945bb97e89bd0ba35d175cee73fe20d7ed986413abbed9ec4f3190fd6b2572",
+      "published_provider:cpu": "ffac114d1c832142283f20722ba54dc31cd6a8e1d5ccf1f5084d38379dd9f112",
+      "published_provider:cuda_batch": "88ef40ea3a4076a2c838f82ba337e52d440b6bf2ce1e81e18791e524d02e5859",
+      "published_provider:cuda_serial": "8fb697d624f8b50ddbdc81ae7dc352c4cd7b4bfba5e305c00d5525f28436e0d1"
+    }
+  },
+  "reference_method_id": "cpu",
+  "schema_version": "slac.benchmark_definition/v0.1",
+  "title": "Public FeatDepth inference execution comparison",
+  "trials": [
+    {
+      "method_id": "cpu",
+      "metrics": {
+        "depth_max_absolute": 0.0,
+        "depth_max_relative": 0.0,
+        "depth_rmse": 0.0,
+        "inference_and_export": 108.09021819999907,
+        "prediction_batches": 106.99309060012456,
+        "preparation": 7.588314499997068,
+        "subprocess_wall_seconds": 117.34701819997281
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/tools/run_featdepth_provider.py /external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --featdepth-repository /external/calibrex-public-inputs/providers/FeatDepth-git --checkpoint /external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth --frame-count 25 --output-directory /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-01/depth --artifact-output /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-01/provider.json --timing-output /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-01/timing.json --device cpu --cpu-threads 2",
+        "config_sha256": "df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "9ee549ffa8240d56de4f110f237fa8629c96d17b5dc16608f1e790852683b170",
+        "notes": [
+          "{\"command\": [\"/workspace/Calibrex/.venv/Scripts/python.exe\", \"/workspace/Calibrex/tools/run_featdepth_provider.py\", \"/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync\", \"--featdepth-repository\", \"/external/calibrex-public-inputs/providers/FeatDepth-git\", \"--checkpoint\", \"/external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth\", \"--frame-count\", \"25\", \"--output-directory\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-01/depth\", \"--artifact-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-01/provider.json\", \"--timing-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-01/timing.json\", \"--device\", \"cpu\", \"--cpu-threads\", \"2\"], \"depth_difference\": {\"max_absolute\": 0.0, \"max_relative\": 0.0, \"rmse\": 0.0}, \"method\": \"cpu\", \"order\": [\"cpu\", \"cuda_serial\", \"cuda_batch\"], \"provider_path\": \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-01/provider.json\", \"provider_sha256\": \"c2ab6567dc4074b3d99b58046453c5ca4292a22381299361d32dbbc35a964b70\", \"repeat\": 1, \"subprocess_wall_seconds\": 117.34701819997281, \"timing\": {\"adapter_sha256\": \"df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552\", \"artifact_save_seconds\": 0.054747699992731214, \"command\": [\"/workspace/Calibrex/.venv/Scripts/python.exe\", \"/workspace/Calibrex/tools/run_featdepth_provider.py\", \"/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync\", \"--featdepth-repository\", \"/external/calibrex-public-inputs/providers/FeatDepth-git\", \"--checkpoint\", \"/external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth\", \"--frame-count\", \"25\", \"--output-directory\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-01/depth\", \"--artifact-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-01/provider.json\", \"--timing-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-01/timing.json\", \"--device\", \"cpu\", \"--cpu-threads\", \"2\"], \"execution\": {\"adapter_sha256\": \"df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552\", \"adapter_version\": \"calibrex.featdepth_provider/v0.2\", \"batch_count\": 25, \"batch_size\": 1, \"cudnn_allow_tf32\": true, \"cudnn_benchmark\": false, \"image_queue_limit\": 0, \"precision\": \"float32\", \"prediction_timing_scope\": \"tensor upload/resize, model, output resize/download; subset of inference_and_export\", \"preprocess_workers\": 0, \"timing_seconds\": {\"inference_and_export\": 108.09021819999907, \"prediction_batches\": 106.99309060012456, \"preparation\": 7.588314499997068}, \"torch_cpu_threads\": 2}, \"generator\": \"calibrex.featdepth_provider/v0.2\", \"provider_sha256\": \"c2ab6567dc4074b3d99b58046453c5ca4292a22381299361d32dbbc35a964b70\", \"run_seconds\": 115.73328039998887, \"source_commit\": \"0b67865\", \"timing_scope\": \"from main entry through provider save; excludes interpreter/import startup and timing report write\"}}"
+        ],
+        "output_sha256": "c2ab6567dc4074b3d99b58046453c5ca4292a22381299361d32dbbc35a964b70"
+      },
+      "runtime_seconds": 117.34701819997281,
+      "split_id": "repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_serial",
+      "metrics": {
+        "depth_max_absolute": 3.904104232788086e-06,
+        "depth_max_relative": 2.7816306490317446e-05,
+        "depth_rmse": 1.400327475666398e-07,
+        "inference_and_export": 2.7309534000232816,
+        "prediction_batches": 1.7757915999973193,
+        "preparation": 8.614536200009752,
+        "subprocess_wall_seconds": 13.17611709999619
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/tools/run_featdepth_provider.py /external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --featdepth-repository /external/calibrex-public-inputs/providers/FeatDepth-git --checkpoint /external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth --frame-count 25 --output-directory /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-01/depth --artifact-output /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-01/provider.json --timing-output /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-01/timing.json --device cuda",
+        "config_sha256": "df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "9ee549ffa8240d56de4f110f237fa8629c96d17b5dc16608f1e790852683b170",
+        "notes": [
+          "{\"command\": [\"/workspace/Calibrex/.venv/Scripts/python.exe\", \"/workspace/Calibrex/tools/run_featdepth_provider.py\", \"/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync\", \"--featdepth-repository\", \"/external/calibrex-public-inputs/providers/FeatDepth-git\", \"--checkpoint\", \"/external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth\", \"--frame-count\", \"25\", \"--output-directory\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-01/depth\", \"--artifact-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-01/provider.json\", \"--timing-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-01/timing.json\", \"--device\", \"cuda\"], \"depth_difference\": {\"max_absolute\": 3.904104232788086e-06, \"max_relative\": 2.7816306490317446e-05, \"rmse\": 1.400327475666398e-07}, \"method\": \"cuda_serial\", \"order\": [\"cpu\", \"cuda_serial\", \"cuda_batch\"], \"provider_path\": \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-01/provider.json\", \"provider_sha256\": \"9560bf84b1862e9b3cd4788a231545d762dbfe76fa63428ab805be1fa5b49f68\", \"repeat\": 1, \"subprocess_wall_seconds\": 13.17611709999619, \"timing\": {\"adapter_sha256\": \"df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552\", \"artifact_save_seconds\": 0.06376069999532774, \"command\": [\"/workspace/Calibrex/.venv/Scripts/python.exe\", \"/workspace/Calibrex/tools/run_featdepth_provider.py\", \"/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync\", \"--featdepth-repository\", \"/external/calibrex-public-inputs/providers/FeatDepth-git\", \"--checkpoint\", \"/external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth\", \"--frame-count\", \"25\", \"--output-directory\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-01/depth\", \"--artifact-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-01/provider.json\", \"--timing-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-01/timing.json\", \"--device\", \"cuda\"], \"execution\": {\"adapter_sha256\": \"df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552\", \"adapter_version\": \"calibrex.featdepth_provider/v0.2\", \"batch_count\": 25, \"batch_size\": 1, \"cudnn_allow_tf32\": true, \"cudnn_benchmark\": false, \"gpu\": \"NVIDIA GeForce GTX 1660 Ti\", \"image_queue_limit\": 0, \"peak_torch_allocated_bytes\": 406979072, \"peak_torch_reserved_bytes\": 599785472, \"precision\": \"float32\", \"prediction_timing_scope\": \"tensor upload/resize, model, output resize/download; subset of inference_and_export\", \"preprocess_workers\": 0, \"timing_seconds\": {\"inference_and_export\": 2.7309534000232816, \"prediction_batches\": 1.7757915999973193, \"preparation\": 8.614536200009752}, \"torch_cpu_threads\": 6, \"torch_cuda\": \"12.8\"}, \"generator\": \"calibrex.featdepth_provider/v0.2\", \"provider_sha256\": \"9560bf84b1862e9b3cd4788a231545d762dbfe76fa63428ab805be1fa5b49f68\", \"run_seconds\": 11.409250300028361, \"source_commit\": \"0b67865\", \"timing_scope\": \"from main entry through provider save; excludes interpreter/import startup and timing report write\"}}"
+        ],
+        "output_sha256": "9560bf84b1862e9b3cd4788a231545d762dbfe76fa63428ab805be1fa5b49f68"
+      },
+      "runtime_seconds": 13.17611709999619,
+      "split_id": "repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_batch",
+      "metrics": {
+        "depth_max_absolute": 6.139278411865234e-06,
+        "depth_max_relative": 3.0372361761637705e-05,
+        "depth_rmse": 1.4364762741616948e-07,
+        "inference_and_export": 2.20839350001188,
+        "prediction_batches": 1.6770933998632245,
+        "preparation": 8.40722769999411,
+        "subprocess_wall_seconds": 12.458591100003105
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/tools/run_featdepth_provider.py /external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --featdepth-repository /external/calibrex-public-inputs/providers/FeatDepth-git --checkpoint /external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth --frame-count 25 --output-directory /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-01/depth --artifact-output /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-01/provider.json --timing-output /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-01/timing.json --device cuda --batch-size 2 --preprocess-workers 2",
+        "config_sha256": "df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "9ee549ffa8240d56de4f110f237fa8629c96d17b5dc16608f1e790852683b170",
+        "notes": [
+          "{\"command\": [\"/workspace/Calibrex/.venv/Scripts/python.exe\", \"/workspace/Calibrex/tools/run_featdepth_provider.py\", \"/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync\", \"--featdepth-repository\", \"/external/calibrex-public-inputs/providers/FeatDepth-git\", \"--checkpoint\", \"/external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth\", \"--frame-count\", \"25\", \"--output-directory\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-01/depth\", \"--artifact-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-01/provider.json\", \"--timing-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-01/timing.json\", \"--device\", \"cuda\", \"--batch-size\", \"2\", \"--preprocess-workers\", \"2\"], \"depth_difference\": {\"max_absolute\": 6.139278411865234e-06, \"max_relative\": 3.0372361761637705e-05, \"rmse\": 1.4364762741616948e-07}, \"method\": \"cuda_batch\", \"order\": [\"cpu\", \"cuda_serial\", \"cuda_batch\"], \"provider_path\": \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-01/provider.json\", \"provider_sha256\": \"33603aea34d756622c0f9f9aa2abe072e9b0c249ac73ccb3b37ce3c943eb3647\", \"repeat\": 1, \"subprocess_wall_seconds\": 12.458591100003105, \"timing\": {\"adapter_sha256\": \"df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552\", \"artifact_save_seconds\": 0.05430969997541979, \"command\": [\"/workspace/Calibrex/.venv/Scripts/python.exe\", \"/workspace/Calibrex/tools/run_featdepth_provider.py\", \"/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync\", \"--featdepth-repository\", \"/external/calibrex-public-inputs/providers/FeatDepth-git\", \"--checkpoint\", \"/external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth\", \"--frame-count\", \"25\", \"--output-directory\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-01/depth\", \"--artifact-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-01/provider.json\", \"--timing-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-01/timing.json\", \"--device\", \"cuda\", \"--batch-size\", \"2\", \"--preprocess-workers\", \"2\"], \"execution\": {\"adapter_sha256\": \"df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552\", \"adapter_version\": \"calibrex.featdepth_provider/v0.2\", \"batch_count\": 13, \"batch_size\": 2, \"cudnn_allow_tf32\": true, \"cudnn_benchmark\": false, \"gpu\": \"NVIDIA GeForce GTX 1660 Ti\", \"image_queue_limit\": 6, \"peak_torch_allocated_bytes\": 675414528, \"peak_torch_reserved_bytes\": 1027604480, \"precision\": \"float32\", \"prediction_timing_scope\": \"tensor upload/resize, model, output resize/download; subset of inference_and_export\", \"preprocess_workers\": 2, \"timing_seconds\": {\"inference_and_export\": 2.20839350001188, \"prediction_batches\": 1.6770933998632245, \"preparation\": 8.40722769999411}, \"torch_cpu_threads\": 6, \"torch_cuda\": \"12.8\"}, \"generator\": \"calibrex.featdepth_provider/v0.2\", \"provider_sha256\": \"33603aea34d756622c0f9f9aa2abe072e9b0c249ac73ccb3b37ce3c943eb3647\", \"run_seconds\": 10.66993089998141, \"source_commit\": \"0b67865\", \"timing_scope\": \"from main entry through provider save; excludes interpreter/import startup and timing report write\"}}"
+        ],
+        "output_sha256": "33603aea34d756622c0f9f9aa2abe072e9b0c249ac73ccb3b37ce3c943eb3647"
+      },
+      "runtime_seconds": 12.458591100003105,
+      "split_id": "repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_batch",
+      "metrics": {
+        "depth_max_absolute": 6.139278411865234e-06,
+        "depth_max_relative": 3.0372361761637705e-05,
+        "depth_rmse": 1.4364762741616948e-07,
+        "inference_and_export": 2.3459249999723397,
+        "prediction_batches": 1.7880705000134185,
+        "preparation": 8.641270900028758,
+        "subprocess_wall_seconds": 13.078348900016863
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/tools/run_featdepth_provider.py /external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --featdepth-repository /external/calibrex-public-inputs/providers/FeatDepth-git --checkpoint /external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth --frame-count 25 --output-directory /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-02/depth --artifact-output /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-02/provider.json --timing-output /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-02/timing.json --device cuda --batch-size 2 --preprocess-workers 2",
+        "config_sha256": "df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "9ee549ffa8240d56de4f110f237fa8629c96d17b5dc16608f1e790852683b170",
+        "notes": [
+          "{\"command\": [\"/workspace/Calibrex/.venv/Scripts/python.exe\", \"/workspace/Calibrex/tools/run_featdepth_provider.py\", \"/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync\", \"--featdepth-repository\", \"/external/calibrex-public-inputs/providers/FeatDepth-git\", \"--checkpoint\", \"/external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth\", \"--frame-count\", \"25\", \"--output-directory\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-02/depth\", \"--artifact-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-02/provider.json\", \"--timing-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-02/timing.json\", \"--device\", \"cuda\", \"--batch-size\", \"2\", \"--preprocess-workers\", \"2\"], \"depth_difference\": {\"max_absolute\": 6.139278411865234e-06, \"max_relative\": 3.0372361761637705e-05, \"rmse\": 1.4364762741616948e-07}, \"method\": \"cuda_batch\", \"order\": [\"cuda_batch\", \"cuda_serial\", \"cpu\"], \"provider_path\": \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-02/provider.json\", \"provider_sha256\": \"f42747dbd72dc6cbb84805eb049ebe5e20b5733faadbdf1a1ebb222419f9b7fb\", \"repeat\": 2, \"subprocess_wall_seconds\": 13.078348900016863, \"timing\": {\"adapter_sha256\": \"df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552\", \"artifact_save_seconds\": 0.05576010001823306, \"command\": [\"/workspace/Calibrex/.venv/Scripts/python.exe\", \"/workspace/Calibrex/tools/run_featdepth_provider.py\", \"/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync\", \"--featdepth-repository\", \"/external/calibrex-public-inputs/providers/FeatDepth-git\", \"--checkpoint\", \"/external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth\", \"--frame-count\", \"25\", \"--output-directory\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-02/depth\", \"--artifact-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-02/provider.json\", \"--timing-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-02/timing.json\", \"--device\", \"cuda\", \"--batch-size\", \"2\", \"--preprocess-workers\", \"2\"], \"execution\": {\"adapter_sha256\": \"df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552\", \"adapter_version\": \"calibrex.featdepth_provider/v0.2\", \"batch_count\": 13, \"batch_size\": 2, \"cudnn_allow_tf32\": true, \"cudnn_benchmark\": false, \"gpu\": \"NVIDIA GeForce GTX 1660 Ti\", \"image_queue_limit\": 6, \"peak_torch_allocated_bytes\": 675414528, \"peak_torch_reserved_bytes\": 1027604480, \"precision\": \"float32\", \"prediction_timing_scope\": \"tensor upload/resize, model, output resize/download; subset of inference_and_export\", \"preprocess_workers\": 2, \"timing_seconds\": {\"inference_and_export\": 2.3459249999723397, \"prediction_batches\": 1.7880705000134185, \"preparation\": 8.641270900028758}, \"torch_cpu_threads\": 6, \"torch_cuda\": \"12.8\"}, \"generator\": \"calibrex.featdepth_provider/v0.2\", \"provider_sha256\": \"f42747dbd72dc6cbb84805eb049ebe5e20b5733faadbdf1a1ebb222419f9b7fb\", \"run_seconds\": 11.04295600001933, \"source_commit\": \"0b67865\", \"timing_scope\": \"from main entry through provider save; excludes interpreter/import startup and timing report write\"}}"
+        ],
+        "output_sha256": "f42747dbd72dc6cbb84805eb049ebe5e20b5733faadbdf1a1ebb222419f9b7fb"
+      },
+      "runtime_seconds": 13.078348900016863,
+      "split_id": "repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_serial",
+      "metrics": {
+        "depth_max_absolute": 3.904104232788086e-06,
+        "depth_max_relative": 2.7816306490317446e-05,
+        "depth_rmse": 1.400327475666398e-07,
+        "inference_and_export": 2.6861804999643937,
+        "prediction_batches": 1.7119982001022436,
+        "preparation": 8.642965400009416,
+        "subprocess_wall_seconds": 13.372894099971745
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/tools/run_featdepth_provider.py /external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --featdepth-repository /external/calibrex-public-inputs/providers/FeatDepth-git --checkpoint /external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth --frame-count 25 --output-directory /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-02/depth --artifact-output /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-02/provider.json --timing-output /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-02/timing.json --device cuda",
+        "config_sha256": "df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "9ee549ffa8240d56de4f110f237fa8629c96d17b5dc16608f1e790852683b170",
+        "notes": [
+          "{\"command\": [\"/workspace/Calibrex/.venv/Scripts/python.exe\", \"/workspace/Calibrex/tools/run_featdepth_provider.py\", \"/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync\", \"--featdepth-repository\", \"/external/calibrex-public-inputs/providers/FeatDepth-git\", \"--checkpoint\", \"/external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth\", \"--frame-count\", \"25\", \"--output-directory\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-02/depth\", \"--artifact-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-02/provider.json\", \"--timing-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-02/timing.json\", \"--device\", \"cuda\"], \"depth_difference\": {\"max_absolute\": 3.904104232788086e-06, \"max_relative\": 2.7816306490317446e-05, \"rmse\": 1.400327475666398e-07}, \"method\": \"cuda_serial\", \"order\": [\"cuda_batch\", \"cuda_serial\", \"cpu\"], \"provider_path\": \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-02/provider.json\", \"provider_sha256\": \"e97595eb8ab1ba64b0decd90ed09d03ea21209447b58c7e6c0ad0622f6ef65b4\", \"repeat\": 2, \"subprocess_wall_seconds\": 13.372894099971745, \"timing\": {\"adapter_sha256\": \"df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552\", \"artifact_save_seconds\": 0.05808470002375543, \"command\": [\"/workspace/Calibrex/.venv/Scripts/python.exe\", \"/workspace/Calibrex/tools/run_featdepth_provider.py\", \"/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync\", \"--featdepth-repository\", \"/external/calibrex-public-inputs/providers/FeatDepth-git\", \"--checkpoint\", \"/external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth\", \"--frame-count\", \"25\", \"--output-directory\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-02/depth\", \"--artifact-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-02/provider.json\", \"--timing-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-02/timing.json\", \"--device\", \"cuda\"], \"execution\": {\"adapter_sha256\": \"df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552\", \"adapter_version\": \"calibrex.featdepth_provider/v0.2\", \"batch_count\": 25, \"batch_size\": 1, \"cudnn_allow_tf32\": true, \"cudnn_benchmark\": false, \"gpu\": \"NVIDIA GeForce GTX 1660 Ti\", \"image_queue_limit\": 0, \"peak_torch_allocated_bytes\": 406979072, \"peak_torch_reserved_bytes\": 599785472, \"precision\": \"float32\", \"prediction_timing_scope\": \"tensor upload/resize, model, output resize/download; subset of inference_and_export\", \"preprocess_workers\": 0, \"timing_seconds\": {\"inference_and_export\": 2.6861804999643937, \"prediction_batches\": 1.7119982001022436, \"preparation\": 8.642965400009416}, \"torch_cpu_threads\": 6, \"torch_cuda\": \"12.8\"}, \"generator\": \"calibrex.featdepth_provider/v0.2\", \"provider_sha256\": \"e97595eb8ab1ba64b0decd90ed09d03ea21209447b58c7e6c0ad0622f6ef65b4\", \"run_seconds\": 11.387230599997565, \"source_commit\": \"0b67865\", \"timing_scope\": \"from main entry through provider save; excludes interpreter/import startup and timing report write\"}}"
+        ],
+        "output_sha256": "e97595eb8ab1ba64b0decd90ed09d03ea21209447b58c7e6c0ad0622f6ef65b4"
+      },
+      "runtime_seconds": 13.372894099971745,
+      "split_id": "repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "cpu",
+      "metrics": {
+        "depth_max_absolute": 0.0,
+        "depth_max_relative": 0.0,
+        "depth_rmse": 0.0,
+        "inference_and_export": 113.64009549998445,
+        "prediction_batches": 112.5262851997395,
+        "preparation": 8.481090600020252,
+        "subprocess_wall_seconds": 123.94030670000939
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/tools/run_featdepth_provider.py /external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --featdepth-repository /external/calibrex-public-inputs/providers/FeatDepth-git --checkpoint /external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth --frame-count 25 --output-directory /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-02/depth --artifact-output /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-02/provider.json --timing-output /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-02/timing.json --device cpu --cpu-threads 2",
+        "config_sha256": "df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "9ee549ffa8240d56de4f110f237fa8629c96d17b5dc16608f1e790852683b170",
+        "notes": [
+          "{\"command\": [\"/workspace/Calibrex/.venv/Scripts/python.exe\", \"/workspace/Calibrex/tools/run_featdepth_provider.py\", \"/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync\", \"--featdepth-repository\", \"/external/calibrex-public-inputs/providers/FeatDepth-git\", \"--checkpoint\", \"/external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth\", \"--frame-count\", \"25\", \"--output-directory\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-02/depth\", \"--artifact-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-02/provider.json\", \"--timing-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-02/timing.json\", \"--device\", \"cpu\", \"--cpu-threads\", \"2\"], \"depth_difference\": {\"max_absolute\": 0.0, \"max_relative\": 0.0, \"rmse\": 0.0}, \"method\": \"cpu\", \"order\": [\"cuda_batch\", \"cuda_serial\", \"cpu\"], \"provider_path\": \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-02/provider.json\", \"provider_sha256\": \"5a49a385c7bb11e75a44202c46436c3a6aa1732881fe2130096a144be4c41ac0\", \"repeat\": 2, \"subprocess_wall_seconds\": 123.94030670000939, \"timing\": {\"adapter_sha256\": \"df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552\", \"artifact_save_seconds\": 0.053535700018983334, \"command\": [\"/workspace/Calibrex/.venv/Scripts/python.exe\", \"/workspace/Calibrex/tools/run_featdepth_provider.py\", \"/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync\", \"--featdepth-repository\", \"/external/calibrex-public-inputs/providers/FeatDepth-git\", \"--checkpoint\", \"/external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth\", \"--frame-count\", \"25\", \"--output-directory\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-02/depth\", \"--artifact-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-02/provider.json\", \"--timing-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-02/timing.json\", \"--device\", \"cpu\", \"--cpu-threads\", \"2\"], \"execution\": {\"adapter_sha256\": \"df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552\", \"adapter_version\": \"calibrex.featdepth_provider/v0.2\", \"batch_count\": 25, \"batch_size\": 1, \"cudnn_allow_tf32\": true, \"cudnn_benchmark\": false, \"image_queue_limit\": 0, \"precision\": \"float32\", \"prediction_timing_scope\": \"tensor upload/resize, model, output resize/download; subset of inference_and_export\", \"preprocess_workers\": 0, \"timing_seconds\": {\"inference_and_export\": 113.64009549998445, \"prediction_batches\": 112.5262851997395, \"preparation\": 8.481090600020252}, \"torch_cpu_threads\": 2}, \"generator\": \"calibrex.featdepth_provider/v0.2\", \"provider_sha256\": \"5a49a385c7bb11e75a44202c46436c3a6aa1732881fe2130096a144be4c41ac0\", \"run_seconds\": 122.17472180002369, \"source_commit\": \"0b67865\", \"timing_scope\": \"from main entry through provider save; excludes interpreter/import startup and timing report write\"}}"
+        ],
+        "output_sha256": "5a49a385c7bb11e75a44202c46436c3a6aa1732881fe2130096a144be4c41ac0"
+      },
+      "runtime_seconds": 123.94030670000939,
+      "split_id": "repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "cpu",
+      "metrics": {
+        "depth_max_absolute": 0.0,
+        "depth_max_relative": 0.0,
+        "depth_rmse": 0.0,
+        "inference_and_export": 122.19418460002635,
+        "prediction_batches": 121.0361651002313,
+        "preparation": 8.559987999964505,
+        "subprocess_wall_seconds": 132.53162330004852
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/tools/run_featdepth_provider.py /external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --featdepth-repository /external/calibrex-public-inputs/providers/FeatDepth-git --checkpoint /external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth --frame-count 25 --output-directory /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-03/depth --artifact-output /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-03/provider.json --timing-output /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-03/timing.json --device cpu --cpu-threads 2",
+        "config_sha256": "df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "9ee549ffa8240d56de4f110f237fa8629c96d17b5dc16608f1e790852683b170",
+        "notes": [
+          "{\"command\": [\"/workspace/Calibrex/.venv/Scripts/python.exe\", \"/workspace/Calibrex/tools/run_featdepth_provider.py\", \"/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync\", \"--featdepth-repository\", \"/external/calibrex-public-inputs/providers/FeatDepth-git\", \"--checkpoint\", \"/external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth\", \"--frame-count\", \"25\", \"--output-directory\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-03/depth\", \"--artifact-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-03/provider.json\", \"--timing-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-03/timing.json\", \"--device\", \"cpu\", \"--cpu-threads\", \"2\"], \"depth_difference\": {\"max_absolute\": 0.0, \"max_relative\": 0.0, \"rmse\": 0.0}, \"method\": \"cpu\", \"order\": [\"cpu\", \"cuda_serial\", \"cuda_batch\"], \"provider_path\": \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-03/provider.json\", \"provider_sha256\": \"cb455e019c51dce4f275451fd4f69617fd5b5be89068924024308e2cd4ba690d\", \"repeat\": 3, \"subprocess_wall_seconds\": 132.53162330004852, \"timing\": {\"adapter_sha256\": \"df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552\", \"artifact_save_seconds\": 0.055540199973620474, \"command\": [\"/workspace/Calibrex/.venv/Scripts/python.exe\", \"/workspace/Calibrex/tools/run_featdepth_provider.py\", \"/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync\", \"--featdepth-repository\", \"/external/calibrex-public-inputs/providers/FeatDepth-git\", \"--checkpoint\", \"/external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth\", \"--frame-count\", \"25\", \"--output-directory\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-03/depth\", \"--artifact-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-03/provider.json\", \"--timing-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cpu.repeat-03/timing.json\", \"--device\", \"cpu\", \"--cpu-threads\", \"2\"], \"execution\": {\"adapter_sha256\": \"df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552\", \"adapter_version\": \"calibrex.featdepth_provider/v0.2\", \"batch_count\": 25, \"batch_size\": 1, \"cudnn_allow_tf32\": true, \"cudnn_benchmark\": false, \"image_queue_limit\": 0, \"precision\": \"float32\", \"prediction_timing_scope\": \"tensor upload/resize, model, output resize/download; subset of inference_and_export\", \"preprocess_workers\": 0, \"timing_seconds\": {\"inference_and_export\": 122.19418460002635, \"prediction_batches\": 121.0361651002313, \"preparation\": 8.559987999964505}, \"torch_cpu_threads\": 2}, \"generator\": \"calibrex.featdepth_provider/v0.2\", \"provider_sha256\": \"cb455e019c51dce4f275451fd4f69617fd5b5be89068924024308e2cd4ba690d\", \"run_seconds\": 130.80971279996447, \"source_commit\": \"0b67865\", \"timing_scope\": \"from main entry through provider save; excludes interpreter/import startup and timing report write\"}}"
+        ],
+        "output_sha256": "cb455e019c51dce4f275451fd4f69617fd5b5be89068924024308e2cd4ba690d"
+      },
+      "runtime_seconds": 132.53162330004852,
+      "split_id": "repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_serial",
+      "metrics": {
+        "depth_max_absolute": 3.904104232788086e-06,
+        "depth_max_relative": 2.7816306490317446e-05,
+        "depth_rmse": 1.400327475666398e-07,
+        "inference_and_export": 2.7756394000025466,
+        "prediction_batches": 1.729170200007502,
+        "preparation": 15.756475999951363,
+        "subprocess_wall_seconds": 22.416442699963227
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/tools/run_featdepth_provider.py /external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --featdepth-repository /external/calibrex-public-inputs/providers/FeatDepth-git --checkpoint /external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth --frame-count 25 --output-directory /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-03/depth --artifact-output /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-03/provider.json --timing-output /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-03/timing.json --device cuda",
+        "config_sha256": "df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "9ee549ffa8240d56de4f110f237fa8629c96d17b5dc16608f1e790852683b170",
+        "notes": [
+          "{\"command\": [\"/workspace/Calibrex/.venv/Scripts/python.exe\", \"/workspace/Calibrex/tools/run_featdepth_provider.py\", \"/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync\", \"--featdepth-repository\", \"/external/calibrex-public-inputs/providers/FeatDepth-git\", \"--checkpoint\", \"/external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth\", \"--frame-count\", \"25\", \"--output-directory\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-03/depth\", \"--artifact-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-03/provider.json\", \"--timing-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-03/timing.json\", \"--device\", \"cuda\"], \"depth_difference\": {\"max_absolute\": 3.904104232788086e-06, \"max_relative\": 2.7816306490317446e-05, \"rmse\": 1.400327475666398e-07}, \"method\": \"cuda_serial\", \"order\": [\"cpu\", \"cuda_serial\", \"cuda_batch\"], \"provider_path\": \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-03/provider.json\", \"provider_sha256\": \"57bad8976687beb57b6d280b96d2537c10247d60b2143d57de563bfe5e23c60a\", \"repeat\": 3, \"subprocess_wall_seconds\": 22.416442699963227, \"timing\": {\"adapter_sha256\": \"df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552\", \"artifact_save_seconds\": 0.39152330002980307, \"command\": [\"/workspace/Calibrex/.venv/Scripts/python.exe\", \"/workspace/Calibrex/tools/run_featdepth_provider.py\", \"/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync\", \"--featdepth-repository\", \"/external/calibrex-public-inputs/providers/FeatDepth-git\", \"--checkpoint\", \"/external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth\", \"--frame-count\", \"25\", \"--output-directory\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-03/depth\", \"--artifact-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-03/provider.json\", \"--timing-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_serial.repeat-03/timing.json\", \"--device\", \"cuda\"], \"execution\": {\"adapter_sha256\": \"df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552\", \"adapter_version\": \"calibrex.featdepth_provider/v0.2\", \"batch_count\": 25, \"batch_size\": 1, \"cudnn_allow_tf32\": true, \"cudnn_benchmark\": false, \"gpu\": \"NVIDIA GeForce GTX 1660 Ti\", \"image_queue_limit\": 0, \"peak_torch_allocated_bytes\": 406979072, \"peak_torch_reserved_bytes\": 599785472, \"precision\": \"float32\", \"prediction_timing_scope\": \"tensor upload/resize, model, output resize/download; subset of inference_and_export\", \"preprocess_workers\": 0, \"timing_seconds\": {\"inference_and_export\": 2.7756394000025466, \"prediction_batches\": 1.729170200007502, \"preparation\": 15.756475999951363}, \"torch_cpu_threads\": 6, \"torch_cuda\": \"12.8\"}, \"generator\": \"calibrex.featdepth_provider/v0.2\", \"provider_sha256\": \"57bad8976687beb57b6d280b96d2537c10247d60b2143d57de563bfe5e23c60a\", \"run_seconds\": 18.923638699983712, \"source_commit\": \"0b67865\", \"timing_scope\": \"from main entry through provider save; excludes interpreter/import startup and timing report write\"}}"
+        ],
+        "output_sha256": "57bad8976687beb57b6d280b96d2537c10247d60b2143d57de563bfe5e23c60a"
+      },
+      "runtime_seconds": 22.416442699963227,
+      "split_id": "repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_batch",
+      "metrics": {
+        "depth_max_absolute": 6.139278411865234e-06,
+        "depth_max_relative": 3.0372361761637705e-05,
+        "depth_rmse": 1.4364762741616948e-07,
+        "inference_and_export": 2.477669199986849,
+        "prediction_batches": 1.8928897000150755,
+        "preparation": 12.589782499999274,
+        "subprocess_wall_seconds": 18.16917010000907
+      },
+      "provenance": {
+        "command": "/workspace/Calibrex/.venv/Scripts/python.exe /workspace/Calibrex/tools/run_featdepth_provider.py /external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --featdepth-repository /external/calibrex-public-inputs/providers/FeatDepth-git --checkpoint /external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth --frame-count 25 --output-directory /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-03/depth --artifact-output /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-03/provider.json --timing-output /workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-03/timing.json --device cuda --batch-size 2 --preprocess-workers 2",
+        "config_sha256": "df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "9ee549ffa8240d56de4f110f237fa8629c96d17b5dc16608f1e790852683b170",
+        "notes": [
+          "{\"command\": [\"/workspace/Calibrex/.venv/Scripts/python.exe\", \"/workspace/Calibrex/tools/run_featdepth_provider.py\", \"/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync\", \"--featdepth-repository\", \"/external/calibrex-public-inputs/providers/FeatDepth-git\", \"--checkpoint\", \"/external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth\", \"--frame-count\", \"25\", \"--output-directory\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-03/depth\", \"--artifact-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-03/provider.json\", \"--timing-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-03/timing.json\", \"--device\", \"cuda\", \"--batch-size\", \"2\", \"--preprocess-workers\", \"2\"], \"depth_difference\": {\"max_absolute\": 6.139278411865234e-06, \"max_relative\": 3.0372361761637705e-05, \"rmse\": 1.4364762741616948e-07}, \"method\": \"cuda_batch\", \"order\": [\"cpu\", \"cuda_serial\", \"cuda_batch\"], \"provider_path\": \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-03/provider.json\", \"provider_sha256\": \"94d5ec4412aff1cb958ee940469e542631f62b31169a2f0ad99f5a95b89596f1\", \"repeat\": 3, \"subprocess_wall_seconds\": 18.16917010000907, \"timing\": {\"adapter_sha256\": \"df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552\", \"artifact_save_seconds\": 0.05131100001744926, \"command\": [\"/workspace/Calibrex/.venv/Scripts/python.exe\", \"/workspace/Calibrex/tools/run_featdepth_provider.py\", \"/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync\", \"--featdepth-repository\", \"/external/calibrex-public-inputs/providers/FeatDepth-git\", \"--checkpoint\", \"/external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth\", \"--frame-count\", \"25\", \"--output-directory\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-03/depth\", \"--artifact-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-03/provider.json\", \"--timing-output\", \"/workspace/Calibrex/outputs/public-kitti-featdepth-batching-v3/cuda_batch.repeat-03/timing.json\", \"--device\", \"cuda\", \"--batch-size\", \"2\", \"--preprocess-workers\", \"2\"], \"execution\": {\"adapter_sha256\": \"df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552\", \"adapter_version\": \"calibrex.featdepth_provider/v0.2\", \"batch_count\": 13, \"batch_size\": 2, \"cudnn_allow_tf32\": true, \"cudnn_benchmark\": false, \"gpu\": \"NVIDIA GeForce GTX 1660 Ti\", \"image_queue_limit\": 6, \"peak_torch_allocated_bytes\": 675414528, \"peak_torch_reserved_bytes\": 1027604480, \"precision\": \"float32\", \"prediction_timing_scope\": \"tensor upload/resize, model, output resize/download; subset of inference_and_export\", \"preprocess_workers\": 2, \"timing_seconds\": {\"inference_and_export\": 2.477669199986849, \"prediction_batches\": 1.8928897000150755, \"preparation\": 12.589782499999274}, \"torch_cpu_threads\": 6, \"torch_cuda\": \"12.8\"}, \"generator\": \"calibrex.featdepth_provider/v0.2\", \"provider_sha256\": \"94d5ec4412aff1cb958ee940469e542631f62b31169a2f0ad99f5a95b89596f1\", \"run_seconds\": 15.118762700003572, \"source_commit\": \"0b67865\", \"timing_scope\": \"from main entry through provider save; excludes interpreter/import startup and timing report write\"}}"
+        ],
+        "output_sha256": "94d5ec4412aff1cb958ee940469e542631f62b31169a2f0ad99f5a95b89596f1"
+      },
+      "runtime_seconds": 18.16917010000907,
+      "split_id": "repeat-03",
+      "status": "success"
+    }
+  ]
+}

@@ -1,0 +1,1197 @@
+{
+  "artifact_id": "featdepth-2011_09_30_drive_0018_sync-image_02-uniform-25",
+  "environment": {
+    "command": [
+      "/workspace/Calibrex/.venv/Scripts/python.exe",
+      "/workspace/Calibrex/tools/run_featdepth_provider.py",
+      "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync",
+      "--featdepth-repository",
+      "/external/calibrex-public-inputs/providers/FeatDepth-git",
+      "--checkpoint",
+      "/external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth",
+      "--frame-count",
+      "25",
+      "--output-directory",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth",
+      "--artifact-output",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/provider.json",
+      "--timing-output",
+      "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/timing.json",
+      "--device",
+      "cpu"
+    ],
+    "dependencies": {
+      "numpy": "2.3.4",
+      "pillow": "12.3.0",
+      "torch": "2.11.0+cu128"
+    },
+    "device": "cpu",
+    "execution_mode": "subprocess",
+    "python_version": "3.12.10"
+  },
+  "observations": [
+    {
+      "capture_time_ns": 1317383679230314752,
+      "depth": {
+        "encoding": "npy_float32",
+        "path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth/0000000000.npy",
+        "sha256": "d81a5077d79c4313d58fcaa57f15fdb037eb194edbf9a6041c46268617cf5954",
+        "size_bytes": 1814608
+      },
+      "frame_id": "0000000000",
+      "image": {
+        "encoding": "png_rgb8",
+        "path": "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/image_02/data/0000000000.png",
+        "sha256": "c6aef71caefed4dc9062affc17d1aeacdf59a56807c501a1a169f1fb818b107d",
+        "size_bytes": 711019
+      },
+      "image_transform": {
+        "crop_left_px": 0.0,
+        "crop_top_px": 0.0,
+        "interpolation": "network resize 1024x320 then bilinear to source",
+        "output_height": 370,
+        "output_width": 1226,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "source_height": 370,
+        "source_width": 1226
+      },
+      "intrinsics": {
+        "cx": 601.8873,
+        "cy": 183.1104,
+        "distortion": [],
+        "distortion_model": "none",
+        "fx": 707.0912,
+        "fy": 707.0912,
+        "height": 370,
+        "projection": "pinhole",
+        "width": 1226
+      },
+      "invalid_values": [],
+      "scale_convention": "disparity",
+      "source_frame": "camera_2",
+      "valid_fraction": 1.0
+    },
+    {
+      "capture_time_ns": 1317383691214202368,
+      "depth": {
+        "encoding": "npy_float32",
+        "path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth/0000000115.npy",
+        "sha256": "a070131dd5babfa9750afaebefc984363578d313d124c8c7408fdf500990be95",
+        "size_bytes": 1814608
+      },
+      "frame_id": "0000000115",
+      "image": {
+        "encoding": "png_rgb8",
+        "path": "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/image_02/data/0000000115.png",
+        "sha256": "418d1afe9af8ef6b6d64672ad901376e2b52d1ca6fdc31a679672d2f8185bb20",
+        "size_bytes": 875584
+      },
+      "image_transform": {
+        "crop_left_px": 0.0,
+        "crop_top_px": 0.0,
+        "interpolation": "network resize 1024x320 then bilinear to source",
+        "output_height": 370,
+        "output_width": 1226,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "source_height": 370,
+        "source_width": 1226
+      },
+      "intrinsics": {
+        "cx": 601.8873,
+        "cy": 183.1104,
+        "distortion": [],
+        "distortion_model": "none",
+        "fx": 707.0912,
+        "fy": 707.0912,
+        "height": 370,
+        "projection": "pinhole",
+        "width": 1226
+      },
+      "invalid_values": [],
+      "scale_convention": "disparity",
+      "source_frame": "camera_2",
+      "valid_fraction": 1.0
+    },
+    {
+      "capture_time_ns": 1317383703199582720,
+      "depth": {
+        "encoding": "npy_float32",
+        "path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth/0000000230.npy",
+        "sha256": "15c3647b2c3e0a870e2dda2326808aef4d9c3f967695459aa2a6b11daa14b113",
+        "size_bytes": 1814608
+      },
+      "frame_id": "0000000230",
+      "image": {
+        "encoding": "png_rgb8",
+        "path": "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/image_02/data/0000000230.png",
+        "sha256": "8fabf68287aa1595b66ba9e4dc9181a64b6e895c09e53bb2987761229874aeeb",
+        "size_bytes": 875126
+      },
+      "image_transform": {
+        "crop_left_px": 0.0,
+        "crop_top_px": 0.0,
+        "interpolation": "network resize 1024x320 then bilinear to source",
+        "output_height": 370,
+        "output_width": 1226,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "source_height": 370,
+        "source_width": 1226
+      },
+      "intrinsics": {
+        "cx": 601.8873,
+        "cy": 183.1104,
+        "distortion": [],
+        "distortion_model": "none",
+        "fx": 707.0912,
+        "fy": 707.0912,
+        "height": 370,
+        "projection": "pinhole",
+        "width": 1226
+      },
+      "invalid_values": [],
+      "scale_convention": "disparity",
+      "source_frame": "camera_2",
+      "valid_fraction": 1.0
+    },
+    {
+      "capture_time_ns": 1317383715186859008,
+      "depth": {
+        "encoding": "npy_float32",
+        "path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth/0000000345.npy",
+        "sha256": "b5297e3d834f22d6868e43e00b47ecc59203e85a710a00f844e128cd69bca16b",
+        "size_bytes": 1814608
+      },
+      "frame_id": "0000000345",
+      "image": {
+        "encoding": "png_rgb8",
+        "path": "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/image_02/data/0000000345.png",
+        "sha256": "1182648acfa14aed0b4e3fc83488665fa1da55f4886afdd1869594fea0af90ff",
+        "size_bytes": 844054
+      },
+      "image_transform": {
+        "crop_left_px": 0.0,
+        "crop_top_px": 0.0,
+        "interpolation": "network resize 1024x320 then bilinear to source",
+        "output_height": 370,
+        "output_width": 1226,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "source_height": 370,
+        "source_width": 1226
+      },
+      "intrinsics": {
+        "cx": 601.8873,
+        "cy": 183.1104,
+        "distortion": [],
+        "distortion_model": "none",
+        "fx": 707.0912,
+        "fy": 707.0912,
+        "height": 370,
+        "projection": "pinhole",
+        "width": 1226
+      },
+      "invalid_values": [],
+      "scale_convention": "disparity",
+      "source_frame": "camera_2",
+      "valid_fraction": 1.0
+    },
+    {
+      "capture_time_ns": 1317383727172490240,
+      "depth": {
+        "encoding": "npy_float32",
+        "path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth/0000000460.npy",
+        "sha256": "2f83900ed646003f1944f6ec8815d5b5fd0b4175cc06d5ecd8432e38e066d02a",
+        "size_bytes": 1814608
+      },
+      "frame_id": "0000000460",
+      "image": {
+        "encoding": "png_rgb8",
+        "path": "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/image_02/data/0000000460.png",
+        "sha256": "0f1f1e7601d72c4c2eb42b065c0fc11a60c225ad2bee835b6c6ac5efc1d09c43",
+        "size_bytes": 769046
+      },
+      "image_transform": {
+        "crop_left_px": 0.0,
+        "crop_top_px": 0.0,
+        "interpolation": "network resize 1024x320 then bilinear to source",
+        "output_height": 370,
+        "output_width": 1226,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "source_height": 370,
+        "source_width": 1226
+      },
+      "intrinsics": {
+        "cx": 601.8873,
+        "cy": 183.1104,
+        "distortion": [],
+        "distortion_model": "none",
+        "fx": 707.0912,
+        "fy": 707.0912,
+        "height": 370,
+        "projection": "pinhole",
+        "width": 1226
+      },
+      "invalid_values": [],
+      "scale_convention": "disparity",
+      "source_frame": "camera_2",
+      "valid_fraction": 1.0
+    },
+    {
+      "capture_time_ns": 1317383739159621632,
+      "depth": {
+        "encoding": "npy_float32",
+        "path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth/0000000575.npy",
+        "sha256": "5bda6e18dd7349b56e5d73f804f54f7eae35cd4e56e87f4c68de63030888804d",
+        "size_bytes": 1814608
+      },
+      "frame_id": "0000000575",
+      "image": {
+        "encoding": "png_rgb8",
+        "path": "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/image_02/data/0000000575.png",
+        "sha256": "a902beca00ef23a0c38fd3f96b29864a46e305ba8fd402c13be2d382928f13b3",
+        "size_bytes": 698922
+      },
+      "image_transform": {
+        "crop_left_px": 0.0,
+        "crop_top_px": 0.0,
+        "interpolation": "network resize 1024x320 then bilinear to source",
+        "output_height": 370,
+        "output_width": 1226,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "source_height": 370,
+        "source_width": 1226
+      },
+      "intrinsics": {
+        "cx": 601.8873,
+        "cy": 183.1104,
+        "distortion": [],
+        "distortion_model": "none",
+        "fx": 707.0912,
+        "fy": 707.0912,
+        "height": 370,
+        "projection": "pinhole",
+        "width": 1226
+      },
+      "invalid_values": [],
+      "scale_convention": "disparity",
+      "source_frame": "camera_2",
+      "valid_fraction": 1.0
+    },
+    {
+      "capture_time_ns": 1317383751143895040,
+      "depth": {
+        "encoding": "npy_float32",
+        "path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth/0000000690.npy",
+        "sha256": "cf91315376f224b341dd203fdcda5208d5f87864314263e7480da54033d495db",
+        "size_bytes": 1814608
+      },
+      "frame_id": "0000000690",
+      "image": {
+        "encoding": "png_rgb8",
+        "path": "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/image_02/data/0000000690.png",
+        "sha256": "e6955ae4f65c354abf03f781f5561690c9b51a30def8f9ec966e947532c541b5",
+        "size_bytes": 717082
+      },
+      "image_transform": {
+        "crop_left_px": 0.0,
+        "crop_top_px": 0.0,
+        "interpolation": "network resize 1024x320 then bilinear to source",
+        "output_height": 370,
+        "output_width": 1226,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "source_height": 370,
+        "source_width": 1226
+      },
+      "intrinsics": {
+        "cx": 601.8873,
+        "cy": 183.1104,
+        "distortion": [],
+        "distortion_model": "none",
+        "fx": 707.0912,
+        "fy": 707.0912,
+        "height": 370,
+        "projection": "pinhole",
+        "width": 1226
+      },
+      "invalid_values": [],
+      "scale_convention": "disparity",
+      "source_frame": "camera_2",
+      "valid_fraction": 1.0
+    },
+    {
+      "capture_time_ns": 1317383763132276224,
+      "depth": {
+        "encoding": "npy_float32",
+        "path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth/0000000805.npy",
+        "sha256": "df5c5a2e51f53a45cd125bda5d629042b16761b09e339b82fd7b27f17e4bad17",
+        "size_bytes": 1814608
+      },
+      "frame_id": "0000000805",
+      "image": {
+        "encoding": "png_rgb8",
+        "path": "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/image_02/data/0000000805.png",
+        "sha256": "b1dc830cd457219d7edb59190e06cf16f127e74e3ac3a5f73f170d6ca9d7b445",
+        "size_bytes": 878470
+      },
+      "image_transform": {
+        "crop_left_px": 0.0,
+        "crop_top_px": 0.0,
+        "interpolation": "network resize 1024x320 then bilinear to source",
+        "output_height": 370,
+        "output_width": 1226,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "source_height": 370,
+        "source_width": 1226
+      },
+      "intrinsics": {
+        "cx": 601.8873,
+        "cy": 183.1104,
+        "distortion": [],
+        "distortion_model": "none",
+        "fx": 707.0912,
+        "fy": 707.0912,
+        "height": 370,
+        "projection": "pinhole",
+        "width": 1226
+      },
+      "invalid_values": [],
+      "scale_convention": "disparity",
+      "source_frame": "camera_2",
+      "valid_fraction": 1.0
+    },
+    {
+      "capture_time_ns": 1317383775116153344,
+      "depth": {
+        "encoding": "npy_float32",
+        "path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth/0000000920.npy",
+        "sha256": "9b182581f9a7627fcac0c11de4022e0c376e0d25b80026d9e33a0b86ad45b10c",
+        "size_bytes": 1814608
+      },
+      "frame_id": "0000000920",
+      "image": {
+        "encoding": "png_rgb8",
+        "path": "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/image_02/data/0000000920.png",
+        "sha256": "e45f8de8199979afe8e6b7726d9a8ae3d085bad66d921ebb0b481de7b5722870",
+        "size_bytes": 728871
+      },
+      "image_transform": {
+        "crop_left_px": 0.0,
+        "crop_top_px": 0.0,
+        "interpolation": "network resize 1024x320 then bilinear to source",
+        "output_height": 370,
+        "output_width": 1226,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "source_height": 370,
+        "source_width": 1226
+      },
+      "intrinsics": {
+        "cx": 601.8873,
+        "cy": 183.1104,
+        "distortion": [],
+        "distortion_model": "none",
+        "fx": 707.0912,
+        "fy": 707.0912,
+        "height": 370,
+        "projection": "pinhole",
+        "width": 1226
+      },
+      "invalid_values": [],
+      "scale_convention": "disparity",
+      "source_frame": "camera_2",
+      "valid_fraction": 1.0
+    },
+    {
+      "capture_time_ns": 1317383787091923200,
+      "depth": {
+        "encoding": "npy_float32",
+        "path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth/0000001035.npy",
+        "sha256": "b7ce44b5f3b1deb5a3af6b2b47db60c5f0d443bd6e1280bd54fea3c2b4367f83",
+        "size_bytes": 1814608
+      },
+      "frame_id": "0000001035",
+      "image": {
+        "encoding": "png_rgb8",
+        "path": "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/image_02/data/0000001035.png",
+        "sha256": "96c21cc53d2773c75cca11304fffa55a9c9d485e35f8e232438960b880b59972",
+        "size_bytes": 818667
+      },
+      "image_transform": {
+        "crop_left_px": 0.0,
+        "crop_top_px": 0.0,
+        "interpolation": "network resize 1024x320 then bilinear to source",
+        "output_height": 370,
+        "output_width": 1226,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "source_height": 370,
+        "source_width": 1226
+      },
+      "intrinsics": {
+        "cx": 601.8873,
+        "cy": 183.1104,
+        "distortion": [],
+        "distortion_model": "none",
+        "fx": 707.0912,
+        "fy": 707.0912,
+        "height": 370,
+        "projection": "pinhole",
+        "width": 1226
+      },
+      "invalid_values": [],
+      "scale_convention": "disparity",
+      "source_frame": "camera_2",
+      "valid_fraction": 1.0
+    },
+    {
+      "capture_time_ns": 1317383799068177152,
+      "depth": {
+        "encoding": "npy_float32",
+        "path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth/0000001150.npy",
+        "sha256": "ef9be3c59dd931902de12c4162c1892820c5cdbc61dcffd4136200b11da3fdc7",
+        "size_bytes": 1814608
+      },
+      "frame_id": "0000001150",
+      "image": {
+        "encoding": "png_rgb8",
+        "path": "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/image_02/data/0000001150.png",
+        "sha256": "2801f58016b779bfd05dca806f5a31ecee5f1cd16523d4e04282c56611c32a63",
+        "size_bytes": 832432
+      },
+      "image_transform": {
+        "crop_left_px": 0.0,
+        "crop_top_px": 0.0,
+        "interpolation": "network resize 1024x320 then bilinear to source",
+        "output_height": 370,
+        "output_width": 1226,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "source_height": 370,
+        "source_width": 1226
+      },
+      "intrinsics": {
+        "cx": 601.8873,
+        "cy": 183.1104,
+        "distortion": [],
+        "distortion_model": "none",
+        "fx": 707.0912,
+        "fy": 707.0912,
+        "height": 370,
+        "projection": "pinhole",
+        "width": 1226
+      },
+      "invalid_values": [],
+      "scale_convention": "disparity",
+      "source_frame": "camera_2",
+      "valid_fraction": 1.0
+    },
+    {
+      "capture_time_ns": 1317383811051956224,
+      "depth": {
+        "encoding": "npy_float32",
+        "path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth/0000001265.npy",
+        "sha256": "353ba2d07ac60344276da913e1ce38cdca87c242af7a02ff539a29b3d065a19b",
+        "size_bytes": 1814608
+      },
+      "frame_id": "0000001265",
+      "image": {
+        "encoding": "png_rgb8",
+        "path": "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/image_02/data/0000001265.png",
+        "sha256": "594a925e1cf4c25c3ed6f611ed015e5489dcff4d567edd17e229c6e16d183da4",
+        "size_bytes": 762475
+      },
+      "image_transform": {
+        "crop_left_px": 0.0,
+        "crop_top_px": 0.0,
+        "interpolation": "network resize 1024x320 then bilinear to source",
+        "output_height": 370,
+        "output_width": 1226,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "source_height": 370,
+        "source_width": 1226
+      },
+      "intrinsics": {
+        "cx": 601.8873,
+        "cy": 183.1104,
+        "distortion": [],
+        "distortion_model": "none",
+        "fx": 707.0912,
+        "fy": 707.0912,
+        "height": 370,
+        "projection": "pinhole",
+        "width": 1226
+      },
+      "invalid_values": [],
+      "scale_convention": "disparity",
+      "source_frame": "camera_2",
+      "valid_fraction": 1.0
+    },
+    {
+      "capture_time_ns": 1317383823139323904,
+      "depth": {
+        "encoding": "npy_float32",
+        "path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth/0000001381.npy",
+        "sha256": "fdc613d0a9b31c3f1071fdcf0e4fd2a1233bbec217e00bec4d6cc5e1ba82d18f",
+        "size_bytes": 1814608
+      },
+      "frame_id": "0000001381",
+      "image": {
+        "encoding": "png_rgb8",
+        "path": "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/image_02/data/0000001381.png",
+        "sha256": "d068204f6722e3d4580e460056101eec0c248158f6a8e02e6f49623e8edcf889",
+        "size_bytes": 727375
+      },
+      "image_transform": {
+        "crop_left_px": 0.0,
+        "crop_top_px": 0.0,
+        "interpolation": "network resize 1024x320 then bilinear to source",
+        "output_height": 370,
+        "output_width": 1226,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "source_height": 370,
+        "source_width": 1226
+      },
+      "intrinsics": {
+        "cx": 601.8873,
+        "cy": 183.1104,
+        "distortion": [],
+        "distortion_model": "none",
+        "fx": 707.0912,
+        "fy": 707.0912,
+        "height": 370,
+        "projection": "pinhole",
+        "width": 1226
+      },
+      "invalid_values": [],
+      "scale_convention": "disparity",
+      "source_frame": "camera_2",
+      "valid_fraction": 1.0
+    },
+    {
+      "capture_time_ns": 1317383835116709888,
+      "depth": {
+        "encoding": "npy_float32",
+        "path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth/0000001496.npy",
+        "sha256": "f28354cf07a54a48ef97a91a761727b2fbd09f54345f555b4a833c899f1cdc5a",
+        "size_bytes": 1814608
+      },
+      "frame_id": "0000001496",
+      "image": {
+        "encoding": "png_rgb8",
+        "path": "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/image_02/data/0000001496.png",
+        "sha256": "0894fca2940f962c97d3f4bbef88123abff1db4d3133e7bacd66764efad9e32e",
+        "size_bytes": 733229
+      },
+      "image_transform": {
+        "crop_left_px": 0.0,
+        "crop_top_px": 0.0,
+        "interpolation": "network resize 1024x320 then bilinear to source",
+        "output_height": 370,
+        "output_width": 1226,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "source_height": 370,
+        "source_width": 1226
+      },
+      "intrinsics": {
+        "cx": 601.8873,
+        "cy": 183.1104,
+        "distortion": [],
+        "distortion_model": "none",
+        "fx": 707.0912,
+        "fy": 707.0912,
+        "height": 370,
+        "projection": "pinhole",
+        "width": 1226
+      },
+      "invalid_values": [],
+      "scale_convention": "disparity",
+      "source_frame": "camera_2",
+      "valid_fraction": 1.0
+    },
+    {
+      "capture_time_ns": 1317383847101858816,
+      "depth": {
+        "encoding": "npy_float32",
+        "path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth/0000001611.npy",
+        "sha256": "9543e88cac65ee5515333b3ea4342332cc6eeef3e6dd58d547051beb955144c2",
+        "size_bytes": 1814608
+      },
+      "frame_id": "0000001611",
+      "image": {
+        "encoding": "png_rgb8",
+        "path": "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/image_02/data/0000001611.png",
+        "sha256": "34345b5e6e568c0e641128edebb847ed668ac903daa5a85d7bd0ab46dcd31eab",
+        "size_bytes": 861765
+      },
+      "image_transform": {
+        "crop_left_px": 0.0,
+        "crop_top_px": 0.0,
+        "interpolation": "network resize 1024x320 then bilinear to source",
+        "output_height": 370,
+        "output_width": 1226,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "source_height": 370,
+        "source_width": 1226
+      },
+      "intrinsics": {
+        "cx": 601.8873,
+        "cy": 183.1104,
+        "distortion": [],
+        "distortion_model": "none",
+        "fx": 707.0912,
+        "fy": 707.0912,
+        "height": 370,
+        "projection": "pinhole",
+        "width": 1226
+      },
+      "invalid_values": [],
+      "scale_convention": "disparity",
+      "source_frame": "camera_2",
+      "valid_fraction": 1.0
+    },
+    {
+      "capture_time_ns": 1317383859077489664,
+      "depth": {
+        "encoding": "npy_float32",
+        "path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth/0000001726.npy",
+        "sha256": "bc2895b6fd598fd79d07840e85513e4f9d8c1c6954d0b9bd103ea73eddd2c3fd",
+        "size_bytes": 1814608
+      },
+      "frame_id": "0000001726",
+      "image": {
+        "encoding": "png_rgb8",
+        "path": "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/image_02/data/0000001726.png",
+        "sha256": "3dad247f323a44587211ec2e5f97f3151336a458135489b870081fb3991c8124",
+        "size_bytes": 818168
+      },
+      "image_transform": {
+        "crop_left_px": 0.0,
+        "crop_top_px": 0.0,
+        "interpolation": "network resize 1024x320 then bilinear to source",
+        "output_height": 370,
+        "output_width": 1226,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "source_height": 370,
+        "source_width": 1226
+      },
+      "intrinsics": {
+        "cx": 601.8873,
+        "cy": 183.1104,
+        "distortion": [],
+        "distortion_model": "none",
+        "fx": 707.0912,
+        "fy": 707.0912,
+        "height": 370,
+        "projection": "pinhole",
+        "width": 1226
+      },
+      "invalid_values": [],
+      "scale_convention": "disparity",
+      "source_frame": "camera_2",
+      "valid_fraction": 1.0
+    },
+    {
+      "capture_time_ns": 1317383871055400960,
+      "depth": {
+        "encoding": "npy_float32",
+        "path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth/0000001841.npy",
+        "sha256": "7601a92c7924db1ecb236de1808f3ca6c78542be33a2a77fb609b08e9ce29748",
+        "size_bytes": 1814608
+      },
+      "frame_id": "0000001841",
+      "image": {
+        "encoding": "png_rgb8",
+        "path": "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/image_02/data/0000001841.png",
+        "sha256": "9d9b9b4168a1035062b2aa6f5ed6fda4c513208f38fef95d6c593a3895dfe0a0",
+        "size_bytes": 798742
+      },
+      "image_transform": {
+        "crop_left_px": 0.0,
+        "crop_top_px": 0.0,
+        "interpolation": "network resize 1024x320 then bilinear to source",
+        "output_height": 370,
+        "output_width": 1226,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "source_height": 370,
+        "source_width": 1226
+      },
+      "intrinsics": {
+        "cx": 601.8873,
+        "cy": 183.1104,
+        "distortion": [],
+        "distortion_model": "none",
+        "fx": 707.0912,
+        "fy": 707.0912,
+        "height": 370,
+        "projection": "pinhole",
+        "width": 1226
+      },
+      "invalid_values": [],
+      "scale_convention": "disparity",
+      "source_frame": "camera_2",
+      "valid_fraction": 1.0
+    },
+    {
+      "capture_time_ns": 1317383883036765696,
+      "depth": {
+        "encoding": "npy_float32",
+        "path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth/0000001956.npy",
+        "sha256": "3a46e301eac6d657bd6e90c420283e402166ceac5b63de432224ba8ef192e06f",
+        "size_bytes": 1814608
+      },
+      "frame_id": "0000001956",
+      "image": {
+        "encoding": "png_rgb8",
+        "path": "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/image_02/data/0000001956.png",
+        "sha256": "4f4c4cc4ed7620db2b0450be69f5e479964518894cdcb6b21d27f8e1277b0b95",
+        "size_bytes": 845569
+      },
+      "image_transform": {
+        "crop_left_px": 0.0,
+        "crop_top_px": 0.0,
+        "interpolation": "network resize 1024x320 then bilinear to source",
+        "output_height": 370,
+        "output_width": 1226,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "source_height": 370,
+        "source_width": 1226
+      },
+      "intrinsics": {
+        "cx": 601.8873,
+        "cy": 183.1104,
+        "distortion": [],
+        "distortion_model": "none",
+        "fx": 707.0912,
+        "fy": 707.0912,
+        "height": 370,
+        "projection": "pinhole",
+        "width": 1226
+      },
+      "invalid_values": [],
+      "scale_convention": "disparity",
+      "source_frame": "camera_2",
+      "valid_fraction": 1.0
+    },
+    {
+      "capture_time_ns": 1317383895008395520,
+      "depth": {
+        "encoding": "npy_float32",
+        "path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth/0000002071.npy",
+        "sha256": "03955f7f2fe095d1da3878e79b617023f11edeb93b0f82c095b142ef3eb817c4",
+        "size_bytes": 1814608
+      },
+      "frame_id": "0000002071",
+      "image": {
+        "encoding": "png_rgb8",
+        "path": "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/image_02/data/0000002071.png",
+        "sha256": "a8a987d19fa0866776064d3ffa3ec7f1be7cfa82d4f0c2dbca2e0df47a7cc591",
+        "size_bytes": 851820
+      },
+      "image_transform": {
+        "crop_left_px": 0.0,
+        "crop_top_px": 0.0,
+        "interpolation": "network resize 1024x320 then bilinear to source",
+        "output_height": 370,
+        "output_width": 1226,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "source_height": 370,
+        "source_width": 1226
+      },
+      "intrinsics": {
+        "cx": 601.8873,
+        "cy": 183.1104,
+        "distortion": [],
+        "distortion_model": "none",
+        "fx": 707.0912,
+        "fy": 707.0912,
+        "height": 370,
+        "projection": "pinhole",
+        "width": 1226
+      },
+      "invalid_values": [],
+      "scale_convention": "disparity",
+      "source_frame": "camera_2",
+      "valid_fraction": 1.0
+    },
+    {
+      "capture_time_ns": 1317383906984790016,
+      "depth": {
+        "encoding": "npy_float32",
+        "path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth/0000002186.npy",
+        "sha256": "84407d910cee733abe9d92fb86f2fdd47bf61f93e4727d2808069c15d0b212df",
+        "size_bytes": 1814608
+      },
+      "frame_id": "0000002186",
+      "image": {
+        "encoding": "png_rgb8",
+        "path": "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/image_02/data/0000002186.png",
+        "sha256": "2683cadfdcfdee53f9ff5c4d75db085dfab410ad3e5319ed516cb0aca1c60925",
+        "size_bytes": 891357
+      },
+      "image_transform": {
+        "crop_left_px": 0.0,
+        "crop_top_px": 0.0,
+        "interpolation": "network resize 1024x320 then bilinear to source",
+        "output_height": 370,
+        "output_width": 1226,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "source_height": 370,
+        "source_width": 1226
+      },
+      "intrinsics": {
+        "cx": 601.8873,
+        "cy": 183.1104,
+        "distortion": [],
+        "distortion_model": "none",
+        "fx": 707.0912,
+        "fy": 707.0912,
+        "height": 370,
+        "projection": "pinhole",
+        "width": 1226
+      },
+      "invalid_values": [],
+      "scale_convention": "disparity",
+      "source_frame": "camera_2",
+      "valid_fraction": 1.0
+    },
+    {
+      "capture_time_ns": 1317383918955660800,
+      "depth": {
+        "encoding": "npy_float32",
+        "path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth/0000002301.npy",
+        "sha256": "462d17b76911b241c39f8fc8158c4b758901972d65df772273fad102546919d7",
+        "size_bytes": 1814608
+      },
+      "frame_id": "0000002301",
+      "image": {
+        "encoding": "png_rgb8",
+        "path": "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/image_02/data/0000002301.png",
+        "sha256": "598b22de732e2331771a55371321b10a6b50ff5f317c59f9e75cf1d06c61d35e",
+        "size_bytes": 775787
+      },
+      "image_transform": {
+        "crop_left_px": 0.0,
+        "crop_top_px": 0.0,
+        "interpolation": "network resize 1024x320 then bilinear to source",
+        "output_height": 370,
+        "output_width": 1226,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "source_height": 370,
+        "source_width": 1226
+      },
+      "intrinsics": {
+        "cx": 601.8873,
+        "cy": 183.1104,
+        "distortion": [],
+        "distortion_model": "none",
+        "fx": 707.0912,
+        "fy": 707.0912,
+        "height": 370,
+        "projection": "pinhole",
+        "width": 1226
+      },
+      "invalid_values": [],
+      "scale_convention": "disparity",
+      "source_frame": "camera_2",
+      "valid_fraction": 1.0
+    },
+    {
+      "capture_time_ns": 1317383930933168896,
+      "depth": {
+        "encoding": "npy_float32",
+        "path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth/0000002416.npy",
+        "sha256": "63a584cd831aa4c0c326b1409c7886f2888aeb0e75a210b796efa3d7c577dad1",
+        "size_bytes": 1814608
+      },
+      "frame_id": "0000002416",
+      "image": {
+        "encoding": "png_rgb8",
+        "path": "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/image_02/data/0000002416.png",
+        "sha256": "cb13fae42886c3d3d1ea93022e9e9b40c89e2e2735ea78a1f720bd7c24c348de",
+        "size_bytes": 707996
+      },
+      "image_transform": {
+        "crop_left_px": 0.0,
+        "crop_top_px": 0.0,
+        "interpolation": "network resize 1024x320 then bilinear to source",
+        "output_height": 370,
+        "output_width": 1226,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "source_height": 370,
+        "source_width": 1226
+      },
+      "intrinsics": {
+        "cx": 601.8873,
+        "cy": 183.1104,
+        "distortion": [],
+        "distortion_model": "none",
+        "fx": 707.0912,
+        "fy": 707.0912,
+        "height": 370,
+        "projection": "pinhole",
+        "width": 1226
+      },
+      "invalid_values": [],
+      "scale_convention": "disparity",
+      "source_frame": "camera_2",
+      "valid_fraction": 1.0
+    },
+    {
+      "capture_time_ns": 1317383942913555456,
+      "depth": {
+        "encoding": "npy_float32",
+        "path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth/0000002531.npy",
+        "sha256": "e3d8208e650b0c33289d9b8029bba5d58ed31a268c64d05850ba138e27ed63fa",
+        "size_bytes": 1814608
+      },
+      "frame_id": "0000002531",
+      "image": {
+        "encoding": "png_rgb8",
+        "path": "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/image_02/data/0000002531.png",
+        "sha256": "243ed6f4eb096cadb7cfeaa843d93cf09c6bc06b0f97bfd1aee1598d4337f668",
+        "size_bytes": 837212
+      },
+      "image_transform": {
+        "crop_left_px": 0.0,
+        "crop_top_px": 0.0,
+        "interpolation": "network resize 1024x320 then bilinear to source",
+        "output_height": 370,
+        "output_width": 1226,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "source_height": 370,
+        "source_width": 1226
+      },
+      "intrinsics": {
+        "cx": 601.8873,
+        "cy": 183.1104,
+        "distortion": [],
+        "distortion_model": "none",
+        "fx": 707.0912,
+        "fy": 707.0912,
+        "height": 370,
+        "projection": "pinhole",
+        "width": 1226
+      },
+      "invalid_values": [],
+      "scale_convention": "disparity",
+      "source_frame": "camera_2",
+      "valid_fraction": 1.0
+    },
+    {
+      "capture_time_ns": 1317383954892939776,
+      "depth": {
+        "encoding": "npy_float32",
+        "path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth/0000002646.npy",
+        "sha256": "f46074288fdf5dd375be9542dc5947ab003d9ae9a06ad6446514585d7fb80027",
+        "size_bytes": 1814608
+      },
+      "frame_id": "0000002646",
+      "image": {
+        "encoding": "png_rgb8",
+        "path": "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/image_02/data/0000002646.png",
+        "sha256": "ab2b5573dd4dfaa41d6a5e02ec47426f4cf98850c189f3917ee243af80cd63ec",
+        "size_bytes": 886358
+      },
+      "image_transform": {
+        "crop_left_px": 0.0,
+        "crop_top_px": 0.0,
+        "interpolation": "network resize 1024x320 then bilinear to source",
+        "output_height": 370,
+        "output_width": 1226,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "source_height": 370,
+        "source_width": 1226
+      },
+      "intrinsics": {
+        "cx": 601.8873,
+        "cy": 183.1104,
+        "distortion": [],
+        "distortion_model": "none",
+        "fx": 707.0912,
+        "fy": 707.0912,
+        "height": 370,
+        "projection": "pinhole",
+        "width": 1226
+      },
+      "invalid_values": [],
+      "scale_convention": "disparity",
+      "source_frame": "camera_2",
+      "valid_fraction": 1.0
+    },
+    {
+      "capture_time_ns": 1317383966871328000,
+      "depth": {
+        "encoding": "npy_float32",
+        "path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/depth/0000002761.npy",
+        "sha256": "9167755c4ad35aa37af8a7a4d17fbac1098b08a6e2a81dbdab6e1b2bfc5eba73",
+        "size_bytes": 1814608
+      },
+      "frame_id": "0000002761",
+      "image": {
+        "encoding": "png_rgb8",
+        "path": "/external/calibrex-public-inputs/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/image_02/data/0000002761.png",
+        "sha256": "7b2b9b6c7232fcf1f0feefd519ad831c299e385c4a9135ca5599081e21d4e2d7",
+        "size_bytes": 834641
+      },
+      "image_transform": {
+        "crop_left_px": 0.0,
+        "crop_top_px": 0.0,
+        "interpolation": "network resize 1024x320 then bilinear to source",
+        "output_height": 370,
+        "output_width": 1226,
+        "scale_x": 1.0,
+        "scale_y": 1.0,
+        "source_height": 370,
+        "source_width": 1226
+      },
+      "intrinsics": {
+        "cx": 601.8873,
+        "cy": 183.1104,
+        "distortion": [],
+        "distortion_model": "none",
+        "fx": 707.0912,
+        "fy": 707.0912,
+        "height": 370,
+        "projection": "pinhole",
+        "width": 1226
+      },
+      "invalid_values": [],
+      "scale_convention": "disparity",
+      "source_frame": "camera_2",
+      "valid_fraction": 1.0
+    }
+  ],
+  "preprocessing": [
+    {
+      "name": "uniform_frame_selection",
+      "parameters": {
+        "count": 25,
+        "frame_ids": [
+          "0000000000",
+          "0000000115",
+          "0000000230",
+          "0000000345",
+          "0000000460",
+          "0000000575",
+          "0000000690",
+          "0000000805",
+          "0000000920",
+          "0000001035",
+          "0000001150",
+          "0000001265",
+          "0000001381",
+          "0000001496",
+          "0000001611",
+          "0000001726",
+          "0000001841",
+          "0000001956",
+          "0000002071",
+          "0000002186",
+          "0000002301",
+          "0000002416",
+          "0000002531",
+          "0000002646",
+          "0000002761"
+        ],
+        "rounding": "nearest_integer_half_up",
+        "sequence_frame_count": 2762
+      }
+    },
+    {
+      "name": "featdepth_official_inference",
+      "parameters": {
+        "execution": {
+          "adapter_sha256": "df13e2f39b9711a4112cc0d830b52b8fa2181f8e8028a5b97526c2306ae4b552",
+          "adapter_version": "calibrex.featdepth_provider/v0.2",
+          "batch_count": 25,
+          "batch_size": 1,
+          "cudnn_allow_tf32": true,
+          "cudnn_benchmark": false,
+          "image_queue_limit": 0,
+          "precision": "float32",
+          "prediction_timing_scope": "tensor upload/resize, model, output resize/download; subset of inference_and_export",
+          "preprocess_workers": 0,
+          "timing_seconds": {
+            "inference_and_export": 77.0042932999786,
+            "prediction_batches": 75.5517877000384,
+            "preparation": 9.932455300004221
+          },
+          "torch_cpu_threads": 6
+        },
+        "input_height": 320,
+        "input_width": 1024,
+        "max_depth_m": 80.0,
+        "min_depth_m": 0.001,
+        "resize_mode": "bilinear_align_corners_false",
+        "saved_feature": "raw_network_inverse_depth_disparity",
+        "stereo_scale": 36.0
+      }
+    },
+    {
+      "name": "publication_paths",
+      "parameters": {
+        "normalization": "Parsed values and embedded JSON notes normalize external/workspace paths; original content digests are retained.",
+        "original_path": "/workspace/Calibrex/outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/provider.json",
+        "original_sha256": "f1dac4b016ce6df7bbbe6e111a01c73031eceb622e87ff3f143241936b40d452"
+      }
+    }
+  ],
+  "provenance": {
+    "created_at": "2026-10-11T04:16:49.755741+00:00",
+    "generator": "tools.run_featdepth_provider",
+    "generator_version": "0.5.1",
+    "git_commit": "0b67865",
+    "input_manifest_sha256": "9ee549ffa8240d56de4f110f237fa8629c96d17b5dc16608f1e790852683b170",
+    "output_manifest_sha256": "1a3b54e2b431335c895a0e4d21564dc200ca39503fa2d28e154eb00706d808c1"
+  },
+  "provider": {
+    "checkpoint": {
+      "encoding": "pytorch_checkpoint",
+      "path": "/external/calibrex-public-inputs/providers/checkpoints/fm_depth.pth",
+      "sha256": "559f168c762d01af7c745b32ced8930a12423a0e9b62af791f7d894bd902af27",
+      "size_bytes": 661073985
+    },
+    "checkpoint_redistribution": "not redistributed; official Google Drive file 1HlAubfuja5nBKpfNU3fQs-3m3Zaiu9RI",
+    "license_spdx": "MIT",
+    "model": "FeatDepth trained on KITTI raw",
+    "provider": "FeatDepth",
+    "source_commit": "550420b3fb51a027549716b74c6fbce41651d3a5",
+    "source_repository": "https://github.com/sconlyshootery/FeatDepth",
+    "training": {
+      "evaluation_overlap": "possible",
+      "evidence": "official non-online-refined checkpoint selected; repository does not publish enough training IDs to exclude drive overlap",
+      "test_data_used_for_online_refinement": false,
+      "training_dataset": "KITTI raw",
+      "training_split": "repository-described KITTI raw training data"
+    },
+    "version": "official-2020-kitti-raw-checkpoint"
+  },
+  "scale_convention": "disparity",
+  "schema_version": "slac.depth_provider/v0.1",
+  "warnings": [
+    "training/evaluation drive overlap cannot be excluded",
+    "raw FeatDepth inverse-depth/disparity is retained for D2D histograms",
+    "metric depth conversion parameters are recorded but not applied",
+    "checkpoint sha256=559f168c762d01af7c745b32ced8930a12423a0e9b62af791f7d894bd902af27"
+  ]
+}
