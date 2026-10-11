@@ -367,3 +367,34 @@ The problem's declared initial pose came from the dataset reference; this
 check demonstrates execution equivalence, not independent calibration accuracy.
 See the [evidence notes](../assets/gpu_acceleration/README.md#single-estimation-cli-with-holdout)
 for commands, selected frame IDs, original result hashes and timing scope.
+
+## Ordered CUDA frame batching
+
+The CUDA adapter automatically supplies ordered batch histograms to the D2D
+evaluator when no frame executor is supplied. Each pose uploads its transform
+and histogram edges once, enqueues frame kernels in the current CUDA stream,
+and downloads a group of at most 32 histograms together. A private projection
+workspace, sized for the largest input frame, is reused within that invocation.
+It is released when iteration finishes, is closed, or fails. Each device result
+buffer has at most 32 rows; the input snapshot budget remains independent of
+scratch and CuPy's allocator pool. Uncached frames still upload their inputs
+on every evaluation.
+
+Native NumPy computes each frame's entropy/MI from the returned integer counts
+and reduces frames in input order. Empty and insufficiently visible frames keep
+their original positions and skip records. Pinhole, double-sphere, and Mei
+frames can share a batch with different image sizes and point counts. The
+single-frame histogram and pair-array APIs remain available. CUDA continues to
+require `--frame-workers 1`.
+
+Backend identity `calibrex.cuda_depth_pair_projector/v0.3` records
+`histogram_batch_frames=32`. Standard result provenance includes
+`projection_transfer_statistics.histogram_download_calls` and
+`histogram_download_bytes`, counting successful histogram downloads from both
+single-frame and batch calls. Pair-array downloads are outside those counters.
+The streaming batch contract requires exactly one histogram per observation;
+the evaluator rejects missing or extra results.
+
+[CuPy's host copy](https://docs.cupy.dev/en/stable/reference/generated/cupy.asnumpy.html)
+blocks until each group's result is ready. The existing FP64 kernels, disabled
+FMA policy, nearest-point ties, histogram edges, and search settings are retained.

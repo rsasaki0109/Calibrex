@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import math
 import random
+from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
 from functools import partial
@@ -150,6 +151,24 @@ class DepthPairHistogramProjector(DepthPairProjector, Protocol):
         lidar_range: tuple[float, float],
     ) -> DepthPairHistogram:
         """Project, gate, and bin features with the native edge conventions."""
+        ...
+
+
+@runtime_checkable
+class DepthPairBatchHistogramProjector(DepthPairProjector, Protocol):
+    """Optional ordered, streaming histograms for several frames at one pose."""
+
+    def histogram_depth_pairs_batch(
+        self,
+        observations: tuple[DepthToDepthObservation, ...] | list[DepthToDepthObservation],
+        transform_camera_lidar: SE3,
+        *,
+        use_z_buffer: bool,
+        bins: int,
+        camera_range: tuple[float, float],
+        lidar_range: tuple[float, float],
+    ) -> Iterable[DepthPairHistogram]:
+        """Yield exactly one histogram per input frame, including empty frames."""
         ...
 
 
@@ -417,10 +436,21 @@ def evaluate_depth_to_depth_mi(
         _evaluate_frame, transform=transform_camera_lidar, settings=settings,
         project=project, camera_range=camera_range, lidar_range=lidar_range,
     )
-    evaluated = (
-        frame_executor.map(evaluate_frame, observations)
-        if frame_executor is not None else map(evaluate_frame, observations)
-    )
+    evaluated: Iterable[DepthToDepthFrameEvaluation | None]
+    if frame_executor is None and isinstance(project, DepthPairBatchHistogramProjector):
+        histograms = project.histogram_depth_pairs_batch(
+            observations, transform_camera_lidar, use_z_buffer=settings.use_z_buffer,
+            bins=settings.histogram_bins, camera_range=camera_range, lidar_range=lidar_range,
+        )
+        evaluated = (
+            _evaluate_histogram_frame(observation, histogram, settings)
+            for observation, histogram in zip(observations, histograms, strict=True)
+        )
+    else:
+        evaluated = (
+            frame_executor.map(evaluate_frame, observations)
+            if frame_executor is not None else map(evaluate_frame, observations)
+        )
     # Executor.map preserves input order, including skipped frames. The means
     # below therefore retain the serial floating-point reduction order.
     for observation, frame in zip(observations, evaluated, strict=True):
@@ -458,11 +488,7 @@ def _evaluate_frame(
             observation, transform, use_z_buffer=settings.use_z_buffer,
             bins=settings.histogram_bins, camera_range=camera_range, lidar_range=lidar_range,
         )
-        visible_count = histogram.visible_point_count
-        projected_count = histogram.projected_count_before_visibility
-        if visible_count < settings.min_visible_points:
-            return None
-        mi, normalized = _histogram_mutual_information(histogram.histogram)
+        return _evaluate_histogram_frame(observation, histogram, settings)
     else:
         pairs = project(observation, transform, use_z_buffer=settings.use_z_buffer)
         visible_count = int(pairs.camera_depth.size)
@@ -477,6 +503,22 @@ def _evaluate_frame(
         frame_id=observation.frame_id, mutual_information=mi,
         normalized_mutual_information=normalized, visible_point_count=visible_count,
         projected_count_before_visibility=projected_count,
+    )
+
+
+def _evaluate_histogram_frame(
+    observation: DepthToDepthObservation,
+    histogram: DepthPairHistogram,
+    settings: DepthToDepthOptions,
+) -> DepthToDepthFrameEvaluation | None:
+    if histogram.visible_point_count < settings.min_visible_points:
+        return None
+    mi, normalized = _histogram_mutual_information(histogram.histogram)
+    return DepthToDepthFrameEvaluation(
+        frame_id=observation.frame_id, mutual_information=mi,
+        normalized_mutual_information=normalized,
+        visible_point_count=histogram.visible_point_count,
+        projected_count_before_visibility=histogram.projected_count_before_visibility,
     )
 
 

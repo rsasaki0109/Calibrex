@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Batch ordered CUDA D2D histograms in groups of at most 32 frames. Share pose
+  and histogram-edge uploads, reuse invocation-local projection scratch, and
+  download each group's counts together. Preserve native frame reduction,
+  exact visibility/tie rules, and record histogram download counters.
+
 - Fuse CPU D2D projection, visibility, and histogram accumulation in the
   optional `numba_cpu` backend. Freeze feature bins, reuse thread-local scratch,
   visit only touched pixels, and release the GIL for frame parallelism. Keep
