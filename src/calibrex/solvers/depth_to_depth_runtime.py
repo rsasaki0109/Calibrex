@@ -9,6 +9,7 @@ import numpy as np
 from calibrex.solvers.borer_depth_to_depth_solver import (
     DepthPairProjector,
     DepthToDepthObservation,
+    DepthToDepthOptions,
     project_depth_pairs,
 )
 
@@ -57,6 +58,7 @@ def create_depth_pair_projector(
     observations: tuple[DepthToDepthObservation, ...] = (),
     *,
     cuda_cache_bytes: int | None = None,
+    histogram_options: DepthToDepthOptions | None = None,
 ) -> tuple[DepthPairProjector, str]:
     """Prepare a projector and its reproducible identity; never fall back silently."""
 
@@ -69,14 +71,14 @@ def create_depth_pair_projector(
     if backend == "numba_cpu":
         try:
             from calibrex.solvers.numba_depth_to_depth_adapter import (
-                numba_depth_pair_projector_identity,
-                project_depth_pairs_numba,
+                NumbaDepthPairProjector,
             )
         except ImportError as exc:
             raise ValueError(
                 "numba_cpu projection requires the optional calibrex[numba] dependency"
             ) from exc
-        return project_depth_pairs_numba, numba_depth_pair_projector_identity()
+        cpu_projector = NumbaDepthPairProjector(observations, histogram_options=histogram_options)
+        return cpu_projector, cpu_projector.identity()
     if backend == "cuda":
         try:
             from calibrex.solvers.cuda_depth_to_depth_adapter import CudaDepthPairProjector

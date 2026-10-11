@@ -264,7 +264,8 @@ For an existing problem, use `calibrex camera-lidar estimate-six-dof
 problem.json --projection-backend numpy --frame-workers 2 --output result.json`.
 The default is one frame worker. CUDA rejects more than one before input loading.
 CPU backends accept frame threads; the public timing evidence measures NumPy.
-Numba's compiled work may not benefit from Python threads.
+The `numba_cpu` backend uses a fused compiled histogram path and releases the
+GIL so its frame calculations can run concurrently.
 
 The sweep also accepts `--candidate-frame-workers`. With `--workers 2
 --candidate-frame-workers 2`, at most two cases run in separate processes and
@@ -280,3 +281,34 @@ On public drive 0018, three runs per method all converged with the same complete
 [Published CPU frame evidence](../assets/cpu_frame_parallelism/README.md)
 retains every invocation, original hashes, representative full traces, and
 timing/accuracy limitations. These repetitions measure one workload's latency.
+
+## Use the fused CPU backend
+
+The optional Numba implementation performs projection, nearest-point selection,
+and histogram accumulation directly, avoiding paired feature arrays and repeated
+bin searches. Prepared frames copy the verified input features into immutable
+snapshots and cache one histogram configuration per frame. Scratch is private
+to each thread, grows to the largest image encountered, and clears only pixels
+hit by the current scan. All histogram counts, visibility gates, input-order
+ties, and float64 arithmetic retain the native objective; no point subsampling
+or search-budget change is involved.
+
+```bash
+pip install 'calibrex[numba]'
+calibrex demo kitti-six-dof \
+  /path/to/2011_09_30_drive_0018_sync /path/to/featdepth-provider.json \
+  --candidate-backend numba_cpu --candidate-frame-workers 2 --repetitions 3 \
+  --output-dir outputs/kitti-six-dof-fused-cpu --json
+```
+
+The same backend is available to `estimate-six-dof` and CPU signed-axis sweeps.
+Pair-array consumers can still request individual projected samples. Constructor
+snapshots preserve explicitly prepared inputs even if the caller later edits its
+buffers; unprepared observations use their current values without being retained.
+Memory includes the prepared feature copies/bin indices and one scratch image
+per active thread. The first compiled call can include JIT compilation/cache
+loading. Timing comparisons should retain that call and the backend preparation
+phase, and use the same frozen problem, split, prior, and evaluation settings.
+
+The implementation uses [Numba's GIL release](https://numba.readthedocs.io/en/stable/user/jit.html#nogil)
+and preserves [NumPy histogram edge conventions](https://numpy.org/doc/stable/reference/generated/numpy.histogram.html#notes).

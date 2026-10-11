@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Fuse CPU D2D projection, visibility, and histogram accumulation in the
+  optional `numba_cpu` backend. Freeze feature bins, reuse thread-local scratch,
+  visit only touched pixels, and release the GIL for frame parallelism. Keep
+  float64 projection, histogram edge rules, visibility counts, and tie order.
+
 - Parallelize independent D2D frame evaluations inside one six-DoF estimate
   with persistent CPU threads. `estimate-six-dof --frame-workers` and public
   demos' `--candidate-frame-workers` preserve frame reduction order, full search

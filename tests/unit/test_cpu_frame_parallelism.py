@@ -58,18 +58,24 @@ def test_frames_execute_concurrently_and_reduce_in_input_order() -> None:
     assert [frame.frame_id for frame in parallel.frames] == ["0", "1", "2", "3"]
 
 
-def test_paired_demo_preserves_full_trace_holdout_and_worker_provenance(tmp_path: Path) -> None:
+@pytest.mark.parametrize("backend", ["numpy", "numba_cpu"])
+def test_paired_demo_preserves_full_trace_holdout_and_worker_provenance(
+    tmp_path: Path, backend: str,
+) -> None:
+    if backend == "numba_cpu":
+        pytest.importorskip("numba")
     sequence, provider = _fixture(tmp_path)
     demo = run_public_camera_lidar_six_dof_demo(
         sequence, provider, output_directory=tmp_path / "parallel",
-        candidate_backend="numpy", candidate_frame_workers=2,
+        candidate_backend=backend, candidate_frame_workers=2,
         rotation_offset_deg=(0, 0, 0), translation_offset_m=(0, 0, 0),
         options=BorerSixDofOptions(
             max_evaluations=100, minimum_rotation_step_deg=0.25, minimum_translation_step_m=0.1,
         ), command=["fixture"],
     )
     assert demo.successful
-    serial, parallel = demo.results["numpy"], demo.results["numpy_repeat"]
+    serial = demo.results["numpy"]
+    parallel = demo.results["numpy_repeat" if backend == "numpy" else backend]
     assert _numerical_payload(serial) == _numerical_payload(parallel)
     assert serial.run.config_sha256 != parallel.run.config_sha256
     assert serial.run.provenance["configuration"]["effective_frame_workers"] == 1

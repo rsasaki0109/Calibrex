@@ -129,6 +129,7 @@ def run_camera_lidar_six_dof_estimate(
         projection_backend,
         loaded.observations,
         cuda_cache_bytes=cuda_cache_bytes,
+        histogram_options=settings.d2d,
     )
     settings = replace(settings, projector=projector, projection_backend=identity)
     effective_workers = min(frame_workers, max(len(train), len(holdout)))
