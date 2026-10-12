@@ -126,18 +126,17 @@ accuracy.
    the vendor reference passes and the declared known-bad fails. The protocol
    rejects the known-bad only by its comparison with the dataset's own
    calibration. A data-only decision beside it (`calibrex check` rule: rotation
-   from edge alignment, translation along the optical axis from stereo depth on
-   camera-facing surfaces) fails the known-bad on both its rotation and its
-   0.25 m, on both frame selections. It does not pass the reference: stereo depth
-   puts it 5 cm along the optical axis, at the tolerance (`warn`), so the
-   data-only status is inconclusive. Drive 0009 (same calibration files) reads
-   the reference under 1 cm, so the 5 cm belongs to drive 0005, and its spread
-   decision passes; on its first 50 frames the known-bad passes with its pitch
-   unjudged (control t under 2). A joint six-DoF stereo fit is recorded as a
-   cross-check; its x of the same calibration varies by 12 cm across runs, more
-   than its 1-3 cm jackknife std, so `x` and `y` stay unjudged. The remaining
-   gaps are pitch observability on short drives and a lateral translation
-   estimate whose systematic error is bounded.
+   from edge alignment, judged after the depth error stereo measures is removed;
+   translation along the optical axis from stereo depth on camera-facing
+   surfaces) passes the reference and fails the known-bad on both its rotation
+   and its 0.25 m, on both frame selections of drive 0005 (the reference near
+   the depth tolerance). Drive 0009 (same calibration files) repeats it on
+   spread frames; on its first 50 frames the known-bad passes with its pitch
+   and depth unjudged. A joint six-DoF stereo fit is recorded as a cross-check;
+   its x of the same calibration varies by 12 cm across runs, more than its
+   1-3 cm jackknife std, so `x` and `y` stay unjudged. The remaining gaps are
+   rotation and depth on 5 s of driving and a lateral translation estimate
+   whose systematic error is bounded.
 2. **Common external execution adoption:** the external-run artifact is proven
    by Koide (fail-closed handoff, readiness, and real-pilot finalization),
    Kalibr (independent Camera--IMU holdout evidence, including the lever arm and a

@@ -488,6 +488,19 @@
           "title": "Edge Points",
           "type": "integer"
         },
+        "edge_start_depth_shift_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "how far along the optical axis the edges' start was moved (the candidate's error there, from trusted stereo depth) before they judged rotation; None when they started at the candidate",
+          "title": "Edge Start Depth Shift M"
+        },
         "frames": {
           "minimum": 0,
           "title": "Frames",
