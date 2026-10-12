@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **Camera-LiDAR rolling sweep evaluated on a handheld recording.** Hilti 2022 exp21 (first
+  6 GiB, the PandarXT-32 cloud with per-point time, the Alphasense gyro picked automatically):
+  - **Reference.** Moving each point to the image time raises the edge-alignment objective at the
+    reference from 0.360 to 0.387. About 6 % comes from the motion itself and 2 % from per-point
+    timing.
+  - **Perturbations.** All six rotation errors are flagged (five as recorded: roll +3 deg was
+    inconclusive). Yaw +1 deg moved from fail to warn because the yaw std grew.
+  - **New tool.** `tools/trim_partial_rosbag1.py` cuts a range-downloaded ROS 1 bag after its
+    last complete record.
+
 - **Camera-LiDAR check moves LiDAR points to the image time.**
 
   On a moving rig the LiDAR has turned and moved between a point's measurement and the image.

@@ -258,6 +258,67 @@ changed is the held-out yaw control on 0005 -1, which sits at the t >= 2 line (t
 recorded, 1.6 moved). Two drives and four pairings are a small sample; whether the translation
 part of the move (0.39 m median at -1) disturbs the depth edges near the car is not resolved.
 
+## Rolling sweep on a handheld rig: Hilti exp21 (2026-10-12)
+
+The rolling sweep (each point moved by its own measurement time) needs a cloud with a per-point
+time field on a moving rig with a camera. Hilti 2022 `exp21_outside_building` is one: handheld,
+the PandarXT-32 cloud carries `timestamp`, and the Alphasense IMU is connected to the LiDAR
+through the calibration files, so `calibrex check` picks the gyro (rotation only) by itself.
+
+* **Data.** The first 6 GiB of the 12 GB bag ([Hugging Face
+  `Hilti-Research/hilti-slam-challenge-2022`](https://huggingface.co/datasets/Hilti-Research/hilti-slam-challenge-2022),
+  CC BY-NC-SA 3.0), fetched with an HTTP range request and cut after its last complete record
+  with `tools/trim_partial_rosbag1.py`; the ROS 1 bag is read directly. That head holds about
+  81 s of frames, so the 48 frames are spread over it (short-recording selection).
+* **Candidate.** Kalibr's `calib_3_cam0-1-camchain-imucam.yaml` (cam0 to IMU) and the platform's
+  `lidar_calibration.yaml` (IMU to PandarXT-32), both given with `--tf`. Perturbations replace
+  the second with a `slac.check_frames` file whose PandarXT-32 is turned about the camera axes.
+* **Applied move.** Median 0.14 deg at the scan's reference time (max 0.39 deg), and each point
+  by its own time within the sweep.
+
+```bash
+curl -L -r 0-6442450943 -o exp21_head.bag \
+  https://huggingface.co/datasets/Hilti-Research/hilti-slam-challenge-2022/resolve/main/rosbags/exp21_outside_building.bag
+python tools/trim_partial_rosbag1.py exp21_head.bag
+calibrex check exp21_head.bag --pairs camera-lidar --camera alphasense/cam0/image_raw \
+  --max-duration-s 120 --tf calib_3_cam0-1-camchain-imucam.yaml --tf lidar_calibration.yaml \
+  [--camera-lidar-motion none] --output check.yaml
+```
+
+**Ablation at the reference.** The objective is the edge-alignment score at the candidate (higher
+means LiDAR edges land on image edges better); "per-point time" off means the cloud's time field
+is ignored (scans paired at the header stamp and moved as a whole):
+
+| Per-point time | Motion | Verdict | Judged axes, `error / tolerance` (deg) | Objective at the reference |
+| --- | --- | --- | --- | --- |
+| used | none | pass | roll 0.15 / 0.5, pitch 0.25 / 0.5, yaw 0.25 / 0.5 | 0.360 |
+| used | gyro | pass | roll 0.1 / 0.5, pitch 0.2 / 0.5, yaw 0.15 / 0.63 | **0.387** |
+| ignored | none | pass | pitch 0.15 / 0.5 (roll, yaw unchecked) | 0.356 |
+| ignored | gyro (whole scan) | pass | pitch 0.2 / 0.5 (roll, yaw unchecked) | 0.379 |
+
+Moving the points raises the objective by about 6 % even scan by scan, and by 2 % more when each
+point moves by its own time; pairing at the visible points' time is what lets roll and yaw be
+judged at all.
+
+**Perturbed candidates** (per-point time used, `error / tolerance` of the perturbed axis):
+
+| Perturbation | as recorded | moved with the gyro |
+| --- | --- | --- |
+| roll +1 deg | warn (0.75 / 0.5) | warn (0.9 / 0.5) |
+| roll +3 deg | **inconclusive**, no axis judged | fail (2.85 / 0.5) |
+| pitch +1 deg | warn (0.75 / 0.5) | warn (0.8 / 0.5) |
+| pitch +3 deg | fail (2.75 / 0.5) | fail (2.8 / 0.5) |
+| yaw +1 deg | fail (1.2 / 0.54) | warn (1.15 / 0.63) |
+| yaw +3 deg | fail (3.2 / 0.5) | fail (3.15 / 0.61) |
+
+Moved, all six errors are flagged (five as recorded: roll +3 left every axis unjudged), the
+measured error is closer to the applied one in all five cases judged both ways (mean miss 0.16
+deg against 0.23 deg),
+and the objective at the candidate is 6-7 % higher in every case. The cost is a slightly larger
+yaw std (tolerance 0.5 to 0.61-0.74 deg), which turned yaw +1 from fail into warn. One handheld
+recording, rotation-only motion (the gyro has no translation); exp07 and the other Hilti
+recordings were not re-run.
+
 ## Round trip and drift (Hilti)
 
 * `calibrex estimate exp21 --pairs camera-lidar --tf camchain --tf prior.yaml`, with the prior
@@ -333,8 +394,8 @@ dropped pairs.
 * The jackknife std ignores systematic effects, so a std of 0.03 deg does not mean 0.03 deg
   accuracy (see exp07); the 0.5 deg floor is the resolution.
 * Intrinsics are not handled. Rig motion is compensated only with a velocity topic connected to
-  the LiDAR, the rolling sweep only with a per-point time field (above; neither was available
-  together on a real recording here), and an image in the camera body frame is only named, not
+  the LiDAR, the rolling sweep only with a per-point time field (above; evaluated on KITTI
+  and one handheld Hilti recording), and an image in the camera body frame is only named, not
   corrected (above); a
   solid-state LiDAR is handled through angular-neighbour depth edges, evaluated only on the static
   AIST Livox recordings above; the thresholds (2 deg control, 0.5 deg std bound, t >= 2) come from these dev
