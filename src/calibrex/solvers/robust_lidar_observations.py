@@ -14,6 +14,7 @@ from calibrex.core.geometry import SE3
 from calibrex.graph.lidar_point_to_plane import (
     LidarPointToPlaneObservation,
     LidarRigPointToPlaneFactor,
+    _PackedObservations,
 )
 
 
@@ -147,3 +148,35 @@ def _partition_median(values: NDArray[np.float64]) -> float:
     with np.errstate(over="ignore", invalid="ignore"):
         return (float((partitioned[middle-1]+partitioned[middle])/2.0)
                 if len(values) % 2 == 0 else float(partitioned[middle]))
+
+
+def _filter_packed_factor_mad(
+    factor: LidarRigPointToPlaneFactor, *, mad_scale: float, minimum_threshold_m: float,
+    minimum_inlier_fraction: float, minimum_inliers: int,
+) -> int | None:
+    """Retain native packed rows with the public filter's exact gate/support ordering."""
+    if type(factor._observations) is not _PackedObservations:
+        return None
+    total = factor._observation_count()
+    if total < 64:
+        return None
+    if mad_scale < 0.0:
+        raise ValueError("mad_scale must be non-negative")
+    if minimum_threshold_m < 0.0:
+        raise ValueError("minimum_threshold_m must be non-negative")
+    if not 0.0 < minimum_inlier_fraction <= 1.0:
+        raise ValueError("minimum_inlier_fraction must be in (0, 1]")
+    if minimum_inliers < 1:
+        raise ValueError("minimum_inliers must be positive")
+    absolute = np.abs(np.asarray(factor.residuals(), dtype=np.float64))
+    if not np.isfinite(absolute).all():
+        return None
+    median_abs = _partition_median(absolute)
+    mad = _partition_median(np.abs(absolute-median_abs))
+    threshold = max(minimum_threshold_m, median_abs + mad_scale * (1.4826 * mad))
+    accepted = np.flatnonzero(absolute <= threshold)
+    required = max(minimum_inliers, math.ceil(total * minimum_inlier_fraction))
+    if len(accepted) < required:
+        accepted = np.sort(np.argsort(absolute, kind="stable")[:min(required, total)])
+    factor._retain_packed(accepted)
+    return total-len(accepted)

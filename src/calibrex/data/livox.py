@@ -320,6 +320,18 @@ class VoxelPlaneQueryContext:
         correspondence_gate_m: float,
     ) -> list[_PlaneGeometry | None] | None:
         """Skip unused match records/distances for captured native geometry."""
+        positions = self._nearest_positions(
+            points, voxel_size_m=voxel_size_m, correspondence_gate_m=correspondence_gate_m,
+        )
+        return None if positions is None else [
+            self._planes[self._keys[position]] if position >= 0 else None
+            for position in positions.tolist()
+        ]
+
+    def _nearest_positions(
+        self, points: NDArray[np.float64], *, voxel_size_m: float,
+        correspondence_gate_m: float,
+    ) -> NDArray[np.int64] | None:
         if (type(self) is not VoxelPlaneQueryContext or not self._native_geometry
             or "nearest_matches" in self.__dict__
             or type(self).nearest_matches is not _NATIVE_CAPTURED_MATCHES):
@@ -331,11 +343,9 @@ class VoxelPlaneQueryContext:
             or not np.isfinite(cells).all() or np.any(cells < -(2.0**63))
             or np.any(cells >= 2.0**63)):
             return None
-        positions = _packed_plane_positions(
+        return _packed_plane_positions(
             points, cells.astype(np.int64), index, correspondence_gate_m,
         )
-        return [self._planes[self._keys[position]] if position >= 0 else None
-                for position in positions.tolist()]
 
     def nearest_match(
         self, point: Vector3, *, voxel_size_m: float, correspondence_gate_m: float,

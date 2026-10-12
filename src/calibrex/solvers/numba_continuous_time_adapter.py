@@ -28,7 +28,7 @@ Quaternion: TypeAlias = tuple[float, float, float, float]
 
 def numba_continuous_time_identity() -> str:
     """Identify the optional runtime and its arithmetic/compilation policy."""
-    return f"calibrex.numba_continuous_time/v0.2;numba={version('numba')};fastmath=false;cache=true"
+    return f"calibrex.numba_continuous_time/v0.3;numba={version('numba')};fastmath=false;cache=true"
 
 
 @njit(cache=True, nogil=True, fastmath=False, inline="always")  # type: ignore[untyped-decorator]
@@ -364,6 +364,20 @@ class NumbaContinuousTimeQueryContext:
         extrinsic: SE3,
         tolerance: float,
     ) -> tuple[list[SE3], FloatArray, bool] | None:
+        result = self._evaluate(track, timestamps, points, base, extrinsic, tolerance, False)
+        return None if result is None else (result[0], result[2], result[3])
+
+    def _evaluate_rows(
+        self, track: OdometryTrack, timestamps: list[int], points: FloatArray,
+        base: SE3, extrinsic: SE3, tolerance: float,
+    ) -> tuple[FloatArray, FloatArray, bool] | None:
+        result = self._evaluate(track, timestamps, points, base, extrinsic, tolerance, True)
+        return None if result is None else (result[1], result[2], result[3])
+
+    def _evaluate(
+        self, track: OdometryTrack, timestamps: list[int], points: list[Vector3] | FloatArray,
+        base: SE3, extrinsic: SE3, tolerance: float, rows_only: bool,
+    ) -> tuple[list[SE3], FloatArray, FloatArray, bool] | None:
         """Preserve scalar query counters and stop at the first extrapolation failure."""
         if (
             track.samples is not self.sample_snapshot
@@ -404,7 +418,10 @@ class NumbaContinuousTimeQueryContext:
             # extrinsics always get the same ordered world-coordinate formula.
             world = _world_rows(cached.rows, transform, coordinates)
             self.used = True
-            return list(cached.poses), world, True
+            poses = [] if rows_only else (
+                list(cached.poses) if cached.poses else _materialize_pose_rows(cached.rows)
+            )
+            return poses, cached.rows, world, True
         rows, world, clamps, extrapolation, _calculated, visited = _pose_world_rows(
             np.asarray(timestamps, dtype=np.int64),
             self.times,
@@ -422,32 +439,35 @@ class NumbaContinuousTimeQueryContext:
         with track._cache_lock:
             track.interpolation_count += visited
             track.clamp_count += int(np.count_nonzero(clamps[:visited]))
-            for value in extrapolation[:visited]:
-                track._record_extrapolation(float(value))
+            if ("_record_extrapolation" not in track.__dict__
+                and OdometryTrack._record_extrapolation is _NATIVE_RECORD_EXTRAPOLATION):
+                if visited:
+                    track._record_extrapolation(float(np.max(extrapolation[:visited])))
+            else:
+                for value in extrapolation[:visited]:
+                    track._record_extrapolation(float(value))
         usable = visited == len(timestamps) and not np.any(extrapolation[:visited] > tolerance)
         # These rows have already performed both public-constructor normalizations.
         poses = []
         if usable:
-            for start in range(0, len(rows), 4096):
-                for row in rows[start : start + 4096].tolist():
-                    pose = object.__new__(SE3)
-                    object.__setattr__(pose, "translation_m", tuple(row[:3]))
-                    object.__setattr__(pose, "rotation_quat_xyzw", tuple(row[3:]))
-                    poses.append(pose)
-            if can_reuse and poses:
+            if not rows_only:
+                poses = _materialize_pose_rows(rows)
+            if can_reuse and len(rows):
                 pose_tuple = tuple(poses)
                 # Charge all retained payloads, even shared Python floats/ints,
                 # plus a conservative allowance for the LRU node and entry.
                 size = sys.getsizeof(rows) + sys.getsizeof(pose_tuple) + sys.getsizeof(key)
                 size += sys.getsizeof(key[0]) + sys.getsizeof(key[1]) + 512
                 size += len(key[0]) * sys.getsizeof(2**63 - 1)
-                prototype = poses[0]
-                pose_size = (
-                    sys.getsizeof(prototype) + max(sys.getsizeof(pose.__dict__) for pose in poses)
-                    + sys.getsizeof(prototype.translation_m)
-                    + sys.getsizeof(prototype.rotation_quat_xyzw) + 7 * sys.getsizeof(0.0)
-                )
-                size += len(poses) * pose_size
+                if poses:
+                    prototype = poses[0]
+                    pose_size = (
+                        sys.getsizeof(prototype)
+                        + max(sys.getsizeof(pose.__dict__) for pose in poses)
+                        + sys.getsizeof(prototype.translation_m)
+                        + sys.getsizeof(prototype.rotation_quat_xyzw) + 7 * sys.getsizeof(0.0)
+                    )
+                    size += len(poses) * pose_size
                 if size <= self._pose_cache_limit_bytes:
                     rows.flags.writeable = False
                     batch = _PreparedPoseBatch(
@@ -465,4 +485,16 @@ class NumbaContinuousTimeQueryContext:
                             self._pose_cache_bytes -= evicted.size_bytes
                         self._pose_cache[key] = batch
                         self._pose_cache_bytes += size
-        return poses, world, usable
+        rows.flags.writeable = False
+        return poses, rows, world, usable
+
+
+def _materialize_pose_rows(rows: FloatArray) -> list[SE3]:
+    poses = []
+    for start in range(0, len(rows), 4096):
+        for row in rows[start : start + 4096].tolist():
+            pose = object.__new__(SE3)
+            object.__setattr__(pose, "translation_m", tuple(row[:3]))
+            object.__setattr__(pose, "rotation_quat_xyzw", tuple(row[3:]))
+            poses.append(pose)
+    return poses

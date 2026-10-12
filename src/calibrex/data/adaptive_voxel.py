@@ -253,12 +253,22 @@ class AdaptivePlaneQueryContext:
         self, points: NDArray[np.float64], *, correspondence_gate_m: float,
     ) -> list[AdaptiveVoxelPlane | None]:
         """Preserve scalar gates, exact math.dist distances and first ordered ties."""
+        positions = self._nearest_positions(points, correspondence_gate_m=correspondence_gate_m)
+        if positions is None:
+            return [self._map.nearest_plane(tuple(point),
+                                            correspondence_gate_m=correspondence_gate_m)
+                    for point in points.tolist()]
+        return [self._planes[position] if position >= 0 else None
+                for position in positions.tolist()]
+
+    def _nearest_positions(
+        self, points: NDArray[np.float64], *, correspondence_gate_m: float,
+    ) -> NDArray[np.int64] | None:
         gate = correspondence_gate_m
         tree = self._tree
         if (len(points) < 64 or tree is None or not math.isfinite(gate) or gate <= 0.0
             or not np.isfinite(points).all() or np.any(np.abs(points) >= 1e100)):
-            return [self._map.nearest_plane(tuple(point), correspondence_gate_m=gate)
-                    for point in points.tolist()]
+            return None
         # Centroids lie in their declared cells. Every centroid within the gate
         # is therefore inside the scalar ceil(gate/size)+1 search box.
         distances, indexes = tree.query(points, k=2, eps=0.0, workers=1)
@@ -270,11 +280,7 @@ class AdaptivePlaneQueryContext:
         inside = radii <= gate
         outside = lower > gate
         fast = stable & (inside | outside)
-        result: list[AdaptiveVoxelPlane | None] = [
-            self._planes[position] if accepted else None
-            for position, accepted in zip(indexes[:, 0].tolist(), (fast & inside).tolist(),
-                                          strict=True)
-        ]
+        result = np.where(fast & inside, indexes[:, 0], -1).astype(np.int64)
         # Use the same conservative roundoff envelope as tie repair. Only
         # unambiguous nearest identities safely inside/outside the gate skip
         # scalar distances; all boundaries and near ties keep the old path.
@@ -282,20 +288,24 @@ class AdaptivePlaneQueryContext:
             point_values = points[row]
             point = (float(point_values[0]), float(point_values[1]), float(point_values[2]))
             distance = float(distances[row, 0])
-            if distance < 1e-150 or not math.isfinite(distance):
-                result[row] = self._map.nearest_plane(point, correspondence_gate_m=gate)
+            if not math.isfinite(distance):
+                plane = self._map.nearest_plane(point, correspondence_gate_m=gate)
+                result[row] = self._planes.index(plane) if plane is not None else -1
                 continue
             position = int(indexes[row, 0])
             # 3D positive sum/sqrt roundoff is bounded away from overflow and
             # underflow. Repair close contenders with the original scalar norm.
-            radius = float(radii[row])
-            if float(distances[row, 1]) <= radius:
+            # A squared KD-tree distance can underflow. An absolute repair
+            # radius encloses every such contender; math.dist selects the
+            # exact nearest identity and keeps captured insertion-order ties.
+            radius = max(float(radii[row]), 1e-150) if distance < 1e-150 else float(radii[row])
+            if distance < 1e-150 or float(distances[row, 1]) <= radius:
                 candidates = sorted(tree.query_ball_point(point, radius, eps=0.0, workers=1))
                 position = min(candidates, key=lambda index: (
                     math.dist(point, self._planes[index].centroid), index,
                 ))
             plane = self._planes[position]
-            result[row] = plane if math.dist(point, plane.centroid) <= gate else None
+            result[row] = position if math.dist(point, plane.centroid) <= gate else -1
         return result
 
 

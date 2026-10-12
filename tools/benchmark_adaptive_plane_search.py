@@ -66,6 +66,7 @@ SOURCES = (
     "src/calibrex/solvers/fixed_trajectory_se3_solver.py",
     "src/calibrex/solvers/robust_lidar_observations.py",
     "src/calibrex/evaluation/lidar.py",
+    "src/calibrex/evaluation/packed_lidar_observations.py",
     "src/calibrex/data/livox.py",
     "src/calibrex/pipelines/online.py",
     "src/calibrex/core/continuous_time_lidar_artifacts.py",
@@ -109,7 +110,7 @@ def _comparison_canonical(payload: dict) -> str:
     provenance = comparable.get("provenance", {})
     if "notes" in provenance:
         provenance["notes"] = [note for note in provenance["notes"] if re.fullmatch(
-            r"continuous_time_query_execution: (python|calibrex\.numba_continuous_time/v0\.[12];"
+            r"continuous_time_query_execution: (python|calibrex\.numba_continuous_time/v0\.[123];"
             r"numba=[0-9.]+;fastmath=false;cache=(true|false))", note,
         ) is None]
     return _canonical(comparable)
@@ -202,7 +203,11 @@ def _worker(args: argparse.Namespace) -> None:
     query_depth = 0
     adaptive_context = getattr(sys.modules[MODULE], "AdaptivePlaneQueryContext", None)
     if adaptive_context is not None:
-        batch_nearest = adaptive_context.nearest_planes
+        # Observe the numeric query boundary when available. Replacing a
+        # public method intentionally disables guarded native packed paths.
+        query_method = ("_nearest_positions" if hasattr(adaptive_context, "_nearest_positions")
+                        else "nearest_planes")
+        batch_nearest = getattr(adaptive_context, query_method)
 
         def measured_batch_nearest(self, points, **keywords):
             nonlocal query_seconds, query_count, query_depth
@@ -215,7 +220,7 @@ def _worker(args: argparse.Namespace) -> None:
                 query_depth -= 1
                 query_seconds += time.perf_counter() - started
 
-        adaptive_context.nearest_planes = measured_batch_nearest
+        setattr(adaptive_context, query_method, measured_batch_nearest)
     if args.worker == "sparse" or args.baseline_scope == "compiled":
         from calibrex.core.config import load_config
 

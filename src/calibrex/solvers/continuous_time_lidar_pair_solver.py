@@ -17,6 +17,8 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal
 
+import numpy as np
+
 if TYPE_CHECKING:
     from calibrex.data.adaptive_voxel import AdaptivePlaneQueryContext
     from calibrex.solvers.numba_continuous_time_adapter import (
@@ -46,10 +48,12 @@ from calibrex.data.livox import (
 )
 from calibrex.data.odometry_track import OdometryTrack
 from calibrex.evaluation.lidar import build_rig_point_to_plane_observations
+from calibrex.evaluation.packed_lidar_observations import _PackedObservationBuilder
 from calibrex.graph.lidar_point_to_plane import (
     LidarRigPointToPlaneEvaluation,
     LidarRigPointToPlaneFactor,
     _ObservationArrays,
+    _PackedObservations,
     _PreparedObservationBuilder,
 )
 from calibrex.solvers.fixed_trajectory_se3_solver import (
@@ -59,6 +63,7 @@ from calibrex.solvers.fixed_trajectory_se3_solver import (
 )
 from calibrex.solvers.robust_lidar_observations import (
     RobustObservationFilterResult,
+    _filter_packed_factor_mad,
     filter_lidar_observations_mad,
 )
 
@@ -197,6 +202,7 @@ class _QueryReuse:
     adaptive: AdaptivePlaneQueryContext | None = None
     used_numba: bool = False
     observation_builder: _PreparedObservationBuilder | None = None
+    packed_builder: _PackedObservationBuilder | None = None
 
     def identity(self) -> str:
         if self.used_numba or (self.compiled is not None and self.compiled.used):
@@ -285,6 +291,10 @@ class ContinuousTimeLidarPairSolver:
                 ) from exc
 
             query_reuse.compiled = NumbaContinuousTimeQueryContext.capture(problem.odometry_track)
+            if query_reuse.compiled is not None:
+                query_reuse.packed_builder = _PackedObservationBuilder.capture(
+                    problem.target_points, query_reuse.planes, query_reuse.adaptive,
+                )
         initial = self._evaluate_offset(
             problem,
             settings,
@@ -549,9 +559,9 @@ class ContinuousTimeLidarPairSolver:
             solver_result=solver_result,
             train_factor=train_factor,
             holdout_factor=holdout_factor,
-            train_correspondence_count=len(train_factor.observations),
+            train_correspondence_count=train_factor._observation_count(),
             holdout_correspondence_count=(
-                len(holdout_factor.observations) if holdout_factor is not None else 0
+                holdout_factor._observation_count() if holdout_factor is not None else 0
             ),
             holdout_rmse_m=holdout_rmse,
             train_outlier_rejected_count=train_build.outlier_rejected_count,
@@ -585,7 +595,34 @@ class ContinuousTimeLidarPairSolver:
         target_poses: list[SE3] = []
         coordinates = None
         compiled = None
-        if query_reuse is not None and query_reuse.compiled is not None:
+        packed: _PackedObservations | None = None
+        rows_evaluated = False
+        if (query_reuse is not None and query_reuse.compiled is not None
+            and query_reuse.packed_builder is not None and len(selected_indices) >= 64):
+            positions = np.asarray(selected_indices, dtype=np.int64)
+            batch = query_reuse.compiled._evaluate_rows(
+                problem.odometry_track,
+                [apply_time_offset_ns(problem.target_capture_timestamps_ns[index], offset_sec)
+                 for index in selected_indices], query_reuse.packed_builder.points[positions],
+                problem.t_base_source, initial_transform, settings.max_odometry_extrapolation_s,
+            )
+            if batch is not None:
+                rows, coordinates, usable = batch
+                if not usable:
+                    return None
+                rows_evaluated = True
+                packed = query_reuse.packed_builder.build(
+                    positions, rows, coordinates, voxel_size_m=problem.voxel_size_m,
+                    correspondence_gate_m=problem.correspondence_gate_m,
+                )
+                if packed is None:
+                    # Query counters were already recorded. Materialize those
+                    # same normalized rows without interpolating a second time.
+                    from calibrex.solvers.numba_continuous_time_adapter import (
+                        _materialize_pose_rows,
+                    )
+                    target_poses = _materialize_pose_rows(rows)
+        if not rows_evaluated and query_reuse is not None and query_reuse.compiled is not None:
             compiled = query_reuse.compiled.evaluate(
                 problem.odometry_track,
                 [apply_time_offset_ns(problem.target_capture_timestamps_ns[index], offset_sec)
@@ -596,7 +633,7 @@ class ContinuousTimeLidarPairSolver:
             target_poses, coordinates, usable = compiled
             if not usable:
                 return None
-        for index in (() if compiled is not None else selected_indices):
+        for index in (() if compiled is not None or rows_evaluated else selected_indices):
             capture_ns = apply_time_offset_ns(
                 problem.target_capture_timestamps_ns[index], offset_sec
             )
@@ -607,7 +644,7 @@ class ContinuousTimeLidarPairSolver:
                 query_reuse.source_pose(capture_ns, pose, problem.t_base_source)
                 if query_reuse is not None else pose.compose(problem.t_base_source)
             )
-        observations = build_rig_point_to_plane_observations(
+        observations = packed if packed is not None else build_rig_point_to_plane_observations(
             source_records=list(source_records),
             target_points=target_points,
             initial_t_source_target=initial_transform,
@@ -665,15 +702,23 @@ class ContinuousTimeLidarPairSolver:
             _array_normal_kernel=array_normal_kernel,
         )
         if settings.outlier_policy == "mad":
-            filtered: RobustObservationFilterResult = filter_lidar_observations_mad(
-                factor.observations, variable=problem.variable, t_ego_lidar=initial_transform,
-                sensor=problem.sensor, mad_scale=settings.outlier_mad_scale,
+            rejected = _filter_packed_factor_mad(
+                factor, mad_scale=settings.outlier_mad_scale,
                 minimum_threshold_m=settings.outlier_min_threshold_m,
                 minimum_inlier_fraction=settings.outlier_min_inlier_fraction,
-                minimum_inliers=settings.min_correspondences, _factor=factor,
+                minimum_inliers=settings.min_correspondences,
             )
-            outlier_rejected_count = filtered.rejected_count
-        if len(factor.observations) < settings.min_correspondences:
+            if rejected is None:
+                filtered: RobustObservationFilterResult = filter_lidar_observations_mad(
+                    factor.observations, variable=problem.variable, t_ego_lidar=initial_transform,
+                    sensor=problem.sensor, mad_scale=settings.outlier_mad_scale,
+                    minimum_threshold_m=settings.outlier_min_threshold_m,
+                    minimum_inlier_fraction=settings.outlier_min_inlier_fraction,
+                    minimum_inliers=settings.min_correspondences, _factor=factor,
+                )
+                rejected = filtered.rejected_count
+            outlier_rejected_count = rejected
+        if factor._observation_count() < settings.min_correspondences:
             return None
         return _FactorBuild(
             factor=factor,
