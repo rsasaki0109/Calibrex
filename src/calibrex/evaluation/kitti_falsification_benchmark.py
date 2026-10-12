@@ -26,14 +26,24 @@ from calibrex.data.kitti import (
 )
 from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
 
-KITTI_FALSIFICATION_SCHEMA_VERSION: Literal[
+KITTI_FALSIFICATION_SCHEMA_VERSION: Literal["slac.kitti_lidar_camera_falsification/v0.1"] = (
     "slac.kitti_lidar_camera_falsification/v0.1"
-] = "slac.kitti_lidar_camera_falsification/v0.1"
-KITTI_SEQUENCE: Literal["2011_09_26_drive_0005_sync"] = (
-    "2011_09_26_drive_0005_sync"
 )
+KITTI_SEQUENCE: Literal["2011_09_26_drive_0005_sync"] = "2011_09_26_drive_0005_sync"
 KITTI_SOURCE_URL = "https://www.cvlibs.net/datasets/kitti/raw_data.php"
 BenchmarkStatus = Literal["pass", "fail", "inconclusive"]
+# The metrics a published benchmark reports per trial: the held-out edge evidence the
+# policy gates on, and the known-bad controls that make a pass meaningful.
+KITTI_HEADLINE_METRICS: tuple[str, ...] = (
+    "lidar_camera_edge_alignment_score",
+    "lidar_camera_depth_edge_alignment_score",
+    "lidar_camera_projection_ratio",
+    "lidar_camera_projection_frame_count",
+    "lidar_camera_perturbation_case_count",
+    "lidar_camera_perturbation_detectable_fraction",
+    "lidar_camera_perturbation_mandatory_case_count",
+    "lidar_camera_perturbation_mandatory_detectable_count",
+)
 
 
 class KITTIBenchmarkArtifactDigest(StrictModel):
@@ -45,6 +55,42 @@ class KITTIBenchmarkArtifactDigest(StrictModel):
     size_bytes: int = Field(ge=0)
 
 
+class KITTIBenchmarkMetric(StrictModel):
+    """One headline metric of a trial, as its ``metrics.json`` records it."""
+
+    metric_id: str
+    value: float | None = None
+    train: float | None = None
+    holdout: float | None = None
+    grade: str | None = None
+    unit: str | None = None
+
+
+class KITTIBenchmarkRule(StrictModel):
+    """One gate of the trial's falsification policy and its outcome."""
+
+    rule_id: str
+    status: Literal["pass", "fail", "inconclusive"]
+    reason: str
+
+
+# Evidence checks that compare the candidate with the dataset's own calibration rather
+# than with the images and scans: a candidate rejected only by these is not falsified by
+# the data.
+KITTI_REFERENCE_CHECKS: frozenset[str] = frozenset({"Dataset Reference Consistency"})
+
+
+class KITTIBenchmarkEvidenceCheck(StrictModel):
+    """One LiDAR-camera evidence check of a trial (``evidence.json`` summaries)."""
+
+    check: str
+    status: str
+    evidence: str
+    uses_dataset_reference: bool = Field(
+        description="the check compares with the dataset's calibration, not with the data"
+    )
+
+
 class KITTIBenchmarkTrial(StrictModel):
     """One frozen candidate evaluated by the KITTI protocol."""
 
@@ -53,6 +99,16 @@ class KITTIBenchmarkTrial(StrictModel):
     assessment_status: Literal["pass", "fail", "inconclusive"]
     bundle_valid: bool
     artifacts: list[KITTIBenchmarkArtifactDigest]
+    assessment_reason: str | None = None
+    rules: list[KITTIBenchmarkRule] = Field(default_factory=list)
+    metrics: list[KITTIBenchmarkMetric] = Field(
+        default_factory=list,
+        description="headline metrics of the trial (see KITTI_HEADLINE_METRICS)",
+    )
+    evidence_checks: list[KITTIBenchmarkEvidenceCheck] = Field(
+        default_factory=list,
+        description="the LiDAR-camera evidence checks behind the decision-boundary gate",
+    )
 
 
 class KITTIFalsificationProvenance(StrictModel):
@@ -117,6 +173,7 @@ def run_kitti_falsification_benchmark(
 ) -> KITTIFalsificationBenchmarkArtifact:
     """Run reference and declared known-bad candidates under one frozen protocol."""
 
+    commit = git_commit()  # the code that runs, read before a long run can see new commits
     dataset = Path(dataset_path)
     source_config = Path(config_path)
     output = Path(output_dir)
@@ -129,9 +186,7 @@ def run_kitti_falsification_benchmark(
     if len(pairs) < 2:
         msg = "KITTI benchmark requires at least two camera-LiDAR frame pairs"
         raise ValueError(msg)
-    selected_frame_ids = [
-        f"camera:{pair.camera_index}:lidar:{pair.lidar_index}" for pair in pairs
-    ]
+    selected_frame_ids = [f"camera:{pair.camera_index}:lidar:{pair.lidar_index}" for pair in pairs]
 
     output.mkdir(parents=True, exist_ok=True)
     frozen_config = output / "frozen-config.yaml"
@@ -169,17 +224,20 @@ def run_kitti_falsification_benchmark(
         if result is None:
             msg = f"KITTI benchmark trial {candidate_id} did not produce a result"
             raise RuntimeError(msg)
-        assessment = AssessmentArtifact.model_validate(
-            read_mapping(trial_dir / "assessment.json")
-        )
+        assessment = AssessmentArtifact.model_validate(read_mapping(trial_dir / "assessment.json"))
         verification = _verify_trial(trial_dir)
+        reason, rules, metrics, checks = summarize_kitti_trial(trial_dir)
         trials.append(
             KITTIBenchmarkTrial(
                 candidate_id=candidate_id,
                 expected_assessment="pass" if candidate_id == "dataset_reference" else "fail",
                 assessment_status=assessment.status,
                 bundle_valid=verification.valid,
-                artifacts=_trial_artifacts(trial_dir),
+                artifacts=_trial_artifacts(trial_dir, output),
+                assessment_reason=reason,
+                rules=rules,
+                metrics=metrics,
+                evidence_checks=checks,
             )
         )
 
@@ -229,7 +287,7 @@ def run_kitti_falsification_benchmark(
         ],
         provenance=KITTIFalsificationProvenance(
             calibrex_version=__version__,
-            git_commit=git_commit(),
+            git_commit=commit,
             source_config=str(source_config),
             source_config_sha256=source_config_digest,
         ),
@@ -335,7 +393,163 @@ def _verify_trial(trial_dir: Path) -> EvidenceBundleVerification:
     )
 
 
-def _trial_artifacts(trial_dir: Path) -> list[KITTIBenchmarkArtifactDigest]:
+def summarize_kitti_trial(
+    trial_dir: str | Path,
+) -> tuple[
+    str,
+    list[KITTIBenchmarkRule],
+    list[KITTIBenchmarkMetric],
+    list[KITTIBenchmarkEvidenceCheck],
+]:
+    """The assessment reason, policy gates, headline metrics and evidence checks of a trial."""
+
+    directory = Path(trial_dir)
+    assessment = read_mapping(directory / "assessment.json")
+    summaries = read_mapping(directory / "evidence.json").get("summaries", [])
+    metrics = read_mapping(directory / "metrics.json").get("metrics", {})
+    if not isinstance(metrics, dict):
+        msg = f"{directory / 'metrics.json'} has no metrics mapping"
+        raise ValueError(msg)
+    rules = assessment.get("rules", [])
+    return (
+        str(assessment.get("reason", "")),
+        [
+            KITTIBenchmarkRule(
+                rule_id=str(rule["rule_id"]),
+                status=rule["status"],
+                reason=str(rule.get("reason", "")),
+            )
+            for rule in (rules if isinstance(rules, list) else [])
+            if isinstance(rule, dict)
+        ],
+        [
+            KITTIBenchmarkMetric(
+                metric_id=metric_id,
+                **{
+                    key: metrics[metric_id][key]
+                    for key in ("value", "train", "holdout", "grade", "unit")
+                    if key in metrics[metric_id]
+                },
+            )
+            for metric_id in KITTI_HEADLINE_METRICS
+            if isinstance(metrics.get(metric_id), dict)
+        ],
+        [
+            KITTIBenchmarkEvidenceCheck(
+                check=str(item["check"]),
+                status=str(item["status"]),
+                evidence=str(item.get("evidence", "")),
+                uses_dataset_reference=str(item["check"]) in KITTI_REFERENCE_CHECKS,
+            )
+            for item in (summaries if isinstance(summaries, list) else [])
+            if isinstance(item, dict) and item.get("family") == "lidar_camera"
+        ],
+    )
+
+
+def render_kitti_falsification_markdown(benchmark: KITTIFalsificationBenchmarkArtifact) -> str:
+    """A deterministic Markdown summary of a benchmark artifact (for the published page)."""
+
+    def number(value: float | None) -> str:
+        if value is None:
+            return "-"
+        return f"{value:.0f}" if float(value).is_integer() else f"{value:.4f}"
+
+    trials: dict[str, KITTIBenchmarkTrial] = {
+        trial.candidate_id: trial for trial in benchmark.trials
+    }
+    order = ("dataset_reference", "known_bad")
+    lines = [
+        f"**Status: `{benchmark.status}`**: {benchmark.reason}.",
+        "",
+        f"- Sequence: `{benchmark.dataset_sequence}`, {len(benchmark.selected_frame_ids)} "
+        f"camera-LiDAR frame pairs, seed {benchmark.split_seed}, holdout ratio "
+        f"{benchmark.holdout_ratio:g}, {benchmark.projection_sample_points} projected points "
+        "per frame.",
+        f"- Protocol: `{benchmark.protocol_id}`.",
+        f"- Known-bad candidate: {benchmark.known_bad_declaration}.",
+        f"- Generated by Calibrex {benchmark.provenance.calibrex_version}"
+        + (
+            f" at commit `{benchmark.provenance.git_commit[:12]}`"
+            if benchmark.provenance.git_commit
+            else ""
+        )
+        + f", {benchmark.provenance.generated_at[:10]}.",
+        "",
+        "| | " + " | ".join(f"`{name}`" for name in order) + " |",
+        "| --- | --- | --- |",
+        "| expected | " + " | ".join(trials[name].expected_assessment for name in order) + " |",
+        "| assessment | "
+        + " | ".join(f"**{trials[name].assessment_status}**" for name in order)
+        + " |",
+        "| evidence bundle verified | "
+        + " | ".join("yes" if trials[name].bundle_valid else "no" for name in order)
+        + " |",
+    ]
+    metric_ids = [metric.metric_id for metric in trials["dataset_reference"].metrics]
+    for metric_id in metric_ids:
+        cells = []
+        for name in order:
+            metric = next((m for m in trials[name].metrics if m.metric_id == metric_id), None)
+            if metric is None:
+                cells.append("-")
+            elif metric.holdout is not None:
+                cells.append(f"{number(metric.train)} train / {number(metric.holdout)} holdout")
+            else:
+                cells.append(number(metric.value))
+        lines.append(f"| `{metric_id}` | " + " | ".join(cells) + " |")
+    lines += ["", "Policy gates:", "", "| Gate | " + " | ".join(f"`{n}`" for n in order) + " |"]
+    lines.append("| --- | --- | --- |")
+    rule_ids = [rule.rule_id for rule in trials["dataset_reference"].rules]
+    for rule_id in rule_ids:
+        cells = []
+        for name in order:
+            rule = next((r for r in trials[name].rules if r.rule_id == rule_id), None)
+            cells.append("-" if rule is None else rule.status)
+        lines.append(f"| `{rule_id}` | " + " | ".join(cells) + " |")
+    check_names = [item.check for item in trials["dataset_reference"].evidence_checks]
+    if check_names:
+        lines += [
+            "",
+            "LiDAR-camera evidence checks (the decision-boundary gate combines the others):",
+            "",
+            "| Check | " + " | ".join(f"`{n}`" for n in order) + " |",
+            "| --- | --- | --- |",
+        ]
+        for check in check_names:
+            cells = []
+            for name in order:
+                item = next((c for c in trials[name].evidence_checks if c.check == check), None)
+                cells.append("-" if item is None else item.status)
+            marker = (
+                " (compares with the dataset's calibration)"
+                if check in KITTI_REFERENCE_CHECKS
+                else ""
+            )
+            lines.append(f"| {check}{marker} | " + " | ".join(cells) + " |")
+    for name in order:
+        reason = trials[name].assessment_reason
+        if reason:
+            lines += ["", f"`{name}`: {reason}."]
+        failed = [
+            item
+            for item in trials[name].evidence_checks
+            if item.status == "fail" and item.check != "Decision Boundary"
+        ]
+        if failed and all(item.uses_dataset_reference for item in failed):
+            lines += [
+                "",
+                f"`{name}` is rejected only by "
+                + ", ".join(f"*{item.check}* ({item.evidence})" for item in failed)
+                + ": a comparison with the dataset's own calibration. No check of the images "
+                "and scans rejects it.",
+            ]
+    return "\n".join(lines) + "\n"
+
+
+def _trial_artifacts(
+    trial_dir: Path, output: Path | None = None
+) -> list[KITTIBenchmarkArtifactDigest]:
     names = (
         "result.yaml",
         "evidence.json",
@@ -347,7 +561,14 @@ def _trial_artifacts(trial_dir: Path) -> list[KITTIBenchmarkArtifactDigest]:
         "bundle.json",
         "verification.json",
     )
-    return [_artifact_digest(trial_dir / name, name.rsplit(".", 1)[0]) for name in names]
+    artifacts = [_artifact_digest(trial_dir / name, name.rsplit(".", 1)[0]) for name in names]
+    if output is None:
+        return artifacts
+    # Paths relative to the benchmark's output directory, so the artifact can be moved.
+    return [
+        artifact.model_copy(update={"path": Path(artifact.path).relative_to(output).as_posix()})
+        for artifact in artifacts
+    ]
 
 
 def _benchmark_decision(

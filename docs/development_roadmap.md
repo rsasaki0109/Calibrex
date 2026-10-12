@@ -121,10 +121,12 @@ accuracy.
 
 ### Portfolio gaps that matter
 
-1. **Evidence scale:** Camera-LiDAR has an opt-in full-scale KITTI falsification
-   pair (`@pytest.mark.kitti`), with a vendor reference PASS and a declared
-   known-bad FAIL. The remaining gap is to publish that result as a maintained
-   benchmark artifact, not only as an opt-in test.
+1. **Evidence scale:** the full-scale KITTI camera-LiDAR falsification is
+   published as a maintained artifact (`docs/assets`, checked on every CI run):
+   the vendor reference passes and the declared known-bad fails. The known-bad
+   is rejected only by its comparison with the dataset's own calibration, and
+   no check of the images and scans rejects it. The remaining gap is a protocol
+   whose data evidence alone separates the two.
 2. **Common external execution adoption:** the external-run artifact is proven
    by Koide (fail-closed handoff, readiness, and real-pilot finalization),
    Kalibr (independent Camera--IMU holdout evidence, including the lever arm and a
