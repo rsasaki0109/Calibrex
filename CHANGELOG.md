@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **KITTI data-only rotation is judged after removing the depth error stereo measures.**
+  - **The change.** When stereo depth trusts its reading of the candidate's error along
+    the optical axis, the edges run again from the candidate with it removed, and the
+    depth is measured again at their new rotation. Rotation is still judged as the
+    candidate's error, and the shift is recorded (`edge_start_depth_shift_m`).
+  - **Result on 0009.** On the spread frames the known-bad's pitch is now judged and fails
+    (control t 1.99 to 2.2).
+  - **Result on 0005.** The reference passes on both frame selections; its readings
+    barely move (z 0.050 m, yaw 0.50 to 0.40 deg) but fall inside the tolerance, so
+    the data-only status is `pass` (was `inconclusive`). The page says the order was
+    added for 0009's pitch.
+  - **Still failing.** On 0009's first 50 frames the known-bad still passes.
+
 - **Joint six-DoF stereo fit, recorded as a cross-check.**
   - **Method.** `estimate_stereo_alignment` fits translation and a small rotation together
     from stereo depth on planar LiDAR surfaces of any facing (normals from neighbourhood

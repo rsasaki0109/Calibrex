@@ -55,143 +55,144 @@
         "camera:153:lidar:153"
       ],
       "frame_selection": "spread",
-      "git_commit": "7c4e8b9",
+      "git_commit": "75f1dc2",
       "method": "edge_alignment/v0.1 with the calibrex check per-axis rule",
-      "reason": "the reference reads warn and the known-bad candidate fail: neither is a clear decision",
-      "status": "inconclusive",
+      "reason": "the images and scans pass the reference and fail the known-bad candidate",
+      "status": "pass",
       "trials": [
         {
           "axes": [
             {
-              "candidate_error_deg": 0.1000000000000111,
-              "estimate_std_deg": 0.08539125638299666,
-              "name": "roll",
-              "status": "pass",
-              "tolerance_deg": 0.5
-            },
-            {
-              "candidate_error_deg": 0.09999999999998907,
-              "estimate_std_deg": 0.025,
-              "name": "pitch",
-              "status": "pass",
-              "tolerance_deg": 0.5
-            },
-            {
-              "candidate_error_deg": -0.10000000000000907,
-              "estimate_std_deg": 0.41666666666666674,
-              "name": "yaw",
-              "status": "pass",
-              "tolerance_deg": 1.2500000000000002
-            }
-          ],
-          "candidate_id": "dataset_reference",
-          "depth": {
-            "control_m": 0.1,
-            "control_response": 0.8941575799085061,
-            "disparity_offset_px": -0.6629380324915571,
-            "frames": 50,
-            "method": "stereo_depth/v0.1: disparity residual on camera-facing LiDAR surfaces",
-            "observable": true,
-            "offset_m": 0.05037043415802823,
-            "points": 28802,
-            "reason": "28802 matched points on camera-facing surfaces; the 0.1 m control moved the estimate by +0.089 m",
-            "std_m": 0.016537093284629392
-          },
-          "depth_axis": {
-            "candidate_error_m": 0.05037043415802823,
-            "estimate_std_m": 0.016537093284629392,
-            "name": "z",
-            "status": "warn",
-            "tolerance_m": 0.04961127985388818
-          },
-          "edge_points": 46110,
-          "frames": 50,
-          "stereo_alignment": {
-            "axes": [
-              {
-                "control_response": 0.8878286297067958,
-                "name": "x",
-                "observable": true,
-                "offset": 0.037043276179827264,
-                "reason": "the 0.1 m control moved the estimate by +0.089 m",
-                "std": 0.023524988669436597,
-                "unit": "m"
-              },
-              {
-                "control_response": 0.3204576291784648,
-                "name": "y",
-                "observable": false,
-                "offset": 0.0662662818779359,
-                "reason": "moving the candidate 0.1 m along y moved the estimate by +0.032 m (response 0.32, outside 0.5 to 1.5)",
-                "std": 0.02190234516104313,
-                "unit": "m"
-              },
-              {
-                "control_response": 0.9093788152037843,
-                "name": "z",
-                "observable": true,
-                "offset": 0.027311685924994555,
-                "reason": "the 0.1 m control moved the estimate by +0.091 m",
-                "std": 0.03267608943992836,
-                "unit": "m"
-              },
-              {
-                "name": "roll",
-                "observable": true,
-                "offset": 0.22431969945255487,
-                "reason": "jackknife std 0.17 deg",
-                "std": 0.17308503362837194,
-                "unit": "deg"
-              },
-              {
-                "name": "pitch",
-                "observable": true,
-                "offset": -0.06035127567173448,
-                "reason": "jackknife std 0.14 deg",
-                "std": 0.13714235738123426,
-                "unit": "deg"
-              },
-              {
-                "name": "yaw",
-                "observable": true,
-                "offset": -0.058847599599711475,
-                "reason": "jackknife std 0.17 deg",
-                "std": 0.1651396514351221,
-                "unit": "deg"
-              }
-            ],
-            "disparity_offset_px": -0.5797880381544428,
-            "frames": 50,
-            "method": "stereo_alignment/v0.1: disparity residual on planar LiDAR surfaces, translation and rotation fitted jointly",
-            "points": 45206,
-            "reason": "45206 matched points on planar surfaces, 2 iteration(s)"
-          },
-          "unchecked_rotation_axes": [],
-          "unchecked_translation_axes": [
-            "x",
-            "y"
-          ],
-          "verdict": "warn"
-        },
-        {
-          "axes": [
-            {
-              "candidate_error_deg": 0.09999999999999654,
+              "candidate_error_deg": 0.10000000000000485,
               "estimate_std_deg": 0.04166666666666668,
               "name": "roll",
               "status": "pass",
               "tolerance_deg": 0.5
             },
             {
-              "candidate_error_deg": -5.000000000000028,
-              "estimate_std_deg": 0.15023130314433236,
+              "candidate_error_deg": 0.05000000000000418,
+              "estimate_std_deg": 0.08333333333333336,
+              "name": "pitch",
+              "status": "pass",
+              "tolerance_deg": 0.5
+            },
+            {
+              "candidate_error_deg": -0.1000000000000239,
+              "estimate_std_deg": 0.04166666666666667,
+              "name": "yaw",
+              "status": "pass",
+              "tolerance_deg": 0.5
+            }
+          ],
+          "candidate_id": "dataset_reference",
+          "depth": {
+            "control_m": 0.1,
+            "control_response": 0.8959430708171131,
+            "disparity_offset_px": -0.6594917656173188,
+            "frames": 50,
+            "method": "stereo_depth/v0.1: disparity residual on camera-facing LiDAR surfaces",
+            "observable": true,
+            "offset_m": 0.05003011054953848,
+            "points": 28798,
+            "reason": "28798 matched points on camera-facing surfaces; the 0.1 m control moved the estimate by +0.090 m",
+            "std_m": 0.017815940050021604
+          },
+          "depth_axis": {
+            "candidate_error_m": 0.05003011054953848,
+            "estimate_std_m": 0.017815940050021604,
+            "name": "z",
+            "status": "pass",
+            "tolerance_m": 0.053447820150064815
+          },
+          "edge_points": 45878,
+          "edge_start_depth_shift_m": 0.05037043415802823,
+          "frames": 50,
+          "stereo_alignment": {
+            "axes": [
+              {
+                "control_response": 0.9125898302762803,
+                "name": "x",
+                "observable": true,
+                "offset": 0.03376003209982076,
+                "reason": "the 0.1 m control moved the estimate by +0.091 m",
+                "std": 0.022411173118180003,
+                "unit": "m"
+              },
+              {
+                "control_response": 0.2967938708175553,
+                "name": "y",
+                "observable": false,
+                "offset": 0.06870766140520851,
+                "reason": "moving the candidate 0.1 m along y moved the estimate by +0.030 m (response 0.30, outside 0.5 to 1.5)",
+                "std": 0.020783360028973047,
+                "unit": "m"
+              },
+              {
+                "control_response": 0.9152141104338032,
+                "name": "z",
+                "observable": true,
+                "offset": 0.02674556938771444,
+                "reason": "the 0.1 m control moved the estimate by +0.092 m",
+                "std": 0.0318373160857307,
+                "unit": "m"
+              },
+              {
+                "name": "roll",
+                "observable": true,
+                "offset": 0.23750384768816457,
+                "reason": "jackknife std 0.16 deg",
+                "std": 0.16440096796911643,
+                "unit": "deg"
+              },
+              {
+                "name": "pitch",
+                "observable": true,
+                "offset": 0.0075050913098076615,
+                "reason": "jackknife std 0.13 deg",
+                "std": 0.13007464059292373,
+                "unit": "deg"
+              },
+              {
+                "name": "yaw",
+                "observable": true,
+                "offset": -0.03549314523667675,
+                "reason": "jackknife std 0.15 deg",
+                "std": 0.15443444684921329,
+                "unit": "deg"
+              }
+            ],
+            "disparity_offset_px": -0.5798666153820036,
+            "frames": 50,
+            "method": "stereo_alignment/v0.1: disparity residual on planar LiDAR surfaces, translation and rotation fitted jointly",
+            "points": 45207,
+            "reason": "45207 matched points on planar surfaces, 2 iteration(s)"
+          },
+          "unchecked_rotation_axes": [],
+          "unchecked_translation_axes": [
+            "x",
+            "y"
+          ],
+          "verdict": "pass"
+        },
+        {
+          "axes": [
+            {
+              "candidate_error_deg": 0.050000000000015865,
+              "estimate_std_deg": 0.06454972243679029,
+              "name": "roll",
+              "status": "pass",
+              "tolerance_deg": 0.5
+            },
+            {
+              "candidate_error_deg": -4.900000000000004,
+              "estimate_std_deg": 0.04166666666666652,
               "name": "pitch",
               "status": "fail",
               "tolerance_deg": 0.5
             },
             {
-              "candidate_error_deg": 0.04999999999998938,
-              "estimate_std_deg": 0.105409255338946,
+              "candidate_error_deg": -8.495585464045688e-16,
+              "estimate_std_deg": 0.04166666666666667,
               "name": "yaw",
               "status": "pass",
               "tolerance_deg": 0.5
@@ -200,84 +201,85 @@
           "candidate_id": "known_bad",
           "depth": {
             "control_m": 0.1,
-            "control_response": 0.6073749322927835,
-            "disparity_offset_px": -0.6066455012704598,
+            "control_response": 0.6588192760045203,
+            "disparity_offset_px": -0.6135156450696159,
             "frames": 50,
             "method": "stereo_depth/v0.1: disparity residual on camera-facing LiDAR surfaces",
             "observable": true,
-            "offset_m": 0.258003804260929,
-            "points": 28383,
-            "reason": "28383 matched points on camera-facing surfaces; the 0.1 m control moved the estimate by +0.061 m",
-            "std_m": 0.027495035748766144
+            "offset_m": 0.2571638062367089,
+            "points": 28270,
+            "reason": "28270 matched points on camera-facing surfaces; the 0.1 m control moved the estimate by +0.066 m",
+            "std_m": 0.02518950399672465
           },
           "depth_axis": {
-            "candidate_error_m": 0.258003804260929,
-            "estimate_std_m": 0.027495035748766144,
+            "candidate_error_m": 0.2571638062367089,
+            "estimate_std_m": 0.02518950399672465,
             "name": "z",
             "status": "fail",
-            "tolerance_m": 0.08248510724629843
+            "tolerance_m": 0.07556851199017395
           },
-          "edge_points": 45502,
+          "edge_points": 44480,
+          "edge_start_depth_shift_m": 0.258003804260929,
           "frames": 50,
           "stereo_alignment": {
             "axes": [
               {
-                "control_response": 0.8743211654278772,
+                "control_response": 0.8692488864630079,
                 "name": "x",
                 "observable": true,
-                "offset": 0.039260907475870375,
+                "offset": 0.03993973151421801,
                 "reason": "the 0.1 m control moved the estimate by +0.087 m",
-                "std": 0.022867386645699213,
+                "std": 0.02300550638620265,
                 "unit": "m"
               },
               {
-                "control_response": 0.40366942407347367,
+                "control_response": 0.3494692289619706,
                 "name": "y",
                 "observable": false,
-                "offset": 0.07061648742269178,
-                "reason": "moving the candidate 0.1 m along y moved the estimate by +0.040 m (response 0.40, outside 0.5 to 1.5)",
-                "std": 0.028157632800938227,
+                "offset": 0.07414149794524522,
+                "reason": "moving the candidate 0.1 m along y moved the estimate by +0.035 m (response 0.35, outside 0.5 to 1.5)",
+                "std": 0.030460462752481588,
                 "unit": "m"
               },
               {
-                "control_response": 0.9368478198240732,
+                "control_response": 0.9360943238192617,
                 "name": "z",
                 "observable": true,
-                "offset": 0.2774301129910584,
+                "offset": 0.27701415087741027,
                 "reason": "the 0.1 m control moved the estimate by +0.094 m",
-                "std": 0.030172519195839857,
+                "std": 0.030587324097178296,
                 "unit": "m"
               },
               {
                 "name": "roll",
                 "observable": true,
-                "offset": 0.2007852016122279,
-                "reason": "jackknife std 0.20 deg",
-                "std": 0.1967254600612657,
+                "offset": 0.27142094849617093,
+                "reason": "jackknife std 0.21 deg",
+                "std": 0.21255356910552411,
                 "unit": "deg"
               },
               {
                 "name": "pitch",
                 "observable": true,
-                "offset": 0.021764583466027873,
+                "offset": -0.0850437800227178,
                 "reason": "jackknife std 0.13 deg",
-                "std": 0.12865212409500476,
+                "std": 0.12667335195248772,
                 "unit": "deg"
               },
               {
                 "name": "yaw",
                 "observable": true,
-                "offset": -0.16674663805065576,
+                "offset": -0.10842321666090263,
                 "reason": "jackknife std 0.16 deg",
-                "std": 0.1577417938577782,
+                "std": 0.15626365256444713,
                 "unit": "deg"
               }
             ],
-            "disparity_offset_px": -0.5803425080700745,
+            "disparity_offset_px": -0.5816961554243544,
             "frames": 50,
             "method": "stereo_alignment/v0.1: disparity residual on planar LiDAR surfaces, translation and rotation fitted jointly",
-            "points": 45536,
-            "reason": "45536 matched points on planar surfaces, 2 iteration(s)"
+            "points": 45554,
+            "reason": "45554 matched points on planar surfaces, 2 iteration(s)"
           },
           "unchecked_rotation_axes": [],
           "unchecked_translation_axes": [
@@ -342,229 +344,231 @@
         "camera:49:lidar:49"
       ],
       "frame_selection": "first",
-      "git_commit": "7c4e8b9",
+      "git_commit": "75f1dc2",
       "method": "edge_alignment/v0.1 with the calibrex check per-axis rule",
-      "reason": "the reference reads warn and the known-bad candidate fail: neither is a clear decision",
-      "status": "inconclusive",
+      "reason": "the images and scans pass the reference and fail the known-bad candidate",
+      "status": "pass",
       "trials": [
         {
           "axes": [
             {
-              "candidate_error_deg": 1.8272602419153028e-14,
+              "candidate_error_deg": 0.05000000000000878,
               "estimate_std_deg": 0.025,
               "name": "roll",
               "status": "pass",
               "tolerance_deg": 0.5
             },
             {
-              "candidate_error_deg": 0.050000000000044925,
-              "estimate_std_deg": 0.025,
+              "candidate_error_deg": 0.05000000000003441,
+              "estimate_std_deg": 0.04166666666666667,
               "name": "pitch",
               "status": "pass",
               "tolerance_deg": 0.5
             },
             {
-              "candidate_error_deg": 0.500000000000011,
-              "estimate_std_deg": 0.025,
+              "candidate_error_deg": 0.39999999999999225,
+              "estimate_std_deg": 0.08333333333333331,
               "name": "yaw",
-              "status": "warn",
+              "status": "pass",
               "tolerance_deg": 0.5
             }
           ],
           "candidate_id": "dataset_reference",
           "depth": {
             "control_m": 0.1,
-            "control_response": 1.0523031043479991,
-            "disparity_offset_px": -0.761196817747374,
+            "control_response": 1.021016260310445,
+            "disparity_offset_px": -0.7578188468418924,
             "frames": 50,
             "method": "stereo_depth/v0.1: disparity residual on camera-facing LiDAR surfaces",
             "observable": true,
-            "offset_m": 0.0207280190650991,
-            "points": 34687,
-            "reason": "34687 matched points on camera-facing surfaces; the 0.1 m control moved the estimate by +0.105 m",
-            "std_m": 0.013372327618529982
+            "offset_m": 0.02224216482977898,
+            "points": 34539,
+            "reason": "34539 matched points on camera-facing surfaces; the 0.1 m control moved the estimate by +0.102 m",
+            "std_m": 0.013269772090737247
           },
           "depth_axis": {
-            "candidate_error_m": 0.0207280190650991,
-            "estimate_std_m": 0.013372327618529982,
+            "candidate_error_m": 0.02224216482977898,
+            "estimate_std_m": 0.013269772090737247,
             "name": "z",
             "status": "pass",
-            "tolerance_m": 0.04011698285558995
+            "tolerance_m": 0.03980931627221174
           },
-          "edge_points": 53458,
+          "edge_points": 53372,
+          "edge_start_depth_shift_m": 0.0207280190650991,
           "frames": 50,
           "stereo_alignment": {
             "axes": [
               {
-                "control_response": 0.6597860522632996,
+                "control_response": 0.6755778373590268,
                 "name": "x",
                 "observable": true,
-                "offset": -0.04556033894919345,
-                "reason": "the 0.1 m control moved the estimate by +0.066 m",
-                "std": 0.027396998129474815,
+                "offset": -0.04496809711603847,
+                "reason": "the 0.1 m control moved the estimate by +0.068 m",
+                "std": 0.02704838715691713,
                 "unit": "m"
               },
               {
-                "control_response": 0.3837158090719177,
+                "control_response": 0.3955925346459108,
                 "name": "y",
                 "observable": false,
-                "offset": 0.0987875016760679,
-                "reason": "moving the candidate 0.1 m along y moved the estimate by +0.038 m (response 0.38, outside 0.5 to 1.5)",
-                "std": 0.011997063787978435,
+                "offset": 0.09821212017282954,
+                "reason": "moving the candidate 0.1 m along y moved the estimate by +0.040 m (response 0.40, outside 0.5 to 1.5)",
+                "std": 0.011668902106338079,
                 "unit": "m"
               },
               {
-                "control_response": 0.8988769740247272,
+                "control_response": 0.9045630900967747,
                 "name": "z",
                 "observable": true,
-                "offset": -0.027602213286982286,
+                "offset": -0.02909202261910665,
                 "reason": "the 0.1 m control moved the estimate by +0.090 m",
-                "std": 0.017277242794404898,
+                "std": 0.017528627800254153,
                 "unit": "m"
               },
               {
                 "name": "roll",
                 "observable": true,
-                "offset": 0.169550057780509,
+                "offset": 0.10980601023225402,
                 "reason": "jackknife std 0.09 deg",
-                "std": 0.09195153626893561,
+                "std": 0.09189263262455614,
                 "unit": "deg"
               },
               {
                 "name": "pitch",
                 "observable": true,
-                "offset": 0.6241094058246708,
+                "offset": 0.6184785224205263,
                 "reason": "jackknife std 0.25 deg",
-                "std": 0.24834066500633822,
+                "std": 0.2451506612032914,
                 "unit": "deg"
               },
               {
                 "name": "yaw",
                 "observable": true,
-                "offset": -0.08525439749490456,
-                "reason": "jackknife std 0.12 deg",
-                "std": 0.11656969787659553,
+                "offset": 0.03430349203283945,
+                "reason": "jackknife std 0.11 deg",
+                "std": 0.11148589969630365,
                 "unit": "deg"
               }
             ],
-            "disparity_offset_px": -0.6704585153185411,
+            "disparity_offset_px": -0.6678359434165305,
             "frames": 50,
             "method": "stereo_alignment/v0.1: disparity residual on planar LiDAR surfaces, translation and rotation fitted jointly",
-            "points": 50619,
-            "reason": "50619 matched points on planar surfaces, 2 iteration(s)"
+            "points": 50724,
+            "reason": "50724 matched points on planar surfaces, 2 iteration(s)"
           },
           "unchecked_rotation_axes": [],
           "unchecked_translation_axes": [
             "x",
             "y"
           ],
-          "verdict": "warn"
+          "verdict": "pass"
         },
         {
           "axes": [
             {
-              "candidate_error_deg": -0.19999999999997697,
-              "estimate_std_deg": 0.04166666666666666,
+              "candidate_error_deg": -1.8627816833883256e-15,
+              "estimate_std_deg": 0.07682953714410741,
               "name": "roll",
               "status": "pass",
               "tolerance_deg": 0.5
             },
             {
-              "candidate_error_deg": -4.999999999999982,
-              "estimate_std_deg": 0.025,
+              "candidate_error_deg": -4.900000000000005,
+              "estimate_std_deg": 0.04166666666666652,
               "name": "pitch",
               "status": "fail",
               "tolerance_deg": 0.5
             },
             {
-              "candidate_error_deg": 0.9500000000000307,
-              "estimate_std_deg": 0.11931517552730304,
+              "candidate_error_deg": 0.34999999999999093,
+              "estimate_std_deg": 0.1443375672974064,
               "name": "yaw",
-              "status": "warn",
+              "status": "pass",
               "tolerance_deg": 0.5
             }
           ],
           "candidate_id": "known_bad",
           "depth": {
             "control_m": 0.1,
-            "control_response": 1.0002094800199246,
-            "disparity_offset_px": -0.750595306782088,
+            "control_response": 0.945521309611293,
+            "disparity_offset_px": -0.7258324273647027,
             "frames": 50,
             "method": "stereo_depth/v0.1: disparity residual on camera-facing LiDAR surfaces",
             "observable": true,
-            "offset_m": 0.27751062046683994,
-            "points": 34310,
-            "reason": "34310 matched points on camera-facing surfaces; the 0.1 m control moved the estimate by +0.100 m",
-            "std_m": 0.011541308764511931
+            "offset_m": 0.26434827040128056,
+            "points": 33447,
+            "reason": "33447 matched points on camera-facing surfaces; the 0.1 m control moved the estimate by +0.095 m",
+            "std_m": 0.009532361508635364
           },
           "depth_axis": {
-            "candidate_error_m": 0.27751062046683994,
-            "estimate_std_m": 0.011541308764511931,
+            "candidate_error_m": 0.26434827040128056,
+            "estimate_std_m": 0.009532361508635364,
             "name": "z",
             "status": "fail",
-            "tolerance_m": 0.03462392629353579
+            "tolerance_m": 0.02859708452590609
           },
-          "edge_points": 50590,
+          "edge_points": 49581,
+          "edge_start_depth_shift_m": 0.27751062046683994,
           "frames": 50,
           "stereo_alignment": {
             "axes": [
               {
-                "control_response": 0.6817280643381203,
+                "control_response": 0.7162944691117618,
                 "name": "x",
                 "observable": true,
-                "offset": -0.05243115996684078,
-                "reason": "the 0.1 m control moved the estimate by +0.068 m",
-                "std": 0.0207528205821888,
+                "offset": -0.04763838148308784,
+                "reason": "the 0.1 m control moved the estimate by +0.072 m",
+                "std": 0.025223369155635115,
                 "unit": "m"
               },
               {
-                "control_response": 0.2717467983781894,
+                "control_response": 0.37954449055087447,
                 "name": "y",
                 "observable": false,
-                "offset": 0.12430078084060733,
-                "reason": "moving the candidate 0.1 m along y moved the estimate by +0.027 m (response 0.27, outside 0.5 to 1.5)",
-                "std": 0.010780612514329492,
+                "offset": 0.11072821540506902,
+                "reason": "moving the candidate 0.1 m along y moved the estimate by +0.038 m (response 0.38, outside 0.5 to 1.5)",
+                "std": 0.011677677276293933,
                 "unit": "m"
               },
               {
-                "control_response": 0.8687399232028029,
+                "control_response": 0.8635049624021697,
                 "name": "z",
                 "observable": true,
-                "offset": 0.22550928823393915,
-                "reason": "the 0.1 m control moved the estimate by +0.087 m",
-                "std": 0.017769667257136666,
+                "offset": 0.22046033814970592,
+                "reason": "the 0.1 m control moved the estimate by +0.086 m",
+                "std": 0.015878671407059716,
                 "unit": "m"
               },
               {
                 "name": "roll",
                 "observable": true,
-                "offset": 0.3716444325379177,
-                "reason": "jackknife std 0.08 deg",
-                "std": 0.0826082473836833,
+                "offset": 0.151150661332535,
+                "reason": "jackknife std 0.09 deg",
+                "std": 0.09026891213670069,
                 "unit": "deg"
               },
               {
                 "name": "pitch",
                 "observable": true,
-                "offset": 0.6941142585445302,
-                "reason": "jackknife std 0.22 deg",
-                "std": 0.21994836220371847,
+                "offset": 0.5851430456815776,
+                "reason": "jackknife std 0.23 deg",
+                "std": 0.23453656995752767,
                 "unit": "deg"
               },
               {
                 "name": "yaw",
                 "observable": true,
-                "offset": -0.44222449060403574,
-                "reason": "jackknife std 0.10 deg",
-                "std": 0.0966795157682497,
+                "offset": 0.12026702768749532,
+                "reason": "jackknife std 0.07 deg",
+                "std": 0.0745352333887273,
                 "unit": "deg"
               }
             ],
-            "disparity_offset_px": -0.6674012835226916,
+            "disparity_offset_px": -0.6679129142822713,
             "frames": 50,
             "method": "stereo_alignment/v0.1: disparity residual on planar LiDAR surfaces, translation and rotation fitted jointly",
-            "points": 50518,
-            "reason": "50518 matched points on planar surfaces, 2 iteration(s)"
+            "points": 50756,
+            "reason": "50756 matched points on planar surfaces, 2 iteration(s)"
           },
           "unchecked_rotation_axes": [],
           "unchecked_translation_axes": [
@@ -648,7 +652,7 @@
             "camera:446:lidar:446"
           ],
           "frame_selection": "spread",
-          "git_commit": "7c4e8b9",
+          "git_commit": "75f1dc2",
           "method": "edge_alignment/v0.1 with the calibrex check per-axis rule",
           "reason": "the images and scans pass the reference and fail the known-bad candidate",
           "status": "pass",
@@ -657,21 +661,21 @@
               "axes": [
                 {
                   "candidate_error_deg": -0.14999999999979557,
-                  "estimate_std_deg": 0.04166666666666668,
+                  "estimate_std_deg": 0.025,
                   "name": "roll",
                   "status": "pass",
                   "tolerance_deg": 0.5
                 },
                 {
                   "candidate_error_deg": 0.05000000000003548,
-                  "estimate_std_deg": 0.10034662148993581,
+                  "estimate_std_deg": 0.08539125638299667,
                   "name": "pitch",
                   "status": "pass",
                   "tolerance_deg": 0.5
                 },
                 {
                   "candidate_error_deg": -0.0499999999999743,
-                  "estimate_std_deg": 0.04166666666666667,
+                  "estimate_std_deg": 0.025,
                   "name": "yaw",
                   "status": "pass",
                   "tolerance_deg": 0.5
@@ -697,7 +701,8 @@
                 "status": "pass",
                 "tolerance_m": 0.09958353161878528
               },
-              "edge_points": 45157,
+              "edge_points": 45139,
+              "edge_start_depth_shift_m": 0.004898622607463371,
               "frames": 50,
               "stereo_alignment": {
                 "axes": [
@@ -769,14 +774,21 @@
             {
               "axes": [
                 {
-                  "candidate_error_deg": -0.1999999999999802,
-                  "estimate_std_deg": 0.04166666666666666,
+                  "candidate_error_deg": -0.19999999999998375,
+                  "estimate_std_deg": 0.05270462766947298,
                   "name": "roll",
                   "status": "pass",
                   "tolerance_deg": 0.5
                 },
                 {
-                  "candidate_error_deg": -0.04999999999997686,
+                  "candidate_error_deg": -4.900000000000029,
+                  "estimate_std_deg": 0.06454972243679005,
+                  "name": "pitch",
+                  "status": "fail",
+                  "tolerance_deg": 0.5
+                },
+                {
+                  "candidate_error_deg": -1.6799172763619968e-14,
                   "estimate_std_deg": 0.04166666666666667,
                   "name": "yaw",
                   "status": "pass",
@@ -786,88 +798,87 @@
               "candidate_id": "known_bad",
               "depth": {
                 "control_m": 0.1,
-                "control_response": 0.8380975074550103,
-                "disparity_offset_px": -0.6210754358052096,
+                "control_response": 0.7906228776892305,
+                "disparity_offset_px": -0.6173772890269587,
                 "frames": 50,
                 "method": "stereo_depth/v0.1: disparity residual on camera-facing LiDAR surfaces",
                 "observable": true,
-                "offset_m": 0.23616337030365317,
-                "points": 31040,
-                "reason": "31040 matched points on camera-facing surfaces; the 0.1 m control moved the estimate by +0.084 m",
-                "std_m": 0.024230820489636484
+                "offset_m": 0.23425596923106284,
+                "points": 31101,
+                "reason": "31101 matched points on camera-facing surfaces; the 0.1 m control moved the estimate by +0.079 m",
+                "std_m": 0.028658902722669043
               },
               "depth_axis": {
-                "candidate_error_m": 0.23616337030365317,
-                "estimate_std_m": 0.024230820489636484,
+                "candidate_error_m": 0.23425596923106284,
+                "estimate_std_m": 0.028658902722669043,
                 "name": "z",
                 "status": "fail",
-                "tolerance_m": 0.07269246146890945
+                "tolerance_m": 0.08597670816800712
               },
-              "edge_points": 45900,
+              "edge_points": 45131,
+              "edge_start_depth_shift_m": 0.23616337030365317,
               "frames": 50,
               "stereo_alignment": {
                 "axes": [
                   {
-                    "control_response": 0.8819971633537507,
+                    "control_response": 0.8895679657799627,
                     "name": "x",
                     "observable": true,
-                    "offset": 0.07664487426761693,
-                    "reason": "the 0.1 m control moved the estimate by +0.088 m",
-                    "std": 0.029322187935627922,
+                    "offset": 0.07506877745091467,
+                    "reason": "the 0.1 m control moved the estimate by +0.089 m",
+                    "std": 0.028738315388081182,
                     "unit": "m"
                   },
                   {
-                    "control_response": 0.5809578504067139,
+                    "control_response": 0.5733072831694234,
                     "name": "y",
                     "observable": true,
-                    "offset": 0.053231031447737054,
-                    "reason": "the 0.1 m control moved the estimate by +0.058 m",
-                    "std": 0.016789325075766116,
+                    "offset": 0.05423690231996786,
+                    "reason": "the 0.1 m control moved the estimate by +0.057 m",
+                    "std": 0.023291364750738373,
                     "unit": "m"
                   },
                   {
-                    "control_response": 0.9636633721469559,
+                    "control_response": 0.9661940983387963,
                     "name": "z",
                     "observable": true,
-                    "offset": 0.22852186285661305,
-                    "reason": "the 0.1 m control moved the estimate by +0.096 m",
-                    "std": 0.018295892769529247,
+                    "offset": 0.22681127475453922,
+                    "reason": "the 0.1 m control moved the estimate by +0.097 m",
+                    "std": 0.019921142265605013,
                     "unit": "m"
                   },
                   {
                     "name": "roll",
                     "observable": true,
-                    "offset": 0.27944395626167934,
-                    "reason": "jackknife std 0.15 deg",
-                    "std": 0.14589274794872306,
+                    "offset": 0.2882791454687907,
+                    "reason": "jackknife std 0.20 deg",
+                    "std": 0.19508827270047305,
                     "unit": "deg"
                   },
                   {
                     "name": "pitch",
                     "observable": true,
-                    "offset": -0.3805276553612223,
+                    "offset": -0.268160421168787,
                     "reason": "jackknife std 0.18 deg",
-                    "std": 0.18109375459228405,
+                    "std": 0.17951920108625175,
                     "unit": "deg"
                   },
                   {
                     "name": "yaw",
                     "observable": true,
-                    "offset": 0.266291048410553,
-                    "reason": "jackknife std 0.10 deg",
-                    "std": 0.10395147773139231,
+                    "offset": 0.19503821198242605,
+                    "reason": "jackknife std 0.13 deg",
+                    "std": 0.1303468686062153,
                     "unit": "deg"
                   }
                 ],
-                "disparity_offset_px": -0.5692509628221748,
+                "disparity_offset_px": -0.5656043619617257,
                 "frames": 50,
                 "method": "stereo_alignment/v0.1: disparity residual on planar LiDAR surfaces, translation and rotation fitted jointly",
-                "points": 36974,
-                "reason": "36974 matched points on planar surfaces, 2 iteration(s)"
+                "points": 37090,
+                "reason": "37090 matched points on planar surfaces, 2 iteration(s)"
               },
-              "unchecked_rotation_axes": [
-                "pitch"
-              ],
+              "unchecked_rotation_axes": [],
               "unchecked_translation_axes": [
                 "x",
                 "y"
@@ -930,7 +941,7 @@
             "camera:49:lidar:49"
           ],
           "frame_selection": "first",
-          "git_commit": "7c4e8b9",
+          "git_commit": "75f1dc2",
           "method": "edge_alignment/v0.1 with the calibrex check per-axis rule",
           "reason": "the images and scans pass the reference and pass the known-bad candidate",
           "status": "fail",
@@ -939,14 +950,14 @@
               "axes": [
                 {
                   "candidate_error_deg": -0.04999999999989473,
-                  "estimate_std_deg": 0.04166666666666667,
+                  "estimate_std_deg": 0.025,
                   "name": "roll",
                   "status": "pass",
                   "tolerance_deg": 0.5
                 },
                 {
                   "candidate_error_deg": 0.2500000000000226,
-                  "estimate_std_deg": 0.025,
+                  "estimate_std_deg": 0.055901699437494734,
                   "name": "pitch",
                   "status": "pass",
                   "tolerance_deg": 0.5
@@ -979,7 +990,8 @@
                 "status": "pass",
                 "tolerance_m": 0.04927338140333827
               },
-              "edge_points": 59605,
+              "edge_points": 59635,
+              "edge_start_depth_shift_m": -0.009458152147134625,
               "frames": 50,
               "stereo_alignment": {
                 "axes": [
@@ -1155,7 +1167,7 @@
       ]
     }
   ],
-  "data_only_status": "inconclusive",
+  "data_only_status": "pass",
   "dataset_path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync",
   "dataset_sequence": "2011_09_26_drive_0005_sync",
   "holdout_ratio": 0.2,

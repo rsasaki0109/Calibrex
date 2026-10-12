@@ -90,34 +90,33 @@ def test_the_images_and_scans_alone_fail_the_known_bad_on_rotation_and_depth() -
             assert trial.unchecked_translation_axes == ["x", "y"]
 
 
-def test_the_reference_sits_at_the_depth_tolerance_so_the_data_alone_do_not_decide() -> None:
-    # The published finding: on the spread frames the stereo depth puts the dataset's
-    # reference about 5 cm along the optical axis, at the check's tolerance (warn, not
-    # fail); on the protocol's first 50 frames its yaw sits at the rotation tolerance.
-    # Neither selection passes the reference, so the data-only status is inconclusive.
+def test_the_reference_passes_after_the_depth_error_is_removed_for_the_edges() -> None:
+    # The published finding: once the edges start from the depth stereo measures, the
+    # reference passes on both frame selections of drive 0005, so the data-only status is
+    # pass. It does so near the tolerance: z reads 0.050 m against 0.053 m.
     artifact = _artifact()
-    assert artifact.data_only_status == "inconclusive"
+    assert artifact.data_only_status == "pass"
     decisions = {decision.frame_selection: decision for decision in artifact.data_only}
+    assert {selection: d.status for selection, d in decisions.items()} == {
+        "spread": "pass",
+        "first": "pass",
+    }
+    for decision in decisions.values():
+        for trial in decision.trials:
+            # the edges started from the candidate moved by the depth stereo measured
+            assert trial.edge_start_depth_shift_m is not None
     spread = {trial.candidate_id: trial for trial in decisions["spread"].trials}
-    reference = spread["dataset_reference"]
-    assert reference.verdict == "warn"
-    assert all(axis.status == "pass" for axis in reference.axes)
-    depth = reference.depth_axis
-    assert depth is not None and depth.status == "warn"
-    assert depth.candidate_error_m <= 2 * depth.tolerance_m
-    first = {trial.candidate_id: trial for trial in decisions["first"].trials}
-    assert first["dataset_reference"].verdict == "warn"
-    assert first["dataset_reference"].depth_axis is not None
-    assert first["dataset_reference"].depth_axis.status == "pass"
-    assert {axis.name: axis.status for axis in first["dataset_reference"].axes}["yaw"] == "warn"
+    depth = spread["dataset_reference"].depth_axis
+    assert depth is not None and depth.status == "pass"
+    assert depth.candidate_error_m > 0.9 * depth.tolerance_m
 
 
 def test_drive_0009_repeats_the_decision_on_spread_frames() -> None:
     # The published replication on drive 0009 (same calibration files): the reference's
     # 5 cm along the optical axis on 0005 is not repeated (it reads under 1 cm), every
-    # rotation axis is judged and passes, and the known-bad fails on its 0.25 m. Its pitch
-    # is not judged there (held-out control at t = 2), and on the first 50 frames (5 s)
-    # neither pitch nor z is, so the known-bad passes on roll and yaw alone.
+    # rotation axis is judged and passes, and the known-bad fails on its 0.25 m and its
+    # pitch. On the first 50 frames (5 s) neither its pitch nor its z is judged, so the
+    # known-bad passes on roll and yaw alone.
     artifact = _artifact()
     (replication,) = artifact.data_only_replications
     assert replication.dataset_sequence == "2011_09_26_drive_0009_sync"
@@ -131,7 +130,9 @@ def test_drive_0009_repeats_the_decision_on_spread_frames() -> None:
     assert reference.verdict == "pass" and reference.unchecked_rotation_axes == []
     assert reference.depth_axis is not None and abs(reference.depth_axis.candidate_error_m) < 0.02
     known_bad = spread["known_bad"]
-    assert known_bad.verdict == "fail" and known_bad.unchecked_rotation_axes == ["pitch"]
+    # with its 0.25 m removed first, the edges judge the known-bad's pitch too
+    assert known_bad.verdict == "fail" and known_bad.unchecked_rotation_axes == []
+    assert {axis.name: axis.status for axis in known_bad.axes}["pitch"] == "fail"
     assert known_bad.depth_axis is not None and known_bad.depth_axis.status == "fail"
 
     assert decisions["first"].status == "fail"
@@ -139,6 +140,8 @@ def test_drive_0009_repeats_the_decision_on_spread_frames() -> None:
     assert first["known_bad"].verdict == "pass"
     assert first["known_bad"].unchecked_rotation_axes == ["pitch"]
     assert "z" in first["known_bad"].unchecked_translation_axes
+    # its depth was not trusted at the first rotation, so the edges never restarted
+    assert first["known_bad"].edge_start_depth_shift_m is None
 
 
 def test_the_joint_stereo_fit_is_recorded_but_its_lateral_readings_disagree() -> None:

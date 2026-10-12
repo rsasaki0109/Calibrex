@@ -58,6 +58,11 @@ reference passes and the known-bad fails.
   requires the estimate to follow (between half and one and a half of it); on this drive
   it follows by 0.6 to 1.05. This uses the stereo pair's own calibration, never the
   camera-LiDAR one.
+* **The order.** Edges see rotation at a translation. When the stereo depth is trusted,
+  the edges run again from the candidate with that error along the optical axis
+  removed, and judge rotation there. The depth is then measured again at their new
+  rotation. Rotation is still judged as the candidate's error, and the trial records
+  the shift (`edge_start_depth_shift_m`).
 * **`x` and `y` are not judged.**
 
 Edges cannot judge `z` here. In a development run with translation searched, the edge
@@ -71,21 +76,25 @@ freedom; on them, offsets of -0.10, +0.10 and +0.25 m added to the reference rea
 -0.09, +0.09 and +0.21 m in a development run.
 
 **The images and scans alone fail the known-bad on both axes it is wrong in, on both
-frame selections.** Its 5 deg turn reads as a 5.0 deg pitch error against a 0.5 deg
+frame selections.** Its 5 deg turn reads as a 4.9 deg pitch error against a 0.5 deg
 tolerance (the check names axes in the camera's optical frame, where the vertical axis is
-pitch), and its 0.25 m along the optical axis reads as 0.26 to 0.28 m against
-0.035 to 0.082 m.
+pitch), and its 0.25 m along the optical axis reads as 0.26 m against 0.029 to 0.076 m.
 
-**They do not pass the reference, so the data-only status is `inconclusive`.**
+**They pass the reference on both frame selections, so the data-only status is
+`pass`.** On the spread frames it passes close to the tolerance: stereo depth puts it
+0.050 m along the optical axis against 0.053 m.
 
-* On the 50 frames spread over the drive, every rotation axis passes, but stereo depth
-  puts the reference 0.0504 m along the optical axis against a tolerance of 0.0496 m
-  (3 times its 0.017 m standard deviation): a `warn`, within twice the tolerance.
-* On the protocol's first 50 frames (5 s of consecutive driving), `z` passes (0.021 m
-  against 0.040 m), but yaw reads 0.50 deg against 0.50 deg (`warn`). On those frames the
-  jackknife puts the yaw standard deviation at 0.025 deg, against 0.42 deg on the spread
-  frames: blocks a second apart are not independent, so the yaw tolerance falls to its
-  floor.
+The order (depth first, then rotation) was added to let the edges see the known-bad's
+pitch on drive 0009 (below). Before it, the edges judged rotation at the candidate's
+translation, and on 0005 the reference read `warn` twice:
+
+* on the spread frames, z at 0.0504 m against 0.0496 m;
+* on the first 50 frames (5 s of consecutive driving), yaw at 0.50 deg against 0.50 deg.
+
+The data-only status was then `inconclusive`. With the order, the readings barely move
+(z 0.050 m, yaw 0.40 deg), but both now fall inside the tolerance. On the first 50
+frames the jackknife's yaw standard deviation stays small (blocks a second apart are not
+independent), so yaw is judged against the 0.5 deg floor.
 
 ### Drive 0009: the same calibration on another drive
 
@@ -100,15 +109,14 @@ are the same transforms. Repeating the decisions there (the second table above,
   run, 100 spread frames. The most likely cause is a scene-dependent bias of the stereo
   estimate on 0005, not an error in KITTI's calibration.
 * **On the spread frames the decision passes.** Every rotation axis of the reference is
-  judged and passes, and the known-bad fails on its 0.25 m along the optical axis.
-* **The known-bad's pitch is not judged on 0009.** The edges find its 5 deg (they correct
-  4.8 deg on the spread frames), but the held-out control on pitch reaches t = 2.0, just
-  under the threshold; without the 0.25 m translation it reaches 2.3 (development run).
+  judged and passes. The known-bad fails on its 0.25 m along the optical axis and on its
+  pitch. When the edges started at its translation, its pitch control reached
+  t = 1.99, just under 2. Started with the 0.25 m removed, it reaches 2.2.
 * **On 0009's first 50 frames (5 s) the known-bad passes.** Roll and yaw are judged and
   pass (they are right). Pitch is not judged, so its 5 deg turn is not corrected, and
-  stereo depth at that rotation is not observable either (jackknife std 0.084 m). Under
-  the check's rule a pass covers only the judged axes, so the decision is `fail`: the
-  data-only method passed a candidate that is wrong.
+  stereo depth at that rotation is not trusted either (jackknife std 0.084 m), so the
+  edges are not restarted. Under the check's rule a pass covers only the judged axes,
+  so the decision is `fail`: the data-only method passed a candidate that is wrong.
 
 A first replication read 0009 through a pairing bug: KITTI's `timestamps.txt` keeps a
 blank line for each missing scan (0009 has none for frames 177-180), and the reader
@@ -149,6 +157,9 @@ What was decided after seeing results:
 
 * **The frame selection.** Spread frames are the check's own policy and set the status;
   the first 50 are a sensitivity row. Both were run before one was made primary.
+* **The order: depth first, then rotation.** It was added for the known-bad's pitch on
+  0009, and it also moved two borderline reference readings on 0005 inside the
+  tolerance (above).
 * **The occlusion filter of the stereo estimate.** A point with a nearer LiDAR return in
   its matching patch is dropped: it is hidden from the camera, which sits 0.27 m in front
   of the LiDAR, or straddles a depth edge. It was added after a first run in which the
