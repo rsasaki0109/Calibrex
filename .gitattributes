@@ -46,5 +46,5 @@ docs/assets/cuda_lidar_map/*.txt text eol=lf
 docs/assets/cuda_scan_odometry/*.txt text eol=lf
 # Worker measurements/schemas bind the original Windows or POSIX bytes.
 # Preserve their actual line endings rather than normalizing their digests.
-docs/assets/cuda_scan_odometry/*.measurement.json -text
-docs/assets/cuda_scan_odometry/*.measurement.schema.json -text
+docs/assets/cuda_scan_odometry/*.measurement.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_scan_odometry/*.measurement.schema.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
