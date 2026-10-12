@@ -46,7 +46,8 @@ def test_target_points_poses_timestamps_extrapolation_and_counters_match(
     )
     assert actual == expected
     _counters(left, right)
-    assert prepared.rows == count and prepared.calls == 1
+    assert prepared.rows == (count if count >= 4096 else 0)
+    assert prepared.calls == (1 if count >= 4096 else 0)
     assert not prepared.context._pose_cache
 
 
@@ -80,7 +81,7 @@ def test_source_world_points_subsampling_and_failure_prefixes_match(count, limit
 
 @pytest.mark.parametrize("hook", ["timestamp", "compose", "record", "sample_replacement"])
 def test_native_customization_and_stale_snapshots_keep_original_order(hook, monkeypatch):
-    samples, xyz, offsets, base = _fixture(64)
+    samples, xyz, offsets, base = _fixture(4097)
     left, right = OdometryTrack(samples), OdometryTrack(samples)
     prepared = adapter._PreparedDeskew.capture(right)
     visited = []
@@ -123,7 +124,7 @@ def test_native_customization_and_stale_snapshots_keep_original_order(hook, monk
 
 
 def test_nan_offsets_preserve_the_scalar_exception_prefix_and_budget_fallback(monkeypatch):
-    samples, xyz, offsets, base = _fixture(64)
+    samples, xyz, offsets, base = _fixture(4097)
     left, right = OdometryTrack(samples), OdometryTrack(samples)
     prepared = adapter._PreparedDeskew.capture(right)
     offsets[4] = np.nan
@@ -145,6 +146,10 @@ def test_factory_is_opt_in_and_identity_records_cpu_execution():
     samples, _xyz, _offsets, _base = _fixture(64)
     track = OdometryTrack(samples)
     assert online._compiled_deskew_context(config, track, False) is None
+    assert online._compiled_deskew_context(config, track, True) is None
+    config = load_config(
+        "examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml"
+    )
     prepared = online._compiled_deskew_context(config, track, True)
     assert prepared is not None
     identity = prepared.identity()

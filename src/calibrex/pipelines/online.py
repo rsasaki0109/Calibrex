@@ -1953,6 +1953,11 @@ def _compiled_deskew_context(
         or factor.options.get("continuous_time_query_backend") not in ("numba_cpu", "cuda")
         or not _native_deskew_supported(track)):
         return None
+    # Small declared frame budgets retain scalar replay without importing or
+    # compiling another adapter. Its cold cost exceeds their deskew work.
+    caps = [factor.options.get(name) for name in ("max_source_points", "max_target_points")]
+    if all(type(cap) is int and 0 < cap < 4096 for cap in caps):
+        return None
     try:
         from calibrex.data.numba_lidar_deskew_adapter import _PreparedDeskew
     except ImportError as exc:

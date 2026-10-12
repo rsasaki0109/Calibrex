@@ -17,6 +17,7 @@ from calibrex.solvers import numba_continuous_time_adapter as a
 
 FloatArray: TypeAlias = NDArray[np.float64]
 _MAX_DESKEW_ROW_BYTES = 64 * 1024**2
+_MIN_DESKEW_ROWS = 4096
 
 
 @njit(cache=True, nogil=True, fastmath=False)  # type: ignore[untyped-decorator]
@@ -55,7 +56,7 @@ class _PreparedDeskew:
         selection: range, track: OdometryTrack, base: SE3, *,
         injection_s: float = 0.0, tolerance_s: float = np.inf,
     ) -> _DeskewRows | None:
-        if (len(selection) < 64 or len(selection)*192 > _MAX_DESKEW_ROW_BYTES
+        if (len(selection) < _MIN_DESKEW_ROWS or len(selection)*192 > _MAX_DESKEW_ROW_BYTES
             or type(xyz) is not np.ndarray
             or type(offsets) is not np.ndarray or xyz.ndim != 2 or xyz.shape[1] < 3
             or offsets.ndim != 1 or len(offsets) != len(xyz)
