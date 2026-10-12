@@ -59,5 +59,5 @@ The same decisions on other drives recorded with the same calibration files:
 
 | Drive, frames | `dataset_reference` | `known_bad` | Decision |
 | --- | --- | --- | --- |
-| `2011_09_26_drive_0009_sync`, spread 50 | **pass** (z 0.008 / 0.079 m; unchecked roll, pitch, yaw) | **fail** (z 0.209 / 0.097 m fail; unchecked roll, pitch, yaw) | pass |
+| `2011_09_26_drive_0009_sync`, spread 50 | **pass** (roll 0.15 / 0.50, pitch 0.05 / 0.50, yaw 0.05 / 0.50, z 0.005 / 0.100 m) | **fail** (roll 0.20 / 0.50, yaw 0.05 / 0.50, z 0.236 / 0.073 m fail; unchecked pitch) | pass |
 | `2011_09_26_drive_0009_sync`, first 50 | **pass** (roll 0.05 / 0.50, pitch 0.25 / 0.50, yaw 0.05 / 0.50, z 0.009 / 0.049 m) | **pass** (roll 0.10 / 0.50, yaw 0.00 / 0.50; unchecked pitch, z) | fail |

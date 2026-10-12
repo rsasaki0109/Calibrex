@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- **Fixed: KITTI camera-LiDAR pairs after a missing scan loaded the wrong scan.**
+  - **The bug.** KITTI raw streams can skip frames while `timestamps.txt` keeps a blank
+    line for each; drive 0009 has no scans 177-180. `find_camera_lidar_pairs` took a scan's
+    timestamp from its line but its file from its position in the directory, so every pair
+    after the gap loaded the scan four frames (0.4 s) later. The LiDAR-OXTS sampling had
+    the same lookup.
+  - **The fix.** Files are now taken by the frame number in their name, as the drive
+    loader and the rosbag converter already did. Drives without gaps (0005) are
+    unchanged.
+  - **The data-only decision.** It also drops pairs more than 60 ms apart, as the
+    bag-level check does.
+  - **Published results.** The 0009 replication was republished. Every rotation axis of
+    the reference is now judged, and the spread decision passes. The known-bad's pitch is
+    not judged there (control t = 2.0), and on 0009's first 50 frames it still passes.
+
 - **The KITTI data-only decisions are repeated on drive 0009.**
   - **Why 0009.** It was recorded with the same calibration files (checked by SHA-256),
     so its reference and known-bad candidates are the same transforms.
