@@ -44,3 +44,7 @@ docs/assets/compiled_lidar_linearization/*.txt text eol=lf
 
 docs/assets/cuda_lidar_map/*.txt text eol=lf
 docs/assets/cuda_scan_odometry/*.txt text eol=lf
+# Worker measurements/schemas bind the original Windows or POSIX bytes.
+# Preserve their actual line endings rather than normalizing their digests.
+docs/assets/cuda_scan_odometry/*.measurement.json -text
+docs/assets/cuda_scan_odometry/*.measurement.schema.json -text
