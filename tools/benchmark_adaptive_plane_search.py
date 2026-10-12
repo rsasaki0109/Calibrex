@@ -111,7 +111,7 @@ def _comparison_canonical(payload: dict) -> str:
     provenance = comparable.get("provenance", {})
     if "notes" in provenance:
         provenance["notes"] = [note for note in provenance["notes"] if re.fullmatch(
-            r"continuous_time_query_execution: (python|calibrex\.numba_continuous_time/v0\.[12345];"
+            r"continuous_time_query_execution: (python|calibrex\.numba_continuous_time/v0\.[1-6];"
             r"numba=[0-9.]+;fastmath=false;cache=(true|false))", note,
         ) is None]
     return _canonical(comparable)

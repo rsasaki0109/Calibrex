@@ -51,6 +51,9 @@ from calibrex.data.odometry_track import OdometryTrack
 from calibrex.evaluation.lidar import build_rig_point_to_plane_observations
 from calibrex.evaluation.packed_lidar_observations import _PackedObservationBuilder
 from calibrex.graph.lidar_point_to_plane import (
+    _NATIVE_CORRECTION,
+    _NATIVE_LINEARIZE,
+    _NATIVE_RESIDUALS,
     LidarRigPointToPlaneEvaluation,
     LidarRigPointToPlaneFactor,
     _ObservationArrays,
@@ -243,6 +246,8 @@ class ContinuousTimeLidarPairSolver:
         track = problem.odometry_track
         parallel = (
             settings.query_backend == "numba_cpu" and len(problem.target_points) >= 16384
+            and (not settings.max_target_points_per_split
+                 or settings.max_target_points_per_split >= 8192)
             and type(self) is ContinuousTimeLidarPairSolver
             and "_evaluate_offset" not in self.__dict__
             and type(self)._evaluate_offset is _NATIVE_OFFSET_EVALUATION
@@ -251,6 +256,10 @@ class ContinuousTimeLidarPairSolver:
             and OdometryTrack.interpolate is _NATIVE_INTERPOLATION
             and "_record_extrapolation" not in track.__dict__
             and OdometryTrack._record_extrapolation is _NATIVE_EXTRAPOLATION
+            and LidarRigPointToPlaneFactor.residuals is _NATIVE_RESIDUALS
+            and LidarRigPointToPlaneFactor.linearize is _NATIVE_LINEARIZE
+            and LidarRigPointToPlaneFactor._corrected_transform is _NATIVE_CORRECTION
+            and FixedTrajectorySe3ExtrinsicSolver.solve is _NATIVE_FIXED_SOLVE
         )
         if parallel:
             with ThreadPoolExecutor(max_workers=3, thread_name_prefix="calibrex-lidar") as executor:
@@ -895,3 +904,4 @@ def _rmse(values: Sequence[float]) -> float | None:
 _NATIVE_OFFSET_EVALUATION = ContinuousTimeLidarPairSolver._evaluate_offset
 _NATIVE_INTERPOLATION = OdometryTrack.interpolate
 _NATIVE_EXTRAPOLATION = OdometryTrack._record_extrapolation
+_NATIVE_FIXED_SOLVE = FixedTrajectorySe3ExtrinsicSolver.solve

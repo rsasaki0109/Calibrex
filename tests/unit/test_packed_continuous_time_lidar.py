@@ -243,7 +243,7 @@ def test_row_only_cache_preserves_failed_prefix_custom_diagnostics_and_budget():
     assert context._pose_cache_bytes == size
 
 
-def test_parallel_thread_mask_is_bounded_and_restored_after_failure(monkeypatch):
+def test_fused_kernel_preserves_caller_thread_mask_after_failure(monkeypatch):
     from numba import get_num_threads, set_num_threads
 
     from calibrex.graph.lidar_point_to_plane import _ObservationArrays
@@ -259,7 +259,7 @@ def test_parallel_thread_mask_is_bounded_and_restored_after_failure(monkeypatch)
         observed.append(get_num_threads())
         raise RuntimeError("kernel failure")
 
-    monkeypatch.setattr(adapter, "_parallel_jacobian_rows", failing)
+    monkeypatch.setattr(adapter, "_fused_jacobian_rows", failing)
     try:
         with pytest.raises(RuntimeError, match="kernel failure"):
             adapter.numba_rig_linearization(arrays, [SE3.identity()]*13, [1e-4]*6)
@@ -274,6 +274,8 @@ def test_parallel_thread_mask_is_bounded_and_restored_after_failure(monkeypatch)
 def test_parallel_clock_candidates_keep_order_complete_results_and_counters(monkeypatch):
     from concurrent.futures import ThreadPoolExecutor
 
+    from numba import get_num_threads
+
     records, points, samples, times = _fixture(16640)
     problem = ContinuousTimeLidarPairProblem(
         records, points, times, OdometryTrack(samples), SE3.identity(), SE3.identity(),
@@ -281,18 +283,27 @@ def test_parallel_clock_candidates_keep_order_complete_results_and_counters(monk
     )
     options = ContinuousTimeLidarPairOptions(
         query_backend="numba_cpu", voxel_strategy="adaptive", adaptive_min_points_per_voxel=1,
+        max_target_points_per_split=None,
         max_iterations=2, solver=FixedTrajectorySe3SolverOptions(max_iterations=2),
     )
     submit = ThreadPoolExecutor.submit
     calls = []
+    masks = []
+    caller_mask = get_num_threads()
 
     def observed_submit(self, fn, *args, **kwargs):
         calls.append(args)
-        return submit(self, fn, *args, **kwargs)
+
+        def observed_task():
+            masks.append(get_num_threads())
+            return fn(*args, **kwargs)
+
+        return submit(self, observed_task)
 
     monkeypatch.setattr(ThreadPoolExecutor, "submit", observed_submit)
     actual = ContinuousTimeLidarPairSolver().solve(problem, options)
     assert len(calls) == 6
+    assert len(masks) == 6 and get_num_threads() == caller_mask
     other = replace(problem, odometry_track=OdometryTrack(samples))
     monkeypatch.setattr(_PackedObservationBuilder, "capture", classmethod(lambda *args: None))
     expected = ContinuousTimeLidarPairSolver().solve(other, options)
@@ -303,3 +314,30 @@ def test_parallel_clock_candidates_keep_order_complete_results_and_counters(monk
     assert problem.odometry_track.interpolation_count == other.odometry_track.interpolation_count
     assert problem.odometry_track.clamp_count == other.odometry_track.clamp_count
     assert problem.odometry_track.max_extrapolation_s == other.odometry_track.max_extrapolation_s
+
+
+@pytest.mark.parametrize("guard", ["custom_factor", "custom_solver", "small_sample_cap"])
+def test_custom_methods_and_small_sample_caps_keep_serial_profile(guard, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+
+    records, points, samples, times = _fixture(16640)
+    problem = ContinuousTimeLidarPairProblem(
+        records, points, times, OdometryTrack(samples), SE3.identity(), SE3.identity(),
+        "T_base_lidar", "target", 1.0, 1.5,
+    )
+    if guard == "custom_factor":
+        original = LidarRigPointToPlaneFactor.linearize
+        monkeypatch.setattr(LidarRigPointToPlaneFactor, "linearize",
+                            lambda self, *args, **kwargs: original(self, *args, **kwargs))
+    elif guard == "custom_solver":
+        original = FixedTrajectorySe3ExtrinsicSolver.solve
+        monkeypatch.setattr(FixedTrajectorySe3ExtrinsicSolver, "solve",
+                            lambda self, *args, **kwargs: original(self, *args, **kwargs))
+    monkeypatch.setattr(ThreadPoolExecutor, "submit",
+                        lambda *args, **kwargs: pytest.fail("guard must keep serial evaluation"))
+    result = ContinuousTimeLidarPairSolver().solve(problem, ContinuousTimeLidarPairOptions(
+        query_backend="numba_cpu", max_iterations=1,
+        max_target_points_per_split=64 if guard == "small_sample_cap" else None,
+        solver=FixedTrajectorySe3SolverOptions(max_iterations=1),
+    ))
+    assert result.iterations

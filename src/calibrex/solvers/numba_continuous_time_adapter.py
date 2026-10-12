@@ -12,7 +12,7 @@ from itertools import pairwise
 from typing import TYPE_CHECKING, TypeAlias, cast
 
 import numpy as np
-from numba import get_num_threads, njit, prange, set_num_threads
+from numba import njit
 from numpy.typing import NDArray
 
 from calibrex.core.geometry import SE3, Vector3
@@ -28,7 +28,7 @@ Quaternion: TypeAlias = tuple[float, float, float, float]
 
 def numba_continuous_time_identity() -> str:
     """Identify the optional runtime and its arithmetic/compilation policy."""
-    return f"calibrex.numba_continuous_time/v0.5;numba={version('numba')};fastmath=false;cache=true"
+    return f"calibrex.numba_continuous_time/v0.6;numba={version('numba')};fastmath=false;cache=true"
 
 
 @njit(cache=True, nogil=True, fastmath=False, inline="always")  # type: ignore[untyped-decorator]
@@ -263,14 +263,14 @@ def _one_residual(
     return float(weight * (normal[0]*dx + normal[1]*dy + normal[2]*dz))
 
 
-@njit(cache=True, nogil=True, fastmath=False, parallel=True)  # type: ignore[untyped-decorator]
-def _parallel_jacobian_rows(
+@njit(cache=True, nogil=True, fastmath=False)  # type: ignore[untyped-decorator]
+def _fused_jacobian_rows(
     points: FloatArray, planes: FloatArray, normals: FloatArray, poses: FloatArray,
     weights: FloatArray, transforms: FloatArray, steps: FloatArray,
 ) -> tuple[FloatArray, FloatArray]:
     residuals = np.empty(len(points), dtype=np.float64)
     jacobian = np.empty((len(points), 6), dtype=np.float64)
-    for row in prange(len(points)):
+    for row in range(len(points)):
         point, plane, normal, pose, weight = (
             points[row], planes[row], normals[row], poses[row], weights[row],
         )
@@ -296,14 +296,7 @@ def numba_rig_linearization(
     if len(arrays.points) >= 4096:
         if any(step == 0.0 for step in steps):
             raise ZeroDivisionError("division by zero")
-        previous = get_num_threads()
-        try:
-            # The thread mask is local to this calling thread. Bound work and
-            # restore its caller's mask even when compilation/evaluation fails.
-            set_num_threads(min(previous, 4))
-            return cast(tuple[FloatArray, FloatArray], _parallel_jacobian_rows(*arguments))
-        finally:
-            set_num_threads(previous)
+        return cast(tuple[FloatArray, FloatArray], _fused_jacobian_rows(*arguments))
     return cast(
         tuple[FloatArray, FloatArray],
         _jacobian_rows(*arguments),
