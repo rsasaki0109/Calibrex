@@ -550,6 +550,35 @@ attempts separately. Generated sample blocks reuse underlying scans and are
 an execution control, not independent temporal or two-sensor accuracy evidence.
 ROS-bag collection and reference odometry remain outside this timing scope.
 
+## CUDA LiDAR scan odometry
+
+Reference LiDAR odometry can now use `--odometry-backend cuda` on
+`calibrex lidar-lidar ros2`. The adapter retains target geometry on device and
+fuses point projection, exact spatial queries and robust point-to-plane systems.
+It also prepares normal covariances on GPU. Native small solves, time-gap scaling,
+deskew policies and recorded uncertainty repairs remain in place.
+
+Five fresh process pairs on 120 real temporal public AIST GLIM scans measure
+**64.164142 → 21.092158 s (3.04x)** for a dense 0.03 m voxel / three-scan map.
+Timing includes startup, decoding, preprocessing, GPU initialization/compilation,
+all registrations, source/input hashes and saves. The first CUDA compilation is
+included. Replay API medians are **58.755552 → 16.283616 s (3.61x)**.
+The 0.1 m workload measures **21.198051 → 15.866211 s (1.34x)** instead.
+
+Both final methods explicitly use a 1 nm coordinate grid
+(`geometry_quantum_m=1e-9`) to stabilize spatial-tree choices after tiny pose
+roundoff. Zero remains the default. All poses, transforms and numerical quality
+fields match under abs 1e-9 / rel 1e-6; iterations, counts and convergence
+decisions match exactly. Unconverged steps remain in every timing/result.
+This checks execution agreement, rather than independent trajectory accuracy.
+
+The [full odometry CUDA evidence](../assets/cuda_scan_odometry/README.md) retains
+all final trials, the smaller whole-process improvement of the preceding version,
+and the rejected unquantized dense trace. CPU remains the default; the dense
+speedup is not a guarantee for default CLI point budgets. The Python API exposes
+custom preprocessing and coordinate-grid options, and saved calibration
+artifacts record the full odometry options and execution identity.
+
 ## Exact CPU neighbors for native ICP
 
 Native robust point-to-point ICP and Chen–Medioni point-to-plane ICP now use

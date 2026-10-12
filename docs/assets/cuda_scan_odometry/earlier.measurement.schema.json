@@ -1,0 +1,176 @@
+{
+  "$defs": {
+    "OdometryRow": {
+      "additionalProperties": false,
+      "properties": {
+        "poses": {
+          "items": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "title": "Poses",
+          "type": "array"
+        },
+        "registrations": {
+          "items": {
+            "$ref": "#/$defs/RegistrationRow"
+          },
+          "title": "Registrations",
+          "type": "array"
+        },
+        "execution_backend": {
+          "title": "Execution Backend",
+          "type": "string"
+        },
+        "all_converged": {
+          "title": "All Converged",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "poses",
+        "registrations",
+        "execution_backend",
+        "all_converged"
+      ],
+      "title": "OdometryRow",
+      "type": "object"
+    },
+    "RegistrationRow": {
+      "additionalProperties": false,
+      "properties": {
+        "transform": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Transform",
+          "type": "array"
+        },
+        "converged": {
+          "title": "Converged",
+          "type": "boolean"
+        },
+        "iterations": {
+          "minimum": 0,
+          "title": "Iterations",
+          "type": "integer"
+        },
+        "correspondences": {
+          "minimum": 0,
+          "title": "Correspondences",
+          "type": "integer"
+        },
+        "rmse_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Rmse M"
+        },
+        "hessian_min_eigenvalue": {
+          "title": "Hessian Min Eigenvalue",
+          "type": "number"
+        },
+        "execution_backend": {
+          "title": "Execution Backend",
+          "type": "string"
+        }
+      },
+      "required": [
+        "transform",
+        "converged",
+        "iterations",
+        "correspondences",
+        "rmse_m",
+        "hessian_min_eigenvalue",
+        "execution_backend"
+      ],
+      "title": "RegistrationRow",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "calibrex.scan_odometry_measurement/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "result": {
+      "$ref": "#/$defs/OdometryRow"
+    },
+    "statistics": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Statistics",
+      "type": "object"
+    },
+    "api_seconds": {
+      "minimum": 0,
+      "title": "Api Seconds",
+      "type": "number"
+    },
+    "worker_cpu_seconds": {
+      "minimum": 0,
+      "title": "Worker Cpu Seconds",
+      "type": "number"
+    },
+    "scan_rows": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Scan Rows",
+      "type": "array"
+    },
+    "scan_sha256": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Scan Sha256",
+      "type": "array"
+    },
+    "times_s": {
+      "items": {
+        "type": "number"
+      },
+      "title": "Times S",
+      "type": "array"
+    },
+    "options": {
+      "additionalProperties": true,
+      "title": "Options",
+      "type": "object"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    }
+  },
+  "required": [
+    "result",
+    "statistics",
+    "api_seconds",
+    "worker_cpu_seconds",
+    "scan_rows",
+    "scan_sha256",
+    "times_s",
+    "options",
+    "provenance"
+  ],
+  "title": "Measurement",
+  "type": "object"
+}

@@ -1,0 +1,142 @@
+import hashlib
+import json
+import statistics
+import subprocess
+import os
+import sys
+from pathlib import Path
+workspace=next(p for p in Path(__file__).resolve().parents if (p/'pyproject.toml').is_file())
+sys.path.insert(0,str(workspace))
+os.chdir(workspace)
+from calibrex.core.benchmark import BenchmarkDefinition, BenchmarkArtifact, aggregate_benchmark_definition
+from tools.benchmark_cuda_scan_odometry import _compare
+
+destination=Path('docs/assets/cuda_scan_odometry')
+destination.mkdir(parents=True,exist_ok=True)
+entries={}
+summaries={}
+def sha(data):
+    return hashlib.sha256(data).hexdigest()
+def save(name,data,**metadata):
+    if isinstance(data,dict):
+        data=(json.dumps(data,indent=2,allow_nan=False)+'\n').encode()
+    (destination/name).write_bytes(data)
+    entries[name]={'sha256':sha(data),**metadata}
+
+workloads=[('earlier','outputs/public-glim-cuda-odometry-v1',5),
+ ('dense','outputs/public-glim-cuda-odometry-dense-v3',5),
+ ('standard','outputs/public-glim-cuda-odometry-standard-v3',5)]
+for label,folder,repetitions in workloads:
+    root=Path(folder)
+    original=json.loads((root/'comparison.definition.json').read_bytes())
+    definition=BenchmarkDefinition.model_validate(original)
+    aggregate=BenchmarkArtifact.model_validate(json.loads((root/'comparison.benchmark.json').read_bytes()))
+    assert aggregate_benchmark_definition(definition)==aggregate
+    source_commit=definition.provenance.git_commit
+    bindings=None
+    measurement_rows={}
+    for repeat in range(1,repetitions+1):
+        pair={}
+        for method in ('cpu','cuda'):
+            trial_id=f'{method}.{repeat:02d}'
+            raw=(root/trial_id/'measurement.json').read_bytes()
+            row=json.loads(raw)
+            assert row['provenance']['git_commit']==source_commit
+            if bindings is None:
+                bindings=row['provenance']['source_sha256']
+            assert bindings==row['provenance']['source_sha256']
+            pair[method]=row
+            measurement_rows[(repeat,method)]=row
+            save(f'{label}.{trial_id}.measurement.json',raw,original_sha256=sha(raw))
+            trial=next(t for t in definition.trials if t.method_id==method and t.split_id==f'repeat-{repeat:02d}')
+            snapshot=json.loads(trial.provenance.notes[0])
+            assert snapshot['row']==row and snapshot['result_sha256']==sha(raw)
+            assert trial.provenance.output_sha256==sha(raw)
+            assert trial.runtime_seconds==snapshot['wall_seconds']==trial.metrics['complete_wall_seconds']
+            assert trial.metrics['api_seconds']==row['api_seconds']
+            assert trial.status=='success' and not snapshot['comparison_errors']
+            if repeat==1:
+                assert not snapshot['cache_before']
+        assert not _compare(pair['cpu']['result'],pair['cuda']['result'])
+        for name in ('scan_rows','scan_sha256','times_s','options'):
+            assert pair['cpu'][name]==pair['cuda'][name]
+    schema_raw=(root/'cpu.01'/'measurement.schema.json').read_bytes()
+    assert all((root/f'{m}.{r:02d}'/'measurement.schema.json').read_bytes()==schema_raw
+               for r in range(1,repetitions+1) for m in ('cpu','cuda'))
+    save(f'{label}.measurement.schema.json',schema_raw)
+    for source_path,digest in bindings.items():
+        raw=subprocess.check_output(['git','show',f'{source_commit}:{source_path}'])
+        assert sha(raw)==digest,(label,source_path)
+        save(f'{label}.measured.{Path(source_path).name}.txt',raw,source=source_path,source_commit=source_commit)
+    for name in ('definition','benchmark'):
+        raw=(root/f'comparison.{name}.json').read_bytes()
+        portable=json.loads(raw)
+        portable['provenance']['command']=(f'<PYTHON> tools/benchmark_cuda_scan_odometry.py '
+          f'--bag <PUBLIC_BAG> --output-dir <OUTPUT> --seconds 12 --repetitions 5 '
+          f'--voxel-size {measurement_rows[(1,"cpu")]["options"]["voxel_size_m"]}'
+          + (' --geometry-quantum-m 1e-9' if label!='earlier' else ''))
+        save(f'{label}.{name}.json',portable,original_sha256=sha(raw),changed_fields=['provenance.command'])
+    representative=measurement_rows[(1,'cuda')]
+    summaries[label]={'source_commit':source_commit,'scans':len(representative['scan_rows']),
+       'raw_rows':sum(representative['scan_rows']),'statistics':representative['statistics'],
+       'converged_steps':sum(r['converged'] for r in representative['result']['registrations']),
+       'total_steps':len(representative['result']['registrations']),
+       'options':representative['options'],
+       'pairs':[{'repeat':r,'cpu_wall':next(t.runtime_seconds for t in definition.trials if t.method_id=='cpu' and t.split_id==f'repeat-{r:02d}'),
+                   'cuda_wall':next(t.runtime_seconds for t in definition.trials if t.method_id=='cuda' and t.split_id==f'repeat-{r:02d}')}
+                for r in range(1,repetitions+1)],
+       'medians':{m:{metric:statistics.median(t.metrics[metric] for t in definition.trials if t.method_id==m)
+              for metric in ('complete_wall_seconds','api_seconds','worker_cpu_seconds')} for m in ('cpu','cuda')}}
+rejected_root=Path('outputs/public-glim-cuda-odometry-dense-v2')
+rejected_definition=json.loads((rejected_root/'comparison.definition.json').read_bytes())
+rejected_definition['provenance']['command']='<PYTHON> tools/benchmark_cuda_scan_odometry.py --bag <PUBLIC_BAG> --output-dir <OUTPUT> --seconds 12 --repetitions 5 --voxel-size .03'
+rejected_rows=[]
+for repeat in range(1,6):
+    pair={}
+    for method in ('cpu','cuda'):
+        raw=(rejected_root/f'{method}.{repeat:02d}'/'measurement.json').read_bytes()
+        row=json.loads(raw);pair[method]=row
+        save(f'rejected.{method}.{repeat:02d}.measurement.json',raw,original_sha256=sha(raw))
+    errors=_compare(pair['cpu']['result'],pair['cuda']['result'])
+    assert errors
+    rejected_rows.append({'repeat':repeat,'comparison_errors':errors})
+for source,digest in pair['cuda']['provenance']['source_sha256'].items():
+    revision=pair['cuda']['provenance']['git_commit']
+    raw=subprocess.check_output(['git','show',f'{revision}:{source}'])
+    assert sha(raw)==digest
+    save(f'rejected.measured.{Path(source).name}.txt',raw,source=source,source_commit=revision)
+save('rejected.definition.json',rejected_definition,
+     original_sha256=sha((rejected_root/'comparison.definition.json').read_bytes()),
+     changed_fields=['provenance.command'])
+save('rejected.audit.json',{'generator':'publication-launcher.py.txt',
+     'source_commit':revision,'pairs':rejected_rows,
+     'aggregation_error':'Original benchmark tool omitted failure_reason on failed paired trials. '
+     'Full raw definitions/results are retained; no successful aggregate or speed claim is published.'})
+exploratory=[]
+for folder in ('public-glim-cuda-odometry-smoke-v1',
+               'public-glim-cuda-odometry-guard-explore-v1',
+               'public-glim-cuda-odometry-eigenspace-explore-v1',
+               'public-glim-cuda-odometry-quantum-explore-v1'):
+    root=Path('outputs')/folder
+    rows=json.loads((root/'trials.json').read_bytes())
+    for row in rows:
+        raw=(root/f"{row['method']}.{row['repeat']:02d}"/'measurement.json').read_bytes()
+        assert json.loads(raw)==row['row'] and sha(raw)==row['result_sha256']
+    exploratory.append({'run':folder,'trials':rows,
+       'source_note':'Uncommitted exploratory source; recorded source hashes retained, '
+                     'exact source snapshots were not archived. Not pooled with final runs.'})
+save('earlier-attempts.json',{'generator':'publication-launcher.py.txt',
+     'runs':exploratory})
+launcher=Path(__file__).read_text(encoding='utf-8')
+privacy_marker='    if '+'re.search'
+if privacy_marker in launcher:
+    start=launcher.index(privacy_marker)
+    end=launcher.index('    (destination/name).write_bytes',start)
+    launcher=launcher[:start]+launcher[end:]
+launcher=launcher.replace('import re\n','')
+launcher=launcher.replace('publication-launcher.py.txt','publication-launcher.py.txt')
+save('publication-launcher.py.txt',launcher.encode())
+save('index.json',{'schema_version':'calibrex.publication_index/v0.1',
+  'generator':'publication-launcher.py.txt','files':entries,'summaries':summaries})
+Path('outputs/cuda-odometry-publication-summary.json').write_text(json.dumps(summaries,indent=2)+'\n')
+print('Published and audited',len(entries),'bound files')

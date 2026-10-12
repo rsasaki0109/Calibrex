@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add optional fused CUDA point-to-plane LiDAR odometry, including on-device
+  normal covariance preparation and captured spatial queries. Retain native
+  time-gap scaling and deskew policies, record actual device work and native
+  repairs, and expose explicit coordinate canonicalization for reproducible
+  dense geometry. Preserve CPU defaults and publish full public temporal replays.
+
 - Add an optional CUDA backend for LiDAR-LiDAR map registration and blocked
   evidence evaluation. Keep point queries, normal preparation, residuals,
   analytic Jacobians and Huber systems on device, with native uncertainty
