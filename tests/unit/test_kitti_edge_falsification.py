@@ -16,10 +16,14 @@ from calibrex.data.kitti import (
 from calibrex.evaluation.kitti_edge_falsification import (
     KITTIEdgeTrial,
     _decision,
+    _depth_estimate,
+    _right_image_path,
     kitti_edge_candidates,
+    kitti_stereo,
     select_kitti_pairs,
 )
 from calibrex.evaluation.kitti_falsification_benchmark import kitti_benchmark_candidates
+from calibrex.evaluation.stereo_lidar_depth import StereoDepthEstimate
 
 FIXTURE = (
     "examples/public_datasets/kitti_lidar_camera_evidence/2011_09_26/2011_09_26_drive_0005_sync"
@@ -34,15 +38,23 @@ R_RECT = "9.999239e-01 9.837760e-03 -7.445048e-03 -9.869795e-03 9.999421e-01 -4.
 R_RECT += " 7.402527e-03 4.351614e-03 9.999631e-01"
 P_RECT = "7.215377e+02 0 6.095593e+02 4.485728e+01 0 7.215377e+02 1.728540e+02 2.163791e-01"
 P_RECT += " 0 0 1 2.745884e-03"
+P_RECT_03 = "7.215377e+02 0 6.095593e+02 -3.395242e+02 0 7.215377e+02 1.728540e+02 2.199936e+00"
+P_RECT_03 += " 0 0 1 2.729905e-03"
 
 
-def test_candidates_project_like_the_protocols_rectified_projection(tmp_path: Path) -> None:
+def _calibrated(tmp_path: Path) -> Path:
     dataset = tmp_path / "2011_09_26_drive_0005_sync"
     dataset.mkdir()
     (tmp_path / "calib_velo_to_cam.txt").write_text(f"R: {VELO_R}\nT: {VELO_T}\n", encoding="utf-8")
     (tmp_path / "calib_cam_to_cam.txt").write_text(
-        f"S_rect_02: 1242 375\nR_rect_00: {R_RECT}\nP_rect_02: {P_RECT}\n", encoding="utf-8"
+        f"S_rect_02: 1242 375\nR_rect_00: {R_RECT}\nP_rect_02: {P_RECT}\nP_rect_03: {P_RECT_03}\n",
+        encoding="utf-8",
     )
+    return dataset
+
+
+def test_candidates_project_like_the_protocols_rectified_projection(tmp_path: Path) -> None:
+    dataset = _calibrated(tmp_path)
     reference = read_velodyne_to_camera_transform(dataset)
     model = read_camera_projection_model(dataset)
     assert reference is not None and model is not None
@@ -63,6 +75,62 @@ def test_candidates_project_like_the_protocols_rectified_projection(tmp_path: Pa
 
         assert np.all(valid)
         np.testing.assert_allclose(np.c_[u, v], expected, atol=1e-6)
+
+
+def test_the_stereo_pair_projects_from_the_candidates_frame(tmp_path: Path) -> None:
+    # Cameras 2 and 3 from camera 2's pinhole frame: the same pixels as P_rect_02 and
+    # P_rect_03 applied to rectified camera 0, so the stereo depth judges the candidate.
+    dataset = _calibrated(tmp_path)
+    reference = read_velodyne_to_camera_transform(dataset)
+    assert reference is not None
+    _, transforms = kitti_edge_candidates(dataset, {"dataset_reference": reference})
+    stereo = kitti_stereo(dataset)
+    assert stereo is not None
+    rectification = np.asarray(R_RECT.split(), dtype=float).reshape(3, 3)
+    lidar = np.asarray([[12.0, 1.5, -0.8], [25.0, -4.0, 0.5], [6.0, 2.0, -1.2]])
+    rectified = np.asarray([reference.transform_point(tuple(p)) for p in lidar]) @ rectification.T
+    transform = transforms["dataset_reference"]
+    pinhole = np.c_[lidar @ transform[:3, :3].T + transform[:3, 3], np.ones(3)]
+    for kitti, ours in ((P_RECT, stereo.left), (P_RECT_03, stereo.right)):
+        expected = np.c_[rectified, np.ones(3)] @ np.asarray(kitti.split(), float).reshape(3, 4).T
+        got = pinhole @ ours.T
+        np.testing.assert_allclose(got[:, :2] / got[:, 2:], expected[:, :2] / expected[:, 2:])
+    assert stereo.base_px_m == pytest.approx(4.485728e01 + 3.395242e02)
+
+
+def test_the_right_image_is_camera_3s_frame_of_the_same_index(tmp_path: Path) -> None:
+    left = tmp_path / "drive" / "image_02" / "data" / "0000000007.png"
+    right = tmp_path / "drive" / "image_03" / "data" / "0000000007.png"
+    left.parent.mkdir(parents=True)
+    assert _right_image_path(left) is None
+    right.parent.mkdir(parents=True)
+    right.write_bytes(b"")
+    assert _right_image_path(left) == right
+
+
+def test_the_stereo_estimate_feeds_the_checks_z_axis() -> None:
+    observed = StereoDepthEstimate(
+        offset_m=0.25,
+        std_m=0.02,
+        control_m=0.1,
+        control_response=0.9,
+        points=5000,
+        frames=50,
+        observable=True,
+        reason="ok",
+    )
+    estimate = _depth_estimate(observed)
+    assert (estimate.name, estimate.unit, estimate.candidate_error, estimate.estimated) == (
+        "z",
+        "m",
+        0.25,
+        True,
+    )
+    stuck = observed.model_copy(update={"observable": False, "reason": "response 0.20"})
+    assert _depth_estimate(stuck).unchecked_code == "control_not_detected"
+    assert "response 0.20" in (_depth_estimate(stuck).unchecked_reason or "")
+    few = StereoDepthEstimate(control_m=0.1, points=10, frames=50, observable=False, reason="few")
+    assert _depth_estimate(few).unchecked_code == "unobservable"
 
 
 def test_frame_selection_takes_the_first_or_spreads_over_the_drive() -> None:

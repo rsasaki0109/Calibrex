@@ -607,8 +607,9 @@ def render_kitti_falsification_markdown(benchmark: KITTIFalsificationBenchmarkAr
         lines += [
             "",
             f"**Data-only status: `{benchmark.data_only_status}`**: the images and scans "
-            "alone, judged by edge alignment with the `calibrex check` per-axis rule "
-            "(rotation only; `error / tolerance` in deg).",
+            "alone, judged with the `calibrex check` per-axis rule (`error / tolerance`): "
+            "rotation in deg by edge alignment, `z` (along the optical axis) in m by stereo "
+            "depth; `x` and `y` are not judged.",
             "",
             "| Frames | `dataset_reference` | `known_bad` | Decision |",
             "| --- | --- | --- | --- |",
@@ -625,11 +626,16 @@ def render_kitti_falsification_markdown(benchmark: KITTIFalsificationBenchmarkAr
                     + ("" if axis.status == "pass" else f" {axis.status}")
                     for axis in trial.axes
                 )
-                unchecked = (
-                    f"; unchecked {', '.join(trial.unchecked_rotation_axes)}"
-                    if trial.unchecked_rotation_axes
-                    else ""
+                depth = trial.depth_axis
+                if depth is not None:
+                    axes += (
+                        f", z {abs(depth.candidate_error_m):.3f} / {depth.tolerance_m:.3f} m"
+                        + ("" if depth.status == "pass" else f" {depth.status}")
+                    )
+                unchecked_axes = trial.unchecked_rotation_axes + (
+                    ["z"] if "z" in trial.unchecked_translation_axes else []
                 )
+                unchecked = f"; unchecked {', '.join(unchecked_axes)}" if unchecked_axes else ""
                 cells.append(f"**{trial.verdict}** ({axes}{unchecked})")
             label = (
                 f"{len(decision.frame_ids)} spread over the drive"

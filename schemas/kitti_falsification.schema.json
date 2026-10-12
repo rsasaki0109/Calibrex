@@ -254,6 +254,47 @@
       "title": "KITTIBenchmarkTrial",
       "type": "object"
     },
+    "KITTIDepthAxis": {
+      "additionalProperties": false,
+      "description": "Translation along the optical axis: candidate error against the check's tolerance.",
+      "properties": {
+        "candidate_error_m": {
+          "title": "Candidate Error M",
+          "type": "number"
+        },
+        "estimate_std_m": {
+          "title": "Estimate Std M",
+          "type": "number"
+        },
+        "name": {
+          "const": "z",
+          "default": "z",
+          "title": "Name",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "tolerance_m": {
+          "title": "Tolerance M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "candidate_error_m",
+        "tolerance_m",
+        "estimate_std_m",
+        "status"
+      ],
+      "title": "KITTIDepthAxis",
+      "type": "object"
+    },
     "KITTIEdgeAxis": {
       "additionalProperties": false,
       "description": "One judged rotation axis: candidate error against the check's tolerance.",
@@ -368,7 +409,7 @@
     },
     "KITTIEdgeTrial": {
       "additionalProperties": false,
-      "description": "The edge-alignment verdict for one candidate.",
+      "description": "The data-only verdict for one candidate: edge rotation and stereo depth.",
       "properties": {
         "axes": {
           "items": {
@@ -385,6 +426,29 @@
           "title": "Candidate Id",
           "type": "string"
         },
+        "depth": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StereoDepthEstimate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "stereo-depth estimate at the edge-estimated rotation; None when the dataset has no right stereo images"
+        },
+        "depth_axis": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/KITTIDepthAxis"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "edge_points": {
           "minimum": 0,
           "title": "Edge Points",
@@ -400,6 +464,13 @@
             "type": "string"
           },
           "title": "Unchecked Rotation Axes",
+          "type": "array"
+        },
+        "unchecked_translation_axes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Unchecked Translation Axes",
           "type": "array"
         },
         "verdict": {
@@ -468,6 +539,99 @@
         "source_config_sha256"
       ],
       "title": "KITTIFalsificationProvenance",
+      "type": "object"
+    },
+    "StereoDepthEstimate": {
+      "additionalProperties": false,
+      "description": "The candidate's translation error along the optical axis, from stereo depth.",
+      "properties": {
+        "control_m": {
+          "title": "Control M",
+          "type": "number"
+        },
+        "control_response": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "change of the estimate when the candidate moves by control_m, over control_m (1 when the axis is fully observed)",
+          "title": "Control Response"
+        },
+        "disparity_offset_px": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Disparity Offset Px"
+        },
+        "frames": {
+          "minimum": 0,
+          "title": "Frames",
+          "type": "integer"
+        },
+        "method": {
+          "default": "stereo_depth/v0.1: disparity residual on camera-facing LiDAR surfaces",
+          "title": "Method",
+          "type": "string"
+        },
+        "observable": {
+          "title": "Observable",
+          "type": "boolean"
+        },
+        "offset_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "candidate minus estimate along the optical axis",
+          "title": "Offset M"
+        },
+        "points": {
+          "minimum": 0,
+          "title": "Points",
+          "type": "integer"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "std_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "block-jackknife standard deviation",
+          "title": "Std M"
+        }
+      },
+      "required": [
+        "control_m",
+        "points",
+        "frames",
+        "observable",
+        "reason"
+      ],
+      "title": "StereoDepthEstimate",
       "type": "object"
     }
   },
