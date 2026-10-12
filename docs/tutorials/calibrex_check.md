@@ -155,6 +155,9 @@ same sources as `camera-imu`; `--camera TOPIC` selects one camera. OpenCV is not
   LiDAR in the frame tree, every point is moved to the image time with that velocity, each by
   its own time when the cloud has a per-point time field. The evidence records the source and
   the move (`motion_compensation`); `--camera-lidar-motion none` keeps scans as recorded.
+  The twist is read as REP 105 defines it (an odometry twist in its `child_frame_id`, a twist
+  message in its header frame); a driver that publishes a world-frame velocity there moves the
+  points wrongly, so turn the motion off for such a bag.
   Evaluated on KITTI with real and emulated unsynchronized pairings in the
   [benchmark](../benchmarks/camera_lidar_check.md), where it helped in all but one pairing.
 * **What it cannot see.** Without a connected velocity topic, scans are rigid snapshots, and
