@@ -32,6 +32,111 @@
       "title": "KITTIBenchmarkArtifactDigest",
       "type": "object"
     },
+    "KITTIBenchmarkMetric": {
+      "additionalProperties": false,
+      "description": "One headline metric of a trial, as its ``metrics.json`` records it.",
+      "properties": {
+        "grade": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Grade"
+        },
+        "holdout": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Holdout"
+        },
+        "metric_id": {
+          "title": "Metric Id",
+          "type": "string"
+        },
+        "train": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Train"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "required": [
+        "metric_id"
+      ],
+      "title": "KITTIBenchmarkMetric",
+      "type": "object"
+    },
+    "KITTIBenchmarkRule": {
+      "additionalProperties": false,
+      "description": "One gate of the trial's falsification policy and its outcome.",
+      "properties": {
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "rule_id": {
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rule_id",
+        "status",
+        "reason"
+      ],
+      "title": "KITTIBenchmarkRule",
+      "type": "object"
+    },
     "KITTIBenchmarkTrial": {
       "additionalProperties": false,
       "description": "One frozen candidate evaluated by the KITTI protocol.",
@@ -42,6 +147,18 @@
           },
           "title": "Artifacts",
           "type": "array"
+        },
+        "assessment_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Assessment Reason"
         },
         "assessment_status": {
           "enum": [
@@ -71,6 +188,21 @@
           ],
           "title": "Expected Assessment",
           "type": "string"
+        },
+        "metrics": {
+          "description": "headline metrics of the trial (see KITTI_HEADLINE_METRICS)",
+          "items": {
+            "$ref": "#/$defs/KITTIBenchmarkMetric"
+          },
+          "title": "Metrics",
+          "type": "array"
+        },
+        "rules": {
+          "items": {
+            "$ref": "#/$defs/KITTIBenchmarkRule"
+          },
+          "title": "Rules",
+          "type": "array"
         }
       },
       "required": [
