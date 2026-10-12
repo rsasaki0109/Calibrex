@@ -2,6 +2,26 @@
 
 ## Unreleased
 
+- **The KITTI data-only decision also judges translation along the optical axis.**
+  - **Why edges cannot.** Moving the candidate along the optical axis keeps a road point on
+    the road and a wall point on its wall, so the shifted cloud still lines up. In a
+    development run the edge estimate ran to its search bound, with its 5 cm controls
+    undetected.
+  - **Stereo depth.** `calibrex.evaluation.stereo_lidar_depth` block-matches LiDAR points
+    on camera-facing surfaces between the rectified stereo images. It fits the disparity
+    residual as a rig offset plus the candidate's depth error (which fades as `1 / Z^2`),
+    with a block jackknife, a moved-candidate control and an occlusion filter. It uses
+    only the stereo pair's own calibration.
+  - **Artifact.** Each data-only trial records the stereo estimate (`depth`), its `z`
+    judgement (`depth_axis`) with the `calibrex check` rule, and
+    `unchecked_translation_axes`. All fields are optional and schema-compatible.
+  - **Result.** The known-bad fails on its 0.25 m (0.26 to 0.28 m against 0.035 to
+    0.082 m) as well as its 5 deg, on both frame selections. The reference is not
+    passed: on the spread frames stereo depth puts it 0.050 m along the optical axis
+    against a 0.050 m tolerance (`warn`). The data-only status is therefore
+    `inconclusive` (it was `pass` with rotation alone). The benchmark page says which
+    choices were made after seeing results.
+
 - **The KITTI falsification is also decided from the images and scans alone.**
   - **Method.** `calibrex.evaluation.kitti_edge_falsification` starts the camera-LiDAR
     edge alignment (block jackknife, held-out known-bad controls) at each candidate and

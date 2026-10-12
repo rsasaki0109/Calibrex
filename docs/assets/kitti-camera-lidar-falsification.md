@@ -48,9 +48,9 @@ LiDAR-camera evidence checks (the decision-boundary gate combines the others):
 
 The protocol rejects `known_bad` only through *Dataset Reference Consistency* (translation delta 0.25 m (threshold <= 0.1), rotation delta 5 deg (threshold <= 2)): a comparison with the dataset's own calibration. None of the protocol's checks of the images and scans rejects it.
 
-**Data-only status: `pass`**: the images and scans alone, judged by edge alignment with the `calibrex check` per-axis rule (rotation only; `error / tolerance` in deg).
+**Data-only status: `inconclusive`**: the images and scans alone, judged with the `calibrex check` per-axis rule (`error / tolerance`): rotation in deg by edge alignment, `z` (along the optical axis) in m by stereo depth; `x` and `y` are not judged.
 
 | Frames | `dataset_reference` | `known_bad` | Decision |
 | --- | --- | --- | --- |
-| 50 spread over the drive | **pass** (roll 0.10 / 0.50, pitch 0.10 / 0.50, yaw 0.10 / 1.25) | **fail** (roll 0.10 / 0.50, pitch 5.00 / 0.50 fail, yaw 0.05 / 0.50) | pass |
-| first 50 (the protocol's) | **warn** (roll 0.00 / 0.50, pitch 0.05 / 0.50, yaw 0.50 / 0.50 warn) | **fail** (roll 0.20 / 0.50, pitch 5.00 / 0.50 fail, yaw 0.95 / 0.50 warn) | inconclusive |
+| 50 spread over the drive | **warn** (roll 0.10 / 0.50, pitch 0.10 / 0.50, yaw 0.10 / 1.25, z 0.050 / 0.050 m warn) | **fail** (roll 0.10 / 0.50, pitch 5.00 / 0.50 fail, yaw 0.05 / 0.50, z 0.258 / 0.082 m fail) | inconclusive |
+| first 50 (the protocol's) | **warn** (roll 0.00 / 0.50, pitch 0.05 / 0.50, yaw 0.50 / 0.50 warn, z 0.021 / 0.040 m) | **fail** (roll 0.20 / 0.50, pitch 5.00 / 0.50 fail, yaw 0.95 / 0.50 warn, z 0.278 / 0.035 m fail) | inconclusive |

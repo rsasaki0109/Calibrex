@@ -125,11 +125,13 @@ accuracy.
    published as a maintained artifact (`docs/assets`, checked on every CI run):
    the vendor reference passes and the declared known-bad fails. The protocol
    rejects the known-bad only by its comparison with the dataset's own
-   calibration; a data-only decision beside it (edge alignment with the
-   `calibrex check` rule, 50 frames spread over the drive) passes the reference
-   and fails the known-bad from the images and scans alone. It judges rotation
-   only, and on the protocol's first 50 frames it is inconclusive. The remaining
-   gap is data evidence on translation.
+   calibration. A data-only decision beside it (`calibrex check` rule: rotation
+   from edge alignment, translation along the optical axis from stereo depth on
+   camera-facing surfaces) fails the known-bad on both its rotation and its
+   0.25 m, on both frame selections. It does not pass the reference: stereo depth
+   puts it 5 cm along the optical axis, at the tolerance (`warn`), so the
+   data-only status is inconclusive. The remaining gaps are lateral translation
+   (`x`, `y`) and telling a few-cm reference error from estimator bias.
 2. **Common external execution adoption:** the external-run artifact is proven
    by Koide (fail-closed handoff, readiness, and real-pilot finalization),
    Kalibr (independent Camera--IMU holdout evidence, including the lever arm and a
@@ -909,8 +911,9 @@ artifact `slac.calibration_lifecycle/v0.1`, CLI `calibrex lifecycle simulate`.
 
 - Vendor-reference PASS and known-bad FAIL via `@pytest.mark.kitti` opt-in test;
   `falsification_passed` CLI flag; dataset reference consistency gate.
-- Data-only decision (edge alignment, `calibrex check` per-axis rule) published
-  beside the protocol: reference pass, known-bad fail on rotation.
+- Data-only decision (`calibrex check` per-axis rule) published beside the
+  protocol: known-bad fail on rotation (edges) and on `z` (stereo depth);
+  reference `warn` at the depth tolerance, so inconclusive.
 
 ### Empirical SE(3) uncertainty — ground-truth Camera-LiDAR workflow
 
