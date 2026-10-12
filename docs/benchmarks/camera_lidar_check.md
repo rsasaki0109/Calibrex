@@ -179,18 +179,18 @@ calibrex check restamped_13_46_54 --pairs camera-lidar \
 `sensor_msgs/Image` is defined in the camera's optical frame (z forward, x right, y down). A
 driver or URDF that stamps the image with the camera's REP 103 body frame (x forward, z up) puts
 every LiDAR point outside the view, so the check could only say that no frame was usable. When
-most dropped frames fail that way, the check now reads up to 16 of them once more with the
-optical rotation applied and, if that makes at least half of them usable (and more than the
-frames as given), names the body frame in the reason together with the fix. Nothing is changed
-or assumed: the verdict stays `inconclusive`.
+most dropped frames fail that way, the check now reads the first 16 synchronized frames once
+more with the optical rotation applied. If that makes at least half of them usable (and more
+than the frames as given), the reason names the body frame together with the fix. Nothing is
+changed or assumed: the verdict stays `inconclusive`.
 
 * KITTI 0005 with `cam2_optical` replaced by the body frame it would have (a `--tf` file with
   the reference rotation composed with the REP 103 rotation): `inconclusive`, "the camera frame
   'cam2_optical' looks like a REP 103 body frame ... read as a body frame, 16 of 16 frames put
   LiDAR edges in the image".
 * The fix it names, an optical child of that frame (`rotation_quat_xyzw [0.5, -0.5, 0.5, -0.5]`)
-  in a second `--tf` file plus `--frame-map /camera/image_raw=cam2_true_optical`: `pass` on
-  roll and pitch. The image header frame takes precedence over a `topic_frames` entry, so the
+  in a second `--tf` file plus `--frame-map /camera/image_raw=cam2_true_optical`: `pass` with
+  the reference's deltas (roll 0.1 / 0.5, pitch 0.1 / 0.5, yaw 0.1 / 1.35 deg). The image header frame takes precedence over a `topic_frames` entry, so the
   topic has to be remapped with `--frame-map`.
 * An inverted candidate (`T_lidar_camera` given for `T_camera_lidar`) on the same recording
   still puts edges in the image, the estimator runs and judges no axis (`no_judgeable_axes`), so
