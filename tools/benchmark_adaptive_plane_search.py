@@ -1,7 +1,8 @@
 """Fresh complete continuous-time public Livox runs with exact result parity.
 
 Download and convert the GLIM fixture using the public-dataset tutorial first.
-Only calibrex.data.adaptive_voxel is substituted from the baseline revision.
+The adaptive scope substitutes adaptive_voxel; runtime replaces the seven
+geometry/query/interpolation modules together from the baseline revision.
 The wall timer includes interpreter startup, imports, input replay, all clock
 candidates, extrinsic refinements, holdout diagnostics, input hashing and saves.
 Parent provenance audits are outside that timer. No warmup or trial is discarded.
@@ -28,6 +29,12 @@ if TYPE_CHECKING:
 
 BASELINE = "240ed2cf885f9bbcffc0be68a6afac1d51b29280"
 MODULE = "calibrex.data.adaptive_voxel"
+RUNTIME_MODULES = (
+    "calibrex.data.livox", "calibrex.data.odometry_track",
+    "calibrex.graph.lidar_point_to_plane", "calibrex.evaluation.lidar",
+    "calibrex.solvers.continuous_time_lidar_pair_solver",
+    "calibrex.data.adaptive_voxel", "calibrex.pipelines.online",
+)
 CONFIG = Path(
     "examples/public_datasets/glim_versatile/online_continuous_time_benchmark_config.yaml"
 )
@@ -111,6 +118,7 @@ def _split_binding(
 
 def _worker(args: argparse.Namespace) -> None:
     imported = time.perf_counter()
+    modules = RUNTIME_MODULES if args.baseline_scope == "runtime" else (MODULE,)
     if args.worker == "baseline":
         from importlib.abc import MetaPathFinder
         from importlib.machinery import SourceFileLoader
@@ -118,13 +126,16 @@ def _worker(args: argparse.Namespace) -> None:
 
         class ArchivedFinder(MetaPathFinder):
             def find_spec(self, fullname, path, target=None):
-                if fullname == MODULE:
-                    source = args.output_dir.parent / "baseline.adaptive_voxel.py.txt"
+                if fullname in modules:
+                    source = args.output_dir.parent / (
+                        f"baseline.{fullname.rsplit('.', 1)[1]}.py.txt"
+                    )
                     return spec_from_loader(fullname, SourceFileLoader(fullname, str(source)))
                 return None
 
         sys.meta_path.insert(0, ArchivedFinder())
     from calibrex.core.io import read_mapping, write_mapping
+    from calibrex.data import livox, odometry_track
     from calibrex.data.adaptive_voxel import AdaptiveVoxelPlaneMap
     from calibrex.pipelines.online import evaluate_continuous_time_lidar_pair
     from calibrex.solvers.continuous_time_lidar_pair_solver import ContinuousTimeLidarPairSolver
@@ -133,6 +144,32 @@ def _worker(args: argparse.Namespace) -> None:
     query_seconds = solver_seconds = 0.0
     query_count = 0
     sampled_split = None
+    normal_calculations = pose_calculations = 0
+    fallback = livox._fallback_plane_normal
+    interpolate_pose = odometry_track.interpolate_se3
+    prepared_interval = getattr(odometry_track, "_PreparedInterval", None)
+
+    def measured_normal(*arguments, **keywords):
+        nonlocal normal_calculations
+        normal_calculations += 1
+        return fallback(*arguments, **keywords)
+
+    def measured_pose(*arguments, **keywords):
+        nonlocal pose_calculations
+        pose_calculations += 1
+        return interpolate_pose(*arguments, **keywords)
+
+    livox._fallback_plane_normal = measured_normal
+    odometry_track.interpolate_se3 = measured_pose
+    if prepared_interval is not None:
+        prepared_interpolate = prepared_interval.interpolate
+
+        def measured_prepared_pose(*arguments, **keywords):
+            nonlocal pose_calculations
+            pose_calculations += 1
+            return prepared_interpolate(*arguments, **keywords)
+
+        prepared_interval.interpolate = measured_prepared_pose
     nearest = AdaptiveVoxelPlaneMap.nearest_plane
     solve = ContinuousTimeLidarPairSolver.solve
 
@@ -175,6 +212,9 @@ def _worker(args: argparse.Namespace) -> None:
         "adaptive_query_calls": query_count,
         "worker_import_seconds": import_seconds,
         "loaded_module": sys.modules[MODULE].__file__,
+        "loaded_evaluation_modules": {name: sys.modules[name].__file__ for name in modules},
+        "uniform_normal_calculations": normal_calculations,
+        "interpolated_pose_calculations": pose_calculations,
         "sampled_split": sampled_split,
         "result": json.loads(canonical),
         "result_sha256": _digest(output),
@@ -261,6 +301,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--config", type=Path, default=CONFIG)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--baseline-commit", default=BASELINE)
+    parser.add_argument("--baseline-scope", choices=("adaptive", "runtime"), default="adaptive")
     parser.add_argument("--repetitions", type=int, default=5)
     parser.add_argument("--omp-threads", type=int, default=1)
     parser.add_argument(
@@ -306,11 +347,15 @@ def main(argv: list[str] | None = None) -> None:
         ["git", "rev-parse", f"{args.baseline_commit}^{{commit}}"], text=True,
     ).strip()
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    archive = args.output_dir / "baseline.adaptive_voxel.py.txt"
-    archive.write_bytes(subprocess.check_output(
-        ["git", "show", f"{baseline}:src/calibrex/data/adaptive_voxel.py"],
-    ))
-    bindings[archive.as_posix()] = _digest(archive)
+    modules = RUNTIME_MODULES if args.baseline_scope == "runtime" else (MODULE,)
+    archives = {}
+    for name in modules:
+        archive = args.output_dir / f"baseline.{name.rsplit('.', 1)[1]}.py.txt"
+        archive.write_bytes(subprocess.check_output(
+            ["git", "show", f"{baseline}:src/{name.replace('.', '/')}.py"],
+        ))
+        bindings[archive.as_posix()] = _digest(archive)
+        archives[name] = archive
     config_digest = _digest(args.config)
     input_digest = hashlib.sha256(json.dumps(inputs, sort_keys=True).encode()).hexdigest()
     environment = dict(os.environ, PYTHONIOENCODING="utf-8",
@@ -337,6 +382,7 @@ def main(argv: list[str] | None = None) -> None:
             directory = args.output_dir / f"{method}.repeat-{repeat:02d}"
             command = [
                 sys.executable, str(Path(__file__).resolve()), "--worker", method,
+                "--baseline-scope", args.baseline_scope,
                 "--config", str(args.config), "--output-dir", str(directory),
             ]
             print(f"START {repeat} {method}", flush=True)
@@ -348,8 +394,12 @@ def main(argv: list[str] | None = None) -> None:
                                stdout=log, stderr=subprocess.STDOUT)
             elapsed = time.perf_counter() - started
             row = json.loads((directory / "measurement.json").read_bytes())
-            expected = archive if method == "baseline" else Path(SOURCES[0]).resolve()
-            if row["loaded_module"] != str(expected):
+            expected = {
+                name: str(archives[name] if method == "baseline" else
+                          Path("src", *name.split(".")).with_suffix(".py").resolve())
+                for name in modules
+            }
+            if row["loaded_evaluation_modules"] != expected:
                 raise ValueError("baseline/candidate module binding mismatch")
             if split_anchor is None:
                 split_anchor = row["sampled_split"]
@@ -362,6 +412,7 @@ def main(argv: list[str] | None = None) -> None:
             metrics = {name: float(row[name]) for name in (
                 "pipeline_seconds", "solver_seconds", "adaptive_query_seconds",
                 "adaptive_query_calls", "worker_import_seconds",
+                "uniform_normal_calculations", "interpolated_pose_calculations",
             )}
             metrics.update(subprocess_wall_seconds=elapsed, complete_result_matches=float(matches))
             trials.append(BenchmarkTrial(
@@ -376,6 +427,9 @@ def main(argv: list[str] | None = None) -> None:
                     notes=[json.dumps({"repeat": repeat, "order": order,
                                        "result_sha256": row["result_sha256"],
                                        "sampled_split": row["sampled_split"],
+                                       "loaded_evaluation_modules": (
+                                           row["loaded_evaluation_modules"]
+                                       ),
                                        "loaded_module": row["loaded_module"]}, sort_keys=True),
                            canonical],
                 ),
@@ -383,11 +437,12 @@ def main(argv: list[str] | None = None) -> None:
             print(f"DONE {repeat} {method} {elapsed:.6f}s matches={matches}", flush=True)
     guard()
     definition = BenchmarkDefinition(
-        benchmark_id="glim-complete-continuous-time-adaptive-search",
+        benchmark_id=f"glim-complete-continuous-time-{args.baseline_scope}",
         title="Public GLIM Livox complete continuous-time refinement",
         reference_method_id="baseline", bootstrap_samples=1,
         protocol=BenchmarkProtocol(
-            protocol_id="glim-adaptive-search-fresh-subprocess-v1", dataset_id="glim_versatile",
+            protocol_id=f"glim-{args.baseline_scope}-fresh-subprocess-v2",
+            dataset_id="glim_versatile",
             dataset_doi="10.5281/zenodo.6864654", dataset_source_sha256=input_digest,
             data_license="CC-BY-4.0 (AIST Zenodo record 6864654)",
             split_policy="Latest capture frames held out; repeats share the same accuracy fixture",
@@ -398,7 +453,9 @@ def main(argv: list[str] | None = None) -> None:
                 fit_ids_sha256=split_anchor["train_ids_sha256"],
                 holdout_ids_sha256=split_anchor["holdout_ids_sha256"],
             ) for i in range(1, args.repetitions + 1)],
-            initial_estimate_policy="Existing bounded public identity-control config unchanged",
+            initial_estimate_policy=(
+                "Same supplied public config, initial estimate and temporal split"
+            ),
             tuning_policy=(
                 f"Reverse order every other repeat; child OMP_NUM_THREADS={args.omp_threads}"
             ),
@@ -406,17 +463,21 @@ def main(argv: list[str] | None = None) -> None:
         ),
         methods=[BenchmarkMethodDefinition(
             method_id=method, label=method, implementation="subprocess", tool_name="Calibrex",
-            tool_version="0.5.1", adapter_version="adaptive-search/v1",
+            tool_version="0.5.1", adapter_version=f"continuous-time-{args.baseline_scope}/v2",
             source_commit=baseline if method == "baseline" else full_revision,
         ) for method in ("baseline", "sparse")],
         metrics=[BenchmarkMetricDefinition(
             name=name, label=name,
-            unit="bool" if name.endswith("matches") else "calls" if name.endswith("calls") else "s",
+            unit="bool" if name.endswith("matches") else (
+                "calls" if name.endswith(("calls", "calculations")) else "s"
+            ),
             direction="higher" if name.endswith("matches") else "lower",
             primary=name == "subprocess_wall_seconds",
             interpretation={
                 "complete_result_matches": "Every artifact value and all profile history match",
                 "adaptive_query_calls": "Actual adaptive nearest-plane calls in the complete run",
+                "uniform_normal_calculations": "Actual uniform geometric fallback calls",
+                "interpolated_pose_calculations": "Interior odometry SE3 interpolation calls",
                 "adaptive_query_seconds": (
                     "Adaptive nearest-plane call time, including wrapper overhead"
                 ),
@@ -432,7 +493,8 @@ def main(argv: list[str] | None = None) -> None:
             "Single public sensor duplicated as an identity control; "
             "no absolute two-sensor accuracy claim.",
             "Fresh interpreters; no warmup or outlier exclusion; OS caches persist.",
-            "Only adaptive_voxel is substituted. All candidates, refinements, train/holdout "
+            f"Scope {args.baseline_scope} substitutes {len(modules)} modules. "
+            "All candidates, refinements, train/holdout "
             "budgets "
             "and writers are shared. Module filenames and source/input bytes are verified.",
             "Wall includes startup, imports, replay, optimization, diagnostics, input hashes, "
@@ -446,7 +508,7 @@ def main(argv: list[str] | None = None) -> None:
             "Descriptive timings are local observations, not portable confidence estimates.",
         ],
         provenance=BenchmarkProvenance(
-            generator="tools.benchmark_adaptive_plane_search", generator_version="v0.1",
+            generator="tools.benchmark_adaptive_plane_search", generator_version="v0.2",
             git_commit=source_commit,
             command=subprocess.list2cmdline([sys.executable, __file__, *arguments]),
             data_verified=True,

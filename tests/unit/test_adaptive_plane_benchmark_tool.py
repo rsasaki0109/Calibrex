@@ -91,3 +91,38 @@ def test_split_binding_hashes_the_actual_capped_disjoint_point_identities():
     assert benchmark._split_binding(moved, options)["train_ids_sha256"] != (
         binding["train_ids_sha256"]
     )
+
+
+def test_runtime_scope_contains_all_geometry_interpolation_and_hash_overlap_modules():
+    assert set(benchmark.RUNTIME_MODULES) == {
+        "calibrex.data.livox", "calibrex.data.odometry_track",
+        "calibrex.graph.lidar_point_to_plane", "calibrex.evaluation.lidar",
+        "calibrex.solvers.continuous_time_lidar_pair_solver",
+        "calibrex.data.adaptive_voxel", "calibrex.pipelines.online",
+    }
+    assert all(
+        "src/" + name.replace(".", "/") + ".py" in benchmark.SOURCES
+        for name in benchmark.RUNTIME_MODULES
+    )
+
+
+def test_default_budget_config_keeps_the_same_public_capture_and_matches_sampling_defaults():
+    from calibrex.core.config import load_config
+    from calibrex.solvers.continuous_time_lidar_pair_solver import ContinuousTimeLidarPairOptions
+
+    bounded = load_config(benchmark.CONFIG).model_dump(mode="json")
+    default = load_config(
+        "examples/public_datasets/glim_versatile/online_continuous_time_default_budget_config.yaml"
+    ).model_dump(mode="json")
+    defaults = ContinuousTimeLidarPairOptions()
+    opts = default["pipeline"]["factors"]["lidar_rig_point_to_plane"]["options"]
+    assert opts["continuous_time_max_source_records"] == defaults.max_source_records
+    assert opts["continuous_time_max_target_points_per_split"] == (
+        defaults.max_target_points_per_split
+    )
+    for payload in (bounded, default):
+        payload.pop("project")
+        options = payload["pipeline"]["factors"]["lidar_rig_point_to_plane"]["options"]
+        options.pop("continuous_time_max_source_records")
+        options.pop("continuous_time_max_target_points_per_split")
+    assert bounded == default

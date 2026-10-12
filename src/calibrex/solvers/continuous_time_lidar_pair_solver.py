@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import math
 import random
+from collections import OrderedDict
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Literal
@@ -29,7 +30,12 @@ from calibrex.data.adaptive_voxel import (
     AdaptiveVoxelPolicy,
     build_adaptive_voxel_plane_map,
 )
-from calibrex.data.livox import LivoxPointRecord, VoxelPlaneMap, build_voxel_plane_map
+from calibrex.data.livox import (
+    LivoxPointRecord,
+    VoxelPlaneMap,
+    VoxelPlaneQueryContext,
+    build_voxel_plane_map,
+)
 from calibrex.data.odometry_track import OdometryTrack
 from calibrex.evaluation.lidar import build_rig_point_to_plane_observations
 from calibrex.graph.lidar_point_to_plane import (
@@ -171,6 +177,25 @@ class _FactorBuild:
     outlier_rejected_count: int
 
 
+@dataclass
+class _QueryReuse:
+    planes: VoxelPlaneQueryContext | None
+    poses: OrderedDict[int, tuple[SE3, SE3, SE3]] = field(default_factory=OrderedDict)
+
+    def source_pose(self, timestamp_ns: int, pose: SE3, base: SE3) -> SE3:
+        eligible = type(pose) is SE3 and type(base) is SE3
+        cached = self.poses.get(timestamp_ns) if eligible else None
+        if cached is not None and cached[0] is pose and cached[1] is base:
+            self.poses.move_to_end(timestamp_ns)
+            return cached[2]
+        result = pose.compose(base)
+        if eligible:
+            self.poses[timestamp_ns] = (pose, base, result)
+            if len(self.poses) > 8192:
+                self.poses.popitem(last=False)
+        return result
+
+
 class ContinuousTimeLidarPairSolver:
     """Profile a scalar clock offset while re-solving a LiDAR extrinsic."""
 
@@ -215,6 +240,9 @@ class ContinuousTimeLidarPairSolver:
             if settings.voxel_strategy == "adaptive"
             else None
         )
+        query_reuse = _QueryReuse(
+            VoxelPlaneQueryContext(source_plane_map) if source_plane_map is not None else None,
+        )
         initial = self._evaluate_offset(
             problem,
             settings,
@@ -225,6 +253,7 @@ class ContinuousTimeLidarPairSolver:
             train_indices,
             holdout_indices,
             problem.initial_t_source_target,
+            query_reuse,
         )
         if initial is None:
             return ContinuousTimeLidarPairResult(
@@ -268,6 +297,7 @@ class ContinuousTimeLidarPairSolver:
                     train_indices,
                     holdout_indices,
                     current.solver_result.refined_transform,
+                    query_reuse,
                 )
                 if candidate is not None:
                     evaluated.append(candidate)
@@ -352,6 +382,7 @@ class ContinuousTimeLidarPairSolver:
                 train_indices,
                 holdout_indices,
                 current.solver_result.refined_transform,
+                query_reuse,
             )
             if refined is None:
                 break
@@ -430,6 +461,7 @@ class ContinuousTimeLidarPairSolver:
         train_indices: Sequence[int],
         holdout_indices: Sequence[int],
         initial_transform: SE3,
+        query_reuse: _QueryReuse | None = None,
     ) -> _OffsetEvaluation | None:
         train_build = self._factor_for_indices(
             problem,
@@ -440,6 +472,7 @@ class ContinuousTimeLidarPairSolver:
             offset_sec,
             train_indices,
             initial_transform,
+            query_reuse,
         )
         if train_build is None:
             return None
@@ -461,6 +494,7 @@ class ContinuousTimeLidarPairSolver:
                 offset_sec,
                 holdout_indices,
                 initial_transform,
+                query_reuse,
             )
             if holdout_build is not None:
                 holdout_factor = holdout_build.factor
@@ -496,6 +530,7 @@ class ContinuousTimeLidarPairSolver:
         offset_sec: float,
         indices: Sequence[int],
         initial_transform: SE3,
+        query_reuse: _QueryReuse | None = None,
     ) -> _FactorBuild | None:
         selected_indices = _select_evenly_spaced_indices(
             indices,
@@ -511,7 +546,10 @@ class ContinuousTimeLidarPairSolver:
             pose, _clamped, extrapolation_s = problem.odometry_track.interpolate(capture_ns)
             if extrapolation_s > settings.max_odometry_extrapolation_s:
                 return None
-            target_poses.append(pose.compose(problem.t_base_source))
+            target_poses.append(
+                query_reuse.source_pose(capture_ns, pose, problem.t_base_source)
+                if query_reuse is not None else pose.compose(problem.t_base_source)
+            )
         observations = build_rig_point_to_plane_observations(
             source_records=list(source_records),
             target_points=target_points,
@@ -521,6 +559,7 @@ class ContinuousTimeLidarPairSolver:
             correspondence_gate_m=problem.correspondence_gate_m,
             source_plane_map=source_plane_map,
             adaptive_plane_map=adaptive_plane_map,
+            source_plane_queries=query_reuse.planes if query_reuse is not None else None,
         )
         if len(observations) < settings.min_correspondences:
             return None

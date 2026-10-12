@@ -61,6 +61,7 @@ import math
 import re
 from collections import deque
 from collections.abc import Mapping
+from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from itertools import pairwise
@@ -3921,6 +3922,29 @@ def evaluate_rosbag2_capture_readiness(
     )
 
 
+def _continuous_time_input_stamp(
+    paths: tuple[Path, ...],
+) -> tuple[tuple[str, int, int, int, int, int], ...]:
+    entries: list[tuple[str, int, int, int, int, int]] = []
+    for path in paths:
+        children = [path, *sorted(path.rglob("*"))] if path.is_dir() else [path]
+        for child in children:
+            stat = child.stat()
+            entries.append((child.as_posix(), stat.st_dev, stat.st_ino, stat.st_size,
+                            stat.st_mtime_ns, stat.st_ctime_ns))
+    return tuple(entries)
+
+
+def _continuous_time_input_hashes(paths: tuple[Path, ...]) -> dict[str, str]:
+    result = {}
+    for path in paths:
+        digest = sha256_path(path)
+        if digest is None:
+            raise DatasetError(f"could not hash continuous-time input: {path}")
+        result[str(path)] = digest
+    return result
+
+
 def evaluate_continuous_time_lidar_pair(
     config_path: str | Path,
 ) -> ContinuousTimeLidarPairArtifact:
@@ -3936,6 +3960,9 @@ def evaluate_continuous_time_lidar_pair(
     """
 
     config_file = Path(config_path)
+    config_stamp = (
+        _continuous_time_input_stamp((config_file,)) if config_file.is_file() else None
+    )
     config = load_config(config_file)
     if config.dataset.type not in ("rosbag1", "rosbag2"):
         raise ConfigError(
@@ -3948,6 +3975,22 @@ def evaluate_continuous_time_lidar_pair(
     bag_path = Path(config.dataset.path)
     if not bag_path.exists():
         raise DatasetError(f"rosbag2 dataset path does not exist: {bag_path}")
+    if config_stamp is not None and config_stamp != _continuous_time_input_stamp((config_file,)):
+        raise DatasetError("continuous-time config changed while being loaded")
+    paths = (config_file, bag_path)
+    stamp = _continuous_time_input_stamp(paths)
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        hashes = executor.submit(_continuous_time_input_hashes, paths)
+        result = _evaluate_continuous_time_lidar_pair(config_file, config, bag_path, hashes)
+        if stamp != _continuous_time_input_stamp(paths):
+            raise DatasetError("continuous-time inputs changed during replay or hashing")
+        return result
+
+
+def _evaluate_continuous_time_lidar_pair(
+    config_file: Path, config: CalibrationConfig, bag_path: Path,
+    hashes: Future[dict[str, str]],
+) -> ContinuousTimeLidarPairArtifact:
 
     frame_graph = FrameGraph.from_config(config)
     lidars = sorted(name for name, sensor in config.sensors.items() if sensor.type == "lidar")
@@ -4055,13 +4098,8 @@ def evaluate_continuous_time_lidar_pair(
         grade=refined_grade,
     )
     evaluation = solved.observability
-    source_sha256: dict[str, str] = {}
+    source_sha256 = hashes.result()
     source_paths = [str(config_file), str(bag_path)]
-    for path in (config_file, bag_path):
-        digest = sha256_path(path)
-        if digest is None:
-            raise DatasetError(f"could not hash continuous-time input: {path}")
-        source_sha256[str(path)] = digest
     notes = [
         "continuous-time profile re-solves the six-DoF extrinsic at every clock candidate",
         "target holdout is the latest capture frame group and is never used for optimization",

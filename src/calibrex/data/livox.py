@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 import struct
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from copy import copy
 from dataclasses import dataclass, fields, replace
 from itertools import pairwise
@@ -286,6 +286,75 @@ class _VoxelPlane:
 
 
 VoxelPlaneMap = dict[tuple[int, int, int], _VoxelPlane]
+
+
+@dataclass(frozen=True)
+class _PlaneGeometry:
+    centroid: Vector3
+    normal: Vector3 | None
+
+
+class VoxelPlaneQueryContext:
+    """Capture plane geometry once for repeated, ordered correspondence queries.
+
+    The context owns an immutable geometry snapshot. Construct a new context to
+    observe subsequent edits to the original map or its accumulators.
+    """
+
+    def __init__(self, plane_map: VoxelPlaneMap) -> None:
+        self._planes = {
+            key: _PlaneGeometry(plane.centroid, plane.normal) for key, plane in plane_map.items()
+        }
+        self._keys = tuple(sorted(self._planes))
+        self._index = _prepare_plane_index(self._planes)
+
+    def nearest_match(
+        self, point: Vector3, *, voxel_size_m: float, correspondence_gate_m: float,
+    ) -> VoxelPlaneMatch | None:
+        """Query the captured geometry with the original scalar association."""
+
+        return _nearest_plane_match(
+            point, plane_map=self._planes, voxel_size_m=voxel_size_m,
+            correspondence_gate_m=correspondence_gate_m,
+        )
+
+    def nearest_matches(
+        self, points: NDArray[np.float64], *, voxel_size_m: float,
+        correspondence_gate_m: float,
+    ) -> list[VoxelPlaneMatch | None]:
+        """Return the original nearest identities, geometry and scalar distances."""
+
+        with np.errstate(over="ignore", divide="ignore", invalid="ignore"):
+            cells = np.floor(points / voxel_size_m)
+        index = self._index
+        if (
+            len(points) < 64 or index is None or index.neighborhoods is None
+            or not np.isfinite(cells).all() or np.any(cells < -(2.0**63))
+            or np.any(cells >= 2.0**63)
+        ):
+            return [_nearest_plane_match(
+                (float(point[0]), float(point[1]), float(point[2])),
+                plane_map=self._planes, voxel_size_m=voxel_size_m,
+                correspondence_gate_m=correspondence_gate_m,
+            ) for point in points]
+        positions = _packed_plane_positions(
+            points, cells.astype(np.int64), index, correspondence_gate_m,
+        )
+        result: list[VoxelPlaneMatch | None] = []
+        for point, position in zip(points, positions, strict=True):
+            if position < 0:
+                result.append(None)
+                continue
+            key = self._keys[position]
+            geometry = self._planes[key]
+            if geometry.normal is None:
+                result.append(None)
+                continue
+            distance = _norm3(_sub3(
+                (float(point[0]), float(point[1]), float(point[2])), geometry.centroid,
+            ))
+            result.append(VoxelPlaneMatch(key, geometry.centroid, geometry.normal, distance))
+        return result
 
 
 _DENSE_PLANE_INDEX_MAX_BYTES = 8 * 1024 * 1024
@@ -1366,7 +1435,9 @@ def _point_to_plane_residuals(
     )
 
 
-def _prepare_plane_index(plane_map: VoxelPlaneMap) -> _PlaneIndex | None:
+def _prepare_plane_index(
+    plane_map: Mapping[tuple[int, int, int], _VoxelPlane | _PlaneGeometry],
+) -> _PlaneIndex | None:
     if not plane_map:
         return None
     ordered = sorted(plane_map)
@@ -1656,12 +1727,12 @@ def _nearest_plane(
 def _nearest_plane_match(
     point: Vector3,
     *,
-    plane_map: dict[tuple[int, int, int], _VoxelPlane],
+    plane_map: Mapping[tuple[int, int, int], _VoxelPlane | _PlaneGeometry],
     voxel_size_m: float,
     correspondence_gate_m: float,
 ) -> VoxelPlaneMatch | None:
     key = _voxel_key((point[0], point[1], point[2], 0.0), voxel_size_m)
-    best_plane: _VoxelPlane | None = None
+    best_plane: _VoxelPlane | _PlaneGeometry | None = None
     best_key: tuple[int, int, int] | None = None
     best_distance = float("inf")
     for neighbor_key in _neighbor_keys(key):

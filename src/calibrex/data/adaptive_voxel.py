@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import math
+import sys
 from bisect import bisect_left, bisect_right
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
+from threading import Lock
 
 from calibrex.core.geometry import Vector3
 from calibrex.data.livox import LivoxPointRecord
@@ -50,11 +52,64 @@ class _PlaneSlice:
     rows: tuple[_PlaneRow, ...]
 
 
+class _NeighborhoodCache:
+    """Bound estimated tuple/key/control storage across a map's levels."""
+
+    def __init__(self, budget: int = 2 * 1024 * 1024) -> None:
+        self.budget = budget
+        self.retained_bytes = 0
+        self._lock = Lock()
+        self._entries: OrderedDict[
+            tuple[int, tuple[int, int, int], int], tuple[tuple[AdaptiveVoxelPlane, ...], int]
+        ] = OrderedDict()
+
+    def get(
+        self, key: tuple[int, tuple[int, int, int], int],
+    ) -> tuple[AdaptiveVoxelPlane, ...] | None:
+        with self._lock:
+            entry = self._entries.get(key)
+            if entry is None:
+                return None
+            self._entries.move_to_end(key)
+            return entry[0]
+
+    def put(
+        self, key: tuple[int, tuple[int, int, int], int], cells: tuple[AdaptiveVoxelPlane, ...],
+    ) -> None:
+        # Conservative per-entry control/tuple/typical-int allowance, plus
+        # actual tuple slots and any unusually large integer storage.
+        size = 512 + len(cells) * 8 + sum(
+            max(0, sys.getsizeof(value) - 28) for value in (key[0], *key[1], key[2])
+        )
+        if size > self.budget:
+            return
+        with self._lock:
+            previous = self._entries.pop(key, None)
+            if previous is not None:
+                self.retained_bytes -= previous[1]
+            while self.retained_bytes + size > self.budget:
+                _old_key, (_old_cells, old_size) = self._entries.popitem(last=False)
+                self.retained_bytes -= old_size
+            self._entries[key] = (cells, size)
+            self.retained_bytes += size
+
+    def __getstate__(self) -> tuple[int]:
+        return (self.budget,)
+
+    def __setstate__(self, state: tuple[int]) -> None:
+        _NeighborhoodCache.__init__(self, state[0])
+
+
 class _SparsePlaneCells(Mapping[tuple[int, int, int], AdaptiveVoxelPlane]):
     """Owned cell mapping with an ordered occupied-only box index."""
 
-    def __init__(self, cells: Mapping[tuple[int, int, int], AdaptiveVoxelPlane]) -> None:
+    def __init__(
+        self, cells: Mapping[tuple[int, int, int], AdaptiveVoxelPlane], *,
+        cache: _NeighborhoodCache | None = None, level: int = 0,
+    ) -> None:
         self._cells = dict(cells)
+        self._cache = cache if cache is not None else _NeighborhoodCache()
+        self._level = level
         grouped: dict[int, dict[int, list[tuple[int, AdaptiveVoxelPlane]]]] = {}
         for (x, y, z), cell in sorted(cells.items()):
             grouped.setdefault(x, {}).setdefault(y, []).append((z, cell))
@@ -85,8 +140,18 @@ class _SparsePlaneCells(Mapping[tuple[int, int, int], AdaptiveVoxelPlane]):
     def nearby(
         self, key: tuple[int, int, int], radius: int,
     ) -> Iterator[AdaptiveVoxelPlane]:
-        """Yield exactly the old box's occupied cells in x/y/z order."""
+        """Iterate exactly the old box's occupied cells in x/y/z order."""
 
+        cache_key = (self._level, key, radius)
+        cached = self._cache.get(cache_key)
+        if cached is None:
+            cached = tuple(self._nearby_uncached(key, radius))
+            self._cache.put(cache_key, cached)
+        return iter(cached)
+
+    def _nearby_uncached(
+        self, key: tuple[int, int, int], radius: int,
+    ) -> Iterator[AdaptiveVoxelPlane]:
         for x in range(
             bisect_left(self._coordinates, key[0] - radius),
             bisect_right(self._coordinates, key[0] + radius),
@@ -209,10 +274,14 @@ def build_adaptive_voxel_plane_map(
         )
         cells.append(cell)
         index[level][key] = cell
+    neighborhood_cache = _NeighborhoodCache()
     return AdaptiveVoxelPlaneMap(
         cells=tuple(cells),
         origin_m=settings.range_origin_m,
-        _index={level: _SparsePlaneCells(cells_by_key) for level, cells_by_key in index.items()},
+        _index={
+            level: _SparsePlaneCells(cells_by_key, cache=neighborhood_cache, level=level)
+            for level, cells_by_key in index.items()
+        },
     )
 
 

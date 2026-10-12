@@ -384,6 +384,28 @@ def _array_residuals(arrays: _ObservationArrays, transform: SE3) -> list[float]:
     return residuals
 
 
+def _array_world_points(
+    points: NDArray[np.float64], poses: NDArray[np.float64], transform: SE3,
+) -> NDArray[np.float64]:
+    """Match each pose.compose(transform).transform_point with ordered products."""
+
+    translation = np.asarray(transform.translation_m, dtype=np.float64)
+    rotation = np.asarray(transform.rotation_quat_xyzw, dtype=np.float64)
+    result = np.empty_like(points)
+    with np.errstate(over="ignore", invalid="ignore"):
+        for start in range(0, len(points), 4096):
+            stop = start + 4096
+            chunk = poses[start:stop]
+            world_translation = chunk[:, :3] + _rotate_array_points(chunk[:, 3:], translation)
+            world_rotation = _normalize_array_quaternions(_normalize_array_quaternions(
+                _raw_array_product(chunk[:, 3:], rotation),
+            ))
+            result[start:stop] = (
+                _rotate_array_points(world_rotation, points[start:stop]) + world_translation
+            )
+    return result
+
+
 def _ordered_normal_equations(
     rows: NDArray[np.float64], residuals: NDArray[np.float64],
     weights: NDArray[np.float64] | None = None,

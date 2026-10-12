@@ -9,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 
 import numpy as np
+from numpy.typing import NDArray
 
 from calibrex.core.config import CalibrationConfig
 from calibrex.core.geometry import SE3, QuaternionXYZW, Vector3
@@ -26,6 +27,7 @@ from calibrex.data.livox import (
     LivoxPCDEvaluationContext,
     LivoxPointRecord,
     VoxelPlaneMap,
+    VoxelPlaneQueryContext,
     _transform_coordinates,
     build_voxel_plane_map,
     nearest_voxel_plane,
@@ -36,6 +38,7 @@ from calibrex.data.livox import (
 from calibrex.graph.lidar_point_to_plane import (
     LidarPointToPlaneObservation,
     LidarRigPointToPlaneEvaluation,
+    _array_world_points,
 )
 
 _WORLD_MAP_WEAK_DOF_DELTA_M = 1.0e-3
@@ -969,6 +972,7 @@ def build_rig_point_to_plane_observations(
     correspondence_gate_m: float = 1.5,
     source_plane_map: VoxelPlaneMap | None = None,
     adaptive_plane_map: AdaptiveVoxelPlaneMap | None = None,
+    source_plane_queries: VoxelPlaneQueryContext | None = None,
 ) -> list[LidarPointToPlaneObservation]:
     """Build fixed-correspondence point-to-plane observations for a LiDAR pair.
 
@@ -981,6 +985,8 @@ def build_rig_point_to_plane_observations(
     extrinsic via ``t_world_ego`` (``T_world_source``). When both a uniform and
     adaptive map are supplied, the candidate with the smaller absolute initial
     point-to-plane residual is selected, with centroid distance as a tie-break.
+    source_plane_queries optionally reuses an owned, captured uniform geometry
+    snapshot instead of repeatedly reading mutable plane accumulators.
     """
 
     plane_map = (
@@ -988,16 +994,19 @@ def build_rig_point_to_plane_observations(
         if source_plane_map is not None
         else (
             {}
-            if adaptive_plane_map is not None
+            if adaptive_plane_map is not None or source_plane_queries is not None
             else build_voxel_plane_map(source_records, voxel_size_m)
         )
     )
-    if adaptive_plane_map is None and not plane_map:
+    if adaptive_plane_map is None and not plane_map and source_plane_queries is None:
         return []
     if target_t_world_source is not None and len(target_t_world_source) != len(target_points):
         msg = "target_t_world_source length must match target_points"
         raise ValueError(msg)
-    if target_t_world_source is None and adaptive_plane_map is None and len(target_points) >= 64:
+    if (
+        target_t_world_source is None and adaptive_plane_map is None
+        and source_plane_queries is None and len(target_points) >= 64
+    ):
         identity = SE3.identity()
         world_transform = identity.compose(initial_t_source_target)
         coordinates = _transform_coordinates(np.asarray(target_points, dtype=np.float64),
@@ -1011,6 +1020,16 @@ def build_rig_point_to_plane_observations(
             plane_normal_world=plane.normal, t_world_ego=identity,
         ) for point, plane in zip(target_points, planes, strict=True)
             if plane is not None and plane.normal is not None]
+    coordinates = _batched_world_coordinates(
+        target_points, target_t_world_source, initial_t_source_target,
+    )
+    uniform_matches = (
+        source_plane_queries.nearest_matches(
+            coordinates, voxel_size_m=voxel_size_m,
+            correspondence_gate_m=correspondence_gate_m,
+        )
+        if source_plane_queries is not None and coordinates is not None else None
+    )
     observations: list[LidarPointToPlaneObservation] = []
     for index, point in enumerate(target_points):
         t_world_source = (
@@ -1018,9 +1037,25 @@ def build_rig_point_to_plane_observations(
             if target_t_world_source is not None
             else SE3.identity()
         )
-        world_point = t_world_source.compose(initial_t_source_target).transform_point(point)
+        world_point = (
+            (float(coordinates[index, 0]), float(coordinates[index, 1]),
+             float(coordinates[index, 2]))
+            if coordinates is not None
+            else t_world_source.compose(initial_t_source_target).transform_point(point)
+        )
         candidates: list[tuple[Vector3, Vector3, float]] = []
-        if source_plane_map is not None:
+        if source_plane_queries is not None:
+            fixed_match = (
+                uniform_matches[index] if uniform_matches is not None else
+                source_plane_queries.nearest_match(
+                    world_point, voxel_size_m=voxel_size_m,
+                    correspondence_gate_m=correspondence_gate_m,
+                )
+            )
+            if fixed_match is not None:
+                candidates.append((fixed_match.centroid, fixed_match.normal,
+                                   math.dist(world_point, fixed_match.centroid)))
+        elif source_plane_map is not None:
             fixed_plane = nearest_voxel_plane(
                 world_point,
                 source_plane_map,
@@ -1048,7 +1083,7 @@ def build_rig_point_to_plane_observations(
                         math.dist(world_point, adaptive_plane.centroid),
                     )
                 )
-        elif source_plane_map is None:
+        elif source_plane_map is None and source_plane_queries is None:
             fallback_plane = nearest_voxel_plane(
                 world_point,
                 plane_map,
@@ -1085,6 +1120,33 @@ def build_rig_point_to_plane_observations(
             )
         )
     return observations
+
+
+def _batched_world_coordinates(
+    points: list[Vector3], poses: list[SE3] | None, transform: SE3,
+) -> NDArray[np.float64] | None:
+    if len(points) < 64 or type(transform) is not SE3:
+        return None
+    if poses is not None and any(type(pose) is not SE3 for pose in poses):
+        return None
+    try:
+        xyz = np.asarray(points, dtype=np.float64)
+        pose_values = np.asarray([
+            (*pose.translation_m, *pose.rotation_quat_xyzw) for pose in poses
+        ], dtype=np.float64) if poses is not None else None
+    except (TypeError, ValueError):
+        return None
+    if xyz.shape != (len(points), 3) or not np.isfinite(xyz).all():
+        return None
+    if not np.isfinite((*transform.translation_m, *transform.rotation_quat_xyzw)).all():
+        return None
+    if pose_values is None:
+        result = _transform_coordinates(xyz, SE3.identity().compose(transform))
+    elif not np.isfinite(pose_values).all():
+        return None
+    else:
+        result = _array_world_points(xyz, pose_values, transform)
+    return result if np.isfinite(result).all() else None
 
 
 def lidar_rig_point_to_plane_metrics_from_evaluation(
