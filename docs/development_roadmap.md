@@ -130,8 +130,11 @@ accuracy.
    camera-facing surfaces) fails the known-bad on both its rotation and its
    0.25 m, on both frame selections. It does not pass the reference: stereo depth
    puts it 5 cm along the optical axis, at the tolerance (`warn`), so the
-   data-only status is inconclusive. The remaining gaps are lateral translation
-   (`x`, `y`) and telling a few-cm reference error from estimator bias.
+   data-only status is inconclusive. Drive 0009 (same calibration files) reads
+   the reference under 1 cm, so the 5 cm belongs to drive 0005; but on 0009 the
+   edges judge no rotation on spread frames, and on the first 50 the known-bad
+   passes with its pitch unjudged. The remaining gaps are rotation
+   observability on 0009 and lateral translation (`x`, `y`).
 2. **Common external execution adoption:** the external-run artifact is proven
    by Koide (fail-closed handoff, readiness, and real-pilot finalization),
    Kalibr (independent Camera--IMU holdout evidence, including the lever arm and a

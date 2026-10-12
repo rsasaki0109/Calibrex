@@ -54,3 +54,10 @@ The protocol rejects `known_bad` only through *Dataset Reference Consistency* (t
 | --- | --- | --- | --- |
 | 50 spread over the drive | **warn** (roll 0.10 / 0.50, pitch 0.10 / 0.50, yaw 0.10 / 1.25, z 0.050 / 0.050 m warn) | **fail** (roll 0.10 / 0.50, pitch 5.00 / 0.50 fail, yaw 0.05 / 0.50, z 0.258 / 0.082 m fail) | inconclusive |
 | first 50 (the protocol's) | **warn** (roll 0.00 / 0.50, pitch 0.05 / 0.50, yaw 0.50 / 0.50 warn, z 0.021 / 0.040 m) | **fail** (roll 0.20 / 0.50, pitch 5.00 / 0.50 fail, yaw 0.95 / 0.50 warn, z 0.278 / 0.035 m fail) | inconclusive |
+
+The same decisions on other drives recorded with the same calibration files:
+
+| Drive, frames | `dataset_reference` | `known_bad` | Decision |
+| --- | --- | --- | --- |
+| `2011_09_26_drive_0009_sync`, spread 50 | **pass** (z 0.008 / 0.079 m; unchecked roll, pitch, yaw) | **fail** (z 0.209 / 0.097 m fail; unchecked roll, pitch, yaw) | pass |
+| `2011_09_26_drive_0009_sync`, first 50 | **pass** (roll 0.05 / 0.50, pitch 0.25 / 0.50, yaw 0.05 / 0.50, z 0.009 / 0.049 m) | **pass** (roll 0.10 / 0.50, yaw 0.00 / 0.50; unchecked pitch, z) | fail |

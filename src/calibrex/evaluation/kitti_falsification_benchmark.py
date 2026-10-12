@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal, cast
@@ -129,6 +130,18 @@ class KITTIFalsificationProvenance(StrictModel):
     source_config_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
 
 
+class KITTIDataOnlyReplication(StrictModel):
+    """The data-only decisions on another drive recorded with the same calibration."""
+
+    dataset_sequence: str
+    calibration: list[KITTIBenchmarkArtifactDigest] = Field(
+        min_length=2,
+        description="the drive's calib_velo_to_cam.txt and calib_cam_to_cam.txt, identical "
+        "to the benchmark's, so the candidates are the same",
+    )
+    decisions: list[KITTIEdgeDecision] = Field(min_length=1)
+
+
 class KITTIFalsificationBenchmarkArtifact(StrictModel):
     """Decision artifact for the full-scale KITTI falsification run."""
 
@@ -163,6 +176,10 @@ class KITTIFalsificationBenchmarkArtifact(StrictModel):
     data_only: list[KITTIEdgeDecision] = Field(
         default_factory=list,
         description="data-only decisions: the spread selection first, then sensitivity rows",
+    )
+    data_only_replications: list[KITTIDataOnlyReplication] = Field(
+        default_factory=list,
+        description="the same data-only decisions on other drives of the same day",
     )
 
     def save(self, path: str | Path) -> None:
@@ -353,6 +370,44 @@ def attach_data_only_decisions(
     return benchmark.model_copy(
         update={"data_only_status": decisions[0].status, "data_only": decisions}
     )
+
+
+def replicate_data_only_decisions(
+    benchmark: KITTIFalsificationBenchmarkArtifact,
+    dataset: str | Path,
+    *,
+    frame_count: int | None = None,
+) -> KITTIFalsificationBenchmarkArtifact:
+    """The benchmark with the data-only decisions repeated on another drive.
+
+    The drive must share the benchmark's calibration files (same SHA-256), so the
+    reference and the declared known-bad are the same transforms.
+    """
+
+    calibration = [
+        _artifact_digest(_find_calibration(Path(dataset), name), "kitti_calibration")
+        for name in ("calib_velo_to_cam.txt", "calib_cam_to_cam.txt")
+    ]
+    declared = {
+        item.sha256 for item in benchmark.input_artifacts if item.role == "kitti_calibration"
+    }
+    if {item.sha256 for item in calibration} != declared:
+        msg = f"{dataset}: its calibration files differ from the benchmark's"
+        raise ValueError(msg)
+    replicated = attach_data_only_decisions(benchmark, dataset, frame_count=frame_count)
+    replication = KITTIDataOnlyReplication(
+        dataset_sequence=Path(dataset).name,
+        calibration=[
+            item.model_copy(update={"path": Path(item.path).name}) for item in calibration
+        ],
+        decisions=replicated.data_only,
+    )
+    kept = [
+        item
+        for item in benchmark.data_only_replications
+        if item.dataset_sequence != replication.dataset_sequence
+    ]
+    return benchmark.model_copy(update={"data_only_replications": [*kept, replication]})
 
 
 def _frozen_config_payload(
@@ -615,35 +670,50 @@ def render_kitti_falsification_markdown(benchmark: KITTIFalsificationBenchmarkAr
             "| --- | --- | --- | --- |",
         ]
         for decision in benchmark.data_only:
-            by_id: dict[str, KITTIEdgeTrial] = {
-                trial.candidate_id: trial for trial in decision.trials
-            }
-            cells = []
-            for name in order:
-                trial = by_id[name]
-                axes = ", ".join(
-                    f"{axis.name} {abs(axis.candidate_error_deg):.2f} / {axis.tolerance_deg:.2f}"
-                    + ("" if axis.status == "pass" else f" {axis.status}")
-                    for axis in trial.axes
-                )
-                depth = trial.depth_axis
-                if depth is not None:
-                    axes += (
-                        f", z {abs(depth.candidate_error_m):.3f} / {depth.tolerance_m:.3f} m"
-                        + ("" if depth.status == "pass" else f" {depth.status}")
-                    )
-                unchecked_axes = trial.unchecked_rotation_axes + (
-                    ["z"] if "z" in trial.unchecked_translation_axes else []
-                )
-                unchecked = f"; unchecked {', '.join(unchecked_axes)}" if unchecked_axes else ""
-                cells.append(f"**{trial.verdict}** ({axes}{unchecked})")
             label = (
                 f"{len(decision.frame_ids)} spread over the drive"
                 if decision.frame_selection == "spread"
                 else f"first {len(decision.frame_ids)} (the protocol's)"
             )
-            lines.append(f"| {label} | " + " | ".join(cells) + f" | {decision.status} |")
+            lines.append(_data_only_row(label, decision, order))
+    if benchmark.data_only_replications:
+        lines += [
+            "",
+            "The same decisions on other drives recorded with the same calibration files:",
+            "",
+            "| Drive, frames | `dataset_reference` | `known_bad` | Decision |",
+            "| --- | --- | --- | --- |",
+        ]
+        for replication in benchmark.data_only_replications:
+            for decision in replication.decisions:
+                selection = "spread" if decision.frame_selection == "spread" else "first"
+                label = f"`{replication.dataset_sequence}`, {selection} {len(decision.frame_ids)}"
+                lines.append(_data_only_row(label, decision, order))
     return "\n".join(lines) + "\n"
+
+
+def _data_only_row(label: str, decision: KITTIEdgeDecision, order: Sequence[str]) -> str:
+    by_id: dict[str, KITTIEdgeTrial] = {trial.candidate_id: trial for trial in decision.trials}
+    cells = []
+    for name in order:
+        trial = by_id[name]
+        axes = [
+            f"{axis.name} {abs(axis.candidate_error_deg):.2f} / {axis.tolerance_deg:.2f}"
+            + ("" if axis.status == "pass" else f" {axis.status}")
+            for axis in trial.axes
+        ]
+        depth = trial.depth_axis
+        if depth is not None:
+            axes.append(
+                f"z {abs(depth.candidate_error_m):.3f} / {depth.tolerance_m:.3f} m"
+                + ("" if depth.status == "pass" else f" {depth.status}")
+            )
+        unchecked_axes = trial.unchecked_rotation_axes + (
+            ["z"] if "z" in trial.unchecked_translation_axes else []
+        )
+        unchecked = f"; unchecked {', '.join(unchecked_axes)}" if unchecked_axes else ""
+        cells.append(f"**{trial.verdict}** ({', '.join(axes)}{unchecked})")
+    return f"| {label} | " + " | ".join(cells) + f" | {decision.status} |"
 
 
 def _trial_artifacts(
