@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- **Documented: the camera-LiDAR known-bad control near its threshold.** Doubling the frames,
+  8 or 12 blocks, and a rank test were each tried on the KITTI pairings where an axis went
+  unjudged. In each case a held-out block prefers the turned fit, so the data, not the rule,
+  are the limit. Twelve blocks of 96 frames would judge one more axis at about four times the
+  jackknife cost. The rule and the defaults are unchanged.
+
 - **Camera-LiDAR rolling sweep evaluated on a handheld recording.** Hilti 2022 exp21 (first
   6 GiB, the PandarXT-32 cloud with per-point time, the Alphasense gyro picked automatically):
   - **Reference.** Moving each point to the image time raises the edge-alignment objective at the

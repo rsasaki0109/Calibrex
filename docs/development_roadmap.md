@@ -161,7 +161,9 @@ accuracy.
    camera body frame is named in the reason with its fix, not corrected.
    Rig motion between a point and its image is compensated with a velocity
    topic of the bag (KITTI: 13 of 16 errors flagged with 0.1 s pairings, 12
-   as recorded; one pairing got worse), each point by its own time when the
+   as recorded; one pairing got worse because its data leave yaw weakly
+   constrained, not because of the control rule, see the benchmark), each
+   point by its own time when the
    cloud has a time field (Hilti exp21, handheld: 6 of 6 errors flagged
    moved, 5 as recorded; one recording, gyro only).
 9. **LiDAR packet coverage:** raw `velodyne_msgs/VelodyneScan` is decoded
