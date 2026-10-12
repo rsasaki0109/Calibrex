@@ -61,3 +61,12 @@ The same decisions on other drives recorded with the same calibration files:
 | --- | --- | --- | --- |
 | `2011_09_26_drive_0009_sync`, spread 50 | **pass** (roll 0.15 / 0.50, pitch 0.05 / 0.50, yaw 0.05 / 0.50, z 0.005 / 0.100 m) | **fail** (roll 0.20 / 0.50, yaw 0.05 / 0.50, z 0.236 / 0.073 m fail; unchecked pitch) | pass |
 | `2011_09_26_drive_0009_sync`, first 50 | **pass** (roll 0.05 / 0.50, pitch 0.25 / 0.50, yaw 0.05 / 0.50, z 0.009 / 0.049 m) | **pass** (roll 0.10 / 0.50, yaw 0.00 / 0.50; unchecked pitch, z) | fail |
+
+Cross-check, not judged: the joint six-DoF stereo fit's translation readings (candidate minus estimate, m, with jackknife std; *untrusted* where its own control or std rejects the axis):
+
+| Drive, frames | `dataset_reference` | `known_bad` |
+| --- | --- | --- |
+| `2011_09_26_drive_0005_sync`, spread | x +0.037 ± 0.024, y +0.066 ± 0.022 *untrusted*, z +0.027 ± 0.033 | x +0.039 ± 0.023, y +0.071 ± 0.028 *untrusted*, z +0.277 ± 0.030 |
+| `2011_09_26_drive_0005_sync`, first | x -0.046 ± 0.027, y +0.099 ± 0.012 *untrusted*, z -0.028 ± 0.017 | x -0.052 ± 0.021, y +0.124 ± 0.011 *untrusted*, z +0.226 ± 0.018 |
+| `2011_09_26_drive_0009_sync`, spread | x +0.073 ± 0.029, y +0.050 ± 0.017, z -0.025 ± 0.020 | x +0.077 ± 0.029, y +0.053 ± 0.017, z +0.229 ± 0.018 |
+| `2011_09_26_drive_0009_sync`, first | x +0.025 ± 0.011, y +0.043 ± 0.020 *untrusted*, z -0.041 ± 0.033 | x +0.027 ± 0.007, y +0.030 ± 0.016, z +0.216 ± 0.042 |

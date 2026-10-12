@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **Joint six-DoF stereo fit, recorded as a cross-check.**
+  - **Method.** `estimate_stereo_alignment` fits translation and a small rotation together
+    from stereo depth on planar LiDAR surfaces of any facing (normals from neighbourhood
+    PCA). It re-linearises at the corrected transform, with a jackknife per axis and a
+    moved-candidate control per translation axis. It is tested on a rendered street with
+    house fronts. The facing-surface depth estimate shares its matcher, unchanged.
+  - **KITTI.** The data-only trials record it as `stereo_alignment`, and the rendered
+    summary lists its readings. `x` and `y` stay unjudged: the reference's x reads from
+    -4.6 to +7.3 cm across drives and frame selections, against per-run jackknife stds of
+    1 to 3 cm, and y is untrusted on three of four runs.
+
 - **Fixed: KITTI camera-LiDAR pairs after a missing scan loaded the wrong scan.**
   - **The bug.** KITTI raw streams can skip frames while `timestamps.txt` keeps a blank
     line for each; drive 0009 has no scans 177-180. `find_camera_lidar_pairs` took a scan's

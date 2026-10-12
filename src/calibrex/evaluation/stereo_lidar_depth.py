@@ -122,16 +122,39 @@ def frame_residuals(
     """Depth (m) and disparity residual (measured minus predicted, px) of matched points.
 
     ``transform`` maps LiDAR points into the frame of ``stereo``'s projections, whose
-    third axis is the optical axis.
+    third axis is the optical axis. Only points on camera-facing surfaces are used.
     """
 
-    points = np.asarray(frame.points, dtype=np.float64) @ transform[:3, :3].T + transform[:3, 3]
-    depth = points[:, 2]
-    near = (depth > options.min_depth_m) & (depth < options.max_depth_m)
-    points = points[near & (np.abs(points[:, 0]) < 1.5 * depth)]
+    points = _points_in_view(frame, transform, options)
     empty = np.zeros(0)
     if len(points) <= options.normal_neighbours:
         return empty, empty
+    index, residual = _match(frame, stereo, points, _facing(points, options), options)
+    return points[index, 2], residual
+
+
+def _points_in_view(
+    frame: StereoFrame, transform: FloatArray, options: StereoDepthOptions
+) -> FloatArray:
+    points = np.asarray(frame.points, dtype=np.float64) @ transform[:3, :3].T + transform[:3, 3]
+    depth = points[:, 2]
+    near = (depth > options.min_depth_m) & (depth < options.max_depth_m)
+    return np.asarray(points[near & (np.abs(points[:, 0]) < 1.5 * depth)])
+
+
+def _match(
+    frame: StereoFrame,
+    stereo: RectifiedStereo,
+    points: FloatArray,
+    usable: NDArray[np.bool_],
+    options: StereoDepthOptions,
+) -> tuple[NDArray[np.intp], FloatArray]:
+    """Indices of the ``usable`` points matched between the images, and their residual.
+
+    The left patch around each point is searched along the right row near the disparity
+    the candidate predicts (zero-normalised cross-correlation, sub-pixel parabola).
+    """
+
     homogeneous = np.c_[points, np.ones(len(points))]
     left = homogeneous @ stereo.left.T
     right = homogeneous @ stereo.right.T
@@ -162,11 +185,11 @@ def frame_residuals(
     inside[inside] &= (
         points[inside, 2] <= options.occlusion_ratio * nearest[row[inside], column[inside]]
     )
-    inside[inside] = _facing(points, options)[inside]
-    column, row, shift = column[inside], row[inside], shift[inside]
-    depth, predicted = points[inside, 2], predicted[inside]
-    if len(depth) == 0:
-        return empty, empty
+    inside &= usable
+    index = np.flatnonzero(inside)
+    if len(index) == 0:
+        return index, np.zeros(0)
+    column, row, shift, predicted = column[index], row[index], shift[index], predicted[index]
 
     offsets = np.arange(-half, half + 1)
     patch_rows, patch_cols = (axis.ravel() for axis in np.meshgrid(offsets, offsets, indexing="ij"))
@@ -181,10 +204,10 @@ def frame_residuals(
     score = (right_patch * left_patch[:, None, :]).sum(axis=2) / np.maximum(
         right_norm * left_norm[:, None], 1.0e-9
     )
-    index = np.arange(len(score))
+    rows = np.arange(len(score))
     best = score.argmax(axis=1)
     peak = np.clip(best, 1, 2 * search - 1)
-    before, at, after = score[index, peak - 1], score[index, peak], score[index, peak + 1]
+    before, at, after = score[rows, peak - 1], score[rows, peak], score[rows, peak + 1]
     curvature = before - 2.0 * at + after
     sub_pixel = np.divide(
         0.5 * (before - after),
@@ -192,15 +215,15 @@ def frame_residuals(
         out=np.zeros_like(curvature),
         where=np.abs(curvature) > 1.0e-9,
     )
-    measured = candidates[index, peak] + sub_pixel
+    measured = candidates[rows, peak] + sub_pixel
     keep = (
         (best > 0)
         & (best < 2 * search)
-        & (score[index, best] > options.min_zncc)
+        & (score[rows, best] > options.min_zncc)
         & (left_norm / np.sqrt(len(patch_rows)) > options.min_texture)
         & (measured > 1.0)
     )
-    return depth[keep], (measured - predicted)[keep]
+    return index[keep], (measured - predicted)[keep]
 
 
 def fit_depth_offset(
@@ -303,3 +326,243 @@ def _facing(points: FloatArray, options: StereoDepthOptions) -> NDArray[np.bool_
     local = points[neighbours] - points[neighbours].mean(axis=1, keepdims=True)
     _, vectors = np.linalg.eigh(np.einsum("nki,nkj->nij", local, local))
     return np.asarray(np.abs(vectors[:, 2, 0]) > options.facing_cos)
+
+
+# ---------------------------------------------------------------- the joint 6-DoF fit
+
+STEREO_AXES: tuple[str, ...] = ("x", "y", "z", "roll", "pitch", "yaw")
+
+
+@dataclass(frozen=True)
+class StereoAlignmentOptions:
+    """Surface selection, iterations and evidence of the joint fit."""
+
+    matching: StereoDepthOptions = StereoDepthOptions()
+    planarity: float = 0.05
+    """Smallest over middle eigenvalue of a point's neighbourhood: below it is a surface."""
+    min_spread: float = 0.05
+    """Middle over largest eigenvalue: above it the neighbourhood is not one scan line."""
+    min_view_cos: float = 0.3
+    """``|normal . ray|`` above it: the surface is not seen edge-on."""
+    iterations: int = 2
+    translation_control_m: float = 0.10
+    max_translation_std_m: float = 0.05
+    max_rotation_std_deg: float = 0.5
+
+
+class StereoAxisEstimate(StrictModel):
+    """One axis of the joint fit: the candidate's error on it and whether it is trusted."""
+
+    name: str
+    unit: str
+    offset: float = Field(description="candidate minus estimate (m or deg)")
+    std: float = Field(ge=0.0, description="block-jackknife standard deviation")
+    control_response: float | None = Field(
+        default=None,
+        description="translation axes: change of the estimate when the candidate moves by "
+        "the control, over the control (1 when the axis is fully observed)",
+    )
+    observable: bool
+    reason: str
+
+
+class StereoAlignmentEstimate(StrictModel):
+    """The candidate's six-DoF error from stereo depth on LiDAR surfaces of any facing."""
+
+    method: str = (
+        "stereo_alignment/v0.1: disparity residual on planar LiDAR surfaces, translation and "
+        "rotation fitted jointly"
+    )
+    axes: list[StereoAxisEstimate] = Field(default_factory=list)
+    disparity_offset_px: float | None = None
+    points: int = Field(ge=0)
+    frames: int = Field(ge=0)
+    reason: str
+
+
+def surface_rows(
+    frame: StereoFrame,
+    stereo: RectifiedStereo,
+    transform: FloatArray,
+    options: StereoAlignmentOptions,
+) -> tuple[FloatArray, FloatArray]:
+    """Per matched point: the six regressors of the candidate's error, and the residual.
+
+    A point ``p`` on a surface with normal ``n`` that the candidate puts ``d`` away from
+    where it is projects onto a pixel whose stereo depth belongs to the surface, so the
+    disparity residual is ``base * (n . d) / (Z * (n . p))``. With ``d = dt + w x p`` for
+    a translation error ``dt`` and a small rotation error ``w`` (rad, about the camera
+    axes, applied on the left) the regressors are ``base * n / (Z (n . p))`` and
+    ``base * (p x n) / (Z (n . p))``.
+    """
+
+    matching = options.matching
+    points = _points_in_view(frame, transform, matching)
+    if len(points) <= matching.normal_neighbours:
+        return np.zeros((0, 6)), np.zeros(0)
+    _, neighbours = cKDTree(points).query(points, k=matching.normal_neighbours)
+    local = points[neighbours] - points[neighbours].mean(axis=1, keepdims=True)
+    values, vectors = np.linalg.eigh(np.einsum("nki,nkj->nij", local, local))
+    normals = vectors[:, :, 0]
+    facing = np.abs((normals * points).sum(axis=1)) / np.linalg.norm(points, axis=1)
+    usable = (
+        (values[:, 0] < options.planarity * values[:, 1])
+        & (values[:, 1] > options.min_spread * values[:, 2])
+        & (facing > options.min_view_cos)
+    )
+    index, residual = _match(frame, stereo, points, usable, matching)
+    p, n = points[index], normals[index]
+    scale = stereo.base_px_m / (p[:, 2:3] * (n * p).sum(axis=1, keepdims=True))
+    return np.c_[n * scale, np.cross(p, n) * scale], residual
+
+
+def fit_surface_offsets(rows: FloatArray, residual: FloatArray) -> FloatArray:
+    """``[delta_px, dx, dy, dz, wx, wy, wz]`` of ``residual = delta + rows @ error``.
+
+    Least squares, three passes trimming residuals beyond 3 robust standard deviations.
+    """
+
+    keep = np.ones(len(residual), dtype=bool)
+    coefficients = np.zeros(7)
+    for _ in range(3):
+        design = np.c_[np.ones(int(keep.sum())), rows[keep]]
+        coefficients, *_ = np.linalg.lstsq(design, residual[keep], rcond=None)
+        error = residual - coefficients[0] - rows @ coefficients[1:]
+        spread = 1.4826 * float(np.median(np.abs(error[keep])))
+        keep = np.abs(error) <= 3.0 * max(spread, 1.0e-6)
+    return np.asarray(coefficients, dtype=np.float64)
+
+
+def estimate_stereo_alignment(
+    frames: Sequence[StereoFrame],
+    stereo: RectifiedStereo,
+    transform: FloatArray,
+    options: StereoAlignmentOptions | None = None,
+) -> StereoAlignmentEstimate:
+    """The candidate's error on all six axes, each with its jackknife std.
+
+    The fit is re-linearised ``iterations`` times at the corrected transform. A
+    translation axis is trusted when its std is within ``max_translation_std_m`` and
+    moving the candidate along it by ``translation_control_m`` moves the estimate by
+    half to one and a half of that; a rotation axis when its std is within
+    ``max_rotation_std_deg`` (rotation has no control here).
+    """
+
+    opts = options or StereoAlignmentOptions()
+    matching = opts.matching
+    if len(frames) < matching.blocks:
+        return StereoAlignmentEstimate(
+            points=0,
+            frames=len(frames),
+            reason=f"{len(frames)} stereo frame(s), fewer than the {matching.blocks} blocks",
+        )
+    current = np.asarray(transform, dtype=np.float64).copy()
+    for _ in range(opts.iterations):
+        per_frame = [surface_rows(frame, stereo, current, opts) for frame in frames]
+        current = _corrected(current, fit_surface_offsets(*_stack(per_frame)))
+    per_frame = [surface_rows(frame, stereo, current, opts) for frame in frames]
+    points = sum(len(residual) for _, residual in per_frame)
+    if points < matching.min_points:
+        return StereoAlignmentEstimate(
+            points=points,
+            frames=len(frames),
+            reason=f"{points} matched points on planar surfaces, fewer than {matching.min_points}",
+        )
+    final = fit_surface_offsets(*_stack(per_frame))
+    estimate = _corrected(current, final)
+    blocks = np.array_split(np.arange(len(frames)), matching.blocks)
+    fits = np.asarray(
+        [
+            fit_surface_offsets(
+                *_stack([item for i, item in enumerate(per_frame) if i not in set(block.tolist())])
+            )[1:]
+            for block in blocks
+        ]
+    )
+    count = len(blocks)
+    std = np.sqrt((count - 1) / count * ((fits - fits.mean(axis=0)) ** 2).sum(axis=0))
+    error = _error(transform, estimate)
+    axes: list[StereoAxisEstimate] = []
+    for axis, name in enumerate(STEREO_AXES):
+        if axis < 3:
+            moved = current.copy()
+            moved[axis, 3] += opts.translation_control_m
+            shifted = fit_surface_offsets(
+                *_stack([surface_rows(frame, stereo, moved, opts) for frame in frames])
+            )
+            response = (shifted[1 + axis] - final[1 + axis]) / opts.translation_control_m
+            problems = []
+            if std[axis] > opts.max_translation_std_m:
+                problems.append(
+                    f"jackknife std {std[axis]:.3f} m exceeds {opts.max_translation_std_m:g} m"
+                )
+            if not matching.min_response <= response <= matching.max_response:
+                problems.append(
+                    f"moving the candidate {opts.translation_control_m:g} m along {name} moved "
+                    f"the estimate by {response * opts.translation_control_m:+.3f} m (response "
+                    f"{response:.2f}, outside {matching.min_response:g} to "
+                    f"{matching.max_response:g})"
+                )
+            axes.append(
+                StereoAxisEstimate(
+                    name=name,
+                    unit="m",
+                    offset=float(error[axis]),
+                    std=float(std[axis]),
+                    control_response=float(response),
+                    observable=not problems,
+                    reason="; ".join(problems)
+                    or f"the {opts.translation_control_m:g} m control moved the estimate by "
+                    f"{response * opts.translation_control_m:+.3f} m",
+                )
+            )
+        else:
+            spread = float(np.degrees(std[axis]))
+            trusted = spread <= opts.max_rotation_std_deg
+            axes.append(
+                StereoAxisEstimate(
+                    name=name,
+                    unit="deg",
+                    offset=float(error[axis]),
+                    std=spread,
+                    observable=trusted,
+                    reason=f"jackknife std {spread:.2f} deg"
+                    + ("" if trusted else f", over {opts.max_rotation_std_deg:g} deg"),
+                )
+            )
+    return StereoAlignmentEstimate(
+        axes=axes,
+        disparity_offset_px=float(final[0]),
+        points=points,
+        frames=len(frames),
+        reason=f"{points} matched points on planar surfaces, {opts.iterations} iteration(s)",
+    )
+
+
+def _stack(per_frame: Sequence[tuple[FloatArray, FloatArray]]) -> tuple[FloatArray, FloatArray]:
+    rows = [item[0] for item in per_frame if len(item[1])]
+    residual = [item[1] for item in per_frame if len(item[1])]
+    if not rows:
+        return np.zeros((0, 6)), np.zeros(0)
+    return np.concatenate(rows), np.concatenate(residual)
+
+
+def _corrected(transform: FloatArray, coefficients: FloatArray) -> FloatArray:
+    """The transform with the fitted error removed: ``p_true = Exp(-w) p - dt``."""
+
+    from scipy.spatial.transform import Rotation
+
+    undo = Rotation.from_rotvec(-coefficients[4:7]).as_matrix()
+    result = transform.copy()
+    result[:3, :3] = undo @ transform[:3, :3]
+    result[:3, 3] = undo @ transform[:3, 3] - coefficients[1:4]
+    return result
+
+
+def _error(candidate: FloatArray, estimate: FloatArray) -> FloatArray:
+    """Candidate minus estimate: translation (m) and left rotation about the camera axes (deg)."""
+
+    from scipy.spatial.transform import Rotation
+
+    rotation = Rotation.from_matrix(candidate[:3, :3] @ estimate[:3, :3].T).as_rotvec()
+    return np.r_[candidate[:3, 3] - estimate[:3, 3], np.degrees(rotation)]

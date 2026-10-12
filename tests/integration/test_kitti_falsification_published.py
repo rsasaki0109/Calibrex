@@ -139,3 +139,30 @@ def test_drive_0009_repeats_the_decision_on_spread_frames() -> None:
     assert first["known_bad"].verdict == "pass"
     assert first["known_bad"].unchecked_rotation_axes == ["pitch"]
     assert "z" in first["known_bad"].unchecked_translation_axes
+
+
+def test_the_joint_stereo_fit_is_recorded_but_its_lateral_readings_disagree() -> None:
+    # The published cross-check: the joint six-DoF stereo fit reads the same calibration's
+    # x from -4.6 to +7.3 cm over drives 0005 and 0009 and their two frame selections,
+    # while each run's jackknife std is under 3 cm. That spread is why x and y are not
+    # judged; its z of the known-bad agrees with the judged facing-surface z.
+    artifact = _artifact()
+    decisions = list(artifact.data_only) + [
+        decision
+        for replication in artifact.data_only_replications
+        for decision in replication.decisions
+    ]
+    assert len(decisions) == 4
+    reference_x = []
+    for decision in decisions:
+        for trial in decision.trials:
+            assert {"x", "y"} <= set(trial.unchecked_translation_axes)
+            fit = trial.stereo_alignment
+            assert fit is not None
+            axes = {axis.name: axis for axis in fit.axes}
+            if trial.candidate_id == "dataset_reference":
+                reference_x.append(axes["x"])
+            else:
+                assert 0.2 < axes["z"].offset < 0.3
+    assert max(a.offset for a in reference_x) - min(a.offset for a in reference_x) > 0.1
+    assert all(a.std < 0.03 for a in reference_x)
