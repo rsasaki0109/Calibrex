@@ -800,12 +800,9 @@ class ContinuousTimeLidarPairSolver:
                    and query_reuse.cuda_rig is not None else None)
 
             def compiled_residuals(arrays: _ObservationArrays, transform: SE3) -> list[float]:
-                if gpu is not None:
-                    result = gpu.residuals(arrays, transform)
-                    if query_reuse is not None:
-                        query_reuse.used_cuda = True
-                else:
-                    result = numba_rig_residuals(arrays, transform)
+                # Single evaluations are cheaper on CPU. Capture only the
+                # retained MAD batch for repeated thirteen-way GPU differences.
+                result = numba_rig_residuals(arrays, transform)
                 if query_reuse is not None:
                     query_reuse.used_numba = True
                 return result

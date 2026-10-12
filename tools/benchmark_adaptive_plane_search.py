@@ -110,13 +110,18 @@ def _comparison_canonical(payload: dict) -> str:
     """Exclude only the exact declared optional kernel identity note."""
     comparable = json.loads(_canonical(payload))
     provenance = comparable.get("provenance", {})
+    cuda_fields = (r"fp64=true;fma=false;cupy=[0-9.]+;cuda=[0-9]+;driver=[0-9]+;"
+                   r"numba=[0-9.]+;trajectory_cpu=true;normal_cpu=true;")
+    execution = (
+        r"continuous_time_query_execution: (python|calibrex\.numba_continuous_time/v0\.[1-7];"
+        r"numba=[0-9.]+;fastmath=false;cache=(true|false)|"
+        r"calibrex\.cuda_continuous_time/v0\.[1-3];" + cuda_fields +
+        r"kernel_sha256=[0-9a-f]{64}|calibrex\.cuda_continuous_time/v0\.4;" + cuda_fields +
+        r"standalone_residual_cpu=true;kernel_sha256=[0-9a-f]{64})"
+    )
     if "notes" in provenance:
         provenance["notes"] = [note for note in provenance["notes"] if re.fullmatch(
-            r"continuous_time_query_execution: (python|calibrex\.numba_continuous_time/v0\.[1-7];"
-            r"numba=[0-9.]+;fastmath=false;cache=(true|false)|"
-            r"calibrex\.cuda_continuous_time/v0\.[1-3];fp64=true;fma=false;"
-            r"cupy=[0-9.]+;cuda=[0-9]+;driver=[0-9]+;numba=[0-9.]+;"
-            r"trajectory_cpu=true;normal_cpu=true;kernel_sha256=[0-9a-f]{64})", note,
+            execution, note,
         ) is None]
     return _canonical(comparable)
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Sequence
 from importlib.metadata import version
+from threading import Lock
 from typing import TYPE_CHECKING, TypeAlias
 
 import cupy as cp
@@ -22,6 +23,7 @@ _SOURCE = r"""
 struct Q { double x,y,z,w; };
 __device__ Q normalized(Q q) {
     double n=sqrt(q.x*q.x+q.y*q.y+q.z*q.z+q.w*q.w);
+    if(n==1.0) return q;
     return {q.x/n,q.y/n,q.z/n,q.w/n};
 }
 __device__ Q product(Q a,Q b) {
@@ -71,10 +73,11 @@ extern "C" __global__ void linearize(const double* points,const double* planes,
 def cuda_continuous_time_identity() -> str:
     """Identify arithmetic and runtime without recording a device model."""
     return (
-        "calibrex.cuda_continuous_time/v0.3;fp64=true;fma=false;"
+        "calibrex.cuda_continuous_time/v0.4;fp64=true;fma=false;"
         f"cupy={cp.__version__};cuda={cp.cuda.runtime.runtimeGetVersion()};"
         f"driver={cp.cuda.runtime.driverGetVersion()};"
         f"numba={version('numba')};trajectory_cpu=true;normal_cpu=true;"
+        "standalone_residual_cpu=true;"
         f"kernel_sha256={hashlib.sha256(_SOURCE.encode()).hexdigest()}"
     )
 
@@ -92,6 +95,7 @@ class CudaRigLinearizer:
         self.linearization_calls = 0
         self.residual_calls = 0
         self.rows = 0
+        self._lock = Lock()
         with cp.cuda.Device(self.device_id):
             self._stream = cp.cuda.Stream(non_blocking=True)
             if _kernels is None:
@@ -129,15 +133,15 @@ class CudaRigLinearizer:
     def residuals(self, arrays: _ObservationArrays, transform: SE3) -> list[float]:
         """Evaluate the ordered native residual formula on the captured device."""
         n = len(arrays.points)
-        with cp.cuda.Device(self.device_id), self._stream:
+        with self._lock, cp.cuda.Device(self.device_id), self._stream:
             payload = self._capture(arrays)
             values = cp.asarray((*transform.translation_m, *transform.rotation_quat_xyzw))
             result = cp.empty(n, dtype=cp.float64)
             if n:
                 self._residuals(((n+127)//128,), (128,), (*payload, values, np.int32(n), result))
             host: FloatArray = result.get()
-        self.residual_calls += 1
-        self.rows += n
+            self.residual_calls += 1
+            self.rows += n
         return list(host.tolist())
 
     def linearize(
@@ -149,7 +153,7 @@ class CudaRigLinearizer:
         if any(step == 0.0 for step in steps):
             raise ZeroDivisionError("division by zero")
         n = len(arrays.points)
-        with cp.cuda.Device(self.device_id), self._stream:
+        with self._lock, cp.cuda.Device(self.device_id), self._stream:
             payload = self._capture(arrays)
             values = cp.asarray([(*t.translation_m, *t.rotation_quat_xyzw) for t in transforms])
             device_steps = cp.asarray(steps, dtype=cp.float64)
@@ -159,6 +163,6 @@ class CudaRigLinearizer:
                     (*payload, values, device_steps, np.int32(n), result, jacobian))
             host_r: FloatArray = result.get()
             host_j: FloatArray = jacobian.get()
-        self.linearization_calls += 1
-        self.rows += n
+            self.linearization_calls += 1
+            self.rows += n
         return host_r, host_j

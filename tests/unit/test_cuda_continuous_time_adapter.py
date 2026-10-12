@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, replace
 
 import numpy as np
@@ -127,6 +128,18 @@ def test_fork_shares_compiled_kernels_and_owns_payload_and_stream():
     assert fork._arrays is arrays and gpu._arrays is None
 
 
+def test_concurrent_callers_cannot_cross_contaminate_an_owned_payload():
+    cpu, factor, gpu = _factors()
+    other_cpu, other, _ = _factors(8193)
+    jobs = [(factor._prepared_arrays(), factor._corrected_transform(None)),
+            (other._prepared_arrays(), other._corrected_transform(None))]*3
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        values = list(executor.map(lambda args: gpu.residuals(*args), jobs))
+    expected = [cpu.residuals(), other_cpu.residuals()]*3
+    assert values == expected
+    assert gpu.residual_calls == 6 and gpu.rows == 3*(4097+8193)
+
+
 def test_input_budget_mutability_and_zero_steps_are_checked_before_launch():
     _, factor, gpu = _factors()
     arrays = factor._prepared_arrays()
@@ -153,8 +166,8 @@ def test_input_budget_mutability_and_zero_steps_are_checked_before_launch():
 
 def test_identity_binds_kernel_and_declares_cpu_trajectory_and_reduction():
     identity = cuda_continuous_time_identity()
-    assert identity.startswith("calibrex.cuda_continuous_time/v0.3;fp64=true;fma=false;")
-    assert ";trajectory_cpu=true;normal_cpu=true;kernel_sha256=" in identity
+    assert identity.startswith("calibrex.cuda_continuous_time/v0.4;fp64=true;fma=false;")
+    assert ";trajectory_cpu=true;normal_cpu=true;standalone_residual_cpu=true;" in identity
     assert len(identity.rsplit("=", 1)[1]) == 64
 
 

@@ -101,6 +101,20 @@ def test_cuda_comparison_preserves_results_and_excludes_only_bound_execution_ide
     newer = deepcopy(candidate)
     newer["provenance"]["notes"] = [identity.replace("v0.1", "v0.2")]
     assert benchmark._comparison_canonical(newer) == benchmark._canonical(baseline)
+    selective = deepcopy(candidate)
+    selective_identity = identity.replace("v0.1", "v0.4").replace(
+        "kernel_sha256=", "standalone_residual_cpu=true;kernel_sha256=",
+    )
+    selective["provenance"]["notes"] = [selective_identity]
+    assert benchmark._comparison_canonical(selective) == benchmark._canonical(baseline)
+    forged_identities = (
+        selective_identity.replace("standalone_residual_cpu=true;", ""),
+        selective_identity.replace("standalone_residual_cpu=true", "standalone_residual_cpu=false"),
+    )
+    for forged in forged_identities:
+        changed = deepcopy(baseline)
+        changed["provenance"]["notes"] = [forged]
+        assert benchmark._comparison_canonical(changed) != benchmark._canonical(baseline)
     for forged in (identity+";hidden=change", identity.replace("fma=false", "fma=true"),
                    identity.replace("normal_cpu=true", "normal_cpu=false")):
         changed = deepcopy(baseline)
