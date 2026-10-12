@@ -160,9 +160,11 @@ accuracy.
    0.5 deg resolution at any start, and a non-optical camera frame and motion
    during a sweep are not handled.
 9. **LiDAR packet coverage:** raw `velodyne_msgs/VelodyneScan` is decoded
-   for VLP-16 and VLP-32C single return only. Dual return, HDL-32/64 and other
-   vendors' packet formats are unverified or unsupported, so such bags need
-   their own `PointCloud2` topics.
+   for VLP-16 (single and dual return), VLP-32C (single return) and HDL-64E
+   (single and dual return, with its calibration), each checked against
+   LidarView's reference clouds. HDL-32E, VLP-32A/B, VLP-16 Hi-Res, VLS-128,
+   VLP-32C dual return and other vendors' packets are refused by name, so such
+   bags need their own `PointCloud2` topics.
 10. **Unreleased backlog:** the bag-level path, ROS 1/MCAP readers,
     camera-LiDAR check, Autoware decoding, browser check page and CUDA backend
     are on `main` only; the latest release wheel is v0.5.1.
@@ -485,6 +487,23 @@ skips.
   `tools/validate_velodyne_decode.py`, reporting the median point distance.
 - No ROS dependency enters `src/calibrex`; unverified models stay rejected
   with a clear reason.
+
+**Done** on 2026-10-12. The decoder reads VLP-16 dual return and a third model, the
+HDL-64E (single and dual return), from its own `db.xml` or ROS YAML
+calibration. `tools/validate_velodyne_decode.py --pcap` compares each frame of
+Kitware's Apache-2.0 LidarView test recordings
+(`tools/download_public_dataset.py lidarview_velodyne`) with the cloud
+LidarView decoded from it. The median point distances are 0.17 mm (VLP-16
+dual), 0.05 mm (VLP-16 and VLP-32C single) and 0.000 mm (HDL-64E single and
+dual), and per-point times agree to 0.2 to 0.35 us.
+
+Applying the head's turn between laser pairs took the VLP-32C median from
+1.2 mm to 0.05 mm. Product ids 0x21 (HDL-32E) and 0x24 (VLP-16 Hi-Res), which
+were decoded as a VLP-16, are now refused with every other unverified format.
+The VLP-32A/B recording misses LidarView's cloud by an 11 mm median when it is
+decoded with VLP-32C constants. `calibrex check` names the packet format of a
+`VelodyneScan` topic it skips. Details:
+[check tutorial](tutorials/calibrex_check.md#autoware-all-sensors-bag1).
 
 ### 5. Lifecycle registry events from Calibration CI
 

@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+- **Velodyne packets: dual return, HDL-64E, and checks against reference clouds.**
+  `calibrex.data.velodyne_packets` now decodes:
+  - VLP-16 dual return, dropping a second return identical to the first;
+  - the HDL-64E, single and dual return. It needs the sensor's own calibration
+    (`load_velodyne_calibration`: Velodyne `db.xml` or ROS `velodyne_pointcloud` YAML), passed
+    with `--calibration` to `tools/velodyne_scan_to_pointcloud2.py`, and the conversion summary
+    records its digest.
+
+  The VLP-32C decoder applies the head's turn between laser pairs within a block. New public helpers
+  are `velodyne_packet_format` and `decode_velodyne_packet` (per-laser ring, return and time).
+
+  `tools/validate_velodyne_decode.py --pcap X.pcap --reference X_n.vtp` compares the decoding with
+  Kitware's Apache-2.0 LidarView test recordings, fetched by
+  `tools/download_public_dataset.py lidarview_velodyne` (pinned commit, SHA-256 checked). Median
+  point distances are 0.17 mm (VLP-16 dual), 0.05 mm (VLP-16 and VLP-32C single; 1.2 mm before
+  the intra-block azimuth step) and 0.000 mm (HDL-64E single and dual). Per-point times agree to
+  0.2 to 0.35 us. The opt-in test is `tests/integration/test_velodyne_lidarview_reference.py`.
+
+  **Behaviour change:** product ids 0x21 (HDL-32E) and 0x24 (VLP-16 Hi-Res) were decoded as a
+  VLP-16 and are now refused, as are VLP-32A/B (0x23; an 11 mm median miss with VLP-32C
+  constants), VLS-128, Velarray and VLP-32C dual return. `calibrex check` names the packet format
+  of a skipped `VelodyneScan` topic. No schema change.
 - **Planar-board line+plane in the CLI.** The `native_planar_board` backend runs a line+plane row
   (Zhou et al.) next to the plane, point+plane and Horn rows, on the same seeded capture split. A
   new adapter, `calibrex.solvers.acfr_board_edges`, turns ACFR's camera and LiDAR board corners
