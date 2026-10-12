@@ -319,6 +319,56 @@ yaw std (tolerance 0.5 to 0.61-0.74 deg), which turned yaw +1 from fail into war
 recording, rotation-only motion (the gyro has no translation); exp07 and the other Hilti
 recordings were not re-run.
 
+## The known-bad control near its threshold (2026-10-12)
+
+Two results above hinge on the held-out control: KITTI 0005 with the earlier image (moved) leaves
+yaw unjudged, and the Hilti yaw tolerance widens when the points are moved. The control fits the
+other five blocks, scores the held-out block at that fit and at the fit turned 2 deg each way,
+and needs a one-sided t of at least 2 over the six blocks in both directions. Whether that rule
+or the data is the limit was studied on the emulated KITTI pairings; **the rule is unchanged**.
+
+**Per-block drops** (objective at the fit minus objective at the fit turned by -2 deg, x 1e-3):
+
+| Case | Drops of the six held-out blocks | t |
+| --- | --- | --- |
+| 0005 -1, moved, yaw | 3.3, 2.3, 19.9, 28.7, 0.5, **-3.6** | 1.6 |
+| 0009 -1, moved, pitch | 4.7, 1.8, **-1.6**, 38.5, 5.4, 66.0 | 1.7 |
+| 0005 -1, as recorded, pitch | 51.5, 9.6, **-13.1**, 7.5, 3.2, 1.3 | 1.1 |
+
+The misses are not noise around a clear effect. In each case a held-out block prefers the
+turned fit, and a few blocks carry most of the drop: parts of the drive do not constrain that
+axis in that direction.
+
+**Levers tried** (lowest t of the two directions, roll / pitch / yaw, emulated pairings):
+
+| Case | default: 6 blocks, 48 frames | 8 blocks, 48 | 6 blocks, 96 | 12 blocks, 96 |
+| --- | --- | --- | --- | --- |
+| 0005 -1 as recorded | 3.6 / 1.1 / 2.3 | 4.6 / 1.6 / 2.3 | 3.3 / 1.1 / 2.1 | 3.7 / 1.3 / 2.1 |
+| 0005 -1 moved | 3.1 / 1.2 / 1.6 | 4.1 / 1.2 / 1.4 | 3.1 / 1.4 / 1.7 | 4.0 / 1.6 / 1.7 |
+| 0005 +1 as recorded | 3.6 / 1.4 / 2.6 | 3.6 / 1.7 / 2.1 | 3.5 / 0.9 / 2.1 | 3.3 / 0.9 / 2.5 |
+| 0005 +1 moved | 4.1 / 2.4 / 3.7 | 4.6 / 2.5 / 1.8 | 4.3 / 2.4 / 3.6 | 6.1 / 3.1 / 3.3 |
+| 0009 -1 as recorded | 3.0 / 1.3 / 3.3 | 3.2 / 1.4 / 3.4 | 2.7 / 1.3 / 4.1 | 3.1 / 1.8 / 3.2 |
+| 0009 -1 moved | 4.1 / 1.7 / 4.9 | 3.4 / 1.9 / 4.6 | 4.0 / 1.9 / 4.7 | 4.1 / 2.5 / 5.5 |
+| 0009 +1 as recorded | 2.1 / 0.1 / 2.8 | 2.8 / 0.3 / 2.3 | 2.7 / 0.5 / 3.3 | 2.7 / 1.0 / 2.9 |
+| 0009 +1 moved | 4.3 / 3.0 / 5.0 | 4.4 / 3.7 / 4.0 | 4.0 / 3.5 / 4.1 | 4.7 / 4.4 / 4.9 |
+
+* **Twice the frames** (same six blocks) leaves t where it was: the spread is between parts of
+  the recording, not within a block.
+* **Eight blocks** moves t both ways (0005 +1 moved yaw falls from 3.7 to 1.8): near the line,
+  the verdict depends on where the blocks are cut.
+* **Twelve blocks of 96 frames** raises t modestly and judges one more axis (0009 -1 moved
+  pitch, 2.5). 0005 -1 moved yaw stays at 1.7, and the as-recorded pitch, which is biased,
+  stays unjudged. The jackknife costs about four times as much (12 fits on 88 frames against 6
+  on 40), so it is not the default.
+* **A rank test** (Wilcoxon signed-rank, both directions at p <= 0.05) agrees with the t rule
+  on 39 of 42 axis decisions (KITTI pairings and Hilti exp21). It judges one more axis and two
+  fewer, so it is no improvement.
+
+The Hilti yaw tolerance (0.5 to 0.61-0.74 deg when moved) is the jackknife std of six fits:
+0.13 deg as recorded and 0.21 deg moved. With five degrees of freedom an estimated std scatters
+by about 30 %, and the fits move in 0.05 deg steps, so that difference is within the
+statistic's own spread. Twelve blocks would narrow it, at the same fourfold cost.
+
 ## Round trip and drift (Hilti)
 
 * `calibrex estimate exp21 --pairs camera-lidar --tf camchain --tf prior.yaml`, with the prior
