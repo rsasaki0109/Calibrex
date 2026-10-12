@@ -14,6 +14,7 @@ import math
 import random
 from collections import OrderedDict
 from collections.abc import Callable, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal
 
@@ -203,6 +204,7 @@ class _QueryReuse:
     used_numba: bool = False
     observation_builder: _PreparedObservationBuilder | None = None
     packed_builder: _PackedObservationBuilder | None = None
+    executor: ThreadPoolExecutor | None = None
 
     def identity(self) -> str:
         if self.used_numba or (self.compiled is not None and self.compiled.used):
@@ -238,6 +240,28 @@ class ContinuousTimeLidarPairSolver:
         """Return a deterministic continuous-time profile/holdout result."""
 
         settings = options or ContinuousTimeLidarPairOptions()
+        track = problem.odometry_track
+        parallel = (
+            settings.query_backend == "numba_cpu" and len(problem.target_points) >= 16384
+            and type(self) is ContinuousTimeLidarPairSolver
+            and "_evaluate_offset" not in self.__dict__
+            and type(self)._evaluate_offset is _NATIVE_OFFSET_EVALUATION
+            and type(track) is OdometryTrack
+            and "interpolate" not in track.__dict__
+            and OdometryTrack.interpolate is _NATIVE_INTERPOLATION
+            and "_record_extrapolation" not in track.__dict__
+            and OdometryTrack._record_extrapolation is _NATIVE_EXTRAPOLATION
+        )
+        if parallel:
+            with ThreadPoolExecutor(max_workers=3, thread_name_prefix="calibrex-lidar") as executor:
+                return self._solve(problem, settings, executor)
+        return self._solve(problem, settings, None)
+
+    def _solve(
+        self, problem: ContinuousTimeLidarPairProblem, settings: ContinuousTimeLidarPairOptions,
+        executor: ThreadPoolExecutor | None,
+    ) -> ContinuousTimeLidarPairResult:
+
         self._validate(problem, settings)
         train_indices, holdout_indices = _resolve_indices(problem)
         initial_offset = _clip(
@@ -274,6 +298,7 @@ class ContinuousTimeLidarPairSolver:
         query_reuse = _QueryReuse(
             VoxelPlaneQueryContext(source_plane_map) if source_plane_map is not None else None,
         )
+        query_reuse.executor = executor
         query_reuse.observation_builder = _PreparedObservationBuilder(problem.target_points)
         if adaptive_plane_map is not None:
             # Historical adaptive-only benchmark archives predate the batch context.
@@ -338,9 +363,10 @@ class ContinuousTimeLidarPairSolver:
                 step,
                 settings.max_abs_time_offset_sec,
             )
-            evaluated: list[_OffsetEvaluation] = []
-            for offset in candidates:
-                candidate = self._evaluate_offset(
+            def evaluate_candidate(
+                offset: float, initial_transform: SE3 = current.solver_result.refined_transform,
+            ) -> _OffsetEvaluation | None:
+                return self._evaluate_offset(
                     problem,
                     settings,
                     source_records,
@@ -349,11 +375,17 @@ class ContinuousTimeLidarPairSolver:
                     offset,
                     train_indices,
                     holdout_indices,
-                    current.solver_result.refined_transform,
+                    initial_transform,
                     query_reuse,
                 )
-                if candidate is not None:
-                    evaluated.append(candidate)
+            if query_reuse.executor is not None and query_reuse.packed_builder is not None:
+                # Results retain candidate order, so all selection and trace ties
+                # follow the serial contract. Track counters are recorded under
+                # its existing lock and immutable numeric batches are shared.
+                candidate_results = list(query_reuse.executor.map(evaluate_candidate, candidates))
+            else:
+                candidate_results = [evaluate_candidate(offset) for offset in candidates]
+            evaluated = [candidate for candidate in candidate_results if candidate is not None]
             if not evaluated:
                 step *= 0.5
                 if step < settings.minimum_time_step_sec:
@@ -858,3 +890,8 @@ def _rmse(values: Sequence[float]) -> float | None:
     if not values:
         return None
     return math.sqrt(sum(value * value for value in values) / len(values))
+
+
+_NATIVE_OFFSET_EVALUATION = ContinuousTimeLidarPairSolver._evaluate_offset
+_NATIVE_INTERPOLATION = OdometryTrack.interpolate
+_NATIVE_EXTRAPOLATION = OdometryTrack._record_extrapolation

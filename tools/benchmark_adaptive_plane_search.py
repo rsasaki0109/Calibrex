@@ -22,6 +22,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from threading import Lock, local
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -110,7 +111,7 @@ def _comparison_canonical(payload: dict) -> str:
     provenance = comparable.get("provenance", {})
     if "notes" in provenance:
         provenance["notes"] = [note for note in provenance["notes"] if re.fullmatch(
-            r"continuous_time_query_execution: (python|calibrex\.numba_continuous_time/v0\.[1234];"
+            r"continuous_time_query_execution: (python|calibrex\.numba_continuous_time/v0\.[12345];"
             r"numba=[0-9.]+;fastmath=false;cache=(true|false))", note,
         ) is None]
     return _canonical(comparable)
@@ -200,7 +201,8 @@ def _worker(args: argparse.Namespace) -> None:
         prepared_interval.interpolate = measured_prepared_pose
     nearest = AdaptiveVoxelPlaneMap.nearest_plane
     solve = ContinuousTimeLidarPairSolver.solve
-    query_depth = 0
+    query_state = local()
+    counter_lock = Lock()
     adaptive_context = getattr(sys.modules[MODULE], "AdaptivePlaneQueryContext", None)
     if adaptive_context is not None:
         # Observe the numeric query boundary when available. Replacing a
@@ -210,15 +212,19 @@ def _worker(args: argparse.Namespace) -> None:
         batch_nearest = getattr(adaptive_context, query_method)
 
         def measured_batch_nearest(self, points, **keywords):
-            nonlocal query_seconds, query_count, query_depth
-            query_count += len(points)
+            nonlocal query_seconds, query_count
+            with counter_lock:
+                query_count += len(points)
             started = time.perf_counter()
-            query_depth += 1
+            depth = getattr(query_state, "depth", 0)
+            query_state.depth = depth+1
             try:
                 return batch_nearest(self, points, **keywords)
             finally:
-                query_depth -= 1
-                query_seconds += time.perf_counter() - started
+                query_state.depth = depth
+                elapsed = time.perf_counter() - started
+                with counter_lock:
+                    query_seconds += elapsed
 
         setattr(adaptive_context, query_method, measured_batch_nearest)
     if args.worker == "sparse" or args.baseline_scope == "compiled":
@@ -238,21 +244,25 @@ def _worker(args: argparse.Namespace) -> None:
             def measured_pose_rows(*arguments, **keywords):
                 nonlocal pose_calculations
                 value = kernel(*arguments, **keywords)
-                pose_calculations += value[-2]
+                with counter_lock:
+                    pose_calculations += value[-2]
                 return value
 
             compiled._pose_world_rows = measured_pose_rows
 
     def measured_nearest(*arguments, **keywords):
         nonlocal query_seconds, query_count
-        if query_depth:
+        if getattr(query_state, "depth", 0):
             return nearest(*arguments, **keywords)
-        query_count += 1
+        with counter_lock:
+            query_count += 1
         started = time.perf_counter()
         try:
             return nearest(*arguments, **keywords)
         finally:
-            query_seconds += time.perf_counter() - started
+            elapsed = time.perf_counter() - started
+            with counter_lock:
+                query_seconds += elapsed
 
     def measured_solve(*arguments, **keywords):
         nonlocal solver_seconds, sampled_split
@@ -580,7 +590,8 @@ def main(argv: list[str] | None = None) -> None:
                 "uniform_normal_calculations": "Actual uniform geometric fallback calls",
                 "interpolated_pose_calculations": "Interior odometry SE3 interpolation calls",
                 "adaptive_query_seconds": (
-                    "Adaptive nearest-plane call time, including wrapper overhead"
+                    "Sum of adaptive nearest-plane call durations, including wrapper overhead; "
+                    "durations can overlap for parallel candidates"
                 ),
                 "solver_seconds": "Complete clock profile and extrinsic solver call",
                 "worker_import_seconds": (

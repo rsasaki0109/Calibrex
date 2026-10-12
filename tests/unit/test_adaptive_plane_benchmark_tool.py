@@ -62,7 +62,7 @@ def test_comparison_excludes_only_exact_execution_identity_and_preserves_full_ar
     assert benchmark._comparison_canonical(packed_version) == benchmark._canonical(baseline)
     for forged in (
         identity + ";hidden=change", identity.replace("fastmath=false", "fastmath=true"),
-        identity.replace("v0.1", "v0.5"),
+        identity.replace("v0.1", "v0.6"),
     ):
         changed = deepcopy(baseline)
         changed["provenance"]["notes"].append(forged)

@@ -269,3 +269,37 @@ def test_parallel_thread_mask_is_bounded_and_restored_after_failure(monkeypatch)
         assert get_num_threads() == mask
     finally:
         set_num_threads(previous)
+
+
+def test_parallel_clock_candidates_keep_order_complete_results_and_counters(monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+
+    records, points, samples, times = _fixture(16640)
+    problem = ContinuousTimeLidarPairProblem(
+        records, points, times, OdometryTrack(samples), SE3.identity(), SE3.identity(),
+        "T_base_lidar", "target", 1.0, 1.5,
+    )
+    options = ContinuousTimeLidarPairOptions(
+        query_backend="numba_cpu", voxel_strategy="adaptive", adaptive_min_points_per_voxel=1,
+        max_iterations=2, solver=FixedTrajectorySe3SolverOptions(max_iterations=2),
+    )
+    submit = ThreadPoolExecutor.submit
+    calls = []
+
+    def observed_submit(self, fn, *args, **kwargs):
+        calls.append(args)
+        return submit(self, fn, *args, **kwargs)
+
+    monkeypatch.setattr(ThreadPoolExecutor, "submit", observed_submit)
+    actual = ContinuousTimeLidarPairSolver().solve(problem, options)
+    assert len(calls) == 6
+    other = replace(problem, odometry_track=OdometryTrack(samples))
+    monkeypatch.setattr(_PackedObservationBuilder, "capture", classmethod(lambda *args: None))
+    expected = ContinuousTimeLidarPairSolver().solve(other, options)
+    assert len(calls) == 6
+    assert json.dumps(asdict(actual), sort_keys=True) == (
+        json.dumps(asdict(expected), sort_keys=True)
+    )
+    assert problem.odometry_track.interpolation_count == other.odometry_track.interpolation_count
+    assert problem.odometry_track.clamp_count == other.odometry_track.clamp_count
+    assert problem.odometry_track.max_extrapolation_s == other.odometry_track.max_extrapolation_s
