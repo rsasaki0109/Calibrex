@@ -143,6 +143,7 @@ def _split_binding(
 
 
 def _worker(args: argparse.Namespace) -> None:
+    cpu_started = time.process_time()
     imported = time.perf_counter()
     modules = _modules_for_scope(args.baseline_scope)
     if args.worker == "baseline":
@@ -285,6 +286,9 @@ def _worker(args: argparse.Namespace) -> None:
         "result": json.loads(canonical),
         "result_sha256": _digest(output),
     }
+    # Sum CPU time across this worker's threads. Measurement-JSON serialization
+    # and interpreter startup are outside this diagnostic; complete wall keeps both.
+    measurement["worker_cpu_seconds"] = time.process_time() - cpu_started
     (args.output_dir / "measurement.json").write_text(
         json.dumps(measurement, indent=2, allow_nan=False) + "\n",
         encoding="utf-8", newline="\n",
@@ -499,6 +503,7 @@ def main(argv: list[str] | None = None) -> None:
                 "pipeline_seconds", "solver_seconds", "adaptive_query_seconds",
                 "adaptive_query_calls", "worker_import_seconds",
                 "uniform_normal_calculations", "interpolated_pose_calculations",
+                "worker_cpu_seconds",
             )}
             metrics.update(subprocess_wall_seconds=elapsed, complete_result_matches=float(matches))
             trials.append(BenchmarkTrial(
@@ -530,7 +535,7 @@ def main(argv: list[str] | None = None) -> None:
         title="Public GLIM Livox complete continuous-time refinement",
         reference_method_id="baseline", bootstrap_samples=1,
         protocol=BenchmarkProtocol(
-            protocol_id=f"glim-{args.baseline_scope}-fresh-subprocess-v4",
+            protocol_id=f"glim-{args.baseline_scope}-fresh-subprocess-v5",
             dataset_id="glim_versatile",
             dataset_doi="10.5281/zenodo.6864654", dataset_source_sha256=input_digest,
             data_license="CC-BY-4.0 (AIST Zenodo record 6864654)",
@@ -552,7 +557,7 @@ def main(argv: list[str] | None = None) -> None:
         ),
         methods=[BenchmarkMethodDefinition(
             method_id=method, label=method, implementation="subprocess", tool_name="Calibrex",
-            tool_version="0.5.1", adapter_version=f"continuous-time-{args.baseline_scope}/v4",
+            tool_version="0.5.1", adapter_version=f"continuous-time-{args.baseline_scope}/v5",
             source_commit=baseline if method == "baseline" else full_revision,
         ) for method in ("baseline", "sparse")],
         metrics=[BenchmarkMetricDefinition(
@@ -577,6 +582,10 @@ def main(argv: list[str] | None = None) -> None:
                     "Worker entry through imports, excluding interpreter startup"
                 ),
                 "pipeline_seconds": "Full evaluation API including replay and provenance hashing",
+                "worker_cpu_seconds": (
+                    "All-thread process CPU from worker entry through saved-result hash; "
+                    "excludes interpreter startup and measurement JSON serialization"
+                ),
             }.get(name, "Fresh complete process wall, including artifact saves"),
         ) for name in trials[0].metrics],
         trials=trials,
@@ -597,13 +606,15 @@ def main(argv: list[str] | None = None) -> None:
             "Numba cache policy is recorded per trial, with compiled file hashes before/after. "
             "The first candidate uses an empty cache; all import/compile/load work is inside wall.",
             "Compiled scope gives each method its own persistent cache, initially empty.",
+            "Worker CPU sums all worker threads from entry through the saved-result hash; "
+            "interpreter startup and measurement JSON serialization are outside that diagnostic.",
             "Raw checksums and conversion lineage are verified before measurement.",
             "Split IDs hash ordered sampled target indices, capture timestamps and XYZ; "
             "the distinct temporal partitions and unchanged sampling caps are verified each run.",
             "Descriptive timings are local observations, not portable confidence estimates.",
         ],
         provenance=BenchmarkProvenance(
-            generator="tools.benchmark_adaptive_plane_search", generator_version="v0.4",
+            generator="tools.benchmark_adaptive_plane_search", generator_version="v0.5",
             git_commit=source_commit,
             command=subprocess.list2cmdline([sys.executable, __file__, *arguments]),
             data_verified=True,

@@ -94,3 +94,19 @@ def test_extreme_distance_and_level_size_inconsistency_use_scalar_fallback():
     changed = replace(cell, voxel_size_m=2.0)
     inconsistent = replace(planes, _index={0: _SparsePlaneCells({cell.key: changed})})
     assert AdaptivePlaneQueryContext(inconsistent)._tree is None
+
+
+def test_unambiguous_tree_gates_and_single_plane_boundary_match_scalar_identity():
+    cell = _cell((0, 0, 0), (0.5, 0.0, 0.0))
+    planes = AdaptiveVoxelPlaneMap(
+        (cell,), (0.0, 0.0, 0.0), {0: _SparsePlaneCells({cell.key: cell})},
+    )
+    points = np.asarray([
+        (0.4, 0.1, 0.2), (0.0, 0.0, 0.0), (0.5, 0.0, 0.0), (2.0, 0.2, 0.1),
+    ] * 32)
+    context = AdaptivePlaneQueryContext(planes)
+    for gate in (0.2, 0.5, math.nextafter(0.5, 0.0), math.nextafter(0.5, math.inf), 2.0):
+        actual = context.nearest_planes(points, correspondence_gate_m=gate)
+        expected = [planes.nearest_plane(tuple(p), correspondence_gate_m=gate)
+                    for p in points.tolist()]
+        assert all(a is b for a, b in zip(actual, expected, strict=True))

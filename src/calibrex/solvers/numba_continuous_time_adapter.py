@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import math
+import sys
+from collections import OrderedDict
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from importlib.metadata import version
 from itertools import pairwise
 from typing import TYPE_CHECKING, TypeAlias, cast
@@ -176,6 +178,20 @@ def _residual_rows(
     return result
 
 
+@njit(cache=True, nogil=True, fastmath=False)  # type: ignore[untyped-decorator]
+def _world_rows(poses: FloatArray, extrinsic: FloatArray, points: FloatArray) -> FloatArray:
+    world = np.empty((len(poses), 3), dtype=np.float64)
+    et = (extrinsic[0], extrinsic[1], extrinsic[2])
+    eq = (extrinsic[3], extrinsic[4], extrinsic[5], extrinsic[6])
+    for row in range(len(poses)):
+        t = (poses[row, 0], poses[row, 1], poses[row, 2])
+        q = (poses[row, 3], poses[row, 4], poses[row, 5], poses[row, 6])
+        wt, wq = _composed(t, q, et, eq)
+        p = _rotated(wq, (points[row, 0], points[row, 1], points[row, 2]))
+        world[row] = (p[0] + wt[0], p[1] + wt[1], p[2] + wt[2])
+    return world
+
+
 def numba_rig_residuals(arrays: _ObservationArrays, transform: SE3) -> list[float]:
     """Fuse the existing ordered residual formula without changing differences."""
     values = np.asarray((*transform.translation_m, *transform.rotation_quat_xyzw), dtype=np.float64)
@@ -265,6 +281,19 @@ def numba_rig_normal_equations(
     return hessian.tolist(), gradient.tolist()
 
 
+_PoseKey: TypeAlias = tuple[tuple[int, ...], bytes]
+_NATIVE_RECORD_EXTRAPOLATION = OdometryTrack._record_extrapolation
+
+
+@dataclass(frozen=True)
+class _PreparedPoseBatch:
+    poses: tuple[SE3, ...]
+    rows: FloatArray
+    clamps: int
+    max_extrapolation_s: float
+    size_bytes: int
+
+
 @dataclass
 class NumbaContinuousTimeQueryContext:
     """Capture a supported immutable trajectory once per solve."""
@@ -278,6 +307,9 @@ class NumbaContinuousTimeQueryContext:
     sample_snapshot: object
     timestamp_snapshot: object
     used: bool = False
+    _pose_cache_limit_bytes: int = 128 * 1024 * 1024
+    _pose_cache_bytes: int = 0
+    _pose_cache: OrderedDict[_PoseKey, _PreparedPoseBatch] = field(default_factory=OrderedDict)
 
     @classmethod
     def capture(cls, track: OdometryTrack) -> NumbaContinuousTimeQueryContext | None:
@@ -352,6 +384,27 @@ class NumbaContinuousTimeQueryContext:
         coordinates = np.asarray(points, dtype=np.float64).reshape((-1, 3))
         if not all(np.isfinite(array).all() for array in (base_values, transform, coordinates)):
             return None
+        key = (tuple(timestamps), base_values.tobytes())
+        can_reuse = (
+            self._pose_cache_limit_bytes > 0
+            and "_record_extrapolation" not in track.__dict__
+            and OdometryTrack._record_extrapolation is _NATIVE_RECORD_EXTRAPOLATION
+        )
+        with track._cache_lock:
+            cached = self._pose_cache.get(key) if can_reuse else None
+            if cached is not None and cached.max_extrapolation_s <= tolerance:
+                self._pose_cache.move_to_end(key)
+                track.interpolation_count += len(timestamps)
+                track.clamp_count += cached.clamps
+                track._record_extrapolation(cached.max_extrapolation_s)
+            else:
+                cached = None
+        if cached is not None:
+            # Only trajectory/base geometry is retained. Changed points and
+            # extrinsics always get the same ordered world-coordinate formula.
+            world = _world_rows(cached.rows, transform, coordinates)
+            self.used = True
+            return list(cached.poses), world, True
         rows, world, clamps, extrapolation, _calculated, visited = _pose_world_rows(
             np.asarray(timestamps, dtype=np.int64),
             self.times,
@@ -381,4 +434,35 @@ class NumbaContinuousTimeQueryContext:
                     object.__setattr__(pose, "translation_m", tuple(row[:3]))
                     object.__setattr__(pose, "rotation_quat_xyzw", tuple(row[3:]))
                     poses.append(pose)
+            if can_reuse and poses:
+                pose_tuple = tuple(poses)
+                # Charge all retained payloads, even shared Python floats/ints,
+                # plus a conservative allowance for the LRU node and entry.
+                size = sys.getsizeof(rows) + sys.getsizeof(pose_tuple) + sys.getsizeof(key)
+                size += sys.getsizeof(key[0]) + sys.getsizeof(key[1]) + 512
+                size += len(key[0]) * sys.getsizeof(2**63 - 1)
+                prototype = poses[0]
+                pose_size = (
+                    sys.getsizeof(prototype) + max(sys.getsizeof(pose.__dict__) for pose in poses)
+                    + sys.getsizeof(prototype.translation_m)
+                    + sys.getsizeof(prototype.rotation_quat_xyzw) + 7 * sys.getsizeof(0.0)
+                )
+                size += len(poses) * pose_size
+                if size <= self._pose_cache_limit_bytes:
+                    rows.flags.writeable = False
+                    batch = _PreparedPoseBatch(
+                        pose_tuple, rows, int(np.count_nonzero(clamps)),
+                        float(np.max(extrapolation)), size,
+                    )
+                    with track._cache_lock:
+                        previous = self._pose_cache.pop(key, None)
+                        if previous is not None:
+                            self._pose_cache_bytes -= previous.size_bytes
+                        while self._pose_cache and self._pose_cache_bytes + size > (
+                            self._pose_cache_limit_bytes
+                        ):
+                            evicted = self._pose_cache.popitem(last=False)[1]
+                            self._pose_cache_bytes -= evicted.size_bytes
+                        self._pose_cache[key] = batch
+                        self._pose_cache_bytes += size
         return poses, world, usable

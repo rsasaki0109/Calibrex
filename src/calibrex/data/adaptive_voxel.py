@@ -262,24 +262,40 @@ class AdaptivePlaneQueryContext:
         # Centroids lie in their declared cells. Every centroid within the gate
         # is therefore inside the scalar ceil(gate/size)+1 search box.
         distances, indexes = tree.query(points, k=2, eps=0.0, workers=1)
-        result: list[AdaptiveVoxelPlane | None] = []
-        for row, point_values in enumerate(points):
+        first = distances[:, 0]
+        margin = 32.0 * np.finfo(np.float64).eps
+        radii = np.nextafter(first * (1.0 + margin), math.inf)
+        lower = np.nextafter(first * (1.0 - margin), -math.inf)
+        stable = np.isfinite(first) & (first >= 1e-150) & (distances[:, 1] > radii)
+        inside = radii <= gate
+        outside = lower > gate
+        fast = stable & (inside | outside)
+        result: list[AdaptiveVoxelPlane | None] = [
+            self._planes[position] if accepted else None
+            for position, accepted in zip(indexes[:, 0].tolist(), (fast & inside).tolist(),
+                                          strict=True)
+        ]
+        # Use the same conservative roundoff envelope as tie repair. Only
+        # unambiguous nearest identities safely inside/outside the gate skip
+        # scalar distances; all boundaries and near ties keep the old path.
+        for row in np.flatnonzero(~fast):
+            point_values = points[row]
             point = (float(point_values[0]), float(point_values[1]), float(point_values[2]))
             distance = float(distances[row, 0])
             if distance < 1e-150 or not math.isfinite(distance):
-                result.append(self._map.nearest_plane(point, correspondence_gate_m=gate))
+                result[row] = self._map.nearest_plane(point, correspondence_gate_m=gate)
                 continue
             position = int(indexes[row, 0])
             # 3D positive sum/sqrt roundoff is bounded away from overflow and
             # underflow. Repair close contenders with the original scalar norm.
-            radius = math.nextafter(distance * (1.0 + 32.0 * np.finfo(np.float64).eps), math.inf)
+            radius = float(radii[row])
             if float(distances[row, 1]) <= radius:
                 candidates = sorted(tree.query_ball_point(point, radius, eps=0.0, workers=1))
                 position = min(candidates, key=lambda index: (
                     math.dist(point, self._planes[index].centroid), index,
                 ))
             plane = self._planes[position]
-            result.append(plane if math.dist(point, plane.centroid) <= gate else None)
+            result[row] = plane if math.dist(point, plane.centroid) <= gate else None
         return result
 
 

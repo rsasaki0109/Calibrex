@@ -106,10 +106,89 @@ def test_extrapolation_failure_counts_only_the_visited_prefix():
     assert track.max_extrapolation_s == 0.2
 
 
+def test_cached_pose_batches_keep_world_bits_with_changed_points_extrinsics_and_base():
+    track = OdometryTrack(_samples())
+    reference = OdometryTrack(_samples())
+    cached = NumbaContinuousTimeQueryContext.capture(track)
+    uncached = NumbaContinuousTimeQueryContext.capture(reference)
+    assert cached is not None and uncached is not None
+    uncached._pose_cache_limit_bytes = 0
+    times = [-100_000_000, 0, 1_230_000_000, 5_100_000_000] * 20
+    rng = np.random.default_rng(101)
+    previous = None
+    for iteration in range(4):
+        base = SE3((0.1 if iteration < 3 else 0.2, -0.2, 0.3), (0.2, -0.1, 0.4, 0.8))
+        extrinsic = SE3((iteration * 0.1, -0.2, 0.3), (0.1, 0.2, -0.1, 0.9))
+        points = [tuple(point) for point in rng.normal(size=(len(times), 3)).tolist()]
+        actual = cached.evaluate(track, times, points, base, extrinsic, 0.2)
+        expected = uncached.evaluate(reference, times, points, base, extrinsic, 0.2)
+        assert actual is not None and expected is not None
+        assert actual[2] and expected[2] and _bits(actual[0]) == _bits(expected[0])
+        assert actual[1].view(np.uint64).tolist() == expected[1].view(np.uint64).tolist()
+        if previous is not None and iteration < 3:
+            assert all(a is b for a, b in zip(actual[0], previous, strict=True))
+        previous = actual[0]
+        assert track.interpolation_count == reference.interpolation_count
+        assert track.clamp_count == reference.clamp_count
+        assert track.max_extrapolation_s == reference.max_extrapolation_s
+    assert len(cached._pose_cache) == 2 and not uncached._pose_cache
+    assert all(not batch.rows.flags.writeable for batch in cached._pose_cache.values())
+
+
+def test_cached_batch_lower_tolerance_replays_only_visited_failure_prefix():
+    track = OdometryTrack(_samples())
+    context = NumbaContinuousTimeQueryContext.capture(track)
+    assert context is not None
+    times = [1_000_000_000, -200_000_000, 2_000_000_000]
+    points = [(1.0, 0.0, 0.0)] * 3
+    identity = SE3.identity()
+    assert context.evaluate(track, times, points, identity, identity, 0.3)[-1]
+    result = context.evaluate(track, times, points, identity, identity, 0.1)
+    assert result is not None and not result[-1]
+    assert track.interpolation_count == 5 and track.clamp_count == 2
+    assert track.max_extrapolation_s == 0.2
+
+
+def test_pose_cache_budget_eviction_zero_budget_and_custom_diagnostics(monkeypatch):
+    track = OdometryTrack(_samples())
+    context = NumbaContinuousTimeQueryContext.capture(track)
+    assert context is not None
+    identity = SE3.identity()
+    points = [(1.0, 0.0, 0.0)] * 64
+    query = [1_000_000_000] * 64
+    context.evaluate(track, query, points, identity, identity, 0.1)
+    size = context._pose_cache_bytes
+    assert size > 0
+    context._pose_cache_limit_bytes = (size + 1024) * 2
+    context.evaluate(track, [2_000_000_000] * 64, points, identity, identity, 0.1)
+    context.evaluate(track, query, points, identity, identity, 0.1)
+    context.evaluate(track, [3_000_000_000] * 64, points, identity, identity, 0.1)
+    assert len(context._pose_cache) == 2
+    assert [key[0][0] for key in context._pose_cache] == [1_000_000_000, 3_000_000_000]
+    assert context._pose_cache_bytes == sum(
+        batch.size_bytes for batch in context._pose_cache.values()
+    )
+    assert context._pose_cache_bytes <= context._pose_cache_limit_bytes
+    context._pose_cache_limit_bytes = 0
+    result = context.evaluate(track, query, points, identity, identity, 0.1)
+    assert result is not None
+    assert result[0][0] is not next(iter(context._pose_cache.values())).poses[0]
+    context._pose_cache_limit_bytes = size - 1
+    context.evaluate(track, [4_000_000_000] * 64, points, identity, identity, 0.1)
+    assert len(context._pose_cache) == 2  # An oversized new entry is not retained.
+    calls = []
+    monkeypatch.setattr(track, "_record_extrapolation", calls.append)
+    context._pose_cache_limit_bytes = (size + 1024) * 2
+    context.evaluate(track, query, points, identity, identity, 0.1)
+    assert calls == [0.0] * 64
+
+
 def test_replaced_samples_duplicate_timestamps_and_huge_integer_ranges_use_scalar_fallback():
     track = OdometryTrack(_samples())
     context = NumbaContinuousTimeQueryContext.capture(track)
     assert context is not None
+    identity = SE3.identity()
+    assert context.evaluate(track, [0], [(0.0, 0.0, 0.0)], identity, identity, 0.2)[-1]
     track.samples = tuple(replace(sample, pose=SE3.identity()) for sample in track.samples)
     result = context.evaluate(
         track,
