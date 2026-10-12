@@ -71,7 +71,7 @@ extern "C" __global__ void linearize(const double* points,const double* planes,
 def cuda_continuous_time_identity() -> str:
     """Identify arithmetic and runtime without recording a device model."""
     return (
-        "calibrex.cuda_continuous_time/v0.2;fp64=true;fma=false;"
+        "calibrex.cuda_continuous_time/v0.3;fp64=true;fma=false;"
         f"cupy={cp.__version__};cuda={cp.cuda.runtime.runtimeGetVersion()};"
         f"driver={cp.cuda.runtime.driverGetVersion()};"
         f"numba={version('numba')};trajectory_cpu=true;normal_cpu=true;"

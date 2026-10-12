@@ -12,6 +12,7 @@ import pytest
 pytest.importorskip("numba")
 
 from calibrex.core.geometry import SE3
+from calibrex.core.time import apply_time_offset_ns
 from calibrex.data.livox import LivoxPointRecord
 from calibrex.data.odometry_track import OdometryPoseSample, OdometryTrack
 from calibrex.graph.lidar_point_to_plane import (
@@ -27,10 +28,83 @@ from calibrex.solvers.continuous_time_lidar_pair_solver import (
 from calibrex.solvers.fixed_trajectory_se3_solver import FixedTrajectorySe3SolverOptions
 from calibrex.solvers.numba_continuous_time_adapter import (
     NumbaContinuousTimeQueryContext,
+    _CapturedTimestampRows,
     numba_rig_linearization,
     numba_rig_normal_equations,
     numba_rig_residuals,
 )
+
+
+@pytest.mark.parametrize("mode", ["general", "nlerp", "antipodal"])
+@pytest.mark.parametrize("offset", [0., 0.0000000005, -0.0200000005])
+def test_prepared_timestamp_rows_match_legacy_geometry_and_every_query_counter(mode, offset):
+    samples = _samples(mode)
+    left, right = OdometryTrack(samples), OdometryTrack(samples)
+    old = NumbaContinuousTimeQueryContext.capture(left)
+    new = NumbaContinuousTimeQueryContext.capture(right)
+    timestamps = [0, 500_000_000, 1_000_000_000, 5_000_000_000]*17
+    owner = _CapturedTimestampRows.capture(timestamps)
+    assert owner is not None and not owner.values.flags.writeable
+    points = np.random.default_rng(12).normal(size=(len(timestamps), 3))
+    base = SE3((.1, -.2, .3), (.2, -.1, .4, .8))
+    for iteration in range(3):
+        transform = SE3((.1*iteration, -.2, .3), (.2, .1, -.3, .8))
+        shifted = owner.shifted(apply_time_offset_ns(0, offset), int(new.times[0]))
+        assert shifted is not None and not shifted.values.flags.writeable
+        expected = old._evaluate_rows(left, [apply_time_offset_ns(t, offset) for t in timestamps],
+                                      points+iteration, base, transform, .1)
+        actual = new._evaluate_prepared_rows(right, shifted, points+iteration, base, transform, .1)
+        assert actual[-1] == expected[-1]
+        for a, b in zip(actual[:2], expected[:2], strict=True):
+            assert a.view(np.uint64).tolist() == b.view(np.uint64).tolist()
+        for name in ("interpolation_count", "clamp_count", "max_extrapolation_s"):
+            assert getattr(left, name) == getattr(right, name)
+    assert len(new._pose_cache) == 1
+
+
+def test_prepared_query_keys_own_snapshots_validate_integer_bounds_and_charge_lru():
+    original = [0, 500_000_000, 1_000_000_000, 5_000_000_000]*128
+    owner = _CapturedTimestampRows.capture(original)
+    original[0] = 99
+    assert owner.values[0] == 0
+    first, second = owner.shifted(0, 0), owner.shifted(0, 0)
+    assert first == second and hash(first) == hash(second)
+    assert first != _CapturedTimestampRows.capture(original).shifted(0, 0)
+    for times in ([], [2**63], [-(2**63)], [0.0], [np.int64(0)]):
+        assert _CapturedTimestampRows.capture(times) is None
+    assert owner.shifted(2**63, 0) is None
+    assert owner.shifted(2**53+1, 0) is None
+    edge = _CapturedTimestampRows.capture([2**63-2])
+    assert edge.shifted(2, 2**63-2) is None
+    track = OdometryTrack(_samples())
+    context = NumbaContinuousTimeQueryContext.capture(track)
+    context._pose_cache_limit_bytes = 60_000
+    points = np.zeros((len(original), 3))
+    for shift in (0, 1, 2):
+        result = context._evaluate_prepared_rows(track, owner.shifted(shift, 0), points,
+                                                 SE3.identity(), SE3.identity(), .1)
+        assert result[-1]
+        assert 0 < context._pose_cache_bytes <= context._pose_cache_limit_bytes
+        assert len(context._pose_cache) == 1
+    assert context._evaluate_prepared_rows(track, owner.shifted(0, 1), points,
+                                          SE3.identity(), SE3.identity(), .1) is None
+
+
+def test_prepared_extrapolation_failure_keeps_the_exact_visited_prefix():
+    left, right = OdometryTrack(_samples()), OdometryTrack(_samples())
+    old = NumbaContinuousTimeQueryContext.capture(left)
+    new = NumbaContinuousTimeQueryContext.capture(right)
+    times = [1_000_000_000, -200_000_000, 2_000_000_000]
+    prepared = _CapturedTimestampRows.capture(times).shifted(0, 0)
+    points = np.ones((3, 3))
+    old_result = old._evaluate_rows(left, times, points, SE3.identity(), SE3.identity(), .01)
+    new_result = new._evaluate_prepared_rows(
+        right, prepared, points, SE3.identity(), SE3.identity(), .01,
+    )
+    assert old_result[-1] is new_result[-1] is False
+    for name in ("interpolation_count", "clamp_count", "max_extrapolation_s"):
+        assert getattr(left, name) == getattr(right, name)
+    assert right.interpolation_count == 2 and right.clamp_count == 1
 
 
 def _samples(mode="general"):

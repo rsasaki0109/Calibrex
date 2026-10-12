@@ -25,7 +25,9 @@ if TYPE_CHECKING:
     from calibrex.solvers.cuda_continuous_time_adapter import CudaRigLinearizer
     from calibrex.solvers.numba_continuous_time_adapter import (
         FloatArray,
+        IntArray,
         NumbaContinuousTimeQueryContext,
+        _CapturedTimestampRows,
     )
 
 from calibrex.core.continuous_time_lidar_train_diagnostics import (
@@ -199,6 +201,14 @@ class _FactorBuild:
     outlier_rejected_count: int
 
 
+@dataclass(frozen=True)
+class _PackedSelection:
+    original: tuple[int, ...]
+    selected: tuple[int, ...]
+    positions: IntArray
+    timestamps: _CapturedTimestampRows
+
+
 @dataclass
 class _QueryReuse:
     planes: VoxelPlaneQueryContext | None
@@ -211,6 +221,7 @@ class _QueryReuse:
     executor: ThreadPoolExecutor | None = None
     cuda_rig: CudaRigLinearizer | None = None
     used_cuda: bool = False
+    selections: dict[int, _PackedSelection] = field(default_factory=dict)
 
     def identity(self) -> str:
         if self.used_cuda:
@@ -336,6 +347,33 @@ class ContinuousTimeLidarPairSolver:
                 query_reuse.packed_builder = _PackedObservationBuilder.capture(
                     problem.target_points, query_reuse.planes, query_reuse.adaptive,
                 )
+                if (query_reuse.packed_builder is not None
+                    and apply_time_offset_ns is _NATIVE_TIME_OFFSET
+                    and _select_evenly_spaced_indices is _NATIVE_SELECTION
+                    and FixedTrajectorySe3ExtrinsicSolver.solve is _NATIVE_FIXED_SOLVE
+                    and LidarRigPointToPlaneFactor.residuals is _NATIVE_RESIDUALS
+                    and LidarRigPointToPlaneFactor.linearize is _NATIVE_LINEARIZE
+                    and OdometryTrack.interpolate is _NATIVE_INTERPOLATION
+                    and OdometryTrack._record_extrapolation is _NATIVE_EXTRAPOLATION
+                    and "_record_extrapolation" not in problem.odometry_track.__dict__):
+                    from calibrex.solvers.numba_continuous_time_adapter import (
+                        _CapturedTimestampRows,
+                    )
+
+                    for original in (train_indices, holdout_indices):
+                        captured_indices = _select_evenly_spaced_indices(
+                            original, settings.max_target_points_per_split,
+                            seed=settings.sampling_seed,
+                        )
+                        times = _CapturedTimestampRows.capture(
+                            [problem.target_capture_timestamps_ns[i] for i in captured_indices],
+                        )
+                        if times is not None:
+                            positions = np.asarray(captured_indices, dtype=np.int64)
+                            positions.flags.writeable = False
+                            query_reuse.selections[id(original)] = _PackedSelection(
+                                original, captured_indices, positions, times,
+                            )
             # Small capture budgets remain on CPU, avoiding CUDA import/context
             # costs. Once captured, GPU batches retain even MAD-trimmed rows.
             if (settings.query_backend == "cuda" and query_reuse.packed_builder is not None
@@ -644,12 +682,20 @@ class ContinuousTimeLidarPairSolver:
         initial_transform: SE3,
         query_reuse: _QueryReuse | None = None,
     ) -> _FactorBuild | None:
-        selected_indices = _select_evenly_spaced_indices(
-            indices,
-            settings.max_target_points_per_split,
-            seed=settings.sampling_seed,
+        captured = query_reuse.selections.get(id(indices)) if query_reuse is not None else None
+        if (captured is not None and (captured.original is not indices
+            or apply_time_offset_ns is not _NATIVE_TIME_OFFSET
+            or _select_evenly_spaced_indices is not _NATIVE_SELECTION)):
+            captured = None
+        selected_indices = (captured.selected if captured is not None else
+                            _select_evenly_spaced_indices(
+                                indices, settings.max_target_points_per_split,
+                                seed=settings.sampling_seed,
+                            ))
+        target_points: list[Vector3] | None = (
+            None if captured is not None else
+            [problem.target_points[index] for index in selected_indices]
         )
-        target_points = [problem.target_points[index] for index in selected_indices]
         target_poses: list[SE3] = []
         coordinates = None
         compiled = None
@@ -657,13 +703,25 @@ class ContinuousTimeLidarPairSolver:
         rows_evaluated = False
         if (query_reuse is not None and query_reuse.compiled is not None
             and query_reuse.packed_builder is not None and len(selected_indices) >= 64):
-            positions = np.asarray(selected_indices, dtype=np.int64)
-            batch = query_reuse.compiled._evaluate_rows(
-                problem.odometry_track,
-                [apply_time_offset_ns(problem.target_capture_timestamps_ns[index], offset_sec)
-                 for index in selected_indices], query_reuse.packed_builder.points[positions],
-                problem.t_base_source, initial_transform, settings.max_odometry_extrapolation_s,
-            )
+            positions = (captured.positions if captured is not None
+                         else np.asarray(selected_indices, dtype=np.int64))
+            prepared = (captured.timestamps.shifted(
+                apply_time_offset_ns(0, offset_sec), int(query_reuse.compiled.times[0]),
+            ) if captured is not None else None)
+            if prepared is not None:
+                batch = query_reuse.compiled._evaluate_prepared_rows(
+                    problem.odometry_track, prepared, query_reuse.packed_builder.points[positions],
+                    problem.t_base_source, initial_transform,
+                    settings.max_odometry_extrapolation_s,
+                )
+            else:
+                batch = query_reuse.compiled._evaluate_rows(
+                    problem.odometry_track,
+                    [apply_time_offset_ns(problem.target_capture_timestamps_ns[index], offset_sec)
+                     for index in selected_indices], query_reuse.packed_builder.points[positions],
+                    problem.t_base_source, initial_transform,
+                    settings.max_odometry_extrapolation_s,
+                )
             if batch is not None:
                 rows, coordinates, usable = batch
                 if not usable:
@@ -681,6 +739,7 @@ class ContinuousTimeLidarPairSolver:
                     )
                     target_poses = _materialize_pose_rows(rows)
         if not rows_evaluated and query_reuse is not None and query_reuse.compiled is not None:
+            target_points = [problem.target_points[index] for index in selected_indices]
             compiled = query_reuse.compiled.evaluate(
                 problem.odometry_track,
                 [apply_time_offset_ns(problem.target_capture_timestamps_ns[index], offset_sec)
@@ -702,9 +761,11 @@ class ContinuousTimeLidarPairSolver:
                 query_reuse.source_pose(capture_ns, pose, problem.t_base_source)
                 if query_reuse is not None else pose.compose(problem.t_base_source)
             )
+        if packed is None and target_points is None:
+            target_points = [problem.target_points[index] for index in selected_indices]
         observations = packed if packed is not None else build_rig_point_to_plane_observations(
             source_records=list(source_records),
-            target_points=target_points,
+            target_points=target_points or [],
             initial_t_source_target=initial_transform,
             target_t_world_source=target_poses,
             voxel_size_m=problem.voxel_size_m,
@@ -934,3 +995,5 @@ _NATIVE_OFFSET_EVALUATION = ContinuousTimeLidarPairSolver._evaluate_offset
 _NATIVE_INTERPOLATION = OdometryTrack.interpolate
 _NATIVE_EXTRAPOLATION = OdometryTrack._record_extrapolation
 _NATIVE_FIXED_SOLVE = FixedTrajectorySe3ExtrinsicSolver.solve
+_NATIVE_TIME_OFFSET = apply_time_offset_ns
+_NATIVE_SELECTION = _select_evenly_spaced_indices

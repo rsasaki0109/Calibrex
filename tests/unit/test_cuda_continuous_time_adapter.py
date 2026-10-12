@@ -153,7 +153,7 @@ def test_input_budget_mutability_and_zero_steps_are_checked_before_launch():
 
 def test_identity_binds_kernel_and_declares_cpu_trajectory_and_reduction():
     identity = cuda_continuous_time_identity()
-    assert identity.startswith("calibrex.cuda_continuous_time/v0.2;fp64=true;fma=false;")
+    assert identity.startswith("calibrex.cuda_continuous_time/v0.3;fp64=true;fma=false;")
     assert ";trajectory_cpu=true;normal_cpu=true;kernel_sha256=" in identity
     assert len(identity.rsplit("=", 1)[1]) == 64
 

@@ -28,7 +28,7 @@ Quaternion: TypeAlias = tuple[float, float, float, float]
 
 def numba_continuous_time_identity() -> str:
     """Identify the optional runtime and its arithmetic/compilation policy."""
-    return f"calibrex.numba_continuous_time/v0.6;numba={version('numba')};fastmath=false;cache=true"
+    return f"calibrex.numba_continuous_time/v0.7;numba={version('numba')};fastmath=false;cache=true"
 
 
 @njit(cache=True, nogil=True, fastmath=False, inline="always")  # type: ignore[untyped-decorator]
@@ -314,7 +314,51 @@ def numba_rig_normal_equations(
     return hessian.tolist(), gradient.tolist()
 
 
-_PoseKey: TypeAlias = tuple[tuple[int, ...], bytes]
+@dataclass(frozen=True, eq=False)
+class _CapturedTimestampRows:
+    """Private immutable native capture times, validated once per selected split."""
+
+    values: IntArray
+    minimum: int
+    maximum: int
+
+    @classmethod
+    def capture(cls, timestamps: Sequence[int]) -> _CapturedTimestampRows | None:
+        if (type(timestamps) not in (tuple, list) or not timestamps
+            or any(type(t) is not int or abs(t) >= 2**63 for t in timestamps)):
+            return None
+        values = np.asarray(timestamps, dtype=np.int64)
+        values.flags.writeable = False
+        return cls(values, int(values.min()), int(values.max()))
+
+    def shifted(self, offset_ns: int, origin_ns: int) -> _PreparedTimestampQuery | None:
+        if type(offset_ns) is not int or abs(offset_ns) >= 2**63 or type(origin_ns) is not int:
+            return None
+        lo, hi = self.minimum+offset_ns, self.maximum+offset_ns
+        if (lo <= -(2**63) or hi >= 2**63
+            or max(abs(lo-origin_ns), abs(hi-origin_ns)) > 2**53):
+            return None
+        values = self.values+np.int64(offset_ns)
+        values.flags.writeable = False
+        return _PreparedTimestampQuery(self, offset_ns, origin_ns, values)
+
+
+@dataclass(frozen=True, eq=False)
+class _PreparedTimestampQuery:
+    owner: _CapturedTimestampRows
+    offset_ns: int
+    origin_ns: int
+    values: IntArray
+
+    def __hash__(self) -> int:
+        return hash((self.owner, self.offset_ns, self.origin_ns))
+
+    def __eq__(self, other: object) -> bool:
+        return (isinstance(other, _PreparedTimestampQuery) and self.owner is other.owner
+                and self.offset_ns == other.offset_ns and self.origin_ns == other.origin_ns)
+
+
+_PoseKey: TypeAlias = tuple[tuple[int, ...] | _PreparedTimestampQuery, bytes]
 _NATIVE_RECORD_EXTRAPOLATION = OdometryTrack._record_extrapolation
 
 
@@ -407,8 +451,16 @@ class NumbaContinuousTimeQueryContext:
         result = self._evaluate(track, timestamps, points, base, extrinsic, tolerance, True)
         return None if result is None else (result[1], result[2], result[3])
 
+    def _evaluate_prepared_rows(
+        self, track: OdometryTrack, timestamps: _PreparedTimestampQuery, points: FloatArray,
+        base: SE3, extrinsic: SE3, tolerance: float,
+    ) -> tuple[FloatArray, FloatArray, bool] | None:
+        result = self._evaluate(track, timestamps, points, base, extrinsic, tolerance, True)
+        return None if result is None else (result[1], result[2], result[3])
+
     def _evaluate(
-        self, track: OdometryTrack, timestamps: list[int], points: list[Vector3] | FloatArray,
+        self, track: OdometryTrack, timestamps: list[int] | _PreparedTimestampQuery,
+        points: list[Vector3] | FloatArray,
         base: SE3, extrinsic: SE3, tolerance: float, rows_only: bool,
     ) -> tuple[list[SE3], FloatArray, FloatArray, bool] | None:
         """Preserve scalar query counters and stop at the first extrapolation failure."""
@@ -418,20 +470,25 @@ class NumbaContinuousTimeQueryContext:
             or "interpolate" in track.__dict__
             or type(base) is not SE3
             or type(extrinsic) is not SE3
-            or any(
-                type(timestamp) is not int
-                or abs(timestamp) >= 2**63
-                or abs(timestamp - int(self.times[0])) > 2**53
-                for timestamp in timestamps
-            )
         ):
             return None
+        if isinstance(timestamps, _PreparedTimestampQuery):
+            if timestamps.origin_ns != int(self.times[0]):
+                return None
+            query_values = timestamps.values
+            key_times: tuple[int, ...] | _PreparedTimestampQuery = timestamps
+        else:
+            if any(type(t) is not int or abs(t) >= 2**63
+                   or abs(t-int(self.times[0])) > 2**53 for t in timestamps):
+                return None
+            query_values = np.asarray(timestamps, dtype=np.int64)
+            key_times = tuple(timestamps)
         base_values = np.asarray((*base.translation_m, *base.rotation_quat_xyzw), dtype=np.float64)
         transform = np.asarray((*extrinsic.translation_m, *extrinsic.rotation_quat_xyzw))
         coordinates = np.asarray(points, dtype=np.float64).reshape((-1, 3))
         if not all(np.isfinite(array).all() for array in (base_values, transform, coordinates)):
             return None
-        key = (tuple(timestamps), base_values.tobytes())
+        key = (key_times, base_values.tobytes())
         can_reuse = (
             self._pose_cache_limit_bytes > 0
             and "_record_extrapolation" not in track.__dict__
@@ -441,7 +498,7 @@ class NumbaContinuousTimeQueryContext:
             cached = self._pose_cache.get(key) if can_reuse else None
             if cached is not None and cached.max_extrapolation_s <= tolerance:
                 self._pose_cache.move_to_end(key)
-                track.interpolation_count += len(timestamps)
+                track.interpolation_count += len(query_values)
                 track.clamp_count += cached.clamps
                 track._record_extrapolation(cached.max_extrapolation_s)
             else:
@@ -456,7 +513,7 @@ class NumbaContinuousTimeQueryContext:
             )
             return poses, cached.rows, world, True
         rows, world, clamps, extrapolation, _calculated, visited = _pose_world_rows(
-            np.asarray(timestamps, dtype=np.int64),
+            query_values,
             self.times,
             self.samples,
             self.q0,
@@ -479,7 +536,7 @@ class NumbaContinuousTimeQueryContext:
             else:
                 for value in extrapolation[:visited]:
                     track._record_extrapolation(float(value))
-        usable = visited == len(timestamps) and not np.any(extrapolation[:visited] > tolerance)
+        usable = visited == len(query_values) and not np.any(extrapolation[:visited] > tolerance)
         # These rows have already performed both public-constructor normalizations.
         poses = []
         if usable:
@@ -490,8 +547,17 @@ class NumbaContinuousTimeQueryContext:
                 # Charge all retained payloads, even shared Python floats/ints,
                 # plus a conservative allowance for the LRU node and entry.
                 size = sys.getsizeof(rows) + sys.getsizeof(pose_tuple) + sys.getsizeof(key)
+                # Numba arrays retain an NRT owner, so their Python header does
+                # not include the backing allocation in sys.getsizeof.
+                if not rows.flags.owndata:
+                    size += rows.nbytes
                 size += sys.getsizeof(key[0]) + sys.getsizeof(key[1]) + 512
-                size += len(key[0]) * sys.getsizeof(2**63 - 1)
+                if isinstance(key[0], _PreparedTimestampQuery):
+                    size += sys.getsizeof(key[0].values) + sys.getsizeof(key[0].owner)
+                    size += sys.getsizeof(key[0].owner.values) + 128
+                    size += sys.getsizeof(key[0].__dict__) + sys.getsizeof(key[0].owner.__dict__)
+                else:
+                    size += len(key[0]) * sys.getsizeof(2**63 - 1)
                 if poses:
                     prototype = poses[0]
                     pose_size = (
