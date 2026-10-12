@@ -1510,6 +1510,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     lidar_lidar_ros2.add_argument("--max-seconds", type=float)
     lidar_lidar_ros2.add_argument("--registration-backend", choices=("cpu", "cuda"), default="cpu")
+    lidar_lidar_ros2.add_argument("--odometry-backend", choices=("cpu", "cuda"), default="cpu")
     lidar_lidar_ros2.add_argument("--dataset-family", required=True)
     lidar_lidar_ros2.add_argument("--dataset-license", required=True)
     lidar_lidar_ros2.add_argument("--output", type=Path, required=True)
@@ -7384,6 +7385,8 @@ def _cmd_lidar_lidar_ros2(args: argparse.Namespace) -> int:
         command += ["--point-time-field", args.point_time_field]
     if args.registration_backend == "cuda":
         command += ["--registration-backend", "cuda"]
+    if args.odometry_backend == "cuda":
+        command += ["--odometry-backend", "cuda"]
     try:
         reference_transform = None
         reference = None
@@ -7414,6 +7417,7 @@ def _cmd_lidar_lidar_ros2(args: argparse.Namespace) -> int:
             max_seconds=args.max_seconds,
             command=command,
             backend=args.registration_backend,
+            odometry_backend=args.odometry_backend,
         )
         artifact.save(args.output)
     except (OSError, ValueError) as exc:

@@ -52,6 +52,7 @@ from calibrex.solvers.lidar_lidar_map_solver import (
 )
 from calibrex.solvers.scan_to_scan_odometry import (
     IncrementalScanOdometry,
+    OdometryBackend,
     ScanOdometryOptions,
     preprocess_scan,
 )
@@ -206,6 +207,8 @@ def collect_map_samples(
     point_time_encoding: PointTimeEncoding = "offset_s",
     target_point_time_field: str | None = None,
     target_point_time_encoding: PointTimeEncoding | None = None,
+    odometry_backend: OdometryBackend = "cpu",
+    _odometry_execution: dict[str, str] | None = None,
 ) -> tuple[list[MapSample], int]:
     """Run the reference odometry, then build one sample per strided target scan.
 
@@ -235,7 +238,9 @@ def collect_map_samples(
         return LivoxStreamProfile("lidar", topic, "", point_time_field, point_time_encoding, "mps2")
 
     emit_stage(f"reference LiDAR odometry + map ({reference_topic})")
-    odometry = IncrementalScanOdometry(opts.odometry)
+    odometry = IncrementalScanOdometry(opts.odometry, backend=odometry_backend)
+    if _odometry_execution is not None:
+        _odometry_execution["odometry_execution"] = odometry.execution_backend
     scans: list[NDArray[np.float32]] = []
     times: list[float] = []
     first: float | None = None
@@ -306,10 +311,12 @@ def run_ros2_lidar_lidar_map(
     target_point_time_encoding: PointTimeEncoding | None = None,
     command: list[str] | None = None,
     backend: MapBackend = "cpu",
+    odometry_backend: OdometryBackend = "cpu",
 ) -> LidarLidarExtrinsicArtifact:
     """Calibrate ``T_reference_target`` for two LiDARs recorded in one ROS 2 bag."""
 
     opts = options or LidarLidarMapOptions()
+    odometry_execution: dict[str, str] = {}
     samples, reference_scans = collect_map_samples(
         bag,
         reference_topic=reference_topic,
@@ -320,6 +327,8 @@ def run_ros2_lidar_lidar_map(
         point_time_encoding=point_time_encoding,
         target_point_time_field=target_point_time_field,
         target_point_time_encoding=target_point_time_encoding,
+        odometry_backend=odometry_backend,
+        _odometry_execution=odometry_execution,
     )
     evaluation = evaluate_lidar_lidar_map(
         samples, initial, opts, reference_transform=reference_transform, backend=backend
@@ -375,6 +384,8 @@ def run_ros2_lidar_lidar_map(
             **({"deskew": "none"} if opts.deskew == "none" else {}),
             **({"registration_backend": "cuda", "registration_execution": result.execution_backend}
                if backend == "cuda" else {}),
+            **({"odometry_backend": "cuda", **odometry_execution}
+               if odometry_backend == "cuda" else {}),
         },
         reference=reference,
         limitations=[*LIMITATIONS, *(RIGID_SCAN_LIMITATIONS if opts.deskew == "none" else ())],

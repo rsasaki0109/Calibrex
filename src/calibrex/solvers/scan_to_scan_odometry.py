@@ -17,8 +17,8 @@ from __future__ import annotations
 import math
 from collections import deque
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, replace
-from typing import TypeAlias
+from dataclasses import dataclass, field, replace
+from typing import Literal, Protocol, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -26,6 +26,7 @@ from scipy.spatial import cKDTree
 
 FloatArray: TypeAlias = NDArray[np.float64]
 RotationModel: TypeAlias = Callable[[float, FloatArray], FloatArray]
+OdometryBackend: TypeAlias = Literal["cpu", "cuda"]
 
 
 @dataclass(frozen=True)
@@ -57,6 +58,7 @@ class ScanRegistration:
     correspondences: int
     rmse_m: float
     hessian_min_eigenvalue: float
+    execution_backend: str = "numpy_scipy"
 
 
 @dataclass(frozen=True)
@@ -65,12 +67,30 @@ class ScanOdometryResult:
 
     poses: tuple[FloatArray, ...]
     registrations: tuple[ScanRegistration, ...]
+    execution_backend: str = "numpy_scipy"
+    execution_statistics: dict[str, int] = field(default_factory=dict)
 
     @property
     def all_converged(self) -> bool:
         """Return whether every step converged with enough correspondences."""
 
         return all(item.converged for item in self.registrations)
+
+
+class _OdometryTarget(Protocol):
+    def register(self, source: FloatArray, initial: FloatArray) -> ScanRegistration: ...
+    def statistics(self) -> dict[str, int]: ...
+
+
+def _cuda_odometry() -> tuple[Callable[[FloatArray, ScanOdometryOptions], _OdometryTarget], str]:
+    try:
+        from calibrex.solvers.cuda_scan_odometry_adapter import (
+            CudaOdometryTarget,
+            execution_identity,
+        )
+    except ImportError as exc:
+        raise ValueError("CUDA odometry requires the optional calibrex[cuda] dependency") from exc
+    return CudaOdometryTarget, execution_identity()
 
 
 def preprocess_scan(points: FloatArray, options: ScanOdometryOptions) -> FloatArray:
@@ -197,10 +217,18 @@ def register_point_to_plane(
     *,
     target_tree: cKDTree | None = None,
     target_normals: tuple[FloatArray, NDArray[np.bool_]] | TargetNormals | None = None,
+    backend: OdometryBackend = "cpu",
 ) -> ScanRegistration:
     """Estimate ``T_target_source`` from preprocessed point arrays."""
 
     opts = options or ScanOdometryOptions()
+    if backend == "cuda":
+        if target_tree is not None or target_normals is not None:
+            raise ValueError("CUDA odometry captures its own tree and lazy target normals")
+        factory, _ = _cuda_odometry()
+        return factory(target, opts).register(source, initial)
+    if backend != "cpu":
+        raise ValueError(f"unknown odometry backend: {backend}")
     tree = target_tree if target_tree is not None else cKDTree(target)
     if target_normals is None:
         lazy = TargetNormals(target, tree, opts)
@@ -280,6 +308,7 @@ def run_scan_to_scan_odometry(
     options: ScanOdometryOptions | None = None,
     *,
     times_s: Sequence[float] | None = None,
+    backend: OdometryBackend = "cpu",
 ) -> ScanOdometryResult:
     """Chain scan-to-scan registrations into poses ``T_first_scan``.
 
@@ -289,7 +318,9 @@ def run_scan_to_scan_odometry(
     the odometry.
     """
 
-    return odometry_from_loader(lambda index: scans[index], len(scans), options, times_s=times_s)
+    return odometry_from_loader(
+        lambda index: scans[index], len(scans), options, times_s=times_s, backend=backend,
+    )
 
 
 def odometry_from_loader(
@@ -298,6 +329,7 @@ def odometry_from_loader(
     options: ScanOdometryOptions | None = None,
     *,
     times_s: Sequence[float] | None = None,
+    backend: OdometryBackend = "cpu",
 ) -> ScanOdometryResult:
     """Run scan-to-map odometry over a sliding window of recent scans.
 
@@ -308,7 +340,7 @@ def odometry_from_loader(
 
     if times_s is not None and len(times_s) != count:
         raise ValueError("times_s must have one entry per scan")
-    odometry = IncrementalScanOdometry(options)
+    odometry = IncrementalScanOdometry(options, backend=backend)
     for index in range(count):
         odometry.add(load_scan(index), None if times_s is None else float(times_s[index]))
     return odometry.result()
@@ -326,6 +358,7 @@ class IncrementalScanOdometry:
         options: ScanOdometryOptions | None = None,
         *,
         rotation_model: RotationModel | None = None,
+        backend: OdometryBackend = "cpu",
     ) -> None:
         """Create odometry; ``rotation_model`` supplies in-sweep rotations for deskewing.
 
@@ -339,6 +372,15 @@ class IncrementalScanOdometry:
         self.options = options or ScanOdometryOptions()
         if self.options.local_map_scans < 1:
             raise ValueError("local_map_scans must be at least 1")
+        self._cuda_factory: (
+            Callable[[FloatArray, ScanOdometryOptions], _OdometryTarget] | None
+        ) = None
+        self.execution_backend = "numpy_scipy"
+        if backend == "cuda":
+            self._cuda_factory, self.execution_backend = _cuda_odometry()
+        elif backend != "cpu":
+            raise ValueError(f"unknown odometry backend: {backend}")
+        self.execution_statistics: dict[str, int] = {}
         self.poses: list[FloatArray] = []
         self.registrations: list[ScanRegistration] = []
         self._recent: deque[FloatArray] = deque(maxlen=self.options.local_map_scans)
@@ -374,8 +416,10 @@ class IncrementalScanOdometry:
             self._previous_gap = gap
         self._previous_time = time_s
         target = _local_map(self._recent, self.poses[-1], self.options)
-        tree = cKDTree(target)
-        normals = TargetNormals(target, tree, self.options)
+        cuda_target = (None if self._cuda_factory is None else
+                       self._cuda_factory(target, self.options))
+        tree = cKDTree(target) if cuda_target is None else None
+        normals = TargetNormals(target, tree, self.options) if tree is not None else None
         deskew = point_offsets_s is not None and gap is not None and gap > 0.0
         rounds = 1 + (self.options.deskew_iterations if deskew else 0)
         motion = initial
@@ -395,16 +439,18 @@ class IncrementalScanOdometry:
                 else:
                     source = deskew_points(scan, point_offsets_s, motion, gap)
             processed = preprocess_scan(source, self.options)
-            registration = register_point_to_plane(
-                processed,
-                target,
-                motion,
-                self.options,
-                target_tree=tree,
-                target_normals=normals,
-            )
+            if cuda_target is None:
+                registration = register_point_to_plane(
+                    processed, target, motion, self.options,
+                    target_tree=tree, target_normals=normals,
+                )
+            else:
+                registration = cuda_target.register(processed, motion)
             motion = registration.transform
         assert registration is not None
+        if cuda_target is not None:
+            for name, value in cuda_target.statistics().items():
+                self.execution_statistics[name] = self.execution_statistics.get(name, 0) + value
         self.registrations.append(registration)
         self._previous_motion = registration.transform
         pose = self.poses[-1] @ registration.transform
@@ -416,7 +462,11 @@ class IncrementalScanOdometry:
     def result(self) -> ScanOdometryResult:
         """Return poses ``T_first_scan`` and registrations so far."""
 
-        return ScanOdometryResult(poses=tuple(self.poses), registrations=tuple(self.registrations))
+        return ScanOdometryResult(
+            poses=tuple(self.poses), registrations=tuple(self.registrations),
+            execution_backend=self.execution_backend,
+            execution_statistics=dict(self.execution_statistics),
+        )
 
 
 def deskew_points(
