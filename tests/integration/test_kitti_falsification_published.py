@@ -112,11 +112,12 @@ def test_the_reference_sits_at_the_depth_tolerance_so_the_data_alone_do_not_deci
     assert {axis.name: axis.status for axis in first["dataset_reference"].axes}["yaw"] == "warn"
 
 
-def test_drive_0009_reads_the_reference_at_zero_depth_but_cannot_see_rotation() -> None:
+def test_drive_0009_repeats_the_decision_on_spread_frames() -> None:
     # The published replication on drive 0009 (same calibration files): the reference's
-    # 5 cm along the optical axis on 0005 is not repeated (it reads under 1 cm), and the
-    # known-bad's 0.25 m fails again; but no rotation axis is judged on the spread frames,
-    # and on the first 50 frames the known-bad passes with its pitch and z unchecked.
+    # 5 cm along the optical axis on 0005 is not repeated (it reads under 1 cm), every
+    # rotation axis is judged and passes, and the known-bad fails on its 0.25 m. Its pitch
+    # is not judged there (held-out control at t = 2), and on the first 50 frames (5 s)
+    # neither pitch nor z is, so the known-bad passes on roll and yaw alone.
     artifact = _artifact()
     (replication,) = artifact.data_only_replications
     assert replication.dataset_sequence == "2011_09_26_drive_0009_sync"
@@ -124,17 +125,17 @@ def test_drive_0009_reads_the_reference_at_zero_depth_but_cannot_see_rotation() 
     assert {item.sha256 for item in replication.calibration} == declared
     decisions = {decision.frame_selection: decision for decision in replication.decisions}
 
+    assert decisions["spread"].status == "pass"
     spread = {trial.candidate_id: trial for trial in decisions["spread"].trials}
-    reference_depth = spread["dataset_reference"].depth_axis
-    assert reference_depth is not None and reference_depth.status == "pass"
-    assert abs(reference_depth.candidate_error_m) < 0.02
-    known_bad_depth = spread["known_bad"].depth_axis
-    assert known_bad_depth is not None and known_bad_depth.status == "fail"
-    for trial in spread.values():
-        assert trial.unchecked_rotation_axes == ["roll", "pitch", "yaw"]
+    reference = spread["dataset_reference"]
+    assert reference.verdict == "pass" and reference.unchecked_rotation_axes == []
+    assert reference.depth_axis is not None and abs(reference.depth_axis.candidate_error_m) < 0.02
+    known_bad = spread["known_bad"]
+    assert known_bad.verdict == "fail" and known_bad.unchecked_rotation_axes == ["pitch"]
+    assert known_bad.depth_axis is not None and known_bad.depth_axis.status == "fail"
 
+    assert decisions["first"].status == "fail"
     first = {trial.candidate_id: trial for trial in decisions["first"].trials}
     assert first["known_bad"].verdict == "pass"
     assert first["known_bad"].unchecked_rotation_axes == ["pitch"]
     assert "z" in first["known_bad"].unchecked_translation_axes
-    assert decisions["first"].status == "fail"

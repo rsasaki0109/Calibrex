@@ -96,21 +96,26 @@ are the same transforms. Repeating the decisions there (the second table above,
 
 * **The 5 cm reading along the optical axis belongs to drive 0005, not to the
   calibration.** On 0009 stereo depth puts the reference under 1 cm along the optical
-  axis on both frame selections (0.008 m and 0.009 m). On 0005 it reads 5 cm on both 50
-  and, in a development run, 100 spread frames. The most likely cause is a
-  scene-dependent bias of the stereo estimate on 0005, not an error in KITTI's
-  calibration.
-* **The known-bad's 0.25 m fails again** on the spread frames (0.209 m against
-  0.097 m).
-* **The edge alignment judges no rotation on 0009's spread frames.** Every rotation
-  axis's held-out control goes undetected (t of 1.2 to 1.8, under 2), for both
-  candidates. The bag-level check judged rotation on this drive with its own frame
-  selection; why this path does not is open.
-* **On 0009's first 50 frames the known-bad passes.** Roll and yaw are judged and pass
-  (they are right). Pitch is not judged, so its 5 deg turn is not corrected, and stereo
-  depth at that rotation is not observable either. Under the check's rule a pass covers
-  only the judged axes, so the decision is `fail`: the data-only method passed a
-  candidate that is wrong. The published test pins this, too.
+  axis on both frame selections. On 0005 it reads 5 cm on both 50 and, in a development
+  run, 100 spread frames. The most likely cause is a scene-dependent bias of the stereo
+  estimate on 0005, not an error in KITTI's calibration.
+* **On the spread frames the decision passes.** Every rotation axis of the reference is
+  judged and passes, and the known-bad fails on its 0.25 m along the optical axis.
+* **The known-bad's pitch is not judged on 0009.** The edges find its 5 deg (they correct
+  4.8 deg on the spread frames), but the held-out control on pitch reaches t = 2.0, just
+  under the threshold; without the 0.25 m translation it reaches 2.3 (development run).
+* **On 0009's first 50 frames (5 s) the known-bad passes.** Roll and yaw are judged and
+  pass (they are right). Pitch is not judged, so its 5 deg turn is not corrected, and
+  stereo depth at that rotation is not observable either (jackknife std 0.084 m). Under
+  the check's rule a pass covers only the judged axes, so the decision is `fail`: the
+  data-only method passed a candidate that is wrong.
+
+A first replication read 0009 through a pairing bug: KITTI's `timestamps.txt` keeps a
+blank line for each missing scan (0009 has none for frames 177-180), and the reader
+took each scan's file by its position in the directory, so every pair after the gap
+loaded the scan 0.4 s late. With most frames misaligned, the edges judged no rotation on
+0009. Files are now taken by frame number, and pairs more than 60 ms apart (the images
+whose own scan is missing) are not used.
 
 KITTI's calibration is a reference, not ground truth. These readings do not show it
 wrong. The published tests pin them, so a change to either estimator that moves them

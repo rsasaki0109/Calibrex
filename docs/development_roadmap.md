@@ -131,10 +131,10 @@ accuracy.
    0.25 m, on both frame selections. It does not pass the reference: stereo depth
    puts it 5 cm along the optical axis, at the tolerance (`warn`), so the
    data-only status is inconclusive. Drive 0009 (same calibration files) reads
-   the reference under 1 cm, so the 5 cm belongs to drive 0005; but on 0009 the
-   edges judge no rotation on spread frames, and on the first 50 the known-bad
-   passes with its pitch unjudged. The remaining gaps are rotation
-   observability on 0009 and lateral translation (`x`, `y`).
+   the reference under 1 cm, so the 5 cm belongs to drive 0005, and its spread
+   decision passes; on its first 50 frames the known-bad passes with its pitch
+   unjudged (control t under 2). The remaining gaps are pitch observability on
+   short drives and lateral translation (`x`, `y`).
 2. **Common external execution adoption:** the external-run artifact is proven
    by Koide (fail-closed handoff, readiness, and real-pilot finalization),
    Kalibr (independent Camera--IMU holdout evidence, including the lever arm and a
