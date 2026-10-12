@@ -340,6 +340,12 @@ class CheckOptions(StrictModel):
         description="gnss-lidar deskew selection (LiDAR odometry): auto uses the per-point "
         "time field when the cloud has one and rigid scans otherwise",
     )
+    camera_lidar_motion: Literal["auto", "none"] | None = Field(
+        default=None,
+        description="camera-lidar: auto moves LiDAR points to the image time with an "
+        "odometry, twist or IMU topic of the bag when one is connected to the LiDAR in the "
+        "frame tree; none keeps scans as recorded",
+    )
     topic_kinds: dict[str, str] = Field(
         default_factory=dict,
         description="--topic-kind overrides: odometry/twist topic -> wheel or ins",

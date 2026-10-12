@@ -937,6 +937,7 @@ def build_bag_estimate(
         base_dir=base_dir,
         progress=progress,
         bag_sha256=input_sha256,
+        frame_tree=prior,
     )
 
     records: list[EstimatePairRecord] = []
@@ -1024,6 +1025,7 @@ def build_bag_estimate(
             imu_lidar_deskew=run.imu_lidar_deskew,
             lidar_lidar_deskew=run.lidar_lidar_deskew,
             gnss_lidar_deskew=run.gnss_lidar_deskew,
+            camera_lidar_motion=run.camera_lidar_motion,
             topic_kinds=dict(topic_kinds or {}),
             frame_map=overrides,
         ),

@@ -43,6 +43,7 @@ from calibrex.core.camera_lidar_edge import (
     CameraLidarEdgeControl,
     CameraLidarEdgeDofName,
     CameraLidarEdgeDofRecord,
+    CameraLidarEdgeMotion,
     CameraLidarEdgeObjective,
     CameraLidarEdgeProvenance,
     CameraLidarEdgeSamples,
@@ -56,6 +57,7 @@ from calibrex.data.ros2_camera_lidar import (
     PointTimeEncoding,
     load_camera_lidar_frames,
 )
+from calibrex.evaluation.camera_lidar_motion import LidarMotion, move_frames_to_image_time
 
 FloatArray: TypeAlias = NDArray[np.float64]
 Float32Array: TypeAlias = NDArray[np.float32]
@@ -64,9 +66,6 @@ DOF_NAMES: tuple[CameraLidarEdgeDofName, ...] = ("roll", "pitch", "yaw", "x", "y
 LIMITATIONS: tuple[str, ...] = (
     "The camera frame is assumed to be the optical frame (x right, y down, z forward) and the "
     "intrinsics are taken as correct; an intrinsics error reads as an extrinsic error.",
-    "Scans are treated as rigid snapshots: platform motion and the LiDAR's rolling sweep are "
-    "not compensated, and the image is paired with the scan at the time its visible points "
-    "were measured only when the cloud has a per-point time field.",
     "Image edges and LiDAR depth discontinuities constrain rotation well and translation "
     "weakly (translation is a parallax effect that scales with 1/depth): on the Hilti 2022 and "
     "KITTI recordings the translation estimate differed from the reference by up to 11 cm with "
@@ -77,6 +76,34 @@ LIMITATIONS: tuple[str, ...] = (
     "Edge alignment needs structured scenes with depth discontinuities and image edges; "
     "textureless or very distant scenes yield an inconclusive result.",
 )
+RIGID_SCAN_LIMITATION = (
+    "Scans are treated as rigid snapshots: platform motion and the LiDAR's rolling sweep are "
+    "not compensated, and the image is paired with the scan at the time its visible points "
+    "were measured only when the cloud has a per-point time field."
+)
+
+
+def motion_limitation(motion: CameraLidarEdgeMotion) -> str:
+    """What moving the points to the image time with ``motion`` does and does not cover."""
+
+    parts = [
+        f"LiDAR points were moved to the image time with the rig motion from "
+        f"{motion.source_topic} (constant velocity between each point's and the image's time"
+    ]
+    parts.append(
+        "; each point by its own measurement time)"
+        if motion.per_point_time
+        else "; the cloud has no per-point time, so a scan is moved as a whole and the "
+        "rolling sweep is not compensated)"
+    )
+    if motion.kind == "gyro":
+        parts.append(". The source is a gyro: rotation only, the rig's translation is not")
+    if motion.frames_without_motion:
+        parts.append(
+            f". {motion.frames_without_motion} frame(s) had no motion sample nearby and were "
+            "used as recorded"
+        )
+    return "".join(parts) + "."
 
 
 @dataclass(frozen=True)
@@ -742,12 +769,23 @@ def estimate_from_frames(
     child_frame: str = "lidar",
     reference_label: str | None = None,
     start_note: str | None = None,
+    motion_compensation: CameraLidarEdgeMotion | None = None,
 ) -> CameraLidarEdgeArtifact:
-    """Estimate ``T_camera_lidar`` from synchronized frames, starting at ``candidate``."""
+    """Estimate ``T_camera_lidar`` from synchronized frames, starting at ``candidate``.
+
+    ``motion_compensation`` records how the frames' points were moved to the image time
+    (see :mod:`calibrex.evaluation.camera_lidar_motion`); ``None`` means not at all.
+    """
 
     opts = options or EdgeAlignmentOptions()
     prepared, dropped = prepare_frames(frames, camera, candidate, opts)
     limitations = list(LIMITATIONS)
+    limitations.insert(
+        1,
+        motion_limitation(motion_compensation)
+        if motion_compensation is not None
+        else RIGID_SCAN_LIMITATION,
+    )
     if start_note:
         limitations.append(start_note)
     samples = CameraLidarEdgeSamples(
@@ -793,6 +831,7 @@ def estimate_from_frames(
             start_transform=start_record,
             dofs=unsolved_dofs,
             samples=samples,
+            motion_compensation=motion_compensation,
             jackknife_fits=0,
             camera=camera.as_dict(),
             options=opts.as_dict(),
@@ -947,6 +986,7 @@ def estimate_from_frames(
             start=float(start_score), estimate=float(score), gain=float(score - start_score)
         ),
         samples=samples,
+        motion_compensation=motion_compensation,
         jackknife_fits=len(fit_array),
         camera=camera.as_dict(),
         options=opts.as_dict(),
@@ -1141,6 +1181,8 @@ class CameraLidarRunInputs:
     command: Sequence[str] = field(default_factory=tuple)
     input_sha256: str | None = None
     input_digest_scope: str | None = None
+    motion: LidarMotion | None = None
+    """The rig's motion in the LiDAR frame; when given, points are moved to the image time."""
 
 
 def run_ros2_camera_lidar_edge(
@@ -1190,6 +1232,9 @@ def run_ros2_camera_lidar_edge(
             f"{change_text}), so scans stay "
             f"{opts.effective_spacing_s:g} s apart: denser frames would repeat it"
         )
+    motion_summary: CameraLidarEdgeMotion | None = None
+    if inputs.motion is not None:
+        frames, motion_summary = move_frames_to_image_time(frames, inputs.motion)
     return estimate_from_frames(
         frames,
         inputs.camera,
@@ -1209,4 +1254,5 @@ def run_ros2_camera_lidar_edge(
         child_frame=inputs.child_frame,
         reference_label=inputs.reference,
         start_note=note,
+        motion_compensation=motion_summary,
     )

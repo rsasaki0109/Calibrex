@@ -24,6 +24,7 @@ from tests.unit.camera_lidar_scene import (
     WIDTH,
     cast_points,
     make_scene,
+    R_CAMERA_LIDAR_NOMINAL,
     perturbed,
     render_image,
     true_transform,
@@ -41,6 +42,8 @@ from calibrex.data.ros_cdr_writer import (
     POINT_FIELD_FLOAT32,
     encode_camera_info,
     encode_image,
+    encode_imu,
+    encode_odometry,
     encode_pointcloud2,
     encode_tf_message,
 )
@@ -58,31 +61,97 @@ FIELDS = (
 FAST_OPTIONS = {"max_duration_s": None}
 
 
-def _tf_payload(t_camera_lidar: np.ndarray) -> bytes:
-    quat = Rotation.from_matrix(t_camera_lidar[:3, :3]).as_quat()
-    transform = (
-        CAMERA_FRAME,
-        LIDAR_FRAME,
-        tuple(float(v) for v in t_camera_lidar[:3, 3]),
+BASE_FRAME = "base_link"
+# The LiDAR's pose in the body frame the moving rig's odometry and IMU report in.
+T_BASE_LIDAR = np.eye(4)
+T_BASE_LIDAR[:3, :3] = Rotation.from_rotvec([0.1, -0.2, 0.3]).as_matrix()
+T_BASE_LIDAR[:3, 3] = [0.5, 0.1, -0.3]
+
+
+def _edge(parent: str, child: str, transform: np.ndarray) -> tuple[object, ...]:
+    quat = Rotation.from_matrix(transform[:3, :3]).as_quat()
+    return (
+        parent,
+        child,
+        tuple(float(v) for v in transform[:3, 3]),
         tuple(float(v) for v in quat),
     )
-    return encode_tf_message([transform])
 
 
-def write_bag(path: Path, truth: np.ndarray, *, candidate: np.ndarray | None = None) -> Path:
-    """A bag whose data follow ``truth`` and whose /tf_static says ``candidate`` (default truth)."""
+def _tf_payload(t_camera_lidar: np.ndarray, *, body: bool = False) -> bytes:
+    edges = [_edge(CAMERA_FRAME, LIDAR_FRAME, t_camera_lidar)]
+    if body:
+        edges.append(_edge(LIDAR_FRAME, BASE_FRAME, np.linalg.inv(T_BASE_LIDAR)))
+    return encode_tf_message(edges)  # type: ignore[arg-type]
 
+
+def write_bag(
+    path: Path,
+    truth: np.ndarray,
+    *,
+    candidate: np.ndarray | None = None,
+    motion: tuple[np.ndarray, np.ndarray] | None = None,
+    image_delay_s: float = 0.005,
+) -> Path:
+    """A bag whose data follow ``truth`` and whose /tf_static says ``candidate`` (default truth).
+
+    With ``motion = (omega, v)`` (rad/s and m/s in the LiDAR frame) the rig moves at that
+    constant velocity: each scan is cast from where the LiDAR was ``image_delay_s`` before
+    its image, and the bag gets the body's odometry (``/odom``) and IMU (``/imu``).
+    """
+
+    moving = motion is not None
     with Rosbag2Writer(path) as writer:
         writer.add_topic("/tf_static", "tf2_msgs/msg/TFMessage", latched=True)
         writer.add_topic("/camera/image_raw", "sensor_msgs/msg/Image")
         writer.add_topic("/camera/camera_info", "sensor_msgs/msg/CameraInfo")
         writer.add_topic("/lidar/points", "sensor_msgs/msg/PointCloud2")
-        writer.write("/tf_static", 1, _tf_payload(truth if candidate is None else candidate))
+        if moving:
+            writer.add_topic("/odom", "nav_msgs/msg/Odometry")
+            writer.add_topic("/imu", "sensor_msgs/msg/Imu")
+        writer.write(
+            "/tf_static", 1, _tf_payload(truth if candidate is None else candidate, body=moving)
+        )
+        scan_from_image = np.eye(4)  # the LiDAR at scan time, seen from its image-time pose
+        if motion is not None:
+            omega, velocity = motion
+            dt = -image_delay_s
+            scan_from_image[:3, :3] = Rotation.from_rotvec(omega * dt).as_matrix()
+            scan_from_image[:3, 3] = velocity * dt
+            rotation, lever = T_BASE_LIDAR[:3, :3], T_BASE_LIDAR[:3, 3]
+            omega_body = rotation @ omega
+            velocity_body = rotation @ velocity - np.cross(omega_body, lever)
+            for tick in range(FRAMES * 50 + 50):
+                at = 9_500_000_000 + tick * 20_000_000
+                writer.write(
+                    "/odom",
+                    at,
+                    encode_odometry(
+                        frame_id="odom",
+                        child_frame_id=BASE_FRAME,
+                        timestamp_ns=at,
+                        position=(0.0, 0.0, 0.0),
+                        orientation_xyzw=(0.0, 0.0, 0.0, 1.0),
+                        linear_velocity=tuple(float(v) for v in velocity_body),  # type: ignore[arg-type]
+                        angular_velocity=tuple(float(v) for v in omega_body),  # type: ignore[arg-type]
+                    ),
+                )
+                writer.write(
+                    "/imu",
+                    at,
+                    encode_imu(
+                        frame_id=BASE_FRAME,
+                        timestamp_ns=at,
+                        angular_velocity=tuple(float(v) for v in omega_body),  # type: ignore[arg-type]
+                        linear_acceleration=(0.0, 0.0, 9.81),
+                    ),
+                )
+        delay_ns = round(image_delay_s * 1.0e9)
         for index in range(FRAMES):
             stamp = 10_000_000_000 + index * 1_000_000_000
             rects = make_scene(index)
             image = render_image(rects)
-            points = cast_points(rects, truth)
+            points = cast_points(rects, truth @ scan_from_image)
             intensity = np.full((points.shape[0], 1), 0.5, dtype=np.float32)
             packed = np.ascontiguousarray(np.hstack([points, intensity]), dtype=np.float32)
             writer.write(
@@ -98,10 +167,10 @@ def write_bag(path: Path, truth: np.ndarray, *, candidate: np.ndarray | None = N
             )
             writer.write(
                 "/camera/image_raw",
-                stamp + 5_000_000,
+                stamp + delay_ns,
                 encode_image(
                     frame_id=CAMERA_FRAME,
-                    timestamp_ns=stamp + 5_000_000,
+                    timestamp_ns=stamp + delay_ns,
                     height=HEIGHT,
                     width=WIDTH,
                     encoding="mono8",
@@ -233,6 +302,59 @@ def test_check_flags_a_pitch_error_of_three_degrees(bad_bag: Path, tmp_path: Pat
     assert "pitch" in judged and judged["pitch"].status == "fail"
     assert abs(judged["pitch"].candidate_error) == pytest.approx(3.0, abs=0.6)
     assert artifact.overall_verdict in {"warn", "fail"}
+
+
+# The rig turns at 60 deg/s about the camera's y axis (pitch) and moves at 2 m/s, and each
+# image is taken 50 ms after its scan: the scans are 3 deg and 10 cm away from where the
+# LiDAR was at the image time.
+MOVING_OMEGA = np.radians(60.0) * (R_CAMERA_LIDAR_NOMINAL.T @ np.array([0.0, 1.0, 0.0]))
+MOVING_VELOCITY = np.array([2.0, 0.0, 0.0])
+
+
+@pytest.fixture(scope="module")
+def moving_bag(tmp_path_factory: pytest.TempPathFactory, truth: np.ndarray) -> Path:
+    return write_bag(
+        tmp_path_factory.mktemp("cl") / "moving",
+        truth,
+        motion=(MOVING_OMEGA, MOVING_VELOCITY),
+        image_delay_s=0.05,
+    )
+
+
+def test_check_moves_scans_to_the_image_time_with_the_odometry(
+    moving_bag: Path, tmp_path: Path
+) -> None:
+    artifact = _run(moving_bag, tmp_path)
+    (record,) = [p for p in artifact.pairs if p.pair == "camera-lidar"]
+    assert record.verdict == "pass"
+    assert all(abs(axis.candidate_error) < 0.5 for axis in record.axes)
+    assert any("moved to the image time with /odom" in note for note in record.notes)
+    edge = load_camera_lidar_edge(tmp_path / record.evidence[0].path)
+    motion = edge.motion_compensation
+    assert motion is not None
+    # odometry (rotation and translation) wins over the IMU (rotation only)
+    assert (motion.source_topic, motion.kind) == ("/odom", "twist")
+    assert motion.frames_moved == FRAMES and motion.frames_without_motion == 0
+    assert motion.median_rotation_deg == pytest.approx(3.0, abs=1.0e-6)
+    assert motion.median_translation_m == pytest.approx(0.1, abs=1.0e-6)
+    assert not motion.per_point_time
+    assert any("moved to the image time" in item for item in edge.limitations)
+    assert artifact.options is not None and artifact.options.camera_lidar_motion == "auto"
+
+
+def test_scans_as_recorded_on_the_moving_rig_are_flagged(
+    moving_bag: Path, tmp_path: Path
+) -> None:
+    artifact = _run(moving_bag, tmp_path, camera_lidar_motion="none")
+    (record,) = [p for p in artifact.pairs if p.pair == "camera-lidar"]
+    assert record.verdict in {"warn", "fail"}
+    judged = {axis.name: axis for axis in record.axes}
+    assert "pitch" in judged and judged["pitch"].status == "fail"
+    assert abs(judged["pitch"].candidate_error) == pytest.approx(3.0, abs=0.6)
+    assert any("--camera-lidar-motion none" in note for note in record.notes)
+    edge = load_camera_lidar_edge(tmp_path / record.evidence[0].path)
+    assert edge.motion_compensation is None
+    assert any("rigid snapshots" in item for item in edge.limitations)
 
 
 def test_estimator_cache_is_keyed_on_the_candidate(

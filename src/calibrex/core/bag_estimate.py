@@ -171,6 +171,7 @@ class EstimateOptions(StrictModel):
     imu_lidar_deskew: Literal["auto", "gyro", "none"] = "auto"
     lidar_lidar_deskew: Literal["auto", "constant_velocity", "none"] = "auto"
     gnss_lidar_deskew: Literal["auto", "constant_velocity", "none"] = "auto"
+    camera_lidar_motion: Literal["auto", "none"] = "auto"
     topic_kinds: dict[str, str] = Field(default_factory=dict)
     frame_map: dict[str, str] = Field(default_factory=dict)
 

@@ -3154,6 +3154,14 @@ def _build_parser() -> argparse.ArgumentParser:
         "rigid scans (biased at speed); constant_velocity requires the field",
     )
     check.add_argument(
+        "--camera-lidar-motion",
+        choices=["auto", "none"],
+        default="auto",
+        help="camera-lidar: auto (default) moves LiDAR points to the image time with an "
+        "odometry, twist or IMU topic connected to the LiDAR in the frame tree (each point by "
+        "its own time when the cloud has a per-point time field); none keeps scans as recorded",
+    )
+    check.add_argument(
         "--rigid-scan-rotation-floor-deg",
         type=_positive_float,
         default=None,
@@ -4531,6 +4539,7 @@ _ESTIMATE_SHARED_DESTS = frozenset(
         "imu_lidar_deskew",
         "lidar_lidar_deskew",
         "gnss_lidar_deskew",
+        "camera_lidar_motion",
         "acceleration_unit",
         "cache_dir",
         "no_cache",
@@ -4570,6 +4579,7 @@ def _cmd_estimate(args: argparse.Namespace) -> int:
         imu_lidar_deskew=args.imu_lidar_deskew,
         lidar_lidar_deskew=args.lidar_lidar_deskew,
         gnss_lidar_deskew=args.gnss_lidar_deskew,
+        camera_lidar_motion=args.camera_lidar_motion,
         evidence_dir=output_dir / "evidence",
         base_dir=output_dir,
         cache_dir=None
@@ -4648,6 +4658,7 @@ def _cmd_drift(args: argparse.Namespace) -> int:
         imu_lidar_deskew=args.imu_lidar_deskew,
         lidar_lidar_deskew=args.lidar_lidar_deskew,
         gnss_lidar_deskew=args.gnss_lidar_deskew,
+        camera_lidar_motion=args.camera_lidar_motion,
         cache_dir=None
         if args.no_cache
         else (args.cache_dir if args.cache_dir is not None else default_cache_dir()),
@@ -4752,6 +4763,7 @@ def _cmd_check(args: argparse.Namespace) -> int:
             imu_lidar_deskew=args.imu_lidar_deskew,
             lidar_lidar_deskew=args.lidar_lidar_deskew,
             gnss_lidar_deskew=args.gnss_lidar_deskew,
+            camera_lidar_motion=args.camera_lidar_motion,
             rigid_scan_rotation_floor_deg=(
                 args.rigid_scan_rotation_floor_deg
                 if args.rigid_scan_rotation_floor_deg is not None
