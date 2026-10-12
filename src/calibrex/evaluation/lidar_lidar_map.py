@@ -17,9 +17,9 @@ from __future__ import annotations
 import hashlib
 import math
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Literal, TypeAlias
+from typing import Any, Literal, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -208,7 +208,7 @@ def collect_map_samples(
     target_point_time_field: str | None = None,
     target_point_time_encoding: PointTimeEncoding | None = None,
     odometry_backend: OdometryBackend = "cpu",
-    _odometry_execution: dict[str, str] | None = None,
+    _odometry_execution: dict[str, Any] | None = None,
 ) -> tuple[list[MapSample], int]:
     """Run the reference odometry, then build one sample per strided target scan.
 
@@ -241,6 +241,7 @@ def collect_map_samples(
     odometry = IncrementalScanOdometry(opts.odometry, backend=odometry_backend)
     if _odometry_execution is not None:
         _odometry_execution["odometry_execution"] = odometry.execution_backend
+        _odometry_execution["odometry_options"] = asdict(opts.odometry)
     scans: list[NDArray[np.float32]] = []
     times: list[float] = []
     first: float | None = None
@@ -316,7 +317,7 @@ def run_ros2_lidar_lidar_map(
     """Calibrate ``T_reference_target`` for two LiDARs recorded in one ROS 2 bag."""
 
     opts = options or LidarLidarMapOptions()
-    odometry_execution: dict[str, str] = {}
+    odometry_execution: dict[str, Any] = {}
     samples, reference_scans = collect_map_samples(
         bag,
         reference_topic=reference_topic,

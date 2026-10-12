@@ -46,6 +46,7 @@ class ScanOdometryOptions:
     min_correspondences: int = 200
     local_map_scans: int = 1
     deskew_iterations: int = 1
+    geometry_quantum_m: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -93,10 +94,21 @@ def _cuda_odometry() -> tuple[Callable[[FloatArray, ScanOdometryOptions], _Odome
     return CudaOdometryTarget, execution_identity()
 
 
+def _quantize_geometry(points: FloatArray, quantum_m: float) -> FloatArray:
+    """Optionally canonicalize coordinates; zero retains native floating geometry."""
+    if not np.isfinite(quantum_m) or quantum_m < 0:
+        raise ValueError("geometry_quantum_m must be finite and nonnegative")
+    if quantum_m == 0:
+        return points
+    return np.asarray(np.rint(points / quantum_m) * quantum_m, dtype=np.float64)
+
+
 def preprocess_scan(points: FloatArray, options: ScanOdometryOptions) -> FloatArray:
     """Crop by range and voxel-downsample an ``(N, 3+)`` point array."""
 
-    xyz = np.asarray(points, dtype=np.float64)[:, :3]
+    xyz = _quantize_geometry(
+        np.asarray(points, dtype=np.float64)[:, :3], options.geometry_quantum_m,
+    )
     # Same sum order and rounding as ``np.linalg.norm(xyz, axis=1)``, about 5x faster.
     ranges = np.sqrt(xyz[:, 0] * xyz[:, 0] + xyz[:, 1] * xyz[:, 1] + xyz[:, 2] * xyz[:, 2])
     xyz = xyz[(ranges >= options.min_range_m) & (ranges <= options.max_range_m)]
@@ -108,7 +120,7 @@ def preprocess_scan(points: FloatArray, options: ScanOdometryOptions) -> FloatAr
         _, inverse, counts = np.unique(keys, axis=0, return_inverse=True, return_counts=True)
         sums = np.zeros((counts.size, 3))
         np.add.at(sums, inverse.reshape(-1), xyz)
-        return sums / counts[:, None]
+        return _quantize_geometry(sums / counts[:, None], options.geometry_quantum_m)
     # One int64 per voxel keeps the lexicographic voxel order of the row-wise
     # ``unique``, and ``bincount`` adds the points of a voxel in input order
     # exactly like ``add.at``, so the result is bit-identical but much faster.
@@ -117,7 +129,7 @@ def preprocess_scan(points: FloatArray, options: ScanOdometryOptions) -> FloatAr
     sums = np.empty((counts.size, 3))
     for axis in range(3):
         sums[:, axis] = np.bincount(inverse, weights=xyz[:, axis], minlength=counts.size)
-    return sums / counts[:, None]
+    return _quantize_geometry(sums / counts[:, None], options.geometry_quantum_m)
 
 
 def _flatten_voxel_keys(keys: NDArray[np.int64]) -> NDArray[np.int64] | None:
@@ -222,6 +234,11 @@ def register_point_to_plane(
     """Estimate ``T_target_source`` from preprocessed point arrays."""
 
     opts = options or ScanOdometryOptions()
+    source = _quantize_geometry(source, opts.geometry_quantum_m)
+    target = _quantize_geometry(target, opts.geometry_quantum_m)
+    if (opts.geometry_quantum_m > 0 and target_tree is not None
+        and not np.array_equal(target_tree.data, target)):
+        raise ValueError("cached target tree does not match the captured odometry geometry")
     if backend == "cuda":
         if target_tree is not None or target_normals is not None:
             raise ValueError("CUDA odometry captures its own tree and lazy target normals")
@@ -530,7 +547,9 @@ def _local_map(
     else:
         points = preprocess_scan(np.vstack(list(recent)), _unbounded(options))
     inverse = np.linalg.inv(reference_pose)
-    return points @ inverse[:3, :3].T + inverse[:3, 3]
+    return _quantize_geometry(
+        points @ inverse[:3, :3].T + inverse[:3, 3], options.geometry_quantum_m,
+    )
 
 
 def _unbounded(options: ScanOdometryOptions) -> ScanOdometryOptions:

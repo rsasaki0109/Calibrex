@@ -73,14 +73,19 @@ def test_cuda_registration_recovers_known_motion_with_native_quality() -> None:
 
 
 @pytest.mark.parametrize("window", [1, 3])
-def test_cuda_temporal_odometry_keeps_gap_scaling_and_local_maps(window: int) -> None:
+@pytest.mark.parametrize("quantum", [0., 1e-9])
+def test_cuda_temporal_odometry_keeps_gap_scaling_and_local_maps(
+    window: int, quantum: float,
+) -> None:
     target = _scene()
     scans, times = [], []
     for i in (0, 1, 2, 4, 5):
         pose = Rotation.from_rotvec([0.004 * i, -0.003 * i, 0.005 * i]).as_matrix()
         scans.append((target - np.array([0.08, -0.02, 0.03]) * i) @ pose)
         times.append(0.1 * i)
-    opts = ScanOdometryOptions(voxel_size_m=0.15, local_map_scans=window)
+    opts = ScanOdometryOptions(
+        voxel_size_m=0.15, local_map_scans=window, geometry_quantum_m=quantum,
+    )
     cpu = run_scan_to_scan_odometry(scans, opts, times_s=times)
     gpu = run_scan_to_scan_odometry(scans, opts, times_s=times, backend="cuda")
     assert cpu.all_converged == gpu.all_converged
@@ -159,3 +164,32 @@ def test_cuda_deskew_rounds_share_target_and_preserve_trajectory() -> None:
     np.testing.assert_allclose(cpu.poses, gpu.poses, rtol=1e-6, atol=1e-9)
     for a, b in zip(cpu.registrations, gpu.registrations, strict=True):
         _same(a, b)
+
+
+def test_cuda_native_registration_repair_preserves_close_stopping_decision() -> None:
+    target = _scene()
+    source = target - np.array([.1, 0., 0.])
+    options = ScanOdometryOptions(max_iterations=1, convergence_translation_m=.1)
+    probe = register_point_to_plane(source, target, np.eye(4), options)
+    options = replace(
+        options, convergence_translation_m=float(np.linalg.norm(probe.transform[:3, 3])),
+    )
+    prepared = CudaOdometryTarget(target, options)
+    gpu = prepared.register(source, np.eye(4))
+    cpu = register_point_to_plane(source, target, np.eye(4), options)
+    _same(cpu, gpu)
+    np.testing.assert_array_equal(cpu.transform, gpu.transform)
+    assert prepared.statistics()["scalar_registration_repairs"] == 1
+
+
+def test_cuda_thin_neighborhoods_keep_native_normal_directions() -> None:
+    rng = np.random.default_rng(36)
+    points = np.column_stack((np.linspace(-10, 10, 200),
+                              rng.uniform(-1e-5, 1e-5, 200),
+                              rng.uniform(-1e-8, 1e-8, 200)))
+    options = ScanOdometryOptions()
+    native, planar = estimate_normals(points, cKDTree(points), options)
+    target = CudaOdometryTarget(points, options)
+    np.testing.assert_array_equal(cp.asnumpy(target.normals), native)
+    np.testing.assert_array_equal(cp.asnumpy(target.planar), planar)
+    assert target.statistics()["scalar_normal_repairs"] == len(points)

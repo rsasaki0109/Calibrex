@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import math
+from dataclasses import replace
 
 import cupy as cp
 import numpy as np
@@ -21,6 +22,8 @@ from calibrex.solvers.scan_to_scan_odometry import (
     _exp_se3,
     _norm3,
     _normals_from_neighbours,
+    _quantize_geometry,
+    register_point_to_plane,
 )
 
 _SYSTEM_SOURCE = r"""
@@ -164,7 +167,9 @@ class CudaOdometryTarget:
             raise ValueError("CUDA correspondence gate must be finite and positive")
         self.options = options
         self.device_id = cp.cuda.runtime.getDevice()
-        self.host = _coordinates(target, "odometry target")
+        self.host = _coordinates(
+            _quantize_geometry(target, options.geometry_quantum_m), "odometry target",
+        )
         if len(self.host) < 3:
             raise ValueError("CUDA odometry targets require at least three points")
         if self.host.nbytes * 8 > 1024**3:
@@ -178,6 +183,7 @@ class CudaOdometryTarget:
         self.query_repairs = 0
         self.normal_repairs = 0
         self.fused_calls = 0
+        self.registration_repairs = 0
         self.identity = execution_identity()
         with cp.cuda.Device(self.device_id):
             self.system_kernel = cp.RawKernel(_SYSTEM_SOURCE, "system3", options=("--fmad=false",))
@@ -230,7 +236,9 @@ class CudaOdometryTarget:
             self.normals[rows] = vectors[:, :, 0]
             self.planar[rows] = values[:, 0] <= ratio * cp.maximum(values[:, 1], 1e-12)
             scale = cp.maximum(cp.abs(values[:, 2]), np.finfo(np.float64).tiny)
-            uncertain = (cp.abs(values[:, 1]) <= margin * scale) | (
+            # Thin scan-line neighbourhoods can amplify eigensolver roundoff
+            # in the normal direction even away from the planarity threshold.
+            uncertain = (values[:, 1] - values[:, 0] <= 1e-4 * scale) | (
                 cp.abs(values[:, 0] - ratio * cp.maximum(values[:, 1], 1e-12)) <= margin * scale
             )
             repair = (
@@ -239,7 +247,9 @@ class CudaOdometryTarget:
                 else np.empty(0, dtype=np.intp)
             )
             if len(repair):
-                native_indices = cp.asnumpy(indexes[cp.asarray(repair), :k])
+                native_rows = cp.asnumpy(rows[cp.asarray(repair)])
+                _, native_indices = self.tree.cpu.query(self.host[native_rows], k=k)
+                self.query_repairs += len(repair)
                 normals, planar = _normals_from_neighbours(
                     self.host,
                     native_indices,
@@ -254,7 +264,9 @@ class CudaOdometryTarget:
 
     def register(self, source: FloatArray, initial: FloatArray) -> ScanRegistration:
         """Run native odometry iteration/stopping semantics on this captured target."""
-        host_source = _coordinates(source, "odometry source")
+        host_source = _coordinates(
+            _quantize_geometry(source, self.options.geometry_quantum_m), "odometry source",
+        )
         if self.host.nbytes * 8 + host_source.nbytes * 12 > 1024**3:
             raise ValueError("CUDA odometry inputs exceed the 1 GiB payload budget")
         transform = np.array(initial, dtype=np.float64, copy=True)
@@ -264,6 +276,7 @@ class CudaOdometryTarget:
         count, iteration, last_count = 0, 0, 0
         converged, rmse = False, math.inf
         last_hessian: FloatArray | None = None
+        uncertain_stopping = False
         scale = max(self.scale, float(np.max(np.abs(host_source))) if len(host_source) else 1.0)
         with cp.cuda.Device(self.device_id):
             points = cp.asarray(host_source)
@@ -353,6 +366,11 @@ class CudaOdometryTarget:
                 except np.linalg.LinAlgError:
                     break
                 last_hessian, last_count = hessian, count
+                for norm, tolerance in (
+                    (_norm3(delta[3:]), opts.convergence_translation_m),
+                    (_norm3(delta[:3]), opts.convergence_rotation_rad),
+                ):
+                    uncertain_stopping |= abs(norm - tolerance) <= 1e-3 * tolerance
                 transform = _exp_se3(delta) @ transform
                 if (
                     _norm3(delta[3:]) < opts.convergence_translation_m
@@ -360,6 +378,10 @@ class CudaOdometryTarget:
                 ):
                     converged = True
                     break
+        if uncertain_stopping:
+            native = register_point_to_plane(host_source, self.host, initial, opts)
+            self.registration_repairs += 1
+            return replace(native, execution_backend=self.identity)
         eigenvalue = (
             0.0 if last_hessian is None else float(np.linalg.eigvalsh(last_hessian)[0]) / last_count
         )
@@ -381,4 +403,5 @@ class CudaOdometryTarget:
             "scalar_query_repairs": self.query_repairs,
             "scalar_normal_repairs": self.normal_repairs,
             "gpu_fused_system_calls": self.fused_calls,
+            "scalar_registration_repairs": self.registration_repairs,
         }
