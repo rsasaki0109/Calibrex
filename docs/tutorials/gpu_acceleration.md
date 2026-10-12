@@ -708,6 +708,41 @@ python tools/benchmark_livox_evaluation.py --workflow fixed-rig --baseline-scope
   --repetitions 5 --omp-threads 1 --output-dir outputs/livox-runtime-full-rerun
 ```
 
+## Searching occupied adaptive voxel cells
+
+Continuous-time LiDAR refinement repeats plane association for each clock
+candidate and extrinsic solve. The adaptive map formerly enumerated every cell
+in each level's gate box, including empty cells. It now binary-searches occupied
+x/y/z rows and visits their planes in the same level and lexical key order.
+Scalar distances, first ties, inclusive gates and the resulting correspondences
+are preserved. This CPU optimization is automatic for built adaptive maps.
+
+The complete public GLIM Livox comparison uses the existing bounded
+continuous-time configuration and supplied trajectory. Every process executes
+the same 26 clock-candidate/refinement evaluations and 62,400 adaptive queries,
+with the same source/target budgets, robust filtering and holdout diagnostics.
+The [archived five-pair evidence](../assets/adaptive_plane_search/README.md)
+includes whole-process and query medians, every trial, exact full-artifact
+parity, actual train/holdout point identities and verified conversion lineage.
+The complete-process median falls from 67.38 s to 14.59 s (4.62×); adaptive
+query time within those same runs falls from 53.21 s to 1.42 s (37.54×).
+
+The copied topic is a single-sensor identity control. Its unchanged result has
+rank 6, 894 train and 876 holdout correspondences, and holdout RMSE
+0.053133620013224026 m. These results establish execution consistency on public
+data; the recording does not supply a second-sensor absolute extrinsic reference.
+
+```bash
+python tools/benchmark_adaptive_plane_search.py \
+  --repetitions 5 --output-dir outputs/glim-adaptive-search
+calibrex continuous-time-lidar-pair \
+  examples/public_datasets/glim_versatile/online_continuous_time_benchmark_config.yaml \
+  --output outputs/glim-continuous-time.yaml
+```
+
+Prepare the official recording with the archive's checksum-verified instructions
+before running these commands.
+
 ## Generating public depth maps on GPU
 
 The external FeatDepth adapter accepts `--device cuda --batch-size 2

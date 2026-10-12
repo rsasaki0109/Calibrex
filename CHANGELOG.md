@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Search only occupied adaptive voxel cells in the original level/x/y/z order,
+  preserving nearest ties, scalar distances and inclusive gates. Publish fresh
+  complete continuous-time comparisons on the public GLIM Livox identity control,
+  with exact saved-artifact parity, actual sampled train/holdout identities and
+  verified raw/converted input lineage.
+
 - Reuse captured Livox records for solid-state quality bins and native input
   loading; decode checked binary PCD views and preserve ordered statistics.
   Evaluate independent controls with bounded CPU workers and isolated query caches,
