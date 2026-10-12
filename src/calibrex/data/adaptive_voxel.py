@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import math
+from bisect import bisect_left, bisect_right
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 
 from calibrex.core.geometry import Vector3
@@ -38,6 +39,72 @@ class AdaptiveVoxelPlane:
 
 
 @dataclass(frozen=True)
+class _PlaneRow:
+    coordinates: tuple[int, ...]
+    cells: tuple[AdaptiveVoxelPlane, ...]
+
+
+@dataclass(frozen=True)
+class _PlaneSlice:
+    coordinates: tuple[int, ...]
+    rows: tuple[_PlaneRow, ...]
+
+
+class _SparsePlaneCells(Mapping[tuple[int, int, int], AdaptiveVoxelPlane]):
+    """Owned cell mapping with an ordered occupied-only box index."""
+
+    def __init__(self, cells: Mapping[tuple[int, int, int], AdaptiveVoxelPlane]) -> None:
+        self._cells = dict(cells)
+        grouped: dict[int, dict[int, list[tuple[int, AdaptiveVoxelPlane]]]] = {}
+        for (x, y, z), cell in sorted(cells.items()):
+            grouped.setdefault(x, {}).setdefault(y, []).append((z, cell))
+        self._coordinates = tuple(grouped)
+        self._slices = tuple(
+            _PlaneSlice(
+                coordinates=tuple(rows),
+                rows=tuple(
+                    _PlaneRow(
+                        coordinates=tuple(z for z, _cell in row),
+                        cells=tuple(cell for _z, cell in row),
+                    )
+                    for row in rows.values()
+                ),
+            )
+            for rows in grouped.values()
+        )
+
+    def __getitem__(self, key: tuple[int, int, int]) -> AdaptiveVoxelPlane:
+        return self._cells[key]
+
+    def __iter__(self) -> Iterator[tuple[int, int, int]]:
+        return iter(self._cells)
+
+    def __len__(self) -> int:
+        return len(self._cells)
+
+    def nearby(
+        self, key: tuple[int, int, int], radius: int,
+    ) -> Iterator[AdaptiveVoxelPlane]:
+        """Yield exactly the old box's occupied cells in x/y/z order."""
+
+        for x in range(
+            bisect_left(self._coordinates, key[0] - radius),
+            bisect_right(self._coordinates, key[0] + radius),
+        ):
+            plane_slice = self._slices[x]
+            for y in range(
+                bisect_left(plane_slice.coordinates, key[1] - radius),
+                bisect_right(plane_slice.coordinates, key[1] + radius),
+            ):
+                row = plane_slice.rows[y]
+                for z in range(
+                    bisect_left(row.coordinates, key[2] - radius),
+                    bisect_right(row.coordinates, key[2] + radius),
+                ):
+                    yield row.cells[z]
+
+
+@dataclass(frozen=True)
 class AdaptiveVoxelPlaneMap:
     """Immutable adaptive plane map with deterministic nearest-plane queries."""
 
@@ -61,6 +128,13 @@ class AdaptiveVoxelPlaneMap:
             voxel_size = _level_voxel_size(level, self.cells)
             key = _voxel_key(point, self.origin_m, voxel_size)
             radius = max(1, math.ceil(correspondence_gate_m / voxel_size) + 1)
+            if isinstance(cells, _SparsePlaneCells):
+                for candidate in cells.nearby(key, radius):
+                    distance = math.dist(point, candidate.centroid)
+                    if distance < best_distance:
+                        best = candidate
+                        best_distance = distance
+                continue
             for dx in range(-radius, radius + 1):
                 for dy in range(-radius, radius + 1):
                     for dz in range(-radius, radius + 1):
@@ -138,7 +212,7 @@ def build_adaptive_voxel_plane_map(
     return AdaptiveVoxelPlaneMap(
         cells=tuple(cells),
         origin_m=settings.range_origin_m,
-        _index={level: dict(cells_by_key) for level, cells_by_key in index.items()},
+        _index={level: _SparsePlaneCells(cells_by_key) for level, cells_by_key in index.items()},
     )
 
 
