@@ -63,6 +63,7 @@ CONVERSION_ARGUMENTS = (
 SOURCES = (
     "src/calibrex/data/adaptive_voxel.py",
     "src/calibrex/data/odometry_track.py",
+    "src/calibrex/data/numba_lidar_deskew_adapter.py",
     "src/calibrex/graph/lidar_point_to_plane.py",
     "src/calibrex/solvers/continuous_time_lidar_pair_solver.py",
     "src/calibrex/solvers/numba_continuous_time_adapter.py",
@@ -130,9 +131,12 @@ def _comparison_canonical(payload: dict) -> str:
         r"association_kernel_sha256=[0-9a-f]{64})"
     )
     if "notes" in provenance:
+        replay = (r"continuous_time_replay_execution: calibrex\.numba_lidar_deskew/v0\.1;"
+                  r"numba=[0-9.]+;fastmath=false;cache=true;point_pose_cpu=true;"
+                  r"source_sha256=[0-9a-f]{64}")
         provenance["notes"] = [note for note in provenance["notes"] if re.fullmatch(
             execution, note,
-        ) is None]
+        ) is None and re.fullmatch(replay, note) is None]
     return _canonical(comparable)
 
 
@@ -338,6 +342,8 @@ def _worker(args: argparse.Namespace) -> None:
             "calibrex.solvers.cuda_continuous_time_adapter"), "__file__", None)),
         "loaded_cuda_plane_module": (getattr(sys.modules.get(
             "calibrex.solvers.cuda_plane_query_adapter"), "__file__", None)),
+        "loaded_replay_module": (getattr(sys.modules.get(
+            "calibrex.data.numba_lidar_deskew_adapter"), "__file__", None)),
         "captured_target_count": captured_target_count,
     }
     # Sum CPU time across this worker's threads. Measurement-JSON serialization
@@ -597,6 +603,14 @@ def main(argv: list[str] | None = None) -> None:
                                and cuda_eligible else None)
             if row["loaded_cuda_plane_module"] != expected_planes:
                 raise ValueError("CUDA plane query module binding mismatch")
+            replay_module = str(Path("src/calibrex/data/numba_lidar_deskew_adapter.py").resolve())
+            allowed_replay = (None, replay_module) if method == "sparse" else (None,)
+            if row["loaded_replay_module"] not in allowed_replay or (
+                any(note.startswith("continuous_time_replay_execution: ")
+                    for note in row["result"]["provenance"]["notes"])
+                and row["loaded_replay_module"] != replay_module
+            ):
+                raise ValueError("compiled replay module binding mismatch")
             if split_anchor is None:
                 split_anchor = row["sampled_split"]
             if row["sampled_split"] != split_anchor:

@@ -150,6 +150,20 @@ def test_cuda_scope_archives_both_old_packing_and_cuda_and_requires_explicit_bac
     assert not (tmp_path/"missing").exists() and not (tmp_path/"wrong").exists()
 
 
+def test_replay_comparison_excludes_only_the_exact_bound_cpu_execution_identity():
+    baseline = {"status":"converged", "provenance":{"notes":[]}}
+    candidate = deepcopy(baseline)
+    identity = ("continuous_time_replay_execution: calibrex.numba_lidar_deskew/v0.1;"
+                "numba=0.65.1;fastmath=false;cache=true;point_pose_cpu=true;source_sha256="+"a"*64)
+    candidate["provenance"]["notes"] = [identity]
+    assert benchmark._comparison_canonical(candidate) == benchmark._canonical(baseline)
+    for forged in (identity+";hidden=change",
+                   identity.replace("point_pose_cpu=true", "point_pose_cpu=false"),
+                   identity.replace("fastmath=false", "fastmath=true"), identity[:-1]):
+        candidate["provenance"]["notes"] = [forged]
+        assert benchmark._comparison_canonical(candidate) != benchmark._canonical(baseline)
+
+
 def test_dense_config_changes_only_the_explicit_per_message_capture_budget():
     from calibrex.core.config import load_config
 

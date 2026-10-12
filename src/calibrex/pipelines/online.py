@@ -66,9 +66,15 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from itertools import pairwise
 from pathlib import Path
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
+
+import numpy as np
+
+if TYPE_CHECKING:
+    from calibrex.data.numba_lidar_deskew_adapter import _PreparedDeskew
 
 from calibrex import __version__
+from calibrex.core import geometry as geometry_module
 from calibrex.core.capture_readiness import (
     CaptureReadinessArtifact,
     CaptureReadinessGeometry,
@@ -221,6 +227,13 @@ from calibrex.visualization.report import write_report_artifacts
 ONLINE_LIDAR_POINT_TO_PLANE_BACKEND = "online_lidar_point_to_plane"
 _SUPPORTED_DATASET_TYPES = ("a2d2_lidar", "livox_pcd", "rosbag1", "rosbag2")
 _FACTOR_NAME = "lidar_rig_point_to_plane"
+_NATIVE_DESKEW_TYPES = (SE3.__init__, SE3.__post_init__, SE3.compose, SE3.transform_point,
+                       LivoxPointRecord, LivoxPointRecord.__init__, OdometryTrack.interpolate,
+                       OdometryTrack._record_extrapolation)
+_NATIVE_DESKEW_GEOMETRY = tuple(getattr(geometry_module, name) for name in (
+    "normalize_quaternion_xyzw", "quaternion_multiply_xyzw",
+    "quaternion_conjugate_xyzw", "rotate_vector_xyzw",
+))
 _MIN_TRAIN_OBSERVATIONS = 6
 _MIN_HOLDOUT_OBSERVATIONS = 3
 _TIMELINE_FILENAME = "timeline.json"
@@ -1812,8 +1825,33 @@ def _deskew_pointcloud_to_world_records(
     odometry_track: OdometryTrack,
     max_points: int | None,
     extrapolation_tolerance_s: float | None,
+    *, _prepared: _PreparedDeskew | None = None,
 ) -> list[LivoxPointRecord]:
     count = int(xyz.shape[0])
+    if _prepared is not None and _native_deskew_supported(odometry_track):
+        batch = _prepared.batch(
+            xyz, offsets_s, reference_timestamp_ns, _subsample_indices(count, max_points),
+            odometry_track, t_base_source,
+            tolerance_s=(math.inf if extrapolation_tolerance_s is None
+                         else extrapolation_tolerance_s),
+        )
+        if batch is not None:
+            if not batch.usable:
+                assert extrapolation_tolerance_s is not None
+                extrapolation = float(batch.extrapolation_s[
+                    np.flatnonzero(batch.extrapolation_s > extrapolation_tolerance_s)[0],
+                ])
+                raise DatasetError(
+                    "source LiDAR point capture time lies "
+                    f"{extrapolation:.4f} s outside the odometry track "
+                    f"(tolerance {extrapolation_tolerance_s:.4f} s); "
+                    "motion-compensated map premise is broken"
+                )
+            from calibrex.data.numba_lidar_deskew_adapter import _direct_world_rows
+
+            world = _direct_world_rows(batch.poses, batch.points)
+            return [LivoxPointRecord((point[0], point[1], point[2], 0.0), normal_xyz=None)
+                    for point in world.tolist()]
     records: list[LivoxPointRecord] = []
     for index in _subsample_indices(count, max_points):
         capture_ns = _capture_timestamp_ns(reference_timestamp_ns, float(offsets_s[index]))
@@ -1854,8 +1892,24 @@ def _deskew_target_entries(
     odometry_track: OdometryTrack,
     max_points: int | None,
     inject_time_offset_s: float = 0.0,
+    *, _prepared: _PreparedDeskew | None = None,
 ) -> list[OnlineTargetEntry]:
     count = int(xyz.shape[0])
+    if _prepared is not None and _native_deskew_supported(odometry_track):
+        batch = _prepared.batch(
+            xyz, offsets_s, reference_timestamp_ns, _subsample_indices(count, max_points),
+            odometry_track, t_base_source, injection_s=inject_time_offset_s,
+        )
+        if batch is not None:
+            from calibrex.solvers.numba_continuous_time_adapter import _materialize_pose_rows
+
+            poses = _materialize_pose_rows(batch.poses)
+            return [(frame_index, (point[0], point[1], point[2]),
+                     pose, float(extrapolation), timestamp)
+                    for point, pose, extrapolation, timestamp in zip(
+                        batch.points.tolist(), poses, batch.extrapolation_s, batch.timestamps,
+                        strict=True,
+                    )]
     entries: list[OnlineTargetEntry] = []
     for index in _subsample_indices(count, max_points):
         capture_ns = _capture_timestamp_ns(reference_timestamp_ns, float(offsets_s[index]))
@@ -1869,6 +1923,43 @@ def _deskew_target_entries(
         )
         entries.append((frame_index, point, t_world_source, extrapolation_s, capture_ns))
     return entries
+
+
+_NATIVE_CAPTURE_TIMESTAMP = _capture_timestamp_ns
+_NATIVE_TARGET_CAPTURE = _target_capture_ns
+
+
+def _native_deskew_supported(track: OdometryTrack) -> bool:
+    return (
+        type(track) is OdometryTrack and "interpolate" not in track.__dict__
+        and "_record_extrapolation" not in track.__dict__
+        and (SE3.__init__, SE3.__post_init__, SE3.compose, SE3.transform_point,
+             LivoxPointRecord, LivoxPointRecord.__init__, OdometryTrack.interpolate,
+             OdometryTrack._record_extrapolation) == _NATIVE_DESKEW_TYPES
+        and tuple(getattr(geometry_module, name) for name in (
+            "normalize_quaternion_xyzw", "quaternion_multiply_xyzw",
+            "quaternion_conjugate_xyzw", "rotate_vector_xyzw",
+        )) == _NATIVE_DESKEW_GEOMETRY
+        and _capture_timestamp_ns is _NATIVE_CAPTURE_TIMESTAMP
+        and _target_capture_ns is _NATIVE_TARGET_CAPTURE
+    )
+
+
+def _compiled_deskew_context(
+    config: CalibrationConfig, track: OdometryTrack | None, enabled: bool,
+) -> _PreparedDeskew | None:
+    factor = config.pipeline.factors.get(_FACTOR_NAME)
+    if (not enabled or track is None or factor is None
+        or factor.options.get("continuous_time_query_backend") not in ("numba_cpu", "cuda")
+        or not _native_deskew_supported(track)):
+        return None
+    try:
+        from calibrex.data.numba_lidar_deskew_adapter import _PreparedDeskew
+    except ImportError as exc:
+        raise ValueError(
+            "compiled deskew requires the optional calibrex[numba] dependency"
+        ) from exc
+    return _PreparedDeskew.capture(track)
 
 
 def _lidar_topic(config: CalibrationConfig, sensor_name: str) -> str:
@@ -1937,6 +2028,7 @@ def _load_rosbag1_online_pair(
         and target_time_field is not None
     )
     deskew_applied = source_deskew or target_deskew
+    prepared_deskew = _compiled_deskew_context(config, odometry_track, deskew_applied)
     deskew_span_min: float | None = None
     deskew_span_max: float | None = None
     point_time_observed_by_sensor = {source_sensor: False, target_sensor: False}
@@ -2071,6 +2163,7 @@ def _load_rosbag1_online_pair(
                     odometry_track,
                     remaining,
                     extrapolation_tolerance_s,
+                    _prepared=prepared_deskew,
                 )
             elif motion_compensated and odometry_track is not None:
                 t_world_base, _clamped, extrapolation_s = odometry_track.interpolate(
@@ -2200,6 +2293,7 @@ def _load_rosbag1_online_pair(
                     odometry_track,
                     inputs.max_target_points,
                     inject_time_offset_s=inputs.inject_time_offset_s,
+                    _prepared=prepared_deskew,
                 )
             )
         elif motion_compensated and odometry_track is not None:
@@ -2375,6 +2469,8 @@ def _load_rosbag1_online_pair(
             deskew_span_s=deskew_span_s,
         )
     )
+    if prepared_deskew is not None and prepared_deskew.rows:
+        provenance["compiled_deskew_execution"] = prepared_deskew.identity()
     if abs(inputs.inject_time_offset_s) > 1.0e-12:
         provenance["time_offset_injected_s"] = inputs.inject_time_offset_s
         provenance["time_offset_injection_warning"] = (
@@ -2737,6 +2833,7 @@ def _load_rosbag2_online_pair(
         and target_time_field is not None
     )
     deskew_applied = source_deskew or target_deskew
+    prepared_deskew = _compiled_deskew_context(config, odometry_track, deskew_applied)
     deskew_span_min: float | None = None
     deskew_span_max: float | None = None
     point_time_observed_by_sensor = {source_sensor: False, target_sensor: False}
@@ -2878,6 +2975,7 @@ def _load_rosbag2_online_pair(
                     odometry_track,
                     remaining,
                     extrapolation_tolerance_s,
+                    _prepared=prepared_deskew,
                 )
             elif motion_compensated and odometry_track is not None:
                 t_world_base, _clamped, extrapolation_s = odometry_track.interpolate(
@@ -3023,6 +3121,7 @@ def _load_rosbag2_online_pair(
                     odometry_track,
                     inputs.max_target_points,
                     inject_time_offset_s=inputs.inject_time_offset_s,
+                    _prepared=prepared_deskew,
                 )
             )
         elif motion_compensated and odometry_track is not None:
@@ -3192,6 +3291,8 @@ def _load_rosbag2_online_pair(
             deskew_span_s=deskew_span_s,
         )
     )
+    if prepared_deskew is not None and prepared_deskew.rows:
+        provenance["compiled_deskew_execution"] = prepared_deskew.identity()
     if abs(inputs.inject_time_offset_s) > 1.0e-12:
         provenance["time_offset_injected_s"] = inputs.inject_time_offset_s
         provenance["time_offset_injection_warning"] = (
@@ -4134,6 +4235,10 @@ def _evaluate_continuous_time_lidar_pair(
             )
     if continuous_options.query_backend != "python":
         notes.append("continuous_time_query_execution: " + solved.query_backend)
+    if "compiled_deskew_execution" in replay_provenance:
+        notes.append(
+            "continuous_time_replay_execution: " + replay_provenance["compiled_deskew_execution"]
+        )
     train_diagnostics = None
     if solved.train_diagnostics is not None:
         train_diagnostics = train_diagnostics_artifact_from_data(
