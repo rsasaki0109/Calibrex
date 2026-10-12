@@ -64,6 +64,7 @@ SOURCES = (
     "src/calibrex/graph/lidar_point_to_plane.py",
     "src/calibrex/solvers/continuous_time_lidar_pair_solver.py",
     "src/calibrex/solvers/numba_continuous_time_adapter.py",
+    "src/calibrex/solvers/cuda_continuous_time_adapter.py",
     "src/calibrex/solvers/fixed_trajectory_se3_solver.py",
     "src/calibrex/solvers/robust_lidar_observations.py",
     "src/calibrex/evaluation/lidar.py",
@@ -112,7 +113,10 @@ def _comparison_canonical(payload: dict) -> str:
     if "notes" in provenance:
         provenance["notes"] = [note for note in provenance["notes"] if re.fullmatch(
             r"continuous_time_query_execution: (python|calibrex\.numba_continuous_time/v0\.[1-6];"
-            r"numba=[0-9.]+;fastmath=false;cache=(true|false))", note,
+            r"numba=[0-9.]+;fastmath=false;cache=(true|false)|"
+            r"calibrex\.cuda_continuous_time/v0\.1;fp64=true;fma=false;"
+            r"cupy=[0-9.]+;cuda=[0-9]+;driver=[0-9]+;numba=[0-9.]+;"
+            r"trajectory_cpu=true;normal_cpu=true;kernel_sha256=[0-9a-f]{64})", note,
         ) is None]
     return _canonical(comparable)
 
@@ -266,6 +270,14 @@ def _worker(args: argparse.Namespace) -> None:
 
     def measured_solve(*arguments, **keywords):
         nonlocal solver_seconds, sampled_split
+        override = getattr(args, "candidate_query_backend", None)
+        if args.worker == "sparse" and override is not None:
+            from dataclasses import replace
+
+            # The shared config/splits remain bound. Record this sole execution
+            # override explicitly in the measurement and the worker command.
+            arguments = (*arguments[:2], replace(arguments[2], query_backend=override),
+                         *arguments[3:])
         sampled_split = _split_binding(
             arguments[1], arguments[2] if len(arguments) > 2 else keywords.get("options"),
         )
@@ -300,6 +312,10 @@ def _worker(args: argparse.Namespace) -> None:
         "sampled_split": sampled_split,
         "result": json.loads(canonical),
         "result_sha256": _digest(output),
+        "execution_override": (getattr(args, "candidate_query_backend", None)
+                               if args.worker == "sparse" else None),
+        "loaded_cuda_module": (getattr(sys.modules.get(
+            "calibrex.solvers.cuda_continuous_time_adapter"), "__file__", None)),
     }
     # Sum CPU time across this worker's threads. Measurement-JSON serialization
     # and interpreter startup are outside this diagnostic; complete wall keeps both.
@@ -390,6 +406,10 @@ def main(argv: list[str] | None = None) -> None:
         "--baseline-scope", choices=("adaptive", "runtime", "compiled"), default="adaptive",
     )
     parser.add_argument("--repetitions", type=int, default=5)
+    parser.add_argument(
+        "--candidate-query-backend", choices=("numba_cpu", "cuda"),
+        help="Compiled scope only: override candidate execution, retaining all physical settings.",
+    )
     parser.add_argument("--omp-threads", type=int, default=1)
     parser.add_argument(
         "--numba-cache-policy", choices=("persistent", "cold"), default="persistent",
@@ -410,6 +430,8 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.repetitions < 1 or args.omp_threads < 1:
         raise ValueError("repetitions and OMP threads must be positive")
+    if args.candidate_query_backend is not None and args.baseline_scope != "compiled":
+        raise ValueError("candidate query override requires compiled scope")
     if args.output_dir.exists() and any(args.output_dir.iterdir()):
         raise ValueError("output directory must be new or empty")
     from calibrex.core.benchmark import (
@@ -480,6 +502,8 @@ def main(argv: list[str] | None = None) -> None:
                 "--baseline-scope", args.baseline_scope,
                 "--config", str(args.config), "--output-dir", str(directory),
             ]
+            if args.candidate_query_backend is not None:
+                command.extend(["--candidate-query-backend", args.candidate_query_backend])
             print(f"START {repeat} {method}", flush=True)
             cache_directory = args.output_dir / "numba-cache" / (
                 f"{method}.repeat-{repeat:02d}" if args.numba_cache_policy == "cold" else
@@ -487,6 +511,14 @@ def main(argv: list[str] | None = None) -> None:
             )
             cache_directory.mkdir(parents=True, exist_ok=True)
             environment["NUMBA_CACHE_DIR"] = str(cache_directory)
+            cuda_cache = None
+            if args.candidate_query_backend == "cuda":
+                cuda_cache = args.output_dir / "cuda-cache" / method
+                cuda_cache.mkdir(parents=True, exist_ok=True)
+                environment["CUPY_CACHE_DIR"] = str(cuda_cache)
+            cuda_cache_before = ({path.name: _digest(path)
+                                  for path in sorted(cuda_cache.rglob("*")) if path.is_file()}
+                                 if cuda_cache is not None else {})
             cache_before = {path.name: _digest(path) for path in sorted(cache_directory.rglob("*"))
                             if path.is_file()}
             started = time.perf_counter()
@@ -497,6 +529,9 @@ def main(argv: list[str] | None = None) -> None:
                                stdout=log, stderr=subprocess.STDOUT)
             elapsed = time.perf_counter() - started
             row = json.loads((directory / "measurement.json").read_bytes())
+            cuda_cache_after = ({path.name: _digest(path)
+                                 for path in sorted(cuda_cache.rglob("*")) if path.is_file()}
+                                if cuda_cache is not None else {})
             cache_after = {path.name: _digest(path) for path in sorted(cache_directory.rglob("*"))
                            if path.is_file()}
             expected = {
@@ -506,6 +541,13 @@ def main(argv: list[str] | None = None) -> None:
             }
             if row["loaded_evaluation_modules"] != expected:
                 raise ValueError("baseline/candidate module binding mismatch")
+            if args.candidate_query_backend == "cuda" and method == "sparse":
+                expected_cuda = str(Path(
+                    "src/calibrex/solvers/cuda_continuous_time_adapter.py",
+                ).resolve())
+                if (row["loaded_cuda_module"] != expected_cuda
+                    or row["execution_override"] != "cuda"):
+                    raise ValueError("CUDA candidate execution binding mismatch")
             if split_anchor is None:
                 split_anchor = row["sampled_split"]
             if row["sampled_split"] != split_anchor:
@@ -537,6 +579,10 @@ def main(argv: list[str] | None = None) -> None:
                                            row["loaded_evaluation_modules"]
                                        ),
                                        "loaded_module": row["loaded_module"],
+                                       "execution_override": row["execution_override"],
+                                       "loaded_cuda_module": row["loaded_cuda_module"],
+                                       "cuda_cache_before": cuda_cache_before,
+                                       "cuda_cache_after": cuda_cache_after,
                                        "numba_cache_policy": args.numba_cache_policy,
                                        "numba_cache_before": cache_before,
                                        "numba_cache_after": cache_after}, sort_keys=True),
@@ -622,6 +668,9 @@ def main(argv: list[str] | None = None) -> None:
             "Numba cache policy is recorded per trial, with compiled file hashes before/after. "
             "The first candidate uses an empty cache; all import/compile/load work is inside wall.",
             "Compiled scope gives each method its own persistent cache, initially empty.",
+            f"Candidate execution override: {args.candidate_query_backend}; "
+            "all physical options and splits are shared. CUDA runs also own a fresh persistent "
+            "kernel cache with trial-level before/after digests; compilation stays inside wall.",
             "Worker CPU sums all worker threads from entry through the saved-result hash; "
             "interpreter startup and measurement JSON serialization are outside that diagnostic.",
             "Raw checksums and conversion lineage are verified before measurement.",

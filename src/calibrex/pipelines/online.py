@@ -4262,10 +4262,10 @@ def _continuous_time_lidar_options(
         "adaptive" if raw_voxel_strategy == "adaptive" else "uniform"
     )
     backend = str(options.get("continuous_time_query_backend", "python"))
-    if backend not in ("python", "numba_cpu"):
-        raise ConfigError("continuous_time_query_backend must be python or numba_cpu")
-    query_backend: Literal["python", "numba_cpu"] = (
-        "numba_cpu" if backend == "numba_cpu" else "python"
+    if backend not in ("python", "numba_cpu", "cuda"):
+        raise ConfigError("continuous_time_query_backend must be python, numba_cpu or cuda")
+    query_backend: Literal["python", "numba_cpu", "cuda"] = (
+        "cuda" if backend == "cuda" else "numba_cpu" if backend == "numba_cpu" else "python"
     )
     return ContinuousTimeLidarPairOptions(
         query_backend=query_backend,

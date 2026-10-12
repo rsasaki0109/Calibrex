@@ -87,6 +87,31 @@ def test_compiled_default_config_preserves_capture_and_sampling():
     assert left == right
 
 
+def test_cuda_comparison_preserves_results_and_excludes_only_bound_execution_identity():
+    baseline = {"status": "converged", "provenance": {"git_commit": "bound", "notes": []}}
+    candidate = deepcopy(baseline)
+    identity = (
+        "continuous_time_query_execution: calibrex.cuda_continuous_time/v0.1;"
+        "fp64=true;fma=false;cupy=14.0.1;cuda=12090;driver=13000;numba=0.65.1;"
+        "trajectory_cpu=true;normal_cpu=true;kernel_sha256=" + "a"*64
+    )
+    candidate["provenance"]["notes"].append(identity)
+    assert benchmark._comparison_canonical(candidate) == benchmark._canonical(baseline)
+    assert benchmark._canonical(candidate) != benchmark._canonical(baseline)
+    for forged in (identity+";hidden=change", identity.replace("fma=false", "fma=true"),
+                   identity.replace("normal_cpu=true", "normal_cpu=false")):
+        changed = deepcopy(baseline)
+        changed["provenance"]["notes"].append(forged)
+        assert benchmark._comparison_canonical(changed) != benchmark._canonical(baseline)
+
+
+def test_cuda_override_requires_compiled_scope_before_input_reads(tmp_path):
+    with pytest.raises(ValueError, match="override requires compiled scope"):
+        benchmark.main(["--output-dir", str(tmp_path/"cuda"),
+                        "--candidate-query-backend", "cuda"])
+    assert not (tmp_path/"cuda").exists()
+
+
 @pytest.mark.parametrize("option", ["--repetitions", "--omp-threads"])
 def test_invalid_budget_is_rejected_before_reading_inputs_or_creating_outputs(tmp_path, option):
     destination = tmp_path / "output"

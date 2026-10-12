@@ -128,7 +128,7 @@ class ContinuousTimeLidarPairOptions:
     solver: FixedTrajectorySe3SolverOptions = field(
         default_factory=FixedTrajectorySe3SolverOptions
     )
-    query_backend: Literal["python", "numba_cpu"] = "python"
+    query_backend: Literal["python", "numba_cpu", "cuda"] = "python"
 
 
 @dataclass(frozen=True)
@@ -208,8 +208,14 @@ class _QueryReuse:
     observation_builder: _PreparedObservationBuilder | None = None
     packed_builder: _PackedObservationBuilder | None = None
     executor: ThreadPoolExecutor | None = None
+    cuda_device_id: int | None = None
+    used_cuda: bool = False
 
     def identity(self) -> str:
+        if self.used_cuda:
+            from calibrex.solvers.cuda_continuous_time_adapter import cuda_continuous_time_identity
+
+            return cuda_continuous_time_identity()
         if self.used_numba or (self.compiled is not None and self.compiled.used):
             from calibrex.solvers.numba_continuous_time_adapter import (
                 numba_continuous_time_identity,
@@ -245,7 +251,7 @@ class ContinuousTimeLidarPairSolver:
         settings = options or ContinuousTimeLidarPairOptions()
         track = problem.odometry_track
         parallel = (
-            settings.query_backend == "numba_cpu" and len(problem.target_points) >= 16384
+            settings.query_backend in ("numba_cpu", "cuda") and len(problem.target_points) >= 16384
             and (not settings.max_target_points_per_split
                  or settings.max_target_points_per_split >= 8192)
             and type(self) is ContinuousTimeLidarPairSolver
@@ -314,14 +320,14 @@ class ContinuousTimeLidarPairSolver:
             factory = getattr(adaptive_voxel_module, "AdaptivePlaneQueryContext", None)
             if factory is not None:
                 query_reuse.adaptive = factory(adaptive_plane_map)
-        if settings.query_backend == "numba_cpu":
+        if settings.query_backend in ("numba_cpu", "cuda"):
             try:
                 from calibrex.solvers.numba_continuous_time_adapter import (
                     NumbaContinuousTimeQueryContext,
                 )
             except ImportError as exc:
                 raise ValueError(
-                    "numba_cpu queries require the optional calibrex[numba] dependency"
+                    "compiled queries require the optional calibrex[numba] dependency"
                 ) from exc
 
             query_reuse.compiled = NumbaContinuousTimeQueryContext.capture(problem.odometry_track)
@@ -329,6 +335,12 @@ class ContinuousTimeLidarPairSolver:
                 query_reuse.packed_builder = _PackedObservationBuilder.capture(
                     problem.target_points, query_reuse.planes, query_reuse.adaptive,
                 )
+            if settings.query_backend == "cuda":
+                try:
+                    from calibrex.solvers.cuda_continuous_time_adapter import CudaRigLinearizer
+                except ImportError as exc:
+                    raise ValueError("CUDA rig queries require calibrex[cuda,numba]") from exc
+                query_reuse.cuda_device_id = CudaRigLinearizer().device_id
         initial = self._evaluate_offset(
             problem,
             settings,
@@ -712,15 +724,27 @@ class ContinuousTimeLidarPairSolver:
         array_normal_kernel: Callable[
             [FloatArray, FloatArray, bool, float], tuple[list[list[float]], list[float]],
         ] | None = None
-        if settings.query_backend == "numba_cpu":
+        if settings.query_backend in ("numba_cpu", "cuda"):
             from calibrex.solvers.numba_continuous_time_adapter import (
                 numba_rig_linearization,
                 numba_rig_normal_equations,
                 numba_rig_residuals,
             )
+            gpu = None
+            if settings.query_backend == "cuda":
+                from calibrex.solvers.cuda_continuous_time_adapter import CudaRigLinearizer
+
+                gpu = CudaRigLinearizer(
+                    query_reuse.cuda_device_id if query_reuse is not None else None,
+                )
 
             def compiled_residuals(arrays: _ObservationArrays, transform: SE3) -> list[float]:
-                result = numba_rig_residuals(arrays, transform)
+                if gpu is not None and len(arrays.points) >= 4096:
+                    result = gpu.residuals(arrays, transform)
+                    if query_reuse is not None:
+                        query_reuse.used_cuda = True
+                else:
+                    result = numba_rig_residuals(arrays, transform)
                 if query_reuse is not None:
                     query_reuse.used_numba = True
                 return result
@@ -730,7 +754,12 @@ class ContinuousTimeLidarPairSolver:
             def compiled_linearization(
                 arrays: _ObservationArrays, transforms: Sequence[SE3], steps: Sequence[float],
             ) -> tuple[FloatArray, FloatArray]:
-                result = numba_rig_linearization(arrays, transforms, steps)
+                if gpu is not None and len(arrays.points) >= 4096:
+                    result = gpu.linearize(arrays, transforms, steps)
+                    if query_reuse is not None:
+                        query_reuse.used_cuda = True
+                else:
+                    result = numba_rig_linearization(arrays, transforms, steps)
                 if query_reuse is not None:
                     query_reuse.used_numba = True
                 return result
@@ -772,7 +801,7 @@ class ContinuousTimeLidarPairSolver:
         problem: ContinuousTimeLidarPairProblem,
         settings: ContinuousTimeLidarPairOptions,
     ) -> None:
-        if settings.query_backend not in ("python", "numba_cpu"):
+        if settings.query_backend not in ("python", "numba_cpu", "cuda"):
             raise ValueError("unsupported continuous-time query_backend")
         if len(problem.target_points) != len(problem.target_capture_timestamps_ns):
             raise ValueError("target points and capture timestamps must have equal length")
