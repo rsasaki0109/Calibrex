@@ -117,6 +117,30 @@ loaded the scan 0.4 s late. With most frames misaligned, the edges judged no rot
 0009. Files are now taken by frame number, and pairs more than 60 ms apart (the images
 whose own scan is missing) are not used.
 
+### Translation across the optical axis: measured, not judged
+
+Edges and camera-facing surfaces leave `x` and `y` unjudged. A joint fit
+(`estimate_stereo_alignment`) uses LiDAR points on planar surfaces of any facing.
+House fronts along the street see `x`, the road sees `y`. A candidate that puts a point
+`d` away from its surface (normal `n`) reads a disparity residual
+`base * (n . d) / (Z (n . p))`, linear in a translation error and a small rotation
+error, so all six are fitted together with the rig's offset. Each translation axis has a
+moved-candidate control. On a rendered street it recovers x, z and rotation; y, which
+rests on the near road only, is trusted only when its control follows.
+
+On KITTI it is recorded on every data-only trial as a cross-check (the last table
+above) and not judged, because its readings of the same calibration do not agree:
+
+* **x varies more than its uncertainty says.** The reference reads x from -4.6 cm
+  (0005, first 50) to +7.3 cm (0009, spread), while each run's jackknife std is 1 to
+  3 cm. Judged with the check's rule, that systematic would warn the known-bad on x,
+  which it is right in (0009, first 50: 2.7 cm against 2.2 cm).
+* **y is untrusted on three of the four runs.** Its control moves the estimate by a
+  quarter to a half of the move. On the road, y trades off against a roll of the
+  stereo rig.
+* **Its z agrees with the judged one.** It reads the known-bad 0.22 to 0.28 m along the
+  optical axis.
+
 KITTI's calibration is a reference, not ground truth. These readings do not show it
 wrong. The published tests pin them, so a change to either estimator that moves them
 also has to update this page.

@@ -133,8 +133,11 @@ accuracy.
    data-only status is inconclusive. Drive 0009 (same calibration files) reads
    the reference under 1 cm, so the 5 cm belongs to drive 0005, and its spread
    decision passes; on its first 50 frames the known-bad passes with its pitch
-   unjudged (control t under 2). The remaining gaps are pitch observability on
-   short drives and lateral translation (`x`, `y`).
+   unjudged (control t under 2). A joint six-DoF stereo fit is recorded as a
+   cross-check; its x of the same calibration varies by 12 cm across runs, more
+   than its 1-3 cm jackknife std, so `x` and `y` stay unjudged. The remaining
+   gaps are pitch observability on short drives and a lateral translation
+   estimate whose systematic error is bounded.
 2. **Common external execution adoption:** the external-run artifact is proven
    by Koide (fail-closed handoff, readiness, and real-pilot finalization),
    Kalibr (independent Camera--IMU holdout evidence, including the lever arm and a
