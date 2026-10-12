@@ -236,19 +236,74 @@ and only on the training intervals. It then applies the following gates:
 
 The evidence resolves errors about as large as the control magnitudes. A
 candidate that is wrong by less than 2° or 10 ms can still pass, so tighten the
-control magnitudes before the run if a program needs finer resolution. The
-evaluator uses only rotation and time. It does not evaluate the lever arm
-(`T_cam_imu` translation), which needs accelerometer evidence.
+control magnitudes before the run if a program needs finer resolution.
 
-`calibrex external-run synthesize-camera-imu-fixture --output-dir <dir>`
-writes a nonphysical Kalibr camchain with separate fitting and evaluation
-recordings. `--rotation-error-deg X Y Z`, `--timeshift-error-sec`, and
-`--motion yaw_only` produce wrong or unobservable candidates. In the
-regression tests, the true candidate passes with all eight controls detected.
-3° rotation errors and ±20 ms time errors fail, yaw-only motion is
-inconclusive, and reusing the fitting recording is blocked. These results
-prove the external-run contract with a Kalibr producer. They make no accuracy
-claim about Kalibr.
+**Lever arm (`T_cam_imu` translation).** The translation is checked against the
+accelerometer when the recording also carries camera positions
+(`position_m`, same world frame as the orientations) and `imu_accel`
+specific-force samples. The result is reported in the evidence's `lever_arm`
+block. Without that data the block reads `not_evaluated` and the overall status
+is unchanged.
+
+The IMU trajectory the candidate implies is
+`p_imu = p_cam + R_world_cam t_cam_imu`. Over three camera samples
+`t - w, t, t + w`, its second divided difference is the IMU acceleration averaged
+with a triangular kernel. The accelerometer gives the same average independently:
+`a = R_world_imu (f - b_a) + g`, integrated against that kernel. A constant
+accelerometer bias `b_a` and the gravity vector `g` are fitted on training windows
+only. The camera's world frame need not be level, because `g` is fitted in it.
+Comparing positions with doubly integrated acceleration, instead of
+differentiating positions twice, keeps millimetre-level pose noise from swamping
+the signal.
+
+| Gate | Default | Consequence |
+| --- | --- | --- |
+| Camera positions and accelerometer samples present | required | `not_evaluated` |
+| Train/holdout windows (`w` = 0.25 s, same split and guard as above) | ≥ 20 / ≥ 20 | `inconclusive` |
+| Weakest-axis lever-arm excitation (smallest singular value of the rotation's divided difference) | ≥ 0.5 s⁻² | `inconclusive` |
+| Holdout specific-force RMSE | ≤ 0.3 m/s² | `fail` |
+| A ±5 cm control on x/y/z that *lowers* the holdout RMSE by ≥ 0.02 m/s² (a translation 5 cm away fits better) | none allowed | `fail` |
+| Each ±5 cm control raises holdout RMSE by ≥ 0.02 m/s² and ≥ 1.2× | detection ≥ 0.80 | `inconclusive` (the recording cannot test the translation) |
+
+A failing lever arm makes the whole evidence `fail`. An inconclusive one adds a
+warning, so a `pass` on rotation and time becomes `warn`.
+
+`calibrex external-run synthesize-camera-imu-fixture --output-dir <dir>` writes a
+nonphysical Kalibr camchain with separate fitting and evaluation recordings. The
+recordings carry camera positions and a biased, noisy accelerometer in a tilted
+world frame. Options produce wrong or unobservable candidates:
+
+- `--rotation-error-deg X Y Z` and `--timeshift-error-sec` for rotation and time
+  errors;
+- `--translation-error-m X Y Z` for a lever-arm error;
+- `--motion yaw_only` for unobservable motion;
+- `--no-accelerometer` to leave the translation unevaluated.
+
+In the regression tests:
+
+- The true candidate passes with all eight rotation/time controls and all six
+  lever-arm controls detected. The train-only fit recovers gravity (9.81 m/s²)
+  and the bias.
+- 3° rotation errors and ±20 ms time errors fail.
+- ±5 cm lever-arm errors on each axis fail.
+- Yaw-only motion is inconclusive, and reusing the fitting recording is blocked.
+
+These results prove the external-run contract with a Kalibr producer. They make
+no accuracy claim about Kalibr.
+
+**A public Kalibr run.** UZH-FPV publishes the Kalibr camchain of its Snapdragon
+forward camera, fitted on the indoor calibration recording. Evaluated on the
+separately captured outdoor recording (poses from
+`tools/aprilgrid_camera_imu_recording.py`), the published translation passes:
+
+- holdout specific-force RMSE 0.102 m/s²;
+- 6/6 lever-arm controls detected;
+- every ±5 cm perturbation of it fails.
+
+Rotation and time are not admissible on that recording. Frame-to-frame AprilGrid
+poses make the camera rates too noisy for the 0.05 rad/s budget (holdout RMSE
+0.171 rad/s). Details, license boundary and commands:
+[`examples/public_datasets/uzh_fpv_kalibr_camera_imu`](https://github.com/rsasaki0109/Calibrex/tree/main/examples/public_datasets/uzh_fpv_kalibr_camera_imu).
 
 ### LI-Init result import
 

@@ -106,7 +106,7 @@ accuracy.
 | Pandey mutual-information Camera-LiDAR | Native CLI backend | Frame holdout, 12 probes, objective curvature | Real A2D2 image/reflectivity run FAILs; inputs are already camera-registered and are not independent accuracy evidence | Experimental | Core Apache-2.0; A2D2 CC BY-ND 4.0 |
 | Levinson-Thrun online edge Camera-LiDAR | Native CLI backend | Temporal holdout, online window diagnostics, curvature | Two-pair A2D2 run is WARN/INCONCLUSIVE | Experimental | Core Apache-2.0; A2D2 CC BY-ND 4.0 |
 | Koide-style direct visual-LiDAR | Executable/precomputed adapter | Generic external-run artifact, input readiness, tool identity, result digest, common Camera-LiDAR evidence | Boundary is implemented; no maintained full-scale comparison result | Adapter | Upstream toolbox MIT; ROS/PCL/GTSAM/Ceres remain external |
-| Kalibr Camera-IMU/camera chain | YAML importer plus native evaluator | Generic external-run artifact with transforms, intrinsics, time shifts, digests, conventions, and isolation declaration. Independent evidence (`external-run evaluate-camera-imu`) checks rotation and time shift with an angular-rate holdout, a train-only gyro bias, excitation gates, and eight signed controls, and blocks leakage | Synthetic Kalibr-producer proof only: truth PASS, 3°/20 ms errors FAIL, yaw-only INCONCLUSIVE. No public Kalibr run has been evaluated, and lever arm is not evaluated | Adapter | Top-level BSD-4-Clause; ROS/Kalibr runtime stays external |
+| Kalibr Camera-IMU/camera chain | YAML importer plus native evaluator | Generic external-run artifact with transforms, intrinsics, time shifts, digests, conventions, and isolation declaration. Independent evidence (`external-run evaluate-camera-imu`) checks rotation and time shift with an angular-rate holdout, a train-only gyro bias, excitation gates, and eight signed controls, and blocks leakage | Synthetic Kalibr-producer proof (truth PASS; 3°/20 ms and ±5 cm errors FAIL; yaw-only INCONCLUSIVE). Accelerometer lever-arm check with train-only bias/gravity and six signed controls. Public UZH-FPV Kalibr camchain on a separate recording: translation PASS and every ±5 cm perturbation FAILs; rotation/time not admissible (AprilGrid pose noise) | Adapter | Top-level BSD-4-Clause; ROS/Kalibr runtime stays external |
 | Per-point Camera-LiDAR capture time | Native solver plus TIERS adapter | Disjoint capture holdout, six time controls, timing observability | Synthetic 17 ms recovery; TIERS real-data result INCONCLUSIVE | Experimental | Core Apache-2.0; TIERS dataset terms |
 | Anchored moving-platform time offset | Native online evidence | Injection controls, adapted/anchored comparison, separability row, declared `capture_time_reference` | Synthetic shared-clock acceptance passes; TIERS selftest misses +-10 ms (+18.9 ms declared) and cannot observe a convention | Evidence only | Core Apache-2.0 |
 | LiDAR-IMU rotation consistency | Native evaluator | Angular-rate holdout, gravity support, per-axis excitation, bad-rotation probes | TIERS Indoor02 evidence; no translation/time native solve | Evidence only | Core Apache-2.0 |
@@ -127,9 +127,9 @@ accuracy.
    benchmark artifact, not only as an opt-in test.
 2. **Common external execution adoption:** the external-run artifact is proven
    by Koide (fail-closed handoff, readiness, and real-pilot finalization),
-   Kalibr (independent Camera--IMU holdout evidence), and iKalibr (import).
-   RIs-Calib, Open3D, and NDT should migrate to it incrementally. Kalibr
-   lever-arm evidence and an evaluated public Kalibr run are still missing.
+   Kalibr (independent Camera--IMU holdout evidence, including the lever arm and a
+   public UZH-FPV run), and iKalibr (import). RIs-Calib, Open3D, and NDT
+   should migrate to it incrementally.
 3. **Empirical uncertainty:** `slac.empirical_se3_uncertainty/v0.1` is
    CLI-wired, with synthetic and opt-in KITTI ground-truth integration tests
    and FeatDepth-gated correspondences. Maintained provider artifacts and
@@ -601,6 +601,26 @@ recording.
 - The synthetic truth passes and a ±5 cm lever-arm error fails.
 - The public run is opt-in, reports honestly, and records the dataset license
   boundary. Its data live outside the repository.
+
+**Done** on 2026-10-12. The evidence gained a `lever_arm` block. When the
+recording carries camera positions and accelerometer samples, the camera
+trajectory's second divided difference over +-0.25 s is compared with the
+accelerometer integrated against the same kernel. A bias and the gravity vector
+(in the camera's world frame) are fitted on training windows only. Six signed
++-5 cm controls must raise the holdout residual: one that lowers it fails the
+candidate, and insensitive controls leave the translation inconclusive. In the
+synthetic test the truth passes and +-5 cm errors on every axis fail.
+
+The public run uses UZH-FPV's Kalibr camchain for the Snapdragon forward camera,
+fitted on the indoor calibration recording. It is evaluated on the outdoor
+recording, posed against its AprilGrid by `tools/aprilgrid_camera_imu_recording.py`
+(OpenCV, outside the core). The published translation passes, with holdout
+specific-force RMSE 0.102 m/s^2 and 6/6 controls detected, and all six +-5 cm
+perturbations fail. The overall status is `fail` because rotation and time are
+not admissible on this recording: frame-to-frame pose noise puts the angular-rate
+RMSE at 0.171 rad/s against 0.05. The dataset page states no license, so the
+data stay outside the repository. Details:
+[example](https://github.com/rsasaki0109/Calibrex/tree/main/examples/public_datasets/uzh_fpv_kalibr_camera_imu).
 
 ### 8. Planar-board line+plane CLI wiring
 

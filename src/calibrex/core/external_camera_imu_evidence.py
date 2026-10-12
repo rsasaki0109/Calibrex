@@ -4,6 +4,9 @@ An external tool such as Kalibr reports ``T_cam_imu`` and ``timeshift_cam_imu``
 together with its own fitness metrics. Those metrics are not comparable across
 tools, so Calibrex re-evaluates the imported candidate on a separate motion
 recording with a disjoint temporal holdout and signed known-bad controls.
+Rotation and time shift are checked against the gyroscope; when the recording
+also carries camera positions and accelerometer samples, the translation
+(lever arm) is checked against the accelerometer.
 """
 
 from __future__ import annotations
@@ -32,10 +35,16 @@ ExternalCameraImuEvidenceStatus = Literal["pass", "warn", "fail", "inconclusive"
 
 
 class CameraOrientationSample(StrictModel):
-    """Camera orientation ``R_world_camera`` on the camera clock."""
+    """Camera orientation ``R_world_camera`` (and optionally position) on the camera clock.
+
+    ``position_m`` is the camera origin in the same world frame, for example from
+    the camera's pose against a calibration target. The world frame need not be
+    gravity aligned.
+    """
 
     timestamp_sec: float
     rotation_quat_xyzw: list[float] = Field(min_length=4, max_length=4)
+    position_m: list[float] | None = Field(default=None, min_length=3, max_length=3)
 
 
 class ImuGyroSample(StrictModel):
@@ -43,6 +52,13 @@ class ImuGyroSample(StrictModel):
 
     timestamp_sec: float
     omega_rad_s: list[float] = Field(min_length=3, max_length=3)
+
+
+class ImuAccelSample(StrictModel):
+    """Body-frame accelerometer sample (specific force, gravity included) on the IMU clock."""
+
+    timestamp_sec: float
+    specific_force_m_s2: list[float] = Field(min_length=3, max_length=3)
 
 
 class CameraImuMotionRecordingProvenance(StrictModel):
@@ -75,6 +91,7 @@ class CameraImuMotionRecording(StrictModel):
     )
     camera_orientations: list[CameraOrientationSample] = Field(min_length=2)
     imu_gyro: list[ImuGyroSample] = Field(min_length=2)
+    imu_accel: list[ImuAccelSample] = Field(default_factory=list)
     provenance: CameraImuMotionRecordingProvenance
 
     @model_validator(mode="after")
@@ -84,6 +101,7 @@ class CameraImuMotionRecording(StrictModel):
         for name, stamps in (
             ("camera_orientations", [item.timestamp_sec for item in self.camera_orientations]),
             ("imu_gyro", [item.timestamp_sec for item in self.imu_gyro]),
+            ("imu_accel", [item.timestamp_sec for item in self.imu_accel]),
         ):
             if any(later <= earlier for earlier, later in pairwise(stamps)):
                 msg = f"{name} timestamps must be strictly increasing"
@@ -150,6 +168,11 @@ class CameraImuEvidenceThresholds(StrictModel):
     control_min_rmse_increase_rad_s: float = Field(default=0.005, ge=0.0)
     control_min_rmse_ratio: float = Field(default=1.2, ge=1.0)
     min_control_detection_fraction: float = Field(default=0.8, ge=0.0, le=1.0)
+    lever_arm_window_sec: float = Field(default=0.25, gt=0.0)
+    lever_arm_control_m: float = Field(default=0.05, gt=0.0)
+    max_holdout_specific_force_rmse_m_s2: float = Field(default=0.3, gt=0.0)
+    min_lever_arm_excitation_s2: float = Field(default=0.5, ge=0.0)
+    lever_arm_control_min_increase_m_s2: float = Field(default=0.02, ge=0.0)
 
     @model_validator(mode="after")
     def require_ordered_holdout(self) -> CameraImuEvidenceThresholds:
@@ -193,6 +216,47 @@ class CameraImuControl(StrictModel):
     detected: bool
 
 
+class CameraImuLeverArmControl(StrictModel):
+    """One signed known-bad lever-arm (``T_cam_imu`` translation) perturbation."""
+
+    control_id: str
+    axis: Literal["x", "y", "z"]
+    signed_magnitude_m: float
+    holdout_specific_force_rmse_m_s2: float = Field(ge=0.0)
+    rmse_increase_m_s2: float
+    detected: bool
+
+
+CameraImuLeverArmStatus = Literal["pass", "fail", "inconclusive", "not_evaluated"]
+
+
+class CameraImuLeverArmEvidence(StrictModel):
+    """Accelerometer check of the imported translation (the IMU origin in the camera frame).
+
+    The camera trajectory's second divided difference over a window
+    ``[t - w, t + w]`` is compared with the accelerometer integrated against the
+    same triangular kernel; a constant accelerometer bias and the gravity vector
+    in the (not necessarily level) world frame are fitted on the training
+    windows only.
+    """
+
+    status: CameraImuLeverArmStatus
+    reasons: list[str] = Field(default_factory=list)
+    window_sec: float | None = Field(default=None, gt=0.0)
+    train_window_count: int = Field(default=0, ge=0)
+    holdout_window_count: int = Field(default=0, ge=0)
+    estimated_accel_bias_m_s2: list[float] | None = Field(default=None, min_length=3, max_length=3)
+    estimated_gravity_world_m_s2: list[float] | None = Field(
+        default=None, min_length=3, max_length=3
+    )
+    gravity_magnitude_m_s2: float | None = Field(default=None, ge=0.0)
+    train_specific_force_rmse_m_s2: float | None = Field(default=None, ge=0.0)
+    holdout_specific_force_rmse_m_s2: float | None = Field(default=None, ge=0.0)
+    excitation_s2: float | None = Field(default=None, ge=0.0)
+    controls: list[CameraImuLeverArmControl] = Field(default_factory=list)
+    control_detection_fraction: float | None = Field(default=None, ge=0.0, le=1.0)
+
+
 class ExternalCameraImuEvidenceProvenance(StrictModel):
     """Lineage of the evidence artifact itself."""
 
@@ -224,6 +288,7 @@ class ExternalCameraImuEvidenceArtifact(StrictModel):
     excitation: CameraImuExcitation | None = None
     controls: list[CameraImuControl] = Field(default_factory=list)
     control_detection_fraction: float | None = Field(default=None, ge=0.0, le=1.0)
+    lever_arm: CameraImuLeverArmEvidence | None = None
     status: ExternalCameraImuEvidenceStatus
     reasons: list[str] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
