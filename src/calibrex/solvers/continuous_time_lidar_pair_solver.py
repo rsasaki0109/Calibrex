@@ -22,6 +22,7 @@ import numpy as np
 
 if TYPE_CHECKING:
     from calibrex.data.adaptive_voxel import AdaptivePlaneQueryContext
+    from calibrex.solvers.cuda_continuous_time_adapter import CudaRigLinearizer
     from calibrex.solvers.numba_continuous_time_adapter import (
         FloatArray,
         NumbaContinuousTimeQueryContext,
@@ -208,7 +209,7 @@ class _QueryReuse:
     observation_builder: _PreparedObservationBuilder | None = None
     packed_builder: _PackedObservationBuilder | None = None
     executor: ThreadPoolExecutor | None = None
-    cuda_device_id: int | None = None
+    cuda_rig: CudaRigLinearizer | None = None
     used_cuda: bool = False
 
     def identity(self) -> str:
@@ -335,12 +336,16 @@ class ContinuousTimeLidarPairSolver:
                 query_reuse.packed_builder = _PackedObservationBuilder.capture(
                     problem.target_points, query_reuse.planes, query_reuse.adaptive,
                 )
-            if settings.query_backend == "cuda":
+            # Small capture budgets remain on CPU, avoiding CUDA import/context
+            # costs. Once captured, GPU batches retain even MAD-trimmed rows.
+            if (settings.query_backend == "cuda" and query_reuse.packed_builder is not None
+                and min(len(problem.target_points), settings.max_target_points_per_split
+                        or len(problem.target_points)) >= 8192):
                 try:
                     from calibrex.solvers.cuda_continuous_time_adapter import CudaRigLinearizer
                 except ImportError as exc:
                     raise ValueError("CUDA rig queries require calibrex[cuda,numba]") from exc
-                query_reuse.cuda_device_id = CudaRigLinearizer().device_id
+                query_reuse.cuda_rig = CudaRigLinearizer()
         initial = self._evaluate_offset(
             problem,
             settings,
@@ -730,16 +735,11 @@ class ContinuousTimeLidarPairSolver:
                 numba_rig_normal_equations,
                 numba_rig_residuals,
             )
-            gpu = None
-            if settings.query_backend == "cuda":
-                from calibrex.solvers.cuda_continuous_time_adapter import CudaRigLinearizer
-
-                gpu = CudaRigLinearizer(
-                    query_reuse.cuda_device_id if query_reuse is not None else None,
-                )
+            gpu = (query_reuse.cuda_rig.fork() if query_reuse is not None
+                   and query_reuse.cuda_rig is not None else None)
 
             def compiled_residuals(arrays: _ObservationArrays, transform: SE3) -> list[float]:
-                if gpu is not None and len(arrays.points) >= 4096:
+                if gpu is not None:
                     result = gpu.residuals(arrays, transform)
                     if query_reuse is not None:
                         query_reuse.used_cuda = True
@@ -754,7 +754,7 @@ class ContinuousTimeLidarPairSolver:
             def compiled_linearization(
                 arrays: _ObservationArrays, transforms: Sequence[SE3], steps: Sequence[float],
             ) -> tuple[FloatArray, FloatArray]:
-                if gpu is not None and len(arrays.points) >= 4096:
+                if gpu is not None:
                     result = gpu.linearize(arrays, transforms, steps)
                     if query_reuse is not None:
                         query_reuse.used_cuda = True

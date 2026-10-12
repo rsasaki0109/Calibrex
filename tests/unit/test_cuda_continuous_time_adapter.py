@@ -116,6 +116,17 @@ def test_owned_stream_and_device_restore_callers_cuda_context():
     assert gpu._stream.ptr != stream.ptr
 
 
+def test_fork_shares_compiled_kernels_and_owns_payload_and_stream():
+    cpu, factor, gpu = _factors()
+    fork = gpu.fork()
+    assert fork._linearize is gpu._linearize and fork._residuals is gpu._residuals
+    assert fork._stream.ptr != gpu._stream.ptr
+    arrays = factor._prepared_arrays()
+    assert arrays is not None
+    assert fork.residuals(arrays, factor._corrected_transform(None)) == cpu.residuals()
+    assert fork._arrays is arrays and gpu._arrays is None
+
+
 def test_input_budget_mutability_and_zero_steps_are_checked_before_launch():
     _, factor, gpu = _factors()
     arrays = factor._prepared_arrays()
@@ -130,11 +141,19 @@ def test_input_budget_mutability_and_zero_steps_are_checked_before_launch():
         wrong = arrays.points[:-1].copy()
         wrong.flags.writeable = False
         gpu.residuals(replace(arrays, points=wrong), SE3.identity())
+    with pytest.raises(ValueError, match="payload budget"):
+        gpu.residuals(replace(arrays,
+            points=np.broadcast_to(arrays.points[0], (1_000_000, 3)),
+            plane_points=np.broadcast_to(arrays.plane_points[0], (1_000_000, 3)),
+            normals=np.broadcast_to(arrays.normals[0], (1_000_000, 3)),
+            poses=np.broadcast_to(arrays.poses[0], (1_000_000, 7)),
+            sqrt_weights=np.broadcast_to(arrays.sqrt_weights[0], (1_000_000,)),
+        ), SE3.identity())
 
 
 def test_identity_binds_kernel_and_declares_cpu_trajectory_and_reduction():
     identity = cuda_continuous_time_identity()
-    assert identity.startswith("calibrex.cuda_continuous_time/v0.1;fp64=true;fma=false;")
+    assert identity.startswith("calibrex.cuda_continuous_time/v0.2;fp64=true;fma=false;")
     assert ";trajectory_cpu=true;normal_cpu=true;kernel_sha256=" in identity
     assert len(identity.rsplit("=", 1)[1]) == 64
 

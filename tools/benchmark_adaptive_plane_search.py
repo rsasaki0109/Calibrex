@@ -114,7 +114,7 @@ def _comparison_canonical(payload: dict) -> str:
         provenance["notes"] = [note for note in provenance["notes"] if re.fullmatch(
             r"continuous_time_query_execution: (python|calibrex\.numba_continuous_time/v0\.[1-6];"
             r"numba=[0-9.]+;fastmath=false;cache=(true|false)|"
-            r"calibrex\.cuda_continuous_time/v0\.1;fp64=true;fma=false;"
+            r"calibrex\.cuda_continuous_time/v0\.[1-2];fp64=true;fma=false;"
             r"cupy=[0-9.]+;cuda=[0-9]+;driver=[0-9]+;numba=[0-9.]+;"
             r"trajectory_cpu=true;normal_cpu=true;kernel_sha256=[0-9a-f]{64})", note,
         ) is None]
@@ -177,6 +177,7 @@ def _worker(args: argparse.Namespace) -> None:
     query_seconds = solver_seconds = 0.0
     query_count = 0
     sampled_split = None
+    captured_target_count = 0
     normal_calculations = pose_calculations = 0
     fallback = livox._fallback_plane_normal
     interpolate_pose = odometry_track.interpolate_se3
@@ -269,7 +270,8 @@ def _worker(args: argparse.Namespace) -> None:
                 query_seconds += elapsed
 
     def measured_solve(*arguments, **keywords):
-        nonlocal solver_seconds, sampled_split
+        nonlocal solver_seconds, sampled_split, captured_target_count
+        captured_target_count = len(arguments[1].target_points)
         override = getattr(args, "candidate_query_backend", None)
         if args.worker == "sparse" and override is not None:
             from dataclasses import replace
@@ -316,6 +318,7 @@ def _worker(args: argparse.Namespace) -> None:
                                if args.worker == "sparse" else None),
         "loaded_cuda_module": (getattr(sys.modules.get(
             "calibrex.solvers.cuda_continuous_time_adapter"), "__file__", None)),
+        "captured_target_count": captured_target_count,
     }
     # Sum CPU time across this worker's threads. Measurement-JSON serialization
     # and interpreter startup are outside this diagnostic; complete wall keeps both.
@@ -545,7 +548,10 @@ def main(argv: list[str] | None = None) -> None:
                 expected_cuda = str(Path(
                     "src/calibrex/solvers/cuda_continuous_time_adapter.py",
                 ).resolve())
-                if (row["loaded_cuda_module"] != expected_cuda
+                cap = factor.options.get("continuous_time_max_target_points_per_split")
+                cuda_eligible = min(row["captured_target_count"],
+                                    cap or row["captured_target_count"]) >= 8192
+                if (row["loaded_cuda_module"] != (expected_cuda if cuda_eligible else None)
                     or row["execution_override"] != "cuda"):
                     raise ValueError("CUDA candidate execution binding mismatch")
             if split_anchor is None:
@@ -670,7 +676,8 @@ def main(argv: list[str] | None = None) -> None:
             "Compiled scope gives each method its own persistent cache, initially empty.",
             f"Candidate execution override: {args.candidate_query_backend}; "
             "all physical options and splits are shared. CUDA runs also own a fresh persistent "
-            "kernel cache with trial-level before/after digests; compilation stays inside wall.",
+            "kernel cache with trial-level before/after digests; compilation stays inside wall. "
+            "CUDA dispatch retains CPU execution below the 8192-row capture budget.",
             "Worker CPU sums all worker threads from entry through the saved-result hash; "
             "interpreter startup and measurement JSON serialization are outside that diagnostic.",
             "Raw checksums and conversion lineage are verified before measurement.",

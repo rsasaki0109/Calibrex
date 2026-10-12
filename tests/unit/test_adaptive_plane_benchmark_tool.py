@@ -98,6 +98,9 @@ def test_cuda_comparison_preserves_results_and_excludes_only_bound_execution_ide
     candidate["provenance"]["notes"].append(identity)
     assert benchmark._comparison_canonical(candidate) == benchmark._canonical(baseline)
     assert benchmark._canonical(candidate) != benchmark._canonical(baseline)
+    newer = deepcopy(candidate)
+    newer["provenance"]["notes"] = [identity.replace("v0.1", "v0.2")]
+    assert benchmark._comparison_canonical(newer) == benchmark._canonical(baseline)
     for forged in (identity+";hidden=change", identity.replace("fma=false", "fma=true"),
                    identity.replace("normal_cpu=true", "normal_cpu=false")):
         changed = deepcopy(baseline)
@@ -110,6 +113,22 @@ def test_cuda_override_requires_compiled_scope_before_input_reads(tmp_path):
         benchmark.main(["--output-dir", str(tmp_path/"cuda"),
                         "--candidate-query-backend", "cuda"])
     assert not (tmp_path/"cuda").exists()
+
+
+def test_dense_config_changes_only_the_explicit_per_message_capture_budget():
+    from calibrex.core.config import load_config
+
+    root = "examples/public_datasets/glim_versatile/"
+    left, right = [load_config(root+name).model_dump(mode="json") for name in (
+        "online_continuous_time_compiled_full_capture_config.yaml",
+        "online_continuous_time_compiled_dense_capture_config.yaml",
+    )]
+    for value in (left, right):
+        value.pop("project")
+    options = right["pipeline"]["factors"]["lidar_rig_point_to_plane"]["options"]
+    assert options["max_target_points"] == 8000
+    options["max_target_points"] = 400
+    assert left == right
 
 
 @pytest.mark.parametrize("option", ["--repetitions", "--omp-threads"])

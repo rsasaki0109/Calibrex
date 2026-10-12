@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from dataclasses import asdict, replace
 
 import numpy as np
@@ -196,6 +197,24 @@ def test_native_constructor_and_query_overrides_keep_unpacked_semantics(monkeypa
                          voxel_size_m=1.0, correspondence_gate_m=1.5) is None
     monkeypatch.setattr(graph.LidarPointToPlaneObservation, "__post_init__", lambda self: None)
     assert _PackedObservationBuilder.capture(points, None, None) is None
+
+
+def test_small_cuda_budget_uses_exact_cpu_execution_without_importing_cupy(monkeypatch):
+    records, points, samples, times = _fixture(1024)
+    problem = ContinuousTimeLidarPairProblem(
+        records, points, times, OdometryTrack(samples), SE3.identity(), SE3.identity(),
+        "T_base_lidar", "target", 1.0, 1.5,
+    )
+    options = ContinuousTimeLidarPairOptions(
+        query_backend="numba_cpu", max_iterations=1,
+        solver=FixedTrajectorySe3SolverOptions(max_iterations=1),
+    )
+    baseline = ContinuousTimeLidarPairSolver().solve(problem, options)
+    monkeypatch.setitem(sys.modules, "calibrex.solvers.cuda_continuous_time_adapter", None)
+    other = replace(problem, odometry_track=OdometryTrack(samples))
+    result = ContinuousTimeLidarPairSolver().solve(other, replace(options, query_backend="cuda"))
+    assert result == baseline
+    assert result.query_backend.startswith("calibrex.numba_continuous_time/")
 
 
 @pytest.mark.parametrize("gate", [1e-200, 2e-170, 3e-170])

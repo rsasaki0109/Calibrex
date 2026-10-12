@@ -71,7 +71,7 @@ extern "C" __global__ void linearize(const double* points,const double* planes,
 def cuda_continuous_time_identity() -> str:
     """Identify arithmetic and runtime without recording a device model."""
     return (
-        "calibrex.cuda_continuous_time/v0.1;fp64=true;fma=false;"
+        "calibrex.cuda_continuous_time/v0.2;fp64=true;fma=false;"
         f"cupy={cp.__version__};cuda={cp.cuda.runtime.runtimeGetVersion()};"
         f"driver={cp.cuda.runtime.driverGetVersion()};"
         f"numba={version('numba')};trajectory_cpu=true;normal_cpu=true;"
@@ -82,7 +82,10 @@ def cuda_continuous_time_identity() -> str:
 class CudaRigLinearizer:
     """Retain one immutable observation payload across optimizer iterations."""
 
-    def __init__(self, device_id: int | None = None) -> None:
+    def __init__(
+        self, device_id: int | None = None,
+        *, _kernels: tuple[cp.RawKernel, cp.RawKernel] | None = None,
+    ) -> None:
         self.device_id = cp.cuda.runtime.getDevice() if device_id is None else device_id
         self._arrays: _ObservationArrays | None = None
         self._payload: tuple[cp.ndarray, ...] = ()
@@ -91,8 +94,19 @@ class CudaRigLinearizer:
         self.rows = 0
         with cp.cuda.Device(self.device_id):
             self._stream = cp.cuda.Stream(non_blocking=True)
-            self._linearize = cp.RawKernel(_SOURCE, "linearize", options=("--fmad=false",))
-            self._residuals = cp.RawKernel(_SOURCE, "residuals", options=("--fmad=false",))
+            if _kernels is None:
+                self._linearize = cp.RawKernel(_SOURCE, "linearize", options=("--fmad=false",))
+                self._residuals = cp.RawKernel(_SOURCE, "residuals", options=("--fmad=false",))
+                self._linearize.compile()
+                self._residuals.compile()
+            else:
+                self._linearize, self._residuals = _kernels
+
+    def fork(self) -> CudaRigLinearizer:
+        """Share compiled kernels with an independently owned stream and payload."""
+        return CudaRigLinearizer(
+            self.device_id, _kernels=(self._linearize, self._residuals),
+        )
 
     def _capture(self, arrays: _ObservationArrays) -> tuple[cp.ndarray, ...]:
         if self._arrays is not arrays:
