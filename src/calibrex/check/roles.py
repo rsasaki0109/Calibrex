@@ -26,7 +26,11 @@ from calibrex.data.rosbag2 import (
     Rosbag2Connection,
     iter_topic_messages,
 )
-from calibrex.data.velodyne_packets import VELODYNE_SCAN_TYPE
+from calibrex.data.velodyne_packets import (
+    VELODYNE_SCAN_TYPE,
+    decode_velodyne_scan_packets,
+    velodyne_packet_format,
+)
 
 VELODYNE_PACKETS_REASON = (
     "raw Velodyne packets (velodyne_msgs/msg/VelodyneScan), not read by the check; "
@@ -158,6 +162,34 @@ def read_header_frames(
     return frames
 
 
+def velodyne_packets_reason(bag: str | Path, topic: str) -> str:
+    """Why a ``VelodyneScan`` topic is skipped, naming its packet format when known.
+
+    A format the converter decodes gets the conversion hint (with a calibration
+    reminder for an HDL-64E); any other format is named as unsupported.
+    """
+
+    try:
+        for _conn, _timestamp_ns, data in iter_topic_messages(bag, topic, limit=1):
+            scan = decode_velodyne_scan_packets(data)
+            if not scan.packets:
+                break
+            packet_format = velodyne_packet_format(scan.packets[0])
+            if not packet_format.supported:
+                return (
+                    f"raw Velodyne packets in a format the converter does not decode "
+                    f"({packet_format.description}; not verified against a reference cloud)"
+                )
+            if packet_format.model == "hdl64e":
+                return (
+                    f"{VELODYNE_PACKETS_REASON} (HDL-64E: pass the sensor's calibration "
+                    "with --calibration)"
+                )
+    except (DatasetError, OSError):
+        pass
+    return VELODYNE_PACKETS_REASON
+
+
 def flag_unreadable_pointclouds(
     bag: str | Path,
     records: Sequence[CheckTopicRecord],
@@ -172,12 +204,10 @@ def flag_unreadable_pointclouds(
     flagged: list[CheckTopicRecord] = []
     for record in records:
         if record.role == "lidar" and record.message_type == VELODYNE_SCAN_TYPE:
+            reason = velodyne_packets_reason(bag, record.topic)
             flagged.append(
                 record.model_copy(
-                    update={
-                        "ignored_reason": VELODYNE_PACKETS_REASON,
-                        "notes": [*record.notes, VELODYNE_PACKETS_REASON],
-                    }
+                    update={"ignored_reason": reason, "notes": [*record.notes, reason]}
                 )
             )
             continue

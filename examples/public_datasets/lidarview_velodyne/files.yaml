@@ -1,0 +1,39 @@
+# Velodyne test recordings and the clouds LidarView decoded from them.
+# Downloaded by `python3 tools/download_public_dataset.py lidarview_velodyne`
+# (data/public/lidarview_velodyne) and compared with
+# `tools/validate_velodyne_decode.py --pcap`. Not part of the repository.
+name: lidarview_velodyne
+source: Kitware LidarView VelodynePlugin test data (pcap, LidarView-decoded VTK clouds, calibration)
+official_url: https://gitlab.kitware.com/LidarView/velodyneplugin
+gitlab_project_id: 6027
+commit: edc6fa8695ff642c2edde38dedb61566c5599b29
+license_spdx: Apache-2.0
+files:
+  LICENSE: f858f05ced7ea722ff18d2246ed9242a24bf0fe35a38b453ff3247b380e24505
+  Testing/Data/HDL_64_Dual/GroundTruth/HDL_64_Dual_1.vtp: c76684625853fdb21199658b4570a93f9b83d9075ba9a68ff0878dadef1bfd10
+  Testing/Data/HDL_64_Dual/GroundTruth/HDL_64_Dual_2.vtp: f39d056b7c56e34a93a3a41fea0c153155f3cc6dc5e81424ef406d3debb0e765
+  Testing/Data/HDL_64_Dual/GroundTruth/HDL_64_Dual_3.vtp: 987091bae9f2eb50418a603d0e47f4f2badc6f28f716216f05951f1a2a18710f
+  Testing/Data/HDL_64_Dual/HDL_64_Dual.pcap: 5f379b86301c10a8d0d602d7dcdb87caa318a98aafd789e99a9b863f2315a41d
+  Testing/Data/HDL_64_Single/GroundTruth/HDL_64_Single_1.vtp: e178dd322a93a2379c8bf794ae561800427d71f3b6a753f951711131dd39e18b
+  Testing/Data/HDL_64_Single/GroundTruth/HDL_64_Single_2.vtp: c7721187a4bd6c7ae753cb9e58f012475df34baf025270cffa9367089260c541
+  Testing/Data/HDL_64_Single/GroundTruth/HDL_64_Single_3.vtp: 9a5b109d0c3c412672a7b7d1ab6c60fd89fc420b3b6ffc3762cd3b1e6a5a2234
+  Testing/Data/HDL_64_Single/HDL_64_Single.pcap: a647fb0efc8471a0139ea54a2eb0aecd0ac41221ed44c2112268ea95dd30f529
+  Testing/Data/VLP_16_Dual/GroundTruth/VLP_16_Dual_1.vtp: b4634b1eaa177d3665cbd8c41a4ff10d2185aa51b222e88901359a97be6fd2d8
+  Testing/Data/VLP_16_Dual/GroundTruth/VLP_16_Dual_2.vtp: 447884595f12f0b2d76638494eb8e7d06df60553688359dc0591d4683788bf63
+  Testing/Data/VLP_16_Dual/GroundTruth/VLP_16_Dual_3.vtp: 8a2848a06baf02d8c444e546463bdd057c5ecfd246df994428ab00be5d156ec0
+  Testing/Data/VLP_16_Dual/VLP_16_Dual.pcap: 203fde64d52737c0af27c2fe09a65370599450e49ad4515f9f00025902fab44e
+  Testing/Data/VLP_16_Single/GroundTruth/VLP_16_Single_1.vtp: 8be9595635d36367b87a4dacf7b0eb9ead39b08e398ed2bad176047896e6faab
+  Testing/Data/VLP_16_Single/GroundTruth/VLP_16_Single_2.vtp: 2958cc512f474f7fe5894fef87bae3932d80e431b2f3b5f4c984b5fde31584b8
+  Testing/Data/VLP_16_Single/GroundTruth/VLP_16_Single_3.vtp: e12aa0429699bd0dd8d22c702c853ee15aac3deb80828f0aafe5539f2d166d71
+  Testing/Data/VLP_16_Single/VLP_16_Single.pcap: 457e0385f6cb83c19e402eb85222ad2d4c66cc4d34d216fe05d04e56462e7622
+  Testing/Data/VLP_32c_Dual/GroundTruth/VLP_32c_Dual_1.vtp: c427e90b0dc3b33edf4c85a330763d82a61226922cbb8248c0505fdd53f37fe0
+  Testing/Data/VLP_32c_Dual/GroundTruth/VLP_32c_Dual_2.vtp: c622715291f91d68f6e50ee782a702de5012326c5c0751ee6ee6ef037657dc6d
+  Testing/Data/VLP_32c_Dual/GroundTruth/VLP_32c_Dual_3.vtp: e84971bf5df248b2d9d87f5802b1c3eecf1ebf337ef2d9d21ef730afa70022e7
+  Testing/Data/VLP_32c_Dual/VLP_32c_Dual.pcap: 9ce7c2b9f25122b8f0bf96961c2c36686cac6c0a741f71a35f9bcec76b370d23
+  Testing/Data/VLP_32c_Single/GroundTruth/VLP_32c_Single_1.vtp: b062896302c13caca98944503522ef61bf05ac17c260ccbd32192e1271080925
+  Testing/Data/VLP_32c_Single/GroundTruth/VLP_32c_Single_2.vtp: 638c2e3d5c3bd51e9c1b27aa859d0a95f20e5139cb6bc18b7afe969ab75a09b2
+  Testing/Data/VLP_32c_Single/GroundTruth/VLP_32c_Single_3.vtp: 24a1acdb759151029cf38b0f390ff23a2026377ae19aa74e071841b8fcd51827
+  Testing/Data/VLP_32c_Single/VLP_32c_Single.pcap: 15a9160857e50ec4aa124d31648539c2263f642f21aa64119fd7c213881c0e91
+  VelodynePacketInterpreters/CalibrationFiles/HDL_64.xml: dc3f13679c9c1b3a9ba587c0931c5f08b0dff4c5521c35126a0ffcacee54cd02
+  VelodynePacketInterpreters/CalibrationFiles/VLP_16.xml: cdd7b8cf62ffa390ab3c71764291c86ad55a91e1f2af82663d1db69843837b95
+  VelodynePacketInterpreters/CalibrationFiles/VLP_32c.xml: ada684a096c7ea8282d8342bf8b66c229aa5bd7282250a9e84459e267e2fbdef

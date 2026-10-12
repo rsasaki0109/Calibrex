@@ -1180,7 +1180,8 @@ concatenated cloud. The packets are stamped in the sensors' own frames
 above: the cloud is no longer "already in `base_link`" and it has per-point time.
 `calibrex check` plans a `VelodyneScan` topic as an ignored `lidar` with a conversion
 hint; `tools/velodyne_scan_to_pointcloud2.py` (decoder `calibrex.data.velodyne_packets`,
-ROS-independent, from the VLP-16 and VLP-32C manuals) writes a derived bag whose clouds
+ROS-independent, from the VLP-16, VLP-32C and HDL-64E manuals; an HDL-64E needs its
+`db.xml` or ROS YAML calibration via `--calibration`) writes a derived bag whose clouds
 are in the sensor frames:
 
 ```bash
@@ -1213,8 +1214,44 @@ signs, so it is a difference between the `/tf_static` yaw and the one used to bu
 cloud, not a decoder constant (1 mrad at 25 m is 2.5 cm, the residual above). The sensor
 frame axes are Autoware's (x forward, y left), not the manual's (x right, y forward):
 decoding with the manual's axes gives a median of 1 to 1.5 m against the cloud, so the
-decoder emits Autoware's axes by default. Not verified: dual-return packets and any
-Velodyne model other than VLP-16 and VLP-32C (experimental).
+decoder emits Autoware's axes by default. These Autoware figures were measured before
+the VLP-32C decoder applied the head's turn between laser pairs inside a block (below);
+the bag is not public, so they were not re-measured.
+
+**Packet formats and their reference clouds.** Kitware's LidarView test recordings
+(Apache-2.0, `python3 tools/download_public_dataset.py lidarview_velodyne`, about 160 MB
+under `data/public`) pair Velodyne pcaps with the frames LidarView decoded from them.
+`tools/validate_velodyne_decode.py --pcap X.pcap --reference X_1.vtp ...` decodes the
+packets of each frame and reports, for every reference point, the distance to the
+nearest decoded point, plus the per-point time against LidarView's. Over frames 1 to 3
+of each recording:
+
+| Recording | Packet format | Median | 90th percentile | Points within 1 mm | Time deviation |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `VLP_16_Single` | VLP-16 strongest (0x22) | 0.051 mm | 0.22 to 0.31 mm | 98 % | 0.25 us |
+| `VLP_16_Dual` | VLP-16 dual (0x22) | 0.166 mm | 0.49 to 0.50 mm | 99 % | 0.26 us |
+| `VLP_32c_Dual` | VLP-32C strongest (0x28) | 0.053 mm | 0.22 mm | 99 to 100 % | 0.26 us |
+| `HDL_64_Single` | HDL-64E single, LidarView's `HDL_64.xml` | 0.000 mm | 0.000 mm | 100 % | 0.34 us |
+| `HDL_64_Dual` | HDL-64E dual, same calibration | 0.000 mm | 0.000 mm | 100 % | 0.20 us |
+
+The time deviation is the median difference from LidarView's per-point stamp (whole
+microseconds) after removing its convention: LidarView stamps an HDL-64E point relative
+to the packet's last firing (288 us, or 172.8 us in dual return, after the first). The
+`VLP_32c_Dual` recording is single return despite its name. The VLP-32C median was
+1.2 mm before the decoder applied the head's turn between the 2.304 us laser pairs of a
+55.296 us block. Two caveats apply to the HDL-64E. Its positions follow LidarView's
+correction model, and the manual's two-point distance interpolation (`distCorrectionX/Y`,
+applied by the ROS driver) differs by a few centimetres. Its single-return packets do
+not say whether they hold the strongest or the last return.
+
+Every other format is refused with its name, by `velodyne_scan_to_pointcloud2.py` and in
+the `calibrex check` plan:
+
+- HDL-32E (0x21) and VLP-16 Hi-Res (0x24). Earlier versions decoded both as a VLP-16;
+  their elevations differ.
+- VLP-32A/B (0x23). LidarView's `VLP_32c_Single` recording is one; decoded with VLP-32C
+  constants it misses LidarView's cloud by an 11 mm median.
+- Velarray, VLS-128, VLP-32C dual return, and an HDL-64E without its calibration.
 
 `VelocityReport` (header and three float32) was verified on the 873 real messages of
 `migrated/autoware_data/sample-rosbag` (`autoware_vehicle_msgs`; 30 s, 0 to 13.1 m/s). That
