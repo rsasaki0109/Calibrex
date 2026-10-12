@@ -55,7 +55,7 @@
         "camera:153:lidar:153"
       ],
       "frame_selection": "spread",
-      "git_commit": "72ac20b",
+      "git_commit": "2f67613",
       "method": "edge_alignment/v0.1 with the calibrex check per-axis rule",
       "reason": "the reference reads warn and the known-bad candidate fail: neither is a clear decision",
       "status": "inconclusive",
@@ -222,7 +222,7 @@
         "camera:49:lidar:49"
       ],
       "frame_selection": "first",
-      "git_commit": "72ac20b",
+      "git_commit": "2f67613",
       "method": "edge_alignment/v0.1 with the calibrex check per-axis rule",
       "reason": "the reference reads warn and the known-bad candidate fail: neither is a clear decision",
       "status": "inconclusive",
@@ -332,6 +332,314 @@
             "y"
           ],
           "verdict": "fail"
+        }
+      ]
+    }
+  ],
+  "data_only_replications": [
+    {
+      "calibration": [
+        {
+          "path": "calib_velo_to_cam.txt",
+          "role": "kitti_calibration",
+          "sha256": "9dc0c3e92dfceceb9500caa2c9488261a52640e43c3f7c3045ca1ed7927e7266",
+          "size_bytes": 271
+        },
+        {
+          "path": "calib_cam_to_cam.txt",
+          "role": "kitti_calibration",
+          "sha256": "edc1eae281cb95e41798a98dcc545521449527145477ff852dbf3a4ec48c643c",
+          "size_bytes": 3001
+        }
+      ],
+      "dataset_sequence": "2011_09_26_drive_0009_sync",
+      "decisions": [
+        {
+          "frame_ids": [
+            "camera:0:lidar:0",
+            "camera:9:lidar:9",
+            "camera:18:lidar:18",
+            "camera:27:lidar:27",
+            "camera:36:lidar:36",
+            "camera:45:lidar:45",
+            "camera:54:lidar:54",
+            "camera:63:lidar:63",
+            "camera:72:lidar:72",
+            "camera:81:lidar:81",
+            "camera:90:lidar:90",
+            "camera:99:lidar:99",
+            "camera:108:lidar:108",
+            "camera:117:lidar:117",
+            "camera:126:lidar:126",
+            "camera:135:lidar:135",
+            "camera:144:lidar:144",
+            "camera:153:lidar:153",
+            "camera:162:lidar:162",
+            "camera:171:lidar:171",
+            "camera:180:lidar:181",
+            "camera:189:lidar:189",
+            "camera:198:lidar:198",
+            "camera:207:lidar:207",
+            "camera:216:lidar:216",
+            "camera:226:lidar:226",
+            "camera:235:lidar:235",
+            "camera:244:lidar:244",
+            "camera:253:lidar:253",
+            "camera:262:lidar:262",
+            "camera:271:lidar:271",
+            "camera:280:lidar:280",
+            "camera:289:lidar:289",
+            "camera:298:lidar:298",
+            "camera:307:lidar:307",
+            "camera:316:lidar:316",
+            "camera:325:lidar:325",
+            "camera:334:lidar:334",
+            "camera:343:lidar:343",
+            "camera:352:lidar:352",
+            "camera:361:lidar:361",
+            "camera:370:lidar:370",
+            "camera:379:lidar:379",
+            "camera:388:lidar:388",
+            "camera:397:lidar:397",
+            "camera:406:lidar:406",
+            "camera:415:lidar:415",
+            "camera:424:lidar:424",
+            "camera:433:lidar:433",
+            "camera:442:lidar:442"
+          ],
+          "frame_selection": "spread",
+          "git_commit": "2f67613",
+          "method": "edge_alignment/v0.1 with the calibrex check per-axis rule",
+          "reason": "the images and scans pass the reference and fail the known-bad candidate",
+          "status": "pass",
+          "trials": [
+            {
+              "axes": [],
+              "candidate_id": "dataset_reference",
+              "depth": {
+                "control_m": 0.1,
+                "control_response": 0.9363763996038471,
+                "disparity_offset_px": -0.8927376126497545,
+                "frames": 50,
+                "method": "stereo_depth/v0.1: disparity residual on camera-facing LiDAR surfaces",
+                "observable": true,
+                "offset_m": -0.008222208517151351,
+                "points": 28807,
+                "reason": "28807 matched points on camera-facing surfaces; the 0.1 m control moved the estimate by +0.094 m",
+                "std_m": 0.026319838249525385
+              },
+              "depth_axis": {
+                "candidate_error_m": -0.008222208517151351,
+                "estimate_std_m": 0.026319838249525385,
+                "name": "z",
+                "status": "pass",
+                "tolerance_m": 0.07895951474857615
+              },
+              "edge_points": 45192,
+              "frames": 50,
+              "unchecked_rotation_axes": [
+                "roll",
+                "pitch",
+                "yaw"
+              ],
+              "unchecked_translation_axes": [
+                "x",
+                "y"
+              ],
+              "verdict": "pass"
+            },
+            {
+              "axes": [],
+              "candidate_id": "known_bad",
+              "depth": {
+                "control_m": 0.1,
+                "control_response": 0.9027835953893817,
+                "disparity_offset_px": -0.9228227981319654,
+                "frames": 50,
+                "method": "stereo_depth/v0.1: disparity residual on camera-facing LiDAR surfaces",
+                "observable": true,
+                "offset_m": 0.2087569440297953,
+                "points": 29259,
+                "reason": "29259 matched points on camera-facing surfaces; the 0.1 m control moved the estimate by +0.090 m",
+                "std_m": 0.03222729547741149
+              },
+              "depth_axis": {
+                "candidate_error_m": 0.2087569440297953,
+                "estimate_std_m": 0.03222729547741149,
+                "name": "z",
+                "status": "fail",
+                "tolerance_m": 0.09668188643223447
+              },
+              "edge_points": 45937,
+              "frames": 50,
+              "unchecked_rotation_axes": [
+                "roll",
+                "pitch",
+                "yaw"
+              ],
+              "unchecked_translation_axes": [
+                "x",
+                "y"
+              ],
+              "verdict": "fail"
+            }
+          ]
+        },
+        {
+          "frame_ids": [
+            "camera:0:lidar:0",
+            "camera:1:lidar:1",
+            "camera:2:lidar:2",
+            "camera:3:lidar:3",
+            "camera:4:lidar:4",
+            "camera:5:lidar:5",
+            "camera:6:lidar:6",
+            "camera:7:lidar:7",
+            "camera:8:lidar:8",
+            "camera:9:lidar:9",
+            "camera:10:lidar:10",
+            "camera:11:lidar:11",
+            "camera:12:lidar:12",
+            "camera:13:lidar:13",
+            "camera:14:lidar:14",
+            "camera:15:lidar:15",
+            "camera:16:lidar:16",
+            "camera:17:lidar:17",
+            "camera:18:lidar:18",
+            "camera:19:lidar:19",
+            "camera:20:lidar:20",
+            "camera:21:lidar:21",
+            "camera:22:lidar:22",
+            "camera:23:lidar:23",
+            "camera:24:lidar:24",
+            "camera:25:lidar:25",
+            "camera:26:lidar:26",
+            "camera:27:lidar:27",
+            "camera:28:lidar:28",
+            "camera:29:lidar:29",
+            "camera:30:lidar:30",
+            "camera:31:lidar:31",
+            "camera:32:lidar:32",
+            "camera:33:lidar:33",
+            "camera:34:lidar:34",
+            "camera:35:lidar:35",
+            "camera:36:lidar:36",
+            "camera:37:lidar:37",
+            "camera:38:lidar:38",
+            "camera:39:lidar:39",
+            "camera:40:lidar:40",
+            "camera:41:lidar:41",
+            "camera:42:lidar:42",
+            "camera:43:lidar:43",
+            "camera:44:lidar:44",
+            "camera:45:lidar:45",
+            "camera:46:lidar:46",
+            "camera:47:lidar:47",
+            "camera:48:lidar:48",
+            "camera:49:lidar:49"
+          ],
+          "frame_selection": "first",
+          "git_commit": "2f67613",
+          "method": "edge_alignment/v0.1 with the calibrex check per-axis rule",
+          "reason": "the images and scans pass the reference and pass the known-bad candidate",
+          "status": "fail",
+          "trials": [
+            {
+              "axes": [
+                {
+                  "candidate_error_deg": -0.04999999999989473,
+                  "estimate_std_deg": 0.04166666666666667,
+                  "name": "roll",
+                  "status": "pass",
+                  "tolerance_deg": 0.5
+                },
+                {
+                  "candidate_error_deg": 0.2500000000000226,
+                  "estimate_std_deg": 0.025,
+                  "name": "pitch",
+                  "status": "pass",
+                  "tolerance_deg": 0.5
+                },
+                {
+                  "candidate_error_deg": -0.04999999999999989,
+                  "estimate_std_deg": 0.025,
+                  "name": "yaw",
+                  "status": "pass",
+                  "tolerance_deg": 0.5
+                }
+              ],
+              "candidate_id": "dataset_reference",
+              "depth": {
+                "control_m": 0.1,
+                "control_response": 0.9451247959957989,
+                "disparity_offset_px": -0.6037736579792813,
+                "frames": 50,
+                "method": "stereo_depth/v0.1: disparity residual on camera-facing LiDAR surfaces",
+                "observable": true,
+                "offset_m": -0.009458152147134625,
+                "points": 24559,
+                "reason": "24559 matched points on camera-facing surfaces; the 0.1 m control moved the estimate by +0.095 m",
+                "std_m": 0.016424460467779425
+              },
+              "depth_axis": {
+                "candidate_error_m": -0.009458152147134625,
+                "estimate_std_m": 0.016424460467779425,
+                "name": "z",
+                "status": "pass",
+                "tolerance_m": 0.04927338140333827
+              },
+              "edge_points": 59605,
+              "frames": 50,
+              "unchecked_rotation_axes": [],
+              "unchecked_translation_axes": [
+                "x",
+                "y"
+              ],
+              "verdict": "pass"
+            },
+            {
+              "axes": [
+                {
+                  "candidate_error_deg": -0.10000000000000801,
+                  "estimate_std_deg": 0.08333333333333334,
+                  "name": "roll",
+                  "status": "pass",
+                  "tolerance_deg": 0.5
+                },
+                {
+                  "candidate_error_deg": 1.5761153782589393e-14,
+                  "estimate_std_deg": 0.08539125638299667,
+                  "name": "yaw",
+                  "status": "pass",
+                  "tolerance_deg": 0.5
+                }
+              ],
+              "candidate_id": "known_bad",
+              "depth": {
+                "control_m": 0.1,
+                "control_response": 0.8562167382342217,
+                "disparity_offset_px": -0.629160864530834,
+                "frames": 50,
+                "method": "stereo_depth/v0.1: disparity residual on camera-facing LiDAR surfaces",
+                "observable": false,
+                "offset_m": 0.10493257086418051,
+                "points": 23104,
+                "reason": "jackknife std 0.084 m exceeds 0.05 m",
+                "std_m": 0.08373831162192685
+              },
+              "edge_points": 61327,
+              "frames": 50,
+              "unchecked_rotation_axes": [
+                "pitch"
+              ],
+              "unchecked_translation_axes": [
+                "x",
+                "y",
+                "z"
+              ],
+              "verdict": "pass"
+            }
+          ]
         }
       ]
     }

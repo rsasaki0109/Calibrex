@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **The KITTI data-only decisions are repeated on drive 0009.**
+  - **Why 0009.** It was recorded with the same calibration files (checked by SHA-256),
+    so its reference and known-bad candidates are the same transforms.
+  - **Artifact and tool.** The artifact gains `data_only_replications` (optional,
+    schema-compatible); `tools/publish_kitti_falsification_benchmark.py` gains
+    `--replicate`.
+  - **Result: the 5 cm belongs to drive 0005.** On 0009 the reference reads under 1 cm
+    along the optical axis, against 5 cm on 0005, and the known-bad's 0.25 m fails again.
+  - **Result: rotation on 0009.** The edges judge no rotation on its spread frames. On
+    its first 50 frames the known-bad passes with its pitch unjudged, a `fail` of the
+    data-only decision.
+  - The benchmark page and the published test record all of it.
+
 - **The KITTI data-only decision also judges translation along the optical axis.**
   - **Why edges cannot.** Moving the candidate along the optical axis keeps a road point on
     the road and a wall point on its wall, so the shifted cloud still lines up. In a
