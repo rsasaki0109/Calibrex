@@ -25,6 +25,7 @@ from calibrex.evaluation.lidar import build_rig_point_to_plane_observations
 from calibrex.evaluation.packed_lidar_observations import _PackedObservationBuilder
 from calibrex.graph import lidar_point_to_plane as graph
 from calibrex.graph.lidar_point_to_plane import LidarRigPointToPlaneFactor, _PackedObservations
+from calibrex.solvers import numba_continuous_time_adapter as adapter
 from calibrex.solvers.continuous_time_lidar_pair_solver import (
     ContinuousTimeLidarPairOptions,
     ContinuousTimeLidarPairProblem,
@@ -240,3 +241,31 @@ def test_row_only_cache_preserves_failed_prefix_custom_diagnostics_and_budget():
     size = context._pose_cache_bytes
     context._evaluate_rows(track, [1_500_000_000]*64, xyz, identity, identity, 0.1)
     assert context._pose_cache_bytes == size
+
+
+def test_parallel_thread_mask_is_bounded_and_restored_after_failure(monkeypatch):
+    from numba import get_num_threads, set_num_threads
+
+    from calibrex.graph.lidar_point_to_plane import _ObservationArrays
+
+    previous = get_num_threads()
+    mask = min(previous, 2)
+    set_num_threads(mask)
+    arrays = _ObservationArrays(np.zeros((4096, 3)), np.zeros((4096, 3)),
+        np.ones((4096, 3)), np.tile([0.0]*6+[1.0], (4096, 1)), np.ones(4096), None)
+    observed = []
+
+    def failing(*args):
+        observed.append(get_num_threads())
+        raise RuntimeError("kernel failure")
+
+    monkeypatch.setattr(adapter, "_parallel_jacobian_rows", failing)
+    try:
+        with pytest.raises(RuntimeError, match="kernel failure"):
+            adapter.numba_rig_linearization(arrays, [SE3.identity()]*13, [1e-4]*6)
+        assert observed == [mask] and get_num_threads() == mask
+        with pytest.raises(ZeroDivisionError):
+            adapter.numba_rig_linearization(arrays, [SE3.identity()]*13, [0.0]*6)
+        assert get_num_threads() == mask
+    finally:
+        set_num_threads(previous)

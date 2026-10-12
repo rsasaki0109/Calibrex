@@ -412,9 +412,17 @@ class LidarRigPointToPlaneFactor:
     ) -> LidarRigPointToPlaneEvaluation:
         """Return factor-level residual and observability diagnostics."""
 
-        linearization = self.linearize(correction)
-        residuals = linearization.residuals_m
-        hessian = linearization.hessian
+        dense = self._compiled_linearization(correction)
+        if dense is not None and self._array_normal_kernel is not None:
+            values, jacobian = dense
+            hessian, _gradient = self._array_normal_kernel(jacobian, values, False, 0.0)
+            residuals = values.tolist()
+            dof_names = self.dof_names
+        else:
+            linearization = self.linearize(correction)
+            residuals = linearization.residuals_m
+            hessian = linearization.hessian
+            dof_names = linearization.dof_names
         if normalization_length_m:
             scale_length = normalization_length_m
         elif type(self._observations) is _PackedObservations:
@@ -428,11 +436,11 @@ class LidarRigPointToPlaneFactor:
             scale_length = _normalization_length_m(self.observations)
         normalized_hessian = _normalize_hessian(hessian, scale_length)
         diagonal = {
-            name: hessian[index][index] for index, name in enumerate(linearization.dof_names)
+            name: hessian[index][index] for index, name in enumerate(dof_names)
         }
         normalized_diagonal = {
             name: normalized_hessian[index][index]
-            for index, name in enumerate(linearization.dof_names)
+            for index, name in enumerate(dof_names)
         }
         weak_directions = [
             name

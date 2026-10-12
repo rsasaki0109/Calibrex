@@ -12,7 +12,7 @@ from itertools import pairwise
 from typing import TYPE_CHECKING, TypeAlias, cast
 
 import numpy as np
-from numba import njit
+from numba import get_num_threads, njit, prange, set_num_threads
 from numpy.typing import NDArray
 
 from calibrex.core.geometry import SE3, Vector3
@@ -28,7 +28,7 @@ Quaternion: TypeAlias = tuple[float, float, float, float]
 
 def numba_continuous_time_identity() -> str:
     """Identify the optional runtime and its arithmetic/compilation policy."""
-    return f"calibrex.numba_continuous_time/v0.3;numba={version('numba')};fastmath=false;cache=true"
+    return f"calibrex.numba_continuous_time/v0.4;numba={version('numba')};fastmath=false;cache=true"
 
 
 @njit(cache=True, nogil=True, fastmath=False, inline="always")  # type: ignore[untyped-decorator]
@@ -247,6 +247,41 @@ def _normal_rows(
     return hessian, gradient
 
 
+@njit(cache=True, nogil=True, fastmath=False, inline="never")  # type: ignore[untyped-decorator]
+def _one_residual(
+    point: FloatArray, plane: FloatArray, normal: FloatArray, pose: FloatArray,
+    weight: float, transform: FloatArray,
+) -> float:
+    wt, wq = _composed(
+        (pose[0], pose[1], pose[2]), (pose[3], pose[4], pose[5], pose[6]),
+        (transform[0], transform[1], transform[2]),
+        (transform[3], transform[4], transform[5], transform[6]),
+    )
+    rotated = _rotated(wq, (point[0], point[1], point[2]))
+    dx, dy, dz = (rotated[0]+wt[0]-plane[0], rotated[1]+wt[1]-plane[1],
+                  rotated[2]+wt[2]-plane[2])
+    return float(weight * (normal[0]*dx + normal[1]*dy + normal[2]*dz))
+
+
+@njit(cache=True, nogil=True, fastmath=False, parallel=True)  # type: ignore[untyped-decorator]
+def _parallel_jacobian_rows(
+    points: FloatArray, planes: FloatArray, normals: FloatArray, poses: FloatArray,
+    weights: FloatArray, transforms: FloatArray, steps: FloatArray,
+) -> tuple[FloatArray, FloatArray]:
+    residuals = np.empty(len(points), dtype=np.float64)
+    jacobian = np.empty((len(points), 6), dtype=np.float64)
+    for row in prange(len(points)):
+        point, plane, normal, pose, weight = (
+            points[row], planes[row], normals[row], poses[row], weights[row],
+        )
+        residuals[row] = _one_residual(point, plane, normal, pose, weight, transforms[0])
+        for column in range(6):
+            plus = _one_residual(point, plane, normal, pose, weight, transforms[1+2*column])
+            minus = _one_residual(point, plane, normal, pose, weight, transforms[2+2*column])
+            jacobian[row, column] = (plus-minus)/(2.0*steps[column])
+    return residuals, jacobian
+
+
 def numba_rig_linearization(
     arrays: _ObservationArrays,
     transforms: Sequence[SE3],
@@ -256,17 +291,22 @@ def numba_rig_linearization(
     values = np.asarray(
         [(*t.translation_m, *t.rotation_quat_xyzw) for t in transforms], dtype=np.float64
     )
+    arguments = (arrays.points, arrays.plane_points, arrays.normals, arrays.poses,
+                 arrays.sqrt_weights, values, np.asarray(steps, dtype=np.float64))
+    if len(arrays.points) >= 4096:
+        if any(step == 0.0 for step in steps):
+            raise ZeroDivisionError("division by zero")
+        previous = get_num_threads()
+        try:
+            # The thread mask is local to this calling thread. Bound work and
+            # restore its caller's mask even when compilation/evaluation fails.
+            set_num_threads(min(previous, 4))
+            return cast(tuple[FloatArray, FloatArray], _parallel_jacobian_rows(*arguments))
+        finally:
+            set_num_threads(previous)
     return cast(
         tuple[FloatArray, FloatArray],
-        _jacobian_rows(
-            arrays.points,
-            arrays.plane_points,
-            arrays.normals,
-            arrays.poses,
-            arrays.sqrt_weights,
-            values,
-            np.asarray(steps, dtype=np.float64),
-        ),
+        _jacobian_rows(*arguments),
     )
 
 
