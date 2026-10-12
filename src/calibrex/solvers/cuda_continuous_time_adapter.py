@@ -70,15 +70,22 @@ extern "C" __global__ void linearize(const double* points,const double* planes,
 """
 
 
-def cuda_continuous_time_identity() -> str:
+def cuda_continuous_time_identity(*, associations_gpu: bool = False) -> str:
     """Identify arithmetic and runtime without recording a device model."""
+    association_identity = ""
+    if associations_gpu:
+        from calibrex.solvers.cuda_plane_query_adapter import cuda_plane_query_source_sha256
+
+        association_identity = f";association_kernel_sha256={cuda_plane_query_source_sha256()}"
     return (
-        "calibrex.cuda_continuous_time/v0.4;fp64=true;fma=false;"
+        "calibrex.cuda_continuous_time/v0.5;fp64=true;fma=false;"
         f"cupy={cp.__version__};cuda={cp.cuda.runtime.runtimeGetVersion()};"
         f"driver={cp.cuda.runtime.driverGetVersion()};"
         f"numba={version('numba')};trajectory_cpu=true;normal_cpu=true;"
         "standalone_residual_cpu=true;"
+        f"associations_gpu={str(associations_gpu).lower()};"
         f"kernel_sha256={hashlib.sha256(_SOURCE.encode()).hexdigest()}"
+        + association_identity
     )
 
 

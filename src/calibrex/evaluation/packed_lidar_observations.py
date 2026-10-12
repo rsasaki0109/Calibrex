@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import TypeAlias
 
@@ -95,6 +95,8 @@ class _PackedObservationBuilder:
     def build(
         self, indices: NDArray[np.int64], poses: FloatArray, world: FloatArray,
         *, voxel_size_m: float, correspondence_gate_m: float,
+        _position_query: Callable[..., tuple[NDArray[np.int64] | None,
+                                             NDArray[np.int64] | None] | None] | None = None,
     ) -> _PackedObservations | None:
         if (len(world) < 64 or not _native_packing_supported()
             or np.any(np.abs(world) >= 1e100) or not np.isfinite(world).all()
@@ -107,8 +109,11 @@ class _PackedObservationBuilder:
             return None
         matches = []
         columns = []
+        queried = (_position_query(world, voxel_size_m=voxel_size_m,
+                                   correspondence_gate_m=correspondence_gate_m)
+                   if _position_query is not None else None)
         if self.uniform is not None:
-            positions = self.uniform._nearest_positions(
+            positions = queried[0] if queried is not None else self.uniform._nearest_positions(
                 world, voxel_size_m=voxel_size_m, correspondence_gate_m=correspondence_gate_m,
             )
             if positions is None:
@@ -117,7 +122,7 @@ class _PackedObservationBuilder:
             matches.append(positions)
             columns.append(self.uniform_columns)
         if self.adaptive is not None:
-            positions = self.adaptive._nearest_positions(
+            positions = queried[1] if queried is not None else self.adaptive._nearest_positions(
                 world, correspondence_gate_m=correspondence_gate_m,
             )
             if positions is None:

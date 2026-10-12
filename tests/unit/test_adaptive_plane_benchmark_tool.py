@@ -107,9 +107,17 @@ def test_cuda_comparison_preserves_results_and_excludes_only_bound_execution_ide
     )
     selective["provenance"]["notes"] = [selective_identity]
     assert benchmark._comparison_canonical(selective) == benchmark._canonical(baseline)
+    association_identity = selective_identity.replace("v0.4", "v0.5").replace(
+        "kernel_sha256=", "associations_gpu=true;kernel_sha256=",
+    ) + ";association_kernel_sha256=" + "b"*64
+    changed = deepcopy(baseline)
+    changed["provenance"]["notes"] = [association_identity]
+    assert benchmark._comparison_canonical(changed) == benchmark._canonical(baseline)
     forged_identities = (
         selective_identity.replace("standalone_residual_cpu=true;", ""),
         selective_identity.replace("standalone_residual_cpu=true", "standalone_residual_cpu=false"),
+        association_identity.rsplit(";association_kernel_sha256", 1)[0],
+        association_identity.replace("associations_gpu=true", "associations_gpu=false"),
     )
     for forged in forged_identities:
         changed = deepcopy(baseline)
@@ -127,6 +135,19 @@ def test_cuda_override_requires_compiled_scope_before_input_reads(tmp_path):
         benchmark.main(["--output-dir", str(tmp_path/"cuda"),
                         "--candidate-query-backend", "cuda"])
     assert not (tmp_path/"cuda").exists()
+
+
+def test_cuda_scope_archives_both_old_packing_and_cuda_and_requires_explicit_backends(tmp_path):
+    assert benchmark._modules_for_scope("cuda") == (
+        *benchmark.COMPILED_MODULES, "calibrex.evaluation.packed_lidar_observations",
+        "calibrex.solvers.cuda_continuous_time_adapter",
+    )
+    with pytest.raises(ValueError, match="both declared execution overrides"):
+        benchmark.main(["--output-dir", str(tmp_path/"missing"), "--baseline-scope", "cuda",
+                        "--candidate-query-backend", "cuda"])
+    with pytest.raises(ValueError, match="baseline query override requires CUDA scope"):
+        benchmark.main(["--output-dir", str(tmp_path/"wrong"), "--baseline-query-backend", "cuda"])
+    assert not (tmp_path/"missing").exists() and not (tmp_path/"wrong").exists()
 
 
 def test_dense_config_changes_only_the_explicit_per_message_capture_budget():

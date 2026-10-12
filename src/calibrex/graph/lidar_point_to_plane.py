@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from dataclasses import dataclass, field
 from math import cos, isclose, isfinite, sin, sqrt
 from typing import overload
@@ -426,12 +426,12 @@ class LidarRigPointToPlaneFactor:
         if normalization_length_m:
             scale_length = normalization_length_m
         elif type(self._observations) is _PackedObservations:
-            points = self._observations.arrays.points.tolist()
-            # Keep the scalar dot and sequential sum, including an empty batch.
+            points = self._observations.arrays.points
+            # Keep Python float products and sum, including an empty batch.
             scale_length = (max(1.0, sqrt(sum(
                 point[0]*point[0] + point[1]*point[1] + point[2]*point[2]
-                for point in points
-            ) / len(points))) if points else 1.0)
+                for point in _packed_point_rows(points)
+            ) / len(points))) if len(points) else 1.0)
         else:
             scale_length = _normalization_length_m(self.observations)
         normalized_hessian = _normalize_hessian(hessian, scale_length)
@@ -464,6 +464,17 @@ class LidarRigPointToPlaneFactor:
             normalized_hessian=normalized_hessian,
         )
 
+    def _point_ranges(self) -> list[float]:
+        # Diagnostics need only local XYZ. Keep Python float power/sqrt and
+        # row order without constructing every plane, pose and observation.
+        if (type(self) is LidarRigPointToPlaneFactor
+            and type(self).observations is _NATIVE_OBSERVATIONS_PROPERTY
+            and type(self._observations) is _PackedObservations):
+            points = _packed_point_rows(self._observations.arrays.points)
+            return [sqrt(p[0]**2 + p[1]**2 + p[2]**2) for p in points]
+        return [sqrt(o.point_lidar_m[0]**2 + o.point_lidar_m[1]**2 + o.point_lidar_m[2]**2)
+                for o in self.observations]
+
     def corrected_transform(self, correction: Sequence[float] | None = None) -> SE3:
         """Return `Exp(correction) * T_ego_lidar_initial` using the factor contract."""
 
@@ -478,6 +489,12 @@ class LidarRigPointToPlaneFactor:
 _NATIVE_RESIDUALS = LidarRigPointToPlaneFactor.residuals
 _NATIVE_LINEARIZE = LidarRigPointToPlaneFactor.linearize
 _NATIVE_CORRECTION = LidarRigPointToPlaneFactor._corrected_transform
+_NATIVE_OBSERVATIONS_PROPERTY = LidarRigPointToPlaneFactor.observations
+
+
+def _packed_point_rows(points: NDArray[np.float64]) -> Iterator[list[float]]:
+    for start in range(0, len(points), 4096):
+        yield from points[start:start+4096].tolist()
 
 
 @dataclass(frozen=True)

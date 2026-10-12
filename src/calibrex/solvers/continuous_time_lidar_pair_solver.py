@@ -23,6 +23,7 @@ import numpy as np
 if TYPE_CHECKING:
     from calibrex.data.adaptive_voxel import AdaptivePlaneQueryContext
     from calibrex.solvers.cuda_continuous_time_adapter import CudaRigLinearizer
+    from calibrex.solvers.cuda_plane_query_adapter import CudaPlaneQueries
     from calibrex.solvers.numba_continuous_time_adapter import (
         FloatArray,
         IntArray,
@@ -220,14 +221,17 @@ class _QueryReuse:
     packed_builder: _PackedObservationBuilder | None = None
     executor: ThreadPoolExecutor | None = None
     cuda_rig: CudaRigLinearizer | None = None
+    cuda_planes: CudaPlaneQueries | None = None
     used_cuda: bool = False
     selections: dict[int, _PackedSelection] = field(default_factory=dict)
 
     def identity(self) -> str:
-        if self.used_cuda:
+        if self.used_cuda or (self.cuda_planes is not None and self.cuda_planes.query_calls > 0):
             from calibrex.solvers.cuda_continuous_time_adapter import cuda_continuous_time_identity
 
-            return cuda_continuous_time_identity()
+            return cuda_continuous_time_identity(
+                associations_gpu=self.cuda_planes is not None and self.cuda_planes.query_calls > 0,
+            )
         if self.used_numba or (self.compiled is not None and self.compiled.used):
             from calibrex.solvers.numba_continuous_time_adapter import (
                 numba_continuous_time_identity,
@@ -384,6 +388,11 @@ class ContinuousTimeLidarPairSolver:
                 except ImportError as exc:
                     raise ValueError("CUDA rig queries require calibrex[cuda,numba]") from exc
                 query_reuse.cuda_rig = CudaRigLinearizer()
+                from calibrex.solvers.cuda_plane_query_adapter import CudaPlaneQueries
+
+                query_reuse.cuda_planes = CudaPlaneQueries.capture(
+                    query_reuse.planes, query_reuse.adaptive,
+                )
         initial = self._evaluate_offset(
             problem,
             settings,
@@ -548,14 +557,7 @@ class ContinuousTimeLidarPairSolver:
         final_residuals = current.train_factor.residuals(
             current.solver_result.correction
         )
-        final_ranges = [
-            math.sqrt(
-                observation.point_lidar_m[0] ** 2
-                + observation.point_lidar_m[1] ** 2
-                + observation.point_lidar_m[2] ** 2
-            )
-            for observation in current.train_factor.observations
-        ]
+        final_ranges = current.train_factor._point_ranges()
         train_diagnostics = ContinuousTimeLidarTrainDiagnosticsData(
             sampled_source_record_count=len(source_records),
             train_target_point_count=len(train_indices),
@@ -730,6 +732,8 @@ class ContinuousTimeLidarPairSolver:
                 packed = query_reuse.packed_builder.build(
                     positions, rows, coordinates, voxel_size_m=problem.voxel_size_m,
                     correspondence_gate_m=problem.correspondence_gate_m,
+                    _position_query=(query_reuse.cuda_planes.query
+                                     if query_reuse.cuda_planes is not None else None),
                 )
                 if packed is None:
                     # Query counters were already recorded. Materialize those

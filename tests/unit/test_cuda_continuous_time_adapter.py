@@ -166,9 +166,30 @@ def test_input_budget_mutability_and_zero_steps_are_checked_before_launch():
 
 def test_identity_binds_kernel_and_declares_cpu_trajectory_and_reduction():
     identity = cuda_continuous_time_identity()
-    assert identity.startswith("calibrex.cuda_continuous_time/v0.4;fp64=true;fma=false;")
+    assert identity.startswith("calibrex.cuda_continuous_time/v0.5;fp64=true;fma=false;")
     assert ";trajectory_cpu=true;normal_cpu=true;standalone_residual_cpu=true;" in identity
     assert len(identity.rsplit("=", 1)[1]) == 64
+    assert ";associations_gpu=false;" in identity
+    actual = cuda_continuous_time_identity(associations_gpu=True)
+    assert ";associations_gpu=true;" in actual and ";association_kernel_sha256=" in actual
+
+
+def test_gpu_queries_are_recorded_even_when_no_correspondences_reach_the_optimizer(monkeypatch):
+    samples = [OdometryPoseSample(i*1_000_000_000, SE3.identity()) for i in range(2)]
+    problem = ContinuousTimeLidarPairProblem(
+        [LivoxPointRecord((0., 0., 0., 0.), (1., 0., 0.))], [(20., 0., 0.)]*9000,
+        [0]*9000, OdometryTrack(samples), SE3.identity(), SE3.identity(), "extrinsic", "target",
+        1., .5,
+    )
+    def unexpected(*args, **kwargs):
+        raise AssertionError("an empty factor cannot request CUDA differences")
+    monkeypatch.setattr(CudaRigLinearizer, "linearize", unexpected)
+    result = ContinuousTimeLidarPairSolver().solve(problem, ContinuousTimeLidarPairOptions(
+        query_backend="cuda", max_target_points_per_split=None,
+    ))
+    assert result.status == "insufficient_constraints"
+    assert result.query_backend.startswith("calibrex.cuda_continuous_time/v0.5;")
+    assert ";associations_gpu=true;" in result.query_backend
 
 
 @pytest.mark.parametrize("count", [1024, 18000])

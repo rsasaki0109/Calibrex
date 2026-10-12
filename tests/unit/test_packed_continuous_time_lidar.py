@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import sys
 from dataclasses import asdict, replace
 
@@ -71,6 +72,25 @@ def _factor(observations):
     )
 
 
+def test_point_range_diagnostics_honor_a_replaced_public_observation_property(monkeypatch):
+    records, points, samples, times = _fixture(64)
+    uniform = VoxelPlaneQueryContext(build_voxel_plane_map(records, 1.0))
+    builder = _PackedObservationBuilder.capture(points, uniform, None)
+    track = OdometryTrack(samples)
+    context = NumbaContinuousTimeQueryContext.capture(track)
+    rows, world, _usable = context._evaluate_rows(
+        track, times, builder.points, SE3.identity(), SE3.identity(), .1,
+    )
+    packed = builder.build(np.arange(64), rows, world, voxel_size_m=1., correspondence_gate_m=1.5)
+    factor = _factor(packed)
+    replacement = tuple(reversed(packed.materialize()))
+    monkeypatch.setattr(LidarRigPointToPlaneFactor, "observations", property(lambda _: replacement))
+    expected = [math.sqrt(o.point_lidar_m[0]**2 + o.point_lidar_m[1]**2 + o.point_lidar_m[2]**2)
+                for o in replacement]
+    np.testing.assert_array_equal(np.asarray(factor._point_ranges()).view(np.uint64),
+                                  np.asarray(expected).view(np.uint64))
+
+
 @pytest.mark.parametrize("strategy", ["uniform", "adaptive", "hybrid"])
 @pytest.mark.parametrize("count", [64, 4097])
 def test_packed_matches_all_native_observations_and_solver_history(strategy, count):
@@ -119,11 +139,15 @@ def test_packed_matches_all_native_observations_and_solver_history(strategy, cou
     )
     assert type(left._observations) is _PackedObservations
     assert left.evaluate([0.01]*6) == right.evaluate([0.01]*6)
+    np.testing.assert_array_equal(np.asarray(left._point_ranges()).view(np.uint64),
+                                  np.asarray(right._point_ranges()).view(np.uint64))
+    assert type(left._observations) is _PackedObservations
     assert left.observations == tuple(native) and type(left.observations) is tuple
     # The public replacement contract invalidates numeric preparation.
     left.observations = tuple(reversed(native))
     right.observations = tuple(reversed(native))
     assert left.linearize() == right.linearize()
+    assert left._point_ranges() == right._point_ranges()
     assert (packed_track.interpolation_count, packed_track.clamp_count,
             packed_track.max_extrapolation_s) == (
                 native_track.interpolation_count, native_track.clamp_count,

@@ -42,6 +42,8 @@ RUNTIME_MODULES = (
 COMPILED_MODULES = (*RUNTIME_MODULES, "calibrex.solvers.fixed_trajectory_se3_solver",
                     "calibrex.solvers.numba_continuous_time_adapter",
                     "calibrex.solvers.robust_lidar_observations")
+CUDA_MODULES = (*COMPILED_MODULES, "calibrex.evaluation.packed_lidar_observations",
+                "calibrex.solvers.cuda_continuous_time_adapter")
 CONFIG = Path(
     "examples/public_datasets/glim_versatile/online_continuous_time_benchmark_config.yaml"
 )
@@ -65,6 +67,7 @@ SOURCES = (
     "src/calibrex/solvers/continuous_time_lidar_pair_solver.py",
     "src/calibrex/solvers/numba_continuous_time_adapter.py",
     "src/calibrex/solvers/cuda_continuous_time_adapter.py",
+    "src/calibrex/solvers/cuda_plane_query_adapter.py",
     "src/calibrex/solvers/fixed_trajectory_se3_solver.py",
     "src/calibrex/solvers/robust_lidar_observations.py",
     "src/calibrex/evaluation/lidar.py",
@@ -81,6 +84,8 @@ SOURCES = (
 
 
 def _modules_for_scope(scope: str) -> tuple[str, ...]:
+    if scope == "cuda":
+        return CUDA_MODULES
     if scope == "compiled":
         return COMPILED_MODULES
     return RUNTIME_MODULES if scope == "runtime" else (MODULE,)
@@ -117,7 +122,12 @@ def _comparison_canonical(payload: dict) -> str:
         r"numba=[0-9.]+;fastmath=false;cache=(true|false)|"
         r"calibrex\.cuda_continuous_time/v0\.[1-3];" + cuda_fields +
         r"kernel_sha256=[0-9a-f]{64}|calibrex\.cuda_continuous_time/v0\.4;" + cuda_fields +
-        r"standalone_residual_cpu=true;kernel_sha256=[0-9a-f]{64})"
+        r"standalone_residual_cpu=true;kernel_sha256=[0-9a-f]{64}|"
+        r"calibrex\.cuda_continuous_time/v0\.5;" + cuda_fields +
+        r"standalone_residual_cpu=true;associations_gpu=false;kernel_sha256=[0-9a-f]{64}|"
+        r"calibrex\.cuda_continuous_time/v0\.5;" + cuda_fields +
+        r"standalone_residual_cpu=true;associations_gpu=true;kernel_sha256=[0-9a-f]{64};"
+        r"association_kernel_sha256=[0-9a-f]{64})"
     )
     if "notes" in provenance:
         provenance["notes"] = [note for note in provenance["notes"] if re.fullmatch(
@@ -237,7 +247,7 @@ def _worker(args: argparse.Namespace) -> None:
                     query_seconds += elapsed
 
         setattr(adaptive_context, query_method, measured_batch_nearest)
-    if args.worker == "sparse" or args.baseline_scope == "compiled":
+    if args.worker == "sparse" or args.baseline_scope in ("compiled", "cuda"):
         from calibrex.core.config import load_config
 
         factor = load_config(args.config).pipeline.factors.get("lidar_rig_point_to_plane")
@@ -277,8 +287,9 @@ def _worker(args: argparse.Namespace) -> None:
     def measured_solve(*arguments, **keywords):
         nonlocal solver_seconds, sampled_split, captured_target_count
         captured_target_count = len(arguments[1].target_points)
-        override = getattr(args, "candidate_query_backend", None)
-        if args.worker == "sparse" and override is not None:
+        override = getattr(args, ("candidate_query_backend" if args.worker == "sparse"
+                                  else "baseline_query_backend"), None)
+        if override is not None:
             from dataclasses import replace
 
             # The shared config/splits remain bound. Record this sole execution
@@ -313,16 +324,20 @@ def _worker(args: argparse.Namespace) -> None:
         "adaptive_query_calls": query_count,
         "worker_import_seconds": import_seconds,
         "loaded_module": sys.modules[MODULE].__file__,
-        "loaded_evaluation_modules": {name: sys.modules[name].__file__ for name in modules},
+        "loaded_evaluation_modules": {name: getattr(sys.modules.get(name), "__file__", None)
+                                      for name in modules},
         "uniform_normal_calculations": normal_calculations,
         "interpolated_pose_calculations": pose_calculations,
         "sampled_split": sampled_split,
         "result": json.loads(canonical),
         "result_sha256": _digest(output),
         "execution_override": (getattr(args, "candidate_query_backend", None)
-                               if args.worker == "sparse" else None),
+                               if args.worker == "sparse" else
+                               getattr(args, "baseline_query_backend", None)),
         "loaded_cuda_module": (getattr(sys.modules.get(
             "calibrex.solvers.cuda_continuous_time_adapter"), "__file__", None)),
+        "loaded_cuda_plane_module": (getattr(sys.modules.get(
+            "calibrex.solvers.cuda_plane_query_adapter"), "__file__", None)),
         "captured_target_count": captured_target_count,
     }
     # Sum CPU time across this worker's threads. Measurement-JSON serialization
@@ -411,12 +426,16 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--baseline-commit", default=BASELINE)
     parser.add_argument(
-        "--baseline-scope", choices=("adaptive", "runtime", "compiled"), default="adaptive",
+        "--baseline-scope", choices=("adaptive", "runtime", "compiled", "cuda"), default="adaptive",
     )
     parser.add_argument("--repetitions", type=int, default=5)
     parser.add_argument(
         "--candidate-query-backend", choices=("numba_cpu", "cuda"),
         help="Compiled scope only: override candidate execution, retaining all physical settings.",
+    )
+    parser.add_argument(
+        "--baseline-query-backend", choices=("numba_cpu", "cuda"),
+        help="CUDA scope only: record an archived baseline execution override.",
     )
     parser.add_argument("--omp-threads", type=int, default=1)
     parser.add_argument(
@@ -438,8 +457,14 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.repetitions < 1 or args.omp_threads < 1:
         raise ValueError("repetitions and OMP threads must be positive")
-    if args.candidate_query_backend is not None and args.baseline_scope != "compiled":
+    if args.candidate_query_backend is not None and args.baseline_scope not in ("compiled", "cuda"):
         raise ValueError("candidate query override requires compiled scope")
+    if args.baseline_query_backend is not None and args.baseline_scope != "cuda":
+        raise ValueError("baseline query override requires CUDA scope")
+    if args.baseline_scope == "cuda" and (
+        args.candidate_query_backend != "cuda" or args.baseline_query_backend != "cuda"
+    ):
+        raise ValueError("CUDA scope requires both declared execution overrides to be cuda")
     if args.output_dir.exists() and any(args.output_dir.iterdir()):
         raise ValueError("output directory must be new or empty")
     from calibrex.core.benchmark import (
@@ -460,7 +485,7 @@ def main(argv: list[str] | None = None) -> None:
     if config.dataset.type != "rosbag2":
         raise ValueError("public adaptive benchmark requires the converted rosbag2 fixture")
     factor = config.pipeline.factors.get("lidar_rig_point_to_plane")
-    if args.baseline_scope == "compiled" and (
+    if args.baseline_scope in ("compiled", "cuda") and (
         factor is None or factor.options.get("continuous_time_query_backend") != "numba_cpu"
     ):
         raise ValueError("compiled scope requires continuous_time_query_backend: numba_cpu")
@@ -512,15 +537,17 @@ def main(argv: list[str] | None = None) -> None:
             ]
             if args.candidate_query_backend is not None:
                 command.extend(["--candidate-query-backend", args.candidate_query_backend])
+            if args.baseline_query_backend is not None:
+                command.extend(["--baseline-query-backend", args.baseline_query_backend])
             print(f"START {repeat} {method}", flush=True)
             cache_directory = args.output_dir / "numba-cache" / (
                 f"{method}.repeat-{repeat:02d}" if args.numba_cache_policy == "cold" else
-                method if args.baseline_scope == "compiled" else "shared"
+                method if args.baseline_scope in ("compiled", "cuda") else "shared"
             )
             cache_directory.mkdir(parents=True, exist_ok=True)
             environment["NUMBA_CACHE_DIR"] = str(cache_directory)
             cuda_cache = None
-            if args.candidate_query_backend == "cuda":
+            if "cuda" in (args.candidate_query_backend, args.baseline_query_backend):
                 cuda_cache = args.output_dir / "cuda-cache" / method
                 cuda_cache.mkdir(parents=True, exist_ok=True)
                 environment["CUPY_CACHE_DIR"] = str(cuda_cache)
@@ -547,18 +574,29 @@ def main(argv: list[str] | None = None) -> None:
                           Path("src", *name.split(".")).with_suffix(".py").resolve())
                 for name in modules
             }
+            cap = factor.options.get("continuous_time_max_target_points_per_split") if factor else 0
+            cuda_eligible = min(row["captured_target_count"],
+                                cap or row["captured_target_count"]) >= 8192
+            if args.baseline_scope == "cuda" and not cuda_eligible:
+                expected["calibrex.solvers.cuda_continuous_time_adapter"] = None
             if row["loaded_evaluation_modules"] != expected:
                 raise ValueError("baseline/candidate module binding mismatch")
-            if args.candidate_query_backend == "cuda" and method == "sparse":
-                expected_cuda = str(Path(
-                    "src/calibrex/solvers/cuda_continuous_time_adapter.py",
-                ).resolve())
-                cap = factor.options.get("continuous_time_max_target_points_per_split")
-                cuda_eligible = min(row["captured_target_count"],
-                                    cap or row["captured_target_count"]) >= 8192
+            execution_override = (args.candidate_query_backend if method == "sparse"
+                                  else args.baseline_query_backend)
+            if execution_override == "cuda":
+                expected_cuda = str(archives["calibrex.solvers.cuda_continuous_time_adapter"]
+                                    if method == "baseline" else Path(
+                                        "src/calibrex/solvers/cuda_continuous_time_adapter.py",
+                                    ).resolve())
                 if (row["loaded_cuda_module"] != (expected_cuda if cuda_eligible else None)
                     or row["execution_override"] != "cuda"):
                     raise ValueError("CUDA candidate execution binding mismatch")
+            plane_module = Path("src/calibrex/solvers/cuda_plane_query_adapter.py").resolve()
+            expected_planes = (str(plane_module)
+                               if method == "sparse" and execution_override == "cuda"
+                               and cuda_eligible else None)
+            if row["loaded_cuda_plane_module"] != expected_planes:
+                raise ValueError("CUDA plane query module binding mismatch")
             if split_anchor is None:
                 split_anchor = row["sampled_split"]
             if row["sampled_split"] != split_anchor:
@@ -680,6 +718,7 @@ def main(argv: list[str] | None = None) -> None:
             "The first candidate uses an empty cache; all import/compile/load work is inside wall.",
             "Compiled scope gives each method its own persistent cache, initially empty.",
             f"Candidate execution override: {args.candidate_query_backend}; "
+            f"baseline execution override: {args.baseline_query_backend}; "
             "all physical options and splits are shared. CUDA runs also own a fresh persistent "
             "kernel cache with trial-level before/after digests; compilation stays inside wall. "
             "CUDA dispatch retains CPU execution below the 8192-row capture budget.",

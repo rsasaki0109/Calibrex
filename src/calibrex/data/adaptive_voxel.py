@@ -272,6 +272,15 @@ class AdaptivePlaneQueryContext:
         # Centroids lie in their declared cells. Every centroid within the gate
         # is therefore inside the scalar ceil(gate/size)+1 search box.
         distances, indexes = tree.query(points, k=2, eps=0.0, workers=1)
+        return self._positions_from_neighbors(points, distances, indexes, gate)
+
+    def _positions_from_neighbors(
+        self, points: NDArray[np.float64], distances: NDArray[np.float64],
+        indexes: NDArray[np.int64], gate: float,
+    ) -> NDArray[np.int64]:
+        """Repair uncertain numeric neighbors with the captured native geometry."""
+        tree = self._tree
+        assert tree is not None
         first = distances[:, 0]
         margin = 32.0 * np.finfo(np.float64).eps
         radii = np.nextafter(first * (1.0 + margin), math.inf)
