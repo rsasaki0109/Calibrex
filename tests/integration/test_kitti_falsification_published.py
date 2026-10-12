@@ -115,8 +115,8 @@ def test_drive_0009_repeats_the_decision_on_spread_frames() -> None:
     # The published replication on drive 0009 (same calibration files): the reference's
     # 5 cm along the optical axis on 0005 is not repeated (it reads under 1 cm), every
     # rotation axis is judged and passes, and the known-bad fails on its 0.25 m and its
-    # pitch. On the first 50 frames (5 s) neither its pitch nor its z is judged, so the
-    # known-bad passes on roll and yaw alone.
+    # pitch. On the first 50 frames (5 s) neither its pitch nor its z is judged: the
+    # known-bad passes on roll and yaw alone, and the decision is inconclusive.
     artifact = _artifact()
     (replication,) = artifact.data_only_replications
     assert replication.dataset_sequence == "2011_09_26_drive_0009_sync"
@@ -135,7 +135,11 @@ def test_drive_0009_repeats_the_decision_on_spread_frames() -> None:
     assert {axis.name: axis.status for axis in known_bad.axes}["pitch"] == "fail"
     assert known_bad.depth_axis is not None and known_bad.depth_axis.status == "fail"
 
-    assert decisions["first"].status == "fail"
+    # the known-bad passes there on roll and yaw only; neither axis it is perturbed on
+    # is judged, so the decision is inconclusive (the data do not see its error)
+    assert decisions["first"].known_bad_axes == ["pitch", "z"]
+    assert decisions["first"].status == "inconclusive"
+    assert "none of the axes it is perturbed on" in decisions["first"].reason
     first = {trial.candidate_id: trial for trial in decisions["first"].trials}
     assert first["known_bad"].verdict == "pass"
     assert first["known_bad"].unchecked_rotation_axes == ["pitch"]
