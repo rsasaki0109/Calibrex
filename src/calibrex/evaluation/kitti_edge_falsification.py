@@ -129,6 +129,12 @@ class KITTIEdgeDecision(StrictModel):
     status: Literal["pass", "fail", "inconclusive"]
     reason: str
     trials: list[KITTIEdgeTrial] = Field(min_length=2, max_length=2)
+    known_bad_axes: list[str] = Field(
+        default_factory=list,
+        description="the axes the declared known-bad is perturbed on (beyond 0.5 deg or "
+        "0.02 m from the declared reference, in the camera's frame); a known-bad that "
+        "passes with none of them judged makes the decision inconclusive, not fail",
+    )
     git_commit: str | None = None
 
 
@@ -374,15 +380,51 @@ def run_kitti_edge_decision(
                 edge_points=artifact.samples.edge_points,
             )
         )
-    status, reason = _decision(trials)
+    perturbed = (
+        perturbed_axes(transforms["dataset_reference"], transforms["known_bad"])
+        if {"dataset_reference", "known_bad"} <= set(transforms)
+        else []
+    )
+    status, reason = _decision(trials, perturbed)
     return KITTIEdgeDecision(
         frame_selection=selection,
         frame_ids=[f"camera:{pair.camera_index}:lidar:{pair.lidar_index}" for pair in pairs],
         status=status,
         reason=reason,
         trials=trials,
+        known_bad_axes=perturbed,
         git_commit=commit,
     )
+
+
+def perturbed_axes(
+    reference: FloatArray,
+    known_bad: FloatArray,
+    *,
+    rotation_deg: float = 0.5,
+    translation_m: float = 0.02,
+) -> list[str]:
+    """The axes a declared known-bad differs from the declared reference on.
+
+    Both are ``T_camera_lidar`` in the frame the axes are judged in; rotation is the left
+    difference about the camera axes (roll, pitch, yaw), translation the difference of
+    the translations (x, y, z). This reads the protocol's declaration, not the data.
+    """
+
+    from scipy.spatial.transform import Rotation
+
+    turn = np.degrees(Rotation.from_matrix(known_bad[:3, :3] @ reference[:3, :3].T).as_rotvec())
+    shift = known_bad[:3, 3] - reference[:3, 3]
+    return [
+        name
+        for name, value, bound in zip(
+            ("roll", "pitch", "yaw", "x", "y", "z"),
+            (*turn, *shift),
+            (rotation_deg,) * 3 + (translation_m,) * 3,
+            strict=True,
+        )
+        if abs(value) > bound
+    ]
 
 
 def _depth_estimate(depth: StereoDepthEstimate) -> AxisEstimate:
@@ -406,11 +448,24 @@ def _depth_estimate(depth: StereoDepthEstimate) -> AxisEstimate:
 
 def _decision(
     trials: Sequence[KITTIEdgeTrial],
+    known_bad_axes: Sequence[str] = (),
 ) -> tuple[Literal["pass", "fail", "inconclusive"], str]:
     by_id = {trial.candidate_id: trial for trial in trials}
     reference, known_bad = by_id["dataset_reference"], by_id["known_bad"]
     if reference.verdict == "pass" and known_bad.verdict == "fail":
         return "pass", "the images and scans pass the reference and fail the known-bad candidate"
+    unchecked = set(known_bad.unchecked_rotation_axes) | set(known_bad.unchecked_translation_axes)
+    if (
+        reference.verdict != "fail"
+        and known_bad.verdict == "pass"
+        and known_bad_axes
+        and set(known_bad_axes) <= unchecked
+    ):
+        return (
+            "inconclusive",
+            f"the known-bad candidate passes, but none of the axes it is perturbed on "
+            f"({', '.join(known_bad_axes)}) is judged: the images and scans do not see its error",
+        )
     if reference.verdict == "fail" or known_bad.verdict == "pass":
         return (
             "fail",

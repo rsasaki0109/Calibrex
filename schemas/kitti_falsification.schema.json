@@ -402,6 +402,14 @@
           "default": null,
           "title": "Git Commit"
         },
+        "known_bad_axes": {
+          "description": "the axes the declared known-bad is perturbed on (beyond 0.5 deg or 0.02 m from the declared reference, in the camera's frame); a known-bad that passes with none of them judged makes the decision inconclusive, not fail",
+          "items": {
+            "type": "string"
+          },
+          "title": "Known Bad Axes",
+          "type": "array"
+        },
         "method": {
           "const": "edge_alignment/v0.1 with the calibrex check per-axis rule",
           "default": "edge_alignment/v0.1 with the calibrex check per-axis rule",
