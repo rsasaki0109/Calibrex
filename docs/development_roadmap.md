@@ -132,7 +132,8 @@ accuracy.
    and its 0.25 m, on both frame selections of drive 0005 (the reference near
    the depth tolerance). Drive 0009 (same calibration files) repeats it on
    spread frames; on its first 50 frames the known-bad passes with its pitch
-   and depth unjudged. A joint six-DoF stereo fit is recorded as a cross-check;
+   and depth unjudged, which the decision reports as inconclusive (the data do
+   not see its error). A joint six-DoF stereo fit is recorded as a cross-check;
    its x of the same calibration varies by 12 cm across runs, more than its
    1-3 cm jackknife std, so `x` and `y` stay unjudged. The remaining gaps are
    rotation and depth on 5 s of driving and a lateral translation estimate

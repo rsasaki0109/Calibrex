@@ -112,11 +112,13 @@ are the same transforms. Repeating the decisions there (the second table above,
   judged and passes. The known-bad fails on its 0.25 m along the optical axis and on its
   pitch. When the edges started at its translation, its pitch control reached
   t = 1.99, just under 2. Started with the 0.25 m removed, it reaches 2.2.
-* **On 0009's first 50 frames (5 s) the known-bad passes.** Roll and yaw are judged and
-  pass (they are right). Pitch is not judged, so its 5 deg turn is not corrected, and
-  stereo depth at that rotation is not trusted either (jackknife std 0.084 m), so the
-  edges are not restarted. Under the check's rule a pass covers only the judged axes,
-  so the decision is `fail`: the data-only method passed a candidate that is wrong.
+* **On 0009's first 50 frames (5 s) the data do not see the known-bad's error.** Roll
+  and yaw are judged and pass (they are right). Pitch is not judged, so its 5 deg turn is
+  not corrected, and stereo depth at that rotation is not trusted either (jackknife std
+  0.084 m), so the edges are not restarted. The trial's verdict is what `calibrex check`
+  would report: `pass`, with pitch and z unchecked. The decision is `inconclusive`: the
+  protocol declares the axes the known-bad is perturbed on (pitch and z in the camera's
+  frame), and none of them is judged.
 
 A first replication read 0009 through a pairing bug: KITTI's `timestamps.txt` keeps a
 blank line for each missing scan (0009 has none for frames 177-180), and the reader
@@ -165,6 +167,12 @@ What was decided after seeing results:
   of the LiDAR, or straddles a depth edge. It was added after a first run in which the
   reference read 0.041 m against 0.052 m (`pass`); with it, the reference reads `warn`.
   The rule and its floors are the check's, unchanged.
+
+The decision rule for a known-bad that passes: it is `fail` (the method passed a wrong
+candidate) when at least one of its declared axes was judged, and `inconclusive` (the
+data did not look where it is wrong) when none was. The declared axes come from the
+protocol's declaration of the known-bad, never from the data. This distinction was
+added after 0009's first 50 frames read `fail` under the earlier rule.
 
 The protocol's own status is unchanged: the data-only decision is reported beside it, not
 folded into it, so the protocol's finding above stands.

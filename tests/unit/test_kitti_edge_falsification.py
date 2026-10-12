@@ -20,6 +20,7 @@ from calibrex.evaluation.kitti_edge_falsification import (
     _right_image_path,
     kitti_edge_candidates,
     kitti_stereo,
+    perturbed_axes,
     select_kitti_pairs,
 )
 from calibrex.evaluation.kitti_falsification_benchmark import kitti_benchmark_candidates
@@ -172,6 +173,46 @@ def test_the_reference_must_pass_and_the_known_bad_must_fail(
         [_trial("dataset_reference", reference), _trial("known_bad", known_bad)]
     )
     assert decided == status and reason
+
+
+@pytest.mark.parametrize(
+    ("unchecked", "status"),
+    [
+        # none of the perturbed axes judged: the data did not see the error
+        (["pitch", "z"], "inconclusive"),
+        (["pitch", "yaw", "x", "y", "z"], "inconclusive"),
+        # one of them judged and passed: the method passed a wrong candidate
+        (["pitch"], "fail"),
+        (["x", "y"], "fail"),
+    ],
+)
+def test_a_known_bad_that_passes_unseen_is_inconclusive_not_fail(
+    unchecked: list[str], status: str
+) -> None:
+    known_bad = _trial("known_bad", "pass").model_copy(
+        update={
+            "unchecked_rotation_axes": [a for a in unchecked if a in {"roll", "pitch", "yaw"}],
+            "unchecked_translation_axes": [a for a in unchecked if a in {"x", "y", "z"}],
+        }
+    )
+    decided, reason = _decision([_trial("dataset_reference", "pass"), known_bad], ["pitch", "z"])
+    assert decided == status
+    if status == "inconclusive":
+        assert "pitch, z" in reason
+
+
+def test_the_declared_known_bad_is_perturbed_on_pitch_and_depth(tmp_path: Path) -> None:
+    # KITTI's known-bad turns 5 deg about the LiDAR's vertical axis and moves 0.25 m along
+    # its forward axis: in the camera's pinhole frame, pitch and z
+    dataset = _calibrated(tmp_path)
+    reference = read_velodyne_to_camera_transform(dataset)
+    assert reference is not None
+    _, transforms = kitti_edge_candidates(dataset, kitti_benchmark_candidates(reference))
+    assert perturbed_axes(transforms["dataset_reference"], transforms["known_bad"]) == [
+        "pitch",
+        "z",
+    ]
+    assert perturbed_axes(transforms["dataset_reference"], transforms["dataset_reference"]) == []
 
 
 def test_known_bad_candidate_is_reproduced_from_the_reference() -> None:

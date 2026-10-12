@@ -55,7 +55,11 @@
         "camera:153:lidar:153"
       ],
       "frame_selection": "spread",
-      "git_commit": "75f1dc2",
+      "git_commit": "36b07ff",
+      "known_bad_axes": [
+        "pitch",
+        "z"
+      ],
       "method": "edge_alignment/v0.1 with the calibrex check per-axis rule",
       "reason": "the images and scans pass the reference and fail the known-bad candidate",
       "status": "pass",
@@ -344,7 +348,11 @@
         "camera:49:lidar:49"
       ],
       "frame_selection": "first",
-      "git_commit": "75f1dc2",
+      "git_commit": "36b07ff",
+      "known_bad_axes": [
+        "pitch",
+        "z"
+      ],
       "method": "edge_alignment/v0.1 with the calibrex check per-axis rule",
       "reason": "the images and scans pass the reference and fail the known-bad candidate",
       "status": "pass",
@@ -652,7 +660,11 @@
             "camera:446:lidar:446"
           ],
           "frame_selection": "spread",
-          "git_commit": "75f1dc2",
+          "git_commit": "36b07ff",
+          "known_bad_axes": [
+            "pitch",
+            "z"
+          ],
           "method": "edge_alignment/v0.1 with the calibrex check per-axis rule",
           "reason": "the images and scans pass the reference and fail the known-bad candidate",
           "status": "pass",
@@ -941,10 +953,14 @@
             "camera:49:lidar:49"
           ],
           "frame_selection": "first",
-          "git_commit": "75f1dc2",
+          "git_commit": "36b07ff",
+          "known_bad_axes": [
+            "pitch",
+            "z"
+          ],
           "method": "edge_alignment/v0.1 with the calibrex check per-axis rule",
-          "reason": "the images and scans pass the reference and pass the known-bad candidate",
-          "status": "fail",
+          "reason": "the known-bad candidate passes, but none of the axes it is perturbed on (pitch, z) is judged: the images and scans do not see its error",
+          "status": "inconclusive",
           "trials": [
             {
               "axes": [

@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- **A known-bad that passes with its error unseen makes the KITTI data-only decision
+  `inconclusive`, not `fail`.**
+  - **The declared axes.** They come from the protocol's declaration of the known-bad (in
+    the camera's frame, beyond 0.5 deg or 0.02 m from the declared reference): pitch and
+    z. Each decision records them as `known_bad_axes`.
+  - **The rule.** A known-bad that passes with none of them judged is `inconclusive`. One
+    that passes with any of them judged still `fail`s. The trial's own verdict (what
+    `calibrex check` reports) is unchanged.
+  - **Effect.** The only row that changes is 0009's first 50 frames: `fail` becomes
+    `inconclusive`.
+
 - **KITTI data-only rotation is judged after removing the depth error stereo measures.**
   - **The change.** When stereo depth trusts its reading of the candidate's error along
     the optical axis, the edges run again from the candidate with it removed, and the
