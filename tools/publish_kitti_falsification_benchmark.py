@@ -8,8 +8,9 @@ known-bad candidate), or reuses the output directory of such a run, and writes:
 
 * ``docs/assets/kitti-camera-lidar-falsification.json``: the schema-valid
   ``slac.kitti_lidar_camera_falsification/v0.1`` artifact, with each trial's policy
-  gates and headline metrics and every trial file bound by SHA-256 (paths relative to
-  the run's output directory);
+  gates and headline metrics, every trial file bound by SHA-256 (paths relative to
+  the run's output directory), and the data-only decisions of
+  :mod:`calibrex.evaluation.kitti_edge_falsification`;
 * ``docs/assets/kitti-camera-lidar-falsification.md``: its rendered summary, which
   the benchmark page includes and a test regenerates.
 
@@ -34,6 +35,7 @@ from calibrex.core.io import read_mapping
 from calibrex.core.provenance import sha256_path
 from calibrex.evaluation.kitti_falsification_benchmark import (
     KITTIFalsificationBenchmarkArtifact,
+    attach_data_only_decisions,
     render_kitti_falsification_markdown,
     run_kitti_falsification_benchmark,
     summarize_kitti_trial,
@@ -100,6 +102,10 @@ def main(argv: list[str] | None = None) -> int:
             args.dataset, config_path=args.config, output_dir=output_dir
         )
     published = publishable(benchmark, output_dir)
+    if not published.data_only:
+        # A run made before the data-only decision existed: add it (its own git commit
+        # is recorded in each decision).
+        published = attach_data_only_decisions(published, published.dataset_path)
     args.assets.mkdir(parents=True, exist_ok=True)
     published.save(args.assets / f"{ASSET_NAME}.json")
     (args.assets / f"{ASSET_NAME}.md").write_text(

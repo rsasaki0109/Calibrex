@@ -67,3 +67,26 @@ def test_the_known_bad_is_rejected_only_by_the_reference_comparison() -> None:
     ]
     assert failed and all(check.uses_dataset_reference for check in failed)
     assert all(check.status == "pass" for check in trials["dataset_reference"].evidence_checks)
+
+
+def test_the_images_and_scans_alone_pass_the_reference_and_fail_the_known_bad() -> None:
+    artifact = _artifact()
+    assert artifact.data_only_status == "pass"
+    decisions = {decision.frame_selection: decision for decision in artifact.data_only}
+    assert list(decisions) == ["spread", "first"]
+    spread = decisions["spread"]
+    assert spread.status == "pass" and len(spread.frame_ids) == 50
+    assert spread.git_commit
+    trials = {trial.candidate_id: trial for trial in spread.trials}
+    assert trials["dataset_reference"].verdict == "pass"
+    assert trials["known_bad"].verdict == "fail"
+    axes = {axis.name: axis for axis in trials["known_bad"].axes}
+    # the 5 deg about the camera's yaw axis is a pitch of the rectified pinhole frame
+    assert axes["pitch"].status == "fail"
+    assert abs(axes["pitch"].candidate_error_deg) > 2 * axes["pitch"].tolerance_deg
+    # the sensitivity row: the protocol's own first 50 frames leave the reference at the
+    # tolerance boundary, so that selection alone does not decide
+    first = decisions["first"]
+    assert first.frame_ids == artifact.selected_frame_ids
+    assert first.status == "inconclusive"
+    assert {trial.candidate_id: trial.verdict for trial in first.trials}["known_bad"] == "fail"

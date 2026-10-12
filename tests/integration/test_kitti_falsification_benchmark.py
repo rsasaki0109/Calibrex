@@ -11,9 +11,7 @@ from calibrex.evaluation.kitti_falsification_benchmark import (
     run_kitti_falsification_benchmark,
 )
 
-FIXTURE = Path(
-    "examples/public_datasets/kitti_lidar_camera_evidence/2011_09_26"
-) / KITTI_SEQUENCE
+FIXTURE = Path("examples/public_datasets/kitti_lidar_camera_evidence/2011_09_26") / KITTI_SEQUENCE
 CONFIG = Path("examples/public_datasets/kitti_lidar_camera_evidence/config.yaml")
 
 
@@ -40,6 +38,10 @@ def test_kitti_falsification_benchmark_materializes_schema_valid_trials(
     }
     assert all(trial.bundle_valid for trial in benchmark.trials)
     assert all(len(trial.artifacts) == 9 for trial in benchmark.trials)
+    # the data-only decision runs on the same frames; two fixture frames decide nothing
+    assert [decision.frame_selection for decision in benchmark.data_only] == ["spread", "first"]
+    assert benchmark.data_only_status == benchmark.data_only[0].status
+    assert all(len(decision.trials) == 2 for decision in benchmark.data_only)
     report = validate_file(
         tmp_path / "benchmark" / "benchmark.json",
         kind="kitti-falsification",
@@ -93,9 +95,7 @@ def test_kitti_falsification_benchmark_cli_emits_falsification_flag(
 def test_official_kitti_falsification_benchmark(tmp_path: Path) -> None:
     benchmark = run_kitti_falsification_benchmark(
         Path(os.environ["CALIBREX_KITTI_RAW_0005"]),
-        config_path=Path(
-            "examples/public_datasets/kitti_raw_2011_09_26_drive_0005/config.yaml"
-        ),
+        config_path=Path("examples/public_datasets/kitti_raw_2011_09_26_drive_0005/config.yaml"),
         output_dir=tmp_path / "official-kitti-benchmark",
     )
 
@@ -105,3 +105,4 @@ def test_official_kitti_falsification_benchmark(tmp_path: Path) -> None:
     assert by_id["dataset_reference"].assessment_status == "pass"
     assert by_id["known_bad"].assessment_status == "fail"
     assert benchmark.status == "pass"
+    assert benchmark.data_only_status == "pass"

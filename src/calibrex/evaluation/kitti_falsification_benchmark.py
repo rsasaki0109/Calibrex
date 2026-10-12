@@ -24,6 +24,12 @@ from calibrex.data.kitti import (
     find_camera_lidar_pairs,
     read_velodyne_to_camera_transform,
 )
+from calibrex.evaluation.kitti_edge_falsification import (
+    FrameSelection,
+    KITTIEdgeDecision,
+    KITTIEdgeTrial,
+    run_kitti_edge_decision,
+)
 from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
 
 KITTI_FALSIFICATION_SCHEMA_VERSION: Literal["slac.kitti_lidar_camera_falsification/v0.1"] = (
@@ -147,6 +153,16 @@ class KITTIFalsificationBenchmarkArtifact(StrictModel):
     trials: list[KITTIBenchmarkTrial] = Field(min_length=2, max_length=2)
     input_artifacts: list[KITTIBenchmarkArtifactDigest] = Field(min_length=2)
     provenance: KITTIFalsificationProvenance
+    data_only_status: BenchmarkStatus | None = Field(
+        default=None,
+        description="the decision of the images and scans alone (edge alignment with the "
+        "calibrex check rule, frames spread over the drive); status above also counts the "
+        "comparison with the dataset's calibration",
+    )
+    data_only: list[KITTIEdgeDecision] = Field(
+        default_factory=list,
+        description="data-only decisions: the spread selection first, then sensitivity rows",
+    )
 
     def save(self, path: str | Path) -> None:
         """Write the benchmark artifact as JSON or YAML."""
@@ -170,6 +186,7 @@ def run_kitti_falsification_benchmark(
     seed: int = 20260729,
     source_url: str = KITTI_SOURCE_URL,
     source_note: str = "official KITTI raw download; user-supplied local copy",
+    data_only: bool = True,
 ) -> KITTIFalsificationBenchmarkArtifact:
     """Run reference and declared known-bad candidates under one frozen protocol."""
 
@@ -200,14 +217,7 @@ def run_kitti_falsification_benchmark(
     )
     write_mapping(frozen_config, config_payload)
 
-    known_bad_delta = SE3(
-        (0.25, 0.0, 0.0),
-        (0.0, 0.0, math.sin(math.radians(5.0) / 2.0), math.cos(math.radians(5.0) / 2.0)),
-    )
-    candidates: dict[Literal["dataset_reference", "known_bad"], SE3] = {
-        "dataset_reference": reference,
-        "known_bad": reference.compose(known_bad_delta),
-    }
+    candidates = kitti_benchmark_candidates(reference)
     trials: list[KITTIBenchmarkTrial] = []
     for candidate_id, transform in candidates.items():
         trial_dir = output / candidate_id
@@ -292,8 +302,54 @@ def run_kitti_falsification_benchmark(
             source_config_sha256=source_config_digest,
         ),
     )
+    if data_only:
+        benchmark = attach_data_only_decisions(benchmark, dataset, frame_count=len(pairs))
     benchmark.save(output / "benchmark.json")
     return benchmark
+
+
+DATA_ONLY_SELECTIONS: tuple[FrameSelection, ...] = ("spread", "first")
+
+
+def kitti_benchmark_candidates(
+    reference: SE3,
+) -> dict[Literal["dataset_reference", "known_bad"], SE3]:
+    """The dataset reference and the declared known-bad candidate (+5 deg yaw, +0.25 m x)."""
+
+    known_bad_delta = SE3(
+        (0.25, 0.0, 0.0),
+        (0.0, 0.0, math.sin(math.radians(5.0) / 2.0), math.cos(math.radians(5.0) / 2.0)),
+    )
+    return {"dataset_reference": reference, "known_bad": reference.compose(known_bad_delta)}
+
+
+def attach_data_only_decisions(
+    benchmark: KITTIFalsificationBenchmarkArtifact,
+    dataset: str | Path,
+    *,
+    frame_count: int | None = None,
+) -> KITTIFalsificationBenchmarkArtifact:
+    """The benchmark with its data-only decisions (spread selection, then the first frames)."""
+
+    reference = read_velodyne_to_camera_transform(dataset)
+    if reference is None:
+        msg = "KITTI calib_velo_to_cam.txt could not be parsed"
+        raise ValueError(msg)
+    candidates = kitti_benchmark_candidates(reference)
+    declared = benchmark.known_bad_transform_camera_lidar
+    if [round(v, 12) for v in candidates["known_bad"].translation_m] != [
+        round(v, 12) for v in declared["translation_m"]
+    ]:
+        msg = "the dataset's reference does not reproduce the benchmark's known-bad candidate"
+        raise ValueError(msg)
+    count = frame_count or len(benchmark.selected_frame_ids)
+    decisions = [
+        run_kitti_edge_decision(dataset, candidates, frame_count=count, selection=selection)
+        for selection in DATA_ONLY_SELECTIONS
+    ]
+    return benchmark.model_copy(
+        update={"data_only_status": decisions[0].status, "data_only": decisions}
+    )
 
 
 def _frozen_config_payload(
@@ -539,11 +595,45 @@ def render_kitti_falsification_markdown(benchmark: KITTIFalsificationBenchmarkAr
         if failed and all(item.uses_dataset_reference for item in failed):
             lines += [
                 "",
-                f"`{name}` is rejected only by "
+                f"The protocol rejects `{name}` only through "
                 + ", ".join(f"*{item.check}* ({item.evidence})" for item in failed)
-                + ": a comparison with the dataset's own calibration. No check of the images "
-                "and scans rejects it.",
+                + ": a comparison with the dataset's own calibration. None of the protocol's "
+                "checks of the images and scans rejects it.",
             ]
+    if benchmark.data_only:
+        lines += [
+            "",
+            f"**Data-only status: `{benchmark.data_only_status}`**: the images and scans "
+            "alone, judged by edge alignment with the `calibrex check` per-axis rule "
+            "(rotation only; `error / tolerance` in deg).",
+            "",
+            "| Frames | `dataset_reference` | `known_bad` | Decision |",
+            "| --- | --- | --- | --- |",
+        ]
+        for decision in benchmark.data_only:
+            by_id: dict[str, KITTIEdgeTrial] = {
+                trial.candidate_id: trial for trial in decision.trials
+            }
+            cells = []
+            for name in order:
+                trial = by_id[name]
+                axes = ", ".join(
+                    f"{axis.name} {abs(axis.candidate_error_deg):.2f} / {axis.tolerance_deg:.2f}"
+                    + ("" if axis.status == "pass" else f" {axis.status}")
+                    for axis in trial.axes
+                )
+                unchecked = (
+                    f"; unchecked {', '.join(trial.unchecked_rotation_axes)}"
+                    if trial.unchecked_rotation_axes
+                    else ""
+                )
+                cells.append(f"**{trial.verdict}** ({axes}{unchecked})")
+            label = (
+                f"{len(decision.frame_ids)} spread over the drive"
+                if decision.frame_selection == "spread"
+                else f"first {len(decision.frame_ids)} (the protocol's)"
+            )
+            lines.append(f"| {label} | " + " | ".join(cells) + f" | {decision.status} |")
     return "\n".join(lines) + "\n"
 
 
