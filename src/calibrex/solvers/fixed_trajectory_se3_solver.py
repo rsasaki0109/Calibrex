@@ -128,13 +128,20 @@ class FixedTrajectorySe3ExtrinsicSolver:
         status: SolverStatus = "max_iterations"
         stop_reason = "maximum iterations reached"
         for iteration in range(solver_options.max_iterations):
-            residuals = factor.residuals(correction)
-            linearization = factor.linearize(correction)
-            hessian, gradient = _weighted_normal_equations(
-                residuals,
-                linearization.jacobian,
-                solver_options,
+            compiled_system = getattr(factor, "_compiled_system", None)
+            system = (
+                compiled_system(correction, robust_loss=solver_options.robust_loss,
+                                huber_delta_m=solver_options.huber_delta_m)
+                if compiled_system is not None else None
             )
+            if system is None:
+                residuals = factor.residuals(correction)
+                linearization = factor.linearize(correction)
+                hessian, gradient = _weighted_normal_equations(
+                    residuals, linearization.jacobian, solver_options,
+                )
+            else:
+                residuals, hessian, gradient = system
             step = _solve_damped_system(hessian, gradient, damping)
             if step is None:
                 rejected_steps += 1

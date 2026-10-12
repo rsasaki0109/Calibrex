@@ -307,6 +307,35 @@ class VoxelPlaneQueryContext:
         }
         self._keys = tuple(sorted(self._planes))
         self._index = _prepare_plane_index(self._planes)
+        self._native_geometry = all(
+            type(vector) is tuple and len(vector) == 3
+            and all(type(value) is float and math.isfinite(value) and abs(value) < 1e100
+                    for value in vector)
+            for plane in self._planes.values() for vector in (plane.centroid, plane.normal)
+            if vector is not None
+        )
+
+    def _nearest_geometries(
+        self, points: NDArray[np.float64], *, voxel_size_m: float,
+        correspondence_gate_m: float,
+    ) -> list[_PlaneGeometry | None] | None:
+        """Skip unused match records/distances for captured native geometry."""
+        if (type(self) is not VoxelPlaneQueryContext or not self._native_geometry
+            or "nearest_matches" in self.__dict__
+            or type(self).nearest_matches is not _NATIVE_CAPTURED_MATCHES):
+            return None
+        with np.errstate(over="ignore", divide="ignore", invalid="ignore"):
+            cells = np.floor(points / voxel_size_m)
+        index = self._index
+        if (len(points) < 64 or index is None or index.neighborhoods is None
+            or not np.isfinite(cells).all() or np.any(cells < -(2.0**63))
+            or np.any(cells >= 2.0**63)):
+            return None
+        positions = _packed_plane_positions(
+            points, cells.astype(np.int64), index, correspondence_gate_m,
+        )
+        return [self._planes[self._keys[position]] if position >= 0 else None
+                for position in positions.tolist()]
 
     def nearest_match(
         self, point: Vector3, *, voxel_size_m: float, correspondence_gate_m: float,
@@ -356,6 +385,8 @@ class VoxelPlaneQueryContext:
             result.append(VoxelPlaneMatch(key, geometry.centroid, geometry.normal, distance))
         return result
 
+
+_NATIVE_CAPTURED_MATCHES = VoxelPlaneQueryContext.nearest_matches
 
 _DENSE_PLANE_INDEX_MAX_BYTES = 8 * 1024 * 1024
 

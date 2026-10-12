@@ -27,6 +27,8 @@ from calibrex.solvers.continuous_time_lidar_pair_solver import (
 from calibrex.solvers.fixed_trajectory_se3_solver import FixedTrajectorySe3SolverOptions
 from calibrex.solvers.numba_continuous_time_adapter import (
     NumbaContinuousTimeQueryContext,
+    numba_rig_linearization,
+    numba_rig_normal_equations,
     numba_rig_residuals,
 )
 
@@ -151,6 +153,8 @@ def test_fused_residuals_and_numerical_jacobians_match_numpy_bits(shared, count)
         t_ego_lidar=transform,
         observations=observations,
         _array_kernel=numba_rig_residuals,
+        _array_linearizer=numba_rig_linearization,
+        _array_normal_kernel=numba_rig_normal_equations,
     )
     correction = (0.01, -0.02, 0.03, -0.01, 0.005, 0.02)
     expected = np.asarray(baseline.residuals(correction)).view(np.uint64).tolist()

@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
 from importlib.metadata import version
 from itertools import pairwise
-from typing import TYPE_CHECKING, TypeAlias
+from typing import TYPE_CHECKING, TypeAlias, cast
 
 import numpy as np
 from numba import njit
@@ -25,7 +26,7 @@ Quaternion: TypeAlias = tuple[float, float, float, float]
 
 def numba_continuous_time_identity() -> str:
     """Identify the optional runtime and its arithmetic/compilation policy."""
-    return f"calibrex.numba_continuous_time/v0.1;numba={version('numba')};fastmath=false;cache=true"
+    return f"calibrex.numba_continuous_time/v0.2;numba={version('numba')};fastmath=false;cache=true"
 
 
 @njit(cache=True, nogil=True, fastmath=False, inline="always")  # type: ignore[untyped-decorator]
@@ -190,6 +191,80 @@ def numba_rig_residuals(arrays: _ObservationArrays, transform: SE3) -> list[floa
     )
 
 
+@njit(cache=True, nogil=True, fastmath=False)  # type: ignore[untyped-decorator]
+def _jacobian_rows(
+    points: FloatArray,
+    planes: FloatArray,
+    normals: FloatArray,
+    poses: FloatArray,
+    weights: FloatArray,
+    transforms: FloatArray,
+    steps: FloatArray,
+) -> tuple[FloatArray, FloatArray]:
+    residuals = _residual_rows(points, planes, normals, poses, weights, transforms[0])
+    jacobian = np.empty((len(points), 6), dtype=np.float64)
+    for column in range(6):
+        plus = _residual_rows(points, planes, normals, poses, weights, transforms[1 + 2 * column])
+        minus = _residual_rows(points, planes, normals, poses, weights, transforms[2 + 2 * column])
+        for row in range(len(points)):
+            jacobian[row, column] = (plus[row] - minus[row]) / (2.0 * steps[column])
+    return residuals, jacobian
+
+
+@njit(cache=True, nogil=True, fastmath=False)  # type: ignore[untyped-decorator]
+def _normal_rows(
+    rows: FloatArray,
+    residuals: FloatArray,
+    huber: bool,
+    delta: float,
+) -> tuple[FloatArray, FloatArray]:
+    hessian = np.zeros((6, 6), dtype=np.float64)
+    gradient = np.zeros(6, dtype=np.float64)
+    for index in range(len(rows)):
+        absolute = abs(residuals[index])
+        weight = delta / absolute if huber and absolute > delta and absolute != 0.0 else 1.0
+        for left in range(6):
+            weighted = weight * rows[index, left]
+            gradient[left] += weighted * residuals[index]
+            for right in range(6):
+                hessian[left, right] += weighted * rows[index, right]
+    return hessian, gradient
+
+
+def numba_rig_linearization(
+    arrays: _ObservationArrays,
+    transforms: Sequence[SE3],
+    steps: Sequence[float],
+) -> tuple[FloatArray, FloatArray]:
+    """Keep all thirteen finite-difference evaluations in owned numeric arrays."""
+    values = np.asarray(
+        [(*t.translation_m, *t.rotation_quat_xyzw) for t in transforms], dtype=np.float64
+    )
+    return cast(
+        tuple[FloatArray, FloatArray],
+        _jacobian_rows(
+            arrays.points,
+            arrays.plane_points,
+            arrays.normals,
+            arrays.poses,
+            arrays.sqrt_weights,
+            values,
+            np.asarray(steps, dtype=np.float64),
+        ),
+    )
+
+
+def numba_rig_normal_equations(
+    rows: FloatArray,
+    residuals: FloatArray,
+    huber: bool,
+    delta: float,
+) -> tuple[list[list[float]], list[float]]:
+    """Accumulate every row/product in the original robust weighted order."""
+    hessian, gradient = _normal_rows(rows, residuals, huber, delta)
+    return hessian.tolist(), gradient.tolist()
+
+
 @dataclass
 class NumbaContinuousTimeQueryContext:
     """Capture a supported immutable trajectory once per solve."""
@@ -300,9 +375,10 @@ class NumbaContinuousTimeQueryContext:
         # These rows have already performed both public-constructor normalizations.
         poses = []
         if usable:
-            for row in rows:
-                pose = object.__new__(SE3)
-                object.__setattr__(pose, "translation_m", tuple(row[:3].tolist()))
-                object.__setattr__(pose, "rotation_quat_xyzw", tuple(row[3:].tolist()))
-                poses.append(pose)
+            for start in range(0, len(rows), 4096):
+                for row in rows[start : start + 4096].tolist():
+                    pose = object.__new__(SE3)
+                    object.__setattr__(pose, "translation_m", tuple(row[:3]))
+                    object.__setattr__(pose, "rotation_quat_xyzw", tuple(row[3:]))
+                    poses.append(pose)
         return poses, world, usable

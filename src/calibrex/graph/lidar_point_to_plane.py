@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
-from math import cos, isclose, sin, sqrt
+from math import cos, isclose, isfinite, sin, sqrt
 
 import numpy as np
 from numpy.typing import NDArray
@@ -39,6 +39,53 @@ class LidarPointToPlaneObservation:
         if self.weight < 0.0:
             msg = "observation weight must be non-negative"
             raise ValueError(msg)
+
+
+_NATIVE_OBSERVATION = LidarPointToPlaneObservation
+_NATIVE_OBSERVATION_INIT = LidarPointToPlaneObservation.__post_init__
+_NATIVE_OBSERVATION_CONSTRUCTOR = LidarPointToPlaneObservation.__init__
+
+
+class _PreparedObservationBuilder:
+    """Reuse immutable native plane conversions and exact normalizations."""
+
+    def __init__(self, points: Sequence[Vector3]) -> None:
+        # Bound retained identity keys/references; unsupported points use the constructor.
+        captured = points[:65536] if type(points) in (list, tuple) else ()
+        self._points = {id(point): point for point in captured
+                        if type(point) is tuple and len(point) == 3
+                        and all(type(value) is float for value in point)}
+        self._planes: dict[tuple[int, int], tuple[Vector3, Vector3, Vector3, Vector3]] = {}
+
+    def build(
+        self, point: Vector3, centroid: Vector3, normal: Vector3, pose: SE3,
+    ) -> LidarPointToPlaneObservation:
+        constructor = _NATIVE_OBSERVATION
+        if (
+            self._points.get(id(point)) is not point or type(pose) is not SE3
+            or LidarPointToPlaneObservation is not _NATIVE_OBSERVATION
+            or LidarPointToPlaneObservation.__post_init__ is not _NATIVE_OBSERVATION_INIT
+            or LidarPointToPlaneObservation.__init__ is not _NATIVE_OBSERVATION_CONSTRUCTOR
+        ):
+            return constructor(point, centroid, normal, pose)
+        key = (id(centroid), id(normal))
+        cached = self._planes.get(key)
+        if cached is None or cached[0] is not centroid or cached[1] is not normal:
+            if not all(type(vector) is tuple and len(vector) == 3
+                       and all(type(value) is float and isfinite(value) for value in vector)
+                       for vector in (centroid, normal)):
+                return constructor(point, centroid, normal, pose)
+            cached = (centroid, normal, _vector3(centroid), _normalize3(normal))
+            if len(self._planes) >= 1024:
+                self._planes.pop(next(iter(self._planes)))
+            self._planes[key] = cached
+        observation = object.__new__(constructor)
+        object.__setattr__(observation, "point_lidar_m", (point[0], point[1], point[2]))
+        object.__setattr__(observation, "plane_point_world_m", cached[2])
+        object.__setattr__(observation, "plane_normal_world", cached[3])
+        object.__setattr__(observation, "t_world_ego", pose)
+        object.__setattr__(observation, "weight", 1.0)
+        return observation
 
 
 @dataclass(frozen=True)
@@ -92,6 +139,14 @@ class LidarRigPointToPlaneFactor:
         observations: Sequence[LidarPointToPlaneObservation],
         sensor: str = "lidar0",
         _array_kernel: Callable[[_ObservationArrays, SE3], list[float]] | None = None,
+        _array_linearizer: Callable[
+            [_ObservationArrays, Sequence[SE3], Sequence[float]],
+            tuple[NDArray[np.float64], NDArray[np.float64]],
+        ] | None = None,
+        _array_normal_kernel: Callable[
+            [NDArray[np.float64], NDArray[np.float64], bool, float],
+            tuple[list[list[float]], list[float]],
+        ] | None = None,
     ) -> None:
         self.variable = variable
         self.t_ego_lidar = t_ego_lidar
@@ -101,6 +156,9 @@ class LidarRigPointToPlaneFactor:
         ] | None = None
         self.sensor = sensor
         self._array_kernel = _array_kernel
+        self._captured_array_kernel = _array_kernel
+        self._array_linearizer = _array_linearizer
+        self._array_normal_kernel = _array_normal_kernel
         self.dof_names: tuple[str, str, str, str, str, str] = (
             f"{_DEFAULT_DOF_NAMES[0]}_{sensor}",
             f"{_DEFAULT_DOF_NAMES[1]}_{sensor}",
@@ -139,6 +197,83 @@ class LidarRigPointToPlaneFactor:
             residuals.append(sqrt(observation.weight) * residual)
         return residuals
 
+    def _retain_observations(
+        self, observations: tuple[LidarPointToPlaneObservation, ...], indices: list[int],
+    ) -> None:
+        original, captured = self.observations, self._array_observations
+        self.observations = observations
+        self._array_observations = None
+        if (
+            len(observations) < 64 or captured is None or captured[0] is not original
+            or captured[1] is None or not all(type(o) is LidarPointToPlaneObservation
+                and type(o.t_world_ego) is SE3 and type(o.weight) in (float, int) for o in original)
+        ):
+            return
+        arrays = captured[1]
+        positions = np.asarray(indices, dtype=np.int64)
+        selected = [array[positions] for array in (
+            arrays.points, arrays.plane_points, arrays.normals, arrays.poses, arrays.sqrt_weights,
+        )]
+        for array in selected:
+            array.flags.writeable = False
+        bits = selected[3].view(np.uint64)
+        shared = observations[0].t_world_ego if np.all(bits == bits[0]) else None
+        self._array_observations = (observations, _ObservationArrays(
+            selected[0], selected[1], selected[2], selected[3], selected[4], shared,
+        ))
+
+    def _compiled_linearization(
+        self, correction: Sequence[float] | None,
+        translation_step_m: float = 1.0e-4, rotation_step_rad: float = 1.0e-5,
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]] | None:
+        if (
+            self._array_linearizer is None or self._array_normal_kernel is None
+            or len(self.observations) < 64 or type(self) is not LidarRigPointToPlaneFactor
+            or self._array_kernel is not self._captured_array_kernel
+            or any(name in self.__dict__
+                   for name in ("residuals", "linearize", "_corrected_transform"))
+            or type(self).residuals is not _NATIVE_RESIDUALS
+            or type(self).linearize is not _NATIVE_LINEARIZE
+            or type(self)._corrected_transform is not _NATIVE_CORRECTION
+        ):
+            return None
+        if self._array_observations is None or self._array_observations[0] is not self.observations:
+            self._array_observations = (
+                self.observations, _prepare_observation_arrays(self.observations),
+            )
+        arrays = self._array_observations[1]
+        if arrays is None:
+            return None
+        base = _correction_vector(correction)
+        steps = (translation_step_m,)*3 + (rotation_step_rad,)*3
+        transforms = [self._corrected_transform(base)]
+        for column, step in enumerate(steps):
+            plus, minus = list(base), list(base)
+            plus[column] += step
+            minus[column] -= step
+            transforms.extend((self._corrected_transform(plus), self._corrected_transform(minus)))
+        if not all(np.isfinite((*t.translation_m, *t.rotation_quat_xyzw)).all()
+                   for t in transforms):
+            return None
+        residuals, jacobian = self._array_linearizer(arrays, transforms, steps)
+        if not np.isfinite(residuals).all() or not np.isfinite(jacobian).all():
+            return None
+        return residuals, jacobian
+
+    def _compiled_system(
+        self, correction: Sequence[float], *, robust_loss: str, huber_delta_m: float,
+    ) -> tuple[list[float], list[list[float]], list[float]] | None:
+        if not isfinite(huber_delta_m):
+            return None
+        dense = self._compiled_linearization(correction)
+        if dense is None or self._array_normal_kernel is None:
+            return None
+        residuals, jacobian = dense
+        hessian, gradient = self._array_normal_kernel(
+            jacobian, residuals, robust_loss != "none", huber_delta_m,
+        )
+        return residuals.tolist(), hessian, gradient
+
     def linearize(
         self,
         correction: Sequence[float] | None = None,
@@ -147,6 +282,17 @@ class LidarRigPointToPlaneFactor:
         rotation_step_rad: float = 1.0e-5,
     ) -> LidarRigPointToPlaneLinearization:
         """Return residuals, numerical Jacobian, Hessian, and gradient."""
+
+        dense = self._compiled_linearization(correction, translation_step_m, rotation_step_rad)
+        if dense is not None and self._array_normal_kernel is not None:
+            residuals_array, jacobian_array = dense
+            hessian, gradient = self._array_normal_kernel(
+                jacobian_array, residuals_array, False, 0.0,
+            )
+            return LidarRigPointToPlaneLinearization(
+                self.variable, self.dof_names, residuals_array.tolist(), jacobian_array.tolist(),
+                hessian, gradient,
+            )
 
         base = _correction_vector(correction)
         residuals = self.residuals(base)
@@ -282,6 +428,11 @@ class LidarRigPointToPlaneFactor:
         correction_vector = _correction_vector(correction)
         delta = _small_se3(correction_vector)
         return delta.compose(self.t_ego_lidar)
+
+
+_NATIVE_RESIDUALS = LidarRigPointToPlaneFactor.residuals
+_NATIVE_LINEARIZE = LidarRigPointToPlaneFactor.linearize
+_NATIVE_CORRECTION = LidarRigPointToPlaneFactor._corrected_transform
 
 
 @dataclass(frozen=True)

@@ -7,6 +7,9 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from statistics import median
 
+import numpy as np
+from numpy.typing import NDArray
+
 from calibrex.core.geometry import SE3
 from calibrex.graph.lidar_point_to_plane import (
     LidarPointToPlaneObservation,
@@ -38,6 +41,7 @@ def filter_lidar_observations_mad(
     minimum_threshold_m: float = 0.02,
     minimum_inlier_fraction: float = 0.25,
     minimum_inliers: int = 6,
+    _factor: LidarRigPointToPlaneFactor | None = None,
 ) -> RobustObservationFilterResult:
     """Reject large initial residuals with a MAD gate and a support floor.
 
@@ -70,23 +74,37 @@ def filter_lidar_observations_mad(
     if minimum_inliers < 1:
         raise ValueError("minimum_inliers must be positive")
 
-    factor = LidarRigPointToPlaneFactor(
+    factor = _factor if _factor is not None else LidarRigPointToPlaneFactor(
         variable=variable,
         t_ego_lidar=t_ego_lidar,
         observations=source,
         sensor=sensor,
     )
+    if _factor is not None and (
+        factor.observations is not source or factor.t_ego_lidar is not t_ego_lidar
+        or factor.variable != variable or factor.sensor != sensor
+    ):
+        raise ValueError("prepared factor must match the filter's observations and transform")
     residuals = factor.residuals()
-    absolute_residuals = sorted(abs(value) for value in residuals)
-    median_abs = float(median(absolute_residuals))
-    deviations = [abs(value - median_abs) for value in absolute_residuals]
-    mad = float(median(deviations))
+    absolute: NDArray[np.float64] | None = None
+    if len(residuals) >= 64 and all(type(value) is float for value in residuals):
+        values = np.asarray(residuals, dtype=np.float64)
+        if np.isfinite(values).all():
+            absolute = np.abs(values)
+    if absolute is None:
+        absolute_residuals = sorted(abs(value) for value in residuals)
+        median_abs = float(median(absolute_residuals))
+        deviations = [abs(value - median_abs) for value in absolute_residuals]
+        mad = float(median(deviations))
+    else:
+        median_abs = _partition_median(absolute)
+        mad = _partition_median(np.abs(absolute-median_abs))
     robust_scale = 1.4826 * mad
     threshold = max(
         minimum_threshold_m,
         median_abs + mad_scale * robust_scale,
     )
-    accepted = [
+    accepted = np.flatnonzero(absolute <= threshold).tolist() if absolute is not None else [
         index
         for index, observation in enumerate(source)
         if abs(residuals[index]) <= threshold
@@ -97,7 +115,7 @@ def filter_lidar_observations_mad(
     )
     fallback_used = len(accepted) < required_count
     if fallback_used:
-        ranked = sorted(
+        ranked = np.argsort(absolute, kind="stable").tolist() if absolute is not None else sorted(
             range(total_count),
             key=lambda index: (abs(residuals[index]), index),
         )
@@ -108,6 +126,8 @@ def filter_lidar_observations_mad(
         for index, observation in enumerate(source)
         if index in accepted_set
     )
+    if _factor is not None:
+        factor._retain_observations(filtered, sorted(accepted_set))
     return RobustObservationFilterResult(
         observations=filtered,
         total_count=total_count,
@@ -118,3 +138,12 @@ def filter_lidar_observations_mad(
         threshold_m=threshold,
         fallback_used=fallback_used,
     )
+
+
+def _partition_median(values: NDArray[np.float64]) -> float:
+    middle = len(values)//2
+    positions = (middle-1, middle) if len(values) % 2 == 0 else (middle,)
+    partitioned = np.partition(values, positions)
+    with np.errstate(over="ignore", invalid="ignore"):
+        return (float((partitioned[middle-1]+partitioned[middle])/2.0)
+                if len(values) % 2 == 0 else float(partitioned[middle]))

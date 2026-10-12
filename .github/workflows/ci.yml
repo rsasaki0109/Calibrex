@@ -203,6 +203,7 @@ jobs:
         run: >-
           pytest tests/unit/test_numba_depth_to_depth_adapter.py
           tests/unit/test_numba_continuous_time_queries.py
+          tests/unit/test_compiled_lidar_linearization.py
           tests/unit/test_cpu_frame_parallelism.py
           tests/unit/test_depth_to_depth_runtime.py
           tests/unit/test_borer_depth_to_depth_solver.py

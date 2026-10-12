@@ -3,6 +3,8 @@
 Download and convert the GLIM fixture using the public-dataset tutorial first.
 The adaptive scope substitutes adaptive_voxel; runtime replaces the seven
 geometry/query/interpolation modules together from the baseline revision.
+Compiled scope also archives the optimizer, MAD filter and optional Numba adapter, with
+independent initially empty compiler caches for both methods.
 The wall timer includes interpreter startup, imports, input replay, all clock
 candidates, extrinsic refinements, holdout diagnostics, input hashing and saves.
 Parent provenance audits are outside that timer. No warmup or trial is discarded.
@@ -36,6 +38,9 @@ RUNTIME_MODULES = (
     "calibrex.solvers.continuous_time_lidar_pair_solver",
     "calibrex.data.adaptive_voxel", "calibrex.pipelines.online",
 )
+COMPILED_MODULES = (*RUNTIME_MODULES, "calibrex.solvers.fixed_trajectory_se3_solver",
+                    "calibrex.solvers.numba_continuous_time_adapter",
+                    "calibrex.solvers.robust_lidar_observations")
 CONFIG = Path(
     "examples/public_datasets/glim_versatile/online_continuous_time_benchmark_config.yaml"
 )
@@ -59,6 +64,7 @@ SOURCES = (
     "src/calibrex/solvers/continuous_time_lidar_pair_solver.py",
     "src/calibrex/solvers/numba_continuous_time_adapter.py",
     "src/calibrex/solvers/fixed_trajectory_se3_solver.py",
+    "src/calibrex/solvers/robust_lidar_observations.py",
     "src/calibrex/evaluation/lidar.py",
     "src/calibrex/data/livox.py",
     "src/calibrex/pipelines/online.py",
@@ -69,6 +75,12 @@ SOURCES = (
     "tools/lidar_scan_deskew.py",
     "tools/benchmark_adaptive_plane_search.py",
 )
+
+
+def _modules_for_scope(scope: str) -> tuple[str, ...]:
+    if scope == "compiled":
+        return COMPILED_MODULES
+    return RUNTIME_MODULES if scope == "runtime" else (MODULE,)
 
 
 def _digest(path: Path, algorithm: str = "sha256") -> str:
@@ -97,7 +109,7 @@ def _comparison_canonical(payload: dict) -> str:
     provenance = comparable.get("provenance", {})
     if "notes" in provenance:
         provenance["notes"] = [note for note in provenance["notes"] if re.fullmatch(
-            r"continuous_time_query_execution: (python|calibrex\.numba_continuous_time/v0\.1;"
+            r"continuous_time_query_execution: (python|calibrex\.numba_continuous_time/v0\.[12];"
             r"numba=[0-9.]+;fastmath=false;cache=(true|false))", note,
         ) is None]
     return _canonical(comparable)
@@ -132,7 +144,7 @@ def _split_binding(
 
 def _worker(args: argparse.Namespace) -> None:
     imported = time.perf_counter()
-    modules = RUNTIME_MODULES if args.baseline_scope == "runtime" else (MODULE,)
+    modules = _modules_for_scope(args.baseline_scope)
     if args.worker == "baseline":
         from importlib.abc import MetaPathFinder
         from importlib.machinery import SourceFileLoader
@@ -203,7 +215,7 @@ def _worker(args: argparse.Namespace) -> None:
                 query_seconds += time.perf_counter() - started
 
         adaptive_context.nearest_planes = measured_batch_nearest
-    if args.worker == "sparse":
+    if args.worker == "sparse" or args.baseline_scope == "compiled":
         from calibrex.core.config import load_config
 
         factor = load_config(args.config).pipeline.factors.get("lidar_rig_point_to_plane")
@@ -355,7 +367,9 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--config", type=Path, default=CONFIG)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--baseline-commit", default=BASELINE)
-    parser.add_argument("--baseline-scope", choices=("adaptive", "runtime"), default="adaptive")
+    parser.add_argument(
+        "--baseline-scope", choices=("adaptive", "runtime", "compiled"), default="adaptive",
+    )
     parser.add_argument("--repetitions", type=int, default=5)
     parser.add_argument("--omp-threads", type=int, default=1)
     parser.add_argument(
@@ -396,6 +410,11 @@ def main(argv: list[str] | None = None) -> None:
     config = load_config(args.config)
     if config.dataset.type != "rosbag2":
         raise ValueError("public adaptive benchmark requires the converted rosbag2 fixture")
+    factor = config.pipeline.factors.get("lidar_rig_point_to_plane")
+    if args.baseline_scope == "compiled" and (
+        factor is None or factor.options.get("continuous_time_query_backend") != "numba_cpu"
+    ):
+        raise ValueError("compiled scope requires continuous_time_query_backend: numba_cpu")
     inputs = _verified_inputs(Path(config.dataset.path))
     source_commit = git_commit()
     full_revision = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
@@ -404,7 +423,7 @@ def main(argv: list[str] | None = None) -> None:
         ["git", "rev-parse", f"{args.baseline_commit}^{{commit}}"], text=True,
     ).strip()
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    modules = RUNTIME_MODULES if args.baseline_scope == "runtime" else (MODULE,)
+    modules = _modules_for_scope(args.baseline_scope)
     archives = {}
     for name in modules:
         archive = args.output_dir / f"baseline.{name.rsplit('.', 1)[1]}.py.txt"
@@ -444,7 +463,8 @@ def main(argv: list[str] | None = None) -> None:
             ]
             print(f"START {repeat} {method}", flush=True)
             cache_directory = args.output_dir / "numba-cache" / (
-                f"{method}.repeat-{repeat:02d}" if args.numba_cache_policy == "cold" else "shared"
+                f"{method}.repeat-{repeat:02d}" if args.numba_cache_policy == "cold" else
+                method if args.baseline_scope == "compiled" else "shared"
             )
             cache_directory.mkdir(parents=True, exist_ok=True)
             environment["NUMBA_CACHE_DIR"] = str(cache_directory)
@@ -510,7 +530,7 @@ def main(argv: list[str] | None = None) -> None:
         title="Public GLIM Livox complete continuous-time refinement",
         reference_method_id="baseline", bootstrap_samples=1,
         protocol=BenchmarkProtocol(
-            protocol_id=f"glim-{args.baseline_scope}-fresh-subprocess-v3",
+            protocol_id=f"glim-{args.baseline_scope}-fresh-subprocess-v4",
             dataset_id="glim_versatile",
             dataset_doi="10.5281/zenodo.6864654", dataset_source_sha256=input_digest,
             data_license="CC-BY-4.0 (AIST Zenodo record 6864654)",
@@ -532,7 +552,7 @@ def main(argv: list[str] | None = None) -> None:
         ),
         methods=[BenchmarkMethodDefinition(
             method_id=method, label=method, implementation="subprocess", tool_name="Calibrex",
-            tool_version="0.5.1", adapter_version=f"continuous-time-{args.baseline_scope}/v3",
+            tool_version="0.5.1", adapter_version=f"continuous-time-{args.baseline_scope}/v4",
             source_commit=baseline if method == "baseline" else full_revision,
         ) for method in ("baseline", "sparse")],
         metrics=[BenchmarkMetricDefinition(
@@ -576,13 +596,14 @@ def main(argv: list[str] | None = None) -> None:
             "separators and excludes only the exact optional kernel identity note.",
             "Numba cache policy is recorded per trial, with compiled file hashes before/after. "
             "The first candidate uses an empty cache; all import/compile/load work is inside wall.",
+            "Compiled scope gives each method its own persistent cache, initially empty.",
             "Raw checksums and conversion lineage are verified before measurement.",
             "Split IDs hash ordered sampled target indices, capture timestamps and XYZ; "
             "the distinct temporal partitions and unchanged sampling caps are verified each run.",
             "Descriptive timings are local observations, not portable confidence estimates.",
         ],
         provenance=BenchmarkProvenance(
-            generator="tools.benchmark_adaptive_plane_search", generator_version="v0.3",
+            generator="tools.benchmark_adaptive_plane_search", generator_version="v0.4",
             git_commit=source_commit,
             command=subprocess.list2cmdline([sys.executable, __file__, *arguments]),
             data_verified=True,

@@ -19,7 +19,10 @@ from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
     from calibrex.data.adaptive_voxel import AdaptivePlaneQueryContext
-    from calibrex.solvers.numba_continuous_time_adapter import NumbaContinuousTimeQueryContext
+    from calibrex.solvers.numba_continuous_time_adapter import (
+        FloatArray,
+        NumbaContinuousTimeQueryContext,
+    )
 
 from calibrex.core.continuous_time_lidar_train_diagnostics import (
     ContinuousTimeLidarTrainDiagnosticsData,
@@ -47,6 +50,7 @@ from calibrex.graph.lidar_point_to_plane import (
     LidarRigPointToPlaneEvaluation,
     LidarRigPointToPlaneFactor,
     _ObservationArrays,
+    _PreparedObservationBuilder,
 )
 from calibrex.solvers.fixed_trajectory_se3_solver import (
     FixedTrajectorySe3ExtrinsicSolver,
@@ -192,6 +196,7 @@ class _QueryReuse:
     compiled: NumbaContinuousTimeQueryContext | None = None
     adaptive: AdaptivePlaneQueryContext | None = None
     used_numba: bool = False
+    observation_builder: _PreparedObservationBuilder | None = None
 
     def identity(self) -> str:
         if self.used_numba or (self.compiled is not None and self.compiled.used):
@@ -263,6 +268,7 @@ class ContinuousTimeLidarPairSolver:
         query_reuse = _QueryReuse(
             VoxelPlaneQueryContext(source_plane_map) if source_plane_map is not None else None,
         )
+        query_reuse.observation_builder = _PreparedObservationBuilder(problem.target_points)
         if adaptive_plane_map is not None:
             # Historical adaptive-only benchmark archives predate the batch context.
             factory = getattr(adaptive_voxel_module, "AdaptivePlaneQueryContext", None)
@@ -613,29 +619,27 @@ class ContinuousTimeLidarPairSolver:
             source_plane_queries=query_reuse.planes if query_reuse is not None else None,
             _prepared_world_coordinates=coordinates,
             _adaptive_queries=query_reuse.adaptive if query_reuse is not None else None,
+            _observation_builder=(
+                query_reuse.observation_builder if query_reuse is not None else None
+            ),
         )
         if len(observations) < settings.min_correspondences:
             return None
         candidate_correspondence_count = len(observations)
         outlier_rejected_count = 0
-        if settings.outlier_policy == "mad":
-            filtered: RobustObservationFilterResult = filter_lidar_observations_mad(
-                observations,
-                variable=problem.variable,
-                t_ego_lidar=initial_transform,
-                sensor=problem.sensor,
-                mad_scale=settings.outlier_mad_scale,
-                minimum_threshold_m=settings.outlier_min_threshold_m,
-                minimum_inlier_fraction=settings.outlier_min_inlier_fraction,
-                minimum_inliers=settings.min_correspondences,
-            )
-            observations = list(filtered.observations)
-            outlier_rejected_count = filtered.rejected_count
-        if len(observations) < settings.min_correspondences:
-            return None
         array_kernel: Callable[[_ObservationArrays, SE3], list[float]] | None = None
+        array_linearizer: Callable[
+            [_ObservationArrays, Sequence[SE3], Sequence[float]], tuple[FloatArray, FloatArray],
+        ] | None = None
+        array_normal_kernel: Callable[
+            [FloatArray, FloatArray, bool, float], tuple[list[list[float]], list[float]],
+        ] | None = None
         if settings.query_backend == "numba_cpu":
-            from calibrex.solvers.numba_continuous_time_adapter import numba_rig_residuals
+            from calibrex.solvers.numba_continuous_time_adapter import (
+                numba_rig_linearization,
+                numba_rig_normal_equations,
+                numba_rig_residuals,
+            )
 
             def compiled_residuals(arrays: _ObservationArrays, transform: SE3) -> list[float]:
                 result = numba_rig_residuals(arrays, transform)
@@ -644,14 +648,35 @@ class ContinuousTimeLidarPairSolver:
                 return result
 
             array_kernel = compiled_residuals
+
+            def compiled_linearization(
+                arrays: _ObservationArrays, transforms: Sequence[SE3], steps: Sequence[float],
+            ) -> tuple[FloatArray, FloatArray]:
+                result = numba_rig_linearization(arrays, transforms, steps)
+                if query_reuse is not None:
+                    query_reuse.used_numba = True
+                return result
+
+            array_linearizer = compiled_linearization
+            array_normal_kernel = numba_rig_normal_equations
+        factor = LidarRigPointToPlaneFactor(
+            variable=problem.variable, t_ego_lidar=initial_transform, observations=observations,
+            sensor=problem.sensor, _array_kernel=array_kernel, _array_linearizer=array_linearizer,
+            _array_normal_kernel=array_normal_kernel,
+        )
+        if settings.outlier_policy == "mad":
+            filtered: RobustObservationFilterResult = filter_lidar_observations_mad(
+                factor.observations, variable=problem.variable, t_ego_lidar=initial_transform,
+                sensor=problem.sensor, mad_scale=settings.outlier_mad_scale,
+                minimum_threshold_m=settings.outlier_min_threshold_m,
+                minimum_inlier_fraction=settings.outlier_min_inlier_fraction,
+                minimum_inliers=settings.min_correspondences, _factor=factor,
+            )
+            outlier_rejected_count = filtered.rejected_count
+        if len(factor.observations) < settings.min_correspondences:
+            return None
         return _FactorBuild(
-            factor=LidarRigPointToPlaneFactor(
-                variable=problem.variable,
-                t_ego_lidar=initial_transform,
-                observations=observations,
-                sensor=problem.sensor,
-                _array_kernel=array_kernel,
-            ),
+            factor=factor,
             candidate_correspondence_count=candidate_correspondence_count,
             outlier_rejected_count=outlier_rejected_count,
         )

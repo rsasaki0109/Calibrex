@@ -16,7 +16,7 @@ from calibrex.core.config import CalibrationConfig
 from calibrex.core.geometry import SE3, QuaternionXYZW, Vector3
 from calibrex.core.report_artifacts import EvidenceCaseItem
 from calibrex.core.result import Grade, MetricResult
-from calibrex.data.adaptive_voxel import AdaptiveVoxelPlaneMap
+from calibrex.data.adaptive_voxel import AdaptiveVoxelPlane, AdaptiveVoxelPlaneMap
 from calibrex.data.inspect import DatasetInspection
 from calibrex.data.kitti import (
     summarize_lidar_world_map_consistency,
@@ -29,6 +29,7 @@ from calibrex.data.livox import (
     LivoxPointRecord,
     VoxelPlaneMap,
     VoxelPlaneQueryContext,
+    _PlaneGeometry,
     _transform_coordinates,
     build_voxel_plane_map,
     nearest_voxel_plane,
@@ -40,10 +41,13 @@ from calibrex.graph.lidar_point_to_plane import (
     LidarPointToPlaneObservation,
     LidarRigPointToPlaneEvaluation,
     _array_world_points,
+    _PreparedObservationBuilder,
 )
 
 if TYPE_CHECKING:
     from calibrex.data.adaptive_voxel import AdaptivePlaneQueryContext
+
+_NATIVE_OBSERVATION_TYPE = LidarPointToPlaneObservation
 
 _WORLD_MAP_WEAK_DOF_DELTA_M = 1.0e-3
 _LIVOX_PAIR_MANDATORY_ROTATION_DEG = 1.0
@@ -979,6 +983,7 @@ def build_rig_point_to_plane_observations(
     source_plane_queries: VoxelPlaneQueryContext | None = None,
     _prepared_world_coordinates: NDArray[np.float64] | None = None,
     _adaptive_queries: AdaptivePlaneQueryContext | None = None,
+    _observation_builder: _PreparedObservationBuilder | None = None,
 ) -> list[LidarPointToPlaneObservation]:
     """Build fixed-correspondence point-to-plane observations for a LiDAR pair.
 
@@ -1035,16 +1040,31 @@ def build_rig_point_to_plane_observations(
         coordinates = _batched_world_coordinates(
             target_points, target_t_world_source, initial_t_source_target,
         )
+    geometries = (
+        source_plane_queries._nearest_geometries(
+            coordinates, voxel_size_m=voxel_size_m,
+            correspondence_gate_m=correspondence_gate_m,
+        ) if source_plane_queries is not None and coordinates is not None else None
+    )
     uniform_matches = (
         source_plane_queries.nearest_matches(
             coordinates, voxel_size_m=voxel_size_m,
             correspondence_gate_m=correspondence_gate_m,
         )
-        if source_plane_queries is not None and coordinates is not None else None
+        if source_plane_queries is not None and coordinates is not None
+        and geometries is None else None
     )
     adaptive_matches = (
         _adaptive_queries.nearest_planes(coordinates, correspondence_gate_m=correspondence_gate_m)
         if _adaptive_queries is not None and coordinates is not None else None
+    )
+    choices = (
+        _batched_plane_choices(coordinates, geometries, adaptive_matches)
+        if coordinates is not None
+        and ((source_plane_queries is None and source_plane_map is None) or geometries is not None)
+        and (adaptive_plane_map is None or (_adaptive_queries is not None
+             and _adaptive_queries._native_geometry and adaptive_matches is not None))
+        else None
     )
     observations: list[LidarPointToPlaneObservation] = []
     for index, point in enumerate(target_points):
@@ -1053,6 +1073,18 @@ def build_rig_point_to_plane_observations(
             if target_t_world_source is not None
             else SE3.identity()
         )
+        if choices is not None:
+            plane = choices[index]
+            if plane is not None and plane.normal is not None:
+                observations.append(
+                    _observation_builder.build(point, plane.centroid, plane.normal, t_world_source)
+                    if _observation_builder is not None
+                    and LidarPointToPlaneObservation is _NATIVE_OBSERVATION_TYPE else
+                    LidarPointToPlaneObservation(
+                        point, plane.centroid, plane.normal, t_world_source,
+                    )
+                )
+            continue
         world_point = (
             (float(coordinates[index, 0]), float(coordinates[index, 1]),
              float(coordinates[index, 2]))
@@ -1062,13 +1094,14 @@ def build_rig_point_to_plane_observations(
         candidates: list[tuple[Vector3, Vector3, float]] = []
         if source_plane_queries is not None:
             fixed_match = (
+                geometries[index] if geometries is not None else
                 uniform_matches[index] if uniform_matches is not None else
                 source_plane_queries.nearest_match(
                     world_point, voxel_size_m=voxel_size_m,
                     correspondence_gate_m=correspondence_gate_m,
                 )
             )
-            if fixed_match is not None:
+            if fixed_match is not None and fixed_match.normal is not None:
                 candidates.append((fixed_match.centroid, fixed_match.normal,
                                    math.dist(world_point, fixed_match.centroid)))
         elif source_plane_map is not None:
@@ -1130,14 +1163,51 @@ def build_rig_point_to_plane_observations(
             ),
         )
         observations.append(
+            _observation_builder.build(point, plane_point, normal, t_world_source)
+            if _observation_builder is not None
+            and LidarPointToPlaneObservation is _NATIVE_OBSERVATION_TYPE else
             LidarPointToPlaneObservation(
-                point_lidar_m=point,
-                plane_point_world_m=plane_point,
-                plane_normal_world=normal,
-                t_world_ego=t_world_source,
+                point_lidar_m=point, plane_point_world_m=plane_point,
+                plane_normal_world=normal, t_world_ego=t_world_source,
             )
         )
     return observations
+
+
+def _batched_plane_choices(
+    coordinates: NDArray[np.float64], uniform: list[_PlaneGeometry | None] | None,
+    adaptive: list[AdaptiveVoxelPlane | None] | None,
+) -> list[_PlaneGeometry | AdaptiveVoxelPlane | None] | None:
+    """Keep ordered scalar residual keys and defer math.dist to exact ties."""
+    if len(coordinates) < 64 or np.any(np.abs(coordinates) >= 1e100):
+        return None
+    if uniform is None:
+        return list(adaptive) if adaptive is not None else None
+    if adaptive is None:
+        return list(uniform)
+    count = len(coordinates)
+    present = [np.asarray([plane is not None and plane.normal is not None for plane in planes])
+               for planes in (uniform, adaptive)]
+    scores = []
+    for planes in (uniform, adaptive):
+        centroids = np.asarray([plane.centroid if plane is not None else (0.0,)*3
+                                for plane in planes], dtype=np.float64)
+        normals = np.asarray([plane.normal if plane is not None and plane.normal is not None
+                              else (0.0,)*3
+                              for plane in planes], dtype=np.float64)
+        delta = coordinates - centroids
+        scores.append(np.abs(normals[:, 0]*delta[:, 0] + normals[:, 1]*delta[:, 1]
+                             + normals[:, 2]*delta[:, 2]))
+    if not all(np.isfinite(score).all() for score in scores):
+        return None
+    prefer_adaptive = present[1] & (~present[0] | (scores[1] < scores[0]))
+    ties = np.flatnonzero(present[0] & present[1] & (scores[0] == scores[1]))
+    for row in ties:
+        point = tuple(coordinates[row].tolist())
+        left, right = uniform[row], adaptive[row]
+        assert left is not None and right is not None
+        prefer_adaptive[row] = math.dist(point, right.centroid) < math.dist(point, left.centroid)
+    return [adaptive[row] if prefer_adaptive[row] else uniform[row] for row in range(count)]
 
 
 def _batched_world_coordinates(

@@ -54,8 +54,12 @@ def test_comparison_excludes_only_exact_execution_identity_and_preserves_full_ar
     assert benchmark._comparison_canonical(candidate) == benchmark._canonical(baseline)
     assert benchmark._canonical(candidate) == full
     assert full != benchmark._canonical(baseline)
+    other_version = deepcopy(baseline)
+    other_version["provenance"]["notes"].append(identity.replace("v0.1", "v0.2"))
+    assert benchmark._comparison_canonical(other_version) == benchmark._canonical(baseline)
     for forged in (
         identity + ";hidden=change", identity.replace("fastmath=false", "fastmath=true"),
+        identity.replace("v0.1", "v0.3"),
     ):
         changed = deepcopy(baseline)
         changed["provenance"]["notes"].append(forged)
@@ -96,6 +100,13 @@ def test_nonempty_outputs_are_preserved(tmp_path):
     with pytest.raises(ValueError, match="new or empty"):
         benchmark.main(["--output-dir", str(destination)])
     assert evidence.read_text(encoding="utf-8") == "preserve"
+
+
+def test_compiled_scope_requires_a_declared_optional_backend_before_input_reads(tmp_path):
+    destination = tmp_path / "compiled"
+    with pytest.raises(ValueError, match="requires continuous_time_query_backend"):
+        benchmark.main(["--output-dir", str(destination), "--baseline-scope", "compiled"])
+    assert not destination.exists()
 
 
 def test_digest_streams_and_supports_official_md5(tmp_path):
@@ -144,6 +155,12 @@ def test_runtime_scope_contains_all_geometry_interpolation_and_hash_overlap_modu
         "src/" + name.replace(".", "/") + ".py" in benchmark.SOURCES
         for name in benchmark.RUNTIME_MODULES
     )
+    assert benchmark._modules_for_scope("compiled") == (*benchmark.RUNTIME_MODULES,
+        "calibrex.solvers.fixed_trajectory_se3_solver",
+        "calibrex.solvers.numba_continuous_time_adapter",
+        "calibrex.solvers.robust_lidar_observations")
+    assert benchmark._modules_for_scope("runtime") == benchmark.RUNTIME_MODULES
+    assert benchmark._modules_for_scope("adaptive") == (benchmark.MODULE,)
 
 
 def test_default_budget_config_keeps_the_same_public_capture_and_matches_sampling_defaults():

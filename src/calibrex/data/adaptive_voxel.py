@@ -238,6 +238,12 @@ class AdaptivePlaneQueryContext:
                     break
                 ordered.append(cell)
         self._planes = tuple(ordered)
+        self._native_geometry = supported and all(
+            type(vector) is tuple and len(vector) == 3
+            and all(type(value) is float and math.isfinite(value) and abs(value) < 1e100
+                    for value in vector)
+            for plane in ordered for vector in (plane.centroid, plane.normal)
+        )
         values = np.asarray([cell.centroid for cell in ordered], dtype=np.float64).reshape((-1, 3))
         values.flags.writeable = False
         self._centroids = values
