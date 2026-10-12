@@ -164,10 +164,34 @@
           "title": "Holdout Fraction Start",
           "type": "number"
         },
+        "lever_arm_control_m": {
+          "default": 0.05,
+          "exclusiveMinimum": 0.0,
+          "title": "Lever Arm Control M",
+          "type": "number"
+        },
+        "lever_arm_control_min_increase_m_s2": {
+          "default": 0.02,
+          "minimum": 0.0,
+          "title": "Lever Arm Control Min Increase M S2",
+          "type": "number"
+        },
+        "lever_arm_window_sec": {
+          "default": 0.25,
+          "exclusiveMinimum": 0.0,
+          "title": "Lever Arm Window Sec",
+          "type": "number"
+        },
         "max_holdout_rate_rmse_rad_s": {
           "default": 0.05,
           "exclusiveMinimum": 0.0,
           "title": "Max Holdout Rate Rmse Rad S",
+          "type": "number"
+        },
+        "max_holdout_specific_force_rmse_m_s2": {
+          "default": 0.3,
+          "exclusiveMinimum": 0.0,
+          "title": "Max Holdout Specific Force Rmse M S2",
           "type": "number"
         },
         "min_angular_acceleration_rad_s2": {
@@ -188,6 +212,12 @@
           "minimum": 1,
           "title": "Min Holdout Intervals",
           "type": "integer"
+        },
+        "min_lever_arm_excitation_s2": {
+          "default": 0.5,
+          "minimum": 0.0,
+          "title": "Min Lever Arm Excitation S2",
+          "type": "number"
         },
         "min_rate_excitation_rad_s": {
           "default": 0.15,
@@ -247,6 +277,212 @@
         "rms_angular_acceleration_rad_s2"
       ],
       "title": "CameraImuExcitation",
+      "type": "object"
+    },
+    "CameraImuLeverArmControl": {
+      "additionalProperties": false,
+      "description": "One signed known-bad lever-arm (``T_cam_imu`` translation) perturbation.",
+      "properties": {
+        "axis": {
+          "enum": [
+            "x",
+            "y",
+            "z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "control_id": {
+          "title": "Control Id",
+          "type": "string"
+        },
+        "detected": {
+          "title": "Detected",
+          "type": "boolean"
+        },
+        "holdout_specific_force_rmse_m_s2": {
+          "minimum": 0.0,
+          "title": "Holdout Specific Force Rmse M S2",
+          "type": "number"
+        },
+        "rmse_increase_m_s2": {
+          "title": "Rmse Increase M S2",
+          "type": "number"
+        },
+        "signed_magnitude_m": {
+          "title": "Signed Magnitude M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "control_id",
+        "axis",
+        "signed_magnitude_m",
+        "holdout_specific_force_rmse_m_s2",
+        "rmse_increase_m_s2",
+        "detected"
+      ],
+      "title": "CameraImuLeverArmControl",
+      "type": "object"
+    },
+    "CameraImuLeverArmEvidence": {
+      "additionalProperties": false,
+      "description": "Accelerometer check of the imported translation (the IMU origin in the camera frame).\n\nThe camera trajectory's second divided difference over a window\n``[t - w, t + w]`` is compared with the accelerometer integrated against the\nsame triangular kernel; a constant accelerometer bias and the gravity vector\nin the (not necessarily level) world frame are fitted on the training\nwindows only.",
+      "properties": {
+        "control_detection_fraction": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Control Detection Fraction"
+        },
+        "controls": {
+          "items": {
+            "$ref": "#/$defs/CameraImuLeverArmControl"
+          },
+          "title": "Controls",
+          "type": "array"
+        },
+        "estimated_accel_bias_m_s2": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 3,
+              "minItems": 3,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimated Accel Bias M S2"
+        },
+        "estimated_gravity_world_m_s2": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 3,
+              "minItems": 3,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimated Gravity World M S2"
+        },
+        "excitation_s2": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Excitation S2"
+        },
+        "gravity_magnitude_m_s2": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Gravity Magnitude M S2"
+        },
+        "holdout_specific_force_rmse_m_s2": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Holdout Specific Force Rmse M S2"
+        },
+        "holdout_window_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Holdout Window Count",
+          "type": "integer"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive",
+            "not_evaluated"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "train_specific_force_rmse_m_s2": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Train Specific Force Rmse M S2"
+        },
+        "train_window_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Train Window Count",
+          "type": "integer"
+        },
+        "window_sec": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Window Sec"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "CameraImuLeverArmEvidence",
       "type": "object"
     },
     "CameraImuTemporalSplit": {
@@ -627,6 +863,17 @@
       ],
       "default": null,
       "title": "Holdout Rate Rmse Rad S"
+    },
+    "lever_arm": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CameraImuLeverArmEvidence"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "provenance": {
       "$ref": "#/$defs/ExternalCameraImuEvidenceProvenance"

@@ -2,6 +2,37 @@
 
 ## Unreleased
 
+- **Kalibr lever-arm evidence and a public Kalibr run.**
+
+  `calibrex external-run evaluate-camera-imu` now checks the imported `T_cam_imu` translation
+  against the accelerometer when the recording carries camera positions and accelerometer
+  samples. These are the new optional `position_m` and `imu_accel` fields of
+  `slac.camera_imu_motion_recording/v0.1`.
+  - **Comparison.** The camera trajectory's second divided difference over +-0.25 s is
+    compared with the accelerometer integrated against the same kernel. A bias and the
+    gravity vector are fitted on training windows only.
+  - **Controls.** Six signed +-5 cm controls must raise the holdout residual. One that lowers
+    it fails the candidate; insensitive controls leave the translation inconclusive.
+  - **Output.** The result is the new optional `lever_arm` block of
+    `slac.external_camera_imu_evidence/v0.1`. Its gates are new optional threshold fields.
+  - **Synthetic fixture.** It gains camera positions, a biased accelerometer in a tilted
+    world frame, `--translation-error-m` and `--no-accelerometer`. The truth passes and
+    +-5 cm errors on every axis fail.
+
+  New `tools/aprilgrid_camera_imu_recording.py` (OpenCV, outside the core) turns a Kalibr
+  AprilGrid recording into such a recording.
+
+  **Public run.** UZH-FPV's Kalibr camchain for the Snapdragon forward camera, fitted on the
+  indoor calibration recording, is evaluated on the separately captured outdoor one
+  (`tools/download_public_dataset.py uzh_fpv_kalibr_camera_imu`; dataset license not stated,
+  data outside the repository).
+  - The published translation passes: holdout specific-force RMSE 0.102 m/s^2, 6/6
+    controls. Every +-5 cm perturbation fails.
+  - Rotation and time are not admissible there, because frame-to-frame AprilGrid pose noise
+    gives 0.171 rad/s against the 0.05 budget.
+  - The opt-in test is `tests/integration/test_uzh_fpv_kalibr_camera_imu.py`.
+
+  Schemas regenerated; the additions are optional and compatible.
 - **Planar-board line+plane in the CLI.** The `native_planar_board` backend runs a line+plane row
   (Zhou et al.) next to the plane, point+plane and Horn rows, on the same seeded capture split. A
   new adapter, `calibrex.solvers.acfr_board_edges`, turns ACFR's camera and LiDAR board corners

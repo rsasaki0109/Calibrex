@@ -60,8 +60,25 @@
     },
     "CameraOrientationSample": {
       "additionalProperties": false,
-      "description": "Camera orientation ``R_world_camera`` on the camera clock.",
+      "description": "Camera orientation ``R_world_camera`` (and optionally position) on the camera clock.\n\n``position_m`` is the camera origin in the same world frame, for example from\nthe camera's pose against a calibration target. The world frame need not be\ngravity aligned.",
       "properties": {
+        "position_m": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 3,
+              "minItems": 3,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Position M"
+        },
         "rotation_quat_xyzw": {
           "items": {
             "type": "number"
@@ -81,6 +98,31 @@
         "rotation_quat_xyzw"
       ],
       "title": "CameraOrientationSample",
+      "type": "object"
+    },
+    "ImuAccelSample": {
+      "additionalProperties": false,
+      "description": "Body-frame accelerometer sample (specific force, gravity included) on the IMU clock.",
+      "properties": {
+        "specific_force_m_s2": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Specific Force M S2",
+          "type": "array"
+        },
+        "timestamp_sec": {
+          "title": "Timestamp Sec",
+          "type": "number"
+        }
+      },
+      "required": [
+        "timestamp_sec",
+        "specific_force_m_s2"
+      ],
+      "title": "ImuAccelSample",
       "type": "object"
     },
     "ImuGyroSample": {
@@ -122,6 +164,13 @@
       },
       "minItems": 2,
       "title": "Camera Orientations",
+      "type": "array"
+    },
+    "imu_accel": {
+      "items": {
+        "$ref": "#/$defs/ImuAccelSample"
+      },
+      "title": "Imu Accel",
       "type": "array"
     },
     "imu_gyro": {
