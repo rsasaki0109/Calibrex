@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 from pathlib import Path
 
 import pytest
@@ -9,6 +10,7 @@ from calibrex.core.validation import validate_file
 from calibrex.evaluation.kitti_falsification_benchmark import (
     KITTI_SEQUENCE,
     attach_data_only_decisions,
+    replicate_data_only_decisions,
     run_kitti_falsification_benchmark,
 )
 
@@ -43,6 +45,17 @@ def test_kitti_falsification_benchmark_materializes_schema_valid_trials(
     assert [decision.frame_selection for decision in benchmark.data_only] == ["spread", "first"]
     assert benchmark.data_only_status == benchmark.data_only[0].status
     assert all(len(decision.trials) == 2 for decision in benchmark.data_only)
+    # another drive with the same calibration files repeats the decisions; one whose
+    # calibration differs (so its candidates would differ) is refused
+    replicated = replicate_data_only_decisions(benchmark, FIXTURE)
+    assert [item.dataset_sequence for item in replicated.data_only_replications] == [KITTI_SEQUENCE]
+    assert len(replicated.data_only_replications[0].decisions) == 2
+    other = tmp_path / "other" / "2011_09_26"
+    shutil.copytree(FIXTURE.parent, other)
+    calibration = other / "calib_velo_to_cam.txt"
+    calibration.write_text(calibration.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="calibration files differ"):
+        replicate_data_only_decisions(benchmark, other / KITTI_SEQUENCE)
     turned = {**benchmark.known_bad_transform_camera_lidar, "rotation_quat_xyzw": [0, 0, 0, 1]}
     with pytest.raises(ValueError, match="does not reproduce"):
         attach_data_only_decisions(

@@ -254,6 +254,40 @@
       "title": "KITTIBenchmarkTrial",
       "type": "object"
     },
+    "KITTIDataOnlyReplication": {
+      "additionalProperties": false,
+      "description": "The data-only decisions on another drive recorded with the same calibration.",
+      "properties": {
+        "calibration": {
+          "description": "the drive's calib_velo_to_cam.txt and calib_cam_to_cam.txt, identical to the benchmark's, so the candidates are the same",
+          "items": {
+            "$ref": "#/$defs/KITTIBenchmarkArtifactDigest"
+          },
+          "minItems": 2,
+          "title": "Calibration",
+          "type": "array"
+        },
+        "dataset_sequence": {
+          "title": "Dataset Sequence",
+          "type": "string"
+        },
+        "decisions": {
+          "items": {
+            "$ref": "#/$defs/KITTIEdgeDecision"
+          },
+          "minItems": 1,
+          "title": "Decisions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "dataset_sequence",
+        "calibration",
+        "decisions"
+      ],
+      "title": "KITTIDataOnlyReplication",
+      "type": "object"
+    },
     "KITTIDepthAxis": {
       "additionalProperties": false,
       "description": "Translation along the optical axis: candidate error against the check's tolerance.",
@@ -650,6 +684,14 @@
         "$ref": "#/$defs/KITTIEdgeDecision"
       },
       "title": "Data Only",
+      "type": "array"
+    },
+    "data_only_replications": {
+      "description": "the same data-only decisions on other drives of the same day",
+      "items": {
+        "$ref": "#/$defs/KITTIDataOnlyReplication"
+      },
+      "title": "Data Only Replications",
       "type": "array"
     },
     "data_only_status": {

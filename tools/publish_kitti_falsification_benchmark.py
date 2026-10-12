@@ -20,6 +20,8 @@ known-bad candidate), or reuses the output directory of such a run, and writes:
         --dataset data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync \\
         --output-dir outputs/kitti-falsification
     # or, after a run: --from-output outputs/kitti-falsification
+    # either one, repeating the data-only decisions on another drive of the same day:
+    #   --replicate data/public/kitti_raw/2011_09_26/2011_09_26_drive_0009_sync
 
 The KITTI data stay outside the repository (CC BY-NC-SA 3.0); a full run takes about
 40 minutes.
@@ -37,6 +39,7 @@ from calibrex.evaluation.kitti_falsification_benchmark import (
     KITTIFalsificationBenchmarkArtifact,
     attach_data_only_decisions,
     render_kitti_falsification_markdown,
+    replicate_data_only_decisions,
     run_kitti_falsification_benchmark,
     summarize_kitti_trial,
 )
@@ -87,6 +90,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--output-dir", type=Path, help="where a new run writes its trials")
     parser.add_argument("--assets", type=Path, default=Path("docs/assets"))
+    parser.add_argument(
+        "--replicate",
+        type=Path,
+        action="append",
+        default=[],
+        help="another drive with the same calibration files: repeat the data-only decisions",
+    )
     args = parser.parse_args(argv)
 
     if args.from_output is not None:
@@ -106,6 +116,8 @@ def main(argv: list[str] | None = None) -> int:
         # A run made before the data-only decision existed: add it (its own git commit
         # is recorded in each decision).
         published = attach_data_only_decisions(published, published.dataset_path)
+    for drive in args.replicate:
+        published = replicate_data_only_decisions(published, drive)
     args.assets.mkdir(parents=True, exist_ok=True)
     published.save(args.assets / f"{ASSET_NAME}.json")
     (args.assets / f"{ASSET_NAME}.md").write_text(
