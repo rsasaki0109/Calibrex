@@ -110,7 +110,14 @@ def _worker(args: argparse.Namespace) -> None:
         options: dict[str, Any]
         provenance: dict[str, Any]
 
-    options = ScanOdometryOptions(voxel_size_m=0.1, local_map_scans=3)
+    Measurement.model_rebuild(
+        _types_namespace={
+            "Any": Any,
+            "OdometryRow": OdometryRow,
+            "RegistrationRow": RegistrationRow,
+        }
+    )
+    options = ScanOdometryOptions(voxel_size_m=args.voxel_size, local_map_scans=3)
     profile = LivoxStreamProfile("public", args.topic, "", None, "offset_s", "mps2")
     started = time.perf_counter()
     odometry = IncrementalScanOdometry(options, backend=args.worker)
@@ -178,11 +185,12 @@ def main(arguments: list[str] | None = None) -> None:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--topic", default="/livox/points")
     parser.add_argument("--seconds", type=float, default=12.0)
+    parser.add_argument("--voxel-size", type=float, default=0.1)
     parser.add_argument("--repetitions", type=int, default=5)
     parser.add_argument("--worker", choices=("cpu", "cuda"))
     args = parser.parse_args(arguments)
-    if not 0 < args.seconds <= 60 or args.repetitions < 1:
-        raise ValueError("seconds must be in (0, 60]; repetitions must be positive")
+    if not 0 < args.seconds <= 60 or args.repetitions < 1 or not 0 < args.voxel_size < 1:
+        raise ValueError("seconds must be in (0, 60]; repetitions and voxel size must be positive")
     if args.output_dir.exists() and any(args.output_dir.iterdir()):
         raise ValueError("output directory must be new or empty")
     if args.worker:
@@ -210,7 +218,7 @@ def main(arguments: list[str] | None = None) -> None:
             {
                 "seconds": args.seconds,
                 "topic": args.topic,
-                "voxel_size_m": 0.1,
+                "voxel_size_m": args.voxel_size,
                 "local_map_scans": 3,
             },
             sort_keys=True,
@@ -244,6 +252,8 @@ def main(arguments: list[str] | None = None) -> None:
                 args.topic,
                 "--seconds",
                 str(args.seconds),
+                "--voxel-size",
+                str(args.voxel_size),
                 "--output-dir",
                 str(folder),
                 "--worker",
@@ -350,7 +360,7 @@ def main(arguments: list[str] | None = None) -> None:
             ],
             initial_estimate_policy="Identity for first relative step; "
             "native constant velocity thereafter",
-            tuning_policy="Fixed 0.1 m voxel, three-scan map, all decoded finite rows; "
+            tuning_policy=f"Fixed {args.voxel_size} m voxel, three-scan map; finite rows; "
             "no tuning per method",
             failure_policy="Retain all cold runs and unconverged registration steps; "
             "never drop trials",
