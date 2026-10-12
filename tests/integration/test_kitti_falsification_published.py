@@ -69,24 +69,44 @@ def test_the_known_bad_is_rejected_only_by_the_reference_comparison() -> None:
     assert all(check.status == "pass" for check in trials["dataset_reference"].evidence_checks)
 
 
-def test_the_images_and_scans_alone_pass_the_reference_and_fail_the_known_bad() -> None:
+def test_the_images_and_scans_alone_fail_the_known_bad_on_rotation_and_depth() -> None:
     artifact = _artifact()
-    assert artifact.data_only_status == "pass"
     decisions = {decision.frame_selection: decision for decision in artifact.data_only}
     assert list(decisions) == ["spread", "first"]
-    spread = decisions["spread"]
-    assert spread.status == "pass" and len(spread.frame_ids) == 50
-    assert spread.git_commit
-    trials = {trial.candidate_id: trial for trial in spread.trials}
-    assert trials["dataset_reference"].verdict == "pass"
-    assert trials["known_bad"].verdict == "fail"
-    axes = {axis.name: axis for axis in trials["known_bad"].axes}
-    # the 5 deg about the camera's yaw axis is a pitch of the rectified pinhole frame
-    assert axes["pitch"].status == "fail"
-    assert abs(axes["pitch"].candidate_error_deg) > 2 * axes["pitch"].tolerance_deg
-    # the sensitivity row: the protocol's own first 50 frames leave the reference at the
-    # tolerance boundary, so that selection alone does not decide
-    first = decisions["first"]
-    assert first.frame_ids == artifact.selected_frame_ids
-    assert first.status == "inconclusive"
-    assert {trial.candidate_id: trial.verdict for trial in first.trials}["known_bad"] == "fail"
+    assert decisions["first"].frame_ids == artifact.selected_frame_ids
+    for decision in decisions.values():
+        assert len(decision.frame_ids) == 50 and decision.git_commit
+        known_bad = {trial.candidate_id: trial for trial in decision.trials}["known_bad"]
+        assert known_bad.verdict == "fail"
+        # the 5 deg about the camera's yaw axis is a pitch of the rectified pinhole frame
+        pitch = {axis.name: axis for axis in known_bad.axes}["pitch"]
+        assert pitch.status == "fail" and abs(pitch.candidate_error_deg) > 4.5
+        # its 0.25 m along the optical axis, from stereo depth
+        depth = known_bad.depth_axis
+        assert depth is not None and depth.status == "fail"
+        assert 0.2 < depth.candidate_error_m < 0.3
+        assert known_bad.depth is not None and known_bad.depth.observable
+        for trial in decision.trials:
+            assert trial.unchecked_translation_axes == ["x", "y"]
+
+
+def test_the_reference_sits_at_the_depth_tolerance_so_the_data_alone_do_not_decide() -> None:
+    # The published finding: on the spread frames the stereo depth puts the dataset's
+    # reference about 5 cm along the optical axis, at the check's tolerance (warn, not
+    # fail); on the protocol's first 50 frames its yaw sits at the rotation tolerance.
+    # Neither selection passes the reference, so the data-only status is inconclusive.
+    artifact = _artifact()
+    assert artifact.data_only_status == "inconclusive"
+    decisions = {decision.frame_selection: decision for decision in artifact.data_only}
+    spread = {trial.candidate_id: trial for trial in decisions["spread"].trials}
+    reference = spread["dataset_reference"]
+    assert reference.verdict == "warn"
+    assert all(axis.status == "pass" for axis in reference.axes)
+    depth = reference.depth_axis
+    assert depth is not None and depth.status == "warn"
+    assert depth.candidate_error_m <= 2 * depth.tolerance_m
+    first = {trial.candidate_id: trial for trial in decisions["first"].trials}
+    assert first["dataset_reference"].verdict == "warn"
+    assert first["dataset_reference"].depth_axis is not None
+    assert first["dataset_reference"].depth_axis.status == "pass"
+    assert {axis.name: axis.status for axis in first["dataset_reference"].axes}["yaw"] == "warn"

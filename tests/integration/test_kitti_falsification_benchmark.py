@@ -111,4 +111,9 @@ def test_official_kitti_falsification_benchmark(tmp_path: Path) -> None:
     assert by_id["dataset_reference"].assessment_status == "pass"
     assert by_id["known_bad"].assessment_status == "fail"
     assert benchmark.status == "pass"
-    assert benchmark.data_only_status == "pass"
+    # from the images and scans alone the known-bad fails on every frame selection (the
+    # reference's own reading is pinned by the published-artifact test)
+    for decision in benchmark.data_only:
+        trials = {trial.candidate_id: trial for trial in decision.trials}
+        assert trials["known_bad"].verdict == "fail"
+        assert trials["dataset_reference"].verdict != "fail"

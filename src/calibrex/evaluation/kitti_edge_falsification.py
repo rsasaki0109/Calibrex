@@ -5,8 +5,10 @@ a comparison with the dataset's own calibration (see the benchmark page). This m
 adds a decision that uses the images and scans alone: the edge alignment of
 :mod:`calibrex.evaluation.camera_lidar_edge` (block jackknife and held-out known-bad
 controls) is started at each candidate, and the candidate is judged with the per-axis
-rule of ``calibrex check`` (:func:`calibrex.check.verdict.judge_pair`). The rule
-judges rotation only.
+rule of ``calibrex check`` (:func:`calibrex.check.verdict.judge_pair`). Edges judge
+rotation only. Translation along the optical axis is judged from KITTI's stereo pair
+(:mod:`calibrex.evaluation.stereo_lidar_depth`) at the rotation the edges estimate, with
+the same rule; the other two translation axes are not judged.
 
 KITTI's ``calib_velo_to_cam.txt`` maps Velodyne points into the unrectified camera 0
 frame; the images are rectified camera 2. A candidate is carried into that image's
@@ -18,7 +20,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Literal, TypeAlias
+from typing import TYPE_CHECKING, Literal, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -40,6 +42,16 @@ from calibrex.evaluation.camera_lidar_edge import (
     EdgeCamera,
     estimate_from_frames,
 )
+from calibrex.evaluation.stereo_lidar_depth import (
+    RectifiedStereo,
+    StereoDepthEstimate,
+    StereoDepthOptions,
+    StereoFrame,
+    estimate_depth_offset,
+)
+
+if TYPE_CHECKING:
+    from calibrex.check.verdict import AxisEstimate
 
 FloatArray: TypeAlias = NDArray[np.float64]
 FrameSelection = Literal["spread", "first"]
@@ -57,13 +69,30 @@ class KITTIEdgeAxis(StrictModel):
     status: Literal["pass", "warn", "fail"]
 
 
+class KITTIDepthAxis(StrictModel):
+    """Translation along the optical axis: candidate error against the check's tolerance."""
+
+    name: Literal["z"] = "z"
+    candidate_error_m: float
+    tolerance_m: float
+    estimate_std_m: float
+    status: Literal["pass", "warn", "fail"]
+
+
 class KITTIEdgeTrial(StrictModel):
-    """The edge-alignment verdict for one candidate."""
+    """The data-only verdict for one candidate: edge rotation and stereo depth."""
 
     candidate_id: CandidateId
     verdict: EdgeVerdict
     axes: list[KITTIEdgeAxis] = Field(default_factory=list)
     unchecked_rotation_axes: list[str] = Field(default_factory=list)
+    depth_axis: KITTIDepthAxis | None = None
+    depth: StereoDepthEstimate | None = Field(
+        default=None,
+        description="stereo-depth estimate at the edge-estimated rotation; None when the "
+        "dataset has no right stereo images",
+    )
+    unchecked_translation_axes: list[str] = Field(default_factory=list)
     frames: int = Field(ge=0)
     edge_points: int = Field(ge=0)
 
@@ -90,6 +119,25 @@ def kitti_edge_candidates(
 ) -> tuple[EdgeCamera, dict[CandidateId, FloatArray]]:
     """The rectified camera 2 and each ``T_camera0_lidar`` candidate in its pinhole frame."""
 
+    camera, rectify, _ = _rectified_camera(dataset)
+    return camera, {name: rectify @ _matrix(transform) for name, transform in candidates.items()}
+
+
+def kitti_stereo(dataset: str | Path) -> RectifiedStereo | None:
+    """Cameras 2 and 3 projected from camera 2's pinhole frame (the candidates' frame)."""
+
+    _, rectify, left = _rectified_camera(dataset)
+    model = read_camera_projection_model(dataset, camera="image_03")
+    if model is None:
+        return None
+    right = np.asarray(model.projection_matrix, dtype=np.float64).reshape(3, 4)
+    # a point X in the pinhole frame sits at X - b in rectified camera 0
+    to_rectified = np.eye(4)
+    to_rectified[:3, 3] = -rectify[:3, 3]
+    return RectifiedStereo(left=left @ to_rectified, right=right @ to_rectified)
+
+
+def _rectified_camera(dataset: str | Path) -> tuple[EdgeCamera, FloatArray, FloatArray]:
     model = read_camera_projection_model(dataset)
     if model is None:
         msg = f"{dataset}: KITTI camera projection (calib_cam_to_cam.txt) is missing"
@@ -104,9 +152,7 @@ def kitti_edge_candidates(
     rectify = np.eye(4)
     rectify[:3, :3] = np.asarray(model.rectification_matrix, dtype=np.float64).reshape(3, 3)
     rectify[:3, 3] = (offset_x, offset_y, offset_z)
-    return EdgeCamera(fx, fy, cx, cy), {
-        name: rectify @ _matrix(transform) for name, transform in candidates.items()
-    }
+    return EdgeCamera(fx, fy, cx, cy), rectify, projection
 
 
 def kitti_edge_frames(
@@ -135,6 +181,36 @@ def kitti_edge_frames(
     return frames
 
 
+def kitti_stereo_frames(
+    pairs: Sequence[KITTICameraLidarPair], frames: Sequence[CameraLidarFrame]
+) -> list[StereoFrame] | None:
+    """The edge frames with their camera-3 images; ``None`` when any is missing."""
+
+    stereo: list[StereoFrame] = []
+    for pair, frame in zip(pairs, frames, strict=True):
+        right_path = _right_image_path(Path(pair.camera_path))
+        image = read_png_luminance(right_path) if right_path is not None else None
+        if image is None:
+            return None
+        stereo.append(
+            StereoFrame(
+                left=np.asarray(frame.image, dtype=np.float64),
+                right=np.clip(np.asarray(image.rows, dtype=np.float64), 0.0, 255.0),
+                points=np.asarray(frame.points, dtype=np.float64),
+            )
+        )
+    return stereo
+
+
+def _right_image_path(left: Path) -> Path | None:
+    parts = list(left.parts)
+    if "image_02" not in parts:
+        return None
+    parts[len(parts) - 1 - parts[::-1].index("image_02")] = "image_03"
+    path = Path(*parts)
+    return path if path.is_file() else None
+
+
 def select_kitti_pairs(
     dataset: str | Path, frame_count: int, selection: FrameSelection
 ) -> list[KITTICameraLidarPair]:
@@ -156,16 +232,23 @@ def run_kitti_edge_decision(
     frame_count: int = 50,
     selection: FrameSelection = "spread",
     options: EdgeAlignmentOptions | None = None,
+    depth_options: StereoDepthOptions | None = None,
 ) -> KITTIEdgeDecision:
-    """Judge each candidate from the images and scans alone (rotation axes)."""
+    """Judge each candidate from the images and scans alone.
 
-    from calibrex.check.estimators import camera_lidar_axis_estimates
+    Rotation from edges; translation along the optical axis from the stereo pair, at the
+    rotation the edges estimate.
+    """
+
+    from calibrex.check.estimators import camera_lidar_axis_estimates, transform_matrix
     from calibrex.check.verdict import VerdictOptions, judge_pair
 
     commit = git_commit()
     pairs = select_kitti_pairs(dataset, frame_count, selection)
     frames = kitti_edge_frames(pairs)
     camera, transforms = kitti_edge_candidates(dataset, candidates)
+    stereo = kitti_stereo(dataset)
+    stereo_frames = kitti_stereo_frames(pairs, frames) if stereo is not None else None
     provenance = CameraLidarEdgeProvenance(
         generator="calibrex.evaluation.kitti_edge_falsification",
         generator_version="0.1",
@@ -188,7 +271,15 @@ def run_kitti_edge_decision(
             parent_frame="camera_02_rectified",
             child_frame="velo_link",
         )
-        judgement = judge_pair(camera_lidar_axis_estimates(artifact, transform), VerdictOptions())
+        estimates = camera_lidar_axis_estimates(artifact, transform)
+        depth: StereoDepthEstimate | None = None
+        if stereo is not None and stereo_frames is not None and artifact.transform is not None:
+            # the candidate's translation at the rotation the edges estimate
+            at_rotation = transform_matrix(transform[:3, 3], artifact.transform.rotation_quat_xyzw)
+            depth = estimate_depth_offset(stereo_frames, stereo, at_rotation, depth_options)
+            estimates = [_depth_estimate(depth) if e.name == "z" else e for e in estimates]
+        judgement = judge_pair(estimates, VerdictOptions())
+        depth_judgement = next((axis for axis in judgement.axes if axis.name == "z"), None)
         trials.append(
             KITTIEdgeTrial(
                 candidate_id=candidate_id,
@@ -209,6 +300,20 @@ def run_kitti_edge_decision(
                     for item in judgement.unchecked
                     if item.name in {"roll", "pitch", "yaw"}
                 ],
+                depth_axis=(
+                    KITTIDepthAxis(
+                        candidate_error_m=float(depth_judgement.candidate_error),
+                        tolerance_m=float(depth_judgement.tolerance),
+                        estimate_std_m=float(depth_judgement.estimate_std),
+                        status=depth_judgement.status,
+                    )
+                    if depth_judgement is not None
+                    else None
+                ),
+                depth=depth,
+                unchecked_translation_axes=[
+                    item.name for item in judgement.unchecked if item.name in {"x", "y", "z"}
+                ],
                 frames=artifact.samples.frames,
                 edge_points=artifact.samples.edge_points,
             )
@@ -221,6 +326,25 @@ def run_kitti_edge_decision(
         reason=reason,
         trials=trials,
         git_commit=commit,
+    )
+
+
+def _depth_estimate(depth: StereoDepthEstimate) -> AxisEstimate:
+    from calibrex.check.verdict import AxisEstimate
+
+    if depth.observable and depth.offset_m is not None and depth.std_m is not None:
+        return AxisEstimate("z", "m", depth.offset_m, depth.std_m, True)
+    code: Literal["unobservable", "control_not_detected"] = (
+        "control_not_detected" if depth.control_response is not None else "unobservable"
+    )
+    return AxisEstimate(
+        "z",
+        "m",
+        depth.offset_m or 0.0,
+        depth.std_m or 0.0,
+        False,
+        f"stereo depth: {depth.reason}",
+        code,
     )
 
 
