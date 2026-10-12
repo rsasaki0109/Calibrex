@@ -2,9 +2,17 @@
 
 import json
 from copy import deepcopy
+from dataclasses import replace
 
 import pytest
 from tools import benchmark_adaptive_plane_search as benchmark
+
+from calibrex.core.geometry import SE3
+from calibrex.data.odometry_track import OdometryTrack
+from calibrex.solvers.continuous_time_lidar_pair_solver import (
+    ContinuousTimeLidarPairOptions,
+    ContinuousTimeLidarPairProblem,
+)
 
 
 def test_canonical_preserves_every_numerical_value_status_and_lineage():
@@ -56,4 +64,30 @@ def test_digest_streams_and_supports_official_md5(tmp_path):
     assert benchmark._digest(path, "md5") == "900150983cd24fb0d6963f7d28e17f72"
     assert benchmark._digest(path) == (
         "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    )
+
+
+def test_split_binding_hashes_the_actual_capped_disjoint_point_identities():
+    problem = ContinuousTimeLidarPairProblem(
+        source_records=[], target_points=[(1.0, 2.0, 3.0)] * 6,
+        target_capture_timestamps_ns=[10, 11, 12, 13, 14, 15],
+        odometry_track=OdometryTrack([]), t_base_source=SE3.identity(),
+        initial_t_source_target=SE3.identity(), variable="extrinsic", sensor="lidar",
+        voxel_size_m=0.5, correspondence_gate_m=1.5,
+        train_indices=(0, 1, 2), holdout_indices=(3, 4, 5),
+    )
+    options = ContinuousTimeLidarPairOptions(max_target_points_per_split=2)
+    binding = benchmark._split_binding(problem, options)
+    assert binding["train_count"] == binding["holdout_count"] == 2
+    assert binding["train_ids_sha256"] != binding["holdout_ids_sha256"]
+    assert binding == benchmark._split_binding(problem, options)
+    unselected = replace(problem, target_capture_timestamps_ns=[10, 99, 12, 13, 14, 15])
+    assert binding == benchmark._split_binding(unselected, options)
+    selected = replace(problem, target_capture_timestamps_ns=[10, 11, 99, 13, 14, 15])
+    changed = benchmark._split_binding(selected, options)
+    assert changed["train_ids_sha256"] != binding["train_ids_sha256"]
+    assert changed["holdout_ids_sha256"] == binding["holdout_ids_sha256"]
+    moved = replace(problem, target_points=[(9.0, 2.0, 3.0), *problem.target_points[1:]])
+    assert benchmark._split_binding(moved, options)["train_ids_sha256"] != (
+        binding["train_ids_sha256"]
     )

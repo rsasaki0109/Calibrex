@@ -18,6 +18,13 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from calibrex.solvers.continuous_time_lidar_pair_solver import (
+        ContinuousTimeLidarPairOptions,
+        ContinuousTimeLidarPairProblem,
+    )
 
 BASELINE = "240ed2cf885f9bbcffc0be68a6afac1d51b29280"
 MODULE = "calibrex.data.adaptive_voxel"
@@ -75,6 +82,33 @@ def _canonical(payload: dict) -> str:
     return json.dumps(visit(payload), sort_keys=True, separators=(",", ":"), allow_nan=False)
 
 
+def _split_binding(
+    problem: ContinuousTimeLidarPairProblem,
+    options: ContinuousTimeLidarPairOptions | None,
+) -> dict[str, int | str]:
+    from calibrex.solvers.continuous_time_lidar_pair_solver import (
+        ContinuousTimeLidarPairOptions,
+        _resolve_indices,
+        _select_evenly_spaced_indices,
+    )
+
+    settings = options or ContinuousTimeLidarPairOptions()
+    result: dict[str, int | str] = {}
+    for name, indices in zip(("train", "holdout"), _resolve_indices(problem), strict=True):
+        selected = _select_evenly_spaced_indices(
+            indices, settings.max_target_points_per_split, seed=settings.sampling_seed,
+        )
+        identities = [
+            [index, problem.target_capture_timestamps_ns[index], *problem.target_points[index]]
+            for index in selected
+        ]
+        result[name + "_count"] = len(selected)
+        result[name + "_ids_sha256"] = hashlib.sha256(
+            json.dumps(identities, separators=(",", ":"), allow_nan=False).encode(),
+        ).hexdigest()
+    return result
+
+
 def _worker(args: argparse.Namespace) -> None:
     imported = time.perf_counter()
     if args.worker == "baseline":
@@ -98,6 +132,7 @@ def _worker(args: argparse.Namespace) -> None:
     import_seconds = time.perf_counter() - imported
     query_seconds = solver_seconds = 0.0
     query_count = 0
+    sampled_split = None
     nearest = AdaptiveVoxelPlaneMap.nearest_plane
     solve = ContinuousTimeLidarPairSolver.solve
 
@@ -111,7 +146,10 @@ def _worker(args: argparse.Namespace) -> None:
             query_seconds += time.perf_counter() - started
 
     def measured_solve(*arguments, **keywords):
-        nonlocal solver_seconds
+        nonlocal solver_seconds, sampled_split
+        sampled_split = _split_binding(
+            arguments[1], arguments[2] if len(arguments) > 2 else keywords.get("options"),
+        )
         started = time.perf_counter()
         try:
             return solve(*arguments, **keywords)
@@ -137,6 +175,7 @@ def _worker(args: argparse.Namespace) -> None:
         "adaptive_query_calls": query_count,
         "worker_import_seconds": import_seconds,
         "loaded_module": sys.modules[MODULE].__file__,
+        "sampled_split": sampled_split,
         "result": json.loads(canonical),
         "result_sha256": _digest(output),
     }
@@ -290,6 +329,7 @@ def main(argv: list[str] | None = None) -> None:
 
     trials = []
     anchor = None
+    split_anchor = None
     for repeat in range(1, args.repetitions + 1):
         order = ["baseline", "sparse"] if repeat % 2 else ["sparse", "baseline"]
         for method in order:
@@ -311,6 +351,10 @@ def main(argv: list[str] | None = None) -> None:
             expected = archive if method == "baseline" else Path(SOURCES[0]).resolve()
             if row["loaded_module"] != str(expected):
                 raise ValueError("baseline/candidate module binding mismatch")
+            if split_anchor is None:
+                split_anchor = row["sampled_split"]
+            if row["sampled_split"] != split_anchor:
+                raise ValueError("train/holdout sampled point identities changed")
             canonical = _canonical(row["result"])
             if anchor is None:
                 anchor = canonical
@@ -331,13 +375,13 @@ def main(argv: list[str] | None = None) -> None:
                     execution_host=platform.platform(),
                     notes=[json.dumps({"repeat": repeat, "order": order,
                                        "result_sha256": row["result_sha256"],
+                                       "sampled_split": row["sampled_split"],
                                        "loaded_module": row["loaded_module"]}, sort_keys=True),
                            canonical],
                 ),
             ))
             print(f"DONE {repeat} {method} {elapsed:.6f}s matches={matches}", flush=True)
     guard()
-    result = json.loads(anchor)
     definition = BenchmarkDefinition(
         benchmark_id="glim-complete-continuous-time-adaptive-search",
         title="Public GLIM Livox complete continuous-time refinement",
@@ -349,9 +393,10 @@ def main(argv: list[str] | None = None) -> None:
             split_policy="Latest capture frames held out; repeats share the same accuracy fixture",
             splits=[BenchmarkSplit(
                 split_id=f"repeat-{i:02d}", seed=0,
-                fit_count=result["train_correspondence_count"],
-                holdout_count=result["holdout_correspondence_count"],
-                fit_ids_sha256=input_digest, holdout_ids_sha256=input_digest,
+                fit_count=split_anchor["train_count"],
+                holdout_count=split_anchor["holdout_count"],
+                fit_ids_sha256=split_anchor["train_ids_sha256"],
+                holdout_ids_sha256=split_anchor["holdout_ids_sha256"],
             ) for i in range(1, args.repetitions + 1)],
             initial_estimate_policy="Existing bounded public identity-control config unchanged",
             tuning_policy=(
@@ -396,6 +441,8 @@ def main(argv: list[str] | None = None) -> None:
             "Phase timers wrap existing calls without extra work; their wrapper cost is included.",
             "Full artifact equality normalizes only path separators; git revision remains shared.",
             "Raw checksums and conversion lineage are verified before measurement.",
+            "Split IDs hash ordered sampled target indices, capture timestamps and XYZ; "
+            "the distinct temporal partitions and unchanged sampling caps are verified each run.",
             "Descriptive timings are local observations, not portable confidence estimates.",
         ],
         provenance=BenchmarkProvenance(
