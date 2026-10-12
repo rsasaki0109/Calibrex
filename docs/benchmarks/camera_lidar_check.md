@@ -312,7 +312,8 @@ judged at all.
 | yaw +3 deg | fail (3.2 / 0.5) | fail (3.15 / 0.61) |
 
 Moved, all six errors are flagged (five as recorded: roll +3 left every axis unjudged), the
-measured error is closer to the applied one on five of six (mean miss 0.16 deg against 0.23 deg),
+measured error is closer to the applied one in all five cases judged both ways (mean miss 0.16
+deg against 0.23 deg),
 and the objective at the candidate is 6-7 % higher in every case. The cost is a slightly larger
 yaw std (tolerance 0.5 to 0.61-0.74 deg), which turned yaw +1 from fail into warn. One handheld
 recording, rotation-only motion (the gyro has no translation); exp07 and the other Hilti
