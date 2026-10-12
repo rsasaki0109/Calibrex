@@ -482,6 +482,39 @@ def test_kitti_timestamp_alignment_stats(tmp_path: Path) -> None:
     assert pairs[1].delta_ms == 20.0
 
 
+def test_kitti_pairs_follow_frame_numbers_across_missing_scans(tmp_path: Path) -> None:
+    # Like drive 0009 (no scans 177-180): timestamps.txt keeps a blank line for each
+    # missing scan, so after the gap a file's position in the directory is not its frame.
+    sequence = tmp_path / "2011_09_26_drive_0009_sync"
+    image_dir = sequence / "image_02" / "data"
+    velodyne_dir = sequence / "velodyne_points" / "data"
+    image_dir.mkdir(parents=True)
+    velodyne_dir.mkdir(parents=True)
+    camera_lines, lidar_lines = [], []
+    for frame in range(6):
+        _write_png(image_dir / f"{frame:010d}.png", width=4, height=4)
+        camera_lines.append(f"2011-09-26 13:00:00.{frame * 100 + 5:03d}000000")
+        if frame in (2, 3):
+            lidar_lines.append("")
+            continue
+        _write_velodyne_points(velodyne_dir / f"{frame:010d}.bin", [(float(frame), 0.0, 0.0, 0.0)])
+        lidar_lines.append(f"2011-09-26 13:00:00.{frame * 100:03d}000000")
+    (sequence / "image_02" / "timestamps.txt").write_text("\n".join(camera_lines) + "\n")
+    (sequence / "velodyne_points" / "timestamps.txt").write_text("\n".join(lidar_lines) + "\n")
+
+    pairs = find_camera_lidar_pairs(sequence, max_pairs=10)
+
+    by_camera = {pair.camera_index: pair for pair in pairs}
+    for frame in (0, 1, 4, 5):
+        assert by_camera[frame].lidar_index == frame
+        assert Path(by_camera[frame].lidar_path).name == f"{frame:010d}.bin"
+        assert by_camera[frame].delta_ms == -5.0
+    # an image whose own scan is missing pairs with the nearest scan that exists, and the
+    # gap says how far it is
+    assert by_camera[2].lidar_index == 1 and by_camera[2].delta_ms == -105.0
+    assert by_camera[3].lidar_index == 4 and by_camera[3].delta_ms == 95.0
+
+
 def test_kitti_lidar_points_project_into_camera_image(tmp_path: Path) -> None:
     sequence = tmp_path / "2011_09_26_drive_0005_sync"
     image_dir = sequence / "image_02" / "data"

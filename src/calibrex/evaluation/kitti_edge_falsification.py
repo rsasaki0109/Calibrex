@@ -212,15 +212,25 @@ def _right_image_path(left: Path) -> Path | None:
 
 
 def select_kitti_pairs(
-    dataset: str | Path, frame_count: int, selection: FrameSelection
+    dataset: str | Path,
+    frame_count: int,
+    selection: FrameSelection,
+    *,
+    max_gap_s: float = EdgeAlignmentOptions.max_gap_s,
 ) -> list[KITTICameraLidarPair]:
-    """``frame_count`` pairs: the first ones, or spread evenly over the drive."""
+    """``frame_count`` pairs: the first ones, or spread evenly over the drive.
 
-    if selection == "first":
-        return find_camera_lidar_pairs(dataset, max_pairs=frame_count)
-    pairs = find_camera_lidar_pairs(dataset, max_pairs=1_000_000)
-    if len(pairs) <= frame_count:
-        return pairs
+    Pairs whose image and scan are more than ``max_gap_s`` apart (an image whose own scan
+    is missing, as on drive 0009) are not used, as in the bag-level check.
+    """
+
+    pairs = [
+        pair
+        for pair in find_camera_lidar_pairs(dataset, max_pairs=1_000_000)
+        if pair.delta_ms is None or abs(pair.delta_ms) <= 1.0e3 * max_gap_s
+    ]
+    if selection == "first" or len(pairs) <= frame_count:
+        return pairs[:frame_count]
     indices = np.unique(np.round(np.linspace(0, len(pairs) - 1, frame_count)).astype(int))
     return [pairs[int(index)] for index in indices]
 

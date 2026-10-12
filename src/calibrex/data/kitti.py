@@ -1795,6 +1795,20 @@ def _lidar_files(root: Path) -> list[Path]:
     return sorted(directory.glob("*.bin")) if directory.exists() else []
 
 
+def _frame_files(files: list[Path]) -> dict[int, Path]:
+    """KITTI files by frame number (the file name), the index of their timestamp line.
+
+    A stream may skip frames (drive 0009 has no scans 177-180) while its timestamps.txt
+    keeps a line for each, so a file's position in the directory is not its frame.
+    """
+
+    frames: dict[int, Path] = {}
+    for path in files:
+        if path.stem.isdigit():
+            frames[int(path.stem)] = path
+    return frames
+
+
 def _timestamped_camera_lidar_pairs(
     camera_files: list[Path],
     lidar_files: list[Path],
@@ -1802,12 +1816,15 @@ def _timestamped_camera_lidar_pairs(
     lidar_timestamps: list[KITTITimestamp],
     max_pairs: int,
 ) -> list[KITTICameraLidarPair]:
+    camera_by_frame = _frame_files(camera_files)
+    lidar_by_frame = _frame_files(lidar_files)
     lidar_values = _timestamp_values(lidar_timestamps)
     pairs: list[KITTICameraLidarPair] = []
     for camera_timestamp in camera_timestamps:
         if len(pairs) >= max_pairs:
             break
-        if camera_timestamp.index >= len(camera_files):
+        camera_path = camera_by_frame.get(camera_timestamp.index)
+        if camera_path is None:
             continue
         lidar_timestamp_index = _nearest_timestamp_index(
             lidar_values,
@@ -1816,7 +1833,10 @@ def _timestamped_camera_lidar_pairs(
         if lidar_timestamp_index is None:
             continue
         lidar_timestamp = lidar_timestamps[lidar_timestamp_index]
-        if lidar_timestamp.index >= len(lidar_files):
+        lidar_path = lidar_by_frame.get(lidar_timestamp.index)
+        if lidar_path is None:
+            # the scan taken with this image is missing: no pair, rather than a scan
+            # recorded a frame or more away
             continue
         pairs.append(
             _camera_lidar_pair(
@@ -1824,8 +1844,8 @@ def _timestamped_camera_lidar_pairs(
                 lidar_index=lidar_timestamp.index,
                 camera_timestamp_ns=camera_timestamp.timestamp_ns,
                 lidar_timestamp_ns=lidar_timestamp.timestamp_ns,
-                camera_path=camera_files[camera_timestamp.index],
-                lidar_path=lidar_files[lidar_timestamp.index],
+                camera_path=camera_path,
+                lidar_path=lidar_path,
             )
         )
     return pairs
@@ -1840,17 +1860,19 @@ def _same_index_camera_lidar_pairs(
 ) -> list[KITTICameraLidarPair]:
     camera_timestamp_by_index = _timestamp_by_index(camera_timestamps)
     lidar_timestamp_by_index = _timestamp_by_index(lidar_timestamps)
-    pair_count = min(len(camera_files), len(lidar_files), max_pairs)
+    camera_by_frame = _frame_files(camera_files)
+    lidar_by_frame = _frame_files(lidar_files)
+    frames = sorted(set(camera_by_frame) & set(lidar_by_frame))[: max(max_pairs, 0)]
     return [
         _camera_lidar_pair(
-            camera_index=index,
-            lidar_index=index,
-            camera_timestamp_ns=camera_timestamp_by_index.get(index),
-            lidar_timestamp_ns=lidar_timestamp_by_index.get(index),
-            camera_path=camera_files[index],
-            lidar_path=lidar_files[index],
+            camera_index=frame,
+            lidar_index=frame,
+            camera_timestamp_ns=camera_timestamp_by_index.get(frame),
+            lidar_timestamp_ns=lidar_timestamp_by_index.get(frame),
+            camera_path=camera_by_frame[frame],
+            lidar_path=lidar_by_frame[frame],
         )
-        for index in range(pair_count)
+        for frame in frames
     ]
 
 
@@ -1960,15 +1982,14 @@ def _paired_lidar_oxts_frames(
     if not pose_records:
         return []
 
+    lidar_timestamp_by_index = _timestamp_by_index(lidar_timestamps)
     pairs: list[tuple[Path, SE3]] = []
-    for index, lidar_file in enumerate(lidar_files):
-        timestamp_ns = (
-            lidar_timestamps[index].timestamp_ns if index < len(lidar_timestamps) else None
-        )
+    for frame, lidar_file in sorted(_frame_files(lidar_files).items()):
+        timestamp_ns = lidar_timestamp_by_index.get(frame)
         pose = (
             _nearest_oxts_pose(timestamp_ns, pose_records)
             if timestamp_ns is not None
-            else pose_records[min(index, len(pose_records) - 1)][1]
+            else pose_records[min(frame, len(pose_records) - 1)][1]
         )
         pairs.append((lidar_file, pose))
     return pairs
@@ -1978,10 +1999,11 @@ def _oxts_pose_records(
     oxts_files: list[Path],
     timestamps: list[KITTITimestamp],
 ) -> list[tuple[int | None, SE3]]:
+    timestamp_by_index = _timestamp_by_index(timestamps)
     packets: list[tuple[int | None, KITTIOXTSPacket]] = []
-    for index, file_path in enumerate(oxts_files):
+    for frame, file_path in sorted(_frame_files(oxts_files).items()):
         try:
-            timestamp_ns = timestamps[index].timestamp_ns if index < len(timestamps) else None
+            timestamp_ns = timestamp_by_index.get(frame)
             packets.append((timestamp_ns, read_oxts_packet(file_path)))
         except ValueError:
             continue
