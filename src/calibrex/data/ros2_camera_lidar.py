@@ -56,6 +56,9 @@ class CameraLidarFrame:
     """``(N, 3)`` finite points in the LiDAR frame."""
     cloud_frame_id: str
     image_frame_id: str
+    point_time_offsets_s: NDArray[np.float64] | None = None
+    """Seconds after ``time_s`` at which each point was measured, when the cloud has a
+    per-point time field (``None`` otherwise)."""
 
     @property
     def gap_s(self) -> float:
@@ -69,6 +72,7 @@ class _PendingScan:
     reference_ns: int
     points: NDArray[np.float32]
     cloud_frame_id: str
+    point_time_offsets_s: NDArray[np.float64] | None = None
 
 
 def relative_point_times(
@@ -151,6 +155,7 @@ def load_camera_lidar_frames(
             points=scan.points,
             cloud_frame_id=scan.cloud_frame_id,
             image_frame_id=message.frame_id,
+            point_time_offsets_s=scan.point_time_offsets_s,
         )
 
     def forget(keys: set[int]) -> None:
@@ -223,6 +228,9 @@ def load_camera_lidar_frames(
             reference_ns=cloud.timestamp_ns + round(offset * 1.0e9),
             points=points,
             cloud_frame_id=cloud.frame_id,
+            point_time_offsets_s=times - round(offset * 1.0e9) * 1.0e-9
+            if times is not None
+            else None,
         )
     for key, scan in list(pending.items()):
         pair(key, scan)

@@ -149,7 +149,19 @@ same sources as `camera-imu`; `--camera TOPIC` selects one camera. OpenCV is not
   cached under a key that includes it (a different candidate on the same bag recomputes), and
   `calibrex estimate` runs it only when a `--tf` prior connects the two frames (rotation within a
   few degrees; the camera frame must be the optical frame). `calibrex drift` needs nothing extra.
-* **What it cannot see.** Scans are rigid snapshots (no motion or rolling-sweep compensation);
+* **Rig motion.** A scan and its image are not measured at the same time, and on a moving rig
+  the LiDAR has turned and moved in between. When the bag has an odometry or twist topic
+  (rotation and translation) or else an IMU (rotation only) whose frame is connected to the
+  LiDAR in the frame tree, every point is moved to the image time with that velocity, each by
+  its own time when the cloud has a per-point time field. The evidence records the source and
+  the move (`motion_compensation`); `--camera-lidar-motion none` keeps scans as recorded.
+  The twist is read as REP 105 defines it (an odometry twist in its `child_frame_id`, a twist
+  message in its header frame); a driver that publishes a world-frame velocity there moves the
+  points wrongly, so turn the motion off for such a bag.
+  Evaluated on KITTI with real and emulated unsynchronized pairings in the
+  [benchmark](../benchmarks/camera_lidar_check.md), where it helped in all but one pairing.
+* **What it cannot see.** Without a connected velocity topic, scans are rigid snapshots, and
+  without a per-point time field the rolling sweep is not compensated;
   intrinsics are taken as correct (an intrinsics error reads as an extrinsic error); a scene
   without depth discontinuities and image edges (a plain corridor, a distant skyline) leaves every
   axis `unobservable` and the pair `inconclusive`. A solid-state LiDAR has no beams: its depth

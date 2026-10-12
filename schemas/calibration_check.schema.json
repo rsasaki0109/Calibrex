@@ -921,6 +921,23 @@
           "default": null,
           "title": "Camera"
         },
+        "camera_lidar_motion": {
+          "anyOf": [
+            {
+              "enum": [
+                "auto",
+                "none"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "camera-lidar: auto moves LiDAR points to the image time with an odometry, twist or IMU topic of the bag when one is connected to the LiDAR in the frame tree; none keeps scans as recorded",
+          "title": "Camera Lidar Motion"
+        },
         "detection_probe_deg": {
           "exclusiveMinimum": 0.0,
           "title": "Detection Probe Deg",

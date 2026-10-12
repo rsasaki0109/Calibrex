@@ -197,6 +197,9 @@ class CheckRunOptions:
     """lidar-lidar: auto = per-point time when the reference cloud has it, rigid scans otherwise."""
     gnss_lidar_deskew: Literal["auto", "constant_velocity", "none"] = "auto"
     """gnss-lidar: auto = per-point time when the cloud has it, rigid scans otherwise."""
+    camera_lidar_motion: Literal["auto", "none"] = "auto"
+    """camera-lidar: auto = move points to the image time with a velocity topic when one is
+    connected to the LiDAR, scans as recorded otherwise."""
     evidence_dir: Path | None = None
     base_dir: Path | None = None
     cache_dir: Path | None = None
@@ -295,6 +298,7 @@ def build_calibration_check(
             base_dir=base_dir,
             progress=as_progress(progress),
             bag_sha256=input_sha256,
+            frame_tree=tree,
         )
         closures = build_closure_report(pairs, _closure_edges(pairs, run_memo), run.verdict)
         overall = (
@@ -317,6 +321,7 @@ def build_calibration_check(
             rigid_scan_rotation_floor_deg=run.rigid_scan_rotation_floor_deg,
             lidar_lidar_deskew=run.lidar_lidar_deskew,
             gnss_lidar_deskew=run.gnss_lidar_deskew,
+            camera_lidar_motion=run.camera_lidar_motion,
             topic_kinds=dict(topic_kinds or {}),
         )
         evidence_dir_record = _relative(evidence_dir, base_dir)
@@ -417,6 +422,7 @@ def _run_pairs(
     base_dir: Path,
     progress: CheckProgress,
     bag_sha256: str = "",
+    frame_tree: StaticFrameTree | None = None,
 ) -> tuple[list[CheckPairRecord], dict[tuple[object, ...], Any]]:
     selected = set(run.pairs) if run.pairs is not None else None
     controls = RunControls(
@@ -429,6 +435,8 @@ def _run_pairs(
         rigid_scan_rotation_floor_deg=run.rigid_scan_rotation_floor_deg,
         lidar_lidar_deskew=run.lidar_lidar_deskew,
         gnss_lidar_deskew=run.gnss_lidar_deskew,
+        camera_lidar_motion=run.camera_lidar_motion,
+        frame_tree=frame_tree,
         progress=progress,
         cache=EstimatorCache(run.cache_dir) if run.cache_dir is not None else None,
         bag_sha256=bag_sha256,

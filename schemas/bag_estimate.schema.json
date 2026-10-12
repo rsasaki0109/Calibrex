@@ -877,6 +877,15 @@
           "default": null,
           "title": "Camera"
         },
+        "camera_lidar_motion": {
+          "default": "auto",
+          "enum": [
+            "auto",
+            "none"
+          ],
+          "title": "Camera Lidar Motion",
+          "type": "string"
+        },
         "frame_map": {
           "additionalProperties": {
             "type": "string"

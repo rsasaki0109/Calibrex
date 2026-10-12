@@ -158,8 +158,11 @@ accuracy.
    short moving recordings use their whole frame budget (KITTI 0005 yaw +5
    deg is flagged), and a solid-state LiDAR is accepted (angular-neighbour
    depth edges, evaluated on static Livox Avia recordings). An image in the
-   camera body frame is named in the reason with its fix, not corrected, and
-   motion during a sweep is not handled.
+   camera body frame is named in the reason with its fix, not corrected.
+   Rig motion between a point and its image is compensated with a velocity
+   topic of the bag (KITTI: 13 of 16 errors flagged with 0.1 s pairings, 12
+   as recorded; one pairing got worse); a per-point-timed cloud on a moving
+   rig with a camera has not been evaluated on real data.
 9. **LiDAR packet coverage:** raw `velodyne_msgs/VelodyneScan` is decoded
    for VLP-16 (single and dual return), VLP-32C (single return) and HDL-64E
    (single and dual return, with its calibration), each checked against

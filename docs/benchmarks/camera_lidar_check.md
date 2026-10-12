@@ -196,6 +196,68 @@ changed or assumed: the verdict stays `inconclusive`.
   still puts edges in the image, the estimator runs and judges no axis (`no_judgeable_axes`), so
   an inverse reading was not added: it would not have fired on the one recording tried.
 
+## Rig motion between the scan and the image (2026-10-12)
+
+A LiDAR point and the image it is compared with are not measured at the same time. KITTI's
+camera is triggered by its LiDAR (10.5 ms apart), but an unsynchronized camera can fire up to
+half a frame away, and a spinning LiDAR measures each point at its own time during the sweep. On
+a moving rig the LiDAR has turned and moved in between. `calibrex check` now moves every point
+to the image time with the rig's velocity (constant over the interval):
+
+* **Source.** An odometry or twist topic (rotation and translation; an INS before wheel
+  odometry) or else an IMU (gyro, rotation only), whose frame is connected to the LiDAR in the
+  frame tree; the twist is carried to the LiDAR origin through that static transform. Without
+  one the scans are used as recorded, as before. `--camera-lidar-motion none` turns it off.
+* **Time.** Each point by its own measurement time when the cloud has a per-point time field,
+  else the whole scan by its reference time (so the rolling sweep is compensated only with the
+  field). KITTI's converted clouds have no field.
+* **Record.** The evidence gets an optional `motion_compensation` block (source topic, kind,
+  frames moved, median and max rotation and translation applied); the check notes name it.
+
+**Synchronized KITTI** (the drives of the benchmark above, `/oxts/odometry`, defaults, 48
+frames): the applied move is small (0005: median 0.09 deg and 4.4 cm; 0009: 0.02 deg and 9.3 cm)
+and the verdicts move in one direction only:
+
+| Case | before | moved to the image time |
+| --- | --- | --- |
+| 0005 reference | pass, yaw 0.1 / 1.35 | pass, yaw 0.1 / 0.5 |
+| 0005 yaw +1 deg | **pass** (0.9 / 1.35) | warn (0.9 / 0.5) |
+| 0009 pitch +1 deg | warn (1.0 / 0.5) | fail (1.05 / 0.5) |
+
+Every other case of the KITTI table (roll, pitch, yaw +-1/3/5 deg, x +5 cm, on both drives) keeps
+its verdict; KITTI 0005 now flags all nine rotation errors. The AIST Livox recordings have no
+velocity topic connected to the LiDAR, so their verdicts are unchanged (checked, all five).
+
+**Unsynchronized camera (emulated).** `tools/camera_lidar_motion_stress.py` pairs every KITTI
+scan with the image one frame later (+1: 114 ms after the scan) or earlier (-1: 93 ms before), a
+real image and a real scan recorded about 0.1 s apart on the moving car (0005: 4.2 m/s and
+8 deg/s median; 0009: 8.9 m/s). It runs the edge alignment on the same frames as recorded and
+moved, and judges both with the check's rule. `error / tolerance` of the perturbed axis:
+
+| Case | 0005 +1 | 0005 -1 | 0009 +1 | 0009 -1 |
+| --- | --- | --- | --- | --- |
+| reference, as recorded | pass, pitch unchecked | pass, pitch unchecked | pass, pitch unchecked | pass, pitch unchecked |
+| reference, moved | pass, all three judged | pass, pitch and yaw unchecked | pass, all three judged | pass, pitch unchecked |
+| roll +3, as recorded | fail (3.25 / 0.5) | fail (3.25 / 0.5) | fail (2.9 / 0.72) | fail (2.8 / 0.5) |
+| roll +3, moved | fail (3.3 / 0.5) | fail (3.0 / 0.5) | fail (2.85 / 0.5) | fail (2.8 / 0.5) |
+| pitch +3, as recorded | **pass**, pitch unchecked | **pass**, pitch unchecked | **pass**, pitch unchecked | **pass**, pitch unchecked |
+| pitch +3, moved | fail (3.2 / 0.5) | **pass**, pitch unchecked | fail (3.1 / 0.5) | fail (2.95 / 0.5) |
+| yaw +3, as recorded | fail (3.15 / 0.5) | fail (3.1 / 0.74) | fail (3.0 / 0.66) | fail (3.05 / 0.5) |
+| yaw +3, moved | fail (3.0 / 0.5) | **pass**, yaw unchecked | fail (2.9 / 0.5) | fail (3.1 / 0.5) |
+| yaw +1, as recorded | fail (1.15 / 0.5) | warn (1.15 / 0.74) | warn (1.0 / 0.77) | fail (1.05 / 0.5) |
+| yaw +1, moved | fail (1.0 / 0.5) | **pass**, yaw unchecked | warn (0.9 / 0.5) | fail (1.1 / 0.5) |
+
+As recorded, the 0.1 s of motion leaves pitch unjudged on every pairing and all four pitch +3 deg
+errors pass. Moved, 13 of the 16 errors are flagged (12 as recorded), the references still pass,
+and on the +1 pairings all three axes are judged. **0005 -1 is worse moved:** pitch and yaw are
+unchecked and yaw +1 and +3 deg, flagged as recorded, now pass with yaw unchecked. The bias is
+not the cause: profiling the objective at the reference, the moved frames put the pitch peak
+back where the synchronized frames have it on every pairing (0005: -0.1 deg synchronized, +0.3
+deg as recorded at +-1, -0.2 / 0.0 deg moved; 0009: 0.0, +0.1 / +0.2, 0.0 / 0.0 deg). What
+changed is the held-out yaw control on 0005 -1, which sits at the t >= 2 line (t = 2.3 as
+recorded, 1.6 moved). Two drives and four pairings are a small sample; whether the translation
+part of the move (0.39 m median at -1) disturbs the depth edges near the car is not resolved.
+
 ## Round trip and drift (Hilti)
 
 * `calibrex estimate exp21 --pairs camera-lidar --tf camchain --tf prior.yaml`, with the prior
@@ -270,8 +332,10 @@ dropped pairs.
   unchecked whatever the start, and a start beyond the +-8 deg scan is not covered.
 * The jackknife std ignores systematic effects, so a std of 0.03 deg does not mean 0.03 deg
   accuracy (see exp07); the 0.5 deg floor is the resolution.
-* Intrinsics and motion during a sweep are not handled, and an image in the camera body frame
-  is only named, not corrected (above); a
+* Intrinsics are not handled. Rig motion is compensated only with a velocity topic connected to
+  the LiDAR, the rolling sweep only with a per-point time field (above; neither was available
+  together on a real recording here), and an image in the camera body frame is only named, not
+  corrected (above); a
   solid-state LiDAR is handled through angular-neighbour depth edges, evaluated only on the static
   AIST Livox recordings above; the thresholds (2 deg control, 0.5 deg std bound, t >= 2) come from these dev
   recordings only.
