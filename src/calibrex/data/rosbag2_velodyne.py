@@ -68,7 +68,7 @@ def encode_scan_as_pointcloud2(
 ) -> bytes:
     """CDR ``PointCloud2`` (x y z intensity time, float32) of one ``VelodyneScan`` payload.
 
-    ``calibration`` is the per-unit calibration an HDL-64E needs.
+    ``calibration`` is the per-unit calibration an HDL-64E or a VLS-128 needs.
     """
 
     cloud = decode_velodyne_scan(topic, timestamp_ns, payload, calibration=calibration)
@@ -102,8 +102,8 @@ def convert_velodyne_bag(
 
     The packet topics themselves and (unless ``keep_images``) the image topics
     are not copied, nor are ``drop_topics``; with ``max_duration_s`` only the
-    first seconds are converted. ``calibration`` (an HDL-64E's own) is applied
-    to HDL-64E packets and ignored for the others.
+    first seconds are converted. ``calibration`` (the unit's own) is applied to
+    HDL-64E and VLS-128 packets and ignored for the others.
     """
 
     connections = [connection for connection, _ in list_rosbag2_connections(source)]

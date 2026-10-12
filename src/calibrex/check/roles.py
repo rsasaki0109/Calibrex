@@ -166,7 +166,7 @@ def velodyne_packets_reason(bag: str | Path, topic: str) -> str:
     """Why a ``VelodyneScan`` topic is skipped, naming its packet format when known.
 
     A format the converter decodes gets the conversion hint (with a calibration
-    reminder for an HDL-64E); any other format is named as unsupported.
+    reminder for an HDL-64E or a VLS-128); any other format is named as unsupported.
     """
 
     try:
@@ -180,10 +180,10 @@ def velodyne_packets_reason(bag: str | Path, topic: str) -> str:
                     f"raw Velodyne packets in a format the converter does not decode "
                     f"({packet_format.description}; not verified against a reference cloud)"
                 )
-            if packet_format.model == "hdl64e":
+            if packet_format.model in {"hdl64e", "vls128"}:
                 return (
-                    f"{VELODYNE_PACKETS_REASON} (HDL-64E: pass the sensor's calibration "
-                    "with --calibration)"
+                    f"{VELODYNE_PACKETS_REASON} ({packet_format.sensor}: pass the sensor's "
+                    "calibration with --calibration)"
                 )
     except (DatasetError, OSError):
         pass

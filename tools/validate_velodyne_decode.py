@@ -233,7 +233,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--reference", type=Path, action="append", default=[], help="LidarView frame (.vtp)"
     )
-    parser.add_argument("--calibration", type=Path, help="db.xml or ROS YAML (HDL-64E)")
+    parser.add_argument("--calibration", type=Path, help="db.xml or ROS YAML (HDL-64E, VLS-128)")
     args = parser.parse_args(argv)
     if args.pcap is not None:
         if not args.reference:

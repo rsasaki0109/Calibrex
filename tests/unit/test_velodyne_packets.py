@@ -235,7 +235,7 @@ def _hdl64e_calibration_yaml(path: Path, *, vert_offset_m: float = 0.0) -> Path:
         (0x21, 0x37, "HDL-32E strongest"),
         (0x23, 0x38, "VLP-32A/B last"),
         (0x24, 0x37, "VLP-16 Hi-Res strongest"),
-        (0xA1, 0x37, "VLS-128 strongest"),
+        (0xA1, 0x39, "VLS-128 dual"),
         (0x28, 0x39, "VLP-32C dual"),
     ],
 )
@@ -404,3 +404,131 @@ def test_convert_bag_applies_an_hdl64e_calibration(tmp_path: Path) -> None:
     cloud = decode_ros2_pointcloud2("/p", 0, data, point_time_field="time")
     assert cloud.point_count == 12 * 32
     assert np.linalg.norm(cloud.xyz, axis=1) == pytest.approx(7.0, abs=1e-5)
+
+
+def _vls128_packet(
+    range_m: float, sequence_azimuths_deg: list[float], *, mode: int = 0x37
+) -> bytes:
+    """Three firing sequences of four banks (0xEE, 0xDD, 0xCC, 0xBB), one azimuth each."""
+
+    body = bytearray()
+    for azimuth in sequence_azimuths_deg:
+        for bank in (0xEE, 0xDD, 0xCC, 0xBB):
+            body += bytes([0xFF, bank]) + struct.pack("<H", round(azimuth * 100) % 36000)
+            body += struct.pack("<HB", round(range_m / 0.004), 12) * 32
+    return bytes(body) + bytes(4) + bytes([mode, 0xA1])
+
+
+def _vls128_calibration_yaml(path: Path, lasers: int = 128) -> Path:
+    rows = [
+        {
+            "laser_id": laser,
+            "rot_correction": 0.0,
+            "vert_correction": math.radians(-25.0 + 0.25 * laser),
+            "dist_correction": 0.0,
+        }
+        for laser in range(lasers)
+    ]
+    path.write_text(yaml.safe_dump({"lasers": rows, "distance_resolution": 0.004}))
+    return path
+
+
+def test_vls128_needs_its_128_laser_calibration(tmp_path: Path) -> None:
+    packet = _vls128_packet(10.0, [0.0, 0.2, 0.4])
+    packet_format = velodyne_packet_format(packet)
+    assert (packet_format.sensor, packet_format.return_mode) == ("VLS-128", "strongest")
+    assert packet_format.supported
+    with pytest.raises(DatasetError, match="VLS-128 packets need the sensor's calibration"):
+        decode_velodyne_packet(packet)
+    hdl64 = load_velodyne_calibration(_hdl64e_calibration_yaml(tmp_path / "64.yaml"))
+    with pytest.raises(DatasetError, match="128-laser calibration, got 64"):
+        decode_velodyne_packet(packet, hdl64)
+
+
+def test_vls128_banks_ranges_and_firing_times(tmp_path: Path) -> None:
+    calibration = load_velodyne_calibration(_vls128_calibration_yaml(tmp_path / "c.yaml"))
+
+    points = decode_velodyne_packet(_vls128_packet(10.0, [0.0, 0.2, 0.4]), calibration)
+
+    assert points.xyz.shape[0] == 12 * 32
+    assert np.linalg.norm(points.xyz, axis=1) == pytest.approx(10.0, abs=1e-9)
+    elevation = np.degrees(np.arcsin(points.xyz[:, 2] / 10.0))
+    assert elevation == pytest.approx(-25.0 + 0.25 * points.laser, abs=1e-9)
+    # Each sequence carries all 128 lasers, bank by bank.
+    for sequence in range(3):
+        lasers = points.laser[sequence * 128 : (sequence + 1) * 128]
+        assert lasers.tolist() == list(range(128))
+    # Eight lasers per 2.89 us cycle, lasers 64-127 two cycles later, 7 us before
+    # the stamp; sequences are 20 cycles apart.
+    time_us = points.time_s * 1e6
+    assert time_us[0] == pytest.approx(-7.0)
+    assert time_us[8] == pytest.approx(-7.0 + 2.89)
+    assert time_us[63] == pytest.approx(-7.0 + 7 * 2.89)
+    assert time_us[64] == pytest.approx(-7.0 + 10 * 2.89)
+    assert time_us[128] == pytest.approx(-7.0 + 57.8)
+
+
+def test_vls128_azimuth_advances_within_a_sequence(tmp_path: Path) -> None:
+    calibration = load_velodyne_calibration(_vls128_calibration_yaml(tmp_path / "c.yaml"))
+
+    def azimuth_deg(points: object, index: int) -> float:
+        x, y = points.xyz[index, 0], points.xyz[index, 1]  # type: ignore[attr-defined]
+        return float(np.degrees(np.arctan2(x, y)))
+
+    points = decode_velodyne_packet(_vls128_packet(10.0, [0.0, 0.2, 0.4]), calibration)
+    # Laser 64 fires 10 of the sequence's 20 cycles in: half the 0.2 deg step.
+    assert azimuth_deg(points, 64) == pytest.approx(0.1, abs=1e-9)
+    assert azimuth_deg(points, 8) == pytest.approx(0.01, abs=1e-9)  # 1 cycle, rounded
+    # The last sequence has no next one: it reuses the step before it.
+    assert azimuth_deg(points, 256 + 64) == pytest.approx(0.5, abs=1e-9)
+
+    # A step over 1 deg is a field-of-view gap: the previous step is reused.
+    gap = decode_velodyne_packet(_vls128_packet(10.0, [0.0, 0.2, 5.0]), calibration)
+    assert azimuth_deg(gap, 128 + 64) == pytest.approx(0.3, abs=1e-9)
+
+
+def test_db_xml_with_a_repeated_declaration_and_lidarview_spelling(tmp_path: Path) -> None:
+    rows = "".join(
+        f"<px><id_>{laser}</id_><rotCorrection_>0.5</rotCorrection_>"
+        f"<vertCorrection_>{-15 + 2 * laser}</vertCorrection_><distCorrection_>0</distCorrection_>"
+        "<vertOffsetCorrection_>0</vertOffsetCorrection_>"
+        "<horizOffsetCorection_>2.5</horizOffsetCorection_></px>"
+        for laser in range(16)
+    )
+    path = tmp_path / "Alpha_Prime_like.xml"
+    path.write_text(
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
+        '<!DOCTYPE boost_serialization><?xml version="1.0" ?>\n'
+        f"<boost_serialization><DB><distLSB_>0.4</distLSB_><points_><item>{rows}</item>"
+        "</points_></DB></boost_serialization>"
+    )
+
+    calibration = load_velodyne_calibration(path)
+
+    assert calibration.distance_resolution_m == pytest.approx(0.004)
+    table = calibration.laser_table()
+    assert table["horiz_offset_m"] == pytest.approx(0.025)
+    assert table["vert_correction_deg"][3] == pytest.approx(-9.0)
+
+
+def test_planner_asks_for_a_vls128_calibration(tmp_path: Path) -> None:
+    source = tmp_path / "src.db3"
+    _write_sqlite_bag(
+        source,
+        topics=[("/vls/velodyne_packets", VELODYNE_SCAN_TYPE)],
+        messages=[
+            (
+                "/vls/velodyne_packets",
+                1_000,
+                _scan_payload("vls", [_vls128_packet(5.0, [0.0, 0.2, 0.4])]),
+            )
+        ],
+    )
+    record = CheckTopicRecord(
+        topic="/vls/velodyne_packets", message_type=VELODYNE_SCAN_TYPE, role="lidar"
+    )
+
+    (flagged,) = flag_unreadable_pointclouds(source, [record])
+
+    assert flagged.ignored_reason is not None
+    assert "VLS-128: pass the sensor's calibration with --calibration" in flagged.ignored_reason

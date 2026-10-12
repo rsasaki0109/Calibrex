@@ -4,9 +4,9 @@ Autoware sample bags carry per-sensor Velodyne packets (sensor frames, per-firin
 next to a concatenated cloud already transformed into ``base_link``. ``calibrex check``
 cannot test the physical mounting from the transformed cloud; this writes a derived bag
 whose clouds are in the sensor frames (Autoware axes: x forward, y left). VLP-16 (single
-and dual return), VLP-32C (single return) and HDL-64E (single and dual return, with
-``--calibration``) are decoded and verified against reference clouds; other formats are
-refused with their name::
+and dual return), VLP-32C (single return), HDL-64E (single and dual return) and VLS-128
+(single return), the last two with ``--calibration``, are decoded and verified against
+reference clouds; other formats are refused with their name::
 
     python tools/velodyne_scan_to_pointcloud2.py BAG OUT_BAG \
         --drop /sensing/lidar/concatenated/pointcloud
@@ -27,8 +27,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=__doc__.split("\n\n")[0],
         epilog=(
-            "Axes are Autoware's (x forward, y left). VLP-16 single/dual, VLP-32C single and "
-            "HDL-64E single/dual return are decoded; an HDL-64E needs --calibration."
+            "Axes are Autoware's (x forward, y left). VLP-16 single/dual, VLP-32C single, "
+            "HDL-64E single/dual and VLS-128 single return are decoded; an HDL-64E or a "
+            "VLS-128 needs --calibration."
         ),
     )
     parser.add_argument("bag", type=Path)
@@ -40,7 +41,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--calibration",
         type=Path,
-        help="HDL-64E calibration: Velodyne db.xml or ROS velodyne_pointcloud YAML",
+        help="HDL-64E or VLS-128 calibration: Velodyne db.xml or ROS velodyne_pointcloud YAML",
     )
     args = parser.parse_args(argv)
     calibration = (
