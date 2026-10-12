@@ -493,14 +493,6 @@
           "title": "Frames",
           "type": "integer"
         },
-        "lateral_axes": {
-          "description": "x and y judged from the joint stereo fit, when it trusts them",
-          "items": {
-            "$ref": "#/$defs/KITTILateralAxis"
-          },
-          "title": "Lateral Axes",
-          "type": "array"
-        },
         "stereo_alignment": {
           "anyOf": [
             {
@@ -511,7 +503,7 @@
             }
           ],
           "default": null,
-          "description": "the joint six-DoF stereo fit at the edge-estimated rotation (its z and rotation are a cross-check, not judged)"
+          "description": "the joint six-DoF stereo fit at the edge-estimated rotation, recorded as a cross-check and not judged: its x reading of the same calibration varies by more than its jackknife std across drives and frame selections"
         },
         "unchecked_rotation_axes": {
           "items": {
@@ -593,50 +585,6 @@
         "source_config_sha256"
       ],
       "title": "KITTIFalsificationProvenance",
-      "type": "object"
-    },
-    "KITTILateralAxis": {
-      "additionalProperties": false,
-      "description": "Translation across the optical axis: candidate error against the check's tolerance.",
-      "properties": {
-        "candidate_error_m": {
-          "title": "Candidate Error M",
-          "type": "number"
-        },
-        "estimate_std_m": {
-          "title": "Estimate Std M",
-          "type": "number"
-        },
-        "name": {
-          "enum": [
-            "x",
-            "y"
-          ],
-          "title": "Name",
-          "type": "string"
-        },
-        "status": {
-          "enum": [
-            "pass",
-            "warn",
-            "fail"
-          ],
-          "title": "Status",
-          "type": "string"
-        },
-        "tolerance_m": {
-          "title": "Tolerance M",
-          "type": "number"
-        }
-      },
-      "required": [
-        "name",
-        "candidate_error_m",
-        "tolerance_m",
-        "estimate_std_m",
-        "status"
-      ],
-      "title": "KITTILateralAxis",
       "type": "object"
     },
     "StereoAlignmentEstimate": {

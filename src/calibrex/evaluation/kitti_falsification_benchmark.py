@@ -689,6 +689,43 @@ def render_kitti_falsification_markdown(benchmark: KITTIFalsificationBenchmarkAr
                 selection = "spread" if decision.frame_selection == "spread" else "first"
                 label = f"`{replication.dataset_sequence}`, {selection} {len(decision.frame_ids)}"
                 lines.append(_data_only_row(label, decision, order))
+    runs = [
+        (f"`{benchmark.dataset_sequence}`, {decision.frame_selection}", decision)
+        for decision in benchmark.data_only
+    ] + [
+        (f"`{replication.dataset_sequence}`, {decision.frame_selection}", decision)
+        for replication in benchmark.data_only_replications
+        for decision in replication.decisions
+    ]
+    if any(trial.stereo_alignment for _, decision in runs for trial in decision.trials):
+        lines += [
+            "",
+            "Cross-check, not judged: the joint six-DoF stereo fit's translation readings "
+            "(candidate minus estimate, m, with jackknife std; *untrusted* where its own "
+            "control or std rejects the axis):",
+            "",
+            "| Drive, frames | `dataset_reference` | `known_bad` |",
+            "| --- | --- | --- |",
+        ]
+        for label, decision in runs:
+            by_id: dict[str, KITTIEdgeTrial] = {
+                trial.candidate_id: trial for trial in decision.trials
+            }
+            cells = []
+            for name in order:
+                fit = by_id[name].stereo_alignment
+                cells.append(
+                    "-"
+                    if fit is None
+                    else ", ".join(
+                        f"{axis.name} {axis.offset:+.3f} ± {axis.std:.3f}"
+                        + ("" if axis.observable else " *untrusted*")
+                        for axis in fit.axes
+                        if axis.unit == "m"
+                    )
+                    or fit.reason
+                )
+            lines.append(f"| {label} | " + " | ".join(cells) + " |")
     return "\n".join(lines) + "\n"
 
 
