@@ -141,10 +141,21 @@ rests on the near road only, is trusted only when its control follows.
 On KITTI it is recorded on every data-only trial as a cross-check (the last table
 above) and not judged, because its readings of the same calibration do not agree:
 
-* **x varies more than its uncertainty says.** The reference reads x from -4.6 cm
-  (0005, first 50) to +7.3 cm (0009, spread), while each run's jackknife std is 1 to
-  3 cm. Judged with the check's rule, that systematic would warn the known-bad on x,
-  which it is right in (0009, first 50: 2.7 cm against 2.2 cm).
+* **x varies more than its uncertainty says.** The reference reads x from -2.7 cm (0005,
+  first 50) to +5.3 cm (0009, spread), while each run's jackknife std is 1 to 3 cm.
+  Three runs agree within 1.3 cm (+4.0 to +5.3 cm). The fourth is 5 s of a slow turn
+  (3.3 m/s, 7 deg/s), whose stereo rotation also reads oddly (pitch +0.67 deg in a
+  development run). Judged
+  with the check's rule, the earlier spread warned the known-bad on x, which it is right
+  in (0009, first 50: 2.7 cm against 2.2 cm).
+* **What was ruled out and what helped (development runs).**
+  * *The LiDAR sweep: ruled out.* A KITTI scan takes 0.1 s, and the camera fires when
+    the LiDAR faces forward. Moving each point to the image time with the OXTS velocity
+    and yaw rate, either way round, left the spread at 11 to 12 cm.
+  * *The stereo rig's imperfections: helped.* Fitting the rig's disparity scale and a
+    roll between its cameras beside its offset brought the spread from 11.4 cm to 8 cm.
+    On the road both look like a height error, and on one-sided streets like a lateral
+    one. The fit now includes them (`rig_terms`).
 * **y is untrusted on three of the four runs.** Its control moves the estimate by a
   quarter to a half of the move. On the road, y trades off against a roll of the
   stereo rig.

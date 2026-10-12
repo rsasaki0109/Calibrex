@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- **The joint stereo fit models the stereo rig's scale and roll.**
+  - **The change.** The rig's disparity scale and the roll between its cameras are
+    fitted beside its offset (`rig_terms`, recorded as `disparity_scale` and
+    `rig_roll_px`). Each iteration's correction is bounded (0.2 m, 2 deg per axis).
+  - **Effect on KITTI.** The reference's x readings across drives and frame selections
+    now span 8 cm instead of 11.4 cm, three of four within 1.3 cm. x and y stay unjudged.
+  - **Ruled out.** Compensating the LiDAR sweep with OXTS motion did not reduce the
+    spread (development run).
+
 - **A known-bad that passes with its error unseen makes the KITTI data-only decision
   `inconclusive`, not `fail`.**
   - **The declared axes.** They come from the protocol's declaration of the known-bad (in
