@@ -254,6 +254,174 @@
       "title": "KITTIBenchmarkTrial",
       "type": "object"
     },
+    "KITTIEdgeAxis": {
+      "additionalProperties": false,
+      "description": "One judged rotation axis: candidate error against the check's tolerance.",
+      "properties": {
+        "candidate_error_deg": {
+          "title": "Candidate Error Deg",
+          "type": "number"
+        },
+        "estimate_std_deg": {
+          "title": "Estimate Std Deg",
+          "type": "number"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "tolerance_deg": {
+          "title": "Tolerance Deg",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "candidate_error_deg",
+        "tolerance_deg",
+        "estimate_std_deg",
+        "status"
+      ],
+      "title": "KITTIEdgeAxis",
+      "type": "object"
+    },
+    "KITTIEdgeDecision": {
+      "additionalProperties": false,
+      "description": "Data-only decision over one frame selection.",
+      "properties": {
+        "frame_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Frame Ids",
+          "type": "array"
+        },
+        "frame_selection": {
+          "description": "spread: frames evenly over the drive (the check's policy); first: the protocol's first frames",
+          "enum": [
+            "spread",
+            "first"
+          ],
+          "title": "Frame Selection",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "method": {
+          "const": "edge_alignment/v0.1 with the calibrex check per-axis rule",
+          "default": "edge_alignment/v0.1 with the calibrex check per-axis rule",
+          "title": "Method",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "trials": {
+          "items": {
+            "$ref": "#/$defs/KITTIEdgeTrial"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Trials",
+          "type": "array"
+        }
+      },
+      "required": [
+        "frame_selection",
+        "frame_ids",
+        "status",
+        "reason",
+        "trials"
+      ],
+      "title": "KITTIEdgeDecision",
+      "type": "object"
+    },
+    "KITTIEdgeTrial": {
+      "additionalProperties": false,
+      "description": "The edge-alignment verdict for one candidate.",
+      "properties": {
+        "axes": {
+          "items": {
+            "$ref": "#/$defs/KITTIEdgeAxis"
+          },
+          "title": "Axes",
+          "type": "array"
+        },
+        "candidate_id": {
+          "enum": [
+            "dataset_reference",
+            "known_bad"
+          ],
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "edge_points": {
+          "minimum": 0,
+          "title": "Edge Points",
+          "type": "integer"
+        },
+        "frames": {
+          "minimum": 0,
+          "title": "Frames",
+          "type": "integer"
+        },
+        "unchecked_rotation_axes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Unchecked Rotation Axes",
+          "type": "array"
+        },
+        "verdict": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail",
+            "inconclusive"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "verdict",
+        "frames",
+        "edge_points"
+      ],
+      "title": "KITTIEdgeTrial",
+      "type": "object"
+    },
     "KITTIFalsificationProvenance": {
       "additionalProperties": false,
       "description": "Benchmark generation lineage.",
@@ -311,6 +479,32 @@
       "default": "kitti_raw_2011_09_26_drive_0005_camera_lidar",
       "title": "Benchmark Id",
       "type": "string"
+    },
+    "data_only": {
+      "description": "data-only decisions: the spread selection first, then sensitivity rows",
+      "items": {
+        "$ref": "#/$defs/KITTIEdgeDecision"
+      },
+      "title": "Data Only",
+      "type": "array"
+    },
+    "data_only_status": {
+      "anyOf": [
+        {
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "the decision of the images and scans alone (edge alignment with the calibrex check rule, frames spread over the drive); status above also counts the comparison with the dataset's calibration",
+      "title": "Data Only Status"
     },
     "dataset_path": {
       "title": "Dataset Path",

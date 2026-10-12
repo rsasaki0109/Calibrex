@@ -123,10 +123,13 @@ accuracy.
 
 1. **Evidence scale:** the full-scale KITTI camera-LiDAR falsification is
    published as a maintained artifact (`docs/assets`, checked on every CI run):
-   the vendor reference passes and the declared known-bad fails. The known-bad
-   is rejected only by its comparison with the dataset's own calibration, and
-   no check of the images and scans rejects it. The remaining gap is a protocol
-   whose data evidence alone separates the two.
+   the vendor reference passes and the declared known-bad fails. The protocol
+   rejects the known-bad only by its comparison with the dataset's own
+   calibration; a data-only decision beside it (edge alignment with the
+   `calibrex check` rule, 50 frames spread over the drive) passes the reference
+   and fails the known-bad from the images and scans alone. It judges rotation
+   only, and on the protocol's first 50 frames it is inconclusive. The remaining
+   gap is data evidence on translation.
 2. **Common external execution adoption:** the external-run artifact is proven
    by Koide (fail-closed handoff, readiness, and real-pilot finalization),
    Kalibr (independent Camera--IMU holdout evidence, including the lever arm and a
@@ -906,6 +909,8 @@ artifact `slac.calibration_lifecycle/v0.1`, CLI `calibrex lifecycle simulate`.
 
 - Vendor-reference PASS and known-bad FAIL via `@pytest.mark.kitti` opt-in test;
   `falsification_passed` CLI flag; dataset reference consistency gate.
+- Data-only decision (edge alignment, `calibrex check` per-axis rule) published
+  beside the protocol: reference pass, known-bad fail on rotation.
 
 ### Empirical SE(3) uncertainty — ground-truth Camera-LiDAR workflow
 

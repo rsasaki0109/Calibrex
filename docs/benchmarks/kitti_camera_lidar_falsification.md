@@ -8,8 +8,10 @@ two candidates for `T_camera_lidar` on the official KITTI raw drive
 `2011_09_26_drive_0005_sync`:
 
 * `dataset_reference`: KITTI's own `calib_velo_to_cam.txt`, which must **pass**;
-* `known_bad`: the same transform turned +5 deg about the camera's yaw axis and moved
-  +0.25 m along camera x, declared before scoring, which must **fail**.
+* `known_bad`: the same transform turned +5 deg about the LiDAR's vertical axis and moved
+  +0.25 m along its forward axis (composed on the LiDAR side, so the camera sees a turn
+  about its vertical axis and a shift along its optical axis), declared before scoring,
+  which must **fail**.
 
 Each trial is a full `calibrex calibrate` run whose evidence bundle (result, evidence,
 policy, assessment, observability, protocol, transforms, bundle and verification files)
@@ -21,13 +23,13 @@ the KITTI calibration files. The data stay outside the repository (KITTI raw, CC
 
 {% include-markdown "../assets/kitti-camera-lidar-falsification.md" %}
 
-## What the pass does and does not show
+## What the protocol's pass does and does not show
 
-**The benchmark passes, but the image evidence does not reject the known-bad candidate.**
-The candidate is turned 5 deg and moved 25 cm. On the held-out frames it scores as well
-as the reference: an edge alignment of 0.39 against 0.38, and a depth-edge alignment of
-0.72 against 0.74. Every check of the images and scans passes it, including support,
-held-out edge alignment and the 1200 perturbation controls.
+**The protocol passes, but none of its checks of the images and scans rejects the
+known-bad candidate.** The candidate is turned 5 deg and moved 25 cm. On the held-out
+frames it scores as well as the reference: an edge alignment of 0.39 against 0.38, and a
+depth-edge alignment of 0.72 against 0.74. Every check of the images and scans passes
+it, including support, held-out edge alignment and the 1200 perturbation controls.
 
 It fails one check only, *Dataset Reference Consistency*, which compares the candidate
 with KITTI's calibration: it is 0.25 m and 5 deg away, beyond 0.1 m and 2 deg. The
@@ -36,10 +38,36 @@ protocol, the falsification therefore rests on knowing the reference, not on the
 The published test (`tests/integration/test_kitti_falsification_published.py`) pins
 this finding, so a protocol change that alters it also has to update this page.
 
-The bag-level [camera-LiDAR check](camera_lidar_check.md) behaves differently on the same
-drive. Its edge alignment is pooled over frames with a block jackknife and known-bad
-controls, and it flags a +5 deg yaw from the images alone (`fail`, 4.9 deg against a
-0.5 deg tolerance). It does not judge translation, so it would not see the 0.25 m part.
+## The data-only decision
+
+The artifact also carries a decision that never looks at the reference: the *Data-only
+status* above. For each candidate, the camera-LiDAR edge alignment of the bag-level
+[camera-LiDAR check](camera_lidar_check.md) starts at the candidate, pools the frames
+with a block jackknife and held-out known-bad controls, and judges each rotation axis
+with the check's rule (tolerance the larger of 3 standard deviations and 0.5 deg, `fail`
+beyond twice that). The decision passes when the reference passes and the known-bad
+fails (`calibrex.evaluation.kitti_edge_falsification`).
+
+**On 50 frames spread over the drive, the images and scans alone pass the reference and
+fail the known-bad.** The reference is within 0.1 deg on every axis. The known-bad's
+5 deg turn reads as a 5.0 deg pitch error against a 0.5 deg tolerance (the check names
+axes in the camera's optical frame, where the vertical axis is pitch).
+
+Three limits apply:
+
+* **Rotation only.** The check does not judge translation, so the 0.25 m part of the
+  known-bad is not seen; the rotation alone rejects it.
+* **The frame selection was chosen after seeing both.** Spread frames are the check's
+  own policy, but the decision was run on both selections before one was made primary.
+  On the protocol's first 50 frames (5 s of driving, consecutive) the reference reads
+  0.50 deg in yaw against a 0.50 deg tolerance (`warn`), and the decision is
+  `inconclusive`; the known-bad still fails in pitch. On those consecutive frames the
+  jackknife puts the reference's yaw standard deviation at 0.025 deg, against 0.42 deg
+  on the spread frames: blocks a second apart are not independent, so the yaw tolerance
+  falls from 1.25 deg to its 0.5 deg floor. The table shows both rows, and the
+  published test pins both.
+* **The protocol's status is unchanged.** The data-only decision is reported beside it,
+  not folded into it, so the protocol's own finding above stands.
 
 ## Reproduce
 
@@ -55,4 +83,6 @@ file first. The opt-in test `test_official_kitti_falsification_benchmark`
 (`@pytest.mark.kitti`, `CALIBREX_KITTI_RAW_0005`) runs the same benchmark;
 `tests/integration/test_kitti_falsification_published.py` checks the committed artifact
 on every CI run: schema-valid, reference pass, known-bad fail, every trial file
-digest-bound with a relative path, and the Markdown above regenerated byte for byte.
+digest-bound with a relative path, both data-only rows, and the Markdown above
+regenerated byte for byte. Publishing a run made before the data-only decision existed
+adds it (about a minute); each decision records its own git commit.

@@ -1,5 +1,250 @@
 {
   "benchmark_id": "kitti_raw_2011_09_26_drive_0005_camera_lidar",
+  "data_only": [
+    {
+      "frame_ids": [
+        "camera:0:lidar:0",
+        "camera:3:lidar:3",
+        "camera:6:lidar:6",
+        "camera:9:lidar:9",
+        "camera:12:lidar:12",
+        "camera:16:lidar:16",
+        "camera:19:lidar:19",
+        "camera:22:lidar:22",
+        "camera:25:lidar:25",
+        "camera:28:lidar:28",
+        "camera:31:lidar:31",
+        "camera:34:lidar:34",
+        "camera:37:lidar:37",
+        "camera:41:lidar:41",
+        "camera:44:lidar:44",
+        "camera:47:lidar:47",
+        "camera:50:lidar:50",
+        "camera:53:lidar:53",
+        "camera:56:lidar:56",
+        "camera:59:lidar:59",
+        "camera:62:lidar:62",
+        "camera:66:lidar:66",
+        "camera:69:lidar:69",
+        "camera:72:lidar:72",
+        "camera:75:lidar:75",
+        "camera:78:lidar:78",
+        "camera:81:lidar:81",
+        "camera:84:lidar:84",
+        "camera:87:lidar:87",
+        "camera:91:lidar:91",
+        "camera:94:lidar:94",
+        "camera:97:lidar:97",
+        "camera:100:lidar:100",
+        "camera:103:lidar:103",
+        "camera:106:lidar:106",
+        "camera:109:lidar:109",
+        "camera:112:lidar:112",
+        "camera:116:lidar:116",
+        "camera:119:lidar:119",
+        "camera:122:lidar:122",
+        "camera:125:lidar:125",
+        "camera:128:lidar:128",
+        "camera:131:lidar:131",
+        "camera:134:lidar:134",
+        "camera:137:lidar:137",
+        "camera:141:lidar:141",
+        "camera:144:lidar:144",
+        "camera:147:lidar:147",
+        "camera:150:lidar:150",
+        "camera:153:lidar:153"
+      ],
+      "frame_selection": "spread",
+      "git_commit": "716b955",
+      "method": "edge_alignment/v0.1 with the calibrex check per-axis rule",
+      "reason": "the images and scans pass the reference and fail the known-bad candidate",
+      "status": "pass",
+      "trials": [
+        {
+          "axes": [
+            {
+              "candidate_error_deg": 0.1000000000000111,
+              "estimate_std_deg": 0.08539125638299666,
+              "name": "roll",
+              "status": "pass",
+              "tolerance_deg": 0.5
+            },
+            {
+              "candidate_error_deg": 0.09999999999998907,
+              "estimate_std_deg": 0.025,
+              "name": "pitch",
+              "status": "pass",
+              "tolerance_deg": 0.5
+            },
+            {
+              "candidate_error_deg": -0.10000000000000907,
+              "estimate_std_deg": 0.41666666666666674,
+              "name": "yaw",
+              "status": "pass",
+              "tolerance_deg": 1.2500000000000002
+            }
+          ],
+          "candidate_id": "dataset_reference",
+          "edge_points": 46110,
+          "frames": 50,
+          "unchecked_rotation_axes": [],
+          "verdict": "pass"
+        },
+        {
+          "axes": [
+            {
+              "candidate_error_deg": 0.09999999999999654,
+              "estimate_std_deg": 0.04166666666666668,
+              "name": "roll",
+              "status": "pass",
+              "tolerance_deg": 0.5
+            },
+            {
+              "candidate_error_deg": -5.000000000000028,
+              "estimate_std_deg": 0.15023130314433236,
+              "name": "pitch",
+              "status": "fail",
+              "tolerance_deg": 0.5
+            },
+            {
+              "candidate_error_deg": 0.04999999999998938,
+              "estimate_std_deg": 0.105409255338946,
+              "name": "yaw",
+              "status": "pass",
+              "tolerance_deg": 0.5
+            }
+          ],
+          "candidate_id": "known_bad",
+          "edge_points": 45502,
+          "frames": 50,
+          "unchecked_rotation_axes": [],
+          "verdict": "fail"
+        }
+      ]
+    },
+    {
+      "frame_ids": [
+        "camera:0:lidar:0",
+        "camera:1:lidar:1",
+        "camera:2:lidar:2",
+        "camera:3:lidar:3",
+        "camera:4:lidar:4",
+        "camera:5:lidar:5",
+        "camera:6:lidar:6",
+        "camera:7:lidar:7",
+        "camera:8:lidar:8",
+        "camera:9:lidar:9",
+        "camera:10:lidar:10",
+        "camera:11:lidar:11",
+        "camera:12:lidar:12",
+        "camera:13:lidar:13",
+        "camera:14:lidar:14",
+        "camera:15:lidar:15",
+        "camera:16:lidar:16",
+        "camera:17:lidar:17",
+        "camera:18:lidar:18",
+        "camera:19:lidar:19",
+        "camera:20:lidar:20",
+        "camera:21:lidar:21",
+        "camera:22:lidar:22",
+        "camera:23:lidar:23",
+        "camera:24:lidar:24",
+        "camera:25:lidar:25",
+        "camera:26:lidar:26",
+        "camera:27:lidar:27",
+        "camera:28:lidar:28",
+        "camera:29:lidar:29",
+        "camera:30:lidar:30",
+        "camera:31:lidar:31",
+        "camera:32:lidar:32",
+        "camera:33:lidar:33",
+        "camera:34:lidar:34",
+        "camera:35:lidar:35",
+        "camera:36:lidar:36",
+        "camera:37:lidar:37",
+        "camera:38:lidar:38",
+        "camera:39:lidar:39",
+        "camera:40:lidar:40",
+        "camera:41:lidar:41",
+        "camera:42:lidar:42",
+        "camera:43:lidar:43",
+        "camera:44:lidar:44",
+        "camera:45:lidar:45",
+        "camera:46:lidar:46",
+        "camera:47:lidar:47",
+        "camera:48:lidar:48",
+        "camera:49:lidar:49"
+      ],
+      "frame_selection": "first",
+      "git_commit": "716b955",
+      "method": "edge_alignment/v0.1 with the calibrex check per-axis rule",
+      "reason": "the reference reads warn and the known-bad candidate fail: neither is a clear decision",
+      "status": "inconclusive",
+      "trials": [
+        {
+          "axes": [
+            {
+              "candidate_error_deg": 1.8272602419153028e-14,
+              "estimate_std_deg": 0.025,
+              "name": "roll",
+              "status": "pass",
+              "tolerance_deg": 0.5
+            },
+            {
+              "candidate_error_deg": 0.050000000000044925,
+              "estimate_std_deg": 0.025,
+              "name": "pitch",
+              "status": "pass",
+              "tolerance_deg": 0.5
+            },
+            {
+              "candidate_error_deg": 0.500000000000011,
+              "estimate_std_deg": 0.025,
+              "name": "yaw",
+              "status": "warn",
+              "tolerance_deg": 0.5
+            }
+          ],
+          "candidate_id": "dataset_reference",
+          "edge_points": 53458,
+          "frames": 50,
+          "unchecked_rotation_axes": [],
+          "verdict": "warn"
+        },
+        {
+          "axes": [
+            {
+              "candidate_error_deg": -0.19999999999997697,
+              "estimate_std_deg": 0.04166666666666666,
+              "name": "roll",
+              "status": "pass",
+              "tolerance_deg": 0.5
+            },
+            {
+              "candidate_error_deg": -4.999999999999982,
+              "estimate_std_deg": 0.025,
+              "name": "pitch",
+              "status": "fail",
+              "tolerance_deg": 0.5
+            },
+            {
+              "candidate_error_deg": 0.9500000000000307,
+              "estimate_std_deg": 0.11931517552730304,
+              "name": "yaw",
+              "status": "warn",
+              "tolerance_deg": 0.5
+            }
+          ],
+          "candidate_id": "known_bad",
+          "edge_points": 50590,
+          "frames": 50,
+          "unchecked_rotation_axes": [],
+          "verdict": "fail"
+        }
+      ]
+    }
+  ],
+  "data_only_status": "pass",
   "dataset_path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync",
   "dataset_sequence": "2011_09_26_drive_0005_sync",
   "holdout_ratio": 0.2,
