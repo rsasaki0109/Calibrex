@@ -8,6 +8,7 @@ from calibrex.cli.main import main
 from calibrex.core.validation import validate_file
 from calibrex.evaluation.kitti_falsification_benchmark import (
     KITTI_SEQUENCE,
+    attach_data_only_decisions,
     run_kitti_falsification_benchmark,
 )
 
@@ -42,6 +43,11 @@ def test_kitti_falsification_benchmark_materializes_schema_valid_trials(
     assert [decision.frame_selection for decision in benchmark.data_only] == ["spread", "first"]
     assert benchmark.data_only_status == benchmark.data_only[0].status
     assert all(len(decision.trials) == 2 for decision in benchmark.data_only)
+    turned = {**benchmark.known_bad_transform_camera_lidar, "rotation_quat_xyzw": [0, 0, 0, 1]}
+    with pytest.raises(ValueError, match="does not reproduce"):
+        attach_data_only_decisions(
+            benchmark.model_copy(update={"known_bad_transform_camera_lidar": turned}), FIXTURE
+        )
     report = validate_file(
         tmp_path / "benchmark" / "benchmark.json",
         kind="kitti-falsification",

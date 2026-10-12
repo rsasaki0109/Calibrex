@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal, cast
 
+import numpy as np
 from pydantic import Field
 
 from calibrex import __version__
@@ -337,9 +338,11 @@ def attach_data_only_decisions(
         raise ValueError(msg)
     candidates = kitti_benchmark_candidates(reference)
     declared = benchmark.known_bad_transform_camera_lidar
-    if [round(v, 12) for v in candidates["known_bad"].translation_m] != [
-        round(v, 12) for v in declared["translation_m"]
-    ]:
+    known_bad = candidates["known_bad"]
+    if not (
+        np.allclose(known_bad.translation_m, declared["translation_m"], atol=1e-9)
+        and abs(np.dot(known_bad.rotation_quat_xyzw, declared["rotation_quat_xyzw"])) > 1 - 1e-12
+    ):
         msg = "the dataset's reference does not reproduce the benchmark's known-bad candidate"
         raise ValueError(msg)
     count = frame_count or len(benchmark.selected_frame_ids)
