@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Retain continuous-time numerical finite differences and robust normal equations
+  in numeric arrays with the optional CPU backend. Reuse captured observation
+  fields, batched ordered hybrid selection and prepared MAD arrays/medians,
+  plus bounded pose batches and unambiguous adaptive gates,
+  preserving exact output values, support-floor ties, custom-method fallbacks
+  and schema stability. Publish independent initially empty compiler-cache
+  comparisons against the preceding compiled-query version.
+
 - Add optional compiled CPU kernels for continuous-time interpolation, world
   coordinates and repeated point-to-plane residuals, preserving arithmetic
   order and numerical finite differences. Batch exact adaptive centroid queries

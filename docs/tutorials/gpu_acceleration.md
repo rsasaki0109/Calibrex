@@ -826,6 +826,47 @@ calibrex continuous-time-lidar-pair \
   --output outputs/glim-compiled-continuous-time.yaml
 ```
 
+## Keeping continuous-time refinement in numeric arrays
+
+The same optional CPU backend now retains all thirteen numerical
+finite-difference residual evaluations and ordered robust normal equations in
+numeric arrays. Observation preparation reuses captured native fields and
+packed rows around MAD filtering. Repeated timestamp batches reuse prepared
+poses within a conservative 128 MiB retained-payload budget; changed points
+and extrinsics still recompute world coordinates. Exact adaptive queries use
+bulk decisions only for unambiguous gates, retaining scalar boundary/tie repair.
+
+<!-- compiled-linearization:measurements:start -->
+Five paired fresh interpreters per configuration; both methods start with
+their own empty compiler cache. Every first run and later run is included.
+Incremental complete-process wall comparisons against the compiled-query version:
+
+| Public GLIM sampling | Train / holdout targets | Medians | Ratio |
+|---|---:|---:|---:|
+| Default sampling budgets | 6,000 / 3,200 | 11.419 -> 8.323 s | 1.37x |
+| All captured targets, 120 frames | 38,400 / 9,600 | 76.194 -> 32.280 s | 2.36x |
+
+All-thread worker CPU diagnostic:
+
+| Public GLIM sampling | Train / holdout targets | Medians | Ratio |
+|---|---:|---:|---:|
+| Default sampling budgets | 6,000 / 3,200 | 12.422 -> 9.297 s | 1.34x |
+| All captured targets, 120 frames | 38,400 / 9,600 | 75.984 -> 33.266 s | 2.28x |
+
+Worker CPU excludes interpreter startup and measurement-JSON serialization;
+complete wall includes both. All 20 current saved/API results retain every
+value and provenance field except the exact declared execution identity note.
+<!-- compiled-linearization:measurements:end -->
+
+These incremental comparisons use the preceding compiled-query version as
+their baseline and independent initially empty compiler caches for both
+methods. Every first run, later run and complete saved result is retained in
+the [linearization evidence](../assets/compiled_lidar_linearization/README.md).
+That archive also retains the weaker preceding candidate's separate cohorts.
+Sampling, temporal holdout, robust weights and bounded optimization are fixed;
+the public copied-topic control supplies execution parity rather than an
+independent two-sensor accuracy reference. No new configuration is required.
+
 ## Generating public depth maps on GPU
 
 The external FeatDepth adapter accepts `--device cuda --batch-size 2
