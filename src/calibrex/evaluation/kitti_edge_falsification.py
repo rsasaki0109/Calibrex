@@ -6,9 +6,11 @@ adds a decision that uses the images and scans alone: the edge alignment of
 :mod:`calibrex.evaluation.camera_lidar_edge` (block jackknife and held-out known-bad
 controls) is started at each candidate, and the candidate is judged with the per-axis
 rule of ``calibrex check`` (:func:`calibrex.check.verdict.judge_pair`). Edges judge
-rotation only. Translation along the optical axis is judged from KITTI's stereo pair
+rotation only. Translation is judged from KITTI's stereo pair
 (:mod:`calibrex.evaluation.stereo_lidar_depth`) at the rotation the edges estimate, with
-the same rule; the other two translation axes are not judged.
+the same rule: along the optical axis from camera-facing surfaces, across it (x, y)
+from the joint fit on planar surfaces of any facing, each only when its own control and
+standard deviation trust it.
 
 KITTI's ``calib_velo_to_cam.txt`` maps Velodyne points into the unrectified camera 0
 frame; the images are rectified camera 2. A candidate is carried into that image's
@@ -44,10 +46,14 @@ from calibrex.evaluation.camera_lidar_edge import (
 )
 from calibrex.evaluation.stereo_lidar_depth import (
     RectifiedStereo,
+    StereoAlignmentEstimate,
+    StereoAlignmentOptions,
+    StereoAxisEstimate,
     StereoDepthEstimate,
     StereoDepthOptions,
     StereoFrame,
     estimate_depth_offset,
+    estimate_stereo_alignment,
 )
 
 if TYPE_CHECKING:
@@ -66,6 +72,16 @@ class KITTIEdgeAxis(StrictModel):
     candidate_error_deg: float
     tolerance_deg: float
     estimate_std_deg: float
+    status: Literal["pass", "warn", "fail"]
+
+
+class KITTILateralAxis(StrictModel):
+    """Translation across the optical axis: candidate error against the check's tolerance."""
+
+    name: Literal["x", "y"]
+    candidate_error_m: float
+    tolerance_m: float
+    estimate_std_m: float
     status: Literal["pass", "warn", "fail"]
 
 
@@ -93,6 +109,15 @@ class KITTIEdgeTrial(StrictModel):
         "dataset has no right stereo images",
     )
     unchecked_translation_axes: list[str] = Field(default_factory=list)
+    lateral_axes: list[KITTILateralAxis] = Field(
+        default_factory=list,
+        description="x and y judged from the joint stereo fit, when it trusts them",
+    )
+    stereo_alignment: StereoAlignmentEstimate | None = Field(
+        default=None,
+        description="the joint six-DoF stereo fit at the edge-estimated rotation (its z and "
+        "rotation are a cross-check, not judged)",
+    )
     frames: int = Field(ge=0)
     edge_points: int = Field(ge=0)
 
@@ -243,6 +268,7 @@ def run_kitti_edge_decision(
     selection: FrameSelection = "spread",
     options: EdgeAlignmentOptions | None = None,
     depth_options: StereoDepthOptions | None = None,
+    alignment_options: StereoAlignmentOptions | None = None,
 ) -> KITTIEdgeDecision:
     """Judge each candidate from the images and scans alone.
 
@@ -283,13 +309,26 @@ def run_kitti_edge_decision(
         )
         estimates = camera_lidar_axis_estimates(artifact, transform)
         depth: StereoDepthEstimate | None = None
+        alignment: StereoAlignmentEstimate | None = None
         if stereo is not None and stereo_frames is not None and artifact.transform is not None:
             # the candidate's translation at the rotation the edges estimate
             at_rotation = transform_matrix(transform[:3, 3], artifact.transform.rotation_quat_xyzw)
             depth = estimate_depth_offset(stereo_frames, stereo, at_rotation, depth_options)
-            estimates = [_depth_estimate(depth) if e.name == "z" else e for e in estimates]
+            alignment = estimate_stereo_alignment(
+                stereo_frames, stereo, at_rotation, alignment_options
+            )
+            lateral = {axis.name: axis for axis in alignment.axes if axis.name in {"x", "y"}}
+            estimates = [
+                _depth_estimate(depth)
+                if e.name == "z"
+                else _lateral_estimate(lateral[e.name])
+                if e.name in lateral
+                else e
+                for e in estimates
+            ]
         judgement = judge_pair(estimates, VerdictOptions())
         depth_judgement = next((axis for axis in judgement.axes if axis.name == "z"), None)
+        lateral_judgements = [axis for axis in judgement.axes if axis.name in {"x", "y"}]
         trials.append(
             KITTIEdgeTrial(
                 candidate_id=candidate_id,
@@ -321,6 +360,17 @@ def run_kitti_edge_decision(
                     else None
                 ),
                 depth=depth,
+                lateral_axes=[
+                    KITTILateralAxis(
+                        name=axis.name,  # type: ignore[arg-type]
+                        candidate_error_m=float(axis.candidate_error),
+                        tolerance_m=float(axis.tolerance),
+                        estimate_std_m=float(axis.estimate_std),
+                        status=axis.status,
+                    )
+                    for axis in lateral_judgements
+                ],
+                stereo_alignment=alignment,
                 unchecked_translation_axes=[
                     item.name for item in judgement.unchecked if item.name in {"x", "y", "z"}
                 ],
@@ -355,6 +405,23 @@ def _depth_estimate(depth: StereoDepthEstimate) -> AxisEstimate:
         False,
         f"stereo depth: {depth.reason}",
         code,
+    )
+
+
+def _lateral_estimate(axis: StereoAxisEstimate) -> AxisEstimate:
+    from calibrex.check.verdict import AxisEstimate
+
+    name: Literal["x", "y"] = "x" if axis.name == "x" else "y"
+    if axis.observable:
+        return AxisEstimate(name, "m", axis.offset, axis.std, True)
+    return AxisEstimate(
+        name,
+        "m",
+        axis.offset,
+        axis.std,
+        False,
+        f"joint stereo fit: {axis.reason}",
+        "control_not_detected" if "response" in axis.reason else "unobservable",
     )
 
 

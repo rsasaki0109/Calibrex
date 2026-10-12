@@ -493,6 +493,26 @@
           "title": "Frames",
           "type": "integer"
         },
+        "lateral_axes": {
+          "description": "x and y judged from the joint stereo fit, when it trusts them",
+          "items": {
+            "$ref": "#/$defs/KITTILateralAxis"
+          },
+          "title": "Lateral Axes",
+          "type": "array"
+        },
+        "stereo_alignment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StereoAlignmentEstimate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the joint six-DoF stereo fit at the edge-estimated rotation (its z and rotation are a cross-check, not judged)"
+        },
         "unchecked_rotation_axes": {
           "items": {
             "type": "string"
@@ -573,6 +593,157 @@
         "source_config_sha256"
       ],
       "title": "KITTIFalsificationProvenance",
+      "type": "object"
+    },
+    "KITTILateralAxis": {
+      "additionalProperties": false,
+      "description": "Translation across the optical axis: candidate error against the check's tolerance.",
+      "properties": {
+        "candidate_error_m": {
+          "title": "Candidate Error M",
+          "type": "number"
+        },
+        "estimate_std_m": {
+          "title": "Estimate Std M",
+          "type": "number"
+        },
+        "name": {
+          "enum": [
+            "x",
+            "y"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "tolerance_m": {
+          "title": "Tolerance M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "candidate_error_m",
+        "tolerance_m",
+        "estimate_std_m",
+        "status"
+      ],
+      "title": "KITTILateralAxis",
+      "type": "object"
+    },
+    "StereoAlignmentEstimate": {
+      "additionalProperties": false,
+      "description": "The candidate's six-DoF error from stereo depth on LiDAR surfaces of any facing.",
+      "properties": {
+        "axes": {
+          "items": {
+            "$ref": "#/$defs/StereoAxisEstimate"
+          },
+          "title": "Axes",
+          "type": "array"
+        },
+        "disparity_offset_px": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Disparity Offset Px"
+        },
+        "frames": {
+          "minimum": 0,
+          "title": "Frames",
+          "type": "integer"
+        },
+        "method": {
+          "default": "stereo_alignment/v0.1: disparity residual on planar LiDAR surfaces, translation and rotation fitted jointly",
+          "title": "Method",
+          "type": "string"
+        },
+        "points": {
+          "minimum": 0,
+          "title": "Points",
+          "type": "integer"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "points",
+        "frames",
+        "reason"
+      ],
+      "title": "StereoAlignmentEstimate",
+      "type": "object"
+    },
+    "StereoAxisEstimate": {
+      "additionalProperties": false,
+      "description": "One axis of the joint fit: the candidate's error on it and whether it is trusted.",
+      "properties": {
+        "control_response": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "translation axes: change of the estimate when the candidate moves by the control, over the control (1 when the axis is fully observed)",
+          "title": "Control Response"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "observable": {
+          "title": "Observable",
+          "type": "boolean"
+        },
+        "offset": {
+          "description": "candidate minus estimate (m or deg)",
+          "title": "Offset",
+          "type": "number"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "std": {
+          "description": "block-jackknife standard deviation",
+          "minimum": 0.0,
+          "title": "Std",
+          "type": "number"
+        },
+        "unit": {
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "unit",
+        "offset",
+        "std",
+        "observable",
+        "reason"
+      ],
+      "title": "StereoAxisEstimate",
       "type": "object"
     },
     "StereoDepthEstimate": {
