@@ -1,0 +1,1084 @@
+{
+  "benchmark_id": "kitti_raw_2011_09_26_drive_0005_camera_lidar",
+  "dataset_path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync",
+  "dataset_sequence": "2011_09_26_drive_0005_sync",
+  "holdout_ratio": 0.2,
+  "input_artifacts": [
+    {
+      "path": "examples/public_datasets/kitti_raw_2011_09_26_drive_0005/config.yaml",
+      "role": "source_config",
+      "sha256": "649cd1c509ef8f7776fa9b3a92b2afd195299a1123523c0fb426bac124cf7392",
+      "size_bytes": 3646
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/calib_velo_to_cam.txt",
+      "role": "kitti_calibration",
+      "sha256": "9dc0c3e92dfceceb9500caa2c9488261a52640e43c3f7c3045ca1ed7927e7266",
+      "size_bytes": 271
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/calib_cam_to_cam.txt",
+      "role": "kitti_calibration",
+      "sha256": "edc1eae281cb95e41798a98dcc545521449527145477ff852dbf3a4ec48c643c",
+      "size_bytes": 3001
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000000.png",
+      "role": "kitti_camera_image",
+      "sha256": "ddf4ecdc252dc514de8f395666561020b1dea5002752c28fbc47bee424879d1f",
+      "size_bytes": 890336
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000000.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "956976a1b391b18a17c42719212ef5de5e91e8ab986f7b79717343b126373ad3",
+      "size_bytes": 1974352
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000001.png",
+      "role": "kitti_camera_image",
+      "sha256": "894f4998d1f1b32b5651b5b4c3a73bd4895f26763540f8a36cd9bc9405a4362b",
+      "size_bytes": 890341
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000001.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "31e07ff7ffd67c2347a2cec3c8504d1d5fb35a2d22b6b02e2998470a230f188f",
+      "size_bytes": 1978928
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000002.png",
+      "role": "kitti_camera_image",
+      "sha256": "10a3956db5e28165d44d46232ddd4e095579546020b8319e92885ae507e0ac9c",
+      "size_bytes": 888485
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000002.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "b27b8571b59392a59e37323afb17140cd0df2e25ba60002560fe36bfd7e7bd6c",
+      "size_bytes": 1980528
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000003.png",
+      "role": "kitti_camera_image",
+      "sha256": "102b7b3102035a223025b0e38e7c0dd76cce920528f15432dab849c6bab6319b",
+      "size_bytes": 889682
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000003.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "1fe17c2fe832cd7e59e6dafe4f4e591c9988b9b1247894370793dc7b5033ea05",
+      "size_bytes": 1979184
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000004.png",
+      "role": "kitti_camera_image",
+      "sha256": "c2b577aa18124035b577ab146fd40db218b068f81bee94a91db260b72e049cc2",
+      "size_bytes": 891934
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000004.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "f26077fefef8cc8e59e7f1dd0c29c460b03595e5f55a6047891e7f41bdaf537c",
+      "size_bytes": 1977376
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000005.png",
+      "role": "kitti_camera_image",
+      "sha256": "abb00c1ddc7c68c173aa53506eb2181c4e17f3524115dc0373293c22d73d7872",
+      "size_bytes": 895471
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000005.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "df028663dec1e9fcfcddb64e83bebffeaf520e9f2c009f36fe422ec8969ff2e1",
+      "size_bytes": 1974208
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000006.png",
+      "role": "kitti_camera_image",
+      "sha256": "14132b2a536da9bde8433fecbd748ec54ae57686b919acf2b686c4aa9d2b98e0",
+      "size_bytes": 897017
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000006.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "d2af1e067b3231ef9c5ab7deba86073ad1d343f60cb4aa82da73ce0f1c2fc8e3",
+      "size_bytes": 1973872
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000007.png",
+      "role": "kitti_camera_image",
+      "sha256": "40a4a197bdc52ff87db3c4ab1a08483561540ff31f87ced25fdb5105bb67d97e",
+      "size_bytes": 899408
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000007.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "325c1d04c69380fb071a403ae8cca9246ea74a845bd9edaa314463897fa31163",
+      "size_bytes": 1967936
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000008.png",
+      "role": "kitti_camera_image",
+      "sha256": "246f55b0707d7ebbf53d004797cee9b5f846ce1f487178c84a27b0b190bb2795",
+      "size_bytes": 900453
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000008.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "82bd38d39bd8b88ebdccab4e2f085a312b06b578b26fb699776e2876da0c1603",
+      "size_bytes": 1974576
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000009.png",
+      "role": "kitti_camera_image",
+      "sha256": "d2098f30dc6e2cb127e590b666d98e6104b7f3902924a096c7093b80f2ad4e54",
+      "size_bytes": 897544
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000009.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "d4572141a40d120ed1f132ae1db48e80e62a506af8a3341d50fc9e754ec635a2",
+      "size_bytes": 1972112
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000010.png",
+      "role": "kitti_camera_image",
+      "sha256": "451071bda79b2f060fd94bfe1dbbe801e3fe5f109d71d17ec7cdbdd1e66009c7",
+      "size_bytes": 913334
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000010.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "181b50899e6dead3b4b632db90fd8e806703a72575f9ee77267db4c6cc697397",
+      "size_bytes": 1971568
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000011.png",
+      "role": "kitti_camera_image",
+      "sha256": "66ca98cd9b029a48cd28057cef30959f609a32efb245cc3547effbc54c6c2d72",
+      "size_bytes": 925634
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000011.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "80fae58c51dece77e2705926144d3ddc1069cdee648b1e059b64a89fdab8c206",
+      "size_bytes": 1973344
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000012.png",
+      "role": "kitti_camera_image",
+      "sha256": "9d45e20b845878df91c091ace684f793ae1c732a9fbe7b50452bb0e3c7c5b24e",
+      "size_bytes": 931520
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000012.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "6167f949606d9c54f533c1ae843922b93dbe66a1f54427bfd3db732cd91f6b94",
+      "size_bytes": 1973056
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000013.png",
+      "role": "kitti_camera_image",
+      "sha256": "0c2ef7f32243330a2981374ffa108fee698f085300e8f15d62da35cc3d47012a",
+      "size_bytes": 933423
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000013.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "8528f542fff604daa785a7219a20654daf8b08fd27926da291ae43ad53f3d69f",
+      "size_bytes": 1973488
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000014.png",
+      "role": "kitti_camera_image",
+      "sha256": "e75dc1658b25ed8d8568df685fb787cecc41903aa9ae94647d77089d72a8f653",
+      "size_bytes": 936703
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000014.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "83885c4f13ea6da98881d81396eb226c75ca2748ef28c30b36f17056fe8a46c5",
+      "size_bytes": 1970400
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000015.png",
+      "role": "kitti_camera_image",
+      "sha256": "a9978d17139a8fa0b3dcb758697e0f4e6ff920c5eaf3e531771f6f1a9d6aafe6",
+      "size_bytes": 939957
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000015.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "2c55bd8aa9047968a681c39656c1892191609f04cc0966a449281e9959c9efb9",
+      "size_bytes": 1969648
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000016.png",
+      "role": "kitti_camera_image",
+      "sha256": "fc9669fb6015278aeb11d3228af384130ec8131c85f810b41bd57ad84d3985a9",
+      "size_bytes": 938563
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000016.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "1359b7867e17ad1161efcc46bf61233eaa6ef99e6d80e59a7353ef03b29d7ffb",
+      "size_bytes": 1970064
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000017.png",
+      "role": "kitti_camera_image",
+      "sha256": "9ff0a54721d04b8f42fe3a966fa87241c38601b5991e76da1609c8675f00f83c",
+      "size_bytes": 939935
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000017.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "6694e6e39d13dd3ca9b6e48ea88edb263f7e4e9cbe65411e64551486681ce139",
+      "size_bytes": 1968016
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000018.png",
+      "role": "kitti_camera_image",
+      "sha256": "2cc3a224c6f526c11ffcc02525385b4ad6fde1ce1a78ac701f6ade672256022c",
+      "size_bytes": 941944
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000018.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "3f929a0299621529184e078b02a68f7f0fe3b3c1e5bb5c02f2a95baf431dca0f",
+      "size_bytes": 1964048
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000019.png",
+      "role": "kitti_camera_image",
+      "sha256": "a1d7f29cae9347dc41e6710fec7cf29d61ea71d6f7748eb8245bc61dacab7bd5",
+      "size_bytes": 943139
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000019.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "7137344e2aac8388526f3660fd68237a876eb80f8de181f29d00df75a934108c",
+      "size_bytes": 1962144
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000020.png",
+      "role": "kitti_camera_image",
+      "sha256": "79ab3199f55bc306e1345e5f6c12f291f3b9e7efc43f22c0123ef7648f8a040a",
+      "size_bytes": 945842
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000020.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "5dca645a89919dbb3a1cc42e510b7a9ebced61f7a9dbc9059d2571d43e4f0e7f",
+      "size_bytes": 1959632
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000021.png",
+      "role": "kitti_camera_image",
+      "sha256": "337d381db38611fc33d10e836b6153cda82e25b4761cc21ec4f1674d35fdb8a2",
+      "size_bytes": 945450
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000021.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "229e4db1052b0177ea0edd5946ff57f746d1f8b56091eb6295af7f6815ff0d79",
+      "size_bytes": 1957136
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000022.png",
+      "role": "kitti_camera_image",
+      "sha256": "2450136dd5d8aceff0c0c5979ec5254286346eab9f0497e2ded253ece9244126",
+      "size_bytes": 945162
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000022.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "3d6f39d820a6d375ae2d6c888fb8d9f44471e55c7582d90cf7ea6098d5e4984a",
+      "size_bytes": 1955872
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000023.png",
+      "role": "kitti_camera_image",
+      "sha256": "3a09e710f859bad1efd06b5d9d3add58cff1070a7f981f9d0a28d50b684612a9",
+      "size_bytes": 946666
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000023.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "1f00127e5bd4b86fccc53aac9f22d253936666e09608339d9c07c62f6b5b9a06",
+      "size_bytes": 1956944
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000024.png",
+      "role": "kitti_camera_image",
+      "sha256": "5b1520d08b1db32e8697be5642722909d8f0271611701c97fcbee3e7566152db",
+      "size_bytes": 946767
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000024.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "2d55a3305ec78f618ed976e2b24d11b3dbb625044ee550557a0a8fcc10b361e3",
+      "size_bytes": 1958880
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000025.png",
+      "role": "kitti_camera_image",
+      "sha256": "67dfedd225328588e806df07e8fd549ac7b77f9868c4a0df84e513c51f393dae",
+      "size_bytes": 947180
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000025.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "375787a92a34aa60b88e68cb58faefbd714be7b77fae68ea094d8cb433bc7b42",
+      "size_bytes": 1959920
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000026.png",
+      "role": "kitti_camera_image",
+      "sha256": "ec6924557700baec7019a55f7a75d5d7ca8f117bffb4f5085383ecceb4c98553",
+      "size_bytes": 947400
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000026.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "157b2e0aa5c2395c3484a3d41dfc5e6b7cd84efc35c91492e33129169d43e59a",
+      "size_bytes": 1960432
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000027.png",
+      "role": "kitti_camera_image",
+      "sha256": "37a241f1c45249896a40271c9de9baf9b4940e47a47ae5e5d2d785b27fecea48",
+      "size_bytes": 946380
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000027.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "40012174cbda26d3975acbe2a5f23ecb8720e823ae68382c3d5c1841fc3ce882",
+      "size_bytes": 1963632
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000028.png",
+      "role": "kitti_camera_image",
+      "sha256": "05d41b0991e568d2e4bd347e9da20152928c055df43efff8873f5fab5ccc75a6",
+      "size_bytes": 945588
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000028.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "883633977022340d3b0b908d48280ec960265b6ec39f895150d3c5114f553a3f",
+      "size_bytes": 1962528
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000029.png",
+      "role": "kitti_camera_image",
+      "sha256": "64b7b32748039dc38eed989fbbc188b86edad79dc6a6d8df9eb299016410c2ec",
+      "size_bytes": 946758
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000029.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "517d1a65e681d657c89c76262c64d2a9cd445e4a1937c4cee035c45101bc566a",
+      "size_bytes": 1962320
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000030.png",
+      "role": "kitti_camera_image",
+      "sha256": "98e02d6516291247fb493b504df2cbb2151844fad95993372b275fa20ac957fc",
+      "size_bytes": 946674
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000030.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "49cff2dc17e41f8a71a70bb91576f3b6447e9b85de85b928d0ba413a3b2df406",
+      "size_bytes": 1960256
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000031.png",
+      "role": "kitti_camera_image",
+      "sha256": "14578b1aa9162aeea733ce378dae0abced517bbbfac9965cfcedc49493133ab3",
+      "size_bytes": 944382
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000031.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "214deacbabfb7fe999d1e499d2f142748a94b6da5ea556bb5458f45e30ad5f9b",
+      "size_bytes": 1963568
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000032.png",
+      "role": "kitti_camera_image",
+      "sha256": "7ad075aafcd67de03fa68369e5a4de980dde087ee2fc128021555b8dba04ec11",
+      "size_bytes": 943725
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000032.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "766fd726e631f4d8be59a005cbfb650af3c6524187b4d8b20a61ccb628a56fe2",
+      "size_bytes": 1963248
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000033.png",
+      "role": "kitti_camera_image",
+      "sha256": "af58e147e96ca3b659edcbf7156e3c0871179fb3d69334854ae4094d17f4e457",
+      "size_bytes": 938744
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000033.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "03c9200a9bf3afe148616c91910b01b46257fcd6f876b62f2c5b74e0bccf4622",
+      "size_bytes": 1966480
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000034.png",
+      "role": "kitti_camera_image",
+      "sha256": "83db0f3ada06071c20044c4da8581c0592307409d74e4b1bb59c2a59450bc62c",
+      "size_bytes": 938362
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000034.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "f85096559c66915a67ba8c9f57830e5379b33eacf8fe4165fd22699afe3521bc",
+      "size_bytes": 1965968
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000035.png",
+      "role": "kitti_camera_image",
+      "sha256": "92e472a4555c67d0fd55fb07d59c85d5c824db1a3e266854f278c603b40797af",
+      "size_bytes": 938337
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000035.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "f4e36b09d7089ba81bc562bc7df9d75f1d75dafd4e5437bebf61e887a0871743",
+      "size_bytes": 1962464
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000036.png",
+      "role": "kitti_camera_image",
+      "sha256": "2c893e281c4c5ea235920eca4db70cecc6d2bbbae2b4df00b92b80f63a7a5028",
+      "size_bytes": 937535
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000036.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "e8139fe1dfb28fc50475aee1c5a9f6f5ef8c0cc948dda093e7e5224917bf4a5e",
+      "size_bytes": 1958032
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000037.png",
+      "role": "kitti_camera_image",
+      "sha256": "1cbf85cdc980fb45da7c15b02eeb765a5027370aaf02a56036a249137cafee5a",
+      "size_bytes": 939930
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000037.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "200a7c1a711282018a36ccebea87f786eddb86f86031da1d2f0cb3ac43467f0f",
+      "size_bytes": 1967232
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000038.png",
+      "role": "kitti_camera_image",
+      "sha256": "93c9f753a71fb23c8a0ad6368b930f967da23546d8f9b5a7bdb3322cce92e2ae",
+      "size_bytes": 939189
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000038.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "5308e127130ab71e6edd2dd3d2afb2afdfcd24425e5f60f3380de26d01117687",
+      "size_bytes": 1965408
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000039.png",
+      "role": "kitti_camera_image",
+      "sha256": "d71419c08c581f6ac7c09d038e9ce94bc4ceb2e2ea5d013514997357c62efadb",
+      "size_bytes": 939112
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000039.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "92fac67d18ca15328f3f1d6b157fd105d6c8e37b1aaccacfb6b0a273c74051c0",
+      "size_bytes": 1963280
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000040.png",
+      "role": "kitti_camera_image",
+      "sha256": "5a1a4a9c790d57046f314ff8612c930245b439b269bae41c9b2e5f6718a711cb",
+      "size_bytes": 942676
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000040.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "ed31aaf0e447f82cbeefa92ed6136b2b17290f8a4c1a90649d8596e79d89134f",
+      "size_bytes": 1963056
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000041.png",
+      "role": "kitti_camera_image",
+      "sha256": "7336774bf2c7f4aa2fca167b01cda5bf491c9ac848da549ed5124f53c721f5f3",
+      "size_bytes": 943234
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000041.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "e85ef5c889fe9a15954f8e48cf2fa93c57ca766f64defd66e7115c6524153eaa",
+      "size_bytes": 1959840
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000042.png",
+      "role": "kitti_camera_image",
+      "sha256": "9cf3476d7651820718b3a909b1cc19b5a48476a26f6b8506ae51de1bbdd8f1b0",
+      "size_bytes": 942027
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000042.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "e7144e321e8bf1f328e639fc373fde3ea6e908b7ed07a9b9037d8e778d67928a",
+      "size_bytes": 1962640
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000043.png",
+      "role": "kitti_camera_image",
+      "sha256": "e2e596d8b1ae61b33530b3a5d2694c8cf90ab5a845f87eb0a204888b84f7f951",
+      "size_bytes": 938214
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000043.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "018c0981225f4099c480edc3116d19704dc52665ce1c514a518f5984c7bd6ed5",
+      "size_bytes": 1961248
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000044.png",
+      "role": "kitti_camera_image",
+      "sha256": "01721fd4fda796454c134b7e9f4b90e141bf1dee97c04f8ebbe7b7baf58c7ccf",
+      "size_bytes": 934735
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000044.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "cfb685eb789d6cf4c8bd24c569e4920245f6c83f34c6c120520659e762a5f451",
+      "size_bytes": 1961760
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000045.png",
+      "role": "kitti_camera_image",
+      "sha256": "068d3812fb229b919467dad6354df6d4dd95a3ce2cac8a3d9006cfcae9f99ccb",
+      "size_bytes": 932974
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000045.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "7a0ea4219a38784b8fa9225c2ef0b62a3ffe97995655c5cc89ac8b16dcd0676f",
+      "size_bytes": 1959696
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000046.png",
+      "role": "kitti_camera_image",
+      "sha256": "9acb58e4b9fd52363191876f67611a630d9437f43991b03571bdedeef201e41e",
+      "size_bytes": 931254
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000046.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "ceebba78cee6bb3a650a3b4664a1a8ad272539f53dfb13571d47bfb546142405",
+      "size_bytes": 1958816
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000047.png",
+      "role": "kitti_camera_image",
+      "sha256": "5e378dd58a74b53acafecf3f71708a09491f7e101585646e0c82abe5df2062f6",
+      "size_bytes": 930482
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000047.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "709b6773b1ab8b85bfb8840a2ab700c6266c33c8e259e96d467d59f914618445",
+      "size_bytes": 1959616
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000048.png",
+      "role": "kitti_camera_image",
+      "sha256": "2117c57fd0cd02a5486b21ad925f8678c12abfb208a26113bcedd39196c65977",
+      "size_bytes": 927455
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000048.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "5841de7c436ad9ef9c80faca323b6fd25a4e2ea64f13062ff5f1da61d9284341",
+      "size_bytes": 1959472
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/image_02/data/0000000049.png",
+      "role": "kitti_camera_image",
+      "sha256": "8e2242426928a42d8f6cc394458a1544bc1cff2e2e0db36fbe04885c4e9420d6",
+      "size_bytes": 920869
+    },
+    {
+      "path": "data/public/kitti_raw/2011_09_26/2011_09_26_drive_0005_sync/velodyne_points/data/0000000049.bin",
+      "role": "kitti_velodyne_scan",
+      "sha256": "1637e2f4583eb1277e8244747ccae4d7d2fcf7b2795bd9e694cf7dc847e7b2ed",
+      "size_bytes": 1953344
+    }
+  ],
+  "known_bad_declaration": "right-composed camera-frame +5 deg yaw and +0.25 m x translation; declared before scoring",
+  "known_bad_transform_camera_lidar": {
+    "rotation_quat_xyzw": [
+      0.4759488212726595,
+      -0.5158187371101077,
+      0.5232161270647411,
+      0.48337214892324176
+    ],
+    "translation_m": [
+      -0.0021863283443345942,
+      -0.07261557061202394,
+      -0.0218150860730687
+    ]
+  },
+  "projection_sample_points": 4000,
+  "protocol_id": "kitti_lidar_camera_projection_edge_holdout/v0.1",
+  "provenance": {
+    "calibrex_version": "0.5.1",
+    "generated_at": "2026-10-12T08:44:53.864892+00:00",
+    "git_commit": "5455dd6",
+    "producer": "calibrex",
+    "source_config": "examples/public_datasets/kitti_raw_2011_09_26_drive_0005/config.yaml",
+    "source_config_sha256": "649cd1c509ef8f7776fa9b3a92b2afd195299a1123523c0fb426bac124cf7392"
+  },
+  "reason": "dataset reference passed and declared known-bad candidate failed",
+  "schema_version": "slac.kitti_lidar_camera_falsification/v0.1",
+  "selected_frame_ids": [
+    "camera:0:lidar:0",
+    "camera:1:lidar:1",
+    "camera:2:lidar:2",
+    "camera:3:lidar:3",
+    "camera:4:lidar:4",
+    "camera:5:lidar:5",
+    "camera:6:lidar:6",
+    "camera:7:lidar:7",
+    "camera:8:lidar:8",
+    "camera:9:lidar:9",
+    "camera:10:lidar:10",
+    "camera:11:lidar:11",
+    "camera:12:lidar:12",
+    "camera:13:lidar:13",
+    "camera:14:lidar:14",
+    "camera:15:lidar:15",
+    "camera:16:lidar:16",
+    "camera:17:lidar:17",
+    "camera:18:lidar:18",
+    "camera:19:lidar:19",
+    "camera:20:lidar:20",
+    "camera:21:lidar:21",
+    "camera:22:lidar:22",
+    "camera:23:lidar:23",
+    "camera:24:lidar:24",
+    "camera:25:lidar:25",
+    "camera:26:lidar:26",
+    "camera:27:lidar:27",
+    "camera:28:lidar:28",
+    "camera:29:lidar:29",
+    "camera:30:lidar:30",
+    "camera:31:lidar:31",
+    "camera:32:lidar:32",
+    "camera:33:lidar:33",
+    "camera:34:lidar:34",
+    "camera:35:lidar:35",
+    "camera:36:lidar:36",
+    "camera:37:lidar:37",
+    "camera:38:lidar:38",
+    "camera:39:lidar:39",
+    "camera:40:lidar:40",
+    "camera:41:lidar:41",
+    "camera:42:lidar:42",
+    "camera:43:lidar:43",
+    "camera:44:lidar:44",
+    "camera:45:lidar:45",
+    "camera:46:lidar:46",
+    "camera:47:lidar:47",
+    "camera:48:lidar:48",
+    "camera:49:lidar:49"
+  ],
+  "source_note": "official KITTI raw download; user-supplied local copy",
+  "source_url": "https://www.cvlibs.net/datasets/kitti/raw_data.php",
+  "split_seed": 20260729,
+  "status": "pass",
+  "trials": [
+    {
+      "artifacts": [
+        {
+          "path": "dataset_reference/result.yaml",
+          "role": "result",
+          "sha256": "ec5ec1515812c3c17af80ba93218c1a86a00a3c97174bf7df27af802f4c4c646",
+          "size_bytes": 841198
+        },
+        {
+          "path": "dataset_reference/evidence.json",
+          "role": "evidence",
+          "sha256": "cee8886ed23967dfa8ca45e9e14a78a9e1c0fb95da17aa0c67c8b4bbb85e7f5e",
+          "size_bytes": 881266
+        },
+        {
+          "path": "dataset_reference/policy.json",
+          "role": "policy",
+          "sha256": "06dac9f9e55bd73326cb20cb1fe82d8f1abf53c09f07ef8ba7b58634069edcbe",
+          "size_bytes": 4173
+        },
+        {
+          "path": "dataset_reference/assessment.json",
+          "role": "assessment",
+          "sha256": "ac9b6feece3358bd41985eab9fd09c1b308bcd3b4b078e5a2114512751a4fc28",
+          "size_bytes": 5115
+        },
+        {
+          "path": "dataset_reference/observability.json",
+          "role": "observability",
+          "sha256": "80b31f568e7df22f9c6694dd571f2ca0fc7a171114ee513d5cf3f9b8cc18e84b",
+          "size_bytes": 2823
+        },
+        {
+          "path": "dataset_reference/protocol.json",
+          "role": "protocol",
+          "sha256": "37cfc0142576bb6305a1073344c9359c9ce0dcfc08841724033b264631d5c53d",
+          "size_bytes": 2459
+        },
+        {
+          "path": "dataset_reference/transforms.json",
+          "role": "transforms",
+          "sha256": "90b2ad1fab835206314737f234da729141784cc9d25ecf44c7a3733b9de96d80",
+          "size_bytes": 6974
+        },
+        {
+          "path": "dataset_reference/bundle.json",
+          "role": "bundle",
+          "sha256": "7c3000a62b6142a89305f3e0d1585f68c9d0097b920fbe2fd2e8f0659c3b3e26",
+          "size_bytes": 2557
+        },
+        {
+          "path": "dataset_reference/verification.json",
+          "role": "verification",
+          "sha256": "033ca24ea88aaea0addc2498f6532e3c1c74ab12eac52ca0988c3bb638d98d11",
+          "size_bytes": 96441
+        }
+      ],
+      "assessment_reason": "all 7 falsification policy gates passed",
+      "assessment_status": "pass",
+      "bundle_valid": true,
+      "candidate_id": "dataset_reference",
+      "evidence_checks": [
+        {
+          "check": "Candidate Support",
+          "evidence": "projected points train 678.98 holdout 675, projection ratio train 0.169745 holdout 0.16875, h-coverage 0.998221, v-coverage 0.673477",
+          "status": "pass",
+          "uses_dataset_reference": false
+        },
+        {
+          "check": "Holdout Edge Alignment",
+          "evidence": "edge train 0.31114 holdout 0.381306 (threshold >= 0.2); depth-edge holdout 0.744186 (threshold >= 0.2)",
+          "status": "pass",
+          "uses_dataset_reference": false
+        },
+        {
+          "check": "Dataset Reference Consistency",
+          "evidence": "translation delta 0 m (threshold <= 0.1), rotation delta 0 deg (threshold <= 2)",
+          "status": "pass",
+          "uses_dataset_reference": true
+        },
+        {
+          "check": "Known-Bad Controls",
+          "evidence": "detectable fraction 0.855 (threshold >= 0.5), mandatory detections 508/600 (threshold >= 8), mean edge delta 0.00288901, mean depth-edge delta 0.0221373, mean projection-ratio delta -0.00010625",
+          "status": "pass",
+          "uses_dataset_reference": false
+        },
+        {
+          "check": "Observability Statement",
+          "evidence": "Observes image-plane alignment of projected LiDAR points against intensity edges; horizontal coverage 0.998221 and vertical coverage 0.673477 limit sensitivity to in-image motion and baselines; depth-edge channel scored with 43 discontinuity points; mandatory rotation/translation probes detected 508 of 600 cases; coverage-limited DOFs may remain unobserved on sparse samples; projection evidence observes image-plane alignment only; depth along the optical axis and baselines are coverage-limited; depth-edge scores require projected LiDAR depth discontinuities",
+          "status": "pass",
+          "uses_dataset_reference": false
+        },
+        {
+          "check": "Decision Boundary",
+          "evidence": "candidate vs configured camera-frame known-bad controls; edge holdout threshold >= 0.2",
+          "status": "pass",
+          "uses_dataset_reference": false
+        }
+      ],
+      "expected_assessment": "pass",
+      "metrics": [
+        {
+          "grade": "pass",
+          "holdout": 0.38130563798219586,
+          "metric_id": "lidar_camera_edge_alignment_score",
+          "train": 0.31114009739714293
+        },
+        {
+          "grade": "pass",
+          "holdout": 0.7441860465116279,
+          "metric_id": "lidar_camera_depth_edge_alignment_score",
+          "train": 0.6233857506272352
+        },
+        {
+          "grade": "pass",
+          "holdout": 0.16875,
+          "metric_id": "lidar_camera_projection_ratio",
+          "train": 0.16974489795918368
+        },
+        {
+          "grade": "pass",
+          "metric_id": "lidar_camera_projection_frame_count",
+          "unit": "frames",
+          "value": 50.0
+        },
+        {
+          "grade": "pass",
+          "metric_id": "lidar_camera_perturbation_case_count",
+          "unit": "cases",
+          "value": 1200.0
+        },
+        {
+          "grade": "pass",
+          "metric_id": "lidar_camera_perturbation_detectable_fraction",
+          "value": 0.855
+        },
+        {
+          "grade": "pass",
+          "metric_id": "lidar_camera_perturbation_mandatory_case_count",
+          "unit": "cases",
+          "value": 600.0
+        },
+        {
+          "grade": "pass",
+          "metric_id": "lidar_camera_perturbation_mandatory_detectable_count",
+          "unit": "cases",
+          "value": 508.0
+        }
+      ],
+      "rules": [
+        {
+          "reason": "evidence was materialized from recomputed metrics with verified raw inputs",
+          "rule_id": "raw_recomputation",
+          "status": "pass"
+        },
+        {
+          "reason": "lidar_camera evidence protocol declares transform convention and controls",
+          "rule_id": "protocol_declared",
+          "status": "pass"
+        },
+        {
+          "reason": "holdout edge-alignment passed recorded thresholds",
+          "rule_id": "holdout_support_gate",
+          "status": "pass"
+        },
+        {
+          "reason": "protocol declares an independent holdout split",
+          "rule_id": "holdout_independence",
+          "status": "pass"
+        },
+        {
+          "reason": "dataset reference consistency gate applies only to frame-graph candidates",
+          "rule_id": "dataset_reference_consistency",
+          "status": "pass"
+        },
+        {
+          "reason": "predeclared known-bad controls are distinguishable from the candidate",
+          "rule_id": "known_bad_controls",
+          "status": "pass"
+        },
+        {
+          "reason": "evidence summary supports the candidate under its protocol",
+          "rule_id": "decision_boundary_summary",
+          "status": "pass"
+        }
+      ]
+    },
+    {
+      "artifacts": [
+        {
+          "path": "known_bad/result.yaml",
+          "role": "result",
+          "sha256": "d10f1743ca7411bda133902ff6f8cc8c8d98d6cc1da6506d78df9460cdcc3aaf",
+          "size_bytes": 842478
+        },
+        {
+          "path": "known_bad/evidence.json",
+          "role": "evidence",
+          "sha256": "50cd2ac6f1e3be3fe850c9a51eb08a5c1d06eb6fb70f406bacff72dea8e1d0fe",
+          "size_bytes": 882381
+        },
+        {
+          "path": "known_bad/policy.json",
+          "role": "policy",
+          "sha256": "3655739907898e8bdbc110ef6ab9514d33a5a3d67483aee6fd69446c460bf269",
+          "size_bytes": 4173
+        },
+        {
+          "path": "known_bad/assessment.json",
+          "role": "assessment",
+          "sha256": "30b170aaafbbe7fbbf255b34d8b033ccfa3c23dfc3c99c7818512a30b894bbb1",
+          "size_bytes": 5123
+        },
+        {
+          "path": "known_bad/observability.json",
+          "role": "observability",
+          "sha256": "2561876d2a82786c7964c281b78fc9755836a7625b8a72ccaa536992481d3926",
+          "size_bytes": 2823
+        },
+        {
+          "path": "known_bad/protocol.json",
+          "role": "protocol",
+          "sha256": "9499e62fdc2c2424799e82186cbe403e03a2449a4cd00f58d1a945be49f0c061",
+          "size_bytes": 2459
+        },
+        {
+          "path": "known_bad/transforms.json",
+          "role": "transforms",
+          "sha256": "2e332bd6da677eda795989ad9b41589edc0b2dfe288096b61b6c24341f461b81",
+          "size_bytes": 6965
+        },
+        {
+          "path": "known_bad/bundle.json",
+          "role": "bundle",
+          "sha256": "50d10929614f9af683f7afa7307245c85eec237fc3bbfce6953c849e73a1ad5e",
+          "size_bytes": 2557
+        },
+        {
+          "path": "known_bad/verification.json",
+          "role": "verification",
+          "sha256": "545853640f62c000add23da00e975b8df0a82cdfd5ecbad640b5855755bf286c",
+          "size_bytes": 96461
+        }
+      ],
+      "assessment_reason": "1 falsification policy gate(s) failed; 0 inconclusive",
+      "assessment_status": "fail",
+      "bundle_valid": true,
+      "candidate_id": "known_bad",
+      "evidence_checks": [
+        {
+          "check": "Candidate Support",
+          "evidence": "projected points train 711.571 holdout 708, projection ratio train 0.177893 holdout 0.177, h-coverage 0.992535, v-coverage 0.674815",
+          "status": "pass",
+          "uses_dataset_reference": false
+        },
+        {
+          "check": "Holdout Edge Alignment",
+          "evidence": "edge train 0.306113 holdout 0.389518 (threshold >= 0.2); depth-edge holdout 0.722222 (threshold >= 0.2)",
+          "status": "pass",
+          "uses_dataset_reference": false
+        },
+        {
+          "check": "Dataset Reference Consistency",
+          "evidence": "translation delta 0.25 m (threshold <= 0.1), rotation delta 5 deg (threshold <= 2)",
+          "status": "fail",
+          "uses_dataset_reference": true
+        },
+        {
+          "check": "Known-Bad Controls",
+          "evidence": "detectable fraction 0.813333 (threshold >= 0.5), mandatory detections 490/600 (threshold >= 8), mean edge delta 0.000922703, mean depth-edge delta -0.00409519, mean projection-ratio delta 0.000127708",
+          "status": "pass",
+          "uses_dataset_reference": false
+        },
+        {
+          "check": "Observability Statement",
+          "evidence": "Observes image-plane alignment of projected LiDAR points against intensity edges; horizontal coverage 0.992535 and vertical coverage 0.674815 limit sensitivity to in-image motion and baselines; depth-edge channel scored with 36 discontinuity points; mandatory rotation/translation probes detected 490 of 600 cases; coverage-limited DOFs may remain unobserved on sparse samples; projection evidence observes image-plane alignment only; depth along the optical axis and baselines are coverage-limited; depth-edge scores require projected LiDAR depth discontinuities",
+          "status": "pass",
+          "uses_dataset_reference": false
+        },
+        {
+          "check": "Decision Boundary",
+          "evidence": "candidate vs configured camera-frame known-bad controls; edge holdout threshold >= 0.2",
+          "status": "fail",
+          "uses_dataset_reference": false
+        }
+      ],
+      "expected_assessment": "fail",
+      "metrics": [
+        {
+          "grade": "pass",
+          "holdout": 0.3895184135977337,
+          "metric_id": "lidar_camera_edge_alignment_score",
+          "train": 0.30611271908392407
+        },
+        {
+          "grade": "pass",
+          "holdout": 0.7222222222222222,
+          "metric_id": "lidar_camera_depth_edge_alignment_score",
+          "train": 0.5154446777281061
+        },
+        {
+          "grade": "pass",
+          "holdout": 0.177,
+          "metric_id": "lidar_camera_projection_ratio",
+          "train": 0.17789285714285713
+        },
+        {
+          "grade": "pass",
+          "metric_id": "lidar_camera_projection_frame_count",
+          "unit": "frames",
+          "value": 50.0
+        },
+        {
+          "grade": "pass",
+          "metric_id": "lidar_camera_perturbation_case_count",
+          "unit": "cases",
+          "value": 1200.0
+        },
+        {
+          "grade": "pass",
+          "metric_id": "lidar_camera_perturbation_detectable_fraction",
+          "value": 0.8133333333333334
+        },
+        {
+          "grade": "pass",
+          "metric_id": "lidar_camera_perturbation_mandatory_case_count",
+          "unit": "cases",
+          "value": 600.0
+        },
+        {
+          "grade": "pass",
+          "metric_id": "lidar_camera_perturbation_mandatory_detectable_count",
+          "unit": "cases",
+          "value": 490.0
+        }
+      ],
+      "rules": [
+        {
+          "reason": "evidence was materialized from recomputed metrics with verified raw inputs",
+          "rule_id": "raw_recomputation",
+          "status": "pass"
+        },
+        {
+          "reason": "lidar_camera evidence protocol declares transform convention and controls",
+          "rule_id": "protocol_declared",
+          "status": "pass"
+        },
+        {
+          "reason": "holdout edge-alignment passed recorded thresholds",
+          "rule_id": "holdout_support_gate",
+          "status": "pass"
+        },
+        {
+          "reason": "protocol declares an independent holdout split",
+          "rule_id": "holdout_independence",
+          "status": "pass"
+        },
+        {
+          "reason": "dataset reference consistency gate applies only to frame-graph candidates",
+          "rule_id": "dataset_reference_consistency",
+          "status": "pass"
+        },
+        {
+          "reason": "predeclared known-bad controls are distinguishable from the candidate",
+          "rule_id": "known_bad_controls",
+          "status": "pass"
+        },
+        {
+          "reason": "evidence summary rejected the candidate",
+          "rule_id": "decision_boundary_summary",
+          "status": "fail"
+        }
+      ]
+    }
+  ]
+}
