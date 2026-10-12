@@ -413,6 +413,83 @@ class PreparedFrame:
     rings: int
 
 
+# REP 103: a camera body frame is x forward, y left, z up; the optical frame that
+# sensor_msgs/Image uses is z forward, x right, y down.  p_optical = R p_body.
+REP103_OPTICAL_FROM_BODY: FloatArray = np.asarray(
+    [[0.0, -1.0, 0.0], [0.0, 0.0, -1.0], [1.0, 0.0, 0.0]], dtype=np.float64
+)
+_BODY_FRAME_DIAGNOSIS_FRAMES = 16
+
+
+def _body_frame_diagnosis(
+    frames: Sequence[CameraLidarFrame],
+    camera: EdgeCamera,
+    candidate: FloatArray,
+    options: EdgeAlignmentOptions,
+    dropped: Sequence[str],
+    camera_frame: str,
+) -> list[str]:
+    """Name an image published in the camera body frame when most frames see no edges.
+
+    An image in the camera's REP 103 body frame (x forward) instead of its optical frame
+    (z forward) puts the LiDAR outside the camera's view under any candidate. The frames
+    are read once more with the optical rotation applied, counting the LiDAR edge points
+    that would fall in the image; nothing is changed or assumed, the reason only says
+    that this reading would make the frames usable.
+    """
+
+    out_of_view = sum("fall in the image under the candidate" in reason for reason in dropped)
+    if not frames or out_of_view == 0 or out_of_view * 2 < len(dropped):
+        return []
+    sample = list(frames)[:_BODY_FRAME_DIAGNOSIS_FRAMES]
+    edges = [
+        lidar_depth_edges(
+            frame.points,
+            min_jump_m=options.min_jump_m,
+            exponent=options.jump_exponent,
+            max_points=options.max_edge_points_per_frame,
+            min_ring_fraction=options.min_ring_fraction,
+            unstructured=options.unstructured_lidar,
+        )[0]
+        for frame in sample
+    ]
+
+    def usable(transform: FloatArray) -> int:
+        count = 0
+        for frame, points in zip(sample, edges, strict=True):
+            if points.shape[0] == 0:
+                continue
+            u, v, valid = camera.project(
+                points.astype(np.float64) @ transform[:3, :3].T + transform[:3, 3]
+            )
+            height, width = frame.image.shape
+            margin = options.image_margin_px
+            inside = (
+                valid
+                & (u > -margin)
+                & (v > -margin)
+                & (u < width - 1 + margin)
+                & (v < height - 1 + margin)
+            )
+            count += int(inside.sum()) >= options.min_edge_points_per_frame
+        return count
+
+    body = np.eye(4)
+    body[:3, :3] = REP103_OPTICAL_FROM_BODY
+    count = usable(body @ candidate)
+    if count * 2 < len(sample) or count <= usable(candidate):
+        return []
+    return [
+        f"the camera frame '{camera_frame}' looks like a REP 103 body frame (x forward, "
+        "z up) rather than the optical frame (z forward, x right, y down) that "
+        f"sensor_msgs/Image requires: read as a body frame, {count} of {len(sample)} "
+        "frames put LiDAR edges in the image. Publish the image in the optical frame, or "
+        "add the optical frame as a child of the body frame (rotation_quat_xyzw "
+        "[0.5, -0.5, 0.5, -0.5]) in a slac.check_frames file passed with --tf and map the "
+        "image topic to it with --frame-map TOPIC=FRAME"
+    ]
+
+
 def prepare_frames(
     frames: Sequence[CameraLidarFrame],
     camera: EdgeCamera,
@@ -690,6 +767,7 @@ def estimate_from_frames(
         unsolved_reasons = [
             f"only {len(prepared)} usable frame(s) of {len(frames)} synchronized; "
             f"at least {opts.min_frames} are needed",
+            *_body_frame_diagnosis(frames, camera, candidate, opts, dropped, parent_frame),
             *dropped[:5],
         ]
         zero = Rotation.from_matrix(candidate[:3, :3]).as_rotvec()

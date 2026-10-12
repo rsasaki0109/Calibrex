@@ -27,6 +27,7 @@ from calibrex.core.camera_lidar_edge import (
 )
 from calibrex.data.ros2_camera_lidar import CameraLidarFrame
 from calibrex.evaluation.camera_lidar_edge import (
+    REP103_OPTICAL_FROM_BODY,
     EdgeAlignmentOptions,
     EdgeCamera,
     EdgeObjective,
@@ -237,6 +238,29 @@ def test_candidate_that_sees_nothing_is_reported_not_crashed(
     )
     assert artifact.solver_status == "insufficient_samples"
     assert any("fall in the image under the candidate" in r for r in artifact.policy_reasons)
+    assert not any("REP 103 body frame" in r for r in artifact.policy_reasons)
+
+
+def test_image_in_the_camera_body_frame_is_named(
+    truth: np.ndarray, frames: list[CameraLidarFrame]
+) -> None:
+    # the same extrinsic, given for the camera's body frame (x forward) as a tree with
+    # the image published in the body frame would compose it
+    body_from_optical = np.eye(4)
+    body_from_optical[:3, :3] = REP103_OPTICAL_FROM_BODY.T
+    artifact = estimate_from_frames(
+        frames,
+        CAMERA,
+        body_from_optical @ truth,
+        options=FAST,
+        provenance=_provenance(),
+        parent_frame="camera_link",
+    )
+    assert artifact.solver_status == "insufficient_samples"
+    reasons = [r for r in artifact.policy_reasons if "REP 103 body frame" in r]
+    assert len(reasons) == 1
+    assert "'camera_link'" in reasons[0] and "12 of 12 frames" in reasons[0]
+    assert "--frame-map" in reasons[0]
 
 
 def test_options_validate() -> None:

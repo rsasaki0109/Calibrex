@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **Camera-LiDAR check names an image in the camera body frame.**
+
+  When most frames of `calibrex check --pairs camera-lidar` put no LiDAR edge in the image, the
+  frames are read once more as if the image frame were the camera's REP 103 body frame
+  (x forward) instead of its optical frame. If that makes them usable, the `inconclusive`
+  reason says so and names the fix: an optical child frame in a `slac.check_frames` file and
+  `--frame-map TOPIC=FRAME`. On KITTI 0005 with the camera frame replaced by its body frame the
+  reason names it (16 of 16 frames), and the named fix brings the check back to `pass`. Nothing
+  is corrected automatically.
+
 - **Camera-LiDAR check: short recordings use their frame budget.** A recording shorter than 48
   scans 1 s apart (2.5 s with `--max-duration-s 120`) now spreads up to 48 scans, at least 0.25 s
   apart, over its length.
@@ -20,6 +30,7 @@
   - All three +5 deg cases the first benchmark left unchecked are now flagged. The verdict rule
     (2 deg control, 0.5 deg std bound, t >= 2) is unchanged.
   - The AIST Livox verdicts are unchanged. The Hilti bags were not re-run.
+
 - **Kalibr lever-arm evidence and a public Kalibr run.**
 
   `calibrex external-run evaluate-camera-imu` now checks the imported `T_cam_imu` translation
