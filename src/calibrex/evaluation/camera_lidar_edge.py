@@ -147,6 +147,15 @@ class EdgeAlignmentOptions:
     spacing_s: float = 1.0
     max_frames: int = 48
     max_seconds: float | None = None
+    # A recording too short for ``max_frames`` scans ``spacing_s`` apart (KITTI 0005 is
+    # 15 s) spreads ``max_frames`` scans over its length instead, at least this far apart.
+    # Recordings long enough for the regular selection are unaffected.  ``None`` turns
+    # it off.
+    short_recording_spacing_s: float | None = 0.25
+    # ...but only when the view changes: consecutive denser images must differ by this much
+    # (median mean absolute difference, fraction of full scale; static AIST Livox recordings
+    # read at most 0.011, moving KITTI drives at least 0.14).
+    short_recording_min_view_change: float = 0.05
     max_gap_s: float = 0.06
     min_frames: int = 8
     blocks: int = 6
@@ -189,6 +198,8 @@ class EdgeAlignmentOptions:
             raise ValueError("rotation and translation search levels must match")
         if self.blocks < 3 or self.min_frames < self.blocks:
             raise ValueError("need at least three blocks and as many frames as blocks")
+        if self.short_recording_spacing_s is not None and self.short_recording_spacing_s <= 0.0:
+            raise ValueError("short_recording_spacing_s must be positive")
         if self.start_scan_deg is not None and not (
             0.0 < self.start_scan_step_deg <= self.start_scan_deg <= self.rotation_bound_deg
         ):
@@ -1063,11 +1074,15 @@ def run_ros2_camera_lidar_edge(
 
     opts = options or EdgeAlignmentOptions()
     emit_stage(f"camera-lidar: pairing {inputs.image_topic} with {inputs.lidar_topic}")
+    selection: dict[str, object] = {}
     frames = load_camera_lidar_frames(
         bag,
         inputs.image_topic,
         inputs.lidar_topic,
         spacing_s=opts.effective_spacing_s,
+        short_recording_spacing_s=opts.short_recording_spacing_s,
+        short_recording_min_view_change=opts.short_recording_min_view_change,
+        report=selection,
         max_frames=opts.max_frames,
         max_seconds=opts.max_seconds,
         max_gap_s=opts.max_gap_s,
@@ -1082,6 +1097,21 @@ def run_ros2_camera_lidar_edge(
         if inputs.point_time is not None
         else "the cloud has no per-point time: image and scan are paired at the header stamp"
     )
+    change = selection.get("median_view_change")
+    change_text = f"{change:.3f}" if isinstance(change, float) else "unknown"
+    if selection.get("selection") == "short_recording":
+        note += (
+            f"; the recording is shorter than {opts.max_frames} scans "
+            f"{opts.effective_spacing_s:g} s apart, so up to {opts.max_frames} scans at least "
+            f"{opts.short_recording_spacing_s:g} s apart were spread over it (median view "
+            f"change {change_text})"
+        )
+    elif selection.get("selection") == "regular_static_view":
+        note += (
+            f"; the recording is short but its view hardly changes (median view change "
+            f"{change_text}), so scans stay "
+            f"{opts.effective_spacing_s:g} s apart: denser frames would repeat it"
+        )
     return estimate_from_frames(
         frames,
         inputs.camera,

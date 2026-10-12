@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- **Camera-LiDAR check: short recordings use their frame budget.** A recording shorter than 48
+  scans 1 s apart (2.5 s with `--max-duration-s 120`) now spreads up to 48 scans, at least 0.25 s
+  apart, over its length.
+  - **When it applies.** Only when the view changes: the median mean absolute difference of
+    consecutive images must reach 0.05 of full scale. Static recordings repeat one view and keep
+    the regular selection.
+  - **What stays the same.** Long recordings get exactly the frames they got before. The evidence
+    notes say which selection was used.
+  - **Options.** `EdgeAlignmentOptions.short_recording_spacing_s` (0.25) and
+    `short_recording_min_view_change` (0.05). `load_camera_lidar_frames` gains the matching
+    arguments and a `report`.
+
+  **Results.**
+  - KITTI 0005 goes from 16 to 48 frames. Yaw +5 deg is now flagged (`fail`, 4.9 / 1.14 deg),
+    and the reference passes with roll, pitch and yaw judged.
+  - All three +5 deg cases the first benchmark left unchecked are now flagged. The verdict rule
+    (2 deg control, 0.5 deg std bound, t >= 2) is unchanged.
+  - The AIST Livox verdicts are unchanged. The Hilti bags were not re-run.
 - **Kalibr lever-arm evidence and a public Kalibr run.**
 
   `calibrex external-run evaluate-camera-imu` now checks the imported `T_cam_imu` translation
