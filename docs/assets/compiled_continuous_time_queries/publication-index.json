@@ -1,0 +1,120 @@
+{
+  "provenance": {
+    "generator": "publication-launcher.py.txt",
+    "candidate_source_commit": "16e45b0a6a7253439c27526af9db36c8a6072388",
+    "baseline_source_commit": "f93502cf447c0c0a0eb06d80660ea51fa6bbe3ca",
+    "command": [
+      "<PYTHON>",
+      "publication-launcher.py.txt"
+    ]
+  },
+  "original_cohorts": {
+    "default_budget": {
+      "measurement_sha256": {
+        "pipeline.definition.json": "f086c400a4869338cd9233715f3c911266ef8210d245c66890a22352cf650bf8",
+        "pipeline.benchmark.json": "91d194bcb33adb89dad91f4a053921296e68252687a0dbaa159dc74388498a03"
+      },
+      "source_bindings": {
+        "<WORKSPACE>/outputs/public-glim-compiled-queries-default-v1/baseline.adaptive_voxel.py.txt": "88afb2da9bedf1da2072ccb7d5425643928ee600a596818c04eb72a21af5fe37",
+        "<WORKSPACE>/outputs/public-glim-compiled-queries-default-v1/baseline.continuous_time_lidar_pair_solver.py.txt": "a5e9b86e1fb23f786e6fce1e1d202f0c37287619148c413201e06c43fecbc6fb",
+        "<WORKSPACE>/outputs/public-glim-compiled-queries-default-v1/baseline.lidar.py.txt": "20a9893133cf3d93244ace98d1a8568a4c349f42ad241cdc2f9c027d5295e138",
+        "<WORKSPACE>/outputs/public-glim-compiled-queries-default-v1/baseline.lidar_point_to_plane.py.txt": "21df895338ab09fd5f2007013b3b60aeb0f6c9cf8097c303cddccafe59820494",
+        "<WORKSPACE>/outputs/public-glim-compiled-queries-default-v1/baseline.livox.py.txt": "647ab63fa91455c3b1d226afa0b531a94e74aa21dd3ce5eec88770eb15fe09bd",
+        "<WORKSPACE>/outputs/public-glim-compiled-queries-default-v1/baseline.odometry_track.py.txt": "660a735db57a92c164b9d20f470ba966f462cc83699e04856cc5f63092dab763",
+        "<WORKSPACE>/outputs/public-glim-compiled-queries-default-v1/baseline.online.py.txt": "aee09fe301024c8a72dde7a7999ef0926adfdbe8675937a4f95b06ffe410d571",
+        "data/public/glim_versatile/conversion-provenance.json": "7f51da99c1bdc0b2768229e6ff22809d5d0bb22e02dcc62dce2c3ce0dac2da56",
+        "data/public/glim_versatile/gt.tar.gz": "4bfd871527d00065898153e77a6764ac331421aca16ff88bde778994f70f5bc9",
+        "data/public/glim_versatile/gt/livox.txt": "bcc75ff7985f2e140e514c69f029153e0127a33ee7abc1b757e077386f5059ad",
+        "data/public/glim_versatile/livox.bag": "f57a2e85339316d4235ab693ab2876aac5e113625c7f8b0f7873b62f92e09643",
+        "data/public/glim_versatile/livox_rosbag2_gt_restamped/livox_rosbag2_gt_restamped.db3": "8d28f0a8ddda13b880e4648e9d687d4a566d40f70b87547f8798fe8a18cfde9e",
+        "data/public/glim_versatile/livox_rosbag2_gt_restamped/metadata.yaml": "7542a3e1689e2007e9c15b8d163cddcbca4d87232dd92b7ecff48ba1e0f6645f",
+        "examples/public_datasets/glim_versatile/online_continuous_time_compiled_queries_config.yaml": "677b4b8eed3a989949e37da0bc6fc59124262805151e6ab154ee2a5576387e55",
+        "src/calibrex/core/continuous_time_lidar_artifacts.py": "96c051290b6b4f82f81fcc108b6ea4525b1497af064a3dedb8196e7dedd9d874",
+        "src/calibrex/core/continuous_time_lidar_train_diagnostics.py": "f86b7e9d569b4ef61d85834df790207dbe2f424af17ec0f5df16b9f2aef6fcac",
+        "src/calibrex/core/provenance.py": "eb7849f342892272ae136454da816852d080684b25c8ec55771582c1b8621f47",
+        "src/calibrex/data/adaptive_voxel.py": "7428c6d1aba1bbf465b07ec094a2aea32e557118f987e0c89c4b08f4e42b7905",
+        "src/calibrex/data/livox.py": "d3d6eb3b7f5d65375806ea0da6dfbb7274cdc48c4a238a40e3c231643b00106e",
+        "src/calibrex/data/odometry_track.py": "1569e661470e902f2f08dde1bf2d0c41cc6540a24f59d9ee961e066d36653c91",
+        "src/calibrex/evaluation/lidar.py": "0b82b548a3c38c09bdb820788c592d90af7f97cad851ce70c0a776b82d59ed63",
+        "src/calibrex/graph/lidar_point_to_plane.py": "f2c7b6a3c4a1fa7b4a0f7a27061791d71947441c23cd1f5cc91ba99121d3b141",
+        "src/calibrex/pipelines/online.py": "69634642df94c09a16cc0bf82a2557559c030c81fe1446764a49e7b1084f6e64",
+        "src/calibrex/solvers/continuous_time_lidar_pair_solver.py": "05d41f3eba3f86723d34920a51ff65eff191926cf3118c4b546a490404416c5a",
+        "src/calibrex/solvers/fixed_trajectory_se3_solver.py": "ebd4125671dea753c364723ff15191f31b66ad25626f0d869ee3ea1df898ad65",
+        "src/calibrex/solvers/numba_continuous_time_adapter.py": "1154b19c278178c2650043ba13d0534be7302c835f4678f19dc565a1c53bd14f",
+        "tools/benchmark_adaptive_plane_search.py": "b31cd5bd42885fa5aa6b13059444e39730a52e2551f68fb329ae8426f6afad75",
+        "tools/lidar_scan_deskew.py": "e36a870323f76256fb5b3f8b8364cb2edb4c06483b3ea0fe8a99bf2faa6f1ce0",
+        "tools/rosbag1_to_rosbag2_online_pair.py": "9da3e080b62933d4d75f92c08bba91929fea401d99650e55f78bd3cdabfcc680"
+      }
+    },
+    "full_capture": {
+      "measurement_sha256": {
+        "pipeline.definition.json": "04acbac179835b202e3d3a23ea2cd101e42f5cf90b1985dbf115a2163c4a9fab",
+        "pipeline.benchmark.json": "a42e9207d4a703f1d46baec5a7495fb448cadbd830e40d17eae264e7b645b7db"
+      },
+      "source_bindings": {
+        "<WORKSPACE>/outputs/public-glim-compiled-queries-full-v2/baseline.adaptive_voxel.py.txt": "88afb2da9bedf1da2072ccb7d5425643928ee600a596818c04eb72a21af5fe37",
+        "<WORKSPACE>/outputs/public-glim-compiled-queries-full-v2/baseline.continuous_time_lidar_pair_solver.py.txt": "a5e9b86e1fb23f786e6fce1e1d202f0c37287619148c413201e06c43fecbc6fb",
+        "<WORKSPACE>/outputs/public-glim-compiled-queries-full-v2/baseline.lidar.py.txt": "20a9893133cf3d93244ace98d1a8568a4c349f42ad241cdc2f9c027d5295e138",
+        "<WORKSPACE>/outputs/public-glim-compiled-queries-full-v2/baseline.lidar_point_to_plane.py.txt": "21df895338ab09fd5f2007013b3b60aeb0f6c9cf8097c303cddccafe59820494",
+        "<WORKSPACE>/outputs/public-glim-compiled-queries-full-v2/baseline.livox.py.txt": "647ab63fa91455c3b1d226afa0b531a94e74aa21dd3ce5eec88770eb15fe09bd",
+        "<WORKSPACE>/outputs/public-glim-compiled-queries-full-v2/baseline.odometry_track.py.txt": "660a735db57a92c164b9d20f470ba966f462cc83699e04856cc5f63092dab763",
+        "<WORKSPACE>/outputs/public-glim-compiled-queries-full-v2/baseline.online.py.txt": "aee09fe301024c8a72dde7a7999ef0926adfdbe8675937a4f95b06ffe410d571",
+        "data/public/glim_versatile/conversion-provenance.json": "7f51da99c1bdc0b2768229e6ff22809d5d0bb22e02dcc62dce2c3ce0dac2da56",
+        "data/public/glim_versatile/gt.tar.gz": "4bfd871527d00065898153e77a6764ac331421aca16ff88bde778994f70f5bc9",
+        "data/public/glim_versatile/gt/livox.txt": "bcc75ff7985f2e140e514c69f029153e0127a33ee7abc1b757e077386f5059ad",
+        "data/public/glim_versatile/livox.bag": "f57a2e85339316d4235ab693ab2876aac5e113625c7f8b0f7873b62f92e09643",
+        "data/public/glim_versatile/livox_rosbag2_gt_restamped/livox_rosbag2_gt_restamped.db3": "8d28f0a8ddda13b880e4648e9d687d4a566d40f70b87547f8798fe8a18cfde9e",
+        "data/public/glim_versatile/livox_rosbag2_gt_restamped/metadata.yaml": "7542a3e1689e2007e9c15b8d163cddcbca4d87232dd92b7ecff48ba1e0f6645f",
+        "examples/public_datasets/glim_versatile/online_continuous_time_compiled_full_capture_config.yaml": "c6d93361d1628493be20a64d585394b2e437bffcbd548340a541cc12b1c602b3",
+        "src/calibrex/core/continuous_time_lidar_artifacts.py": "96c051290b6b4f82f81fcc108b6ea4525b1497af064a3dedb8196e7dedd9d874",
+        "src/calibrex/core/continuous_time_lidar_train_diagnostics.py": "f86b7e9d569b4ef61d85834df790207dbe2f424af17ec0f5df16b9f2aef6fcac",
+        "src/calibrex/core/provenance.py": "eb7849f342892272ae136454da816852d080684b25c8ec55771582c1b8621f47",
+        "src/calibrex/data/adaptive_voxel.py": "7428c6d1aba1bbf465b07ec094a2aea32e557118f987e0c89c4b08f4e42b7905",
+        "src/calibrex/data/livox.py": "d3d6eb3b7f5d65375806ea0da6dfbb7274cdc48c4a238a40e3c231643b00106e",
+        "src/calibrex/data/odometry_track.py": "1569e661470e902f2f08dde1bf2d0c41cc6540a24f59d9ee961e066d36653c91",
+        "src/calibrex/evaluation/lidar.py": "0b82b548a3c38c09bdb820788c592d90af7f97cad851ce70c0a776b82d59ed63",
+        "src/calibrex/graph/lidar_point_to_plane.py": "f2c7b6a3c4a1fa7b4a0f7a27061791d71947441c23cd1f5cc91ba99121d3b141",
+        "src/calibrex/pipelines/online.py": "69634642df94c09a16cc0bf82a2557559c030c81fe1446764a49e7b1084f6e64",
+        "src/calibrex/solvers/continuous_time_lidar_pair_solver.py": "05d41f3eba3f86723d34920a51ff65eff191926cf3118c4b546a490404416c5a",
+        "src/calibrex/solvers/fixed_trajectory_se3_solver.py": "ebd4125671dea753c364723ff15191f31b66ad25626f0d869ee3ea1df898ad65",
+        "src/calibrex/solvers/numba_continuous_time_adapter.py": "1154b19c278178c2650043ba13d0534be7302c835f4678f19dc565a1c53bd14f",
+        "tools/benchmark_adaptive_plane_search.py": "b31cd5bd42885fa5aa6b13059444e39730a52e2551f68fb329ae8426f6afad75",
+        "tools/lidar_scan_deskew.py": "e36a870323f76256fb5b3f8b8364cb2edb4c06483b3ea0fe8a99bf2faa6f1ce0",
+        "tools/rosbag1_to_rosbag2_online_pair.py": "9da3e080b62933d4d75f92c08bba91929fea401d99650e55f78bd3cdabfcc680"
+      }
+    }
+  },
+  "files": {
+    "baseline.adaptive_voxel.py.txt": "88afb2da9bedf1da2072ccb7d5425643928ee600a596818c04eb72a21af5fe37",
+    "baseline.continuous_time_lidar_pair_solver.py.txt": "a5e9b86e1fb23f786e6fce1e1d202f0c37287619148c413201e06c43fecbc6fb",
+    "baseline.lidar.py.txt": "20a9893133cf3d93244ace98d1a8568a4c349f42ad241cdc2f9c027d5295e138",
+    "baseline.lidar_point_to_plane.py.txt": "21df895338ab09fd5f2007013b3b60aeb0f6c9cf8097c303cddccafe59820494",
+    "baseline.livox.py.txt": "647ab63fa91455c3b1d226afa0b531a94e74aa21dd3ce5eec88770eb15fe09bd",
+    "baseline.odometry_track.py.txt": "660a735db57a92c164b9d20f470ba966f462cc83699e04856cc5f63092dab763",
+    "baseline.online.py.txt": "aee09fe301024c8a72dde7a7999ef0926adfdbe8675937a4f95b06ffe410d571",
+    "conversion-provenance.json": "7f51da99c1bdc0b2768229e6ff22809d5d0bb22e02dcc62dce2c3ce0dac2da56",
+    "default_budget.benchmark.json": "7e989b35b5438b53034b6b24407d172da4d2f7e2288bc908b54e56eee68c63fd",
+    "default_budget.definition.json": "b677e1c7ffa4f04caa80af157a7ff7f461cbc420c99da978195027d9b1eb7d5e",
+    "full_capture.benchmark.json": "0ed5dcc0324be5df9da0a081c87521d66d1863d5e6aef96b20fa2a6f178bdcd2",
+    "full_capture.definition.json": "d8eade9d490a539f84b8850bdfdd9ecffa6b955e068a55d5f400410119c34667",
+    "interrupted-cohort.json": "283d507ac55f4a772e3c436bb2d7ba1f889276286cabc9955eb79ebbd16006ba",
+    "measured.adaptive_voxel.py.txt": "dc1cd4b8c8e139fa59bc75c9603b1a0419df1854074eadf4c8297c7f187edac8",
+    "measured.benchmark_adaptive_plane_search.py.txt": "d9a3d5fb84061418aeaa36f9e7453a433eb549a89bc51f12c279d850e177f709",
+    "measured.continuous_time_lidar_artifacts.py.txt": "b43b21fcf933e2f3338eb5b3e23236108963b5a22fc69747daa305aae6505a92",
+    "measured.continuous_time_lidar_pair_solver.py.txt": "3800c4f1c5232a4f7d68e8316946da7cfa2c47ee57393239ca0b0d983ad949fa",
+    "measured.continuous_time_lidar_train_diagnostics.py.txt": "8bd1ac2c3b0d5802c50d62109e4aee1a9793c2344e02e1d8539dd82f706533c2",
+    "measured.fixed_trajectory_se3_solver.py.txt": "603a3bd733eff85db96e9fd21b9ab1809a707b0415639d367c1f25201fe1e681",
+    "measured.lidar.py.txt": "3f0bc85b190ae3d2dfd1b2df1371f6115f7270181e1d4652d071c282735738e8",
+    "measured.lidar_point_to_plane.py.txt": "da01ab174a4092f4fc7f2516b9d876ffadb3e6802532a06ccf846e1c8e4d082b",
+    "measured.lidar_scan_deskew.py.txt": "2277583700fb61896002003c52a95d9de23121abac3360d088a3c2d4531e413f",
+    "measured.livox.py.txt": "647ab63fa91455c3b1d226afa0b531a94e74aa21dd3ce5eec88770eb15fe09bd",
+    "measured.numba_continuous_time_adapter.py.txt": "1154b19c278178c2650043ba13d0534be7302c835f4678f19dc565a1c53bd14f",
+    "measured.odometry_track.py.txt": "660a735db57a92c164b9d20f470ba966f462cc83699e04856cc5f63092dab763",
+    "measured.online.py.txt": "fdf0f78525b75693c9c09011b1126e2439cbcb3f663e5c4b3fefbb404aebdb81",
+    "measured.online_continuous_time_compiled_full_capture_config.yaml.txt": "c6d93361d1628493be20a64d585394b2e437bffcbd548340a541cc12b1c602b3",
+    "measured.online_continuous_time_compiled_queries_config.yaml.txt": "677b4b8eed3a989949e37da0bc6fc59124262805151e6ab154ee2a5576387e55",
+    "measured.provenance.py.txt": "800e4d247092db4dfff74e60ee9485c5d56d22598cc951cec781cd3eb8eeb6ca",
+    "measured.rosbag1_to_rosbag2_online_pair.py.txt": "e28d13947bf44a246278caf76915261bb1dc73bc076e97b60a02da272df385b6",
+    "publication-launcher.py.txt": "72f953f4c63439ece24513204989a366839e56e5e1488bccfb974ad26bd5109b"
+  }
+}

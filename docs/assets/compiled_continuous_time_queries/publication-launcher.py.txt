@@ -1,0 +1,192 @@
+"""Audit both frozen cohorts and publish exact source/complete-result evidence."""
+from __future__ import annotations
+
+import hashlib
+import importlib.util
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+from calibrex.core.benchmark import BenchmarkDefinition, aggregate_benchmark_definition
+from calibrex.core.continuous_time_lidar_artifacts import ContinuousTimeLidarPairArtifact
+from calibrex.core.io import read_mapping
+
+spec = importlib.util.spec_from_file_location("b", "tools/benchmark_adaptive_plane_search.py")
+b = importlib.util.module_from_spec(spec); spec.loader.exec_module(b)
+destination = Path("docs/assets/compiled_continuous_time_queries")
+destination.mkdir(parents=True, exist_ok=True)
+cohorts = [
+    ("default_budget", Path("outputs/public-glim-compiled-queries-default-v1"),
+     6000, 3200, 4773, 2526, 184000, "converged"),
+    ("full_capture", Path("outputs/public-glim-compiled-queries-full-v2"),
+     38400, 9600, 29181, 3451, 1248000, "max_iterations"),
+]
+candidate = "16e45b0a6a7253439c27526af9db36c8a6072388"
+baseline = "f93502cf447c0c0a0eb06d80660ea51fa6bbe3ca"
+rewrite = {}
+archive_hashes = {}
+for path in b.SOURCES:
+    name = "measured." + Path(path).name + ".txt"
+    contents = subprocess.check_output(["git", "show", f"{candidate}:{path}"])
+    assert Path(path).read_bytes().replace(b"\r\n", b"\n") == contents
+    (destination / name).write_bytes(contents)
+    rewrite[path] = name
+    archive_hashes[name] = b._digest(destination / name)
+for stem in ("compiled_queries", "compiled_full_capture"):
+    path = "examples/public_datasets/glim_versatile/online_continuous_time_" + stem + "_config.yaml"
+    name = "measured." + Path(path).name + ".txt"
+    contents = subprocess.check_output(["git", "show", f"{candidate}:{path}"])
+    assert Path(path).read_bytes().replace(b"\r\n", b"\n") == contents
+    (destination / name).write_bytes(contents)
+    archive_hashes[name] = b._digest(destination / name)
+for module in b.RUNTIME_MODULES:
+    path = "src/" + module.replace(".", "/") + ".py"
+    name = "baseline." + module.rsplit(".", 1)[1] + ".py.txt"
+    contents = subprocess.check_output(["git", "show", f"{baseline}:{path}"])
+    (destination / name).write_bytes(contents)
+    archive_hashes[name] = b._digest(destination / name)
+    for _label, raw, *_counts in cohorts:
+        assert (raw / name).read_bytes() == contents
+        rewrite[(raw / name).resolve().as_posix()] = name
+        rewrite[str((raw / name).resolve())] = name
+
+workspace = Path.cwd()
+def portable(value):
+    if isinstance(value, dict):
+        return {portable(key): portable(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [portable(item) for item in value]
+    if isinstance(value, str):
+        if value in rewrite:
+            return rewrite[value]
+        return (value.replace(sys.executable, "<PYTHON>")
+                .replace(str(workspace), "<WORKSPACE>")
+                .replace(workspace.as_posix(), "<WORKSPACE>").replace("\\", "/"))
+    return value
+
+originals = {}
+for label, raw, train, holdout, matched_train, matched_holdout, query_count, status in cohorts:
+    definition = BenchmarkDefinition.model_validate(read_mapping(raw / "pipeline.definition.json"))
+    assert len(definition.trials) == 10
+    assert {method.source_commit for method in definition.methods} == {candidate, baseline}
+    original_bindings = definition.provenance.source_artifacts
+    config_path = next(path for path in original_bindings if path.startswith("examples/"))
+    assert original_bindings[config_path] == b._digest(Path(config_path))
+    for path in b.SOURCES:
+        assert original_bindings[path] == b._digest(Path(path))
+    anchor = None
+    method_anchors = {}
+    for trial in definition.trials:
+        folder = raw / f"{trial.method_id}.{trial.split_id}"
+        measurement = json.loads((folder / "measurement.json").read_bytes())
+        saved = ContinuousTimeLidarPairArtifact.model_validate(read_mapping(folder / "result.yaml"))
+        canonical = b._canonical(saved.model_dump(mode="json", exclude_none=True))
+        assert canonical == b._canonical(measurement["result"]) == trial.provenance.notes[-1]
+        assert b._digest(folder / "result.yaml") == measurement["result_sha256"]
+        assert hashlib.sha256(canonical.encode()).hexdigest() == trial.provenance.output_sha256
+        assert trial.status == "success" and trial.metrics["complete_result_matches"] == 1.0
+        comparable = b._comparison_canonical(saved.model_dump(mode="json", exclude_none=True))
+        assert anchor is None or anchor == comparable
+        anchor = comparable
+        assert method_anchors.setdefault(trial.method_id, canonical) == canonical
+        metadata = json.loads(trial.provenance.notes[0])
+        assert metadata["numba_cache_policy"] == "persistent"
+        if trial.method_id == "sparse" and trial.split_id == "repeat-01":
+            assert not metadata["numba_cache_before"]
+            assert metadata["numba_cache_after"]
+        if trial.method_id == "sparse" and trial.split_id != "repeat-01":
+            assert metadata["numba_cache_before"]
+            assert metadata["numba_cache_before"] == metadata["numba_cache_after"]
+        assert saved.status == status and saved.observability.rank == 6
+        assert saved.train_correspondence_count == matched_train
+        assert saved.holdout_correspondence_count == matched_holdout
+        assert measurement["adaptive_query_calls"] == query_count
+        assert measurement["sampled_split"]["train_count"] == train
+        assert measurement["sampled_split"]["holdout_count"] == holdout
+        assert measurement["sampled_split"]["train_ids_sha256"] != (
+            measurement["sampled_split"]["holdout_ids_sha256"]
+        )
+    payload = definition.model_dump(mode="json", exclude_none=True)
+    for trial in payload["trials"]:
+        notes = trial["provenance"]["notes"]
+        notes[0] = json.dumps(portable(json.loads(notes[0])), sort_keys=True)
+        assert b._canonical(portable(json.loads(notes[-1]))) == notes[-1]
+    payload = portable(payload)
+    for name, digest in archive_hashes.items():
+        payload["provenance"]["source_artifacts"][name] = digest
+    published = BenchmarkDefinition.model_validate(payload)
+    published.save(destination / (label + ".definition.json"))
+    aggregate_benchmark_definition(published).save(destination / (label + ".benchmark.json"))
+    originals[label] = {
+        "measurement_sha256": {
+            filename: b._digest(raw / filename)
+            for filename in ["pipeline.definition.json", "pipeline.benchmark.json"]
+        },
+        "source_bindings": {
+            key.replace(str(workspace), "<WORKSPACE>").replace(
+                workspace.as_posix(), "<WORKSPACE>",
+            ).replace("\\", "/"): digest for key, digest in original_bindings.items()
+        },
+    }
+
+lineage = Path("data/public/glim_versatile/conversion-provenance.json")
+(destination / "conversion-provenance.json").write_bytes(lineage.read_bytes())
+interrupted_root = Path("outputs/public-glim-compiled-queries-full-v1")
+interrupted = {
+    "provenance": {
+        "generator": "publication-launcher.py.txt",
+        "source_commit": candidate, "baseline_source_commit": baseline,
+        "raw_directory": interrupted_root.as_posix(),
+        "post_run_source_input_guard_completed": False,
+    },
+    "status": "interrupted",
+    "limitations": [
+        "The parent process stopped during pair 3, before a benchmark definition was saved.",
+        "Five completed API/saved results remain; complete-process wall exists only for the first four.",
+        "Wall values below are rounded console observations, not reconstructed measurements.",
+        "This incomplete cohort is retained separately and excluded from the formal five-pair summaries.",
+    ],
+    "trials": [],
+}
+known_wall = {
+    "baseline.repeat-01": 111.131733, "sparse.repeat-01": 61.259375,
+    "sparse.repeat-02": 57.218456, "baseline.repeat-02": 121.728771,
+}
+for folder in sorted(interrupted_root.iterdir()):
+    if not (folder / "measurement.json").exists():
+        continue
+    measurement = json.loads((folder / "measurement.json").read_bytes())
+    result = ContinuousTimeLidarPairArtifact.model_validate(read_mapping(folder / "result.yaml"))
+    canonical = b._canonical(result.model_dump(mode="json", exclude_none=True))
+    assert canonical == b._canonical(measurement["result"])
+    assert b._digest(folder / "result.yaml") == measurement["result_sha256"]
+    interrupted["trials"].append({
+        "trial_id": folder.name,
+        "observed_wall_seconds_rounded": known_wall.get(folder.name),
+        "measurement_file_sha256": b._digest(folder / "measurement.json"),
+        "measurement": portable(measurement),
+        "full_canonical_result_sha256": hashlib.sha256(canonical.encode()).hexdigest(),
+    })
+assert len(interrupted["trials"]) == 5
+(destination / "interrupted-cohort.json").write_text(
+    json.dumps(interrupted, indent=2, allow_nan=False) + "\n", encoding="utf-8", newline="\n",
+)
+launcher = destination / "publication-launcher.py.txt"
+launcher.write_bytes(Path(__file__).read_bytes().replace(b"\r\n", b"\n"))
+index = {
+    "provenance": {
+        "generator": "publication-launcher.py.txt",
+        "candidate_source_commit": candidate, "baseline_source_commit": baseline,
+        "command": ["<PYTHON>", "publication-launcher.py.txt"],
+    },
+    "original_cohorts": originals,
+    "files": {
+        path.name: b._digest(path) for path in sorted(destination.iterdir())
+        if path.is_file() and path.name not in ("README.md", "publication-index.json")
+    },
+}
+(destination / "publication-index.json").write_text(
+    json.dumps(index, indent=2) + "\n", encoding="utf-8", newline="\n",
+)
+print("All 20 actual saved artifacts, full canonical payloads, exact identity-only comparisons and archives verified.")

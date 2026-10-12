@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Add optional compiled CPU kernels for continuous-time interpolation, world
+  coordinates and repeated point-to-plane residuals, preserving arithmetic
+  order and numerical finite differences. Batch exact adaptive centroid queries
+  with scalar gate/tie handling and unsupported-map fallbacks. Record actual
+  optional kernel execution in provenance; retain the Python default and result
+  schemas. Publish complete public-data comparisons with empty initial compiler
+  caches and all saved numerical results checked.
+
 - Reuse captured uniform plane geometry, bounded adaptive neighborhoods and
   odometry poses/slerp constants during continuous-time refinement. Batch moving
   world coordinates in the scalar Hamilton order and overlap complete input

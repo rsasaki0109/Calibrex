@@ -777,6 +777,55 @@ python tools/benchmark_adaptive_plane_search.py --baseline-scope runtime \
   --repetitions 5 --output-dir outputs/glim-query-reuse-default
 ```
 
+## Compiling continuous-time CPU kernels
+
+Continuous-time LiDAR refinement can use fused CPU kernels for interpolation,
+world coordinates and repeated point-to-plane residuals. Exact batched
+adaptive-centroid tree queries also reduce association work. The implementation
+keeps quaternion/product order, scalar gate and tie decisions, numerical finite
+differences, robust filtering and the temporal holdout policy.
+
+Install the optional compiler and request its backend in factor options:
+
+```bash
+python -m pip install -e ".[numba]"
+```
+
+```yaml
+continuous_time_query_backend: numba_cpu
+```
+
+The Python backend remains the default. Actual optional execution and its
+runtime version are saved in provenance. Supported kernels retain a disk cache;
+the first compilation and later cache loading both contribute to elapsed time.
+
+<!-- compiled-queries:measurements:start -->
+Five paired fresh processes per configuration, including the first empty-cache
+compilation, measure the following incremental gains against the preceding
+geometry-reuse version:
+
+| Public GLIM sampling | Train / holdout targets | Complete-process medians | Ratio |
+|---|---:|---:|---:|
+| Default sampling budgets | 6,000 / 3,200 | 26.255 -> 15.643 s | 1.68x |
+| All captured targets, 120 frames | 38,400 / 9,600 | 154.501 -> 78.869 s | 1.96x |
+
+<!-- compiled-queries:measurements:end -->
+
+The [full compiled-query evidence](../assets/compiled_continuous_time_queries/README.md)
+retains every timing, initial empty-cache trial, cache file hashes, exact source
+archives and complete saved result payloads. Results match within each cohort
+except the explicit optional execution identity note. The larger configuration
+uses all 48,000 captured targets, with the same within-cohort point identities
+and solver budgets. Its unchanged status is `max_iterations`; this acceleration
+does not claim convergence or absolute two-sensor calibration accuracy for the
+copied-topic public-data control.
+
+```bash
+calibrex continuous-time-lidar-pair \
+  examples/public_datasets/glim_versatile/online_continuous_time_compiled_full_capture_config.yaml \
+  --output outputs/glim-compiled-continuous-time.yaml
+```
+
 ## Generating public depth maps on GPU
 
 The external FeatDepth adapter accepts `--device cuda --batch-size 2
