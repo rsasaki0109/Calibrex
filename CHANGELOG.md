@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+- **Camera-LiDAR check moves LiDAR points to the image time.**
+
+  On a moving rig the LiDAR has turned and moved between a point's measurement and the image.
+  `calibrex check --pairs camera-lidar` now moves every point to the image time with the rig's
+  velocity.
+  - **Source.** An odometry or twist topic, else an IMU (rotation only), whose frame is
+    connected to the LiDAR in the frame tree. Each point is moved by its own time when the
+    cloud has a per-point time field.
+  - **Off switch and record.** `--camera-lidar-motion none` keeps scans as recorded (recorded in
+    the run options). The edge evidence gains an optional `motion_compensation` block.
+  - **New tool.** `tools/camera_lidar_motion_stress.py` pairs every scan with the image one
+    frame away to emulate an unsynchronized camera.
+
+  **Results.**
+  - Synchronized KITTI: 0005 now flags all nine rotation errors (yaw +1 deg moved from pass to
+    warn, yaw tolerance 1.35 to 0.5 deg) and 0009 pitch +1 deg moved from warn to fail. The
+    references still pass; AIST Livox is unchanged (no velocity topic).
+  - Emulated 0.1 s pairings: 13 of 16 rotation errors flagged (12 as recorded, which never
+    judged pitch). On 0005 with the earlier image, yaw went unjudged and yaw +1 and +3 deg
+    passed; the benchmark doc gives every case.
+
 - **Camera-LiDAR check names an image in the camera body frame.**
 
   When most frames of `calibrex check --pairs camera-lidar` put no LiDAR edge in the image, the
