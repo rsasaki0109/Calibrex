@@ -527,6 +527,29 @@ ten repetitions of 20 evaluations per mode, numerical parity, source hashes,
 stage timings and an uncached smoke run. It is profiling evidence, not a new
 solver acceleration or an accuracy benchmark.
 
+## CUDA LiDAR-LiDAR map registration
+
+LiDAR-LiDAR calibration against local maps can now use
+`--registration-backend cuda` on `calibrex lidar-lidar ros2`. The optional
+adapter moves 3D neighborhoods, normal covariance/eigensolves, point transforms,
+point-to-plane residuals, analytic Jacobians and robust normal equations onto
+the GPU. Captured spatial topology and six-dimensional updates stay on CPU;
+one device snapshot is reused for block jackknife, holdout and known-bad controls.
+CPU remains the default, and execution identity is recorded in artifact options.
+
+Five pairs on a public KITTI noisy copied-scan execution control measure fresh
+process medians of **16.951654 → 6.646739 s (2.55x)**, including imports, inputs,
+GPU preparation/compilation, all evidence calls, hashes and saves. The first
+CUDA process is slower (17.157697 versus 12.621121 s) and is included. Complete
+map-evaluation API medians are **13.896949 → 3.800446 s (3.66x)**. All statuses,
+counts and decisions match; numerical fields use declared FP64 tolerances.
+
+The [full LiDAR CUDA evidence](../assets/cuda_lidar_map/README.md) retains every
+trial, full results, original/publication hashes and the earlier exploratory
+attempts separately. Generated sample blocks reuse underlying scans and are
+an execution control, not independent temporal or two-sensor accuracy evidence.
+ROS-bag collection and reference odometry remain outside this timing scope.
+
 ## Exact CPU neighbors for native ICP
 
 Native robust point-to-point ICP and Chen–Medioni point-to-plane ICP now use

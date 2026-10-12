@@ -1,0 +1,456 @@
+{
+  "api_seconds": 3.5907023000181653,
+  "worker_cpu_seconds": 5.46875,
+  "evaluation": {
+    "result": {
+      "status": "converged",
+      "transform": [
+        [
+          0.9999999999998154,
+          -3.5964119623973415e-07,
+          -4.893651517160941e-07,
+          5.06130572809133e-05
+        ],
+        [
+          3.596392566616418e-07,
+          0.9999999999920808,
+          -3.963452046678764e-06,
+          9.378399435206828e-06
+        ],
+        [
+          4.893665771328526e-07,
+          3.963451870683339e-06,
+          0.9999999999920258,
+          -4.60175880697454e-05
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "covariance": [
+        [
+          1.660696334619358e-11,
+          -5.278047070825355e-14,
+          2.3192322831267018e-14,
+          6.2152430323275635e-12,
+          -1.4883931743019472e-11,
+          -2.6177103852456687e-12
+        ],
+        [
+          -5.278047070825354e-14,
+          5.095748481839845e-12,
+          -1.3058223456535546e-13,
+          1.5740421222016685e-11,
+          -1.2247174806890534e-12,
+          3.704270974159229e-12
+        ],
+        [
+          2.3192322831267018e-14,
+          -1.3058223456535543e-13,
+          6.605426496318727e-12,
+          -6.379336429966121e-12,
+          8.809732723938803e-12,
+          9.356378643298036e-14
+        ],
+        [
+          6.2152430323275635e-12,
+          1.5740421222016688e-11,
+          -6.379336429966121e-12,
+          2.3178139721300376e-09,
+          -1.2161157623264703e-11,
+          -4.145135836378802e-11
+        ],
+        [
+          -1.4883931743019472e-11,
+          -1.2247174806890532e-12,
+          8.809732723938803e-12,
+          -1.2161157623264706e-11,
+          1.0606600477025629e-09,
+          -7.049067159399572e-12
+        ],
+        [
+          -2.61771038524567e-12,
+          3.70427097415923e-12,
+          9.356378643298036e-14,
+          -4.145135836378802e-11,
+          -7.0490671593995735e-12,
+          5.313315737075177e-10
+        ]
+      ],
+      "sigma_m": 0.009840886939270568,
+      "samples": 4,
+      "correspondences": 320250,
+      "iterations": 6,
+      "execution_backend": "calibrex.cuda_lidar_map/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=9f89ea97556f93342928cc595263b26d42644a6273d1f29c29435b838ae6b3b3"
+    },
+    "records": [
+      {
+        "name": "roll",
+        "unit": "deg",
+        "value": 0.0002270890644940016,
+        "std_analytic": 0.0002334897101100958,
+        "std_jackknife": 0.000267650630006503,
+        "std_reported": 0.000267650630006503,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 1.0,
+          "unit": "deg",
+          "holdout_delta_chi2": 2412892.0921184365,
+          "detected": true
+        }
+      },
+      {
+        "name": "pitch",
+        "unit": "deg",
+        "value": -2.8038639499093073e-05,
+        "std_analytic": 0.00012933814392609224,
+        "std_jackknife": 0.00010061076584336267,
+        "std_reported": 0.00012933814392609224,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 1.0,
+          "unit": "deg",
+          "holdout_delta_chi2": 2618529.863161533,
+          "detected": true
+        }
+      },
+      {
+        "name": "yaw",
+        "unit": "deg",
+        "value": 2.060581155393714e-05,
+        "std_analytic": 0.00014725602210657104,
+        "std_jackknife": 9.709151250313883e-05,
+        "std_reported": 0.00014725602210657104,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 1.0,
+          "unit": "deg",
+          "holdout_delta_chi2": 1244717.451777611,
+          "detected": true
+        }
+      },
+      {
+        "name": "x",
+        "unit": "m",
+        "value": 5.06130572809133e-05,
+        "std_analytic": 4.8143680500456525e-05,
+        "std_jackknife": 2.955020014146958e-05,
+        "std_reported": 4.8143680500456525e-05,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 0.05,
+          "unit": "m",
+          "holdout_delta_chi2": 525553.906217373,
+          "detected": true
+        }
+      },
+      {
+        "name": "y",
+        "unit": "m",
+        "value": 9.378399435206828e-06,
+        "std_analytic": 3.256777621672322e-05,
+        "std_jackknife": 2.1177409924066433e-05,
+        "std_reported": 3.256777621672322e-05,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 0.05,
+          "unit": "m",
+          "holdout_delta_chi2": 739200.8148826011,
+          "detected": true
+        }
+      },
+      {
+        "name": "z",
+        "unit": "m",
+        "value": -4.60175880697454e-05,
+        "std_analytic": 2.3050630657479152e-05,
+        "std_jackknife": 2.081543822357414e-06,
+        "std_reported": 2.3050630657479152e-05,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 0.05,
+          "unit": "m",
+          "holdout_delta_chi2": 2260700.6073191958,
+          "detected": true
+        }
+      }
+    ],
+    "train_blocks": [
+      0,
+      2,
+      3,
+      5
+    ],
+    "holdout_blocks": [
+      1,
+      4
+    ],
+    "jackknife_fits": 4,
+    "train_samples": 4,
+    "holdout_samples": 2,
+    "holdout_correspondences": 168932,
+    "holdout_median_m": 0.0066709853416500615,
+    "reference_delta_chi2": null,
+    "policy_status": "pass",
+    "policy_reasons": [
+      "every DoF is estimated and held-out blocks detect every control"
+    ]
+  },
+  "artifact": {
+    "schema_version": "slac.lidar_lidar_extrinsic/v0.1",
+    "method": "map_registration/v0.1",
+    "solver_status": "converged",
+    "policy_status": "pass",
+    "policy_reasons": [
+      "every DoF is estimated and held-out blocks detect every control"
+    ],
+    "calibrated_dofs": [
+      "roll",
+      "pitch",
+      "yaw",
+      "x",
+      "y",
+      "z"
+    ],
+    "transform": {
+      "parent_frame": "public_scan_window",
+      "child_frame": "public_scan_copy",
+      "translation_m": [
+        5.06130572809133e-05,
+        9.378399435206828e-06,
+        -4.60175880697454e-05
+      ],
+      "rotation_quat_xyzw": [
+        1.9817259793445085e-06,
+        -2.4468293221272845e-07,
+        1.7982011322570537e-07,
+        0.9999999999979903
+      ]
+    },
+    "dofs": [
+      {
+        "name": "roll",
+        "unit": "deg",
+        "value": 0.0002270890644940016,
+        "std_analytic": 0.0002334897101100958,
+        "std_jackknife": 0.000267650630006503,
+        "std_reported": 0.000267650630006503,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 1.0,
+          "unit": "deg",
+          "holdout_delta_chi2": 2412892.0921184365,
+          "detected": true
+        }
+      },
+      {
+        "name": "pitch",
+        "unit": "deg",
+        "value": -2.8038639499093073e-05,
+        "std_analytic": 0.00012933814392609224,
+        "std_jackknife": 0.00010061076584336267,
+        "std_reported": 0.00012933814392609224,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 1.0,
+          "unit": "deg",
+          "holdout_delta_chi2": 2618529.863161533,
+          "detected": true
+        }
+      },
+      {
+        "name": "yaw",
+        "unit": "deg",
+        "value": 2.060581155393714e-05,
+        "std_analytic": 0.00014725602210657104,
+        "std_jackknife": 9.709151250313883e-05,
+        "std_reported": 0.00014725602210657104,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 1.0,
+          "unit": "deg",
+          "holdout_delta_chi2": 1244717.451777611,
+          "detected": true
+        }
+      },
+      {
+        "name": "x",
+        "unit": "m",
+        "value": 5.06130572809133e-05,
+        "std_analytic": 4.8143680500456525e-05,
+        "std_jackknife": 2.955020014146958e-05,
+        "std_reported": 4.8143680500456525e-05,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 0.05,
+          "unit": "m",
+          "holdout_delta_chi2": 525553.906217373,
+          "detected": true
+        }
+      },
+      {
+        "name": "y",
+        "unit": "m",
+        "value": 9.378399435206828e-06,
+        "std_analytic": 3.256777621672322e-05,
+        "std_jackknife": 2.1177409924066433e-05,
+        "std_reported": 3.256777621672322e-05,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 0.05,
+          "unit": "m",
+          "holdout_delta_chi2": 739200.8148826011,
+          "detected": true
+        }
+      },
+      {
+        "name": "z",
+        "unit": "m",
+        "value": -4.60175880697454e-05,
+        "std_analytic": 2.3050630657479152e-05,
+        "std_jackknife": 2.081543822357414e-06,
+        "std_reported": 2.3050630657479152e-05,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 0.05,
+          "unit": "m",
+          "holdout_delta_chi2": 2260700.6073191958,
+          "detected": true
+        }
+      }
+    ],
+    "residual_sigma_m": 0.009840886939270568,
+    "holdout_median_residual_m": 0.0066709853416500615,
+    "samples": {
+      "reference_scans": 3,
+      "samples": 6,
+      "train_samples": 4,
+      "holdout_samples": 2,
+      "train_correspondences": 320250,
+      "holdout_correspondences": 168932
+    },
+    "train_blocks": [
+      0,
+      2,
+      3,
+      5
+    ],
+    "holdout_blocks": [
+      1,
+      4
+    ],
+    "jackknife_fits": 4,
+    "options": {
+      "map_options": {
+        "max_correspondence_m": 0.5,
+        "normal_neighbours": 10,
+        "max_planarity_ratio": 0.2,
+        "huber_m": 0.05,
+        "iterations": 30,
+        "convergence_rotation_rad": 1e-06,
+        "convergence_translation_m": 1e-05
+      },
+      "execution_backend": "calibrex.cuda_lidar_map/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=9f89ea97556f93342928cc595263b26d42644a6273d1f29c29435b838ae6b3b3",
+      "half_window": 0,
+      "initial_transform": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.08
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          -0.07
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.05
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "target_noise_std_m": 0.01,
+      "target_noise_seed": 20261012
+    },
+    "limitations": [
+      "Concatenated raw windows are not motion compensated; copied central scans form an identity execution control, not independent two-sensor accuracy."
+    ],
+    "provenance": {
+      "generator": "tools.benchmark_cuda_lidar_map",
+      "generator_version": "0.5.1",
+      "git_commit": "6d6600cc476203ae578e7ac629b576a20818a7a9",
+      "command": [
+        "<PYTHON>",
+        "tools/benchmark_cuda_lidar_map.py",
+        "--worker",
+        "cuda"
+      ],
+      "dataset_family": "kitti_raw",
+      "sequence_ids": [
+        "2011_09_30_drive_0018_sync"
+      ],
+      "reference_topic": "public_scan_window",
+      "target_topic": "public_scan_copy",
+      "input_sha256": "77816f9edff990df205dff8a309b4ba3d2241bae20e51a5f4005cb87047a3bb1",
+      "input_digest_scope": "SHA256 of all raw scan bytes",
+      "dataset_license": "KITTI terms: https://www.cvlibs.net/datasets/kitti/raw_data.php",
+      "created_at": "2026-10-12T11:40:52.138754+00:00"
+    }
+  },
+  "result_sha256": "20c7ad861c2348d1b0642a36eea3c88e43ca63d3ad75129785622a9d4cff6ece",
+  "statistics": {
+    "retained_input_bytes": 65299350,
+    "prepared_samples": 6,
+    "gpu_query_calls": 78,
+    "gpu_query_rows": 9147116,
+    "scalar_query_repairs": 66
+  },
+  "prepared_sha256": "1c35885890a5ec3c8c44cbd5972e56586fad9978c8dfb672763785675d31772f",
+  "partition_sha256": {
+    "train": "6f69999b917dfc8f279da237bb16c2a24ef7b58c6c4d08bace24c70273d4df1d",
+    "holdout": "11d66601058e7ffac0e092aaa4fc549fbadd69caecc3d43e64c0bd899d9c15d6"
+  },
+  "map_points": [
+    127158,
+    127158,
+    127303,
+    127303,
+    126598,
+    126598
+  ],
+  "target_points": [
+    127158,
+    127158,
+    127303,
+    127303,
+    126598,
+    126598
+  ],
+  "provenance": {
+    "input_sha256": {
+      "<DATASET_ROOT>/velodyne_points/data/0000000115.bin": "213948bd8c54c925aca7eb9f3b3c36e95e586b52ee8d9d64056c4fc4aeb12b2d",
+      "<DATASET_ROOT>/velodyne_points/data/0000000230.bin": "b9b6ac62ef2b7be4dcec2eab424c142012c6e948cb3f24bf774b6459efbae2ca",
+      "<DATASET_ROOT>/velodyne_points/data/0000000345.bin": "2a5f331a041437dcfbc3d066f896fb8ac4757b30b4f64fb7f05c50bc2691bdcf"
+    },
+    "source_sha256": {
+      "measured.lidar_lidar_map_solver.py.txt": "6ac97b60e57da523e599e3c49a4e0ab0e9729643ead376493e810317b936ac7e",
+      "measured.cuda_lidar_map_adapter.py.txt": "c4cbfb6434c6ae0cb91cd5fff38fb349cc959436344aab5737236ad6f5d6a8b6",
+      "measured.lidar_lidar_map.py.txt": "616633b9e6e72836d5fa808778ca7090ad8cb761c6a5b0748294d77a054d564d",
+      "measured.lidar_lidar_extrinsic.py.txt": "e0addb87c353bab0d8d620f05f7c27d3072983673d214d289c135c8029fea30e",
+      "measured.benchmark.py.txt": "3bd889b1461053fa07811ec381c9154f43e0482410a9389cb2ae8289e169aa7c",
+      "measured.benchmark_cuda_lidar_map.py.txt": "5ea4678106cc73a8d3e46e69636b422994586c1c5c798f151ea5bb1ab858237d"
+    }
+  }
+}

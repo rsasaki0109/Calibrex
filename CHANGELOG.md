@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add an optional CUDA backend for LiDAR-LiDAR map registration and blocked
+  evidence evaluation. Keep point queries, normal preparation, residuals,
+  analytic Jacobians and Huber systems on device, with native uncertainty
+  repairs and unchanged calibration/evidence policies. Record execution
+  provenance and publish complete fresh-process public-data comparisons.
+
 - Retain continuous-time numerical finite differences and robust normal equations
   in numeric arrays with the optional CPU backend. Reuse captured observation
   fields, batched ordered hybrid selection and prepared MAD arrays/medians,
