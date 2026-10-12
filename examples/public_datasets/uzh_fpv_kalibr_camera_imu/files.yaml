@@ -1,0 +1,17 @@
+# UZH-FPV Snapdragon forward-camera calibration: the Kalibr outputs and the two
+# camera-IMU calibration recordings. Downloaded by
+# `python3 tools/download_public_dataset.py uzh_fpv_kalibr_camera_imu`
+# (data/public/uzh_fpv_kalibr_camera_imu, about 1.9 GB). Not part of the repository.
+name: uzh_fpv_kalibr_camera_imu
+source: UZH-FPV Drone Racing Dataset, calibration sequences (Delmerico et al., ICRA 2019)
+official_url: https://fpv.ifi.uzh.ch/datasets/
+base_url: http://rpg.ifi.uzh.ch/datasets/uzh-fpv/calib/
+license: >-
+  Not stated on the dataset page (checked 2026-10-12). The companion code
+  (uzh-rpg/uzh_fpv_open) is GPL-3.0 and is not used. The data stay outside the
+  repository; cite Delmerico et al., ICRA 2019.
+files:
+  indoor_forward_calib_snapdragon.zip: 10d97ef7cb32915d6c287ec7028d7d037de77b00b259c3aa2142fd16907c920a
+  indoor_forward_calib_snapdragon_imu.bag: ef4f118f7a781d67dbf79db6fdaeb6ee5d0d644e70bbaca584d88d3d755c9941
+  outdoor_forward_calib_snapdragon.zip: 60c7d7489e1831a8c3f37c56b7d9a26c9ebe73f06edea60d5c82df86ef60b6d8
+  outdoor_forward_calib_snapdragon_imu.bag: 1dfe3334ed1a64af81207d3c0676074747469ee18fd08ea02d98288413a90671

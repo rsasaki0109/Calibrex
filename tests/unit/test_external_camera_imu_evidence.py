@@ -5,6 +5,7 @@ import pytest
 
 from calibrex.cli.main import main
 from calibrex.core.external_camera_imu_evidence import (
+    CameraImuEvidenceThresholds,
     CameraImuMotionRecording,
     ExternalCameraImuEvidenceArtifact,
     load_external_camera_imu_evidence,
@@ -65,6 +66,20 @@ def test_true_kalibr_candidate_passes_with_all_signed_controls_detected(
     assert set(evidence.provenance.input_sha256) == {"external_run", "recording"}
     assert evidence.external_metrics_used is False
     ExternalCameraImuEvidenceArtifact.model_validate(evidence.model_dump(mode="json"))
+    lever_arm = evidence.lever_arm
+    assert lever_arm is not None and lever_arm.status == "pass"
+    assert len(lever_arm.controls) == 6
+    assert all(control.detected for control in lever_arm.controls)
+    assert lever_arm.holdout_specific_force_rmse_m_s2 is not None
+    assert (
+        lever_arm.holdout_specific_force_rmse_m_s2
+        < evidence.thresholds.max_holdout_specific_force_rmse_m_s2
+    )
+    # Bias and gravity are fitted on training windows only and land near the truth.
+    assert lever_arm.gravity_magnitude_m_s2 == pytest.approx(9.81, abs=0.05)
+    assert lever_arm.estimated_accel_bias_m_s2 == pytest.approx([0.05, -0.03, 0.08], abs=0.02)
+    assert lever_arm.excitation_s2 is not None
+    assert lever_arm.excitation_s2 >= evidence.thresholds.min_lever_arm_excitation_s2
 
 
 @pytest.mark.parametrize(
@@ -86,6 +101,52 @@ def test_wrong_kalibr_candidate_fails_on_holdout(
     assert evidence.reasons
 
 
+@pytest.mark.parametrize(
+    "translation_error_m",
+    [(0.05, 0.0, 0.0), (-0.05, 0.0, 0.0), (0.0, 0.05, 0.0), (0.0, -0.05, 0.0), (0.0, 0.0, 0.05)],
+)
+def test_five_centimetre_lever_arm_error_fails(
+    tmp_path: Path, translation_error_m: tuple[float, float, float]
+) -> None:
+    evidence = _evaluate(tmp_path, translation_error_m=translation_error_m)
+
+    # Rotation and time are right, so only the accelerometer can reject it: a
+    # signed control towards the truth lowers the holdout residual.
+    assert evidence.status == "fail"
+    assert evidence.control_detection_fraction == 1.0
+    assert evidence.lever_arm is not None and evidence.lever_arm.status == "fail"
+    assert any(reason.startswith("lever arm:") for reason in evidence.reasons)
+    assert "fits better than the candidate" in " ".join(evidence.lever_arm.reasons)
+
+
+def test_insensitive_lever_arm_controls_are_inconclusive_not_fail(tmp_path: Path) -> None:
+    fixture = write_synthetic_camera_imu_fixture(tmp_path)
+    run = _import(fixture, tmp_path / "external-run.json")
+    # Demanding a 1 m/s^2 rise makes every control "not detected" without any
+    # control fitting better: the recording cannot test the translation.
+    gates = CameraImuEvidenceThresholds(lever_arm_control_min_increase_m_s2=1.0)
+
+    evidence = evaluate_external_camera_imu(
+        run, fixture.evaluation_recording_path, thresholds=gates
+    )
+
+    assert evidence.lever_arm is not None and evidence.lever_arm.status == "inconclusive"
+    assert "cannot falsify the translation" in evidence.lever_arm.reasons[0]
+    assert evidence.status == "warn"
+    assert any("lever arm not checked" in warning for warning in evidence.warnings)
+
+
+def test_recording_without_accelerometer_leaves_translation_unevaluated(
+    tmp_path: Path,
+) -> None:
+    evidence = _evaluate(tmp_path, accelerometer=False, translation_error_m=(0.05, 0.0, 0.0))
+
+    assert evidence.status == "pass"
+    assert evidence.lever_arm is not None
+    assert evidence.lever_arm.status == "not_evaluated"
+    assert "no accelerometer" in evidence.lever_arm.reasons[0]
+
+
 def test_yaw_only_motion_is_inconclusive_not_pass(tmp_path: Path) -> None:
     evidence = _evaluate(tmp_path, motion="yaw_only")
 
@@ -96,6 +157,8 @@ def test_yaw_only_motion_is_inconclusive_not_pass(tmp_path: Path) -> None:
         < evidence.thresholds.min_rate_excitation_rad_s
     )
     assert "not observable" in " ".join(evidence.reasons)
+    # Rotation about one axis leaves the lever arm along that axis unobservable.
+    assert evidence.lever_arm is not None and evidence.lever_arm.status == "inconclusive"
 
 
 def test_fitting_recording_reuse_is_blocked(tmp_path: Path) -> None:
@@ -161,6 +224,10 @@ def test_recording_rejects_unsorted_timestamps(tmp_path: Path) -> None:
     payload["imu_gyro"][1]["timestamp_sec"] = payload["imu_gyro"][0]["timestamp_sec"]
 
     with pytest.raises(ValueError, match="strictly increasing"):
+        CameraImuMotionRecording.model_validate(payload)
+    payload = read_mapping(fixture.evaluation_recording_path)
+    payload["imu_accel"][2]["timestamp_sec"] = payload["imu_accel"][1]["timestamp_sec"]
+    with pytest.raises(ValueError, match="imu_accel timestamps"):
         CameraImuMotionRecording.model_validate(payload)
 
 
@@ -238,10 +305,10 @@ def test_cli_synthesize_import_evaluate_and_validate(tmp_path: Path, capsys) -> 
                 "synthesize-camera-imu-fixture",
                 "--output-dir",
                 str(bad_dir),
-                "--rotation-error-deg",
+                "--translation-error-m",
                 "0",
+                "0.05",
                 "0",
-                "3",
             ]
         )
         == 0

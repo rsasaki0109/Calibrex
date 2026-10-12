@@ -2445,6 +2445,19 @@ def _build_parser() -> argparse.ArgumentParser:
         help="rotation-vector error composed onto the true T_cam_imu",
     )
     camera_imu_fixture.add_argument("--timeshift-error-sec", type=float, default=0.0)
+    camera_imu_fixture.add_argument(
+        "--translation-error-m",
+        type=float,
+        nargs=3,
+        default=(0.0, 0.0, 0.0),
+        metavar=("X", "Y", "Z"),
+        help="error added to the camchain's T_cam_imu translation",
+    )
+    camera_imu_fixture.add_argument(
+        "--no-accelerometer",
+        action="store_true",
+        help="omit camera positions and accelerometer samples (translation not evaluated)",
+    )
     camera_imu_fixture.add_argument("--motion", choices=("full", "yaw_only"), default="full")
     camera_imu_fixture.add_argument("--json", action="store_true")
     camera_imu_fixture.set_defaults(func=_cmd_external_run_synthesize_camera_imu_fixture)
@@ -5264,6 +5277,12 @@ def _cmd_external_run_evaluate_camera_imu(args: argparse.Namespace) -> int:
             "evidence": str(args.output),
             "holdout_rate_rmse_rad_s": artifact.holdout_rate_rmse_rad_s,
             "control_detection_fraction": artifact.control_detection_fraction,
+            "lever_arm_status": (None if artifact.lever_arm is None else artifact.lever_arm.status),
+            "holdout_specific_force_rmse_m_s2": (
+                None
+                if artifact.lever_arm is None
+                else artifact.lever_arm.holdout_specific_force_rmse_m_s2
+            ),
             "reasons": artifact.reasons,
             "warnings": artifact.warnings,
         },
@@ -5278,7 +5297,9 @@ def _cmd_external_run_synthesize_camera_imu_fixture(args: argparse.Namespace) ->
         seed=args.seed,
         rotation_error_deg=tuple(args.rotation_error_deg),
         timeshift_error_sec=args.timeshift_error_sec,
+        translation_error_m=tuple(args.translation_error_m),
         motion=args.motion,
+        accelerometer=not args.no_accelerometer,
     )
     _emit(
         {
