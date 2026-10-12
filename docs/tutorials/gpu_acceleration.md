@@ -919,6 +919,25 @@ Sampling, temporal holdout, robust weights and bounded optimization are fixed;
 the public copied-topic control supplies execution parity rather than an
 independent two-sensor accuracy reference. No new configuration is required.
 
+## Keeping continuous-time observations packed and parallel
+
+The optional `numba_cpu` path keeps pose/observation rows in read-only arrays
+through correspondence preparation and MAD filtering. It computes independent
+clock candidates with up to three threads for large populations, retaining
+sequential Hessian/gradient accumulation and every existing evaluation field.
+This improves CPU work; it adds no GPU execution.
+
+| Public GLIM workload | Complete-process medians | Ratio of medians | Median paired ratio |
+|---|---:|---:|---:|
+| 120 frames, all captured targets | 27.096 → 12.723 s | 2.13× | 2.12× |
+| Default sampling budgets | 8.402 → 6.582 s | 1.28× | 1.29× |
+
+Five pairs per workload include initial compilation and every outlier/slower run.
+All 20 final saved/API results match apart from the exact declared execution note.
+The copied-topic recording provides execution parity, without independent sensor
+accuracy evidence. See [all results, ranges, prior attempts and source bindings](../assets/packed_continuous_time_lidar/README.md)
+for the limitations and commands.
+
 ## Generating public depth maps on GPU
 
 The external FeatDepth adapter accepts `--device cuda --batch-size 2

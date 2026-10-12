@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Keep optional compiled continuous-time LiDAR poses and observations in read-only
+  numeric batches through association and MAD filtering. Fuse finite differences,
+  avoid unused Jacobian conversions, and evaluate large independent clock
+  candidates with three owned threads without nested worker pools. Preserve
+  numerical values, diagnostic counters, custom-method fallbacks and schemas;
+  publish complete public-data comparisons and all preceding attempts.
+
 - Add optional fused CUDA point-to-plane LiDAR odometry, including on-device
   normal covariance preparation and captured spatial queries. Retain native
   time-gap scaling and deskew policies, record actual device work and native

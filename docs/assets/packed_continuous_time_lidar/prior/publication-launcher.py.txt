@@ -1,0 +1,194 @@
+"""Audit frozen paired runs and publish portable complete evidence."""
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import statistics
+import subprocess
+import sys
+from pathlib import Path
+
+workspace = next(path for path in Path(__file__).resolve().parents
+                 if (path / 'pyproject.toml').is_file())
+sys.path.insert(0, str(workspace))
+os.chdir(workspace)
+from calibrex.core.benchmark import BenchmarkDefinition, BenchmarkArtifact, aggregate_benchmark_definition
+from calibrex.core.continuous_time_lidar_artifacts import ContinuousTimeLidarPairArtifact
+from calibrex.core.io import read_mapping
+from tools import benchmark_adaptive_plane_search as benchmark
+
+candidate = '3e43fc2b6243caf30ff343c20d5da556e7f2600a'
+baseline = '700a88d6827e9b33242d1a8fef3bb72c8f0c4090'
+destination = Path('docs/assets/packed_continuous_time_lidar')
+destination.mkdir(parents=True, exist_ok=True)
+entries, summaries, originals = {}, {}, {}
+rewrite = {}
+
+def sha(data):
+    return hashlib.sha256(data).hexdigest()
+
+def save(name, data, **metadata):
+    if isinstance(data, dict):
+        data = (json.dumps(data, indent=2, allow_nan=False)+'\n').encode()
+    (destination/name).write_bytes(data)
+    entries[name] = {'sha256': sha(data), **metadata}
+
+def portable(value):
+    if isinstance(value, dict):
+        return {portable(key): portable(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [portable(item) for item in value]
+    if isinstance(value, str):
+        if value in rewrite:
+            return rewrite[value]
+        return (value.replace(sys.executable, '<PYTHON>').replace(str(workspace), '<WORKSPACE>')
+                .replace(workspace.as_posix(), '<WORKSPACE>').replace('\\', '/'))
+    return value
+
+cohorts = [('full_capture', Path('outputs/public-glim-packed-full-v1')),
+           ('default_budget', Path('outputs/public-glim-packed-default-v1'))]
+for source in benchmark.SOURCES:
+    data = Path(source).read_bytes()
+    assert data.replace(b'\r\n', b'\n') == subprocess.check_output(
+        ['git', 'show', f'{candidate}:{source}'])
+    name = 'measured.' + Path(source).name + '.txt'
+    save(name, data, source=source, source_commit=candidate)
+    rewrite[source] = name
+for module in benchmark.COMPILED_MODULES:
+    source = 'src/' + module.replace('.', '/') + '.py'
+    name = 'baseline.' + module.rsplit('.', 1)[1] + '.py.txt'
+    data = subprocess.check_output(['git', 'show', f'{baseline}:{source}'])
+    save(name, data, source=source, source_commit=baseline)
+    for _, root in cohorts:
+        assert data == (root/name).read_bytes()
+        for key in ((root/name).as_posix(), str((root/name).resolve()),
+                    (root/name).resolve().as_posix()):
+            rewrite[key] = name
+
+for label, root in cohorts:
+    definition = BenchmarkDefinition.model_validate(read_mapping(root/'pipeline.definition.json'))
+    aggregate = BenchmarkArtifact.model_validate(read_mapping(root/'pipeline.benchmark.json'))
+    assert aggregate == aggregate_benchmark_definition(definition)
+    assert len(definition.trials) == 10
+    assert {method.source_commit for method in definition.methods} == {candidate, baseline}
+    for source in benchmark.SOURCES:
+        assert definition.provenance.source_artifacts[source] == sha(Path(source).read_bytes())
+    config = next(key for key in definition.provenance.source_artifacts if key.startswith('examples/'))
+    name = 'measured.' + Path(config).name + '.txt'
+    raw = Path(config).read_bytes()
+    assert definition.provenance.source_artifacts[config] == sha(raw)
+    save(name, raw, source=config, source_commit=candidate)
+    rewrite[config] = name
+    anchor, by_method, splits = None, {}, None
+    for trial in definition.trials:
+        identifier = trial.method_id+'.'+trial.split_id
+        directory = root/identifier
+        raw = (directory/'measurement.json').read_bytes()
+        measurement = json.loads(raw)
+        saved_raw = (directory/'result.yaml').read_bytes()
+        saved = ContinuousTimeLidarPairArtifact.model_validate(read_mapping(directory/'result.yaml'))
+        canonical = benchmark._canonical(saved.model_dump(mode='json', exclude_none=True))
+        assert canonical == benchmark._canonical(measurement['result']) == trial.provenance.notes[-1]
+        assert sha(saved_raw) == measurement['result_sha256']
+        assert sha(canonical.encode()) == trial.provenance.output_sha256
+        assert trial.status == 'success' and trial.metrics['complete_result_matches'] == 1
+        assert trial.runtime_seconds == trial.metrics['subprocess_wall_seconds']
+        for key in trial.metrics:
+            if key in measurement:
+                assert measurement[key] == trial.metrics[key]
+        comparable = benchmark._comparison_canonical(measurement['result'])
+        if anchor is None:
+            anchor = comparable
+        assert anchor == comparable
+        assert by_method.setdefault(trial.method_id, canonical) == canonical
+        metadata = json.loads(trial.provenance.notes[0])
+        assert metadata['numba_cache_policy'] == 'persistent'
+        if trial.split_id == 'repeat-01':
+            assert not metadata['numba_cache_before'] and metadata['numba_cache_after']
+        else:
+            assert metadata['numba_cache_before'] == metadata['numba_cache_after']
+        assert metadata['sampled_split'] == measurement['sampled_split']
+        if splits is None:
+            splits = measurement['sampled_split']
+        assert splits == measurement['sampled_split']
+        split = next(item for item in definition.protocol.splits if item.split_id == trial.split_id)
+        assert split.fit_count == splits['train_count'] and split.holdout_count == splits['holdout_count']
+        assert split.fit_ids_sha256 == splits['train_ids_sha256']
+        assert split.holdout_ids_sha256 == splits['holdout_ids_sha256']
+        assert split.fit_ids_sha256 != split.holdout_ids_sha256
+        portable_measurement = portable(measurement)
+        portable_measurement['result'] = measurement['result']
+        assert benchmark._canonical(portable_measurement['result']) == canonical
+        changed = [key for key in measurement if measurement[key] != portable_measurement[key]]
+        assert set(changed) <= {'loaded_module', 'loaded_evaluation_modules'}
+        save(f'{label}.{identifier}.measurement.json', portable_measurement,
+             original_sha256=sha(raw), changed_fields=changed)
+        save(f'{label}.{identifier}.result.yaml', saved_raw, original_sha256=sha(saved_raw))
+    payload = definition.model_dump(mode='json', exclude_none=True)
+    for trial in payload['trials']:
+        trial['provenance']['notes'][0] = json.dumps(
+            portable(json.loads(trial['provenance']['notes'][0])), sort_keys=True)
+        assert portable(trial['provenance']['notes'][-1]) == trial['provenance']['notes'][-1]
+    payload = portable(payload)
+    published = BenchmarkDefinition.model_validate(payload)
+    # Only command/module/source locations become portable; all numerical fields
+    # and canonical full results are left intact.
+    assert [trial.metrics for trial in published.trials] == [trial.metrics for trial in definition.trials]
+    assert [trial.runtime_seconds for trial in published.trials] == [trial.runtime_seconds for trial in definition.trials]
+    save(label+'.definition.json', published.model_dump(mode='json', exclude_none=True),
+         original_sha256=sha((root/'pipeline.definition.json').read_bytes()))
+    save(label+'.benchmark.json', aggregate_benchmark_definition(published).model_dump(mode='json', exclude_none=True),
+         original_sha256=sha((root/'pipeline.benchmark.json').read_bytes()))
+    representative = saved
+    summaries[label] = {'status': representative.status,
+        'rank': representative.observability.rank,
+        'train_correspondences': representative.train_correspondence_count,
+        'holdout_correspondences': representative.holdout_correspondence_count,
+        'sampled_split': splits,
+        'query_calls': measurement['adaptive_query_calls'],
+        'pairs': [{method: next(trial.runtime_seconds for trial in definition.trials
+                               if trial.method_id == method and trial.split_id == f'repeat-{repeat:02d}')
+                   for method in ('baseline', 'sparse')} for repeat in range(1, 6)],
+        'medians': {method: {key: statistics.median(trial.metrics[key] for trial in definition.trials
+                                                if trial.method_id == method)
+                            for key in ('subprocess_wall_seconds', 'pipeline_seconds', 'solver_seconds',
+                                        'adaptive_query_seconds', 'worker_cpu_seconds')}
+                    for method in ('baseline', 'sparse')}}
+    originals[label] = {'directory': root.as_posix(),
+        'definition_sha256': sha((root/'pipeline.definition.json').read_bytes()),
+        'aggregate_sha256': sha((root/'pipeline.benchmark.json').read_bytes()),
+        'source_bindings': portable(definition.provenance.source_artifacts)}
+save('conversion-provenance.json', Path('data/public/glim_versatile/conversion-provenance.json').read_bytes())
+diagnostic_root = Path('outputs/public-glim-packed-diagnostic-v1')
+diagnostic = json.loads((diagnostic_root/'diagnostic.json').read_bytes())
+diagnostic_launcher = Path('.tmp-calibrex-diagnose-packed-continuous-time.py').read_bytes()
+assert diagnostic['provenance']['source_commit'] == candidate
+assert diagnostic['provenance']['source_sha256']['diagnostic-launcher.py.txt'] == sha(diagnostic_launcher)
+assert diagnostic['counts'] == {'successful_packed_batches': 52, 'packed_input_rows': 1248000,
+    'packed_correspondences': 1027299, 'fallback_batches': 0,
+    'materialized_batches': 1, 'materialized_rows': 29181}
+raw_diagnostic_measurement = (diagnostic_root/'worker/measurement.json').read_bytes()
+assert sha(raw_diagnostic_measurement) == diagnostic['provenance']['measurement_sha256']
+diagnostic_measurement = json.loads(raw_diagnostic_measurement)
+reference = json.loads((cohorts[0][1]/'sparse.repeat-01/measurement.json').read_bytes())
+assert benchmark._canonical(diagnostic_measurement['result']) == benchmark._canonical(reference['result'])
+portable_diagnostic_measurement = portable(diagnostic_measurement)
+portable_diagnostic_measurement['result'] = diagnostic_measurement['result']
+save('diagnostic.measurement.json', portable_diagnostic_measurement,
+    original_sha256=sha(raw_diagnostic_measurement),
+    changed_fields=['loaded_module', 'loaded_evaluation_modules'])
+save('diagnostic.json', diagnostic)
+save('diagnostic-launcher.py.txt', diagnostic_launcher)
+launcher = Path(__file__).read_text(encoding='utf-8')
+start = launcher.index('    if '+'re.search')
+end = launcher.index('    (destination/name).write_bytes', start)
+launcher = launcher[:start]+launcher[end:]
+launcher = launcher.replace('import re\n', '')
+save('publication-launcher.py.txt', launcher.encode())
+save('publication-index.json', {'provenance': {'generator': 'publication-launcher.py.txt',
+    'candidate_source_commit': candidate, 'baseline_source_commit': baseline,
+    'command': ['<PYTHON>', 'publication-launcher.py.txt']},
+    'original_cohorts': originals, 'summaries': summaries, 'files': entries.copy()})
+Path('outputs/packed-continuous-time-summary.json').write_text(json.dumps(summaries, indent=2)+'\n')
+print('Audited and published 20 complete matching results and', len(entries), 'bindings.')

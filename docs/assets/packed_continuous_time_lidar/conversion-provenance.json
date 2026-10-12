@@ -1,0 +1,32 @@
+{
+  "source": "https://zenodo.org/records/6864654",
+  "command": [
+    "tools/rosbag1_to_rosbag2_online_pair.py",
+    "--src",
+    "data/public/glim_versatile/livox.bag",
+    "--dst",
+    "data/public/glim_versatile/livox_rosbag2_gt_restamped",
+    "--topic",
+    "/livox/points",
+    "--odom-source",
+    "external-trajectory",
+    "--trajectory-file",
+    "data/public/glim_versatile/gt/livox.txt",
+    "--trajectory-time-offset-s",
+    "1655977530.260883",
+    "--restamp-topic",
+    "/livox/points",
+    "--duplicate-topic",
+    "/livox/points:/livox/points_copy"
+  ],
+  "converter_sha256": "9da3e080b62933d4d75f92c08bba91929fea401d99650e55f78bd3cdabfcc680",
+  "python_version": "3.12.10",
+  "input_and_replay_sha256": {
+    "data/public/glim_versatile/livox.bag": "f57a2e85339316d4235ab693ab2876aac5e113625c7f8b0f7873b62f92e09643",
+    "data/public/glim_versatile/gt.tar.gz": "4bfd871527d00065898153e77a6764ac331421aca16ff88bde778994f70f5bc9",
+    "data/public/glim_versatile/gt/livox.txt": "bcc75ff7985f2e140e514c69f029153e0127a33ee7abc1b757e077386f5059ad",
+    "data/public/glim_versatile/livox_rosbag2_gt_restamped/livox_rosbag2_gt_restamped.db3": "8d28f0a8ddda13b880e4648e9d687d4a566d40f70b87547f8798fe8a18cfde9e",
+    "data/public/glim_versatile/livox_rosbag2_gt_restamped/metadata.yaml": "7542a3e1689e2007e9c15b8d163cddcbca4d87232dd92b7ecff48ba1e0f6645f"
+  },
+  "conversion_log_sha256": "9a49ddb682d1743ff9df44c00df7c25c9b8698ab42088c309e30e0edef137d1c"
+}

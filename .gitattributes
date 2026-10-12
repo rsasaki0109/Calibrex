@@ -48,3 +48,6 @@ docs/assets/cuda_scan_odometry/*.txt text eol=lf
 # Preserve their actual line endings rather than normalizing their digests.
 docs/assets/cuda_scan_odometry/*.measurement.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 docs/assets/cuda_scan_odometry/*.measurement.schema.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+# Archive the actual measured source bytes, including original checkout EOLs.
+docs/assets/packed_continuous_time_lidar/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/packed_continuous_time_lidar/**/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
