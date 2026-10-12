@@ -62,7 +62,7 @@ def publishable(
             if sha256_path(output_dir / path) != artifact.sha256:
                 raise ValueError(f"{output_dir / path} changed since the benchmark ran")
             artifacts.append(artifact.model_copy(update={"path": path.as_posix()}))
-        reason, rules, metrics = summarize_kitti_trial(output_dir / trial.candidate_id)
+        reason, rules, metrics, checks = summarize_kitti_trial(output_dir / trial.candidate_id)
         trials.append(
             trial.model_copy(
                 update={
@@ -70,6 +70,7 @@ def publishable(
                     "assessment_reason": reason,
                     "rules": rules,
                     "metrics": metrics,
+                    "evidence_checks": checks,
                 }
             )
         )

@@ -53,3 +53,17 @@ def test_reference_passes_and_the_declared_known_bad_fails() -> None:
 
 def test_published_markdown_regenerates_from_the_artifact() -> None:
     assert render_kitti_falsification_markdown(_artifact()) == MARKDOWN.read_text(encoding="utf-8")
+
+
+def test_the_known_bad_is_rejected_only_by_the_reference_comparison() -> None:
+    # The published finding: under this protocol no check of the images and scans
+    # rejects the declared known-bad; only the comparison with the dataset's own
+    # calibration does. A protocol change that alters this must update the page.
+    trials = {trial.candidate_id: trial for trial in _artifact().trials}
+    failed = [
+        check
+        for check in trials["known_bad"].evidence_checks
+        if check.status == "fail" and check.check != "Decision Boundary"
+    ]
+    assert failed and all(check.uses_dataset_reference for check in failed)
+    assert all(check.status == "pass" for check in trials["dataset_reference"].evidence_checks)

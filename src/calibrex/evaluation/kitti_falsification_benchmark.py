@@ -74,6 +74,23 @@ class KITTIBenchmarkRule(StrictModel):
     reason: str
 
 
+# Evidence checks that compare the candidate with the dataset's own calibration rather
+# than with the images and scans: a candidate rejected only by these is not falsified by
+# the data.
+KITTI_REFERENCE_CHECKS: frozenset[str] = frozenset({"Dataset Reference Consistency"})
+
+
+class KITTIBenchmarkEvidenceCheck(StrictModel):
+    """One LiDAR-camera evidence check of a trial (``evidence.json`` summaries)."""
+
+    check: str
+    status: str
+    evidence: str
+    uses_dataset_reference: bool = Field(
+        description="the check compares with the dataset's calibration, not with the data"
+    )
+
+
 class KITTIBenchmarkTrial(StrictModel):
     """One frozen candidate evaluated by the KITTI protocol."""
 
@@ -87,6 +104,10 @@ class KITTIBenchmarkTrial(StrictModel):
     metrics: list[KITTIBenchmarkMetric] = Field(
         default_factory=list,
         description="headline metrics of the trial (see KITTI_HEADLINE_METRICS)",
+    )
+    evidence_checks: list[KITTIBenchmarkEvidenceCheck] = Field(
+        default_factory=list,
+        description="the LiDAR-camera evidence checks behind the decision-boundary gate",
     )
 
 
@@ -152,6 +173,7 @@ def run_kitti_falsification_benchmark(
 ) -> KITTIFalsificationBenchmarkArtifact:
     """Run reference and declared known-bad candidates under one frozen protocol."""
 
+    commit = git_commit()  # the code that runs, read before a long run can see new commits
     dataset = Path(dataset_path)
     source_config = Path(config_path)
     output = Path(output_dir)
@@ -204,7 +226,7 @@ def run_kitti_falsification_benchmark(
             raise RuntimeError(msg)
         assessment = AssessmentArtifact.model_validate(read_mapping(trial_dir / "assessment.json"))
         verification = _verify_trial(trial_dir)
-        reason, rules, metrics = summarize_kitti_trial(trial_dir)
+        reason, rules, metrics, checks = summarize_kitti_trial(trial_dir)
         trials.append(
             KITTIBenchmarkTrial(
                 candidate_id=candidate_id,
@@ -215,6 +237,7 @@ def run_kitti_falsification_benchmark(
                 assessment_reason=reason,
                 rules=rules,
                 metrics=metrics,
+                evidence_checks=checks,
             )
         )
 
@@ -264,7 +287,7 @@ def run_kitti_falsification_benchmark(
         ],
         provenance=KITTIFalsificationProvenance(
             calibrex_version=__version__,
-            git_commit=git_commit(),
+            git_commit=commit,
             source_config=str(source_config),
             source_config_sha256=source_config_digest,
         ),
@@ -372,11 +395,17 @@ def _verify_trial(trial_dir: Path) -> EvidenceBundleVerification:
 
 def summarize_kitti_trial(
     trial_dir: str | Path,
-) -> tuple[str, list[KITTIBenchmarkRule], list[KITTIBenchmarkMetric]]:
-    """The assessment reason, the policy gates and the headline metrics of one trial."""
+) -> tuple[
+    str,
+    list[KITTIBenchmarkRule],
+    list[KITTIBenchmarkMetric],
+    list[KITTIBenchmarkEvidenceCheck],
+]:
+    """The assessment reason, policy gates, headline metrics and evidence checks of a trial."""
 
     directory = Path(trial_dir)
     assessment = read_mapping(directory / "assessment.json")
+    summaries = read_mapping(directory / "evidence.json").get("summaries", [])
     metrics = read_mapping(directory / "metrics.json").get("metrics", {})
     if not isinstance(metrics, dict):
         msg = f"{directory / 'metrics.json'} has no metrics mapping"
@@ -404,6 +433,16 @@ def summarize_kitti_trial(
             )
             for metric_id in KITTI_HEADLINE_METRICS
             if isinstance(metrics.get(metric_id), dict)
+        ],
+        [
+            KITTIBenchmarkEvidenceCheck(
+                check=str(item["check"]),
+                status=str(item["status"]),
+                evidence=str(item.get("evidence", "")),
+                uses_dataset_reference=str(item["check"]) in KITTI_REFERENCE_CHECKS,
+            )
+            for item in (summaries if isinstance(summaries, list) else [])
+            if isinstance(item, dict) and item.get("family") == "lidar_camera"
         ],
     )
 
@@ -468,10 +507,43 @@ def render_kitti_falsification_markdown(benchmark: KITTIFalsificationBenchmarkAr
             rule = next((r for r in trials[name].rules if r.rule_id == rule_id), None)
             cells.append("-" if rule is None else rule.status)
         lines.append(f"| `{rule_id}` | " + " | ".join(cells) + " |")
+    check_names = [item.check for item in trials["dataset_reference"].evidence_checks]
+    if check_names:
+        lines += [
+            "",
+            "LiDAR-camera evidence checks (the decision-boundary gate combines the others):",
+            "",
+            "| Check | " + " | ".join(f"`{n}`" for n in order) + " |",
+            "| --- | --- | --- |",
+        ]
+        for check in check_names:
+            cells = []
+            for name in order:
+                item = next((c for c in trials[name].evidence_checks if c.check == check), None)
+                cells.append("-" if item is None else item.status)
+            marker = (
+                " (compares with the dataset's calibration)"
+                if check in KITTI_REFERENCE_CHECKS
+                else ""
+            )
+            lines.append(f"| {check}{marker} | " + " | ".join(cells) + " |")
     for name in order:
         reason = trials[name].assessment_reason
         if reason:
             lines += ["", f"`{name}`: {reason}."]
+        failed = [
+            item
+            for item in trials[name].evidence_checks
+            if item.status == "fail" and item.check != "Decision Boundary"
+        ]
+        if failed and all(item.uses_dataset_reference for item in failed):
+            lines += [
+                "",
+                f"`{name}` is rejected only by "
+                + ", ".join(f"*{item.check}* ({item.evidence})" for item in failed)
+                + ": a comparison with the dataset's own calibration. No check of the images "
+                "and scans rejects it.",
+            ]
     return "\n".join(lines) + "\n"
 
 

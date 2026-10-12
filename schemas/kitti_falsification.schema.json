@@ -32,6 +32,37 @@
       "title": "KITTIBenchmarkArtifactDigest",
       "type": "object"
     },
+    "KITTIBenchmarkEvidenceCheck": {
+      "additionalProperties": false,
+      "description": "One LiDAR-camera evidence check of a trial (``evidence.json`` summaries).",
+      "properties": {
+        "check": {
+          "title": "Check",
+          "type": "string"
+        },
+        "evidence": {
+          "title": "Evidence",
+          "type": "string"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "uses_dataset_reference": {
+          "description": "the check compares with the dataset's calibration, not with the data",
+          "title": "Uses Dataset Reference",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "check",
+        "status",
+        "evidence",
+        "uses_dataset_reference"
+      ],
+      "title": "KITTIBenchmarkEvidenceCheck",
+      "type": "object"
+    },
     "KITTIBenchmarkMetric": {
       "additionalProperties": false,
       "description": "One headline metric of a trial, as its ``metrics.json`` records it.",
@@ -180,6 +211,14 @@
           ],
           "title": "Candidate Id",
           "type": "string"
+        },
+        "evidence_checks": {
+          "description": "the LiDAR-camera evidence checks behind the decision-boundary gate",
+          "items": {
+            "$ref": "#/$defs/KITTIBenchmarkEvidenceCheck"
+          },
+          "title": "Evidence Checks",
+          "type": "array"
         },
         "expected_assessment": {
           "enum": [
