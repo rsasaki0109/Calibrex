@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Reuse captured uniform plane geometry, bounded adaptive neighborhoods and
+  odometry poses/slerp constants during continuous-time refinement. Batch moving
+  world coordinates in the scalar Hamilton order and overlap complete input
+  hashing with computation, rejecting changed inputs. Publish separate complete
+  public-data comparisons at the existing and default sampling budgets, with
+  exact saved-artifact parity and unchanged temporal holdout.
+
 - Search only occupied adaptive voxel cells in the original level/x/y/z order,
   preserving nearest ties, scalar distances and inclusive gates. Publish fresh
   complete continuous-time comparisons on the public GLIM Livox identity control,

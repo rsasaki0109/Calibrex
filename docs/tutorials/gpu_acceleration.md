@@ -743,6 +743,40 @@ calibrex continuous-time-lidar-pair \
 Prepare the official recording with the archive's checksum-verified instructions
 before running these commands.
 
+## Reusing continuous-time geometry and interpolation
+
+Continuous-time refinement now captures uniform voxel geometry once per solve,
+reuses occupied adaptive-neighbor tuples and prepares odometry interpolation
+intervals. Moving world-coordinate transforms run in bounded array chunks,
+retaining the scalar quaternion and normalization order. Independent complete
+input hashing overlaps replay and optimization; changed inputs invalidate the
+result. Query counters and estimator behavior remain unchanged.
+
+Against the preceding sparse-query version, five fresh-process pairs per
+configuration measure:
+
+| Public GLIM sampling | Train / holdout targets | Complete-process medians | Ratio |
+|---|---:|---:|---:|
+| Existing bounded configuration | 1,200 / 1,200 | 15.542 -> 8.756 s | 1.78x |
+| Solver default sampling budgets | 6,000 / 3,200 | 32.153 -> 17.196 s | 1.87x |
+
+All twenty complete API payloads and saved YAML artifacts match within their
+configurations, including clock-candidate scores, refinement histories, train
+and holdout diagnostics, and provenance. The larger workload retains rank 6,
+4,773 train/2,526 holdout correspondences and holdout RMSE
+0.05078387183780445 m. This uses the same copied-topic identity control and
+supplied public trajectory. The [full reuse evidence](../assets/continuous_time_query_reuse/README.md)
+retains all timings, ranges, calculation counts, exact source archives and
+input lineage. Ratios compare complete runs within each cohort and do not
+multiply earlier gains. This CPU improvement applies automatically.
+
+```bash
+python tools/benchmark_adaptive_plane_search.py --baseline-scope runtime \
+  --baseline-commit 3f1e1f412d5d373493395e53b2636e079184e457 \
+  --config examples/public_datasets/glim_versatile/online_continuous_time_default_budget_config.yaml \
+  --repetitions 5 --output-dir outputs/glim-query-reuse-default
+```
+
 ## Generating public depth maps on GPU
 
 The external FeatDepth adapter accepts `--device cuda --batch-size 2
