@@ -167,11 +167,13 @@ accuracy.
    cloud has a time field (Hilti exp21, handheld: 6 of 6 errors flagged
    moved, 5 as recorded; one recording, gyro only).
 9. **LiDAR packet coverage:** raw `velodyne_msgs/VelodyneScan` is decoded
-   for VLP-16 (single and dual return), VLP-32C (single return) and HDL-64E
-   (single and dual return, with its calibration), each checked against
-   LidarView's reference clouds. HDL-32E, VLP-32A/B, VLP-16 Hi-Res, VLS-128,
-   VLP-32C dual return and other vendors' packets are refused by name, so such
-   bags need their own `PointCloud2` topics.
+   for VLP-16 (single and dual return), VLP-32C (single return), HDL-64E
+   (single and dual return, with its calibration) and VLS-128 (single return,
+   with its calibration), each checked against LidarView's reference clouds
+   (the VLS-128's laser table is not: its 2019 reference used an unpublished
+   calibration). HDL-32E, VLP-32A/B, VLP-16 Hi-Res, VLP-32C and VLS-128 dual
+   return and other vendors' packets are refused by name, so such bags need
+   their own `PointCloud2` topics.
 10. **Unreleased backlog:** the bag-level path, ROS 1/MCAP readers,
     camera-LiDAR check, Autoware decoding, browser check page and CUDA backend
     are on `main` only; the latest release wheel is v0.5.1.

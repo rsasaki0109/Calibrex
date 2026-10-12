@@ -6,8 +6,8 @@ the per-firing time, which the transformed ``PointCloud2`` of a pipeline such as
 Autoware's concatenated cloud does not, and they are stamped in the sensor's own
 frame rather than in ``base_link``. This module converts a scan into a
 :class:`~calibrex.data.ros_messages.PointCloud2Message` with per-point time
-offsets, ROS-independent and written from the public VLP-16, VLP-32C and
-HDL-64E user manuals (angles, units, firing sequences and return-mode layouts
+offsets, ROS-independent and written from the public VLP-16, VLP-32C, HDL-64E
+and VLS-128 user manuals (angles, units, firing sequences and return-mode layouts
 below are the manuals' values).
 
 Supported, each verified against a reference cloud (see below):
@@ -17,11 +17,13 @@ Supported, each verified against a reference cloud (see below):
 * HDL-64E (no product id; recognised by its alternating upper/lower blocks),
   single and dual return, with the sensor's own calibration
   (:func:`load_velodyne_calibration`: Velodyne ``db.xml`` or ROS
-  ``velodyne_pointcloud`` YAML).
+  ``velodyne_pointcloud`` YAML);
+* VLS-128 / Alpha Prime (product id 0xA1), single (strongest/last) return, with the
+  sensor's 128-laser calibration in the same formats.
 
 Every other packet format raises ``DatasetError`` naming it: HDL-32E (0x21),
-VLP-32A/B (0x23), VLP-16 Hi-Res (0x24), Velarray (0x31), VLS-128 (0xA1), VLP-32C
-dual return, HDL-64E without a calibration, and unknown ids. Earlier versions
+VLP-32A/B (0x23), VLP-16 Hi-Res (0x24), Velarray (0x31), VLP-32C and VLS-128 dual
+return, an HDL-64E or VLS-128 without its calibration, and unknown ids. Earlier versions
 decoded 0x21 and 0x24 as a VLP-16; their elevations differ, so they are refused.
 
 Point positions are in the sensor frame, in metres. In dual-return mode both
@@ -54,6 +56,7 @@ from __future__ import annotations
 
 import hashlib
 import math
+import re
 import xml.etree.ElementTree as ET
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -74,8 +77,10 @@ _BLOCKS = 12
 _MAX_PACKETS = 20000
 _UPPER_BLOCK = 0xEEFF
 _LOWER_BLOCK = 0xDDFF
+# VLS-128: the four blocks of a firing sequence carry lasers 0-31, 32-63, 64-95, 96-127.
+_VLS128_BANKS = {0xEEFF: 0, 0xDDFF: 32, 0xCCFF: 64, 0xBBFF: 96}
 
-VelodyneModel = Literal["vlp16", "vlp32c", "hdl64e"]
+VelodyneModel = Literal["vlp16", "vlp32c", "hdl64e", "vls128"]
 VelodyneReturnMode = Literal["strongest", "last", "single", "dual", "unknown"]
 
 _PRODUCT_NAMES = {
@@ -96,7 +101,11 @@ _SUPPORTED: dict[tuple[str, str], VelodyneModel] = {
     ("VLP-32C", "last"): "vlp32c",
     ("HDL-64E", "single"): "hdl64e",
     ("HDL-64E", "dual"): "hdl64e",
+    ("VLS-128", "strongest"): "vls128",
+    ("VLS-128", "last"): "vls128",
 }
+# Models whose lasers are not fixed constants here: the unit's calibration is required.
+_CALIBRATED_LASERS: dict[VelodyneModel, int] = {"hdl64e": 64, "vls128": 128}
 
 _VLP16_ELEVATION_DEG = np.array(
     [-15.0, 1.0, -13.0, 3.0, -11.0, 5.0, -9.0, 7.0, -7.0, 9.0, -5.0, 11.0, -3.0, 13.0, -1.0, 15.0]
@@ -228,9 +237,9 @@ def load_velodyne_calibration(path: str | Path) -> VelodyneCalibration:
     except (ET.ParseError, ValueError, TypeError, KeyError, yaml.YAMLError) as error:
         raise DatasetError(f"cannot read the Velodyne calibration {source}: {error}") from error
     ids = sorted(item.laser_id for item in lasers)
-    if ids != list(range(len(ids))) or len(ids) not in {16, 32, 64}:
+    if ids != list(range(len(ids))) or len(ids) not in {16, 32, 64, 128}:
         raise DatasetError(
-            f"{source}: expected laser ids 0..N-1 for 16, 32 or 64 lasers, got {len(ids)}"
+            f"{source}: expected laser ids 0..N-1 for 16, 32, 64 or 128 lasers, got {len(ids)}"
         )
     if not 0.0 < resolution < 0.1:
         raise DatasetError(f"{source}: implausible distance resolution {resolution} m")
@@ -238,7 +247,9 @@ def load_velodyne_calibration(path: str | Path) -> VelodyneCalibration:
 
 
 def _db_xml_lasers(data: bytes) -> tuple[list[VelodyneLaserCorrection], float]:
-    root = ET.fromstring(data)
+    # LidarView's Alpha_Prime.xml repeats the XML declaration after its DOCTYPE, which
+    # boost reads and ElementTree refuses; the declarations carry nothing needed here.
+    root = ET.fromstring(re.sub(rb"<\?xml[^>]*\?>", b"", data))
     lsb = root.find(".//distLSB_")
     resolution = 0.002 if lsb is None or lsb.text is None else float(lsb.text) / 100.0
     lasers: list[VelodyneLaserCorrection] = []
@@ -251,7 +262,11 @@ def _db_xml_lasers(data: bytes) -> tuple[list[VelodyneLaserCorrection], float]:
                 vert_correction_deg=values["vertCorrection"],
                 dist_correction_m=values["distCorrection"] / 100.0,
                 vert_offset_m=values.get("vertOffsetCorrection", 0.0) / 100.0,
-                horiz_offset_m=values.get("horizOffsetCorrection", 0.0) / 100.0,
+                # LidarView's VLS-128 file (Alpha_Prime.xml) spells it "Corection".
+                horiz_offset_m=values.get(
+                    "horizOffsetCorrection", values.get("horizOffsetCorection", 0.0)
+                )
+                / 100.0,
             )
         )
     return lasers, resolution
@@ -359,15 +374,19 @@ def decode_velodyne_packet(
         return _decode_vlp16_packet(packet, dual=dual)
     if packet_format.model == "vlp32c":
         return _decode_vlp32c_packet(packet)
+    name = packet_format.sensor
     if calibration is None:
         raise DatasetError(
-            "HDL-64E packets need the sensor's calibration (db.xml or ROS YAML); "
+            f"{name} packets need the sensor's calibration (db.xml or ROS YAML); "
             "pass it with --calibration"
         )
-    if len(calibration.lasers) != 64:
+    lasers = _CALIBRATED_LASERS[packet_format.model]
+    if len(calibration.lasers) != lasers:
         raise DatasetError(
-            f"an HDL-64E needs a 64-laser calibration, got {len(calibration.lasers)}"
+            f"a {name} needs a {lasers}-laser calibration, got {len(calibration.lasers)}"
         )
+    if packet_format.model == "vls128":
+        return _decode_vls128_packet(packet, calibration)
     return _decode_hdl64e_packet(packet, calibration, dual=dual)
 
 
@@ -421,6 +440,91 @@ def decode_velodyne_scan(
         point_time_offsets_s=time_all,
         raw_point_count=int(xyz_all.shape[0]),
     )
+
+
+def _corrected_points(
+    azimuth_centideg: np.ndarray,
+    laser: np.ndarray,
+    distance_raw: np.ndarray,
+    calibration: VelodyneCalibration,
+) -> tuple[np.ndarray, np.ndarray]:
+    """LidarView's correction model: per-laser rotation, elevation, distance and offsets.
+
+    Returns the points (manual axes) and the corrected range, zero where nothing returned.
+    """
+
+    table = calibration.laser_table()
+    rotation = np.deg2rad(azimuth_centideg * 0.01 - table["rot_correction_deg"][laser])
+    vertical = np.deg2rad(table["vert_correction_deg"][laser])
+    distance = distance_raw * calibration.distance_resolution_m + table["dist_correction_m"][laser]
+    vert_offset = table["vert_offset_m"][laser]
+    horiz_offset = table["horiz_offset_m"][laser]
+    planar = distance * np.cos(vertical) - vert_offset * np.sin(vertical)
+    xyz = np.stack(
+        [
+            planar * np.sin(rotation) - horiz_offset * np.cos(rotation),
+            planar * np.cos(rotation) + horiz_offset * np.sin(rotation),
+            distance * np.sin(vertical) + vert_offset,
+        ],
+        axis=-1,
+    ).reshape(-1, 3)
+    return xyz, np.where(distance_raw > 0, distance, 0.0)
+
+
+# VLS-128 firing timing (manual rev. 4, firmware 5.2.3.0, as LidarView applies it): a
+# firing sequence is 20 cycles of 2.89 us; eight lasers fire together per cycle, lasers
+# 64-127 two cycles later (maintenance cycles), all 7 us before the block's stamp.
+_VLS128_CYCLE_US = 2.89
+_VLS128_OFFSET_US = 7.0
+
+
+def _decode_vls128_packet(
+    packet: bytes, calibration: VelodyneCalibration, *, cycle_us: float = _VLS128_CYCLE_US
+) -> VelodynePacketPoints:
+    """VLS-128 single return: 3 firing sequences of 4 blocks (32 lasers each), 4 mm units.
+
+    ``cycle_us`` is the firing cycle: 2.89 us from firmware 5.2.3.0 (manual rev. 4, the
+    default), 2.66666 us before it (rev. 3). It sets the per-point time only: the
+    azimuth advance is a fraction of the sequence, which the cycle cancels from.
+
+    Each laser's azimuth is advanced by the fraction of its firing sequence elapsed when
+    it fires, at the azimuth step to the same bank of the next sequence (the last
+    sequence of a packet reuses the step before it; a step over 1 deg, a field-of-view
+    gap, reuses the previous one), rounded to 0.01 deg as LidarView does.
+    """
+
+    raw = _blocks(packet, tuple(_VLS128_BANKS))
+    flag = raw[:, 0].astype(np.int64) | (raw[:, 1].astype(np.int64) << 8)
+    bank = np.asarray([_VLS128_BANKS[int(value)] for value in flag])
+    laser = bank[:, None] + np.arange(32)[None, :]
+    azimuth = raw[:, 2].astype(np.int64) + 256 * raw[:, 3].astype(np.int64)
+    channels = raw[:, 4:].reshape(_BLOCKS, 32, 3).astype(np.int64)
+    distance_raw = channels[..., 0] + 256 * channels[..., 1]
+    reflectivity = channels[..., 2].astype(np.float64)
+
+    steps = np.empty(_BLOCKS, dtype=np.int64)
+    previous = 0
+    for block in range(_BLOCKS):
+        start = min(block, _BLOCKS - 5)
+        step = int((azimuth[start + 4] - azimuth[start]) % 36000)
+        if step > 100:
+            step = previous
+        previous = step
+        steps[block] = step
+    blocks = np.arange(_BLOCKS)
+    channel = (np.arange(32)[None, :] + 32 * (blocks % 4)[:, None]).astype(np.int64)
+    sequence_us = 20 * cycle_us
+    sequence_start_us = sequence_us * (blocks // 4) - _VLS128_OFFSET_US
+    time_us = (
+        sequence_us * (blocks // 4)[:, None]
+        + (channel // 8 + (channel // 64) * 2) * cycle_us
+        - _VLS128_OFFSET_US
+    )
+    fraction = (time_us - sequence_start_us[:, None]) / sequence_us
+    adjusted = (azimuth[:, None] + np.floor(steps[:, None] * fraction + 0.5)) % 36000
+    xyz, range_m = _corrected_points(adjusted, laser, distance_raw, calibration)
+    partner = np.full(range_m.shape, -1, dtype=np.int64)
+    return _packet_points(xyz, reflectivity, range_m, time_us, laser, partner)
 
 
 def _spherical_to_xyz(
@@ -592,22 +696,7 @@ def _decode_hdl64e_packet(
     time_us = before_stamp_us[0, 0] - before_stamp_us
     fraction = (within_us[0] - within_us) / period_us
     adjusted = (azimuth[:, None] + np.floor(azimuth_step * fraction[None, :] + 0.5)) % 36000
-    table = calibration.laser_table()
-    rotation = np.deg2rad(adjusted * 0.01 - table["rot_correction_deg"][laser])
-    vertical = np.deg2rad(table["vert_correction_deg"][laser])
-    distance = distance_raw * calibration.distance_resolution_m + table["dist_correction_m"][laser]
-    vert_offset = table["vert_offset_m"][laser]
-    horiz_offset = table["horiz_offset_m"][laser]
-    planar = distance * np.cos(vertical) - vert_offset * np.sin(vertical)
-    xyz = np.stack(
-        [
-            planar * np.sin(rotation) - horiz_offset * np.cos(rotation),
-            planar * np.cos(rotation) + horiz_offset * np.sin(rotation),
-            distance * np.sin(vertical) + vert_offset,
-        ],
-        axis=-1,
-    ).reshape(-1, 3)
-    range_m = np.where(distance_raw > 0, distance, 0.0)
+    xyz, range_m = _corrected_points(adjusted, laser, distance_raw, calibration)
     flat_index = np.arange(range_m.size).reshape(range_m.shape)
     partner = np.full(range_m.shape, -1, dtype=np.int64)
     if dual:

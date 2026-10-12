@@ -1192,9 +1192,9 @@ concatenated cloud. The packets are stamped in the sensors' own frames
 above: the cloud is no longer "already in `base_link`" and it has per-point time.
 `calibrex check` plans a `VelodyneScan` topic as an ignored `lidar` with a conversion
 hint; `tools/velodyne_scan_to_pointcloud2.py` (decoder `calibrex.data.velodyne_packets`,
-ROS-independent, from the VLP-16, VLP-32C and HDL-64E manuals; an HDL-64E needs its
-`db.xml` or ROS YAML calibration via `--calibration`) writes a derived bag whose clouds
-are in the sensor frames:
+ROS-independent, from the VLP-16, VLP-32C, HDL-64E and VLS-128 manuals; an HDL-64E or a
+VLS-128 needs its `db.xml` or ROS YAML calibration via `--calibration`) writes a derived
+bag whose clouds are in the sensor frames:
 
 ```bash
 python tools/velodyne_scan_to_pointcloud2.py all-sensors-bag1 aw_points \
@@ -1231,7 +1231,7 @@ the VLP-32C decoder applied the head's turn between laser pairs inside a block (
 the bag is not public, so they were not re-measured.
 
 **Packet formats and their reference clouds.** Kitware's LidarView test recordings
-(Apache-2.0, `python3 tools/download_public_dataset.py lidarview_velodyne`, about 160 MB
+(Apache-2.0, `python3 tools/download_public_dataset.py lidarview_velodyne`, about 210 MB
 under `data/public`) pair Velodyne pcaps with the frames LidarView decoded from them.
 `tools/validate_velodyne_decode.py --pcap X.pcap --reference X_1.vtp ...` decodes the
 packets of each frame and reports, for every reference point, the distance to the
@@ -1245,6 +1245,7 @@ of each recording:
 | `VLP_32c_Dual` | VLP-32C strongest (0x28) | 0.053 mm | 0.22 mm | 99 to 100 % | 0.26 us |
 | `HDL_64_Single` | HDL-64E single, LidarView's `HDL_64.xml` | 0.000 mm | 0.000 mm | 100 % | 0.34 us |
 | `HDL_64_Dual` | HDL-64E dual, same calibration | 0.000 mm | 0.000 mm | 100 % | 0.20 us |
+| `HDL_128` | VLS-128 strongest (0xA1), laser table read from frame 0 (see below) | 0.000 mm | 0.000 mm | 99 % | 0 us at the 2.666 us cycle |
 
 The time deviation is the median difference from LidarView's per-point stamp (whole
 microseconds) after removing its convention: LidarView stamps an HDL-64E point relative
@@ -1256,6 +1257,25 @@ correction model, and the manual's two-point distance interpolation (`distCorrec
 applied by the ROS driver) differs by a few centimetres. Its single-return packets do
 not say whether they hold the strongest or the last return.
 
+The VLS-128 needs more care because its reference does not come with its calibration.
+LidarView's `HDL_128` recording (2019) is a VLS-128 whose reference frames were decoded
+with a calibration file that is no longer published. Its 128 (elevation, azimuth offset)
+pairs are those of LidarView's `Alpha_Prime.xml` (which the ROS driver's `VLS128.yaml`
+also holds), in another channel order, with channel 38 at (0, 0). So the comparison
+above reads that channel order back from frame 0 and checks frames 1 and 2 against it:
+banks, 4 mm units, the azimuth advance inside a firing sequence and LidarView's
+0.01 deg rounding all match exactly (median 0.000 mm over 185 000 points per frame).
+The laser table itself is not tested by this recording. The firing cycle changed with
+firmware 5.2.3.0 from 2.666 us to 2.89 us. The decoder uses 2.89 us; LidarView stamped
+this recording with 2.666 us, and with that cycle every point's time matches its
+reference up to one constant. With 2.89 us the per-point times differ by up to about
+13 us (0.05 deg of turn at 600 rpm), and the positions are the same either way. Decoded
+with `Alpha_Prime.xml` as published, this recording's surfaces come out flatter than
+with the 2019 channel order: the residual of a plane through 12 neighbours has a median
+of 8.5 mm against 9.9 mm, and a 75th percentile of 12.7 mm against 19.5 mm. That
+suggests the published file fits this unit and the 2019 reference used another one.
+Give a VLS-128 its own calibration.
+
 Every other format is refused with its name, by `velodyne_scan_to_pointcloud2.py` and in
 the `calibrex check` plan:
 
@@ -1263,7 +1283,8 @@ the `calibrex check` plan:
   their elevations differ.
 - VLP-32A/B (0x23). LidarView's `VLP_32c_Single` recording is one; decoded with VLP-32C
   constants it misses LidarView's cloud by an 11 mm median.
-- Velarray, VLS-128, VLP-32C dual return, and an HDL-64E without its calibration.
+- Velarray, VLP-32C and VLS-128 dual return, and an HDL-64E or a VLS-128 without its
+  calibration.
 
 `VelocityReport` (header and three float32) was verified on the 873 real messages of
 `migrated/autoware_data/sample-rosbag` (`autoware_vehicle_msgs`; 30 s, 0 to 13.1 m/s). That

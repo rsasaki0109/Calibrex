@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- **VLS-128 packets are decoded.** `velodyne_msgs/VelodyneScan` from a VLS-128 / Alpha Prime
+  (product id 0xA1) is decoded in single-return mode (strongest or last). Like an HDL-64E it
+  needs the unit's calibration (`db.xml` or ROS YAML).
+  - **Decoding.** The four laser banks of a firing sequence are read, along with the firing
+    timing (2.89 us cycle, firmware 5.2.3.0 and later). The azimuth advances inside a sequence
+    with LidarView's 0.01 deg rounding.
+  - **Checked against LidarView's 2019 `HDL_128` reference.** The channel order is read back
+    from frame 0, and frames 1 and 2 match exactly (median 0.000 mm). At the earlier
+    firmware's 2.666 us cycle, every point time matches up to one constant.
+  - **What is not tested.** That reference used an unpublished calibration, so the laser table
+    is not tested by it. `Alpha_Prime.xml` as published gives this recording flatter
+    surfaces than the 2019 order does.
+  - **Calibration files.** `load_velodyne_calibration` reads 128-laser files, including
+    LidarView's `Alpha_Prime.xml`, which repeats its XML declaration and spells
+    `horizOffsetCorection`.
+  - **Data.** `lidarview_velodyne` downloads the `HDL_128` recording and `Alpha_Prime.xml`.
+    VLS-128 dual return stays refused by name.
+
 - **Documented: the camera-LiDAR known-bad control near its threshold.** Doubling the frames,
   8 or 12 blocks, and a rank test were each tried on the KITTI pairings where an axis went
   unjudged. In each case a held-out block prefers the turned fit, so the data, not the rule,
