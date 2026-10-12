@@ -7,6 +7,7 @@ import os
 from collections.abc import Iterable, Mapping
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import numpy as np
 from numpy.typing import NDArray
@@ -40,6 +41,9 @@ from calibrex.graph.lidar_point_to_plane import (
     LidarRigPointToPlaneEvaluation,
     _array_world_points,
 )
+
+if TYPE_CHECKING:
+    from calibrex.data.adaptive_voxel import AdaptivePlaneQueryContext
 
 _WORLD_MAP_WEAK_DOF_DELTA_M = 1.0e-3
 _LIVOX_PAIR_MANDATORY_ROTATION_DEG = 1.0
@@ -973,6 +977,8 @@ def build_rig_point_to_plane_observations(
     source_plane_map: VoxelPlaneMap | None = None,
     adaptive_plane_map: AdaptiveVoxelPlaneMap | None = None,
     source_plane_queries: VoxelPlaneQueryContext | None = None,
+    _prepared_world_coordinates: NDArray[np.float64] | None = None,
+    _adaptive_queries: AdaptivePlaneQueryContext | None = None,
 ) -> list[LidarPointToPlaneObservation]:
     """Build fixed-correspondence point-to-plane observations for a LiDAR pair.
 
@@ -1020,15 +1026,25 @@ def build_rig_point_to_plane_observations(
             plane_normal_world=plane.normal, t_world_ego=identity,
         ) for point, plane in zip(target_points, planes, strict=True)
             if plane is not None and plane.normal is not None]
-    coordinates = _batched_world_coordinates(
-        target_points, target_t_world_source, initial_t_source_target,
-    )
+    coordinates = _prepared_world_coordinates
+    if coordinates is not None:
+        if (coordinates.shape != (len(target_points), 3)
+            or coordinates.dtype != np.dtype(np.float64) or not np.isfinite(coordinates).all()):
+            raise ValueError("prepared world coordinates must be finite float64 N-by-3")
+    else:
+        coordinates = _batched_world_coordinates(
+            target_points, target_t_world_source, initial_t_source_target,
+        )
     uniform_matches = (
         source_plane_queries.nearest_matches(
             coordinates, voxel_size_m=voxel_size_m,
             correspondence_gate_m=correspondence_gate_m,
         )
         if source_plane_queries is not None and coordinates is not None else None
+    )
+    adaptive_matches = (
+        _adaptive_queries.nearest_planes(coordinates, correspondence_gate_m=correspondence_gate_m)
+        if _adaptive_queries is not None and coordinates is not None else None
     )
     observations: list[LidarPointToPlaneObservation] = []
     for index, point in enumerate(target_points):
@@ -1071,9 +1087,11 @@ def build_rig_point_to_plane_observations(
                     )
                 )
         if adaptive_plane_map is not None:
-            adaptive_plane = adaptive_plane_map.nearest_plane(
-                world_point,
-                correspondence_gate_m=correspondence_gate_m,
+            adaptive_plane = (
+                adaptive_matches[index] if adaptive_matches is not None else
+                adaptive_plane_map.nearest_plane(
+                    world_point, correspondence_gate_m=correspondence_gate_m,
+                )
             )
             if adaptive_plane is not None:
                 candidates.append(

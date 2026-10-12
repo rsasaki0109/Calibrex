@@ -40,6 +40,46 @@ def test_canonical_preserves_every_numerical_value_status_and_lineage():
     assert benchmark._canonical(payload) != canonical
 
 
+def test_comparison_excludes_only_exact_execution_identity_and_preserves_full_artifact():
+    baseline = {"status": "converged", "provenance": {"git_commit": "bound", "notes": [
+        "continuous_time_query_execution: counterfeit", "other lineage",
+    ]}, "estimated_time_offset_sec": -0.0}
+    candidate = deepcopy(baseline)
+    identity = (
+        "continuous_time_query_execution: calibrex.numba_continuous_time/v0.1;"
+        "numba=0.65.1;fastmath=false;cache=true"
+    )
+    candidate["provenance"]["notes"].append(identity)
+    full = benchmark._canonical(candidate)
+    assert benchmark._comparison_canonical(candidate) == benchmark._canonical(baseline)
+    assert benchmark._canonical(candidate) == full
+    assert full != benchmark._canonical(baseline)
+    for forged in (
+        identity + ";hidden=change", identity.replace("fastmath=false", "fastmath=true"),
+    ):
+        changed = deepcopy(baseline)
+        changed["provenance"]["notes"].append(forged)
+        assert benchmark._comparison_canonical(changed) != benchmark._comparison_canonical(baseline)
+    for key, value in (("status", "rejected"), ("estimated_time_offset_sec", 1e-15)):
+        changed = deepcopy(candidate)
+        changed[key] = value
+        assert benchmark._comparison_canonical(changed) != benchmark._comparison_canonical(baseline)
+
+
+def test_compiled_default_config_preserves_capture_and_sampling():
+    from calibrex.core.config import load_config
+
+    root = "examples/public_datasets/glim_versatile/"
+    baseline = load_config(root + "online_continuous_time_default_budget_config.yaml")
+    compiled = load_config(root + "online_continuous_time_compiled_queries_config.yaml")
+    left, right = [config.model_dump(mode="json") for config in (baseline, compiled)]
+    for payload in (left, right):
+        payload.pop("project")
+    opts = right["pipeline"]["factors"]["lidar_rig_point_to_plane"]["options"]
+    assert opts.pop("continuous_time_query_backend") == "numba_cpu"
+    assert left == right
+
+
 @pytest.mark.parametrize("option", ["--repetitions", "--omp-threads"])
 def test_invalid_budget_is_rejected_before_reading_inputs_or_creating_outputs(tmp_path, option):
     destination = tmp_path / "output"

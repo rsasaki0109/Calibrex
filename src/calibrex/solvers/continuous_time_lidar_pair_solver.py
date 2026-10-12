@@ -13,9 +13,13 @@ from __future__ import annotations
 import math
 import random
 from collections import OrderedDict
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
+
+if TYPE_CHECKING:
+    from calibrex.data.adaptive_voxel import AdaptivePlaneQueryContext
+    from calibrex.solvers.numba_continuous_time_adapter import NumbaContinuousTimeQueryContext
 
 from calibrex.core.continuous_time_lidar_train_diagnostics import (
     ContinuousTimeLidarTrainDiagnosticsData,
@@ -25,6 +29,7 @@ from calibrex.core.continuous_time_lidar_train_diagnostics import (
 )
 from calibrex.core.geometry import SE3, Vector3
 from calibrex.core.time import apply_time_offset_ns
+from calibrex.data import adaptive_voxel as adaptive_voxel_module
 from calibrex.data.adaptive_voxel import (
     AdaptiveVoxelPlaneMap,
     AdaptiveVoxelPolicy,
@@ -41,6 +46,7 @@ from calibrex.evaluation.lidar import build_rig_point_to_plane_observations
 from calibrex.graph.lidar_point_to_plane import (
     LidarRigPointToPlaneEvaluation,
     LidarRigPointToPlaneFactor,
+    _ObservationArrays,
 )
 from calibrex.solvers.fixed_trajectory_se3_solver import (
     FixedTrajectorySe3ExtrinsicSolver,
@@ -109,6 +115,7 @@ class ContinuousTimeLidarPairOptions:
     solver: FixedTrajectorySe3SolverOptions = field(
         default_factory=FixedTrajectorySe3SolverOptions
     )
+    query_backend: Literal["python", "numba_cpu"] = "python"
 
 
 @dataclass(frozen=True)
@@ -153,6 +160,7 @@ class ContinuousTimeLidarPairResult:
         "positive offset evaluates target capture at odometry time "
         "t_capture + offset"
     )
+    query_backend: str = "python"
 
 
 @dataclass(frozen=True)
@@ -181,6 +189,18 @@ class _FactorBuild:
 class _QueryReuse:
     planes: VoxelPlaneQueryContext | None
     poses: OrderedDict[int, tuple[SE3, SE3, SE3]] = field(default_factory=OrderedDict)
+    compiled: NumbaContinuousTimeQueryContext | None = None
+    adaptive: AdaptivePlaneQueryContext | None = None
+    used_numba: bool = False
+
+    def identity(self) -> str:
+        if self.used_numba or (self.compiled is not None and self.compiled.used):
+            from calibrex.solvers.numba_continuous_time_adapter import (
+                numba_continuous_time_identity,
+            )
+
+            return numba_continuous_time_identity()
+        return "python"
 
     def source_pose(self, timestamp_ns: int, pose: SE3, base: SE3) -> SE3:
         eligible = type(pose) is SE3 and type(base) is SE3
@@ -243,6 +263,22 @@ class ContinuousTimeLidarPairSolver:
         query_reuse = _QueryReuse(
             VoxelPlaneQueryContext(source_plane_map) if source_plane_map is not None else None,
         )
+        if adaptive_plane_map is not None:
+            # Historical adaptive-only benchmark archives predate the batch context.
+            factory = getattr(adaptive_voxel_module, "AdaptivePlaneQueryContext", None)
+            if factory is not None:
+                query_reuse.adaptive = factory(adaptive_plane_map)
+        if settings.query_backend == "numba_cpu":
+            try:
+                from calibrex.solvers.numba_continuous_time_adapter import (
+                    NumbaContinuousTimeQueryContext,
+                )
+            except ImportError as exc:
+                raise ValueError(
+                    "numba_cpu queries require the optional calibrex[numba] dependency"
+                ) from exc
+
+            query_reuse.compiled = NumbaContinuousTimeQueryContext.capture(problem.odometry_track)
         initial = self._evaluate_offset(
             problem,
             settings,
@@ -271,6 +307,7 @@ class ContinuousTimeLidarPairSolver:
                 outlier_rejected_count=0,
                 observability=None,
                 iterations=(),
+                query_backend=query_reuse.identity(),
             )
 
         current = initial
@@ -448,6 +485,7 @@ class ContinuousTimeLidarPairSolver:
             observability=evaluation,
             iterations=tuple(trace),
             train_diagnostics=train_diagnostics,
+            query_backend=query_reuse.identity(),
         )
 
     def _evaluate_offset(
@@ -539,7 +577,20 @@ class ContinuousTimeLidarPairSolver:
         )
         target_points = [problem.target_points[index] for index in selected_indices]
         target_poses: list[SE3] = []
-        for index in selected_indices:
+        coordinates = None
+        compiled = None
+        if query_reuse is not None and query_reuse.compiled is not None:
+            compiled = query_reuse.compiled.evaluate(
+                problem.odometry_track,
+                [apply_time_offset_ns(problem.target_capture_timestamps_ns[index], offset_sec)
+                 for index in selected_indices], target_points, problem.t_base_source,
+                initial_transform, settings.max_odometry_extrapolation_s,
+            )
+        if compiled is not None:
+            target_poses, coordinates, usable = compiled
+            if not usable:
+                return None
+        for index in (() if compiled is not None else selected_indices):
             capture_ns = apply_time_offset_ns(
                 problem.target_capture_timestamps_ns[index], offset_sec
             )
@@ -560,6 +611,8 @@ class ContinuousTimeLidarPairSolver:
             source_plane_map=source_plane_map,
             adaptive_plane_map=adaptive_plane_map,
             source_plane_queries=query_reuse.planes if query_reuse is not None else None,
+            _prepared_world_coordinates=coordinates,
+            _adaptive_queries=query_reuse.adaptive if query_reuse is not None else None,
         )
         if len(observations) < settings.min_correspondences:
             return None
@@ -580,12 +633,24 @@ class ContinuousTimeLidarPairSolver:
             outlier_rejected_count = filtered.rejected_count
         if len(observations) < settings.min_correspondences:
             return None
+        array_kernel: Callable[[_ObservationArrays, SE3], list[float]] | None = None
+        if settings.query_backend == "numba_cpu":
+            from calibrex.solvers.numba_continuous_time_adapter import numba_rig_residuals
+
+            def compiled_residuals(arrays: _ObservationArrays, transform: SE3) -> list[float]:
+                result = numba_rig_residuals(arrays, transform)
+                if query_reuse is not None:
+                    query_reuse.used_numba = True
+                return result
+
+            array_kernel = compiled_residuals
         return _FactorBuild(
             factor=LidarRigPointToPlaneFactor(
                 variable=problem.variable,
                 t_ego_lidar=initial_transform,
                 observations=observations,
                 sensor=problem.sensor,
+                _array_kernel=array_kernel,
             ),
             candidate_correspondence_count=candidate_correspondence_count,
             outlier_rejected_count=outlier_rejected_count,
@@ -596,6 +661,8 @@ class ContinuousTimeLidarPairSolver:
         problem: ContinuousTimeLidarPairProblem,
         settings: ContinuousTimeLidarPairOptions,
     ) -> None:
+        if settings.query_backend not in ("python", "numba_cpu"):
+            raise ValueError("unsupported continuous-time query_backend")
         if len(problem.target_points) != len(problem.target_capture_timestamps_ns):
             raise ValueError("target points and capture timestamps must have equal length")
         if not problem.target_points:

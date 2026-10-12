@@ -15,6 +15,7 @@ import hashlib
 import json
 import os
 import platform
+import re
 import subprocess
 import sys
 import time
@@ -56,6 +57,7 @@ SOURCES = (
     "src/calibrex/data/odometry_track.py",
     "src/calibrex/graph/lidar_point_to_plane.py",
     "src/calibrex/solvers/continuous_time_lidar_pair_solver.py",
+    "src/calibrex/solvers/numba_continuous_time_adapter.py",
     "src/calibrex/solvers/fixed_trajectory_se3_solver.py",
     "src/calibrex/evaluation/lidar.py",
     "src/calibrex/data/livox.py",
@@ -87,6 +89,18 @@ def _canonical(payload: dict) -> str:
         return value.replace("\\", "/") if isinstance(value, str) else value
 
     return json.dumps(visit(payload), sort_keys=True, separators=(",", ":"), allow_nan=False)
+
+
+def _comparison_canonical(payload: dict) -> str:
+    """Exclude only the exact declared optional kernel identity note."""
+    comparable = json.loads(_canonical(payload))
+    provenance = comparable.get("provenance", {})
+    if "notes" in provenance:
+        provenance["notes"] = [note for note in provenance["notes"] if re.fullmatch(
+            r"continuous_time_query_execution: (python|calibrex\.numba_continuous_time/v0\.1;"
+            r"numba=[0-9.]+;fastmath=false;cache=(true|false))", note,
+        ) is None]
+    return _canonical(comparable)
 
 
 def _split_binding(
@@ -172,9 +186,49 @@ def _worker(args: argparse.Namespace) -> None:
         prepared_interval.interpolate = measured_prepared_pose
     nearest = AdaptiveVoxelPlaneMap.nearest_plane
     solve = ContinuousTimeLidarPairSolver.solve
+    query_depth = 0
+    adaptive_context = getattr(sys.modules[MODULE], "AdaptivePlaneQueryContext", None)
+    if adaptive_context is not None:
+        batch_nearest = adaptive_context.nearest_planes
+
+        def measured_batch_nearest(self, points, **keywords):
+            nonlocal query_seconds, query_count, query_depth
+            query_count += len(points)
+            started = time.perf_counter()
+            query_depth += 1
+            try:
+                return batch_nearest(self, points, **keywords)
+            finally:
+                query_depth -= 1
+                query_seconds += time.perf_counter() - started
+
+        adaptive_context.nearest_planes = measured_batch_nearest
+    if args.worker == "sparse":
+        from calibrex.core.config import load_config
+
+        factor = load_config(args.config).pipeline.factors.get("lidar_rig_point_to_plane")
+        if (
+            factor is not None
+            and factor.options.get("continuous_time_query_backend") == "numba_cpu"
+        ):
+            started_import = time.perf_counter()
+            from calibrex.solvers import numba_continuous_time_adapter as compiled
+
+            import_seconds += time.perf_counter() - started_import
+            kernel = compiled._pose_world_rows
+
+            def measured_pose_rows(*arguments, **keywords):
+                nonlocal pose_calculations
+                value = kernel(*arguments, **keywords)
+                pose_calculations += value[-2]
+                return value
+
+            compiled._pose_world_rows = measured_pose_rows
 
     def measured_nearest(*arguments, **keywords):
         nonlocal query_seconds, query_count
+        if query_depth:
+            return nearest(*arguments, **keywords)
         query_count += 1
         started = time.perf_counter()
         try:
@@ -305,6 +359,9 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--repetitions", type=int, default=5)
     parser.add_argument("--omp-threads", type=int, default=1)
     parser.add_argument(
+        "--numba-cache-policy", choices=("persistent", "cold"), default="persistent",
+    )
+    parser.add_argument(
         "--prepare", action="store_true",
         help="Verify downloaded official bag/GT, convert once and record replay lineage.",
     )
@@ -386,6 +443,13 @@ def main(argv: list[str] | None = None) -> None:
                 "--config", str(args.config), "--output-dir", str(directory),
             ]
             print(f"START {repeat} {method}", flush=True)
+            cache_directory = args.output_dir / "numba-cache" / (
+                f"{method}.repeat-{repeat:02d}" if args.numba_cache_policy == "cold" else "shared"
+            )
+            cache_directory.mkdir(parents=True, exist_ok=True)
+            environment["NUMBA_CACHE_DIR"] = str(cache_directory)
+            cache_before = {path.name: _digest(path) for path in sorted(cache_directory.rglob("*"))
+                            if path.is_file()}
             started = time.perf_counter()
             with (args.output_dir / f"{method}.repeat-{repeat:02d}.log").open(
                 "w", encoding="utf-8",
@@ -394,6 +458,8 @@ def main(argv: list[str] | None = None) -> None:
                                stdout=log, stderr=subprocess.STDOUT)
             elapsed = time.perf_counter() - started
             row = json.loads((directory / "measurement.json").read_bytes())
+            cache_after = {path.name: _digest(path) for path in sorted(cache_directory.rglob("*"))
+                           if path.is_file()}
             expected = {
                 name: str(archives[name] if method == "baseline" else
                           Path("src", *name.split(".")).with_suffix(".py").resolve())
@@ -407,8 +473,8 @@ def main(argv: list[str] | None = None) -> None:
                 raise ValueError("train/holdout sampled point identities changed")
             canonical = _canonical(row["result"])
             if anchor is None:
-                anchor = canonical
-            matches = canonical == anchor
+                anchor = _comparison_canonical(row["result"])
+            matches = _comparison_canonical(row["result"]) == anchor
             metrics = {name: float(row[name]) for name in (
                 "pipeline_seconds", "solver_seconds", "adaptive_query_seconds",
                 "adaptive_query_calls", "worker_import_seconds",
@@ -430,7 +496,10 @@ def main(argv: list[str] | None = None) -> None:
                                        "loaded_evaluation_modules": (
                                            row["loaded_evaluation_modules"]
                                        ),
-                                       "loaded_module": row["loaded_module"]}, sort_keys=True),
+                                       "loaded_module": row["loaded_module"],
+                                       "numba_cache_policy": args.numba_cache_policy,
+                                       "numba_cache_before": cache_before,
+                                       "numba_cache_after": cache_after}, sort_keys=True),
                            canonical],
                 ),
             ))
@@ -441,7 +510,7 @@ def main(argv: list[str] | None = None) -> None:
         title="Public GLIM Livox complete continuous-time refinement",
         reference_method_id="baseline", bootstrap_samples=1,
         protocol=BenchmarkProtocol(
-            protocol_id=f"glim-{args.baseline_scope}-fresh-subprocess-v2",
+            protocol_id=f"glim-{args.baseline_scope}-fresh-subprocess-v3",
             dataset_id="glim_versatile",
             dataset_doi="10.5281/zenodo.6864654", dataset_source_sha256=input_digest,
             data_license="CC-BY-4.0 (AIST Zenodo record 6864654)",
@@ -463,7 +532,7 @@ def main(argv: list[str] | None = None) -> None:
         ),
         methods=[BenchmarkMethodDefinition(
             method_id=method, label=method, implementation="subprocess", tool_name="Calibrex",
-            tool_version="0.5.1", adapter_version=f"continuous-time-{args.baseline_scope}/v2",
+            tool_version="0.5.1", adapter_version=f"continuous-time-{args.baseline_scope}/v3",
             source_commit=baseline if method == "baseline" else full_revision,
         ) for method in ("baseline", "sparse")],
         metrics=[BenchmarkMetricDefinition(
@@ -474,7 +543,9 @@ def main(argv: list[str] | None = None) -> None:
             direction="higher" if name.endswith("matches") else "lower",
             primary=name == "subprocess_wall_seconds",
             interpretation={
-                "complete_result_matches": "Every artifact value and all profile history match",
+                "complete_result_matches": (
+                    "All artifact values except the exact kernel identity note"
+                ),
                 "adaptive_query_calls": "Actual adaptive nearest-plane calls in the complete run",
                 "uniform_normal_calculations": "Actual uniform geometric fallback calls",
                 "interpolated_pose_calculations": "Interior odometry SE3 interpolation calls",
@@ -501,14 +572,17 @@ def main(argv: list[str] | None = None) -> None:
             "YAML output and worker measurement save; parent audits and CLI presentation "
             "are excluded.",
             "Phase timers wrap existing calls without extra work; their wrapper cost is included.",
-            "Full artifact equality normalizes only path separators; git revision remains shared.",
+            "Full saved/API artifacts and git revision are retained. Comparison normalizes path "
+            "separators and excludes only the exact optional kernel identity note.",
+            "Numba cache policy is recorded per trial, with compiled file hashes before/after. "
+            "The first candidate uses an empty cache; all import/compile/load work is inside wall.",
             "Raw checksums and conversion lineage are verified before measurement.",
             "Split IDs hash ordered sampled target indices, capture timestamps and XYZ; "
             "the distinct temporal partitions and unchanged sampling caps are verified each run.",
             "Descriptive timings are local observations, not portable confidence estimates.",
         ],
         provenance=BenchmarkProvenance(
-            generator="tools.benchmark_adaptive_plane_search", generator_version="v0.2",
+            generator="tools.benchmark_adaptive_plane_search", generator_version="v0.3",
             git_commit=source_commit,
             command=subprocess.list2cmdline([sys.executable, __file__, *arguments]),
             data_verified=True,

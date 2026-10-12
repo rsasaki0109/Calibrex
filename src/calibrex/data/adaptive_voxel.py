@@ -10,6 +10,9 @@ from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from threading import Lock
 
+import numpy as np
+from numpy.typing import NDArray
+
 from calibrex.core.geometry import Vector3
 from calibrex.data.livox import LivoxPointRecord
 
@@ -211,6 +214,67 @@ class AdaptiveVoxelPlaneMap:
                             best = cell
                             best_distance = distance
         return best if best is not None and best_distance <= correspondence_gate_m else None
+
+
+class AdaptivePlaneQueryContext:
+    """Capture ordered bounded-cell geometry for exact gated batch queries."""
+
+    def __init__(self, plane_map: AdaptiveVoxelPlaneMap) -> None:
+        from scipy.spatial import cKDTree
+
+        self._map = plane_map
+        ordered: list[AdaptiveVoxelPlane] = []
+        supported = type(plane_map) is AdaptiveVoxelPlaneMap
+        for level, cells in plane_map._index.items():
+            if not isinstance(cells, _SparsePlaneCells):
+                supported = False
+                break
+            size = _level_voxel_size(level, plane_map.cells)
+            for key, cell in sorted(cells.items()):
+                if (not all(math.isfinite(value) and abs(value) < 1e100 for value in cell.centroid)
+                    or cell.voxel_size_m != size
+                    or _voxel_key(cell.centroid, plane_map.origin_m, size) != key):
+                    supported = False
+                    break
+                ordered.append(cell)
+        self._planes = tuple(ordered)
+        values = np.asarray([cell.centroid for cell in ordered], dtype=np.float64).reshape((-1, 3))
+        values.flags.writeable = False
+        self._centroids = values
+        self._tree = cKDTree(values) if supported and ordered else None
+
+    def nearest_planes(
+        self, points: NDArray[np.float64], *, correspondence_gate_m: float,
+    ) -> list[AdaptiveVoxelPlane | None]:
+        """Preserve scalar gates, exact math.dist distances and first ordered ties."""
+        gate = correspondence_gate_m
+        tree = self._tree
+        if (len(points) < 64 or tree is None or not math.isfinite(gate) or gate <= 0.0
+            or not np.isfinite(points).all() or np.any(np.abs(points) >= 1e100)):
+            return [self._map.nearest_plane(tuple(point), correspondence_gate_m=gate)
+                    for point in points.tolist()]
+        # Centroids lie in their declared cells. Every centroid within the gate
+        # is therefore inside the scalar ceil(gate/size)+1 search box.
+        distances, indexes = tree.query(points, k=2, eps=0.0, workers=1)
+        result: list[AdaptiveVoxelPlane | None] = []
+        for row, point_values in enumerate(points):
+            point = (float(point_values[0]), float(point_values[1]), float(point_values[2]))
+            distance = float(distances[row, 0])
+            if distance < 1e-150 or not math.isfinite(distance):
+                result.append(self._map.nearest_plane(point, correspondence_gate_m=gate))
+                continue
+            position = int(indexes[row, 0])
+            # 3D positive sum/sqrt roundoff is bounded away from overflow and
+            # underflow. Repair close contenders with the original scalar norm.
+            radius = math.nextafter(distance * (1.0 + 32.0 * np.finfo(np.float64).eps), math.inf)
+            if float(distances[row, 1]) <= radius:
+                candidates = sorted(tree.query_ball_point(point, radius, eps=0.0, workers=1))
+                position = min(candidates, key=lambda index: (
+                    math.dist(point, self._planes[index].centroid), index,
+                ))
+            plane = self._planes[position]
+            result.append(plane if math.dist(point, plane.centroid) <= gate else None)
+        return result
 
 
 @dataclass

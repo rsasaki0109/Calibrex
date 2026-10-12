@@ -4132,6 +4132,8 @@ def _evaluate_continuous_time_lidar_pair(
                 "adaptive correspondences use the adaptive plane map without a "
                 "uniform fallback"
             )
+    if continuous_options.query_backend != "python":
+        notes.append("continuous_time_query_execution: " + solved.query_backend)
     train_diagnostics = None
     if solved.train_diagnostics is not None:
         train_diagnostics = train_diagnostics_artifact_from_data(
@@ -4259,7 +4261,14 @@ def _continuous_time_lidar_options(
     voxel_strategy: Literal["uniform", "adaptive"] = (
         "adaptive" if raw_voxel_strategy == "adaptive" else "uniform"
     )
+    backend = str(options.get("continuous_time_query_backend", "python"))
+    if backend not in ("python", "numba_cpu"):
+        raise ConfigError("continuous_time_query_backend must be python or numba_cpu")
+    query_backend: Literal["python", "numba_cpu"] = (
+        "numba_cpu" if backend == "numba_cpu" else "python"
+    )
     return ContinuousTimeLidarPairOptions(
+        query_backend=query_backend,
         initial_time_offset_sec=_signed_float_option(
             dict(options), "continuous_time_initial_offset_s", default=0.0
         ),

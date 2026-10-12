@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from math import cos, isclose, sin, sqrt
 
@@ -91,6 +91,7 @@ class LidarRigPointToPlaneFactor:
         t_ego_lidar: SE3,
         observations: Sequence[LidarPointToPlaneObservation],
         sensor: str = "lidar0",
+        _array_kernel: Callable[[_ObservationArrays, SE3], list[float]] | None = None,
     ) -> None:
         self.variable = variable
         self.t_ego_lidar = t_ego_lidar
@@ -99,6 +100,7 @@ class LidarRigPointToPlaneFactor:
             tuple[LidarPointToPlaneObservation, ...], _ObservationArrays | None
         ] | None = None
         self.sensor = sensor
+        self._array_kernel = _array_kernel
         self.dof_names: tuple[str, str, str, str, str, str] = (
             f"{_DEFAULT_DOF_NAMES[0]}_{sensor}",
             f"{_DEFAULT_DOF_NAMES[1]}_{sensor}",
@@ -124,7 +126,10 @@ class LidarRigPointToPlaneFactor:
             if arrays is not None and all(
                 np.isfinite((*t_ego_lidar.translation_m, *t_ego_lidar.rotation_quat_xyzw))
             ):
-                return _array_residuals(arrays, t_ego_lidar)
+                return (
+                    self._array_kernel(arrays, t_ego_lidar) if self._array_kernel is not None
+                    else _array_residuals(arrays, t_ego_lidar)
+                )
         residuals: list[float] = []
         for observation in self.observations:
             t_world_lidar = observation.t_world_ego.compose(t_ego_lidar)
