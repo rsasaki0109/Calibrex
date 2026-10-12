@@ -174,6 +174,28 @@ calibrex check restamped_13_46_54 --pairs camera-lidar \
   --tf examples/public_datasets/aist_lidar_camera_livox/koide_reference_frames.yaml
 ```
 
+## Image in the camera body frame (2026-10-12)
+
+`sensor_msgs/Image` is defined in the camera's optical frame (z forward, x right, y down). A
+driver or URDF that stamps the image with the camera's REP 103 body frame (x forward, z up) puts
+every LiDAR point outside the view, so the check could only say that no frame was usable. When
+most dropped frames fail that way, the check now reads up to 16 of them once more with the
+optical rotation applied and, if that makes at least half of them usable (and more than the
+frames as given), names the body frame in the reason together with the fix. Nothing is changed
+or assumed: the verdict stays `inconclusive`.
+
+* KITTI 0005 with `cam2_optical` replaced by the body frame it would have (a `--tf` file with
+  the reference rotation composed with the REP 103 rotation): `inconclusive`, "the camera frame
+  'cam2_optical' looks like a REP 103 body frame ... read as a body frame, 16 of 16 frames put
+  LiDAR edges in the image".
+* The fix it names, an optical child of that frame (`rotation_quat_xyzw [0.5, -0.5, 0.5, -0.5]`)
+  in a second `--tf` file plus `--frame-map /camera/image_raw=cam2_true_optical`: `pass` on
+  roll and pitch. The image header frame takes precedence over a `topic_frames` entry, so the
+  topic has to be remapped with `--frame-map`.
+* An inverted candidate (`T_lidar_camera` given for `T_camera_lidar`) on the same recording
+  still puts edges in the image, the estimator runs and judges no axis (`no_judgeable_axes`), so
+  an inverse reading was not added: it would not have fired on the one recording tried.
+
 ## Round trip and drift (Hilti)
 
 * `calibrex estimate exp21 --pairs camera-lidar --tf camchain --tf prior.yaml`, with the prior
@@ -248,7 +270,8 @@ dropped pairs.
   unchecked whatever the start, and a start beyond the +-8 deg scan is not covered.
 * The jackknife std ignores systematic effects, so a std of 0.03 deg does not mean 0.03 deg
   accuracy (see exp07); the 0.5 deg floor is the resolution.
-* Intrinsics, a non-optical camera frame and motion during a sweep are not handled; a
+* Intrinsics and motion during a sweep are not handled, and an image in the camera body frame
+  is only named, not corrected (above); a
   solid-state LiDAR is handled through angular-neighbour depth edges, evaluated only on the static
   AIST Livox recordings above; the thresholds (2 deg control, 0.5 deg std bound, t >= 2) come from these dev
   recordings only.

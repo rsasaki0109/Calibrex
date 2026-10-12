@@ -157,8 +157,9 @@ accuracy.
    A per-axis profile start now judges +5 deg pitch on KITTI 0005 and 0009,
    short moving recordings use their whole frame budget (KITTI 0005 yaw +5
    deg is flagged), and a solid-state LiDAR is accepted (angular-neighbour
-   depth edges, evaluated on static Livox Avia recordings). A non-optical
-   camera frame and motion during a sweep are not handled.
+   depth edges, evaluated on static Livox Avia recordings). An image in the
+   camera body frame is named in the reason with its fix, not corrected, and
+   motion during a sweep is not handled.
 9. **LiDAR packet coverage:** raw `velodyne_msgs/VelodyneScan` is decoded
    for VLP-16 (single and dual return), VLP-32C (single return) and HDL-64E
    (single and dual return, with its calibration), each checked against
