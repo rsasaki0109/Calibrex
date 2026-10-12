@@ -54,7 +54,8 @@ deg (too noisy).
   `drive_0009_sync` (443, 45 s). Drives 0027-0059 were not touched. Converted with
   `calibrex convert kitti-raw DRIVE --camera image_02`, which writes the rectified `image_02`, its
   `CameraInfo` and `imu_link -> cam2_optical` composed from `calib_velo_to_cam.txt` and
-  `calib_cam_to_cam.txt`, so the **vendor calibration is the candidate**. Frames are 1 s apart.
+  `calib_cam_to_cam.txt`, so the **vendor calibration is the candidate**. Frames are 1 s apart
+  (until 2026-10-12; both drives are now short recordings, see below).
 * Perturbations turn the candidate by 1, 3 or 5 deg about each camera axis (`T_camera_lidar' = R
   T_camera_lidar`, `R` about camera x, y, z) or shift it 5 cm along camera x; verdict thresholds are
   the defaults (`3 sigma`, 0.5 deg floor).
@@ -197,15 +198,54 @@ A repeat with the same candidate is a cache hit (0 s); `estimate` of a candidate
 took 6 s. The estimate is not independent of the candidate, so another candidate on the same bag
 recomputes (about 20-40 s of compute after the bag read).
 
+## Short recordings (2026-10-12)
+
+`calibrex check` takes at most 48 scans, at least 1 s apart (2.5 s with `--max-duration-s 120`).
+A recording shorter than that leaves most of the frame budget unused. KITTI 0005, at 15 s, got
+16 frames, and its yaw std (0.51-0.52 deg) stayed just over the 0.5 deg bound.
+
+Such a recording now spreads up to 48 scans, at least 0.25 s apart, evenly over its length. The
+scans are grouped into 6 contiguous jackknife blocks as before, so frames close in time stay in
+the same block. A long recording gets exactly the frames it got before.
+
+Denser frames add evidence only when the view changes. If the median mean absolute difference
+of consecutive denser images is under 0.05 of full scale, the regular selection is kept. The
+static AIST Livox recordings measure 0.0035 to 0.011 and keep it; the moving KITTI drives
+measure 0.14 to 0.21. The evidence artifact's notes say which selection was used. The verdict
+rule is unchanged: 2 deg control, 0.5 deg std bound, t >= 2.
+
+KITTI 0005 now gets 48 frames and KITTI 0009 gets 48 instead of 45. Every cell is the verdict
+and the judged axis's `error / tolerance` in deg:
+
+| Perturbation | KITTI 0005, before (16 frames) | KITTI 0005, now (48) | KITTI 0009, now (48) |
+| --- | --- | --- | --- |
+| unmodified reference | `pass`, yaw unchecked | `pass`, roll, pitch and yaw judged | `pass`, roll, pitch and yaw judged |
+| roll +1 / +3 / +5 deg | warn / fail / fail | **fail** (1.1 / 0.5) / fail (3.05 / 0.5) / fail (5.0 / 0.5) | warn (0.8 / 0.5) / fail (2.75 / 0.5) / fail (4.75 / 0.5) |
+| pitch +1 / +3 / +5 deg | fail / fail / fail | fail (1.05 / 0.5) / fail (3.05 / 0.5) / fail (5.0 / 0.5) | warn (1.0 / 0.5) / fail (3.0 / 0.5) / fail (4.9 / 0.5) |
+| yaw +1 deg | `pass` (1.0 / 1.38) | `pass` (0.9 / 1.35) | warn (1.0 / 0.5) |
+| yaw +3 deg | fail (3.1 / 1.14) | fail (2.9 / 0.51) | fail (3.0 / 0.5) |
+| yaw +5 deg | `pass`, yaw unchecked | **fail (4.9 / 1.14)** | fail (5.0 / 0.5) |
+| x +5 cm | `pass`, translation unchecked | `pass`, translation unchecked | `pass`, translation unchecked |
+
+On KITTI 0005 the yaw tolerance stays wide (1.1 to 1.5 deg, three jackknife sigmas), so a 1 deg
+yaw error still passes. All three +5 deg cases left unchecked by the first benchmark are now
+judged and flagged: KITTI 0005 pitch and yaw, and KITTI 0009 pitch.
+
+The AIST Livox verdicts are identical to the table above, because the static guard keeps their
+frames. The Hilti bags are no longer on disk and were **not** re-run. A Hilti recording
+shorter than 117.5 s under `--max-duration-s 120` would now take the short-recording selection.
+That might apply to exp03 (24 frames) or exp04 (34), whose short counts may also come from
+dropped pairs.
+
 ## Limitations
 
 * Rotation only; translation is reported unchecked on every run.
 * On a recording with little structure an axis is not judged: exp07 (a corridor) and exp02-exp04
   judge a single axis. The verdict says which.
 * A start more than about 3 deg away could leave the search in a spurious optimum; the per-axis
-  profile start (above) now judges KITTI 0005 and 0009 pitch +5 deg. An axis the recording does
-  not resolve stays unchecked whatever the start (KITTI 0005 yaw), and a start beyond the +-8 deg
-  scan is not covered.
+  profile start (above) now judges KITTI 0005 and 0009 pitch +5 deg, and the short-recording
+  selection (above) KITTI 0005 yaw +5 deg. An axis the recording does not resolve stays
+  unchecked whatever the start, and a start beyond the +-8 deg scan is not covered.
 * The jackknife std ignores systematic effects, so a std of 0.03 deg does not mean 0.03 deg
   accuracy (see exp07); the 0.5 deg floor is the resolution.
 * Intrinsics, a non-optical camera frame and motion during a sweep are not handled; a

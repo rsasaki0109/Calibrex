@@ -155,10 +155,10 @@ accuracy.
    `*.json` to `eol=lf`.
 8. **Camera-LiDAR check reach:** the bag-level check judges rotation only.
    A per-axis profile start now judges +5 deg pitch on KITTI 0005 and 0009,
-   and a solid-state LiDAR is accepted (angular-neighbour depth edges,
-   evaluated on static Livox Avia recordings). KITTI 0005 yaw stays below the
-   0.5 deg resolution at any start, and a non-optical camera frame and motion
-   during a sweep are not handled.
+   short moving recordings use their whole frame budget (KITTI 0005 yaw +5
+   deg is flagged), and a solid-state LiDAR is accepted (angular-neighbour
+   depth edges, evaluated on static Livox Avia recordings). A non-optical
+   camera frame and motion during a sweep are not handled.
 9. **LiDAR packet coverage:** raw `velodyne_msgs/VelodyneScan` is decoded
    for VLP-16 (single and dual return), VLP-32C (single return) and HDL-64E
    (single and dual return, with its calibration), each checked against
@@ -472,6 +472,15 @@ recordings, candidate from direct_visual_lidar_calibration) the check judges
 all three rotation axes on two recordings (`pass` on one, yaw 1.2 deg off the
 other tool's estimate on the other) where it previously dropped every frame.
 Details: [benchmark](benchmarks/camera_lidar_check.md).
+
+**Done** on 2026-10-12: KITTI 0005 yaw +5 deg is now flagged (`fail`, 4.9 / 1.14 deg). A
+recording shorter than 48 scans 1 s apart (2.5 s with `--max-duration-s 120`) now spreads up to
+48 scans, at least 0.25 s apart, over its length. This applies only when consecutive images
+change by a median of 0.05 of full scale: static views are repeated, not new evidence. KITTI 0005
+goes from 16 to 48 frames, and the reference there now passes with roll, pitch and yaw all judged.
+All three of the +5 deg cases the first benchmark left unchecked are now judged and flagged, with
+the verdict rule unchanged. Long recordings and the static AIST Livox recordings get the frames
+they got before. The Hilti bags were not re-run.
 
 ### 4. LiDAR packet decoder coverage
 
