@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Add optional CUDA numerical finite differences for dense
+  continuous-time LiDAR refinement. Retain all thirteen evaluations, exact
+  arithmetic and native ordered CPU normal equations. Share compiled kernels
+  across owned streams, retain cheap standalone residuals on CPU, and keep
+  small capture budgets on CPU without importing CUDA. Reuse native selected
+  timestamp arrays and count backing allocations in the bounded pose cache.
+  Record actual execution and publish full public-data comparisons,
+  including slower preceding attempts and initially empty compiler caches.
+
 - Keep optional compiled continuous-time LiDAR poses and observations in read-only
   numeric batches through association and MAD filtering. Fuse finite differences,
   avoid unused Jacobian conversions, and evaluate large independent clock

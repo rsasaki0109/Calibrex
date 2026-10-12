@@ -938,6 +938,71 @@ The copied-topic recording provides execution parity, without independent sensor
 accuracy evidence. See [all results, ranges, prior attempts and source bindings](../assets/packed_continuous_time_lidar/README.md)
 for the limitations and commands.
 
+## CUDA finite differences for continuous-time LiDAR
+
+Install the optional adapters and set the continuous-time factor option:
+
+```bash
+pip install -e ".[cuda,numba]"
+```
+
+```yaml
+continuous_time_query_backend: cuda
+```
+
+For capture budgets of at least 8,192 rows, retained native packed observations stay
+on the captured CUDA device across optimizer iterations. Independent clock
+candidates own separate streams and observation buffers, sharing compiled
+kernels. The kernels evaluate the same residuals and all thirteen central
+finite-difference transforms in FP64 with fused multiply-add disabled.
+Single residual evaluations, trajectory interpolation, correspondence search
+and ordered Hessian/gradient accumulation remain on CPU. Selected indices and
+native timestamp rows are prepared once; offsets retain the same integer
+rounding and bounds. Small capture budgets use the compiled CPU path
+without importing CuPy; provenance records the backend that actually ran.
+The Python default and result schemas remain unchanged.
+
+On 120 public GLIM frames with up to 8,000 points per frame (768,000 train /
+192,000 holdout targets), five fresh paired subprocesses measured complete
+wall medians of 169.696 -> 97.911 s (1.73x), solver medians of
+130.850 -> 65.554 s (2.00x), and all-thread CPU medians of
+273.813 -> 147.656 s (about 46% less CPU). The median paired whole-wall
+ratio is 1.47x; individual ratios span 1.17x to 1.96x. Thus these runs do not
+establish a stable twofold complete-process gain. The 400-point/frame capture
+measured only 1.14x whole-wall improvement; default sampling caps use CPU
+dispatch and measured 1.04x. Every first/slower run is retained.
+
+All 30 final saved/API results match apart from the declared execution note.
+Full/dense workloads retain `max_iterations`, rank 6; the default workload
+retains `converged`. A separate guarded diagnostic records 129 actual GPU
+linearizations, 26 retained-batch uploads and 207 CPU standalone residual
+calls. Input transfer falls from 255,403,104 bytes in the preceding shared
+GPU candidate to 103,523,608 bytes; the comparison is diagnostic, not a
+pooled timing estimate.
+
+Compare against the preceding packed/parallel CPU version with identical
+capture, clock, solver, robust-loss and holdout settings:
+
+```bash
+python tools/benchmark_adaptive_plane_search.py \
+  --baseline-scope compiled \
+  --baseline-commit eb50c99878706a45eb0e584f3573507313cdc172 \
+  --candidate-query-backend cuda \
+  --config examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml \
+  --repetitions 5 \
+  --output-dir outputs/public-glim-cuda-continuous-dense
+```
+
+The dense config retains 120 messages and permits up to 8,000 points per
+message. The benchmark records the sole candidate execution override while
+retaining the shared physical config and its checksum. Each method has its
+own initially empty compiler cache; process wall includes imports, CUDA
+initialization, compilation, transfers, replay, refinement, diagnostics,
+provenance hashing and saves. First runs, slower runs and earlier candidates
+are retained in the [complete CUDA evidence](../assets/cuda_continuous_time_lidar/README.md).
+The duplicated public topic supplies execution parity, without independent
+two-sensor accuracy evidence.
+
 ## Generating public depth maps on GPU
 
 The external FeatDepth adapter accepts `--device cuda --batch-size 2
