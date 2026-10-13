@@ -321,7 +321,24 @@ def _measure(
     timing: StereoTiming | None = None,
 ) -> _Measurement:
     rectification = rectify_fisheye_pair(left, right, _inverse(candidate))
-    rectified = [(rectification.rectify_left(a), rectification.rectify_right(b)) for a, b in pairs]
+    # with timing, each pair is rectified for the rig's turn over its stamped gap, so its
+    # rows are left with the (small) error and clock offset to measure: the right image
+    # was taken with the relative rotation exp(omega gap) R
+    per_pair = [rectification] * len(pairs)
+    if timing is not None:
+        turns = (
+            np.asarray(timing.rates_rad_s, dtype=np.float64)
+            * np.asarray(timing.gaps_s, dtype=np.float64)[:, None]
+        )
+        for index, turn in enumerate(turns):
+            if np.linalg.norm(turn) > 1.0e-9:
+                moved = candidate.copy()
+                moved[:3, :3] = Rotation.from_rotvec(turn).as_matrix() @ candidate[:3, :3]
+                per_pair[index] = rectify_fisheye_pair(left, right, _inverse(moved))
+    rectified = [
+        (rect.rectify_left(a), rect.rectify_right(b))
+        for rect, (a, b) in zip(per_pair, pairs, strict=True)
+    ]
     samples = vertical_offset_samples(
         rectified,
         patches_per_pair=options.patches_per_pair,
@@ -336,15 +353,13 @@ def _measure(
     # row offset per radian of the right camera's turn about the rectified x, y, z axes,
     # mapped to the candidate's error about the left camera's axes (rectified = Rr left)
     rectified_rows = f * np.c_[-(1.0 + (y / f) ** 2), x * y / f**2, x / f]
-    rotation = rectified_rows @ rectification.rectified_from_left
+    to_rectified = np.stack([rect.rectified_from_left for rect in per_pair])[pair]
+    rotation = np.einsum("nj,njk->nk", rectified_rows, to_rectified)
     values = column["offset_px"][known]
     columns = [rotation, column["disparity_px"][known][:, None]]
     if timing is not None:
         rates = np.asarray(timing.rates_rad_s, dtype=np.float64)[pair]
-        gaps = np.asarray(timing.gaps_s, dtype=np.float64)[pair]
-        turned = (rotation * rates).sum(axis=1)  # row offset per second of time offset
-        values = values + turned * gaps  # the stamped gap's turn, known
-        columns.append(-turned[:, None])
+        columns.append(-(rotation * rates).sum(axis=1)[:, None])  # per second of offset
     design = np.hstack(columns)
 
     def fit(rows: NDArray[np.bool_]) -> tuple[FloatArray, float]:

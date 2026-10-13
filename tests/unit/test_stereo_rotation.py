@@ -75,14 +75,17 @@ def test_too_few_pairs_are_inconclusive(pairs: list[tuple[np.ndarray, np.ndarray
     assert artifact.axes == []
 
 
-def _rates(count: int) -> np.ndarray:
+def _rates(count: int, deg_s: float = 25.0) -> np.ndarray:
     rng = np.random.default_rng(9)
     axes = rng.normal(size=(count, 3))
-    return np.radians(25.0) * axes / np.linalg.norm(axes, axis=1, keepdims=True)
+    return np.radians(deg_s) * axes / np.linalg.norm(axes, axis=1, keepdims=True)
 
 
-def test_a_stamped_delay_is_turned_out_with_the_gyro() -> None:
-    rates = _rates(8)
+@pytest.mark.parametrize("deg_s", [25.0, 80.0])
+def test_a_stamped_delay_is_turned_out_with_the_gyro(deg_s: float) -> None:
+    # at 80 deg/s a 25 ms gap turns the right camera 2 deg: rows move ~6 px, beyond the
+    # matcher's +-4 px search unless the gap's turn is rectified away first
+    rates = _rates(8, deg_s)
     delays = np.full(8, 0.025)  # the right image one 40 Hz frame later, stamped so
     pairs = render_turning_pairs(TRUTH, delays, rates)
     timing = StereoTiming(gaps_s=delays, rates_rad_s=rates, source="test gyro")
