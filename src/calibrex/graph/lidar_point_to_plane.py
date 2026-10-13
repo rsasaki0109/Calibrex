@@ -301,6 +301,19 @@ class LidarRigPointToPlaneFactor:
         )
         return residuals.tolist(), hessian, gradient
 
+    def _compiled_initial_rank(self, correction: Sequence[float]) -> int | None:
+        # The optimizer consumes only rank at entry. Full public diagnostics
+        # remain available and are still produced for the final calibration.
+        if (type(self) is not LidarRigPointToPlaneFactor or "evaluate" in self.__dict__
+                or type(self).evaluate is not _NATIVE_EVALUATE):
+            return None
+        dense = self._compiled_linearization(correction)
+        if dense is None or self._array_normal_kernel is None:
+            return None
+        values, jacobian = dense
+        hessian, _gradient = self._array_normal_kernel(jacobian, values, False, 0.0)
+        return _matrix_rank(hessian)
+
     def linearize(
         self,
         correction: Sequence[float] | None = None,
@@ -490,6 +503,7 @@ _NATIVE_RESIDUALS = LidarRigPointToPlaneFactor.residuals
 _NATIVE_LINEARIZE = LidarRigPointToPlaneFactor.linearize
 _NATIVE_CORRECTION = LidarRigPointToPlaneFactor._corrected_transform
 _NATIVE_OBSERVATIONS_PROPERTY = LidarRigPointToPlaneFactor.observations
+_NATIVE_EVALUATE = LidarRigPointToPlaneFactor.evaluate
 
 
 def _packed_point_rows(points: NDArray[np.float64]) -> Iterator[list[float]]:

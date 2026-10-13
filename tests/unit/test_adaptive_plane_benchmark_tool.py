@@ -113,11 +113,25 @@ def test_cuda_comparison_preserves_results_and_excludes_only_bound_execution_ide
     changed = deepcopy(baseline)
     changed["provenance"]["notes"] = [association_identity]
     assert benchmark._comparison_canonical(changed) == benchmark._canonical(baseline)
+    cached_identity = association_identity.replace("v0.5", "v0.6").replace(
+        "associations_gpu=true;", "linearization_cache=last;linearization_cache_bytes=67108864;"
+        "associations_gpu=true;",
+    )
+    for cached in (cached_identity, cached_identity.replace(
+        "associations_gpu=true", "associations_gpu=false",
+    ).rsplit(";association_kernel_sha256", 1)[0]):
+        changed["provenance"]["notes"] = [cached]
+        assert benchmark._comparison_canonical(changed) == benchmark._canonical(baseline)
     forged_identities = (
         selective_identity.replace("standalone_residual_cpu=true;", ""),
         selective_identity.replace("standalone_residual_cpu=true", "standalone_residual_cpu=false"),
         association_identity.rsplit(";association_kernel_sha256", 1)[0],
         association_identity.replace("associations_gpu=true", "associations_gpu=false"),
+        cached_identity.replace("linearization_cache=last;", ""),
+        cached_identity.replace(
+            "linearization_cache_bytes=67108864", "linearization_cache_bytes=1",
+        ),
+        cached_identity + ";hidden=change",
     )
     for forged in forged_identities:
         changed = deepcopy(baseline)

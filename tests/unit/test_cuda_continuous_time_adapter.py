@@ -81,8 +81,8 @@ def test_residuals_jacobian_and_ordered_system_match_every_bit(count, correction
     for name in ("residuals_m", "jacobian", "hessian", "gradient"):
         assert _bits(getattr(left, name)) == _bits(getattr(right, name))
     assert cpu.evaluate(correction) == factor.evaluate(correction)
-    assert gpu.linearization_calls == 2 and gpu.residual_calls == 1
-    assert gpu.rows == 3*count
+    assert gpu.linearization_calls == 1 and gpu.linearization_cache_hits == 1
+    assert gpu.residual_calls == 1 and gpu.rows == 2*count
 
 
 @pytest.mark.parametrize("loss", ["none", "huber"])
@@ -105,6 +105,87 @@ def test_payload_replacement_and_perturbation_step_changes_do_not_reuse_stale_va
         translation_step_m=2e-4, rotation_step_rad=2e-5,
     )
     assert gpu._payload is not first_payload
+
+
+def test_cached_arrays_remain_owned_and_writable_without_contaminating_later_calls():
+    cpu, factor, gpu = _factors()
+    arrays = factor._prepared_arrays()
+    assert arrays is not None
+    transforms = [factor._corrected_transform(None)]*13
+    steps = [1e-4]*3 + [1e-5]*3
+    expected = numba_rig_linearization(arrays, transforms, steps)
+    first = gpu.linearize(arrays, transforms, steps)
+    first[0][:] = 123.0
+    first[1][:] = -456.0
+    second = gpu.linearize(arrays, transforms, steps)
+    for left, right in zip(second, expected, strict=True):
+        assert left.flags.writeable
+        np.testing.assert_array_equal(left.view(np.uint64), right.view(np.uint64))
+    second[0][:] = -789.0
+    third = gpu.linearize(arrays, transforms, steps)
+    np.testing.assert_array_equal(third[0].view(np.uint64), expected[0].view(np.uint64))
+    assert gpu.linearization_calls == 1 and gpu.linearization_cache_hits == 2
+    assert gpu.linearization_cache_bytes == sum(v.nbytes for v in expected)
+    assert cpu.evaluate() == factor.evaluate()
+
+
+def test_cache_uses_transform_and_step_bits_and_evicts_the_previous_entry():
+    _, factor, gpu = _factors(64)
+    arrays = factor._prepared_arrays()
+    assert arrays is not None
+    transforms = [factor._corrected_transform(None)]*13
+    steps = [1e-4]*3 + [1e-5]*3
+    gpu.linearize(arrays, transforms, steps)
+    changed = list(steps)
+    changed[0] = np.nextafter(changed[0], np.inf)
+    gpu.linearize(arrays, transforms, changed)
+    gpu.linearize(arrays, transforms, steps)
+    transforms[0] = SE3((-0.0, 0.0, 0.0), (0.0, 0.0, 0.0, 1.0))
+    gpu.linearize(arrays, transforms, steps)
+    assert gpu.linearization_calls == 4 and gpu.linearization_cache_hits == 0
+
+
+def test_cache_budget_bypass_and_payload_replacement_keep_complete_numerical_results(monkeypatch):
+    from calibrex.solvers import cuda_continuous_time_adapter as adapter
+
+    _, factor, gpu = _factors(64)
+    arrays = factor._prepared_arrays()
+    assert arrays is not None
+    transforms = [factor._corrected_transform(None)]*13
+    steps = [1e-4]*3 + [1e-5]*3
+    expected = numba_rig_linearization(arrays, transforms, steps)
+    monkeypatch.setattr(adapter, "_LINEARIZATION_CACHE_BYTES", 64*56-1)
+    for _ in range(2):
+        actual = gpu.linearize(arrays, transforms, steps)
+        for left, right in zip(actual, expected, strict=True):
+            np.testing.assert_array_equal(left.view(np.uint64), right.view(np.uint64))
+    assert gpu.linearization_calls == 2 and gpu.linearization_cache_bytes == 0
+    monkeypatch.setattr(adapter, "_LINEARIZATION_CACHE_BYTES", 64*56)
+    gpu.linearize(arrays, transforms, steps)
+    gpu.linearize(arrays, transforms, steps)
+    assert gpu.linearization_cache_hits == 1
+    gpu.linearize(replace(arrays), transforms, steps)
+    assert gpu.linearization_calls == 4 and gpu.linearization_cache_hits == 1
+    fork = gpu.fork()
+    assert fork.linearization_cache_bytes == 0 and fork._cached_result is None
+
+
+def test_concurrent_differences_and_cache_hits_keep_independent_writable_results():
+    _, factor, gpu = _factors(65)
+    arrays = factor._prepared_arrays()
+    assert arrays is not None
+    steps = [1e-4]*3 + [1e-5]*3
+    transforms = [[factor._corrected_transform([value]*6)]*13 for value in (0.0, 0.01)]
+    jobs = [transforms[0]]*3 + [transforms[1]]*3 + [transforms[0]]*3
+    expected = [numba_rig_linearization(arrays, t, steps) for t in jobs]
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        results = list(executor.map(lambda t: gpu.linearize(arrays, t, steps), jobs))
+    for actual, reference in zip(results, expected, strict=True):
+        for left, right in zip(actual, reference, strict=True):
+            np.testing.assert_array_equal(left.view(np.uint64), right.view(np.uint64))
+    assert gpu.linearization_calls + gpu.linearization_cache_hits == len(jobs)
+    results[0][0][:] = 123.0
+    np.testing.assert_array_equal(results[1][0].view(np.uint64), expected[1][0].view(np.uint64))
 
 
 def test_owned_stream_and_device_restore_callers_cuda_context():
@@ -166,10 +247,11 @@ def test_input_budget_mutability_and_zero_steps_are_checked_before_launch():
 
 def test_identity_binds_kernel_and_declares_cpu_trajectory_and_reduction():
     identity = cuda_continuous_time_identity()
-    assert identity.startswith("calibrex.cuda_continuous_time/v0.5;fp64=true;fma=false;")
+    assert identity.startswith("calibrex.cuda_continuous_time/v0.6;fp64=true;fma=false;")
     assert ";trajectory_cpu=true;normal_cpu=true;standalone_residual_cpu=true;" in identity
     assert len(identity.rsplit("=", 1)[1]) == 64
     assert ";associations_gpu=false;" in identity
+    assert ";linearization_cache=last;linearization_cache_bytes=67108864;" in identity
     actual = cuda_continuous_time_identity(associations_gpu=True)
     assert ";associations_gpu=true;" in actual and ";association_kernel_sha256=" in actual
 
@@ -188,7 +270,7 @@ def test_gpu_queries_are_recorded_even_when_no_correspondences_reach_the_optimiz
         query_backend="cuda", max_target_points_per_split=None,
     ))
     assert result.status == "insufficient_constraints"
-    assert result.query_backend.startswith("calibrex.cuda_continuous_time/v0.5;")
+    assert result.query_backend.startswith("calibrex.cuda_continuous_time/v0.6;")
     assert ";associations_gpu=true;" in result.query_backend
 
 

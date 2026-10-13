@@ -72,6 +72,51 @@ def _factor(observations):
     )
 
 
+@pytest.mark.parametrize("weight", [0.0, 1.0])
+@pytest.mark.parametrize("count", [63, 64, 4097])
+def test_initial_rank_and_complete_solver_history_match_the_full_diagnostic_path(weight, count):
+    rng = np.random.default_rng(93)
+    observations = [graph.LidarPointToPlaneObservation(
+        tuple(p), (0.2, -0.1, 0.3), tuple(n), weight=weight,
+    ) for p, n in zip(rng.normal(size=(count, 3)).tolist(),
+                      rng.normal(size=(count, 3)).tolist(), strict=True)]
+    factor, reference = _factor(observations), _factor(observations)
+    expected = reference.evaluate().rank
+    assert factor._compiled_initial_rank([0.0]*6) == (expected if count >= 64 else None)
+    # An instance hook forces the original public evaluation at solver entry.
+    reference.evaluate = lambda correction: LidarRigPointToPlaneFactor.evaluate(
+        reference, correction,
+    )
+    options = FixedTrajectorySe3SolverOptions(max_iterations=3)
+    assert FixedTrajectorySe3ExtrinsicSolver().solve(factor, options) == (
+        FixedTrajectorySe3ExtrinsicSolver().solve(reference, options)
+    )
+
+
+def test_compiled_initial_rank_avoids_unused_normalization_and_honors_public_hooks(monkeypatch):
+    observations = [graph.LidarPointToPlaneObservation(
+        (1.0, 0.2, 0.3), (0.1, 0.1, 0.1), (0.0, 0.0, 1.0),
+    )]*64
+    factor = _factor(observations)
+    def unexpected(*args):
+        raise AssertionError("rank does not need range normalization")
+    monkeypatch.setattr(graph, "_normalization_length_m", unexpected)
+    result = FixedTrajectorySe3ExtrinsicSolver().solve(
+        factor, FixedTrajectorySe3SolverOptions(max_iterations=0),
+    )
+    assert result.status == "max_iterations"
+    monkeypatch.undo()
+    calls = []
+    native = LidarRigPointToPlaneFactor.evaluate
+    def hooked(self, correction=None):
+        calls.append(self)
+        return replace(native(self, correction), rank=0)
+    monkeypatch.setattr(LidarRigPointToPlaneFactor, "evaluate", hooked)
+    assert factor._compiled_initial_rank([0.0]*6) is None
+    assert FixedTrajectorySe3ExtrinsicSolver().solve(factor).status == "insufficient_constraints"
+    assert calls == [factor]
+
+
 def test_point_range_diagnostics_honor_a_replaced_public_observation_property(monkeypatch):
     records, points, samples, times = _fixture(64)
     uniform = VoxelPlaneQueryContext(build_voxel_plane_map(records, 1.0))

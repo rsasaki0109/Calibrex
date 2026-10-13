@@ -111,7 +111,9 @@ class FixedTrajectorySe3ExtrinsicSolver:
         rejected_steps = 0
         history: list[FixedTrajectorySe3Iteration] = []
 
-        initial_rank = factor.evaluate(correction).rank
+        initial_rank = factor._compiled_initial_rank(correction)
+        if initial_rank is None:
+            initial_rank = factor.evaluate(correction).rank
         if initial_rank == 0:
             return self._result(
                 factor=factor,

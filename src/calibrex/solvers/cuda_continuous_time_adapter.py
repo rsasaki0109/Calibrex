@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from calibrex.graph.lidar_point_to_plane import _ObservationArrays
 
 FloatArray: TypeAlias = NDArray[np.float64]
+_LINEARIZATION_CACHE_BYTES = 64 * 1024**2
 
 _SOURCE = r"""
 struct Q { double x,y,z,w; };
@@ -78,11 +79,12 @@ def cuda_continuous_time_identity(*, associations_gpu: bool = False) -> str:
 
         association_identity = f";association_kernel_sha256={cuda_plane_query_source_sha256()}"
     return (
-        "calibrex.cuda_continuous_time/v0.5;fp64=true;fma=false;"
+        "calibrex.cuda_continuous_time/v0.6;fp64=true;fma=false;"
         f"cupy={cp.__version__};cuda={cp.cuda.runtime.runtimeGetVersion()};"
         f"driver={cp.cuda.runtime.driverGetVersion()};"
         f"numba={version('numba')};trajectory_cpu=true;normal_cpu=true;"
         "standalone_residual_cpu=true;"
+        "linearization_cache=last;linearization_cache_bytes=67108864;"
         f"associations_gpu={str(associations_gpu).lower()};"
         f"kernel_sha256={hashlib.sha256(_SOURCE.encode()).hexdigest()}"
         + association_identity
@@ -90,7 +92,7 @@ def cuda_continuous_time_identity(*, associations_gpu: bool = False) -> str:
 
 
 class CudaRigLinearizer:
-    """Retain one immutable observation payload across optimizer iterations."""
+    """Retain an immutable payload and its last exact finite differences."""
 
     def __init__(
         self, device_id: int | None = None,
@@ -100,6 +102,10 @@ class CudaRigLinearizer:
         self._arrays: _ObservationArrays | None = None
         self._payload: tuple[cp.ndarray, ...] = ()
         self.linearization_calls = 0
+        self.linearization_cache_hits = 0
+        self.linearization_cache_bytes = 0
+        self._cached_key: tuple[bytes, bytes] | None = None
+        self._cached_result: tuple[FloatArray, FloatArray] | None = None
         self.residual_calls = 0
         self.rows = 0
         self._lock = Lock()
@@ -135,7 +141,13 @@ class CudaRigLinearizer:
                 raise ValueError("CUDA rig observations require finite matching columns")
             self._payload = tuple(cp.asarray(value) for value in values)
             self._arrays = arrays
+            self._clear_linearization_cache()
         return self._payload
+
+    def _clear_linearization_cache(self) -> None:
+        self._cached_key = None
+        self._cached_result = None
+        self.linearization_cache_bytes = 0
 
     def residuals(self, arrays: _ObservationArrays, transform: SE3) -> list[float]:
         """Evaluate the ordered native residual formula on the captured device."""
@@ -162,8 +174,18 @@ class CudaRigLinearizer:
         n = len(arrays.points)
         with self._lock, cp.cuda.Device(self.device_id), self._stream:
             payload = self._capture(arrays)
-            values = cp.asarray([(*t.translation_m, *t.rotation_quat_xyzw) for t in transforms])
-            device_steps = cp.asarray(steps, dtype=cp.float64)
+            host_transforms = np.asarray(
+                [(*t.translation_m, *t.rotation_quat_xyzw) for t in transforms], dtype=np.float64,
+            )
+            host_steps = np.asarray(steps, dtype=np.float64)
+            key = (host_transforms.tobytes(), host_steps.tobytes())
+            if self._cached_key == key and self._cached_result is not None:
+                self.linearization_cache_hits += 1
+                # Public callers own writable results, including on a cache hit.
+                return self._cached_result[0].copy(), self._cached_result[1].copy()
+            self._clear_linearization_cache()
+            values = cp.asarray(host_transforms)
+            device_steps = cp.asarray(host_steps)
             result, jacobian = cp.empty(n, dtype=cp.float64), cp.empty((n, 6), dtype=cp.float64)
             if n:
                 self._linearize(((n+127)//128,), (128,),
@@ -172,4 +194,11 @@ class CudaRigLinearizer:
             host_j: FloatArray = jacobian.get()
             self.linearization_calls += 1
             self.rows += n
+            cache_bytes = host_r.nbytes + host_j.nbytes
+            if cache_bytes <= _LINEARIZATION_CACHE_BYTES:
+                saved_r, saved_j = host_r.copy(), host_j.copy()
+                saved_r.flags.writeable = saved_j.flags.writeable = False
+                self._cached_result = saved_r, saved_j
+                self._cached_key = key
+                self.linearization_cache_bytes = cache_bytes
         return host_r, host_j
