@@ -63,6 +63,10 @@ class StereoRotationOptions:
     spacing_s: float = 1.0
     max_seconds: float | None = None
     max_gap_s: float = 0.002
+    """Images further apart than this are not a pair (2 ms: hardware-synchronised)."""
+    max_unsynchronised_gap_s: float = 0.03
+    """The pairing tolerance when the rig's rotation is known (:class:`StereoTiming`)."""
+    max_time_std_s: float = 0.002
     patches_per_pair: int = 300
     max_disparity_px: int = 60
     blocks: int = 6
@@ -75,14 +79,46 @@ class StereoRotationOptions:
     def __post_init__(self) -> None:
         if self.blocks < 3 or self.max_pairs < self.blocks:
             raise ValueError("need three jackknife blocks and at least as many pairs")
-        if self.control_deg <= 0.0 or self.spacing_s < 0.0 or self.max_gap_s <= 0.0:
+        if (
+            self.control_deg <= 0.0
+            or self.spacing_s < 0.0
+            or self.max_gap_s <= 0.0
+            or self.max_unsynchronised_gap_s < self.max_gap_s
+        ):
             raise ValueError("control_deg and max_gap_s must be positive, spacing_s not negative")
+
+
+@dataclass(frozen=True)
+class StereoTiming:
+    """When each pair's images were stamped and how the rig turned at the time.
+
+    ``gaps_s`` is the right image's stamp minus the left one's, per pair, and
+    ``rates_rad_s`` the left camera's angular rate about its own axes at the pair (from a
+    gyro). With them, a pair taken ``gap + time_offset`` apart while the rig turns at
+    ``omega`` reads the candidate's error as ``error - omega (gap + time_offset)``, and the
+    fit recovers both the error and the cameras' clock offset.
+    """
+
+    gaps_s: FloatArray
+    rates_rad_s: FloatArray
+    source: str
+
+
+@dataclass(frozen=True)
+class StereoFrames:
+    """Image pairs with the stamps of both images (seconds)."""
+
+    pairs: list[tuple[FloatArray, FloatArray]]
+    left_times_s: FloatArray
+    right_times_s: FloatArray
 
 
 @dataclass(frozen=True)
 class _Measurement:
     error_deg: FloatArray
     std_deg: FloatArray
+    time_offset_s: float | None
+    time_offset_std_s: float | None
     patches: int
     rows_known: int
     vertical_baseline_ratio: float
@@ -109,15 +145,31 @@ def read_stereo_pairs(
     right_topic: str,
     options: StereoRotationOptions | None = None,
 ) -> list[tuple[FloatArray, FloatArray]]:
-    """Grayscale image pairs taken within ``max_gap_s`` of each other, ``spacing_s`` apart.
+    """Grayscale image pairs taken within ``max_gap_s`` of each other, ``spacing_s`` apart."""
 
-    At most ``max_pairs``, from the first ``max_seconds`` of the bag when given.
+    return read_stereo_frames(bag, left_topic, right_topic, options).pairs
+
+
+def read_stereo_frames(
+    bag: str | Path,
+    left_topic: str,
+    right_topic: str,
+    options: StereoRotationOptions | None = None,
+    *,
+    max_gap_s: float | None = None,
+) -> StereoFrames:
+    """Image pairs, each image with its nearest other within ``max_gap_s``, and their stamps.
+
+    ``max_gap_s`` defaults to the options' synchronised tolerance. Pairs are at least
+    ``spacing_s`` apart, at most ``max_pairs``, from the first ``max_seconds`` of the bag
+    when given.
     """
 
     opts = options or StereoRotationOptions()
-    gap_ns = round(opts.max_gap_s * 1.0e9)
+    gap_ns = round((opts.max_gap_s if max_gap_s is None else max_gap_s) * 1.0e9)
     pending: dict[str, list[tuple[int, int, bytes]]] = {left_topic: [], right_topic: []}
     pairs: list[tuple[FloatArray, FloatArray]] = []
+    times: list[tuple[float, float]] = []
     first_ns: int | None = None
     last_ns: int | None = None
     for connection, stamp, payload in iter_messages(bag, topics={left_topic, right_topic}):
@@ -128,21 +180,25 @@ def read_stereo_pairs(
         if opts.max_seconds is not None and time_ns - first_ns > opts.max_seconds * 1.0e9:
             break
         other = right_topic if topic == left_topic else left_topic
-        match = next((item for item in pending[other] if abs(item[0] - time_ns) <= gap_ns), None)
-        if match is None:
+        near = [item for item in pending[other] if abs(item[0] - time_ns) <= gap_ns]
+        if not near:
             pending[topic] = [*pending[topic][-4:], (time_ns, stamp, payload)]
             continue
-        pending[other].remove(match)
+        match = min(near, key=lambda item: abs(item[0] - time_ns))
+        pending[other] = [item for item in pending[other] if item[0] > match[0]]
         if last_ns is not None and time_ns - last_ns < opts.spacing_s * 1.0e9:
             continue
         last_ns = time_ns
         images = {topic: (stamp, payload), other: (match[1], match[2])}
+        stamps = {topic: time_ns, other: match[0]}
         pairs.append(
             (_gray(left_topic, *images[left_topic]), _gray(right_topic, *images[right_topic]))
         )
+        times.append((stamps[left_topic] * 1.0e-9, stamps[right_topic] * 1.0e-9))
         if len(pairs) >= opts.max_pairs:
             break
-    return pairs
+    stamps_s = np.asarray(times, dtype=np.float64).reshape(-1, 2)
+    return StereoFrames(pairs, stamps_s[:, 0], stamps_s[:, 1])
 
 
 def estimate_stereo_rotation(
@@ -153,8 +209,12 @@ def estimate_stereo_rotation(
     *,
     provenance: StereoRotationProvenance,
     options: StereoRotationOptions | None = None,
+    timing: StereoTiming | None = None,
 ) -> StereoRotationArtifact:
-    """The candidate ``T_left_right``'s rotation error about the left camera's axes."""
+    """The candidate ``T_left_right``'s rotation error about the left camera's axes.
+
+    With ``timing``, the cameras' clock offset is fitted with it (see :class:`StereoTiming`).
+    """
 
     opts = options or StereoRotationOptions()
     candidate = np.asarray(candidate, dtype=np.float64)
@@ -179,6 +239,11 @@ def estimate_stereo_rotation(
             axes=list(axes),
             vertical_baseline_ratio=measured.vertical_baseline_ratio if axes and measured else None,
             residual_std_px=measured.residual_std_px if axes and measured else None,
+            time_offset_s=measured.time_offset_s if axes and measured else None,
+            time_offset_std_s=measured.time_offset_std_s if axes and measured else None,
+            time_offset_status=time_status(measured) if axes and measured and timing else None,
+            timing_source=timing.source if timing else None,
+            max_stamp_gap_s=float(np.abs(timing.gaps_s).max()) if timing and len(pairs) else None,
             options=asdict(opts),
             limitations=[
                 "rotation only: the translation between the cameras is not judged",
@@ -187,13 +252,21 @@ def estimate_stereo_rotation(
             provenance=provenance,
         )
 
+    def time_status(measured: _Measurement) -> Literal["estimated", "unobservable"]:
+        std = measured.time_offset_std_s
+        return "estimated" if std is not None and std <= opts.max_time_std_s else "unobservable"
+
+    if timing is not None and (
+        len(timing.gaps_s) != len(pairs) or np.shape(timing.rates_rad_s) != (len(pairs), 3)
+    ):
+        raise ValueError("timing needs one gap and one 3-axis rate per pair")
     if len(pairs) < opts.blocks:
         return artifact(
             "inconclusive",
             f"{len(pairs)} synchronised image pairs, fewer than {opts.blocks}",
             None,
         )
-    base = _measure(pairs, left, right, candidate, opts)
+    base = _measure(pairs, left, right, candidate, opts, timing)
     if base.rows_known < opts.min_patches:
         return artifact(
             "inconclusive",
@@ -205,7 +278,7 @@ def estimate_stereo_rotation(
         turned = candidate.copy()
         turn = Rotation.from_rotvec(np.radians(opts.control_deg) * np.eye(3)[index]).as_matrix()
         turned[:3, :3] = turn @ candidate[:3, :3]
-        moved = _measure(pairs, left, right, turned, opts)
+        moved = _measure(pairs, left, right, turned, opts, timing)
         response = float((moved.error_deg[index] - base.error_deg[index]) / opts.control_deg)
         std = float(base.std_deg[index])
         problems = []
@@ -245,9 +318,27 @@ def _measure(
     right: StereoCamera,
     candidate: FloatArray,
     options: StereoRotationOptions,
+    timing: StereoTiming | None = None,
 ) -> _Measurement:
     rectification = rectify_fisheye_pair(left, right, _inverse(candidate))
-    rectified = [(rectification.rectify_left(a), rectification.rectify_right(b)) for a, b in pairs]
+    # with timing, each pair is rectified for the rig's turn over its stamped gap, so its
+    # rows are left with the (small) error and clock offset to measure: the right image
+    # was taken with the relative rotation exp(omega gap) R
+    per_pair = [rectification] * len(pairs)
+    if timing is not None:
+        turns = (
+            np.asarray(timing.rates_rad_s, dtype=np.float64)
+            * np.asarray(timing.gaps_s, dtype=np.float64)[:, None]
+        )
+        for index, turn in enumerate(turns):
+            if np.linalg.norm(turn) > 1.0e-9:
+                moved = candidate.copy()
+                moved[:3, :3] = Rotation.from_rotvec(turn).as_matrix() @ candidate[:3, :3]
+                per_pair[index] = rectify_fisheye_pair(left, right, _inverse(moved))
+    rectified = [
+        (rect.rectify_left(a), rect.rectify_right(b))
+        for rect, (a, b) in zip(per_pair, pairs, strict=True)
+    ]
     samples = vertical_offset_samples(
         rectified,
         patches_per_pair=options.patches_per_pair,
@@ -258,34 +349,42 @@ def _measure(
     f = rectification.fx
     x = column["column_px"][known] - rectification.cx
     y = column["row_px"][known] - rectification.cy
-    design = np.c_[1.0 + (y / f) ** 2, x / f, x * y / f**2, column["disparity_px"][known]]
+    pair = column["pair"][known].astype(int)
+    # row offset per radian of the right camera's turn about the rectified x, y, z axes,
+    # mapped to the candidate's error about the left camera's axes (rectified = Rr left)
+    rectified_rows = f * np.c_[-(1.0 + (y / f) ** 2), x * y / f**2, x / f]
+    to_rectified = np.stack([rect.rectified_from_left for rect in per_pair])[pair]
+    rotation = np.einsum("nj,njk->nk", rectified_rows, to_rectified)
     values = column["offset_px"][known]
-    pair = column["pair"][known]
-    to_left = rectification.rectified_from_left.T
+    columns = [rotation, column["disparity_px"][known][:, None]]
+    if timing is not None:
+        rates = np.asarray(timing.rates_rad_s, dtype=np.float64)[pair]
+        columns.append(-(rotation * rates).sum(axis=1)[:, None])  # per second of offset
+    design = np.hstack(columns)
 
-    def error(rows: NDArray[np.bool_]) -> tuple[FloatArray, FloatArray]:
-        coefficients, residual = _trimmed_fit(design[rows], values[rows])
-        # the constant is -f delta_x, the column term f delta_z, the column-row term f delta_y
-        measured = np.array([-coefficients[0], coefficients[2], coefficients[1]]) / f
-        return np.degrees(to_left @ measured), np.array([coefficients[3], residual])
+    def fit(rows: NDArray[np.bool_]) -> tuple[FloatArray, float]:
+        return _trimmed_fit(design[rows], values[rows])
 
-    if len(values) < 4:
+    if len(values) < design.shape[1] + 1:
         nan = np.full(3, np.nan)
-        return _Measurement(nan, nan, len(samples), int(known.sum()), np.nan, np.nan, rectification)
-    everything = np.ones(len(values), dtype=bool)
-    estimate, extra = error(everything)
+        return _Measurement(
+            nan, nan, None, None, len(samples), int(known.sum()), np.nan, np.nan, rectification
+        )
+    coefficients, residual = fit(np.ones(len(values), dtype=bool))
     blocks = np.array_split(np.arange(len(pairs)), options.blocks)
-    jackknife = np.array([error(~np.isin(pair, block))[0] for block in blocks])
+    jackknife = np.array([fit(~np.isin(pair, block))[0] for block in blocks])
     count = len(blocks)
     std = np.sqrt((count - 1) / count * ((jackknife - jackknife.mean(axis=0)) ** 2).sum(axis=0))
     return _Measurement(
-        estimate,
-        std,
-        len(samples),
-        int(known.sum()),
-        float(extra[0]),
-        float(extra[1]),
-        rectification,
+        error_deg=np.degrees(coefficients[:3]),
+        std_deg=np.degrees(std[:3]),
+        time_offset_s=float(coefficients[4]) if timing is not None else None,
+        time_offset_std_s=float(std[4]) if timing is not None else None,
+        patches=len(samples),
+        rows_known=int(known.sum()),
+        vertical_baseline_ratio=float(coefficients[3]),
+        residual_std_px=residual,
+        rectification=rectification,
     )
 
 

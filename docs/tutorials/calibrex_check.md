@@ -288,9 +288,9 @@ that was `unchecked` (std over 0.005).
 
 `camera-camera` is planned for every two cameras whose frames the candidate tree
 connects, with `T_first_second` (the first camera's frame sorts first). It needs both
-cameras' intrinsics (a Kalibr camchain with `--tf`, or `CameraInfo` topics) and image
-pairs taken within 2 ms of each other, so a hardware-synchronised pair. It uses the
-images alone:
+cameras' intrinsics (a Kalibr camchain with `--tf`, or `CameraInfo` topics). Without a
+gyro, the image pairs must be taken within 2 ms of each other (a hardware-synchronised
+pair), and the check uses the images alone:
 
 1. Up to 48 image pairs, one per second, are rectified with the candidate, so that a
    scene point lands on the same row of both images when the candidate is right.
@@ -310,6 +310,40 @@ images alone:
 
 The translation is not judged, and `calibrex estimate` does not export the pair. The
 evidence is a `slac.stereo_rotation/v0.1` artifact.
+
+**Unsynchronised cameras.** When an IMU is connected to the first camera in the
+candidate tree, its gyro gives the rig's rotation at every pair.
+
+* **Pairing.** Each image is paired with the other camera's nearest image within
+  30 ms.
+* **What a gap does.** A pair stamped `g` apart, while the rig turns at `omega`, sees
+  the relative rotation turned by `omega (g + t)`, where `t` is the cameras' clock
+  offset.
+* **The fit.** Each pair is rectified for the turn over its stamped gap. The rotation
+  error and `t` are then fitted together.
+* **The report.** The clock offset is reported, not judged, as the pair's `time_offset`
+  with its jackknife std. The rotation axes are judged as before.
+
+On a hardware-synchronised bag with a gyro, it measures the offset as about zero.
+
+On Hilti, `tools/stereo_timing_injection.py` makes timing errors of known size from the
+synchronised bags (48 pairs each):
+
+| scenario | `exp01` | `exp21` |
+| --- | --- | --- |
+| synchronised | offset −0.04 ± 0.15 ms, `pass` | offset +0.14 ± 0.11 ms, `pass` |
+| right camera's stamps 5 ms late (true offset −5 ms) | −4.87 ± 0.22 ms, `pass` | −4.93 ± 0.16 ms, `pass` |
+| right image one 40 Hz frame (25 ms) later, stamped so | −0.4 ± 1.5 ms, `pass` | +0.5 ± 1.2 ms, `pass` |
+
+* **A 25 ms gap costs precision.** With the gap, the rotation's jackknife std grows to
+  0.07 to 0.08 deg about the vertical axis, from 0.01 to 0.03 deg. The readings move by
+  up to 0.12 deg from the synchronised ones, within 1.5 std.
+* **Without the gyro, the same pairs fail to observe that axis.** On `exp01`, turning at
+  up to 85 deg/s, the vertical axis goes unobserved and the result is `warn`. The
+  injected 25 ms pairs are rectified for each pair's own turn for this reason: at
+  85 deg/s the turn moves rows beyond the matcher's search.
+* **Without a gyro, unsynchronised images are skipped** as `missing_topic` (no two
+  images within 2 ms).
 
 On Hilti 2022's alphasense cam0 and cam1 (equidistant, Kalibr camchain, 48 pairs):
 
