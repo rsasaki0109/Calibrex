@@ -29,6 +29,18 @@ RotationModel: TypeAlias = Callable[[float, FloatArray], FloatArray]
 OdometryBackend: TypeAlias = Literal["cpu", "cuda"]
 
 
+class _PointRotationModel:
+    """Internal native models that can rotate points without materializing matrices."""
+
+    def __call__(self, scan_time_s: float, offsets_s: FloatArray) -> FloatArray:
+        raise NotImplementedError
+
+    def rotate_points(
+        self, scan_time_s: float, offsets_s: FloatArray, points: FloatArray
+    ) -> FloatArray:
+        raise NotImplementedError
+
+
 @dataclass(frozen=True)
 class ScanOdometryOptions:
     """Tuning of the point-to-plane registration."""
@@ -444,15 +456,24 @@ class IncrementalScanOdometry:
         source = scan
         processed = scan  # replaced in the first round
         measured: FloatArray | None = None  # the model does not depend on the motion estimate
+        rotated: FloatArray | None = None
         for _ in range(rounds):
             if deskew:
                 assert point_offsets_s is not None and gap is not None
                 if self.rotation_model is not None and time_s is not None:
-                    if measured is None:
-                        measured = self.rotation_model(time_s, point_offsets_s)
-                    source = deskew_points_with_rotations(
-                        scan, point_offsets_s, measured, motion, gap
-                    )
+                    if isinstance(self.rotation_model, _PointRotationModel):
+                        if rotated is None:
+                            rotated = self.rotation_model.rotate_points(
+                                time_s, point_offsets_s, scan
+                            )
+                        fractions = np.asarray(point_offsets_s, dtype=np.float64) / gap
+                        source = rotated + np.outer(fractions, motion[:3, 3])
+                    else:
+                        if measured is None:
+                            measured = self.rotation_model(time_s, point_offsets_s)
+                        source = deskew_points_with_rotations(
+                            scan, point_offsets_s, measured, motion, gap
+                        )
                 else:
                     source = deskew_points(scan, point_offsets_s, motion, gap)
             processed = preprocess_scan(source, self.options)

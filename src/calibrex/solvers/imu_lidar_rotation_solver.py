@@ -31,6 +31,7 @@ from scipy.optimize import least_squares
 from scipy.spatial.transform import Rotation
 
 from calibrex.solvers.gnss_lever_arm_solver import OdometryWindow, weighted_procrustes
+from calibrex.solvers.scan_to_scan_odometry import _PointRotationModel
 
 FloatArray: TypeAlias = NDArray[np.float64]
 RotationDofName = Literal[
@@ -483,6 +484,91 @@ def _observability(
     return tuple(dofs)
 
 
+class _GyroRotationModel(_PointRotationModel):
+    """Keep the matrix callback and fuse native point rotation on ordinary inputs."""
+
+    def __init__(
+        self, gyro: GyroSeries, rotation: FloatArray, bias: FloatArray, time_offset_s: float
+    ) -> None:
+        self.gyro = gyro
+        self.rotation = rotation
+        self.bias = bias
+        self.time_offset_s = time_offset_s
+        self._bias_capture: FloatArray | None = None
+        self._projected_sums: FloatArray | None = None
+        self._valid_prefixes: bool | None = None
+
+    def __call__(self, scan_time_s: float, offsets_s: FloatArray) -> FloatArray:
+        times = np.asarray(offsets_s, dtype=np.float64)
+        start = np.full(1, scan_time_s + self.time_offset_s)
+        delta, jacobian = self.gyro.increments_from(start, start + times)
+        correction = Rotation.from_rotvec(np.einsum("nij,j->ni", jacobian, self.bias)).as_matrix()
+        corrected = delta @ correction
+        return np.asarray(self.rotation @ corrected @ self.rotation.T, dtype=np.float64)
+
+    def rotate_points(
+        self, scan_time_s: float, offsets_s: FloatArray, points: FloatArray
+    ) -> FloatArray:
+        xyz = np.asarray(points, dtype=np.float64)[:, :3]
+        offsets = np.asarray(offsets_s, dtype=np.float64)
+        start = scan_time_s + self.time_offset_s
+        queries = start + offsets
+        mounting = np.asarray(self.rotation, dtype=np.float64)
+        bias = np.asarray(self.bias, dtype=np.float64)
+        if (
+            type(self.gyro) is not GyroSeries or offsets.ndim != 1 or len(offsets) != len(xyz)
+            or mounting.shape != (3, 3) or bias.shape != (3,) or len(offsets) == 0
+            or not np.isfinite(xyz).all() or not np.isfinite(queries).all()
+            or not np.isfinite(bias).all() or not np.isfinite(mounting).all()
+            or np.max(np.abs(xyz)) > 1e100 or np.max(np.abs(bias)) > 1.0
+            or not np.allclose(mounting.T @ mounting, np.eye(3), rtol=0, atol=1e-10)
+            or start < self.gyro.times_s[0] or start > self.gyro.times_s[-1]
+            or queries.min() < self.gyro.times_s[0] or queries.max() > self.gyro.times_s[-1]
+        ):
+            return np.asarray(np.einsum("nij,nj->ni", self(scan_time_s, offsets_s), xyz))
+        orientations: FloatArray = self.gyro._orientations  # type: ignore[attr-defined]
+        rates: FloatArray = self.gyro._rates  # type: ignore[attr-defined]
+        sums: FloatArray = self.gyro._bias_sum  # type: ignore[attr-defined]
+        if self._valid_prefixes is None:
+            self._valid_prefixes = bool(
+                np.isfinite(rates).all() and np.isfinite(sums).all()
+                and np.allclose(
+                    np.transpose(orientations, (0, 2, 1)) @ orientations,
+                    np.eye(3), rtol=0, atol=1e-10,
+                )
+                and np.all(np.linalg.det(orientations) > 0)
+            )
+        if not self._valid_prefixes:
+            return np.asarray(np.einsum("nij,nj->ni", self(scan_time_s, offsets_s), xyz))
+        if self._bias_capture is None or not np.array_equal(self._bias_capture, bias):
+            self._projected_sums = sums @ bias
+            self._bias_capture = bias.copy()
+        assert self._projected_sums is not None
+        projected = self._projected_sums
+
+        def gather(times: FloatArray) -> tuple[NDArray[np.int64], FloatArray, FloatArray]:
+            index = np.clip(np.searchsorted(self.gyro.times_s, times, side="right") - 1,
+                            0, len(rates) - 1)
+            elapsed = times - self.gyro.times_s[index]
+            fraction = elapsed / (self.gyro.times_s[index + 1] - self.gyro.times_s[index])
+            values = projected[index] + fraction[:, None] * (
+                projected[index + 1] - projected[index]
+            )
+            return index, elapsed, values
+
+        index, elapsed, end_sum = gather(queries)
+        start_index, start_elapsed, start_sum = gather(np.asarray([start]))
+        start_orientation = orientations[start_index[0]] @ Rotation.from_rotvec(
+            rates[start_index[0]] * start_elapsed[0]
+        ).as_matrix()
+        # Q_end Exp(-Q_end.T ds) = Exp(-ds) Q_end. Project the fixed bias
+        # into the prefix sums once, then apply the four rotations to vectors.
+        partial_points = Rotation.from_rotvec(rates[index] * elapsed[:, None]).apply(xyz @ mounting)
+        world_points = np.einsum("nij,nj->ni", orientations[index], partial_points)
+        corrected = Rotation.from_rotvec(-(end_sum - start_sum)).apply(world_points)
+        return np.asarray(corrected @ (mounting @ start_orientation.T).T, dtype=np.float64)
+
+
 def gyro_rotation_model(
     gyro: GyroSeries,
     rotation: FloatArray,
@@ -496,13 +582,4 @@ def gyro_rotation_model(
     deliberate extrinsic error survives (see the evaluation's feedback check).
     """
 
-    def model(scan_time_s: float, offsets_s: FloatArray) -> FloatArray:
-        times = np.asarray(offsets_s, dtype=np.float64)
-        # Every point's increment starts at the sweep time, so that orientation is
-        # computed once and broadcast instead of once per point.
-        start = np.full(1, scan_time_s + time_offset_s)
-        delta, jacobian = gyro.increments_from(start, start + times)
-        corrected = delta @ Rotation.from_rotvec(np.einsum("nij,j->ni", jacobian, bias)).as_matrix()
-        return np.asarray(rotation @ corrected @ rotation.T, dtype=np.float64)
-
-    return model
+    return _GyroRotationModel(gyro, rotation, bias, time_offset_s)

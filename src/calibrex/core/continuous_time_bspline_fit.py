@@ -38,12 +38,14 @@ from scipy.sparse.linalg import spsolve
 from calibrex.core.continuous_time_bspline import (
     BSplineStates,
     CubicBSplineTrajectory,
+    _evaluate_local_spline,
     cumulative_basis,
-    evaluate_local_spline,
     skew_batch,
     so3_exp_batch,
+    so3_log_batch,
 )
 from calibrex.core.continuous_time_bspline_derivatives import (
+    _right_jacobian,
     _rotation_control_derivatives,
     _RotationDerivatives,
 )
@@ -382,9 +384,16 @@ class _Gathered:
     fraction: FloatArray
     segment: NDArray[np.int64]
     spacing: float
+    relatives: FloatArray
+    deltas: FloatArray
+    log_jacobians: FloatArray | None
+    steps: FloatArray
 
-    def states(self) -> BSplineStates:
-        return evaluate_local_spline(self.rotations, self.positions, self.fraction, self.spacing)
+    def states(self, order: Literal[0, 1, 2] = 2) -> BSplineStates:
+        return _evaluate_local_spline(
+            self.rotations, self.positions, self.fraction, self.spacing,
+            order=order, deltas=self.deltas, steps=self.steps,
+        )
 
 
 _Sensitivity = tuple[FloatArray | None, FloatArray | None]
@@ -405,9 +414,10 @@ class _Family:
         [BSplineStates, LidarImuCalibration], dict[CalibrationBlock, FloatArray]
     ]
     depends_on: frozenset[CalibrationBlock]
+    derivative_order: Literal[0, 1, 2]
 
     def residual(self, gathered: _Gathered, calibration: LidarImuCalibration) -> FloatArray:
-        return self.state_residual(gathered.states(), calibration)
+        return self.state_residual(gathered.states(self.derivative_order), calibration)
 
     def body_times(self, calibration: LidarImuCalibration) -> FloatArray:
         if self.on_imu_clock:
@@ -546,6 +556,7 @@ def _families(
             plane_rotation,
             plane_calibration,
             frozenset(),
+            0,
         ),
         "gyro": _Family(
             np.asarray(gyro.times_sec, dtype=float),
@@ -555,6 +566,7 @@ def _families(
             gyro_rotation,
             gyro_calibration,
             frozenset({"imu_rotation", "gyro_bias", "imu_clock_offset"}),
+            1,
         ),
         "accel": _Family(
             np.asarray(accel.times_sec, dtype=float),
@@ -566,19 +578,41 @@ def _families(
             frozenset(
                 {"imu_rotation", "lever_arm", "imu_clock_offset", "accel_bias", "gravity"}
             ),
+            2,
         ),
     }
 
 
-def _gather(trajectory: CubicBSplineTrajectory, times: FloatArray) -> _Gathered:
+def _gather(
+    trajectory: CubicBSplineTrajectory, times: FloatArray, *, derivatives: bool = False
+) -> _Gathered:
     segment, fraction = trajectory.segments(times)
     slots = segment[:, None] + np.arange(4)[None, :]
+    # Evaluate each referenced control edge once, then gather its terms. Restrict
+    # this to referenced edges so unused near-pi controls retain their semantics.
+    edges, inverse = np.unique(
+        segment[:, None] + np.arange(3)[None, :], return_inverse=True
+    )
+    relative = np.einsum("tji,tjk->tik", trajectory.rotations[edges],
+                         trajectory.rotations[edges + 1])
+    delta = so3_log_batch(relative)
+    log_jacobian = _right_jacobian(delta, inverse=True) if derivatives else None
+    inverse = inverse.reshape(len(segment), 3)
+    deltas = delta[inverse]
+    basis = cumulative_basis(fraction, trajectory.knot_spacing_sec)[0]
+    steps = np.stack(
+        [so3_exp_batch(basis[:, j + 1, None] * deltas[:, j]) for j in range(3)], axis=1
+    )
     return _Gathered(
         rotations=trajectory.rotations[slots],
         positions=trajectory.positions[slots],
         fraction=fraction,
         segment=segment,
         spacing=trajectory.knot_spacing_sec,
+        relatives=relative[inverse],
+        deltas=deltas,
+        log_jacobians=None if log_jacobian is None else log_jacobian[inverse],
+        steps=steps,
     )
 
 
@@ -611,9 +645,9 @@ def _linearize(
     values: list[FloatArray] = []
     residual_parts: list[FloatArray] = []
     row_offset = 0
-    for name, family in families.items():
-        gathered = _gather(trajectory, family.body_times(calibration))
-        states = gathered.states()
+    for family in families.values():
+        gathered = _gather(trajectory, family.body_times(calibration), derivatives=True)
+        states = gathered.states(family.derivative_order)
         base = family.state_residual(states, calibration)
         count, width = base.shape
         residual_parts.append(base.reshape(-1))
@@ -631,7 +665,9 @@ def _linearize(
             states,
             _rotation_control_derivatives(
                 gathered.rotations, gathered.fraction, gathered.spacing,
-                order=0 if name == "plane" else 1 if name == "gyro" else 2,
+                order=family.derivative_order, relatives=gathered.relatives,
+                deltas=gathered.deltas, steps=gathered.steps,
+                log_jacobians=gathered.log_jacobians,
             ),
             calibration,
         )
