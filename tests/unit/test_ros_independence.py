@@ -60,13 +60,13 @@ def test_core_source_never_imports_ros_modules() -> None:
 
 
 def test_importing_every_core_module_loads_no_ros_module() -> None:
-    skipped: list[str] = []
     for module in pkgutil.walk_packages(calibrex.__path__, prefix="calibrex."):
         try:
             importlib.import_module(module.name)
-        except ImportError as exc:
-            # Optional dependencies (open3d, opencv, numba, mcap) may be absent.
-            skipped.append(f"{module.name}: {exc}")
+        except ModuleNotFoundError as exc:
+            # Allow only absent optional packages; unexpected import errors fail.
+            assert exc.name is not None and exc.name.split(".", 1)[0] in {
+                "cupy", "numba", "open3d", "cv2", "mcap",
+            }, f"{module.name}: {exc}"
 
     assert python_path_isolation(loaded_modules=list(sys.modules)).loaded_ros_modules == []
-    assert len(skipped) < 10, skipped

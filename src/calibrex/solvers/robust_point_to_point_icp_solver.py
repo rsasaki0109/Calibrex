@@ -676,11 +676,16 @@ def _multi_start_diagnostics(
         initial = _left_perturbation(
             axes[index % 3], amount, is_translation
         ).compose(seed_transform)
-        result = RobustPointToPointIcpSolver().solve(
-            source, target, initial_transform=initial, options=nested_options,
-            _target_search_factory=_target_search_factory,
-            _source_search_factory=_source_search_factory,
-        )
+        if _target_search_factory is None and _source_search_factory is None:
+            result = RobustPointToPointIcpSolver().solve(
+                source, target, initial_transform=initial, options=nested_options,
+            )
+        else:
+            result = RobustPointToPointIcpSolver().solve(
+                source, target, initial_transform=initial, options=nested_options,
+                _target_search_factory=_target_search_factory,
+                _source_search_factory=_source_search_factory,
+            )
         if result.transform_target_source is None:
             translation_delta = None
             rotation_delta = None
