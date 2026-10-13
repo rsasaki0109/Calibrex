@@ -457,18 +457,27 @@ def _correspondences(
     FloatArray, FloatArray, FloatArray, NDArray[np.int64], NDArray[np.int64]
 ]:
     search = target_search if target_search is not None else _ExactNeighbors(target)
-    target_indices, squared = search.nearest(transformed_source)
+    limited = getattr(search, "_nearest_within", None)
+    target_indices, squared = (
+        limited(transformed_source, options.correspondence_distance_m)
+        if limited is not None else search.nearest(transformed_source)
+    )
     distances = np.sqrt(squared)
     mask = distances <= options.correspondence_distance_m
-    if options.mutual_correspondences:
-        unique_targets, inverse = np.unique(target_indices, return_inverse=True)
+    if options.mutual_correspondences and np.any(mask):
+        eligible = np.flatnonzero(mask)
+        unique_targets, inverse = np.unique(target_indices[eligible], return_inverse=True)
         if source_search is not None and transform is not None:
-            source_indices = source_search.nearest(
-                transformed_source, target[unique_targets], transform,
+            limited_source = getattr(source_search, "_nearest_within", None)
+            source_indices = (
+                limited_source(transformed_source, target[unique_targets], transform,
+                               options.correspondence_distance_m)
+                if limited_source is not None else source_search.nearest(
+                    transformed_source, target[unique_targets], transform)
             )
         else:
             source_indices, _ = _ExactNeighbors(transformed_source).nearest(target[unique_targets])
-        mask &= source_indices[inverse] == np.arange(len(transformed_source))
+        mask[eligible] &= source_indices[inverse] == eligible
     selected = np.flatnonzero(mask)
     if len(selected):
         keep = max(1, math.ceil(options.trim_fraction * len(selected)))

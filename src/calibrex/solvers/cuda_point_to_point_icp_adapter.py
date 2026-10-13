@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+import math
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from threading import Lock
@@ -31,7 +32,7 @@ extern "C" __global__ void native_query3(
     const double* axis_xyz, const double* native_xyz, const double* native_reference,
     const long long* order, const int* axis, const double* split, const int* child,
     const long long* span, const int n, const int m,
-    const double lower_scale, const double error,
+    const double lower_scale, const double error, const double initial_best,
     double* squared, long long* index) {
     const int row=blockDim.x*blockIdx.x+threadIdx.x;
     if(row>=n) return;
@@ -41,7 +42,7 @@ extern "C" __global__ void native_query3(
 #else
     const double px=ax, py=ay, pz=az;
 #endif
-    double best=1.0/0.0; long long chosen=m;
+    double best=initial_best; long long chosen=m;
     int stack[STACK_CAPACITY]; double bound[STACK_CAPACITY]; int top=1;
     stack[0]=0; bound[0]=0;
     while(top) {
@@ -73,9 +74,18 @@ extern "C" __global__ void native_query3(
             stack[top]=near; bound[top]=0; ++top;
         }
     }
-    squared[row]=best; index[row]=chosen;
+    squared[row]=chosen==m ? 1.0/0.0 : best; index[row]=chosen==m ? 0 : chosen;
 }
 '''
+
+
+def _gate_squared(distance_m: float) -> float:
+    """Include every squared distance whose correctly rounded sqrt passes the gate."""
+
+    if not math.isfinite(distance_m) or distance_m >= 1e150:
+        return math.inf
+    enlarged = float(np.nextafter(distance_m, np.inf))
+    return float(np.nextafter(enlarged*enlarged, np.inf))
 
 
 class _CudaNeighbors(_ExactNeighbors):
@@ -109,6 +119,7 @@ class _CudaNeighbors(_ExactNeighbors):
     def _native_nearest(
         self, points: FloatArray, *, raw_points: FloatArray | None = None,
         native_reference: FloatArray | None = None, lower_scale: float = 1., error: float = 0.,
+        max_squared: float = math.inf,
     ) -> tuple[IntArray, FloatArray] | None:
         axis_points = points if raw_points is None else raw_points
         if (self.gpu is None or not len(points)
@@ -142,6 +153,7 @@ class _CudaNeighbors(_ExactNeighbors):
             self._native_kernels[rigid](((len(points)+127)//128,), (128,), (
                 axes, native, reference, *self.gpu.arrays, np.int32(len(points)),
                 np.int32(len(self._reference)), np.float64(lower_scale), np.float64(error),
+                np.float64(max_squared),
                 squared, indices,
             ))
             host_i = cast(IntArray, cp.asnumpy(indices))
@@ -155,6 +167,14 @@ class _CudaNeighbors(_ExactNeighbors):
             if native_reference is not None:
                 self.native_upload_bytes += int(reference.nbytes)
         return host_i, host_d
+
+    def _nearest_within(self, points: FloatArray, distance_m: float) -> tuple[IntArray, FloatArray]:
+        if ("nearest" not in self.__dict__ and type(self).nearest is _ExactNeighbors.nearest
+            and "query" not in self.__dict__ and type(self).query is _CudaNeighbors.query):
+            direct = self._native_nearest(points, max_squared=_gate_squared(distance_m))
+            if direct is not None:
+                return direct[0][:, 0], direct[1][:, 0]
+        return self.nearest(points)
 
     def _propose(self, points: FloatArray, width: int) -> tuple[IntArray, FloatArray] | None:
         if (self.gpu is None or width < 1 or points.dtype != np.float64 or not _tree_safe(points)
@@ -217,6 +237,7 @@ class _CudaRigidSource:
 
     def nearest(
         self, transformed_source: FloatArray, points: FloatArray, transform: SE3,
+        *, _distance_m: float | None = None,
     ) -> IntArray:
         rotation = _rotation_matrix(transform)
         inverse = (points-np.asarray(transform.translation_m))@rotation
@@ -239,6 +260,7 @@ class _CudaRigidSource:
             direct = self.search._native_nearest(
                 points, raw_points=inverse, native_reference=transformed_source,
                 lower_scale=lower, error=2*error,
+                max_squared=math.inf if _distance_m is None else _gate_squared(_distance_m),
             )
             if direct is not None:
                 with self.search._lock:
@@ -247,6 +269,13 @@ class _CudaRigidSource:
         with self.search._lock:
             self.cpu_fallbacks += 1
         return _ExactNeighbors(transformed_source).nearest(points)[0]
+
+    def _nearest_within(
+        self, transformed_source: FloatArray, points: FloatArray, transform: SE3, distance_m: float,
+    ) -> IntArray:
+        if "nearest" in self.__dict__ or type(self).nearest is not _CudaRigidSource.nearest:
+            return self.nearest(transformed_source, points, transform)
+        return self.nearest(transformed_source, points, transform, _distance_m=distance_m)
 
 
 @dataclass(frozen=True)

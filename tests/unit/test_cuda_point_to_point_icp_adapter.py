@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import math
 
 import numpy as np
 import pytest
@@ -178,3 +179,29 @@ def test_world_search_rejects_nonrigid_pruning_matrix(monkeypatch):
     np.testing.assert_array_equal(search.nearest(moving, queries, SE3.identity()),
                                   _ExactNeighbors(moving).nearest(queries)[0])
     assert search.world_calls == 0 and search.cpu_fallbacks == 1
+@pytest.mark.parametrize("gate", [1e-160, 1., 1e12, math.inf])
+def test_gated_gpu_query_keeps_native_mask_and_boundary_distance_bits(gate):
+    rng = np.random.default_rng(78)
+    scale = gate if np.isfinite(gate) else 1.
+    reference = rng.normal(size=(2048, 3))*scale
+    reference[:8] = 0.
+    queries = np.concatenate((reference[:4], rng.normal(size=(41, 3))*scale))
+    search = _CudaNeighbors(reference, cp.cuda.runtime.getDevice())
+    expected_i, expected_d = _ExactNeighbors(reference).nearest(queries)
+    actual_i, actual_d = search._nearest_within(queries, gate)
+    expected_mask, actual_mask = np.sqrt(expected_d)<=gate, np.sqrt(actual_d)<=gate
+    np.testing.assert_array_equal(actual_mask, expected_mask)
+    np.testing.assert_array_equal(actual_i[actual_mask], expected_i[expected_mask])
+    np.testing.assert_array_equal(actual_d[actual_mask].view(np.uint64),
+                                  expected_d[expected_mask].view(np.uint64))
+
+
+def test_gated_query_retains_custom_nearest_hook(monkeypatch):
+    search = _CudaNeighbors(np.zeros((2048, 3)), cp.cuda.runtime.getDevice())
+    calls = []
+    def nearest(points):
+        calls.append(len(points))
+        return np.zeros(len(points), dtype=np.int64), np.full(len(points), 3.)
+    monkeypatch.setattr(search, "nearest", nearest)
+    assert search._nearest_within(np.zeros((2, 3)), 1.)[1].tolist() == [3., 3.]
+    assert calls == [2] and search.direct_calls == 0
