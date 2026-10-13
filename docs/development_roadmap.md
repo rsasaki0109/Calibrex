@@ -136,11 +136,11 @@ accuracy.
    not see its error). A joint six-DoF stereo fit is recorded as a cross-check;
    with the stereo rig's scale and roll fitted, its x of the same calibration
    still spans 8 cm across runs (three within 1.3 cm, one turning segment
-   apart), more than its 1-3 cm jackknife std, so `x` and `y` stay unjudged. On a second dataset (Hilti 2022 `exp21`, rectified
-   fisheye pair, the check's own frames, development run) the decision passes on
-   rotation (the known-bad fails on pitch); z goes unjudged there (depth std just
-   above its gate), and depth reads the reference about 0.1 m short, unexplained (a
-   disparity scale term was tried and rejected). The remaining gaps are
+   apart), more than its 1-3 cm jackknife std, so `x` and `y` stay unjudged. On a second dataset (Hilti 2022, rectified fisheye pair,
+   the check's own frames, development runs) the decision passes on two recordings:
+   on `exp01` with rotation and depth judged; on `exp21` with rotation only (depth std
+   just above its gate, and an unexplained -0.1 m depth offset that `exp01` does not
+   repeat). The remaining gaps are
    rotation and depth on 5 s of driving and a lateral translation estimate
    whose systematic error is bounded.
 2. **Common external execution adoption:** the external-run artifact is proven
