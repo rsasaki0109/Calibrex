@@ -457,3 +457,24 @@ def test_consistent_estimates_do_not_change_the_overall_verdict(
 
     assert artifact.closures is not None and artifact.closures.verdict == "pass"
     assert artifact.overall_verdict == "pass"
+
+
+def test_errors_shared_through_one_frame_are_attributed_to_it(
+    tmp_path: Path, bag: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # imu-lidar compares T_lidar_imu, so the IMU is the child of both pairs: its candidate
+    # turned by w reads w on both, while the LiDARs agree with each other
+    _closure_run(monkeypatch, -2.0, -2.0, 0.0)
+    artifact = build_calibration_check(
+        bag, run=CheckRunOptions(evidence_dir=tmp_path / "ev", pairs=CLOSURE_PAIRS)
+    )
+
+    assert artifact.rotation_attribution is not None
+    (group,) = artifact.rotation_attribution.groups
+    assert group.status == "attributed", group.summary
+    assert group.frame == "imu_link"
+    assert group.hypotheses[0].rotation_deg == pytest.approx([0.0, 0.0, -2.0], abs=1.0e-6)
+    assert group.pairs[:2] == ["imu-lidar:lidar_front>imu_link", "imu-lidar:lidar_rear>imu_link"]
+    assert "imu_link alone explains the pair errors" in format_check_table(artifact)
+    again = CalibrationCheckArtifact.model_validate(artifact.model_dump(mode="json"))
+    assert again.rotation_attribution == artifact.rotation_attribution

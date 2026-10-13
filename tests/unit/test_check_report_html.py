@@ -46,6 +46,9 @@ def test_report_shows_verdict_pairs_closure_tree_and_provenance(
         assert pair in page
     assert "Skipped pairs" in page and "camera-imu" in page
     assert "Closure of the estimates" in page and 'class="badge fail"' in page
+    assert "Which frame the errors point to" in page
+    assert artifact.rotation_attribution is not None
+    assert all(group.summary in page for group in artifact.rotation_attribution.groups)
     assert "base_link" in page and "lidar_front" in page and "t=(1.000, 0.000, 0.500)" in page
     ref = (
         artifact.pairs[0].evidence[0]

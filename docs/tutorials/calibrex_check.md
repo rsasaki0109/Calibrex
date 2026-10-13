@@ -912,6 +912,47 @@ documented
 (-0.03, -0.03, +0.09) deg) uses estimates `calibrex check` refuses to judge for the same
 reason, so it stays a separate, benchmark-level statement.
 
+### Which frame the errors point to
+
+Closure asks whether the estimates agree with each other. Attribution asks something
+else: when the pairs read rotation errors against the candidate, which single frame's
+candidate explains them? A rig with five cameras and an IMU has 15 pairs but only six
+frames. One camera knocked out of place shows up in every pair it belongs to, and
+nowhere else.
+
+- **Model.** Suppose only frame `f`'s candidate is off, by a small rotation `w` about
+  `f`'s own axes. Then, to first order:
+  - each pair with `f` as child reads `R_parent_child w`;
+  - each pair with `f` as parent reads `-w`;
+  - every other pair reads zero.
+- **Fit.** For every frame of each connected group of pairs, `w` is fitted by weighted
+  least squares on the observed rotation axes. Its chi-square is compared with the
+  hypothesis that nothing is off. The pairs are the same independent estimates as
+  closure: derived and inconclusive pairs and `camera-focal` are left out.
+- **Weights.** An axis's std counts at least as the rotation floor over `sigma_k`
+  (0.5 / 3 = 0.17 deg by default). A pair is judged against `max(sigma_k std, floor)`,
+  so attribution works at the verdicts' resolution. The floor also absorbs what the
+  std leaves out: on Hilti, other parts of one recording move a camera pair's reading
+  by about 1.5 times its std.
+- **Status.** At significance 0.01:
+  - `consistent`: nothing-off fits.
+  - `attributed`: exactly one frame explains the errors. Its fit is acceptable, its
+    move is significant, and no other acceptable frame comes within the 3-dof critical
+    value (11.3) of its chi-square.
+  - `ambiguous`: several frames do. A frame seen by a single pair cannot be told from
+    its partner.
+  - `unexplained`: no single frame does. More than one candidate is off, or the
+    estimates disagree.
+- **What it cannot tell.** A bias shared by every pair through one frame reads as that
+  frame turned. When all `camera-imu` pairs carry a common error, "the IMU's candidate"
+  and "a bias of the camera-IMU estimator" look the same.
+- **Effect on verdicts.** None: the report is informational. It is the optional
+  `rotation_attribution` field (`groups`, each with every frame's hypothesis: turn
+  about its own axes, std, chi-square, dof, p-value). The text and HTML reports show
+  each group's status and summary.
+
+ATTRIBUTION_RESULTS
+
 ### HTML report
 
 ```bash
