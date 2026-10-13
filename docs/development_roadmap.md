@@ -136,7 +136,10 @@ accuracy.
    not see its error). A joint six-DoF stereo fit is recorded as a cross-check;
    with the stereo rig's scale and roll fitted, its x of the same calibration
    still spans 8 cm across runs (three within 1.3 cm, one turning segment
-   apart), more than its 1-3 cm jackknife std, so `x` and `y` stay unjudged. The remaining gaps are
+   apart), more than its 1-3 cm jackknife std, so `x` and `y` stay unjudged. On a second dataset (Hilti 2022 `exp21`, rectified
+   fisheye pair, development run) the decision is inconclusive: the known-bad fails on
+   pitch, but stereo depth reads the reference's z at -0.14 m, an offset the joint
+   fit attributes to a -2.7% disparity scale that depth alone does not model. The remaining gaps are
    rotation and depth on 5 s of driving and a lateral translation estimate
    whose systematic error is bounded.
 2. **Common external execution adoption:** the external-run artifact is proven

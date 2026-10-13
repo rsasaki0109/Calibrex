@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- **Fisheye stereo pairs feed the stereo depth checks, and the data-only decision runs
+  on Hilti 2022 (development run).**
+  - **Rectification.** `calibrex.evaluation.fisheye_stereo` rectifies an equidistant
+    (Kannala-Brandt) pair read from a Kalibr camchain onto one pinhole camera.
+    `estimate_vertical_offset` measures the rectified pair's leftover row offset from
+    the images alone, and `with_right_row_shift` removes it.
+  - **Reuse.** `judge_candidate` runs the KITTI decision's per-candidate steps on any
+    frames. KITTI's results are unchanged. `tools/hilti_stereo_falsification.py` runs
+    the decision on a Hilti bag.
+  - **Result on `exp21` (47 frames): `inconclusive`.** The known-bad fails on pitch
+    (5.0 deg). The reference's z reads −0.137 m against a 0.111 m tolerance (`warn`).
+    The joint stereo fit reads the reference's z at −0.007 m and the known-bad's at
+    +0.246 m, with a disparity scale of −2.7% that depth alone does not model. The rule
+    was not changed (see
+    [the page](docs/benchmarks/hilti_fisheye_stereo_falsification.md)).
+
 - **The joint stereo fit models the stereo rig's scale and roll.**
   - **The change.** The rig's disparity scale and the roll between its cameras are
     fitted beside its offset (`rig_terms`, recorded as `disparity_scale` and

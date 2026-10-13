@@ -185,6 +185,9 @@ data did not look where it is wrong) when none was. The declared axes come from 
 protocol's declaration of the known-bad, never from the data. This distinction was
 added after 0009's first 50 frames read `fail` under the earlier rule.
 
+The same decision on a second dataset, a rectified fisheye pair, is reported in
+[Hilti fisheye stereo falsification](hilti_fisheye_stereo_falsification.md).
+
 The protocol's own status is unchanged: the data-only decision is reported beside it, not
 folded into it, so the protocol's finding above stands.
 
