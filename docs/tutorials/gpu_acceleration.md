@@ -1062,6 +1062,45 @@ The copied public topic supplies execution parity, without independent
 two-sensor accuracy evidence. See the [complete association/replay evidence](../assets/cuda_continuous_time_associations/README.md)
 for all trials, source/input bindings, actual work and preserved preceding candidates.
 
+## Experimental captured CUDA residual summaries
+
+`ContinuousTimeLidarPairOptions.cuda_captured_summary=True` explicitly enables
+CUDA residual summaries for native factors whose immutable observation arrays
+are already uploaded by finite differences. The default is `False`: this
+experiment did not establish a reliable whole-pipeline speedup. The option is
+available through the direct Python solver API; YAML and result schemas are
+unchanged.
+
+Fresh summaries reuse device observations, upload the transform, download
+residual values and retain ordered CPU summation. Initial and holdout summaries,
+uncaptured data, small factors and unsupported summation runtimes keep the CPU
+route. Cached values remain read-only; public outputs and histories are preserved.
+
+Three alternating fresh-process pairs each for dense and full capture, plus five
+for default sampling, retain every initial compilation and slower trial. Each
+method owns initially empty persistent compiler caches. Whole wall includes
+startup, replay, all candidates/refinements, transfers, diagnostics and saves.
+
+| Workload | Previous GPU median | Experimental median | Ratio of medians | Median paired ratio |
+|---|---:|---:|---:|---:|
+| 960,000 captured points | 35.314477 s | 38.644438 s | 0.914x | 1.130x |
+| 48,000 captured points | 19.251234 s | 17.538761 s | 1.098x | 1.098x |
+| Default sampling | 7.490853 s | 6.837300 s | 1.096x | 0.982x |
+
+The dense ratio of medians is about 9% slower. Default sampling runs no CUDA
+summary and shows inconsistent timing ratios. All 22 complete results match
+after validating execution identity notes. No new CPU-only timing cohort was
+run; these observations are not pooled with preceding speedup ratios.
+
+An independent diagnostic confirms 102 additional GPU residual launches over
+59,724,347 rows without extra observation uploads. Reduction remains on CPU;
+finite-difference and query work remains unchanged. More GPU work does not by
+itself establish effective acceleration. The copied public sensor topic is an
+execution parity control without independent two-sensor accuracy evidence.
+See the [complete experimental evidence](../assets/cuda_captured_residual_summary/README.md)
+for all trials, exact measured sources and the separately tested final policy
+that keeps this operation disabled by default.
+
 ## Fusing ordered CPU residual error summaries
 
 Native compiled factors with at least 8,192 observations compute residuals and
