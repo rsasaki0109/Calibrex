@@ -334,6 +334,14 @@ pair), and the check uses the images alone:
    * one about the vertical axis bends them towards the corners.
 
    A term in disparity absorbs a vertical baseline component.
+
+   Rows are searched ±4 px. A candidate more than about 0.7 deg off (at 350 px) moves
+   them further, and a turn about the vertical axis moves far points to negative
+   disparity. So a coarse measurement comes first: ±12 rows, disparities from −30 px,
+   and fewer patches. If it reads more than 0.2 deg, the rectification is re-centred on
+   the estimate and measured again, up to three times. The reported error composes the
+   re-centring turn (`recentred_by_deg` in the evidence) with the final measurement,
+   and the control turns the re-centred rectification.
 3. The fit's error is reported about the first camera's x, y and z axes as roll, pitch
    and yaw, in the check's convention (`rotvec(R_candidate R_estimate^T)`). Each axis
    has a block-jackknife std over frames and a control: the candidate is turned
@@ -422,18 +430,34 @@ calibrex check exp21_head.bag --pairs camera-camera,camera-imu \
 | pair | shared view | `exp01` | `exp21` |
 | --- | --- | --- | --- |
 | cam0–cam1 | 94% | `pass` (roll, pitch, yaw) | `pass` (roll, pitch, yaw) |
-| cam0–cam2 | 14% | `inconclusive` | `pass` (yaw) |
-| cam0–cam3 | 30% | `pass` (roll, pitch, yaw) | `inconclusive` |
-| cam0–cam4 | 34% | `pass` (roll, yaw) | `pass` (roll, yaw) |
-| cam1–cam2 | 16% | `pass` (pitch) | `pass` (roll, pitch, yaw) |
-| cam1–cam3 | 33% | `pass` (roll, yaw) | `pass` (roll) |
-| cam1–cam4 | 31% | `pass` (roll, pitch, yaw) | `inconclusive` |
-| cam2–cam3 | 12% | `pass` (roll, pitch, yaw) | `inconclusive` (109 patches) |
-| cam2–cam4 | 12% | `inconclusive` (163 patches) | `inconclusive` (446 patches) |
+| cam0–cam2 | 14% | `inconclusive` | `inconclusive` |
+| cam0–cam3 | 30% | `pass` (roll, pitch, yaw) | `pass` (pitch) |
+| cam0–cam4 | 34% | `warn` (roll, pitch, yaw) | `pass` (roll, pitch, yaw) |
+| cam1–cam2 | 16% | `pass` (yaw) | `pass` (roll, pitch, yaw) |
+| cam1–cam3 | 33% | `pass` (roll, pitch, yaw) | `pass` (roll, yaw) |
+| cam1–cam4 | 31% | `pass` (roll, pitch, yaw) | `pass` (roll, pitch, yaw) |
+| cam2–cam3 | 12% | `inconclusive` | `inconclusive` |
+| cam2–cam4 | 12% | `inconclusive` | `inconclusive` |
 | cam3–cam4 | 0% | skipped, `no_shared_view` | skipped, `no_shared_view` |
 
 The shared view is the share of the first camera's view the second also sees, under the
 candidate, at 10 m. Judged axes are in brackets.
+
+With the re-centred rectification (2026-10-13), 31 camera-pair axes are judged on the
+two recordings, against 27 before. The side pairs' pitch, which a linear fit about the
+candidate attenuated, is now measured. It shows two things:
+
+* **cam3's candidate pitch is about 0.38 deg off, on both recordings.** cam0–cam3 and
+  cam1–cam3 read +0.37 and +0.39 deg on `exp01`; cam0–cam3 reads +0.40 deg on `exp21`.
+  This is below the floor, so the pairs pass.
+* **cam0–cam4 and cam1–cam4 disagree on pitch.** On `exp01`, cam0–cam4 reads −0.56 deg
+  (`warn`) and cam1–cam4 reads −0.02 deg. cam0 and cam1 agree to 0.05 deg, so around
+  the triangle the two disagree by about 0.5 deg.
+  * Started from candidates turned −0.5, 0 and +0.5 deg, each pair returns the same
+    reading within 0.1 deg. This is a pair-specific bias, not instability
+    ([benchmark](../benchmarks/hilti_fisheye_stereo_falsification.md#re-centring-the-rectification-2026-10-13)).
+  * The closure report cannot see it. Its loops go through the IMU, whose
+    `camera-imu` pitch is unjudged.
 
 * **Only cam0–cam1 is a dependable stereo pair.**
   * Every other pair shares 12 to 34% of its view, at the edges of both fisheye images.
@@ -965,28 +989,30 @@ pairs, six frames):
 
 | recording | pairs used (axes) | nothing off | status | best single frame |
 | --- | --- | --- | --- | --- |
-| `exp01` | 12 (29) | χ² 18.9, p 0.92 | `consistent` | (the IMU: χ² 11.3) |
-| `exp21` | 9 (20) | χ² 46.1, p 0.0008 | `attributed` | the IMU, turned (+0.32 ± 0.18, +0.19 ± 0.09, +0.41 ± 0.08) deg: χ² 14.2 on 17 dof, p 0.65 |
+| `exp01` | 11 (28) | χ² 35.5, p 0.16 | `consistent` | (cam3, pitch +0.38: χ² 25.1) |
+| `exp21` | 11 (25) | χ² 60.8, p 0.0001 | `attributed` | the IMU, turned (+0.32 ± 0.18, +0.19 ± 0.09, +0.41 ± 0.08) deg: χ² 28.9 on 22 dof, p 0.15 |
 
-* **`exp01`: consistent.** All pairs pass, and the errors fit a candidate with nothing
-  off.
+* **`exp01`: consistent.** The errors fit a candidate with nothing off at the
+  verdicts' resolution. The best single frame is cam3, with its 0.38 deg pitch.
 * **`exp21`: the IMU.** The `camera-imu` pairs read up to 0.5 deg (cam0 pitch
   +0.49, cam2 yaw −0.44, cam1 pitch +0.51 at `warn`). Seen through each camera's axes,
-  one common turn of the IMU explains them all. The next best frame, cam1, is 19 χ²
+  one common turn of the IMU explains them all. The next best frame, cam4, is 16 χ²
   worse.
   * The pairs cannot tell the IMU's candidate from a bias shared by the
     camera-IMU estimates.
   * The IMU's yaw reads about +0.3 deg on `exp01` as well.
 * **cam1's 0.18 deg turn between the recordings** (see the camera-camera section) is
-  below the verdicts' resolution here, so it is not named. With the std alone as
-  weight (no floor), cam1 is the best single frame on both recordings, but no single
-  frame fits: the scene dependence exceeds the std.
-* **A 1 deg turn of cam3** (its camchain turned about its own y axis, `exp01`) goes
-  unseen.
-  * Its three camera pairs become `inconclusive` (`estimator_failed`). The turn moves
-    the rectified rows by about 6 px, beyond the matcher's ±4 px search.
-  * `camera-imu` does not judge cam3's pitch.
-  * Attribution can only name what the pairs measure.
+  below the verdicts' resolution here, so it is not named.
+  * With the std alone as weight (no floor), no single frame fits. The scene
+    dependence and the cam0–cam4 / cam1–cam4 disagreement exceed the std.
+* **A 1 deg turn of cam3 is named.** The test turns cam3's camchain 1 deg about cam3's
+  own y axis, on `exp01`.
+  * cam0–cam3 and cam1–cam3 `fail` with pitch +1.37 and +1.40 deg.
+  * Attribution names cam3, turned (+0.04 ± 0.10, +1.38 ± 0.12, −0.05 ± 0.10) deg:
+    χ² 24.9 on 25 dof, against 162 with nothing off. That is the 0.38 deg it already
+    had plus the 1.0 deg added.
+  * Before the rectification was re-centred, those pairs failed to estimate, and the
+    turn went unseen.
 
 
 ### HTML report
