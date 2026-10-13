@@ -337,7 +337,11 @@ pair), and the check uses the images alone:
 3. The fit's error is reported about the first camera's x, y and z axes as roll, pitch
    and yaw, in the check's convention (`rotvec(R_candidate R_estimate^T)`). Each axis
    has a block-jackknife std over frames and a control: the candidate is turned
-   0.2 deg about the axis and the estimate must follow.
+   0.2 deg about the axis and the estimate must follow. The std is the spread within
+   the frames analysed. On Hilti, other parts of the same recording move a side pair's
+   reading by about 1.5 times its std. That cannot change a verdict: an axis is judged
+   only with a std of at most 0.1 deg, so its tolerance is always the 0.5 deg floor
+   (3 x 0.1 < 0.5).
 
 The translation is not judged, and `calibrex estimate` does not export the pair. The
 evidence is a `slac.stereo_rotation/v0.1` artifact.
@@ -438,9 +442,14 @@ candidate, at 10 m. Judged axes are in brackets.
   * Which axes are judged changes between the two recordings.
 * **Where an axis is judged on both recordings, the readings stay well below the 0.5 deg
   floor, but not within their own std.** cam1–cam3's roll reads −0.10 deg on `exp01`
-  and +0.21 deg on `exp21`, about six times the jackknife std. That is either the rig's
-  drift between sessions (cam0–cam1's roll moved by 0.17 deg) or a bias at the image
-  edges, and these recordings cannot tell which.
+  and +0.21 deg on `exp21`, about six times the jackknife std. Two effects explain it
+  ([split-half test](../benchmarks/hilti_fisheye_stereo_falsification.md#the-other-camera-pairs-within-and-between-recordings-2026-10-13)):
+  * **cam1 itself turned.** cam0–cam1's roll changed by 0.18 deg between the
+    recordings. That alone predicts +0.18 deg of cam1–cam3's change. It is not a bias
+    at the image edges.
+  * **The std is the spread within the frames analysed.** On another part of the same
+    recording, a side pair's reading moves by about 1.5 times its std, by up to
+    0.19 deg on a judged axis.
 * **`camera-imu` judges every camera against the IMU.**
   * All ten runs pass, except `exp21` cam1 at `warn` (pitch +0.51 deg against a
     0.5 deg tolerance). cam0 reads +0.49 deg on the same recording.
@@ -911,6 +920,74 @@ documented
 (LiDAR-vehicle composed with KITTI's `calib_imu_to_velo` against INS-vehicle, within
 (-0.03, -0.03, +0.09) deg) uses estimates `calibrex check` refuses to judge for the same
 reason, so it stays a separate, benchmark-level statement.
+
+### Which frame the errors point to
+
+Closure asks whether the estimates agree with each other. Attribution asks something
+else: when the pairs read rotation errors against the candidate, which single frame's
+candidate explains them? A rig with five cameras and an IMU has 15 pairs but only six
+frames. One camera knocked out of place shows up in every pair it belongs to, and
+nowhere else.
+
+- **Model.** Suppose only frame `f`'s candidate is off, by a small rotation `w` about
+  `f`'s own axes. Then, to first order:
+  - each pair with `f` as child reads `R_parent_child w`;
+  - each pair with `f` as parent reads `-w`;
+  - every other pair reads zero.
+- **Fit.** For every frame of each connected group of pairs, `w` is fitted by weighted
+  least squares on the observed rotation axes. Its chi-square is compared with the
+  hypothesis that nothing is off. The pairs are the same independent estimates as
+  closure: derived and inconclusive pairs and `camera-focal` are left out.
+- **Weights.** An axis's std counts at least as the rotation floor over `sigma_k`
+  (0.5 / 3 = 0.17 deg by default). A pair is judged against `max(sigma_k std, floor)`,
+  so attribution works at the verdicts' resolution. The floor also absorbs what the
+  std leaves out: on Hilti, other parts of one recording move a camera pair's reading
+  by about 1.5 times its std.
+- **Status.** At significance 0.01:
+  - `consistent`: nothing-off fits.
+  - `attributed`: exactly one frame explains the errors. Its fit is acceptable, its
+    move is significant, and no other acceptable frame comes within the 3-dof critical
+    value (11.3) of its chi-square.
+  - `ambiguous`: several frames do. A frame seen by a single pair cannot be told from
+    its partner.
+  - `unexplained`: no single frame does. More than one candidate is off, or the
+    estimates disagree.
+- **What it cannot tell.** A bias shared by every pair through one frame reads as that
+  frame turned. When all `camera-imu` pairs carry a common error, "the IMU's candidate"
+  and "a bias of the camera-IMU estimator" look the same.
+- **Effect on verdicts.** None: the report is informational. It is the optional
+  `rotation_attribution` field (`groups`, each with every frame's hypothesis: turn
+  about its own axes, std, chi-square, dof, p-value). The text and HTML reports show
+  each group's status and summary.
+
+**On Hilti 2022** (the all-camera run above: 10 `camera-camera` and 5 `camera-imu`
+pairs, six frames):
+
+| recording | pairs used (axes) | nothing off | status | best single frame |
+| --- | --- | --- | --- | --- |
+| `exp01` | 12 (29) | χ² 18.9, p 0.92 | `consistent` | (the IMU: χ² 11.3) |
+| `exp21` | 9 (20) | χ² 46.1, p 0.0008 | `attributed` | the IMU, turned (+0.32 ± 0.18, +0.19 ± 0.09, +0.41 ± 0.08) deg: χ² 14.2 on 17 dof, p 0.65 |
+
+* **`exp01`: consistent.** All pairs pass, and the errors fit a candidate with nothing
+  off.
+* **`exp21`: the IMU.** The `camera-imu` pairs read up to 0.5 deg (cam0 pitch
+  +0.49, cam2 yaw −0.44, cam1 pitch +0.51 at `warn`). Seen through each camera's axes,
+  one common turn of the IMU explains them all. The next best frame, cam1, is 19 χ²
+  worse.
+  * The pairs cannot tell the IMU's candidate from a bias shared by the
+    camera-IMU estimates.
+  * The IMU's yaw reads about +0.3 deg on `exp01` as well.
+* **cam1's 0.18 deg turn between the recordings** (see the camera-camera section) is
+  below the verdicts' resolution here, so it is not named. With the std alone as
+  weight (no floor), cam1 is the best single frame on both recordings, but no single
+  frame fits: the scene dependence exceeds the std.
+* **A 1 deg turn of cam3** (its camchain turned about its own y axis, `exp01`) goes
+  unseen.
+  * Its three camera pairs become `inconclusive` (`estimator_failed`). The turn moves
+    the rectified rows by about 6 px, beyond the matcher's ±4 px search.
+  * `camera-imu` does not judge cam3's pitch.
+  * Attribution can only name what the pairs measure.
+
 
 ### HTML report
 

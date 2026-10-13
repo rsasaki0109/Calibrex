@@ -16,7 +16,7 @@ import yaml
 from scipy.spatial.transform import Rotation
 from tests.unit.stereo_scene import LEFT, RIGHT, TRUTH, render_pairs, render_turning_pairs
 
-from calibrex.check.runner import CheckRunOptions, build_calibration_check
+from calibrex.check.runner import CheckRunOptions, build_calibration_check, format_check_table
 from calibrex.core.calibration_check import CHECK_PAIR_NAMES, CalibrationCheckArtifact
 from calibrex.core.validation import validate_file
 from calibrex.data.ros_cdr_writer import encode_image, encode_imu
@@ -136,6 +136,10 @@ def test_the_true_camchain_passes_on_every_rotation_axis(bag: Path, tmp_path: Pa
     assert all(abs(axis.candidate_error) < 0.05 for axis in record.axes)
     assert record.evidence_artifact is not None
     assert validate_file(tmp_path / record.evidence_artifact).valid
+    assert artifact.rotation_attribution is not None
+    (group,) = artifact.rotation_attribution.groups
+    assert group.status == "consistent"
+    assert "which frame's rotation the pair errors point to" in format_check_table(artifact)
 
 
 def test_a_camchain_turned_in_pitch_fails_on_pitch(bag: Path, tmp_path: Path) -> None:
@@ -149,6 +153,13 @@ def test_a_camchain_turned_in_pitch_fails_on_pitch(bag: Path, tmp_path: Path) ->
     assert abs(errors["roll"]) < 0.1 and abs(errors["yaw"]) < 0.1
     statuses = {axis.name: axis.status for axis in record.axes}
     assert statuses == {"roll": "pass", "pitch": "fail", "yaw": "pass"}
+    # one pair cannot tell which camera's candidate is turned
+    assert artifact.rotation_attribution is not None
+    (group,) = artifact.rotation_attribution.groups
+    assert group.status == "ambiguous"
+    assert sorted(group.candidates) == ["left/image_raw", "right/image_raw"]
+    hypothesis = next(h for h in group.hypotheses if h.frame == "right/image_raw")
+    assert hypothesis.rotation_deg[1] == pytest.approx(1.5, abs=0.15)
 
 
 def test_camera_selection_keeps_a_pair_with_either_camera(bag: Path, tmp_path: Path) -> None:

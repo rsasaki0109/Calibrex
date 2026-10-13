@@ -149,6 +149,173 @@
       "title": "AxisExcitation",
       "type": "object"
     },
+    "CheckAttributionGroup": {
+      "additionalProperties": false,
+      "description": "One connected group of frames: which single frame's candidate explains its pair errors.\n\n``status``: ``consistent`` when the pair errors fit a candidate with nothing off;\n``attributed`` when exactly one frame turned alone explains them and the move is\nsignificant; ``ambiguous`` when several frames fit within the 3-dof critical value of\nthe best; ``unexplained`` when no single frame does (more than one is off, or the\nestimates disagree). A bias shared by every pair through one frame reads as that\nframe turned.",
+      "properties": {
+        "candidates": {
+          "description": "frames that each explain the errors alone",
+          "items": {
+            "type": "string"
+          },
+          "title": "Candidates",
+          "type": "array"
+        },
+        "frame": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the attributed frame",
+          "title": "Frame"
+        },
+        "frames": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Frames",
+          "type": "array"
+        },
+        "hypotheses": {
+          "items": {
+            "$ref": "#/$defs/CheckAttributionHypothesis"
+          },
+          "title": "Hypotheses",
+          "type": "array"
+        },
+        "null_chi2": {
+          "minimum": 0.0,
+          "title": "Null Chi2",
+          "type": "number"
+        },
+        "null_p_value": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Null P Value",
+          "type": "number"
+        },
+        "observations": {
+          "description": "observed rotation axes over all pairs",
+          "minimum": 0,
+          "title": "Observations",
+          "type": "integer"
+        },
+        "pairs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Pairs",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "consistent",
+            "attributed",
+            "ambiguous",
+            "unexplained"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "frames",
+        "pairs",
+        "observations",
+        "null_chi2",
+        "null_p_value",
+        "status",
+        "summary"
+      ],
+      "title": "CheckAttributionGroup",
+      "type": "object"
+    },
+    "CheckAttributionHypothesis": {
+      "additionalProperties": false,
+      "description": "\"Only this frame's candidate rotation is off\": the best such rotation and its fit.",
+      "properties": {
+        "chi2": {
+          "minimum": 0.0,
+          "title": "Chi2",
+          "type": "number"
+        },
+        "dof": {
+          "minimum": 0,
+          "title": "Dof",
+          "type": "integer"
+        },
+        "frame": {
+          "title": "Frame",
+          "type": "string"
+        },
+        "p_value": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "P Value",
+          "type": "number"
+        },
+        "pairs": {
+          "description": "the pairs that observe this frame (pair:parent>child)",
+          "items": {
+            "type": "string"
+          },
+          "title": "Pairs",
+          "type": "array"
+        },
+        "rotation_deg": {
+          "description": "roll, pitch, yaw about the frame's own axes by which its candidate is turned from what the pairs measure (the pairs' convention, rotvec(R_candidate R_estimate^T)); null on an axis no observed pair constrains",
+          "items": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Rotation Deg",
+          "type": "array"
+        },
+        "std_deg": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Std Deg",
+          "type": "array"
+        }
+      },
+      "required": [
+        "frame",
+        "rotation_deg",
+        "std_deg",
+        "chi2",
+        "dof",
+        "p_value"
+      ],
+      "title": "CheckAttributionHypothesis",
+      "type": "object"
+    },
     "CheckAxisJudgement": {
       "additionalProperties": false,
       "description": "One judged axis: candidate error against the estimator's value and uncertainty.\n\n``candidate_error`` is candidate minus estimate: for a rotation axis the\ncomponent of the small rotation ``R_candidate R_estimate^T`` about the axes\nof the compared transform's parent frame (degrees, the convention the\nestimator reports its standard deviation in); for a translation axis the\ndifference of the translation components (metres).\n\n``tolerance = max(sigma_k * std, floor)``. ``status`` is ``pass`` when\n``|candidate_error| <= tolerance``, ``fail`` when it exceeds twice the\ntolerance, else ``warn``.\n\n``detectable_error`` is ``tolerance + |candidate_error|``: a deliberate\nerror larger than this on this axis, of either sign, would have pushed\n``|candidate_error|`` beyond ``tolerance`` and been flagged. It is derived\nfrom the candidate error and uncertainty at hand; no solve is repeated.\n``detects_perturbation`` says whether the probe of\n``detection_probe`` (degrees, rotation axes only) is below that bound.",
@@ -1461,6 +1628,45 @@
       "title": "CheckProvenance",
       "type": "object"
     },
+    "CheckRotationAttribution": {
+      "additionalProperties": false,
+      "description": "Which sensor's candidate rotation the pair errors point to.\n\nEach run pair reads the candidate's rotation error between two frames. If one\nframe's candidate is off by a small rotation ``w`` (about its own axes), every\npair with it as child reads ``R_parent_child w`` and every pair with it as parent\nreads ``-w``; pairs without it read zero. Each frame's hypothesis is fitted by\nleast squares and judged by its chi-square, next to the hypothesis that nothing is\noff. Informational: it changes no verdict.",
+      "properties": {
+        "alpha": {
+          "description": "significance level of the tests",
+          "exclusiveMaximum": 1.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Alpha",
+          "type": "number"
+        },
+        "assumptions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Assumptions",
+          "type": "array"
+        },
+        "groups": {
+          "items": {
+            "$ref": "#/$defs/CheckAttributionGroup"
+          },
+          "title": "Groups",
+          "type": "array"
+        },
+        "sigma_floor_deg": {
+          "description": "axis std used at least: rotation floor / sigma_k of the verdicts",
+          "exclusiveMinimum": 0.0,
+          "title": "Sigma Floor Deg",
+          "type": "number"
+        }
+      },
+      "required": [
+        "sigma_floor_deg",
+        "alpha"
+      ],
+      "title": "CheckRotationAttribution",
+      "type": "object"
+    },
     "CheckSummary": {
       "additionalProperties": false,
       "description": "Counts derived from the pair records.",
@@ -1943,6 +2149,18 @@
     },
     "provenance": {
       "$ref": "#/$defs/CheckProvenance"
+    },
+    "rotation_attribution": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CheckRotationAttribution"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "which single frame's candidate rotation explains the pair errors (optional addition; informational, changes no verdict)"
     },
     "schema_version": {
       "const": "slac.calibration_check/v0.1",
