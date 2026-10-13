@@ -337,7 +337,9 @@ pair), and the check uses the images alone:
 3. The fit's error is reported about the first camera's x, y and z axes as roll, pitch
    and yaw, in the check's convention (`rotvec(R_candidate R_estimate^T)`). Each axis
    has a block-jackknife std over frames and a control: the candidate is turned
-   0.2 deg about the axis and the estimate must follow.
+   0.2 deg about the axis and the estimate must follow. The std is the spread within
+   the frames analysed. On Hilti, other parts of the same recording move a side pair's
+   reading by about 1.5 times its std.
 
 The translation is not judged, and `calibrex estimate` does not export the pair. The
 evidence is a `slac.stereo_rotation/v0.1` artifact.
@@ -438,9 +440,14 @@ candidate, at 10 m. Judged axes are in brackets.
   * Which axes are judged changes between the two recordings.
 * **Where an axis is judged on both recordings, the readings stay well below the 0.5 deg
   floor, but not within their own std.** cam1–cam3's roll reads −0.10 deg on `exp01`
-  and +0.21 deg on `exp21`, about six times the jackknife std. That is either the rig's
-  drift between sessions (cam0–cam1's roll moved by 0.17 deg) or a bias at the image
-  edges, and these recordings cannot tell which.
+  and +0.21 deg on `exp21`, about six times the jackknife std. Two effects explain it
+  ([split-half test](../benchmarks/hilti_fisheye_stereo_falsification.md#the-other-camera-pairs-within-and-between-recordings-2026-10-13)):
+  * **cam1 itself turned.** cam0–cam1's roll changed by 0.18 deg between the
+    recordings. That alone predicts +0.18 deg of cam1–cam3's change. It is not a bias
+    at the image edges.
+  * **The std is the spread within the frames analysed.** On another part of the same
+    recording, a side pair's reading moves by about 1.5 times its std, by up to
+    0.19 deg on a judged axis.
 * **`camera-imu` judges every camera against the IMU.**
   * All ten runs pass, except `exp21` cam1 at `warn` (pitch +0.51 deg against a
     0.5 deg tolerance). cam0 reads +0.49 deg on the same recording.
