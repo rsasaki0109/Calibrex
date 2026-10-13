@@ -955,13 +955,16 @@ on the captured CUDA device across optimizer iterations. Independent clock
 candidates own separate streams and observation buffers, sharing compiled
 kernels. The kernels evaluate the same residuals and all thirteen central
 finite-difference transforms in FP64 with fused multiply-add disabled.
-Single residual evaluations, trajectory interpolation, correspondence search
-and ordered Hessian/gradient accumulation remain on CPU. Selected indices and
+Single residual evaluations, trajectory interpolation and ordered
+Hessian/gradient accumulation remain on CPU. Capturable uniform/adaptive
+plane maps also query on CUDA, with native CPU repair for adaptive ties and
+gate boundaries. Selected indices and
 native timestamp rows are prepared once; offsets retain the same integer
 rounding and bounds. Small capture budgets use the compiled CPU path
 without importing CuPy; provenance records the backend that actually ran.
 The Python default and result schemas remain unchanged.
 
+The preceding finite-difference-only stage kept associations on CPU.
 On 120 public GLIM frames with up to 8,000 points per frame (768,000 train /
 192,000 holdout targets), five fresh paired subprocesses measured complete
 wall medians of 169.696 -> 97.911 s (1.73x), solver medians of
@@ -1002,6 +1005,62 @@ provenance hashing and saves. First runs, slower runs and earlier candidates
 are retained in the [complete CUDA evidence](../assets/cuda_continuous_time_lidar/README.md).
 The duplicated public topic supplies execution parity, without independent
 two-sensor accuracy evidence.
+
+## Captured GPU associations and large-frame CPU replay
+
+The same optional backend captures native uniform voxel neighborhoods and
+adaptive spatial topology once, then uploads each world-coordinate batch once
+to query both maps. Neighborhood order, normal-less nearest rejection and
+inclusive gates stay native. Adaptive close ties, tiny distances and gate
+boundaries use the existing CPU repair. Unsupported maps retain CPU queries.
+Diagnostics stream local XYZ without building every observation and pose.
+
+With the compiled continuous-time option selected, replay frames of at least
+4,096 selected points also batch their capture-time trajectory/base calculations
+on CPU. Source world points, target poses/extrapolation values, timestamp rounding
+and failure prefixes match the scalar path. Small declared frame budgets keep
+scalar replay without importing or compiling another adapter. This CPU work
+adds no GPU coverage.
+
+On the dense public GLIM control, five fresh paired subprocesses against the
+preceding GPU version measured whole-wall medians of 113.101 -> 61.549 s
+(1.84x), with a 1.73x median paired ratio. All-thread CPU medians fell from
+160.484 to 85.203 s (about 47% less CPU). A separate three-pair comparison
+against the packed/parallel CPU version measured 167.320 -> 66.829 s
+(2.50x), with a 2.82x median paired ratio. These cohorts remain separate.
+
+The standard 400-point/frame workload measured only 1.27x ratio of whole-wall
+medians and 1.11x median paired ratio. Its first candidate took 72.676 s versus
+28.353 s for the preceding GPU version; that slower cold case is retained.
+Default sampling caps remain CPU-only and measured 5.672 -> 5.456 s (1.04x).
+The earlier 64-row replay dispatch regressed those defaults to 0.90x, motivating
+the final frame crossover; all preceding trials remain in the evidence.
+
+A separate final dense diagnostic records 52 GPU query batches, 24,960,000
+uniform and 24,960,000 adaptive point queries, and no complete query fallback.
+It also records 129 GPU linearizations over 75,503,015 correspondence rows,
+207 CPU standalone residual calls and 129 ordered CPU normal calls. Compiled
+CPU replay processes 120 batches and 960,000 target rows. Every complete
+saved/API result retains estimates, traces, statuses and counters apart from
+the exact execution notes. Dense/standard results retain `max_iterations`,
+rank 6; default results retain `converged`.
+
+```bash
+python tools/benchmark_adaptive_plane_search.py \
+  --baseline-scope cuda \
+  --baseline-commit a1ff874ab0dbc39c2dacc9607f40841c610997d7 \
+  --baseline-query-backend cuda --candidate-query-backend cuda \
+  --config examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml \
+  --repetitions 5 \
+  --output-dir outputs/public-glim-cuda-associations-dense-reproduction
+```
+
+Both methods own initially empty persistent compiler caches, and wall includes
+initialization, compilation, replay, transfers, all profile/refinement work,
+diagnostics, hashes and saves. No warmup, cold case or outlier is discarded.
+The copied public topic supplies execution parity, without independent
+two-sensor accuracy evidence. See the [complete association/replay evidence](../assets/cuda_continuous_time_associations/README.md)
+for all trials, source/input bindings, actual work and preserved preceding candidates.
 
 ## Generating public depth maps on GPU
 

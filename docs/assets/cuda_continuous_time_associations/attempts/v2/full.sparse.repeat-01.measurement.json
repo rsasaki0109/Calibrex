@@ -1,0 +1,627 @@
+{
+  "pipeline_seconds": 20.358603100059554,
+  "solver_seconds": 11.158997200080194,
+  "adaptive_query_seconds": 0.0,
+  "adaptive_query_calls": 0,
+  "worker_import_seconds": 2.128749999916181,
+  "loaded_module": "<WORKSPACE>/src/calibrex/data/adaptive_voxel.py",
+  "loaded_evaluation_modules": {
+    "calibrex.data.livox": "<WORKSPACE>/src/calibrex/data/livox.py",
+    "calibrex.data.odometry_track": "<WORKSPACE>/src/calibrex/data/odometry_track.py",
+    "calibrex.graph.lidar_point_to_plane": "<WORKSPACE>/src/calibrex/graph/lidar_point_to_plane.py",
+    "calibrex.evaluation.lidar": "<WORKSPACE>/src/calibrex/evaluation/lidar.py",
+    "calibrex.solvers.continuous_time_lidar_pair_solver": "<WORKSPACE>/src/calibrex/solvers/continuous_time_lidar_pair_solver.py",
+    "calibrex.data.adaptive_voxel": "<WORKSPACE>/src/calibrex/data/adaptive_voxel.py",
+    "calibrex.pipelines.online": "<WORKSPACE>/src/calibrex/pipelines/online.py",
+    "calibrex.solvers.fixed_trajectory_se3_solver": "<WORKSPACE>/src/calibrex/solvers/fixed_trajectory_se3_solver.py",
+    "calibrex.solvers.numba_continuous_time_adapter": "<WORKSPACE>/src/calibrex/solvers/numba_continuous_time_adapter.py",
+    "calibrex.solvers.robust_lidar_observations": "<WORKSPACE>/src/calibrex/solvers/robust_lidar_observations.py",
+    "calibrex.evaluation.packed_lidar_observations": "<WORKSPACE>/src/calibrex/evaluation/packed_lidar_observations.py",
+    "calibrex.solvers.cuda_continuous_time_adapter": "<WORKSPACE>/src/calibrex/solvers/cuda_continuous_time_adapter.py"
+  },
+  "uniform_normal_calculations": 883,
+  "interpolated_pose_calculations": 434431,
+  "sampled_split": {
+    "train_count": 38400,
+    "train_ids_sha256": "912447b46ab6efb37ad4879711e2e3cb23910e1f121453ae50e4daecc7af9925",
+    "holdout_count": 9600,
+    "holdout_ids_sha256": "3e5f3f6ad7ac01170ac3a56001ace2dfaa596f5e9b655c9119d5f00364a64cfe"
+  },
+  "result": {
+    "config_path": "examples/public_datasets/glim_versatile/online_continuous_time_compiled_full_capture_config.yaml",
+    "dataset_path": "data/public/glim_versatile/livox_rosbag2_gt_restamped",
+    "estimated_time_offset_sec": -0.025,
+    "final_holdout_rmse_m": 0.0922906037408748,
+    "final_train_rmse_m": 0.050821727995281396,
+    "holdout_correspondence_count": 3451,
+    "initial_time_offset_sec": 0.0,
+    "initial_train_rmse_m": 0.058548950677130965,
+    "initial_transform": {
+      "child": "livox_avia_copy",
+      "convention": "T_parent_child",
+      "estimate_id": "T_livox_avia_livox_avia_copy",
+      "parent": "livox_avia",
+      "provenance": {
+        "evidence_level": "unknown",
+        "execution_mode": "online_stream",
+        "notes": [
+          "clock offset was profiled with extrinsic re-optimization",
+          "supplied piecewise odometry trajectory remained fixed"
+        ],
+        "producer": "slac_native",
+        "role_in_comparison": "initial",
+        "source": "calibrex.solvers.continuous_time_lidar_pair_solver",
+        "tool_name": "continuous_time_lidar_pair_solver"
+      },
+      "quality": {
+        "grade": "warn",
+        "std_rotation_deg": [],
+        "std_translation_m": []
+      },
+      "rotation_quat_xyzw": [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "translation_m": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "iterations": [
+      {
+        "accepted": true,
+        "candidate_holdout_rmse_m": [
+          0.09394574316425691,
+          0.09642451309816596,
+          0.10151400178809798
+        ],
+        "candidate_offsets_sec": [
+          -0.02,
+          0.0,
+          0.02
+        ],
+        "candidate_train_rmse_m": [
+          0.05152604693130724,
+          0.05305402630039482,
+          0.05773121852507567
+        ],
+        "holdout_rmse_m": 0.09394574316425691,
+        "iteration": 1,
+        "selected_offset_sec": -0.02,
+        "train_rmse_m": 0.05152604693130724
+      },
+      {
+        "accepted": true,
+        "candidate_holdout_rmse_m": [
+          0.09127329963539012,
+          0.09178825365604466,
+          0.09545424576701399
+        ],
+        "candidate_offsets_sec": [
+          -0.04,
+          -0.02,
+          0.0
+        ],
+        "candidate_train_rmse_m": [
+          0.05182326280143999,
+          0.050961876307943264,
+          0.05298142628099149
+        ],
+        "holdout_rmse_m": 0.09178825365604466,
+        "iteration": 2,
+        "selected_offset_sec": -0.02,
+        "train_rmse_m": 0.050961876307943264
+      },
+      {
+        "accepted": true,
+        "candidate_holdout_rmse_m": [
+          0.09085611576779115,
+          0.09227857348297204,
+          0.0950246975131892
+        ],
+        "candidate_offsets_sec": [
+          -0.04,
+          -0.02,
+          0.0
+        ],
+        "candidate_train_rmse_m": [
+          0.051664541879618456,
+          0.050865412065751216,
+          0.053087589346890174
+        ],
+        "holdout_rmse_m": 0.09227857348297204,
+        "iteration": 3,
+        "selected_offset_sec": -0.02,
+        "train_rmse_m": 0.050865412065751216
+      },
+      {
+        "accepted": true,
+        "candidate_holdout_rmse_m": [
+          0.09085273107893962,
+          0.0922435262766265,
+          0.09455937685822291
+        ],
+        "candidate_offsets_sec": [
+          -0.04,
+          -0.02,
+          0.0
+        ],
+        "candidate_train_rmse_m": [
+          0.05156119791300855,
+          0.050848341699210826,
+          0.05310408353950161
+        ],
+        "holdout_rmse_m": 0.0922435262766265,
+        "iteration": 4,
+        "selected_offset_sec": -0.02,
+        "train_rmse_m": 0.050848341699210826
+      },
+      {
+        "accepted": true,
+        "candidate_holdout_rmse_m": [
+          0.0907265167115888,
+          0.09217290095977056,
+          0.09401545565144712
+        ],
+        "candidate_offsets_sec": [
+          -0.04,
+          -0.02,
+          0.0
+        ],
+        "candidate_train_rmse_m": [
+          0.0515179224297033,
+          0.050834944247588006,
+          0.05309297106507748
+        ],
+        "holdout_rmse_m": 0.09217290095977056,
+        "iteration": 5,
+        "selected_offset_sec": -0.02,
+        "train_rmse_m": 0.050834944247588006
+      },
+      {
+        "accepted": false,
+        "candidate_holdout_rmse_m": [
+          0.09054541242212061,
+          0.09216154895445547,
+          0.09414795093194908
+        ],
+        "candidate_offsets_sec": [
+          -0.04,
+          -0.02,
+          0.0
+        ],
+        "candidate_train_rmse_m": [
+          0.051641852259135895,
+          0.05085694311473306,
+          0.05311163628701708
+        ],
+        "holdout_rmse_m": 0.09216154895445547,
+        "iteration": 6,
+        "selected_offset_sec": -0.02,
+        "train_rmse_m": 0.05085694311473306
+      },
+      {
+        "accepted": false,
+        "candidate_holdout_rmse_m": [
+          0.09152189776658831,
+          0.09216154895445547,
+          0.09278978079406719
+        ],
+        "candidate_offsets_sec": [
+          -0.03,
+          -0.02,
+          -0.01
+        ],
+        "candidate_train_rmse_m": [
+          0.05108417467040787,
+          0.05085694311473306,
+          0.051902926808629166
+        ],
+        "holdout_rmse_m": 0.09216154895445547,
+        "iteration": 7,
+        "selected_offset_sec": -0.02,
+        "train_rmse_m": 0.05085694311473306
+      },
+      {
+        "accepted": true,
+        "candidate_holdout_rmse_m": [
+          0.0922906037408748,
+          0.09216154895445547,
+          0.09198663137418496
+        ],
+        "candidate_offsets_sec": [
+          -0.025,
+          -0.02,
+          -0.015
+        ],
+        "candidate_train_rmse_m": [
+          0.050821727995281396,
+          0.05085694311473306,
+          0.05114460199662823
+        ],
+        "holdout_rmse_m": 0.0922906037408748,
+        "iteration": 8,
+        "selected_offset_sec": -0.025,
+        "train_rmse_m": 0.050821727995281396
+      }
+    ],
+    "observability": {
+      "condition_number": 18.89070683391553,
+      "rank": 6,
+      "residual_count": 29181,
+      "weak_directions": []
+    },
+    "odometry_topic": "/odom",
+    "options": {
+      "adaptive_max_voxel_size_m": 1.5,
+      "adaptive_min_points_per_voxel": 6,
+      "adaptive_min_voxel_size_m": 0.25,
+      "adaptive_range_exponent": 0.5,
+      "adaptive_range_reference_m": 10.0,
+      "adaptive_use_uniform_fallback": true,
+      "correspondence_refinement_iterations": 1,
+      "fixed_extrinsic_max_iterations": 8,
+      "fixed_extrinsic_robust_loss": "huber",
+      "holdout_start_fraction": 0.8,
+      "initial_time_offset_sec": 0.0,
+      "initial_time_step_sec": 0.02,
+      "max_abs_time_offset_sec": 0.2,
+      "max_iterations": 8,
+      "max_odometry_extrapolation_s": 0.25,
+      "max_source_records": 6000,
+      "min_correspondences": 6,
+      "minimum_time_step_sec": 0.005,
+      "outlier_mad_scale": 3.5,
+      "outlier_min_inlier_fraction": 0.25,
+      "outlier_min_threshold_m": 0.02,
+      "outlier_policy": "mad",
+      "sampling_seed": 0,
+      "voxel_strategy": "adaptive"
+    },
+    "outlier_rejected_count": 6908,
+    "provenance": {
+      "git_commit": "12500f0",
+      "notes": [
+        "continuous-time profile re-solves the six-DoF extrinsic at every clock candidate",
+        "target holdout is the latest capture frame group and is never used for optimization",
+        "train diagnostics summarize only the selected train factor and train profile",
+        "trajectory_model is piecewise SE(3) interpolation of supplied odometry; trajectory knots are fixed",
+        "train_frame_count=96",
+        "holdout_frame_count=24",
+        "holdout_start_fraction=0.8",
+        "sampling_seed=0",
+        "source_record_cap=6000",
+        "target_point_cap_per_split=None",
+        "outlier_policy=mad",
+        "voxel_strategy=adaptive",
+        "replay_source_message_count=1",
+        "adaptive correspondences use a uniform voxel fallback and select the lower initial point-to-plane residual",
+        "continuous_time_query_execution: calibrex.cuda_continuous_time/v0.5;fp64=true;fma=false;cupy=14.2.0;cuda=12090;driver=13020;numba=0.65.1;trajectory_cpu=true;normal_cpu=true;standalone_residual_cpu=true;associations_gpu=true;kernel_sha256=ad35e19c4f402fa99c14ce8e2a496f65a35c67655bdb795e6111d0f03d592be0;association_kernel_sha256=b5f446ea685f32adaaaf96aafe44d423b8e05601dbc6ffb17fb7b8cc4ae124ad",
+        "continuous_time_replay_execution: calibrex.numba_lidar_deskew/v0.1;numba=0.65.1;fastmath=false;cache=true;point_pose_cpu=true;source_sha256=02b461312debade47d8ee3b3dc57bb158a644a7e8ac7d9d9088b1f98960604c6"
+      ],
+      "source_paths": [
+        "examples/public_datasets/glim_versatile/online_continuous_time_compiled_full_capture_config.yaml",
+        "data/public/glim_versatile/livox_rosbag2_gt_restamped"
+      ],
+      "source_sha256": {
+        "data/public/glim_versatile/livox_rosbag2_gt_restamped": "bf305b5e1b72d998c8d1871bb6fae346a4374897033e98da982f977b38693185",
+        "examples/public_datasets/glim_versatile/online_continuous_time_compiled_full_capture_config.yaml": "c6d93361d1628493be20a64d585394b2e437bffcbd548340a541cc12b1c602b3"
+      },
+      "tool_name": "calibrex",
+      "tool_version": "0.5.1"
+    },
+    "reason": "maximum time-profile iterations reached",
+    "refined_transform": {
+      "child": "livox_avia_copy",
+      "convention": "T_parent_child",
+      "estimate_id": "T_livox_avia_livox_avia_copy",
+      "parent": "livox_avia",
+      "provenance": {
+        "evidence_level": "algorithmically_refined",
+        "execution_mode": "online_stream",
+        "notes": [
+          "clock offset was profiled with extrinsic re-optimization",
+          "supplied piecewise odometry trajectory remained fixed"
+        ],
+        "producer": "slac_native",
+        "role_in_comparison": "output",
+        "source": "calibrex.solvers.continuous_time_lidar_pair_solver",
+        "tool_name": "continuous_time_lidar_pair_solver"
+      },
+      "quality": {
+        "grade": "warn",
+        "std_rotation_deg": [],
+        "std_translation_m": []
+      },
+      "rotation_quat_xyzw": [
+        0.0015939672814563777,
+        0.0010636355733886337,
+        -0.0016413832846795496,
+        0.9999968168992267
+      ],
+      "translation_m": [
+        -0.006182575217564595,
+        0.010091546303164226,
+        -0.025982572953141138
+      ]
+    },
+    "schema_version": "slac.continuous_time_lidar_pair_result/v0.1",
+    "source_sensor": "livox_avia",
+    "status": "max_iterations",
+    "target_sensor": "livox_avia_copy",
+    "time_offset_sign_convention": "positive offset evaluates target capture at odometry time t_capture + offset",
+    "train_correspondence_count": 29181,
+    "train_diagnostics": {
+      "final_residuals": {
+        "count": 29181,
+        "max_m": 0.1572322040060798,
+        "mean_abs_m": 0.03514888496730821,
+        "mean_m": 0.00018118579722093743,
+        "median_abs_m": 0.021084065306056853,
+        "min_m": -0.15715254642853216,
+        "p95_abs_m": 0.1193742288421619,
+        "p99_abs_m": 0.14872473162829394,
+        "rmse_m": 0.050821727995281396
+      },
+      "holdout_used_for_selection": false,
+      "profile": [
+        {
+          "accepted": true,
+          "candidate_offsets_sec": [
+            -0.02,
+            0.0,
+            0.02
+          ],
+          "candidate_train_rmse_m": [
+            0.05152604693130724,
+            0.05305402630039482,
+            0.05773121852507567
+          ],
+          "iteration": 1,
+          "selected_offset_sec": -0.02,
+          "train_correspondence_count": 29239,
+          "train_outlier_rejected_count": 5920,
+          "train_rmse_m": 0.05152604693130724
+        },
+        {
+          "accepted": true,
+          "candidate_offsets_sec": [
+            -0.04,
+            -0.02,
+            0.0
+          ],
+          "candidate_train_rmse_m": [
+            0.05182326280143999,
+            0.050961876307943264,
+            0.05298142628099149
+          ],
+          "iteration": 2,
+          "selected_offset_sec": -0.02,
+          "train_correspondence_count": 29174,
+          "train_outlier_rejected_count": 5991,
+          "train_rmse_m": 0.050961876307943264
+        },
+        {
+          "accepted": true,
+          "candidate_offsets_sec": [
+            -0.04,
+            -0.02,
+            0.0
+          ],
+          "candidate_train_rmse_m": [
+            0.051664541879618456,
+            0.050865412065751216,
+            0.053087589346890174
+          ],
+          "iteration": 3,
+          "selected_offset_sec": -0.02,
+          "train_correspondence_count": 29170,
+          "train_outlier_rejected_count": 5992,
+          "train_rmse_m": 0.050865412065751216
+        },
+        {
+          "accepted": true,
+          "candidate_offsets_sec": [
+            -0.04,
+            -0.02,
+            0.0
+          ],
+          "candidate_train_rmse_m": [
+            0.05156119791300855,
+            0.050848341699210826,
+            0.05310408353950161
+          ],
+          "iteration": 4,
+          "selected_offset_sec": -0.02,
+          "train_correspondence_count": 29165,
+          "train_outlier_rejected_count": 5995,
+          "train_rmse_m": 0.050848341699210826
+        },
+        {
+          "accepted": true,
+          "candidate_offsets_sec": [
+            -0.04,
+            -0.02,
+            0.0
+          ],
+          "candidate_train_rmse_m": [
+            0.0515179224297033,
+            0.050834944247588006,
+            0.05309297106507748
+          ],
+          "iteration": 5,
+          "selected_offset_sec": -0.02,
+          "train_correspondence_count": 29161,
+          "train_outlier_rejected_count": 5999,
+          "train_rmse_m": 0.050834944247588006
+        },
+        {
+          "accepted": false,
+          "candidate_offsets_sec": [
+            -0.04,
+            -0.02,
+            0.0
+          ],
+          "candidate_train_rmse_m": [
+            0.051641852259135895,
+            0.05085694311473306,
+            0.05311163628701708
+          ],
+          "iteration": 6,
+          "selected_offset_sec": -0.02,
+          "train_correspondence_count": 29166,
+          "train_outlier_rejected_count": 5995,
+          "train_rmse_m": 0.05085694311473306
+        },
+        {
+          "accepted": false,
+          "candidate_offsets_sec": [
+            -0.03,
+            -0.02,
+            -0.01
+          ],
+          "candidate_train_rmse_m": [
+            0.05108417467040787,
+            0.05085694311473306,
+            0.051902926808629166
+          ],
+          "iteration": 7,
+          "selected_offset_sec": -0.02,
+          "train_correspondence_count": 29166,
+          "train_outlier_rejected_count": 5995,
+          "train_rmse_m": 0.05085694311473306
+        },
+        {
+          "accepted": true,
+          "candidate_offsets_sec": [
+            -0.025,
+            -0.02,
+            -0.015
+          ],
+          "candidate_train_rmse_m": [
+            0.050821727995281396,
+            0.05085694311473306,
+            0.05114460199662823
+          ],
+          "iteration": 8,
+          "selected_offset_sec": -0.025,
+          "train_correspondence_count": 29181,
+          "train_outlier_rejected_count": 5990,
+          "train_rmse_m": 0.050821727995281396
+        }
+      ],
+      "provenance": {
+        "git_commit": "12500f0",
+        "notes": [
+          "all residual summaries and profile candidates are train-only",
+          "holdout_used_for_selection is fixed false by the diagnostics schema",
+          "range bins use target LiDAR point range in meters"
+        ],
+        "source_paths": [
+          "examples/public_datasets/glim_versatile/online_continuous_time_compiled_full_capture_config.yaml",
+          "data/public/glim_versatile/livox_rosbag2_gt_restamped"
+        ],
+        "source_sha256": {
+          "data/public/glim_versatile/livox_rosbag2_gt_restamped": "bf305b5e1b72d998c8d1871bb6fae346a4374897033e98da982f977b38693185",
+          "examples/public_datasets/glim_versatile/online_continuous_time_compiled_full_capture_config.yaml": "c6d93361d1628493be20a64d585394b2e437bffcbd548340a541cc12b1c602b3"
+        },
+        "tool_name": "calibrex",
+        "tool_version": "0.5.1"
+      },
+      "range_bins": [
+        {
+          "correspondence_count": 15294,
+          "lower_bound_m": 0.0,
+          "residuals": {
+            "count": 15294,
+            "max_m": 0.1572080128275702,
+            "mean_abs_m": 0.03217763952034386,
+            "mean_m": -1.1651859179579598e-05,
+            "median_abs_m": 0.018198523489040816,
+            "min_m": -0.1564239575835457,
+            "p95_abs_m": 0.11339975937589854,
+            "p99_abs_m": 0.14682085628303776,
+            "rmse_m": 0.047779596730375774
+          },
+          "upper_bound_m": 5.0
+        },
+        {
+          "correspondence_count": 13008,
+          "lower_bound_m": 5.0,
+          "residuals": {
+            "count": 13008,
+            "max_m": 0.15714940600991548,
+            "mean_abs_m": 0.038520290411274825,
+            "mean_m": 0.00037635474490748397,
+            "median_abs_m": 0.024760422646396503,
+            "min_m": -0.15715254642853216,
+            "p95_abs_m": 0.125655327759826,
+            "p99_abs_m": 0.15022997923114784,
+            "rmse_m": 0.054150943032941816
+          },
+          "upper_bound_m": 10.0
+        },
+        {
+          "correspondence_count": 879,
+          "lower_bound_m": 10.0,
+          "residuals": {
+            "count": 879,
+            "max_m": 0.1572322040060798,
+            "mean_abs_m": 0.036954329621181926,
+            "mean_m": 0.0006481954052788555,
+            "median_abs_m": 0.025509085912835898,
+            "min_m": -0.1504588007217171,
+            "p95_abs_m": 0.11592273361824426,
+            "p99_abs_m": 0.14709605062709005,
+            "rmse_m": 0.05128488069732722
+          },
+          "upper_bound_m": 20.0
+        },
+        {
+          "correspondence_count": 0,
+          "lower_bound_m": 20.0,
+          "residuals": {
+            "count": 0
+          },
+          "upper_bound_m": 40.0
+        },
+        {
+          "correspondence_count": 0,
+          "lower_bound_m": 40.0,
+          "residuals": {
+            "count": 0
+          },
+          "upper_bound_m": 80.0
+        },
+        {
+          "correspondence_count": 0,
+          "lower_bound_m": 80.0,
+          "residuals": {
+            "count": 0
+          }
+        }
+      ],
+      "sampled_source_record_count": 3000,
+      "schema_version": "slac.continuous_time_lidar_train_diagnostics/v0.1",
+      "selected_time_offset_sec": -0.025,
+      "selection_metric": "train_rmse_m",
+      "train_candidate_correspondence_count": 35171,
+      "train_correspondence_count": 29181,
+      "train_outlier_rejected_count": 5990,
+      "train_outlier_rejection_rate": 0.1703107673935913,
+      "train_target_point_count": 38400
+    },
+    "trajectory_model": "piecewise_se3_fixed_odometry",
+    "variable": "T_livox_avia_livox_avia_copy"
+  },
+  "result_sha256": "2e4a52355fc28e814720643f8c1a8029ac375c937d55eab633ada2d1816ff127",
+  "execution_override": "cuda",
+  "loaded_cuda_module": "<WORKSPACE>/src/calibrex/solvers/cuda_continuous_time_adapter.py",
+  "loaded_cuda_plane_module": "<WORKSPACE>/src/calibrex/solvers/cuda_plane_query_adapter.py",
+  "loaded_replay_module": "<WORKSPACE>/src/calibrex/data/numba_lidar_deskew_adapter.py",
+  "captured_target_count": 48000,
+  "worker_cpu_seconds": 23.0
+}

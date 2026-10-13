@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Query captured continuous-time LiDAR uniform/adaptive plane maps together on
+  an owned CUDA stream, preserving neighborhood order and native boundary/tie
+  repair. Batch large-frame deskew on the optional CPU adapter with exact
+  timestamps, poses, world points and failure counters; keep small frames on
+  the original replay path. Stream diagnostic XYZ without materializing unused
+  observations. Record actual GPU/CPU work and publish complete paired controls,
+  cold/slower runs and the preceding small-frame regression.
+
 - Add optional CUDA numerical finite differences for dense
   continuous-time LiDAR refinement. Retain all thirteen evaluations, exact
   arithmetic and native ordered CPU normal equations. Share compiled kernels
