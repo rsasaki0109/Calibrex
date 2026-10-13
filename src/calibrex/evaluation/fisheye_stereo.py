@@ -208,7 +208,18 @@ def read_kalibr_fisheye_pair(
     return cameras[0], cameras[1], np.asarray(chain[right]["T_cn_cnm1"], dtype=np.float64)
 
 
-def estimate_vertical_offset(
+VERTICAL_OFFSET_COLUMNS: tuple[str, ...] = (
+    "pair",
+    "row_px",
+    "column_px",
+    "disparity_px",
+    "offset_px",
+    "vertical_texture",
+)
+"""The columns of :func:`vertical_offset_samples`."""
+
+
+def vertical_offset_samples(
     pairs: list[tuple[FloatArray, FloatArray]],
     *,
     patches_per_pair: int = 300,
@@ -218,20 +229,25 @@ def estimate_vertical_offset(
     min_zncc: float = 0.9,
     min_gradient: float = 25.0,
     seed: int = 0,
-) -> float | None:
-    """Median vertical disparity (px, right minus left row) of rectified image pairs.
+) -> FloatArray:
+    """Every matched patch's vertical disparity (px, right minus left row) and where it is.
 
     A rectified pair puts a point on the same row in both images; a residual rotation of
     the rig's calibration (a tenth of a degree is a pixel at these focal lengths) shifts
     the right image's rows. Textured left patches are matched in the right image over
     ``max_disparity_px`` columns and ``rows_px`` rows each way (zero-normalised
     cross-correlation, sub-pixel parabola in rows). Uses the images only, never a
-    LiDAR or a reference. ``None`` when nothing matched.
+    LiDAR or a reference.
+
+    Returns an ``(N, 6)`` array with :data:`VERTICAL_OFFSET_COLUMNS`: the pair's index,
+    the patch's left row and column, its (whole-pixel) horizontal disparity, its vertical
+    offset, and 1 where the patch's texture runs more across rows than along them (its
+    rows are then well constrained), else 0.
     """
 
     rng = np.random.default_rng(seed)
-    offsets: list[float] = []
-    for left, right in pairs:
+    samples: list[tuple[float, float, float, float, float, float]] = []
+    for index, (left, right) in enumerate(pairs):
         gy, gx = np.gradient(np.asarray(left, dtype=np.float64))
         margin = half_px + rows_px + 1
         strong = np.argwhere(np.hypot(gx, gy) > min_gradient)
@@ -246,7 +262,9 @@ def estimate_vertical_offset(
             continue
         picks = strong[rng.choice(len(strong), min(patches_per_pair, len(strong)), replace=False)]
         for row, col in picks:
-            patch = left[row - half_px : row + half_px + 1, col - half_px : col + half_px + 1]
+            rows = slice(row - half_px, row + half_px + 1)
+            cols = slice(col - half_px, col + half_px + 1)
+            patch = left[rows, cols]
             patch = patch - patch.mean()
             norm = np.sqrt((patch**2).sum())
             if norm < 1.0e-6:
@@ -268,8 +286,48 @@ def estimate_vertical_offset(
             before, at, after = scores[i - 1, dx], scores[i, dx], scores[i + 1, dx]
             curvature = before - 2.0 * at + after
             step = 0.5 * (before - after) / curvature if abs(curvature) > 1.0e-9 else 0.0
-            offsets.append(i - rows_px + float(step))
-    return float(np.median(offsets)) if offsets else None
+            vertical = float(np.abs(gy[rows, cols]).mean() > np.abs(gx[rows, cols]).mean())
+            samples.append(
+                (
+                    float(index),
+                    float(row),
+                    float(col),
+                    float(dx),
+                    i - rows_px + float(step),
+                    vertical,
+                )
+            )
+    return np.asarray(samples, dtype=np.float64).reshape(-1, len(VERTICAL_OFFSET_COLUMNS))
+
+
+def estimate_vertical_offset(
+    pairs: list[tuple[FloatArray, FloatArray]],
+    *,
+    patches_per_pair: int = 300,
+    half_px: int = 6,
+    rows_px: int = 4,
+    max_disparity_px: int = 60,
+    min_zncc: float = 0.9,
+    min_gradient: float = 25.0,
+    seed: int = 0,
+) -> float | None:
+    """Median vertical disparity (px, right minus left row) of rectified image pairs.
+
+    The median of :func:`vertical_offset_samples` over every matched patch; ``None``
+    when nothing matched.
+    """
+
+    samples = vertical_offset_samples(
+        pairs,
+        patches_per_pair=patches_per_pair,
+        half_px=half_px,
+        rows_px=rows_px,
+        max_disparity_px=max_disparity_px,
+        min_zncc=min_zncc,
+        min_gradient=min_gradient,
+        seed=seed,
+    )
+    return float(np.median(samples[:, 4])) if len(samples) else None
 
 
 def with_right_row_shift(
