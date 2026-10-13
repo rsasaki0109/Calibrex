@@ -5,7 +5,7 @@ import hashlib
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from threading import Lock
-from typing import TypeAlias, cast
+from typing import Any, TypeAlias, cast
 
 import cupy as cp
 import numpy as np
@@ -26,26 +26,127 @@ from calibrex.solvers.robust_point_to_point_icp_solver import (
 IntArray: TypeAlias = NDArray[np.int64]
 
 
+_NATIVE_QUERY_SOURCE = r'''
+extern "C" __global__ void native_query3(
+    const double* axis_xyz, const double* native_xyz, const double* native_reference,
+    const long long* order, const int* axis, const double* split, const int* child,
+    const long long* span, const int n, const int m,
+    const double lower_scale, const double error,
+    double* squared, long long* index) {
+    const int row=blockDim.x*blockIdx.x+threadIdx.x;
+    if(row>=n) return;
+    const double ax=axis_xyz[3*row], ay=axis_xyz[3*row+1], az=axis_xyz[3*row+2];
+    const double px=native_xyz[3*row], py=native_xyz[3*row+1], pz=native_xyz[3*row+2];
+    double best=1.0/0.0; long long chosen=m;
+    int stack[STACK_CAPACITY]; double bound[STACK_CAPACITY]; int top=1;
+    stack[0]=0; bound[0]=0;
+    while(top) {
+        --top; const int node=stack[top];
+        if(bound[top]>best) continue;
+        const int direction=axis[node];
+        if(direction<0) {
+            for(long long j=span[2*node]; j<span[2*node+1]; ++j) {
+                const long long position=order[j];
+                const double x=px-native_reference[3*position];
+                const double y=py-native_reference[3*position+1];
+                const double z=pz-native_reference[3*position+2];
+                const double d=x*x+y*y+z*z;
+                if(d<best || (d==best && position<chosen)) { best=d; chosen=position; }
+            }
+        } else {
+            const double p=direction==0 ? ax : (direction==1 ? ay : az);
+            const double delta=p-split[node]; const int side=delta<0 ? 0 : 1;
+            const int far=child[2*node+1-side], near=child[2*node+side];
+            double safe=__dadd_rd(fabs(delta),-error);
+            if(safe<0) safe=0;
+            safe=__dmul_rd(safe,lower_scale);
+            const double lower=__dmul_rd(safe,safe);
+            if(lower<=best) { stack[top]=far; bound[top]=lower; ++top; }
+            stack[top]=near; bound[top]=0; ++top;
+        }
+    }
+    squared[row]=best; index[row]=chosen;
+}
+'''
+
+
 class _CudaNeighbors(_ExactNeighbors):
-    """GPU proposals, original NumPy distances and native uncertainty repairs."""
+    """Exact FP64 nearest distances; retain guarded proposals for wider queries."""
 
     def __init__(self, reference: FloatArray, device_id: int) -> None:
         super().__init__(reference)
         self.device_id = device_id
         self.calls = self.rows = self.repairs = 0
+        self.direct_calls = self.native_upload_bytes = 0
+        self.stack_capacity = 0
+        self._native_kernel: Any = None
         self._lock = Lock()
         self.gpu: _CudaTree | None = None
         with cp.cuda.Device(device_id):
             self._stream = cp.cuda.Stream(non_blocking=True)
             if len(reference) >= 1024 and _tree_safe(reference) and np.max(
-                np.abs(reference), initial=0.) < 1e50:
+                np.abs(self._reference), initial=0.).item() < 1e50:
                 with self._stream:
                     self.gpu = _CudaTree(self._reference)
                 self._stream.synchronize()
+                pending = [(self.gpu.cpu.tree, 0)]
+                depth = 0
+                while pending:
+                    node, level = pending.pop()
+                    depth = max(depth, level)
+                    if node.split_dim >= 0:
+                        pending.extend(((node.lesser, level+1), (node.greater, level+1)))
+                self.stack_capacity = depth+1
+                self._native_kernel = cp.RawKernel(
+                    _NATIVE_QUERY_SOURCE, "native_query3", options=(
+                        "--fmad=false", f"-DSTACK_CAPACITY={self.stack_capacity}"),
+                )
+
+    def _native_nearest(
+        self, points: FloatArray, *, raw_points: FloatArray | None = None,
+        native_reference: FloatArray | None = None, lower_scale: float = 1., error: float = 0.,
+    ) -> tuple[IntArray, FloatArray] | None:
+        axis_points = points if raw_points is None else raw_points
+        if (self.gpu is None or not len(points)
+            or points.dtype not in (np.float32, np.float64) or not _tree_safe(points)
+            or not _tree_safe(axis_points)
+            or float(np.max(np.abs(points), initial=0.)) >= 1e50
+            or float(np.max(np.abs(axis_points), initial=0.)) >= 1e50):
+            return None
+        if native_reference is not None and (
+            native_reference.shape != self._reference.shape
+            or native_reference.dtype != np.float64 or not _tree_safe(native_reference)
+            or np.max(np.abs(native_reference), initial=0.) >= 1e50
+        ):
+            return None
+        with self._lock, cp.cuda.Device(self.device_id), self._stream:
+            native = cp.asarray(points, dtype=cp.float64, order="C")
+            axes = native if raw_points is None else cp.asarray(
+                axis_points, dtype=cp.float64, order="C")
+            reference = self.gpu.data if native_reference is None else cp.asarray(
+                native_reference, dtype=cp.float64, order="C")
+            squared = cp.empty((len(points), 1), dtype=cp.float64)
+            indices = cp.empty((len(points), 1), dtype=cp.int64)
+            self._native_kernel(((len(points)+127)//128,), (128,), (
+                axes, native, reference, *self.gpu.arrays, np.int32(len(points)),
+                np.int32(len(self._reference)), np.float64(lower_scale), np.float64(error),
+                squared, indices,
+            ))
+            host_i = cast(IntArray, cp.asnumpy(indices))
+            host_d = cast(FloatArray, cp.asnumpy(squared))
+            self.calls += 1
+            self.rows += len(points)
+            self.direct_calls += 1
+            self.native_upload_bytes += int(native.nbytes)
+            if raw_points is not None:
+                self.native_upload_bytes += int(axes.nbytes)
+            if native_reference is not None:
+                self.native_upload_bytes += int(reference.nbytes)
+        return host_i, host_d
 
     def _propose(self, points: FloatArray, width: int) -> tuple[IntArray, FloatArray] | None:
-        if (self.gpu is None or width < 1 or not _tree_safe(points)
-            or np.max(np.abs(points), initial=0.) >= 1e50 or width > 17):
+        if (self.gpu is None or width < 1 or points.dtype != np.float64 or not _tree_safe(points)
+            or float(np.max(np.abs(points), initial=0.)) >= 1e50 or width > 17):
             return None
         with self._lock, cp.cuda.Device(self.device_id), self._stream:
             distances, indices = self.gpu.query(cp.asarray(points), width)
@@ -59,6 +160,10 @@ class _CudaNeighbors(_ExactNeighbors):
         if count < 1 or not len(self._reference) or not len(points):
             return super().query(points, count)
         count = min(count, len(self._reference))
+        if count == 1:
+            direct = self._native_nearest(points)
+            if direct is not None:
+                return direct
         width = min(count+1, len(self._reference))
         proposal = self._propose(points, width)
         if proposal is None:
@@ -91,48 +196,45 @@ class _CudaNeighbors(_ExactNeighbors):
 
 
 class _CudaRigidSource:
-    """Reuse raw-source topology; certify membership in the original moving frame."""
+    """Prune raw-source topology conservatively; compare original moving-world points."""
 
     def __init__(self, source: FloatArray, device_id: int) -> None:
         self.search = _CudaNeighbors(source, device_id)
         self.repairs = 0
+        self.world_calls = self.cpu_fallbacks = 0
 
     def nearest(
         self, transformed_source: FloatArray, points: FloatArray, transform: SE3,
     ) -> IntArray:
         rotation = _rotation_matrix(transform)
         inverse = (points-np.asarray(transform.translation_m))@rotation
-        width = min(2, len(transformed_source))
-        proposed = self.search._propose(inverse, width)
-        if proposed is None or self.search._tree is None:
-            return _ExactNeighbors(transformed_source).nearest(points)[0]
-        candidates, distance = proposed
-        squared = np.sum((points[:, None, :]-transformed_source[candidates])**2, axis=2)
-        if width == 1:
-            return candidates[:, 0].copy()
-        first = _first_of_two(candidates, squared)
-        result = np.where(first, candidates[:, 0], candidates[:, 1])
-        native_best = np.where(first, squared[:, 0], squared[:, 1])
         scale = max(1., float(np.max(np.abs(self.search._reference), initial=0.)),
                     float(np.max(np.abs(points), initial=0.)),
                     float(np.max(np.abs(transformed_source), initial=0.)),
                     float(np.max(np.abs(transform.translation_m), initial=0.)))
         error = 512*np.finfo(np.float64).eps*scale*max(1., float(np.linalg.norm(rotation, 1)))
-        minimum = float(np.linalg.svd(rotation, compute_uv=False)[-1])
-        if (scale >= 1e50 or not np.isfinite(error)
-            or not .999999999999 <= minimum <= 1.000000000001):
-            return _ExactNeighbors(transformed_source).nearest(points)[0]
-        rows = np.flatnonzero(distance[:, 1]-distance[:, 0] <= 2*error)
-        for row in rows:
-            radius = np.nextafter(np.sqrt(native_best[row])/minimum+2*error, np.inf)
-            nearby = np.asarray(self.search._tree.query_ball_point(inverse[row], radius, eps=0.),
-                                dtype=np.int64)
-            nearby = np.union1d(nearby, candidates[row])
-            exact = np.sum((points[row]-transformed_source[nearby])**2, axis=1)
-            result[row] = nearby[np.lexsort((nearby, exact))[0]]
+        singular = np.linalg.svd(rotation, compute_uv=False)
+        minimum, maximum = float(singular[-1]), float(singular[0])
+        if (scale < 1e50 and np.isfinite(error)
+            and rotation.dtype == np.float64
+            and .999999999999 <= minimum <= maximum <= 1.000000000001):
+            defect = float(np.sum(np.abs(rotation.T@rotation-np.eye(3))))
+            error += 8*scale*defect/minimum
+            # Shrink the singular-value estimate and round every bound
+            # operation down. Leaves use the original moving-world points.
+            lower = minimum-1024*np.finfo(np.float64).eps*max(
+                1., float(np.linalg.norm(rotation, 1)))
+            direct = self.search._native_nearest(
+                points, raw_points=inverse, native_reference=transformed_source,
+                lower_scale=lower, error=2*error,
+            )
+            if direct is not None:
+                with self.search._lock:
+                    self.world_calls += 1
+                return direct[0][:, 0].copy()
         with self.search._lock:
-            self.repairs += len(rows)
-        return result
+            self.cpu_fallbacks += 1
+        return _ExactNeighbors(transformed_source).nearest(points)[0]
 
 
 @dataclass(frozen=True)
@@ -192,6 +294,13 @@ class CudaPointToPointIcpAdapter:
             "cupy": cp.__version__, "cuda": cp.cuda.runtime.runtimeGetVersion(),
             "driver": cp.cuda.runtime.driverGetVersion(),
             "query_sha256": hashlib.sha256(_SOURCE.encode()).hexdigest(),
+            "native_query_sha256": hashlib.sha256(_NATIVE_QUERY_SOURCE.encode()).hexdigest(),
+            "gpu_native_query_calls": sum(value.direct_calls for value in searches),
+            "gpu_world_source_query_calls": sum(value.world_calls for value in sources),
+            "gpu_native_query_upload_bytes": sum(value.native_upload_bytes for value in searches),
+            "native_query_stack_capacities": [value.stack_capacity for value in searches
+                                              if value.gpu is not None],
+            "source_cpu_fallback_calls": sum(value.cpu_fallbacks for value in sources),
             "source_sha256": digest(source_points), "target_sha256": digest(target_points),
             "initial_transform": (initial_transform or SE3.identity()).as_dict(),
             "options": asdict(options or RobustPointToPointIcpOptions()),

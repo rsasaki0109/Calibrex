@@ -116,4 +116,5 @@ class _ExactNeighbors:
 
 def _tree_safe(points: FloatArray) -> bool:
     # Keep squared distances and the boundary guard far below float64 overflow.
-    return bool(np.isfinite(points).all() and np.max(np.abs(points), initial=0.0) <= 1.0e150)
+    return bool(np.isfinite(points).all()
+                and float(np.max(np.abs(points), initial=0.0)) <= 1.0e150)

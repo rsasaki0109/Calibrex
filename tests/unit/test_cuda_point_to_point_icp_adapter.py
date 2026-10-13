@@ -45,7 +45,9 @@ def test_forward_distance_bits_and_ties(count):
                            _ExactNeighbors(reference).query(queries, count), strict=True):
         np.testing.assert_array_equal(left, right)
     assert actual.calls == (1 if count <= 16 else 0)
-    if count <= 16:
+    if count == 1:
+        assert actual.direct_calls == 1 and actual.repairs == 0
+    elif count <= 16:
         assert actual.repairs >= 1
 
 
@@ -75,7 +77,7 @@ def test_static_inverse_search_certifies_world_frame_ties(translation, quaternio
     np.testing.assert_array_equal(search.nearest(moved, queries, transform),
                                   _ExactNeighbors(moved).nearest(queries)[0])
     assert search.search.calls == 1
-    assert search.repairs >= 1
+    assert search.world_calls == 1 and search.repairs == 0
 
 
 def test_owned_source_and_small_cloud_fallback():
@@ -132,3 +134,47 @@ def test_extreme_translation_uses_native_search_without_overflowing_repair_radiu
     search = _CudaRigidSource(raw, cp.cuda.runtime.getDevice())
     np.testing.assert_array_equal(search.nearest(moved, queries, transform),
                                   _ExactNeighbors(moved).nearest(queries)[0])
+@pytest.mark.parametrize("scale", [1e-160, 1., 1e12, 1e49])
+@pytest.mark.parametrize("layout", ["contiguous", "strided", "float32"])
+def test_native_gpu_nearest_keeps_exhaustive_indices_and_distance_bits(scale, layout):
+    rng = np.random.default_rng(20261013)
+    reference = rng.normal(size=(2048, 3))*scale
+    reference[:8] = 0.
+    queries = np.concatenate((reference[:8], rng.normal(size=(32, 3))*scale))
+    if layout == "strided":
+        queries = np.repeat(queries, 2, axis=0)[::2]
+    elif layout == "float32":
+        if scale > 1e30:
+            pytest.skip("float32 input cannot represent this scale")
+        queries = queries.astype(np.float32)
+    search = _CudaNeighbors(reference, cp.cuda.runtime.getDevice())
+    actual_i, actual_d = search.query(queries, 1)
+    squared = np.sum((queries[:, None, :]-reference[None, :, :])**2, axis=2)
+    expected_i = np.argmin(squared, axis=1)[:, None]
+    expected_d = np.take_along_axis(squared, expected_i, axis=1)
+    np.testing.assert_array_equal(actual_i, expected_i)
+    np.testing.assert_array_equal(actual_d.view(np.uint64), expected_d.view(np.uint64))
+    assert search.direct_calls == 1
+    assert actual_i.flags.owndata and actual_d.flags.owndata
+
+
+def test_world_search_falls_back_for_mismatched_snapshot_shape():
+    reference = np.random.default_rng(75).normal(size=(2048, 3))
+    search = _CudaRigidSource(reference, cp.cuda.runtime.getDevice())
+    moving = reference[:-1]
+    queries = reference[:7]
+    np.testing.assert_array_equal(search.nearest(moving, queries, SE3.identity()),
+                                  _ExactNeighbors(moving).nearest(queries)[0])
+    assert search.world_calls == 0 and search.cpu_fallbacks == 1
+def test_world_search_rejects_nonrigid_pruning_matrix(monkeypatch):
+    from calibrex.solvers import cuda_point_to_point_icp_adapter as adapter
+
+    reference = np.random.default_rng(76).normal(size=(2048, 3))
+    rotation = np.diag([1., 1., 2.])
+    moving = reference@rotation.T
+    queries = reference[:7]
+    search = _CudaRigidSource(reference, cp.cuda.runtime.getDevice())
+    monkeypatch.setattr(adapter, "_rotation_matrix", lambda _: rotation)
+    np.testing.assert_array_equal(search.nearest(moving, queries, SE3.identity()),
+                                  _ExactNeighbors(moving).nearest(queries)[0])
+    assert search.world_calls == 0 and search.cpu_fallbacks == 1
