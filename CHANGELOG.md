@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- **The Hilti data-only decision passes on a second recording, `exp01`, with depth
+  judged (development run).**
+  - **The choice.** The indoor construction site `exp01_construction_ground_level` was
+    chosen before it was scored, because `exp21` is outdoors. The tool and the
+    calibration are unchanged.
+  - **Result.** The reference passes on roll, pitch, yaw and z (+0.005 ± 0.014 m). The
+    known-bad fails on pitch (4.85 deg) and z (+0.245 m).
+  - **What it says about `exp21`.** Its −0.1 m depth offset does not repeat here, so it
+    belongs to that recording.
+  - **Caveats.** The joint stereo fit diverges on `exp01`. The pair's vertical offset
+    is +0.33 px here against −0.83 px on `exp21`.
+
 - **The Hilti data-only decision reads its frames as `calibrex check` does, and
   passes on rotation (development run).**
   - **The fix.** `tools/hilti_stereo_falsification.py` said it used the check's frames

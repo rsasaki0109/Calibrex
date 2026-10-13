@@ -2,10 +2,20 @@
 
 The KITTI data-only decision
 ([KITTI Camera-LiDAR falsification](kitti_camera_lidar_falsification.md)) repeated on a
-second dataset: a handheld Hilti 2022 recording whose camera pair is an equidistant
-fisheye (alphasense cam0 and cam1, 0.108 m apart) and whose LiDAR is a PandarXT-32.
-This is a development run, not a published artifact: the bag is not redistributed and
-no CI test pins the numbers below.
+second dataset: two handheld Hilti 2022 recordings whose camera pair is an
+equidistant fisheye (alphasense cam0 and cam1, 0.108 m apart) and whose LiDAR is a
+PandarXT-32. Both recordings share one calibration (`calib_3`). These are development
+runs, not a published artifact: the bags are not redistributed and no CI test pins the
+numbers below.
+
+| recording | decision | reference | known-bad |
+| --- | --- | --- | --- |
+| `exp21_outside_building` | `pass` | roll, pitch, yaw `pass`; z unjudged | pitch `fail`; z unjudged |
+| `exp01_construction_ground_level` | `pass` | roll, pitch, yaw, z `pass` | pitch and z `fail` |
+
+`exp01` was chosen as the second recording before it was scored: it is an indoor
+construction site, where `exp21` is outdoors. Both runs use the tool unchanged and the
+first 6 GB of each bag.
 
 ## Setup
 
@@ -31,11 +41,11 @@ no CI test pins the numbers below.
 * **Rule and decision.** Unchanged from KITTI: `calibrex check`'s `judge_pair`, and the
   decision passes when the reference passes and the known-bad fails.
 
-## Result
+## Result: `exp21` (outside a building)
 
 **`pass`, on rotation.** The reference passes on roll, pitch and yaw, and the known-bad
 fails on pitch. z goes unjudged on both candidates. The run used 48 frame pairs from
-the first two minutes of `exp21` (git commit `fb599b2`), with a vertical offset of
+the start of `exp21` (git commit `fb599b2`), with a vertical offset of
 −0.83 px removed and the gyro turning each scan by 0.14 deg (median; at most 0.39 deg).
 
 | candidate | roll (deg) | pitch (deg) | yaw (deg) | z (m) | verdict |
@@ -60,6 +70,35 @@ Each judged cell gives the candidate's error, then its tolerance.
 * **The rectification is not the source of the scale.** A synthetic check projects
   points at 2, 5 and 10 m through the rectified pair. Disparity equals fx·B/Z to 1e-4 px,
   and both maps land on the fisheye projections to 1e-4 px.
+
+## Result: `exp01` (construction site, ground level)
+
+**`pass`, on rotation and depth.** All four axes are judged on both candidates. The
+reference passes on every one, and the known-bad fails on its two declared axes. The
+run used 48 frame pairs from the start of `exp01` (git commit `3ba887d`), with a
+vertical offset of +0.33 px removed. The gyro turned each scan by 0.14 deg (median; at
+most 1.48 deg).
+
+| candidate | roll (deg) | pitch (deg) | yaw (deg) | z (m) | verdict |
+| --- | --- | --- | --- | --- | --- |
+| dataset reference | −0.05 / 0.50 `pass` | −0.15 / 0.50 `pass` | +0.10 / 0.50 `pass` | +0.005 / 0.042 `pass` | `pass` |
+| known-bad | −0.05 / 0.50 `pass` | +4.85 / 0.50 `fail` | +0.05 / 0.50 `pass` | +0.245 / 0.027 `fail` | `fail` |
+
+* **Stereo depth is trusted on both candidates.**
+  * Reference: jackknife std 0.014 m on 20,588 points; the control response is 1.03.
+  * Known-bad: std 0.009 m; the control response is 0.99.
+  * Depth puts the known-bad 0.240 m beyond the reference, against a declared move of
+    0.25 m.
+* **`exp21`'s depth offset does not repeat.** On `exp01` depth reads the reference at
+  +0.005 m, against −0.096 m on `exp21`. The offset belongs to that recording, not to
+  the rig or the estimator.
+* **The joint stereo fit diverges here.** It trusts no axis on either candidate (its
+  jackknife std exceeds its gates) and fits a disparity scale of −7.1% and −4.3%. As on
+  KITTI, it judges nothing.
+* **The vertical offset changes sign between recordings**: +0.33 px here, −0.83 px on
+  `exp21`. It is measured from each recording's own images and removed before matching.
+  Both recordings use the same calibration file, and why the offset differs is not
+  known.
 
 ## Earlier run: stamp pairing, no motion
 
@@ -110,10 +149,11 @@ with 50 frames per KITTI run and 47 frames of the earlier Hilti run.
 
 * **Translation during the sweep is not compensated.** The bag has no velocity topic.
   With the check's pairing, the in-view points are within about 14 ms of the image.
-* **One recording, 48 frames,** the first two minutes of `exp21`.
-* **z is not judged on Hilti.** The reference's depth reading, about −0.1 m, is
-  unexplained: the joint fit reads +0.03 m, and the scale that would reconcile the two
-  does not carry over to KITTI.
+* **Two recordings, 48 frames each,** from the start of each bag.
+* **z is judged on `exp01` only.** On `exp21` the depth std is just above its gate, and
+  the reference's depth reading there, about −0.1 m, is unexplained. The joint fit reads
+  +0.03 m there, the scale that would reconcile the two does not carry over to KITTI,
+  and `exp01` does not show the offset.
 * **The reference is not ground truth.** Its readings are findings about the data and
   the estimators, not evidence that Hilti's calibration is wrong.
 
@@ -123,6 +163,15 @@ with 50 frames per KITTI run and 47 frames of the earlier Hilti run.
 python tools/hilti_stereo_falsification.py exp21_head.bag \
     --camchain calib_3_cam0-1-camchain-imucam.yaml \
     --lidar-calibration lidar_calibration.yaml --output hilti_exp21.json
+```
+
+`exp01_head.bag` is made the same way as `exp21_head.bag`
+([camera-LiDAR check](camera_lidar_check.md)):
+
+```bash
+curl -L -r 0-6442450943 -o exp01_head.bag \
+  https://huggingface.co/datasets/Hilti-Research/hilti-slam-challenge-2022/resolve/main/rosbags/exp01_construction_ground_level.bag
+python tools/trim_partial_rosbag1.py exp01_head.bag
 ```
 
 About 6 minutes on 8 cores. The output records the git commit, the bag's name and
