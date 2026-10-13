@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **Hilti camera pairs: the difference between recordings is the rig, not a bias at the
+  image edges.**
+  - **The tool.** `tools/hilti_camera_pair_reproducibility.py` estimates each camera
+    pair on halves of a recording:
+    - halves in time, which see different parts of the scene;
+    - interleaved halves, which see the same parts.
+  - **Within a recording.** Interleaved halves agree within their std (RMS *z* 0.46).
+    Halves in time differ by 1.5 to 1.7 times it, by up to 0.19 deg on a judged axis.
+    The std is the spread within the frames analysed, not across scenes.
+  - **Between recordings.** cam1–cam3's six-sigma change in roll is cam1 turning
+    0.18 deg relative to the other cameras, as cam0–cam1 measures. The check's
+    behaviour is unchanged.
+
 - Fuse native LiDAR residuals and ordered squared-error accumulation on the
   optional CPU adapter for factors with at least 8,192 rows. Match CPython
   3.10/3.11 and 3.12 summation policies and retain public hooks and diagnostics.

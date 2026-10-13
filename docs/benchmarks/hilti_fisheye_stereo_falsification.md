@@ -136,6 +136,88 @@ bag. On these recordings it reads −0.12 deg about cam0's x on `exp21` and +0.0
 `exp01`, and fails a camchain turned 1 deg on `exp01`; see
 [the tutorial](../tutorials/calibrex_check.md#camera-camera-a-stereo-pairs-rotation).
 
+## The other camera pairs: within and between recordings (2026-10-13)
+
+With all five cameras, `calibrex check` reads the side and down pairs on both
+recordings. Where an axis is judged on both, cam1–cam3's roll reads −0.10 deg on
+`exp01` and +0.21 deg on `exp21`, about six times its jackknife std (see
+[the tutorial](../tutorials/calibrex_check.md#camera-camera-a-stereo-pairs-rotation)).
+Two explanations were open: the rig changed between the sessions, or the estimate is
+biased at the edges of the fisheye images, where the side pairs overlap.
+
+`tools/hilti_camera_pair_reproducibility.py` reads the frames where all five cameras
+fired together, 1 s apart: 78 on `exp01` and 80 on `exp21`, the bags' first 79 and 81 s.
+It estimates every pair on five subsets of them:
+
+* `all` frames;
+* the `first` and `second` half in time, which see different parts of the scene;
+* the `even` and `odd` frames, which see the same parts.
+
+Each estimate is the check's own, with the same options.
+
+### Within a recording
+
+For each pair of subsets, *z* is the difference over the two subsets' combined std.
+Judged axes are those observable in both subsets.
+
+| subsets | axes compared (judged in both) | RMS *z* (judged) | \|*z*\| > 2 (judged) | largest judged difference |
+| --- | --- | --- | --- | --- |
+| first vs second half | 39 (19) | 1.69 (1.49) | 6 (2) | 0.19 deg |
+| even vs odd frames | 42 (25) | 0.46 (0.37) | 0 (0) | 0.08 deg |
+
+* **The std measures the spread within the frames analysed.** Interleaved subsets see
+  the same scene and agree to better than their std.
+* **Other parts of the scene move the reading by more.** Halves in time differ by 1.5
+  to 1.7 times their combined std (RMS). The largest difference on an axis judged in
+  both halves is 0.19 deg (cam0–cam4 yaw, `exp21`). cam0–cam1's pitch on `exp21`
+  differs by 0.05 deg, 4.8 times its std.
+* **Consequence.** The 0.5 deg tolerance of the verdicts is not at risk. A comparison of
+  two readings "within their std" is: a side pair's std understates how its reading
+  moves with the scene by about 1.5 times.
+
+### Between recordings
+
+On all 78 and 80 frames, cam0–cam1 changes by (−0.177, −0.059, −0.013) deg between
+`exp01` and `exp21`, with stds of at most 0.04 deg. Its halves agree within each
+recording. This is the 1.19 px row offset of the previous section.
+
+Suppose only cam1 turned relative to the other cameras:
+
+* each cam1–camN pair changes by cam0–cam1's change, turned into cam1's axes and with
+  its sign reversed;
+* the cam0–camN pairs do not change.
+
+| pair, axis (judged on both) | change, exp21 − exp01 | only cam1 turned | *z* | no change, *z* |
+| --- | --- | --- | --- | --- |
+| cam1–cam3 roll | +0.241 ± 0.053 deg | +0.177 deg | +1.2 | +4.5 |
+| cam1–cam3 yaw | −0.046 ± 0.057 deg | +0.014 deg | −1.1 | −0.8 |
+| cam0–cam4 roll | −0.130 ± 0.075 deg | 0 | −1.7 | −1.7 |
+
+* **The model removes the one large difference.** Over all 18 axes, judged or not,
+  χ²/n is 2.15 with the model and 2.78 without. Scaling by the 1.5 times above gives
+  an expected χ²/n of about 2.2.
+* **One exception: cam1–cam4's pitch.** It changes by −0.28 deg (*z* −4.5). It is
+  unjudged on both recordings, and pitch is the axis the side pairs constrain least.
+* **cam1, not cam0.** If cam0 had turned instead, the cam0–camN pairs would change and
+  the cam1–camN pairs would not. cam1–cam3's roll, the largest judged change, rules
+  that out.
+
+**Conclusion.** cam1–cam3's six-sigma difference between the recordings is cam1 itself:
+the same 0.18 deg turn about the baseline that cam0–cam1 measures to 0.005 deg. It is
+not a bias at the image edges. The rest is the scene dependence measured within each
+recording.
+
+Reproduce (about 50 minutes per recording):
+
+```bash
+python tools/hilti_camera_pair_reproducibility.py exp21_head.bag \
+    --camchain calib_3_cam0-1-camchain-imucam.yaml \
+    --camchain calib_3_cam2-camchain-imucam.yaml \
+    --camchain calib_3_cam3-camchain-imucam.yaml \
+    --camchain calib_3_cam4-camchain-imucam.yaml \
+    --output exp21_reproducibility.json
+```
+
 ## Earlier run: stamp pairing, no motion
 
 The first run paired images and scans by their stamps and left the points where they
