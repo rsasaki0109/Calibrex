@@ -7,13 +7,14 @@ from pathlib import Path
 import numpy as np
 import pytest
 from scipy.spatial.transform import Rotation
-from tests.unit.stereo_scene import LEFT, RIGHT, TRUTH, render_pairs
+from tests.unit.stereo_scene import LEFT, RIGHT, TRUTH, render_pairs, render_turning_pairs
 
 from calibrex.check.estimators import rotation_errors_deg
 from calibrex.core.stereo_rotation import StereoRotationProvenance
 from calibrex.core.validation import validate_file
 from calibrex.evaluation.stereo_rotation import (
     StereoRotationOptions,
+    StereoTiming,
     estimate_stereo_rotation,
 )
 
@@ -72,3 +73,45 @@ def test_too_few_pairs_are_inconclusive(pairs: list[tuple[np.ndarray, np.ndarray
     )
     assert artifact.policy_status == "inconclusive"
     assert artifact.axes == []
+
+
+def _rates(count: int) -> np.ndarray:
+    rng = np.random.default_rng(9)
+    axes = rng.normal(size=(count, 3))
+    return np.radians(25.0) * axes / np.linalg.norm(axes, axis=1, keepdims=True)
+
+
+def test_a_stamped_delay_is_turned_out_with_the_gyro() -> None:
+    rates = _rates(8)
+    delays = np.full(8, 0.025)  # the right image one 40 Hz frame later, stamped so
+    pairs = render_turning_pairs(TRUTH, delays, rates)
+    timing = StereoTiming(gaps_s=delays, rates_rad_s=rates, source="test gyro")
+
+    blind = estimate_stereo_rotation(
+        pairs, LEFT, RIGHT, TRUTH, provenance=PROVENANCE, options=OPTIONS
+    )
+    timed = estimate_stereo_rotation(
+        pairs, LEFT, RIGHT, TRUTH, provenance=PROVENANCE, options=OPTIONS, timing=timing
+    )
+
+    assert max(axis.std_deg for axis in blind.axes) > 0.1  # the turn scatters the pairs
+    assert all(abs(axis.candidate_error_deg) < 0.05 for axis in timed.axes)
+    assert timed.policy_status == "pass"
+    assert timed.time_offset_s == pytest.approx(0.0, abs=0.001)
+    assert timed.time_offset_status == "estimated"
+    assert timed.max_stamp_gap_s == pytest.approx(0.025)
+
+
+def test_a_clock_offset_between_the_cameras_is_measured() -> None:
+    rates = _rates(8)
+    pairs = render_turning_pairs(TRUTH, np.zeros(8), rates)  # taken together
+    stamped = np.full(8, 0.005)  # but the right camera's clock runs 5 ms ahead
+    timing = StereoTiming(gaps_s=stamped, rates_rad_s=rates, source="test gyro")
+
+    artifact = estimate_stereo_rotation(
+        pairs, LEFT, RIGHT, TRUTH, provenance=PROVENANCE, options=OPTIONS, timing=timing
+    )
+
+    assert artifact.time_offset_s == pytest.approx(-0.005, abs=0.001)
+    assert artifact.time_offset_std_s is not None and artifact.time_offset_std_s < 0.001
+    assert all(abs(axis.candidate_error_deg) < 0.05 for axis in artifact.axes)

@@ -64,3 +64,24 @@ def render_pairs(
         right = render(RIGHT, world_left @ truth[:3, :3], world_left @ truth[:3, 3])
         pairs.append((left, right))
     return pairs
+
+
+def render_turning_pairs(
+    truth: np.ndarray, delays_s: np.ndarray, rates_rad_s: np.ndarray, seed: int = 4
+) -> list[tuple[np.ndarray, np.ndarray]]:
+    """Pairs whose right image is taken ``delays_s`` after the left while the rig turns.
+
+    ``rates_rad_s`` is each pair's angular rate about the left camera's own axes; the rig
+    turns about the left camera's centre.
+    """
+
+    rng = np.random.default_rng(seed)
+    pairs = []
+    for delay, rate in zip(delays_s, rates_rad_s, strict=True):
+        angles = [rng.uniform(-180, 180), rng.uniform(-30, 30), rng.uniform(-20, 20)]
+        world_left = Rotation.from_euler("zyx", angles, degrees=True).as_matrix()
+        later = world_left @ Rotation.from_rotvec(rate * delay).as_matrix()
+        left = render(LEFT, world_left, np.zeros(3))
+        right = render(RIGHT, later @ truth[:3, :3], later @ truth[:3, 3])
+        pairs.append((left, right))
+    return pairs

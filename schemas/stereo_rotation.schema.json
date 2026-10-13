@@ -165,6 +165,19 @@
       "title": "Limitations",
       "type": "array"
     },
+    "max_stamp_gap_s": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Stamp Gap S"
+    },
     "method": {
       "const": "rectified_row_offsets/v0.1",
       "default": "rectified_row_offsets/v0.1",
@@ -242,6 +255,60 @@
       "default": "slac.stereo_rotation/v0.1",
       "title": "Schema Version",
       "type": "string"
+    },
+    "time_offset_s": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "the right camera's clock minus the left one's: a pair stamped g apart was taken g + time_offset_s apart (only with the rig's rotation from a gyro)",
+      "title": "Time Offset S"
+    },
+    "time_offset_status": {
+      "anyOf": [
+        {
+          "enum": [
+            "estimated",
+            "unobservable"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Time Offset Status"
+    },
+    "time_offset_std_s": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Time Offset Std S"
+    },
+    "timing_source": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Timing Source"
     },
     "vertical_baseline_ratio": {
       "anyOf": [

@@ -76,6 +76,15 @@ class StereoRotationArtifact(StrictModel):
         "vertical component over its length, in the rectified frame)",
     )
     residual_std_px: float | None = Field(default=None, ge=0.0)
+    time_offset_s: float | None = Field(
+        default=None,
+        description="the right camera's clock minus the left one's: a pair stamped g apart "
+        "was taken g + time_offset_s apart (only with the rig's rotation from a gyro)",
+    )
+    time_offset_std_s: float | None = Field(default=None, ge=0.0)
+    time_offset_status: Literal["estimated", "unobservable"] | None = None
+    timing_source: str | None = None
+    max_stamp_gap_s: float | None = Field(default=None, ge=0.0)
     options: dict[str, Any]
     limitations: list[str] = Field(default_factory=list)
     provenance: StereoRotationProvenance

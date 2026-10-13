@@ -2387,10 +2387,12 @@ def run_camera_camera(ctx: PairContext) -> EstimatorRun:
 
     from calibrex.core.provenance import git_commit
     from calibrex.core.stereo_rotation import StereoRotationProvenance, load_stereo_rotation
+    from calibrex.evaluation.camera_lidar_motion import IMU_TYPE, read_lidar_motion
     from calibrex.evaluation.stereo_rotation import (
         StereoRotationOptions,
+        StereoTiming,
         estimate_stereo_rotation,
-        read_stereo_pairs,
+        read_stereo_frames,
         stereo_camera,
     )
 
@@ -2413,14 +2415,32 @@ def run_camera_camera(ctx: PairContext) -> EstimatorRun:
     candidate = ctx.candidate  # T_first_second
     options = StereoRotationOptions(max_seconds=ctx.controls.max_duration_s)
     command = ["calibrex", "check", str(ctx.bag), "camera-camera", left_topic, right_topic]
+    gyro = _camera_gyro(ctx, left_frame)
 
     def compute() -> Any:
-        pairs = read_stereo_pairs(ctx.bag, left_topic, right_topic, options)
+        motion = (
+            read_lidar_motion(ctx.bag, gyro[0], IMU_TYPE, gyro[1]) if gyro is not None else None
+        )
+        tolerance = options.max_unsynchronised_gap_s if motion is not None else options.max_gap_s
+        frames = read_stereo_frames(ctx.bag, left_topic, right_topic, options, max_gap_s=tolerance)
+        pairs = frames.pairs
+        timing = None
+        if motion is not None and gyro is not None and pairs:
+            sampled = [motion.velocity_at(float(time)) for time in frames.left_times_s]
+            covered = [index for index, rate in enumerate(sampled) if rate is not None]
+            rates = [rate[0] for rate in sampled if rate is not None]
+            pairs = [pairs[index] for index in covered]
+            timing = StereoTiming(
+                gaps_s=(frames.right_times_s - frames.left_times_s)[covered],
+                rates_rad_s=np.asarray(rates, dtype=np.float64).reshape(-1, 3),
+                source=f"gyro {gyro[0]}",
+            )
         if not pairs:
             raise CheckSkipError(
                 "missing_topic",
                 f"no image of {left_topic} and {right_topic} within "
-                f"{options.max_gap_s * 1e3:g} ms of each other",
+                f"{tolerance * 1e3:g} ms of each other"
+                + (" with the gyro's rate at the time" if motion is not None else ""),
             )
         left_height, left_width = pairs[0][0].shape
         right_height, right_width = pairs[0][1].shape
@@ -2442,6 +2462,7 @@ def run_camera_camera(ctx: PairContext) -> EstimatorRun:
                 bag_sha256=ctx.controls.bag_sha256 or None,
             ),
             options=options,
+            timing=timing,
         )
 
     artifact, cached = cached_artifact(
@@ -2454,6 +2475,9 @@ def run_camera_camera(ctx: PairContext) -> EstimatorRun:
             "left_camera": left_model,
             "right_camera": right_model,
             "candidate": [round(float(v), 9) for v in candidate.ravel()],
+            "gyro": None
+            if gyro is None
+            else {"topic": gyro[0], "t_imu_camera": [round(float(v), 9) for v in gyro[1].ravel()]},
             "options": options,
         },
         loader=load_stereo_rotation,
@@ -2505,11 +2529,40 @@ def run_camera_camera(ctx: PairContext) -> EstimatorRun:
         policy_reasons=tuple(artifact.policy_reasons),
         estimates=tuple(estimates),
         compared=candidate,
+        time_offset=CheckTimeOffset(
+            estimate_s=artifact.time_offset_s,
+            std_s=artifact.time_offset_std_s,
+            status=artifact.time_offset_status or "unobservable",
+        )
+        if artifact.time_offset_s is not None
+        else None,
         notes=(
             f"intrinsics: {left_source}; {right_source}",
             "rotation only: the translation between the cameras is not judged",
+            f"timing: {artifact.timing_source}, the cameras' clock offset fitted"
+            if artifact.timing_source
+            else "timing: no gyro connected to the cameras, so the pairs must be synchronised",
         ),
     )
+
+
+def _camera_gyro(ctx: PairContext, camera_frame: str) -> tuple[str, FloatArray] | None:
+    """An IMU topic connected to the camera in the candidate tree, and ``T_imu_camera``."""
+
+    tree = ctx.controls.frame_tree
+    if tree is None:
+        return None
+    for record in sorted(ctx.topics, key=lambda item: item.topic):
+        if record.role != "imu" or record.mapped_frame is None:
+            continue
+        if ctx.topic_types.get(record.topic) != "sensor_msgs/msg/Imu":
+            continue
+        relation = tree.lookup(record.mapped_frame, camera_frame)
+        if relation is not None:
+            return record.topic, transform_matrix(
+                relation.translation_m, relation.rotation_quat_xyzw
+            )
+    return None
 
 
 ESTIMATORS: dict[str, Adapter] = {
