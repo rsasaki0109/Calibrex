@@ -16,6 +16,7 @@ import numpy as np
 
 from calibrex import __version__
 from calibrex.check import estimators
+from calibrex.check.attribution import build_rotation_attribution, observations_from_run
 from calibrex.check.cache import EstimatorCache
 from calibrex.check.closure import (
     ClosureEdge,
@@ -70,6 +71,7 @@ from calibrex.core.calibration_check import (
     CheckOptions,
     CheckPairRecord,
     CheckProvenance,
+    CheckRotationAttribution,
     CheckTopicRecord,
     CheckTransform,
     OdometryKind,
@@ -281,6 +283,7 @@ def build_calibration_check(
     evidence_dir_record: str | None = None
     overall: str | None = None
     closures: CheckClosureReport | None = None
+    attribution: CheckRotationAttribution | None = None
     if run is None:
         notes.insert(0, "plan only; no pair solver was run")
     else:
@@ -300,7 +303,11 @@ def build_calibration_check(
             bag_sha256=input_sha256,
             frame_tree=tree,
         )
-        closures = build_closure_report(pairs, _closure_edges(pairs, run_memo), run.verdict)
+        closure_edges = _closure_edges(pairs, run_memo)
+        closures = build_closure_report(pairs, closure_edges, run.verdict)
+        attribution = build_rotation_attribution(
+            observations_from_run(pairs, closure_edges), run.verdict
+        )
         overall = (
             worst_verdict([*(pair.status for pair in pairs), closure_floor_verdict(closures) or ""])
             or "inconclusive"
@@ -357,6 +364,7 @@ def build_calibration_check(
         overall_verdict=overall,
         options=options_record,
         closures=closures,
+        rotation_attribution=attribution,
         evidence_dir=evidence_dir_record,
         provenance=CheckProvenance(
             generator="calibrex check",
@@ -854,6 +862,17 @@ def _closure_lines(artifact: CalibrationCheckArtifact) -> list[str]:
     return lines
 
 
+def _attribution_lines(artifact: CalibrationCheckArtifact) -> list[str]:
+    report = artifact.rotation_attribution
+    if report is None or not report.groups:
+        return []
+    lines = ["", "which frame's rotation the pair errors point to (informational):"]
+    for group in report.groups:
+        lines.append(f"  {', '.join(group.frames)}: {group.status}")
+        lines.append(f"    {group.summary}")
+    return lines
+
+
 def _rigid_summary(pair: str, artifact: CalibrationCheckArtifact) -> str:
     """The summary line of a pair whose LiDAR scans were treated as rigid."""
 
@@ -960,6 +979,7 @@ def _verdict_lines(artifact: CalibrationCheckArtifact, color: bool = False) -> l
                     f"{pair.focal_scale.optical_axis_ratio:.4f} (must be 1)"
                 )
     lines.extend(_closure_lines(artifact))
+    lines.extend(_attribution_lines(artifact))
     lines.append("")
     overall = str(artifact.overall_verdict)
     lines.append(f"overall verdict: {paint_verdict(overall) if color else overall}")

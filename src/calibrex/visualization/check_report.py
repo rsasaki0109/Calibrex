@@ -3,7 +3,8 @@
 One static page, no scripts and no external assets: the overall verdict, a
 table of the judged pairs (per-axis error against tolerance, unchecked axes
 with their reasons, detectable error, evidence link and digest), the skipped
-pairs, the closure loops, the candidate frame tree and the provenance.
+pairs, the closure loops, the frame the pair errors point to, the candidate
+frame tree and the provenance.
 Light and dark themes follow ``prefers-color-scheme``.
 """
 
@@ -298,6 +299,46 @@ def _closure_section(artifact: CalibrationCheckArtifact) -> str:
     return "".join(body)
 
 
+def _attribution_section(artifact: CalibrationCheckArtifact) -> str:
+    report = artifact.rotation_attribution
+    if report is None or not report.groups:
+        return ""
+    rows = []
+    for group in report.groups:
+        best = group.hypotheses[0] if group.hypotheses else None
+        turn = (
+            ", ".join(
+                f"{name} {_number(value)} &plusmn; {_number(std)}"
+                for name, value, std in zip(
+                    ("roll", "pitch", "yaw"), best.rotation_deg, best.std_deg, strict=True
+                )
+                if value is not None and std is not None
+            )
+            if best is not None
+            else ""
+        )
+        rows.append(
+            f"<tr><td>{escape(', '.join(group.frames))}</td><td>{_badge(group.status)}</td>"
+            f"<td>{escape(best.frame) if best is not None else ''}</td><td>{turn}</td>"
+            f"<td>{escape(group.summary)}</td></tr>"
+        )
+    return "".join(
+        [
+            "<h2>Which frame the errors point to</h2>",
+            '<p class="note">Each frame alone is assumed off by a small rotation (about its '
+            "own axes, in degrees) and fitted to the pair errors; the fits are compared with "
+            f"nothing off. Axis std is at least {_number(report.sigma_floor_deg)} deg, the "
+            "verdicts' resolution. Informational: no verdict changes.</p>",
+            '<div class="tablewrap"><table><thead><tr><th>frames</th><th>status</th>'
+            "<th>best single frame</th><th>its turn (deg)</th><th>summary</th></tr></thead>"
+            "<tbody>" + "".join(rows) + "</tbody></table></div>",
+            "<details><summary>assumptions</summary><ul>"
+            + "".join(f"<li>{escape(item)}</li>" for item in report.assumptions)
+            + "</ul></details>",
+        ]
+    )
+
+
 def _frame_tree(artifact: CalibrationCheckArtifact) -> str:
     tree = artifact.frame_tree
     children: dict[str, list[CheckFrameEdge]] = {}
@@ -455,6 +496,7 @@ def render_check_html(
     if skipped:
         parts += ["<h2>Skipped pairs</h2>", skipped]
     parts.append(_closure_section(artifact))
+    parts.append(_attribution_section(artifact))
     parts += [
         "<h2>Candidate frame tree</h2>",
         _frame_tree(artifact),
