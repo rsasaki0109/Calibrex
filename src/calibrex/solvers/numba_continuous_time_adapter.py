@@ -19,11 +19,115 @@ from calibrex.core.geometry import SE3, Vector3
 from calibrex.data.odometry_track import OdometryTrack, _PreparedInterval
 
 if TYPE_CHECKING:
+    from calibrex.evaluation.packed_lidar_observations import _PlaneColumns
     from calibrex.graph.lidar_point_to_plane import _ObservationArrays
 
 FloatArray: TypeAlias = NDArray[np.float64]
 IntArray: TypeAlias = NDArray[np.int64]
 Quaternion: TypeAlias = tuple[float, float, float, float]
+
+
+@njit(cache=True, nogil=True, fastmath=False)  # type: ignore[untyped-decorator]
+def _association_choices(
+    world: FloatArray, left: IntArray, right: IntArray,
+    lc: FloatArray, lr: FloatArray, lv: NDArray[np.bool_],
+    rc: FloatArray, rr: FloatArray, rv: NDArray[np.bool_], hybrid: bool,
+) -> tuple[NDArray[np.bool_], NDArray[np.bool_], IntArray, bool]:
+    n = len(world)
+    prefer_right = np.zeros(n, dtype=np.bool_)
+    valid = np.zeros(n, dtype=np.bool_)
+    ties = np.empty(n, dtype=np.int64)
+    tie_count = 0
+    finite = True
+    for row in range(n):
+        lp, rp = max(left[row], 0), max(right[row], 0)
+        present_left = left[row] >= 0 and lv[lp]
+        if not hybrid:
+            valid[row] = present_left
+            continue
+        present_right = right[row] >= 0 and rv[rp]
+        a = abs(lr[lp, 0]*(world[row, 0]-lc[lp, 0])
+                + lr[lp, 1]*(world[row, 1]-lc[lp, 1])
+                + lr[lp, 2]*(world[row, 2]-lc[lp, 2]))
+        b = abs(rr[rp, 0]*(world[row, 0]-rc[rp, 0])
+                + rr[rp, 1]*(world[row, 1]-rc[rp, 1])
+                + rr[rp, 2]*(world[row, 2]-rc[rp, 2]))
+        finite = finite and math.isfinite(a) and math.isfinite(b)
+        valid[row] = present_left or present_right
+        prefer_right[row] = present_right and (not present_left or b < a)
+        # Equal centroids also have equal math.dist, including signed zero.
+        # Preserve the first (uniform) plane; repair other exact ties in Python.
+        if (present_left and present_right and a == b
+            and not (lc[lp, 0] == rc[rp, 0] and lc[lp, 1] == rc[rp, 1]
+                     and lc[lp, 2] == rc[rp, 2])):
+            ties[tie_count] = row
+            tie_count += 1
+    return prefer_right, valid, ties[:tie_count], finite
+
+
+@njit(cache=True, nogil=True, fastmath=False)  # type: ignore[untyped-decorator]
+def _gather_observation_rows(
+    points: FloatArray, indices: IntArray, poses: FloatArray,
+    left: IntArray, right: IntArray, lc: FloatArray, ln: FloatArray,
+    rc: FloatArray, rn: FloatArray, prefer_right: NDArray[np.bool_],
+    valid: NDArray[np.bool_],
+) -> tuple[FloatArray, FloatArray, FloatArray, FloatArray, FloatArray]:
+    count = np.count_nonzero(valid)
+    xyz = np.empty((count, 3), dtype=np.float64)
+    centers = np.empty((count, 3), dtype=np.float64)
+    normals = np.empty((count, 3), dtype=np.float64)
+    rows = np.empty((count, 7), dtype=np.float64)
+    weights = np.ones(count, dtype=np.float64)
+    target = 0
+    for row in range(len(valid)):
+        if not valid[row]:
+            continue
+        position = right[row] if prefer_right[row] else left[row]
+        for axis in range(3):
+            xyz[target, axis] = points[indices[row], axis]
+            centers[target, axis] = rc[position, axis] if prefer_right[row] else lc[position, axis]
+            normals[target, axis] = rn[position, axis] if prefer_right[row] else ln[position, axis]
+        for axis in range(7):
+            rows[target, axis] = poses[row, axis]
+        target += 1
+    return xyz, centers, normals, rows, weights
+
+
+def _pack_rig_observations(
+    points: FloatArray, indices: IntArray, poses: FloatArray, world: FloatArray,
+    matches: Sequence[IntArray], columns: Sequence[_PlaneColumns],
+) -> _ObservationArrays | None:
+    """Fuse ordered native scores and gathers; retain Python math.dist for exact ties."""
+    from calibrex.graph.lidar_point_to_plane import _ObservationArrays
+
+    if (len(matches) not in (1, 2) or len(matches) != len(columns)
+        or world.shape != (len(world), 3) or poses.shape != (len(world), 7)
+        or indices.shape != (len(world),)
+        or np.any(indices >= len(points)) or np.any(indices < -len(points))
+        or any(position.shape != (len(world),) or len(column.centroids) == 0
+               or np.any(position >= len(column.centroids))
+               for position, column in zip(matches, columns, strict=True))):
+        return None
+    left, right = matches[0], matches[-1]
+    lc, rc = columns[0], columns[-1]
+    prefer_right, valid, ties, finite = _association_choices(
+        world, left, right, lc.centroids, lc.raw_normals, lc.valid,
+        rc.centroids, rc.raw_normals, rc.valid, len(matches) == 2,
+    )
+    if not finite:
+        return None
+    for row in ties:
+        point = tuple(world[row].tolist())
+        prefer_right[row] = (math.dist(point, rc.centroids[right[row]].tolist())
+                             < math.dist(point, lc.centroids[left[row]].tolist()))
+    arrays = _gather_observation_rows(
+        points, indices, poses, left, right, lc.centroids, lc.normals,
+        rc.centroids, rc.normals, prefer_right, valid,
+    )
+    for array in arrays:
+        array.flags.writeable = False
+    xyz, centers, normals, rows, weights = arrays
+    return _ObservationArrays(xyz, centers, normals, rows, weights, None)
 
 
 def numba_continuous_time_identity() -> str:

@@ -97,6 +97,7 @@ class _PackedObservationBuilder:
         *, voxel_size_m: float, correspondence_gate_m: float,
         _position_query: Callable[..., tuple[NDArray[np.int64] | None,
                                              NDArray[np.int64] | None] | None] | None = None,
+        _array_packer: Callable[..., _ObservationArrays | None] | None = None,
     ) -> _PackedObservations | None:
         if (len(world) < 64 or not _native_packing_supported()
             or np.any(np.abs(world) >= 1e100) or not np.isfinite(world).all()
@@ -132,6 +133,10 @@ class _PackedObservationBuilder:
             columns.append(self.adaptive_columns)
         if not matches or any(len(column.centroids) == 0 for column in columns):
             return None
+        if _array_packer is not None and len(world) >= 8192:
+            packed = _array_packer(self.points, indices, poses, world, matches, columns)
+            if packed is not None:
+                return _PackedObservations(packed)
         centroids = [column.centroids[np.maximum(position, 0)]
                      for position, column in zip(matches, columns, strict=True)]
         normals = [column.normals[np.maximum(position, 0)]

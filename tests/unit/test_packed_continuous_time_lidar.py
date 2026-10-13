@@ -24,7 +24,7 @@ from calibrex.data.adaptive_voxel import (
 from calibrex.data.livox import LivoxPointRecord, VoxelPlaneQueryContext, build_voxel_plane_map
 from calibrex.data.odometry_track import OdometryPoseSample, OdometryTrack
 from calibrex.evaluation.lidar import build_rig_point_to_plane_observations
-from calibrex.evaluation.packed_lidar_observations import _PackedObservationBuilder
+from calibrex.evaluation.packed_lidar_observations import _columns, _PackedObservationBuilder
 from calibrex.graph import lidar_point_to_plane as graph
 from calibrex.graph.lidar_point_to_plane import LidarRigPointToPlaneFactor, _PackedObservations
 from calibrex.solvers import numba_continuous_time_adapter as adapter
@@ -39,6 +39,7 @@ from calibrex.solvers.fixed_trajectory_se3_solver import (
 )
 from calibrex.solvers.numba_continuous_time_adapter import (
     NumbaContinuousTimeQueryContext,
+    _pack_rig_observations,
     numba_rig_linearization,
     numba_rig_normal_equations,
     numba_rig_residuals,
@@ -137,7 +138,7 @@ def test_point_range_diagnostics_honor_a_replaced_public_observation_property(mo
 
 
 @pytest.mark.parametrize("strategy", ["uniform", "adaptive", "hybrid"])
-@pytest.mark.parametrize("count", [64, 4097])
+@pytest.mark.parametrize("count", [64, 4097, 8193])
 def test_packed_matches_all_native_observations_and_solver_history(strategy, count):
     records, points, samples, times = _fixture(count)
     uniform_map = build_voxel_plane_map(records, 1.0) if strategy != "adaptive" else None
@@ -160,7 +161,7 @@ def test_packed_matches_all_native_observations_and_solver_history(strategy, cou
     assert usable and batch[-1]
     np.testing.assert_array_equal(world.view(np.uint64), batch[1].view(np.uint64))
     packed = builder.build(np.arange(count), batch[0], batch[1], voxel_size_m=1.0,
-                           correspondence_gate_m=1.5)
+                           correspondence_gate_m=1.5, _array_packer=_pack_rig_observations)
     native = build_rig_point_to_plane_observations(
         source_records=records, target_points=points, initial_t_source_target=SE3.identity(),
         target_t_world_source=poses, voxel_size_m=1.0, correspondence_gate_m=1.5,
@@ -266,6 +267,126 @@ def test_native_constructor_and_query_overrides_keep_unpacked_semantics(monkeypa
                          voxel_size_m=1.0, correspondence_gate_m=1.5) is None
     monkeypatch.setattr(graph.LidarPointToPlaneObservation, "__post_init__", lambda self: None)
     assert _PackedObservationBuilder.capture(points, None, None) is None
+
+
+def test_fused_packing_preserves_exact_ties_signed_zero_missing_planes_and_owned_rows(monkeypatch):
+    records, points, _, _ = _fixture(8192)
+    uniform = VoxelPlaneQueryContext(build_voxel_plane_map(records, 1.0))
+    adaptive = AdaptivePlaneQueryContext(build_adaptive_voxel_plane_map(
+        records, AdaptiveVoxelPolicy(min_points_per_voxel=1),
+    ))
+    left = _columns([
+        ((0.0, 0.0, 0.0), (1.0, 0.0, 0.0)),
+        ((0.0, -0.0, 0.0), (0.0, 1.0, 0.0)),
+        ((-1.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
+        ((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
+        ((0.0, 0.0, 0.0), (0.0, 0.0, 1.0)),
+        ((0.0, 0.0, 0.0), None),
+    ])
+    right = _columns([
+        ((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
+        ((-0.0, 0.0, -0.0), (0.0, -1.0, 0.0)),
+        ((1.0, 0.0, 0.0), (0.0, 0.0, 1.0)),
+        ((0.5, 0.0, 0.0), (0.0, 0.0, 1.0)),
+        ((0.0, 0.0, 0.0), (0.0, 1.0, 0.0)),
+        ((0.0, 0.0, 0.0), (1.0, 0.0, 0.0)),
+    ])
+    builder = _PackedObservationBuilder(np.asarray(points), uniform, adaptive, left, right)
+    world = np.tile([(0.0, 0.0, 1.0), (1.0, 0.0, 0.0), (0.0,)*3,
+                     (1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0,)*3,
+                     (0.0,)*3, (0.0,)*3], (1024, 1))
+    poses = np.tile([0.0, -0.0, 0.0, 0.0, 0.0, 0.0, 1.0], (8192, 1))
+    indices = np.arange(8192, dtype=np.int64)[::-1]
+    positions = (np.tile([0, 1, 2, 3, 4, 5, -1, -1], 1024),
+                 np.tile([0, 1, 2, 3, 4, 5, 0, -1], 1024))
+    kwargs = {"voxel_size_m": 1.0, "correspondence_gate_m": 1.5,
+              "_position_query": lambda *args, **kw: positions}
+    reference = builder.build(indices, poses, world, **kwargs)
+    calls = []
+    native = math.dist
+    def observed(*args):
+        calls.append(args)
+        return native(*args)
+    monkeypatch.setattr(adapter.math, "dist", observed)
+    packed = builder.build(indices, poses, world, **kwargs, _array_packer=_pack_rig_observations)
+    assert packed is not None and reference is not None
+    assert packed.materialize() == reference.materialize()
+    # Only two distinct-centroid ties per pattern require the two native distances.
+    assert len(calls) == 4096
+    for name in ("points", "plane_points", "normals", "poses", "sqrt_weights"):
+        actual = getattr(packed.arrays, name)
+        expected = getattr(reference.arrays, name)
+        np.testing.assert_array_equal(actual.view(np.uint64), expected.view(np.uint64))
+        # Numba owns fresh NRT allocations rather than setting NumPy's OWNDATA flag.
+        assert not actual.flags.writeable
+        assert not np.shares_memory(actual, builder.points)
+        assert not np.shares_memory(actual, poses)
+        assert not np.shares_memory(actual, left.centroids)
+        assert not np.shares_memory(actual, right.normals)
+    assert packed.arrays.plane_points[1, 1].view(np.uint64) == np.float64(-0.0).view(np.uint64)
+    assert len(packed) == 7168
+
+
+@pytest.mark.parametrize("count", [8191, 8192])
+def test_fused_packing_crossover_and_unsupported_kernel_keep_numpy_fallback(count):
+    records, points, _, _ = _fixture(count)
+    builder = _PackedObservationBuilder.capture(
+        points, VoxelPlaneQueryContext(build_voxel_plane_map(records, 1.0)), None,
+    )
+    poses, world = np.tile([0.0]*6+[1.0], (count, 1)), np.asarray(points)
+    calls = []
+    def unsupported(*args):
+        calls.append(args)
+        return None
+    kwargs = {"voxel_size_m": 1.0, "correspondence_gate_m": 1.5}
+    reference = builder.build(np.arange(count), poses, world, **kwargs)
+    actual = builder.build(np.arange(count), poses, world, **kwargs, _array_packer=unsupported)
+    assert actual.materialize() == reference.materialize()
+    assert len(calls) == int(count >= 8192)
+
+
+def test_fused_packing_keeps_empty_batches_and_checks_indexes_before_native_gathers():
+    points = np.zeros((64, 3))
+    indices = np.arange(64, dtype=np.int64)
+    poses = np.tile([0.0]*6+[1.0], (64, 1))
+    column = _columns([((0.0,)*3, (1.0, 0.0, 0.0))])
+    positions = np.full(64, -1, dtype=np.int64)
+    packed = _pack_rig_observations(points, indices, poses, points, [positions], [column])
+    assert packed.points.shape == packed.normals.shape == packed.plane_points.shape == (0, 3)
+    assert packed.poses.shape == (0, 7) and packed.sqrt_weights.shape == (0,)
+    positions[0] = 1
+    assert _pack_rig_observations(points, indices, poses, points, [positions], [column]) is None
+    positions[0], indices[0] = 0, 64
+    assert _pack_rig_observations(points, indices, poses, points, [positions], [column]) is None
+
+
+def test_complete_dense_hybrid_result_and_telemetry_match_numpy_packing(monkeypatch):
+    records, points, samples, times = _fixture(10240)
+    problem = ContinuousTimeLidarPairProblem(
+        records, points, times, OdometryTrack(samples), SE3.identity(), SE3.identity(),
+        "T_base_lidar", "target", 1.0, 1.5,
+    )
+    options = ContinuousTimeLidarPairOptions(
+        query_backend="numba_cpu", voxel_strategy="adaptive", adaptive_min_points_per_voxel=1,
+        max_target_points_per_split=None, max_iterations=1,
+        solver=FixedTrajectorySe3SolverOptions(max_iterations=1),
+    )
+    calls = []
+    def observed(*args):
+        calls.append(len(args[3]))
+        return _pack_rig_observations(*args)
+    monkeypatch.setattr(adapter, "_pack_rig_observations", observed)
+    actual = ContinuousTimeLidarPairSolver().solve(problem, options)
+    assert calls and min(calls) >= 8192
+    monkeypatch.setattr(adapter, "_pack_rig_observations", lambda *args: None)
+    other = replace(problem, odometry_track=OdometryTrack(samples))
+    reference = ContinuousTimeLidarPairSolver().solve(other, options)
+    assert asdict(actual) == asdict(reference)
+    assert (problem.odometry_track.interpolation_count, problem.odometry_track.clamp_count,
+            problem.odometry_track.max_extrapolation_s) == (
+        other.odometry_track.interpolation_count, other.odometry_track.clamp_count,
+        other.odometry_track.max_extrapolation_s,
+    )
 
 
 def test_small_cuda_budget_uses_exact_cpu_execution_without_importing_cupy(monkeypatch):

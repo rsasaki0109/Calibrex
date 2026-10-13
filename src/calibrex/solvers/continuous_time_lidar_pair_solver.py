@@ -729,11 +729,16 @@ class ContinuousTimeLidarPairSolver:
                 if not usable:
                     return None
                 rows_evaluated = True
+                from calibrex.solvers.numba_continuous_time_adapter import (
+                    _pack_rig_observations,
+                )
+
                 packed = query_reuse.packed_builder.build(
                     positions, rows, coordinates, voxel_size_m=problem.voxel_size_m,
                     correspondence_gate_m=problem.correspondence_gate_m,
                     _position_query=(query_reuse.cuda_planes.query
                                      if query_reuse.cuda_planes is not None else None),
+                    _array_packer=_pack_rig_observations,
                 )
                 if packed is None:
                     # Query counters were already recorded. Materialize those
