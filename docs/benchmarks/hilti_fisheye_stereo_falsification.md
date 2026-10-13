@@ -14,8 +14,14 @@ no CI test pins the numbers below.
   is declared before scoring, the same perturbation in camera terms as KITTI's: the
   reference turned 5 deg about the camera's y axis (pitch) and moved 0.25 m along its
   optical axis. Its declared axes are pitch and z.
-* **Frames.** The bag-level check's own selection of cam0 images and scans (the short
-  recording policy), each with the cam1 image of the same stamp.
+* **Frames.** What `calibrex check` reads for each candidate, as it would on this bag:
+  * its selection of cam0 images and scans (the short-recording policy);
+  * each image paired with the scan at the time the candidate's visible points were
+    measured, read from the cloud's per-point `timestamp` field;
+  * the points turned to the image time with the IMU's gyro. This corrects rotation
+    only: the bag has no velocity topic, so the rig's translation during the sweep is
+    not compensated.
+  * Each image comes with the cam1 image of the same stamp.
 * **Rotation** from edge alignment on the raw fisheye cam0 images (equidistant model).
 * **Translation along the optical axis** from stereo depth on the rectified pair
   (`calibrex.evaluation.fisheye_stereo`): both cameras are re-projected onto a common
@@ -27,44 +33,65 @@ no CI test pins the numbers below.
 
 ## Result
 
-**`inconclusive`.** The known-bad fails on pitch, but the reference reads `warn` on
-`z`. The run used 47 frame pairs from the first two minutes of `exp21`, with a vertical
-offset of −0.83 px removed (git commit `5abcde3`).
+**`pass`, on rotation.** The reference passes on roll, pitch and yaw, and the known-bad
+fails on pitch. z goes unjudged on both candidates. The run used 48 frame pairs from
+the first two minutes of `exp21` (git commit `fb599b2`), with a vertical offset of
+−0.83 px removed and the gyro turning each scan by 0.14 deg (median; at most 0.39 deg).
 
-| candidate | pitch (deg) | z (m) | verdict |
+| candidate | roll (deg) | pitch (deg) | yaw (deg) | z (m) | verdict |
+| --- | --- | --- | --- | --- | --- |
+| dataset reference | −0.10 / 0.50 `pass` | −0.20 / 0.50 `pass` | +0.15 / 0.63 `pass` | −0.096, unjudged | `pass` |
+| known-bad | unjudged | +4.95 / 0.50 `fail` | +0.20 / 0.50 `pass` | +0.154, unjudged | `fail` |
+
+Each judged cell gives the candidate's error, then its tolerance.
+
+* **The known-bad's pitch is judged.** The decision is therefore a pass, not
+  `inconclusive`: pitch is one of its declared axes.
+* **Stereo depth sees the 0.25 m move but is not trusted.** It puts the known-bad
+  0.250 m beyond the reference, exactly the declared move. Its jackknife std, 0.053 m
+  and 0.051 m, is just above the 0.05 m gate, so z is not judged.
+* **Depth still reads the reference about 0.1 m short** (−0.096 m). The joint stereo
+  fit (cross-check; it judges nothing) disagrees.
+  * It reads the reference's z at +0.029 ± 0.036 m and the known-bad's at
+    +0.276 ± 0.035 m, both trusted.
+  * It fits a disparity scale of −2.6%; depth alone has no scale term.
+  * Its yaw of the reference, −2.1 ± 0.4 deg, disagrees with the edges' +0.15 deg. Its
+    x and y are untrusted.
+* **The rectification is not the source of the scale.** A synthetic check projects
+  points at 2, 5 and 10 m through the rectified pair. Disparity equals fx·B/Z to 1e-4 px,
+  and both maps land on the fisheye projections to 1e-4 px.
+
+## Earlier run: stamp pairing, no motion
+
+The first run paired images and scans by their stamps and left the points where they
+were measured, which is not what the check does. The in-view points were then measured
+61 ms after the image (59 to 62 ms per frame); with the check's pairing the gap is 11 ms
+(−14 to +12 ms). That run read the reference's z at −0.137 m against a 0.111 m tolerance
+(`warn`), so the decision was `inconclusive`. It is reproduced with `--stamp-pairing
+--no-motion`.
+
+## A disparity scale in the depth estimate: tried and rejected
+
+The joint fit's scale suggested adding a scale term to the depth estimate. A pilot fitted
+both variants on the same residuals at the declared reference, without edge alignment,
+with 50 frames per KITTI run and 47 frames of the earlier Hilti run.
+
+| run | current fit: reference / +0.25 m reads | free scale: reference (std) | joint fit's scale removed: reference (std) |
 | --- | --- | --- | --- |
-| dataset reference | +0.00 / 0.63 `pass` | −0.137 / 0.111 `warn` | `warn` |
-| known-bad | +5.00 / 0.66 `fail` | +0.091 / 0.133 `pass` | `fail` |
+| KITTI 0005, spread | +0.048 / +0.258 | +0.023 (0.047) | +0.058 (0.016) |
+| KITTI 0005, first 50 | +0.026 / +0.268 | +0.072 (0.049) | +0.093 (0.009) |
+| KITTI 0009, spread | +0.002 / +0.233 | −0.114 (0.112) | +0.020 (0.038) |
+| KITTI 0009, first 50 | −0.025 / +0.113 | −0.186 (0.047) | +0.044 (0.028) |
+| Hilti `exp21`, stamp pairing | −0.124 / +0.103 | +0.398 (0.380) | −0.016 (0.044) |
 
-Each cell gives the candidate's error, then its tolerance. Edge alignment judged only pitch
-on these frames; roll and yaw went unjudged on both candidates.
-
-* **Depth is trusted on both candidates.**
-  * Reference: jackknife std 0.037 m; its 0.1 m control moved the estimate by 0.092 m.
-  * Known-bad: std 0.044 m; its control moved the estimate by 0.076 m.
-  * The edges ran a second time from each candidate with its depth reading removed, as
-    on KITTI.
-* **The depth reading separates the two, but is offset.** Depth puts the known-bad
-  0.228 m beyond the reference (the declared move is 0.25 m), but it reads the
-  reference itself at −0.137 m. The reference therefore exceeds its tolerance, and the
-  known-bad lands inside its own.
-* **The joint stereo fit (cross-check) explains the offset.** The fit includes the
-  rig's scale and roll.
-  * It reads the reference's z at −0.007 ± 0.049 m and the known-bad's at
-    +0.246 ± 0.048 m. Both readings are trusted, with control responses 1.08.
-  * It also fits a disparity scale of −2.7% (KITTI's published runs: −0.2% to −1.4%).
-  * Depth alone has no scale term. At range Z, a scale error s looks like a depth
-    error s·Z, so −2.7% reads as
-    −0.137 m at 5.1 m. The run did not record the matched points' ranges, so this
-    is a consistency check, not a measurement.
-  * Its other readings of the reference: x +0.036 ± 0.045 m (control 0.87); y
-    untrusted (std 0.086 m); yaw −1.28 ± 0.47 deg.
-  * As on KITTI, the cross-check judges nothing.
-* **The scale is not the rectification's.** A synthetic check projects points at 2, 5
-  and 10 m through the rectified pair. Disparity equals fx·B/Z to 1e-4 px, and both
-  maps land on the fisheye projections to 1e-4 px. The −2.7% comes from the data or
-  their calibration: the camchain's focal lengths and baseline, the equidistant model
-  far from the centre, or the LiDAR's range. This run cannot tell which.
+* **A free scale is not separable from depth.** On camera-facing surfaces it trades off
+  against the offset. The std grows 3 to 10 times, the fitted scales disagree in sign
+  between runs, and on Hilti the control response falls to −0.15.
+* **The joint fit's scale is not the rig's.** On one KITTI rig and calibration it is
+  −0.2% to −0.3% on spread frames but −1.3% to −1.4% on the first 50. Removing it
+  brings Hilti's reference to −0.016 m, but moves KITTI 0005's first-50 reference to
+  +0.093 m with a 0.009 m std, beyond its tolerance.
+* **The estimator is unchanged.**
 
 ## What was decided after seeing results
 
@@ -73,20 +100,22 @@ on these frames; roll and yaw went unjudged on both candidates.
   jackknife std, more than its 0.05 m gate, so z went unjudged on both candidates. The
   offset is now measured from the rectified images themselves (the median row shift of
   matched patches, `estimate_vertical_offset`) and removed from cam1's map before
-  matching. With it, the std fell to about 0.04 m and the depth reading is trusted.
-  The measurement uses no LiDAR and no candidate.
+  matching. The measurement uses no LiDAR and no candidate.
+* **The frames follow the check.** The tool's description already said it used the
+  check's frames. The visible-time pairing and the gyro were added after the
+  `inconclusive` run, when the tool was found not to do what the check does. This
+  turned the decision from `inconclusive` to `pass`.
 
 ## Limits
 
-* **No motion compensation.** The recording is handheld; each scan is used as it was
-  swept, not moved to the image time.
-* **One recording, 47 frames,** the first two minutes of `exp21`.
-* **The rule was not changed for this dataset.** Adding a scale term to the depth
-  estimate would remove the offset above. It would also change the published KITTI
-  decision, so it has to be tried on KITTI first and published there before it is
-  used here.
-* **The reference is not ground truth.** Its depth reading is a finding about the data
-  and the estimator, not evidence that Hilti's calibration is wrong.
+* **Translation during the sweep is not compensated.** The bag has no velocity topic.
+  With the check's pairing, the in-view points are within about 14 ms of the image.
+* **One recording, 48 frames,** the first two minutes of `exp21`.
+* **z is not judged on Hilti.** The reference's depth reading, about −0.1 m, is
+  unexplained: the joint fit reads +0.03 m, and the scale that would reconcile the two
+  does not carry over to KITTI.
+* **The reference is not ground truth.** Its readings are findings about the data and
+  the estimators, not evidence that Hilti's calibration is wrong.
 
 ## Reproduce
 
@@ -97,4 +126,20 @@ python tools/hilti_stereo_falsification.py exp21_head.bag \
 ```
 
 About 6 minutes on 8 cores. The output records the git commit, the bag's name and
-size, and the SHA-256 of both calibration files.
+size, the SHA-256 of both calibration files, the per-point time field and the gyro's
+correction per candidate. `--stamp-pairing --no-motion` reproduces the earlier run.
+
+The scale-term pilot (about 4 minutes per run):
+
+```bash
+python tools/stereo_depth_scale_pilot.py kitti 2011_09_26_drive_0005_sync spread \
+    --fixed-scale -0.0019
+python tools/stereo_depth_scale_pilot.py hilti exp21_head.bag \
+    --camchain calib_3_cam0-1-camchain-imucam.yaml \
+    --lidar-calibration lidar_calibration.yaml --stamp-pairing --no-motion \
+    --fixed-scale -0.0267
+```
+
+The fixed scales are the joint fit's for the reference in each published run (KITTI
+0005: −0.0019 spread, −0.0129 first 50; 0009: −0.0029, −0.0131) and in the earlier
+Hilti run.
