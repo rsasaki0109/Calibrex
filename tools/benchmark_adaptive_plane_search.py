@@ -131,6 +131,11 @@ def _comparison_canonical(payload: dict) -> str:
         r"summary_parallel_cpu=(true|false);summary_workers=3;summary_min_rows=32768;"
         r"summary_workspace_bytes=16777216;linearization_cache_cpu=(true|false);"
         r"linearization_cache_bytes=67108864|"
+        r"calibrex\.numba_continuous_time/v0\.9;numba=[0-9.]+;fastmath=false;cache=true;"
+        r"summary_parallel_cpu=(true|false);summary_workers=3;summary_min_rows=32768;"
+        r"summary_workspace_bytes=16777216;linearization_cache_cpu=(true|false);"
+        r"linearization_cache_bytes=67108864;linearization_parallel_cpu=(true|false);"
+        r"linearization_min_rows=32768;linearization_workspace_bytes=33554432|"
         r"calibrex\.cuda_continuous_time/v0\.[1-3];" + cuda_fields +
         r"kernel_sha256=[0-9a-f]{64}|calibrex\.cuda_continuous_time/v0\.4;" + cuda_fields +
         r"standalone_residual_cpu=true;kernel_sha256=[0-9a-f]{64}|"

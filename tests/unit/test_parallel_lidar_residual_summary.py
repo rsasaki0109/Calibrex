@@ -82,10 +82,11 @@ def test_three_concurrent_callers_use_separate_bounded_helpers_without_deadlock(
 def test_complete_optimizer_histories_and_diagnostics_keep_public_values(loss):
     _, reference = _factors(32768)
     with ThreadPoolExecutor(max_workers=3) as helpers:
+        context = a.NumbaRigLinearizer(helpers)
         parallel = LidarRigPointToPlaneFactor(
             variable=reference.variable, sensor=reference.sensor,
             observations=reference.observations, t_ego_lidar=reference.t_ego_lidar,
-            _array_kernel=a.numba_rig_residuals, _array_linearizer=a.numba_rig_linearization,
+            _array_kernel=a.numba_rig_residuals, _array_linearizer=context.linearize,
             _array_normal_kernel=a.numba_rig_normal_equations,
             _array_rmse_kernel=lambda arrays, t: a._numba_parallel_rig_rmse(arrays, t, helpers),
         )
@@ -93,6 +94,7 @@ def test_complete_optimizer_histories_and_diagnostics_keep_public_values(loss):
         assert fixed.FixedTrajectorySe3ExtrinsicSolver().solve(parallel, options) == (
             fixed.FixedTrajectorySe3ExtrinsicSolver().solve(reference, options))
         assert parallel.evaluate() == reference.evaluate()
+        assert context.parallel_calls > 0
 
 
 def test_workspace_mutability_and_unsupported_policy_do_not_submit(monkeypatch):

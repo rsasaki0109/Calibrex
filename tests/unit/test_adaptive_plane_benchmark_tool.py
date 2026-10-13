@@ -211,6 +211,28 @@ def test_parallel_summary_identity_keeps_exact_worker_budget_and_numerical_diffe
         assert benchmark._comparison_canonical(candidate) != benchmark._canonical(baseline)
 
 
+@pytest.mark.parametrize("parallel", [False, True])
+@pytest.mark.parametrize("cached", [False, True])
+def test_parallel_difference_identity_only_excludes_declared_exact_policy(parallel, cached):
+    baseline = {"status": "converged", "rmse": .1, "provenance": {"notes": []}}
+    identity = ("calibrex.numba_continuous_time/v0.9;numba=0.65.1;fastmath=false;cache=true;"
+        "summary_parallel_cpu=true;summary_workers=3;summary_min_rows=32768;"
+        f"summary_workspace_bytes=16777216;linearization_cache_cpu={str(cached).lower()};"
+        f"linearization_cache_bytes=67108864;linearization_parallel_cpu={str(parallel).lower()};"
+        "linearization_min_rows=32768;linearization_workspace_bytes=33554432")
+    note = "continuous_time_query_execution: " + identity
+    candidate = deepcopy(baseline)
+    candidate["provenance"]["notes"] = [note]
+    assert benchmark._comparison_canonical(candidate) == benchmark._canonical(baseline)
+    for forged in (note + ";unlisted=true", note.replace("v0.9", "v0.10"),
+                   note.replace("linearization_parallel_cpu=", "linearization_parallel_cpu=x"),
+                   note.replace("linearization_min_rows=32768", "linearization_min_rows=1"),
+                   note.replace("linearization_workspace_bytes=33554432",
+                                "linearization_workspace_bytes=0")):
+        candidate["provenance"]["notes"] = [forged]
+        assert benchmark._comparison_canonical(candidate) != benchmark._canonical(baseline)
+
+
 def test_cuda_scope_archives_both_old_packing_and_cuda_and_requires_explicit_backends(tmp_path):
     assert benchmark._modules_for_scope("cuda") == (
         *benchmark.COMPILED_MODULES, "calibrex.evaluation.packed_lidar_observations",

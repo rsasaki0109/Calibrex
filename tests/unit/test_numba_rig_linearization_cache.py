@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
+from threading import Event
 
 import numpy as np
 import pytest
@@ -14,8 +15,8 @@ from calibrex.core.geometry import SE3
 from calibrex.solvers import numba_continuous_time_adapter as a
 
 
-def _case():
-    _, factor = _factors(8192)
+def _case(count=8192):
+    _, factor = _factors(count)
     steps = [1e-4]*3+[1e-5]*3
     base = [.1, -.2, .3, .04, -.02, .01]
     transforms = [factor._corrected_transform(base)]
@@ -110,3 +111,72 @@ def test_over_budget_results_clear_previous_cache_without_retaining_payload(monk
     ))
     context.linearize(large, transforms, steps)
     assert context.cache_bytes == 0 and context._arrays is context._key is context._result is None
+
+
+@pytest.mark.parametrize("count", [32767, 32768, 65537])
+@pytest.mark.parametrize("reverse", [False, True])
+def test_parallel_differences_keep_residual_jacobian_and_robust_system_bits(count, reverse):
+    arrays, transforms, steps = _case(count)
+    if reverse:
+        arrays = replace(arrays, points=arrays.points[::-1], plane_points=arrays.plane_points[::-1],
+                         normals=arrays.normals[::-1], poses=arrays.poses[::-1],
+                         sqrt_weights=arrays.sqrt_weights[::-1])
+    expected = a.numba_rig_linearization(arrays, transforms, steps)
+    with ThreadPoolExecutor(max_workers=3) as helpers:
+        context = a.NumbaRigLinearizer(helpers)
+        result = context.linearize(arrays, transforms, steps)
+        cached = context.linearize(arrays, transforms, steps)
+    _assert_bits(result, expected)
+    _assert_bits(cached, expected)
+    for huber in (False, True):
+        assert a.numba_rig_normal_equations(result[1], result[0], huber, .1) == (
+            a.numba_rig_normal_equations(expected[1], expected[0], huber, .1))
+    assert context.parallel_calls == int(count >= 32768)
+    assert context.calls == context.cache_hits == 1
+    assert all(value.flags.writeable for value in result + cached)
+    if count >= 32768:
+        assert all(value.flags.owndata for value in result)
+    assert not np.shares_memory(result[1], cached[1])
+
+
+def test_parallel_difference_scratch_and_mutability_limits_do_not_submit(monkeypatch):
+    arrays, transforms, steps = _case(32768)
+    large = replace(arrays, points=np.broadcast_to(arrays.points[:1], (2097153, 3)))
+    mutable = replace(arrays, points=arrays.points.copy())
+    values = np.asarray([(*t.translation_m, *t.rotation_quat_xyzw) for t in transforms])
+    with ThreadPoolExecutor(max_workers=3) as helpers:
+        monkeypatch.setattr(helpers, "submit", lambda *args: pytest.fail("must use CPU fallback"))
+        for payload in (large, mutable):
+            assert a._numba_parallel_rig_linearization(
+                payload, values, np.asarray(steps), helpers) is None
+
+
+def test_parallel_difference_failure_joins_helper_before_releasing_owned_outputs(monkeypatch):
+    arrays, transforms, steps = _case(32768)
+    finished = Event()
+    def failure(*args):
+        if args[-2] == 0:
+            raise RuntimeError("caller error")
+        finished.set()
+        raise ValueError("helper error")
+    monkeypatch.setattr(a, "_jacobian_rows_into", failure)
+    with ThreadPoolExecutor(max_workers=3) as helpers:
+        context = a.NumbaRigLinearizer(helpers)
+        with pytest.raises(RuntimeError, match="caller error"):
+            context.linearize(arrays, transforms, steps)
+    assert finished.is_set()
+    assert context.calls == context.parallel_calls == context.cache_bytes == 0
+
+
+def test_three_parallel_difference_callers_own_outputs_and_retain_exact_cache():
+    arrays, transforms, steps = _case(65537)
+    expected = a.numba_rig_linearization(arrays, transforms, steps)
+    with ThreadPoolExecutor(max_workers=3) as helpers, ThreadPoolExecutor(max_workers=3) as callers:
+        contexts = [a.NumbaRigLinearizer(helpers) for _ in range(3)]
+        results = list(callers.map(lambda c: c.linearize(arrays, transforms, steps), contexts))
+        for context in contexts:
+            _assert_bits(context.linearize(arrays, transforms, steps), expected)
+            assert context.calls == context.parallel_calls == context.cache_hits == 1
+    for result in results:
+        _assert_bits(result, expected)
+    assert not np.shares_memory(results[0][1], results[1][1])

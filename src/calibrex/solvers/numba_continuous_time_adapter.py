@@ -135,14 +135,17 @@ def _pack_rig_observations(
 
 def numba_continuous_time_identity(
     *, summary_parallel_cpu: bool = False, linearization_cache_cpu: bool = False,
+    linearization_parallel_cpu: bool = False,
 ) -> str:
     """Identify the optional runtime and its arithmetic/compilation policy."""
     return (
-        f"calibrex.numba_continuous_time/v0.8;numba={version('numba')};fastmath=false;cache=true;"
+        f"calibrex.numba_continuous_time/v0.9;numba={version('numba')};fastmath=false;cache=true;"
         f"summary_parallel_cpu={str(summary_parallel_cpu).lower()};summary_workers=3;"
         "summary_min_rows=32768;summary_workspace_bytes=16777216;"
         f"linearization_cache_cpu={str(linearization_cache_cpu).lower()};"
-        "linearization_cache_bytes=67108864"
+        "linearization_cache_bytes=67108864;"
+        f"linearization_parallel_cpu={str(linearization_parallel_cpu).lower()};"
+        "linearization_min_rows=32768;linearization_workspace_bytes=33554432"
     )
 
 
@@ -542,15 +545,68 @@ def numba_rig_linearization(
     )
 
 
+@njit(cache=True, nogil=True, fastmath=False)  # type: ignore[untyped-decorator]
+def _jacobian_rows_into(
+    points: FloatArray, planes: FloatArray, normals: FloatArray, poses: FloatArray,
+    weights: FloatArray, transforms: FloatArray, steps: FloatArray,
+    residuals: FloatArray, jacobian: FloatArray, plus: FloatArray, minus: FloatArray,
+    start: int, stop: int,
+) -> None:
+    """Reuse two scratch columns within each worker's disjoint row range."""
+    _residual_rows_into(points, planes, normals, poses, weights, transforms[0],
+                        residuals, start, stop)
+    for column in range(6):
+        _residual_rows_into(points, planes, normals, poses, weights, transforms[1+2*column],
+                            plus, start, stop)
+        _residual_rows_into(points, planes, normals, poses, weights, transforms[2+2*column],
+                            minus, start, stop)
+        for row in range(start, stop):
+            jacobian[row, column] = (plus[row]-minus[row])/(2.0*steps[column])
+
+
+def _numba_parallel_rig_linearization(
+    arrays: _ObservationArrays, values: FloatArray, steps: FloatArray,
+    executor: ThreadPoolExecutor,
+) -> tuple[FloatArray, FloatArray] | None:
+    """Compute independent differences; leave all reductions in their original order."""
+    n = len(arrays.points)
+    if (n < 32768 or n * 16 > 32 * 1024**2
+        or any(value.flags.writeable for value in (
+            arrays.points, arrays.plane_points, arrays.normals, arrays.poses, arrays.sqrt_weights,
+        ))):
+        return None
+    residuals = np.empty(n, dtype=np.float64)
+    jacobian = np.empty((n, 6), dtype=np.float64)
+    plus, minus = np.empty(n, dtype=np.float64), np.empty(n, dtype=np.float64)
+    arguments = (arrays.points, arrays.plane_points, arrays.normals, arrays.poses,
+                 arrays.sqrt_weights, values, steps, residuals, jacobian, plus, minus)
+    midpoint = n // 2
+    future = executor.submit(
+        _jacobian_rows_into, arrays.points, arrays.plane_points, arrays.normals,
+        arrays.poses, arrays.sqrt_weights, values, steps, residuals, jacobian, plus, minus,
+        midpoint, n,
+    )
+    try:
+        _jacobian_rows_into(*arguments, 0, midpoint)
+    except BaseException:
+        with suppress(BaseException):
+            future.result()
+        raise
+    future.result()
+    return residuals, jacobian
+
+
 class NumbaRigLinearizer:
     """Own the last immutable CPU difference batch with a bounded host cache."""
 
-    def __init__(self) -> None:
+    def __init__(self, executor: ThreadPoolExecutor | None = None) -> None:
+        self._executor = executor
         self._arrays: _ObservationArrays | None = None
         self._key: tuple[bytes, bytes] | None = None
         self._result: tuple[FloatArray, FloatArray] | None = None
         self._lock = Lock()
         self.calls = 0
+        self.parallel_calls = 0
         self.cache_hits = 0
         self.cache_bytes = 0
         self.rows = 0
@@ -582,7 +638,14 @@ class NumbaRigLinearizer:
                 self.cache_hits += 1
                 return self._result[0].copy(), self._result[1].copy()
             self._clear()
-            residuals, jacobian = numba_rig_linearization(arrays, transforms, steps)
+            result = (_numba_parallel_rig_linearization(
+                arrays, values, np.asarray(steps, dtype=np.float64), self._executor,
+            ) if self._executor is not None else None)
+            if result is None:
+                result = numba_rig_linearization(arrays, transforms, steps)
+            else:
+                self.parallel_calls += 1
+            residuals, jacobian = result
             self.calls += 1
             self.rows += len(arrays.points)
             size = residuals.nbytes + jacobian.nbytes

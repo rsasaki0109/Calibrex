@@ -230,6 +230,7 @@ class _QueryReuse:
     used_cuda_summary: bool = False
     used_parallel_summary: bool = False
     used_cpu_linearization_cache: bool = False
+    used_cpu_parallel_linearization: bool = False
     selections: dict[int, _PackedSelection] = field(default_factory=dict)
 
     def identity(self) -> str:
@@ -249,6 +250,7 @@ class _QueryReuse:
             return numba_continuous_time_identity(
                 summary_parallel_cpu=self.used_parallel_summary,
                 linearization_cache_cpu=self.used_cpu_linearization_cache,
+                linearization_parallel_cpu=self.used_cpu_parallel_linearization,
             )
         return "python"
 
@@ -836,7 +838,8 @@ class ContinuousTimeLidarPairSolver:
             )
             gpu = (query_reuse.cuda_rig.fork() if query_reuse is not None
                    and query_reuse.cuda_rig is not None else None)
-            cpu = (NumbaRigLinearizer() if gpu is None and query_reuse is not None
+            cpu = (NumbaRigLinearizer(query_reuse.summary_executor)
+                   if gpu is None and query_reuse is not None
                    and query_reuse.summary_executor is not None else None)
 
             def compiled_residuals(arrays: _ObservationArrays, transform: SE3) -> list[float]:
@@ -880,8 +883,11 @@ class ContinuousTimeLidarPairSolver:
                 else:
                     result = (cpu.linearize(arrays, transforms, steps) if cpu is not None
                               else numba_rig_linearization(arrays, transforms, steps))
-                    if cpu is not None and cpu.cache_hits and query_reuse is not None:
-                        query_reuse.used_cpu_linearization_cache = True
+                    if cpu is not None and query_reuse is not None:
+                        if cpu.cache_hits:
+                            query_reuse.used_cpu_linearization_cache = True
+                        if cpu.parallel_calls:
+                            query_reuse.used_cpu_parallel_linearization = True
                 if query_reuse is not None:
                     query_reuse.used_numba = True
                 return result
