@@ -12,7 +12,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from calibrex.core.geometry import SE3
-from calibrex.solvers._exact_neighbors import _ExactNeighbors, _tree_safe
+from calibrex.solvers._exact_neighbors import _ExactNeighbors, _first_of_two, _tree_safe
 from calibrex.solvers.cuda_lidar_map_adapter import _SOURCE, _CudaTree
 from calibrex.solvers.robust_point_to_point_icp_solver import (
     FloatArray,
@@ -65,15 +65,23 @@ class _CudaNeighbors(_ExactNeighbors):
             return super().query(points, count)
         candidates, _distance = proposal
         squared = np.sum((points[:, None, :]-self._reference[candidates])**2, axis=2)
-        order = np.lexsort((candidates, squared), axis=1)
-        candidates = np.take_along_axis(candidates, order, axis=1)
-        squared = np.take_along_axis(squared, order, axis=1)
-        indices, distances = candidates[:, :count].copy(), squared[:, :count].copy()
+        if count == 1 and width == 2:
+            first = _first_of_two(candidates, squared)
+            indices = np.where(first[:, None], candidates[:, :1], candidates[:, 1:2])
+            distances = np.where(first[:, None], squared[:, :1], squared[:, 1:2])
+            remaining = np.where(first, squared[:, 1], squared[:, 0])
+        else:
+            order = np.lexsort((candidates, squared), axis=1)
+            candidates = np.take_along_axis(candidates, order, axis=1)
+            squared = np.take_along_axis(squared, order, axis=1)
+            indices, distances = candidates[:, :count].copy(), squared[:, :count].copy()
+            remaining = squared[:, count] if width > count else None
         if width > count:
-            cutoff = squared[:, count-1]
+            cutoff = distances[:, count-1]
             guard = np.maximum(128*np.finfo(np.float64).eps*np.maximum(1., cutoff),
                                np.finfo(np.float64).tiny)
-            rows = np.flatnonzero(squared[:, count] <= cutoff+guard)
+            assert remaining is not None
+            rows = np.flatnonzero(remaining <= cutoff+guard)
             if len(rows):
                 repaired_i, repaired_d = super().query(points[rows], count)
                 indices[rows], distances[rows] = repaired_i, repaired_d
@@ -100,11 +108,11 @@ class _CudaRigidSource:
             return _ExactNeighbors(transformed_source).nearest(points)[0]
         candidates, distance = proposed
         squared = np.sum((points[:, None, :]-transformed_source[candidates])**2, axis=2)
-        order = np.lexsort((candidates, squared), axis=1)
-        result = np.take_along_axis(candidates, order, axis=1)[:, 0].copy()
         if width == 1:
-            return result
-        native_best = np.take_along_axis(squared, order, axis=1)[:, 0]
+            return candidates[:, 0].copy()
+        first = _first_of_two(candidates, squared)
+        result = np.where(first, candidates[:, 0], candidates[:, 1])
+        native_best = np.where(first, squared[:, 0], squared[:, 1])
         scale = max(1., float(np.max(np.abs(self.search._reference), initial=0.)),
                     float(np.max(np.abs(points), initial=0.)),
                     float(np.max(np.abs(transformed_source), initial=0.)),
