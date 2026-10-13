@@ -224,6 +224,16 @@ def test_cuda_scope_archives_both_old_packing_and_cuda_and_requires_explicit_bac
     assert not (tmp_path/"missing").exists() and not (tmp_path/"wrong").exists()
 
 
+def test_full_cpu_scope_binds_replay_and_rejects_gpu_or_missing_overrides_before_inputs(tmp_path):
+    assert benchmark._modules_for_scope("cpu-full") == benchmark.FULL_CUDA_MODULES
+    for options in ([], ["--candidate-query-backend", "cuda", "--baseline-query-backend", "cuda"],
+                    ["--candidate-query-backend", "numba_cpu"]):
+        with pytest.raises(ValueError, match="full CPU scope requires"):
+            benchmark.main(["--output-dir", str(tmp_path/"cpu-full"),
+                            "--baseline-scope", "cpu-full", *options])
+    assert not (tmp_path/"cpu-full").exists()
+
+
 def test_full_cuda_scope_archives_preceding_associations_and_replay_before_input_reads(tmp_path):
     assert benchmark._modules_for_scope("cuda-full") == (
         *benchmark.CUDA_MODULES, "calibrex.solvers.cuda_plane_query_adapter",

@@ -89,7 +89,7 @@ SOURCES = (
 
 
 def _modules_for_scope(scope: str) -> tuple[str, ...]:
-    if scope == "cuda-full":
+    if scope in ("cuda-full", "cpu-full"):
         return FULL_CUDA_MODULES
     if scope == "cuda":
         return CUDA_MODULES
@@ -290,7 +290,8 @@ def _worker(args: argparse.Namespace) -> None:
                     query_seconds += elapsed
 
         setattr(adaptive_context, query_method, measured_batch_nearest)
-    if args.worker == "sparse" or args.baseline_scope in ("compiled", "cuda", "cuda-full"):
+    if (args.worker == "sparse"
+        or args.baseline_scope in ("compiled", "cuda", "cuda-full", "cpu-full")):
         from calibrex.core.config import load_config
 
         factor = load_config(args.config).pipeline.factors.get("lidar_rig_point_to_plane")
@@ -471,7 +472,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--baseline-commit", default=BASELINE)
     parser.add_argument(
-        "--baseline-scope", choices=("adaptive", "runtime", "compiled", "cuda", "cuda-full"),
+        "--baseline-scope",
+        choices=("adaptive", "runtime", "compiled", "cuda", "cuda-full", "cpu-full"),
         default="adaptive",
     )
     parser.add_argument("--repetitions", type=int, default=5)
@@ -481,7 +483,7 @@ def main(argv: list[str] | None = None) -> None:
     )
     parser.add_argument(
         "--baseline-query-backend", choices=("numba_cpu", "cuda"),
-        help="CUDA scope only: record an archived baseline execution override.",
+        help="Full CPU or CUDA scope: record an archived baseline execution override.",
     )
     parser.add_argument("--omp-threads", type=int, default=1)
     parser.add_argument(
@@ -504,10 +506,17 @@ def main(argv: list[str] | None = None) -> None:
     if args.repetitions < 1 or args.omp_threads < 1:
         raise ValueError("repetitions and OMP threads must be positive")
     if (args.candidate_query_backend is not None
-            and args.baseline_scope not in ("compiled", "cuda", "cuda-full")):
+            and args.baseline_scope not in ("compiled", "cuda", "cuda-full", "cpu-full")):
         raise ValueError("candidate query override requires compiled scope")
-    if args.baseline_query_backend is not None and args.baseline_scope not in ("cuda", "cuda-full"):
+    if (args.baseline_query_backend is not None
+        and args.baseline_scope not in ("cuda", "cuda-full", "cpu-full")):
         raise ValueError("baseline query override requires CUDA scope")
+    if args.baseline_scope == "cpu-full" and (
+        args.candidate_query_backend != "numba_cpu" or args.baseline_query_backend != "numba_cpu"
+    ):
+        raise ValueError(
+            "full CPU scope requires both declared execution overrides to be numba_cpu",
+        )
     if args.baseline_scope in ("cuda", "cuda-full") and (
         args.candidate_query_backend != "cuda" or args.baseline_query_backend != "cuda"
     ):
@@ -631,10 +640,20 @@ def main(argv: list[str] | None = None) -> None:
                     expected["calibrex.solvers.cuda_plane_query_adapter"] = None
                 if row["loaded_replay_module"] is None:
                     expected["calibrex.data.numba_lidar_deskew_adapter"] = None
+            if args.baseline_scope == "cpu-full":
+                expected["calibrex.solvers.cuda_continuous_time_adapter"] = None
+                expected["calibrex.solvers.cuda_plane_query_adapter"] = None
+                if row["loaded_replay_module"] is None:
+                    expected["calibrex.data.numba_lidar_deskew_adapter"] = None
             if row["loaded_evaluation_modules"] != expected:
                 raise ValueError("baseline/candidate module binding mismatch")
             execution_override = (args.candidate_query_backend if method == "sparse"
                                   else args.baseline_query_backend)
+            if args.baseline_scope == "cpu-full" and (
+                row["execution_override"] != "numba_cpu" or row["loaded_cuda_module"] is not None
+                or row["loaded_cuda_plane_module"] is not None
+            ):
+                raise ValueError("full CPU execution binding mismatch")
             if execution_override == "cuda":
                 expected_cuda = str(archives["calibrex.solvers.cuda_continuous_time_adapter"]
                                     if method == "baseline" else Path(
@@ -654,12 +673,13 @@ def main(argv: list[str] | None = None) -> None:
                 raise ValueError("CUDA plane query module binding mismatch")
             replay_module = str(
                 archives["calibrex.data.numba_lidar_deskew_adapter"]
-                if method == "baseline" and args.baseline_scope == "cuda-full"
+                if method == "baseline" and args.baseline_scope in ("cuda-full", "cpu-full")
                 else Path("src/calibrex/data/numba_lidar_deskew_adapter.py").resolve(),
             )
-            allowed_replay = ((None, replay_module)
-                              if method == "sparse" or args.baseline_scope == "cuda-full"
-                              else (None,))
+            allowed_replay = (
+                (None, replay_module) if method == "sparse"
+                or args.baseline_scope in ("cuda-full", "cpu-full") else (None,)
+            )
             if row["loaded_replay_module"] not in allowed_replay or (
                 any(note.startswith("continuous_time_replay_execution: ")
                     for note in row["result"]["provenance"]["notes"])
