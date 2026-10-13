@@ -164,6 +164,17 @@ def test_cuda_scope_archives_both_old_packing_and_cuda_and_requires_explicit_bac
     assert not (tmp_path/"missing").exists() and not (tmp_path/"wrong").exists()
 
 
+def test_full_cuda_scope_archives_preceding_associations_and_replay_before_input_reads(tmp_path):
+    assert benchmark._modules_for_scope("cuda-full") == (
+        *benchmark.CUDA_MODULES, "calibrex.solvers.cuda_plane_query_adapter",
+        "calibrex.data.numba_lidar_deskew_adapter",
+    )
+    with pytest.raises(ValueError, match="both declared execution overrides"):
+        benchmark.main(["--output-dir", str(tmp_path/"missing"), "--baseline-scope", "cuda-full",
+                        "--candidate-query-backend", "cuda"])
+    assert not (tmp_path/"missing").exists()
+
+
 def test_replay_comparison_excludes_only_the_exact_bound_cpu_execution_identity():
     baseline = {"status":"converged", "provenance":{"notes":[]}}
     candidate = deepcopy(baseline)
