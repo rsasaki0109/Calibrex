@@ -9,10 +9,12 @@ import pytest
 from scipy import ndimage
 
 from calibrex.evaluation.fisheye_stereo import (
+    VERTICAL_OFFSET_COLUMNS,
     EquidistantCamera,
     estimate_vertical_offset,
     read_kalibr_fisheye_pair,
     rectify_fisheye_pair,
+    vertical_offset_samples,
     with_right_row_shift,
 )
 
@@ -132,3 +134,22 @@ def test_a_vertical_offset_of_the_right_image_is_measured_and_removed() -> None:
     assert shifted.rectify_right(raw)[centre] == pytest.approx(
         ndimage.map_coordinates(rectified.right_map[0], [[269.3], [360.0]], order=1)[0], abs=1e-3
     )
+
+
+def test_each_matched_patch_reports_its_pair_place_disparity_and_offset() -> None:
+    rng = np.random.default_rng(6)
+    texture = ndimage.gaussian_filter(rng.uniform(0, 255, (200, 300)), 1.5) * 4.0
+    near = ndimage.shift(texture, (-0.7, -12.0), order=1, mode="nearest")
+    far = ndimage.shift(texture, (0.4, -3.0), order=1, mode="nearest")
+    samples = vertical_offset_samples([(texture, near), (texture, far)], patches_per_pair=60)
+    assert samples.shape[1] == len(VERTICAL_OFFSET_COLUMNS)
+    pair = samples[:, VERTICAL_OFFSET_COLUMNS.index("pair")]
+    disparity = samples[:, VERTICAL_OFFSET_COLUMNS.index("disparity_px")]
+    offset = samples[:, VERTICAL_OFFSET_COLUMNS.index("offset_px")]
+    assert set(pair.tolist()) == {0.0, 1.0}
+    assert np.median(disparity[pair == 0]) == 12.0
+    assert np.median(disparity[pair == 1]) == 3.0
+    assert np.median(offset[pair == 0]) == pytest.approx(-0.7, abs=0.1)
+    assert np.median(offset[pair == 1]) == pytest.approx(0.4, abs=0.1)
+    assert set(samples[:, VERTICAL_OFFSET_COLUMNS.index("vertical_texture")].tolist()) <= {0.0, 1.0}
+    assert vertical_offset_samples([(np.zeros((50, 120)), np.zeros((50, 120)))]).shape == (0, 6)
