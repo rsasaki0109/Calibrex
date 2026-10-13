@@ -73,15 +73,14 @@ def _gather_observation_rows(
     points: FloatArray, indices: IntArray, poses: FloatArray,
     left: IntArray, right: IntArray, lc: FloatArray, ln: FloatArray,
     rc: FloatArray, rn: FloatArray, prefer_right: NDArray[np.bool_],
-    valid: NDArray[np.bool_], world: FloatArray, cache_projection: bool,
-) -> tuple[FloatArray, FloatArray, FloatArray, FloatArray, FloatArray, FloatArray]:
+    valid: NDArray[np.bool_],
+) -> tuple[FloatArray, FloatArray, FloatArray, FloatArray, FloatArray]:
     count = np.count_nonzero(valid)
     xyz = np.empty((count, 3), dtype=np.float64)
     centers = np.empty((count, 3), dtype=np.float64)
     normals = np.empty((count, 3), dtype=np.float64)
     rows = np.empty((count, 7), dtype=np.float64)
     weights = np.ones(count, dtype=np.float64)
-    residuals = np.empty(count if cache_projection else 0, dtype=np.float64)
     target = 0
     for row in range(len(valid)):
         if not valid[row]:
@@ -93,26 +92,16 @@ def _gather_observation_rows(
             normals[target, axis] = rn[position, axis] if prefer_right[row] else ln[position, axis]
         for axis in range(7):
             rows[target, axis] = poses[row, axis]
-        if cache_projection:
-            dx, dy, dz = (world[row, 0]-centers[target, 0], world[row, 1]-centers[target, 1],
-                          world[row, 2]-centers[target, 2])
-            residuals[target] = weights[target] * (
-                normals[target, 0]*dx + normals[target, 1]*dy + normals[target, 2]*dz)
         target += 1
-    return xyz, centers, normals, rows, weights, residuals
+    return xyz, centers, normals, rows, weights
 
 
 def _pack_rig_observations(
     points: FloatArray, indices: IntArray, poses: FloatArray, world: FloatArray,
     matches: Sequence[IntArray], columns: Sequence[_PlaneColumns],
-    *, _initial_transform: SE3 | None = None,
 ) -> _ObservationArrays | None:
     """Fuse ordered native scores and gathers; retain Python math.dist for exact ties."""
-    from calibrex.graph.lidar_point_to_plane import (
-        _InitialResiduals,
-        _ObservationArrays,
-        _transform_key,
-    )
+    from calibrex.graph.lidar_point_to_plane import _ObservationArrays
 
     if (len(matches) not in (1, 2) or len(matches) != len(columns)
         or world.shape != (len(world), 3) or poses.shape != (len(world), 7)
@@ -136,37 +125,27 @@ def _pack_rig_observations(
                              < math.dist(point, lc.centroids[left[row]].tolist()))
     arrays = _gather_observation_rows(
         points, indices, poses, left, right, lc.centroids, lc.normals,
-        rc.centroids, rc.normals, prefer_right, valid, world,
-        _initial_transform is not None and len(world)*8 <= 16 * 1024**2,
+        rc.centroids, rc.normals, prefer_right, valid,
     )
     for array in arrays:
         array.flags.writeable = False
-    xyz, centers, normals, rows, weights, residuals = arrays
-    inputs = (xyz, centers, normals, rows, weights)
-    initial = (_InitialResiduals(inputs, _transform_key(_initial_transform), residuals)
-               if _initial_transform is not None and len(residuals) == len(xyz) else None)
-    return _ObservationArrays(*inputs, None, initial)
-
-
-_NATIVE_PACK_RIG_OBSERVATIONS = _pack_rig_observations
+    xyz, centers, normals, rows, weights = arrays
+    return _ObservationArrays(xyz, centers, normals, rows, weights, None)
 
 
 def numba_continuous_time_identity(
     *, summary_parallel_cpu: bool = False, linearization_cache_cpu: bool = False,
     linearization_parallel_cpu: bool = False,
-    initial_projection_reused: bool = False,
 ) -> str:
     """Identify the optional runtime and its arithmetic/compilation policy."""
     return (
-        f"calibrex.numba_continuous_time/v0.10;numba={version('numba')};fastmath=false;cache=true;"
+        f"calibrex.numba_continuous_time/v0.9;numba={version('numba')};fastmath=false;cache=true;"
         f"summary_parallel_cpu={str(summary_parallel_cpu).lower()};summary_workers=3;"
         "summary_min_rows=32768;summary_workspace_bytes=16777216;"
         f"linearization_cache_cpu={str(linearization_cache_cpu).lower()};"
         "linearization_cache_bytes=67108864;"
         f"linearization_parallel_cpu={str(linearization_parallel_cpu).lower()};"
-        "linearization_min_rows=32768;linearization_workspace_bytes=33554432;"
-        f"initial_projection_reused={str(initial_projection_reused).lower()};"
-        "initial_projection_bytes=16777216"
+        "linearization_min_rows=32768;linearization_workspace_bytes=33554432"
     )
 
 

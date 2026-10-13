@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import math
 import os
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
-from typing import Literal, TypeAlias
+from typing import Literal, Protocol, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -17,6 +17,14 @@ from calibrex.evaluation.holdout import split_indices
 from calibrex.solvers._exact_neighbors import _ExactNeighbors
 
 FloatArray: TypeAlias = NDArray[np.float64]
+
+
+class _RigidSourceSearch(Protocol):
+    def nearest(
+        self, transformed_source: FloatArray, points: FloatArray, transform: SE3,
+    ) -> NDArray[np.int64]: ...
+
+
 IcpStatus = Literal[
     "converged",
     "max_iterations",
@@ -194,6 +202,8 @@ class RobustPointToPointIcpSolver:
         target_points: Sequence[IcpPoint],
         initial_transform: SE3 | None = None,
         options: RobustPointToPointIcpOptions | None = None,
+        *, _target_search_factory: Callable[[FloatArray], _ExactNeighbors] | None = None,
+        _source_search_factory: Callable[[FloatArray], _RigidSourceSearch] | None = None,
     ) -> RobustPointToPointIcpResult:
         solver_options = options or RobustPointToPointIcpOptions()
         _validate_options(solver_options)
@@ -216,7 +226,13 @@ class RobustPointToPointIcpSolver:
         transform = seed_transform
         train_array = _positions(train)
         target_array = _positions(target)
-        target_search = _ExactNeighbors(target_array)
+        target_search = (_target_search_factory(target_array) if _target_search_factory is not None
+                         else _ExactNeighbors(target_array))
+        source_search = (
+            _source_search_factory(train_array)
+            if _source_search_factory is not None and solver_options.mutual_correspondences
+            else None
+        )
         history: list[IcpIteration] = []
         status: IcpStatus = "max_iterations"
         reason = "maximum ICP iterations reached"
@@ -227,6 +243,7 @@ class RobustPointToPointIcpSolver:
             transformed = _transform_points(train_array, transform)
             correspondences = _correspondences(
                 transformed, target_array, solver_options, target_search=target_search,
+                source_search=source_search, transform=transform,
             )
             moving, matched, distances, _source_indices, _target_indices = correspondences
             if len(moving) < solver_options.min_correspondences:
@@ -273,6 +290,7 @@ class RobustPointToPointIcpSolver:
         transformed = _transform_points(train_array, transform)
         correspondences = _correspondences(
             transformed, target_array, solver_options, target_search=target_search,
+            source_search=source_search, transform=transform,
         )
         moving, _matched, distances, source_indices, target_indices = correspondences
         spectrum, rank, condition = _information_diagnostics(moving, solver_options)
@@ -289,6 +307,7 @@ class RobustPointToPointIcpSolver:
                 target_indices,
                 solver_options,
                 target_search=target_search,
+                source_search=source_search,
             )
             if solver_options.effective_diagnostics
             else None
@@ -301,6 +320,8 @@ class RobustPointToPointIcpSolver:
                 transform,
                 holdout_rmse,
                 solver_options,
+                _target_search_factory=_target_search_factory,
+                _source_search_factory=_source_search_factory,
             )
             if solver_options.multi_start_diagnostics
             else ()
@@ -431,6 +452,7 @@ def _correspondences(
     target: FloatArray,
     options: RobustPointToPointIcpOptions,
     *, target_search: _ExactNeighbors | None = None,
+    source_search: _RigidSourceSearch | None = None, transform: SE3 | None = None,
 ) -> tuple[
     FloatArray, FloatArray, FloatArray, NDArray[np.int64], NDArray[np.int64]
 ]:
@@ -440,7 +462,12 @@ def _correspondences(
     mask = distances <= options.correspondence_distance_m
     if options.mutual_correspondences:
         unique_targets, inverse = np.unique(target_indices, return_inverse=True)
-        source_indices, _ = _ExactNeighbors(transformed_source).nearest(target[unique_targets])
+        if source_search is not None and transform is not None:
+            source_indices = source_search.nearest(
+                transformed_source, target[unique_targets], transform,
+            )
+        else:
+            source_indices, _ = _ExactNeighbors(transformed_source).nearest(target[unique_targets])
         mask &= source_indices[inverse] == np.arange(len(transformed_source))
     selected = np.flatnonzero(mask)
     if len(selected):
@@ -463,6 +490,7 @@ def _rematching_diagnostics(
     baseline_target_indices: NDArray[np.int64],
     options: RobustPointToPointIcpOptions,
     *, target_search: _ExactNeighbors | None = None,
+    source_search: _RigidSourceSearch | None = None,
 ) -> IcpRematchingDiagnostics:
     directions: tuple[Literal["x", "y", "z", "roll", "pitch", "yaw"], ...] = (
         "x",
@@ -474,6 +502,7 @@ def _rematching_diagnostics(
     )
     baseline_objective, baseline_pairs = _rematched_objective_and_pairs(
         source, target, transform, options, target_search=target_search,
+        source_search=source_search,
     )
     if baseline_objective is None:
         baseline_pairs = set(
@@ -506,9 +535,10 @@ def _rematching_diagnostics(
         )
         minus_objective, minus_pairs = _rematched_objective_and_pairs(
             source, target, minus, options, target_search=target_search,
+            source_search=source_search,
         )
         plus_objective, plus_pairs = _rematched_objective_and_pairs(
-            source, target, plus, options, target_search=target_search,
+            source, target, plus, options, target_search=target_search, source_search=source_search,
         )
         if (
             baseline_objective is None
@@ -561,10 +591,12 @@ def _rematched_objective_and_pairs(
     transform: SE3,
     options: RobustPointToPointIcpOptions,
     *, target_search: _ExactNeighbors | None = None,
+    source_search: _RigidSourceSearch | None = None,
 ) -> tuple[float | None, set[tuple[int, int]]]:
     transformed = _transform_points(source, transform)
     _moving, _matched, distances, source_indices, target_indices = _correspondences(
         transformed, target, options, target_search=target_search,
+        source_search=source_search, transform=transform,
     )
     pairs = set(
         zip(source_indices.tolist(), target_indices.tolist(), strict=True)
@@ -611,6 +643,8 @@ def _multi_start_diagnostics(
     baseline_transform: SE3,
     baseline_holdout_rmse_m: float | None,
     options: RobustPointToPointIcpOptions,
+    *, _target_search_factory: Callable[[FloatArray], _ExactNeighbors] | None = None,
+    _source_search_factory: Callable[[FloatArray], _RigidSourceSearch] | None = None,
 ) -> tuple[IcpMultiStartTrial, ...]:
     directions: tuple[Literal["x", "y", "z", "roll", "pitch", "yaw"], ...] = (
         "x",
@@ -643,7 +677,9 @@ def _multi_start_diagnostics(
             axes[index % 3], amount, is_translation
         ).compose(seed_transform)
         result = RobustPointToPointIcpSolver().solve(
-            source, target, initial_transform=initial, options=nested_options
+            source, target, initial_transform=initial, options=nested_options,
+            _target_search_factory=_target_search_factory,
+            _source_search_factory=_source_search_factory,
         )
         if result.transform_target_source is None:
             translation_delta = None

@@ -168,9 +168,7 @@ def _filter_packed_factor_mad(
         raise ValueError("minimum_inlier_fraction must be in (0, 1]")
     if minimum_inliers < 1:
         raise ValueError("minimum_inliers must be positive")
-    initial = factor._compiled_initial_residuals()
-    absolute = np.abs(initial if initial is not None
-                      else np.asarray(factor.residuals(), dtype=np.float64))
+    absolute = np.abs(np.asarray(factor.residuals(), dtype=np.float64))
     if not np.isfinite(absolute).all():
         return None
     median_abs = _partition_median(absolute)

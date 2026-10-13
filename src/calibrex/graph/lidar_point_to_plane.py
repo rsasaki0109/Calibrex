@@ -5,7 +5,6 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable, Iterator, Sequence
 from dataclasses import dataclass, field
 from math import cos, isclose, isfinite, sin, sqrt
-from struct import pack
 from typing import overload
 
 import numpy as np
@@ -144,8 +143,6 @@ class LidarRigPointToPlaneFactor:
         sensor: str = "lidar0",
         _array_kernel: Callable[[_ObservationArrays, SE3], list[float]] | None = None,
         _array_rmse_kernel: Callable[[_ObservationArrays, SE3], tuple[float] | None] | None = None,
-        _initial_array_kernel: Callable[[_ObservationArrays, SE3], NDArray[np.float64] | None]
-        | None = None,
         _array_linearizer: Callable[
             [_ObservationArrays, Sequence[SE3], Sequence[float]],
             tuple[NDArray[np.float64], NDArray[np.float64]],
@@ -168,7 +165,6 @@ class LidarRigPointToPlaneFactor:
         self._array_kernel = _array_kernel
         self._captured_array_kernel = _array_kernel
         self._array_rmse_kernel = _array_rmse_kernel
-        self._initial_array_kernel = _initial_array_kernel
         self._array_linearizer = _array_linearizer
         self._array_normal_kernel = _array_normal_kernel
         self.dof_names: tuple[str, str, str, str, str, str] = (
@@ -307,19 +303,6 @@ class LidarRigPointToPlaneFactor:
                                                  *transform.rotation_quat_xyzw))):
             return None
         return self._array_rmse_kernel(arrays, transform)
-
-    def _compiled_initial_residuals(self) -> NDArray[np.float64] | None:
-        """Borrow only native immutable initial rows; public residuals remain owned."""
-        if (type(self) is not LidarRigPointToPlaneFactor or self._initial_array_kernel is None
-            or self._array_kernel is not self._captured_array_kernel
-            or any(name in self.__dict__ for name in ("residuals", "_corrected_transform"))
-            or type(self).residuals is not _NATIVE_RESIDUALS
-            or type(self)._corrected_transform is not _NATIVE_CORRECTION):
-            return None
-        arrays = self._prepared_arrays()
-        if arrays is None:
-            return None
-        return self._initial_array_kernel(arrays, self._corrected_transform(None))
 
     def _compiled_system(
         self, correction: Sequence[float], *, robust_loss: str, huber_delta_m: float,
@@ -549,13 +532,6 @@ def _packed_point_rows(points: NDArray[np.float64]) -> Iterator[list[float]]:
 
 
 @dataclass(frozen=True)
-class _InitialResiduals:
-    inputs: tuple[NDArray[np.float64], ...]
-    transform_key: bytes
-    values: NDArray[np.float64]
-
-
-@dataclass(frozen=True)
 class _ObservationArrays:
     points: NDArray[np.float64]
     plane_points: NDArray[np.float64]
@@ -563,28 +539,6 @@ class _ObservationArrays:
     poses: NDArray[np.float64]
     sqrt_weights: NDArray[np.float64]
     shared_pose: SE3 | None
-    initial: _InitialResiduals | None = None
-
-
-def _transform_key(transform: SE3) -> bytes:
-    return pack("!7d", *transform.translation_m, *transform.rotation_quat_xyzw)
-
-
-def _initial_residual_values(
-    arrays: _ObservationArrays, transform: SE3 | None = None,
-) -> NDArray[np.float64] | None:
-    initial = arrays.initial
-    if initial is None or len(initial.inputs) != 5:
-        return None
-    inputs = (arrays.points, arrays.plane_points, arrays.normals, arrays.poses, arrays.sqrt_weights)
-    n = len(arrays.points)
-    if (initial.values.shape != (n,) or initial.values.dtype != np.float64
-        or initial.values.flags.writeable or initial.values.nbytes > 16 * 1024**2
-        or any(old is not current or current.flags.writeable
-               for old, current in zip(initial.inputs, inputs, strict=True))
-        or (transform is not None and initial.transform_key != _transform_key(transform))):
-        return None
-    return initial.values
 
 
 class _PackedObservations(Sequence[LidarPointToPlaneObservation]):
@@ -633,21 +587,9 @@ class _PackedObservations(Sequence[LidarPointToPlaneObservation]):
         )]
         for array in selected:
             array.flags.writeable = False
-        initial = _select_initial_residuals(arrays, selected, indices)
         return _PackedObservations(_ObservationArrays(
-            selected[0], selected[1], selected[2], selected[3], selected[4], None, initial,
+            selected[0], selected[1], selected[2], selected[3], selected[4], None,
         ))
-
-
-def _select_initial_residuals(
-    arrays: _ObservationArrays, selected: Sequence[NDArray[np.float64]], indices: NDArray[np.int64],
-) -> _InitialResiduals | None:
-    values = _initial_residual_values(arrays)
-    if values is None or arrays.initial is None:
-        return None
-    retained = values[indices]
-    retained.flags.writeable = False
-    return _InitialResiduals(tuple(selected), arrays.initial.transform_key, retained)
 
 
 def _native_packing_supported() -> bool:

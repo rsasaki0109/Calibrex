@@ -16,7 +16,6 @@ from collections import OrderedDict
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from functools import partial
 from os import cpu_count
 from typing import TYPE_CHECKING, Literal
 
@@ -62,7 +61,6 @@ from calibrex.graph.lidar_point_to_plane import (
     _NATIVE_RESIDUALS,
     LidarRigPointToPlaneEvaluation,
     LidarRigPointToPlaneFactor,
-    _initial_residual_values,
     _ObservationArrays,
     _PackedObservations,
     _PreparedObservationBuilder,
@@ -233,7 +231,6 @@ class _QueryReuse:
     used_parallel_summary: bool = False
     used_cpu_linearization_cache: bool = False
     used_cpu_parallel_linearization: bool = False
-    used_initial_projection: bool = False
     selections: dict[int, _PackedSelection] = field(default_factory=dict)
 
     def identity(self) -> str:
@@ -244,7 +241,6 @@ class _QueryReuse:
                 associations_gpu=self.cuda_planes is not None and self.cuda_planes.query_calls > 0,
                 captured_summary_gpu=self.used_cuda_summary,
                 summary_parallel_cpu=self.used_parallel_summary,
-                initial_projection_reused=self.used_initial_projection,
             )
         if self.used_numba or (self.compiled is not None and self.compiled.used):
             from calibrex.solvers.numba_continuous_time_adapter import (
@@ -255,7 +251,6 @@ class _QueryReuse:
                 summary_parallel_cpu=self.used_parallel_summary,
                 linearization_cache_cpu=self.used_cpu_linearization_cache,
                 linearization_parallel_cpu=self.used_cpu_parallel_linearization,
-                initial_projection_reused=self.used_initial_projection,
             )
         return "python"
 
@@ -761,7 +756,6 @@ class ContinuousTimeLidarPairSolver:
                     return None
                 rows_evaluated = True
                 from calibrex.solvers.numba_continuous_time_adapter import (
-                    _NATIVE_PACK_RIG_OBSERVATIONS,
                     _pack_rig_observations,
                 )
 
@@ -770,10 +764,7 @@ class ContinuousTimeLidarPairSolver:
                     correspondence_gate_m=problem.correspondence_gate_m,
                     _position_query=(query_reuse.cuda_planes.query
                                      if query_reuse.cuda_planes is not None else None),
-                    _array_packer=(partial(_pack_rig_observations,
-                                           _initial_transform=initial_transform)
-                                   if _pack_rig_observations is _NATIVE_PACK_RIG_OBSERVATIONS
-                                   else _pack_rig_observations),
+                    _array_packer=_pack_rig_observations,
                 )
                 if packed is None:
                     # Query counters were already recorded. Materialize those
@@ -829,7 +820,6 @@ class ContinuousTimeLidarPairSolver:
         outlier_rejected_count = 0
         array_kernel: Callable[[_ObservationArrays, SE3], list[float]] | None = None
         array_rmse_kernel: Callable[[_ObservationArrays, SE3], tuple[float] | None] | None = None
-        initial_array_kernel: Callable[[_ObservationArrays, SE3], FloatArray | None] | None = None
         array_linearizer: Callable[
             [_ObservationArrays, Sequence[SE3], Sequence[float]], tuple[FloatArray, FloatArray],
         ] | None = None
@@ -853,23 +843,10 @@ class ContinuousTimeLidarPairSolver:
                    if gpu is None and query_reuse is not None
                    and query_reuse.summary_executor is not None else None)
 
-            def compiled_initial_residuals(
-                arrays: _ObservationArrays, transform: SE3,
-            ) -> FloatArray | None:
-                result = _initial_residual_values(arrays, transform)
-                if result is not None and query_reuse is not None:
-                    query_reuse.used_initial_projection = True
-                return result
-
-            initial_array_kernel = compiled_initial_residuals
-
             def compiled_residuals(arrays: _ObservationArrays, transform: SE3) -> list[float]:
                 # Single evaluations are cheaper on CPU. Capture only the
                 # retained MAD batch for repeated thirteen-way GPU differences.
-                initial = compiled_initial_residuals(arrays, transform)
-                result = initial.tolist() if initial is not None else numba_rig_residuals(
-                    arrays, transform,
-                )
+                result = numba_rig_residuals(arrays, transform)
                 if query_reuse is not None:
                     query_reuse.used_numba = True
                 return result
@@ -877,13 +854,6 @@ class ContinuousTimeLidarPairSolver:
             array_kernel = compiled_residuals
 
             def compiled_rmse(arrays: _ObservationArrays, transform: SE3) -> tuple[float] | None:
-                initial = _initial_residual_values(arrays, transform)
-                if initial is not None:
-                    result = _numba_values_rmse(initial)
-                    if result is not None:
-                        if query_reuse is not None:
-                            query_reuse.used_initial_projection = True
-                        return result
                 if (settings.cuda_captured_summary and gpu is not None
                         and _numba_rmse_policy() is not None):
                     values = gpu._captured_residuals(arrays, transform)
@@ -929,7 +899,6 @@ class ContinuousTimeLidarPairSolver:
             variable=problem.variable, t_ego_lidar=initial_transform, observations=observations,
             sensor=problem.sensor, _array_kernel=array_kernel, _array_linearizer=array_linearizer,
             _array_rmse_kernel=array_rmse_kernel,
-            _initial_array_kernel=initial_array_kernel,
             _array_normal_kernel=array_normal_kernel,
         )
         if settings.outlier_policy == "mad":
