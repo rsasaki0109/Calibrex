@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- **`camera-camera` checks unsynchronised stereo pairs with a gyro, and reports the
+  cameras' clock offset.**
+  - **When it applies.** An IMU must be connected to the first camera in the candidate
+    tree. Images are then paired with the other camera's nearest image within 30 ms.
+  - **The method.** Each pair is rectified for the rig's turn over its stamped gap. The
+    rotation error and the clock offset are fitted together, and the offset is reported
+    (not judged) as the pair's `time_offset`.
+  - **Evidence.** The artifact gains optional `time_offset_s`, its std and status,
+    `timing_source` and `max_stamp_gap_s`.
+  - **Pairing.** It now takes the nearest image within the tolerance.
+  - **Tests.** Rendered pairs taken 25 ms apart (at 25 and 80 deg/s) read their
+    rotation within 0.05 deg and a zero offset. A 5 ms stamp offset reads −5 ms.
+  - **Hilti (`tools/stereo_timing_injection.py`).**
+    * The synchronised bags read 0 ± 0.15 ms.
+    * A 5 ms stamp offset reads −4.9 ms.
+    * Pairing each image with the next frame (25 ms) still passes. The rotation std
+      grows to 0.08 deg, and without the gyro one axis goes unobserved on `exp01`.
+
 - **`calibrex check` judges a stereo pair's rotation: the `camera-camera` pair.**
   - **Planning.** It is planned for every two cameras the candidate tree connects
     (`T_first_second`). Intrinsics come from a Kalibr camchain or `CameraInfo`, and
