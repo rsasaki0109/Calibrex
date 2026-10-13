@@ -68,6 +68,36 @@ def test_a_turned_candidate_reads_its_turn_about_the_left_camera(
     assert errors == pytest.approx(list(expected), abs=0.06)
 
 
+@pytest.mark.parametrize("axis", [0, 1, 2])
+def test_a_candidate_degrees_off_is_found_by_re_centring(
+    pairs: list[tuple[np.ndarray, np.ndarray]], axis: int
+) -> None:
+    # 3 deg moves rows or columns ~8 px at 160 px: beyond the +-4 row search and, about y,
+    # to negative disparity; the coarse pass finds it and the rectification is re-centred
+    candidate = TRUTH.copy()
+    turn = Rotation.from_rotvec(np.radians(3.0) * np.eye(3)[axis]).as_matrix()
+    candidate[:3, :3] = turn @ TRUTH[:3, :3]
+    expected = rotation_errors_deg(candidate[:3, :3], TRUTH[:3, :3])
+    artifact = estimate_stereo_rotation(
+        pairs, LEFT, RIGHT, candidate, provenance=PROVENANCE, options=OPTIONS
+    )
+    assert artifact.policy_status == "pass"
+    assert [entry.candidate_error_deg for entry in artifact.axes] == pytest.approx(
+        list(expected), abs=0.06
+    )
+    assert artifact.recentred_by_deg is not None
+    assert artifact.recentred_by_deg[axis] == pytest.approx(3.0, abs=0.1)
+
+
+def test_a_close_candidate_is_measured_without_re_centring(
+    pairs: list[tuple[np.ndarray, np.ndarray]],
+) -> None:
+    artifact = estimate_stereo_rotation(
+        pairs, LEFT, RIGHT, TRUTH, provenance=PROVENANCE, options=OPTIONS
+    )
+    assert artifact.recentred_by_deg is None
+
+
 def test_too_few_pairs_are_inconclusive(pairs: list[tuple[np.ndarray, np.ndarray]]) -> None:
     artifact = estimate_stereo_rotation(
         pairs[:3], LEFT, RIGHT, TRUTH, provenance=PROVENANCE, options=OPTIONS

@@ -278,13 +278,15 @@ def vertical_offset_samples(
     min_zncc: float = 0.9,
     min_gradient: float = 25.0,
     seed: int = 0,
+    min_disparity_px: int = 0,
 ) -> FloatArray:
     """Every matched patch's vertical disparity (px, right minus left row) and where it is.
 
     A rectified pair puts a point on the same row in both images; a residual rotation of
     the rig's calibration (a tenth of a degree is a pixel at these focal lengths) shifts
     the right image's rows. Textured left patches are matched in the right image over
-    ``max_disparity_px`` columns and ``rows_px`` rows each way (zero-normalised
+    disparities ``min_disparity_px`` to ``max_disparity_px`` (negative when a turn about
+    the rectified y axis moves far points across) and ``rows_px`` rows each way (zero-normalised
     cross-correlation, sub-pixel parabola in rows). Uses the images only, never a
     LiDAR or a reference.
 
@@ -294,6 +296,8 @@ def vertical_offset_samples(
     rows are then well constrained), else 0.
     """
 
+    if min_disparity_px > max_disparity_px:
+        raise ValueError("min_disparity_px must not exceed max_disparity_px")
     rng = np.random.default_rng(seed)
     samples: list[tuple[float, float, float, float, float, float]] = []
     for index, (left, right) in enumerate(pairs):
@@ -305,7 +309,7 @@ def vertical_offset_samples(
             (strong[:, 0] >= margin)
             & (strong[:, 0] < height - margin)
             & (strong[:, 1] >= margin + max_disparity_px)
-            & (strong[:, 1] < width - margin)
+            & (strong[:, 1] < width - margin + min(min_disparity_px, 0))
         ]
         if len(strong) == 0:
             continue
@@ -319,18 +323,18 @@ def vertical_offset_samples(
             norm = np.sqrt((patch**2).sum())
             if norm < 1.0e-6:
                 continue
-            # every window of the right image within rows_px rows and max_disparity_px
-            # columns to the left: windows[i, j] sits rows_px - i rows up and
-            # max_disparity_px - j columns left
+            # every window of the right image within rows_px rows and between
+            # max_disparity_px columns left and -min_disparity_px right: windows[i, j]
+            # sits rows_px - i rows up and max_disparity_px - j columns left
             strip = right[
                 row - rows_px - half_px : row + rows_px + half_px + 1,
-                col - max_disparity_px - half_px : col + half_px + 1,
+                col - max_disparity_px - half_px : col - min_disparity_px + half_px + 1,
             ]
             windows = sliding_window_view(strip, (size, size))
             centred = windows - windows.mean(axis=(2, 3), keepdims=True)
             energy = np.sqrt((centred**2).sum(axis=(2, 3)))
             scores = (centred * patch).sum(axis=(2, 3)) / np.maximum(norm * energy, 1.0e-9)
-            scores = scores[:, ::-1]  # column j now holds disparity j
+            scores = scores[:, ::-1]  # column j now holds disparity min_disparity_px + j
             i, dx = np.unravel_index(int(np.argmax(scores)), scores.shape)
             if scores[i, dx] < min_zncc or i in (0, 2 * rows_px):
                 continue
@@ -343,7 +347,7 @@ def vertical_offset_samples(
                     float(index),
                     float(row),
                     float(col),
-                    float(dx),
+                    float(dx + min_disparity_px),
                     i - rows_px + float(step),
                     vertical,
                 )

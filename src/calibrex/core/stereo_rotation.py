@@ -85,6 +85,14 @@ class StereoRotationArtifact(StrictModel):
     time_offset_status: Literal["estimated", "unobservable"] | None = None
     timing_source: str | None = None
     max_stamp_gap_s: float | None = Field(default=None, ge=0.0)
+    recentred_by_deg: list[float] | None = Field(
+        default=None,
+        min_length=3,
+        max_length=3,
+        description="the turn (about the left camera's axes, the candidate_error convention) by "
+        "which the rectification was re-centred before the final measurement, when the "
+        "candidate was too far off for the row search; candidate_error_deg includes it",
+    )
     options: dict[str, Any]
     limitations: list[str] = Field(default_factory=list)
     provenance: StereoRotationProvenance

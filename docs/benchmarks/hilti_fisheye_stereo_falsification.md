@@ -218,6 +218,64 @@ python tools/hilti_camera_pair_reproducibility.py exp21_head.bag \
     --output exp21_reproducibility.json
 ```
 
+## Re-centring the rectification (2026-10-13)
+
+`camera-camera` measured row offsets in a rectification built from the candidate,
+searching ±4 rows and only positive disparities. Two things went wrong with a
+candidate a degree off:
+
+* **The turn left the search.** A 1 deg turn moves rows by about 6 px at 350 px.
+* **Far points went negative.** A turn about the rectified y axis moves far points to
+  negative disparity.
+
+The test turned cam3's camchain 1 deg about its own y axis on `exp01`. Its three camera
+pairs became `estimator_failed`, and the turn went unseen.
+
+**The fix.** The estimator now measures coarsely first (±12 rows, disparities from
+−30 px, 100 patches per pair). If the coarse reading exceeds 0.2 deg, it re-centres the
+rectification on the estimate and measures as before, up to three times. The error
+composes the two. With the test's 1 deg turn, cam0–cam3 and cam1–cam3 `fail` with pitch
++1.37 and +1.40 deg, and the check's attribution names cam3.
+
+**Does the reading depend on where it starts?**
+`tools/hilti_camera_pair_start_dependence.py` starts each side pair from the camchain
+turned −0.5, 0 and +0.5 deg in pitch. It removes the start's own turn from the reading,
+so a start-independent reading comes out the same each time. It does this with the
+re-centring and with the single measurement used before. `exp01`, 48 frames where all
+five cameras fired together:
+
+| pair | start (pitch) | re-centred: pitch, residual | single: pitch, residual |
+| --- | --- | --- | --- |
+| cam0–cam3 | −0.5 deg | +0.38, 0.17 px | +0.38, 0.17 px |
+| cam0–cam3 | 0 | +0.36, 0.14 px | +0.31, 0.66 px |
+| cam0–cam3 | +0.5 deg | +0.37, 0.32 px | −0.30 (unjudged), 1.60 px |
+| cam1–cam3 | −0.5 deg | +0.38, 0.18 px | +0.38, 0.18 px |
+| cam1–cam3 | 0 | +0.39, 0.13 px | +0.25 (unjudged), 0.43 px |
+| cam1–cam3 | +0.5 deg | +0.44, 0.11 px | −0.78 (unjudged), 0.97 px |
+| cam0–cam4 | −0.5 deg | −0.37 (unjudged), 0.12 px | `inconclusive` |
+| cam0–cam4 | 0 | −0.48 (unjudged), 0.13 px | −0.32 (unjudged), 0.29 px |
+| cam0–cam4 | +0.5 deg | −0.43, 0.20 px | −0.43, 0.20 px |
+| cam1–cam4 | −0.5 deg | −0.04, 0.20 px | +0.15, 0.40 px |
+| cam1–cam4 | 0 | −0.02, 0.19 px | −0.02, 0.19 px |
+| cam1–cam4 | +0.5 deg | +0.00, 0.28 px | −0.03, 0.23 px |
+
+The pitch is in degrees against the camchain. Where the start lands within 0.2 deg of
+the reading, the re-centring does nothing and the two methods agree.
+
+* **The re-centred readings agree across the starts within 0.11 deg.** Their residuals
+  are 0.1 to 0.3 px.
+* **The single measurement does not.** When the reading is 0.4 to 0.9 deg from the
+  start, the residual grows to 0.29 to 1.60 px. The reading is then attenuated (+0.31
+  and +0.25 instead of +0.37), lands on the wrong side (−0.78), or collapses
+  (`inconclusive`). The check's earlier readings were single measurements from the
+  candidate, the 0 rows.
+* **cam3's candidate pitch is about 0.38 deg off.** cam0–cam3 and cam1–cam3 agree, and
+  cam0–cam3 reads +0.40 deg on `exp21`.
+* **cam0–cam4 and cam1–cam4 disagree on pitch by about 0.45 deg.** Each is stable
+  across starts. cam0 and cam1 agree to 0.05 deg, so one of the two pairs carries a
+  bias of that size, specific to its view. The check's closure loops go through the
+  IMU, whose camera-IMU pitch is unjudged, so they cannot see it.
+
 ## Earlier run: stamp pairing, no motion
 
 The first run paired images and scans by their stamps and left the points where they

@@ -220,6 +220,24 @@
     "provenance": {
       "$ref": "#/$defs/StereoRotationProvenance"
     },
+    "recentred_by_deg": {
+      "anyOf": [
+        {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "the turn (about the left camera's axes, the candidate_error convention) by which the rectification was re-centred before the final measurement, when the candidate was too far off for the row search; candidate_error_deg includes it",
+      "title": "Recentred By Deg"
+    },
     "rectified_focal_px": {
       "exclusiveMinimum": 0.0,
       "title": "Rectified Focal Px",

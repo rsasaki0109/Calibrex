@@ -172,3 +172,21 @@ def test_a_radtan_camera_projects_as_opencv_does() -> None:
     matrix = np.array([[500.0, 0.0, 320.0], [0.0, 510.0, 240.0], [0.0, 0.0, 1.0]])
     expected, _ = cv2.projectPoints(points, np.zeros(3), np.zeros(3), matrix, np.array(distortion))
     assert np.allclose(np.c_[u, v], expected.reshape(-1, 2), atol=1e-6)
+
+
+def test_a_negative_disparity_is_found_when_the_search_looks_right() -> None:
+    rng = np.random.default_rng(7)
+    texture = ndimage.gaussian_filter(rng.uniform(0, 255, (200, 300)), 1.5) * 4.0
+    # the right image's scene 9 px to the right: what a turn about the rectified y axis
+    # does to far points
+    right = ndimage.shift(texture, (0.5, 9.0), order=1, mode="nearest")
+    assert len(vertical_offset_samples([(texture, right)], patches_per_pair=60)) == 0
+    samples = vertical_offset_samples(
+        [(texture, right)], patches_per_pair=60, rows_px=4, min_disparity_px=-20
+    )
+    disparity = samples[:, VERTICAL_OFFSET_COLUMNS.index("disparity_px")]
+    offset = samples[:, VERTICAL_OFFSET_COLUMNS.index("offset_px")]
+    assert np.median(disparity) == -9.0
+    assert np.median(offset) == pytest.approx(0.5, abs=0.1)
+    with pytest.raises(ValueError, match="min_disparity_px"):
+        vertical_offset_samples([(texture, right)], max_disparity_px=5, min_disparity_px=10)
