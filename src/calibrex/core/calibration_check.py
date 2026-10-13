@@ -68,6 +68,7 @@ CheckReasonCode = Literal[
     "frame_not_in_tree",
     "frames_not_connected",
     "degenerate_frames",
+    "no_shared_view",
     "no_candidate_calibration",
     "no_vehicle_frame",
     "method_not_wired",

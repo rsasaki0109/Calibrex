@@ -57,6 +57,10 @@ REASON_HINTS: dict[str, str] = {
         "frames with --frame-map TOPIC=FRAME, or list the sensor frames in --tf"
     ),
     "no_candidate_calibration": TF_FLAG_HINT,
+    "no_shared_view": (
+        "the two cameras do not look at the same scene under the candidate, so they are not "
+        "a stereo pair: nothing to do unless the candidate's camera rotation is wrong"
+    ),
     "no_vehicle_frame": (
         "vehicle pairs are opt-in for ground vehicles: add --vehicle-frame base_link "
         "(use your vehicle frame name)"

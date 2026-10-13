@@ -185,3 +185,11 @@ def test_unsynchronised_cameras_without_a_gyro_are_skipped(tmp_path: Path) -> No
     (record,) = [p for p in artifact.pairs if p.pair == "camera-camera"]
     assert (record.status, record.reason_code) == ("skipped", "missing_topic")
     assert "2 ms" in (record.reason or "")
+
+
+def test_cameras_facing_apart_are_not_a_stereo_pair(bag: Path, tmp_path: Path) -> None:
+    backwards = TRUTH.copy()
+    backwards[:3, :3] = Rotation.from_euler("y", 180.0, degrees=True).as_matrix()
+    artifact = _run(bag, _camchain(tmp_path / "c.yaml", backwards), tmp_path)
+    (record,) = [p for p in artifact.pairs if p.pair == "camera-camera"]
+    assert (record.status, record.reason_code) == ("skipped", "no_shared_view")

@@ -180,6 +180,10 @@ def rectify_fisheye_pair(
     axis_x = right_centre / baseline
     optical = np.array([0.0, 0.0, 1.0]) + rotation.T @ np.array([0.0, 0.0, 1.0])
     axis_y = np.cross(optical, axis_x)
+    if np.linalg.norm(optical) < 1.0e-6 or np.linalg.norm(axis_y) < 1.0e-6:
+        raise ValueError(
+            "the cameras face opposite ways or along their baseline: no rectified pair"
+        )
     axis_y /= np.linalg.norm(axis_y)
     axis_z = np.cross(axis_x, axis_y)
     rectified_from_left = np.stack([axis_x, axis_y, axis_z])

@@ -105,6 +105,7 @@ connected and the topics exist. Otherwise it is `skipped` with a reason code:
 | `no_vehicle_frame` | `--vehicle-frame` was not given, so vehicle pairs are not checked |
 | `frame_not_in_tree` | a sensor topic maps to no frame, or to a frame the tree lacks |
 | `frames_not_connected` | the two frames are in different trees |
+| `no_shared_view` | `camera-camera`: under the candidate, the second camera sees less than 5% of the first one's view, so the two are not a stereo pair |
 | `degenerate_frames` | two sensors of a pair (or a sensor and `--vehicle-frame`) are stamped in the same frame, typically streams already transformed into `base_link`; the candidate would be the identity by construction, so the pair is not run (use `--frame-map` or `--tf` to name the physical sensor frames) |
 | `method_not_wired` | no check method exists for the pair yet (none is unwired in this version; kept for older artifacts) |
 | `not_selected` | a wired pair that `--pairs` or `--camera` left out |
@@ -371,7 +372,61 @@ calibrex check exp01_head.bag --tf calib_3_cam0-1-camchain-imucam.yaml --pairs c
   still pass. The floor is a policy choice.
 * **Run time** is 1.5 to 6 minutes per pair on these recordings.
 * **The other alphasense cameras** (cam2 to cam4) are not in this camchain, so their
-  pairs are skipped as `frame_not_in_tree`.
+  pairs are skipped as `frame_not_in_tree`. Their own camchains bring them in (below).
+
+**All five alphasense cameras.** Hilti publishes a camchain per camera: cam0 and cam1
+look forward, cam2 down, and cam3 and cam4 to either side. Giving all four files with
+`--tf`, plus `lidar_calibration.yaml`, plans 10 camera pairs and 5 `camera-imu` pairs:
+
+```bash
+calibrex check exp21_head.bag --pairs camera-camera,camera-imu \
+    --tf calib_3_cam0-1-camchain-imucam.yaml --tf calib_3_cam2-camchain-imucam.yaml \
+    --tf calib_3_cam3-camchain-imucam.yaml --tf calib_3_cam4-camchain-imucam.yaml \
+    --tf lidar_calibration.yaml
+```
+
+| pair | shared view | `exp01` | `exp21` |
+| --- | --- | --- | --- |
+| cam0–cam1 | 94% | `pass` (roll, pitch, yaw) | `pass` (roll, pitch, yaw) |
+| cam0–cam2 | 14% | `inconclusive` | `pass` (yaw) |
+| cam0–cam3 | 30% | `pass` (roll, pitch, yaw) | `inconclusive` |
+| cam0–cam4 | 34% | `pass` (roll, yaw) | `pass` (roll, yaw) |
+| cam1–cam2 | 16% | `pass` (pitch) | `pass` (roll, pitch, yaw) |
+| cam1–cam3 | 33% | `pass` (roll, yaw) | `pass` (roll) |
+| cam1–cam4 | 31% | `pass` (roll, pitch, yaw) | `inconclusive` |
+| cam2–cam3 | 12% | `pass` (roll, pitch, yaw) | `inconclusive` (109 patches) |
+| cam2–cam4 | 12% | `inconclusive` (163 patches) | `inconclusive` (446 patches) |
+| cam3–cam4 | 0% | skipped, `no_shared_view` | skipped, `no_shared_view` |
+
+The shared view is the share of the first camera's view the second also sees, under the
+candidate, at 10 m. Judged axes are in brackets.
+
+* **Only cam0–cam1 is a dependable stereo pair.**
+  * Every other pair shares 12 to 34% of its view, at the edges of both fisheye images.
+  * There the gates leave many axes unjudged, and the control responses scatter from
+    0.25 to 2.9.
+  * Which axes are judged changes between the two recordings.
+* **Where an axis is judged on both recordings, the readings stay well below the 0.5 deg
+  floor, but not within their own std.** cam1–cam3's roll reads −0.10 deg on `exp01`
+  and +0.21 deg on `exp21`, about six times the jackknife std. That is either the rig's
+  drift between sessions (cam0–cam1's roll moved by 0.17 deg) or a bias at the image
+  edges, and these recordings cannot tell which.
+* **`camera-imu` judges every camera against the IMU.**
+  * All ten runs pass, except `exp21` cam1 at `warn` (pitch +0.51 deg against a
+    0.5 deg tolerance). cam0 reads +0.49 deg on the same recording.
+  * Its clock offsets, 1.5 to 2.0 ms across cameras and recordings, agree in size and
+    sign with Kalibr's `timeshift_cam_imu` in the same camchains (1.7 to 1.9 ms; both
+    use `t_imu = t_cam + dt`), an independent measurement:
+
+| camera | offset, `exp01` (ms) | offset, `exp21` (ms) | Kalibr (ms) |
+| --- | --- | --- | --- |
+| cam0 | +1.78 ± 0.38 | +1.97 ± 0.09 | +1.91 |
+| cam1 | +1.87 ± 0.13 | +1.92 ± 0.10 | +1.90 |
+| cam2 | +1.81 ± 0.26 | +1.51 ± 0.29 | +1.94 |
+| cam3 | +1.68 ± 0.37 | +1.62 ± 0.13 | +1.81 |
+| cam4 | +1.62 ± 0.10 | +1.66 ± 0.13 | +1.71 |
+
+The run takes about 15 minutes per recording.
 
 ## Vehicle pairs are opt-in
 

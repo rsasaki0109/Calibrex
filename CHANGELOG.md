@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+- **`camera-camera` skips cameras that share no view, and the check covers all five of
+  Hilti's alphasense cameras.**
+  - **The skip.** The pair measures the share of the first camera's view the second
+    sees under the candidate. Below 5% it is skipped with the new reason code
+    `no_shared_view`, and rectification refuses cameras that face opposite ways.
+  - **All five cameras.** With Hilti's per-camera camchains, `calibrex check` plans 10
+    camera pairs and 5 `camera-imu` pairs.
+  - **Camera pairs.** cam0–cam1 passes on every axis on both recordings. The side and
+    down pairs share 12 to 34% of their view, so they are judged only in part, and
+    their readings differ between recordings by up to 0.3 deg. The opposite side
+    cameras are skipped.
+  - **`camera-imu`.** It passes on 9 of 10 runs; `exp21` cam1 is `warn` at 0.51 deg.
+    Its clock offsets (1.5 to 2.0 ms) agree with Kalibr's `timeshift_cam_imu`
+    (1.7 to 1.9 ms).
+
 - **`camera-camera` checks unsynchronised stereo pairs with a gyro, and reports the
   cameras' clock offset.**
   - **When it applies.** An IMU must be connected to the first camera in the candidate

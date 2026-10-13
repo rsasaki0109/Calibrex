@@ -16,6 +16,7 @@ from calibrex.evaluation.stereo_rotation import (
     StereoRotationOptions,
     StereoTiming,
     estimate_stereo_rotation,
+    shared_view_fraction,
 )
 
 OPTIONS = StereoRotationOptions(patches_per_pair=150, min_patches=300)
@@ -118,3 +119,17 @@ def test_a_clock_offset_between_the_cameras_is_measured() -> None:
     assert artifact.time_offset_s == pytest.approx(-0.005, abs=0.001)
     assert artifact.time_offset_std_s is not None and artifact.time_offset_std_s < 0.001
     assert all(abs(axis.candidate_error_deg) < 0.05 for axis in artifact.axes)
+
+
+def test_the_shared_view_of_two_cameras_follows_their_angle() -> None:
+    def turned(degrees: float) -> np.ndarray:
+        transform = TRUTH.copy()
+        transform[:3, :3] = Rotation.from_euler("y", degrees, degrees=True).as_matrix()
+        return transform
+
+    same = shared_view_fraction(LEFT, RIGHT, TRUTH)
+    square = shared_view_fraction(LEFT, RIGHT, turned(90.0))
+    opposite = shared_view_fraction(LEFT, RIGHT, turned(180.0))
+    assert same > 0.85
+    assert 0.0 < square < same
+    assert opposite == 0.0
