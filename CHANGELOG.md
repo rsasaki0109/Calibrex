@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Reuse the last exact CUDA LiDAR finite differences with bitwise transform/step
+  keys, owned writable return arrays and a 64 MiB host-cache limit. Compute only
+  initial solver rank for native compiled factors with at least 8,192 residuals;
+  retain full final diagnostics and public evaluation hooks. Publish complete
+  public dense GPU/CPU controls, actual launch/cache counts, small-workload timing
+  regressions and stopped comparisons with source/input lineage.
+
 - Query captured continuous-time LiDAR uniform/adaptive plane maps together on
   an owned CUDA stream, preserving neighborhood order and native boundary/tie
   repair. Batch large-frame deskew on the optional CPU adapter with exact

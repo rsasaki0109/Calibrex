@@ -1,0 +1,105 @@
+import json
+import os
+import subprocess
+import sys
+import time
+from argparse import Namespace
+from pathlib import Path
+from threading import Lock
+
+workspace = next(p for p in Path(__file__).resolve().parents if (p/'pyproject.toml').is_file())
+sys.path.insert(0, str(workspace))
+os.chdir(workspace)
+from tools import benchmark_adaptive_plane_search as b
+
+out = Path('outputs/public-glim-post-associations-profile-v1')
+out.mkdir()
+config = Path('examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml')
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['NUMBA_CACHE_DIR'] = str(Path('outputs/public-glim-cuda-associations-dense-v3/numba-cache/sparse').resolve())
+os.environ['CUPY_CACHE_DIR'] = str(Path('outputs/public-glim-cuda-associations-dense-v3/cuda-cache/sparse').resolve())
+sources = {p:b._digest(Path(p)) for p in (*b.SOURCES, config.as_posix(), __file__)}
+inputs = b._verified_inputs(b.REPLAY)
+revision = subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+from calibrex.solvers import numba_continuous_time_adapter as a
+from calibrex.solvers.cuda_continuous_time_adapter import CudaRigLinearizer
+from calibrex.solvers.cuda_plane_query_adapter import CudaPlaneQueries
+from calibrex.evaluation.packed_lidar_observations import _PackedObservationBuilder
+from calibrex.data.adaptive_voxel import AdaptivePlaneQueryContext
+from calibrex.data.livox import VoxelPlaneQueryContext
+from calibrex.solvers import continuous_time_lidar_pair_solver as s
+from calibrex.pipelines import online
+from calibrex.data.numba_lidar_deskew_adapter import _PreparedDeskew
+lock = Lock()
+counts = {}
+
+def observe(owner, name):
+    native = getattr(owner, name)
+    label = (owner.__name__ if hasattr(owner,'__name__') else str(owner))+'.'+name
+    def observed(*args, **kwargs):
+        start = time.perf_counter()
+        try:
+            return native(*args, **kwargs)
+        finally:
+            elapsed = time.perf_counter()-start
+            with lock:
+                row = counts.setdefault(label, {'calls':0,'sum_seconds':0.0})
+                row['calls'] += 1
+                row['sum_seconds'] += elapsed
+    setattr(owner, name, observed)
+
+for name in ['numba_rig_linearization','numba_rig_residuals','numba_rig_normal_equations',
+             '_fused_jacobian_rows','_residual_rows','_normal_rows','_pose_world_rows','_world_rows']:
+    observe(a, name)
+from calibrex.graph import lidar_point_to_plane as factor_module
+from calibrex.solvers import fixed_trajectory_se3_solver as fixed_module
+
+for owner,name in [(factor_module.LidarRigPointToPlaneFactor,'evaluate'),
+                   (factor_module.LidarRigPointToPlaneFactor,'_compiled_linearization'),
+                   (factor_module.LidarRigPointToPlaneFactor,'_compiled_system'),
+                   (factor_module,'_rmse'), (fixed_module,'_rmse'),
+                   (a.NumbaContinuousTimeQueryContext,'_evaluate'),
+                   (_PackedObservationBuilder,'build'),
+                   (AdaptivePlaneQueryContext,'_nearest_positions'),
+                   (VoxelPlaneQueryContext,'_nearest_positions'),
+                   (CudaRigLinearizer,'linearize'), (CudaPlaneQueries,'query'),
+                   (_PreparedDeskew,'batch'), (online,'_deskew_target_entries'),
+                   (online,'_deskew_pointcloud_to_world_records'),
+                   (s,'_factor_for_indices'),(s,'_prepare_source_map')]:
+    if hasattr(owner,name): observe(owner,name)
+native_gpu_linearize = CudaRigLinearizer.linearize
+def count_duplicate(self, arrays, transforms, steps):
+    import numpy as np
+    key = (id(arrays), np.asarray([(*t.translation_m, *t.rotation_quat_xyzw) for t in transforms], dtype=np.float64).tobytes(), np.asarray(steps, dtype=np.float64).tobytes())
+    seen = getattr(self, '_profile_seen', set())
+    duplicate = key in seen
+    seen.add(key)
+    self._profile_seen = seen
+    start = time.perf_counter()
+    result = native_gpu_linearize(self, arrays, transforms, steps)
+    elapsed = time.perf_counter()-start
+    with lock:
+        row = counts.setdefault('gpu_repeated_identical_payload' if duplicate else 'gpu_unique_payload', {'calls':0, 'rows':0, 'sum_seconds':0.0})
+        row['calls'] += 1
+        row['rows'] += len(arrays.points)
+        row['sum_seconds'] += elapsed
+    return result
+CudaRigLinearizer.linearize = count_duplicate
+
+b._worker(Namespace(worker='sparse',baseline_scope='compiled',candidate_query_backend='cuda',
+                    config=config,output_dir=out/'worker'))
+assert revision == subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+assert sources == {p:b._digest(Path(p)) for p in sources}
+assert inputs == b._verified_inputs(b.REPLAY)
+row = json.loads((out/'worker/measurement.json').read_bytes())
+reference = json.loads(Path('outputs/public-glim-cuda-associations-dense-v3/sparse.repeat-01/measurement.json').read_bytes())
+for result in (row['result'],reference['result']):
+    result['provenance'].pop('git_commit')
+    result['train_diagnostics']['provenance'].pop('git_commit')
+assert b._comparison_canonical(row['result']) == b._comparison_canonical(reference['result'])
+payload = {'provenance':{'source_commit':revision,'source_sha256':sources,'input_sha256':inputs},
+           'timers':counts,'exact_result_parity':True,'source_input_guards_passed':True,
+           'limitations':['Instrumented diagnostic only. Nested and concurrent timer sums overlap.',
+                           'Historical diagnostic comparison excludes provenance git_commit and the exact bound execution identity.']}
+(out/'profile.json').write_text(json.dumps(payload,indent=2)+'\n',encoding='utf-8',newline='\n')
+print(json.dumps(counts,indent=2),flush=True)

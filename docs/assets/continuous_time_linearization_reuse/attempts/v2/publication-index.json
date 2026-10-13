@@ -1,0 +1,1196 @@
+{
+  "provenance": {
+    "candidate_source_commit": "414b03d9b2acd055c0a4fb0ac4a2af8509dfb70c",
+    "baseline_source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85",
+    "generator": "local publication audit",
+    "generator_sha256": "85803308ac88539c2612d70eeb24a035306ff90c2b358b2de554ede98e30748d",
+    "input_sha256": {
+      "data/public/glim_versatile/livox.bag": "f57a2e85339316d4235ab693ab2876aac5e113625c7f8b0f7873b62f92e09643",
+      "data/public/glim_versatile/gt.tar.gz": "4bfd871527d00065898153e77a6764ac331421aca16ff88bde778994f70f5bc9",
+      "data/public/glim_versatile/gt/livox.txt": "bcc75ff7985f2e140e514c69f029153e0127a33ee7abc1b757e077386f5059ad",
+      "data/public/glim_versatile/livox_rosbag2_gt_restamped/livox_rosbag2_gt_restamped.db3": "8d28f0a8ddda13b880e4648e9d687d4a566d40f70b87547f8798fe8a18cfde9e",
+      "data/public/glim_versatile/livox_rosbag2_gt_restamped/metadata.yaml": "7542a3e1689e2007e9c15b8d163cddcbca4d87232dd92b7ecff48ba1e0f6645f",
+      "data/public/glim_versatile/conversion-provenance.json": "7f51da99c1bdc0b2768229e6ff22809d5d0bb22e02dcc62dce2c3ce0dac2da56"
+    },
+    "limitations": [
+      "Only location metadata is portable. Complete calibration results and original hashes are retained.",
+      "The instrumented baseline profile and final diagnostic are separate from formal timings and bind exact sources.",
+      "Copied-topic public control supports execution parity, without independent two-sensor accuracy evidence."
+    ]
+  },
+  "summaries": {
+    "dense": {
+      "medians": {
+        "baseline": {
+          "subprocess_wall_seconds": 57.99472940003034,
+          "pipeline_seconds": 54.707205600105226,
+          "solver_seconds": 42.72505190002266,
+          "worker_cpu_seconds": 81.96875
+        },
+        "sparse": {
+          "subprocess_wall_seconds": 44.9674419000512,
+          "pipeline_seconds": 41.89047699992079,
+          "solver_seconds": 31.68651529995259,
+          "worker_cpu_seconds": 66.921875
+        }
+      },
+      "pairs": [
+        {
+          "baseline": 60.81895870005246,
+          "sparse": 52.54740689997561
+        },
+        {
+          "baseline": 52.279975400073454,
+          "sparse": 44.9674419000512
+        },
+        {
+          "baseline": 49.23028860008344,
+          "sparse": 43.76069400005508
+        },
+        {
+          "baseline": 64.3277602000162,
+          "sparse": 43.49871459999122
+        },
+        {
+          "baseline": 57.99472940003034,
+          "sparse": 46.366109199938364
+        }
+      ],
+      "median_paired_ratio": 1.1626184010261418,
+      "status": "max_iterations",
+      "rank": 6,
+      "train_correspondences": 582119,
+      "holdout_correspondences": 67602,
+      "sampled_split": {
+        "train_count": 768000,
+        "train_ids_sha256": "ad16fb4625f6ee3cfc1b9d56e1f09218f6e58c50e85d27fbe881bf6adc2fabeb",
+        "holdout_count": 192000,
+        "holdout_ids_sha256": "c49427174a3fc9b314ac70bd5e6c782e8c77422cd2faa589a6e48214e6cf74bd"
+      }
+    },
+    "full": {
+      "medians": {
+        "baseline": {
+          "subprocess_wall_seconds": 8.76084549992811,
+          "pipeline_seconds": 6.184692300041206,
+          "solver_seconds": 3.705067400005646,
+          "worker_cpu_seconds": 10.8125
+        },
+        "sparse": {
+          "subprocess_wall_seconds": 8.707876299973577,
+          "pipeline_seconds": 5.808683700044639,
+          "solver_seconds": 3.436464500031434,
+          "worker_cpu_seconds": 10.5
+        }
+      },
+      "pairs": [
+        {
+          "baseline": 17.510432299925014,
+          "sparse": 15.624202299979515
+        },
+        {
+          "baseline": 8.744208400021307,
+          "sparse": 7.832007199991494
+        },
+        {
+          "baseline": 8.76084549992811,
+          "sparse": 8.707876299973577
+        },
+        {
+          "baseline": 10.570911500020884,
+          "sparse": 10.404669999959879
+        },
+        {
+          "baseline": 8.542542000068352,
+          "sparse": 8.08700920001138
+        }
+      ],
+      "median_paired_ratio": 1.0563289578125286,
+      "status": "max_iterations",
+      "rank": 6,
+      "train_correspondences": 29181,
+      "holdout_correspondences": 3451,
+      "sampled_split": {
+        "train_count": 38400,
+        "train_ids_sha256": "912447b46ab6efb37ad4879711e2e3cb23910e1f121453ae50e4daecc7af9925",
+        "holdout_count": 9600,
+        "holdout_ids_sha256": "3e5f3f6ad7ac01170ac3a56001ace2dfaa596f5e9b655c9119d5f00364a64cfe"
+      }
+    },
+    "default": {
+      "medians": {
+        "baseline": {
+          "subprocess_wall_seconds": 6.101216800045222,
+          "pipeline_seconds": 3.3547034000512213,
+          "solver_seconds": 2.486132699996233,
+          "worker_cpu_seconds": 7.15625
+        },
+        "sparse": {
+          "subprocess_wall_seconds": 11.80486789997667,
+          "pipeline_seconds": 7.329912399989553,
+          "solver_seconds": 5.014636600040831,
+          "worker_cpu_seconds": 8.6875
+        }
+      },
+      "pairs": [
+        {
+          "baseline": 13.707375300000422,
+          "sparse": 13.003587300074287
+        },
+        {
+          "baseline": 5.46117519994732,
+          "sparse": 5.501840299926698
+        },
+        {
+          "baseline": 5.348965399898589,
+          "sparse": 11.80486789997667
+        },
+        {
+          "baseline": 6.101216800045222,
+          "sparse": 16.82614429993555
+        },
+        {
+          "baseline": 9.00724629999604,
+          "sparse": 11.052164900000207
+        }
+      ],
+      "median_paired_ratio": 0.8149757428968394,
+      "status": "converged",
+      "rank": 6,
+      "train_correspondences": 4773,
+      "holdout_correspondences": 2526,
+      "sampled_split": {
+        "train_count": 6000,
+        "train_ids_sha256": "8396d3bb0e0ad9134aafbb7e812eadd3110dfc75a18ddd201e10e6d1a5c50386",
+        "holdout_count": 3200,
+        "holdout_ids_sha256": "0ca2151339586575d990b37935a6b44627e981399845f0f51c4f18c08afb2af1"
+      }
+    }
+  },
+  "files": {
+    "measured.continuous_time_lidar_artifacts.py.txt": {
+      "sha256": "96c051290b6b4f82f81fcc108b6ea4525b1497af064a3dedb8196e7dedd9d874",
+      "source": "src/calibrex/core/continuous_time_lidar_artifacts.py",
+      "source_commit": "414b03d9b2acd055c0a4fb0ac4a2af8509dfb70c"
+    },
+    "measured.continuous_time_lidar_train_diagnostics.py.txt": {
+      "sha256": "f86b7e9d569b4ef61d85834df790207dbe2f424af17ec0f5df16b9f2aef6fcac",
+      "source": "src/calibrex/core/continuous_time_lidar_train_diagnostics.py",
+      "source_commit": "414b03d9b2acd055c0a4fb0ac4a2af8509dfb70c"
+    },
+    "measured.provenance.py.txt": {
+      "sha256": "eb7849f342892272ae136454da816852d080684b25c8ec55771582c1b8621f47",
+      "source": "src/calibrex/core/provenance.py",
+      "source_commit": "414b03d9b2acd055c0a4fb0ac4a2af8509dfb70c"
+    },
+    "measured.adaptive_voxel.py.txt": {
+      "sha256": "4a2afd9a882426f0a99dbf7af52f98d49b48e168a32956ec3496f5740c879a14",
+      "source": "src/calibrex/data/adaptive_voxel.py",
+      "source_commit": "414b03d9b2acd055c0a4fb0ac4a2af8509dfb70c"
+    },
+    "measured.livox.py.txt": {
+      "sha256": "0773a7e2fccb2d2faa23f9e90636a00355499af131ad671845edb2c8d33b1bfd",
+      "source": "src/calibrex/data/livox.py",
+      "source_commit": "414b03d9b2acd055c0a4fb0ac4a2af8509dfb70c"
+    },
+    "measured.numba_lidar_deskew_adapter.py.txt": {
+      "sha256": "53966123b0e942f48929494fba4389062ccee0cd44dc85501e4d3451a84cc0be",
+      "source": "src/calibrex/data/numba_lidar_deskew_adapter.py",
+      "source_commit": "414b03d9b2acd055c0a4fb0ac4a2af8509dfb70c"
+    },
+    "measured.odometry_track.py.txt": {
+      "sha256": "1569e661470e902f2f08dde1bf2d0c41cc6540a24f59d9ee961e066d36653c91",
+      "source": "src/calibrex/data/odometry_track.py",
+      "source_commit": "414b03d9b2acd055c0a4fb0ac4a2af8509dfb70c"
+    },
+    "measured.lidar.py.txt": {
+      "sha256": "2e4c7dda7f81eaa343096ccce57e1f160bc4418d395facfafc4bcbed4ffb16df",
+      "source": "src/calibrex/evaluation/lidar.py",
+      "source_commit": "414b03d9b2acd055c0a4fb0ac4a2af8509dfb70c"
+    },
+    "measured.packed_lidar_observations.py.txt": {
+      "sha256": "8c276b9a7379b94cf33c4fe1b64baf5f436025e6eb412c31ae291255f1d01099",
+      "source": "src/calibrex/evaluation/packed_lidar_observations.py",
+      "source_commit": "414b03d9b2acd055c0a4fb0ac4a2af8509dfb70c"
+    },
+    "measured.lidar_point_to_plane.py.txt": {
+      "sha256": "e460afad4035cc1b265ffcb619b978287a7cc376c1112d120b8cc1787d3b1b56",
+      "source": "src/calibrex/graph/lidar_point_to_plane.py",
+      "source_commit": "414b03d9b2acd055c0a4fb0ac4a2af8509dfb70c"
+    },
+    "measured.online.py.txt": {
+      "sha256": "090e373de41196825a09dd4735964cbcdcae766cb81cd643b061750272d08452",
+      "source": "src/calibrex/pipelines/online.py",
+      "source_commit": "414b03d9b2acd055c0a4fb0ac4a2af8509dfb70c"
+    },
+    "measured.continuous_time_lidar_pair_solver.py.txt": {
+      "sha256": "6f7d8db119a75e47c452b533c1b1fd05c9149fec1f4f9f7bc73517057aac142d",
+      "source": "src/calibrex/solvers/continuous_time_lidar_pair_solver.py",
+      "source_commit": "414b03d9b2acd055c0a4fb0ac4a2af8509dfb70c"
+    },
+    "measured.cuda_continuous_time_adapter.py.txt": {
+      "sha256": "1c6cdd826fb47a73ac7af4e3941ac3597f8a74d9a78e7247683c83f6dc71bd6c",
+      "source": "src/calibrex/solvers/cuda_continuous_time_adapter.py",
+      "source_commit": "414b03d9b2acd055c0a4fb0ac4a2af8509dfb70c"
+    },
+    "measured.cuda_plane_query_adapter.py.txt": {
+      "sha256": "1e01de434b7baf5f635493d06435d42f87456340cb95fa5405a5761225ae0c03",
+      "source": "src/calibrex/solvers/cuda_plane_query_adapter.py",
+      "source_commit": "414b03d9b2acd055c0a4fb0ac4a2af8509dfb70c"
+    },
+    "measured.fixed_trajectory_se3_solver.py.txt": {
+      "sha256": "940f1c9669cd6492daf7923fbde8577ef9b3e19e562378fac3294152ebea919a",
+      "source": "src/calibrex/solvers/fixed_trajectory_se3_solver.py",
+      "source_commit": "414b03d9b2acd055c0a4fb0ac4a2af8509dfb70c"
+    },
+    "measured.numba_continuous_time_adapter.py.txt": {
+      "sha256": "d70d695e47d9dcbb41cb39e26ba39e1e18ecbdde87e580a8a29945cc682ff518",
+      "source": "src/calibrex/solvers/numba_continuous_time_adapter.py",
+      "source_commit": "414b03d9b2acd055c0a4fb0ac4a2af8509dfb70c"
+    },
+    "measured.robust_lidar_observations.py.txt": {
+      "sha256": "ff398d558ec6f35eec497d6cdec80286b43ff4fd27a1e3b6a224d8e54098e240",
+      "source": "src/calibrex/solvers/robust_lidar_observations.py",
+      "source_commit": "414b03d9b2acd055c0a4fb0ac4a2af8509dfb70c"
+    },
+    "measured.benchmark_adaptive_plane_search.py.txt": {
+      "sha256": "5a36c6d4d610fe38c38196e5fa18b6f848e2731c436ef3f5945eb6cd99ccec49",
+      "source": "tools/benchmark_adaptive_plane_search.py",
+      "source_commit": "414b03d9b2acd055c0a4fb0ac4a2af8509dfb70c"
+    },
+    "measured.lidar_scan_deskew.py.txt": {
+      "sha256": "e36a870323f76256fb5b3f8b8364cb2edb4c06483b3ea0fe8a99bf2faa6f1ce0",
+      "source": "tools/lidar_scan_deskew.py",
+      "source_commit": "414b03d9b2acd055c0a4fb0ac4a2af8509dfb70c"
+    },
+    "measured.rosbag1_to_rosbag2_online_pair.py.txt": {
+      "sha256": "9da3e080b62933d4d75f92c08bba91929fea401d99650e55f78bd3cdabfcc680",
+      "source": "tools/rosbag1_to_rosbag2_online_pair.py",
+      "source_commit": "414b03d9b2acd055c0a4fb0ac4a2af8509dfb70c"
+    },
+    "baseline.livox.py.txt": {
+      "sha256": "50dfd41ad1beb55893636965cf8d12f8afc5aec69a91d3cba1cc762901036ed6",
+      "source": "src/calibrex/data/livox.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "baseline.odometry_track.py.txt": {
+      "sha256": "660a735db57a92c164b9d20f470ba966f462cc83699e04856cc5f63092dab763",
+      "source": "src/calibrex/data/odometry_track.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "baseline.lidar_point_to_plane.py.txt": {
+      "sha256": "4d588d8f4ab80f89167cfb3a9376cc94da794121d19d637826afda00e2cab71c",
+      "source": "src/calibrex/graph/lidar_point_to_plane.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "baseline.lidar.py.txt": {
+      "sha256": "8e08c74cc5d6d11d96dae66c53a3e6b2c645bff28f7e0b56fc38567ec8cf4519",
+      "source": "src/calibrex/evaluation/lidar.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "baseline.continuous_time_lidar_pair_solver.py.txt": {
+      "sha256": "175f1e38c49dbc3472b3005ce32acf93ebeac660be07a830794d92a552f20737",
+      "source": "src/calibrex/solvers/continuous_time_lidar_pair_solver.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "baseline.adaptive_voxel.py.txt": {
+      "sha256": "122ef1128e7bea57a8d6e4cf462d825a00056ffa2ea30df2f98a5fd8f6dbff7d",
+      "source": "src/calibrex/data/adaptive_voxel.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "baseline.online.py.txt": {
+      "sha256": "090e373de41196825a09dd4735964cbcdcae766cb81cd643b061750272d08452",
+      "source": "src/calibrex/pipelines/online.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "baseline.fixed_trajectory_se3_solver.py.txt": {
+      "sha256": "3231303433662c6bafdea3b4a4520842304f89226d6f29f95fe0398bd74f577e",
+      "source": "src/calibrex/solvers/fixed_trajectory_se3_solver.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "baseline.numba_continuous_time_adapter.py.txt": {
+      "sha256": "d70d695e47d9dcbb41cb39e26ba39e1e18ecbdde87e580a8a29945cc682ff518",
+      "source": "src/calibrex/solvers/numba_continuous_time_adapter.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "baseline.robust_lidar_observations.py.txt": {
+      "sha256": "99601cc85aed82b5ccdddf33d1d8c079470b2b8785ee4057e8853094779df95b",
+      "source": "src/calibrex/solvers/robust_lidar_observations.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "baseline.packed_lidar_observations.py.txt": {
+      "sha256": "8c276b9a7379b94cf33c4fe1b64baf5f436025e6eb412c31ae291255f1d01099",
+      "source": "src/calibrex/evaluation/packed_lidar_observations.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "baseline.cuda_continuous_time_adapter.py.txt": {
+      "sha256": "6128e58bfb376416385523f247f05453a72a1ccc1684d3e1d752adfe2317109c",
+      "source": "src/calibrex/solvers/cuda_continuous_time_adapter.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "baseline.cuda_plane_query_adapter.py.txt": {
+      "sha256": "1e01de434b7baf5f635493d06435d42f87456340cb95fa5405a5761225ae0c03",
+      "source": "src/calibrex/solvers/cuda_plane_query_adapter.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "baseline.numba_lidar_deskew_adapter.py.txt": {
+      "sha256": "53966123b0e942f48929494fba4389062ccee0cd44dc85501e4d3451a84cc0be",
+      "source": "src/calibrex/data/numba_lidar_deskew_adapter.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "measured.online_continuous_time_compiled_dense_capture_config.yaml.txt": {
+      "sha256": "1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186",
+      "source": "examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml",
+      "source_commit": "414b03d9b2acd055c0a4fb0ac4a2af8509dfb70c"
+    },
+    "dense.baseline.repeat-01.measurement.json": {
+      "sha256": "64ddf39469f8a662ec75b5c2cd62cf05e38c0bc764b2653d81b6d21ab4b70e7b",
+      "original_sha256": "55f9477cadbc684cda6e590c1171313eeb771452118d32ba677d7cdb2417922a",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module",
+        "loaded_replay_module"
+      ]
+    },
+    "dense.baseline.repeat-01.result.yaml": {
+      "sha256": "d14361b0cc8829098320252f1fe51d2fb99533aaf0da52fe777d28fd3c565ded",
+      "original_sha256": "d14361b0cc8829098320252f1fe51d2fb99533aaf0da52fe777d28fd3c565ded"
+    },
+    "dense.sparse.repeat-01.measurement.json": {
+      "sha256": "5b22c6859c4c93f9ca762a9f271fa6e69ccba668744cf69104bd9411740a7763",
+      "original_sha256": "46035ed71fd5183d006eb5979f604efe91dd1df30ca2ef6426ea65eb130c8535",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module",
+        "loaded_replay_module"
+      ]
+    },
+    "dense.sparse.repeat-01.result.yaml": {
+      "sha256": "247c4da55942cf56ea86ca83e60b3fea62219db0ae1220bd1a703f0ba6d439db",
+      "original_sha256": "247c4da55942cf56ea86ca83e60b3fea62219db0ae1220bd1a703f0ba6d439db"
+    },
+    "dense.sparse.repeat-02.measurement.json": {
+      "sha256": "3885de8fdee42a39c5470442db69798e4e74aa743e355f035e8c8e2a9b339abd",
+      "original_sha256": "c2dbc144cd6d98685b7293ee06a8f50d426abf028126b4eb2c69c33010cb10f4",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module",
+        "loaded_replay_module"
+      ]
+    },
+    "dense.sparse.repeat-02.result.yaml": {
+      "sha256": "247c4da55942cf56ea86ca83e60b3fea62219db0ae1220bd1a703f0ba6d439db",
+      "original_sha256": "247c4da55942cf56ea86ca83e60b3fea62219db0ae1220bd1a703f0ba6d439db"
+    },
+    "dense.baseline.repeat-02.measurement.json": {
+      "sha256": "6a9b4988f00f036601ec435bf2e0fcf6aaa18c0fae85978463380fc9896b57ff",
+      "original_sha256": "9dcbb097ff71d5e43c3ac98915d7e778ea0b7af49520891842a494f50aee2078",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module",
+        "loaded_replay_module"
+      ]
+    },
+    "dense.baseline.repeat-02.result.yaml": {
+      "sha256": "d14361b0cc8829098320252f1fe51d2fb99533aaf0da52fe777d28fd3c565ded",
+      "original_sha256": "d14361b0cc8829098320252f1fe51d2fb99533aaf0da52fe777d28fd3c565ded"
+    },
+    "dense.baseline.repeat-03.measurement.json": {
+      "sha256": "5781a8f7435dd6ddb0f15208dcd9d8465f2839bad342596a05a87713ea4bc1d6",
+      "original_sha256": "df1940cd6cff436eb0d6a5d4f68ee3880c2aed0628c0ef50102f801616ed364c",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module",
+        "loaded_replay_module"
+      ]
+    },
+    "dense.baseline.repeat-03.result.yaml": {
+      "sha256": "d14361b0cc8829098320252f1fe51d2fb99533aaf0da52fe777d28fd3c565ded",
+      "original_sha256": "d14361b0cc8829098320252f1fe51d2fb99533aaf0da52fe777d28fd3c565ded"
+    },
+    "dense.sparse.repeat-03.measurement.json": {
+      "sha256": "66fdcdbcd37cb6027f34027786473078de2b33cb64c71a96cfb6511e9b69cd7a",
+      "original_sha256": "ba2c403f4bf366d3a54615b8f04ef81582fc3590634bd39b6294dbfa82dc8638",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module",
+        "loaded_replay_module"
+      ]
+    },
+    "dense.sparse.repeat-03.result.yaml": {
+      "sha256": "247c4da55942cf56ea86ca83e60b3fea62219db0ae1220bd1a703f0ba6d439db",
+      "original_sha256": "247c4da55942cf56ea86ca83e60b3fea62219db0ae1220bd1a703f0ba6d439db"
+    },
+    "dense.sparse.repeat-04.measurement.json": {
+      "sha256": "5e86f091c56750d496d1936a55ed21bd595e9985af7ef4307017c781785d2242",
+      "original_sha256": "acc905eb6c3c12d927e8be104534cc966a73231b435c11cf11c81ee2e32f07ee",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module",
+        "loaded_replay_module"
+      ]
+    },
+    "dense.sparse.repeat-04.result.yaml": {
+      "sha256": "247c4da55942cf56ea86ca83e60b3fea62219db0ae1220bd1a703f0ba6d439db",
+      "original_sha256": "247c4da55942cf56ea86ca83e60b3fea62219db0ae1220bd1a703f0ba6d439db"
+    },
+    "dense.baseline.repeat-04.measurement.json": {
+      "sha256": "4b21ff564edc78e85b15fe18615823426de48233d06ac932cf0f6363293bf2f3",
+      "original_sha256": "315a50880603094c0e2c540e87d4c181bd2f85dfdc0c9203243e1c578c25c417",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module",
+        "loaded_replay_module"
+      ]
+    },
+    "dense.baseline.repeat-04.result.yaml": {
+      "sha256": "d14361b0cc8829098320252f1fe51d2fb99533aaf0da52fe777d28fd3c565ded",
+      "original_sha256": "d14361b0cc8829098320252f1fe51d2fb99533aaf0da52fe777d28fd3c565ded"
+    },
+    "dense.baseline.repeat-05.measurement.json": {
+      "sha256": "ca6979c81b75edc17ed8d6052feddb90b07483b7ac504e25771dd178d2215c68",
+      "original_sha256": "f427b623acdfb53716c909ba9e9c11abc7ec718ba82fb6af91adfe1c9d564d44",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module",
+        "loaded_replay_module"
+      ]
+    },
+    "dense.baseline.repeat-05.result.yaml": {
+      "sha256": "d14361b0cc8829098320252f1fe51d2fb99533aaf0da52fe777d28fd3c565ded",
+      "original_sha256": "d14361b0cc8829098320252f1fe51d2fb99533aaf0da52fe777d28fd3c565ded"
+    },
+    "dense.sparse.repeat-05.measurement.json": {
+      "sha256": "75f38b150f4e5b9a88e964c8a3a589d6dc8fab35f01562cc067326344c57c10f",
+      "original_sha256": "6112001d45e6715ba8100de3cbc303f1d91b45752917be762d1b90c841fe1278",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module",
+        "loaded_replay_module"
+      ]
+    },
+    "dense.sparse.repeat-05.result.yaml": {
+      "sha256": "247c4da55942cf56ea86ca83e60b3fea62219db0ae1220bd1a703f0ba6d439db",
+      "original_sha256": "247c4da55942cf56ea86ca83e60b3fea62219db0ae1220bd1a703f0ba6d439db"
+    },
+    "dense.definition.json": {
+      "sha256": "bef606cc16ede43f191bffae07a84bc9e6247fe6d90d21eb9e6078611e0d6ca5",
+      "original_sha256": "8816569bb44991fbc26bd08c078773506fd9276a8bdc8b9254673e1c799e0652"
+    },
+    "dense.benchmark.json": {
+      "sha256": "5cd7a93d10b487a5234de63ad5f93f77f336c87c308eea99f12d7d63e2b0a05d",
+      "original_sha256": "802580073a04525bf3dfb5a5ab3bdb496ad7d613ef59820fb7c55dd349f87a5b"
+    },
+    "measured.online_continuous_time_compiled_full_capture_config.yaml.txt": {
+      "sha256": "c6d93361d1628493be20a64d585394b2e437bffcbd548340a541cc12b1c602b3",
+      "source": "examples/public_datasets/glim_versatile/online_continuous_time_compiled_full_capture_config.yaml",
+      "source_commit": "414b03d9b2acd055c0a4fb0ac4a2af8509dfb70c"
+    },
+    "full.baseline.repeat-01.measurement.json": {
+      "sha256": "56a37a3c8ea16d0faf7ba649a01acd8aa692cfe079790ec40c907c57f76831f4",
+      "original_sha256": "e635632418d1c2efd641a7a9bac77104c1f29aa6b8e0e584020efd6f3d318272",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module"
+      ]
+    },
+    "full.baseline.repeat-01.result.yaml": {
+      "sha256": "01d763c45dae35fdeb84bd9b6e8192b9b2a59a04a4cd7c3250a029faf2182afb",
+      "original_sha256": "01d763c45dae35fdeb84bd9b6e8192b9b2a59a04a4cd7c3250a029faf2182afb"
+    },
+    "full.sparse.repeat-01.measurement.json": {
+      "sha256": "2af676ff5da8d87887eed408cfccf54be779bd6567655ad8d7ba7c0768cf8f7e",
+      "original_sha256": "71d5df97f710b04a7153f63b69aa01fb0df58bf0d410a51db9891886fa4d9dce",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module"
+      ]
+    },
+    "full.sparse.repeat-01.result.yaml": {
+      "sha256": "38af5b8029d59d3fd27e8bbe4bd940376defbfbf20a48d579dfb6a74404dae39",
+      "original_sha256": "38af5b8029d59d3fd27e8bbe4bd940376defbfbf20a48d579dfb6a74404dae39"
+    },
+    "full.sparse.repeat-02.measurement.json": {
+      "sha256": "4d3d8f4b18d46f65cd68bd3fd8b86c57479451347786d85c33623a57a1ede4a5",
+      "original_sha256": "fae2df30dc9cfe4684e6f17702f8bd31f44aabed737c73832a3b7a586c0e997e",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module"
+      ]
+    },
+    "full.sparse.repeat-02.result.yaml": {
+      "sha256": "38af5b8029d59d3fd27e8bbe4bd940376defbfbf20a48d579dfb6a74404dae39",
+      "original_sha256": "38af5b8029d59d3fd27e8bbe4bd940376defbfbf20a48d579dfb6a74404dae39"
+    },
+    "full.baseline.repeat-02.measurement.json": {
+      "sha256": "fd2155fe29269fd5f17cb7a6dc436b690cf05308f8557ba7591b991a07f0b817",
+      "original_sha256": "82ce487821a15a0a63873a575f0eedcd06d88e5b501a4fc4f797ab2c666d73db",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module"
+      ]
+    },
+    "full.baseline.repeat-02.result.yaml": {
+      "sha256": "01d763c45dae35fdeb84bd9b6e8192b9b2a59a04a4cd7c3250a029faf2182afb",
+      "original_sha256": "01d763c45dae35fdeb84bd9b6e8192b9b2a59a04a4cd7c3250a029faf2182afb"
+    },
+    "full.baseline.repeat-03.measurement.json": {
+      "sha256": "acdc99a7101b3013b8915bab208484d1ae7f1f5acdbcf485ed153c68525461d1",
+      "original_sha256": "b04564178edfe1ed9da4dcff086ff0376fdf4a82397f0a39310c611bc5f88341",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module"
+      ]
+    },
+    "full.baseline.repeat-03.result.yaml": {
+      "sha256": "01d763c45dae35fdeb84bd9b6e8192b9b2a59a04a4cd7c3250a029faf2182afb",
+      "original_sha256": "01d763c45dae35fdeb84bd9b6e8192b9b2a59a04a4cd7c3250a029faf2182afb"
+    },
+    "full.sparse.repeat-03.measurement.json": {
+      "sha256": "f4f77ef45ec8843b6d512a42e1cff717ce3a86b2ae5ce5ff9de557318df44add",
+      "original_sha256": "0dd876fa8754e7fb2fc7490734721df363acc4025a4789179f48e6f5efd2a025",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module"
+      ]
+    },
+    "full.sparse.repeat-03.result.yaml": {
+      "sha256": "38af5b8029d59d3fd27e8bbe4bd940376defbfbf20a48d579dfb6a74404dae39",
+      "original_sha256": "38af5b8029d59d3fd27e8bbe4bd940376defbfbf20a48d579dfb6a74404dae39"
+    },
+    "full.sparse.repeat-04.measurement.json": {
+      "sha256": "ec8a085a73af5718faeecb1a8a58a877c3d6d926cc23a5031f6341a20f6d3df7",
+      "original_sha256": "a32c9c315a43f13a39b023140f8dffb6d84944fcdb9c2c7151a85844659f6905",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module"
+      ]
+    },
+    "full.sparse.repeat-04.result.yaml": {
+      "sha256": "38af5b8029d59d3fd27e8bbe4bd940376defbfbf20a48d579dfb6a74404dae39",
+      "original_sha256": "38af5b8029d59d3fd27e8bbe4bd940376defbfbf20a48d579dfb6a74404dae39"
+    },
+    "full.baseline.repeat-04.measurement.json": {
+      "sha256": "65b2b8b7dac4f8ed725a67ada93b3570275d423029495c21d03df006c42f368f",
+      "original_sha256": "214db982733c28c5ca8d48e39e1a2a75bf38d6d6e0d8449dbc8fff277fbde188",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module"
+      ]
+    },
+    "full.baseline.repeat-04.result.yaml": {
+      "sha256": "01d763c45dae35fdeb84bd9b6e8192b9b2a59a04a4cd7c3250a029faf2182afb",
+      "original_sha256": "01d763c45dae35fdeb84bd9b6e8192b9b2a59a04a4cd7c3250a029faf2182afb"
+    },
+    "full.baseline.repeat-05.measurement.json": {
+      "sha256": "94e17a307157d2607bd3544d33f432d68c7381937522b4687585bbf1148faa9a",
+      "original_sha256": "8ac5b29fdc4d8e04f5ff06ba94cd6f4df84d00812368b689754daf6183eea3c3",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module"
+      ]
+    },
+    "full.baseline.repeat-05.result.yaml": {
+      "sha256": "01d763c45dae35fdeb84bd9b6e8192b9b2a59a04a4cd7c3250a029faf2182afb",
+      "original_sha256": "01d763c45dae35fdeb84bd9b6e8192b9b2a59a04a4cd7c3250a029faf2182afb"
+    },
+    "full.sparse.repeat-05.measurement.json": {
+      "sha256": "e9aac6202c136b0578222c23c9a76b83d6895fb732c86de090228f0b750956c6",
+      "original_sha256": "f8ecb5ed901e397996fd0f33287b1c196cf8bd5151a9d8e1267d5004c35ddaf7",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module"
+      ]
+    },
+    "full.sparse.repeat-05.result.yaml": {
+      "sha256": "38af5b8029d59d3fd27e8bbe4bd940376defbfbf20a48d579dfb6a74404dae39",
+      "original_sha256": "38af5b8029d59d3fd27e8bbe4bd940376defbfbf20a48d579dfb6a74404dae39"
+    },
+    "full.definition.json": {
+      "sha256": "0da351a310830aca9511a4a7d1d4c54e624410077614fde7f5fd676167d7ad0c",
+      "original_sha256": "cae6c0a83b893118b023d6d3f49dc99f6201db61caced4e7b1c307a5d4797a9b"
+    },
+    "full.benchmark.json": {
+      "sha256": "df87a5d43a169a24fe1a847c8a02669e62098269bf4cfc1fc662574ee1d23745",
+      "original_sha256": "67571e35cc77c0d1ca59d41f5ec2f0df1beac993d46bfda67b06450090db43b7"
+    },
+    "measured.online_continuous_time_compiled_queries_config.yaml.txt": {
+      "sha256": "677b4b8eed3a989949e37da0bc6fc59124262805151e6ab154ee2a5576387e55",
+      "source": "examples/public_datasets/glim_versatile/online_continuous_time_compiled_queries_config.yaml",
+      "source_commit": "414b03d9b2acd055c0a4fb0ac4a2af8509dfb70c"
+    },
+    "default.baseline.repeat-01.measurement.json": {
+      "sha256": "f78b3917827ceba75df5017e67f4d4c703ba6bfa1b50a0526d65fd6619744df5",
+      "original_sha256": "51ac256c577eeefa0a27cc73af89c45f2620a2d3824e5ce7abbfdf3c668b9178",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules"
+      ]
+    },
+    "default.baseline.repeat-01.result.yaml": {
+      "sha256": "90efd4713ef1d824d74faef2df6e25aa5cbd347476743fd411a9cbcc8083afcb",
+      "original_sha256": "90efd4713ef1d824d74faef2df6e25aa5cbd347476743fd411a9cbcc8083afcb"
+    },
+    "default.sparse.repeat-01.measurement.json": {
+      "sha256": "34b74a358972e3cec284e1c6c5f48b3d3da34df91e2af0c839db7d21349bd72b",
+      "original_sha256": "e6f54d32086a5680fd89f6f78f75bc8792034adace6fdde4d77a5f45a58e50aa",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules"
+      ]
+    },
+    "default.sparse.repeat-01.result.yaml": {
+      "sha256": "90efd4713ef1d824d74faef2df6e25aa5cbd347476743fd411a9cbcc8083afcb",
+      "original_sha256": "90efd4713ef1d824d74faef2df6e25aa5cbd347476743fd411a9cbcc8083afcb"
+    },
+    "default.sparse.repeat-02.measurement.json": {
+      "sha256": "6cc2a306efecb11a65acf495459451c87aefd2959abc0ce4c774b5745c92838b",
+      "original_sha256": "a3c12a29fbad222483692f94ce6f23bbc520cd60c45b20ac25c1851fd249f8e9",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules"
+      ]
+    },
+    "default.sparse.repeat-02.result.yaml": {
+      "sha256": "90efd4713ef1d824d74faef2df6e25aa5cbd347476743fd411a9cbcc8083afcb",
+      "original_sha256": "90efd4713ef1d824d74faef2df6e25aa5cbd347476743fd411a9cbcc8083afcb"
+    },
+    "default.baseline.repeat-02.measurement.json": {
+      "sha256": "c4c4e3102ed1167b8d46e5f2bf2bb5bbbf19fc05fda9f88724a964fb26c92195",
+      "original_sha256": "1b53b54017692e51f2648340f5df115f11a47635aa85e3d2751e7b77dff57276",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules"
+      ]
+    },
+    "default.baseline.repeat-02.result.yaml": {
+      "sha256": "90efd4713ef1d824d74faef2df6e25aa5cbd347476743fd411a9cbcc8083afcb",
+      "original_sha256": "90efd4713ef1d824d74faef2df6e25aa5cbd347476743fd411a9cbcc8083afcb"
+    },
+    "default.baseline.repeat-03.measurement.json": {
+      "sha256": "9200936b2d497fdc6a349161a9a05d6cfd354b9394e13d0b9e9c1bdc2f1c4fd3",
+      "original_sha256": "8f17116dc53aa3fde2f99f2b3ce19dcd07ce2659227a091fcff70167280368e3",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules"
+      ]
+    },
+    "default.baseline.repeat-03.result.yaml": {
+      "sha256": "90efd4713ef1d824d74faef2df6e25aa5cbd347476743fd411a9cbcc8083afcb",
+      "original_sha256": "90efd4713ef1d824d74faef2df6e25aa5cbd347476743fd411a9cbcc8083afcb"
+    },
+    "default.sparse.repeat-03.measurement.json": {
+      "sha256": "ff9d031de560d04e0af118d04a84fb1909a959128cf240000d4e20bd651a0912",
+      "original_sha256": "976fa49e54bce9fac89feafedbae3f73140e5cb4c3cd51672a7a39fabf5eab06",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules"
+      ]
+    },
+    "default.sparse.repeat-03.result.yaml": {
+      "sha256": "90efd4713ef1d824d74faef2df6e25aa5cbd347476743fd411a9cbcc8083afcb",
+      "original_sha256": "90efd4713ef1d824d74faef2df6e25aa5cbd347476743fd411a9cbcc8083afcb"
+    },
+    "default.sparse.repeat-04.measurement.json": {
+      "sha256": "053e122934bb8ac23f356b5fa2ce8550401c87ae14d3048d880751fa243a0aec",
+      "original_sha256": "8bb4f1cca779f9f7eb17638efae6b043e7eeda25ac73ca67b01058c18bf6f645",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules"
+      ]
+    },
+    "default.sparse.repeat-04.result.yaml": {
+      "sha256": "90efd4713ef1d824d74faef2df6e25aa5cbd347476743fd411a9cbcc8083afcb",
+      "original_sha256": "90efd4713ef1d824d74faef2df6e25aa5cbd347476743fd411a9cbcc8083afcb"
+    },
+    "default.baseline.repeat-04.measurement.json": {
+      "sha256": "3d4582a15caa896f7664b26f78176fe5edc30ca41dc9bd6ad627d221426e9a4a",
+      "original_sha256": "a76992ebe4e98250735105d563600cad1be13201d16dc3fa6c9f981061cf5e4b",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules"
+      ]
+    },
+    "default.baseline.repeat-04.result.yaml": {
+      "sha256": "90efd4713ef1d824d74faef2df6e25aa5cbd347476743fd411a9cbcc8083afcb",
+      "original_sha256": "90efd4713ef1d824d74faef2df6e25aa5cbd347476743fd411a9cbcc8083afcb"
+    },
+    "default.baseline.repeat-05.measurement.json": {
+      "sha256": "9982e06ce079f497b23b7064487b1d323c1c1560f13c99d14fb7e8efd69f5837",
+      "original_sha256": "d03025ef35ef95bdf2bf2f99f7ca13a532a94d2da95ecd93e69f8c978c05ef76",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules"
+      ]
+    },
+    "default.baseline.repeat-05.result.yaml": {
+      "sha256": "90efd4713ef1d824d74faef2df6e25aa5cbd347476743fd411a9cbcc8083afcb",
+      "original_sha256": "90efd4713ef1d824d74faef2df6e25aa5cbd347476743fd411a9cbcc8083afcb"
+    },
+    "default.sparse.repeat-05.measurement.json": {
+      "sha256": "359d1f6e6b89541554e7376395c7e79d12dc4fe50c663c18961337c072560ba6",
+      "original_sha256": "fb2aeac36af98e793c88653c556148d41e47d7df0cde94e9fcb1b9fe25e7aab4",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules"
+      ]
+    },
+    "default.sparse.repeat-05.result.yaml": {
+      "sha256": "90efd4713ef1d824d74faef2df6e25aa5cbd347476743fd411a9cbcc8083afcb",
+      "original_sha256": "90efd4713ef1d824d74faef2df6e25aa5cbd347476743fd411a9cbcc8083afcb"
+    },
+    "default.definition.json": {
+      "sha256": "7d278d6ad76996c6393c0e3408a78c96aeaef217849283730c5dfa204824ec98",
+      "original_sha256": "87868ccbec4378870c76ca0fc434a5f5fdb8577c23976bcea81a6b07ddccc150"
+    },
+    "default.benchmark.json": {
+      "sha256": "6feab7c183f0fc7f12f20343c6681dff567dff91cb16f1a5e5a46696219197b9",
+      "original_sha256": "9693f91af6511b9a5654456fde7f5da54a6cc143a09d9d8746a7e429557105aa"
+    },
+    "benchmark-launcher.py.txt": {
+      "sha256": "89252ff2dd96f560b045a8856c88519c22fe8c08b68b9f08da6922e2e9c62955"
+    },
+    "profiles/baseline/source.adaptive_voxel.py.txt": {
+      "sha256": "4a2afd9a882426f0a99dbf7af52f98d49b48e168a32956ec3496f5740c879a14",
+      "source": "src/calibrex/data/adaptive_voxel.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "profiles/baseline/source.odometry_track.py.txt": {
+      "sha256": "1569e661470e902f2f08dde1bf2d0c41cc6540a24f59d9ee961e066d36653c91",
+      "source": "src/calibrex/data/odometry_track.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "profiles/baseline/source.numba_lidar_deskew_adapter.py.txt": {
+      "sha256": "53966123b0e942f48929494fba4389062ccee0cd44dc85501e4d3451a84cc0be",
+      "source": "src/calibrex/data/numba_lidar_deskew_adapter.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "profiles/baseline/source.lidar_point_to_plane.py.txt": {
+      "sha256": "840aeb3cee3774a43cedc3fad5a5d54d0e108b59c1407b44a837f5f7d8ec1070",
+      "source": "src/calibrex/graph/lidar_point_to_plane.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "profiles/baseline/source.continuous_time_lidar_pair_solver.py.txt": {
+      "sha256": "6f7d8db119a75e47c452b533c1b1fd05c9149fec1f4f9f7bc73517057aac142d",
+      "source": "src/calibrex/solvers/continuous_time_lidar_pair_solver.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "profiles/baseline/source.numba_continuous_time_adapter.py.txt": {
+      "sha256": "d70d695e47d9dcbb41cb39e26ba39e1e18ecbdde87e580a8a29945cc682ff518",
+      "source": "src/calibrex/solvers/numba_continuous_time_adapter.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "profiles/baseline/source.cuda_continuous_time_adapter.py.txt": {
+      "sha256": "6128e58bfb376416385523f247f05453a72a1ccc1684d3e1d752adfe2317109c",
+      "source": "src/calibrex/solvers/cuda_continuous_time_adapter.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "profiles/baseline/source.cuda_plane_query_adapter.py.txt": {
+      "sha256": "1e01de434b7baf5f635493d06435d42f87456340cb95fa5405a5761225ae0c03",
+      "source": "src/calibrex/solvers/cuda_plane_query_adapter.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "profiles/baseline/source.fixed_trajectory_se3_solver.py.txt": {
+      "sha256": "f581fbb7e27509c9062f010878ff17efbece50c4fdb8c0b18a165898eb7706be",
+      "source": "src/calibrex/solvers/fixed_trajectory_se3_solver.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "profiles/baseline/source.robust_lidar_observations.py.txt": {
+      "sha256": "ff398d558ec6f35eec497d6cdec80286b43ff4fd27a1e3b6a224d8e54098e240",
+      "source": "src/calibrex/solvers/robust_lidar_observations.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "profiles/baseline/source.lidar.py.txt": {
+      "sha256": "2e4c7dda7f81eaa343096ccce57e1f160bc4418d395facfafc4bcbed4ffb16df",
+      "source": "src/calibrex/evaluation/lidar.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "profiles/baseline/source.packed_lidar_observations.py.txt": {
+      "sha256": "8c276b9a7379b94cf33c4fe1b64baf5f436025e6eb412c31ae291255f1d01099",
+      "source": "src/calibrex/evaluation/packed_lidar_observations.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "profiles/baseline/source.livox.py.txt": {
+      "sha256": "0773a7e2fccb2d2faa23f9e90636a00355499af131ad671845edb2c8d33b1bfd",
+      "source": "src/calibrex/data/livox.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "profiles/baseline/source.online.py.txt": {
+      "sha256": "090e373de41196825a09dd4735964cbcdcae766cb81cd643b061750272d08452",
+      "source": "src/calibrex/pipelines/online.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "profiles/baseline/source.continuous_time_lidar_artifacts.py.txt": {
+      "sha256": "96c051290b6b4f82f81fcc108b6ea4525b1497af064a3dedb8196e7dedd9d874",
+      "source": "src/calibrex/core/continuous_time_lidar_artifacts.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "profiles/baseline/source.continuous_time_lidar_train_diagnostics.py.txt": {
+      "sha256": "f86b7e9d569b4ef61d85834df790207dbe2f424af17ec0f5df16b9f2aef6fcac",
+      "source": "src/calibrex/core/continuous_time_lidar_train_diagnostics.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "profiles/baseline/source.provenance.py.txt": {
+      "sha256": "eb7849f342892272ae136454da816852d080684b25c8ec55771582c1b8621f47",
+      "source": "src/calibrex/core/provenance.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "profiles/baseline/source.rosbag1_to_rosbag2_online_pair.py.txt": {
+      "sha256": "9da3e080b62933d4d75f92c08bba91929fea401d99650e55f78bd3cdabfcc680",
+      "source": "tools/rosbag1_to_rosbag2_online_pair.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "profiles/baseline/source.lidar_scan_deskew.py.txt": {
+      "sha256": "e36a870323f76256fb5b3f8b8364cb2edb4c06483b3ea0fe8a99bf2faa6f1ce0",
+      "source": "tools/lidar_scan_deskew.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "profiles/baseline/source.benchmark_adaptive_plane_search.py.txt": {
+      "sha256": "487a95d93ff320754afdf28f30263e3b0c6edbabc1a52fecc58a25033882d59c",
+      "source": "tools/benchmark_adaptive_plane_search.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "profiles/baseline/source.online_continuous_time_compiled_dense_capture_config.yaml.txt": {
+      "sha256": "1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186",
+      "source": "examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "profiles/baseline/profile-launcher.py.txt": {
+      "sha256": "752b8734ffac2b5579bbad8e8a488188ae19f2184673244c3072f6e531400e30"
+    },
+    "profiles/baseline/profile.json": {
+      "sha256": "7b6098659f9abcc34739ec98dce4425b1b8f218dacf1792a02415460bf1d1a12",
+      "original_sha256": "2b25a68755bd3e228b4901dbacc5478c28a0266665566b1590b25cbc4f4b238b",
+      "changed_fields": [
+        "provenance.source_sha256"
+      ]
+    },
+    "profiles/baseline/measurement.json": {
+      "sha256": "daa2603f8542553f50534e8fbb76674d81354e34c33d121205bdbc3c5bd9849c",
+      "original_sha256": "a481b9fb545ae4cf24dfb4c12a2240890c0b24bda86b7d6b3a3406b9c6d6e6c2",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module",
+        "loaded_replay_module"
+      ]
+    },
+    "profiles/baseline/result.yaml": {
+      "sha256": "84a18eb8128c6d5a296cd5c62dd4287543d9b9348e6a7f2c634c69c5a7629286",
+      "original_sha256": "84a18eb8128c6d5a296cd5c62dd4287543d9b9348e6a7f2c634c69c5a7629286"
+    },
+    "attempts/v1/source/src/calibrex/data/adaptive_voxel.py.txt": {
+      "sha256": "4a2afd9a882426f0a99dbf7af52f98d49b48e168a32956ec3496f5740c879a14",
+      "source": "src/calibrex/data/adaptive_voxel.py",
+      "source_commit": "6b9eb058f9864c3244c2f5c6941aee3b2836dbc0"
+    },
+    "attempts/v1/source/src/calibrex/data/odometry_track.py.txt": {
+      "sha256": "1569e661470e902f2f08dde1bf2d0c41cc6540a24f59d9ee961e066d36653c91",
+      "source": "src/calibrex/data/odometry_track.py",
+      "source_commit": "6b9eb058f9864c3244c2f5c6941aee3b2836dbc0"
+    },
+    "attempts/v1/source/src/calibrex/data/numba_lidar_deskew_adapter.py.txt": {
+      "sha256": "53966123b0e942f48929494fba4389062ccee0cd44dc85501e4d3451a84cc0be",
+      "source": "src/calibrex/data/numba_lidar_deskew_adapter.py",
+      "source_commit": "6b9eb058f9864c3244c2f5c6941aee3b2836dbc0"
+    },
+    "attempts/v1/source/src/calibrex/graph/lidar_point_to_plane.py.txt": {
+      "sha256": "e460afad4035cc1b265ffcb619b978287a7cc376c1112d120b8cc1787d3b1b56",
+      "source": "src/calibrex/graph/lidar_point_to_plane.py",
+      "source_commit": "6b9eb058f9864c3244c2f5c6941aee3b2836dbc0"
+    },
+    "attempts/v1/source/src/calibrex/solvers/continuous_time_lidar_pair_solver.py.txt": {
+      "sha256": "6f7d8db119a75e47c452b533c1b1fd05c9149fec1f4f9f7bc73517057aac142d",
+      "source": "src/calibrex/solvers/continuous_time_lidar_pair_solver.py",
+      "source_commit": "6b9eb058f9864c3244c2f5c6941aee3b2836dbc0"
+    },
+    "attempts/v1/source/src/calibrex/solvers/numba_continuous_time_adapter.py.txt": {
+      "sha256": "d70d695e47d9dcbb41cb39e26ba39e1e18ecbdde87e580a8a29945cc682ff518",
+      "source": "src/calibrex/solvers/numba_continuous_time_adapter.py",
+      "source_commit": "6b9eb058f9864c3244c2f5c6941aee3b2836dbc0"
+    },
+    "attempts/v1/source/src/calibrex/solvers/cuda_continuous_time_adapter.py.txt": {
+      "sha256": "1c6cdd826fb47a73ac7af4e3941ac3597f8a74d9a78e7247683c83f6dc71bd6c",
+      "source": "src/calibrex/solvers/cuda_continuous_time_adapter.py",
+      "source_commit": "6b9eb058f9864c3244c2f5c6941aee3b2836dbc0"
+    },
+    "attempts/v1/source/src/calibrex/solvers/cuda_plane_query_adapter.py.txt": {
+      "sha256": "1e01de434b7baf5f635493d06435d42f87456340cb95fa5405a5761225ae0c03",
+      "source": "src/calibrex/solvers/cuda_plane_query_adapter.py",
+      "source_commit": "6b9eb058f9864c3244c2f5c6941aee3b2836dbc0"
+    },
+    "attempts/v1/source/src/calibrex/solvers/fixed_trajectory_se3_solver.py.txt": {
+      "sha256": "940f1c9669cd6492daf7923fbde8577ef9b3e19e562378fac3294152ebea919a",
+      "source": "src/calibrex/solvers/fixed_trajectory_se3_solver.py",
+      "source_commit": "6b9eb058f9864c3244c2f5c6941aee3b2836dbc0"
+    },
+    "attempts/v1/source/src/calibrex/solvers/robust_lidar_observations.py.txt": {
+      "sha256": "ff398d558ec6f35eec497d6cdec80286b43ff4fd27a1e3b6a224d8e54098e240",
+      "source": "src/calibrex/solvers/robust_lidar_observations.py",
+      "source_commit": "6b9eb058f9864c3244c2f5c6941aee3b2836dbc0"
+    },
+    "attempts/v1/source/src/calibrex/evaluation/lidar.py.txt": {
+      "sha256": "2e4c7dda7f81eaa343096ccce57e1f160bc4418d395facfafc4bcbed4ffb16df",
+      "source": "src/calibrex/evaluation/lidar.py",
+      "source_commit": "6b9eb058f9864c3244c2f5c6941aee3b2836dbc0"
+    },
+    "attempts/v1/source/src/calibrex/evaluation/packed_lidar_observations.py.txt": {
+      "sha256": "8c276b9a7379b94cf33c4fe1b64baf5f436025e6eb412c31ae291255f1d01099",
+      "source": "src/calibrex/evaluation/packed_lidar_observations.py",
+      "source_commit": "6b9eb058f9864c3244c2f5c6941aee3b2836dbc0"
+    },
+    "attempts/v1/source/src/calibrex/data/livox.py.txt": {
+      "sha256": "0773a7e2fccb2d2faa23f9e90636a00355499af131ad671845edb2c8d33b1bfd",
+      "source": "src/calibrex/data/livox.py",
+      "source_commit": "6b9eb058f9864c3244c2f5c6941aee3b2836dbc0"
+    },
+    "attempts/v1/source/src/calibrex/pipelines/online.py.txt": {
+      "sha256": "090e373de41196825a09dd4735964cbcdcae766cb81cd643b061750272d08452",
+      "source": "src/calibrex/pipelines/online.py",
+      "source_commit": "6b9eb058f9864c3244c2f5c6941aee3b2836dbc0"
+    },
+    "attempts/v1/source/src/calibrex/core/continuous_time_lidar_artifacts.py.txt": {
+      "sha256": "96c051290b6b4f82f81fcc108b6ea4525b1497af064a3dedb8196e7dedd9d874",
+      "source": "src/calibrex/core/continuous_time_lidar_artifacts.py",
+      "source_commit": "6b9eb058f9864c3244c2f5c6941aee3b2836dbc0"
+    },
+    "attempts/v1/source/src/calibrex/core/continuous_time_lidar_train_diagnostics.py.txt": {
+      "sha256": "f86b7e9d569b4ef61d85834df790207dbe2f424af17ec0f5df16b9f2aef6fcac",
+      "source": "src/calibrex/core/continuous_time_lidar_train_diagnostics.py",
+      "source_commit": "6b9eb058f9864c3244c2f5c6941aee3b2836dbc0"
+    },
+    "attempts/v1/source/src/calibrex/core/provenance.py.txt": {
+      "sha256": "eb7849f342892272ae136454da816852d080684b25c8ec55771582c1b8621f47",
+      "source": "src/calibrex/core/provenance.py",
+      "source_commit": "6b9eb058f9864c3244c2f5c6941aee3b2836dbc0"
+    },
+    "attempts/v1/source/tools/rosbag1_to_rosbag2_online_pair.py.txt": {
+      "sha256": "9da3e080b62933d4d75f92c08bba91929fea401d99650e55f78bd3cdabfcc680",
+      "source": "tools/rosbag1_to_rosbag2_online_pair.py",
+      "source_commit": "6b9eb058f9864c3244c2f5c6941aee3b2836dbc0"
+    },
+    "attempts/v1/source/tools/lidar_scan_deskew.py.txt": {
+      "sha256": "e36a870323f76256fb5b3f8b8364cb2edb4c06483b3ea0fe8a99bf2faa6f1ce0",
+      "source": "tools/lidar_scan_deskew.py",
+      "source_commit": "6b9eb058f9864c3244c2f5c6941aee3b2836dbc0"
+    },
+    "attempts/v1/source/tools/benchmark_adaptive_plane_search.py.txt": {
+      "sha256": "760e38aa2546366d849da3cc14a83c410a2186715277805a7fd08eeb2c3d9a59",
+      "source": "tools/benchmark_adaptive_plane_search.py",
+      "source_commit": "6b9eb058f9864c3244c2f5c6941aee3b2836dbc0"
+    },
+    "attempts/v1/source-index.json": {
+      "sha256": "9c74bb318c9a7247df108b39136c1662c549e444a95039308bc9db216ae4596b"
+    },
+    "attempts/v1/baseline.livox.py.txt": {
+      "sha256": "50dfd41ad1beb55893636965cf8d12f8afc5aec69a91d3cba1cc762901036ed6",
+      "source": "src/calibrex/data/livox.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "attempts/v1/baseline.odometry_track.py.txt": {
+      "sha256": "660a735db57a92c164b9d20f470ba966f462cc83699e04856cc5f63092dab763",
+      "source": "src/calibrex/data/odometry_track.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "attempts/v1/baseline.lidar_point_to_plane.py.txt": {
+      "sha256": "4d588d8f4ab80f89167cfb3a9376cc94da794121d19d637826afda00e2cab71c",
+      "source": "src/calibrex/graph/lidar_point_to_plane.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "attempts/v1/baseline.lidar.py.txt": {
+      "sha256": "8e08c74cc5d6d11d96dae66c53a3e6b2c645bff28f7e0b56fc38567ec8cf4519",
+      "source": "src/calibrex/evaluation/lidar.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "attempts/v1/baseline.continuous_time_lidar_pair_solver.py.txt": {
+      "sha256": "175f1e38c49dbc3472b3005ce32acf93ebeac660be07a830794d92a552f20737",
+      "source": "src/calibrex/solvers/continuous_time_lidar_pair_solver.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "attempts/v1/baseline.adaptive_voxel.py.txt": {
+      "sha256": "122ef1128e7bea57a8d6e4cf462d825a00056ffa2ea30df2f98a5fd8f6dbff7d",
+      "source": "src/calibrex/data/adaptive_voxel.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "attempts/v1/baseline.online.py.txt": {
+      "sha256": "090e373de41196825a09dd4735964cbcdcae766cb81cd643b061750272d08452",
+      "source": "src/calibrex/pipelines/online.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "attempts/v1/baseline.fixed_trajectory_se3_solver.py.txt": {
+      "sha256": "3231303433662c6bafdea3b4a4520842304f89226d6f29f95fe0398bd74f577e",
+      "source": "src/calibrex/solvers/fixed_trajectory_se3_solver.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "attempts/v1/baseline.numba_continuous_time_adapter.py.txt": {
+      "sha256": "d70d695e47d9dcbb41cb39e26ba39e1e18ecbdde87e580a8a29945cc682ff518",
+      "source": "src/calibrex/solvers/numba_continuous_time_adapter.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "attempts/v1/baseline.robust_lidar_observations.py.txt": {
+      "sha256": "99601cc85aed82b5ccdddf33d1d8c079470b2b8785ee4057e8853094779df95b",
+      "source": "src/calibrex/solvers/robust_lidar_observations.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "attempts/v1/baseline.packed_lidar_observations.py.txt": {
+      "sha256": "8c276b9a7379b94cf33c4fe1b64baf5f436025e6eb412c31ae291255f1d01099",
+      "source": "src/calibrex/evaluation/packed_lidar_observations.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "attempts/v1/baseline.cuda_continuous_time_adapter.py.txt": {
+      "sha256": "6128e58bfb376416385523f247f05453a72a1ccc1684d3e1d752adfe2317109c",
+      "source": "src/calibrex/solvers/cuda_continuous_time_adapter.py",
+      "source_commit": "9f68d3d165385fa6a3f154d5e14fe31676b40a85"
+    },
+    "attempts/v1/baseline.measurement.json": {
+      "sha256": "72ac2d71e2cea5d07e642cb4b49606ca7fe12ae1e6c6730bda0fac601288073e",
+      "original_sha256": "e043138e58f5d0653a05e6f260893a3620355573dbab45a07a0e3eff52649200",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module",
+        "loaded_replay_module"
+      ]
+    },
+    "attempts/v1/baseline.result.yaml": {
+      "sha256": "2ab609e4a8431c922b2bce6beb12091ceeacbcb33550bb5546d43f819b1f19d9",
+      "original_sha256": "2ab609e4a8431c922b2bce6beb12091ceeacbcb33550bb5546d43f819b1f19d9"
+    },
+    "attempts/v1/benchmark-launcher.py.txt": {
+      "sha256": "5cb4c8891b769cb7287aea1112bb479c9a21eeea1c7ab294f2847534a653f295"
+    },
+    "attempts/v1/stdout.txt": {
+      "sha256": "497123a90aafd71eafe5dae9b3d7aa028fb06e8b76883215255208a834b86499",
+      "original_sha256": "497123a90aafd71eafe5dae9b3d7aa028fb06e8b76883215255208a834b86499",
+      "changed_fields": [
+        "text_path_locations"
+      ]
+    },
+    "attempts/v1/stderr.txt": {
+      "sha256": "b17f2cd6b31df26962f8d7dcfb71986a9504899044d0d0381b82fff24e43e7a5",
+      "original_sha256": "53ecd2d46c9035e82404f6a3a4a193cfea2b3ea8e5b5a2fde5f93bcb0e90b22b",
+      "changed_fields": [
+        "text_path_locations"
+      ]
+    },
+    "cpu_stopped/baseline.adaptive_voxel.py.txt": {
+      "sha256": "8092345b64133e7f80680e6283cf5da1950b098881327ce62b0dfec22e10acb1",
+      "source": "src/calibrex/data/adaptive_voxel.py",
+      "source_commit": "eb50c99878706a45eb0e584f3573507313cdc172"
+    },
+    "cpu_stopped/baseline.continuous_time_lidar_pair_solver.py.txt": {
+      "sha256": "2b83cdfdfab352429edb87f7beb0289dafd8ed3faad10aa6ceb80dbcbb6d5ca8",
+      "source": "src/calibrex/solvers/continuous_time_lidar_pair_solver.py",
+      "source_commit": "eb50c99878706a45eb0e584f3573507313cdc172"
+    },
+    "cpu_stopped/baseline.fixed_trajectory_se3_solver.py.txt": {
+      "sha256": "3231303433662c6bafdea3b4a4520842304f89226d6f29f95fe0398bd74f577e",
+      "source": "src/calibrex/solvers/fixed_trajectory_se3_solver.py",
+      "source_commit": "eb50c99878706a45eb0e584f3573507313cdc172"
+    },
+    "cpu_stopped/baseline.lidar.py.txt": {
+      "sha256": "8e08c74cc5d6d11d96dae66c53a3e6b2c645bff28f7e0b56fc38567ec8cf4519",
+      "source": "src/calibrex/evaluation/lidar.py",
+      "source_commit": "eb50c99878706a45eb0e584f3573507313cdc172"
+    },
+    "cpu_stopped/baseline.lidar_point_to_plane.py.txt": {
+      "sha256": "bfbf42d647e868101f07d8613230f331d5ffb21a1ca885e6e7d9404e9fcc63b8",
+      "source": "src/calibrex/graph/lidar_point_to_plane.py",
+      "source_commit": "eb50c99878706a45eb0e584f3573507313cdc172"
+    },
+    "cpu_stopped/baseline.livox.py.txt": {
+      "sha256": "50dfd41ad1beb55893636965cf8d12f8afc5aec69a91d3cba1cc762901036ed6",
+      "source": "src/calibrex/data/livox.py",
+      "source_commit": "eb50c99878706a45eb0e584f3573507313cdc172"
+    },
+    "cpu_stopped/baseline.numba_continuous_time_adapter.py.txt": {
+      "sha256": "50adbf844647efc67cfe63b078a2440d40838baea0374275a3ade11370242966",
+      "source": "src/calibrex/solvers/numba_continuous_time_adapter.py",
+      "source_commit": "eb50c99878706a45eb0e584f3573507313cdc172"
+    },
+    "cpu_stopped/baseline.odometry_track.py.txt": {
+      "sha256": "660a735db57a92c164b9d20f470ba966f462cc83699e04856cc5f63092dab763",
+      "source": "src/calibrex/data/odometry_track.py",
+      "source_commit": "eb50c99878706a45eb0e584f3573507313cdc172"
+    },
+    "cpu_stopped/baseline.online.py.txt": {
+      "sha256": "fdf0f78525b75693c9c09011b1126e2439cbcb3f663e5c4b3fefbb404aebdb81",
+      "source": "src/calibrex/pipelines/online.py",
+      "source_commit": "eb50c99878706a45eb0e584f3573507313cdc172"
+    },
+    "cpu_stopped/baseline.robust_lidar_observations.py.txt": {
+      "sha256": "99601cc85aed82b5ccdddf33d1d8c079470b2b8785ee4057e8853094779df95b",
+      "source": "src/calibrex/solvers/robust_lidar_observations.py",
+      "source_commit": "eb50c99878706a45eb0e584f3573507313cdc172"
+    },
+    "cpu_stopped/stdout.txt": {
+      "sha256": "497123a90aafd71eafe5dae9b3d7aa028fb06e8b76883215255208a834b86499",
+      "original_sha256": "497123a90aafd71eafe5dae9b3d7aa028fb06e8b76883215255208a834b86499",
+      "changed_fields": [
+        "text_path_locations"
+      ]
+    },
+    "cpu_stopped/stderr.txt": {
+      "sha256": "1fdd54a2dac1e8eeccbd9b4d30695345932b315487c9a326ac21a4ed0364ce01",
+      "original_sha256": "e97dc67cf9492a556a09b6070d13bc814c5ffaeee7bf5b16f11c43f4eb045977",
+      "changed_fields": [
+        "text_path_locations"
+      ]
+    },
+    "cpu_stopped/stopped-processes.json": {
+      "sha256": "fefa7fca7f022083b9eba64f1f75cd0d3317a1690bc5b509c3cfb8103b507708",
+      "original_sha256": "6eaac96f1e72e681feb0ea05096b9183a65d2625c8203e676ba7bf73bf3d596b",
+      "changed_fields": [
+        "command_path_locations"
+      ]
+    },
+    "cpu_stopped/launcher.py.txt": {
+      "sha256": "ce46a682bc921b2e6bec5fe14cbb89390c20f79eafd6001c169fd04c55152962"
+    },
+    "cpu_stopped/abort.json": {
+      "sha256": "8359a17ef63215033948e3eba4492ee6b71057d7f25ff6ed8e7ff4194bf219e3"
+    }
+  }
+}

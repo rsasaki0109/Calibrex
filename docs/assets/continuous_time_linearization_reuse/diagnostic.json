@@ -1,0 +1,77 @@
+{
+  "provenance": {
+    "source_commit": "1bf71e2668e3ff790a427d9c5d6ea66df90d22e3",
+    "source_sha256": {
+      "src/calibrex/data/adaptive_voxel.py": "4a2afd9a882426f0a99dbf7af52f98d49b48e168a32956ec3496f5740c879a14",
+      "src/calibrex/data/odometry_track.py": "1569e661470e902f2f08dde1bf2d0c41cc6540a24f59d9ee961e066d36653c91",
+      "src/calibrex/data/numba_lidar_deskew_adapter.py": "53966123b0e942f48929494fba4389062ccee0cd44dc85501e4d3451a84cc0be",
+      "src/calibrex/graph/lidar_point_to_plane.py": "07988e80791cf4dcf42888dedcd81b13dad6bda8a46b15bfac542a1587bfb33f",
+      "src/calibrex/solvers/continuous_time_lidar_pair_solver.py": "6f7d8db119a75e47c452b533c1b1fd05c9149fec1f4f9f7bc73517057aac142d",
+      "src/calibrex/solvers/numba_continuous_time_adapter.py": "d70d695e47d9dcbb41cb39e26ba39e1e18ecbdde87e580a8a29945cc682ff518",
+      "src/calibrex/solvers/cuda_continuous_time_adapter.py": "1c6cdd826fb47a73ac7af4e3941ac3597f8a74d9a78e7247683c83f6dc71bd6c",
+      "src/calibrex/solvers/cuda_plane_query_adapter.py": "1e01de434b7baf5f635493d06435d42f87456340cb95fa5405a5761225ae0c03",
+      "src/calibrex/solvers/fixed_trajectory_se3_solver.py": "940f1c9669cd6492daf7923fbde8577ef9b3e19e562378fac3294152ebea919a",
+      "src/calibrex/solvers/robust_lidar_observations.py": "ff398d558ec6f35eec497d6cdec80286b43ff4fd27a1e3b6a224d8e54098e240",
+      "src/calibrex/evaluation/lidar.py": "2e4c7dda7f81eaa343096ccce57e1f160bc4418d395facfafc4bcbed4ffb16df",
+      "src/calibrex/evaluation/packed_lidar_observations.py": "8c276b9a7379b94cf33c4fe1b64baf5f436025e6eb412c31ae291255f1d01099",
+      "src/calibrex/data/livox.py": "0773a7e2fccb2d2faa23f9e90636a00355499af131ad671845edb2c8d33b1bfd",
+      "src/calibrex/pipelines/online.py": "090e373de41196825a09dd4735964cbcdcae766cb81cd643b061750272d08452",
+      "src/calibrex/core/continuous_time_lidar_artifacts.py": "96c051290b6b4f82f81fcc108b6ea4525b1497af064a3dedb8196e7dedd9d874",
+      "src/calibrex/core/continuous_time_lidar_train_diagnostics.py": "f86b7e9d569b4ef61d85834df790207dbe2f424af17ec0f5df16b9f2aef6fcac",
+      "src/calibrex/core/provenance.py": "eb7849f342892272ae136454da816852d080684b25c8ec55771582c1b8621f47",
+      "tools/rosbag1_to_rosbag2_online_pair.py": "9da3e080b62933d4d75f92c08bba91929fea401d99650e55f78bd3cdabfcc680",
+      "tools/lidar_scan_deskew.py": "e36a870323f76256fb5b3f8b8364cb2edb4c06483b3ea0fe8a99bf2faa6f1ce0",
+      "tools/benchmark_adaptive_plane_search.py": "5a36c6d4d610fe38c38196e5fa18b6f848e2731c436ef3f5945eb6cd99ccec49",
+      "examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml": "1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186",
+      "diagnostic-launcher.py.txt": "e790e6fa1e33906e83fc110cfd353a0986e97c884946ebc38fd88859a3edaa33"
+    },
+    "input_sha256": {
+      "data/public/glim_versatile/livox.bag": "f57a2e85339316d4235ab693ab2876aac5e113625c7f8b0f7873b62f92e09643",
+      "data/public/glim_versatile/gt.tar.gz": "4bfd871527d00065898153e77a6764ac331421aca16ff88bde778994f70f5bc9",
+      "data/public/glim_versatile/gt/livox.txt": "bcc75ff7985f2e140e514c69f029153e0127a33ee7abc1b757e077386f5059ad",
+      "data/public/glim_versatile/livox_rosbag2_gt_restamped/livox_rosbag2_gt_restamped.db3": "8d28f0a8ddda13b880e4648e9d687d4a566d40f70b87547f8798fe8a18cfde9e",
+      "data/public/glim_versatile/livox_rosbag2_gt_restamped/metadata.yaml": "7542a3e1689e2007e9c15b8d163cddcbca4d87232dd92b7ecff48ba1e0f6645f",
+      "data/public/glim_versatile/conversion-provenance.json": "7f51da99c1bdc0b2768229e6ff22809d5d0bb22e02dcc62dce2c3ce0dac2da56"
+    },
+    "measurement_sha256": "72df6a6a3e1bc41ca967a32a62ded9c634a1550274b590631e84b84de8f33468"
+  },
+  "counts": {
+    "gpu_linearization_calls": 56,
+    "gpu_linearization_requests": 129,
+    "initial_rank_calls": 26,
+    "initial_rank_compiled": 26,
+    "gpu_linearization_cache_hits": 73,
+    "max_per_context_cache_bytes": 33398792,
+    "gpu_linearization_rows": 32768988,
+    "gpu_residual_calls": 0,
+    "gpu_residual_rows": 0,
+    "gpu_payload_uploads": 26,
+    "gpu_payload_bytes": 2066730664,
+    "cpu_linearization_calls": 0,
+    "cpu_residual_calls": 207,
+    "cpu_normal_calls": 129,
+    "cpu_uniform_query_calls": 0,
+    "cpu_adaptive_query_calls": 0,
+    "cpu_adaptive_repaired_rows": 0,
+    "compiled_replay_calls": 120,
+    "compiled_replay_rows": 960000,
+    "gpu_plane_query_calls": 52,
+    "gpu_uniform_query_rows": 24960000,
+    "gpu_adaptive_query_rows": 24960000,
+    "gpu_map_upload_bytes": 105635,
+    "gpu_query_upload_bytes": 1198080000
+  },
+  "sum_seconds": {
+    "CudaPlaneQueries.query": 4.8035360996145755,
+    "_PackedObservationBuilder.build": 19.780523300054483,
+    "cpu_residual_calls": 11.753958400571719,
+    "gpu_linearization": 10.562860299483873,
+    "cpu_normal_calls": 2.6135262004099786
+  },
+  "source_input_guards_passed": true,
+  "complete_result_parity": true,
+  "limitations": [
+    "Instrumented only; not pooled with formal timings. Call sums overlap across candidates.",
+    "Standalone residuals, trajectory interpolation, adaptive boundary/tie repairs and ordered normal equations remain on CPU."
+  ]
+}

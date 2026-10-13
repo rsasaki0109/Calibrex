@@ -1062,6 +1062,44 @@ The copied public topic supplies execution parity, without independent
 two-sensor accuracy evidence. See the [complete association/replay evidence](../assets/cuda_continuous_time_associations/README.md)
 for all trials, source/input bindings, actual work and preserved preceding candidates.
 
+## Reusing exact continuous-time LiDAR differences
+
+The CUDA adapter keeps one exact residual/Jacobian entry per owned context,
+keyed by the FP64 bits of all thirteen transforms and six difference steps.
+Replacing immutable observations invalidates it. Public return arrays stay
+independently writable, forks own their caches, and retained entries are capped
+at 64 MiB. Native compiled factors with at least 8,192 residuals compute only
+initial rank at solver entry; full final diagnostics and public evaluation
+hooks retain their existing behavior.
+
+The final public dense control records 129 difference requests, 56 GPU launches
+and 73 cache hits, with no CPU difference fallback. A separate instrumented run
+matches the complete final calibration artifact. GPU plane queries, CPU replay,
+standalone CPU residuals and ordered CPU normal reductions keep their existing
+work and arithmetic.
+
+| Complete public workload | Baseline / candidate wall medians | Ratio of medians | Median paired ratio |
+|---|---:|---:|---:|
+| Dense, previous GPU, three pairs | 81.842589 / 58.798766 s | 1.392x | 1.392x |
+| Dense, packed/parallel CPU, separate three pairs | 149.580531 / 52.385271 s | 2.855x | 3.231x |
+| Standard, previous GPU, three pairs | 17.541021 / 13.136499 s | 1.335x | 0.974x |
+| Default CPU dispatch, five pairs | 7.633336 / 8.759261 s | 0.871x | 0.911x |
+
+Every pair preserves complete API/saved results, iteration histories, status,
+correspondences, holdout diagnostics and logical counters. Fresh processes,
+initially empty method-specific compiler caches, first compilation, slow runs
+and outliers remain included. Whole wall includes startup, replay, transfers,
+all candidates/refinements, diagnostics, hashes and saves; parent audits are
+outside it. Separate cohort ratios are never multiplied.
+
+The dense timings support a local gain. Standard paired timing does not show a
+consistent gain, and default timing regresses despite retaining native small
+factor evaluation. The cause of timing variation remains unresolved. The copied
+public sensor topic provides execution parity without independent two-sensor
+accuracy evidence. See the [complete reuse evidence](../assets/continuous_time_linearization_reuse/README.md)
+for all final trials, exact sources, actual counts, the preceding small-workload
+regression and both stopped comparisons.
+
 ## Generating public depth maps on GPU
 
 The external FeatDepth adapter accepts `--device cuda --batch-size 2
