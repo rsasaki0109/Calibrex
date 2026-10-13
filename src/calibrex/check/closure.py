@@ -15,7 +15,9 @@ Model
   results (``gnss-imu``) are *derived*: they are not independent evidence and
   are excluded.
 * Loops are a fundamental cycle basis (a spanning forest, then one loop per
-  remaining edge), so parallel estimates and cycles are covered.
+  remaining edge), so parallel estimates and cycles are covered. The forest takes
+  the best-observed estimates first (most axes observed, then the smallest std), so
+  the loops judge what the estimates observe.
 * The closure error is ``rotvec(R_loop)`` in degrees and the translation of the
   loop product in metres, both in the axes of the loop's first frame.
 * The standard deviation is propagated to first order assuming the members'
@@ -58,7 +60,8 @@ DERIVED_PAIRS: Mapping[str, str] = {
 }
 ASSUMPTIONS: tuple[str, ...] = (
     "edges are this run's per-pair estimates, not the candidate; derived pairs are excluded",
-    "loops are a fundamental cycle basis; loops that share a member are correlated",
+    "loops are a fundamental cycle basis of a spanning forest that takes the best-observed "
+    "estimates first; loops that share a member are correlated",
     "the std of a closure axis is propagated to first order assuming independent members; "
     "members that share an input (the LiDAR odometry of the vehicle pairs) make it optimistic",
     "an axis is judged only if every member observes everything entering it; "
@@ -196,6 +199,25 @@ def _loop_steps(
     steps = [_Step(target, True), *path]
     destinations = [step.edge.child if step.forward else step.edge.parent for step in steps]
     return steps, [target.parent, *destinations[:-1]]
+
+
+def _best_observed_first(edges: Sequence[ClosureEdge]) -> list[ClosureEdge]:
+    """The estimates the spanning forest should take first: most axes observed, then
+    the smallest std over the observed rotation axes (stable otherwise).
+
+    A loop is judged only on axes every member observes, so a forest of well-observed
+    estimates leaves the weakly observed ones out of the other loops. Without it, a hub
+    whose estimates miss an axis (an IMU whose camera-imu pitch is unjudged) would
+    leave that axis unchecked in every loop through it, even where the cameras'
+    own triangles observe it.
+    """
+
+    def key(edge: ClosureEdge) -> tuple[int, float]:
+        observed = sum(edge.rot_observed) + sum(edge.trans_observed)
+        stds = [std for std, seen in zip(edge.rot_std_deg, edge.rot_observed, strict=True) if seen]
+        return (-observed, float(np.mean(stds)) if stds else float("inf"))
+
+    return sorted(edges, key=key)
 
 
 def _spanning_edges(edges: Sequence[ClosureEdge]) -> list[bool]:
@@ -438,6 +460,7 @@ def build_closure_report(
             )
         )
     loops: list[CheckClosure] = []
+    usable = _best_observed_first(usable)
     spanning = _spanning_edges(usable)
     for index, in_forest in enumerate(spanning):
         if in_forest:

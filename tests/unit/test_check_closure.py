@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import replace
 
 import numpy as np
+import pytest
 from scipy.spatial.transform import Rotation
 
 from calibrex.check.closure import (
@@ -324,3 +325,41 @@ def test_members_sharing_an_input_are_noted() -> None:
     assert not any("share the" in note for note in plain.notes)
     assert any("share the lidar odometry of lidar" in note for note in marked.notes)
     assert shared_inputs_of("imu-lidar", ["imu", "lidar"]) == ()
+
+
+def test_the_basis_judges_an_axis_the_hub_leaves_unobserved() -> None:
+    # three cameras and an IMU; the camera-imu estimates miss pitch (as on Hilti), the
+    # camera pairs observe everything, and camB-camC's pitch is 0.8 deg off. A basis
+    # through the IMU would judge pitch in no loop; the camera triangle does.
+    rotations = {"imu": np.eye(3), "camA": rot((0.0, 0.0, 0.0)), "camB": rot((0.0, 0.0, 2.0))}
+    rotations["camC"] = rot((0.0, 0.0, 90.0))
+    records = []
+    edges = {}
+    for camera in ("camA", "camB", "camC"):
+        records.append(_record("camera-imu", [camera, "imu"], camera, "imu"))
+        edges[("camera-imu", (camera, "imu"))] = edge(
+            "camera-imu",
+            camera,
+            "imu",
+            rotations[camera].T @ rotations["imu"],
+            observed=(True, False, True),
+            std=(0.1, 0.1, 0.1),
+        )
+    for first, second in (("camA", "camB"), ("camA", "camC"), ("camB", "camC")):
+        records.append(_record("camera-camera", [first, second], first, second))
+        truth = rotations[first].T @ rotations[second]
+        if (first, second) == ("camB", "camC"):
+            truth = rot((0.0, 0.8, 0.0)) @ truth
+        edges[("camera-camera", (first, second))] = edge(
+            "camera-camera", first, second, truth, std=(0.02, 0.02, 0.02)
+        )
+
+    report = build_closure_report(records, edges, OPTIONS)
+
+    assert report is not None
+    camera_loops = [loop for loop in report.loops if "imu" not in loop.frames]
+    assert len(camera_loops) == 1
+    pitch = next(axis for axis in camera_loops[0].axes if axis.name == "pitch")
+    assert abs(pitch.candidate_error) == pytest.approx(0.8, abs=0.05)
+    assert pitch.status in {"warn", "fail"}
+    assert report.verdict in {"warn", "fail"}
