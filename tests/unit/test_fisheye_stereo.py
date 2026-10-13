@@ -11,6 +11,7 @@ from scipy import ndimage
 from calibrex.evaluation.fisheye_stereo import (
     VERTICAL_OFFSET_COLUMNS,
     EquidistantCamera,
+    RadtanCamera,
     estimate_vertical_offset,
     read_kalibr_fisheye_pair,
     rectify_fisheye_pair,
@@ -153,3 +154,21 @@ def test_each_matched_patch_reports_its_pair_place_disparity_and_offset() -> Non
     assert np.median(offset[pair == 1]) == pytest.approx(0.4, abs=0.1)
     assert set(samples[:, VERTICAL_OFFSET_COLUMNS.index("vertical_texture")].tolist()) <= {0.0, 1.0}
     assert vertical_offset_samples([(np.zeros((50, 120)), np.zeros((50, 120)))]).shape == (0, 6)
+
+
+def test_a_radtan_camera_projects_as_opencv_does() -> None:
+    points = _points()
+    points = points[points[:, 2] > 0.5]
+    plain = RadtanCamera(500.0, 510.0, 320.0, 240.0, (), 640, 480)
+    u, v, front = plain.project(points)
+    assert front.all()
+    assert np.allclose(u, 500.0 * points[:, 0] / points[:, 2] + 320.0)
+    assert np.allclose(v, 510.0 * points[:, 1] / points[:, 2] + 240.0)
+
+    cv2 = pytest.importorskip("cv2")
+    distortion = (-0.28, 0.07, 0.0003, -0.0002, 0.01)
+    camera = RadtanCamera(500.0, 510.0, 320.0, 240.0, distortion, 640, 480)
+    u, v, _ = camera.project(points)
+    matrix = np.array([[500.0, 0.0, 320.0], [0.0, 510.0, 240.0], [0.0, 0.0, 1.0]])
+    expected, _ = cv2.projectPoints(points, np.zeros(3), np.zeros(3), matrix, np.array(distortion))
+    assert np.allclose(np.c_[u, v], expected.reshape(-1, 2), atol=1e-6)
