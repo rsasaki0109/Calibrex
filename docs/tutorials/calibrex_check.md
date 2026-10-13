@@ -456,8 +456,9 @@ candidate attenuated, is now measured. It shows two things:
   * Started from candidates turned −0.5, 0 and +0.5 deg, each pair returns the same
     reading within about 0.1 deg. This is a pair-specific bias, not instability
     ([benchmark](../benchmarks/hilti_fisheye_stereo_falsification.md#re-centring-the-rectification-2026-10-13)).
-  * The closure report cannot see it. Its loops go through the IMU, whose
-    `camera-imu` pitch is unjudged.
+  * The closure report flags it: the loop cam1–cam4–cam0–cam3 misses by −0.51 deg in
+    pitch (`warn`). It could not before its forest took the best-observed estimates
+    first; see [Rig closure](#rig-closure).
 
 * **Only cam0–cam1 is a dependable stereo pair.**
   * Every other pair shares 12 to 34% of its view, at the edges of both fisheye images.
@@ -912,8 +913,15 @@ loop of it must multiply to the identity.
 - **Derived estimates are excluded.** `gnss-imu` is composed from this run's
   gnss-lidar and imu-lidar results, so it is not independent evidence. It is listed
   as `derived` in `closures.edges`. An estimate with no observed axis is `unusable`.
-- **Loops** are a fundamental cycle basis of the remaining graph (a spanning forest,
-  one loop per other edge). Loops that share a member are correlated.
+- **Loops** are a fundamental cycle basis of the remaining graph: a spanning forest,
+  then one loop per other edge. The forest takes the best-observed estimates first
+  (most axes observed, then the smallest std). Loops that share a member are
+  correlated.
+  - A loop is judged only on axes all its members observe, so the choice of forest
+    decides what can be checked.
+  - On Hilti's five cameras, a forest in pair order went through the IMU. Every loop
+    then included two `camera-imu` estimates with unjudged pitch, and no loop could
+    check the camera pairs' pitch.
 - **Error and std.** The closure error is `rotvec` of the loop product in degrees
   (and the translation of the loop product in metres, only if every member estimates
   it), in the axes of the loop's first frame. The std is propagated to first order
@@ -944,6 +952,19 @@ documented
 (LiDAR-vehicle composed with KITTI's `calib_imu_to_velo` against INS-vehicle, within
 (-0.03, -0.03, +0.09) deg) uses estimates `calibrex check` refuses to judge for the same
 reason, so it stays a separate, benchmark-level statement.
+
+On Hilti's all-camera runs, the forest now picks the camera pairs, so two of the six
+loops on each recording are camera-only:
+
+| recording | judged loop axes (before) | pitch checked in loops (before) | verdict |
+| --- | --- | --- | --- |
+| `exp01` | 14 (12) | 3 (1) | `warn`: cam1–cam4–cam0–cam3 misses by −0.51 deg in pitch |
+| `exp21` | 9 (9) | 4 (5) | `inconclusive` (two loops through cam3 judge nothing); the cam0–cam4–cam1 loop reads +0.17 deg in pitch |
+
+* **`exp01`.** The miss is the cam0–cam4 / cam1–cam4 pitch disagreement of the
+  camera-camera section, now seen by the check itself.
+* **`exp21`.** A loop through the IMU that judged pitch is gone. The basis trades
+  some loops for others, so it covers more but not on every axis.
 
 ### Which frame the errors point to
 
