@@ -10,8 +10,10 @@ from scipy import ndimage
 
 from calibrex.evaluation.fisheye_stereo import (
     EquidistantCamera,
+    estimate_vertical_offset,
     read_kalibr_fisheye_pair,
     rectify_fisheye_pair,
+    with_right_row_shift,
 )
 
 CAMCHAIN = Path("data/public/hilti_2022/calib_3_cam0-1-camchain-imucam.yaml")
@@ -111,3 +113,22 @@ def test_the_kalibr_camchain_gives_the_same_pair() -> None:
     left, right, right_from_left = read_kalibr_fisheye_pair(CAMCHAIN)
     assert left == CAM0 and right == CAM1
     np.testing.assert_allclose(right_from_left, CAM1_FROM_CAM0)
+
+
+def test_a_vertical_offset_of_the_right_image_is_measured_and_removed() -> None:
+    rectified = rectify_fisheye_pair(CAM0, CAM1, CAM1_FROM_CAM0)
+    rng = np.random.default_rng(5)
+    texture = ndimage.gaussian_filter(rng.uniform(0, 255, (540, 720)), 1.5) * 4.0
+    # the right image: the scene 12 px to the left (disparity) and 0.7 px higher
+    right = ndimage.shift(texture, (-0.7, -12.0), order=1, mode="nearest")
+    offset = estimate_vertical_offset([(texture, right)], patches_per_pair=120)
+    assert offset == pytest.approx(-0.7, abs=0.1)
+
+    # with the offset removed, rectified row r of the right image takes row r - 0.7: the
+    # content that sat 0.7 px higher is back on the left image's row
+    raw = np.tile(np.arange(540, dtype=np.float64)[:, None], (1, 720))
+    shifted = with_right_row_shift(rectified, -0.7)
+    centre = (270, 360)
+    assert shifted.rectify_right(raw)[centre] == pytest.approx(
+        ndimage.map_coordinates(rectified.right_map[0], [[269.3], [360.0]], order=1)[0], abs=1e-3
+    )

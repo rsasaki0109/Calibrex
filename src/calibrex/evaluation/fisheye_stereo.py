@@ -206,3 +206,84 @@ def read_kalibr_fisheye_pair(
         msg = f"{right} has no T_cn_cnm1 to {left}"
         raise ValueError(msg)
     return cameras[0], cameras[1], np.asarray(chain[right]["T_cn_cnm1"], dtype=np.float64)
+
+
+def estimate_vertical_offset(
+    pairs: list[tuple[FloatArray, FloatArray]],
+    *,
+    patches_per_pair: int = 300,
+    half_px: int = 6,
+    rows_px: int = 4,
+    max_disparity_px: int = 60,
+    min_zncc: float = 0.9,
+    min_gradient: float = 25.0,
+    seed: int = 0,
+) -> float | None:
+    """Median vertical disparity (px, right minus left row) of rectified image pairs.
+
+    A rectified pair puts a point on the same row in both images; a residual rotation of
+    the rig's calibration (a tenth of a degree is a pixel at these focal lengths) shifts
+    the right image's rows. Textured left patches are matched in the right image over
+    ``max_disparity_px`` columns and ``rows_px`` rows each way (zero-normalised
+    cross-correlation, sub-pixel parabola in rows). Uses the images only, never a
+    LiDAR or a reference. ``None`` when nothing matched.
+    """
+
+    rng = np.random.default_rng(seed)
+    offsets: list[float] = []
+    for left, right in pairs:
+        gy, gx = np.gradient(np.asarray(left, dtype=np.float64))
+        margin = half_px + rows_px + 1
+        strong = np.argwhere(np.hypot(gx, gy) > min_gradient)
+        height, width = left.shape
+        strong = strong[
+            (strong[:, 0] >= margin)
+            & (strong[:, 0] < height - margin)
+            & (strong[:, 1] >= margin + max_disparity_px)
+            & (strong[:, 1] < width - margin)
+        ]
+        if len(strong) == 0:
+            continue
+        picks = strong[rng.choice(len(strong), min(patches_per_pair, len(strong)), replace=False)]
+        for row, col in picks:
+            patch = left[row - half_px : row + half_px + 1, col - half_px : col + half_px + 1]
+            patch = patch - patch.mean()
+            norm = np.sqrt((patch**2).sum())
+            if norm < 1.0e-6:
+                continue
+            scores = np.full((2 * rows_px + 1, max_disparity_px + 1), -2.0)
+            for i, dy in enumerate(range(-rows_px, rows_px + 1)):
+                for dx in range(max_disparity_px + 1):
+                    window = right[
+                        row + dy - half_px : row + dy + half_px + 1,
+                        col - dx - half_px : col - dx + half_px + 1,
+                    ]
+                    window = window - window.mean()
+                    scores[i, dx] = (patch * window).sum() / max(
+                        norm * np.sqrt((window**2).sum()), 1.0e-9
+                    )
+            i, dx = np.unravel_index(int(np.argmax(scores)), scores.shape)
+            if scores[i, dx] < min_zncc or i in (0, 2 * rows_px):
+                continue
+            before, at, after = scores[i - 1, dx], scores[i, dx], scores[i + 1, dx]
+            curvature = before - 2.0 * at + after
+            step = 0.5 * (before - after) / curvature if abs(curvature) > 1.0e-9 else 0.0
+            offsets.append(i - rows_px + float(step))
+    return float(np.median(offsets)) if offsets else None
+
+
+def with_right_row_shift(
+    rectification: FisheyeStereoRectification, offset_px: float
+) -> FisheyeStereoRectification:
+    """The rectification with the right image's rows moved by ``offset_px``.
+
+    ``offset_px`` is what :func:`estimate_vertical_offset` measured (right minus left
+    row): the corrected right image takes each row from ``offset_px`` rows further down,
+    so a point lands on the same row in both images again.
+    """
+
+    from dataclasses import replace
+
+    rows = ndimage.shift(rectification.right_map[0], (-offset_px, 0.0), order=1, mode="nearest")
+    cols = ndimage.shift(rectification.right_map[1], (-offset_px, 0.0), order=1, mode="nearest")
+    return replace(rectification, right_map=np.stack([rows, cols]))
