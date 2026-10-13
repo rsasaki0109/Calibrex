@@ -1292,3 +1292,31 @@ holdout MI difference of 6.2e-7 nat. See the
 [provider commands](public_six_dof_demo.md#prepare-public-inputs) and
 [full inference evidence](../assets/featdepth_inference/README.md) for all
 timings, source hashes, memory counters, output differences and limitations.
+
+## Exact mutual point-to-point ICP on CUDA
+
+Use the optional `CudaPointToPointIcpAdapter` with the same `IcpPoint` inputs and
+options as the native robust solver. It accelerates both nearest-neighbor
+directions and retains native pose updates, holdout and calibration diagnostics.
+It shares static source/target snapshots across the six diagnostic starts.
+
+```python
+from calibrex.solvers.cuda_point_to_point_icp_adapter import CudaPointToPointIcpAdapter
+
+answer = CudaPointToPointIcpAdapter().solve(source_points, target_points)
+transform = answer.result.transform_target_source
+provenance = answer.provenance
+```
+
+Set `OPENBLAS_NUM_THREADS=1`, `OMP_NUM_THREADS=1` and `MKL_NUM_THREADS=1` before
+starting Python for the measured parallel diagnostic route. The adapter keeps
+process-global BLAS settings unchanged. Small and extreme-coordinate searches
+fall back to native arithmetic; provenance records actual GPU query counts.
+
+The public KITTI control measured **1.92x** whole-worker acceleration (46.8 → 24.4 s medians), with exact complete results across three alternating pairs. This is a copied
+public-cloud execution control. See the [complete ICP evidence](../assets/cuda_point_to_point_icp/README.md)
+for every trial, thread budget, retained failed workers and reproduction commands.
+
+The preceding initial-projection cache was rejected: GPU dense improved only
+1.049x and CPU dense regressed by about 5%. Its code was reverted; [all retained
+trials and diagnostics](../assets/initial_lidar_projection_reuse/README.md) remain available.

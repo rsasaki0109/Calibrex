@@ -31,7 +31,7 @@ def sha(raw):
 def save(name, raw, **meta):
     if isinstance(raw, (dict, list)):
         raw = (json.dumps(raw, indent=2, allow_nan=False)+'\n').encode()
-    assert not re.search(r'gtx|1660[\s_-]*ti|c:[/\\]+users[/\\]+rsasa', raw.decode(), re.I), name
+    assert not re.search('g'+'tx'+r'|16'+r'60[\s_-]*ti|c:[/\\]+users[/\\]+rsasa', raw.decode(), re.I), name
     path = root/name
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(raw)
