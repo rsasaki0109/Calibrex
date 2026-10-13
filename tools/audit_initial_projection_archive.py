@@ -6,12 +6,29 @@ import hashlib
 import importlib.machinery
 import importlib.util
 import json
+import math
 import statistics
 from pathlib import Path
 
 from calibrex.core.benchmark import BenchmarkDefinition, aggregate_benchmark_definition
 from calibrex.core.continuous_time_lidar_artifacts import ContinuousTimeLidarPairArtifact
 from calibrex.core.io import read_mapping
+
+
+def _aggregate_equal(actual: object, stored: object, path: tuple[str, ...] = ()) -> bool:
+    if isinstance(actual, dict) and isinstance(stored, dict):
+        return actual.keys() == stored.keys() and all(
+            _aggregate_equal(actual[key], stored[key], (*path, key)) for key in actual)
+    if isinstance(actual, list) and isinstance(stored, list):
+        return len(actual) == len(stored) and all(
+            _aggregate_equal(a, b, (*path, str(i)))
+            for i, (a, b) in enumerate(zip(actual, stored, strict=True)))
+    if (path[-2:] == ("distribution", "standard_deviation")
+        and isinstance(actual, float) and isinstance(stored, float)
+        and math.isfinite(actual) and math.isfinite(stored)):
+        # Python 3.10's statistics.pstdev differs by one final bit on this archive.
+        return abs(actual-stored) <= max(math.ulp(actual), math.ulp(stored))
+    return actual == stored
 
 
 def audit(root: Path) -> dict[str, int]:
@@ -30,8 +47,8 @@ def audit(root: Path) -> dict[str, int]:
         definition = BenchmarkDefinition.model_validate(read_mapping(
             root / cohort / "pipeline.definition.json"))
         aggregate = read_mapping(root / cohort / "pipeline.benchmark.json")
-        assert aggregate_benchmark_definition(definition).model_dump(
-            mode="json", exclude_none=True) == aggregate
+        assert _aggregate_equal(aggregate_benchmark_definition(definition).model_dump(
+            mode="json", exclude_none=True), aggregate)
         baseline = None
         for trial in definition.trials:
             path = root / cohort / f"{trial.method_id}.{trial.split_id}.measurement.json"

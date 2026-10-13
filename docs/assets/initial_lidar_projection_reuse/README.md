@@ -77,3 +77,8 @@ python tools/audit_initial_projection_archive.py
 The archived publisher splits a privacy-pattern string literal into adjacent
 parts. Its behavior is unchanged; original and portable digests are retained.
 Measured calibration source snapshots remain byte-exact.
+
+Recomputed aggregate standard deviations permit one ULP of final rounding across
+Python versions. Python 3.10 reproduced one such difference in the CPU baseline
+pipeline distribution. Other statistics, source digests, raw trials and complete
+calibration payload comparisons retain their exact checks.
