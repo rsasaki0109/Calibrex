@@ -2393,6 +2393,7 @@ def run_camera_camera(ctx: PairContext) -> EstimatorRun:
         StereoTiming,
         estimate_stereo_rotation,
         read_stereo_frames,
+        shared_view_fraction,
         stereo_camera,
     )
 
@@ -2444,10 +2445,19 @@ def run_camera_camera(ctx: PairContext) -> EstimatorRun:
             )
         left_height, left_width = pairs[0][0].shape
         right_height, right_width = pairs[0][1].shape
+        left_camera = stereo_camera(left_model, left_width, left_height)
+        right_camera = stereo_camera(right_model, right_width, right_height)
+        shared = shared_view_fraction(left_camera, right_camera, candidate)
+        if shared < options.min_shared_view:
+            raise CheckSkipError(
+                "no_shared_view",
+                f"under the candidate the cameras share {shared:.0%} of the first one's view "
+                f"(at 10 m), less than {options.min_shared_view:.0%}: not a stereo pair",
+            )
         return estimate_stereo_rotation(
             pairs,
-            stereo_camera(left_model, left_width, left_height),
-            stereo_camera(right_model, right_width, right_height),
+            left_camera,
+            right_camera,
             candidate,
             provenance=StereoRotationProvenance(
                 generator="calibrex.check.estimators.run_camera_camera",

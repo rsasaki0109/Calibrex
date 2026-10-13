@@ -67,6 +67,8 @@ class StereoRotationOptions:
     max_unsynchronised_gap_s: float = 0.03
     """The pairing tolerance when the rig's rotation is known (:class:`StereoTiming`)."""
     max_time_std_s: float = 0.002
+    min_shared_view: float = 0.05
+    """Pairs whose cameras share less of the left camera's view are not checked."""
     patches_per_pair: int = 300
     max_disparity_px: int = 60
     blocks: int = 6
@@ -137,6 +139,40 @@ def stereo_camera(model: CameraModel, width: int, height: int) -> StereoCamera:
     return RadtanCamera(
         model.fx, model.fy, model.cx, model.cy, tuple(model.distortion), width, height
     )
+
+
+def shared_view_fraction(
+    left: StereoCamera,
+    right: StereoCamera,
+    candidate: FloatArray,
+    *,
+    samples: int = 20000,
+    range_m: float = 10.0,
+) -> float:
+    """The share of the left camera's view the right camera also sees, under the candidate.
+
+    Directions spread evenly over the sphere, ``range_m`` away from the left camera, are
+    projected into both images; the fraction is those inside both over those inside the
+    left one (0 when the left camera sees none).
+    """
+
+    index = np.arange(samples) + 0.5
+    polar = np.arccos(1.0 - 2.0 * index / samples)
+    azimuth = np.pi * (1.0 + 5.0**0.5) * index
+    points = (
+        range_m
+        * np.c_[np.cos(azimuth) * np.sin(polar), np.sin(azimuth) * np.sin(polar), np.cos(polar)]
+    )
+    to_right = _inverse(np.asarray(candidate, dtype=np.float64))
+    in_right = points @ to_right[:3, :3].T + to_right[:3, 3]
+    seen_left = _inside(left, points)
+    seen_both = seen_left & _inside(right, in_right)
+    return float(seen_both.sum() / seen_left.sum()) if seen_left.any() else 0.0
+
+
+def _inside(camera: StereoCamera, points: FloatArray) -> NDArray[np.bool_]:
+    u, v, front = camera.project(points)
+    return np.asarray(front & (u >= 0.0) & (v >= 0.0) & (u < camera.width) & (v < camera.height))
 
 
 def read_stereo_pairs(
