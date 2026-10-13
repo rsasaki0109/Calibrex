@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **Hilti camera pairs: the difference between recordings is the rig, not a bias at the
+  image edges.**
+  - **The tool.** `tools/hilti_camera_pair_reproducibility.py` estimates each camera
+    pair on halves of a recording:
+    - halves in time, which see different parts of the scene;
+    - interleaved halves, which see the same parts.
+  - **Within a recording.** Interleaved halves agree within their std (RMS *z* 0.46).
+    Halves in time differ by 1.5 to 1.7 times it, by up to 0.19 deg on a judged axis.
+    The std is the spread within the frames analysed, not across scenes.
+  - **Between recordings.** cam1–cam3's six-sigma change in roll is cam1 turning
+    0.18 deg relative to the other cameras, as cam0–cam1 measures. The check's
+    behaviour is unchanged.
+
 - **`calibrex external-run import-sensor-calib-tas` imports a sensor_calib_tas result
   as a `--tf` file.**
   - **What sensor_calib_tas outputs.** Each sensor's pose in its reference sensor's
