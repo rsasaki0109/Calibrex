@@ -142,6 +142,7 @@ class LidarRigPointToPlaneFactor:
         observations: Sequence[LidarPointToPlaneObservation],
         sensor: str = "lidar0",
         _array_kernel: Callable[[_ObservationArrays, SE3], list[float]] | None = None,
+        _array_rmse_kernel: Callable[[_ObservationArrays, SE3], tuple[float] | None] | None = None,
         _array_linearizer: Callable[
             [_ObservationArrays, Sequence[SE3], Sequence[float]],
             tuple[NDArray[np.float64], NDArray[np.float64]],
@@ -163,6 +164,7 @@ class LidarRigPointToPlaneFactor:
         self.sensor = sensor
         self._array_kernel = _array_kernel
         self._captured_array_kernel = _array_kernel
+        self._array_rmse_kernel = _array_rmse_kernel
         self._array_linearizer = _array_linearizer
         self._array_normal_kernel = _array_normal_kernel
         self.dof_names: tuple[str, str, str, str, str, str] = (
@@ -287,8 +289,24 @@ class LidarRigPointToPlaneFactor:
             return None
         return residuals, jacobian
 
+    def _compiled_rmse(self, correction: Sequence[float]) -> tuple[float] | None:
+        if (type(self) is not LidarRigPointToPlaneFactor or self._array_rmse_kernel is None
+            or self._observation_count() < 8192
+            or self._array_kernel is not self._captured_array_kernel
+            or any(name in self.__dict__ for name in ("residuals", "_corrected_transform"))
+            or type(self).residuals is not _NATIVE_RESIDUALS
+            or type(self)._corrected_transform is not _NATIVE_CORRECTION):
+            return None
+        arrays = self._prepared_arrays()
+        transform = self._corrected_transform(correction)
+        if arrays is None or not all(np.isfinite((*transform.translation_m,
+                                                 *transform.rotation_quat_xyzw))):
+            return None
+        return self._array_rmse_kernel(arrays, transform)
+
     def _compiled_system(
         self, correction: Sequence[float], *, robust_loss: str, huber_delta_m: float,
+        _include_residuals: bool = True,
     ) -> tuple[list[float], list[list[float]], list[float]] | None:
         if not isfinite(huber_delta_m):
             return None
@@ -299,7 +317,7 @@ class LidarRigPointToPlaneFactor:
         hessian, gradient = self._array_normal_kernel(
             jacobian, residuals, robust_loss != "none", huber_delta_m,
         )
-        return residuals.tolist(), hessian, gradient
+        return residuals.tolist() if _include_residuals else [], hessian, gradient
 
     def _compiled_initial_rank(self, correction: Sequence[float]) -> int | None:
         # The optimizer consumes only rank at entry. Full public diagnostics
@@ -505,6 +523,7 @@ _NATIVE_LINEARIZE = LidarRigPointToPlaneFactor.linearize
 _NATIVE_CORRECTION = LidarRigPointToPlaneFactor._corrected_transform
 _NATIVE_OBSERVATIONS_PROPERTY = LidarRigPointToPlaneFactor.observations
 _NATIVE_EVALUATE = LidarRigPointToPlaneFactor.evaluate
+_NATIVE_COMPILED_SYSTEM = LidarRigPointToPlaneFactor._compiled_system
 
 
 def _packed_point_rows(points: NDArray[np.float64]) -> Iterator[list[float]]:

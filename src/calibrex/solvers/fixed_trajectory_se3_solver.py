@@ -11,6 +11,7 @@ import numpy as np
 
 from calibrex.core.geometry import SE3
 from calibrex.graph.lidar_point_to_plane import (
+    _NATIVE_COMPILED_SYSTEM,
     LidarRigPointToPlaneFactor,
     _ordered_normal_equations,
 )
@@ -105,7 +106,7 @@ class FixedTrajectorySe3ExtrinsicSolver:
         solver_options = options or FixedTrajectorySe3SolverOptions()
         correction = [0.0 for _ in range(6)]
         damping = solver_options.initial_damping
-        initial_rmse = _rmse(factor.residuals(correction))
+        initial_rmse = _factor_rmse(factor, correction)
         current_rmse = initial_rmse
         accepted_steps = 0
         rejected_steps = 0
@@ -133,7 +134,10 @@ class FixedTrajectorySe3ExtrinsicSolver:
             compiled_system = getattr(factor, "_compiled_system", None)
             system = (
                 compiled_system(correction, robust_loss=solver_options.robust_loss,
-                                huber_delta_m=solver_options.huber_delta_m)
+                                huber_delta_m=solver_options.huber_delta_m,
+                                **({"_include_residuals": False} if getattr(
+                                    compiled_system, "__func__", None,
+                                ) is _NATIVE_COMPILED_SYSTEM else {}))
                 if compiled_system is not None else None
             )
             if system is None:
@@ -156,7 +160,7 @@ class FixedTrajectorySe3ExtrinsicSolver:
 
             step = _limit_step(step, solver_options)
             candidate = [value + delta for value, delta in zip(correction, step, strict=True)]
-            candidate_rmse = _rmse(factor.residuals(candidate))
+            candidate_rmse = _factor_rmse(factor, candidate)
             accepted = _is_improvement(current_rmse, candidate_rmse)
             history.append(
                 FixedTrajectorySe3Iteration(
@@ -354,6 +358,16 @@ def _rmse(values: Sequence[float]) -> float | None:
     if not values:
         return None
     return sqrt(sum(value * value for value in values) / len(values))
+
+
+_NATIVE_RMSE = _rmse
+_NATIVE_SUM = sum
+
+
+def _factor_rmse(factor: LidarRigPointToPlaneFactor, correction: Sequence[float]) -> float | None:
+    summary = (factor._compiled_rmse(correction)
+               if _rmse is _NATIVE_RMSE and sum is _NATIVE_SUM else None)
+    return summary[0] if summary is not None else _rmse(factor.residuals(correction))
 
 
 def _norm(values: Sequence[float]) -> float:

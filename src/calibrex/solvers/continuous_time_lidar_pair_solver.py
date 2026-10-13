@@ -651,7 +651,7 @@ class ContinuousTimeLidarPairSolver:
             if holdout_build is not None:
                 holdout_factor = holdout_build.factor
                 holdout_outlier_rejected_count = holdout_build.outlier_rejected_count
-                holdout_rmse = _rmse(holdout_factor.residuals(solver_result.correction))
+                holdout_rmse = _factor_rmse(holdout_factor, solver_result.correction)
         return _OffsetEvaluation(
             offset_sec=offset_sec,
             solver_result=solver_result,
@@ -793,6 +793,7 @@ class ContinuousTimeLidarPairSolver:
         candidate_correspondence_count = len(observations)
         outlier_rejected_count = 0
         array_kernel: Callable[[_ObservationArrays, SE3], list[float]] | None = None
+        array_rmse_kernel: Callable[[_ObservationArrays, SE3], tuple[float] | None] | None = None
         array_linearizer: Callable[
             [_ObservationArrays, Sequence[SE3], Sequence[float]], tuple[FloatArray, FloatArray],
         ] | None = None
@@ -801,6 +802,7 @@ class ContinuousTimeLidarPairSolver:
         ] | None = None
         if settings.query_backend in ("numba_cpu", "cuda"):
             from calibrex.solvers.numba_continuous_time_adapter import (
+                _numba_rig_rmse,
                 numba_rig_linearization,
                 numba_rig_normal_equations,
                 numba_rig_residuals,
@@ -817,6 +819,7 @@ class ContinuousTimeLidarPairSolver:
                 return result
 
             array_kernel = compiled_residuals
+            array_rmse_kernel = _numba_rig_rmse
 
             def compiled_linearization(
                 arrays: _ObservationArrays, transforms: Sequence[SE3], steps: Sequence[float],
@@ -836,6 +839,7 @@ class ContinuousTimeLidarPairSolver:
         factor = LidarRigPointToPlaneFactor(
             variable=problem.variable, t_ego_lidar=initial_transform, observations=observations,
             sensor=problem.sensor, _array_kernel=array_kernel, _array_linearizer=array_linearizer,
+            _array_rmse_kernel=array_rmse_kernel,
             _array_normal_kernel=array_normal_kernel,
         )
         if settings.outlier_policy == "mad":
@@ -995,6 +999,16 @@ def _rmse(values: Sequence[float]) -> float | None:
     if not values:
         return None
     return math.sqrt(sum(value * value for value in values) / len(values))
+
+
+_NATIVE_RMSE = _rmse
+_NATIVE_SUM = sum
+
+
+def _factor_rmse(factor: LidarRigPointToPlaneFactor, correction: Sequence[float]) -> float | None:
+    summary = (factor._compiled_rmse(correction)
+               if _rmse is _NATIVE_RMSE and sum is _NATIVE_SUM else None)
+    return summary[0] if summary is not None else _rmse(factor.residuals(correction))
 
 
 _NATIVE_OFFSET_EVALUATION = ContinuousTimeLidarPairSolver._evaluate_offset

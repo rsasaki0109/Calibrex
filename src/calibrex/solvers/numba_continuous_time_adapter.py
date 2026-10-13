@@ -368,6 +368,43 @@ def _one_residual(
 
 
 @njit(cache=True, nogil=True, fastmath=False)  # type: ignore[untyped-decorator]
+def _residual_square_sum(
+    points: FloatArray, planes: FloatArray, normals: FloatArray, poses: FloatArray,
+    weights: FloatArray, transform: FloatArray, compensated: bool,
+) -> float:
+    total, correction = 0.0, 0.0
+    for row in range(len(points)):
+        value = _one_residual(points[row], planes[row], normals[row], poses[row],
+                              weights[row], transform)
+        square = value * value
+        updated = total + square
+        # Match CPython's ordered float sum: plain in 3.10/3.11, Neumaier in 3.12.
+        if compensated:
+            if abs(total) >= abs(square):
+                correction += (total-updated) + square
+            else:
+                correction += (square-updated) + total
+        total = updated
+    if compensated and correction != 0.0 and math.isfinite(correction):
+        total += correction
+    return total
+
+
+def _numba_rig_rmse(arrays: _ObservationArrays, transform: SE3) -> tuple[float] | None:
+    """Compute native residual RMSE without creating row arrays or Python floats."""
+    if sys.implementation.name != "cpython" or sys.version_info[:2] not in (
+        (3, 10), (3, 11), (3, 12),
+    ):
+        return None
+    values = np.asarray((*transform.translation_m, *transform.rotation_quat_xyzw), dtype=np.float64)
+    square_sum = _residual_square_sum(
+        arrays.points, arrays.plane_points, arrays.normals, arrays.poses,
+        arrays.sqrt_weights, values, sys.version_info[:2] == (3, 12),
+    )
+    return (math.sqrt(square_sum / len(arrays.points)),) if len(arrays.points) else None
+
+
+@njit(cache=True, nogil=True, fastmath=False)  # type: ignore[untyped-decorator]
 def _fused_jacobian_rows(
     points: FloatArray, planes: FloatArray, normals: FloatArray, poses: FloatArray,
     weights: FloatArray, transforms: FloatArray, steps: FloatArray,
