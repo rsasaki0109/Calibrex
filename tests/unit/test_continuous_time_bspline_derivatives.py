@@ -1,0 +1,68 @@
+"""Independent central-difference checks of every local rotation control axis."""
+
+from __future__ import annotations
+
+import numpy as np
+import pytest
+
+from calibrex.core.continuous_time_bspline import (
+    evaluate_local_spline,
+    so3_exp_batch,
+    so3_log_batch,
+)
+from calibrex.core.continuous_time_bspline_derivatives import (
+    _right_jacobian,
+    _rotation_control_derivatives,
+)
+
+
+@pytest.mark.parametrize("scale", [0.0, 1.0e-10, 0.3, 1.1, 3.1])
+def test_all_rotation_control_derivatives_match_central_differences(scale: float) -> None:
+    rng = np.random.default_rng(791)
+    count = 9
+    rotations = np.broadcast_to(np.eye(3), (count, 4, 3, 3)).copy()
+    for slot in range(1, 4):
+        vectors = rng.normal(size=(count, 3))
+        vectors *= scale / np.maximum(np.linalg.norm(vectors, axis=1, keepdims=True), 1.0e-30)
+        rotations[:, slot] = rotations[:, slot - 1] @ so3_exp_batch(vectors)
+    positions = rng.normal(size=(count, 4, 3))
+    # Include both sides of the segment, not just its interior.
+    fraction = np.array([0.0, 1.0, 1.0e-9, 1.0 - 1.0e-9, 0.2, 0.5, 0.7, 0.9, 0.3])
+    spacing = 0.17
+    states = evaluate_local_spline(rotations, positions, fraction, spacing)
+    jacobian = _rotation_control_derivatives(rotations, fraction, spacing)
+    pose_only = _rotation_control_derivatives(rotations, fraction, spacing, order=0)
+    rate_only = _rotation_control_derivatives(rotations, fraction, spacing, order=1)
+    assert np.array_equal(pose_only.rotation_tangent, jacobian.rotation_tangent)
+    assert np.array_equal(rate_only.angular_velocity, jacobian.angular_velocity)
+    # The reference log uses acos(trace), which amplifies roundoff near pi.
+    # This step keeps that cancellation below the central-difference error.
+    epsilon = 1.0e-5
+    for slot in range(4):
+        for axis in range(3):
+            delta = np.zeros((1, 3))
+            delta[0, axis] = epsilon
+            plus, minus = rotations.copy(), rotations.copy()
+            plus[:, slot] = rotations[:, slot] @ so3_exp_batch(delta)[0]
+            minus[:, slot] = rotations[:, slot] @ so3_exp_batch(-delta)[0]
+            forward = evaluate_local_spline(plus, positions, fraction, spacing)
+            backward = evaluate_local_spline(minus, positions, fraction, spacing)
+            column = 3 * slot + axis
+            r_t = np.transpose(states.rotation_world_body, (0, 2, 1))
+            numeric_tangent = (
+                so3_log_batch(r_t @ forward.rotation_world_body)
+                - so3_log_batch(r_t @ backward.rotation_world_body)
+            ) / (2.0 * epsilon)
+            assert np.allclose(jacobian.rotation_tangent[:, :, column], numeric_tangent, atol=2e-8)
+            for field, derivative in (
+                ("angular_velocity_body_rad_s", jacobian.angular_velocity),
+                ("angular_acceleration_body_rad_s2", jacobian.angular_acceleration),
+            ):
+                numeric = (getattr(forward, field) - getattr(backward, field)) / (2 * epsilon)
+                assert np.allclose(derivative[:, :, column], numeric, atol=3e-7, rtol=2e-6)
+
+
+def test_right_jacobian_inverse_and_small_angle_limit() -> None:
+    vectors = np.array([[0.0, 0.0, 0.0], [1e-10, -1e-10, 0], [1e-5, 0, 0], [3.1, 0, 0]])
+    product = _right_jacobian(vectors) @ _right_jacobian(vectors, inverse=True)
+    assert np.allclose(product, np.eye(3), atol=1e-12)
