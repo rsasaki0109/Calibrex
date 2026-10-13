@@ -432,6 +432,28 @@ shorter than 117.5 s under `--max-duration-s 120` would now take the short-recor
 That might apply to exp03 (24 frames) or exp04 (34), whose short counts may also come from
 dropped pairs.
 
+## A calibration-target session: sensor_calib_tas's demo bag (2026-10-13)
+
+[sensor_calib_tas](https://github.com/UniBwTAS/sensor_calib_tas) (UniBw TAS, BSD-3-Clause)
+calibrates cameras, LiDARs, radars and GNSS together against a custom target. Its demo
+recording (`demo/calibrate_mucar3`, rosbag2, 1.09 GB, Git LFS SHA-256 `6c61dfe4…693a`)
+has two surround cameras, a VLS-128, radar detections and the vehicle's `/tf_static`.
+`calibrex check` plans two `camera-lidar` pairs and one `camera-camera` pair on it. None
+can be judged:
+
+* **camera-lidar (front, right): `inconclusive`.** The recording is 4.9 s long, from a
+  parked vehicle, with the target moved in front of it. The short-recording selection
+  finds 5 frames that differ enough in view; the estimator needs at least 8.
+* **camera-camera (front, right): skipped, `missing_topic`.** The two cameras are not
+  synchronised (about 24 ms apart), and the bag has no IMU to fit their timing.
+* **The radar detections** (`radar_msgs/DetectionRecord`) have no role in the check.
+
+A session like this is what the target-based tool needs. The targetless check needs
+driving. The run found one bug, fixed since: the front camera publishes
+`image_rect_color` (already undistorted) next to a CameraInfo whose `D` is the raw
+image's (k1 = −0.27). The check now reads a rectified stream's intrinsics from `P`
+without distortion, the ROS image_pipeline convention.
+
 ## Limitations
 
 * Rotation only; translation is reported unchecked on every run.

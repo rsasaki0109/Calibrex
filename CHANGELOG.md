@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- **A rectified image stream's intrinsics come from CameraInfo's `P`, without
+  distortion.**
+  - **The bug.** An `image_rect*` topic (ROS image_pipeline) carries undistorted images,
+    but the check applied the raw image's `K` and `D` to it.
+  - **Where it showed.** sensor_calib_tas's demo bag. Its front camera publishes
+    `image_rect_color` next to a plumb_bob CameraInfo (k1 = −0.27).
+  - **On that bag.** The demo bag itself is a parked, 4.9 s target session: the check
+    plans its camera-LiDAR and stereo pairs but cannot judge them (see
+    `docs/benchmarks/camera_lidar_check.md`).
+
 - **`camera-camera` skips cameras that share no view, and the check covers all five of
   Hilti's alphasense cameras.**
   - **The skip.** The pair measures the share of the first camera's view the second
