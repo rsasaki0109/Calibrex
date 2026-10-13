@@ -1,0 +1,112 @@
+START 1 baseline
+DONE 1 baseline 158.756539s matches=True
+START 1 sparse
+DONE 1 sparse 108.669489s matches=True
+START 2 sparse
+DONE 2 sparse 78.728266s matches=True
+START 2 baseline
+DONE 2 baseline 152.339609s matches=True
+START 3 baseline
+DONE 3 baseline 129.920303s matches=True
+START 3 sparse
+DONE 3 sparse 69.603435s matches=True
+Complete guarded cpu-dense cohort.
+START 1 baseline
+DONE 1 baseline 74.296698s matches=True
+START 1 sparse
+DONE 1 sparse 65.452187s matches=True
+START 2 sparse
+DONE 2 sparse 50.028804s matches=True
+START 2 baseline
+DONE 2 baseline 42.270747s matches=True
+START 3 baseline
+DONE 3 baseline 43.256966s matches=True
+START 3 sparse
+DONE 3 sparse 32.811758s matches=True
+Complete guarded dense cohort.
+START 1 baseline
+DONE 1 baseline 13.078563s matches=True
+START 1 sparse
+DONE 1 sparse 13.188131s matches=True
+START 2 sparse
+DONE 2 sparse 5.556325s matches=True
+START 2 baseline
+DONE 2 baseline 5.342286s matches=True
+START 3 baseline
+DONE 3 baseline 5.306797s matches=True
+START 3 sparse
+DONE 3 sparse 5.415222s matches=True
+START 4 sparse
+DONE 4 sparse 5.392596s matches=True
+START 4 baseline
+DONE 4 baseline 5.601387s matches=True
+START 5 baseline
+DONE 5 baseline 6.010569s matches=True
+START 5 sparse
+DONE 5 sparse 6.289709s matches=True
+Complete guarded default cohort.
+All three parallel-summary cohorts completed.
+{
+  "cpu_summary_calls": 154,
+  "cpu_summary_rows": 76674615,
+  "parallel_summary_calls": 154,
+  "parallel_summary_rows": 76674615,
+  "scalar_summary_calls": 0,
+  "scalar_summary_rows": 0,
+  "cpu_residual_calls": 53,
+  "cpu_normal_calls": 129,
+  "initial_rank_calls": 26,
+  "initial_rank_compiled": 26,
+  "discarded_residual_lists_avoided": 102,
+  "discarded_residual_rows_avoided": 59724347,
+  "gpu_payload_uploads": 0,
+  "gpu_payload_bytes": 0,
+  "compiled_packing_calls": 52,
+  "compiled_packing_rows": 24960000,
+  "cpu_distinct_centroid_tie_rows": 307670,
+  "cpu_parallel_difference_calls": 56,
+  "cpu_difference_calls": 56,
+  "cpu_difference_cache_hits": 73,
+  "cpu_difference_rows": 32768988,
+  "max_cpu_difference_cache_bytes": 33398792,
+  "gpu_difference_calls": 0,
+  "gpu_difference_cache_hits": 0,
+  "gpu_difference_rows": 0,
+  "max_gpu_difference_cache_bytes": 0,
+  "compiled_replay_calls": 120,
+  "compiled_replay_rows": 960000
+}
+{
+  "cpu_summary_calls": 154,
+  "cpu_summary_rows": 76674615,
+  "parallel_summary_calls": 154,
+  "parallel_summary_rows": 76674615,
+  "scalar_summary_calls": 0,
+  "scalar_summary_rows": 0,
+  "cpu_residual_calls": 53,
+  "cpu_normal_calls": 129,
+  "initial_rank_calls": 26,
+  "initial_rank_compiled": 26,
+  "discarded_residual_lists_avoided": 102,
+  "discarded_residual_rows_avoided": 59724347,
+  "gpu_payload_uploads": 26,
+  "gpu_payload_bytes": 2066730664,
+  "compiled_packing_calls": 52,
+  "compiled_packing_rows": 24960000,
+  "cpu_distinct_centroid_tie_rows": 307670,
+  "cpu_parallel_difference_calls": 0,
+  "cpu_difference_calls": 0,
+  "cpu_difference_cache_hits": 0,
+  "cpu_difference_rows": 0,
+  "max_cpu_difference_cache_bytes": 0,
+  "gpu_difference_calls": 56,
+  "gpu_difference_cache_hits": 73,
+  "gpu_difference_rows": 32768988,
+  "max_gpu_difference_cache_bytes": 33398792,
+  "gpu_query_calls": 52,
+  "gpu_uniform_rows": 24960000,
+  "gpu_adaptive_rows": 24960000,
+  "gpu_query_upload_bytes": 1198080000,
+  "compiled_replay_calls": 120,
+  "compiled_replay_rows": 960000
+}

@@ -1,0 +1,208 @@
+"""Observe native CPU/GPU work after all formal timing cohorts finish."""
+import inspect
+import json
+import os
+import subprocess
+import sys
+import time
+from argparse import Namespace
+from pathlib import Path
+from threading import Lock
+
+workspace=next(p for p in Path(__file__).resolve().parents if (p/'pyproject.toml').is_file())
+sys.path.insert(0,str(workspace))
+os.chdir(workspace)
+from tools import benchmark_adaptive_plane_search as b
+
+mode=sys.argv[1]
+assert mode in ('cpu','gpu')
+label='cpu-confirm' if mode=='cpu' else 'cuda-policy-smoke'
+cohort=Path(f'outputs/public-glim-parallel-summary-{label}-v1')
+backend='numba_cpu' if mode=='cpu' else 'cuda'
+out=Path(f'outputs/public-glim-parallel-summary-diagnostic-{mode}-v3')
+out.mkdir()
+config=Path('examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml')
+os.environ['OMP_NUM_THREADS']='1'
+os.environ['NUMBA_CACHE_DIR']=str((cohort/'numba-cache/sparse').resolve())
+os.environ['CUPY_CACHE_DIR']=str((cohort/'cuda-cache/sparse').resolve())
+sources={p:b._digest(Path(p)) for p in (*b.SOURCES,config.as_posix())}
+sources['diagnostic-launcher.py.txt']=b._digest(Path(__file__))
+inputs=b._verified_inputs(b.REPLAY)
+revision=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+from calibrex.solvers import numba_continuous_time_adapter as a
+from calibrex.graph.lidar_point_to_plane import LidarRigPointToPlaneFactor
+from calibrex.data.numba_lidar_deskew_adapter import _PreparedDeskew
+from calibrex.evaluation.packed_lidar_observations import _PackedObservationBuilder
+counts={'cpu_summary_calls':0,'cpu_summary_rows':0,'parallel_summary_calls':0,
+        'parallel_summary_rows':0,'scalar_summary_calls':0,'scalar_summary_rows':0,
+        'cpu_residual_calls':0,'cpu_normal_calls':0,'initial_rank_calls':0,'initial_rank_compiled':0,
+        'discarded_residual_lists_avoided':0,'discarded_residual_rows_avoided':0,
+        'gpu_payload_uploads':0,'gpu_payload_bytes':0,'compiled_packing_calls':0,
+        'compiled_packing_rows':0,'cpu_distinct_centroid_tie_rows':0}
+sums={}
+lock=Lock()
+cpu_contexts=[]
+native_init=a.NumbaRigLinearizer.__init__
+def cpu_init(self,*args,**kwargs):
+    native_init(self,*args,**kwargs)
+    cpu_contexts.append(self)
+a.NumbaRigLinearizer.__init__=cpu_init
+gpu_contexts=[]
+plane_contexts=[]
+if mode=='gpu':
+    from calibrex.solvers.cuda_continuous_time_adapter import CudaRigLinearizer
+    from calibrex.solvers.cuda_plane_query_adapter import CudaPlaneQueries
+    native_gpu_init=CudaRigLinearizer.__init__
+    def gpu_init(self,*args,**kwargs):
+        native_gpu_init(self,*args,**kwargs)
+        gpu_contexts.append(self)
+    CudaRigLinearizer.__init__=gpu_init
+    native_capture=CudaRigLinearizer._capture
+    def capture(self,arrays):
+        changed=self._arrays is not arrays
+        result=native_capture(self,arrays)
+        if changed:
+            with lock:
+                counts['gpu_payload_uploads']+=1
+                counts['gpu_payload_bytes']+=sum(v.nbytes for v in (
+                    arrays.points,arrays.plane_points,arrays.normals,arrays.poses,arrays.sqrt_weights))
+        return result
+    CudaRigLinearizer._capture=capture
+    native_planes=CudaPlaneQueries.capture
+    @classmethod
+    def planes(cls,*args):
+        result=native_planes(*args)
+        if result is not None:
+            plane_contexts.append(result)
+        return result
+    CudaPlaneQueries.capture=planes
+replay_contexts=[]
+native_replay=_PreparedDeskew.capture
+@classmethod
+def replay(cls,*args):
+    result=native_replay(*args)
+    if result is not None:
+        replay_contexts.append(result)
+    return result
+_PreparedDeskew.capture=replay
+def observe_summary(native,parallel):
+    def observed(arrays,*args):
+        start=time.perf_counter()
+        result=native(arrays,*args)
+        if result is not None:
+            name='parallel' if parallel else 'scalar'
+            with lock:
+                counts['cpu_summary_calls']+=1
+                counts['cpu_summary_rows']+=len(arrays.points)
+                counts[name+'_summary_calls']+=1
+                counts[name+'_summary_rows']+=len(arrays.points)
+                sums[name+'_summary']=sums.get(name+'_summary',0.)+time.perf_counter()-start
+        return result
+    return observed
+a._numba_rig_rmse=observe_summary(a._numba_rig_rmse,False)
+a._numba_parallel_rig_rmse=observe_summary(a._numba_parallel_rig_rmse,True)
+native_normal=a.numba_rig_normal_equations
+def normal(rows,residuals,*args):
+    start=time.perf_counter()
+    result=native_normal(rows,residuals,*args)
+    parent=inspect.currentframe().f_back
+    with lock:
+        counts['cpu_normal_calls']+=1
+        if parent.f_code.co_name=='_compiled_system' and not parent.f_locals.get('_include_residuals',True):
+            counts['discarded_residual_lists_avoided']+=1
+            counts['discarded_residual_rows_avoided']+=len(residuals)
+        sums['normal']=sums.get('normal',0.)+time.perf_counter()-start
+    return result
+a.numba_rig_normal_equations=normal
+native_residual=a.numba_rig_residuals
+def residual(arrays,*args):
+    start=time.perf_counter()
+    result=native_residual(arrays,*args)
+    with lock:
+        counts['cpu_residual_calls']+=1
+        sums['public_cpu_residual']=sums.get('public_cpu_residual',0.)+time.perf_counter()-start
+    return result
+a.numba_rig_residuals=residual
+native_rank=LidarRigPointToPlaneFactor._compiled_initial_rank
+def rank(self,*args):
+    result=native_rank(self,*args)
+    with lock:
+        counts['initial_rank_calls']+=1
+        counts['initial_rank_compiled']+=int(result is not None)
+    return result
+LidarRigPointToPlaneFactor._compiled_initial_rank=rank
+native_packing=a._pack_rig_observations
+def packing(*args):
+    result=native_packing(*args)
+    if result is not None:
+        with lock:
+            counts['compiled_packing_calls']+=1
+            counts['compiled_packing_rows']+=len(args[3])
+    return result
+a._pack_rig_observations=packing
+native_choices=a._association_choices
+def choices(*args):
+    result=native_choices(*args)
+    with lock:
+        counts['cpu_distinct_centroid_tie_rows']+=len(result[2])
+    return result
+a._association_choices=choices
+def phase(native,name):
+    def observed(*args,**kwargs):
+        start=time.perf_counter()
+        result=native(*args,**kwargs)
+        with lock:
+            sums[name]=sums.get(name,0.)+time.perf_counter()-start
+        return result
+    return observed
+a.NumbaRigLinearizer.linearize=phase(a.NumbaRigLinearizer.linearize,'cpu_differences')
+_PackedObservationBuilder.build=phase(_PackedObservationBuilder.build,'observation_build')
+if mode=='gpu':
+    CudaRigLinearizer.linearize=phase(CudaRigLinearizer.linearize,'gpu_differences')
+    CudaPlaneQueries.query=phase(CudaPlaneQueries.query,'gpu_queries')
+b._worker(Namespace(worker='sparse',baseline_scope='cpu-full' if mode=='cpu' else 'cuda-full',
+                    candidate_query_backend=backend,
+                    config=config,output_dir=out/'worker'))
+assert revision==subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+assert sources=={p:b._digest(Path(__file__)) if p=='diagnostic-launcher.py.txt'
+                 else b._digest(Path(p)) for p in sources}
+assert inputs==b._verified_inputs(b.REPLAY)
+row=json.loads((out/'worker/measurement.json').read_bytes())
+reference=json.loads((cohort/'sparse.repeat-01/measurement.json').read_bytes())
+assert b._canonical(row['result'])==b._canonical(reference['result'])
+assert counts['cpu_summary_calls']==154 and counts['cpu_summary_rows']==76_674_615
+assert counts['cpu_residual_calls']==53 and counts['cpu_normal_calls']==129
+assert counts['initial_rank_calls']==counts['initial_rank_compiled']==26
+assert counts['discarded_residual_lists_avoided']==102
+assert counts['parallel_summary_calls']==(154 if mode=='cpu' else 0)
+counts.update(cpu_parallel_difference_calls=sum(c.parallel_calls for c in cpu_contexts),
+    cpu_difference_calls=sum(c.calls for c in cpu_contexts),
+    cpu_difference_cache_hits=sum(c.cache_hits for c in cpu_contexts),
+    cpu_difference_rows=sum(c.rows for c in cpu_contexts),
+    max_cpu_difference_cache_bytes=max((c.cache_bytes for c in cpu_contexts),default=0),
+    gpu_difference_calls=sum(c.linearization_calls for c in gpu_contexts),
+    gpu_difference_cache_hits=sum(c.linearization_cache_hits for c in gpu_contexts),
+    gpu_difference_rows=sum(c.rows for c in gpu_contexts),
+    max_gpu_difference_cache_bytes=max((c.linearization_cache_bytes for c in gpu_contexts),default=0))
+if mode=='cpu':
+    assert counts['cpu_difference_calls']==56 and counts['cpu_difference_cache_hits']==73
+    assert counts['cpu_parallel_difference_calls']==56
+    assert 'cupy' not in sys.modules
+else:
+    assert counts['gpu_difference_calls']==56 and counts['gpu_difference_cache_hits']==73
+    assert counts['gpu_payload_uploads']==26 and counts['gpu_payload_bytes']==2_066_730_664
+    assert len(plane_contexts)==1
+    p=plane_contexts[0]
+    counts.update(gpu_query_calls=p.query_calls,gpu_uniform_rows=p.uniform_rows,
+                  gpu_adaptive_rows=p.adaptive_rows,gpu_query_upload_bytes=p.query_upload_bytes)
+assert len(replay_contexts)==1
+counts.update(compiled_replay_calls=replay_contexts[0].calls,
+              compiled_replay_rows=replay_contexts[0].rows)
+payload={'provenance':{'source_commit':revision,'source_sha256':sources,'input_sha256':inputs,
+    'measurement_sha256':b._digest(out/'worker/measurement.json')},'backend':backend,
+    'source_input_guards_passed':True,'complete_result_parity':True,
+    'cuda_imported':'cupy' in sys.modules,'counts':counts,'sum_seconds':sums,
+    'limitations':['Instrumented only; call sums nest and overlap across candidates.',
+                   'Diagnostic retains contexts; no production peak-memory inference.']}
+(out/'diagnostic.json').write_text(json.dumps(payload,indent=2)+'\n',encoding='utf-8',newline='\n')
+print(json.dumps(counts,indent=2),flush=True)

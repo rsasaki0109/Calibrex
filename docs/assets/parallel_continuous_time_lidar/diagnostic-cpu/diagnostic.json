@@ -1,0 +1,83 @@
+{
+  "provenance": {
+    "source_commit": "0337890f461c5cd7f1fe05cc4b3e5d0bf5ea6971",
+    "source_sha256": {
+      "sources/final/adaptive_voxel.py.txt": "4a2afd9a882426f0a99dbf7af52f98d49b48e168a32956ec3496f5740c879a14",
+      "sources/final/odometry_track.py.txt": "1569e661470e902f2f08dde1bf2d0c41cc6540a24f59d9ee961e066d36653c91",
+      "sources/final/numba_lidar_deskew_adapter.py.txt": "53966123b0e942f48929494fba4389062ccee0cd44dc85501e4d3451a84cc0be",
+      "sources/final/lidar_point_to_plane.py.txt": "4ca03bfd97d9a091b010e4805862ee46345486bb9ffbb6cf71c083dac81efb92",
+      "sources/final/continuous_time_lidar_pair_solver.py.txt": "75f89de3ccff8ae454b2b9fd7cb84dd86e73a3a3aa2984dd7ec890240022e240",
+      "sources/final/numba_continuous_time_adapter.py.txt": "fcc2413b66f5f386dd09e94e2fe3e78f81d7c5e940a404f4b588fbf76ef0692f",
+      "sources/final/cuda_continuous_time_adapter.py.txt": "14982f99815842dc39e07f990de9dde03e37aaf5cb76d0294959eda6d1daf7f5",
+      "sources/final/cuda_plane_query_adapter.py.txt": "1e01de434b7baf5f635493d06435d42f87456340cb95fa5405a5761225ae0c03",
+      "sources/final/fixed_trajectory_se3_solver.py.txt": "4eccbe682e48453d65d339f60c1c6ee0293df0269c547f64629c527bbf58e388",
+      "sources/final/robust_lidar_observations.py.txt": "ff398d558ec6f35eec497d6cdec80286b43ff4fd27a1e3b6a224d8e54098e240",
+      "sources/final/lidar.py.txt": "2e4c7dda7f81eaa343096ccce57e1f160bc4418d395facfafc4bcbed4ffb16df",
+      "sources/final/packed_lidar_observations.py.txt": "f648006f405e0228debc858b0ca25aa99b6e8181a786ba33b4245b810869d396",
+      "sources/final/livox.py.txt": "0773a7e2fccb2d2faa23f9e90636a00355499af131ad671845edb2c8d33b1bfd",
+      "sources/final/online.py.txt": "090e373de41196825a09dd4735964cbcdcae766cb81cd643b061750272d08452",
+      "sources/final/continuous_time_lidar_artifacts.py.txt": "96c051290b6b4f82f81fcc108b6ea4525b1497af064a3dedb8196e7dedd9d874",
+      "sources/final/continuous_time_lidar_train_diagnostics.py.txt": "f86b7e9d569b4ef61d85834df790207dbe2f424af17ec0f5df16b9f2aef6fcac",
+      "sources/final/provenance.py.txt": "eb7849f342892272ae136454da816852d080684b25c8ec55771582c1b8621f47",
+      "sources/final/rosbag1_to_rosbag2_online_pair.py.txt": "9da3e080b62933d4d75f92c08bba91929fea401d99650e55f78bd3cdabfcc680",
+      "sources/final/lidar_scan_deskew.py.txt": "e36a870323f76256fb5b3f8b8364cb2edb4c06483b3ea0fe8a99bf2faa6f1ce0",
+      "sources/final/benchmark_adaptive_plane_search.py.txt": "1b0f3f831d56b0551704556fbafe3f03f42c84385766d6b5206bd02ff4f2fe7c",
+      "sources/final/online_continuous_time_compiled_dense_capture_config.yaml.txt": "1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186",
+      "launchers/diagnose-parallel-summary-v3.py.txt": "92aa33992454540f75bf7761a8f3305989eb8c8d0be13d97653227a65c15ade9"
+    },
+    "input_sha256": {
+      "data/public/glim_versatile/livox.bag": "f57a2e85339316d4235ab693ab2876aac5e113625c7f8b0f7873b62f92e09643",
+      "data/public/glim_versatile/gt.tar.gz": "4bfd871527d00065898153e77a6764ac331421aca16ff88bde778994f70f5bc9",
+      "data/public/glim_versatile/gt/livox.txt": "bcc75ff7985f2e140e514c69f029153e0127a33ee7abc1b757e077386f5059ad",
+      "data/public/glim_versatile/livox_rosbag2_gt_restamped/livox_rosbag2_gt_restamped.db3": "8d28f0a8ddda13b880e4648e9d687d4a566d40f70b87547f8798fe8a18cfde9e",
+      "data/public/glim_versatile/livox_rosbag2_gt_restamped/metadata.yaml": "7542a3e1689e2007e9c15b8d163cddcbca4d87232dd92b7ecff48ba1e0f6645f",
+      "data/public/glim_versatile/conversion-provenance.json": "7f51da99c1bdc0b2768229e6ff22809d5d0bb22e02dcc62dce2c3ce0dac2da56"
+    },
+    "measurement_sha256": "83f329493244a6da0d9530be1ffa62ad15033402ebac44f2b76d6104a57d7961"
+  },
+  "backend": "numba_cpu",
+  "source_input_guards_passed": true,
+  "complete_result_parity": true,
+  "cuda_imported": false,
+  "counts": {
+    "cpu_summary_calls": 154,
+    "cpu_summary_rows": 76674615,
+    "parallel_summary_calls": 154,
+    "parallel_summary_rows": 76674615,
+    "scalar_summary_calls": 0,
+    "scalar_summary_rows": 0,
+    "cpu_residual_calls": 53,
+    "cpu_normal_calls": 129,
+    "initial_rank_calls": 26,
+    "initial_rank_compiled": 26,
+    "discarded_residual_lists_avoided": 102,
+    "discarded_residual_rows_avoided": 59724347,
+    "gpu_payload_uploads": 0,
+    "gpu_payload_bytes": 0,
+    "compiled_packing_calls": 52,
+    "compiled_packing_rows": 24960000,
+    "cpu_distinct_centroid_tie_rows": 307670,
+    "cpu_parallel_difference_calls": 56,
+    "cpu_difference_calls": 56,
+    "cpu_difference_cache_hits": 73,
+    "cpu_difference_rows": 32768988,
+    "max_cpu_difference_cache_bytes": 33398792,
+    "gpu_difference_calls": 0,
+    "gpu_difference_cache_hits": 0,
+    "gpu_difference_rows": 0,
+    "max_gpu_difference_cache_bytes": 0,
+    "compiled_replay_calls": 120,
+    "compiled_replay_rows": 960000
+  },
+  "sum_seconds": {
+    "observation_build": 94.86232709989417,
+    "public_cpu_residual": 4.606242999318056,
+    "parallel_summary": 7.172599300742149,
+    "cpu_differences": 29.676204800140113,
+    "normal": 3.1784261997090653
+  },
+  "limitations": [
+    "Instrumented only; call sums nest and overlap across candidates.",
+    "Diagnostic retains contexts; no production peak-memory inference."
+  ]
+}

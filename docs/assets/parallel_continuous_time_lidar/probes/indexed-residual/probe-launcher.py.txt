@@ -1,0 +1,112 @@
+"""Synthetic kernel-only probe; no whole-pipeline speed claim."""
+import hashlib
+import json
+import math
+import subprocess
+import sys
+import time
+from pathlib import Path
+import numpy as np
+from numba import njit
+from calibrex.solvers import numba_continuous_time_adapter as a
+
+@njit(cache=True, nogil=True, fastmath=False, inline='never')
+def indexed_one(points, planes, normals, poses, weight, translation, quaternion, row):
+    wt, wq = a._composed(
+        (poses[row, 0], poses[row, 1], poses[row, 2]),
+        (poses[row, 3], poses[row, 4], poses[row, 5], poses[row, 6]),
+        translation, quaternion,
+    )
+    rotated = a._rotated(wq, (points[row, 0], points[row, 1], points[row, 2]))
+    dx, dy, dz = (rotated[0]+wt[0]-planes[row, 0], rotated[1]+wt[1]-planes[row, 1],
+                  rotated[2]+wt[2]-planes[row, 2])
+    return float(weight * (normals[row, 0]*dx + normals[row, 1]*dy + normals[row, 2]*dz))
+
+@njit(cache=True, nogil=True, fastmath=False)
+def indexed_sum(points, planes, normals, poses, weights, transform, compensated):
+    total, correction = 0., 0.
+    translation = (transform[0], transform[1], transform[2])
+    quaternion = (transform[3], transform[4], transform[5], transform[6])
+    for row in range(len(points)):
+        value = indexed_one(points, planes, normals, poses, weights[row],
+                            translation, quaternion, row)
+        square = value * value
+        updated = total + square
+        if compensated:
+            if abs(total) >= abs(square):
+                correction += (total-updated) + square
+            else:
+                correction += (square-updated) + total
+        total = updated
+    if compensated and correction != 0.0 and math.isfinite(correction):
+        total += correction
+    return total
+
+@njit(cache=True, nogil=True, fastmath=False)
+def indexed_rows(points, planes, normals, poses, weights, transform):
+    output = np.empty(len(points), dtype=np.float64)
+    translation = (transform[0], transform[1], transform[2])
+    quaternion = (transform[3], transform[4], transform[5], transform[6])
+    for row in range(len(points)):
+        output[row] = indexed_one(points, planes, normals, poses, weights[row],
+                                  translation, quaternion, row)
+    return output
+
+def digest(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+source = 'src/calibrex/solvers/numba_continuous_time_adapter.py'
+guards = {source: digest(source), 'probe-launcher.py.txt': digest(__file__)}
+payload = {'provenance': {'source_commit': subprocess.check_output(
+    ['git','rev-parse','HEAD'], text=True).strip(), 'source_sha256': guards,
+    'python_version': sys.version}, 'kernel_only': True, 'cases': []}
+for count in (8192, 600000):
+    rng = np.random.default_rng(419)
+    points = rng.normal(size=(count,3))
+    planes = rng.normal(size=(count,3))
+    normals = rng.normal(size=(count,3))
+    poses = rng.normal(size=(count,7))
+    weights = rng.uniform(0.,2.,size=count)
+    transform = np.asarray([.1,-.2,.3,.2,-.3,.1,.9])
+    for array in (points, planes, normals, poses, weights, transform):
+        array.flags.writeable = False
+    arrays = (points, planes, normals, poses, weights, transform)
+    reference = a._residual_rows(*arrays)
+    actual = indexed_rows(*arrays)
+    assert np.array_equal(reference.view(np.uint64), actual.view(np.uint64))
+    case = {'count': count, 'seed': 419, 'input_sha256': hashlib.sha256(
+        b''.join(array.tobytes() for array in arrays)).hexdigest(),
+        'residuals_sha256': hashlib.sha256(actual.tobytes()).hexdigest(), 'policies': []}
+    for policy in (False, True):
+        baseline = a._residual_square_sum(*arrays, policy)
+        candidate = indexed_sum(*arrays, policy)
+        assert np.float64(baseline).tobytes() == np.float64(candidate).tobytes()
+        trials = []
+        for repeat in range(7):
+            row = {'repeat': repeat+1}
+            methods = [('baseline', a._residual_square_sum), ('candidate', indexed_sum)]
+            if repeat % 2:
+                methods.reverse()
+            row['order'] = [name for name, _ in methods]
+            for name, method in methods:
+                start = time.perf_counter()
+                value = method(*arrays, policy)
+                row[name] = time.perf_counter()-start
+                assert np.float64(value).tobytes() == np.float64(baseline).tobytes()
+            trials.append(row)
+        case['policies'].append({'compensated': policy, 'sum_hex': float(baseline).hex(),
+                                 'trials': trials})
+    payload['cases'].append(case)
+assert guards == {source: digest(source), 'probe-launcher.py.txt': digest(__file__)}
+out = Path('outputs/indexed-residual-probe-v1')
+out.mkdir()
+(out/'probe.json').write_text(json.dumps(payload,indent=2)+'\n',encoding='utf-8',newline='\n')
+(out/'probe-launcher.py.txt').write_bytes(Path(__file__).read_bytes())
+(out/'baseline.numba_continuous_time_adapter.py.txt').write_bytes(Path(source).read_bytes())
+for case in payload['cases']:
+    for policy in case['policies']:
+        import statistics
+        medians = {name: statistics.median(row[name] for row in policy['trials'])
+                   for name in ('baseline','candidate')}
+        print(json.dumps({'count':case['count'],'compensated':policy['compensated'],
+                          'medians':medians,'kernel_ratio':medians['baseline']/medians['candidate']}),flush=True)

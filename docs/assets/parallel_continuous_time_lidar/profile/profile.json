@@ -1,0 +1,696 @@
+{
+  "provenance": {
+    "source_commit": "aa19ec5d4bf01e1167e70f48332e6e13d51263c0",
+    "source_sha256": {
+      "profile/sources/adaptive_voxel.py.txt": "4a2afd9a882426f0a99dbf7af52f98d49b48e168a32956ec3496f5740c879a14",
+      "profile/sources/odometry_track.py.txt": "1569e661470e902f2f08dde1bf2d0c41cc6540a24f59d9ee961e066d36653c91",
+      "profile/sources/numba_lidar_deskew_adapter.py.txt": "53966123b0e942f48929494fba4389062ccee0cd44dc85501e4d3451a84cc0be",
+      "profile/sources/lidar_point_to_plane.py.txt": "4ca03bfd97d9a091b010e4805862ee46345486bb9ffbb6cf71c083dac81efb92",
+      "profile/sources/continuous_time_lidar_pair_solver.py.txt": "3602d874b1d44ad0cc3c0ab84d3265a163c10a007ab13ece75e16e263b686b10",
+      "profile/sources/numba_continuous_time_adapter.py.txt": "a644c40104fba05acfceff736d177af5e3c6904cd792c13a25bd5d986489b20d",
+      "profile/sources/cuda_continuous_time_adapter.py.txt": "ab0cb56ab5cbb4bf25cdec221de0ece6ab1ed11363958842560f2deadab6f4b0",
+      "profile/sources/cuda_plane_query_adapter.py.txt": "1e01de434b7baf5f635493d06435d42f87456340cb95fa5405a5761225ae0c03",
+      "profile/sources/fixed_trajectory_se3_solver.py.txt": "4eccbe682e48453d65d339f60c1c6ee0293df0269c547f64629c527bbf58e388",
+      "profile/sources/robust_lidar_observations.py.txt": "ff398d558ec6f35eec497d6cdec80286b43ff4fd27a1e3b6a224d8e54098e240",
+      "profile/sources/lidar.py.txt": "2e4c7dda7f81eaa343096ccce57e1f160bc4418d395facfafc4bcbed4ffb16df",
+      "profile/sources/packed_lidar_observations.py.txt": "f648006f405e0228debc858b0ca25aa99b6e8181a786ba33b4245b810869d396",
+      "profile/sources/livox.py.txt": "0773a7e2fccb2d2faa23f9e90636a00355499af131ad671845edb2c8d33b1bfd",
+      "profile/sources/online.py.txt": "090e373de41196825a09dd4735964cbcdcae766cb81cd643b061750272d08452",
+      "profile/sources/continuous_time_lidar_artifacts.py.txt": "96c051290b6b4f82f81fcc108b6ea4525b1497af064a3dedb8196e7dedd9d874",
+      "profile/sources/continuous_time_lidar_train_diagnostics.py.txt": "f86b7e9d569b4ef61d85834df790207dbe2f424af17ec0f5df16b9f2aef6fcac",
+      "profile/sources/provenance.py.txt": "eb7849f342892272ae136454da816852d080684b25c8ec55771582c1b8621f47",
+      "profile/sources/rosbag1_to_rosbag2_online_pair.py.txt": "9da3e080b62933d4d75f92c08bba91929fea401d99650e55f78bd3cdabfcc680",
+      "profile/sources/lidar_scan_deskew.py.txt": "e36a870323f76256fb5b3f8b8364cb2edb4c06483b3ea0fe8a99bf2faa6f1ce0",
+      "profile/sources/benchmark_adaptive_plane_search.py.txt": "66f6ed522e8eceda9f9299b1b963be98fc95491552eca6e30310d0cc6a7b6b1a",
+      "profile/sources/online_continuous_time_compiled_dense_capture_config.yaml.txt": "1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186",
+      "profile/launcher.py.txt": "433c37e7d6d2f014f674b6ef2df512371b8c742c6f54430b8f0919ba517ffa76"
+    },
+    "input_sha256": {
+      "data/public/glim_versatile/livox.bag": "f57a2e85339316d4235ab693ab2876aac5e113625c7f8b0f7873b62f92e09643",
+      "data/public/glim_versatile/gt.tar.gz": "4bfd871527d00065898153e77a6764ac331421aca16ff88bde778994f70f5bc9",
+      "data/public/glim_versatile/gt/livox.txt": "bcc75ff7985f2e140e514c69f029153e0127a33ee7abc1b757e077386f5059ad",
+      "data/public/glim_versatile/livox_rosbag2_gt_restamped/livox_rosbag2_gt_restamped.db3": "8d28f0a8ddda13b880e4648e9d687d4a566d40f70b87547f8798fe8a18cfde9e",
+      "data/public/glim_versatile/livox_rosbag2_gt_restamped/metadata.yaml": "7542a3e1689e2007e9c15b8d163cddcbca4d87232dd92b7ecff48ba1e0f6645f",
+      "data/public/glim_versatile/conversion-provenance.json": "7f51da99c1bdc0b2768229e6ff22809d5d0bb22e02dcc62dce2c3ce0dac2da56"
+    },
+    "measurement_sha256": "e8130a6f388799e8be01fc88bc20123dcee136126ff9eceee539f94b33292b34",
+    "python_version": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]"
+  },
+  "source_input_guards_passed": true,
+  "complete_result_parity": true,
+  "profiled_threads": 4,
+  "records": [
+    {
+      "thread": 34384,
+      "file": "numba_continuous_time_adapter.py",
+      "function": "_evaluate",
+      "calls": 124,
+      "own_seconds": 3.9621933000162244,
+      "cumulative_seconds": 3.9621933000162244
+    },
+    {
+      "thread": 34384,
+      "file": "cuda_plane_query_adapter.py",
+      "function": "query",
+      "calls": 4,
+      "own_seconds": 0.2095204001525417,
+      "cumulative_seconds": 0.2095204001525417
+    },
+    {
+      "thread": 34384,
+      "file": "numba_continuous_time_adapter.py",
+      "function": "_pack_rig_observations",
+      "calls": 4,
+      "own_seconds": 0.3005445000017062,
+      "cumulative_seconds": 0.3005445000017062
+    },
+    {
+      "thread": 34384,
+      "file": "packed_lidar_observations.py",
+      "function": "build",
+      "calls": 4,
+      "own_seconds": 0.03183619992341846,
+      "cumulative_seconds": 0.5419011000776663
+    },
+    {
+      "thread": 34384,
+      "file": "numba_continuous_time_adapter.py",
+      "function": "numba_rig_residuals",
+      "calls": 5,
+      "own_seconds": 0.25437600002624094,
+      "cumulative_seconds": 0.25437600002624094
+    },
+    {
+      "thread": 34384,
+      "file": "continuous_time_lidar_pair_solver.py",
+      "function": "compiled_residuals",
+      "calls": 5,
+      "own_seconds": 0.00020480004604905844,
+      "cumulative_seconds": 0.25458080007229
+    },
+    {
+      "thread": 34384,
+      "file": "lidar_point_to_plane.py",
+      "function": "residuals",
+      "calls": 5,
+      "own_seconds": 0.0006651000585407019,
+      "cumulative_seconds": 0.2552459001308307
+    },
+    {
+      "thread": 34384,
+      "file": "lidar_point_to_plane.py",
+      "function": "_retain_packed",
+      "calls": 4,
+      "own_seconds": 0.16245370008982718,
+      "cumulative_seconds": 0.16245370008982718
+    },
+    {
+      "thread": 34384,
+      "file": "robust_lidar_observations.py",
+      "function": "_filter_packed_factor_mad",
+      "calls": 4,
+      "own_seconds": 0.15114779979921877,
+      "cumulative_seconds": 0.4992466999683529
+    },
+    {
+      "thread": 34384,
+      "file": "numba_continuous_time_adapter.py",
+      "function": "_numba_rig_rmse",
+      "calls": 15,
+      "own_seconds": 1.0862482998054475,
+      "cumulative_seconds": 1.0862482998054475
+    },
+    {
+      "thread": 34384,
+      "file": "continuous_time_lidar_pair_solver.py",
+      "function": "compiled_rmse",
+      "calls": 15,
+      "own_seconds": 0.0006349000614136457,
+      "cumulative_seconds": 1.086883199866861
+    },
+    {
+      "thread": 34384,
+      "file": "lidar_point_to_plane.py",
+      "function": "_compiled_rmse",
+      "calls": 15,
+      "own_seconds": 0.0032195000676438212,
+      "cumulative_seconds": 1.090102699934505
+    },
+    {
+      "thread": 34384,
+      "file": "cuda_continuous_time_adapter.py",
+      "function": "linearize",
+      "calls": 14,
+      "own_seconds": 0.3431556998984888,
+      "cumulative_seconds": 0.3431556998984888
+    },
+    {
+      "thread": 34384,
+      "file": "continuous_time_lidar_pair_solver.py",
+      "function": "compiled_linearization",
+      "calls": 14,
+      "own_seconds": 0.0007369000231847167,
+      "cumulative_seconds": 0.34389259992167354
+    },
+    {
+      "thread": 34384,
+      "file": "lidar_point_to_plane.py",
+      "function": "_compiled_linearization",
+      "calls": 14,
+      "own_seconds": 0.07708039996214211,
+      "cumulative_seconds": 0.42097299988381565
+    },
+    {
+      "thread": 34384,
+      "file": "numba_continuous_time_adapter.py",
+      "function": "numba_rig_normal_equations",
+      "calls": 14,
+      "own_seconds": 0.2702021000441164,
+      "cumulative_seconds": 0.2702021000441164
+    },
+    {
+      "thread": 34384,
+      "file": "lidar_point_to_plane.py",
+      "function": "_compiled_initial_rank",
+      "calls": 2,
+      "own_seconds": 0.0006049000658094883,
+      "cumulative_seconds": 0.2388691999949515
+    },
+    {
+      "thread": 34384,
+      "file": "lidar_point_to_plane.py",
+      "function": "_compiled_system",
+      "calls": 11,
+      "own_seconds": 0.0009842000436037779,
+      "cumulative_seconds": 0.4316302000079304
+    },
+    {
+      "thread": 34384,
+      "file": "continuous_time_lidar_pair_solver.py",
+      "function": "_evaluate_offset",
+      "calls": 2,
+      "own_seconds": 0.09634840011131018,
+      "cumulative_seconds": 3.2731645001331344
+    },
+    {
+      "thread": 27732,
+      "file": "numba_continuous_time_adapter.py",
+      "function": "_evaluate",
+      "calls": 16,
+      "own_seconds": 1.581099200178869,
+      "cumulative_seconds": 1.581099200178869
+    },
+    {
+      "thread": 14716,
+      "file": "numba_continuous_time_adapter.py",
+      "function": "_evaluate",
+      "calls": 16,
+      "own_seconds": 1.7360315001569688,
+      "cumulative_seconds": 1.7360315001569688
+    },
+    {
+      "thread": 15572,
+      "file": "numba_continuous_time_adapter.py",
+      "function": "_evaluate",
+      "calls": 16,
+      "own_seconds": 1.5346141998888925,
+      "cumulative_seconds": 1.5346141998888925
+    },
+    {
+      "thread": 27732,
+      "file": "cuda_plane_query_adapter.py",
+      "function": "query",
+      "calls": 16,
+      "own_seconds": 1.5734269000822678,
+      "cumulative_seconds": 1.5734269000822678
+    },
+    {
+      "thread": 27732,
+      "file": "numba_continuous_time_adapter.py",
+      "function": "_pack_rig_observations",
+      "calls": 16,
+      "own_seconds": 1.224487500381656,
+      "cumulative_seconds": 1.224487500381656
+    },
+    {
+      "thread": 27732,
+      "file": "packed_lidar_observations.py",
+      "function": "build",
+      "calls": 16,
+      "own_seconds": 0.1827447994146496,
+      "cumulative_seconds": 2.9806591998785734
+    },
+    {
+      "thread": 14716,
+      "file": "cuda_plane_query_adapter.py",
+      "function": "query",
+      "calls": 16,
+      "own_seconds": 1.6178339999169111,
+      "cumulative_seconds": 1.6178339999169111
+    },
+    {
+      "thread": 15572,
+      "file": "cuda_plane_query_adapter.py",
+      "function": "query",
+      "calls": 16,
+      "own_seconds": 1.4134528001304716,
+      "cumulative_seconds": 1.4134528001304716
+    },
+    {
+      "thread": 27732,
+      "file": "numba_continuous_time_adapter.py",
+      "function": "numba_rig_residuals",
+      "calls": 16,
+      "own_seconds": 0.8544107999186963,
+      "cumulative_seconds": 0.8544107999186963
+    },
+    {
+      "thread": 27732,
+      "file": "continuous_time_lidar_pair_solver.py",
+      "function": "compiled_residuals",
+      "calls": 16,
+      "own_seconds": 0.0006115997675806284,
+      "cumulative_seconds": 0.8550223996862769
+    },
+    {
+      "thread": 27732,
+      "file": "lidar_point_to_plane.py",
+      "function": "residuals",
+      "calls": 16,
+      "own_seconds": 0.0024245003005489707,
+      "cumulative_seconds": 0.8574468999868259
+    },
+    {
+      "thread": 14716,
+      "file": "numba_continuous_time_adapter.py",
+      "function": "_pack_rig_observations",
+      "calls": 16,
+      "own_seconds": 1.2116120997816324,
+      "cumulative_seconds": 1.2116120997816324
+    },
+    {
+      "thread": 14716,
+      "file": "packed_lidar_observations.py",
+      "function": "build",
+      "calls": 16,
+      "own_seconds": 0.2580594001337886,
+      "cumulative_seconds": 3.087505499832332
+    },
+    {
+      "thread": 15572,
+      "file": "numba_continuous_time_adapter.py",
+      "function": "_pack_rig_observations",
+      "calls": 16,
+      "own_seconds": 1.2109219996491447,
+      "cumulative_seconds": 1.2109219996491447
+    },
+    {
+      "thread": 15572,
+      "file": "packed_lidar_observations.py",
+      "function": "build",
+      "calls": 16,
+      "own_seconds": 0.18269990000408143,
+      "cumulative_seconds": 2.8070746997836977
+    },
+    {
+      "thread": 14716,
+      "file": "numba_continuous_time_adapter.py",
+      "function": "numba_rig_residuals",
+      "calls": 16,
+      "own_seconds": 0.8256736999610439,
+      "cumulative_seconds": 0.8256736999610439
+    },
+    {
+      "thread": 14716,
+      "file": "continuous_time_lidar_pair_solver.py",
+      "function": "compiled_residuals",
+      "calls": 16,
+      "own_seconds": 0.0006343995919451118,
+      "cumulative_seconds": 0.826308099552989
+    },
+    {
+      "thread": 14716,
+      "file": "lidar_point_to_plane.py",
+      "function": "residuals",
+      "calls": 16,
+      "own_seconds": 0.002508600358851254,
+      "cumulative_seconds": 0.8288166999118403
+    },
+    {
+      "thread": 27732,
+      "file": "lidar_point_to_plane.py",
+      "function": "_retain_packed",
+      "calls": 16,
+      "own_seconds": 0.7330447999993339,
+      "cumulative_seconds": 0.7330447999993339
+    },
+    {
+      "thread": 27732,
+      "file": "robust_lidar_observations.py",
+      "function": "_filter_packed_factor_mad",
+      "calls": 16,
+      "own_seconds": 0.882156900013797,
+      "cumulative_seconds": 2.472648599999957
+    },
+    {
+      "thread": 15572,
+      "file": "numba_continuous_time_adapter.py",
+      "function": "numba_rig_residuals",
+      "calls": 16,
+      "own_seconds": 0.7961899001384154,
+      "cumulative_seconds": 0.7961899001384154
+    },
+    {
+      "thread": 15572,
+      "file": "continuous_time_lidar_pair_solver.py",
+      "function": "compiled_residuals",
+      "calls": 16,
+      "own_seconds": 0.0006507999496534467,
+      "cumulative_seconds": 0.7968407000880688
+    },
+    {
+      "thread": 15572,
+      "file": "lidar_point_to_plane.py",
+      "function": "residuals",
+      "calls": 16,
+      "own_seconds": 0.0025092001305893064,
+      "cumulative_seconds": 0.7993499002186581
+    },
+    {
+      "thread": 27732,
+      "file": "numba_continuous_time_adapter.py",
+      "function": "_numba_rig_rmse",
+      "calls": 48,
+      "own_seconds": 3.6092989002354443,
+      "cumulative_seconds": 3.6092989002354443
+    },
+    {
+      "thread": 27732,
+      "file": "continuous_time_lidar_pair_solver.py",
+      "function": "compiled_rmse",
+      "calls": 48,
+      "own_seconds": 0.0018850998021662235,
+      "cumulative_seconds": 3.6111840000376105
+    },
+    {
+      "thread": 27732,
+      "file": "lidar_point_to_plane.py",
+      "function": "_compiled_rmse",
+      "calls": 48,
+      "own_seconds": 0.01081900077406317,
+      "cumulative_seconds": 3.6220030008116737
+    },
+    {
+      "thread": 15572,
+      "file": "lidar_point_to_plane.py",
+      "function": "_retain_packed",
+      "calls": 16,
+      "own_seconds": 0.9024337001610547,
+      "cumulative_seconds": 0.9024337001610547
+    },
+    {
+      "thread": 15572,
+      "file": "robust_lidar_observations.py",
+      "function": "_filter_packed_factor_mad",
+      "calls": 16,
+      "own_seconds": 0.8543186993338168,
+      "cumulative_seconds": 2.5561022997135296
+    },
+    {
+      "thread": 27732,
+      "file": "cuda_continuous_time_adapter.py",
+      "function": "linearize",
+      "calls": 40,
+      "own_seconds": 1.7593786999350414,
+      "cumulative_seconds": 1.7593786999350414
+    },
+    {
+      "thread": 27732,
+      "file": "continuous_time_lidar_pair_solver.py",
+      "function": "compiled_linearization",
+      "calls": 40,
+      "own_seconds": 0.0019480002811178565,
+      "cumulative_seconds": 1.7613267002161592
+    },
+    {
+      "thread": 14716,
+      "file": "lidar_point_to_plane.py",
+      "function": "_retain_packed",
+      "calls": 16,
+      "own_seconds": 0.7663025002693757,
+      "cumulative_seconds": 0.7663025002693757
+    },
+    {
+      "thread": 14716,
+      "file": "robust_lidar_observations.py",
+      "function": "_filter_packed_factor_mad",
+      "calls": 16,
+      "own_seconds": 0.9404286000644788,
+      "cumulative_seconds": 2.535547800245695
+    },
+    {
+      "thread": 27732,
+      "file": "lidar_point_to_plane.py",
+      "function": "_compiled_linearization",
+      "calls": 40,
+      "own_seconds": 0.22864309966098517,
+      "cumulative_seconds": 1.9899697998771444
+    },
+    {
+      "thread": 27732,
+      "file": "numba_continuous_time_adapter.py",
+      "function": "numba_rig_normal_equations",
+      "calls": 40,
+      "own_seconds": 0.7229578003752977,
+      "cumulative_seconds": 0.7229578003752977
+    },
+    {
+      "thread": 27732,
+      "file": "lidar_point_to_plane.py",
+      "function": "_compiled_initial_rank",
+      "calls": 8,
+      "own_seconds": 0.002538599888794124,
+      "cumulative_seconds": 1.0857007000595331
+    },
+    {
+      "thread": 27732,
+      "file": "lidar_point_to_plane.py",
+      "function": "_compiled_system",
+      "calls": 32,
+      "own_seconds": 0.002720699878409505,
+      "cumulative_seconds": 1.6324861999601126
+    },
+    {
+      "thread": 15572,
+      "file": "numba_continuous_time_adapter.py",
+      "function": "_numba_rig_rmse",
+      "calls": 45,
+      "own_seconds": 3.267608900088817,
+      "cumulative_seconds": 3.267608900088817
+    },
+    {
+      "thread": 15572,
+      "file": "continuous_time_lidar_pair_solver.py",
+      "function": "compiled_rmse",
+      "calls": 45,
+      "own_seconds": 0.0016414000419899821,
+      "cumulative_seconds": 3.269250300130807
+    },
+    {
+      "thread": 15572,
+      "file": "lidar_point_to_plane.py",
+      "function": "_compiled_rmse",
+      "calls": 45,
+      "own_seconds": 0.009001299156807363,
+      "cumulative_seconds": 3.2782515992876142
+    },
+    {
+      "thread": 14716,
+      "file": "numba_continuous_time_adapter.py",
+      "function": "_numba_rig_rmse",
+      "calls": 46,
+      "own_seconds": 3.5212454999564216,
+      "cumulative_seconds": 3.5212454999564216
+    },
+    {
+      "thread": 14716,
+      "file": "continuous_time_lidar_pair_solver.py",
+      "function": "compiled_rmse",
+      "calls": 46,
+      "own_seconds": 0.001896100351586938,
+      "cumulative_seconds": 3.5231416003080085
+    },
+    {
+      "thread": 14716,
+      "file": "lidar_point_to_plane.py",
+      "function": "_compiled_rmse",
+      "calls": 46,
+      "own_seconds": 0.009748999611474574,
+      "cumulative_seconds": 3.532890599919483
+    },
+    {
+      "thread": 15572,
+      "file": "cuda_continuous_time_adapter.py",
+      "function": "linearize",
+      "calls": 37,
+      "own_seconds": 1.645971699967049,
+      "cumulative_seconds": 1.645971699967049
+    },
+    {
+      "thread": 15572,
+      "file": "continuous_time_lidar_pair_solver.py",
+      "function": "compiled_linearization",
+      "calls": 37,
+      "own_seconds": 0.0018304003169760108,
+      "cumulative_seconds": 1.647802100284025
+    },
+    {
+      "thread": 15572,
+      "file": "lidar_point_to_plane.py",
+      "function": "_compiled_linearization",
+      "calls": 37,
+      "own_seconds": 0.2325158993480727,
+      "cumulative_seconds": 1.8803179996320978
+    },
+    {
+      "thread": 15572,
+      "file": "numba_continuous_time_adapter.py",
+      "function": "numba_rig_normal_equations",
+      "calls": 37,
+      "own_seconds": 0.5998219997854903,
+      "cumulative_seconds": 0.5998219997854903
+    },
+    {
+      "thread": 15572,
+      "file": "lidar_point_to_plane.py",
+      "function": "_compiled_initial_rank",
+      "calls": 8,
+      "own_seconds": 0.0023149001644924283,
+      "cumulative_seconds": 0.9151477998821065
+    },
+    {
+      "thread": 14716,
+      "file": "cuda_continuous_time_adapter.py",
+      "function": "linearize",
+      "calls": 38,
+      "own_seconds": 1.8108090000459924,
+      "cumulative_seconds": 1.8108090000459924
+    },
+    {
+      "thread": 14716,
+      "file": "continuous_time_lidar_pair_solver.py",
+      "function": "compiled_linearization",
+      "calls": 38,
+      "own_seconds": 0.0019303997978568077,
+      "cumulative_seconds": 1.8127393998438492
+    },
+    {
+      "thread": 14716,
+      "file": "lidar_point_to_plane.py",
+      "function": "_compiled_linearization",
+      "calls": 38,
+      "own_seconds": 0.2572424001991749,
+      "cumulative_seconds": 2.069981800043024
+    },
+    {
+      "thread": 15572,
+      "file": "lidar_point_to_plane.py",
+      "function": "_compiled_system",
+      "calls": 29,
+      "own_seconds": 0.0025547004770487547,
+      "cumulative_seconds": 1.5698618001770228
+    },
+    {
+      "thread": 14716,
+      "file": "numba_continuous_time_adapter.py",
+      "function": "numba_rig_normal_equations",
+      "calls": 38,
+      "own_seconds": 0.6562126001808792,
+      "cumulative_seconds": 0.6562126001808792
+    },
+    {
+      "thread": 14716,
+      "file": "lidar_point_to_plane.py",
+      "function": "_compiled_initial_rank",
+      "calls": 8,
+      "own_seconds": 0.002551299869082868,
+      "cumulative_seconds": 1.2023456000024453
+    },
+    {
+      "thread": 14716,
+      "file": "lidar_point_to_plane.py",
+      "function": "_compiled_system",
+      "calls": 30,
+      "own_seconds": 0.002497900277376175,
+      "cumulative_seconds": 1.5288980003679171
+    },
+    {
+      "thread": 27732,
+      "file": "continuous_time_lidar_pair_solver.py",
+      "function": "_evaluate_offset",
+      "calls": 8,
+      "own_seconds": 0.5449123990256339,
+      "cumulative_seconds": 13.919509299914353
+    },
+    {
+      "thread": 14716,
+      "file": "continuous_time_lidar_pair_solver.py",
+      "function": "_evaluate_offset",
+      "calls": 8,
+      "own_seconds": 0.568493899423629,
+      "cumulative_seconds": 14.19171289994847
+    },
+    {
+      "thread": 15572,
+      "file": "continuous_time_lidar_pair_solver.py",
+      "function": "_evaluate_offset",
+      "calls": 8,
+      "own_seconds": 0.5462972010718659,
+      "cumulative_seconds": 13.20734959980473
+    },
+    {
+      "thread": 34384,
+      "file": "lidar_point_to_plane.py",
+      "function": "evaluate",
+      "calls": 1,
+      "own_seconds": 1.328386600012891,
+      "cumulative_seconds": 1.3506514000473544
+    },
+    {
+      "thread": 34384,
+      "file": "lidar_point_to_plane.py",
+      "function": "_point_ranges",
+      "calls": 1,
+      "own_seconds": 1.0141983999637887,
+      "cumulative_seconds": 1.0141983999637887
+    },
+    {
+      "thread": 34384,
+      "file": "continuous_time_lidar_train_diagnostics.py",
+      "function": "summarize_train_residuals",
+      "calls": 7,
+      "own_seconds": 2.4885532999178395,
+      "cumulative_seconds": 2.4885532999178395
+    },
+    {
+      "thread": 34384,
+      "file": "continuous_time_lidar_train_diagnostics.py",
+      "function": "build_train_range_bins",
+      "calls": 1,
+      "own_seconds": 1.120293700019829,
+      "cumulative_seconds": 2.3367702999385074
+    },
+    {
+      "thread": 34384,
+      "file": "continuous_time_lidar_pair_solver.py",
+      "function": "_solve",
+      "calls": 1,
+      "own_seconds": 30.98953349981457,
+      "cumulative_seconds": 40.30599549994804
+    }
+  ],
+  "limitations": [
+    "Instrumented profiling only, excluded from formal timing.",
+    "Selected cumulative call times nest and overlap across threads."
+  ]
+}

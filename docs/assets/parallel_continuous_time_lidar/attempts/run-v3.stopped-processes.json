@@ -1,0 +1,37 @@
+[
+  {
+    "ProcessId": 30644,
+    "ParentProcessId": 512,
+    "CommandLine": "\"<PYTHON>\" -u <WORKSPACE>/.tmp-calibrex-run-parallel-summary-v3.py"
+  },
+  {
+    "ProcessId": 7488,
+    "ParentProcessId": 30644,
+    "CommandLine": "/??/C:/WINDOWS/system32/conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 31164,
+    "ParentProcessId": 30644,
+    "CommandLine": "\"<USER>/AppData/Local/Programs/Python/Python312/python.exe\" -u <WORKSPACE>/.tmp-calibrex-run-parallel-summary-v3.py"
+  },
+  {
+    "ProcessId": 35460,
+    "ParentProcessId": 31164,
+    "CommandLine": "<PYTHON> tools/benchmark_adaptive_plane_search.py --baseline-scope cuda-full --baseline-commit aa19ec5d4bf01e1167e70f48332e6e13d51263c0 --candidate-query-backend cuda --baseline-query-backend cuda --config examples/public_datasets/glim_versatile/online_continuous_time_compiled_queries_config.yaml --repetitions 5 --output-dir outputs/public-glim-parallel-summary-default-v2"
+  },
+  {
+    "ProcessId": 25612,
+    "ParentProcessId": 35460,
+    "CommandLine": "\"<USER>/AppData/Local/Programs/Python/Python312/python.exe\" tools/benchmark_adaptive_plane_search.py --baseline-scope cuda-full --baseline-commit aa19ec5d4bf01e1167e70f48332e6e13d51263c0 --candidate-query-backend cuda --baseline-query-backend cuda --config examples/public_datasets/glim_versatile/online_continuous_time_compiled_queries_config.yaml --repetitions 5 --output-dir outputs/public-glim-parallel-summary-default-v2"
+  },
+  {
+    "ProcessId": 33536,
+    "ParentProcessId": 25612,
+    "CommandLine": "<PYTHON> <WORKSPACE>/tools/benchmark_adaptive_plane_search.py --worker sparse --baseline-scope cuda-full --config examples/public_datasets/glim_versatile/online_continuous_time_compiled_queries_config.yaml --output-dir <WORKSPACE>/outputs/public-glim-parallel-summary-default-v2/sparse.repeat-03 --candidate-query-backend cuda --baseline-query-backend cuda"
+  },
+  {
+    "ProcessId": 32104,
+    "ParentProcessId": 33536,
+    "CommandLine": "\"<USER>/AppData/Local/Programs/Python/Python312/python.exe\" <WORKSPACE>/tools/benchmark_adaptive_plane_search.py --worker sparse --baseline-scope cuda-full --config examples/public_datasets/glim_versatile/online_continuous_time_compiled_queries_config.yaml --output-dir <WORKSPACE>/outputs/public-glim-parallel-summary-default-v2/sparse.repeat-03 --candidate-query-backend cuda --baseline-query-backend cuda"
+  }
+]

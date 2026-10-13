@@ -1,0 +1,70 @@
+"""Probe bounded CPU row concurrency with exactly ordered final reductions."""
+import hashlib
+import json
+import statistics
+import subprocess
+import sys
+import time
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+import numpy as np
+from calibrex.core.geometry import SE3
+from calibrex.solvers import numba_continuous_time_adapter as a
+
+def parallel(arrays,policy,executor):
+    midpoint=len(arrays[0])//2
+    left=tuple(v[:midpoint] for v in arrays[:-1])+(arrays[-1],)
+    right=tuple(v[midpoint:] for v in arrays[:-1])+(arrays[-1],)
+    future=executor.submit(a._residual_rows,*right)
+    first=a._residual_rows(*left)
+    second=future.result()
+    values=np.concatenate((first,second))
+    return a._value_square_sum(values,policy)
+
+def digest(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+source='src/calibrex/solvers/numba_continuous_time_adapter.py'
+guards={source:digest(source),'probe-launcher.py.txt':digest(__file__)}
+report={'provenance':{'source_commit':subprocess.check_output(
+    ['git','rev-parse','HEAD'],text=True).strip(),'source_sha256':guards,'python_version':sys.version},
+    'kernel_only':True,'cases':[]}
+with ThreadPoolExecutor(max_workers=3) as helpers,ThreadPoolExecutor(max_workers=3) as callers:
+    for concurrent_callers in (1,3):
+        count=600000
+        rng=np.random.default_rng(419)
+        t=SE3((.1,-.2,.3),(.2,-.3,.1,.9))
+        arrays=(rng.normal(size=(count,3)),rng.normal(size=(count,3)),rng.normal(size=(count,3)),
+                rng.normal(size=(count,7)),rng.uniform(0.,2.,size=count),
+                np.asarray((*t.translation_m,*t.rotation_quat_xyzw)))
+        for array in arrays:
+            array.flags.writeable=False
+        reference=a._residual_square_sum(*arrays,True)
+        a._residual_rows(*arrays)
+        assert np.float64(reference).tobytes()==np.float64(parallel(arrays,True,helpers)).tobytes()
+        case={'count':count,'seed':419,'concurrent_callers':concurrent_callers,
+              'input_sha256':hashlib.sha256(b''.join(v.tobytes() for v in arrays)).hexdigest(),'trials':[]}
+        def invoke(method):
+            return (a._residual_square_sum(*arrays,True) if method=='baseline'
+                    else parallel(arrays,True,helpers))
+        for repeat in range(9):
+            methods=['baseline','candidate'] if repeat%2==0 else ['candidate','baseline']
+            row={'repeat':repeat+1,'order':methods}
+            for method in methods:
+                start=time.perf_counter()
+                if concurrent_callers==1:
+                    values=[invoke(method)]
+                else:
+                    values=list(callers.map(invoke,[method]*concurrent_callers))
+                row[method]=time.perf_counter()-start
+                assert all(np.float64(v).tobytes()==np.float64(reference).tobytes() for v in values)
+            case['trials'].append(row)
+        medians={m:statistics.median(t[m] for t in case['trials']) for m in ('baseline','candidate')}
+        print(json.dumps({'concurrent_callers':concurrent_callers,'medians':medians,
+                          'kernel_ratio':medians['baseline']/medians['candidate']}),flush=True)
+        report['cases'].append(case)
+assert guards=={source:digest(source),'probe-launcher.py.txt':digest(__file__)}
+out=Path('outputs/threaded-summary-probe-v1')
+out.mkdir()
+(out/'probe.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8',newline='\n')
+(out/'probe-launcher.py.txt').write_bytes(Path(__file__).read_bytes())
+(out/'baseline.numba_continuous_time_adapter.py.txt').write_bytes(Path(source).read_bytes())

@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "<WORKSPACE>/tools/benchmark_adaptive_plane_search.py", line 816, in <module>
+    main()
+  File "<WORKSPACE>/tools/benchmark_adaptive_plane_search.py", line 514, in main
+    raise ValueError("CUDA scope requires both declared execution overrides to be cuda")
+ValueError: CUDA scope requires both declared execution overrides to be cuda
+Traceback (most recent call last):
+  File "<WORKSPACE>/.tmp-calibrex-run-parallel-summary-v1.py", line 22, in <module>
+    subprocess.run([sys.executable,'tools/benchmark_adaptive_plane_search.py',
+  File "<USER>/AppData/Local/Programs/Python/Python312/Lib/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['<USER>//Workspace//Calibrex//.venv//Scripts//python.exe', 'tools/benchmark_adaptive_plane_search.py', '--baseline-scope', 'cuda-full', '--baseline-commit', 'aa19ec5d4bf01e1167e70f48332e6e13d51263c0', '--candidate-query-backend', 'numba_cpu', '--baseline-query-backend', 'numba_cpu', '--config', 'examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml', '--repetitions', '3', '--output-dir', 'outputs/public-glim-parallel-summary-cpu-dense-v1']' returned non-zero exit status 1.

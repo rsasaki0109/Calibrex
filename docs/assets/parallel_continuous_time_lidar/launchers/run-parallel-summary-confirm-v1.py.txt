@@ -1,0 +1,34 @@
+"""Repeat CPU comparison after the observed competing benchmark has ended."""
+import os
+import subprocess
+import sys
+from pathlib import Path
+workspace=next(p for p in Path(__file__).resolve().parents if (p/'pyproject.toml').is_file())
+sys.path.insert(0,str(workspace))
+os.chdir(workspace)
+from tools import benchmark_adaptive_plane_search as b
+revision=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+assert revision=='0337890f461c5cd7f1fe05cc4b3e5d0bf5ea6971'
+config=Path('examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml')
+sources={p:b._digest(Path(p)) for p in (*b.SOURCES,config.as_posix(),__file__)}
+inputs=b._verified_inputs(b.REPLAY)
+subprocess.run([sys.executable,'tools/benchmark_adaptive_plane_search.py',
+    '--baseline-scope','cpu-full','--baseline-commit','aa19ec5d4bf01e1167e70f48332e6e13d51263c0',
+    '--candidate-query-backend','numba_cpu','--baseline-query-backend','numba_cpu',
+    '--config',config.as_posix(),'--repetitions','3',
+    '--output-dir','outputs/public-glim-parallel-summary-cpu-confirm-v1'],check=True)
+assert revision==subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+assert sources=={p:b._digest(Path(p)) for p in sources}
+assert inputs==b._verified_inputs(b.REPLAY)
+print('CPU confirmation cohort complete; source and input guards passed.',flush=True)
+
+subprocess.run([sys.executable,'tools/benchmark_adaptive_plane_search.py',
+    '--baseline-scope','cuda-full','--baseline-commit','aa19ec5d4bf01e1167e70f48332e6e13d51263c0',
+    '--candidate-query-backend','cuda','--baseline-query-backend','cuda',
+    '--config',config.as_posix(),'--repetitions','1',
+    '--output-dir','outputs/public-glim-parallel-summary-cuda-policy-smoke-v1'],check=True)
+assert revision==subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+assert sources=={p:b._digest(Path(p)) for p in sources}
+assert inputs==b._verified_inputs(b.REPLAY)
+for mode in ('cpu','gpu'):
+    subprocess.run([sys.executable,'.tmp-calibrex-diagnose-parallel-summary-v3.py',mode],check=True)

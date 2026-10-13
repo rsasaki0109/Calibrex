@@ -1062,6 +1062,65 @@ The copied public topic supplies execution parity, without independent
 two-sensor accuracy evidence. See the [complete association/replay evidence](../assets/cuda_continuous_time_associations/README.md)
 for all trials, source/input bindings, actual work and preserved preceding candidates.
 
+## Parallel CPU summaries and finite differences
+
+For native immutable batches of at least 32,768 observations, eligible compiled
+CPU-backend solves share three additional helpers across candidate workers. Each request
+computes two disjoint row blocks. Summary accumulation and robust normal equations
+keep their exact serial order. CPU finite differences also retain their last exact
+batch within a 64 MiB cache; callers receive independent writable arrays.
+Six logical CPUs and a sufficiently large sampling budget are required to create
+the helper pool. Smaller/default sampling follows its previous execution route.
+CUDA finite-difference and query kernels stay unchanged.
+
+| Workload | Previous whole median | Candidate whole median | Ratio of medians | Median paired ratio |
+|---|---:|---:|---:|---:|
+| CPU: 960,000 captured points | 88.192810 s | 50.415180 s | 1.749x | 1.728x |
+| CUDA policy smoke: one pair | 46.185255 s | 51.526152 s | 0.896x | 0.896x |
+| Default sampling: unchanged small-batch route | 5.601387 s | 5.556325 s | 1.008x | 0.980x |
+
+The primary CPU comparison uses three alternating fresh-process pairs; the CUDA
+policy smoke uses one pair and does not establish a GPU speedup. Default sampling
+retains five pairs on the preceding experimental source with identical small-batch
+dispatch. CUDA method cache directories were separate. CPU scopes used a shared
+directory with distinct code-cache namespaces: the first candidate inventory
+contained only baseline files and left those files unchanged. Cache hashes are
+audited; the final harness also separates CPU method directories explicitly.
+The directory correction was not formally retimed. First compilation and every slower observation
+remain inside the measurements. Wall includes startup, replay, every candidate
+and refinement, transfers, diagnostics, hashing and saves.
+An initial CPU cohort observed another project benchmark and is retained separately.
+The table uses the repeated CPU cohort after that observed benchmark ended.
+Other OS/application load is not controlled; these are local observations.
+Ratios are not pooled with or multiplied by preceding speedups.
+
+The helper-enabled CUDA experiment had a 0.865x ratio of whole medians
+(43.256966 s to 50.028804 s, about 16% slower). The final policy creates
+extra helpers only for the CPU backend and retains the preceding CUDA route.
+The exact one-condition source change and all unsuccessful observations are retained.
+
+All complete results match within their cohorts, including histories and diagnostics.
+A separate CPU diagnostic confirms 56 parallel finite-difference misses and 73 exact
+cache hits across 129 logical normal-equation calls, without importing CuPy.
+The fourteen-module `cpu-full` baseline scope requires explicit CPU overrides and
+verifies packed observation and compiled replay bindings.
+
+```bash
+python tools/benchmark_adaptive_plane_search.py \
+  --baseline-scope cpu-full \
+  --baseline-commit aa19ec5d4bf01e1167e70f48332e6e13d51263c0 \
+  --baseline-query-backend numba_cpu --candidate-query-backend numba_cpu \
+  --config examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml \
+  --repetitions 3 \
+  --output-dir outputs/public-glim-parallel-cpu-reproduction
+```
+
+The public sensor copied into two topics provides execution parity without
+independent two-sensor accuracy evidence. See the
+[complete parallel CPU evidence](../assets/parallel_continuous_time_lidar/README.md)
+for all 44 complete cohort trials and 55 complete saved results, stopped/failed attempts,
+seven kernel probes, exact source/input hashes and independent work counters.
+
 ## Experimental captured CUDA residual summaries
 
 `ContinuousTimeLidarPairOptions.cuda_captured_summary=True` explicitly enables
