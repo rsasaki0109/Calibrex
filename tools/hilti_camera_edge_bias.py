@@ -195,8 +195,10 @@ def main(argv: list[str] | None = None) -> int:
             value, std = _fit(design[mask], offset[mask], frame[mask])
             return {
                 "patches": int(mask.sum()),
-                "residual_deg": {a: round(float(v), 3) for a, v in zip(AXES, value, strict=True)},
-                "std_deg": {a: round(float(s), 3) for a, s in zip(AXES, std, strict=True)},
+                "residual_deg": {
+                    a: round(float(v), 3) for a, v in zip(AXES, value[:3], strict=True)
+                },
+                "std_deg": {a: round(float(e), 3) for a, e in zip(AXES, std[:3], strict=True)},
                 # the disparity term (px per px) and any added terms (px per unit), with stds
                 "other_terms": [
                     [round(float(v), 5), round(float(e), 5)]
