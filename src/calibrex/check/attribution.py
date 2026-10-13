@@ -14,6 +14,9 @@ Model
 * For every frame of a connected group of pairs, ``w`` is fitted by weighted least
   squares on the observed axes, and the fit's chi-square is compared with the
   hypothesis that nothing is off (every error zero).
+* A direction of ``w`` the pairs constrain worse than the rotation floor (its std
+  would exceed it) is not fitted, so a far-fetched turn cannot absorb the errors; an
+  own axis that lies mostly along such directions is reported undetermined.
 * An axis's weight is ``1 / max(std, floor)**2`` with ``floor`` the verdicts' rotation
   floor over ``sigma_k``. The check judges an error against
   ``max(sigma_k std, floor)``, so attribution works at the same resolution, and the
@@ -57,9 +60,10 @@ ASSUMPTIONS: tuple[str, ...] = (
     "first order: each pair reads R_parent_child w for a child frame turned by w, -w for a "
     "parent frame turned by w",
     "the pairs' errors are independent; pairs that share an input make the tests optimistic",
-    "a bias shared by every pair through one frame (one estimator type) reads as that frame "
-    "turned",
+    "a bias shared by every pair through one frame (one estimator type) reads as that frame turned",
     "an axis std is used at least at the verdicts' rotation floor over sigma_k",
+    "a direction of a frame's turn that the pairs constrain worse than the rotation floor "
+    "(std above it) is not fitted; an own axis mostly along such directions is undetermined",
     "informational: no verdict changes",
 )
 
@@ -127,7 +131,10 @@ def build_rotation_attribution(
     if not observations:
         return None
     floor = options.rotation_floor_deg / options.sigma_k
-    groups = [_attribute(group, floor, alpha) for group in _groups(observations)]
+    groups = [
+        _attribute(group, floor, options.rotation_floor_deg, alpha)
+        for group in _groups(observations)
+    ]
     return CheckRotationAttribution(
         assumptions=list(ASSUMPTIONS), sigma_floor_deg=floor, alpha=alpha, groups=groups
     )
@@ -162,7 +169,7 @@ class _Fit:
 
 
 def _attribute(
-    group: Sequence[AttributionObservation], floor: float, alpha: float
+    group: Sequence[AttributionObservation], floor: float, max_std: float, alpha: float
 ) -> CheckAttributionGroup:
     rows = [(item, axis) for item in group for axis in range(3) if item.observed[axis]]
     errors = np.array([item.error_deg[axis] for item, axis in rows])
@@ -170,7 +177,7 @@ def _attribute(
     null_chi2 = float(np.sum(weights * errors**2))
     null_p = float(chi2.sf(null_chi2, len(rows)))
     frames = _frames(group)
-    fits = [_fit(frame, group, rows, errors, weights, null_chi2) for frame in frames]
+    fits = [_fit(frame, group, rows, errors, weights, null_chi2, max_std) for frame in frames]
     fits.sort(key=lambda fit: fit.hypothesis.chi2)
     status: Literal["consistent", "attributed", "ambiguous", "unexplained"]
     acceptable = [
@@ -235,6 +242,7 @@ def _fit(
     errors: FloatArray,
     weights: FloatArray,
     null_chi2: float,
+    max_std: float,
 ) -> _Fit:
     """Least-squares ``w`` (about ``frame``'s axes) when only ``frame`` is off."""
 
@@ -246,7 +254,9 @@ def _fit(
             design[index, axis] = -1.0
     information = design.T @ (weights[:, None] * design)
     values, vectors = np.linalg.eigh(information)
-    keep = values > 1.0e-9 * max(float(values.max()), 1.0e-12)
+    # a direction the pairs pin down worse than ``max_std`` is not fitted: it would let a
+    # far-fetched turn absorb the errors
+    keep = values >= 1.0 / max_std**2
     rank = int(keep.sum())
     covariance = (vectors[:, keep] / values[keep]) @ vectors[:, keep].T
     rotation = covariance @ (design.T @ (weights * errors))

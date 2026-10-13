@@ -236,3 +236,34 @@ def test_the_report_is_part_of_a_valid_check_artifact() -> None:
     assert report is not None
     assert CheckRotationAttribution.model_validate(report.model_dump(mode="json")) == report
     assert report.sigma_floor_deg == pytest.approx(0.5 / 3.0)
+
+
+def test_a_barely_constrained_direction_is_not_fitted() -> None:
+    # b is seen through one pitch row nearly orthogonal to its own y axis (cos 89.5 deg)
+    # and one roll row: its y turn is pinned down only to ~20 deg, so it stays undetermined
+    # instead of absorbing the errors with a far-fetched turn
+    nearly_square = Rotation.from_euler("x", 89.5, degrees=True).as_matrix()
+    observations = [
+        AttributionObservation(
+            label="p:a>b",
+            parent="a",
+            child="b",
+            candidate_rotation=nearly_square,
+            error_deg=np.array([0.0, 0.3, 0.0]),
+            std_deg=np.full(3, 0.05),
+            observed=(False, True, False),
+        ),
+        AttributionObservation(
+            label="p:b>c",
+            parent="b",
+            child="c",
+            candidate_rotation=np.eye(3),
+            error_deg=np.array([0.1, 0.0, 0.0]),
+            std_deg=np.full(3, 0.05),
+            observed=(True, False, False),
+        ),
+    ]
+    group = _only_group(build_rotation_attribution(observations, OPTIONS))
+    b = next(item for item in group.hypotheses if item.frame == "b")
+    assert b.rotation_deg[1] is None and b.std_deg[1] is None
+    assert all(value is None or abs(value) < 1.0 for value in b.rotation_deg)

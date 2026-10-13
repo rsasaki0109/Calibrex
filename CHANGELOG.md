@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- **`calibrex check` says which frame's rotation the pair errors point to.**
+  - **The fit.** For each connected group of run pairs, every frame is assumed to be
+    the only one off. Its turn is fitted to the pairs' rotation errors (a child turned
+    by `w` reads `R_parent_child w`, a parent reads `-w`), and each fit's χ² is compared
+    with nothing off.
+  - **The status.** `consistent`, `attributed` (one frame), `ambiguous` or
+    `unexplained`.
+  - **Weights.** Weights use the verdicts' resolution: std at least rotation floor /
+    `sigma_k`. A direction constrained worse than the rotation floor is not fitted.
+  - **Where it appears.** The optional `rotation_attribution` field, the text report
+    and the HTML report. Informational: no verdict changes.
+  - **On Hilti.** `exp01` is consistent. On `exp21`, a common turn of the IMU of
+    about 0.5 deg explains all the camera-IMU errors.
+  - **Limit.** A 1 deg turn of cam3 goes unseen: its camera pairs fail to estimate,
+    because the turn moves rows beyond the ±4 px search.
+
 - **Hilti camera pairs: the difference between recordings is the rig, not a bias at the
   image edges.**
   - **The tool.** `tools/hilti_camera_pair_reproducibility.py` estimates each camera

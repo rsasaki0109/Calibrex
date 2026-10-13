@@ -960,7 +960,34 @@ nowhere else.
   about its own axes, std, chi-square, dof, p-value). The text and HTML reports show
   each group's status and summary.
 
-ATTRIBUTION_RESULTS
+**On Hilti 2022** (the all-camera run above: 10 `camera-camera` and 5 `camera-imu`
+pairs, six frames):
+
+| recording | pairs used (axes) | nothing off | status | best single frame |
+| --- | --- | --- | --- | --- |
+| `exp01` | 12 (29) | χ² 18.9, p 0.92 | `consistent` | (the IMU: χ² 11.3) |
+| `exp21` | 9 (20) | χ² 46.1, p 0.0008 | `attributed` | the IMU, turned (+0.32 ± 0.18, +0.19 ± 0.09, +0.41 ± 0.08) deg: χ² 14.2 on 17 dof, p 0.65 |
+
+* **`exp01`: consistent.** All pairs pass, and the errors fit a candidate with nothing
+  off.
+* **`exp21`: the IMU.** The `camera-imu` pairs read up to 0.5 deg (cam0 pitch
+  +0.49, cam2 yaw −0.44, cam1 pitch +0.51 at `warn`). Seen through each camera's axes,
+  one common turn of the IMU explains them all. The next best frame, cam1, is 19 χ²
+  worse.
+  * The pairs cannot tell the IMU's candidate from a bias shared by the
+    camera-IMU estimates.
+  * The IMU's yaw reads about +0.3 deg on `exp01` as well.
+* **cam1's 0.18 deg turn between the recordings** (see the camera-camera section) is
+  below the verdicts' resolution here, so it is not named. With the std alone as
+  weight (no floor), cam1 is the best single frame on both recordings, but no single
+  frame fits: the scene dependence exceeds the std.
+* **A 1 deg turn of cam3** (its camchain turned about its own y axis, `exp01`) goes
+  unseen.
+  * Its three camera pairs become `inconclusive` (`estimator_failed`). The turn moves
+    the rectified rows by about 6 px, beyond the matcher's ±4 px search.
+  * `camera-imu` does not judge cam3's pitch.
+  * Attribution can only name what the pairs measure.
+
 
 ### HTML report
 
