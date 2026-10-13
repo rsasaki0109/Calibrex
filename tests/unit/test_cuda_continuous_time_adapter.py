@@ -344,11 +344,12 @@ def test_gpu_queries_are_recorded_even_when_no_correspondences_reach_the_optimiz
     assert ";associations_gpu=true;" in result.query_backend
 
 
-@pytest.mark.parametrize("count", [1024, 18000])
+@pytest.mark.parametrize("count", [1024, 18000, 65536])
 @pytest.mark.parametrize("captured_summary", [False, True])
 def test_complete_clock_profile_keeps_results_telemetry_and_actual_backend(
     count, captured_summary, monkeypatch,
 ):
+    monkeypatch.setattr("calibrex.solvers.continuous_time_lidar_pair_solver.cpu_count", lambda: 6)
     if not captured_summary:
         def unexpected(*args, **kwargs):
             raise AssertionError("default summaries must retain the ordered CPU route")
@@ -375,13 +376,16 @@ def test_complete_clock_profile_keeps_results_telemetry_and_actual_backend(
     other = replace(problem, odometry_track=OdometryTrack(samples))
     cpu = ContinuousTimeLidarPairSolver().solve(problem, options)
     gpu = ContinuousTimeLidarPairSolver().solve(other, replace(options, query_backend="cuda"))
-    expected_prefix = "calibrex.cuda_continuous_time/" if count == 18000 else (
+    expected_prefix = "calibrex.cuda_continuous_time/" if count >= 18000 else (
         "calibrex.numba_continuous_time/"
     )
     assert gpu.query_backend.startswith(expected_prefix)
-    if count == 18000:
+    if count >= 18000:
         flag = str(captured_summary).lower()
         assert f";captured_summary_gpu={flag};summary_reduction_cpu=true;" in gpu.query_backend
+    if count == 65536:
+        assert ";summary_parallel_cpu=true;" in cpu.query_backend
+        assert ";summary_parallel_cpu=false;" in gpu.query_backend
     assert asdict(replace(cpu, query_backend="same")) == asdict(replace(gpu, query_backend="same"))
     for name in ("interpolation_count", "clamp_count", "max_extrapolation_s"):
         assert getattr(problem.odometry_track, name) == getattr(other.odometry_track, name)

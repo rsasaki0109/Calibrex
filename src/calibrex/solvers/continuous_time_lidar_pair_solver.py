@@ -299,7 +299,8 @@ class ContinuousTimeLidarPairSolver:
         )
         if parallel:
             with ThreadPoolExecutor(max_workers=3, thread_name_prefix="calibrex-lidar") as executor:
-                if (len(problem.target_points) >= 32768 and (cpu_count() or 1) >= 6
+                if (settings.query_backend == "numba_cpu"
+                    and len(problem.target_points) >= 32768 and (cpu_count() or 1) >= 6
                     and (not settings.max_target_points_per_split
                          or settings.max_target_points_per_split >= 32768)):
                     # Use a separate bounded pool: candidate workers must never
