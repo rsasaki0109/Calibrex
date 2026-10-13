@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+- **The Hilti data-only decision reads its frames as `calibrex check` does, and
+  passes on rotation (development run).**
+  - **The fix.** `tools/hilti_stereo_falsification.py` said it used the check's frames
+    but paired images and scans by their stamps and left the points where they were
+    measured. It now does what the check does for each candidate: it pairs each image
+    with the scan at the time the candidate's visible points were measured (per-point
+    `timestamp`), and turns the points to the image time with the IMU's gyro.
+    `--stamp-pairing --no-motion` reproduces the earlier run.
+  - **Result on `exp21` (48 frames): `pass`.**
+    * The reference passes on roll, pitch and yaw; the known-bad fails on pitch
+      (4.95 deg).
+    * Stereo depth puts the known-bad 0.250 m beyond the reference. Its std, 0.053 m,
+      is just above the 0.05 m gate, so z is not judged.
+    * Depth still reads the reference about 0.1 m short, which is unexplained.
+  - **Tried and rejected: a disparity scale in the depth estimate**
+    (`tools/stereo_depth_scale_pilot.py`).
+    * A free scale is not separable from depth on camera-facing surfaces: the std
+      grows 3 to 10 times.
+    * Removing the joint fit's scale fixes Hilti's reference, but moves KITTI 0005's
+      first-50 reference beyond its tolerance. That scale also differs between frame
+      selections of one KITTI rig (−0.2% against −1.3%).
+    * The estimator is unchanged; see
+      [the page](docs/benchmarks/hilti_fisheye_stereo_falsification.md).
+
 - **Fisheye stereo pairs feed the stereo depth checks, and the data-only decision runs
   on Hilti 2022 (development run).**
   - **Rectification.** `calibrex.evaluation.fisheye_stereo` rectifies an equidistant
@@ -11,12 +35,8 @@
   - **Reuse.** `judge_candidate` runs the KITTI decision's per-candidate steps on any
     frames. KITTI's results are unchanged. `tools/hilti_stereo_falsification.py` runs
     the decision on a Hilti bag.
-  - **Result on `exp21` (47 frames): `inconclusive`.** The known-bad fails on pitch
-    (5.0 deg). The reference's z reads −0.137 m against a 0.111 m tolerance (`warn`).
-    The joint stereo fit reads the reference's z at −0.007 m and the known-bad's at
-    +0.246 m, with a disparity scale of −2.7% that depth alone does not model. The rule
-    was not changed (see
-    [the page](docs/benchmarks/hilti_fisheye_stereo_falsification.md)).
+  - **First result on `exp21` (47 frames): `inconclusive`,** superseded by the entry
+    above: the reference's z read −0.137 m against a 0.111 m tolerance.
 
 - **The joint stereo fit models the stereo rig's scale and roll.**
   - **The change.** The rig's disparity scale and the roll between its cameras are
