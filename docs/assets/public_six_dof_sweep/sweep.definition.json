@@ -1,0 +1,612 @@
+{
+  "benchmark_id": "kitti_raw_2011_09_30_drive_0018-image_02-d2d-signed-axis-sweep",
+  "bootstrap_samples": 1,
+  "bootstrap_seed": 0,
+  "limitations": [
+    "Six reference-derived axis perturbations on one development drive; not independent metrology, a complete recovery basin, or multiple independent datasets.",
+    "Different initializations can follow different traces; parity is checked within each case only. Cross-case timing summaries mix different search workloads.",
+    "CPU comparisons use 1 worker process(es); each owns its arrays/projectors. Parallel timings include contention and are not isolated serial latencies. First invocations are included; no separate warm-up or cold-process guarantee.",
+    "Convergence is optimizer termination, not an accuracy acceptance gate. Bootstrap fields are not statistical confidence for these fixed cases.",
+    "Case-level limitation: One sequence, one perturbation, 1 invocation(s) per backend. Repetitions measure timing on the same frames, not independent recovery trials. Bootstrap intervals do not establish statistical confidence for this demo.",
+    "Case-level limitation: All invocations, including the first, contribute to timing. There is no separate warm-up or cold-process guarantee; lazy compilation and process-wide caches affect latency.",
+    "Case-level limitation: Optimizer convergence and CPU/GPU parity do not establish calibration accuracy. Dataset reference is not independent metrology; covariance/observability remain unknown.",
+    "Case-level limitation: Only the supplied frozen provider frames are eligible; uniform selection is by position within that provider. Learned depth and frame synchronization can bias the fit.",
+    "Case-level limitation: Provider training/evaluation overlap: possible. official non-online-refined checkpoint selected; repository does not publish enough training IDs to exclude drive overlap",
+    "Case-level limitation: training/evaluation drive overlap cannot be excluded",
+    "Case-level limitation: raw FeatDepth inverse-depth/disparity is retained for D2D histograms",
+    "Case-level limitation: metric depth conversion parameters are recorded but not applied",
+    "Case-level limitation: checkpoint sha256=559f168c762d01af7c745b32ced8930a12423a0e9b62af791f7d894bd902af27"
+  ],
+  "methods": [
+    {
+      "implementation": "calibrex_native",
+      "label": "NumPy CPU reference",
+      "method_id": "numpy",
+      "source_commit": "46516ec",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "cuda candidate",
+      "method_id": "cuda",
+      "source_commit": "46516ec",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    }
+  ],
+  "metrics": [
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "One invocation; includes lazy JIT.",
+      "label": "Solve time",
+      "name": "solve_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Load, prepare, solve, holdout.",
+      "label": "Pipeline time",
+      "name": "pipeline_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Controlled initial difference to dataset reference.",
+      "label": "Initial rotation difference",
+      "name": "initial_rotation_difference_deg",
+      "primary": false,
+      "unit": "deg"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Controlled initial difference to dataset reference.",
+      "label": "Initial translation difference",
+      "name": "initial_translation_difference_m",
+      "primary": false,
+      "unit": "m"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Difference to dataset-provided calibration, not metrology error.",
+      "label": "Rotation difference",
+      "name": "rotation_difference_deg",
+      "primary": false,
+      "unit": "deg"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Difference to dataset-provided calibration, not metrology error.",
+      "label": "Translation difference",
+      "name": "translation_difference_m",
+      "primary": false,
+      "unit": "m"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Fit-only frozen histogram ranges.",
+      "label": "Training mutual information",
+      "name": "train_mi",
+      "primary": false,
+      "unit": "nat"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Prespecified five frames excluded from fit and histogram range selection.",
+      "label": "Holdout mutual information",
+      "name": "holdout_mi",
+      "primary": false,
+      "unit": "nat"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Full trace, output poses, metrics, and holdout evaluations match exactly.",
+      "label": "Exact numerical parity",
+      "name": "numerical_parity",
+      "primary": false,
+      "unit": "ratio"
+    }
+  ],
+  "protocol": {
+    "data_license": "CC-BY-NC-SA-3.0",
+    "dataset_id": "kitti_raw_2011_09_30_drive_0018",
+    "dataset_source_sha256": "ed5ad3947b2ca94b415ceabbc16d2d767ad084b2e8fd4b83937570c28b6c6e8d",
+    "failure_policy": "Keep failed/partial attempts; never substitute a backend or discard a case.",
+    "initial_estimate_policy": "Dataset reference plus local Euler rotation +/-0.5 deg and camera-frame translation +/-0.5 m, on x, y, z in that order. Controlled prior; reference is never the optimization target.",
+    "protocol_id": "calibrex.public_six_dof_sweep/v0.1",
+    "split_policy": "Six fixed signed-axis initializations on the same uniform 20-fit/5-holdout provider frames; repetitions are timing observations, not independent recovery trials.",
+    "splits": [
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "x-positive/repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "x-negative/repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "y-positive/repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "y-negative/repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "z-positive/repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "z-negative/repeat-01"
+      }
+    ],
+    "tuning_policy": "All cases/settings fixed before execution; no holdout tuning or filtering."
+  },
+  "provenance": {
+    "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-cuda-v1 --json",
+    "data_verified": true,
+    "generated_at": "2026-10-11T00:04:50.202267+00:00",
+    "generator": "calibrex.evaluation.public_six_dof_sweep",
+    "generator_version": "calibrex.public_six_dof_sweep/v0.1",
+    "git_commit": "46516ec",
+    "source_artifacts": {
+      "depth_provider": "7e3ef953a360a7c01ed0cdc3cf947db97fb0aff5912ced805d80bebe210d3360",
+      "local_plan_before_publication": "1657a933cfdae0cb72268157a7fa9d9d6a30b263181d983f876263f6269bd715",
+      "local_sweep.benchmark.json": "2396eaf628da2d5a69ff91edfb20774244ad9cf883b718814ca1e055cd84fed7",
+      "local_sweep.definition.json": "54e5dace3379e3c858bffaf5db21b49c68f04f83213d25d290bbc6d0bdb518f7",
+      "public_six_dof_sweep.py": "c7ba7456d97cbcbdb9460ee42812d56941879ecc657d20326ab88fe9845e46c7",
+      "public_six_dof_sweep_report.py": "c56886e59e2bf50464db147bc4d722701330d0f61ca9d5cdea4c781a3e0b1305",
+      "sweep.plan.definition.json": "e59552a9ecbb2479587e9e39dd7bde2e78672377d5524a7620a26040c3ab612c",
+      "sweep.source.problem.json": "8d88a163ab174fc59bc7e657a10e701ee44cef972c22b1125796e2c31f5ec337",
+      "x-negative/comparison.benchmark.json": "4de86372166cc82a9e3c1661fbb483f38684e59134d2ac1fb4448c133baf612e",
+      "x-negative/comparison.definition.json": "f2ce37bb82ee8b11e3ab686c78d8dade4d41a684e72e26339c3b4092ab8934f1",
+      "x-positive/comparison.benchmark.json": "03906dbcecc08c62b0229d25cb566754c981f37f462ee22fec564759bc8c7870",
+      "x-positive/comparison.definition.json": "ab0e1508926d3aa4378305075cd3d48f50b61712835e526f0d46764c6cd267ea",
+      "y-negative/comparison.benchmark.json": "a5f07f284a37516ba47ed3ef381da0aa377087ed7e54f09b7e4ba8c5da111dc9",
+      "y-negative/comparison.definition.json": "2bb8ea22bc34832f42c8b028e2b8b2483e5715c427dd94fa1e59e972d0e75bb8",
+      "y-positive/comparison.benchmark.json": "393258a80e04d8a9be5ff9e4852aea81aefb25fe53f2aa7856952ff9f4686be3",
+      "y-positive/comparison.definition.json": "92b80513b9975a8e04790be59d7929be09d743a3e55958f2a2b1661a20f71b62",
+      "z-negative/comparison.benchmark.json": "2f18bc0e252356f395ea40a0e55ead5b4b22522513aeb82ab13f3339e1c97d59",
+      "z-negative/comparison.definition.json": "bb8f0a683c61dd3d27243e12f4aeebabff311297fff309f82e1e735473f80bf0",
+      "z-positive/comparison.benchmark.json": "cb46c782afcf3c62867bd4926ba24347f67b1810bc42d67fe1ca967ab8c1c7e3",
+      "z-positive/comparison.definition.json": "76cec5f6a8a8aabf87338fa370ea1fb71f267c40d699a698f5f2939b2ddf36c2"
+    }
+  },
+  "reference_method_id": "numpy",
+  "schema_version": "slac.benchmark_definition/v0.1",
+  "title": "KITTI raw signed-axis CPU/candidate six-DoF sweep",
+  "trials": [
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "holdout_mi": 1.2934945423757032,
+        "initial_rotation_difference_deg": 0.4999999999999031,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 93.35595179995289,
+        "rotation_difference_deg": 0.3909230132921424,
+        "solve_seconds": 90.44639660004759,
+        "train_mi": 1.2342895217787462,
+        "translation_difference_m": 0.16007810593582122
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-cuda-v1 --json",
+        "config_sha256": "2907db47aaca8dd65f9306ce1af1675b0a299b304878cc6e0d35f1b3387f35da",
+        "input_sha256": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+        "notes": [
+          "Same controlled initial pose, problem bytes, and 20/5 split for every run.",
+          "Result file: numpy.result.json",
+          "CPU first on odd-numbered repetitions; candidate first on even ones. Each invocation verifies/loads inputs and prepares a fresh projector. The first invocation is included; kernel caches persist in this process.",
+          "Case directory: x-positive",
+          "Frozen sweep plan SHA256: 1657a933cfdae0cb72268157a7fa9d9d6a30b263181d983f876263f6269bd715",
+          "CPU worker processes: 1; invocations inside each case are serial.",
+          "Result hash binds original external local result bytes.",
+          "Frozen-plan note preserves original local plan SHA256; normalized published plan is separately bound."
+        ],
+        "output_sha256": "c9a4957390cef79fe796d8726fb8a3fcd6af90c4bb33d6d1293e6c4a81056800"
+      },
+      "runtime_seconds": 93.35595179995289,
+      "split_id": "x-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "holdout_mi": 1.2934945423757032,
+        "initial_rotation_difference_deg": 0.4999999999999031,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 12.742051200009882,
+        "rotation_difference_deg": 0.3909230132921424,
+        "solve_seconds": 3.0847676999983378,
+        "train_mi": 1.2342895217787462,
+        "translation_difference_m": 0.16007810593582122
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-cuda-v1 --json",
+        "config_sha256": "2907db47aaca8dd65f9306ce1af1675b0a299b304878cc6e0d35f1b3387f35da",
+        "input_sha256": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+        "notes": [
+          "Same controlled initial pose, problem bytes, and 20/5 split for every run.",
+          "Result file: cuda.result.json",
+          "CPU first on odd-numbered repetitions; candidate first on even ones. Each invocation verifies/loads inputs and prepares a fresh projector. The first invocation is included; kernel caches persist in this process.",
+          "Case directory: x-positive",
+          "Frozen sweep plan SHA256: 1657a933cfdae0cb72268157a7fa9d9d6a30b263181d983f876263f6269bd715",
+          "CPU worker processes: 1; invocations inside each case are serial.",
+          "Result hash binds original external local result bytes.",
+          "Frozen-plan note preserves original local plan SHA256; normalized published plan is separately bound."
+        ],
+        "output_sha256": "f69f2a3f3f0cfebec51e8eeef1cbc310a6bd2f5ee3ab638faea7cfe2154ae783"
+      },
+      "runtime_seconds": 12.742051200009882,
+      "split_id": "x-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "holdout_mi": 1.2871911679087407,
+        "initial_rotation_difference_deg": 0.49999999999698735,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 69.22023670002818,
+        "rotation_difference_deg": 0.4108738128658469,
+        "solve_seconds": 66.42469800001709,
+        "train_mi": 1.2304969677065194,
+        "translation_difference_m": 0.10458250331675945
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-cuda-v1 --json",
+        "config_sha256": "282ddb156a67c70f6c1cad3203007e212c3de646026d3ca3b9876c605c1c85c8",
+        "input_sha256": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+        "notes": [
+          "Same controlled initial pose, problem bytes, and 20/5 split for every run.",
+          "Result file: numpy.result.json",
+          "CPU first on odd-numbered repetitions; candidate first on even ones. Each invocation verifies/loads inputs and prepares a fresh projector. The first invocation is included; kernel caches persist in this process.",
+          "Case directory: x-negative",
+          "Frozen sweep plan SHA256: 1657a933cfdae0cb72268157a7fa9d9d6a30b263181d983f876263f6269bd715",
+          "CPU worker processes: 1; invocations inside each case are serial.",
+          "Result hash binds original external local result bytes.",
+          "Frozen-plan note preserves original local plan SHA256; normalized published plan is separately bound."
+        ],
+        "output_sha256": "035f477846a799136d300bff08f6d538cf9bbb0594bb344bc988e6381f74c27d"
+      },
+      "runtime_seconds": 69.22023670002818,
+      "split_id": "x-negative/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "holdout_mi": 1.2871911679087407,
+        "initial_rotation_difference_deg": 0.49999999999698735,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 13.285545199993066,
+        "rotation_difference_deg": 0.4108738128658469,
+        "solve_seconds": 8.450221000006422,
+        "train_mi": 1.2304969677065194,
+        "translation_difference_m": 0.10458250331675945
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-cuda-v1 --json",
+        "config_sha256": "282ddb156a67c70f6c1cad3203007e212c3de646026d3ca3b9876c605c1c85c8",
+        "input_sha256": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+        "notes": [
+          "Same controlled initial pose, problem bytes, and 20/5 split for every run.",
+          "Result file: cuda.result.json",
+          "CPU first on odd-numbered repetitions; candidate first on even ones. Each invocation verifies/loads inputs and prepares a fresh projector. The first invocation is included; kernel caches persist in this process.",
+          "Case directory: x-negative",
+          "Frozen sweep plan SHA256: 1657a933cfdae0cb72268157a7fa9d9d6a30b263181d983f876263f6269bd715",
+          "CPU worker processes: 1; invocations inside each case are serial.",
+          "Result hash binds original external local result bytes.",
+          "Frozen-plan note preserves original local plan SHA256; normalized published plan is separately bound."
+        ],
+        "output_sha256": "39864f7daa2058520960999beecb441dd9df7632d59c104997e136d2864d5be0"
+      },
+      "runtime_seconds": 13.285545199993066,
+      "split_id": "x-negative/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "holdout_mi": 1.2941005257659242,
+        "initial_rotation_difference_deg": 0.49999999999698735,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 89.0009565000073,
+        "rotation_difference_deg": 0.5273791109127592,
+        "solve_seconds": 83.02647869999055,
+        "train_mi": 1.234752766524902,
+        "translation_difference_m": 0.1677050983124842
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-cuda-v1 --json",
+        "config_sha256": "2e7491397018419e38f909eda8dc353a011f198faaff69e20a2d9c7a758b1304",
+        "input_sha256": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+        "notes": [
+          "Same controlled initial pose, problem bytes, and 20/5 split for every run.",
+          "Result file: numpy.result.json",
+          "CPU first on odd-numbered repetitions; candidate first on even ones. Each invocation verifies/loads inputs and prepares a fresh projector. The first invocation is included; kernel caches persist in this process.",
+          "Case directory: y-positive",
+          "Frozen sweep plan SHA256: 1657a933cfdae0cb72268157a7fa9d9d6a30b263181d983f876263f6269bd715",
+          "CPU worker processes: 1; invocations inside each case are serial.",
+          "Result hash binds original external local result bytes.",
+          "Frozen-plan note preserves original local plan SHA256; normalized published plan is separately bound."
+        ],
+        "output_sha256": "f32ec190e70ed2d205b039afd246103271b49b8f068cf6e014b73b2ce9e2141c"
+      },
+      "runtime_seconds": 89.0009565000073,
+      "split_id": "y-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "holdout_mi": 1.2941005257659242,
+        "initial_rotation_difference_deg": 0.49999999999698735,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 6.273219900031108,
+        "rotation_difference_deg": 0.5273791109127592,
+        "solve_seconds": 3.446123500005342,
+        "train_mi": 1.234752766524902,
+        "translation_difference_m": 0.1677050983124842
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-cuda-v1 --json",
+        "config_sha256": "2e7491397018419e38f909eda8dc353a011f198faaff69e20a2d9c7a758b1304",
+        "input_sha256": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+        "notes": [
+          "Same controlled initial pose, problem bytes, and 20/5 split for every run.",
+          "Result file: cuda.result.json",
+          "CPU first on odd-numbered repetitions; candidate first on even ones. Each invocation verifies/loads inputs and prepares a fresh projector. The first invocation is included; kernel caches persist in this process.",
+          "Case directory: y-positive",
+          "Frozen sweep plan SHA256: 1657a933cfdae0cb72268157a7fa9d9d6a30b263181d983f876263f6269bd715",
+          "CPU worker processes: 1; invocations inside each case are serial.",
+          "Result hash binds original external local result bytes.",
+          "Frozen-plan note preserves original local plan SHA256; normalized published plan is separately bound."
+        ],
+        "output_sha256": "49316bbba9867f64aa0025fb8e3d27732a271e695c3a18b8b80f930a1e9be365"
+      },
+      "runtime_seconds": 6.273219900031108,
+      "split_id": "y-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "holdout_mi": 1.2814625612452737,
+        "initial_rotation_difference_deg": 0.49999999999698735,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 55.104443399992306,
+        "rotation_difference_deg": 0.2662329660345525,
+        "solve_seconds": 52.59124000003794,
+        "train_mi": 1.2295746610283573,
+        "translation_difference_m": 0.09100137361600646
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-cuda-v1 --json",
+        "config_sha256": "95a5319bf33193509a3504d96bf8b2aad1140a751d0f4d8beb3f855926efacc9",
+        "input_sha256": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+        "notes": [
+          "Same controlled initial pose, problem bytes, and 20/5 split for every run.",
+          "Result file: numpy.result.json",
+          "CPU first on odd-numbered repetitions; candidate first on even ones. Each invocation verifies/loads inputs and prepares a fresh projector. The first invocation is included; kernel caches persist in this process.",
+          "Case directory: y-negative",
+          "Frozen sweep plan SHA256: 1657a933cfdae0cb72268157a7fa9d9d6a30b263181d983f876263f6269bd715",
+          "CPU worker processes: 1; invocations inside each case are serial.",
+          "Result hash binds original external local result bytes.",
+          "Frozen-plan note preserves original local plan SHA256; normalized published plan is separately bound."
+        ],
+        "output_sha256": "ce7f29693fd263a697cc07e92ecbe71f6644c8163d6103cab2845008829f78e5"
+      },
+      "runtime_seconds": 55.104443399992306,
+      "split_id": "y-negative/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "holdout_mi": 1.2814625612452737,
+        "initial_rotation_difference_deg": 0.49999999999698735,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 14.829965799988713,
+        "rotation_difference_deg": 0.2662329660345525,
+        "solve_seconds": 12.052908100013155,
+        "train_mi": 1.2295746610283573,
+        "translation_difference_m": 0.09100137361600646
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-cuda-v1 --json",
+        "config_sha256": "95a5319bf33193509a3504d96bf8b2aad1140a751d0f4d8beb3f855926efacc9",
+        "input_sha256": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+        "notes": [
+          "Same controlled initial pose, problem bytes, and 20/5 split for every run.",
+          "Result file: cuda.result.json",
+          "CPU first on odd-numbered repetitions; candidate first on even ones. Each invocation verifies/loads inputs and prepares a fresh projector. The first invocation is included; kernel caches persist in this process.",
+          "Case directory: y-negative",
+          "Frozen sweep plan SHA256: 1657a933cfdae0cb72268157a7fa9d9d6a30b263181d983f876263f6269bd715",
+          "CPU worker processes: 1; invocations inside each case are serial.",
+          "Result hash binds original external local result bytes.",
+          "Frozen-plan note preserves original local plan SHA256; normalized published plan is separately bound."
+        ],
+        "output_sha256": "45b1cea98c901dcce0d33981121d1b7ef3d312ebfd5522007f04d944203787d6"
+      },
+      "runtime_seconds": 14.829965799988713,
+      "split_id": "y-negative/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "holdout_mi": 1.2836776729794193,
+        "initial_rotation_difference_deg": 0.4999999999999031,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 94.08332610002253,
+        "rotation_difference_deg": 0.25863973895352027,
+        "solve_seconds": 90.28785229998175,
+        "train_mi": 1.2301520690684842,
+        "translation_difference_m": 0.08705242673240078
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-cuda-v1 --json",
+        "config_sha256": "3fe9848d85ba0f39c193f82443ff3d7e2f6711c360027242a8cac343ae8641b7",
+        "input_sha256": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+        "notes": [
+          "Same controlled initial pose, problem bytes, and 20/5 split for every run.",
+          "Result file: numpy.result.json",
+          "CPU first on odd-numbered repetitions; candidate first on even ones. Each invocation verifies/loads inputs and prepares a fresh projector. The first invocation is included; kernel caches persist in this process.",
+          "Case directory: z-positive",
+          "Frozen sweep plan SHA256: 1657a933cfdae0cb72268157a7fa9d9d6a30b263181d983f876263f6269bd715",
+          "CPU worker processes: 1; invocations inside each case are serial.",
+          "Result hash binds original external local result bytes.",
+          "Frozen-plan note preserves original local plan SHA256; normalized published plan is separately bound."
+        ],
+        "output_sha256": "9292a8ae32ee2dfcf628d2b57a577c2ed93993e94e81e0ae651cc236207e11fb"
+      },
+      "runtime_seconds": 94.08332610002253,
+      "split_id": "z-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "holdout_mi": 1.2836776729794193,
+        "initial_rotation_difference_deg": 0.4999999999999031,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 9.586209700035397,
+        "rotation_difference_deg": 0.25863973895352027,
+        "solve_seconds": 4.861070200044196,
+        "train_mi": 1.2301520690684842,
+        "translation_difference_m": 0.08705242673240078
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-cuda-v1 --json",
+        "config_sha256": "3fe9848d85ba0f39c193f82443ff3d7e2f6711c360027242a8cac343ae8641b7",
+        "input_sha256": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+        "notes": [
+          "Same controlled initial pose, problem bytes, and 20/5 split for every run.",
+          "Result file: cuda.result.json",
+          "CPU first on odd-numbered repetitions; candidate first on even ones. Each invocation verifies/loads inputs and prepares a fresh projector. The first invocation is included; kernel caches persist in this process.",
+          "Case directory: z-positive",
+          "Frozen sweep plan SHA256: 1657a933cfdae0cb72268157a7fa9d9d6a30b263181d983f876263f6269bd715",
+          "CPU worker processes: 1; invocations inside each case are serial.",
+          "Result hash binds original external local result bytes.",
+          "Frozen-plan note preserves original local plan SHA256; normalized published plan is separately bound."
+        ],
+        "output_sha256": "792608dd558f36b8f408d3e18dec98a8ba75b3701501147c58c7690d6f3d2534"
+      },
+      "runtime_seconds": 9.586209700035397,
+      "split_id": "z-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "holdout_mi": 1.28167450760973,
+        "initial_rotation_difference_deg": 0.4999999999999031,
+        "initial_translation_difference_m": 0.49999999999999994,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 57.12521000002744,
+        "rotation_difference_deg": 0.2851294858645757,
+        "solve_seconds": 54.330496299953666,
+        "train_mi": 1.2290307193818033,
+        "translation_difference_m": 0.08948638164547712
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-cuda-v1 --json",
+        "config_sha256": "b7e7a2cd8cf95d9685156fdbe3dd65907a2051cc2821680c126bfa5bffee29fa",
+        "input_sha256": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+        "notes": [
+          "Same controlled initial pose, problem bytes, and 20/5 split for every run.",
+          "Result file: numpy.result.json",
+          "CPU first on odd-numbered repetitions; candidate first on even ones. Each invocation verifies/loads inputs and prepares a fresh projector. The first invocation is included; kernel caches persist in this process.",
+          "Case directory: z-negative",
+          "Frozen sweep plan SHA256: 1657a933cfdae0cb72268157a7fa9d9d6a30b263181d983f876263f6269bd715",
+          "CPU worker processes: 1; invocations inside each case are serial.",
+          "Result hash binds original external local result bytes.",
+          "Frozen-plan note preserves original local plan SHA256; normalized published plan is separately bound."
+        ],
+        "output_sha256": "c535eb2f81aa34a44a71c513eab6eb2e283aeb66ffa9509c0e95ee8967c3ffb8"
+      },
+      "runtime_seconds": 57.12521000002744,
+      "split_id": "z-negative/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "holdout_mi": 1.28167450760973,
+        "initial_rotation_difference_deg": 0.4999999999999031,
+        "initial_translation_difference_m": 0.49999999999999994,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 6.904620899993461,
+        "rotation_difference_deg": 0.2851294858645757,
+        "solve_seconds": 4.297214900027029,
+        "train_mi": 1.2290307193818033,
+        "translation_difference_m": 0.08948638164547712
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-sweep-cuda-v1 --json",
+        "config_sha256": "b7e7a2cd8cf95d9685156fdbe3dd65907a2051cc2821680c126bfa5bffee29fa",
+        "input_sha256": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+        "notes": [
+          "Same controlled initial pose, problem bytes, and 20/5 split for every run.",
+          "Result file: cuda.result.json",
+          "CPU first on odd-numbered repetitions; candidate first on even ones. Each invocation verifies/loads inputs and prepares a fresh projector. The first invocation is included; kernel caches persist in this process.",
+          "Case directory: z-negative",
+          "Frozen sweep plan SHA256: 1657a933cfdae0cb72268157a7fa9d9d6a30b263181d983f876263f6269bd715",
+          "CPU worker processes: 1; invocations inside each case are serial.",
+          "Result hash binds original external local result bytes.",
+          "Frozen-plan note preserves original local plan SHA256; normalized published plan is separately bound."
+        ],
+        "output_sha256": "f1d6359c36b158f616645f2ad82e61292dbd6977a6f57686e61feb954432f109"
+      },
+      "runtime_seconds": 6.904620899993461,
+      "split_id": "z-negative/repeat-01",
+      "status": "success"
+    }
+  ]
+}

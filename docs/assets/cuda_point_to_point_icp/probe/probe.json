@@ -1,0 +1,135 @@
+{
+  "provenance": {
+    "source_commit": "fdfeeb976221bb6aa3292de1177c4e6e25521330",
+    "input_sha256": {
+      "public-kitti/0000000115.bin": "213948bd8c54c925aca7eb9f3b3c36e95e586b52ee8d9d64056c4fc4aeb12b2d"
+    },
+    "source_sha256": {
+      "src/calibrex/solvers/_exact_neighbors.py": "27665693aa10cc78e9e469fc6602c6332dcbc11aeb39c30129dbce9d9ffabf7f",
+      "src/calibrex/solvers/robust_point_to_point_icp_solver.py": "616dcd00bd4c5338f5562e09b06f100cc69ca0855289f8d469edabc58bad195b",
+      "src/calibrex/solvers/cuda_lidar_map_adapter.py": "c4cbfb6434c6ae0cb91cd5fff38fb349cc959436344aab5737236ad6f5d6a8b6"
+    },
+    "launcher_sha256": "d06c1e469374f66874d85681ea6b3a4785c6a264d82e0b39d928f4bdd1e21603"
+  },
+  "kernel_only": true,
+  "point_count": 127158,
+  "queries_per_trial": 762948,
+  "seed": 20261013,
+  "trials": [
+    {
+      "repeat": 1,
+      "order": [
+        "native",
+        "static-cpu",
+        "static-gpu"
+      ],
+      "native": {
+        "seconds": 1.521689800079912,
+        "repairs": 0,
+        "output_sha256": "2100226d7cd5e754d5247b47e0b6236a823e5d4dc13beef0cc964eb59737e54f"
+      },
+      "static-cpu": {
+        "seconds": 2.0068920999765396,
+        "repairs": 0,
+        "output_sha256": "2100226d7cd5e754d5247b47e0b6236a823e5d4dc13beef0cc964eb59737e54f"
+      },
+      "static-gpu": {
+        "seconds": 0.749855799949728,
+        "repairs": 0,
+        "output_sha256": "2100226d7cd5e754d5247b47e0b6236a823e5d4dc13beef0cc964eb59737e54f"
+      }
+    },
+    {
+      "repeat": 2,
+      "order": [
+        "static-gpu",
+        "static-cpu",
+        "native"
+      ],
+      "static-gpu": {
+        "seconds": 0.37907880009151995,
+        "repairs": 0,
+        "output_sha256": "2100226d7cd5e754d5247b47e0b6236a823e5d4dc13beef0cc964eb59737e54f"
+      },
+      "static-cpu": {
+        "seconds": 1.7153390999883413,
+        "repairs": 0,
+        "output_sha256": "2100226d7cd5e754d5247b47e0b6236a823e5d4dc13beef0cc964eb59737e54f"
+      },
+      "native": {
+        "seconds": 1.632902599987574,
+        "repairs": 0,
+        "output_sha256": "2100226d7cd5e754d5247b47e0b6236a823e5d4dc13beef0cc964eb59737e54f"
+      }
+    },
+    {
+      "repeat": 3,
+      "order": [
+        "native",
+        "static-cpu",
+        "static-gpu"
+      ],
+      "native": {
+        "seconds": 1.463180199963972,
+        "repairs": 0,
+        "output_sha256": "2100226d7cd5e754d5247b47e0b6236a823e5d4dc13beef0cc964eb59737e54f"
+      },
+      "static-cpu": {
+        "seconds": 1.9059848000761122,
+        "repairs": 0,
+        "output_sha256": "2100226d7cd5e754d5247b47e0b6236a823e5d4dc13beef0cc964eb59737e54f"
+      },
+      "static-gpu": {
+        "seconds": 0.5493432000512257,
+        "repairs": 0,
+        "output_sha256": "2100226d7cd5e754d5247b47e0b6236a823e5d4dc13beef0cc964eb59737e54f"
+      }
+    },
+    {
+      "repeat": 4,
+      "order": [
+        "static-gpu",
+        "static-cpu",
+        "native"
+      ],
+      "static-gpu": {
+        "seconds": 0.44004020001739264,
+        "repairs": 0,
+        "output_sha256": "2100226d7cd5e754d5247b47e0b6236a823e5d4dc13beef0cc964eb59737e54f"
+      },
+      "static-cpu": {
+        "seconds": 1.8174501000903547,
+        "repairs": 0,
+        "output_sha256": "2100226d7cd5e754d5247b47e0b6236a823e5d4dc13beef0cc964eb59737e54f"
+      },
+      "native": {
+        "seconds": 1.4962767000542954,
+        "repairs": 0,
+        "output_sha256": "2100226d7cd5e754d5247b47e0b6236a823e5d4dc13beef0cc964eb59737e54f"
+      }
+    },
+    {
+      "repeat": 5,
+      "order": [
+        "native",
+        "static-cpu",
+        "static-gpu"
+      ],
+      "native": {
+        "seconds": 1.3747178999474272,
+        "repairs": 0,
+        "output_sha256": "2100226d7cd5e754d5247b47e0b6236a823e5d4dc13beef0cc964eb59737e54f"
+      },
+      "static-cpu": {
+        "seconds": 1.7740421000635251,
+        "repairs": 0,
+        "output_sha256": "2100226d7cd5e754d5247b47e0b6236a823e5d4dc13beef0cc964eb59737e54f"
+      },
+      "static-gpu": {
+        "seconds": 0.500036200042814,
+        "repairs": 0,
+        "output_sha256": "2100226d7cd5e754d5247b47e0b6236a823e5d4dc13beef0cc964eb59737e54f"
+      }
+    }
+  ]
+}

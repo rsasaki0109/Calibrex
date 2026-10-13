@@ -204,7 +204,7 @@
       "license_spdx": "Apache-2.0 (Calibrex); MIT (CuPy); BSD-2-Clause (Numba)",
       "method_id": "cuda",
       "tool_name": "cuda",
-      "tool_version": "calibrex.cuda_depth_pair_projector/v0.2;cupy=14.2.0;numpy=2.3.4;cuda_runtime=12090;cuda_driver=13020;device=NVIDIA GeForce GTX 1660 Ti;compute=7.5;nvrtc=12.8;kernel_sha256=63e1f2eed8bceede3572e6f1d31827e1bdf4619106aac34648b0ff0af213ab79;fp64;fmad=false"
+      "tool_version": "calibrex.cuda_depth_pair_projector/v0.2;cupy=14.2.0;numpy=2.3.4;cuda_runtime=12090;cuda_driver=13020;device=NVIDIA CUDA GPU;compute=7.5;nvrtc=12.8;kernel_sha256=63e1f2eed8bceede3572e6f1d31827e1bdf4619106aac34648b0ff0af213ab79;fp64;fmad=false"
     }
   ],
   "metrics": [
@@ -488,7 +488,7 @@
     "tuning_policy": "FP64 and original histogram settings; no solver or metric retuning"
   },
   "provenance": {
-    "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+    "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
     "data_verified": true,
     "generated_at": "2026-10-10T14:53:01.292736+00:00",
     "generator": "tools.benchmark_d2d_projection",
@@ -515,7 +515,7 @@
         "projection_seconds": 0.03887399996165186
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -534,7 +534,7 @@
         "projection_seconds": 0.03510360000655055
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -553,7 +553,7 @@
         "projection_seconds": 0.0443059999961406
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -572,7 +572,7 @@
         "projection_seconds": 0.03326970001216978
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -591,7 +591,7 @@
         "projection_seconds": 0.035151800024323165
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -610,7 +610,7 @@
         "projection_seconds": 0.03427349997218698
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -629,7 +629,7 @@
         "projection_seconds": 0.032409099978394806
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -648,7 +648,7 @@
         "projection_seconds": 0.035439300001598895
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -667,7 +667,7 @@
         "projection_seconds": 0.03638649999629706
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -686,7 +686,7 @@
         "projection_seconds": 0.03172219998668879
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -705,7 +705,7 @@
         "projection_seconds": 0.034148600010666996
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -724,7 +724,7 @@
         "projection_seconds": 0.03168859996367246
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -743,7 +743,7 @@
         "projection_seconds": 0.035474899981636554
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -762,7 +762,7 @@
         "projection_seconds": 0.03616550000151619
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -781,7 +781,7 @@
         "projection_seconds": 0.042310899996664375
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -800,7 +800,7 @@
         "projection_seconds": 0.03340459999162704
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -819,7 +819,7 @@
         "projection_seconds": 0.03683160000946373
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -838,7 +838,7 @@
         "projection_seconds": 0.0322423999896273
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -857,7 +857,7 @@
         "projection_seconds": 0.03268120001303032
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -876,7 +876,7 @@
         "projection_seconds": 0.03358520002802834
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -895,7 +895,7 @@
         "projection_seconds": 0.0334586999961175
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -914,7 +914,7 @@
         "projection_seconds": 0.031439200043678284
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -933,7 +933,7 @@
         "projection_seconds": 0.032024000014644116
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -952,7 +952,7 @@
         "projection_seconds": 0.035697300045285374
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -971,7 +971,7 @@
         "projection_seconds": 0.03300379996653646
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -990,7 +990,7 @@
         "projection_seconds": 0.019960700010415167
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1009,7 +1009,7 @@
         "projection_seconds": 0.018688099982682616
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1028,7 +1028,7 @@
         "projection_seconds": 0.017395000031683594
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1047,7 +1047,7 @@
         "projection_seconds": 0.016925100004300475
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1066,7 +1066,7 @@
         "projection_seconds": 0.016768200031947345
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1085,7 +1085,7 @@
         "projection_seconds": 0.01704419997986406
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1104,7 +1104,7 @@
         "projection_seconds": 0.01645340002141893
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1123,7 +1123,7 @@
         "projection_seconds": 0.01897049997933209
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1142,7 +1142,7 @@
         "projection_seconds": 0.01794809999410063
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1161,7 +1161,7 @@
         "projection_seconds": 0.017215200001373887
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1180,7 +1180,7 @@
         "projection_seconds": 0.018816800031345338
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1199,7 +1199,7 @@
         "projection_seconds": 0.017384599952492863
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1218,7 +1218,7 @@
         "projection_seconds": 0.0172947000246495
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1237,7 +1237,7 @@
         "projection_seconds": 0.0159966999781318
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1256,7 +1256,7 @@
         "projection_seconds": 0.019341500010341406
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1275,7 +1275,7 @@
         "projection_seconds": 0.0170516999787651
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1294,7 +1294,7 @@
         "projection_seconds": 0.01739569997880608
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1313,7 +1313,7 @@
         "projection_seconds": 0.01708600000711158
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1332,7 +1332,7 @@
         "projection_seconds": 0.016854999994393438
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1351,7 +1351,7 @@
         "projection_seconds": 0.01719539996702224
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1370,7 +1370,7 @@
         "projection_seconds": 0.01789769995957613
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1389,7 +1389,7 @@
         "projection_seconds": 0.0163198999944143
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1408,7 +1408,7 @@
         "projection_seconds": 0.021001500019337982
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1427,7 +1427,7 @@
         "projection_seconds": 0.015921699989121407
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1446,7 +1446,7 @@
         "projection_seconds": 0.017123900004662573
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1465,7 +1465,7 @@
         "projection_seconds": 0.010154999967198819
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1484,7 +1484,7 @@
         "projection_seconds": 0.009825200017075986
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1503,7 +1503,7 @@
         "projection_seconds": 0.010462600039318204
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1522,7 +1522,7 @@
         "projection_seconds": 0.008510499959811568
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1541,7 +1541,7 @@
         "projection_seconds": 0.008352200035005808
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1560,7 +1560,7 @@
         "projection_seconds": 0.009137700020801276
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1579,7 +1579,7 @@
         "projection_seconds": 0.008477900002617389
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1598,7 +1598,7 @@
         "projection_seconds": 0.009747000003699213
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1617,7 +1617,7 @@
         "projection_seconds": 0.010038999957032502
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1636,7 +1636,7 @@
         "projection_seconds": 0.009011799993459135
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1655,7 +1655,7 @@
         "projection_seconds": 0.009306600026320666
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1674,7 +1674,7 @@
         "projection_seconds": 0.010004599986132234
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1693,7 +1693,7 @@
         "projection_seconds": 0.008714199997484684
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1712,7 +1712,7 @@
         "projection_seconds": 0.010852499981410801
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1731,7 +1731,7 @@
         "projection_seconds": 0.00991349999094382
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1750,7 +1750,7 @@
         "projection_seconds": 0.00916799996048212
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1769,7 +1769,7 @@
         "projection_seconds": 0.009042999998200685
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1788,7 +1788,7 @@
         "projection_seconds": 0.008939499966800213
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1807,7 +1807,7 @@
         "projection_seconds": 0.009041999990586191
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1826,7 +1826,7 @@
         "projection_seconds": 0.009131399972829968
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1845,7 +1845,7 @@
         "projection_seconds": 0.008810399973299354
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1864,7 +1864,7 @@
         "projection_seconds": 0.009408500045537949
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1883,7 +1883,7 @@
         "projection_seconds": 0.009589799970854074
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1902,7 +1902,7 @@
         "projection_seconds": 0.010467300016898662
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",
@@ -1921,7 +1921,7 @@
         "projection_seconds": 0.009283300023525953
       },
       "provenance": {
-        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-gtx1660ti-v2/pinhole",
+        "command": "python tools/benchmark_d2d_projection.py --points 200000 --width 1280 --height 720 --repeats 25 --solve-evaluations 80 --solver-repeats 3 --output-dir outputs/d2d-cuda-cuda-v2/pinhole",
         "config_sha256": "59e8cadb278cdaa01cf87e74cca41187ef46785d1d287e1269371c9fefe9cafb",
         "execution_host": "${HOST}",
         "input_sha256": "c412507cfe1b889a440da044c852736a1bed10e921b28c1e7a168033fbcd64f0",

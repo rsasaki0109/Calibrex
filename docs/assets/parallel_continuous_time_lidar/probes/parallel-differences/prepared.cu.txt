@@ -1,0 +1,55 @@
+
+struct Q { double x,y,z,w; };
+__device__ Q normalized(Q q) {
+    double n=sqrt(q.x*q.x+q.y*q.y+q.z*q.z+q.w*q.w);
+    if(n==1.0) return q;
+    return {q.x/n,q.y/n,q.z/n,q.w/n};
+}
+__device__ Q product(Q a,Q b) {
+    return {a.w*b.x+a.x*b.w+a.y*b.z-a.z*b.y,
+            a.w*b.y-a.x*b.z+a.y*b.w+a.z*b.x,
+            a.w*b.z+a.x*b.y-a.y*b.x+a.z*b.w,
+            a.w*b.w-a.x*b.x-a.y*b.y-a.z*b.z};
+}
+__device__ Q rotated(Q q, const double* p) {
+    q=normalized(q); Q c=normalized(q);
+    return product(product(q,{p[0],p[1],p[2],0.0}),{-c.x,-c.y,-c.z,c.w});
+}
+__device__ double prepared_residual(const double* p,const double* plane,const double* normal,
+                          const double* pose,double weight,const double* transform, Q q, Q nq, Q cq) {
+    Q translated=product(product(nq,{transform[0],transform[1],transform[2],0.0}),cq);
+    double wt[3]={pose[0]+translated.x,pose[1]+translated.y,pose[2]+translated.z};
+    Q wq=normalized(normalized(product(q,{transform[3],transform[4],transform[5],transform[6]})));
+    Q r=rotated(wq,p);
+    double dx=r.x+wt[0]-plane[0],dy=r.y+wt[1]-plane[1],dz=r.z+wt[2]-plane[2];
+    return weight*(normal[0]*dx+normal[1]*dy+normal[2]*dz);
+}
+__device__ double residual(const double* p,const double* plane,const double* normal,
+                          const double* pose,double weight,const double* transform) {
+    Q q={pose[3],pose[4],pose[5],pose[6]};
+    Q nq=normalized(q); Q c=normalized(nq);
+    return prepared_residual(p,plane,normal,pose,weight,transform,q,nq,{-c.x,-c.y,-c.z,c.w});
+}
+extern "C" __global__ void residuals(const double* points,const double* planes,
+    const double* normals,const double* poses,const double* weights,
+    const double* transforms,const int n,double* result) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;
+    if(row<n) result[row]=residual(points+3*row,planes+3*row,normals+3*row,
+                                 poses+7*row,weights[row],transforms);
+}
+extern "C" __global__ void linearize(const double* points,const double* planes,
+    const double* normals,const double* poses,const double* weights,
+    const double* transforms,const double* steps,const int n,double* result,double* jacobian) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;
+    if(row>=n) return;
+    const double* p=points+3*row;const double* plane=planes+3*row;
+    const double* normal=normals+3*row;const double* pose=poses+7*row;
+    Q q={pose[3],pose[4],pose[5],pose[6]};
+    Q nq=normalized(q); Q c=normalized(nq); Q cq={-c.x,-c.y,-c.z,c.w};
+    result[row]=prepared_residual(p,plane,normal,pose,weights[row],transforms,q,nq,cq);
+    for(int col=0;col<6;col++) {
+        double plus=prepared_residual(p,plane,normal,pose,weights[row],transforms+7*(1+2*col),q,nq,cq);
+        double minus=prepared_residual(p,plane,normal,pose,weights[row],transforms+7*(2+2*col),q,nq,cq);
+        jacobian[6*row+col]=(plus-minus)/(2.0*steps[col]);
+    }
+}

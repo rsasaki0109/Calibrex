@@ -1,0 +1,186 @@
+"""Audit and publish final and historical complete public calibration measurements."""
+import hashlib
+import json
+import os
+import re
+import statistics
+import subprocess
+import sys
+from pathlib import Path
+
+workspace = next(p for p in Path(__file__).resolve().parents if (p/'pyproject.toml').is_file())
+sys.path.insert(0, str(workspace))
+os.chdir(workspace)
+from calibrex.core.benchmark import BenchmarkDefinition, BenchmarkArtifact, aggregate_benchmark_definition
+from calibrex.core.continuous_time_lidar_artifacts import ContinuousTimeLidarPairArtifact
+from calibrex.core.io import read_mapping
+from tools import benchmark_adaptive_plane_search as b
+
+destination = Path('outputs/cuda-continuous-publication-build-v4')
+destination.mkdir(parents=True, exist_ok=True)
+baseline = 'eb50c99878706a45eb0e584f3573507313cdc172'
+candidate = 'fb265b33cf0752e4ff9829f2c798b416da5a2fd0'
+entries, summaries, rewrites = {}, {}, {}
+
+def sha(data):
+    return hashlib.sha256(data).hexdigest()
+
+def save(name, data, **metadata):
+    if isinstance(data, dict): data = (json.dumps(data,indent=2,allow_nan=False)+'\n').encode()
+    (destination/name).parent.mkdir(parents=True, exist_ok=True)
+    (destination/name).write_bytes(data)
+    entries[name] = {'sha256':sha(data), **metadata}
+
+def portable(value):
+    if isinstance(value, dict): return {portable(k):portable(v) for k,v in value.items()}
+    if isinstance(value, list): return [portable(v) for v in value]
+    if isinstance(value, str):
+        if value in rewrites: return rewrites[value]
+        return value.replace(sys.executable,'<PYTHON>').replace(str(workspace),'<WORKSPACE>').replace(workspace.as_posix(),'<WORKSPACE>').replace('\\','/')
+    return value
+
+for stage,root in [('v1',Path('outputs/cuda-continuous-publication-initial-v1')),
+                   ('v2',Path('outputs/cuda-continuous-publication-intermediate-v2'))]:
+    index = json.loads((root/'publication-index.json').read_bytes())
+    for name,binding in index['files'].items():
+        assert sha((root/name).read_bytes()) == binding['sha256']
+        if stage == 'v2' and name.startswith('initial/'): continue
+        save(f'attempts/{stage}/{name}', (root/name).read_bytes(), original_binding=binding)
+    save(f'attempts/{stage}/publication-index.json',(root/'publication-index.json').read_bytes(),
+         original_namespace=stage, original_index_includes_initial=(stage=='v2'))
+
+def pack_cohort(label, root, source_root=None, namespace=''):
+    definition = BenchmarkDefinition.model_validate(read_mapping(root/'pipeline.definition.json'))
+    aggregate = BenchmarkArtifact.model_validate(read_mapping(root/'pipeline.benchmark.json'))
+    assert aggregate_benchmark_definition(definition) == aggregate
+    assert len(definition.trials) == 10
+    revision = next(m.source_commit for m in definition.methods if m.method_id=='sparse')
+    assert next(m.source_commit for m in definition.methods if m.method_id=='baseline') == baseline
+    for source in b.SOURCES:
+        raw = (source_root/Path(source).name).read_bytes() if source_root else Path(source).read_bytes()
+        assert sha(raw) == definition.provenance.source_artifacts[source]
+        assert raw.replace(b'\r\n',b'\n') == subprocess.check_output(['git','show',f'{revision}:{source}'])
+        name=namespace+'measured.'+Path(source).name+'.txt'
+        save(name,raw,source=source,source_commit=revision)
+        rewrites[source]=name
+    for module in b.COMPILED_MODULES:
+        source='src/'+module.replace('.','/')+'.py'
+        old='baseline.'+module.rsplit('.',1)[1]+'.py.txt'
+        raw=(root/old).read_bytes()
+        assert raw == subprocess.check_output(['git','show',f'{baseline}:{source}'])
+        save(namespace+old,raw,source=source,source_commit=baseline)
+        for key in ((root/old).as_posix(), str((root/old).resolve()), (root/old).resolve().as_posix()):
+            rewrites[key]=namespace+old
+    config=next(k for k in definition.provenance.source_artifacts if k.startswith('examples/'))
+    raw=Path(config).read_bytes()
+    assert sha(raw)==definition.provenance.source_artifacts[config]
+    name=namespace+'measured.'+Path(config).name+'.txt'
+    save(name,raw,source=config,source_commit=revision)
+    rewrites[config]=name
+    anchor,split=None,None
+    for trial in definition.trials:
+        folder=root/(trial.method_id+'.'+trial.split_id)
+        raw=(folder/'measurement.json').read_bytes()
+        row=json.loads(raw)
+        saved_raw=(folder/'result.yaml').read_bytes()
+        model=ContinuousTimeLidarPairArtifact.model_validate(read_mapping(folder/'result.yaml'))
+        canonical=b._canonical(model.model_dump(mode='json',exclude_none=True))
+        assert canonical==b._canonical(row['result'])==trial.provenance.notes[-1]
+        assert sha(saved_raw)==row['result_sha256']
+        assert sha(canonical.encode())==trial.provenance.output_sha256
+        assert trial.status=='success' and trial.metrics['complete_result_matches']==1
+        assert trial.runtime_seconds==trial.metrics['subprocess_wall_seconds']
+        for key in trial.metrics:
+            if key in row: assert trial.metrics[key]==row[key]
+        compared=b._comparison_canonical(row['result'])
+        if anchor is None: anchor=compared
+        assert compared==anchor
+        if split is None: split=row['sampled_split']
+        assert row['sampled_split']==split
+        info=json.loads(trial.provenance.notes[0])
+        assert info['numba_cache_policy']=='persistent'
+        assert info['execution_override']==('cuda' if trial.method_id=='sparse' else None)
+        if trial.split_id=='repeat-01':
+            assert not info['numba_cache_before'] and info['numba_cache_after']
+            assert not info['cuda_cache_before']
+        if trial.method_id=='sparse' and row['loaded_cuda_module'] is not None:
+            assert info['cuda_cache_after']
+        else: assert not info['cuda_cache_after']
+        converted=portable(row);converted['result']=row['result']
+        changed=[k for k in row if converted[k]!=row[k]]
+        assert set(changed)<={'loaded_module','loaded_evaluation_modules','loaded_cuda_module'}
+        prefix=namespace+label+'.'+folder.name
+        save(prefix+'.measurement.json',converted,original_sha256=sha(raw),changed_fields=changed)
+        save(prefix+'.result.yaml',saved_raw,original_sha256=sha(saved_raw))
+    payload=definition.model_dump(mode='json',exclude_none=True)
+    for trial in payload['trials']:
+        trial['provenance']['notes'][0]=json.dumps(portable(json.loads(trial['provenance']['notes'][0])),sort_keys=True)
+        assert portable(trial['provenance']['notes'][-1])==trial['provenance']['notes'][-1]
+    converted=BenchmarkDefinition.model_validate(portable(payload))
+    assert [t.metrics for t in converted.trials]==[t.metrics for t in definition.trials]
+    save(namespace+label+'.definition.json',converted.model_dump(mode='json',exclude_none=True),
+         original_sha256=sha((root/'pipeline.definition.json').read_bytes()))
+    save(namespace+label+'.benchmark.json',aggregate_benchmark_definition(converted).model_dump(mode='json',exclude_none=True),
+         original_sha256=sha((root/'pipeline.benchmark.json').read_bytes()))
+    medians={m:{k:statistics.median(t.metrics[k] for t in definition.trials if t.method_id==m)
+               for k in ['subprocess_wall_seconds','pipeline_seconds','solver_seconds','worker_cpu_seconds']}
+             for m in ['baseline','sparse']}
+    pairs=[{m:next(t.runtime_seconds for t in definition.trials if t.method_id==m and t.split_id==f'repeat-{i:02d}')
+            for m in ['baseline','sparse']} for i in range(1,6)]
+    summaries[namespace+label]={'candidate_source_commit':revision,'medians':medians,'pairs':pairs,
+        'median_paired_ratio':statistics.median(p['baseline']/p['sparse'] for p in pairs),
+        'status':model.status,'rank':model.observability.rank,
+        'train_correspondences':model.train_correspondence_count,'holdout_correspondences':model.holdout_correspondence_count,
+        'sampled_split':split}
+
+for label,stem in [('full_capture','full'),('default_budget','default')]:
+    pack_cohort(label,Path(f'outputs/public-glim-cuda-continuous-{stem}-v3'),
+                Path('outputs/cuda-continuous-source-v3'),'attempts/v3/')
+stopped_root=Path('outputs/public-glim-cuda-continuous-dense-v2')
+stopped=json.loads((stopped_root/'stopped-attempt.json').read_bytes())
+for source,digest in stopped['provenance']['source_sha256'].items():
+    assert sha((Path('outputs/cuda-continuous-source-v3')/Path(source).name).read_bytes())==digest
+for trial in stopped['completed']:
+    folder=stopped_root/(trial['method_id']+'.repeat-'+str(trial['repeat']).zfill(2))
+    raw=(folder/'measurement.json').read_bytes();row=json.loads(raw)
+    assert sha(raw)==trial['measurement_sha256']
+    assert b._digest(folder/'result.yaml')==trial['result_sha256']==row['result_sha256']
+    model=ContinuousTimeLidarPairArtifact.model_validate(read_mapping(folder/'result.yaml'))
+    assert b._canonical(model.model_dump(mode='json',exclude_none=True))==b._canonical(row['result'])
+    converted=portable(row);converted['result']=row['result']
+    save('attempts/v3/stopped_dense.'+folder.name+'.measurement.json',converted,original_sha256=sha(raw))
+    save('attempts/v3/stopped_dense.'+folder.name+'.result.yaml',(folder/'result.yaml').read_bytes())
+save('attempts/v3/stopped_dense.attempt.json',stopped)
+for label,stem,version in [('full_capture','full','v4'),('default_budget','default','v4'),
+                           ('dense_capture','dense','v3')]:
+    pack_cohort(label,Path(f'outputs/public-glim-cuda-continuous-{stem}-{version}'))
+    assert summaries[label]['candidate_source_commit']==candidate
+save('conversion-provenance.json',Path('data/public/glim_versatile/conversion-provenance.json').read_bytes())
+diagnostic_root=Path('outputs/public-glim-cuda-continuous-diagnostic-v4')
+diagnostic=json.loads((diagnostic_root/'diagnostic.json').read_bytes())
+assert diagnostic['provenance']['source_commit']==candidate
+raw=(diagnostic_root/'worker/measurement.json').read_bytes();row=json.loads(raw)
+assert sha(raw)==diagnostic['provenance']['measurement_sha256']
+reference=json.loads(Path('outputs/public-glim-cuda-continuous-full-v4/sparse.repeat-01/measurement.json').read_bytes())
+assert b._canonical(row['result'])==b._canonical(reference['result'])
+converted=portable(row);converted['result']=row['result']
+save('diagnostic.measurement.json',converted,original_sha256=sha(raw))
+save('diagnostic.json',diagnostic)
+save('diagnostic-launcher.py.txt',(Path(__file__).parent/'diagnostic-launcher.py.txt').read_bytes())
+launcher=Path(__file__).read_text(encoding='utf-8')
+gate='    if '+'re.search('
+mkdir='    (destination/name)'+'.parent.mkdir'
+if gate in launcher:
+    start=launcher.index(gate);end=launcher.index(mkdir,start)
+    launcher=launcher[:start]+launcher[end:]
+launcher=launcher.replace("(Path(__file__).parent/'diagnostic-launcher.py.txt')",
+                         "(Path(__file__).parent/'diagnostic-launcher.py.txt')")
+save('publication-launcher.py.txt',launcher.encode())
+index={'provenance':{'candidate_source_commit':candidate,'baseline_source_commit':baseline,
+    'generator':'publication-launcher.py.txt','input_sha256':b._verified_inputs(b.REPLAY),
+    'limitations':['Only location metadata is portable; raw result values, original hashes and source revisions are retained.',
+        'Prior candidates and interrupted attempts are separate evidence, not pooled with the final comparison.',
+        'Copied-topic control supports execution parity, without independent two-sensor accuracy evidence.']},
+    'summaries':summaries,'files':entries}
+(destination/'publication-index.json').write_text(json.dumps(index,indent=2)+'\n',encoding='utf-8',newline='\n')
+print(json.dumps(summaries,indent=2),flush=True)

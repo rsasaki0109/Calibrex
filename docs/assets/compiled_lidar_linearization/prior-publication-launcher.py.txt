@@ -1,0 +1,152 @@
+"""Retain the weaker preceding frozen cohorts with their own source archives."""
+from __future__ import annotations
+
+import hashlib
+import importlib.util
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+from calibrex.core.benchmark import BenchmarkDefinition, aggregate_benchmark_definition
+from calibrex.core.continuous_time_lidar_artifacts import ContinuousTimeLidarPairArtifact
+from calibrex.core.io import read_mapping
+
+root = Path("docs/assets/compiled_lidar_linearization")
+index = json.loads((root / "publication-index.json").read_bytes())
+spec = importlib.util.spec_from_file_location("b", "tools/benchmark_adaptive_plane_search.py")
+b = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(b)
+prior = "09c346935c610ed32517f31772e4be46090b5817"
+baseline = index["provenance"]["baseline_source_commit"]
+source_archives = {}
+archive_hashes = {}
+for path in b.SOURCES:
+    contents = subprocess.check_output(["git", "show", f"{prior}:{path}"])
+    current = "measured." + Path(path).name + ".txt"
+    name = current if (root / current).read_bytes() == contents else (
+        "prior." + Path(path).name + ".txt"
+    )
+    (root / name).write_bytes(contents)
+    source_archives[path] = name
+    archive_hashes[name] = b._digest(root / name)
+
+workspace = Path.cwd()
+rewrite = dict(source_archives)
+
+def portable(value):
+    if isinstance(value, dict):
+        return {portable(key): portable(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [portable(item) for item in value]
+    if isinstance(value, str):
+        if value in rewrite:
+            return rewrite[value]
+        return (value.replace(sys.executable, "<PYTHON>")
+                .replace(str(workspace), "<WORKSPACE>")
+                .replace(workspace.as_posix(), "<WORKSPACE>").replace("\\", "/"))
+    return value
+
+for label, folder, fit, holdout, fit_matches, holdout_matches, queries, status in (
+    ("default_budget", "public-glim-linearization-default-v1", 6000, 3200,
+     4773, 2526, 184000, "converged"),
+    ("full_capture", "public-glim-linearization-full-v1", 38400, 9600,
+     29181, 3451, 1248000, "max_iterations"),
+):
+    raw = Path("outputs") / folder
+    for module in b.COMPILED_MODULES:
+        name = "baseline." + module.rsplit(".", 1)[1] + ".py.txt"
+        assert (raw / name).read_bytes() == (root / name).read_bytes()
+        rewrite[(raw / name).resolve().as_posix()] = name
+        rewrite[str((raw / name).resolve())] = name
+    definition = BenchmarkDefinition.model_validate(read_mapping(raw / "pipeline.definition.json"))
+    current = BenchmarkDefinition.model_validate(read_mapping(root / (label + ".definition.json")))
+    assert len(definition.trials) == 10
+    assert {m.source_commit for m in definition.methods} == {prior, baseline}
+    # All original official-input/config lineage bindings agree with the new cohort.
+    for path, digest in definition.provenance.source_artifacts.items():
+        if path.startswith(("data/", "examples/")):
+            assert current.provenance.source_artifacts.get(path, archive_hashes.get(
+                "measured." + Path(path).name + ".txt",
+            )) == digest or (
+                path.startswith("examples/") and b._digest(Path(path)) == digest
+            )
+    anchor = None
+    method_anchors = {}
+    for trial in definition.trials:
+        folder = raw / f"{trial.method_id}.{trial.split_id}"
+        measurement = json.loads((folder / "measurement.json").read_bytes())
+        saved = ContinuousTimeLidarPairArtifact.model_validate(read_mapping(folder / "result.yaml"))
+        canonical = b._canonical(saved.model_dump(mode="json", exclude_none=True))
+        assert canonical == b._canonical(measurement["result"]) == trial.provenance.notes[-1]
+        assert b._digest(folder / "result.yaml") == measurement["result_sha256"]
+        assert hashlib.sha256(canonical.encode()).hexdigest() == trial.provenance.output_sha256
+        comparable = b._comparison_canonical(saved.model_dump(mode="json", exclude_none=True))
+        assert anchor is None or anchor == comparable
+        anchor = comparable
+        assert method_anchors.setdefault(trial.method_id, canonical) == canonical
+        assert trial.status == "success" and trial.metrics["complete_result_matches"] == 1
+        assert saved.status == status and saved.observability.rank == 6
+        assert saved.train_correspondence_count == fit_matches
+        assert saved.holdout_correspondence_count == holdout_matches
+        assert measurement["adaptive_query_calls"] == queries
+        assert measurement["sampled_split"]["train_count"] == fit
+        assert measurement["sampled_split"]["holdout_count"] == holdout
+        metadata = json.loads(trial.provenance.notes[0])
+        assert metadata["numba_cache_policy"] == "persistent"
+        assert bool(metadata["numba_cache_before"]) == (trial.split_id != "repeat-01")
+        assert metadata["numba_cache_after"]
+        if trial.split_id != "repeat-01":
+            assert metadata["numba_cache_before"] == metadata["numba_cache_after"]
+    current_anchor = b._comparison_canonical(json.loads(current.trials[0].provenance.notes[-1]))
+    # Cross-cohort source provenance names the caller's measured checkout.
+    # Verify the two exact revisions before checking numerical parity;
+    # strict within-cohort comparison and all published payloads stay intact.
+    prior_values = json.loads(anchor)
+    current_values = json.loads(current_anchor)
+    for previous, present in (
+        (prior_values["provenance"], current_values["provenance"]),
+        (prior_values["train_diagnostics"]["provenance"],
+         current_values["train_diagnostics"]["provenance"]),
+    ):
+        assert previous["git_commit"] == prior[:7]
+        assert present["git_commit"] == index["provenance"]["candidate_source_commit"][:7]
+        previous["git_commit"] = present["git_commit"]
+    assert b._canonical(prior_values) == b._canonical(current_values)
+    payload = definition.model_dump(mode="json", exclude_none=True)
+    for trial in payload["trials"]:
+        notes = trial["provenance"]["notes"]
+        notes[0] = json.dumps(portable(json.loads(notes[0])), sort_keys=True)
+        assert b._canonical(portable(json.loads(notes[-1]))) == notes[-1]
+    payload = portable(payload)
+    payload["provenance"]["source_artifacts"].update(archive_hashes)
+    published = BenchmarkDefinition.model_validate(payload)
+    published.save(root / ("prior_" + label + ".definition.json"))
+    aggregate_benchmark_definition(published).save(root / ("prior_" + label + ".benchmark.json"))
+    index["original_cohorts"]["prior_" + label] = {
+        "measurement_sha256": {name: b._digest(raw / name) for name in (
+            "pipeline.definition.json", "pipeline.benchmark.json",
+        )},
+        "source_bindings": {
+            path.replace(str(workspace), "<WORKSPACE>").replace(
+                workspace.as_posix(), "<WORKSPACE>",
+            ).replace("\\", "/"): digest
+            for path, digest in definition.provenance.source_artifacts.items()
+        },
+    }
+
+launcher = "prior-publication-launcher.py.txt"
+(root / launcher).write_bytes(Path(__file__).read_bytes().replace(b"\r\n", b"\n"))
+index["prior_provenance"] = {
+    "generator": launcher, "source_commit": prior,
+    "command": ["<PYTHON>", launcher], "source_archives": source_archives,
+    "cross_cohort_revision_fields_verified": [
+        "provenance.git_commit", "train_diagnostics.provenance.git_commit",
+    ],
+}
+index["files"] = {p.name: b._digest(p) for p in sorted(root.iterdir())
+                  if p.is_file() and p.name not in ("README.md", "publication-index.json")}
+(root / "publication-index.json").write_text(
+    json.dumps(index, indent=2) + "\n", encoding="utf-8", newline="\n",
+)
+print("20 prior saved results and exact identity-only comparisons retained separately.")

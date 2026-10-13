@@ -1,0 +1,33 @@
+"""Predeclared real-frame cohorts; fresh workers, full diagnostic defaults."""
+import hashlib
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+workspace=Path.cwd()
+data_root='data/public/kitti_raw_icp/2011_09_30_drive_0018_sync'
+manifest=Path('outputs/public-kitti-real-icp-protocol-v1.json')
+protocol={'provenance':{
+    'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+    'launcher_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+    'dataset_selection_sha256':hashlib.sha256(Path('outputs/kitti-icp-selection-v1.json').read_bytes()).hexdigest(),
+},'jobs':[
+    {'label':'primary-115','fixture':'outputs/kitti-icp-pairs-default-v1/0000000115-0000000116.json','repeats':3,'point_budget':0},
+    {'label':'breadth-230','fixture':'outputs/kitti-icp-pairs-v1/0000000230-0000000231.json','repeats':1,'point_budget':0},
+    {'label':'breadth-345','fixture':'outputs/kitti-icp-pairs-v1/0000000345-0000000346.json','repeats':1,'point_budget':0},
+    {'label':'small-115','fixture':'outputs/kitti-icp-pairs-v1/0000000115-0000000116.json','repeats':1,'point_budget':768},
+], 'policy':'primary default 50 iterations, breadth/small 20; full holdout/rematching/six starts; BLAS 1'}
+for job in protocol['jobs']:
+    job['fixture_sha256']=hashlib.sha256(Path(job['fixture']).read_bytes()).hexdigest()
+manifest.write_text(json.dumps(protocol,indent=2)+'\n',encoding='utf-8')
+for job in protocol['jobs']:
+    assert protocol['provenance']['source_commit']==subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+    assert job['fixture_sha256']==hashlib.sha256(Path(job['fixture']).read_bytes()).hexdigest()
+    out='outputs/public-kitti-real-icp-'+job['label']+'-v1'
+    print('START '+job['label'],flush=True)
+    command=[sys.executable,'tools/benchmark_cuda_point_to_point_icp.py',
+             '--pair-fixture',job['fixture'],'--data-root',data_root,'--output',out,
+             '--repeats',str(job['repeats']),'--point-budget',str(job['point_budget'])]
+    subprocess.run(command,check=True)
+    print('DONE '+job['label'],flush=True)

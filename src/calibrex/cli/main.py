@@ -1103,6 +1103,67 @@ def _build_parser() -> argparse.ArgumentParser:
     livox_demo.add_argument("--json", action="store_true")
     livox_demo.set_defaults(func=_cmd_demo_livox_evidence)
 
+    six_dof_demo = demo_subcommands.add_parser(
+        "kitti-six-dof",
+        help="compare CPU/candidate six-DoF calibration on 25 frozen KITTI raw frames",
+    )
+    six_dof_demo.add_argument("sequence", type=Path, help="synced KITTI raw drive directory")
+    six_dof_demo.add_argument("depth_provider", type=Path, help="verified frozen depth manifest")
+    six_dof_demo.add_argument(
+        "--output-dir", type=Path, default=Path("outputs/kitti-six-dof-demo"),
+        help="new or empty directory for results and offline comparison HTML",
+    )
+    six_dof_demo.add_argument(
+        "--candidate-backend", choices=("cuda", "numba_cpu", "numpy"), default="cuda",
+        help="explicit backend; numpy runs a CPU replay for machines without a GPU",
+    )
+    six_dof_demo.add_argument("--cuda-cache-mib", type=int)
+    six_dof_demo.add_argument(
+        "--candidate-frame-workers", type=int, default=1,
+        help="CPU candidate frame threads; NumPy reference stays serial; CUDA requires 1",
+    )
+    six_dof_demo.add_argument("--max-evaluations", type=int, default=800)
+    six_dof_demo.add_argument(
+        "--reuse-verified-inputs", action="store_true",
+        help="capture immutable inputs once; include initial verification cost in pipeline timing",
+    )
+    six_dof_demo.add_argument(
+        "--repetitions", type=int, default=1,
+        help="invocations per backend; starts from the shared prior and alternates execution order",
+    )
+    six_dof_demo.add_argument("--rotation-offset-deg", type=float, nargs=3, default=(0.5, 0.0, 0.0))
+    six_dof_demo.add_argument(
+        "--translation-offset-m", type=float, nargs=3, default=(0.5, 0.0, 0.0)
+    )
+    six_dof_demo.add_argument("--json", action="store_true")
+    six_dof_demo.set_defaults(func=_cmd_demo_kitti_six_dof)
+
+    six_dof_sweep = demo_subcommands.add_parser(
+        "kitti-six-dof-sweep",
+        help="compare six fixed signed-axis initializations; CPU-only cases support processes",
+    )
+    six_dof_sweep.add_argument("sequence", type=Path)
+    six_dof_sweep.add_argument("depth_provider", type=Path)
+    six_dof_sweep.add_argument(
+        "--output-dir", type=Path, default=Path("outputs/kitti-six-dof-sweep")
+    )
+    six_dof_sweep.add_argument(
+        "--candidate-backend", choices=("cuda", "numba_cpu", "numpy"), default="cuda"
+    )
+    six_dof_sweep.add_argument("--workers", type=int, default=1)
+    six_dof_sweep.add_argument("--candidate-frame-workers", type=int, default=1)
+    six_dof_sweep.add_argument("--repetitions", type=int, default=1)
+    six_dof_sweep.add_argument(
+        "--reuse-verified-inputs", action="store_true",
+        help="verify/capture once inside each case; worker processes own separate snapshots",
+    )
+    six_dof_sweep.add_argument("--rotation-deg", type=float, default=0.5)
+    six_dof_sweep.add_argument("--translation-m", type=float, default=0.5)
+    six_dof_sweep.add_argument("--cuda-cache-mib", type=int)
+    six_dof_sweep.add_argument("--max-evaluations", type=int, default=800)
+    six_dof_sweep.add_argument("--json", action="store_true")
+    six_dof_sweep.set_defaults(func=_cmd_demo_kitti_six_dof_sweep)
+
     kitti_demo = demo_subcommands.add_parser(
         "kitti-lidar-camera-evidence",
         help=(
@@ -1483,6 +1544,8 @@ def _build_parser() -> argparse.ArgumentParser:
         "initial value and the reference compared against",
     )
     lidar_lidar_ros2.add_argument("--max-seconds", type=float)
+    lidar_lidar_ros2.add_argument("--registration-backend", choices=("cpu", "cuda"), default="cpu")
+    lidar_lidar_ros2.add_argument("--odometry-backend", choices=("cpu", "cuda"), default="cpu")
     lidar_lidar_ros2.add_argument("--dataset-family", required=True)
     lidar_lidar_ros2.add_argument("--dataset-license", required=True)
     lidar_lidar_ros2.add_argument("--output", type=Path, required=True)
@@ -1851,12 +1914,20 @@ def _build_parser() -> argparse.ArgumentParser:
     estimate_six_dof.add_argument("problem", type=Path)
     estimate_six_dof.add_argument("--output", type=Path, required=True)
     estimate_six_dof.add_argument(
+        "--frame-workers", type=int, default=1,
+        help="persistent CPU frame threads with ordered reduction; CUDA requires 1",
+    )
+    estimate_six_dof.add_argument(
         "--projection-backend", choices=("numpy", "numba_cpu", "cuda"), default="numpy",
         help="D2D projection implementation (cuda requires calibrex[cuda])",
     )
     estimate_six_dof.add_argument(
         "--initial-result", type=Path,
         help="use the matching output transform from a previous standard result as the prior",
+    )
+    estimate_six_dof.add_argument(
+        "--cuda-cache-mib", type=int,
+        help="CUDA input cache capacity in MiB (default 256; 0 disables caching)",
     )
     estimate_six_dof.add_argument(
         "--holdout-frame-id", action="append", default=[],
@@ -1921,6 +1992,10 @@ def _build_parser() -> argparse.ArgumentParser:
         help="D2D projection implementation (cuda requires calibrex[cuda] and --workers 1)",
     )
     benchmark_six_dof.add_argument("--resume", action="store_true")
+    benchmark_six_dof.add_argument(
+        "--cuda-cache-mib", type=int,
+        help="CUDA input cache capacity in MiB (default 256; 0 disables caching)",
+    )
     benchmark_six_dof.add_argument("--required-hit-rate", type=float)
     benchmark_six_dof.add_argument("--json", action="store_true")
     benchmark_six_dof.set_defaults(func=_cmd_camera_lidar_benchmark_six_dof)
@@ -6134,6 +6209,81 @@ def _cmd_camera_lidar_benchmark_rotation(args: argparse.Namespace) -> int:
     return 0
 
 
+def _cmd_demo_kitti_six_dof(args: argparse.Namespace) -> int:
+    from calibrex.pipelines.public_camera_lidar_demo import run_public_camera_lidar_six_dof_demo
+
+    try:
+        demo = run_public_camera_lidar_six_dof_demo(
+            args.sequence, args.depth_provider, output_directory=args.output_dir,
+            candidate_backend=cast(ProjectionBackend, args.candidate_backend),
+            candidate_frame_workers=args.candidate_frame_workers,
+            repetitions=args.repetitions,
+            reuse_verified_inputs=args.reuse_verified_inputs,
+            cuda_cache_bytes=(
+                args.cuda_cache_mib * 1024 * 1024 if args.cuda_cache_mib is not None else None
+            ),
+            options=BorerSixDofOptions(max_evaluations=args.max_evaluations),
+            rotation_offset_deg=tuple(args.rotation_offset_deg),
+            translation_offset_m=tuple(args.translation_offset_m),
+            command=["calibrex", *args.invoked_argv],
+        )
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit({
+        "status": "success" if demo.successful else "incomplete",
+        "numerical_parity": demo.numerical_parity,
+        "report": str(demo.report_path),
+        "benchmark": str(demo.report_path.parent / "comparison.benchmark.json"),
+        "trials": [
+            trial.model_dump(mode="json", exclude_none=True) for trial in demo.benchmark.trials
+        ],
+        "timing_summaries": {
+            method_id: {
+                name: summary.metrics[name].distribution.model_dump(mode="json")
+                for name in ("solve_seconds", "pipeline_seconds")
+            } for method_id, summary in demo.benchmark.method_summaries.items()
+        },
+    }, args.json)
+    return 0 if demo.successful else 2
+
+
+def _cmd_demo_kitti_six_dof_sweep(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.public_six_dof_sweep import run_public_six_dof_sweep
+
+    try:
+        sweep = run_public_six_dof_sweep(
+            args.sequence, args.depth_provider, output_directory=args.output_dir,
+            candidate_backend=cast(ProjectionBackend, args.candidate_backend),
+            candidate_frame_workers=args.candidate_frame_workers,
+            workers=args.workers, repetitions=args.repetitions,
+            reuse_verified_inputs=args.reuse_verified_inputs,
+            rotation_deg=args.rotation_deg, translation_m=args.translation_m,
+            cuda_cache_bytes=(
+                args.cuda_cache_mib * 1024 * 1024 if args.cuda_cache_mib is not None else None
+            ),
+            options=BorerSixDofOptions(max_evaluations=args.max_evaluations),
+            command=["calibrex", *args.invoked_argv],
+        )
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit({
+        "status": "success" if sweep.successful else "incomplete",
+        "report": str(sweep.report_path),
+        "benchmark": str(sweep.report_path.parent / "sweep.benchmark.json"),
+        "elapsed_seconds": sweep.elapsed_seconds,
+        "workers": args.workers,
+        "candidate_frame_workers": args.candidate_frame_workers,
+        "cases": {
+            case_id: {
+                "status": "success" if demo.successful else "incomplete",
+                "numerical_parity": demo.numerical_parity,
+                "report": str(demo.report_path),
+            } for case_id, demo in sweep.demos.items()
+        },
+    }, args.json)
+    return 0 if sweep.successful else 2
+
+
 def _cmd_camera_lidar_estimate_six_dof(args: argparse.Namespace) -> int:
     try:
         options = BorerSixDofOptions(
@@ -6154,7 +6304,11 @@ def _cmd_camera_lidar_estimate_six_dof(args: argparse.Namespace) -> int:
             args.problem,
             options=options,
             projection_backend=cast(ProjectionBackend, args.projection_backend),
+            cuda_cache_bytes=(
+                args.cuda_cache_mib * 1024 * 1024 if args.cuda_cache_mib is not None else None
+            ),
             initial_result_path=args.initial_result,
+            frame_workers=args.frame_workers,
             holdout_frame_ids=args.holdout_frame_id,
             command=["calibrex", *args.invoked_argv],
         )
@@ -6169,6 +6323,13 @@ def _cmd_camera_lidar_estimate_six_dof(args: argparse.Namespace) -> int:
             "quality_grade": result.quality.grade,
             "result": str(args.output),
             "projection_backend": result.run.provenance["projection_backend"],
+            "frame_workers": result.run.provenance["configuration"]["frame_workers"],
+            "effective_frame_workers": (
+                result.run.provenance["configuration"]["effective_frame_workers"]
+            ),
+            "projection_transfer_statistics": (
+                result.run.provenance["projection_transfer_statistics"]
+            ),
             "evaluation_count": solver["evaluation_count"],
             "stopping_reason": solver["stopping_reason"],
             "final_mutual_information": result.metrics["final_d2d_mutual_information"].train,
@@ -6190,6 +6351,8 @@ def _cmd_camera_lidar_benchmark_six_dof(args: argparse.Namespace) -> int:
         f"--projection-backend {args.projection_backend} "
         f"--bootstrap-samples {args.bootstrap_samples}"
     )
+    if args.cuda_cache_mib is not None:
+        command += f" --cuda-cache-mib {args.cuda_cache_mib}"
     if args.required_hit_rate is not None:
         command += f" --required-hit-rate {args.required_hit_rate}"
     if args.resume:
@@ -6206,6 +6369,9 @@ def _cmd_camera_lidar_benchmark_six_dof(args: argparse.Namespace) -> int:
             projection_backend=cast(
                 ProjectionBackend,
                 args.projection_backend,
+            ),
+            cuda_cache_bytes=(
+                args.cuda_cache_mib * 1024 * 1024 if args.cuda_cache_mib is not None else None
             ),
         )
     except (OSError, ValueError) as exc:
@@ -7420,6 +7586,10 @@ def _cmd_lidar_lidar_ros2(args: argparse.Namespace) -> int:
     command += ["--reference-topic", args.reference_topic, "--target-topic", args.target_topic]
     if args.point_time_field:
         command += ["--point-time-field", args.point_time_field]
+    if args.registration_backend == "cuda":
+        command += ["--registration-backend", "cuda"]
+    if args.odometry_backend == "cuda":
+        command += ["--odometry-backend", "cuda"]
     try:
         reference_transform = None
         reference = None
@@ -7449,6 +7619,8 @@ def _cmd_lidar_lidar_ros2(args: argparse.Namespace) -> int:
             reference=reference,
             max_seconds=args.max_seconds,
             command=command,
+            backend=args.registration_backend,
+            odometry_backend=args.odometry_backend,
         )
         artifact.save(args.output)
     except (OSError, ValueError) as exc:

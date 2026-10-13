@@ -1,0 +1,238 @@
+import hashlib
+import json
+import statistics
+import subprocess
+from pathlib import Path
+
+from calibrex.core.benchmark import (
+    BenchmarkDefinition, BenchmarkMetricDefinition, BenchmarkProtocol,
+    BenchmarkProvenance, BenchmarkTrial, BenchmarkTrialProvenance,
+    aggregate_benchmark_definition,
+)
+from calibrex.core.validation import validate_file
+from calibrex.core.result import load_result
+from tools.benchmark_livox_evaluation import _normalized_result
+
+DEST = Path('docs/assets/point_to_plane_factor')
+COMMIT = '9cdf1ef43d3dd46a0ae36ef8a68b74967cb56612'
+WORKSPACE = str(Path.cwd())
+MODULE_PATHS = {'lidar_point_to_plane': 'src/calibrex/graph/lidar_point_to_plane.py'}
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def normalize(value):
+    if isinstance(value, dict):
+        return {normalize(k): normalize(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [normalize(v) for v in value]
+    if isinstance(value, str):
+        value = value.replace(WORKSPACE, '${WORKSPACE_ROOT}').replace(
+            WORKSPACE.replace('//', '/'), '${WORKSPACE_ROOT}')
+        if '${WORKSPACE_ROOT}' in value:
+            value = value.replace('//', '/')
+    return value
+
+
+def check_worker(root, method, repeat, canonical, metadata):
+    directory = root / f'{method}.repeat-{repeat:02d}'
+    assert hashlib.sha256(canonical.encode()).hexdigest()
+    assert sha(directory / 'result.yaml') == metadata['result_sha256']
+    assert validate_file(directory / 'result.yaml').valid
+    written = _normalized_result(
+        load_result(directory / 'result.yaml').model_dump(mode='json'), directory.resolve())
+    assert json.dumps(written, sort_keys=True, separators=(',', ':'), allow_nan=False) == canonical
+    for filename, digest in metadata['artifacts'].items():
+        assert sha(directory / filename) == digest
+
+
+def publish(root, target, commit):
+    target.mkdir(parents=True, exist_ok=True)
+    raw = BenchmarkDefinition.model_validate_json((root / 'pipeline.definition.json').read_bytes())
+    recorded_commit = subprocess.check_output(
+        ['git', 'rev-parse', raw.methods[1].source_commit + '^{commit}'], text=True).strip()
+    assert len(raw.trials) == 10 and recorded_commit == commit
+    anchor = raw.trials[0].provenance.notes[-1]
+    for trial in raw.trials:
+        assert trial.status == 'success' and trial.metrics['complete_result_matches'] == 1
+        canonical = trial.provenance.notes[-1]
+        assert canonical == anchor
+        assert hashlib.sha256(canonical.encode()).hexdigest() == trial.provenance.output_sha256
+        metadata = json.loads(trial.provenance.notes[0])
+        check_worker(root, trial.method_id, metadata['repeat'], canonical, metadata)
+    bindings = {}
+    for path in sorted(root.glob('baseline.*.py.txt')):
+        name = path.name.removeprefix('baseline.').removesuffix('.py.txt')
+        source = MODULE_PATHS[name]
+        data = subprocess.check_output(['git', 'show', raw.methods[0].source_commit + ':' + source])
+        assert path.read_bytes() == data
+        archived = target / path.name
+        archived.write_bytes(data)
+        bindings['published:' + archived.name] = sha(archived)
+        bindings['baseline:' + source] = sha(archived)
+    for source in raw.provenance.source_artifacts:
+        if not source.startswith(('src/', 'tools/')):
+            continue
+        archived = target / ('measured.' + Path(source).name + '.txt')
+        archived.write_bytes(subprocess.check_output(['git', 'show', commit + ':' + source]))
+        bindings['published:' + archived.name] = sha(archived)
+        bindings['committed:' + source] = sha(archived)
+    launcher = target / 'publication-launcher.py.txt'
+    launcher.write_text(normalize(Path(__file__).read_text(encoding='utf-8')).rstrip() + '/n', encoding='utf-8', newline='/n')
+    bindings['published:' + launcher.name] = sha(launcher)
+    payload = normalize(raw.model_dump(mode='json'))
+    payload['methods'][1]['source_commit'] = commit
+    for trial, original in zip(payload['trials'], raw.trials, strict=True):
+        trial['provenance']['notes'][0] = json.dumps(
+            normalize(json.loads(original.provenance.notes[0])), sort_keys=True)
+        trial['provenance']['notes'][-1] = original.provenance.notes[-1]
+    payload['provenance']['source_artifacts'].update(bindings)
+    payload['provenance']['source_artifacts']['original:definition'] = sha(root / 'pipeline.definition.json')
+    payload['provenance']['source_artifacts']['original:aggregate'] = sha(root / 'pipeline.benchmark.json')
+    payload['limitations'].append(
+        'Publication normalizes workspace prefixes in commands/metadata only. Complete canonical '
+        'result strings and original input/config/output/artifact hashes remain unchanged. '
+        'Archived code is exact Git bytes; working-byte and committed-byte hashes are separate. '
+        'Recorded short candidate commit IDs are resolved to their full Git commit; canonical '
+        'result strings retain the original short run.git_commit.')
+    payload['limitations'].append(
+        'Workers call the public calibration Python API; CLI dispatch is excluded. Worker '
+        'measurement JSON writes are included in wall. No timings or outliers are discarded.')
+    definition = BenchmarkDefinition.model_validate(payload)
+    definition.save(target / 'pipeline.definition.json')
+    aggregate_benchmark_definition(definition).save(target / 'pipeline.benchmark.json')
+    return definition
+
+
+definition = publish(Path('outputs/public-livox-fixed-rig-batched-v1'), DEST, COMMIT)
+for name in ('pipeline.definition.json', 'pipeline.benchmark.json'):
+    assert validate_file(DEST / name).valid
+table = []
+for metric in ('subprocess_wall_seconds', 'pipeline_seconds', 'optimizer_seconds'):
+    samples = {method: [t.metrics[metric] for t in definition.trials if t.method_id == method]
+               for method in ('baseline', 'batched')}
+    baseline, candidate = (statistics.median(samples[method]) for method in ('baseline', 'batched'))
+    table.append(f'| {metric} | {baseline:.6f} | {candidate:.6f} | {baseline/candidate:.2f}x | '
+                 f'{min(samples["baseline"]):.6f}–{max(samples["baseline"]):.6f} | '
+                 f'{min(samples["batched"]):.6f}–{max(samples["batched"]):.6f} |')
+pairs = []
+for repeat in range(1, 6):
+    rows = {t.method_id: t for t in definition.trials if t.split_id == f'repeat-{repeat:02d}'}
+    order = json.loads(rows['baseline'].provenance.notes[0])['order']
+    pairs.append(f'| {repeat} | {" → ".join(order)} | '
+                 f'{rows["baseline"].runtime_seconds:.6f} | {rows["batched"].runtime_seconds:.6f} |')
+result = json.loads(definition.trials[0].provenance.notes[-1])
+assert result['quality']['grade'] == 'warn'
+assert result['observability']['rank'] == 3
+assert result['run']['provenance']['solver_adapter_status'] == 'converged'
+assert result['run']['provenance']['livox_pair_evidence']['known_bad_case_count'] == 24
+assert result['metrics']['native_lidar_point_to_plane_correspondence_count']['value'] == 2732
+readme = f"""# Exact batched fixed-rig point-to-plane factor
+
+This is an incremental comparison against Draft PR #155, on the existing
+`examples/public_datasets/livox_horizon_horizon_pcd_sample/online_accumulation_config.yaml`.
+It runs the normal offline calibration API on the official public Livox PCD pair.
+The config selects `native_lidar_point_to_plane`, limits target points to 4,000,
+and permits 40 iterations. Both methods use the same 2,732 fixed correspondences
+and complete nine optimizer iterations (one accepted, seven rejected, then
+convergence). No configuration, point budget, finite differences, correspondence,
+probe, save or quality threshold is removed or relaxed.
+
+Despite the config filename, these are **offline PCD runs**, not online rosbag
+replay. This workload is different from the earlier ICP/GICP/NDT comparison;
+its timings and ratios must not be combined with those cohorts.
+
+## Complete process and optimizer subset
+
+Five fresh-process pairs, alternating order, no warmup and no outlier exclusion.
+All ten complete canonical results match, including estimated transforms,
+finite-difference diagnostics, optimizer history, evidence, grades and provenance.
+
+| Metric (seconds) | Baseline median | Batched median | Ratio of medians | Baseline range | Batched range |
+|---|---:|---:|---:|---:|---:|
+{chr(10).join(table)}
+
+| Pair | Execution order | Baseline whole process (s) | Batched whole process (s) |
+|---|---|---:|---:|
+{chr(10).join(pairs)}
+
+Whole-process wall includes interpreter/import startup, config, all input reads,
+inspection, candidate plus all 24 known-bad controls, correspondence construction,
+native refinement, diagnostics, input hashing, reports, results, artifacts and
+worker measurement JSON writes. It excludes parent audits and CLI dispatch.
+The API timer is a subset starting at `run_calibration`. The optimizer timer wraps
+the existing `FixedTrajectorySe3ExtrinsicSolver.solve`, including its initial and
+final factor diagnostics; subsequent adapter diagnostics are outside that subset.
+No additional solve is performed to obtain the timer. The evidence-call subset
+is also retained in the definition, with unchanged evaluation code.
+
+The baseline loads only the archived factor module from
+`{definition.methods[0].source_commit}`. Other source files, solvers, inspection,
+correspondence builders, evidence and writers are shared with measured commit
+`{COMMIT}`. Both methods report the same run Git revision because they execute
+in this shared checkout; module bindings and exact source archives identify
+the substituted factor independently.
+
+## Numerical contract and quality
+
+At 64 or more observations, cache read-only observation arrays within the factor
+and compute residuals in chunks of at most 4,096 observations. Replay the original
+Hamilton products and **all four composed-rotation normalizations**, including
+the two in point rotation. Preserve the translation composition, ordered dot
+products, square-root weights, residual order and numerical finite differences.
+Hessian/gradient accumulation, robust weighting and optimizer logic are unchanged.
+Small populations and nonfinite input/transform values retain the scalar path.
+Replacing the observation tuple refreshes the cache; changing the initial transform
+is observed on the next call. Retained arrays cost 17 float64 values per observation
+(136 bytes), plus array objects; temporaries are bounded by the chunk size.
+
+Tests compare residual bits for static and per-point moving poses, chunk boundaries,
+weights, signed zeros, nonfinite and overflow cases; they compare complete numerical
+linearization, observability and solver history against the original scalar formula.
+
+The optimizer still reports `converged`, but observability rank remains **3/6**
+and overall quality remains **warn**. Faster execution does not establish full
+six-DoF observability or absolute calibration accuracy. This single public capture
+is performance evidence; five repeats are not independent accuracy trials.
+
+## Inputs and reproducibility
+
+Official source: [Livox automatic calibration sample](https://github.com/Livox-SDK/Livox_automatic_calibration).
+Use the upstream public sample terms. Input files are not redistributed here.
+
+- `base_horizon_100432.pcd`: 769,568 bytes, 23,921 finite points,
+  SHA-256 `19b3864cbee76b785d207fcb3fe48f6f506d142d8233f842d0a87fe4330fe407`.
+- `target_horizon_100538.pcd`: 761,408 bytes, 23,666 finite points,
+  SHA-256 `61a74eb8b8ff4eeba4ca0ff824a4046ae220e947e8156f27d93da452538f5b6f`.
+  The same 120 nonfinite header points are excluded by the reader in both methods.
+
+From the measured source checkout, with the public pair downloaded:
+
+```bash
+python tools/download_public_dataset.py livox_horizon_horizon_pcd_sample
+python tools/benchmark_livox_evaluation.py --workflow fixed-rig //
+  --baseline-commit {definition.methods[0].source_commit} //
+  --repetitions 5 --omp-threads 1 --output-dir outputs/livox-fixed-rig-rerun
+```
+
+Only child `OMP_NUM_THREADS=1` is set; unrelated user activity and OS caches persist.
+No other Codex performance tests ran concurrently during the formal cohort.
+Host variability and small-sample medians prevent a portable speedup guarantee.
+
+The schema-valid [definition](pipeline.definition.json) retains every trial, its
+complete canonical result, input/config/output/artifact hashes and module bindings.
+The [aggregate](pipeline.benchmark.json) is recomputed from that definition.
+Canonical results normalize only run IDs, timestamps, destination paths and Windows
+separators. Publication replaces private workspace prefixes only in commands and
+metadata; complete result strings remain byte-identical to the measurements.
+`baseline.*.txt` and `measured.*.txt` retain exact Git source bytes, with separate
+committed and working-byte hashes. The [publication launcher](publication-launcher.py.txt)
+checks each saved result schema, API/save equality and every saved artifact hash
+before publishing. Raw per-worker output files remain under
+`outputs/public-livox-fixed-rig-batched-v1` in the local workspace.
+"""
+(DEST / 'README.md').write_text(readme, encoding='utf-8', newline='/n')
+print(chr(10).join(table))
+print('Published 10 complete equal results and exact source bindings')

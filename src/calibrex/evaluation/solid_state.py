@@ -12,6 +12,7 @@ from calibrex.core.result import CalibrationResult, Grade, MetricResult
 from calibrex.core.solid_state import SolidStateEvaluationConfig
 from calibrex.data.inspect import DatasetInspection
 from calibrex.data.livox import (
+    LivoxPCDEvaluationContext,
     find_livox_pcd_files,
     read_livox_binary_pcd,
     summarize_livox_pcd,
@@ -24,6 +25,8 @@ def solid_state_metrics_from_inspection(
     config: CalibrationConfig,
     inspection: DatasetInspection | None = None,
     result: CalibrationResult | None = None,
+    *,
+    livox_context: LivoxPCDEvaluationContext | None = None,
 ) -> dict[str, MetricResult]:
     """Build explicit solid-state acquisition/evidence metrics.
 
@@ -132,7 +135,7 @@ def solid_state_metrics_from_inspection(
             }
         metrics.update(_livox_geometry_metrics(livox_diagnostics, evaluation))
         counts = _livox_distance_bin_counts(
-            config, evaluation, diagnostics=livox_diagnostics
+            config, evaluation, diagnostics=livox_diagnostics, context=livox_context,
         )
         if counts is not None:
             supported = sum(
@@ -580,6 +583,7 @@ def _livox_distance_bin_counts(
     evaluation: SolidStateEvaluationConfig,
     *,
     diagnostics: Mapping[str, object] | None = None,
+    context: LivoxPCDEvaluationContext | None = None,
 ) -> list[int] | None:
     if config.dataset.type != "livox_pcd":
         if config.dataset.type == "rosbag1":
@@ -657,6 +661,11 @@ def _livox_distance_bin_counts(
                 matched = True
             return counts if matched else None
         return None
+    if context is not None:
+        return context.distance_bin_counts(
+            config.dataset.path, evaluation.distance_bins_m,
+            sample_limit=config.dataset.sample_limit or 4,
+        )
     files = find_livox_pcd_files(config.dataset.path)
     if not files:
         return None

@@ -1,0 +1,98 @@
+"""Public-point-cloud kernel-only probe; retains prep, cold compilation and all trials."""
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+sys.path.insert(0,str(Path.cwd()))
+import numpy as np
+out=Path('outputs/rigid-neighbors-probe-v1')
+out.mkdir()
+os.environ['CUPY_CACHE_DIR']=str((out/'cupy-cache').resolve())
+from calibrex.core.geometry import SE3
+from calibrex.solvers._exact_neighbors import _ExactNeighbors
+from calibrex.solvers.robust_point_to_point_icp_solver import _rotation_matrix, _transform_points
+from calibrex.solvers.cuda_lidar_map_adapter import _CudaTree
+import cupy as cp
+
+old=json.loads(Path('outputs/public-kitti-cuda-lidar-map-v1/cpu.01/measurement.json').read_text(encoding='utf-8'))
+path=Path(next(k for k in old['provenance']['input_sha256'] if k.endswith('0000000115.bin')))
+raw=path.read_bytes()
+digest=hashlib.sha256(raw).hexdigest()
+assert digest==old['provenance']['input_sha256'][str(path)]
+source=np.frombuffer(raw,dtype=np.float32).reshape(-1,4)[:,:3].astype(np.float64)
+source.flags.writeable=False
+queries=source+np.random.default_rng(20261013).normal(0,.01,source.shape)
+transforms=[SE3((i*.02,-i*.015,i*.01),(.003*i,.002*i,-.001*i,1.)) for i in range(1,7)]
+moved=[_transform_points(source,t) for t in transforms]
+
+def inverse_query(tree,values,world,transform,gpu):
+    rotation=_rotation_matrix(transform)
+    inverse=(values-np.asarray(transform.translation_m))@rotation
+    if gpu:
+        distance,indices=tree.query(cp.asarray(inverse),2)
+        distances=cp.asnumpy(distance)
+        candidates=cp.asnumpy(indices)
+        cpu=tree.cpu
+    else:
+        candidates,squared=tree.query(inverse,2)
+        distances=np.sqrt(squared)
+        cpu=tree._tree
+    actual=np.sum((values[:,None,:]-world[candidates])**2,axis=2)
+    order=np.lexsort((candidates,actual),axis=1)
+    best=np.take_along_axis(candidates,order,axis=1)[:,0].copy()
+    best_squared=np.take_along_axis(actual,order,axis=1)[:,0].copy()
+    scale=max(1.,np.max(np.abs(source)),np.max(np.abs(values)),np.max(np.abs(world)),
+              np.max(np.abs(transform.translation_m)))
+    error=512*np.finfo(np.float64).eps*scale*max(1.,np.linalg.norm(rotation,1))
+    rows=np.flatnonzero(distances[:,1]-distances[:,0] <= 2*error)
+    minimum=float(np.linalg.svd(rotation,compute_uv=False)[-1])
+    for row in rows:
+        radius=np.nextafter(np.sqrt(best_squared[row])/minimum+2*error,np.inf)
+        nearby=np.asarray(cpu.query_ball_point(inverse[row],radius,eps=0.),dtype=np.int64)
+        nearby=np.union1d(nearby,candidates[row])
+        native=np.sum((values[row]-world[nearby])**2,axis=1)
+        selected=np.lexsort((nearby,native))[0]
+        best[row]=nearby[selected]
+        best_squared[row]=native[selected]
+    return best,best_squared,len(rows)
+
+payload={'provenance':{'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+    'input_sha256':{'public-kitti/0000000115.bin':digest},
+    'source_sha256':{s:hashlib.sha256(Path(s).read_bytes()).hexdigest() for s in (
+        'src/calibrex/solvers/_exact_neighbors.py','src/calibrex/solvers/robust_point_to_point_icp_solver.py',
+        'src/calibrex/solvers/cuda_lidar_map_adapter.py')},
+    'launcher_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest()},
+    'kernel_only':True,'point_count':len(source),'queries_per_trial':len(queries)*len(transforms),
+    'seed':20261013,'trials':[]}
+anchor=None
+for repeat in range(1,6):
+    trial={'repeat':repeat,'order':['native','static-cpu','static-gpu'] if repeat%2 else
+           ['static-gpu','static-cpu','native']}
+    for method in trial['order']:
+        started=time.perf_counter()
+        results=[]
+        repairs=0
+        tree=(_ExactNeighbors(source) if method=='static-cpu' else
+              _CudaTree(source) if method=='static-gpu' else None)
+        for world,transform in zip(moved,transforms,strict=True):
+            if method=='native':
+                indices,squared=_ExactNeighbors(world).nearest(queries)
+            else:
+                indices,squared,count=inverse_query(tree,queries,world,transform,method=='static-gpu')
+                repairs+=count
+            results.append((indices,squared))
+        seconds=time.perf_counter()-started
+        if anchor is None:
+            anchor=results
+        for got,expected in zip(results,anchor,strict=True):
+            np.testing.assert_array_equal(got[0],expected[0])
+            np.testing.assert_array_equal(got[1].view(np.uint64),expected[1].view(np.uint64))
+        trial[method]={'seconds':seconds,'repairs':repairs,
+            'output_sha256':hashlib.sha256(b''.join(x.tobytes()+y.tobytes() for x,y in results)).hexdigest()}
+        print(repeat,method,round(seconds,6),repairs,flush=True)
+    payload['trials'].append(trial)
+(out/'probe.json').write_text(json.dumps(payload,indent=2)+'\n',encoding='utf-8',newline='\n')
+print('All public-point-cloud indices and distance bits match.',flush=True)

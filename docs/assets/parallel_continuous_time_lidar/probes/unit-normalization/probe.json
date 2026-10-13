@@ -1,0 +1,379 @@
+{
+  "provenance": {
+    "source_commit": "aa19ec5d4bf01e1167e70f48332e6e13d51263c0",
+    "source_sha256": {
+      "profile/sources/numba_continuous_time_adapter.py.txt": "a644c40104fba05acfceff736d177af5e3c6904cd792c13a25bd5d986489b20d",
+      "probes/unit-normalization/probe-launcher.py.txt": "f690cb2c76f874d7b4bbef71354d3e6cbfde94c10352c0f6220bd6973e3d31ad"
+    },
+    "python_version": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]"
+  },
+  "kernel_only": true,
+  "cases": [
+    {
+      "count": 600000,
+      "seed": 419,
+      "unit_poses": false,
+      "input_sha256": "e22ed6f85d2d36e0b59de0c85b4911082acbe3a23fda53687f58038c104541e6",
+      "residuals_sha256": "eb284431a9905e1b273363ec1cbb033a97e28a7280f34bc615297acef65bb582",
+      "policies": [
+        {
+          "compensated": false,
+          "sum_hex": "0x1.c109b6b21989cp+22",
+          "trials": [
+            {
+              "repeat": 1,
+              "order": [
+                "baseline",
+                "candidate"
+              ],
+              "baseline": 0.07296410005073994,
+              "candidate": 0.07496579992584884
+            },
+            {
+              "repeat": 2,
+              "order": [
+                "candidate",
+                "baseline"
+              ],
+              "candidate": 0.06933809991460294,
+              "baseline": 0.07825919997412711
+            },
+            {
+              "repeat": 3,
+              "order": [
+                "baseline",
+                "candidate"
+              ],
+              "baseline": 0.07704360003117472,
+              "candidate": 0.08102809998672456
+            },
+            {
+              "repeat": 4,
+              "order": [
+                "candidate",
+                "baseline"
+              ],
+              "candidate": 0.09933870006352663,
+              "baseline": 0.09540510002989322
+            },
+            {
+              "repeat": 5,
+              "order": [
+                "baseline",
+                "candidate"
+              ],
+              "baseline": 0.09405169996898621,
+              "candidate": 0.07831899996381253
+            },
+            {
+              "repeat": 6,
+              "order": [
+                "candidate",
+                "baseline"
+              ],
+              "candidate": 0.10184539994224906,
+              "baseline": 0.09026550000999123
+            },
+            {
+              "repeat": 7,
+              "order": [
+                "baseline",
+                "candidate"
+              ],
+              "baseline": 0.09377730009146035,
+              "candidate": 0.08904960006475449
+            },
+            {
+              "repeat": 8,
+              "order": [
+                "candidate",
+                "baseline"
+              ],
+              "candidate": 0.10625439998693764,
+              "baseline": 0.09867119998671114
+            },
+            {
+              "repeat": 9,
+              "order": [
+                "baseline",
+                "candidate"
+              ],
+              "baseline": 0.09654759999830276,
+              "candidate": 0.08985339989885688
+            }
+          ]
+        },
+        {
+          "compensated": true,
+          "sum_hex": "0x1.c109b6b21993cp+22",
+          "trials": [
+            {
+              "repeat": 1,
+              "order": [
+                "baseline",
+                "candidate"
+              ],
+              "baseline": 0.08188509999308735,
+              "candidate": 0.08987359993625432
+            },
+            {
+              "repeat": 2,
+              "order": [
+                "candidate",
+                "baseline"
+              ],
+              "candidate": 0.08173169998917729,
+              "baseline": 0.09359279996715486
+            },
+            {
+              "repeat": 3,
+              "order": [
+                "baseline",
+                "candidate"
+              ],
+              "baseline": 0.0912978999549523,
+              "candidate": 0.0961523000150919
+            },
+            {
+              "repeat": 4,
+              "order": [
+                "candidate",
+                "baseline"
+              ],
+              "candidate": 0.09350840002298355,
+              "baseline": 0.09562110004480928
+            },
+            {
+              "repeat": 5,
+              "order": [
+                "baseline",
+                "candidate"
+              ],
+              "baseline": 0.09303240000735968,
+              "candidate": 0.08612049999646842
+            },
+            {
+              "repeat": 6,
+              "order": [
+                "candidate",
+                "baseline"
+              ],
+              "candidate": 0.08783870004117489,
+              "baseline": 0.0865398000460118
+            },
+            {
+              "repeat": 7,
+              "order": [
+                "baseline",
+                "candidate"
+              ],
+              "baseline": 0.09384660003706813,
+              "candidate": 0.07432640006300062
+            },
+            {
+              "repeat": 8,
+              "order": [
+                "candidate",
+                "baseline"
+              ],
+              "candidate": 0.08014680002816021,
+              "baseline": 0.08540229999925941
+            },
+            {
+              "repeat": 9,
+              "order": [
+                "baseline",
+                "candidate"
+              ],
+              "baseline": 0.08033270004671067,
+              "candidate": 0.09439320000819862
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "count": 600000,
+      "seed": 419,
+      "unit_poses": true,
+      "input_sha256": "31adbd0c17701d11f1ac64a426c2a32cc47ab527cebea7f7d125d814c98279d9",
+      "residuals_sha256": "abcd696e924b6be6803f67271569e70be32d6dcce67c2778271481613a7f22b0",
+      "policies": [
+        {
+          "compensated": false,
+          "sum_hex": "0x1.c109b6b21989dp+22",
+          "trials": [
+            {
+              "repeat": 1,
+              "order": [
+                "baseline",
+                "candidate"
+              ],
+              "baseline": 0.06730419991072267,
+              "candidate": 0.055874699959531426
+            },
+            {
+              "repeat": 2,
+              "order": [
+                "candidate",
+                "baseline"
+              ],
+              "candidate": 0.058330100029706955,
+              "baseline": 0.0671737000811845
+            },
+            {
+              "repeat": 3,
+              "order": [
+                "baseline",
+                "candidate"
+              ],
+              "baseline": 0.08324459998402745,
+              "candidate": 0.06478879996575415
+            },
+            {
+              "repeat": 4,
+              "order": [
+                "candidate",
+                "baseline"
+              ],
+              "candidate": 0.06210580002516508,
+              "baseline": 0.06204779993277043
+            },
+            {
+              "repeat": 5,
+              "order": [
+                "baseline",
+                "candidate"
+              ],
+              "baseline": 0.061952400021255016,
+              "candidate": 0.06083329999819398
+            },
+            {
+              "repeat": 6,
+              "order": [
+                "candidate",
+                "baseline"
+              ],
+              "candidate": 0.07216159999370575,
+              "baseline": 0.09032690001185983
+            },
+            {
+              "repeat": 7,
+              "order": [
+                "baseline",
+                "candidate"
+              ],
+              "baseline": 0.0928692000452429,
+              "candidate": 0.08555339998565614
+            },
+            {
+              "repeat": 8,
+              "order": [
+                "candidate",
+                "baseline"
+              ],
+              "candidate": 0.06844730000011623,
+              "baseline": 0.1023249999852851
+            },
+            {
+              "repeat": 9,
+              "order": [
+                "baseline",
+                "candidate"
+              ],
+              "baseline": 0.0952023999998346,
+              "candidate": 0.06417110003530979
+            }
+          ]
+        },
+        {
+          "compensated": true,
+          "sum_hex": "0x1.c109b6b21993dp+22",
+          "trials": [
+            {
+              "repeat": 1,
+              "order": [
+                "baseline",
+                "candidate"
+              ],
+              "baseline": 0.09042410005349666,
+              "candidate": 0.05696570000145584
+            },
+            {
+              "repeat": 2,
+              "order": [
+                "candidate",
+                "baseline"
+              ],
+              "candidate": 0.05464419990312308,
+              "baseline": 0.07146510004531592
+            },
+            {
+              "repeat": 3,
+              "order": [
+                "baseline",
+                "candidate"
+              ],
+              "baseline": 0.07095520000439137,
+              "candidate": 0.05574129999149591
+            },
+            {
+              "repeat": 4,
+              "order": [
+                "candidate",
+                "baseline"
+              ],
+              "candidate": 0.05582249991130084,
+              "baseline": 0.062370300060138106
+            },
+            {
+              "repeat": 5,
+              "order": [
+                "baseline",
+                "candidate"
+              ],
+              "baseline": 0.06632530002389103,
+              "candidate": 0.05480299994815141
+            },
+            {
+              "repeat": 6,
+              "order": [
+                "candidate",
+                "baseline"
+              ],
+              "candidate": 0.07116769999265671,
+              "baseline": 0.0953467000508681
+            },
+            {
+              "repeat": 7,
+              "order": [
+                "baseline",
+                "candidate"
+              ],
+              "baseline": 0.08662269997876137,
+              "candidate": 0.0797989999409765
+            },
+            {
+              "repeat": 8,
+              "order": [
+                "candidate",
+                "baseline"
+              ],
+              "candidate": 0.08293330005835742,
+              "baseline": 0.09970939997583628
+            },
+            {
+              "repeat": 9,
+              "order": [
+                "baseline",
+                "candidate"
+              ],
+              "baseline": 0.0722117000259459,
+              "candidate": 0.06393649999517947
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

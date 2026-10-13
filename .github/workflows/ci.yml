@@ -190,6 +190,26 @@ jobs:
       - name: Test OpenCV hand-eye conventions
         run: pytest tests/unit/test_opencv_hand_eye_adapters.py tests/unit/test_visual_rotation.py tests/unit/test_camera_focal.py
 
+  numba-adapter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Numba adapter
+        run: python -m pip install -e ".[dev,numba]"
+      - name: Test fused histograms and ordered CPU execution
+        run: >-
+          pytest tests/unit/test_numba_depth_to_depth_adapter.py
+          tests/unit/test_numba_continuous_time_queries.py
+          tests/unit/test_compiled_lidar_linearization.py
+          tests/unit/test_packed_continuous_time_lidar.py
+          tests/unit/test_cpu_frame_parallelism.py
+          tests/unit/test_depth_to_depth_runtime.py
+          tests/unit/test_borer_depth_to_depth_solver.py
+          tests/unit/test_borer_six_dof_solver.py
+
   calibration-action:
     runs-on: ubuntu-latest
     steps:

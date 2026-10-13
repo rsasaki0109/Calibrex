@@ -1,0 +1,28 @@
+"""Freeze sources and compare complete fresh processes in alternating order."""
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+workspace = next(p for p in Path(__file__).resolve().parents if (p/'pyproject.toml').is_file())
+sys.path.insert(0, str(workspace))
+os.chdir(workspace)
+from tools import benchmark_adaptive_plane_search as b
+
+revision = subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+sources = {p:b._digest(Path(p)) for p in (*b.SOURCES, __file__)}
+inputs = b._verified_inputs(b.REPLAY)
+for label, stem in [('dense','compiled_dense_capture'), ('full','compiled_full_capture'),
+                    ('default','compiled_queries')]:
+    config = Path(f'examples/public_datasets/glim_versatile/online_continuous_time_{stem}_config.yaml')
+    digest = b._digest(config)
+    subprocess.run([sys.executable,'tools/benchmark_adaptive_plane_search.py',
+        '--baseline-scope','cuda-full', '--baseline-commit','f59c2b84c93f4fb06ea6b069d139b8adf2936d40',
+        '--candidate-query-backend','cuda','--baseline-query-backend','cuda',
+        '--config',config.as_posix(),'--repetitions',('5' if label == 'default' else '3'),
+        '--output-dir',f'outputs/public-glim-captured-summary-{label}-v1'],check=True)
+    assert revision == subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+    assert sources == {p:b._digest(Path(p)) for p in sources}
+    assert inputs == b._verified_inputs(b.REPLAY)
+    assert digest == b._digest(config)
+print('All three guarded captured-summary cohorts completed.',flush=True)

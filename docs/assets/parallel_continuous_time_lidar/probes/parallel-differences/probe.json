@@ -1,0 +1,343 @@
+{
+  "provenance": {
+    "source_commit": "aa19ec5d4bf01e1167e70f48332e6e13d51263c0",
+    "source_sha256": {
+      "profile/sources/cuda_continuous_time_adapter.py.txt": "ab0cb56ab5cbb4bf25cdec221de0ece6ab1ed11363958842560f2deadab6f4b0",
+      "probes/parallel-differences/probe-launcher.py.txt": "d44bf388254b3e88b16ee29cd2cdeaa258cdfeb5146d67b6648aa11c1cdc6df9"
+    },
+    "python_version": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "cupy_version": "14.2.0",
+    "cuda_runtime": 12090,
+    "driver": 13020
+  },
+  "kernel_only": true,
+  "cases": [
+    {
+      "count": 8192,
+      "seed": 513,
+      "input_sha256": "499d1211cc03b3b213e9c238e8f8f38426194d067b912b0d74941956d5f5c8aa",
+      "parallel_workspace_bytes": 851968,
+      "trials": [
+        {
+          "repeat": 1,
+          "order": [
+            "baseline",
+            "prepared",
+            "parallel"
+          ],
+          "baseline": 0.0008268479704856873,
+          "prepared": 0.0007187839746475219,
+          "parallel": 0.0007882559895515442
+        },
+        {
+          "repeat": 2,
+          "order": [
+            "prepared",
+            "parallel",
+            "baseline"
+          ],
+          "prepared": 0.0006904000043869018,
+          "parallel": 0.0007838400006294251,
+          "baseline": 0.0008458880186080933
+        },
+        {
+          "repeat": 3,
+          "order": [
+            "parallel",
+            "baseline",
+            "prepared"
+          ],
+          "parallel": 0.0007804160118103028,
+          "baseline": 0.0008443520069122315,
+          "prepared": 0.0006820799708366394
+        },
+        {
+          "repeat": 4,
+          "order": [
+            "baseline",
+            "prepared",
+            "parallel"
+          ],
+          "baseline": 0.000843775987625122,
+          "prepared": 0.0006880319714546204,
+          "parallel": 0.0007878080010414124
+        },
+        {
+          "repeat": 5,
+          "order": [
+            "prepared",
+            "parallel",
+            "baseline"
+          ],
+          "prepared": 0.0006837120056152344,
+          "parallel": 0.0007845759987831116,
+          "baseline": 0.0008458240032196045
+        },
+        {
+          "repeat": 6,
+          "order": [
+            "parallel",
+            "baseline",
+            "prepared"
+          ],
+          "parallel": 0.0007831360101699829,
+          "baseline": 0.0008437439799308776,
+          "prepared": 0.0006821119785308838
+        },
+        {
+          "repeat": 7,
+          "order": [
+            "baseline",
+            "prepared",
+            "parallel"
+          ],
+          "baseline": 0.0008446080088615418,
+          "prepared": 0.0007311360239982605,
+          "parallel": 0.0008167999982833862
+        },
+        {
+          "repeat": 8,
+          "order": [
+            "prepared",
+            "parallel",
+            "baseline"
+          ],
+          "prepared": 0.0007164160013198853,
+          "parallel": 0.0008107519745826721,
+          "baseline": 0.0008578240275382995
+        },
+        {
+          "repeat": 9,
+          "order": [
+            "parallel",
+            "baseline",
+            "prepared"
+          ],
+          "parallel": 0.0008116480112075805,
+          "baseline": 0.0008797119855880738,
+          "prepared": 0.0007233920097351075
+        }
+      ],
+      "residuals_sha256": "2e8adf758d493588afb614e085a1fa1768eeab7c8d84b6369268d82308fb8c26",
+      "jacobian_sha256": "659c2b1a20aef18715f88d064979471aa42a347eec9768d4aa495bb02d6df04d"
+    },
+    {
+      "count": 48000,
+      "seed": 513,
+      "input_sha256": "5b6aed4cce63d9c0fc7614c935e0d2e62cbcda5589483b9c0fe5c80f0d400cd9",
+      "parallel_workspace_bytes": 4992000,
+      "trials": [
+        {
+          "repeat": 1,
+          "order": [
+            "baseline",
+            "prepared",
+            "parallel"
+          ],
+          "baseline": 0.004266655921936035,
+          "prepared": 0.003358720064163208,
+          "parallel": 0.004183872222900391
+        },
+        {
+          "repeat": 2,
+          "order": [
+            "prepared",
+            "parallel",
+            "baseline"
+          ],
+          "prepared": 0.003331712007522583,
+          "parallel": 0.004191999912261963,
+          "baseline": 0.004209504127502441
+        },
+        {
+          "repeat": 3,
+          "order": [
+            "parallel",
+            "baseline",
+            "prepared"
+          ],
+          "parallel": 0.004219295978546142,
+          "baseline": 0.004229663848876953,
+          "prepared": 0.003358911991119385
+        },
+        {
+          "repeat": 4,
+          "order": [
+            "baseline",
+            "prepared",
+            "parallel"
+          ],
+          "baseline": 0.004198719978332519,
+          "prepared": 0.0033656320571899415,
+          "parallel": 0.004196352005004883
+        },
+        {
+          "repeat": 5,
+          "order": [
+            "prepared",
+            "parallel",
+            "baseline"
+          ],
+          "prepared": 0.0033546879291534424,
+          "parallel": 0.004205344200134277,
+          "baseline": 0.004204991817474365
+        },
+        {
+          "repeat": 6,
+          "order": [
+            "parallel",
+            "baseline",
+            "prepared"
+          ],
+          "parallel": 0.004189343929290772,
+          "baseline": 0.004232160091400147,
+          "prepared": 0.0033627519607543946
+        },
+        {
+          "repeat": 7,
+          "order": [
+            "baseline",
+            "prepared",
+            "parallel"
+          ],
+          "baseline": 0.004222976207733154,
+          "prepared": 0.0033607680797576906,
+          "parallel": 0.004229119777679443
+        },
+        {
+          "repeat": 8,
+          "order": [
+            "prepared",
+            "parallel",
+            "baseline"
+          ],
+          "prepared": 0.003355616092681885,
+          "parallel": 0.004239359855651856,
+          "baseline": 0.004228960037231446
+        },
+        {
+          "repeat": 9,
+          "order": [
+            "parallel",
+            "baseline",
+            "prepared"
+          ],
+          "parallel": 0.004212672233581543,
+          "baseline": 0.004196896076202393,
+          "prepared": 0.0033451519012451174
+        }
+      ],
+      "residuals_sha256": "629b6007608dc9a7351f4b61935483d86939450c8c52a17a7f58bc6f17433d50",
+      "jacobian_sha256": "ab2b66285a10f92b89c02261d9e79e3654dde365dc02555167f3709666fce976"
+    },
+    {
+      "count": 600000,
+      "seed": 513,
+      "input_sha256": "99cad6867cfbb69abb362b79dc0c92592037e8c82e23bf1a7fa65f808093d09e",
+      "parallel_workspace_bytes": 62400000,
+      "trials": [
+        {
+          "repeat": 1,
+          "order": [
+            "baseline",
+            "prepared",
+            "parallel"
+          ],
+          "baseline": 0.03957113647460937,
+          "prepared": 0.03128313636779785,
+          "parallel": 0.040318977355957034
+        },
+        {
+          "repeat": 2,
+          "order": [
+            "prepared",
+            "parallel",
+            "baseline"
+          ],
+          "prepared": 0.031143903732299805,
+          "parallel": 0.04034764862060547,
+          "baseline": 0.03975027084350586
+        },
+        {
+          "repeat": 3,
+          "order": [
+            "parallel",
+            "baseline",
+            "prepared"
+          ],
+          "parallel": 0.040839744567871095,
+          "baseline": 0.03988275146484375,
+          "prepared": 0.0314847354888916
+        },
+        {
+          "repeat": 4,
+          "order": [
+            "baseline",
+            "prepared",
+            "parallel"
+          ],
+          "baseline": 0.03962879943847656,
+          "prepared": 0.03141200065612793,
+          "parallel": 0.04058771133422852
+        },
+        {
+          "repeat": 5,
+          "order": [
+            "prepared",
+            "parallel",
+            "baseline"
+          ],
+          "prepared": 0.03142860794067383,
+          "parallel": 0.04058367919921875,
+          "baseline": 0.03962243270874023
+        },
+        {
+          "repeat": 6,
+          "order": [
+            "parallel",
+            "baseline",
+            "prepared"
+          ],
+          "parallel": 0.04059340667724609,
+          "baseline": 0.03964556884765625,
+          "prepared": 0.03140812873840332
+        },
+        {
+          "repeat": 7,
+          "order": [
+            "baseline",
+            "prepared",
+            "parallel"
+          ],
+          "baseline": 0.039664863586425785,
+          "prepared": 0.03141030311584472,
+          "parallel": 0.04063926315307617
+        },
+        {
+          "repeat": 8,
+          "order": [
+            "prepared",
+            "parallel",
+            "baseline"
+          ],
+          "prepared": 0.031410175323486327,
+          "parallel": 0.04059795379638672,
+          "baseline": 0.03966239929199219
+        },
+        {
+          "repeat": 9,
+          "order": [
+            "parallel",
+            "baseline",
+            "prepared"
+          ],
+          "parallel": 0.04059283065795898,
+          "baseline": 0.03961475372314453,
+          "prepared": 0.03142166328430176
+        }
+      ],
+      "residuals_sha256": "e19b0d1968ca2e9074e6d874d98cdeddfb083556c2aba53187eaa78a523b2780",
+      "jacobian_sha256": "97934a9498774b2f5f99c883c0698575d669075bc85cdc5df1497ace035d669b"
+    }
+  ]
+}

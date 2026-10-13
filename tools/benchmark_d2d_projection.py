@@ -35,7 +35,6 @@ from calibrex.core.benchmark import (
 from calibrex.core.geometry import SE3
 from calibrex.core.provenance import git_commit, sha256_path
 from calibrex.evaluation.borer_rotation_benchmark import load_borer_problem
-from calibrex.evaluation.borer_six_dof_benchmark import ProjectionBackend, _projection_runtime
 from calibrex.solvers.borer_depth_to_depth_solver import (
     DepthPairProjector,
     DepthToDepthCameraModel,
@@ -47,6 +46,13 @@ from calibrex.solvers.borer_six_dof_solver import (
     BorerSixDofOptions,
     BorerSixDofSolver,
     apply_local_se3_delta,
+)
+from calibrex.solvers.depth_to_depth_runtime import (
+    DEFAULT_CUDA_CACHE_BYTES,
+    ProjectionBackend,
+    create_depth_pair_projector,
+    depth_pair_transfer_statistics,
+    validate_cuda_cache_bytes,
 )
 
 
@@ -69,6 +75,11 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--solve-evaluations", type=int, default=0)
     parser.add_argument("--solver-repeats", type=int, default=2)
+    parser.add_argument("--cuda-cache-mib", type=int)
+    parser.add_argument(
+        "--compare-cuda-cache-mib", type=int,
+        help="add a second CUDA cache capacity to the paired timing order",
+    )
     parser.add_argument("--output-dir", type=Path, required=True)
     return parser
 
@@ -106,6 +117,7 @@ def _gpu_memory(projector: DepthPairProjector) -> dict[str, int]:
         "pool_reserved_bytes": pool.total_bytes(),
         "device_used_bytes": total - free,
         "device_total_bytes": total,
+        **depth_pair_transfer_statistics(projector),
     }
 
 
@@ -120,6 +132,17 @@ def main() -> None:
     backends = list(dict.fromkeys(args.backends))
     if "numpy" not in backends or len(backends) < 2:
         raise ValueError("select numpy and at least one other backend")
+    cache_bytes = args.cuda_cache_mib * 1024 * 1024 if args.cuda_cache_mib is not None else None
+    validate_cuda_cache_bytes("cuda" if "cuda" in backends else "numpy", cache_bytes)
+    cuda_budgets = {"cuda": cache_bytes} if "cuda" in backends else {}
+    if args.compare_cuda_cache_mib is not None:
+        comparison_bytes = args.compare_cuda_cache_mib * 1024 * 1024
+        validate_cuda_cache_bytes("cuda" if "cuda" in backends else "numpy", comparison_bytes)
+        if comparison_bytes == (DEFAULT_CUDA_CACHE_BYTES if cache_bytes is None else cache_bytes):
+            raise ValueError("comparison CUDA cache capacity must differ from the first capacity")
+        comparison = f"cuda_cache_{args.compare_cuda_cache_mib}_mib"
+        backends.append(comparison)
+        cuda_budgets[comparison] = comparison_bytes
     rng = np.random.default_rng(args.seed)
     if args.problem:
         loaded = load_borer_problem(args.problem)
@@ -162,7 +185,10 @@ def main() -> None:
     gpu_memory = {}
     for backend in backends:
         started = time.perf_counter()
-        projector, identity = _projection_runtime(cast(ProjectionBackend, backend), observations)
+        projector, identity = create_depth_pair_projector(
+            "cuda" if backend in cuda_budgets else cast(ProjectionBackend, backend), observations,
+            cuda_cache_bytes=cuda_budgets.get(backend),
+        )
         setup = time.perf_counter() - started
         first_call, _ = _timed(
             lambda p=projector: evaluate_depth_to_depth_mi(
@@ -175,8 +201,9 @@ def main() -> None:
         projectors[backend] = projector
         identities[backend] = identity
         startup[backend] = {"setup_seconds": setup, "first_evaluation_seconds": first_call}
-        if backend == "cuda":
-            gpu_memory["after_first_evaluation"] = _gpu_memory(projector)
+        if backend in cuda_budgets:
+            suffix = "" if backend == "cuda" else f"_{backend}"
+            gpu_memory[f"after_first_evaluation{suffix}"] = _gpu_memory(projector)
         print(f"prepared {backend}: {identity}", flush=True)
     rows: dict[str, list[dict[str, float]]] = {backend: [] for backend in backends}
     for repeat in range(args.repeats):
@@ -215,8 +242,9 @@ def main() -> None:
             rows[backend].append(
                 {"projection_seconds": projection_seconds, "evaluation_seconds": evaluation_seconds}
             )
-    if "cuda" in projectors:
-        gpu_memory["after_projection_timings"] = _gpu_memory(projectors["cuda"])
+    for backend in cuda_budgets:
+        suffix = "" if backend == "cuda" else f"_{backend}"
+        gpu_memory[f"after_projection_timings{suffix}"] = _gpu_memory(projectors[backend])
     args.output_dir.mkdir(parents=True, exist_ok=True)
     sources = {"input": input_digest, "config": config_digest}
     root = Path(__file__).resolve().parents[1]
@@ -225,12 +253,13 @@ def main() -> None:
         root / "src/calibrex/solvers/cuda_depth_to_depth_adapter.py",
         root / "src/calibrex/solvers/borer_depth_to_depth_solver.py",
         root / "src/calibrex/solvers/borer_six_dof_solver.py",
+        root / "src/calibrex/solvers/depth_to_depth_runtime.py",
     ):
         sources[str(source.relative_to(root))] = sha256_path(source) or ""
     command = " ".join([sys.executable, *sys.argv])
     provenance = BenchmarkProvenance(
         generator="tools.benchmark_d2d_projection",
-        generator_version="v0.2",
+        generator_version="v0.3",
         git_commit=git_commit(),
         command=command,
         source_artifacts=sources,
@@ -262,6 +291,18 @@ def main() -> None:
             "CUDA pool reservation includes reusable scratch allocations; device usage "
             "includes context/other applications. Snapshots are not process peak VRAM."
         )
+        notes.append(
+            "Input upload counters cover coordinates, depth maps and LiDAR ranges, "
+            "excluding small pose/bin-edge uploads and returned histograms. "
+            "Preparation uploads are separate from evaluation uploads."
+        )
+        if len(cuda_budgets) > 1:
+            notes.append(
+                "Cache comparison keeps CUDA projectors resident together "
+                "and rotates timing order. "
+                "Pool/device snapshots include all resident projectors; cached bytes and input "
+                "upload counters are per projector."
+            )
     _save_report(
         args.output_dir, "projection", rows, identities, observations, dataset, provenance, notes
     )
@@ -295,10 +336,10 @@ def main() -> None:
                     raise ValueError(f"solver result/trace mismatch: {backend}")
         solver_notes = list(notes)
         solver_notes.append("All full solver results and traces exactly match NumPy.")
-        if "cuda" in projectors:
+        for backend in cuda_budgets:
             solver_notes.append(
-                "CUDA allocation snapshot after solver timings (bytes): "
-                + json.dumps(_gpu_memory(projectors["cuda"]), sort_keys=True)
+                f"CUDA allocation snapshot after solver timings {backend} (bytes): "
+                + json.dumps(_gpu_memory(projectors[backend]), sort_keys=True)
             )
         _save_report(
             args.output_dir,

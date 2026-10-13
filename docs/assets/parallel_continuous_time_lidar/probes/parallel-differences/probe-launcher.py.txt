@@ -1,0 +1,136 @@
+"""Actual-device kernel-only exact probes; not a whole-process benchmark."""
+import hashlib
+import json
+import statistics
+import subprocess
+import sys
+from pathlib import Path
+import numpy as np
+import cupy as cp
+from calibrex.solvers.cuda_continuous_time_adapter import _SOURCE
+
+PARALLEL = _SOURCE + r'''
+extern "C" __global__ void difference_values(const double* points,const double* planes,
+    const double* normals,const double* poses,const double* weights,
+    const double* transforms,const int n,double* results) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;
+    int transform=blockIdx.y;
+    if(row<n) results[transform*n+row]=residual(points+3*row,planes+3*row,normals+3*row,
+                                              poses+7*row,weights[row],transforms+7*transform);
+}
+extern "C" __global__ void gather_differences(const double* results,const double* steps,
+    const int n,double* result,double* jacobian) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;
+    if(row>=n) return;
+    result[row]=results[row];
+    for(int col=0;col<6;col++)
+        jacobian[6*row+col]=(results[(1+2*col)*n+row]-results[(2+2*col)*n+row])/(2.0*steps[col]);
+}
+'''
+PREPARED = _SOURCE.replace(
+    '__device__ double residual(const double* p,const double* plane,const double* normal,\n'
+    '                          const double* pose,double weight,const double* transform) {\n'
+    '    Q q={pose[3],pose[4],pose[5],pose[6]};\n'
+    '    Q translated=rotated(q,transform);',
+    '__device__ double prepared_residual(const double* p,const double* plane,const double* normal,\n'
+    '                          const double* pose,double weight,const double* transform, Q q, Q nq, Q cq) {\n'
+    '    Q translated=product(product(nq,{transform[0],transform[1],transform[2],0.0}),cq);')
+PREPARED = PREPARED.replace(
+    'extern "C" __global__ void residuals(',
+    '__device__ double residual(const double* p,const double* plane,const double* normal,\n'
+    '                          const double* pose,double weight,const double* transform) {\n'
+    '    Q q={pose[3],pose[4],pose[5],pose[6]};\n'
+    '    Q nq=normalized(q); Q c=normalized(nq);\n'
+    '    return prepared_residual(p,plane,normal,pose,weight,transform,q,nq,{-c.x,-c.y,-c.z,c.w});\n'
+    '}\nextern "C" __global__ void residuals(')
+PREPARED = PREPARED.replace(
+    '    result[row]=residual(p,plane,normal,pose,weights[row],transforms);',
+    '    Q q={pose[3],pose[4],pose[5],pose[6]};\n'
+    '    Q nq=normalized(q); Q c=normalized(nq); Q cq={-c.x,-c.y,-c.z,c.w};\n'
+    '    result[row]=prepared_residual(p,plane,normal,pose,weights[row],transforms,q,nq,cq);')
+PREPARED = PREPARED.replace(
+    'residual(p,plane,normal,pose,weights[row],transforms+7*(1+2*col))',
+    'prepared_residual(p,plane,normal,pose,weights[row],transforms+7*(1+2*col),q,nq,cq)').replace(
+    'residual(p,plane,normal,pose,weights[row],transforms+7*(2+2*col))',
+    'prepared_residual(p,plane,normal,pose,weights[row],transforms+7*(2+2*col),q,nq,cq)')
+assert PREPARED != _SOURCE
+source = 'src/calibrex/solvers/cuda_continuous_time_adapter.py'
+def digest(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+guards = {source: digest(source), 'probe-launcher.py.txt': digest(__file__)}
+report = {'provenance': {'source_commit': subprocess.check_output(
+    ['git','rev-parse','HEAD'],text=True).strip(), 'source_sha256': guards,
+    'python_version':sys.version, 'cupy_version':cp.__version__,
+    'cuda_runtime':cp.cuda.runtime.runtimeGetVersion(), 'driver':cp.cuda.runtime.driverGetVersion()},
+    'kernel_only':True, 'cases': []}
+stream = cp.cuda.Stream(non_blocking=True)
+with stream:
+    kernels = {
+        'baseline': cp.RawKernel(_SOURCE,'linearize',options=('--fmad=false',)),
+        'prepared': cp.RawKernel(PREPARED,'linearize',options=('--fmad=false',)),
+        'parallel_values': cp.RawKernel(PARALLEL,'difference_values',options=('--fmad=false',)),
+        'parallel_gather': cp.RawKernel(PARALLEL,'gather_differences',options=('--fmad=false',)),
+    }
+    for kernel in kernels.values():
+        kernel.compile()
+    for count in (8192, 48000, 600000):
+        rng=np.random.default_rng(513)
+        host = [rng.normal(size=(count,3)) for _ in range(3)]
+        host += [rng.normal(size=(count,7)),rng.uniform(0.,2.,size=count)]
+        transforms=rng.normal(size=(13,7))
+        steps=np.asarray([1e-4]*3+[1e-5]*3)
+        case={'count':count,'seed':513,'input_sha256':hashlib.sha256(
+            b''.join(v.tobytes() for v in (*host,transforms,steps))).hexdigest(),
+            'parallel_workspace_bytes':13*count*8,'trials':[]}
+        payload=tuple(cp.asarray(v) for v in host)
+        values=cp.asarray(transforms)
+        device_steps=cp.asarray(steps)
+        r=cp.empty(count,dtype=cp.float64)
+        j=cp.empty((count,6),dtype=cp.float64)
+        intermediate=cp.empty((13,count),dtype=cp.float64)
+        def invoke(name):
+            if name=='parallel':
+                kernels['parallel_values'](((count+127)//128,13),(128,),
+                    (*payload,values,np.int32(count),intermediate))
+                kernels['parallel_gather'](((count+127)//128,),(128,),
+                    (intermediate,device_steps,np.int32(count),r,j))
+            else:
+                kernels[name](((count+127)//128,),(128,),
+                    (*payload,values,device_steps,np.int32(count),r,j))
+        reference=None
+        for method in ('baseline','prepared','parallel'):
+            invoke(method)
+            actual=(r.get(),j.get())
+            if reference is None:
+                reference=actual
+            else:
+                assert all(np.array_equal(x.view(np.uint64),y.view(np.uint64))
+                           for x,y in zip(reference,actual))
+        case['residuals_sha256']=hashlib.sha256(reference[0].tobytes()).hexdigest()
+        case['jacobian_sha256']=hashlib.sha256(reference[1].tobytes()).hexdigest()
+        for repeat in range(9):
+            methods=['baseline','prepared','parallel']
+            methods=methods[repeat%3:]+methods[:repeat%3]
+            row={'repeat':repeat+1,'order':methods}
+            for method in methods:
+                start,end=cp.cuda.Event(),cp.cuda.Event()
+                start.record(stream)
+                invoke(method)
+                end.record(stream)
+                end.synchronize()
+                row[method]=cp.cuda.get_elapsed_time(start,end)/1000.
+            case['trials'].append(row)
+        report['cases'].append(case)
+        medians={m:statistics.median(t[m] for t in case['trials'])
+                 for m in ('baseline','prepared','parallel')}
+        print(json.dumps({'count':count,'medians':medians,
+            'prepared_kernel_ratio':medians['baseline']/medians['prepared'],
+            'parallel_kernel_ratio':medians['baseline']/medians['parallel']}),flush=True)
+assert guards == {source: digest(source), 'probe-launcher.py.txt': digest(__file__)}
+out=Path('outputs/parallel-differences-probe-v1')
+out.mkdir()
+(out/'probe.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8',newline='\n')
+(out/'probe-launcher.py.txt').write_bytes(Path(__file__).read_bytes())
+(out/'baseline.cuda_continuous_time_adapter.py.txt').write_bytes(Path(source).read_bytes())
+(out/'prepared.cu.txt').write_text(PREPARED,encoding='utf-8',newline='\n')
+(out/'parallel.cu.txt').write_text(PARALLEL,encoding='utf-8',newline='\n')

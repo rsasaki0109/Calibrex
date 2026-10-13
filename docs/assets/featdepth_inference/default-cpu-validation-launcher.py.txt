@@ -1,0 +1,63 @@
+from pathlib import Path
+import hashlib
+import json
+import sys
+
+from calibrex.core.benchmark import BenchmarkDefinition, BenchmarkMethodDefinition, BenchmarkTrial, BenchmarkTrialProvenance, aggregate_benchmark_definition
+from calibrex.core.camera_lidar_artifacts import CameraLidarArtifactProvenance, CameraLidarCalibrationProblem
+from calibrex.core.provenance import git_commit, sha256_path
+from calibrex.core.result import load_result
+from calibrex.pipelines.camera_lidar_six_dof import run_camera_lidar_six_dof_estimate
+from calibrex.pipelines.public_camera_lidar_demo import _numerical_payload, _reference_difference
+
+root=Path('outputs/public-kitti-featdepth-six-dof-v1')
+original=root/'validation.definition.json'
+definition=BenchmarkDefinition.model_validate_json(original.read_bytes())
+assert len(definition.trials)==18
+(root/'validation-original-18.definition.json').write_bytes(original.read_bytes())
+(root/'validation-original-18.benchmark.json').write_bytes((root/'validation.benchmark.json').read_bytes())
+definition.provenance.source_artifacts['original_18_trial_definition']=sha256_path(root/'validation-original-18.definition.json')
+definition.provenance.source_artifacts['original_18_trial_benchmark']=sha256_path(root/'validation-original-18.benchmark.json')
+definition.provenance.source_artifacts['default_cpu_validation_launcher']=sha256_path(Path(__file__))
+definition.methods.append(BenchmarkMethodDefinition(method_id='cpu_default6',label='cpu_default6',implementation='calibrex_native',tool_name='Calibrex',source_commit=git_commit()))
+provider=Path('outputs/public-kitti-featdepth-default-cpu-v1/cpu.repeat-01/provider.json').resolve()
+command=[sys.executable,str(Path(__file__).resolve())]
+holdout=['0000000460','0000001035','0000001611','0000002186','0000002761']
+for case in ['x-positive','x-negative','y-positive','y-negative','z-positive','z-negative']:
+    old=Path('outputs/public-kitti-six-dof-sweep-cuda-v1')/case
+    problem=CameraLidarCalibrationProblem.model_validate_json((old/'demo.problem.json').read_bytes())
+    directory=root/case/'cpu_default6'
+    directory.mkdir()
+    problem.depth_provider_path=str(provider)
+    problem.depth_provider_sha256=sha256_path(provider)
+    problem.provenance=CameraLidarArtifactProvenance(generator='manual.featdepth_default_cpu_validation',generator_version='v0.1',git_commit=git_commit(),command=command,
+        config_sha256=sha256_path(Path(__file__)),source_sha256=hashlib.sha256(json.dumps({'source_problem':sha256_path(old/'demo.problem.json'),'provider':sha256_path(provider)},sort_keys=True).encode()).hexdigest())
+    path=directory/'problem.json'
+    problem.save(path)
+    result=run_camera_lidar_six_dof_estimate(path,projection_backend='cuda',holdout_frame_ids=holdout,command=command)
+    reference=load_result(root/case/'cpu/result.json')
+    pose=next(iter(result.transforms.values())).as_se3()
+    anchor=next(iter(reference.transforms.values())).as_se3()
+    rotation,translation=_reference_difference(pose,problem.reference_transform_camera_lidar.as_se3())
+    component=max(abs(a-b) for a,b in zip([*pose.translation_m,*pose.rotation_quat_xyzw],[*anchor.translation_m,*anchor.rotation_quat_xyzw],strict=True))
+    metrics={'reference_rotation_error_deg':rotation,'reference_translation_error_m':translation,
+        'final_train_mi':result.metrics['final_d2d_mutual_information'].train,
+        'final_holdout_mi':result.metrics['final_d2d_mutual_information'].holdout,
+        'holdout_mi_absolute_difference_from_cpu':abs(result.metrics['final_d2d_mutual_information'].holdout-reference.metrics['final_d2d_mutual_information'].holdout),
+        'pose_max_component_difference_from_cpu':component,'complete_numerical_parity':float(_numerical_payload(result)==_numerical_payload(reference)),
+        'evaluation_count':result.run.provenance['solver_result']['evaluation_count']}
+    result.run.provenance['featdepth_execution_validation']={'case':case,'method':'cpu_default6','validation_launcher_sha256':sha256_path(Path(__file__)),
+        'note':'Additional default-six-thread CPU depth; comparison anchor is two-thread CPU depth. Unchanged frozen prior/bounds/20fit+5holdout; no tuning.'}
+    result_path=directory/'result.json'
+    result.save(result_path)
+    status=result.run.provenance['solver_result']['status']
+    definition.provenance.source_artifacts[f'problem:{case}:cpu_default6']=sha256_path(path)
+    definition.provenance.source_artifacts[f'result:{case}:cpu_default6']=sha256_path(result_path)
+    definition.provenance.source_artifacts['provider:cpu_default6']=sha256_path(provider)
+    definition.trials.append(BenchmarkTrial(method_id='cpu_default6',split_id=case,status='success' if status=='converged' else 'failed',failure_reason=None if status=='converged' else status,metrics=metrics,
+        provenance=BenchmarkTrialProvenance(command=' '.join(command),config_sha256=result.run.config_sha256,input_sha256=sha256_path(path),output_sha256=sha256_path(result_path),
+            notes=[f'Provider SHA256: {sha256_path(provider)}',f'Full numerical payload SHA256: {hashlib.sha256(json.dumps(_numerical_payload(result),sort_keys=True).encode()).hexdigest()}','Default six-thread CPU depth versus two-thread CPU anchor; no timing or tuning claim.'])))
+    print(case,status,metrics,flush=True)
+definition.limitations.append('Six default-six-thread CPU-depth estimates added after detecting thread-count-dependent depth differences; fixed priors/split retained, no tuning.')
+definition.save(original)
+aggregate_benchmark_definition(definition).save(root/'validation.benchmark.json')

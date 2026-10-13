@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from dataclasses import dataclass, field
-from math import cos, isclose, sin, sqrt
+from math import cos, isclose, isfinite, sin, sqrt
+from typing import overload
+
+import numpy as np
+from numpy.typing import NDArray
 
 from calibrex.core.geometry import SE3, Vector3, rotate_vector_xyzw
 
@@ -36,6 +40,55 @@ class LidarPointToPlaneObservation:
         if self.weight < 0.0:
             msg = "observation weight must be non-negative"
             raise ValueError(msg)
+
+
+_NATIVE_OBSERVATION = LidarPointToPlaneObservation
+_NATIVE_OBSERVATION_INIT = LidarPointToPlaneObservation.__post_init__
+_NATIVE_OBSERVATION_CONSTRUCTOR = LidarPointToPlaneObservation.__init__
+_NATIVE_SE3_CONSTRUCTOR = SE3.__init__
+_NATIVE_SE3_POST_INIT = SE3.__post_init__
+
+
+class _PreparedObservationBuilder:
+    """Reuse immutable native plane conversions and exact normalizations."""
+
+    def __init__(self, points: Sequence[Vector3]) -> None:
+        # Bound retained identity keys/references; unsupported points use the constructor.
+        captured = points[:65536] if type(points) in (list, tuple) else ()
+        self._points = {id(point): point for point in captured
+                        if type(point) is tuple and len(point) == 3
+                        and all(type(value) is float for value in point)}
+        self._planes: dict[tuple[int, int], tuple[Vector3, Vector3, Vector3, Vector3]] = {}
+
+    def build(
+        self, point: Vector3, centroid: Vector3, normal: Vector3, pose: SE3,
+    ) -> LidarPointToPlaneObservation:
+        constructor = _NATIVE_OBSERVATION
+        if (
+            self._points.get(id(point)) is not point or type(pose) is not SE3
+            or LidarPointToPlaneObservation is not _NATIVE_OBSERVATION
+            or LidarPointToPlaneObservation.__post_init__ is not _NATIVE_OBSERVATION_INIT
+            or LidarPointToPlaneObservation.__init__ is not _NATIVE_OBSERVATION_CONSTRUCTOR
+        ):
+            return constructor(point, centroid, normal, pose)
+        key = (id(centroid), id(normal))
+        cached = self._planes.get(key)
+        if cached is None or cached[0] is not centroid or cached[1] is not normal:
+            if not all(type(vector) is tuple and len(vector) == 3
+                       and all(type(value) is float and isfinite(value) for value in vector)
+                       for vector in (centroid, normal)):
+                return constructor(point, centroid, normal, pose)
+            cached = (centroid, normal, _vector3(centroid), _normalize3(normal))
+            if len(self._planes) >= 1024:
+                self._planes.pop(next(iter(self._planes)))
+            self._planes[key] = cached
+        observation = object.__new__(constructor)
+        object.__setattr__(observation, "point_lidar_m", (point[0], point[1], point[2]))
+        object.__setattr__(observation, "plane_point_world_m", cached[2])
+        object.__setattr__(observation, "plane_normal_world", cached[3])
+        object.__setattr__(observation, "t_world_ego", pose)
+        object.__setattr__(observation, "weight", 1.0)
+        return observation
 
 
 @dataclass(frozen=True)
@@ -88,11 +141,32 @@ class LidarRigPointToPlaneFactor:
         t_ego_lidar: SE3,
         observations: Sequence[LidarPointToPlaneObservation],
         sensor: str = "lidar0",
+        _array_kernel: Callable[[_ObservationArrays, SE3], list[float]] | None = None,
+        _array_rmse_kernel: Callable[[_ObservationArrays, SE3], tuple[float] | None] | None = None,
+        _array_linearizer: Callable[
+            [_ObservationArrays, Sequence[SE3], Sequence[float]],
+            tuple[NDArray[np.float64], NDArray[np.float64]],
+        ] | None = None,
+        _array_normal_kernel: Callable[
+            [NDArray[np.float64], NDArray[np.float64], bool, float],
+            tuple[list[list[float]], list[float]],
+        ] | None = None,
     ) -> None:
         self.variable = variable
         self.t_ego_lidar = t_ego_lidar
-        self.observations = tuple(observations)
+        self._observations: tuple[LidarPointToPlaneObservation, ...] | _PackedObservations = (
+            observations if type(observations) is _PackedObservations else tuple(observations)
+        )
+        self._array_observations: tuple[
+            tuple[LidarPointToPlaneObservation, ...] | _PackedObservations,
+            _ObservationArrays | None,
+        ] | None = None
         self.sensor = sensor
+        self._array_kernel = _array_kernel
+        self._captured_array_kernel = _array_kernel
+        self._array_rmse_kernel = _array_rmse_kernel
+        self._array_linearizer = _array_linearizer
+        self._array_normal_kernel = _array_normal_kernel
         self.dof_names: tuple[str, str, str, str, str, str] = (
             f"{_DEFAULT_DOF_NAMES[0]}_{sensor}",
             f"{_DEFAULT_DOF_NAMES[1]}_{sensor}",
@@ -102,10 +176,51 @@ class LidarRigPointToPlaneFactor:
             f"{_DEFAULT_DOF_NAMES[5]}_{sensor}",
         )
 
+    @property
+    def observations(self) -> tuple[LidarPointToPlaneObservation, ...]:
+        """Return native observations, materializing an internal packed batch on demand."""
+        if type(self._observations) is _PackedObservations:
+            original = self._observations
+            self._observations = original.materialize()
+            if self._array_observations is not None and self._array_observations[0] is original:
+                self._array_observations = (self._observations, self._array_observations[1])
+        assert isinstance(self._observations, tuple)
+        return self._observations
+
+    @observations.setter
+    def observations(self, value: tuple[LidarPointToPlaneObservation, ...]) -> None:
+        self._observations = value
+
+    def _observation_count(self) -> int:
+        return len(self._observations)
+
+    def _prepared_arrays(self) -> _ObservationArrays | None:
+        original = self._observations
+        if self._array_observations is None or self._array_observations[0] is not original:
+            arrays = (original.arrays if type(original) is _PackedObservations
+                      else _prepare_observation_arrays(original))
+            self._array_observations = (original, arrays)
+        return self._array_observations[1]
+
+    def _retain_packed(self, indices: NDArray[np.int64]) -> None:
+        if type(self._observations) is not _PackedObservations:
+            raise ValueError("packed retention requires a packed observation batch")
+        self._observations = self._observations.select(indices)
+        self._array_observations = None
+
     def residuals(self, correction: Sequence[float] | None = None) -> list[float]:
         """Return weighted point-to-plane residuals in meters."""
 
         t_ego_lidar = self._corrected_transform(correction)
+        if self._observation_count() >= 64:
+            arrays = self._prepared_arrays()
+            if arrays is not None and all(
+                np.isfinite((*t_ego_lidar.translation_m, *t_ego_lidar.rotation_quat_xyzw))
+            ):
+                return (
+                    self._array_kernel(arrays, t_ego_lidar) if self._array_kernel is not None
+                    else _array_residuals(arrays, t_ego_lidar)
+                )
         residuals: list[float] = []
         for observation in self.observations:
             t_world_lidar = observation.t_world_ego.compose(t_ego_lidar)
@@ -115,6 +230,109 @@ class LidarRigPointToPlaneFactor:
             residuals.append(sqrt(observation.weight) * residual)
         return residuals
 
+    def _retain_observations(
+        self, observations: tuple[LidarPointToPlaneObservation, ...], indices: list[int],
+    ) -> None:
+        original, captured = self.observations, self._array_observations
+        self.observations = observations
+        self._array_observations = None
+        if (
+            len(observations) < 64 or captured is None or captured[0] is not original
+            or captured[1] is None or not all(type(o) is LidarPointToPlaneObservation
+                and type(o.t_world_ego) is SE3 and type(o.weight) in (float, int) for o in original)
+        ):
+            return
+        arrays = captured[1]
+        positions = np.asarray(indices, dtype=np.int64)
+        selected = [array[positions] for array in (
+            arrays.points, arrays.plane_points, arrays.normals, arrays.poses, arrays.sqrt_weights,
+        )]
+        for array in selected:
+            array.flags.writeable = False
+        bits = selected[3].view(np.uint64)
+        shared = observations[0].t_world_ego if np.all(bits == bits[0]) else None
+        self._array_observations = (observations, _ObservationArrays(
+            selected[0], selected[1], selected[2], selected[3], selected[4], shared,
+        ))
+
+    def _compiled_linearization(
+        self, correction: Sequence[float] | None,
+        translation_step_m: float = 1.0e-4, rotation_step_rad: float = 1.0e-5,
+    ) -> tuple[NDArray[np.float64], NDArray[np.float64]] | None:
+        if (
+            self._array_linearizer is None or self._array_normal_kernel is None
+            or self._observation_count() < 64 or type(self) is not LidarRigPointToPlaneFactor
+            or self._array_kernel is not self._captured_array_kernel
+            or any(name in self.__dict__
+                   for name in ("residuals", "linearize", "_corrected_transform"))
+            or type(self).residuals is not _NATIVE_RESIDUALS
+            or type(self).linearize is not _NATIVE_LINEARIZE
+            or type(self)._corrected_transform is not _NATIVE_CORRECTION
+        ):
+            return None
+        arrays = self._prepared_arrays()
+        if arrays is None:
+            return None
+        base = _correction_vector(correction)
+        steps = (translation_step_m,)*3 + (rotation_step_rad,)*3
+        transforms = [self._corrected_transform(base)]
+        for column, step in enumerate(steps):
+            plus, minus = list(base), list(base)
+            plus[column] += step
+            minus[column] -= step
+            transforms.extend((self._corrected_transform(plus), self._corrected_transform(minus)))
+        if not all(np.isfinite((*t.translation_m, *t.rotation_quat_xyzw)).all()
+                   for t in transforms):
+            return None
+        residuals, jacobian = self._array_linearizer(arrays, transforms, steps)
+        if not np.isfinite(residuals).all() or not np.isfinite(jacobian).all():
+            return None
+        return residuals, jacobian
+
+    def _compiled_rmse(self, correction: Sequence[float]) -> tuple[float] | None:
+        if (type(self) is not LidarRigPointToPlaneFactor or self._array_rmse_kernel is None
+            or self._observation_count() < 8192
+            or self._array_kernel is not self._captured_array_kernel
+            or any(name in self.__dict__ for name in ("residuals", "_corrected_transform"))
+            or type(self).residuals is not _NATIVE_RESIDUALS
+            or type(self)._corrected_transform is not _NATIVE_CORRECTION):
+            return None
+        arrays = self._prepared_arrays()
+        transform = self._corrected_transform(correction)
+        if arrays is None or not all(np.isfinite((*transform.translation_m,
+                                                 *transform.rotation_quat_xyzw))):
+            return None
+        return self._array_rmse_kernel(arrays, transform)
+
+    def _compiled_system(
+        self, correction: Sequence[float], *, robust_loss: str, huber_delta_m: float,
+        _include_residuals: bool = True,
+    ) -> tuple[list[float], list[list[float]], list[float]] | None:
+        if not isfinite(huber_delta_m):
+            return None
+        dense = self._compiled_linearization(correction)
+        if dense is None or self._array_normal_kernel is None:
+            return None
+        residuals, jacobian = dense
+        hessian, gradient = self._array_normal_kernel(
+            jacobian, residuals, robust_loss != "none", huber_delta_m,
+        )
+        return residuals.tolist() if _include_residuals else [], hessian, gradient
+
+    def _compiled_initial_rank(self, correction: Sequence[float]) -> int | None:
+        # The optimizer consumes only rank at entry. Full public diagnostics
+        # remain available and are still produced for the final calibration.
+        if (self._observation_count() < 8192 or type(self) is not LidarRigPointToPlaneFactor
+                or "evaluate" in self.__dict__
+                or type(self).evaluate is not _NATIVE_EVALUATE):
+            return None
+        dense = self._compiled_linearization(correction)
+        if dense is None or self._array_normal_kernel is None:
+            return None
+        values, jacobian = dense
+        hessian, _gradient = self._array_normal_kernel(jacobian, values, False, 0.0)
+        return _matrix_rank(hessian)
+
     def linearize(
         self,
         correction: Sequence[float] | None = None,
@@ -123,6 +341,17 @@ class LidarRigPointToPlaneFactor:
         rotation_step_rad: float = 1.0e-5,
     ) -> LidarRigPointToPlaneLinearization:
         """Return residuals, numerical Jacobian, Hessian, and gradient."""
+
+        dense = self._compiled_linearization(correction, translation_step_m, rotation_step_rad)
+        if dense is not None and self._array_normal_kernel is not None:
+            residuals_array, jacobian_array = dense
+            hessian, gradient = self._array_normal_kernel(
+                jacobian_array, residuals_array, False, 0.0,
+            )
+            return LidarRigPointToPlaneLinearization(
+                self.variable, self.dof_names, residuals_array.tolist(), jacobian_array.tolist(),
+                hessian, gradient,
+            )
 
         base = _correction_vector(correction)
         residuals = self.residuals(base)
@@ -149,8 +378,15 @@ class LidarRigPointToPlaneFactor:
                 ]
             )
         jacobian_rows = _transpose(jacobian)
-        hessian = _jtj(jacobian_rows)
-        gradient = _jtr(jacobian_rows, residuals)
+        if len(jacobian_rows) >= 64:
+            rows = np.asarray(jacobian_rows, dtype=np.float64)
+            values = np.asarray(residuals, dtype=np.float64)
+            if np.all(np.isfinite(rows)) and np.all(np.isfinite(values)):
+                hessian, gradient = _ordered_normal_equations(rows, values)
+            else:
+                hessian, gradient = _jtj(jacobian_rows), _jtr(jacobian_rows, residuals)
+        else:
+            hessian, gradient = _jtj(jacobian_rows), _jtr(jacobian_rows, residuals)
         return LidarRigPointToPlaneLinearization(
             variable=self.variable,
             dof_names=self.dof_names,
@@ -208,17 +444,35 @@ class LidarRigPointToPlaneFactor:
     ) -> LidarRigPointToPlaneEvaluation:
         """Return factor-level residual and observability diagnostics."""
 
-        linearization = self.linearize(correction)
-        residuals = linearization.residuals_m
-        hessian = linearization.hessian
-        scale_length = normalization_length_m or _normalization_length_m(self.observations)
+        dense = self._compiled_linearization(correction)
+        if dense is not None and self._array_normal_kernel is not None:
+            values, jacobian = dense
+            hessian, _gradient = self._array_normal_kernel(jacobian, values, False, 0.0)
+            residuals = values.tolist()
+            dof_names = self.dof_names
+        else:
+            linearization = self.linearize(correction)
+            residuals = linearization.residuals_m
+            hessian = linearization.hessian
+            dof_names = linearization.dof_names
+        if normalization_length_m:
+            scale_length = normalization_length_m
+        elif type(self._observations) is _PackedObservations:
+            points = self._observations.arrays.points
+            # Keep Python float products and sum, including an empty batch.
+            scale_length = (max(1.0, sqrt(sum(
+                point[0]*point[0] + point[1]*point[1] + point[2]*point[2]
+                for point in _packed_point_rows(points)
+            ) / len(points))) if len(points) else 1.0)
+        else:
+            scale_length = _normalization_length_m(self.observations)
         normalized_hessian = _normalize_hessian(hessian, scale_length)
         diagonal = {
-            name: hessian[index][index] for index, name in enumerate(linearization.dof_names)
+            name: hessian[index][index] for index, name in enumerate(dof_names)
         }
         normalized_diagonal = {
             name: normalized_hessian[index][index]
-            for index, name in enumerate(linearization.dof_names)
+            for index, name in enumerate(dof_names)
         }
         weak_directions = [
             name
@@ -242,6 +496,17 @@ class LidarRigPointToPlaneFactor:
             normalized_hessian=normalized_hessian,
         )
 
+    def _point_ranges(self) -> list[float]:
+        # Diagnostics need only local XYZ. Keep Python float power/sqrt and
+        # row order without constructing every plane, pose and observation.
+        if (type(self) is LidarRigPointToPlaneFactor
+            and type(self).observations is _NATIVE_OBSERVATIONS_PROPERTY
+            and type(self._observations) is _PackedObservations):
+            points = _packed_point_rows(self._observations.arrays.points)
+            return [sqrt(p[0]**2 + p[1]**2 + p[2]**2) for p in points]
+        return [sqrt(o.point_lidar_m[0]**2 + o.point_lidar_m[1]**2 + o.point_lidar_m[2]**2)
+                for o in self.observations]
+
     def corrected_transform(self, correction: Sequence[float] | None = None) -> SE3:
         """Return `Exp(correction) * T_ego_lidar_initial` using the factor contract."""
 
@@ -251,6 +516,231 @@ class LidarRigPointToPlaneFactor:
         correction_vector = _correction_vector(correction)
         delta = _small_se3(correction_vector)
         return delta.compose(self.t_ego_lidar)
+
+
+_NATIVE_RESIDUALS = LidarRigPointToPlaneFactor.residuals
+_NATIVE_LINEARIZE = LidarRigPointToPlaneFactor.linearize
+_NATIVE_CORRECTION = LidarRigPointToPlaneFactor._corrected_transform
+_NATIVE_OBSERVATIONS_PROPERTY = LidarRigPointToPlaneFactor.observations
+_NATIVE_EVALUATE = LidarRigPointToPlaneFactor.evaluate
+_NATIVE_COMPILED_SYSTEM = LidarRigPointToPlaneFactor._compiled_system
+
+
+def _packed_point_rows(points: NDArray[np.float64]) -> Iterator[list[float]]:
+    for start in range(0, len(points), 4096):
+        yield from points[start:start+4096].tolist()
+
+
+@dataclass(frozen=True)
+class _ObservationArrays:
+    points: NDArray[np.float64]
+    plane_points: NDArray[np.float64]
+    normals: NDArray[np.float64]
+    poses: NDArray[np.float64]
+    sqrt_weights: NDArray[np.float64]
+    shared_pose: SE3 | None
+
+
+class _PackedObservations(Sequence[LidarPointToPlaneObservation]):
+    """Owned, read-only unit-weight native observations without Python row objects."""
+
+    def __init__(self, arrays: _ObservationArrays) -> None:
+        self.arrays = arrays
+
+    def __len__(self) -> int:
+        return len(self.arrays.points)
+
+    @overload
+    def __getitem__(self, index: int) -> LidarPointToPlaneObservation: ...
+
+    @overload
+    def __getitem__(self, index: slice) -> Sequence[LidarPointToPlaneObservation]: ...
+
+    def __getitem__(
+        self, index: int | slice,
+    ) -> LidarPointToPlaneObservation | Sequence[LidarPointToPlaneObservation]:
+        return self.materialize()[index]
+
+    def materialize(self) -> tuple[LidarPointToPlaneObservation, ...]:
+        arrays = self.arrays
+        result = []
+        for point, centroid, normal, row in zip(
+            arrays.points.tolist(), arrays.plane_points.tolist(), arrays.normals.tolist(),
+            arrays.poses.tolist(), strict=True,
+        ):
+            pose = object.__new__(SE3)
+            object.__setattr__(pose, "translation_m", tuple(row[:3]))
+            object.__setattr__(pose, "rotation_quat_xyzw", tuple(row[3:]))
+            observation = object.__new__(LidarPointToPlaneObservation)
+            object.__setattr__(observation, "point_lidar_m", tuple(point))
+            object.__setattr__(observation, "plane_point_world_m", tuple(centroid))
+            object.__setattr__(observation, "plane_normal_world", tuple(normal))
+            object.__setattr__(observation, "t_world_ego", pose)
+            object.__setattr__(observation, "weight", 1.0)
+            result.append(observation)
+        return tuple(result)
+
+    def select(self, indices: NDArray[np.int64]) -> _PackedObservations:
+        arrays = self.arrays
+        selected = [array[indices] for array in (
+            arrays.points, arrays.plane_points, arrays.normals, arrays.poses, arrays.sqrt_weights,
+        )]
+        for array in selected:
+            array.flags.writeable = False
+        return _PackedObservations(_ObservationArrays(
+            selected[0], selected[1], selected[2], selected[3], selected[4], None,
+        ))
+
+
+def _native_packing_supported() -> bool:
+    return (
+        LidarPointToPlaneObservation is _NATIVE_OBSERVATION
+        and LidarPointToPlaneObservation.__init__ is _NATIVE_OBSERVATION_CONSTRUCTOR
+        and LidarPointToPlaneObservation.__post_init__ is _NATIVE_OBSERVATION_INIT
+        and SE3.__init__ is _NATIVE_SE3_CONSTRUCTOR
+        and SE3.__post_init__ is _NATIVE_SE3_POST_INIT
+    )
+
+
+def _prepare_observation_arrays(
+    observations: Sequence[LidarPointToPlaneObservation],
+) -> _ObservationArrays | None:
+    arrays = [
+        np.asarray([observation.point_lidar_m for observation in observations], dtype=np.float64),
+        np.asarray([
+            observation.plane_point_world_m for observation in observations
+        ], dtype=np.float64),
+        np.asarray([
+            observation.plane_normal_world for observation in observations
+        ], dtype=np.float64),
+        np.asarray([
+            (*observation.t_world_ego.translation_m, *observation.t_world_ego.rotation_quat_xyzw)
+            for observation in observations
+        ], dtype=np.float64),
+        np.asarray([observation.weight for observation in observations], dtype=np.float64),
+    ]
+    if not all(np.all(np.isfinite(array)) for array in arrays):
+        return None
+    arrays[-1] = np.sqrt(arrays[-1])
+    for array in arrays:
+        array.flags.writeable = False
+    poses = arrays[3].view(np.uint64)
+    shared_pose = observations[0].t_world_ego if np.all(poses == poses[0]) else None
+    return _ObservationArrays(arrays[0], arrays[1], arrays[2], arrays[3], arrays[4], shared_pose)
+
+
+def _raw_array_product(
+    left: NDArray[np.float64], right: NDArray[np.float64],
+) -> NDArray[np.float64]:
+    lx, ly, lz, lw = np.moveaxis(left, -1, 0)
+    rx, ry, rz, rw = np.moveaxis(right, -1, 0)
+    return np.stack((
+        lw * rx + lx * rw + ly * rz - lz * ry,
+        lw * ry - lx * rz + ly * rw + lz * rx,
+        lw * rz + lx * ry - ly * rx + lz * rw,
+        lw * rw - lx * rx - ly * ry - lz * rz,
+    ), axis=-1)
+
+
+def _normalize_array_quaternions(quaternions: NDArray[np.float64]) -> NDArray[np.float64]:
+    x, y, z, w = np.moveaxis(quaternions, -1, 0)
+    norm = np.sqrt(x * x + y * y + z * z + w * w)
+    return quaternions / norm[..., None]
+
+
+def _rotate_array_points(
+    quaternions: NDArray[np.float64], points: NDArray[np.float64],
+) -> NDArray[np.float64]:
+    # Keep both normalizations and both Hamilton products from rotate_vector_xyzw.
+    # A rotation matrix changes rounding and hence numerical finite differences.
+    normalized = _normalize_array_quaternions(quaternions)
+    conjugate = _normalize_array_quaternions(normalized).copy()
+    conjugate[..., :3] *= -1.0
+    point_quaternions = np.concatenate((
+        points, np.zeros((*points.shape[:-1], 1), dtype=np.float64),
+    ), axis=-1)
+    return _raw_array_product(
+        _raw_array_product(normalized, point_quaternions), conjugate,
+    )[..., :3]
+
+
+def _array_residuals(arrays: _ObservationArrays, transform: SE3) -> list[float]:
+    translation = np.asarray(transform.translation_m, dtype=np.float64)
+    rotation = np.asarray(transform.rotation_quat_xyzw, dtype=np.float64)
+    residuals: list[float] = []
+    shared = arrays.shared_pose.compose(transform) if arrays.shared_pose is not None else None
+    # Bound temporary arrays independently of the observation population.
+    with np.errstate(over="ignore", invalid="ignore"):
+        for start in range(0, len(arrays.points), 4096):
+            stop = start + 4096
+            if shared is not None:
+                world_translation = np.asarray(shared.translation_m, dtype=np.float64)
+                world_rotation = np.asarray(shared.rotation_quat_xyzw, dtype=np.float64)
+            else:
+                poses = arrays.poses[start:stop]
+                world_translation = poses[:, :3] + _rotate_array_points(poses[:, 3:], translation)
+                # quaternion_multiply_xyzw and SE3.__post_init__ each normalize.
+                world_rotation = _normalize_array_quaternions(_normalize_array_quaternions(
+                    _raw_array_product(poses[:, 3:], rotation)
+                ))
+            world_points = (
+                _rotate_array_points(world_rotation, arrays.points[start:stop])
+                + world_translation
+            )
+            delta = world_points - arrays.plane_points[start:stop]
+            normals = arrays.normals[start:stop]
+            values = (
+                normals[:, 0] * delta[:, 0] + normals[:, 1] * delta[:, 1]
+                + normals[:, 2] * delta[:, 2]
+            )
+            residuals.extend((arrays.sqrt_weights[start:stop] * values).tolist())
+    return residuals
+
+
+def _array_world_points(
+    points: NDArray[np.float64], poses: NDArray[np.float64], transform: SE3,
+) -> NDArray[np.float64]:
+    """Match each pose.compose(transform).transform_point with ordered products."""
+
+    translation = np.asarray(transform.translation_m, dtype=np.float64)
+    rotation = np.asarray(transform.rotation_quat_xyzw, dtype=np.float64)
+    result = np.empty_like(points)
+    with np.errstate(over="ignore", invalid="ignore"):
+        for start in range(0, len(points), 4096):
+            stop = start + 4096
+            chunk = poses[start:stop]
+            world_translation = chunk[:, :3] + _rotate_array_points(chunk[:, 3:], translation)
+            world_rotation = _normalize_array_quaternions(_normalize_array_quaternions(
+                _raw_array_product(chunk[:, 3:], rotation),
+            ))
+            result[start:stop] = (
+                _rotate_array_points(world_rotation, points[start:stop]) + world_translation
+            )
+    return result
+
+
+def _ordered_normal_equations(
+    rows: NDArray[np.float64], residuals: NDArray[np.float64],
+    weights: NDArray[np.float64] | None = None,
+) -> tuple[list[list[float]], list[float]]:
+    """Accumulate six-column products in the original row and multiply order."""
+
+    hessian = np.zeros((6, 6), dtype=np.float64)
+    gradient = np.zeros(6, dtype=np.float64)
+    with np.errstate(over="ignore", invalid="ignore"):
+        for start in range(0, len(rows), 4096):
+            stop = start + 4096
+            chunk = rows[start:stop]
+            weighted = chunk if weights is None else weights[start:stop, None] * chunk
+            products = weighted[:, :, None] * chunk[:, None, :]
+            hessian = np.add.accumulate(np.concatenate((
+                hessian[None, :, :], products,
+            )), axis=0)[-1]
+            products_gradient = weighted * residuals[start:stop, None]
+            gradient = np.add.accumulate(np.concatenate((
+                gradient[None, :], products_gradient,
+            )), axis=0)[-1]
+    return hessian.tolist(), gradient.tolist()
 
 
 def _correction_vector(correction: Sequence[float] | None) -> tuple[float, ...]:

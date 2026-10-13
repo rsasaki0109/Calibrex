@@ -1,0 +1,227 @@
+{
+  "provenance": {
+    "source_commit": "aa19ec5d4bf01e1167e70f48332e6e13d51263c0",
+    "source_sha256": {
+      "profile/sources/numba_continuous_time_adapter.py.txt": "a644c40104fba05acfceff736d177af5e3c6904cd792c13a25bd5d986489b20d",
+      "profile/sources/lidar_point_to_plane.py.txt": "4ca03bfd97d9a091b010e4805862ee46345486bb9ffbb6cf71c083dac81efb92",
+      "probes/numpy-summary/probe-launcher.py.txt": "70b9499371d199b669e28ea67ef3f3b48770cd1015f6bfabcac83877f0cb73f4"
+    },
+    "python_version": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]"
+  },
+  "kernel_only": true,
+  "cases": [
+    {
+      "count": 600000,
+      "seed": 419,
+      "block": 1024,
+      "input_sha256": "e22ed6f85d2d36e0b59de0c85b4911082acbe3a23fda53687f58038c104541e6",
+      "trials": [
+        {
+          "repeat": 1,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": 0.08527469995897263,
+          "candidate": 0.40049030003137887
+        },
+        {
+          "repeat": 2,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": 0.4206374000059441,
+          "baseline": 0.09357779996935278
+        },
+        {
+          "repeat": 3,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": 0.09268859995063394,
+          "candidate": 0.5374438000144437
+        },
+        {
+          "repeat": 4,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": 0.5856241000583395,
+          "baseline": 0.09757580002769828
+        },
+        {
+          "repeat": 5,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": 0.09982819994911551,
+          "candidate": 0.6111876000650227
+        },
+        {
+          "repeat": 6,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": 0.6376244999701157,
+          "baseline": 0.0844354999717325
+        },
+        {
+          "repeat": 7,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": 0.08028739993460476,
+          "candidate": 0.5827284000115469
+        }
+      ]
+    },
+    {
+      "count": 600000,
+      "seed": 419,
+      "block": 4096,
+      "input_sha256": "e22ed6f85d2d36e0b59de0c85b4911082acbe3a23fda53687f58038c104541e6",
+      "trials": [
+        {
+          "repeat": 1,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": 0.09231410000938922,
+          "candidate": 0.36494449991732836
+        },
+        {
+          "repeat": 2,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": 0.40563909988850355,
+          "baseline": 0.13865560002159327
+        },
+        {
+          "repeat": 3,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": 0.09569490002468228,
+          "candidate": 0.39289569994434714
+        },
+        {
+          "repeat": 4,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": 0.38559399999212474,
+          "baseline": 0.09387199999764562
+        },
+        {
+          "repeat": 5,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": 0.08330130006652325,
+          "candidate": 0.4016392999328673
+        },
+        {
+          "repeat": 6,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": 0.30708870000671595,
+          "baseline": 0.0965806000167504
+        },
+        {
+          "repeat": 7,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": 0.09116379998158664,
+          "candidate": 0.2909979000687599
+        }
+      ]
+    },
+    {
+      "count": 600000,
+      "seed": 419,
+      "block": 16384,
+      "input_sha256": "e22ed6f85d2d36e0b59de0c85b4911082acbe3a23fda53687f58038c104541e6",
+      "trials": [
+        {
+          "repeat": 1,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": 0.07879910001065582,
+          "candidate": 0.3379936000565067
+        },
+        {
+          "repeat": 2,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": 0.5071337000699714,
+          "baseline": 0.11624440003652126
+        },
+        {
+          "repeat": 3,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": 0.12013579998165369,
+          "candidate": 0.4928359999321401
+        },
+        {
+          "repeat": 4,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": 0.3896711999550462,
+          "baseline": 0.09972090006340295
+        },
+        {
+          "repeat": 5,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": 0.08207850006874651,
+          "candidate": 0.2923382999142632
+        },
+        {
+          "repeat": 6,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": 0.3118726999964565,
+          "baseline": 0.06769699999131262
+        },
+        {
+          "repeat": 7,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": 0.07094560004770756,
+          "candidate": 0.3053417999763042
+        }
+      ]
+    }
+  ]
+}

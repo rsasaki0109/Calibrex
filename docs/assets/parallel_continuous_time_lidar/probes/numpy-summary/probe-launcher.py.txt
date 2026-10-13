@@ -1,0 +1,77 @@
+"""Probe existing exact NumPy row arithmetic without Python row conversion."""
+import hashlib
+import json
+import statistics
+import subprocess
+import sys
+import time
+from pathlib import Path
+import numpy as np
+from calibrex.core.geometry import SE3
+from calibrex.graph.lidar_point_to_plane import (
+    _rotate_array_points,_normalize_array_quaternions,_raw_array_product,
+)
+from calibrex.solvers import numba_continuous_time_adapter as a
+
+def rows(arrays,block):
+    points,planes,normals,poses,weights,transform=arrays
+    output=np.empty(len(points),dtype=np.float64)
+    translation,rotation=transform[:3],transform[3:]
+    for start in range(0,len(points),block):
+        stop=start+block
+        pose=poses[start:stop]
+        wt=pose[:,:3]+_rotate_array_points(pose[:,3:],translation)
+        wq=_normalize_array_quaternions(_normalize_array_quaternions(
+            _raw_array_product(pose[:,3:],rotation)))
+        world=_rotate_array_points(wq,points[start:stop])+wt
+        delta=world-planes[start:stop]
+        normal=normals[start:stop]
+        output[start:stop]=weights[start:stop]*(
+            normal[:,0]*delta[:,0]+normal[:,1]*delta[:,1]+normal[:,2]*delta[:,2])
+    return output
+
+def digest(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+sources=('src/calibrex/solvers/numba_continuous_time_adapter.py',
+         'src/calibrex/graph/lidar_point_to_plane.py')
+guards={p:digest(p) for p in sources}
+guards['probe-launcher.py.txt']=digest(__file__)
+report={'provenance':{'source_commit':subprocess.check_output(
+    ['git','rev-parse','HEAD'],text=True).strip(),'source_sha256':guards,'python_version':sys.version},
+    'kernel_only':True,'cases':[]}
+count=600000
+rng=np.random.default_rng(419)
+t=SE3((.1,-.2,.3),(.2,-.3,.1,.9))
+arrays=(rng.normal(size=(count,3)),rng.normal(size=(count,3)),rng.normal(size=(count,3)),
+        rng.normal(size=(count,7)),rng.uniform(0.,2.,size=count),
+        np.asarray((*t.translation_m,*t.rotation_quat_xyzw)))
+for array in arrays:
+    array.flags.writeable=False
+reference=a._residual_rows(*arrays)
+expected=a._residual_square_sum(*arrays,True)
+for block in (1024,4096,16384):
+    actual=rows(arrays,block)
+    assert np.array_equal(reference.view(np.uint64),actual.view(np.uint64))
+    assert np.float64(expected).tobytes()==np.float64(a._value_square_sum(actual,True)).tobytes()
+    case={'count':count,'seed':419,'block':block,'input_sha256':hashlib.sha256(
+        b''.join(v.tobytes() for v in arrays)).hexdigest(),'trials':[]}
+    for repeat in range(7):
+        methods=['baseline','candidate'] if repeat%2==0 else ['candidate','baseline']
+        row={'repeat':repeat+1,'order':methods}
+        for method in methods:
+            start=time.perf_counter()
+            value=(a._residual_square_sum(*arrays,True) if method=='baseline'
+                   else a._value_square_sum(rows(arrays,block),True))
+            row[method]=time.perf_counter()-start
+            assert np.float64(value).tobytes()==np.float64(expected).tobytes()
+        case['trials'].append(row)
+    medians={m:statistics.median(t[m] for t in case['trials']) for m in ('baseline','candidate')}
+    print(json.dumps({'block':block,'medians':medians,'kernel_ratio':medians['baseline']/medians['candidate']}),flush=True)
+    report['cases'].append(case)
+assert guards=={**{p:digest(p) for p in sources},'probe-launcher.py.txt':digest(__file__)}
+out=Path('outputs/numpy-summary-probe-v1')
+out.mkdir()
+(out/'probe.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8',newline='\n')
+(out/'probe-launcher.py.txt').write_bytes(Path(__file__).read_bytes())
+for source in sources:
+    (out/('baseline.'+Path(source).name+'.txt')).write_bytes(Path(source).read_bytes())

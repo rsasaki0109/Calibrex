@@ -17,8 +17,8 @@ from __future__ import annotations
 import math
 from collections import deque
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, replace
-from typing import TypeAlias
+from dataclasses import dataclass, field, replace
+from typing import Literal, Protocol, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -26,6 +26,7 @@ from scipy.spatial import cKDTree
 
 FloatArray: TypeAlias = NDArray[np.float64]
 RotationModel: TypeAlias = Callable[[float, FloatArray], FloatArray]
+OdometryBackend: TypeAlias = Literal["cpu", "cuda"]
 
 
 @dataclass(frozen=True)
@@ -45,6 +46,7 @@ class ScanOdometryOptions:
     min_correspondences: int = 200
     local_map_scans: int = 1
     deskew_iterations: int = 1
+    geometry_quantum_m: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -57,6 +59,7 @@ class ScanRegistration:
     correspondences: int
     rmse_m: float
     hessian_min_eigenvalue: float
+    execution_backend: str = "numpy_scipy"
 
 
 @dataclass(frozen=True)
@@ -65,6 +68,8 @@ class ScanOdometryResult:
 
     poses: tuple[FloatArray, ...]
     registrations: tuple[ScanRegistration, ...]
+    execution_backend: str = "numpy_scipy"
+    execution_statistics: dict[str, int] = field(default_factory=dict)
 
     @property
     def all_converged(self) -> bool:
@@ -73,10 +78,37 @@ class ScanOdometryResult:
         return all(item.converged for item in self.registrations)
 
 
+class _OdometryTarget(Protocol):
+    def register(self, source: FloatArray, initial: FloatArray) -> ScanRegistration: ...
+    def statistics(self) -> dict[str, int]: ...
+
+
+def _cuda_odometry() -> tuple[Callable[[FloatArray, ScanOdometryOptions], _OdometryTarget], str]:
+    try:
+        from calibrex.solvers.cuda_scan_odometry_adapter import (
+            CudaOdometryTarget,
+            execution_identity,
+        )
+    except ImportError as exc:
+        raise ValueError("CUDA odometry requires the optional calibrex[cuda] dependency") from exc
+    return CudaOdometryTarget, execution_identity()
+
+
+def _quantize_geometry(points: FloatArray, quantum_m: float) -> FloatArray:
+    """Optionally canonicalize coordinates; zero retains native floating geometry."""
+    if not np.isfinite(quantum_m) or quantum_m < 0:
+        raise ValueError("geometry_quantum_m must be finite and nonnegative")
+    if quantum_m == 0:
+        return points
+    return np.asarray(np.rint(points / quantum_m) * quantum_m, dtype=np.float64)
+
+
 def preprocess_scan(points: FloatArray, options: ScanOdometryOptions) -> FloatArray:
     """Crop by range and voxel-downsample an ``(N, 3+)`` point array."""
 
-    xyz = np.asarray(points, dtype=np.float64)[:, :3]
+    xyz = _quantize_geometry(
+        np.asarray(points, dtype=np.float64)[:, :3], options.geometry_quantum_m,
+    )
     # Same sum order and rounding as ``np.linalg.norm(xyz, axis=1)``, about 5x faster.
     ranges = np.sqrt(xyz[:, 0] * xyz[:, 0] + xyz[:, 1] * xyz[:, 1] + xyz[:, 2] * xyz[:, 2])
     xyz = xyz[(ranges >= options.min_range_m) & (ranges <= options.max_range_m)]
@@ -88,7 +120,7 @@ def preprocess_scan(points: FloatArray, options: ScanOdometryOptions) -> FloatAr
         _, inverse, counts = np.unique(keys, axis=0, return_inverse=True, return_counts=True)
         sums = np.zeros((counts.size, 3))
         np.add.at(sums, inverse.reshape(-1), xyz)
-        return sums / counts[:, None]
+        return _quantize_geometry(sums / counts[:, None], options.geometry_quantum_m)
     # One int64 per voxel keeps the lexicographic voxel order of the row-wise
     # ``unique``, and ``bincount`` adds the points of a voxel in input order
     # exactly like ``add.at``, so the result is bit-identical but much faster.
@@ -97,7 +129,7 @@ def preprocess_scan(points: FloatArray, options: ScanOdometryOptions) -> FloatAr
     sums = np.empty((counts.size, 3))
     for axis in range(3):
         sums[:, axis] = np.bincount(inverse, weights=xyz[:, axis], minlength=counts.size)
-    return sums / counts[:, None]
+    return _quantize_geometry(sums / counts[:, None], options.geometry_quantum_m)
 
 
 def _flatten_voxel_keys(keys: NDArray[np.int64]) -> NDArray[np.int64] | None:
@@ -197,10 +229,23 @@ def register_point_to_plane(
     *,
     target_tree: cKDTree | None = None,
     target_normals: tuple[FloatArray, NDArray[np.bool_]] | TargetNormals | None = None,
+    backend: OdometryBackend = "cpu",
 ) -> ScanRegistration:
     """Estimate ``T_target_source`` from preprocessed point arrays."""
 
     opts = options or ScanOdometryOptions()
+    source = _quantize_geometry(source, opts.geometry_quantum_m)
+    target = _quantize_geometry(target, opts.geometry_quantum_m)
+    if (opts.geometry_quantum_m > 0 and target_tree is not None
+        and not np.array_equal(target_tree.data, target)):
+        raise ValueError("cached target tree does not match the captured odometry geometry")
+    if backend == "cuda":
+        if target_tree is not None or target_normals is not None:
+            raise ValueError("CUDA odometry captures its own tree and lazy target normals")
+        factory, _ = _cuda_odometry()
+        return factory(target, opts).register(source, initial)
+    if backend != "cpu":
+        raise ValueError(f"unknown odometry backend: {backend}")
     tree = target_tree if target_tree is not None else cKDTree(target)
     if target_normals is None:
         lazy = TargetNormals(target, tree, opts)
@@ -280,6 +325,7 @@ def run_scan_to_scan_odometry(
     options: ScanOdometryOptions | None = None,
     *,
     times_s: Sequence[float] | None = None,
+    backend: OdometryBackend = "cpu",
 ) -> ScanOdometryResult:
     """Chain scan-to-scan registrations into poses ``T_first_scan``.
 
@@ -289,7 +335,9 @@ def run_scan_to_scan_odometry(
     the odometry.
     """
 
-    return odometry_from_loader(lambda index: scans[index], len(scans), options, times_s=times_s)
+    return odometry_from_loader(
+        lambda index: scans[index], len(scans), options, times_s=times_s, backend=backend,
+    )
 
 
 def odometry_from_loader(
@@ -298,6 +346,7 @@ def odometry_from_loader(
     options: ScanOdometryOptions | None = None,
     *,
     times_s: Sequence[float] | None = None,
+    backend: OdometryBackend = "cpu",
 ) -> ScanOdometryResult:
     """Run scan-to-map odometry over a sliding window of recent scans.
 
@@ -308,7 +357,7 @@ def odometry_from_loader(
 
     if times_s is not None and len(times_s) != count:
         raise ValueError("times_s must have one entry per scan")
-    odometry = IncrementalScanOdometry(options)
+    odometry = IncrementalScanOdometry(options, backend=backend)
     for index in range(count):
         odometry.add(load_scan(index), None if times_s is None else float(times_s[index]))
     return odometry.result()
@@ -326,6 +375,7 @@ class IncrementalScanOdometry:
         options: ScanOdometryOptions | None = None,
         *,
         rotation_model: RotationModel | None = None,
+        backend: OdometryBackend = "cpu",
     ) -> None:
         """Create odometry; ``rotation_model`` supplies in-sweep rotations for deskewing.
 
@@ -339,6 +389,15 @@ class IncrementalScanOdometry:
         self.options = options or ScanOdometryOptions()
         if self.options.local_map_scans < 1:
             raise ValueError("local_map_scans must be at least 1")
+        self._cuda_factory: (
+            Callable[[FloatArray, ScanOdometryOptions], _OdometryTarget] | None
+        ) = None
+        self.execution_backend = "numpy_scipy"
+        if backend == "cuda":
+            self._cuda_factory, self.execution_backend = _cuda_odometry()
+        elif backend != "cpu":
+            raise ValueError(f"unknown odometry backend: {backend}")
+        self.execution_statistics: dict[str, int] = {}
         self.poses: list[FloatArray] = []
         self.registrations: list[ScanRegistration] = []
         self._recent: deque[FloatArray] = deque(maxlen=self.options.local_map_scans)
@@ -374,8 +433,10 @@ class IncrementalScanOdometry:
             self._previous_gap = gap
         self._previous_time = time_s
         target = _local_map(self._recent, self.poses[-1], self.options)
-        tree = cKDTree(target)
-        normals = TargetNormals(target, tree, self.options)
+        cuda_target = (None if self._cuda_factory is None else
+                       self._cuda_factory(target, self.options))
+        tree = cKDTree(target) if cuda_target is None else None
+        normals = TargetNormals(target, tree, self.options) if tree is not None else None
         deskew = point_offsets_s is not None and gap is not None and gap > 0.0
         rounds = 1 + (self.options.deskew_iterations if deskew else 0)
         motion = initial
@@ -395,16 +456,18 @@ class IncrementalScanOdometry:
                 else:
                     source = deskew_points(scan, point_offsets_s, motion, gap)
             processed = preprocess_scan(source, self.options)
-            registration = register_point_to_plane(
-                processed,
-                target,
-                motion,
-                self.options,
-                target_tree=tree,
-                target_normals=normals,
-            )
+            if cuda_target is None:
+                registration = register_point_to_plane(
+                    processed, target, motion, self.options,
+                    target_tree=tree, target_normals=normals,
+                )
+            else:
+                registration = cuda_target.register(processed, motion)
             motion = registration.transform
         assert registration is not None
+        if cuda_target is not None:
+            for name, value in cuda_target.statistics().items():
+                self.execution_statistics[name] = self.execution_statistics.get(name, 0) + value
         self.registrations.append(registration)
         self._previous_motion = registration.transform
         pose = self.poses[-1] @ registration.transform
@@ -416,7 +479,11 @@ class IncrementalScanOdometry:
     def result(self) -> ScanOdometryResult:
         """Return poses ``T_first_scan`` and registrations so far."""
 
-        return ScanOdometryResult(poses=tuple(self.poses), registrations=tuple(self.registrations))
+        return ScanOdometryResult(
+            poses=tuple(self.poses), registrations=tuple(self.registrations),
+            execution_backend=self.execution_backend,
+            execution_statistics=dict(self.execution_statistics),
+        )
 
 
 def deskew_points(
@@ -480,7 +547,9 @@ def _local_map(
     else:
         points = preprocess_scan(np.vstack(list(recent)), _unbounded(options))
     inverse = np.linalg.inv(reference_pose)
-    return points @ inverse[:3, :3].T + inverse[:3, 3]
+    return _quantize_geometry(
+        points @ inverse[:3, :3].T + inverse[:3, 3], options.geometry_quantum_m,
+    )
 
 
 def _unbounded(options: ScanOdometryOptions) -> ScanOdometryOptions:

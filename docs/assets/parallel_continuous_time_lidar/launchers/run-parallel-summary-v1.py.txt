@@ -1,0 +1,32 @@
+"""Guard sources and public inputs around independent fresh-process cohorts."""
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+workspace=next(p for p in Path(__file__).resolve().parents if (p/'pyproject.toml').is_file())
+sys.path.insert(0,str(workspace))
+os.chdir(workspace)
+from tools import benchmark_adaptive_plane_search as b
+
+revision=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+sources={p:b._digest(Path(p)) for p in (*b.SOURCES,__file__)}
+inputs=b._verified_inputs(b.REPLAY)
+for label,stem,backend,repeats in (
+    ('cpu-dense','compiled_dense_capture','numba_cpu',3),
+    ('dense','compiled_dense_capture','cuda',3),
+    ('default','compiled_queries','cuda',5),
+):
+    config=Path(f'examples/public_datasets/glim_versatile/online_continuous_time_{stem}_config.yaml')
+    config_sha=b._digest(config)
+    subprocess.run([sys.executable,'tools/benchmark_adaptive_plane_search.py',
+        '--baseline-scope','cuda-full','--baseline-commit','aa19ec5d4bf01e1167e70f48332e6e13d51263c0',
+        '--candidate-query-backend',backend,'--baseline-query-backend',backend,
+        '--config',config.as_posix(),'--repetitions',str(repeats),
+        '--output-dir',f'outputs/public-glim-parallel-summary-{label}-v1'],check=True)
+    assert revision==subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+    assert sources=={p:b._digest(Path(p)) for p in sources}
+    assert inputs==b._verified_inputs(b.REPLAY)
+    assert config_sha==b._digest(config)
+    print(f'Complete guarded {label} cohort.',flush=True)
+print('All three parallel-summary cohorts completed.',flush=True)

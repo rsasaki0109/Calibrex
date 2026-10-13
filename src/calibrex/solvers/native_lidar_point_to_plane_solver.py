@@ -24,6 +24,7 @@ from calibrex.core.result import Grade, MetricResult, ObservabilityResult
 from calibrex.data.a2d2 import find_a2d2_lidar_npz_files, read_a2d2_lidar_points
 from calibrex.data.inspect import DatasetInspection
 from calibrex.data.livox import (
+    LivoxPCDEvaluationContext,
     LivoxPointRecord,
     find_livox_pcd_files,
     read_livox_binary_pcd_records,
@@ -106,6 +107,9 @@ class NativeLidarPointToPlaneSolver(SolverAdapter):
 
     backend = NATIVE_LIDAR_POINT_TO_PLANE_BACKEND
 
+    def __init__(self, *, livox_context: LivoxPCDEvaluationContext | None = None) -> None:
+        self._livox_context = livox_context
+
     def solve(
         self,
         config: CalibrationConfig,
@@ -148,6 +152,7 @@ class NativeLidarPointToPlaneSolver(SolverAdapter):
             inputs,
             source_sensor=source_sensor,
             target_sensor=target_sensor,
+            livox_context=self._livox_context,
         )
         t_base_source = source_node.transform_to_parent
         t_base_target = target_node.transform_to_parent
@@ -308,6 +313,7 @@ def load_lidar_pair(
     *,
     source_sensor: str | None = None,
     target_sensor: str | None = None,
+    livox_context: LivoxPCDEvaluationContext | None = None,
 ) -> LidarPairData:
     """Load the first supported source/target cloud pair without ROS dependencies."""
 
@@ -349,10 +355,12 @@ def load_lidar_pair(
             target_path=str(target_path),
         )
     source_records = _stride(
-        read_livox_binary_pcd_records(source_path), inputs.max_source_points
+        (livox_context.read_records(source_path) if livox_context is not None
+         else read_livox_binary_pcd_records(source_path)), inputs.max_source_points,
     )
     target_records = _stride(
-        read_livox_binary_pcd_records(target_path), inputs.max_target_points
+        (livox_context.read_records(target_path) if livox_context is not None
+         else read_livox_binary_pcd_records(target_path)), inputs.max_target_points,
     )
     return LidarPairData(
         source_records=source_records,

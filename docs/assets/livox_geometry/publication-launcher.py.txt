@@ -1,0 +1,361 @@
+import hashlib
+import json
+import statistics
+import subprocess
+from pathlib import Path
+
+from calibrex.core.benchmark import (
+    BenchmarkDefinition, BenchmarkMetricDefinition, BenchmarkProtocol,
+    BenchmarkProvenance, BenchmarkTrial, BenchmarkTrialProvenance,
+    aggregate_benchmark_definition,
+)
+from calibrex.core.validation import validate_file
+from calibrex.core.result import load_result
+from tools.benchmark_livox_evaluation import _normalized_result
+
+DEST = Path('docs/assets/livox_geometry')
+COMMIT = '6cbd03776a4d55ef0af4c51877a8902a706a2a65'
+INTERMEDIATE = subprocess.check_output(['git', 'rev-parse', '81f62fc'], text=True).strip()
+WORKSPACE = str(Path.cwd())
+MODULE_PATHS = {
+    'livox': 'src/calibrex/data/livox.py',
+    'inspect': 'src/calibrex/data/inspect.py',
+    'lidar': 'src/calibrex/evaluation/lidar.py',
+    'calibrate': 'src/calibrex/pipelines/calibrate.py',
+    'native_registration_comparison_solver': 'src/calibrex/solvers/native_registration_comparison_solver.py',
+}
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def normalize(value):
+    if isinstance(value, dict):
+        return {normalize(k): normalize(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [normalize(v) for v in value]
+    if isinstance(value, str):
+        value = value.replace(WORKSPACE, '${WORKSPACE_ROOT}').replace(
+            WORKSPACE.replace('//', '/'), '${WORKSPACE_ROOT}')
+        if '${WORKSPACE_ROOT}' in value:
+            value = value.replace('//', '/')
+    return value
+
+
+def check_worker(root, method, repeat, canonical, metadata):
+    directory = root / f'{method}.repeat-{repeat:02d}'
+    assert hashlib.sha256(canonical.encode()).hexdigest()
+    assert sha(directory / 'result.yaml') == metadata['result_sha256']
+    assert validate_file(directory / 'result.yaml').valid
+    written = _normalized_result(
+        load_result(directory / 'result.yaml').model_dump(mode='json'), directory.resolve())
+    assert json.dumps(written, sort_keys=True, separators=(',', ':'), allow_nan=False) == canonical
+    for filename, digest in metadata['artifacts'].items():
+        assert sha(directory / filename) == digest
+
+
+def publish(root, target, commit):
+    target.mkdir(parents=True, exist_ok=True)
+    raw = BenchmarkDefinition.model_validate_json((root / 'pipeline.definition.json').read_bytes())
+    recorded_commit = subprocess.check_output(
+        ['git', 'rev-parse', raw.methods[1].source_commit + '^{commit}'], text=True).strip()
+    assert len(raw.trials) == 10 and recorded_commit == commit
+    anchor = raw.trials[0].provenance.notes[-1]
+    for trial in raw.trials:
+        assert trial.status == 'success' and trial.metrics['complete_result_matches'] == 1
+        canonical = trial.provenance.notes[-1]
+        assert canonical == anchor
+        assert hashlib.sha256(canonical.encode()).hexdigest() == trial.provenance.output_sha256
+        metadata = json.loads(trial.provenance.notes[0])
+        check_worker(root, trial.method_id, metadata['repeat'], canonical, metadata)
+    bindings = {}
+    for path in sorted(root.glob('baseline.*.py.txt')):
+        name = path.name.removeprefix('baseline.').removesuffix('.py.txt')
+        source = MODULE_PATHS[name]
+        data = subprocess.check_output(['git', 'show', raw.methods[0].source_commit + ':' + source])
+        assert path.read_bytes() == data
+        archived = target / path.name
+        archived.write_bytes(data)
+        bindings['published:' + archived.name] = sha(archived)
+        bindings['baseline:' + source] = sha(archived)
+    for source in raw.provenance.source_artifacts:
+        if not source.startswith(('src/', 'tools/')):
+            continue
+        archived = target / ('measured.' + Path(source).name + '.txt')
+        archived.write_bytes(subprocess.check_output(['git', 'show', commit + ':' + source]))
+        bindings['published:' + archived.name] = sha(archived)
+        bindings['committed:' + source] = sha(archived)
+    launcher = target / 'publication-launcher.py.txt'
+    launcher.write_text(normalize(Path(__file__).read_text(encoding='utf-8')).rstrip() + '/n', encoding='utf-8', newline='/n')
+    bindings['published:' + launcher.name] = sha(launcher)
+    payload = normalize(raw.model_dump(mode='json'))
+    payload['methods'][1]['source_commit'] = commit
+    for trial, original in zip(payload['trials'], raw.trials, strict=True):
+        trial['provenance']['notes'][0] = json.dumps(
+            normalize(json.loads(original.provenance.notes[0])), sort_keys=True)
+        trial['provenance']['notes'][-1] = original.provenance.notes[-1]
+    payload['provenance']['source_artifacts'].update(bindings)
+    payload['provenance']['source_artifacts']['original:definition'] = sha(root / 'pipeline.definition.json')
+    payload['provenance']['source_artifacts']['original:aggregate'] = sha(root / 'pipeline.benchmark.json')
+    payload['limitations'].append(
+        'Publication normalizes workspace prefixes in commands/metadata only. Complete canonical '
+        'result strings and original input/config/output/artifact hashes remain unchanged. '
+        'Archived code is exact Git bytes; working-byte and committed-byte hashes are separate. '
+        'Recorded short candidate commit IDs are resolved to their full Git commit; canonical '
+        'result strings retain the original short run.git_commit.')
+    payload['limitations'].append(
+        'Workers call the public calibration Python API; CLI dispatch is excluded. Worker '
+        'measurement JSON writes are included in wall. No timings or outliers are discarded.')
+    definition = BenchmarkDefinition.model_validate(payload)
+    definition.save(target / 'pipeline.definition.json')
+    aggregate_benchmark_definition(definition).save(target / 'pipeline.benchmark.json')
+    return definition
+
+
+original = publish(Path('outputs/public-livox-geometry-original-v1'), DEST, COMMIT)
+incremental = publish(Path('outputs/public-livox-geometry-incremental-v3'), DEST / 'incremental', COMMIT)
+intermediate = publish(Path('outputs/public-livox-geometry-incremental-v1'), DEST / 'intermediate', INTERMEDIATE)
+assert original.trials[0].provenance.notes[-1] == incremental.trials[0].provenance.notes[-1]
+
+# An interrupted parent did not retain complete subprocess wall durations or
+# finish its source/input guards. Preserve completed worker API measurements in
+# a distinct protocol, excluded from every formal full-process median.
+root = Path('outputs/public-livox-geometry-incremental-v2')
+trials = []
+for method in ('baseline', 'batched'):
+    directory = root / f'{method}.repeat-01'
+    raw = json.loads((directory / 'measurement.json').read_bytes())
+    canonical = json.dumps(raw['result'], sort_keys=True, separators=(',', ':'), allow_nan=False)
+    assert canonical == original.trials[0].provenance.notes[-1]
+    check_worker(root, method, 1, canonical, raw)
+    trials.append(BenchmarkTrial(
+        method_id=method, split_id='repeat-01', status='success',
+        runtime_seconds=raw['pipeline_seconds'],
+        metrics={'pipeline_seconds': raw['pipeline_seconds'], 'complete_result_matches': 1.0},
+        provenance=BenchmarkTrialProvenance(
+            command=(f'python tools/benchmark_livox_evaluation.py --worker {method} '
+                     '--config examples/public_datasets/livox_horizon_horizon_pcd_sample/icp_comparison_config.yaml '
+                     f'--output-dir outputs/public-livox-geometry-incremental-v2/{method}.repeat-01'),
+            config_sha256=incremental.trials[0].provenance.config_sha256,
+            input_sha256=incremental.trials[0].provenance.input_sha256,
+            output_sha256=hashlib.sha256(canonical.encode()).hexdigest(),
+            notes=[json.dumps(normalize({k: v for k, v in raw.items() if k != 'result'}), sort_keys=True),
+                   'Worker command and input/config digests reconstructed from the known invocation '
+                   'and unchanged final-comparison files; no completed parent guard is available.', canonical],
+        ),
+    ))
+interrupted = BenchmarkDefinition(
+    benchmark_id='livox-interrupted-worker-api-evidence',
+    title='Completed API worker measurements from an interrupted full-process run',
+    reference_method_id='baseline', bootstrap_samples=1,
+    protocol=BenchmarkProtocol.model_validate({
+        **incremental.protocol.model_dump(mode='json'),
+        'protocol_id': 'livox-interrupted-worker-api-v1',
+        'splits': [incremental.protocol.splits[0].model_dump(mode='json')],
+        'failure_policy': 'Parent interrupted; no complete wall timing or parent guard. API measurements retained separately.',
+    }),
+    methods=incremental.methods,
+    metrics=[
+        BenchmarkMetricDefinition(name='pipeline_seconds', label='API pipeline subset only', unit='s', direction='lower', primary=True,
+                                  interpretation='API entry through artifact saves; parent subprocess wall is unavailable.'),
+        BenchmarkMetricDefinition(name='complete_result_matches', label='Full result parity', unit='bool', direction='higher',
+                                  interpretation='Saved result and API object equal final formal payload after volatile-field normalization.'),
+    ],
+    trials=trials,
+    limitations=[
+        'The user interrupted the parent. These two API workers completed, but parent wall '
+        'durations and final guards are unavailable. Their timings do not enter any other median.',
+        'Source commit is the unchanged checkout observed before/after interruption; '
+        'committed archives identify it, but no completed parent source guard is claimed.',
+        'data_verified=false records the absent completed parent verification; saved results '
+        'retain their own raw-input provenance. Canonical results equal all 20 final formal workers.',
+    ],
+    provenance=BenchmarkProvenance(
+        generator='local interrupted-worker evidence publisher', generator_version='v0.1',
+        command='python .tmp-calibrex-publish-livox-geometry.py',
+        git_commit=COMMIT, data_verified=False,
+        source_artifacts={'original:' + method: sha(root / f'{method}.repeat-01' / 'measurement.json')
+                          for method in ('baseline', 'batched')},
+    ),
+)
+for path in root.glob('baseline.*.py.txt'):
+    archived = DEST / 'incremental' / path.name
+    assert path.read_bytes() == archived.read_bytes()
+    interrupted.provenance.source_artifacts['published:incremental/' + path.name] = sha(archived)
+for path in DEST.glob('measured.*.txt'):
+    interrupted.provenance.source_artifacts['published:' + path.name] = sha(path)
+interrupted.provenance.source_artifacts['published:publication-launcher.py.txt'] = sha(DEST / 'publication-launcher.py.txt')
+interrupted.save(DEST / 'interrupted.pipeline.definition.json')
+aggregate_benchmark_definition(interrupted).save(DEST / 'interrupted.pipeline.benchmark.json')
+
+
+def summary(definition):
+    return {method: {metric: statistics.median(t.metrics[metric] for t in definition.trials if t.method_id == method)
+                    for metric in ('subprocess_wall_seconds', 'pipeline_seconds')}
+            for method in ('baseline', 'batched')}
+
+
+def table(definition):
+    rows = ['| Repeat | Baseline wall (s) | Candidate wall (s) | Baseline API (s) | Candidate API (s) |',
+            '| --- | ---: | ---: | ---: | ---: |']
+    for repeat in range(1, 6):
+        pair = {t.method_id: t for t in definition.trials if t.split_id == f'repeat-{repeat:02d}'}
+        a, b = pair['baseline'], pair['batched']
+        rows.append(f'| {repeat} | {a.runtime_seconds:.6f} | {b.runtime_seconds:.6f} | {a.metrics["pipeline_seconds"]:.6f} | {b.metrics["pipeline_seconds"]:.6f} |')
+    values = summary(definition)
+    a, b = values['baseline'], values['batched']
+    rows.append(f'| Median | {a["subprocess_wall_seconds"]:.6f} | {b["subprocess_wall_seconds"]:.6f} | {a["pipeline_seconds"]:.6f} | {b["pipeline_seconds"]:.6f} |')
+    return '/n'.join(rows)
+
+
+def ranges(definition):
+    return '; '.join(f'{method} wall {min(t.runtime_seconds for t in definition.trials if t.method_id == method):.6f}–{max(t.runtime_seconds for t in definition.trials if t.method_id == method):.6f} s'
+                     for method in ('baseline', 'batched'))
+
+
+a = summary(original)
+b = summary(incremental)
+c = summary(intermediate)
+wall_ratio = a['baseline']['subprocess_wall_seconds'] / a['batched']['subprocess_wall_seconds']
+incremental_wall = b['baseline']['subprocess_wall_seconds'] / b['batched']['subprocess_wall_seconds']
+incremental_api = b['baseline']['pipeline_seconds'] / b['batched']['pipeline_seconds']
+readme = f'''# Public Livox geometry reuse evidence
+
+The full fresh-process comparison against `c6fd98b7b5af73be41fa01b5e4938773f4696fb1`
+measures **{a['baseline']['subprocess_wall_seconds']:.6f} → {a['batched']['subprocess_wall_seconds']:.6f} s ({wall_ratio:.2f}x)**.
+This is a direct cumulative comparison, without multiplying earlier ratios.
+The separate incremental comparison against PR #152 (`d9d156fc2aa8dc8f3afc2a00a3c10d32e3edb0f3`)
+measures **{b['baseline']['subprocess_wall_seconds']:.6f} → {b['batched']['subprocess_wall_seconds']:.6f} s ({incremental_wall:.2f}x)**;
+its API subset improves **{incremental_api:.2f}x**. The additional complete-process gain is modest.
+All 20 final formal result payloads are exactly equal after the explicit volatile-field normalization.
+
+## Implementation and scope
+
+Measured implementation: `{COMMIT}`. One context belongs to one calibration API
+invocation. Inspection, candidate plus all 24 controls and the native registration
+adapter share decoded inputs. Equivalent sampled-file sets reuse invariant
+statistics. Source voxel sums and prepared plane arrays are reused. Point lists
+returned to the adapter are copies; prepared arrays are read-only. A new run reads
+fresh inputs. There is no process-wide geometry cache.
+
+Compact extents use a direct position table capped at **8 MiB per index**. This
+capture uses 679 source map voxels across 13,224 positions (105,792 table bytes).
+Larger extents retain sparse integer search, huge extent products use structured
+keys, and unrepresentable coordinates retain the scalar path. Full voxel keys
+still reject clipped/out-of-range aliases. Sparse neighborhoods calculate distances
+only for occupied candidates, retaining the same 27-slot order and first tie.
+Dense neighborhoods keep the regular array path. Source accumulation order,
+Hamilton transform operations, nearest-normal rejection, gates, support
+denominators and residual arithmetic remain unchanged. Query chunks remain bounded
+at 4,096 × 27 associations. Avoiding unused per-point accumulator construction
+also preserves the same sums and dictionary insertion order.
+
+The complete pipeline decodes the two PCD captures once each, rather than six
+decodes, and constructs the plane index once rather than in each of 25 queries.
+All finite input points (23,921 source / 23,666 target) still enter candidate
+evaluation; the unchanged registration config caps each ICP cloud at 500
+centroids. Both native ICP backends, all their diagnostics/probes, Open3D GICP,
+NDT availability, quality evaluation and all saves remain included.
+
+The baseline loader substitutes all **five changed modules**: `data/livox.py`,
+`data/inspect.py`, `evaluation/lidar.py`, `pipelines/calibrate.py` and
+`solvers/native_registration_comparison_solver.py`. Numerical ICP solvers and
+artifact/report writers are shared. Each worker records resolved module paths;
+the parent checks those bindings and freezes HEAD, measured source/config/input
+bytes. Source archives are exact Git blobs; original working-byte hashes and
+committed-byte hashes are recorded separately. `run.git_commit` identifies the
+shared checkout, while method provenance identifies the baseline substitutions.
+
+Workers start fresh interpreters and call public `run_calibration`. Wall includes
+startup/imports, config loading, inspection, reads, evaluation, registration and
+result/report/artifact saves, plus worker measurement JSON writes. Calibrex CLI
+argument dispatch and parent audit/aggregation are excluded. API time starts at
+`run_calibration` entry and ends after its artifact writes; it is a subset of wall.
+
+## Final direct comparison
+
+{table(original)}
+
+Ranges: {ranges(original)}. No outliers are removed.
+
+## Final incremental comparison against PR #152
+
+{table(incremental)}
+
+Ranges: {ranges(incremental)}. These timings are kept separate from the cumulative
+comparison. The extra wall gain is approximately {(incremental_wall - 1) * 100:.0f}%;
+the API subset gain is approximately {(incremental_api - 1) * 100:.0f}%.
+
+## Retained intermediate and interrupted measurements
+
+The [intermediate evidence](intermediate/pipeline.definition.json) retains ten
+complete workers from `{INTERMEDIATE}`. It used two baseline substitutions and
+reused geometry only within candidate/control evaluation. Median wall was
+{c['baseline']['subprocess_wall_seconds']:.6f} → {c['batched']['subprocess_wall_seconds']:.6f} s.
+No intermediate timing enters either final comparison.
+
+A subsequent attempt was interrupted by the user before its parent completed.
+Both API workers saved complete results. The separate `interrupted.pipeline.*`
+protocol retains their measured API durations and result/artifact hashes, with
+`data_verified=false` for the absent completed parent verification. Full subprocess
+wall durations and final guards are unavailable, so these timings do not enter
+any formal median. Their canonical payloads equal the 20 final formal payloads.
+
+This directory retains **30 formal full-process workers plus two completed API
+workers from the interrupted attempt**. Definitions and aggregates validate
+against standard benchmark schemas; each aggregate is recomputed from its own
+published definition. Only run ID, timestamps, destination paths and Windows
+path separators are normalized for result parity. All numerical metrics, reason
+strings, diagnostics, controls and quality grades remain present. Publication
+normalizes private workspace prefixes only in commands and metadata.
+
+## Input and limitations
+
+Inputs are the official [Livox calibration sample](https://github.com/Livox-SDK/Livox_automatic_calibration),
+downloaded with `tools/download_public_dataset.py livox_horizon_horizon_pcd_sample`.
+File hashes are `19b3864cbee76b785d207fcb3fe48f6f506d142d8233f842d0a87fe4330fe407`
+and `61a74eb8b8ff4eeba4ca0ff824a4046ae220e947e8156f27d93da452538f5b6f`.
+The target's 23,786 declared records include 120 nonfinite positions excluded by
+the unchanged population policy. Point clouds are not redistributed here.
+
+The existing final quality remains **fail**, and the registration adapter remains
+**inconclusive**. Benchmark success means complete execution and parity, without
+a ground-truth accuracy claim or independent temporal validation for this pair.
+Five repeats per comparison reverse method order every other repeat. No separate
+warmup is used; OS caches persist, earlier experiments ran on the same host, and
+unrelated user work continues. `OMP_NUM_THREADS=1` is set only for each worker,
+equally for both methods. Host settings and user processes are untouched.
+Python 3.12.10, NumPy 2.3.4, SciPy 1.17.1 and Open3D 0.19.0. These descriptive
+ranges do not establish confidence intervals or a portable speed guarantee.
+No GPU is used by this change. Prior benchmark ratios must not be multiplied.
+
+## Reproduction
+
+Use the measured implementation commit, materialize the official data, and run
+each comparison into a new directory:
+
+```bash
+python tools/download_public_dataset.py livox_horizon_horizon_pcd_sample
+python tools/benchmark_livox_evaluation.py --output-dir outputs/livox-geometry-original //
+  --baseline-commit c6fd98b7b5af73be41fa01b5e4938773f4696fb1 --repetitions 5 --omp-threads 1
+python tools/benchmark_livox_evaluation.py --output-dir outputs/livox-geometry-incremental //
+  --baseline-commit d9d156fc2aa8dc8f3afc2a00a3c10d32e3edb0f3 --repetitions 5 --omp-threads 1
+```
+
+Local verification covers 163 relevant tests plus 44 CLI/lifecycle tests (one
+optional CLI test skipped), strict typing of 349 source files, Ruff, exact result
+parity, memory bounds, holes/clipped keys, dense/sparse neighborhoods, malformed
+inputs, new-run replacement, point-list isolation and unchanged sample semantics.
+'''
+DEST.joinpath('README.md').write_text(readme, encoding='utf-8', newline='/n')
+for folder, title in ((DEST / 'incremental', 'Final incremental comparison'),
+                      (DEST / 'intermediate', 'Retained intermediate comparison')):
+    folder.joinpath('README.md').write_text(
+        f'# {title}/n/nSee the [complete protocol and scope](../README.md)./n', encoding='utf-8', newline='/n')
+launcher = DEST / 'publication-launcher.py.txt'
+launcher.write_text(normalize(Path(__file__).read_text(encoding='utf-8')).rstrip() + '/n', encoding='utf-8', newline='/n')
+for path in DEST.rglob('*.json'):
+    assert validate_file(path).valid
+print('Published 30 formal workers + 2 interrupted API workers; 8 schemas: PASS')
+print('Cumulative wall ratio', wall_ratio, 'incremental wall/API', incremental_wall, incremental_api)

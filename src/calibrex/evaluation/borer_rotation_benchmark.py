@@ -3,16 +3,20 @@
 from __future__ import annotations
 
 import hashlib
+import io
+import json
 import math
 import time
 from collections.abc import Iterator
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
+from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
-from typing import TypeAlias
+from typing import Any, TypeAlias
 
 import numpy as np
+import yaml
 from numpy.typing import NDArray
 
 from calibrex.core.benchmark import (
@@ -50,9 +54,8 @@ from calibrex.core.result import (
     TransformResult,
 )
 from calibrex.data.depth import (
-    DepthFileReference,
     DepthProviderArtifact,
-    load_depth_provider,
+    _verify_depth_file_reference,
     verify_depth_provider_files,
 )
 from calibrex.solvers.borer_depth_to_depth_solver import (
@@ -112,8 +115,8 @@ def build_borer_rotation_protocol(
     """Build the explicit 200-point Fibonacci-sphere paper protocol."""
 
     path = Path(problem_path)
-    problem = load_camera_lidar_problem(path)
-    problem_digest = _required_digest(path)
+    problem_mapping, problem_digest = _read_bound_mapping(path)
+    problem = CameraLidarCalibrationProblem.model_validate(problem_mapping)
     perturbations = [
         CameraLidarPerturbation(
             trial_id=f"rotation-{rotation_magnitude_deg:g}deg-{index:03d}",
@@ -324,24 +327,64 @@ def _fibonacci_sphere_vectors(
     return tuple(unit_scaled)
 
 
-def load_borer_problem(
-    problem_path: str | Path,
-) -> LoadedCameraLidarProblem:
-    """Verify all digests and load depth/LiDAR arrays for native D2D."""
+@dataclass(frozen=True)
+class _BorerProblemArtifacts:
+    path: Path
+    problem: CameraLidarCalibrationProblem
+    problem_digest: str
+    provider: DepthProviderArtifact
+    provider_path: Path
+    provider_digest: str
+
+
+@dataclass
+class _PreparedBorerInputs:
+    loaded: LoadedCameraLidarProblem
+    checkpoint_verification: Future[tuple[str | None, float]] | None = None
+    checkpoint_verification_seconds: float = 0.0
+
+    def complete_verification(self) -> None:
+        """Wait for every deferred input check before constructing an output."""
+
+        if self.checkpoint_verification is not None:
+            issue, seconds = self.checkpoint_verification.result()
+            self.checkpoint_verification_seconds = seconds
+            if issue is not None:
+                raise ValueError("depth provider verification failed: " + issue)
+
+
+def _read_borer_artifacts(problem_path: str | Path) -> _BorerProblemArtifacts:
 
     path = Path(problem_path)
-    problem = load_camera_lidar_problem(path)
-    problem_digest = _required_digest(path)
+    problem_mapping, problem_digest = _read_bound_mapping(path)
+    problem = CameraLidarCalibrationProblem.model_validate(problem_mapping)
     depth_provider_path = _resolve(path.parent, problem.depth_provider_path)
-    depth_digest = _required_digest(depth_provider_path)
+    provider_mapping, depth_digest = _read_bound_mapping(depth_provider_path)
     if depth_digest != problem.depth_provider_sha256:
         raise ValueError(
             "depth provider digest mismatch: "
             f"expected {problem.depth_provider_sha256}, observed {depth_digest}"
         )
-    provider = load_depth_provider(depth_provider_path)
+    provider = DepthProviderArtifact.model_validate(provider_mapping)
+    return _BorerProblemArtifacts(
+        path, problem, problem_digest, provider, depth_provider_path, depth_digest,
+    )
+
+
+def _load_borer_observations(
+    artifacts: _BorerProblemArtifacts, *, defer_checkpoint: bool = False,
+) -> LoadedCameraLidarProblem:
+    path, problem, provider = artifacts.path, artifacts.problem, artifacts.provider
+    depth_provider_path = artifacts.provider_path
+    verification_provider = provider
+    if defer_checkpoint:
+        # Only the independently checked checkpoint is deferred. All provider
+        # images/depth/uncertainty files are still verified before array loading.
+        verification_provider = provider.model_copy(update={
+            "provider": provider.provider.model_copy(update={"checkpoint": None}),
+        })
     provider_issues = verify_depth_provider_files(
-        provider,
+        verification_provider,
         base_path=depth_provider_path.parent,
     )
     if provider_issues:
@@ -357,10 +400,11 @@ def load_borer_problem(
                 f"{binding.depth_observation_frame_id}"
             ) from exc
         lidar_path = _resolve(path.parent, binding.lidar.path)
-        _verify_reference(lidar_path, binding.lidar)
         depth_path = _resolve(depth_provider_path.parent, depth_observation.depth.path)
         depth: FloatArray = np.array(
-            _load_depth(depth_path, depth_observation.depth.encoding),
+            _load_depth(
+                depth_path, depth_observation.depth.encoding, depth_observation.depth.sha256,
+            ),
             dtype=float,
             copy=True,
         )
@@ -385,7 +429,7 @@ def load_borer_problem(
             DepthToDepthObservation(
                 frame_id=binding.frame_id,
                 depth_map=depth,
-                lidar_points=_load_lidar(lidar_path, binding.lidar.encoding),
+                lidar_points=_load_lidar(lidar_path, binding.lidar.encoding, binding.lidar.sha256),
                 camera=camera,
                 depth_scale_convention=depth_observation.scale_convention,
             )
@@ -397,9 +441,48 @@ def load_borer_problem(
         reference_transform_camera_lidar=(
             problem.reference_transform_camera_lidar.as_se3()
         ),
-        problem_sha256=problem_digest,
-        depth_provider_sha256=depth_digest,
+        problem_sha256=artifacts.problem_digest,
+        depth_provider_sha256=artifacts.provider_digest,
     )
+
+
+def load_borer_problem(problem_path: str | Path) -> LoadedCameraLidarProblem:
+    """Verify all digests and load depth/LiDAR arrays for native D2D."""
+
+    return _load_borer_observations(_read_borer_artifacts(problem_path))
+
+
+@contextmanager
+def _prepare_borer_problem(
+    problem_path: str | Path, *, overlap_checkpoint: bool,
+) -> Iterator[_PreparedBorerInputs]:
+    """Overlap one checkpoint check; successful exit requires its completion.
+
+    Arrays are always decoded from their own digest-verified bytes. Callers
+    must complete verification before constructing a result. No file, digest,
+    loaded array or executor is cached between invocations.
+    """
+
+    artifacts = _read_borer_artifacts(problem_path)
+    checkpoint = artifacts.provider.provider.checkpoint
+    if not overlap_checkpoint or checkpoint is None:
+        yield _PreparedBorerInputs(_load_borer_observations(artifacts))
+        return
+
+    def verify_checkpoint() -> tuple[str | None, float]:
+        started = time.perf_counter()
+        issue = _verify_depth_file_reference(checkpoint, artifacts.provider_path.parent)
+        return issue, time.perf_counter() - started
+
+    with ThreadPoolExecutor(
+        max_workers=1, thread_name_prefix="calibrex-input-verification",
+    ) as pool:
+        future = pool.submit(verify_checkpoint)
+        prepared = _PreparedBorerInputs(
+            _load_borer_observations(artifacts, defer_checkpoint=True), future,
+        )
+        yield prepared
+        prepared.complete_verification()
 
 
 def run_borer_rotation_benchmark(
@@ -892,38 +975,53 @@ def _hit(
     )
 
 
-def _load_depth(path: Path, encoding: str) -> FloatArray:
+def _read_bound_mapping(path: Path) -> tuple[dict[str, Any], str]:
+    """Parse the exact artifact bytes whose digest is recorded."""
+
+    raw = path.read_bytes()
+    text = raw.decode("utf-8")
+    data = json.loads(text) if path.suffix.lower() == ".json" else yaml.safe_load(text)
+    if not isinstance(data, dict):
+        raise ValueError(f"{path} must contain a mapping at the top level")
+    return data, hashlib.sha256(raw).hexdigest()
+
+
+def _bound_array_bytes(path: Path, expected: str, label: str) -> bytes:
+    raw = path.read_bytes()
+    observed = hashlib.sha256(raw).hexdigest()
+    if observed != expected:
+        raise ValueError(
+            f"{label} digest mismatch for {path}: expected {expected}, observed {observed}"
+        )
+    return raw
+
+
+def _load_depth(path: Path, encoding: str, expected_digest: str) -> FloatArray:
     if encoding not in {"npy_float32", "npy_float64"}:
         raise ValueError(f"unsupported native D2D depth encoding: {encoding}")
-    data = np.load(path, allow_pickle=False)
+    data = np.load(
+        io.BytesIO(_bound_array_bytes(path, expected_digest, "depth")), allow_pickle=False,
+    )
     depth = np.asarray(data, dtype=float)
     if depth.ndim != 2:
         raise ValueError(f"depth array must be HxW: {path}")
     return depth
 
 
-def _load_lidar(path: Path, encoding: str) -> FloatArray:
+def _load_lidar(path: Path, encoding: str, expected_digest: str) -> FloatArray:
+    data = _bound_array_bytes(path, expected_digest, "LiDAR")
     if encoding == "kitti_velodyne_f32x4":
-        raw: NDArray[np.float32] = np.fromfile(path, dtype="<f4")
+        raw: NDArray[np.float32] = np.frombuffer(data, dtype="<f4")
         if raw.size % 4:
             raise ValueError(f"KITTI LiDAR file is not float32 Nx4: {path}")
         return np.asarray(raw.reshape(-1, 4)[:, :3], dtype=float)
     if encoding in {"npy_xyz_float32", "npy_xyz_float64"}:
-        raw = np.load(path, allow_pickle=False)
+        raw = np.load(io.BytesIO(data), allow_pickle=False)
         points = np.asarray(raw, dtype=float)
         if points.ndim != 2 or points.shape[1] not in {3, 4}:
             raise ValueError(f"LiDAR NPY must have shape Nx3 or Nx4: {path}")
         return points[:, :3]
     raise ValueError(f"unsupported native D2D LiDAR encoding: {encoding}")
-
-
-def _verify_reference(path: Path, reference: DepthFileReference) -> None:
-    observed = _required_digest(path)
-    if observed != reference.sha256:
-        raise ValueError(
-            f"LiDAR digest mismatch for {reference.path}: "
-            f"expected {reference.sha256}, observed {observed}"
-        )
 
 
 def _resolve(base: Path, value: str) -> Path:

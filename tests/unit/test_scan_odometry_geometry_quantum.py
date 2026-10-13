@@ -1,0 +1,39 @@
+"""Coordinate canonicalization is explicit and leaves default geometry unchanged."""
+
+from __future__ import annotations
+
+from dataclasses import replace
+
+import numpy as np
+import pytest
+
+from calibrex.solvers.scan_to_scan_odometry import ScanOdometryOptions, preprocess_scan
+
+
+def test_quantum_canonicalizes_positive_and_negative_roundoff_boundaries() -> None:
+    options = ScanOdometryOptions(voxel_size_m=.3, min_range_m=0.)
+    xs = [.3, np.nextafter(.3, 0.), np.nextafter(.3, np.inf),
+          -.3, np.nextafter(-.3, 0.), np.nextafter(-.3, -np.inf)]
+    points = np.column_stack((xs, np.zeros(6), np.ones(6)))
+    original = preprocess_scan(points, options)
+    assert len(original) == 4
+    canonical = preprocess_scan(points, replace(options, geometry_quantum_m=1e-9))
+    assert len(canonical) == 2
+    np.testing.assert_allclose(canonical[:, 0], [-.3, .3], rtol=0, atol=1e-15)
+
+
+def test_quantum_keeps_bins_and_bounds_coordinate_changes() -> None:
+    rng = np.random.default_rng(19)
+    points = rng.uniform(-10., 10., (10000, 3))
+    options = ScanOdometryOptions(voxel_size_m=.03, min_range_m=0.)
+    original = preprocess_scan(points, options)
+    canonical = preprocess_scan(points, replace(options, geometry_quantum_m=1e-9))
+    assert original.shape == canonical.shape
+    np.testing.assert_allclose(original, canonical, rtol=0, atol=1e-9)
+    np.testing.assert_array_equal(original, preprocess_scan(points, options))
+
+
+@pytest.mark.parametrize("quantum", [-1., np.inf, np.nan])
+def test_invalid_geometry_quantum_rejected(quantum: float) -> None:
+    with pytest.raises(ValueError, match="geometry_quantum_m"):
+        preprocess_scan(np.ones((1, 3)), ScanOdometryOptions(geometry_quantum_m=quantum))

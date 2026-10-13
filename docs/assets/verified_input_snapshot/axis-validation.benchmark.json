@@ -1,0 +1,703 @@
+{
+  "benchmark_id": "public_kitti_verified_input_snapshot_axes",
+  "bootstrap_samples": 1,
+  "bootstrap_seed": 0,
+  "limitations": [
+    "One development drive; six fixed signed axes; two snapshot estimates per case. No timing comparison.",
+    "Convergence/parity do not establish accuracy. Historical CPU is an imported numerical oracle only."
+  ],
+  "method_summaries": {
+    "cuda_snapshot_1": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "cuda_snapshot_1",
+      "metrics": {
+        "evaluation_count": {
+          "distribution": {
+            "count": 6,
+            "maximum": 313.0,
+            "mean": 261.0,
+            "mean_ci95_high": 269.0,
+            "mean_ci95_low": 269.0,
+            "median": 253.0,
+            "minimum": 229.0,
+            "p90": 295.0,
+            "p95": 304.0,
+            "standard_deviation": 28.284271247461902
+          },
+          "metric": "evaluation_count",
+          "rank": 1
+        },
+        "numerical_parity": {
+          "distribution": {
+            "count": 6,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "numerical_parity",
+          "rank": 1
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 0
+      },
+      "success_count": 6,
+      "trial_count": 6
+    },
+    "cuda_snapshot_2": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "cuda_snapshot_2",
+      "metrics": {
+        "evaluation_count": {
+          "distribution": {
+            "count": 6,
+            "maximum": 313.0,
+            "mean": 261.0,
+            "mean_ci95_high": 269.0,
+            "mean_ci95_low": 269.0,
+            "median": 253.0,
+            "minimum": 229.0,
+            "p90": 295.0,
+            "p95": 304.0,
+            "standard_deviation": 28.284271247461902
+          },
+          "metric": "evaluation_count",
+          "rank": 1
+        },
+        "numerical_parity": {
+          "distribution": {
+            "count": 6,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "numerical_parity",
+          "rank": 1
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 0
+      },
+      "success_count": 6,
+      "trial_count": 6
+    },
+    "historical_numpy": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "historical_numpy",
+      "metrics": {
+        "evaluation_count": {
+          "distribution": {
+            "count": 6,
+            "maximum": 313.0,
+            "mean": 261.0,
+            "mean_ci95_high": 269.0,
+            "mean_ci95_low": 269.0,
+            "median": 253.0,
+            "minimum": 229.0,
+            "p90": 295.0,
+            "p95": 304.0,
+            "standard_deviation": 28.284271247461902
+          },
+          "metric": "evaluation_count",
+          "rank": 1
+        },
+        "numerical_parity": {
+          "distribution": {
+            "count": 6,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "numerical_parity",
+          "rank": 1
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 0
+      },
+      "success_count": 6,
+      "trial_count": 6
+    }
+  },
+  "methods": [
+    {
+      "implementation": "imported",
+      "label": "historical_numpy",
+      "method_id": "historical_numpy",
+      "source_commit": "46516ec",
+      "tool_name": "Calibrex"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "cuda_snapshot_1",
+      "method_id": "cuda_snapshot_1",
+      "source_commit": "9cdba24",
+      "tool_name": "Calibrex"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "cuda_snapshot_2",
+      "method_id": "cuda_snapshot_2",
+      "source_commit": "9cdba24",
+      "tool_name": "Calibrex"
+    }
+  ],
+  "metrics": [
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Complete solver trace, poses, metrics and holdout equal the bound CPU numerical oracle.",
+      "label": "Exact complete payload parity",
+      "name": "numerical_parity",
+      "primary": false,
+      "unit": "ratio"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Equivalent search workload; not accuracy.",
+      "label": "Evaluations",
+      "name": "evaluation_count",
+      "primary": false,
+      "unit": "count"
+    }
+  ],
+  "paired_comparisons": [
+    {
+      "candidate_method_id": "cuda_snapshot_1",
+      "direction": "higher",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "numerical_parity",
+      "paired_count": 6,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "historical_numpy"
+    },
+    {
+      "candidate_method_id": "cuda_snapshot_1",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "evaluation_count",
+      "paired_count": 6,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "historical_numpy"
+    },
+    {
+      "candidate_method_id": "cuda_snapshot_2",
+      "direction": "higher",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "numerical_parity",
+      "paired_count": 6,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "historical_numpy"
+    },
+    {
+      "candidate_method_id": "cuda_snapshot_2",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "evaluation_count",
+      "paired_count": 6,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "historical_numpy"
+    }
+  ],
+  "protocol": {
+    "data_license": "CC-BY-NC-SA-3.0",
+    "dataset_id": "kitti_raw_2011_09_30_drive_0018",
+    "dataset_source_sha256": "ed5ad3947b2ca94b415ceabbc16d2d767ad084b2e8fd4b83937570c28b6c6e8d",
+    "failure_policy": "Keep failed/partial attempts; never substitute a backend or discard a case.",
+    "initial_estimate_policy": "Dataset reference plus local Euler rotation +/-0.5 deg and camera-frame translation +/-0.5 m, on x, y, z in that order. Controlled prior; reference is never the optimization target.",
+    "protocol_id": "verified_input_snapshot_axis_validation/v0.1",
+    "split_policy": "Six fixed signed-axis initializations on the same uniform 20-fit/5-holdout provider frames; repetitions are timing observations, not independent recovery trials.",
+    "splits": [
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "x-positive/repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "x-negative/repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "y-positive/repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "y-negative/repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "z-positive/repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "z-negative/repeat-01"
+      }
+    ],
+    "tuning_policy": "All cases/settings fixed before execution; no holdout tuning or filtering."
+  },
+  "provenance": {
+    "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-validate-input-snapshot-axes.py",
+    "data_verified": true,
+    "generated_at": "2026-10-11T02:42:52.663642+00:00",
+    "generator": "manual.verified_input_snapshot_axes",
+    "generator_version": "v0.1",
+    "git_commit": "9cdba24",
+    "source_artifacts": {
+      "original_axis_benchmark": "84284ad0f3a88b37080aea5bf94de95931ded46ff43322a5814eb349393df1d6",
+      "original_axis_definition": "93a0a3fda1e0844d912e4b5dbc94431c049f682b0d4fbe413b2c6213ab71bfc5",
+      "original_numpy_x-negative": "035f477846a799136d300bff08f6d538cf9bbb0594bb344bc988e6381f74c27d",
+      "original_numpy_x-positive": "c9a4957390cef79fe796d8726fb8a3fcd6af90c4bb33d6d1293e6c4a81056800",
+      "original_numpy_y-negative": "ce7f29693fd263a697cc07e92ecbe71f6644c8163d6103cab2845008829f78e5",
+      "original_numpy_y-positive": "f32ec190e70ed2d205b039afd246103271b49b8f068cf6e014b73b2ce9e2141c",
+      "original_numpy_z-negative": "c535eb2f81aa34a44a71c513eab6eb2e283aeb66ffa9509c0e95ee8967c3ffb8",
+      "original_numpy_z-positive": "9292a8ae32ee2dfcf628d2b57a577c2ed93993e94e81e0ae651cc236207e11fb",
+      "problem_x-negative": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+      "problem_x-positive": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+      "problem_y-negative": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+      "problem_y-positive": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+      "problem_z-negative": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+      "problem_z-positive": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+      "validation_launcher": "fa73a06ac459ae468dff5438a061b39bb432dfd333fef351231b55052ce89894"
+    }
+  },
+  "reference_method_id": "historical_numpy",
+  "schema_version": "slac.benchmark/v0.1",
+  "title": "Verified input snapshot six-axis numerical validation",
+  "trials": [
+    {
+      "method_id": "historical_numpy",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "historical numerical oracle",
+        "config_sha256": "f4010bd2cb6531dba7ee8ee7321628630800620430ca4a6718b3a71dcb32b465",
+        "input_sha256": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+        "notes": [
+          "Original result: outputs/public-kitti-six-dof-sweep-cuda-v1/x-positive/numpy.result.json",
+          "Complete expected payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Historical CPU imported as numerical oracle only; timings omitted. Two fresh GPU backends reuse the same snapshot per case."
+        ],
+        "output_sha256": "c9a4957390cef79fe796d8726fb8a3fcd6af90c4bb33d6d1293e6c4a81056800"
+      },
+      "split_id": "x-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_snapshot_1",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-validate-input-snapshot-axes.py",
+        "config_sha256": "13bbf176acc022393ef16d25ce1304d7ad2ddee4122e37996b47697af418b3f1",
+        "input_sha256": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+        "notes": [
+          "Original result: outputs/public-kitti-input-snapshot-axis-validation-v1/x-positive.repeat-01.result.json",
+          "Complete expected payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Historical CPU imported as numerical oracle only; timings omitted. Two fresh GPU backends reuse the same snapshot per case.",
+          "Output SHA256 binds original external result bytes; whole payload compared exactly with bound CPU oracle."
+        ],
+        "output_sha256": "548e83c1192838127a7895afa6795d35a38854cdbe3985406a69b8a22ecb1f9a"
+      },
+      "split_id": "x-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_snapshot_2",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-validate-input-snapshot-axes.py",
+        "config_sha256": "13bbf176acc022393ef16d25ce1304d7ad2ddee4122e37996b47697af418b3f1",
+        "input_sha256": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+        "notes": [
+          "Original result: outputs/public-kitti-input-snapshot-axis-validation-v1/x-positive.repeat-02.result.json",
+          "Complete expected payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Historical CPU imported as numerical oracle only; timings omitted. Two fresh GPU backends reuse the same snapshot per case.",
+          "Output SHA256 binds original external result bytes; whole payload compared exactly with bound CPU oracle."
+        ],
+        "output_sha256": "0ee1b52eb6c7efd319682dc362df2b5c60b343534ff3ae63a79a8c7d9b40b1a5"
+      },
+      "split_id": "x-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "historical_numpy",
+      "metrics": {
+        "evaluation_count": 313.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "historical numerical oracle",
+        "config_sha256": "7b65f411260871a74d4bbdeab8a10c75d6107d704f2a64d08209f5da0ad259d2",
+        "input_sha256": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+        "notes": [
+          "Original result: outputs/public-kitti-six-dof-sweep-cuda-v1/x-negative/numpy.result.json",
+          "Complete expected payload SHA256: 87dda842423caf9856487c3c0532b25e0a1b2be6708f1fbfef01c981842e3f30",
+          "Historical CPU imported as numerical oracle only; timings omitted. Two fresh GPU backends reuse the same snapshot per case."
+        ],
+        "output_sha256": "035f477846a799136d300bff08f6d538cf9bbb0594bb344bc988e6381f74c27d"
+      },
+      "split_id": "x-negative/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_snapshot_1",
+      "metrics": {
+        "evaluation_count": 313.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-validate-input-snapshot-axes.py",
+        "config_sha256": "897b3c382129344051f0846af0309edaa6b1016d96c2330cc4b6717298c0d70e",
+        "input_sha256": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+        "notes": [
+          "Original result: outputs/public-kitti-input-snapshot-axis-validation-v1/x-negative.repeat-01.result.json",
+          "Complete expected payload SHA256: 87dda842423caf9856487c3c0532b25e0a1b2be6708f1fbfef01c981842e3f30",
+          "Historical CPU imported as numerical oracle only; timings omitted. Two fresh GPU backends reuse the same snapshot per case.",
+          "Output SHA256 binds original external result bytes; whole payload compared exactly with bound CPU oracle."
+        ],
+        "output_sha256": "44902e6cf77a0cff3a4a2f5a85c4d775755338f9e90382ae9901bbb37a5b0f0a"
+      },
+      "split_id": "x-negative/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_snapshot_2",
+      "metrics": {
+        "evaluation_count": 313.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-validate-input-snapshot-axes.py",
+        "config_sha256": "897b3c382129344051f0846af0309edaa6b1016d96c2330cc4b6717298c0d70e",
+        "input_sha256": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+        "notes": [
+          "Original result: outputs/public-kitti-input-snapshot-axis-validation-v1/x-negative.repeat-02.result.json",
+          "Complete expected payload SHA256: 87dda842423caf9856487c3c0532b25e0a1b2be6708f1fbfef01c981842e3f30",
+          "Historical CPU imported as numerical oracle only; timings omitted. Two fresh GPU backends reuse the same snapshot per case.",
+          "Output SHA256 binds original external result bytes; whole payload compared exactly with bound CPU oracle."
+        ],
+        "output_sha256": "97a4d5aafc2ee18328fb3de828ba174f52c15143442b27de0d9ef89b25156a2b"
+      },
+      "split_id": "x-negative/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "historical_numpy",
+      "metrics": {
+        "evaluation_count": 277.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "historical numerical oracle",
+        "config_sha256": "27eac5d33fd02b511eadee82a620266b42d9d84368df4340b78a385dac8dade9",
+        "input_sha256": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+        "notes": [
+          "Original result: outputs/public-kitti-six-dof-sweep-cuda-v1/y-positive/numpy.result.json",
+          "Complete expected payload SHA256: ff4000687512d5d99ef33b28769a7b03ca064915a332f22457d91edc6b251a0e",
+          "Historical CPU imported as numerical oracle only; timings omitted. Two fresh GPU backends reuse the same snapshot per case."
+        ],
+        "output_sha256": "f32ec190e70ed2d205b039afd246103271b49b8f068cf6e014b73b2ce9e2141c"
+      },
+      "split_id": "y-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_snapshot_1",
+      "metrics": {
+        "evaluation_count": 277.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-validate-input-snapshot-axes.py",
+        "config_sha256": "412f23fa6dd49f5b31219db884a945f0b0aeb7e54ba82be3056a8cab50d526ce",
+        "input_sha256": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+        "notes": [
+          "Original result: outputs/public-kitti-input-snapshot-axis-validation-v1/y-positive.repeat-01.result.json",
+          "Complete expected payload SHA256: ff4000687512d5d99ef33b28769a7b03ca064915a332f22457d91edc6b251a0e",
+          "Historical CPU imported as numerical oracle only; timings omitted. Two fresh GPU backends reuse the same snapshot per case.",
+          "Output SHA256 binds original external result bytes; whole payload compared exactly with bound CPU oracle."
+        ],
+        "output_sha256": "d8149a4b5b19c604662f77020a68dabeb86adb1fe3270af01cbbcc29a84afc28"
+      },
+      "split_id": "y-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_snapshot_2",
+      "metrics": {
+        "evaluation_count": 277.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-validate-input-snapshot-axes.py",
+        "config_sha256": "412f23fa6dd49f5b31219db884a945f0b0aeb7e54ba82be3056a8cab50d526ce",
+        "input_sha256": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+        "notes": [
+          "Original result: outputs/public-kitti-input-snapshot-axis-validation-v1/y-positive.repeat-02.result.json",
+          "Complete expected payload SHA256: ff4000687512d5d99ef33b28769a7b03ca064915a332f22457d91edc6b251a0e",
+          "Historical CPU imported as numerical oracle only; timings omitted. Two fresh GPU backends reuse the same snapshot per case.",
+          "Output SHA256 binds original external result bytes; whole payload compared exactly with bound CPU oracle."
+        ],
+        "output_sha256": "5df8f1d6077405a5bcc9929d55c24748a612aa0a308432991443ff8fda88e688"
+      },
+      "split_id": "y-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "historical_numpy",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "historical numerical oracle",
+        "config_sha256": "3a96217308608cb6b732da80c8df9efbe10af23f332a04189f1600a9d14a50d9",
+        "input_sha256": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+        "notes": [
+          "Original result: outputs/public-kitti-six-dof-sweep-cuda-v1/y-negative/numpy.result.json",
+          "Complete expected payload SHA256: a83600290648b1cd807f3dc1ae480a836b5ad5442d146106bea72c4239fbab31",
+          "Historical CPU imported as numerical oracle only; timings omitted. Two fresh GPU backends reuse the same snapshot per case."
+        ],
+        "output_sha256": "ce7f29693fd263a697cc07e92ecbe71f6644c8163d6103cab2845008829f78e5"
+      },
+      "split_id": "y-negative/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_snapshot_1",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-validate-input-snapshot-axes.py",
+        "config_sha256": "a9f48f1af26d950d7bb94e5ea79acb19127dc2843c62ee6efe6e45749d129c4f",
+        "input_sha256": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+        "notes": [
+          "Original result: outputs/public-kitti-input-snapshot-axis-validation-v1/y-negative.repeat-01.result.json",
+          "Complete expected payload SHA256: a83600290648b1cd807f3dc1ae480a836b5ad5442d146106bea72c4239fbab31",
+          "Historical CPU imported as numerical oracle only; timings omitted. Two fresh GPU backends reuse the same snapshot per case.",
+          "Output SHA256 binds original external result bytes; whole payload compared exactly with bound CPU oracle."
+        ],
+        "output_sha256": "ad199d9a2c02d0d3979fff02892ee41504962a06738934c69ef402a0c74c3bf9"
+      },
+      "split_id": "y-negative/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_snapshot_2",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-validate-input-snapshot-axes.py",
+        "config_sha256": "a9f48f1af26d950d7bb94e5ea79acb19127dc2843c62ee6efe6e45749d129c4f",
+        "input_sha256": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+        "notes": [
+          "Original result: outputs/public-kitti-input-snapshot-axis-validation-v1/y-negative.repeat-02.result.json",
+          "Complete expected payload SHA256: a83600290648b1cd807f3dc1ae480a836b5ad5442d146106bea72c4239fbab31",
+          "Historical CPU imported as numerical oracle only; timings omitted. Two fresh GPU backends reuse the same snapshot per case.",
+          "Output SHA256 binds original external result bytes; whole payload compared exactly with bound CPU oracle."
+        ],
+        "output_sha256": "1ce16c1586034a15accb5eb8d5690c53bea66b181053180fb4a615c14425ffa1"
+      },
+      "split_id": "y-negative/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "historical_numpy",
+      "metrics": {
+        "evaluation_count": 265.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "historical numerical oracle",
+        "config_sha256": "f8db1eee68cf4a42fd0e244783daabfc44c2a5763b636d37461a1d56d1c78844",
+        "input_sha256": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+        "notes": [
+          "Original result: outputs/public-kitti-six-dof-sweep-cuda-v1/z-positive/numpy.result.json",
+          "Complete expected payload SHA256: 5728c3e4f3a03bd8cc723f5dad3f212f2e32b86c8703a6dd5f383569c4adb10e",
+          "Historical CPU imported as numerical oracle only; timings omitted. Two fresh GPU backends reuse the same snapshot per case."
+        ],
+        "output_sha256": "9292a8ae32ee2dfcf628d2b57a577c2ed93993e94e81e0ae651cc236207e11fb"
+      },
+      "split_id": "z-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_snapshot_1",
+      "metrics": {
+        "evaluation_count": 265.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-validate-input-snapshot-axes.py",
+        "config_sha256": "2a3b928d1da06cba820652ccebb9b515e4ef3620360abe4c09bb312078faaf35",
+        "input_sha256": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+        "notes": [
+          "Original result: outputs/public-kitti-input-snapshot-axis-validation-v1/z-positive.repeat-01.result.json",
+          "Complete expected payload SHA256: 5728c3e4f3a03bd8cc723f5dad3f212f2e32b86c8703a6dd5f383569c4adb10e",
+          "Historical CPU imported as numerical oracle only; timings omitted. Two fresh GPU backends reuse the same snapshot per case.",
+          "Output SHA256 binds original external result bytes; whole payload compared exactly with bound CPU oracle."
+        ],
+        "output_sha256": "b4bc2010140a52e0f2c9b6bb953611b7c8d26c3646e960b46ad7da2dd1d3a831"
+      },
+      "split_id": "z-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_snapshot_2",
+      "metrics": {
+        "evaluation_count": 265.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-validate-input-snapshot-axes.py",
+        "config_sha256": "2a3b928d1da06cba820652ccebb9b515e4ef3620360abe4c09bb312078faaf35",
+        "input_sha256": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+        "notes": [
+          "Original result: outputs/public-kitti-input-snapshot-axis-validation-v1/z-positive.repeat-02.result.json",
+          "Complete expected payload SHA256: 5728c3e4f3a03bd8cc723f5dad3f212f2e32b86c8703a6dd5f383569c4adb10e",
+          "Historical CPU imported as numerical oracle only; timings omitted. Two fresh GPU backends reuse the same snapshot per case.",
+          "Output SHA256 binds original external result bytes; whole payload compared exactly with bound CPU oracle."
+        ],
+        "output_sha256": "8f12f5ac8a516d098eaf8925b264443a5ddd739e7b3d27586afb98cc8ab2212c"
+      },
+      "split_id": "z-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "historical_numpy",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "historical numerical oracle",
+        "config_sha256": "cbbb4f5fe00d8053ac94e4f4ddd98cdef6f7f91c627dae504fa1a84bcb9fa024",
+        "input_sha256": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+        "notes": [
+          "Original result: outputs/public-kitti-six-dof-sweep-cuda-v1/z-negative/numpy.result.json",
+          "Complete expected payload SHA256: 98f24ccd4619a8c834e4856b38a879a62b4b4351cf1fd190d19793ef71dbd848",
+          "Historical CPU imported as numerical oracle only; timings omitted. Two fresh GPU backends reuse the same snapshot per case."
+        ],
+        "output_sha256": "c535eb2f81aa34a44a71c513eab6eb2e283aeb66ffa9509c0e95ee8967c3ffb8"
+      },
+      "split_id": "z-negative/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_snapshot_1",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-validate-input-snapshot-axes.py",
+        "config_sha256": "88eb6c0ce8d06496ea8402375cc752488e45f463b06e9ceb0bfca829bfc6fd2e",
+        "input_sha256": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+        "notes": [
+          "Original result: outputs/public-kitti-input-snapshot-axis-validation-v1/z-negative.repeat-01.result.json",
+          "Complete expected payload SHA256: 98f24ccd4619a8c834e4856b38a879a62b4b4351cf1fd190d19793ef71dbd848",
+          "Historical CPU imported as numerical oracle only; timings omitted. Two fresh GPU backends reuse the same snapshot per case.",
+          "Output SHA256 binds original external result bytes; whole payload compared exactly with bound CPU oracle."
+        ],
+        "output_sha256": "dd263e010beaffc82b0a2c1244f37216a016195e874f3e576bd94b65f5236191"
+      },
+      "split_id": "z-negative/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda_snapshot_2",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "${WORKSPACE_ROOT}/.venv/Scripts/python.exe ${WORKSPACE_ROOT}/.tmp-calibrex-validate-input-snapshot-axes.py",
+        "config_sha256": "88eb6c0ce8d06496ea8402375cc752488e45f463b06e9ceb0bfca829bfc6fd2e",
+        "input_sha256": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+        "notes": [
+          "Original result: outputs/public-kitti-input-snapshot-axis-validation-v1/z-negative.repeat-02.result.json",
+          "Complete expected payload SHA256: 98f24ccd4619a8c834e4856b38a879a62b4b4351cf1fd190d19793ef71dbd848",
+          "Historical CPU imported as numerical oracle only; timings omitted. Two fresh GPU backends reuse the same snapshot per case.",
+          "Output SHA256 binds original external result bytes; whole payload compared exactly with bound CPU oracle."
+        ],
+        "output_sha256": "4cdb45f7514e589b1dcf6763f93ef81b6a9e948285153b14fd760a0818ae0da0"
+      },
+      "split_id": "z-negative/repeat-01",
+      "status": "success"
+    }
+  ]
+}

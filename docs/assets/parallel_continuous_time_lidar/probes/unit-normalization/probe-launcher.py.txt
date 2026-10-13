@@ -1,0 +1,88 @@
+"""Probe a bit-preserving unit norm shortcut in shared CPU arithmetic."""
+import hashlib
+import json
+import math
+import statistics
+import subprocess
+import sys
+import time
+from pathlib import Path
+import numpy as np
+from numba import njit
+from calibrex.core.geometry import SE3
+from calibrex.solvers import numba_continuous_time_adapter as a
+
+@njit(cache=False,nogil=True,fastmath=False,inline='always')
+def unit_normalized(q):
+    x,y,z,w=q
+    norm=math.sqrt(x*x+y*y+z*z+w*w)
+    if norm==1.0:
+        return q
+    return x/norm,y/norm,z/norm,w/norm
+
+def digest(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+source='src/calibrex/solvers/numba_continuous_time_adapter.py'
+guards={source:digest(source),'probe-launcher.py.txt':digest(__file__)}
+report={'provenance':{'source_commit':subprocess.check_output(
+    ['git','rev-parse','HEAD'],text=True).strip(),'source_sha256':guards,'python_version':sys.version},
+    'kernel_only':True,'cases':[]}
+candidate_sum=candidate_rows=None
+for unit_poses in (False,True):
+    count=600000
+    rng=np.random.default_rng(419)
+    points,planes,normals=[rng.normal(size=(count,3)) for _ in range(3)]
+    poses=rng.normal(size=(count,7))
+    if unit_poses:
+        for _ in range(2):
+            q=poses[:,3:]
+            q/=np.sqrt(q[:,0]*q[:,0]+q[:,1]*q[:,1]+q[:,2]*q[:,2]+q[:,3]*q[:,3])[:,None]
+    weights=rng.uniform(0.,2.,size=count)
+    t=SE3((.1,-.2,.3),(.2,-.3,.1,.9))
+    transform=np.asarray((*t.translation_m,*t.rotation_quat_xyzw))
+    arrays=(points,planes,normals,poses,weights,transform)
+    for array in arrays:
+        array.flags.writeable=False
+    # Freeze the reference dispatchers before replacing only this process's globals.
+    references={p:a._residual_square_sum(*arrays,p) for p in (False,True)}
+    residuals=a._residual_rows(*arrays)
+    if candidate_sum is None:
+        native_normalized,native_one=a._normalized,a._one_residual
+        a._normalized=unit_normalized
+        a._one_residual=njit(cache=False,nogil=True,fastmath=False,inline='never')(native_one.py_func)
+        candidate_sum=njit(cache=False,nogil=True,fastmath=False)(a._residual_square_sum.py_func)
+        candidate_rows=njit(cache=False,nogil=True,fastmath=False)(a._residual_rows.py_func)
+        candidate_sum(*arrays,False)
+        candidate_rows(*arrays)
+        a._normalized,a._one_residual=native_normalized,native_one
+    actual=candidate_rows(*arrays)
+    assert np.array_equal(residuals.view(np.uint64),actual.view(np.uint64))
+    case={'count':count,'seed':419,'unit_poses':unit_poses,
+        'input_sha256':hashlib.sha256(b''.join(v.tobytes() for v in arrays)).hexdigest(),
+        'residuals_sha256':hashlib.sha256(actual.tobytes()).hexdigest(),'policies':[]}
+    for policy in (False,True):
+        baseline=references[policy]
+        assert np.float64(baseline).tobytes()==np.float64(candidate_sum(*arrays,policy)).tobytes()
+        trials=[]
+        for repeat in range(9):
+            methods=[('baseline',a._residual_square_sum),('candidate',candidate_sum)]
+            if repeat%2:
+                methods.reverse()
+            row={'repeat':repeat+1,'order':[m for m,_ in methods]}
+            for name,method in methods:
+                start=time.perf_counter()
+                value=method(*arrays,policy)
+                row[name]=time.perf_counter()-start
+                assert np.float64(value).tobytes()==np.float64(baseline).tobytes()
+            trials.append(row)
+        case['policies'].append({'compensated':policy,'sum_hex':float(baseline).hex(),'trials':trials})
+        medians={m:statistics.median(t[m] for t in trials) for m in ('baseline','candidate')}
+        print(json.dumps({'unit_poses':unit_poses,'compensated':policy,'medians':medians,
+                          'kernel_ratio':medians['baseline']/medians['candidate']}),flush=True)
+    report['cases'].append(case)
+assert guards=={source:digest(source),'probe-launcher.py.txt':digest(__file__)}
+out=Path('outputs/unit-normalization-probe-v1')
+out.mkdir()
+(out/'probe.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8',newline='\n')
+(out/'probe-launcher.py.txt').write_bytes(Path(__file__).read_bytes())
+(out/'baseline.numba_continuous_time_adapter.py.txt').write_bytes(Path(source).read_bytes())

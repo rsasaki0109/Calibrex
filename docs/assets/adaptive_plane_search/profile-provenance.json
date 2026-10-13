@@ -1,0 +1,52 @@
+{
+  "revision": "240ed2cf885f9bbcffc0be68a6afac1d51b29280",
+  "substituted_revision": "240ed2cf885f9bbcffc0be68a6afac1d51b29280",
+  "command": [
+    "<PYTHON>",
+    "-m",
+    "cProfile",
+    "-o",
+    "outputs/glim-adaptive-baseline-profile-v1/runtime.prof",
+    "measured.benchmark_adaptive_plane_search.py.txt",
+    "--worker",
+    "baseline",
+    "--config",
+    "examples/public_datasets/glim_versatile/online_continuous_time_benchmark_config.yaml",
+    "--output-dir",
+    "outputs/glim-adaptive-baseline-profile-v1/worker"
+  ],
+  "bindings": {
+    "measured.adaptive_voxel.py.txt": "5e6a745b3586318f6217c763dc82a273610f282129f37bccc05b20d130bc5e2d",
+    "measured.odometry_track.py.txt": "2021cc5aad8feb80f094d35c0587b557d67e371eaa3fdb66bd0f963ab9900134",
+    "measured.lidar_point_to_plane.py.txt": "b06f91e377d301d5884f76420b6bda0f0ba02328e14aae1ec8ed8c9b977f3230",
+    "measured.continuous_time_lidar_pair_solver.py.txt": "4c35a1b64eac326594c388cb57c96048f36e065dea904f3387b8ac8fc6d0d0b9",
+    "measured.fixed_trajectory_se3_solver.py.txt": "ebd4125671dea753c364723ff15191f31b66ad25626f0d869ee3ea1df898ad65",
+    "measured.lidar.py.txt": "41ea70261447143dedb630c7107cac465f3081bd60586e6b72c18872424d806d",
+    "measured.livox.py.txt": "283724dcbd28d63b0a886ab7a41a79071a14db5ba41d7571477ed5c82226909e",
+    "measured.online.py.txt": "e21cc7fe07c7cfd32123e94a66069f7720e9ab132c7c0d09baac3ef95acea244",
+    "measured.continuous_time_lidar_artifacts.py.txt": "96c051290b6b4f82f81fcc108b6ea4525b1497af064a3dedb8196e7dedd9d874",
+    "measured.continuous_time_lidar_train_diagnostics.py.txt": "f86b7e9d569b4ef61d85834df790207dbe2f424af17ec0f5df16b9f2aef6fcac",
+    "measured.provenance.py.txt": "eb7849f342892272ae136454da816852d080684b25c8ec55771582c1b8621f47",
+    "measured.rosbag1_to_rosbag2_online_pair.py.txt": "9da3e080b62933d4d75f92c08bba91929fea401d99650e55f78bd3cdabfcc680",
+    "measured.lidar_scan_deskew.py.txt": "e36a870323f76256fb5b3f8b8364cb2edb4c06483b3ea0fe8a99bf2faa6f1ce0",
+    "examples/public_datasets/glim_versatile/online_continuous_time_benchmark_config.yaml": "1042046af792e37bbf3aa824d9edd7fcf2b6972f95c00da3d7137b992206b613",
+    "outputs/glim-adaptive-baseline-profile-v1/baseline.adaptive_voxel.py.txt": "b127a085cf777ca67ac3051c4ce62dc387bb808aaa6cd97333981b74bbc2f0f7",
+    "profile.benchmark_adaptive_plane_search.py.txt": "e2b10ea1c66d036c8a9f602e230d46b7e4490cb8ed20541f38a46722632744d6"
+  },
+  "inputs": {
+    "data/public/glim_versatile/livox.bag": "f57a2e85339316d4235ab693ab2876aac5e113625c7f8b0f7873b62f92e09643",
+    "data/public/glim_versatile/gt.tar.gz": "4bfd871527d00065898153e77a6764ac331421aca16ff88bde778994f70f5bc9",
+    "data/public/glim_versatile/gt/livox.txt": "bcc75ff7985f2e140e514c69f029153e0127a33ee7abc1b757e077386f5059ad",
+    "data/public/glim_versatile/livox_rosbag2_gt_restamped/livox_rosbag2_gt_restamped.db3": "8d28f0a8ddda13b880e4648e9d687d4a566d40f70b87547f8798fe8a18cfde9e",
+    "data/public/glim_versatile/livox_rosbag2_gt_restamped/metadata.yaml": "7542a3e1689e2007e9c15b8d163cddcbca4d87232dd92b7ecff48ba1e0f6645f",
+    "data/public/glim_versatile/conversion-provenance.json": "7f51da99c1bdc0b2768229e6ff22809d5d0bb22e02dcc62dce2c3ce0dac2da56"
+  },
+  "profile_sha256": "135ea957a3d698c8933e71584a6ccb3fa844c48b09d1a898ee1cfc16cbeed64d",
+  "measurement_sha256": "44001012eff9c46b1007903fa65dcab57a120286b387992c40838657c1c84ac0",
+  "purpose": "Instrumented bottleneck identification, not speed measurement; benchmark tool currently uncommitted",
+  "notes": [
+    "Instrumented profile used the preceding uncommitted benchmark launcher; its exact contents are reconstructed and checked against the captured digest.",
+    "Profile bindings record working-file bytes; Git archives use LF. The actual adaptive module was substituted by the baseline import hook.",
+    "The profile is bottleneck evidence, not a speed measurement."
+  ]
+}

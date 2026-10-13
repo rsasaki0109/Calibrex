@@ -17,9 +17,9 @@ from __future__ import annotations
 import hashlib
 import math
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Literal, TypeAlias
+from typing import Any, Literal, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -40,15 +40,19 @@ from calibrex.core.provenance import git_commit
 from calibrex.data.livox_ros2 import LivoxStreamProfile, bag_input_digest, iter_livox_points
 from calibrex.solvers.lidar_lidar_map_solver import (
     EXTRINSIC_DOFS,
+    MapBackend,
     MapExtrinsicResult,
     MapSample,
     MapSampleOptions,
+    _map_runtime,
+    _MapRuntime,
     chi_square,
     perturb_extrinsic,
     solve_map_extrinsic,
 )
 from calibrex.solvers.scan_to_scan_odometry import (
     IncrementalScanOdometry,
+    OdometryBackend,
     ScanOdometryOptions,
     preprocess_scan,
 )
@@ -131,10 +135,12 @@ def evaluate_lidar_lidar_map(
     options: LidarLidarMapOptions | None = None,
     *,
     reference_transform: FloatArray | None = None,
+    backend: MapBackend = "cpu",
 ) -> LidarLidarEvaluation:
     """Fit on train blocks; collect jackknife, control, and holdout evidence."""
 
     opts = options or LidarLidarMapOptions()
+    runtime = _map_runtime(samples, opts.solver, backend)
     blocks = sorted({sample.block for sample in samples})
     holdout_blocks = tuple(
         block for position, block in enumerate(blocks) if position % opts.holdout_every == 1
@@ -142,16 +148,16 @@ def evaluate_lidar_lidar_map(
     train_blocks = tuple(block for block in blocks if block not in holdout_blocks)
     train = [sample for sample in samples if sample.block in train_blocks]
     holdout = [sample for sample in samples if sample.block in holdout_blocks]
-    result = solve_map_extrinsic(train, initial, opts.solver)
+    result = solve_map_extrinsic(train, initial, opts.solver, _runtime=runtime)
     if result.transform is None or result.covariance is None or result.sigma_m is None:
         return LidarLidarEvaluation(
             result, (), train_blocks, holdout_blocks, 0, len(train), len(holdout), 0, None, None,
             "fail", ("too few samples with map correspondences to solve",),
         )  # fmt: skip
     transform = result.transform
-    jackknife, fits = _jackknife(train, train_blocks, transform, opts)
+    jackknife, fits = _jackknife(train, train_blocks, transform, opts, _runtime=runtime)
     base, holdout_median, holdout_count = chi_square(
-        holdout, transform, result.sigma_m, opts.solver
+        holdout, transform, result.sigma_m, opts.solver, _runtime=runtime
     )
     analytic = np.sqrt(np.clip(np.diag(result.covariance), 0.0, None))
     records = tuple(
@@ -161,7 +167,7 @@ def evaluate_lidar_lidar_map(
             transform,
             float(analytic[index]),
             None if jackknife is None else float(jackknife[index]),
-            _control(dof, holdout, transform, result.sigma_m, base, opts),
+            _control(dof, holdout, transform, result.sigma_m, base, opts, _runtime=runtime),
             reference_transform,
             opts,
         )
@@ -169,9 +175,10 @@ def evaluate_lidar_lidar_map(
     )
     reference_delta = None
     if reference_transform is not None and holdout:
-        moved, _, _ = chi_square(holdout, reference_transform, result.sigma_m, opts.solver)
+        moved, _, _ = chi_square(holdout, reference_transform, result.sigma_m, opts.solver,
+                                _runtime=runtime)
         reference_delta = moved - base
-    train_median = _median_residual(train, transform, result.sigma_m, opts)
+    train_median = _median_residual(train, transform, result.sigma_m, opts, _runtime=runtime)
     status, reasons = _policy(records, train_median, holdout_median, holdout_count, opts)
     return LidarLidarEvaluation(
         result=result,
@@ -200,6 +207,8 @@ def collect_map_samples(
     point_time_encoding: PointTimeEncoding = "offset_s",
     target_point_time_field: str | None = None,
     target_point_time_encoding: PointTimeEncoding | None = None,
+    odometry_backend: OdometryBackend = "cpu",
+    _odometry_execution: dict[str, Any] | None = None,
 ) -> tuple[list[MapSample], int]:
     """Run the reference odometry, then build one sample per strided target scan.
 
@@ -229,7 +238,10 @@ def collect_map_samples(
         return LivoxStreamProfile("lidar", topic, "", point_time_field, point_time_encoding, "mps2")
 
     emit_stage(f"reference LiDAR odometry + map ({reference_topic})")
-    odometry = IncrementalScanOdometry(opts.odometry)
+    odometry = IncrementalScanOdometry(opts.odometry, backend=odometry_backend)
+    if _odometry_execution is not None:
+        _odometry_execution["odometry_execution"] = odometry.execution_backend
+        _odometry_execution["odometry_options"] = asdict(opts.odometry)
     scans: list[NDArray[np.float32]] = []
     times: list[float] = []
     first: float | None = None
@@ -299,10 +311,13 @@ def run_ros2_lidar_lidar_map(
     target_point_time_field: str | None = None,
     target_point_time_encoding: PointTimeEncoding | None = None,
     command: list[str] | None = None,
+    backend: MapBackend = "cpu",
+    odometry_backend: OdometryBackend = "cpu",
 ) -> LidarLidarExtrinsicArtifact:
     """Calibrate ``T_reference_target`` for two LiDARs recorded in one ROS 2 bag."""
 
     opts = options or LidarLidarMapOptions()
+    odometry_execution: dict[str, Any] = {}
     samples, reference_scans = collect_map_samples(
         bag,
         reference_topic=reference_topic,
@@ -313,9 +328,11 @@ def run_ros2_lidar_lidar_map(
         point_time_encoding=point_time_encoding,
         target_point_time_field=target_point_time_field,
         target_point_time_encoding=target_point_time_encoding,
+        odometry_backend=odometry_backend,
+        _odometry_execution=odometry_execution,
     )
     evaluation = evaluate_lidar_lidar_map(
-        samples, initial, opts, reference_transform=reference_transform
+        samples, initial, opts, reference_transform=reference_transform, backend=backend
     )
     digest, scope = bag_input_digest([bag])
     result = evaluation.result
@@ -366,6 +383,10 @@ def run_ros2_lidar_lidar_map(
             "huber_m": opts.solver.huber_m,
             "iterations": opts.solver.iterations,
             **({"deskew": "none"} if opts.deskew == "none" else {}),
+            **({"registration_backend": "cuda", "registration_execution": result.execution_backend}
+               if backend == "cuda" else {}),
+            **({"odometry_backend": "cuda", **odometry_execution}
+               if odometry_backend == "cuda" else {}),
         },
         reference=reference,
         limitations=[*LIMITATIONS, *(RIGID_SCAN_LIMITATIONS if opts.deskew == "none" else ())],
@@ -390,6 +411,8 @@ def _jackknife(
     train_blocks: Sequence[int],
     transform: FloatArray,
     opts: LidarLidarMapOptions,
+    *,
+    _runtime: _MapRuntime | None = None,
 ) -> tuple[FloatArray | None, int]:
     groups = min(opts.jackknife_groups, len(train_blocks))
     if groups < 3:
@@ -398,7 +421,8 @@ def _jackknife(
     for members in np.array_split(np.asarray(train_blocks), groups):
         left_out = set(members.tolist())
         fit = solve_map_extrinsic(
-            [sample for sample in train if sample.block not in left_out], transform, opts.solver
+            [sample for sample in train if sample.block not in left_out], transform, opts.solver,
+            _runtime=_runtime,
         )
         if fit.transform is None:
             return None, 0
@@ -466,6 +490,8 @@ def _control(
     sigma: float,
     base: float,
     opts: LidarLidarMapOptions,
+    *,
+    _runtime: _MapRuntime | None = None,
 ) -> LidarLidarControl | None:
     if not holdout:
         return None
@@ -476,6 +502,7 @@ def _control(
         perturb_extrinsic(transform, dof, math.radians(amount) if rotation else amount),
         sigma,
         opts.solver,
+        _runtime=_runtime,
     )
     delta = moved - base
     return LidarLidarControl(
@@ -487,11 +514,12 @@ def _control(
 
 
 def _median_residual(
-    samples: Sequence[MapSample], transform: FloatArray, sigma: float, opts: LidarLidarMapOptions
+    samples: Sequence[MapSample], transform: FloatArray, sigma: float, opts: LidarLidarMapOptions,
+    *, _runtime: _MapRuntime | None = None,
 ) -> float | None:
     if not samples:
         return None
-    _, median, count = chi_square(samples, transform, sigma, opts.solver)
+    _, median, count = chi_square(samples, transform, sigma, opts.solver, _runtime=_runtime)
     return median if count else None
 
 

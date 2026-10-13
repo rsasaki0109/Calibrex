@@ -1,0 +1,820 @@
+{
+  "benchmark_id": "kitti_raw_2011_09_30_drive_0018-image_02-d2d-public-six-dof-demo",
+  "bootstrap_samples": 1,
+  "bootstrap_seed": 0,
+  "limitations": [
+    "One sequence, one perturbation, 3 invocation(s) per backend. Repetitions measure timing on the same frames, not independent recovery trials. Bootstrap intervals do not establish statistical confidence for this demo.",
+    "All invocations, including the first, contribute to timing. There is no separate warm-up or cold-process guarantee; lazy compilation and process-wide caches affect latency.",
+    "Optimizer convergence and CPU/GPU parity do not establish calibration accuracy. Dataset reference is not independent metrology; covariance/observability remain unknown.",
+    "Only the supplied frozen provider frames are eligible; uniform selection is by position within that provider. Learned depth and frame synchronization can bias the fit.",
+    "Provider training/evaluation overlap: possible. official non-online-refined checkpoint selected; repository does not publish enough training IDs to exclude drive overlap",
+    "training/evaluation drive overlap cannot be excluded",
+    "raw FeatDepth inverse-depth/disparity is retained for D2D histograms",
+    "metric depth conversion parameters are recorded but not applied",
+    "checkpoint sha256=559f168c762d01af7c745b32ced8930a12423a0e9b62af791f7d894bd902af27"
+  ],
+  "method_summaries": {
+    "numba_cpu": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "numba_cpu",
+      "metrics": {
+        "holdout_mi": {
+          "distribution": {
+            "count": 3,
+            "maximum": 1.2934945423757032,
+            "mean": 1.2934945423757032,
+            "mean_ci95_high": 1.2934945423757032,
+            "mean_ci95_low": 1.2934945423757032,
+            "median": 1.2934945423757032,
+            "minimum": 1.2934945423757032,
+            "p90": 1.2934945423757032,
+            "p95": 1.2934945423757032,
+            "standard_deviation": 0.0
+          },
+          "metric": "holdout_mi",
+          "rank": 1
+        },
+        "initial_rotation_difference_deg": {
+          "distribution": {
+            "count": 3,
+            "maximum": 0.4999999999999031,
+            "mean": 0.499999999999903,
+            "mean_ci95_high": 0.499999999999903,
+            "mean_ci95_low": 0.499999999999903,
+            "median": 0.4999999999999031,
+            "minimum": 0.4999999999999031,
+            "p90": 0.4999999999999031,
+            "p95": 0.4999999999999031,
+            "standard_deviation": 0.0
+          },
+          "metric": "initial_rotation_difference_deg",
+          "rank": 1
+        },
+        "initial_translation_difference_m": {
+          "distribution": {
+            "count": 3,
+            "maximum": 0.5,
+            "mean": 0.5,
+            "mean_ci95_high": 0.5,
+            "mean_ci95_low": 0.5,
+            "median": 0.5,
+            "minimum": 0.5,
+            "p90": 0.5,
+            "p95": 0.5,
+            "standard_deviation": 0.0
+          },
+          "metric": "initial_translation_difference_m",
+          "rank": 1
+        },
+        "numerical_parity": {
+          "distribution": {
+            "count": 3,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "numerical_parity",
+          "rank": 1
+        },
+        "pipeline_seconds": {
+          "distribution": {
+            "count": 3,
+            "maximum": 8.200420099950861,
+            "mean": 7.029620066653782,
+            "mean_ci95_high": 6.462722200007799,
+            "mean_ci95_low": 6.462722200007799,
+            "median": 6.499726500012912,
+            "minimum": 6.388713599997573,
+            "p90": 7.860281379963271,
+            "p95": 8.030350739957067,
+            "standard_deviation": 0.8291202182509625
+          },
+          "metric": "pipeline_seconds",
+          "rank": 1
+        },
+        "rotation_difference_deg": {
+          "distribution": {
+            "count": 3,
+            "maximum": 0.3909230132921424,
+            "mean": 0.3909230132921424,
+            "mean_ci95_high": 0.3909230132921424,
+            "mean_ci95_low": 0.3909230132921424,
+            "median": 0.3909230132921424,
+            "minimum": 0.3909230132921424,
+            "p90": 0.3909230132921424,
+            "p95": 0.3909230132921424,
+            "standard_deviation": 0.0
+          },
+          "metric": "rotation_difference_deg",
+          "rank": 1
+        },
+        "solve_seconds": {
+          "distribution": {
+            "count": 3,
+            "maximum": 5.139487900014501,
+            "mean": 4.091092500001348,
+            "mean_ci95_high": 3.5477967333281413,
+            "mean_ci95_low": 3.5477967333281413,
+            "median": 3.624188999994658,
+            "minimum": 3.509600599994883,
+            "p90": 4.836428120010532,
+            "p95": 4.987958010012516,
+            "standard_deviation": 0.74280204246272
+          },
+          "metric": "solve_seconds",
+          "rank": 1
+        },
+        "train_mi": {
+          "distribution": {
+            "count": 3,
+            "maximum": 1.2342895217787462,
+            "mean": 1.2342895217787462,
+            "mean_ci95_high": 1.2342895217787462,
+            "mean_ci95_low": 1.2342895217787462,
+            "median": 1.2342895217787462,
+            "minimum": 1.2342895217787462,
+            "p90": 1.2342895217787462,
+            "p95": 1.2342895217787462,
+            "standard_deviation": 0.0
+          },
+          "metric": "train_mi",
+          "rank": 1
+        },
+        "translation_difference_m": {
+          "distribution": {
+            "count": 3,
+            "maximum": 0.16007810593582122,
+            "mean": 0.16007810593582122,
+            "mean_ci95_high": 0.16007810593582122,
+            "mean_ci95_low": 0.16007810593582122,
+            "median": 0.16007810593582122,
+            "minimum": 0.16007810593582122,
+            "p90": 0.16007810593582122,
+            "p95": 0.16007810593582122,
+            "standard_deviation": 0.0
+          },
+          "metric": "translation_difference_m",
+          "rank": 1
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 3,
+        "maximum": 8.200420099950861,
+        "mean": 7.029620066653782,
+        "mean_ci95_high": 6.462722200007799,
+        "mean_ci95_low": 6.462722200007799,
+        "median": 6.499726500012912,
+        "minimum": 6.388713599997573,
+        "p90": 7.860281379963271,
+        "p95": 8.030350739957067,
+        "standard_deviation": 0.8291202182509625
+      },
+      "success_count": 3,
+      "trial_count": 3
+    },
+    "numpy": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "numpy",
+      "metrics": {
+        "holdout_mi": {
+          "distribution": {
+            "count": 3,
+            "maximum": 1.2934945423757032,
+            "mean": 1.2934945423757032,
+            "mean_ci95_high": 1.2934945423757032,
+            "mean_ci95_low": 1.2934945423757032,
+            "median": 1.2934945423757032,
+            "minimum": 1.2934945423757032,
+            "p90": 1.2934945423757032,
+            "p95": 1.2934945423757032,
+            "standard_deviation": 0.0
+          },
+          "metric": "holdout_mi",
+          "rank": 1
+        },
+        "initial_rotation_difference_deg": {
+          "distribution": {
+            "count": 3,
+            "maximum": 0.4999999999999031,
+            "mean": 0.499999999999903,
+            "mean_ci95_high": 0.499999999999903,
+            "mean_ci95_low": 0.499999999999903,
+            "median": 0.4999999999999031,
+            "minimum": 0.4999999999999031,
+            "p90": 0.4999999999999031,
+            "p95": 0.4999999999999031,
+            "standard_deviation": 0.0
+          },
+          "metric": "initial_rotation_difference_deg",
+          "rank": 1
+        },
+        "initial_translation_difference_m": {
+          "distribution": {
+            "count": 3,
+            "maximum": 0.5,
+            "mean": 0.5,
+            "mean_ci95_high": 0.5,
+            "mean_ci95_low": 0.5,
+            "median": 0.5,
+            "minimum": 0.5,
+            "p90": 0.5,
+            "p95": 0.5,
+            "standard_deviation": 0.0
+          },
+          "metric": "initial_translation_difference_m",
+          "rank": 1
+        },
+        "numerical_parity": {
+          "distribution": {
+            "count": 3,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "numerical_parity",
+          "rank": 1
+        },
+        "pipeline_seconds": {
+          "distribution": {
+            "count": 3,
+            "maximum": 103.56800109997857,
+            "mean": 77.00437623332255,
+            "mean_ci95_high": 81.78006770000017,
+            "mean_ci95_low": 81.78006770000017,
+            "median": 70.88610100001097,
+            "minimum": 56.5590265999781,
+            "p90": 97.03162107998506,
+            "p95": 100.29981108998182,
+            "standard_deviation": 19.672923689821996
+          },
+          "metric": "pipeline_seconds",
+          "rank": 2
+        },
+        "rotation_difference_deg": {
+          "distribution": {
+            "count": 3,
+            "maximum": 0.3909230132921424,
+            "mean": 0.3909230132921424,
+            "mean_ci95_high": 0.3909230132921424,
+            "mean_ci95_low": 0.3909230132921424,
+            "median": 0.3909230132921424,
+            "minimum": 0.3909230132921424,
+            "p90": 0.3909230132921424,
+            "p95": 0.3909230132921424,
+            "standard_deviation": 0.0
+          },
+          "metric": "rotation_difference_deg",
+          "rank": 1
+        },
+        "solve_seconds": {
+          "distribution": {
+            "count": 3,
+            "maximum": 100.62344660004601,
+            "mean": 73.87634273335182,
+            "mean_ci95_high": 78.25963559998975,
+            "mean_ci95_low": 78.25963559998975,
+            "median": 67.07773009996163,
+            "minimum": 53.92785150004784,
+            "p90": 93.91430330002913,
+            "p95": 97.26887495003757,
+            "standard_deviation": 19.660205165764214
+          },
+          "metric": "solve_seconds",
+          "rank": 2
+        },
+        "train_mi": {
+          "distribution": {
+            "count": 3,
+            "maximum": 1.2342895217787462,
+            "mean": 1.2342895217787462,
+            "mean_ci95_high": 1.2342895217787462,
+            "mean_ci95_low": 1.2342895217787462,
+            "median": 1.2342895217787462,
+            "minimum": 1.2342895217787462,
+            "p90": 1.2342895217787462,
+            "p95": 1.2342895217787462,
+            "standard_deviation": 0.0
+          },
+          "metric": "train_mi",
+          "rank": 1
+        },
+        "translation_difference_m": {
+          "distribution": {
+            "count": 3,
+            "maximum": 0.16007810593582122,
+            "mean": 0.16007810593582122,
+            "mean_ci95_high": 0.16007810593582122,
+            "mean_ci95_low": 0.16007810593582122,
+            "median": 0.16007810593582122,
+            "minimum": 0.16007810593582122,
+            "p90": 0.16007810593582122,
+            "p95": 0.16007810593582122,
+            "standard_deviation": 0.0
+          },
+          "metric": "translation_difference_m",
+          "rank": 1
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 3,
+        "maximum": 103.56800109997857,
+        "mean": 77.00437623332255,
+        "mean_ci95_high": 81.78006770000017,
+        "mean_ci95_low": 81.78006770000017,
+        "median": 70.88610100001097,
+        "minimum": 56.5590265999781,
+        "p90": 97.03162107998506,
+        "p95": 100.29981108998182,
+        "standard_deviation": 19.672923689821996
+      },
+      "success_count": 3,
+      "trial_count": 3
+    }
+  },
+  "methods": [
+    {
+      "implementation": "calibrex_native",
+      "label": "NumPy CPU reference",
+      "method_id": "numpy",
+      "source_commit": "f00c54b",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "numba_cpu CPU candidate (2 frame threads)",
+      "method_id": "numba_cpu",
+      "source_commit": "f00c54b",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    }
+  ],
+  "metrics": [
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "One invocation; includes lazy JIT.",
+      "label": "Solve time",
+      "name": "solve_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Load, prepare, solve, holdout.",
+      "label": "Pipeline time",
+      "name": "pipeline_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Controlled initial difference to dataset reference.",
+      "label": "Initial rotation difference",
+      "name": "initial_rotation_difference_deg",
+      "primary": false,
+      "unit": "deg"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Controlled initial difference to dataset reference.",
+      "label": "Initial translation difference",
+      "name": "initial_translation_difference_m",
+      "primary": false,
+      "unit": "m"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Difference to dataset-provided calibration, not metrology error.",
+      "label": "Rotation difference",
+      "name": "rotation_difference_deg",
+      "primary": false,
+      "unit": "deg"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Difference to dataset-provided calibration, not metrology error.",
+      "label": "Translation difference",
+      "name": "translation_difference_m",
+      "primary": false,
+      "unit": "m"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Fit-only frozen histogram ranges.",
+      "label": "Training mutual information",
+      "name": "train_mi",
+      "primary": false,
+      "unit": "nat"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Prespecified five frames excluded from fit and histogram range selection.",
+      "label": "Holdout mutual information",
+      "name": "holdout_mi",
+      "primary": false,
+      "unit": "nat"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Full trace, output poses, metrics, and holdout evaluations match exactly.",
+      "label": "Exact numerical parity",
+      "name": "numerical_parity",
+      "primary": false,
+      "unit": "ratio"
+    }
+  ],
+  "paired_comparisons": [
+    {
+      "candidate_method_id": "numba_cpu",
+      "direction": "lower",
+      "improvement_ci95_high": 74.71183886666161,
+      "improvement_ci95_low": 74.71183886666161,
+      "improvement_mean": 69.78525023335048,
+      "metric": "solve_seconds",
+      "paired_count": 3,
+      "raw_delta_mean": -69.78525023335048,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "numba_cpu",
+      "direction": "lower",
+      "improvement_ci95_high": 75.31734549999237,
+      "improvement_ci95_low": 75.31734549999237,
+      "improvement_mean": 69.97475616666877,
+      "metric": "pipeline_seconds",
+      "paired_count": 3,
+      "raw_delta_mean": -69.97475616666877,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "numba_cpu",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "initial_rotation_difference_deg",
+      "paired_count": 3,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "numba_cpu",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "initial_translation_difference_m",
+      "paired_count": 3,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "numba_cpu",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "rotation_difference_deg",
+      "paired_count": 3,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "numba_cpu",
+      "direction": "lower",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "translation_difference_m",
+      "paired_count": 3,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "numba_cpu",
+      "direction": "higher",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "train_mi",
+      "paired_count": 3,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "numba_cpu",
+      "direction": "higher",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "holdout_mi",
+      "paired_count": 3,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "numba_cpu",
+      "direction": "higher",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "numerical_parity",
+      "paired_count": 3,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "numpy"
+    }
+  ],
+  "protocol": {
+    "data_license": "CC-BY-NC-SA-3.0",
+    "dataset_id": "kitti_raw_2011_09_30_drive_0018",
+    "dataset_source_sha256": "ed5ad3947b2ca94b415ceabbc16d2d767ad084b2e8fd4b83937570c28b6c6e8d",
+    "failure_policy": "Preserve failed/partial trials and available standard results; never replace an unavailable candidate with CPU output.",
+    "initial_estimate_policy": "Controlled demo initialization: dataset reference plus fixed local Euler offsets. Rotation deg xyz=(0.5, 0.0, 0.0); camera-frame translation m xyz=(0.5, 0.0, 0.0). This is not an independently measured prior.",
+    "protocol_id": "calibrex.public_six_dof_demo/v0.3",
+    "split_policy": "25 numeric-ordered, uniformly selected provider positions; every fifth frame is holdout (20 fit / 5 holdout), fixed before optimization.",
+    "splits": [
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "uniform-25-fit20-holdout5-repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "uniform-25-fit20-holdout5-repeat-02"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "uniform-25-fit20-holdout5-repeat-03"
+      }
+    ],
+    "tuning_policy": "Same solver settings for both backends; no holdout tuning."
+  },
+  "provenance": {
+    "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --candidate-backend numba_cpu --candidate-frame-workers 2 --repetitions 3 --output-dir outputs/public-kitti-six-dof-fused-cpu-v1 --json",
+    "data_verified": true,
+    "generated_at": "2026-10-11T01:44:11.861187+00:00",
+    "generator": "calibrex.pipelines.public_camera_lidar_demo",
+    "generator_version": "calibrex.public_six_dof_demo/v0.3",
+    "git_commit": "f00c54b",
+    "source_artifacts": {
+      "assets/frame-0000000460.png": "0f1f1e7601d72c4c2eb42b065c0fc11a60c225ad2bee835b6c6ac5efc1d09c43",
+      "assets/frame-0000001611.png": "34345b5e6e568c0e641128edebb847ed668ac903daa5a85d7bd0ab46dcd31eab",
+      "assets/frame-0000002761.png": "7b2b9b6c7232fcf1f0feefd519ad831c299e385c4a9135ca5599081e21d4e2d7",
+      "demo.problem.json": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+      "depth_provider": "7e3ef953a360a7c01ed0cdc3cf947db97fb0aff5912ced805d80bebe210d3360",
+      "evidence_publisher": "6983aebbe7c2474bb9c3e8f19a3eb2366353ed69d15615359279c508c6dc2d2e",
+      "fused.result.json": "c03c30b8fb215abcf6ea858f328a7f54cd0347c760e6129092f323f212fd2568",
+      "measurement_launcher": "276c2a5da347d037f7e81439c155e725a07a96f89428826db06460c18accd7aa",
+      "numba_depth_to_depth_adapter.py": "3b70b5981dbc1e8f3693f4993005a6ea9fd08e06f9928578ea22463404a2467d",
+      "original_local_comparison.benchmark.json": "d31842688fc4f62e3c64c7d6040004b120d0fb7e44e4f79265957772243aeb31",
+      "original_local_comparison.definition.json": "95899e96a8a6ce408eec27c68eb87a4a68bdf241f97723972f8a1d3ddb7824bd",
+      "public_camera_lidar_demo.py": "9ebcde6e24c24b0b7e29c5f1d4ae8d40cd7d031ad765666bc14802cdec5af677",
+      "public_six_dof_demo.py": "1a6a7e3dfe8309547ac6db0c841f7c12e885830f3b4383eaa3338d6d608fe974",
+      "serial.result.json": "48fa5066569a2e7923350be8e8b7ecd2bbdd455de7ee4b2464e1d9ffc82076d0",
+      "source.problem.json": "da93c203693be805ea1d07dabec3a162be3b26f417800214d1283d29ca8e030e"
+    }
+  },
+  "reference_method_id": "numpy",
+  "schema_version": "slac.benchmark/v0.1",
+  "title": "KITTI raw six-DoF public-data demo",
+  "trials": [
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "holdout_mi": 1.2934945423757032,
+        "initial_rotation_difference_deg": 0.4999999999999031,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 56.5590265999781,
+        "rotation_difference_deg": 0.3909230132921424,
+        "solve_seconds": 53.92785150004784,
+        "train_mi": 1.2342895217787462,
+        "translation_difference_m": 0.16007810593582122
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --candidate-backend numba_cpu --candidate-frame-workers 2 --repetitions 3 --output-dir outputs/public-kitti-six-dof-fused-cpu-v1 --json",
+        "config_sha256": "1a268ee9878d0914dcab163dba326e471bd3b69e3fd350304162fad5bb0be864",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "CPU frame workers requested: 1; ordered frame reduction; one pool per invocation.",
+          "Same controlled initial pose, problem bytes, and 20/5 split for every run.",
+          "Result file: numpy.result.json",
+          "CPU first on odd-numbered repetitions; candidate first on even ones. Each invocation verifies/loads inputs and prepares a fresh projector. The first invocation is included; kernel caches persist in this process.",
+          "Output SHA256 binds original external bytes.",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160; exact equality verified for all six invocations.",
+          "Representative full trace: published serial.result.json; all individual timings and original hashes retained.",
+          "Previously absent NUMBA_CACHE_DIR used at process startup; first candidate includes JIT compilation, later candidates share its compiled cache; measurement launcher SHA256 is bound."
+        ],
+        "output_sha256": "28e60a2110d078a846b6ed9b0970de8acd979d069dafbcbce6dec851afd99259"
+      },
+      "runtime_seconds": 56.5590265999781,
+      "split_id": "uniform-25-fit20-holdout5-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "holdout_mi": 1.2934945423757032,
+        "initial_rotation_difference_deg": 0.4999999999999031,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 8.200420099950861,
+        "rotation_difference_deg": 0.3909230132921424,
+        "solve_seconds": 5.139487900014501,
+        "train_mi": 1.2342895217787462,
+        "translation_difference_m": 0.16007810593582122
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --candidate-backend numba_cpu --candidate-frame-workers 2 --repetitions 3 --output-dir outputs/public-kitti-six-dof-fused-cpu-v1 --json",
+        "config_sha256": "1a268ee9878d0914dcab163dba326e471bd3b69e3fd350304162fad5bb0be864",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "CPU frame workers requested: 2; ordered frame reduction; one pool per invocation.",
+          "Same controlled initial pose, problem bytes, and 20/5 split for every run.",
+          "Result file: numba_cpu.result.json",
+          "CPU first on odd-numbered repetitions; candidate first on even ones. Each invocation verifies/loads inputs and prepares a fresh projector. The first invocation is included; kernel caches persist in this process.",
+          "Output SHA256 binds original external bytes.",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160; exact equality verified for all six invocations.",
+          "Representative full trace: published fused.result.json; all individual timings and original hashes retained.",
+          "Previously absent NUMBA_CACHE_DIR used at process startup; first candidate includes JIT compilation, later candidates share its compiled cache; measurement launcher SHA256 is bound."
+        ],
+        "output_sha256": "41f63e3414b62665b341be79a18020b62e0bfa15e4a2094af79ee71fb75df497"
+      },
+      "runtime_seconds": 8.200420099950861,
+      "split_id": "uniform-25-fit20-holdout5-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "holdout_mi": 1.2934945423757032,
+        "initial_rotation_difference_deg": 0.4999999999999031,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 6.388713599997573,
+        "rotation_difference_deg": 0.3909230132921424,
+        "solve_seconds": 3.624188999994658,
+        "train_mi": 1.2342895217787462,
+        "translation_difference_m": 0.16007810593582122
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --candidate-backend numba_cpu --candidate-frame-workers 2 --repetitions 3 --output-dir outputs/public-kitti-six-dof-fused-cpu-v1 --json",
+        "config_sha256": "1a268ee9878d0914dcab163dba326e471bd3b69e3fd350304162fad5bb0be864",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "CPU frame workers requested: 2; ordered frame reduction; one pool per invocation.",
+          "Same controlled initial pose, problem bytes, and 20/5 split for every run.",
+          "Result file: numba_cpu.repeat-02.result.json",
+          "CPU first on odd-numbered repetitions; candidate first on even ones. Each invocation verifies/loads inputs and prepares a fresh projector. The first invocation is included; kernel caches persist in this process.",
+          "Output SHA256 binds original external bytes.",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160; exact equality verified for all six invocations.",
+          "Representative full trace: published fused.result.json; all individual timings and original hashes retained.",
+          "Previously absent NUMBA_CACHE_DIR used at process startup; first candidate includes JIT compilation, later candidates share its compiled cache; measurement launcher SHA256 is bound."
+        ],
+        "output_sha256": "a4f05dc7705ce180ff99d12e5c0b8cb0f18e223e9b0768d86d210b7dd68dfb00"
+      },
+      "runtime_seconds": 6.388713599997573,
+      "split_id": "uniform-25-fit20-holdout5-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "holdout_mi": 1.2934945423757032,
+        "initial_rotation_difference_deg": 0.4999999999999031,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 103.56800109997857,
+        "rotation_difference_deg": 0.3909230132921424,
+        "solve_seconds": 100.62344660004601,
+        "train_mi": 1.2342895217787462,
+        "translation_difference_m": 0.16007810593582122
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --candidate-backend numba_cpu --candidate-frame-workers 2 --repetitions 3 --output-dir outputs/public-kitti-six-dof-fused-cpu-v1 --json",
+        "config_sha256": "1a268ee9878d0914dcab163dba326e471bd3b69e3fd350304162fad5bb0be864",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "CPU frame workers requested: 1; ordered frame reduction; one pool per invocation.",
+          "Same controlled initial pose, problem bytes, and 20/5 split for every run.",
+          "Result file: numpy.repeat-02.result.json",
+          "CPU first on odd-numbered repetitions; candidate first on even ones. Each invocation verifies/loads inputs and prepares a fresh projector. The first invocation is included; kernel caches persist in this process.",
+          "Output SHA256 binds original external bytes.",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160; exact equality verified for all six invocations.",
+          "Representative full trace: published serial.result.json; all individual timings and original hashes retained.",
+          "Previously absent NUMBA_CACHE_DIR used at process startup; first candidate includes JIT compilation, later candidates share its compiled cache; measurement launcher SHA256 is bound."
+        ],
+        "output_sha256": "5abf1595c12ccba533ff87a54e35b548b712931b7e510a43ed3760492f52e891"
+      },
+      "runtime_seconds": 103.56800109997857,
+      "split_id": "uniform-25-fit20-holdout5-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "holdout_mi": 1.2934945423757032,
+        "initial_rotation_difference_deg": 0.4999999999999031,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 70.88610100001097,
+        "rotation_difference_deg": 0.3909230132921424,
+        "solve_seconds": 67.07773009996163,
+        "train_mi": 1.2342895217787462,
+        "translation_difference_m": 0.16007810593582122
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --candidate-backend numba_cpu --candidate-frame-workers 2 --repetitions 3 --output-dir outputs/public-kitti-six-dof-fused-cpu-v1 --json",
+        "config_sha256": "1a268ee9878d0914dcab163dba326e471bd3b69e3fd350304162fad5bb0be864",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "CPU frame workers requested: 1; ordered frame reduction; one pool per invocation.",
+          "Same controlled initial pose, problem bytes, and 20/5 split for every run.",
+          "Result file: numpy.repeat-03.result.json",
+          "CPU first on odd-numbered repetitions; candidate first on even ones. Each invocation verifies/loads inputs and prepares a fresh projector. The first invocation is included; kernel caches persist in this process.",
+          "Output SHA256 binds original external bytes.",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160; exact equality verified for all six invocations.",
+          "Representative full trace: published serial.result.json; all individual timings and original hashes retained.",
+          "Previously absent NUMBA_CACHE_DIR used at process startup; first candidate includes JIT compilation, later candidates share its compiled cache; measurement launcher SHA256 is bound."
+        ],
+        "output_sha256": "5d9fa71e9b2da4dc07cdfb497c62be72f9c45d0f021328d3bacdd4e2aaad0ecd"
+      },
+      "runtime_seconds": 70.88610100001097,
+      "split_id": "uniform-25-fit20-holdout5-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "holdout_mi": 1.2934945423757032,
+        "initial_rotation_difference_deg": 0.4999999999999031,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 6.499726500012912,
+        "rotation_difference_deg": 0.3909230132921424,
+        "solve_seconds": 3.509600599994883,
+        "train_mi": 1.2342895217787462,
+        "translation_difference_m": 0.16007810593582122
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --candidate-backend numba_cpu --candidate-frame-workers 2 --repetitions 3 --output-dir outputs/public-kitti-six-dof-fused-cpu-v1 --json",
+        "config_sha256": "1a268ee9878d0914dcab163dba326e471bd3b69e3fd350304162fad5bb0be864",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "CPU frame workers requested: 2; ordered frame reduction; one pool per invocation.",
+          "Same controlled initial pose, problem bytes, and 20/5 split for every run.",
+          "Result file: numba_cpu.repeat-03.result.json",
+          "CPU first on odd-numbered repetitions; candidate first on even ones. Each invocation verifies/loads inputs and prepares a fresh projector. The first invocation is included; kernel caches persist in this process.",
+          "Output SHA256 binds original external bytes.",
+          "Complete numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160; exact equality verified for all six invocations.",
+          "Representative full trace: published fused.result.json; all individual timings and original hashes retained.",
+          "Previously absent NUMBA_CACHE_DIR used at process startup; first candidate includes JIT compilation, later candidates share its compiled cache; measurement launcher SHA256 is bound."
+        ],
+        "output_sha256": "79933d8073540e552d177a5c69e77ad59f1f9df3325cdb018c3a7a7fdacdd468"
+      },
+      "runtime_seconds": 6.499726500012912,
+      "split_id": "uniform-25-fit20-holdout5-repeat-03",
+      "status": "success"
+    }
+  ]
+}

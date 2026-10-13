@@ -1,0 +1,19 @@
+"""Secondary dense CPU-versus-hybrid control, preserving every fresh paired process."""
+import subprocess
+import sys
+from pathlib import Path
+workspace = next(p for p in Path(__file__).resolve().parents if (p/'pyproject.toml').is_file())
+sys.path.insert(0,str(workspace))
+from tools import benchmark_adaptive_plane_search as b
+revision=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+sources={p:b._digest(Path(p)) for p in (*b.SOURCES,__file__)}
+inputs=b._verified_inputs(b.REPLAY)
+subprocess.run([sys.executable,'tools/benchmark_adaptive_plane_search.py',
+ '--baseline-scope','compiled','--baseline-commit','eb50c99878706a45eb0e584f3573507313cdc172',
+ '--candidate-query-backend','cuda',
+ '--config','examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml',
+ '--repetitions','3','--output-dir','outputs/public-glim-linearization-reuse-cpu-dense-v2'],check=True)
+assert revision==subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+assert sources=={p:b._digest(Path(p)) for p in sources}
+assert inputs==b._verified_inputs(b.REPLAY)
+print('All secondary CPU/hybrid pairs completed with guards.',flush=True)

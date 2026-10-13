@@ -60,6 +60,7 @@ from calibrex.solvers.depth_to_depth_runtime import ProjectionBackend as Project
 from calibrex.solvers.depth_to_depth_runtime import (
     create_depth_pair_projector as _projection_runtime,
 )
+from calibrex.solvers.depth_to_depth_runtime import validate_cuda_cache_bytes
 
 BORER_SIX_DOF_BENCHMARK_VERSION = "calibrex.borer_six_dof_benchmark/v0.3"
 
@@ -84,9 +85,11 @@ def run_borer_six_dof_benchmark(
     workers: int = 1,
     resume: bool = False,
     projection_backend: ProjectionBackend = "numpy",
+    cuda_cache_bytes: int | None = None,
 ) -> tuple[BenchmarkDefinition, BenchmarkArtifact]:
     """Execute every frozen six-DoF perturbation and retain all outcomes."""
 
+    validate_cuda_cache_bytes(projection_backend, cuda_cache_bytes)
     if workers < 1:
         raise ValueError("workers must be at least one")
     if projection_backend == "cuda" and workers != 1:
@@ -106,6 +109,7 @@ def run_borer_six_dof_benchmark(
         protocol,
         projection_backend=projection_backend,
         observations=loaded.observations,
+        cuda_cache_bytes=cuda_cache_bytes,
     )
     expected_solver = _trace_solver_identity(options.projection_backend)
 
@@ -424,9 +428,12 @@ def _solver_options(
     *,
     projection_backend: ProjectionBackend = "numpy",
     observations: tuple[DepthToDepthObservation, ...] = (),
+    cuda_cache_bytes: int | None = None,
 ) -> BorerSixDofOptions:
     values = protocol.optimizer_options
-    projector, backend_identity = _projection_runtime(projection_backend, observations)
+    projector, backend_identity = _projection_runtime(
+        projection_backend, observations, cuda_cache_bytes=cuda_cache_bytes,
+    )
     return BorerSixDofOptions(
         rotation_bound_deg=float(values["rotation_bound_deg"]),
         translation_bound_m=float(values["translation_bound_m"]),

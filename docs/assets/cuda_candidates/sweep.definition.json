@@ -1,0 +1,1279 @@
+{
+  "benchmark_id": "public_kitti_cuda_candidates",
+  "bootstrap_samples": 1,
+  "bootstrap_seed": 0,
+  "limitations": [
+    "One public sequence; six frozen signed-axis initializations and three invocations per backend per case. Repetitions measure timing on the same frames, not independent accuracy or statistical confidence.",
+    "All invocations, including the first, contribute to timing. There is no separate warm-up or cold-process guarantee; lazy compilation and process-wide caches affect latency.",
+    "Optimizer convergence and CPU/GPU parity do not establish calibration accuracy. Dataset reference is not independent metrology; covariance/observability remain unknown.",
+    "Only the supplied frozen provider frames are eligible; uniform selection is by position within that provider. Learned depth and frame synchronization can bias the fit.",
+    "Provider training/evaluation overlap: possible. official non-online-refined checkpoint selected; repository does not publish enough training IDs to exclude drive overlap",
+    "training/evaluation drive overlap cannot be excluded",
+    "raw FeatDepth inverse-depth/disparity is retained for D2D histograms",
+    "metric depth conversion parameters are recorded but not applied",
+    "checkpoint sha256=559f168c762d01af7c745b32ced8930a12423a0e9b62af791f7d894bd902af27",
+    "Shared host, alternating method order, three repeats by default; no speed guarantee.",
+    "This compares new implementation against an already accelerated GPU baseline.",
+    "Input mode and separately charged snapshot preparation are explicit. Fresh-file timings must not be inferred from verified-snapshot invocations.",
+    "Separately charged input snapshot captures: {\"x-negative\": {\"array_bytes\": 190892928, \"depth_provider_sha256\": \"7e3ef953a360a7c01ed0cdc3cf947db97fb0aff5912ced805d80bebe210d3360\", \"external_files_reverified\": false, \"mode\": \"verified_snapshot\", \"preparation_in_run_timing\": false, \"preparation_seconds\": 2.4601494999951683, \"problem_artifact_reverified\": true, \"problem_sha256\": \"d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70\", \"snapshot_sha256\": \"27b62401fca359dba026e3543d9c0782d793cb57d347917ffa34479084c5062d\", \"version\": \"calibrex.camera_lidar_input_snapshot/v0.1\"}, \"x-positive\": {\"array_bytes\": 190892928, \"depth_provider_sha256\": \"7e3ef953a360a7c01ed0cdc3cf947db97fb0aff5912ced805d80bebe210d3360\", \"external_files_reverified\": false, \"mode\": \"verified_snapshot\", \"preparation_in_run_timing\": false, \"preparation_seconds\": 2.713803699996788, \"problem_artifact_reverified\": true, \"problem_sha256\": \"324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a\", \"snapshot_sha256\": \"e1cd88a59b06855f6cce182a4d09f245f6c29ff9b1293e8347fb1e91bb86f019\", \"version\": \"calibrex.camera_lidar_input_snapshot/v0.1\"}, \"y-negative\": {\"array_bytes\": 190892928, \"depth_provider_sha256\": \"7e3ef953a360a7c01ed0cdc3cf947db97fb0aff5912ced805d80bebe210d3360\", \"external_files_reverified\": false, \"mode\": \"verified_snapshot\", \"preparation_in_run_timing\": false, \"preparation_seconds\": 2.5178820999572054, \"problem_artifact_reverified\": true, \"problem_sha256\": \"b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67\", \"snapshot_sha256\": \"ee3b1982ba9a2a34cb5eafbb1bac96620131f10ebe7cc49c256c8d7e91305fe1\", \"version\": \"calibrex.camera_lidar_input_snapshot/v0.1\"}, \"y-positive\": {\"array_bytes\": 190892928, \"depth_provider_sha256\": \"7e3ef953a360a7c01ed0cdc3cf947db97fb0aff5912ced805d80bebe210d3360\", \"external_files_reverified\": false, \"mode\": \"verified_snapshot\", \"preparation_in_run_timing\": false, \"preparation_seconds\": 2.6577023999998346, \"problem_artifact_reverified\": true, \"problem_sha256\": \"2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca\", \"snapshot_sha256\": \"71e350304aa26c4d1014d5690141fa891e0ff092f6b1560de79835fb2e776b0b\", \"version\": \"calibrex.camera_lidar_input_snapshot/v0.1\"}, \"z-negative\": {\"array_bytes\": 190892928, \"depth_provider_sha256\": \"7e3ef953a360a7c01ed0cdc3cf947db97fb0aff5912ced805d80bebe210d3360\", \"external_files_reverified\": false, \"mode\": \"verified_snapshot\", \"preparation_in_run_timing\": false, \"preparation_seconds\": 2.7275662000174634, \"problem_artifact_reverified\": true, \"problem_sha256\": \"4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f\", \"snapshot_sha256\": \"198f39fbc35112a4d85a2d9df24fe34c0fa65fdbbd1159ccec5797058beec4d0\", \"version\": \"calibrex.camera_lidar_input_snapshot/v0.1\"}, \"z-positive\": {\"array_bytes\": 190892928, \"depth_provider_sha256\": \"7e3ef953a360a7c01ed0cdc3cf947db97fb0aff5912ced805d80bebe210d3360\", \"external_files_reverified\": false, \"mode\": \"verified_snapshot\", \"preparation_in_run_timing\": false, \"preparation_seconds\": 2.7726027999888174, \"problem_artifact_reverified\": true, \"problem_sha256\": \"54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4\", \"snapshot_sha256\": \"64b1131eababad3df2f6e23425d7915cb04a543e911ec1228d50837118b1a0dc\", \"version\": \"calibrex.camera_lidar_input_snapshot/v0.1\"}}",
+    "Published paths are normalized and GPU model anonymized. Original result/input/code digests remain intact; representative full results are repetition 1, chosen before inspecting timings. All raw trials remain in this definition; all full numeric payloads were checked."
+  ],
+  "methods": [
+    {
+      "implementation": "calibrex_native",
+      "label": "Pinned existing CUDA v0.3",
+      "method_id": "baseline_cuda",
+      "source_commit": "2017b3a3bb2742430170bff8ef842d7be9e5d9a7",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "Conservative candidate batches CUDA v0.4",
+      "method_id": "candidate_cuda",
+      "source_commit": "feaffa0",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    }
+  ],
+  "metrics": [
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Includes bounded search preparation.",
+      "label": "Solve",
+      "name": "solve_seconds",
+      "primary": true,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Sum of all recorded pipeline phases.",
+      "label": "Pipeline",
+      "name": "pipeline_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Full numeric payload equality with the same frozen NumPy oracle.",
+      "label": "Full numerical parity",
+      "name": "numerical_parity",
+      "primary": false,
+      "unit": "boolean"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Unchanged search budget/trace.",
+      "label": "Evaluations",
+      "name": "evaluation_count",
+      "primary": false,
+      "unit": "count"
+    }
+  ],
+  "protocol": {
+    "data_license": "CC-BY-NC-SA-3.0",
+    "dataset_id": "kitti_raw_2011_09_30_drive_0018",
+    "dataset_source_sha256": "ed5ad3947b2ca94b415ceabbc16d2d767ad084b2e8fd4b83937570c28b6c6e8d",
+    "failure_policy": "Retain all numerical mismatches, nonconvergence, and invocations.",
+    "initial_estimate_policy": "Controlled demo initialization: dataset reference plus fixed local Euler offsets. Rotation deg xyz=(0.5, 0.0, 0.0); camera-frame translation m xyz=(0.5, 0.0, 0.0). This is not an independently measured prior.",
+    "protocol_id": "public_kitti_cuda_candidates/v0.1",
+    "split_policy": "25 numeric-ordered, uniformly selected provider positions; every fifth frame is holdout (20 fit / 5 holdout), fixed before optimization.",
+    "splits": [
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "x-positive-repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "x-positive-repeat-02"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "x-positive-repeat-03"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "x-negative-repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "x-negative-repeat-02"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "x-negative-repeat-03"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "y-positive-repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "y-positive-repeat-02"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "y-positive-repeat-03"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "y-negative-repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "y-negative-repeat-02"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "y-negative-repeat-03"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "z-positive-repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "z-positive-repeat-02"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "z-positive-repeat-03"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "z-negative-repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "z-negative-repeat-02"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "z-negative-repeat-03"
+      }
+    ],
+    "tuning_policy": "Same solver settings for both backends; no holdout tuning."
+  },
+  "provenance": {
+    "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+    "data_verified": true,
+    "generated_at": "2026-10-11T05:26:00.888728+00:00",
+    "generator": "tools.benchmark_d2d_cuda_candidates",
+    "generator_version": "v0.1",
+    "git_commit": "feaffa0",
+    "source_artifacts": {
+      "${WORKSPACE_ROOT}/tools/benchmark_d2d_cuda_candidates.py": "bce6514c5e26c8f3ec14192fad5b8ca3d43549803ea1cfeab3aeccad7b143d48",
+      "baseline.borer_depth_to_depth_solver.py.txt": "89216c0b456783b6064ea990d1fc1950a4d57c06344785cc84ca96bd5c29b7ae",
+      "baseline.borer_six_dof_solver.py.txt": "f95b3609236d1442b1bc21acc8abda137c60fd62b6883fc8514213fedec343cc",
+      "baseline.cuda_depth_to_depth_adapter.py.txt": "fbe6f90c02ebab413eed2cf78a2035b45e3a3ac9938ae81aa8644e156bd1043e",
+      "committed:src/calibrex/solvers/borer_depth_to_depth_solver.py": "bc8d223156ebd1be992b68b7559c1ac720a4fc84391a1c435dcc2ad7ba485b68",
+      "committed:src/calibrex/solvers/borer_six_dof_solver.py": "930e6a5442488f6c2e7311b7e87f9302e44a9c02e55c3fd9c37255c7ade7b08f",
+      "committed:src/calibrex/solvers/cuda_depth_to_depth_adapter.py": "5155ebd9d7313cbd84e6c80be81f7cc9dcb6051fbed653bfb057a87db1d70116",
+      "committed:src/calibrex/solvers/cuda_depth_to_depth_batch.py": "c759b125c590af31b2990bfe72539c8c7e08c268ebd634cb7dfa36544889e2b1",
+      "committed:tools/benchmark_d2d_cuda_candidates.py": "bce6514c5e26c8f3ec14192fad5b8ca3d43549803ea1cfeab3aeccad7b143d48",
+      "original_aggregate": "78bde7da986658875d94daa334c50351caff28b4e146fd7518b388635400b4cb",
+      "original_definition": "59787fb9c4eaf0add6269925c07be62a93e2f7dc7133f781df721a1f31b75273",
+      "original_timing_summary": "4a944477df4c2f4b55511fb45c7a6c2803804949ae1351303e6a8e3f2ec4dfdf",
+      "published:baseline.borer_depth_to_depth_solver.py.txt": "89216c0b456783b6064ea990d1fc1950a4d57c06344785cc84ca96bd5c29b7ae",
+      "published:baseline.borer_six_dof_solver.py.txt": "f95b3609236d1442b1bc21acc8abda137c60fd62b6883fc8514213fedec343cc",
+      "published:baseline.cuda_depth_to_depth_adapter.py.txt": "fbe6f90c02ebab413eed2cf78a2035b45e3a3ac9938ae81aa8644e156bd1043e",
+      "published:fresh.baseline_cuda.result.json": "65bac50d0b3cbfd84ce68f974556575f433e0c48ca4bd2b687dc119c44b067e6",
+      "published:fresh.candidate_cuda.result.json": "e2cd2816974bdfcd867e3174dfb153e61a1f5159b0a5b816f48781a15cd9ab89",
+      "published:publication-launcher.py.txt": "d1edd56ea3a6049dc90ffa895f2c86e46a73579aff9c2d572d2929d282647159",
+      "published:x-negative.baseline_cuda.result.json": "2d82d59661cc3d81db5425b876240ff62f17cbda9297f33ee0a32cafe2f3221d",
+      "published:x-negative.candidate_cuda.result.json": "a66e2c5039873db4b654615dba96dff5e5b248a4a6600e27aacd15b55c1411bb",
+      "published:x-negative.numpy-oracle.result.json": "0b354ddd28933f925adf3bd0e6cb0b9d62b9163c95ee33baf7c692155a29fde4",
+      "published:x-negative.problem.json": "9becd15d1c094f0f924003f9711ea193e948608e70fbe3deb244f9feba2cb18d",
+      "published:x-positive.baseline_cuda.result.json": "8f6003116a167d5e896e1f43153318213fc584719109c5712f24e644ae15c45e",
+      "published:x-positive.candidate_cuda.result.json": "17fc6044457f239a79e0dd6005ff67ae24d1342ea38b13d9be5f176d085912e3",
+      "published:x-positive.numpy-oracle.result.json": "bb70571da90af59ab12ff0e2a44d7c6ab195f88700b73b4296ee2e99afc323dc",
+      "published:x-positive.problem.json": "f4b5e11499c17afc6597f8926b09221f2f72a63aa4bf885bd5f285492387f430",
+      "published:y-negative.baseline_cuda.result.json": "122a4b0970944e1a1d9229e2c19a78cf2fec0708da447a14c41b06f2902fffbd",
+      "published:y-negative.candidate_cuda.result.json": "e021666ceffb22a922c366dd05c94bc39c6a2ccef62a12042f181918ded19dd8",
+      "published:y-negative.numpy-oracle.result.json": "5806613d8013eb1fb1fbb253da080eff943da8fea566e22e235a0ee8d6fe3d47",
+      "published:y-negative.problem.json": "38e758073fb0aeec8a6880b94f513c90d9a897de376d63d0d188c536e8ef7ac7",
+      "published:y-positive.baseline_cuda.result.json": "0c45c79e5e2abfcae039f9246ebfb5d09a2b871714d352d122c44858e011f6c4",
+      "published:y-positive.candidate_cuda.result.json": "c32c0e1feb61fa112173b260c5d0d067df53ee66afb4b0b122c71a15ff4c7abc",
+      "published:y-positive.numpy-oracle.result.json": "fc6ed142e8536256615ad8798ceb89543be721f03ed3c01ca098313d894280e6",
+      "published:y-positive.problem.json": "70e7559db323dc7521d08e174e8e52b5d3196a691949c85c3ca3175470e5cf3d",
+      "published:z-negative.baseline_cuda.result.json": "983bcb726984fefcefbdb6ca477be0a7ad43aff7b97866f8fc4ae1766ba9de2f",
+      "published:z-negative.candidate_cuda.result.json": "01de6fed253fe2fbe98ee926627ab43da3477fb8d90cdb76fe99bd2909cde6ac",
+      "published:z-negative.numpy-oracle.result.json": "82857d5145da0baa00236d001b1c96d3e22dc2887422a3003de101cc17f8ea70",
+      "published:z-negative.problem.json": "a4db304daf18db951e9b34b1f7e53c11673135d5d03b1716bcb751ec9a802817",
+      "published:z-positive.baseline_cuda.result.json": "9e097012f8cf0f5c9a0762cb2c617247f11112fcb6068a6f973f58c17184976e",
+      "published:z-positive.candidate_cuda.result.json": "0edf87d8d9c8335a12572c3223f823d180887eb7e00785aba4d1ab2d1e4c507f",
+      "published:z-positive.numpy-oracle.result.json": "cc408a951ce166860715ab8756bcb56348fb4b2477381a25e8dd439775feabb9",
+      "published:z-positive.problem.json": "904c9809839a972f80b9845aba335ea9b23c829d1ffb4554545ccff70fefe67c",
+      "src/calibrex/pipelines/camera_lidar_six_dof.py": "eb6db5f0769bc6415149df8888bf9f3ca4325c53a289afa8a7d84df0d3e402d5",
+      "src/calibrex/solvers/borer_depth_to_depth_solver.py": "844beeddd998a1e023998564384fe2d54602007eb5c7cef1564698c4d0db214a",
+      "src/calibrex/solvers/borer_six_dof_solver.py": "e3eb509385d7f865a08630d88ef8694d26bae3206919aa9e20fb86029b6f0d48",
+      "src/calibrex/solvers/cuda_depth_to_depth_adapter.py": "9fcad788c5166c13ef1c24c48afe4d7091fd6d904dcdd5f54d451b1ef4d9af11",
+      "src/calibrex/solvers/cuda_depth_to_depth_batch.py": "c759b125c590af31b2990bfe72539c8c7e08c268ebd634cb7dfa36544889e2b1",
+      "x-negative.oracle": "035f477846a799136d300bff08f6d538cf9bbb0594bb344bc988e6381f74c27d",
+      "x-negative.problem": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+      "x-positive.oracle": "c9a4957390cef79fe796d8726fb8a3fcd6af90c4bb33d6d1293e6c4a81056800",
+      "x-positive.problem": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+      "y-negative.oracle": "ce7f29693fd263a697cc07e92ecbe71f6644c8163d6103cab2845008829f78e5",
+      "y-negative.problem": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+      "y-positive.oracle": "f32ec190e70ed2d205b039afd246103271b49b8f068cf6e014b73b2ce9e2141c",
+      "y-positive.problem": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+      "z-negative.oracle": "c535eb2f81aa34a44a71c513eab6eb2e283aeb66ffa9509c0e95ee8967c3ffb8",
+      "z-negative.problem": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+      "z-positive.oracle": "9292a8ae32ee2dfcf628d2b57a577c2ed93993e94e81e0ae651cc236207e11fb",
+      "z-positive.problem": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4"
+    }
+  },
+  "reference_method_id": "baseline_cuda",
+  "schema_version": "slac.benchmark_definition/v0.1",
+  "title": "Existing CUDA vs bounded candidate CUDA",
+  "trials": [
+    {
+      "method_id": "baseline_cuda",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.5361773000331596,
+        "solve_seconds": 1.2256798999733292
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "13bbf176acc022393ef16d25ce1304d7ad2ddee4122e37996b47697af418b3f1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+        "notes": [
+          "Result: x-positive.baseline_cuda.repeat-01.result.json",
+          "Numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['baseline_cuda', 'candidate_cuda']; repetition: 1"
+        ],
+        "output_sha256": "eae907aa57baaa8732220d3d45283691b8eab07440a3840cc5d674d5b33e60b4"
+      },
+      "runtime_seconds": 1.5361773000331596,
+      "split_id": "x-positive-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "candidate_cuda",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 0.691625599982217,
+        "solve_seconds": 0.5755668999627233
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "e7f126622aa3db7e65c24683a81823af5bb51aa1d373e8668de2f53099320702",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+        "notes": [
+          "Result: x-positive.candidate_cuda.repeat-01.result.json",
+          "Numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['baseline_cuda', 'candidate_cuda']; repetition: 1"
+        ],
+        "output_sha256": "df092066a2098ec211db9e6b8b0764003b1b3cd011b8b9288ec66fb1871158d3"
+      },
+      "runtime_seconds": 0.691625599982217,
+      "split_id": "x-positive-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "candidate_cuda",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 0.6478209999622777,
+        "solve_seconds": 0.5319764000014402
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "e7f126622aa3db7e65c24683a81823af5bb51aa1d373e8668de2f53099320702",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+        "notes": [
+          "Result: x-positive.candidate_cuda.repeat-02.result.json",
+          "Numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['candidate_cuda', 'baseline_cuda']; repetition: 2"
+        ],
+        "output_sha256": "5fe59c326f4786d6bf6415210a72c0ffb259759a23fd230257b9a1d10a1315b2"
+      },
+      "runtime_seconds": 0.6478209999622777,
+      "split_id": "x-positive-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "baseline_cuda",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.286494500003755,
+        "solve_seconds": 1.18732829997316
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "13bbf176acc022393ef16d25ce1304d7ad2ddee4122e37996b47697af418b3f1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+        "notes": [
+          "Result: x-positive.baseline_cuda.repeat-02.result.json",
+          "Numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['candidate_cuda', 'baseline_cuda']; repetition: 2"
+        ],
+        "output_sha256": "fa93a13507161c630fec5cdfbc312d8cafae962a5b8b08a8bfabd5ad261fb9c5"
+      },
+      "runtime_seconds": 1.286494500003755,
+      "split_id": "x-positive-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "baseline_cuda",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.3840562999830581,
+        "solve_seconds": 1.2715536000323482
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "13bbf176acc022393ef16d25ce1304d7ad2ddee4122e37996b47697af418b3f1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+        "notes": [
+          "Result: x-positive.baseline_cuda.repeat-03.result.json",
+          "Numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['baseline_cuda', 'candidate_cuda']; repetition: 3"
+        ],
+        "output_sha256": "0fa33b34a9551b0df36590308df9dbedc793cfebc16041d19caa05e21f6d7da4"
+      },
+      "runtime_seconds": 1.3840562999830581,
+      "split_id": "x-positive-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "candidate_cuda",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 0.6468181000091136,
+        "solve_seconds": 0.5338424000074156
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "e7f126622aa3db7e65c24683a81823af5bb51aa1d373e8668de2f53099320702",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+        "notes": [
+          "Result: x-positive.candidate_cuda.repeat-03.result.json",
+          "Numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['baseline_cuda', 'candidate_cuda']; repetition: 3"
+        ],
+        "output_sha256": "8851fe4936dabfd99e3015da90a203a1b9d6d6c3116530f45b02b1ec1639aff5"
+      },
+      "runtime_seconds": 0.6468181000091136,
+      "split_id": "x-positive-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "candidate_cuda",
+      "metrics": {
+        "evaluation_count": 313.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.023255700012669,
+        "solve_seconds": 0.9161916999728419
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "921760b3b2dfa9852179b93349ca0264402a4f8a2222038a7ea4d43dea1668c5",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+        "notes": [
+          "Result: x-negative.candidate_cuda.repeat-01.result.json",
+          "Numerical payload SHA256: 87dda842423caf9856487c3c0532b25e0a1b2be6708f1fbfef01c981842e3f30",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['candidate_cuda', 'baseline_cuda']; repetition: 1"
+        ],
+        "output_sha256": "bc14d8d75a9fcc17a2bd047a44edf9b5c82ffeebbd4a1d793a13a5e382476b4c"
+      },
+      "runtime_seconds": 1.023255700012669,
+      "split_id": "x-negative-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "baseline_cuda",
+      "metrics": {
+        "evaluation_count": 313.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.777529599959962,
+        "solve_seconds": 1.6719521000050008
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "897b3c382129344051f0846af0309edaa6b1016d96c2330cc4b6717298c0d70e",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+        "notes": [
+          "Result: x-negative.baseline_cuda.repeat-01.result.json",
+          "Numerical payload SHA256: 87dda842423caf9856487c3c0532b25e0a1b2be6708f1fbfef01c981842e3f30",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['candidate_cuda', 'baseline_cuda']; repetition: 1"
+        ],
+        "output_sha256": "338597bea7a5de44285be639d98e73418207787d2c40998ea3597d8e4e51705b"
+      },
+      "runtime_seconds": 1.777529599959962,
+      "split_id": "x-negative-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "baseline_cuda",
+      "metrics": {
+        "evaluation_count": 313.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.7398411000031047,
+        "solve_seconds": 1.6339201999944635
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "897b3c382129344051f0846af0309edaa6b1016d96c2330cc4b6717298c0d70e",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+        "notes": [
+          "Result: x-negative.baseline_cuda.repeat-02.result.json",
+          "Numerical payload SHA256: 87dda842423caf9856487c3c0532b25e0a1b2be6708f1fbfef01c981842e3f30",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['baseline_cuda', 'candidate_cuda']; repetition: 2"
+        ],
+        "output_sha256": "ac35032df052dff6e108f0a9b79656d2bc6c426b7e63ee2c387b595bb30bed15"
+      },
+      "runtime_seconds": 1.7398411000031047,
+      "split_id": "x-negative-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "candidate_cuda",
+      "metrics": {
+        "evaluation_count": 313.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 0.8493583999807015,
+        "solve_seconds": 0.7364931000047363
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "921760b3b2dfa9852179b93349ca0264402a4f8a2222038a7ea4d43dea1668c5",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+        "notes": [
+          "Result: x-negative.candidate_cuda.repeat-02.result.json",
+          "Numerical payload SHA256: 87dda842423caf9856487c3c0532b25e0a1b2be6708f1fbfef01c981842e3f30",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['baseline_cuda', 'candidate_cuda']; repetition: 2"
+        ],
+        "output_sha256": "5240307c4c0cf89bf354c2b6bb4ba33be91577ba85874127a58f96c5f8ae8cd4"
+      },
+      "runtime_seconds": 0.8493583999807015,
+      "split_id": "x-negative-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "candidate_cuda",
+      "metrics": {
+        "evaluation_count": 313.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 0.8492794000194408,
+        "solve_seconds": 0.7400604999857023
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "921760b3b2dfa9852179b93349ca0264402a4f8a2222038a7ea4d43dea1668c5",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+        "notes": [
+          "Result: x-negative.candidate_cuda.repeat-03.result.json",
+          "Numerical payload SHA256: 87dda842423caf9856487c3c0532b25e0a1b2be6708f1fbfef01c981842e3f30",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['candidate_cuda', 'baseline_cuda']; repetition: 3"
+        ],
+        "output_sha256": "80bf3914b7b05ca2a7111c7aeb33984e715ae3066802058fbe77cc3356cfd124"
+      },
+      "runtime_seconds": 0.8492794000194408,
+      "split_id": "x-negative-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "baseline_cuda",
+      "metrics": {
+        "evaluation_count": 313.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.7908518000040203,
+        "solve_seconds": 1.6816774999606423
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "897b3c382129344051f0846af0309edaa6b1016d96c2330cc4b6717298c0d70e",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+        "notes": [
+          "Result: x-negative.baseline_cuda.repeat-03.result.json",
+          "Numerical payload SHA256: 87dda842423caf9856487c3c0532b25e0a1b2be6708f1fbfef01c981842e3f30",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['candidate_cuda', 'baseline_cuda']; repetition: 3"
+        ],
+        "output_sha256": "1bdd7e8316d4be4b398c96e039167e52a8217fa64f26617ef5b69b333fe2eb82"
+      },
+      "runtime_seconds": 1.7908518000040203,
+      "split_id": "x-negative-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "baseline_cuda",
+      "metrics": {
+        "evaluation_count": 277.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.711335300002247,
+        "solve_seconds": 1.5893502999679185
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "412f23fa6dd49f5b31219db884a945f0b0aeb7e54ba82be3056a8cab50d526ce",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+        "notes": [
+          "Result: y-positive.baseline_cuda.repeat-01.result.json",
+          "Numerical payload SHA256: ff4000687512d5d99ef33b28769a7b03ca064915a332f22457d91edc6b251a0e",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['baseline_cuda', 'candidate_cuda']; repetition: 1"
+        ],
+        "output_sha256": "7e4e5dd06b42ab2843c62fb532e750c5d99f4e8dda45a4e376590a122ac787a5"
+      },
+      "runtime_seconds": 1.711335300002247,
+      "split_id": "y-positive-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "candidate_cuda",
+      "metrics": {
+        "evaluation_count": 277.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 0.7412952000158839,
+        "solve_seconds": 0.6368349000113085
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "c68d5bbe77c74d34421c13ca82f3eccfb52282337f34b33ee7a5762e0a399dcc",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+        "notes": [
+          "Result: y-positive.candidate_cuda.repeat-01.result.json",
+          "Numerical payload SHA256: ff4000687512d5d99ef33b28769a7b03ca064915a332f22457d91edc6b251a0e",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['baseline_cuda', 'candidate_cuda']; repetition: 1"
+        ],
+        "output_sha256": "6049512d03b8bc99771f11184e7c55090a3d6430e8c8b039948ce13759dc80d2"
+      },
+      "runtime_seconds": 0.7412952000158839,
+      "split_id": "y-positive-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "candidate_cuda",
+      "metrics": {
+        "evaluation_count": 277.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 0.7405414000386372,
+        "solve_seconds": 0.6390800999943167
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "c68d5bbe77c74d34421c13ca82f3eccfb52282337f34b33ee7a5762e0a399dcc",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+        "notes": [
+          "Result: y-positive.candidate_cuda.repeat-02.result.json",
+          "Numerical payload SHA256: ff4000687512d5d99ef33b28769a7b03ca064915a332f22457d91edc6b251a0e",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['candidate_cuda', 'baseline_cuda']; repetition: 2"
+        ],
+        "output_sha256": "c26edb1be6a39219cfd3643ddf44877a2a8c6e6bb009ad50ab208f6639e3eaba"
+      },
+      "runtime_seconds": 0.7405414000386372,
+      "split_id": "y-positive-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "baseline_cuda",
+      "metrics": {
+        "evaluation_count": 277.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.6161033000098541,
+        "solve_seconds": 1.5157324000028893
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "412f23fa6dd49f5b31219db884a945f0b0aeb7e54ba82be3056a8cab50d526ce",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+        "notes": [
+          "Result: y-positive.baseline_cuda.repeat-02.result.json",
+          "Numerical payload SHA256: ff4000687512d5d99ef33b28769a7b03ca064915a332f22457d91edc6b251a0e",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['candidate_cuda', 'baseline_cuda']; repetition: 2"
+        ],
+        "output_sha256": "ff3d6dde9979abcb711e802d6e120989a260faf6318fe7ea351659a50c54233b"
+      },
+      "runtime_seconds": 1.6161033000098541,
+      "split_id": "y-positive-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "baseline_cuda",
+      "metrics": {
+        "evaluation_count": 277.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.5710868999594823,
+        "solve_seconds": 1.4660146000096574
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "412f23fa6dd49f5b31219db884a945f0b0aeb7e54ba82be3056a8cab50d526ce",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+        "notes": [
+          "Result: y-positive.baseline_cuda.repeat-03.result.json",
+          "Numerical payload SHA256: ff4000687512d5d99ef33b28769a7b03ca064915a332f22457d91edc6b251a0e",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['baseline_cuda', 'candidate_cuda']; repetition: 3"
+        ],
+        "output_sha256": "2104aeeaecd54ef64cdb99760ad47bc24bf26c177aca5c85f2d7fa847d6708d0"
+      },
+      "runtime_seconds": 1.5710868999594823,
+      "split_id": "y-positive-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "candidate_cuda",
+      "metrics": {
+        "evaluation_count": 277.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 0.7435951000079513,
+        "solve_seconds": 0.6411647999775596
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "c68d5bbe77c74d34421c13ca82f3eccfb52282337f34b33ee7a5762e0a399dcc",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+        "notes": [
+          "Result: y-positive.candidate_cuda.repeat-03.result.json",
+          "Numerical payload SHA256: ff4000687512d5d99ef33b28769a7b03ca064915a332f22457d91edc6b251a0e",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['baseline_cuda', 'candidate_cuda']; repetition: 3"
+        ],
+        "output_sha256": "0471442b1dcb399147b93644cf8c38b4ac44e15aeb310e9dfe3d3e1d60515754"
+      },
+      "runtime_seconds": 0.7435951000079513,
+      "split_id": "y-positive-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "candidate_cuda",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 0.797079499985557,
+        "solve_seconds": 0.6909140999778174
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "0117ea022ac3108e38d87bb5647333c1413a2e11a9e701b400264bce629ceddc",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+        "notes": [
+          "Result: y-negative.candidate_cuda.repeat-01.result.json",
+          "Numerical payload SHA256: a83600290648b1cd807f3dc1ae480a836b5ad5442d146106bea72c4239fbab31",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['candidate_cuda', 'baseline_cuda']; repetition: 1"
+        ],
+        "output_sha256": "c5b1fdc97c1b8cd4a113f8fd15f33b18c80e54d03de6be643ca1fed781d3603d"
+      },
+      "runtime_seconds": 0.797079499985557,
+      "split_id": "y-negative-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "baseline_cuda",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.4297022999962792,
+        "solve_seconds": 1.3219333000015467
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "a9f48f1af26d950d7bb94e5ea79acb19127dc2843c62ee6efe6e45749d129c4f",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+        "notes": [
+          "Result: y-negative.baseline_cuda.repeat-01.result.json",
+          "Numerical payload SHA256: a83600290648b1cd807f3dc1ae480a836b5ad5442d146106bea72c4239fbab31",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['candidate_cuda', 'baseline_cuda']; repetition: 1"
+        ],
+        "output_sha256": "74456dd0228718e5f4e40200930acb0b5d470991167dc34c2ec2ded88574c8a5"
+      },
+      "runtime_seconds": 1.4297022999962792,
+      "split_id": "y-negative-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "baseline_cuda",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.3981195000233129,
+        "solve_seconds": 1.287761599989608
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "a9f48f1af26d950d7bb94e5ea79acb19127dc2843c62ee6efe6e45749d129c4f",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+        "notes": [
+          "Result: y-negative.baseline_cuda.repeat-02.result.json",
+          "Numerical payload SHA256: a83600290648b1cd807f3dc1ae480a836b5ad5442d146106bea72c4239fbab31",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['baseline_cuda', 'candidate_cuda']; repetition: 2"
+        ],
+        "output_sha256": "9e25b5a469ced06df08a10f3f3544e5ccc6213897cd5a8fc220e0d36f71ed498"
+      },
+      "runtime_seconds": 1.3981195000233129,
+      "split_id": "y-negative-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "candidate_cuda",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 0.7128893000190146,
+        "solve_seconds": 0.5994216999970376
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "0117ea022ac3108e38d87bb5647333c1413a2e11a9e701b400264bce629ceddc",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+        "notes": [
+          "Result: y-negative.candidate_cuda.repeat-02.result.json",
+          "Numerical payload SHA256: a83600290648b1cd807f3dc1ae480a836b5ad5442d146106bea72c4239fbab31",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['baseline_cuda', 'candidate_cuda']; repetition: 2"
+        ],
+        "output_sha256": "0b7f114c8dc8295015632f43a7ba0da40ce179a22e1f5d46b92ecf41ff16287d"
+      },
+      "runtime_seconds": 0.7128893000190146,
+      "split_id": "y-negative-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "candidate_cuda",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 0.7220386000117287,
+        "solve_seconds": 0.6050456999801099
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "0117ea022ac3108e38d87bb5647333c1413a2e11a9e701b400264bce629ceddc",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+        "notes": [
+          "Result: y-negative.candidate_cuda.repeat-03.result.json",
+          "Numerical payload SHA256: a83600290648b1cd807f3dc1ae480a836b5ad5442d146106bea72c4239fbab31",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['candidate_cuda', 'baseline_cuda']; repetition: 3"
+        ],
+        "output_sha256": "c0a7941c0d6836205f3ff3a30b594e01e1065c94b51051a99721f7eb288088ad"
+      },
+      "runtime_seconds": 0.7220386000117287,
+      "split_id": "y-negative-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "baseline_cuda",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.4899064999772236,
+        "solve_seconds": 1.376771200040821
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "a9f48f1af26d950d7bb94e5ea79acb19127dc2843c62ee6efe6e45749d129c4f",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+        "notes": [
+          "Result: y-negative.baseline_cuda.repeat-03.result.json",
+          "Numerical payload SHA256: a83600290648b1cd807f3dc1ae480a836b5ad5442d146106bea72c4239fbab31",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['candidate_cuda', 'baseline_cuda']; repetition: 3"
+        ],
+        "output_sha256": "35abcb11d9d72cd86fb769aa032d93baa9dcd4cabaa607e427601e52b51bdba0"
+      },
+      "runtime_seconds": 1.4899064999772236,
+      "split_id": "y-negative-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "baseline_cuda",
+      "metrics": {
+        "evaluation_count": 265.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.823848000029102,
+        "solve_seconds": 1.6941814000019804
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "2a3b928d1da06cba820652ccebb9b515e4ef3620360abe4c09bb312078faaf35",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+        "notes": [
+          "Result: z-positive.baseline_cuda.repeat-01.result.json",
+          "Numerical payload SHA256: 5728c3e4f3a03bd8cc723f5dad3f212f2e32b86c8703a6dd5f383569c4adb10e",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['baseline_cuda', 'candidate_cuda']; repetition: 1"
+        ],
+        "output_sha256": "0db470ecf2152e4d6af78936059625d214ce9761067cfcff9480d0e7fe2a3827"
+      },
+      "runtime_seconds": 1.823848000029102,
+      "split_id": "z-positive-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "candidate_cuda",
+      "metrics": {
+        "evaluation_count": 265.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 0.7633004999952391,
+        "solve_seconds": 0.6379559999913909
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "02ef29913474c02979c9c3946b40cd9ed6bb413a5cc6ef9cb0006530880a9613",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+        "notes": [
+          "Result: z-positive.candidate_cuda.repeat-01.result.json",
+          "Numerical payload SHA256: 5728c3e4f3a03bd8cc723f5dad3f212f2e32b86c8703a6dd5f383569c4adb10e",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['baseline_cuda', 'candidate_cuda']; repetition: 1"
+        ],
+        "output_sha256": "416aa19e8c146337404a545cecf0974c20d24f423ab1964182732fe8c38fc6da"
+      },
+      "runtime_seconds": 0.7633004999952391,
+      "split_id": "z-positive-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "candidate_cuda",
+      "metrics": {
+        "evaluation_count": 265.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 0.7541563000413589,
+        "solve_seconds": 0.6394994999864139
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "02ef29913474c02979c9c3946b40cd9ed6bb413a5cc6ef9cb0006530880a9613",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+        "notes": [
+          "Result: z-positive.candidate_cuda.repeat-02.result.json",
+          "Numerical payload SHA256: 5728c3e4f3a03bd8cc723f5dad3f212f2e32b86c8703a6dd5f383569c4adb10e",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['candidate_cuda', 'baseline_cuda']; repetition: 2"
+        ],
+        "output_sha256": "33e443d6a8865692edbff6226ee0c3498671166c0f65dee2b2580810e8fb1354"
+      },
+      "runtime_seconds": 0.7541563000413589,
+      "split_id": "z-positive-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "baseline_cuda",
+      "metrics": {
+        "evaluation_count": 265.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.684339200030081,
+        "solve_seconds": 1.561933199991472
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "2a3b928d1da06cba820652ccebb9b515e4ef3620360abe4c09bb312078faaf35",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+        "notes": [
+          "Result: z-positive.baseline_cuda.repeat-02.result.json",
+          "Numerical payload SHA256: 5728c3e4f3a03bd8cc723f5dad3f212f2e32b86c8703a6dd5f383569c4adb10e",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['candidate_cuda', 'baseline_cuda']; repetition: 2"
+        ],
+        "output_sha256": "340a4d4c33e1003aacf15c91d0688fb3270b025bc61ec54f4c7ff5adb1635f2d"
+      },
+      "runtime_seconds": 1.684339200030081,
+      "split_id": "z-positive-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "baseline_cuda",
+      "metrics": {
+        "evaluation_count": 265.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.7089146999642253,
+        "solve_seconds": 1.58258869999554
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "2a3b928d1da06cba820652ccebb9b515e4ef3620360abe4c09bb312078faaf35",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+        "notes": [
+          "Result: z-positive.baseline_cuda.repeat-03.result.json",
+          "Numerical payload SHA256: 5728c3e4f3a03bd8cc723f5dad3f212f2e32b86c8703a6dd5f383569c4adb10e",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['baseline_cuda', 'candidate_cuda']; repetition: 3"
+        ],
+        "output_sha256": "f5cd074216d643a86fd3990421d87ac86e88980b4c3bf7a0ae331747558af2a9"
+      },
+      "runtime_seconds": 1.7089146999642253,
+      "split_id": "z-positive-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "candidate_cuda",
+      "metrics": {
+        "evaluation_count": 265.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 0.752184099983424,
+        "solve_seconds": 0.644763900025282
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "02ef29913474c02979c9c3946b40cd9ed6bb413a5cc6ef9cb0006530880a9613",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+        "notes": [
+          "Result: z-positive.candidate_cuda.repeat-03.result.json",
+          "Numerical payload SHA256: 5728c3e4f3a03bd8cc723f5dad3f212f2e32b86c8703a6dd5f383569c4adb10e",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['baseline_cuda', 'candidate_cuda']; repetition: 3"
+        ],
+        "output_sha256": "c857e7fbb8a684688de5511f1b1d55a82b04f727e05a7dc1daf1666a035a00c9"
+      },
+      "runtime_seconds": 0.752184099983424,
+      "split_id": "z-positive-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "candidate_cuda",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 0.7964734000270255,
+        "solve_seconds": 0.6881627000402659
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "c65341c336f40159ac840ddb4b7475e3c3b1c9a939e9281e60569473162fc2ff",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+        "notes": [
+          "Result: z-negative.candidate_cuda.repeat-01.result.json",
+          "Numerical payload SHA256: 98f24ccd4619a8c834e4856b38a879a62b4b4351cf1fd190d19793ef71dbd848",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['candidate_cuda', 'baseline_cuda']; repetition: 1"
+        ],
+        "output_sha256": "1759757e93356390eb7d69af3cac3ee5e965af2c0c8131f621224107c09b55d3"
+      },
+      "runtime_seconds": 0.7964734000270255,
+      "split_id": "z-negative-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "baseline_cuda",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.4219165000249632,
+        "solve_seconds": 1.3069396000355482
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "88eb6c0ce8d06496ea8402375cc752488e45f463b06e9ceb0bfca829bfc6fd2e",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+        "notes": [
+          "Result: z-negative.baseline_cuda.repeat-01.result.json",
+          "Numerical payload SHA256: 98f24ccd4619a8c834e4856b38a879a62b4b4351cf1fd190d19793ef71dbd848",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['candidate_cuda', 'baseline_cuda']; repetition: 1"
+        ],
+        "output_sha256": "27b208371fa2734d642456e7b1d728db093f74a0074e56ce86d845ee34a10d8a"
+      },
+      "runtime_seconds": 1.4219165000249632,
+      "split_id": "z-negative-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "baseline_cuda",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.4049641000456177,
+        "solve_seconds": 1.3016638000262901
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "88eb6c0ce8d06496ea8402375cc752488e45f463b06e9ceb0bfca829bfc6fd2e",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+        "notes": [
+          "Result: z-negative.baseline_cuda.repeat-02.result.json",
+          "Numerical payload SHA256: 98f24ccd4619a8c834e4856b38a879a62b4b4351cf1fd190d19793ef71dbd848",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['baseline_cuda', 'candidate_cuda']; repetition: 2"
+        ],
+        "output_sha256": "02bec412a84824405e146fe47134c94ff140f16884039e8715794e64cd2c6530"
+      },
+      "runtime_seconds": 1.4049641000456177,
+      "split_id": "z-negative-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "candidate_cuda",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 0.6733540000277571,
+        "solve_seconds": 0.5605882999952883
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "c65341c336f40159ac840ddb4b7475e3c3b1c9a939e9281e60569473162fc2ff",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+        "notes": [
+          "Result: z-negative.candidate_cuda.repeat-02.result.json",
+          "Numerical payload SHA256: 98f24ccd4619a8c834e4856b38a879a62b4b4351cf1fd190d19793ef71dbd848",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['baseline_cuda', 'candidate_cuda']; repetition: 2"
+        ],
+        "output_sha256": "2b339a4e9c33a6e8dea41af9e3756ddc5b18c63a7c6f36884c4cf56a94182026"
+      },
+      "runtime_seconds": 0.6733540000277571,
+      "split_id": "z-negative-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "candidate_cuda",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 0.6644949999754317,
+        "solve_seconds": 0.5504104999708943
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "c65341c336f40159ac840ddb4b7475e3c3b1c9a939e9281e60569473162fc2ff",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+        "notes": [
+          "Result: z-negative.candidate_cuda.repeat-03.result.json",
+          "Numerical payload SHA256: 98f24ccd4619a8c834e4856b38a879a62b4b4351cf1fd190d19793ef71dbd848",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['candidate_cuda', 'baseline_cuda']; repetition: 3"
+        ],
+        "output_sha256": "be818e845c72fa0dfb5eb18edd31345ca848e251b8d9676d9f9775a23eebc65b"
+      },
+      "runtime_seconds": 0.6644949999754317,
+      "split_id": "z-negative-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "baseline_cuda",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 1.418650700012222,
+        "solve_seconds": 1.2990237000049092
+      },
+      "provenance": {
+        "command": "tools/benchmark_d2d_cuda_candidates.py --sweep-root ${PUBLIC_SWEEP_ROOT} --output-dir outputs/public-kitti-cuda-candidates-v2 --repeats 3",
+        "config_sha256": "88eb6c0ce8d06496ea8402375cc752488e45f463b06e9ceb0bfca829bfc6fd2e",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+        "notes": [
+          "Result: z-negative.baseline_cuda.repeat-03.result.json",
+          "Numerical payload SHA256: 98f24ccd4619a8c834e4856b38a879a62b4b4351cf1fd190d19793ef71dbd848",
+          "Input mode: verified_snapshot; fresh backend/solver each invocation.",
+          "No separate warm-up; compiled disk/process caches persist.",
+          "Snapshot preparation, if selected, is outside per-run phases and reported separately; charge once per case for repeated usage.",
+          "Execution order: ['candidate_cuda', 'baseline_cuda']; repetition: 3"
+        ],
+        "output_sha256": "8edf94267552cf7689ca76f595dc304de6a17167e0426cb69cf0022be52b2f79"
+      },
+      "runtime_seconds": 1.418650700012222,
+      "split_id": "z-negative-repeat-03",
+      "status": "success"
+    }
+  ]
+}

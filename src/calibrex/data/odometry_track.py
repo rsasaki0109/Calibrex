@@ -3,10 +3,64 @@
 from __future__ import annotations
 
 import bisect
+from collections import OrderedDict
 from dataclasses import dataclass
+from math import acos, sin
+from threading import RLock
 from typing import Literal
 
-from calibrex.core.geometry import SE3, interpolate_se3
+from calibrex.core.geometry import (
+    SE3,
+    QuaternionXYZW,
+    _quaternion_dot_xyzw,
+    interpolate_se3,
+    lerp_vector3,
+    normalize_quaternion_xyzw,
+)
+
+
+@dataclass(frozen=True)
+class _PreparedInterval:
+    left: SE3
+    right: SE3
+    q0: QuaternionXYZW
+    q1: QuaternionXYZW
+    theta: float | None
+    sin_theta: float
+
+    @classmethod
+    def capture(cls, left: SE3, right: SE3) -> _PreparedInterval:
+        q0 = normalize_quaternion_xyzw(left.rotation_quat_xyzw)
+        q1 = normalize_quaternion_xyzw(right.rotation_quat_xyzw)
+        if _quaternion_dot_xyzw(q0, q1) < 0.0:
+            q1 = (-q1[0], -q1[1], -q1[2], -q1[3])
+        dot = min(1.0, max(-1.0, _quaternion_dot_xyzw(q0, q1)))
+        theta = None if dot > 1.0 - 1.0e-8 else acos(dot)
+        return cls(left, right, q0, q1, theta, sin(theta) if theta is not None else 0.0)
+
+    def interpolate(self, alpha: float) -> SE3:
+        # Keep the scalar slerp products, sums, clamps and output normalizations.
+        a = min(1.0, max(0.0, float(alpha)))
+        q0, q1 = self.q0, self.q1
+        if self.theta is None:
+            rotation = normalize_quaternion_xyzw((
+                q0[0] + a * (q1[0] - q0[0]),
+                q0[1] + a * (q1[1] - q0[1]),
+                q0[2] + a * (q1[2] - q0[2]),
+                q0[3] + a * (q1[3] - q0[3]),
+            ))
+        else:
+            weight_left = sin((1.0 - a) * self.theta) / self.sin_theta
+            weight_right = sin(a * self.theta) / self.sin_theta
+            rotation = normalize_quaternion_xyzw((
+                weight_left * q0[0] + weight_right * q1[0],
+                weight_left * q0[1] + weight_right * q1[1],
+                weight_left * q0[2] + weight_right * q1[2],
+                weight_left * q0[3] + weight_right * q1[3],
+            ))
+        return SE3(
+            lerp_vector3(self.left.translation_m, self.right.translation_m, alpha), rotation,
+        )
 
 
 @dataclass(frozen=True)
@@ -35,11 +89,14 @@ class OdometryTrack:
         *,
         burst_policy: OdometryBurstPolicy = "preserve",
         min_interval_s: float = 0.001,
+        cache_size: int = 8192,
     ) -> None:
         if burst_policy not in {"preserve", "keep_first", "keep_last"}:
             raise ValueError(f"unsupported odometry burst policy: {burst_policy!r}")
         if min_interval_s <= 0.0:
             raise ValueError("odometry burst min_interval_s must be positive")
+        if cache_size < 0:
+            raise ValueError("odometry cache_size must be non-negative")
         ordered = sorted(samples, key=lambda sample: sample.timestamp_ns)
         self.raw_message_count = len(ordered)
         self.burst_policy = burst_policy
@@ -60,6 +117,12 @@ class OdometryTrack:
         self.clamp_count = 0
         self.interpolation_count = 0
         self.max_extrapolation_s = 0.0
+        self._cache_size = cache_size
+        self._cache_lock = RLock()
+        self._pose_cache: OrderedDict[int, tuple[SE3, bool, float]] = OrderedDict()
+        self._prepared_intervals: OrderedDict[int, _PreparedInterval] = OrderedDict()
+        self._cached_samples = self.samples
+        self._cached_timestamps_ns = self._timestamps_ns
 
     @property
     def message_count(self) -> int:
@@ -74,9 +137,42 @@ class OdometryTrack:
         return self.samples[-1].timestamp_ns if self.samples else None
 
     def interpolate(self, timestamp_ns: int) -> tuple[SE3, bool, float]:
-        """Return ``(T_world_base, was_clamped, extrapolation_s)`` at ``timestamp_ns``."""
+        """Return pose/clamp/extrapolation, counting every query including cache hits.
 
+        Immutable sample geometry and interval slerp constants are reused in
+        bounded LRUs. cache_size=0 keeps uncached evaluation. Sample/timestamp
+        replacement invalidates both caches.
+        """
+
+        with self._cache_lock:
+            return self._interpolate_counted(timestamp_ns)
+
+    def _interpolate_counted(self, timestamp_ns: int) -> tuple[SE3, bool, float]:
         self.interpolation_count += 1
+        if (
+            self.samples is not self._cached_samples
+            or self._timestamps_ns is not self._cached_timestamps_ns
+        ):
+            self._pose_cache.clear()
+            self._prepared_intervals.clear()
+            self._cached_samples = self.samples
+            self._cached_timestamps_ns = self._timestamps_ns
+        eligible = self._cache_size > 0 and type(timestamp_ns) is int and bool(self.samples)
+        if eligible and timestamp_ns in self._pose_cache:
+            pose, clamped, extrapolation = self._pose_cache[timestamp_ns]
+            self._pose_cache.move_to_end(timestamp_ns)
+            if clamped:
+                self.clamp_count += 1
+            self._record_extrapolation(extrapolation)
+            return pose, clamped, extrapolation
+        result = self._interpolate_uncached(timestamp_ns)
+        if eligible:
+            self._pose_cache[timestamp_ns] = result
+            if len(self._pose_cache) > self._cache_size:
+                self._pose_cache.popitem(last=False)
+        return result
+
+    def _interpolate_uncached(self, timestamp_ns: int) -> tuple[SE3, bool, float]:
         if not self.samples:
             return SE3.identity(), False, 0.0
         first_ns = self._timestamps_ns[0]
@@ -103,11 +199,33 @@ class OdometryTrack:
             return left.pose, False, 0.0
         alpha = (timestamp_ns - left.timestamp_ns) / span_ns
         self._record_extrapolation(0.0)
+        if self._cache_size > 0 and type(left.pose) is SE3 and type(right.pose) is SE3:
+            prepared = self._prepared_intervals.get(right_idx)
+            if prepared is None:
+                prepared = _PreparedInterval.capture(left.pose, right.pose)
+                self._prepared_intervals[right_idx] = prepared
+                if len(self._prepared_intervals) > min(self._cache_size, 1024):
+                    self._prepared_intervals.popitem(last=False)
+            else:
+                self._prepared_intervals.move_to_end(right_idx)
+            return prepared.interpolate(alpha), False, 0.0
         return interpolate_se3(left.pose, right.pose, alpha), False, 0.0
 
     def _record_extrapolation(self, extrapolation_s: float) -> None:
         if extrapolation_s > self.max_extrapolation_s:
             self.max_extrapolation_s = extrapolation_s
+
+    def __getstate__(self) -> dict[str, object]:
+        with self._cache_lock:
+            state: dict[str, object] = dict(self.__dict__)
+            state.pop("_cache_lock")
+            state["_pose_cache"] = self._pose_cache.copy()
+            state["_prepared_intervals"] = self._prepared_intervals.copy()
+            return state
+
+    def __setstate__(self, state: dict[str, object]) -> None:
+        self.__dict__.update(state)
+        self._cache_lock = RLock()
 
 
 def _reduce_timestamp_bursts(

@@ -1,0 +1,37 @@
+[
+  {
+    "ProcessId": 13900,
+    "ParentProcessId": 12156,
+    "CommandLine": "\"<WORKSPACE>/.venv/Scripts/python.exe\" .tmp-calibrex-run-linearization-reuse-cpu-v2.py "
+  },
+  {
+    "ProcessId": 21888,
+    "ParentProcessId": 13900,
+    "CommandLine": "/??/C:/WINDOWS/system32/conhost.exe 0x4"
+  },
+  {
+    "ProcessId": 21956,
+    "ParentProcessId": 13900,
+    "CommandLine": "\"<USER>/AppData/Local/Programs/Python/Python312/python.exe\" .tmp-calibrex-run-linearization-reuse-cpu-v2.py "
+  },
+  {
+    "ProcessId": 7396,
+    "ParentProcessId": 21956,
+    "CommandLine": "<WORKSPACE>/.venv/Scripts/python.exe tools/benchmark_adaptive_plane_search.py --baseline-scope compiled --baseline-commit eb50c99878706a45eb0e584f3573507313cdc172 --candidate-query-backend cuda --config examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml --repetitions 3 --output-dir outputs/public-glim-linearization-reuse-cpu-dense-v2"
+  },
+  {
+    "ProcessId": 19944,
+    "ParentProcessId": 7396,
+    "CommandLine": "\"<USER>/AppData/Local/Programs/Python/Python312/python.exe\" tools/benchmark_adaptive_plane_search.py --baseline-scope compiled --baseline-commit eb50c99878706a45eb0e584f3573507313cdc172 --candidate-query-backend cuda --config examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml --repetitions 3 --output-dir outputs/public-glim-linearization-reuse-cpu-dense-v2"
+  },
+  {
+    "ProcessId": 29040,
+    "ParentProcessId": 19944,
+    "CommandLine": "<WORKSPACE>/.venv/Scripts/python.exe <WORKSPACE>/tools/benchmark_adaptive_plane_search.py --worker baseline --baseline-scope compiled --config examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml --output-dir <WORKSPACE>/outputs/public-glim-linearization-reuse-cpu-dense-v2/baseline.repeat-01 --candidate-query-backend cuda"
+  },
+  {
+    "ProcessId": 4584,
+    "ParentProcessId": 29040,
+    "CommandLine": "\"<USER>/AppData/Local/Programs/Python/Python312/python.exe\" <WORKSPACE>/tools/benchmark_adaptive_plane_search.py --worker baseline --baseline-scope compiled --config examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml --output-dir <WORKSPACE>/outputs/public-glim-linearization-reuse-cpu-dense-v2/baseline.repeat-01 --candidate-query-backend cuda"
+  }
+]

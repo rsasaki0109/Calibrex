@@ -1,0 +1,38 @@
+{
+  "provenance": {
+    "source_commit": "0a30e10021124f52e7afcb44e5b5cf00ba8475c7",
+    "launcher_sha256": "149eac440da94b2bb77787598e3708fbe9b1bb0b2d0749679285c59de17f47f1",
+    "dataset_selection_sha256": "0b2ced76ec75a5e93b093f9214530d509717fe9522bc06738eb71e2f298a0cae"
+  },
+  "jobs": [
+    {
+      "label": "primary-115",
+      "fixture": "outputs/kitti-icp-pairs-default-v1/0000000115-0000000116.json",
+      "repeats": 3,
+      "point_budget": 0,
+      "fixture_sha256": "73133b4fcffc08ea4d61c3add588c47f827ced710ea55f0827eb3bea0484c6a1"
+    },
+    {
+      "label": "breadth-230",
+      "fixture": "outputs/kitti-icp-pairs-v1/0000000230-0000000231.json",
+      "repeats": 1,
+      "point_budget": 0,
+      "fixture_sha256": "e5d84bd113d4f89d78e694c76848c0facd94f301b4a0a45caae2194e7f2745c7"
+    },
+    {
+      "label": "breadth-345",
+      "fixture": "outputs/kitti-icp-pairs-v1/0000000345-0000000346.json",
+      "repeats": 1,
+      "point_budget": 0,
+      "fixture_sha256": "9d1329b4aeaf4eacd6a6efc128496d49df32b35f0084583146904534566e86d9"
+    },
+    {
+      "label": "small-115",
+      "fixture": "outputs/kitti-icp-pairs-v1/0000000115-0000000116.json",
+      "repeats": 1,
+      "point_budget": 768,
+      "fixture_sha256": "cb67b80ddbbc4aab177918feb167b37b55b357d242cc3b1cd660745013159497"
+    }
+  ],
+  "policy": "primary default 50 iterations, breadth/small 20; full holdout/rematching/six starts; BLAS 1"
+}

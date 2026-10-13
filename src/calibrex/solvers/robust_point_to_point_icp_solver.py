@@ -3,17 +3,28 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+import os
+from collections.abc import Callable, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
-from typing import Literal, TypeAlias
+from typing import Literal, Protocol, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
 
 from calibrex.core.geometry import SE3, Vector3, quaternion_xyzw_from_rotation_matrix
 from calibrex.evaluation.holdout import split_indices
+from calibrex.solvers._exact_neighbors import _ExactNeighbors
 
 FloatArray: TypeAlias = NDArray[np.float64]
+
+
+class _RigidSourceSearch(Protocol):
+    def nearest(
+        self, transformed_source: FloatArray, points: FloatArray, transform: SE3,
+    ) -> NDArray[np.int64]: ...
+
+
 IcpStatus = Literal[
     "converged",
     "max_iterations",
@@ -54,6 +65,7 @@ class RobustPointToPointIcpOptions:
     symmetry_translation_separation_m: float = 0.02
     symmetry_rotation_separation_deg: float = 1.0
     symmetry_equivalent_holdout_margin_m: float = 0.005
+    multi_start_workers: int = 0  # 0: bounded automatic choice; 1: sequential
 
 
 @dataclass(frozen=True)
@@ -190,6 +202,8 @@ class RobustPointToPointIcpSolver:
         target_points: Sequence[IcpPoint],
         initial_transform: SE3 | None = None,
         options: RobustPointToPointIcpOptions | None = None,
+        *, _target_search_factory: Callable[[FloatArray], _ExactNeighbors] | None = None,
+        _source_search_factory: Callable[[FloatArray], _RigidSourceSearch] | None = None,
     ) -> RobustPointToPointIcpResult:
         solver_options = options or RobustPointToPointIcpOptions()
         _validate_options(solver_options)
@@ -210,7 +224,15 @@ class RobustPointToPointIcpSolver:
 
         seed_transform = initial_transform or SE3.identity()
         transform = seed_transform
+        train_array = _positions(train)
         target_array = _positions(target)
+        target_search = (_target_search_factory(target_array) if _target_search_factory is not None
+                         else _ExactNeighbors(target_array))
+        source_search = (
+            _source_search_factory(train_array)
+            if _source_search_factory is not None and solver_options.mutual_correspondences
+            else None
+        )
         history: list[IcpIteration] = []
         status: IcpStatus = "max_iterations"
         reason = "maximum ICP iterations reached"
@@ -218,8 +240,11 @@ class RobustPointToPointIcpSolver:
             FloatArray, FloatArray, FloatArray, NDArray[np.int64], NDArray[np.int64]
         ] | None = None
         for iteration in range(solver_options.max_iterations):
-            transformed = _transform_points(_positions(train), transform)
-            correspondences = _correspondences(transformed, target_array, solver_options)
+            transformed = _transform_points(train_array, transform)
+            correspondences = _correspondences(
+                transformed, target_array, solver_options, target_search=target_search,
+                source_search=source_search, transform=transform,
+            )
             moving, matched, distances, _source_indices, _target_indices = correspondences
             if len(moving) < solver_options.min_correspondences:
                 return _empty("insufficient_correspondences", train_ids, holdout_ids)
@@ -262,21 +287,27 @@ class RobustPointToPointIcpSolver:
                 reason = "transform increment fell below tolerance"
                 break
 
-        transformed = _transform_points(_positions(train), transform)
-        correspondences = _correspondences(transformed, target_array, solver_options)
+        transformed = _transform_points(train_array, transform)
+        correspondences = _correspondences(
+            transformed, target_array, solver_options, target_search=target_search,
+            source_search=source_search, transform=transform,
+        )
         moving, _matched, distances, source_indices, target_indices = correspondences
         spectrum, rank, condition = _information_diagnostics(moving, solver_options)
         holdout_rmse = _nearest_rmse(
-            _transform_points(_positions(holdout), transform), target_array
+            _transform_points(_positions(holdout), transform), target_array,
+            target_search=target_search,
         )
         rematching = (
             _rematching_diagnostics(
-                _positions(train),
+                train_array,
                 target_array,
                 transform,
                 source_indices,
                 target_indices,
                 solver_options,
+                target_search=target_search,
+                source_search=source_search,
             )
             if solver_options.effective_diagnostics
             else None
@@ -289,6 +320,8 @@ class RobustPointToPointIcpSolver:
                 transform,
                 holdout_rmse,
                 solver_options,
+                _target_search_factory=_target_search_factory,
+                _source_search_factory=_source_search_factory,
             )
             if solver_options.multi_start_diagnostics
             else ()
@@ -359,12 +392,14 @@ def evaluate_icp_candidate(
         return IcpCandidateEvaluation(train_ids, holdout_ids, None, None, 0, 0.0, None)
     train_array = _positions(train)
     target_array = _positions(target)
+    target_search = _ExactNeighbors(target_array)
     transformed = _transform_points(train_array, transform_target_source)
     moving, _matched, distances, source_indices, target_indices = _correspondences(
-        transformed, target_array, solver_options
+        transformed, target_array, solver_options, target_search=target_search,
     )
     holdout_rmse = _nearest_rmse(
-        _transform_points(_positions(holdout), transform_target_source), target_array
+        _transform_points(_positions(holdout), transform_target_source), target_array,
+        target_search=target_search,
     )
     rematching = (
         _rematching_diagnostics(
@@ -374,6 +409,7 @@ def evaluate_icp_candidate(
             source_indices,
             target_indices,
             solver_options,
+            target_search=target_search,
         )
         if solver_options.effective_diagnostics and len(moving)
         else None
@@ -415,16 +451,24 @@ def _correspondences(
     transformed_source: FloatArray,
     target: FloatArray,
     options: RobustPointToPointIcpOptions,
+    *, target_search: _ExactNeighbors | None = None,
+    source_search: _RigidSourceSearch | None = None, transform: SE3 | None = None,
 ) -> tuple[
     FloatArray, FloatArray, FloatArray, NDArray[np.int64], NDArray[np.int64]
 ]:
-    squared = np.sum((transformed_source[:, None, :] - target[None, :, :]) ** 2, axis=2)
-    target_indices = np.argmin(squared, axis=1)
-    distances = np.sqrt(squared[np.arange(len(transformed_source)), target_indices])
+    search = target_search if target_search is not None else _ExactNeighbors(target)
+    target_indices, squared = search.nearest(transformed_source)
+    distances = np.sqrt(squared)
     mask = distances <= options.correspondence_distance_m
     if options.mutual_correspondences:
-        source_indices = np.argmin(squared, axis=0)
-        mask &= source_indices[target_indices] == np.arange(len(transformed_source))
+        unique_targets, inverse = np.unique(target_indices, return_inverse=True)
+        if source_search is not None and transform is not None:
+            source_indices = source_search.nearest(
+                transformed_source, target[unique_targets], transform,
+            )
+        else:
+            source_indices, _ = _ExactNeighbors(transformed_source).nearest(target[unique_targets])
+        mask &= source_indices[inverse] == np.arange(len(transformed_source))
     selected = np.flatnonzero(mask)
     if len(selected):
         keep = max(1, math.ceil(options.trim_fraction * len(selected)))
@@ -445,6 +489,8 @@ def _rematching_diagnostics(
     baseline_source_indices: NDArray[np.int64],
     baseline_target_indices: NDArray[np.int64],
     options: RobustPointToPointIcpOptions,
+    *, target_search: _ExactNeighbors | None = None,
+    source_search: _RigidSourceSearch | None = None,
 ) -> IcpRematchingDiagnostics:
     directions: tuple[Literal["x", "y", "z", "roll", "pitch", "yaw"], ...] = (
         "x",
@@ -455,7 +501,8 @@ def _rematching_diagnostics(
         "yaw",
     )
     baseline_objective, baseline_pairs = _rematched_objective_and_pairs(
-        source, target, transform, options
+        source, target, transform, options, target_search=target_search,
+        source_search=source_search,
     )
     if baseline_objective is None:
         baseline_pairs = set(
@@ -487,10 +534,11 @@ def _rematching_diagnostics(
             transform
         )
         minus_objective, minus_pairs = _rematched_objective_and_pairs(
-            source, target, minus, options
+            source, target, minus, options, target_search=target_search,
+            source_search=source_search,
         )
         plus_objective, plus_pairs = _rematched_objective_and_pairs(
-            source, target, plus, options
+            source, target, plus, options, target_search=target_search, source_search=source_search,
         )
         if (
             baseline_objective is None
@@ -542,10 +590,13 @@ def _rematched_objective_and_pairs(
     target: FloatArray,
     transform: SE3,
     options: RobustPointToPointIcpOptions,
+    *, target_search: _ExactNeighbors | None = None,
+    source_search: _RigidSourceSearch | None = None,
 ) -> tuple[float | None, set[tuple[int, int]]]:
     transformed = _transform_points(source, transform)
     _moving, _matched, distances, source_indices, target_indices = _correspondences(
-        transformed, target, options
+        transformed, target, options, target_search=target_search,
+        source_search=source_search, transform=transform,
     )
     pairs = set(
         zip(source_indices.tolist(), target_indices.tolist(), strict=True)
@@ -592,6 +643,8 @@ def _multi_start_diagnostics(
     baseline_transform: SE3,
     baseline_holdout_rmse_m: float | None,
     options: RobustPointToPointIcpOptions,
+    *, _target_search_factory: Callable[[FloatArray], _ExactNeighbors] | None = None,
+    _source_search_factory: Callable[[FloatArray], _RigidSourceSearch] | None = None,
 ) -> tuple[IcpMultiStartTrial, ...]:
     directions: tuple[Literal["x", "y", "z", "roll", "pitch", "yaw"], ...] = (
         "x",
@@ -611,8 +664,9 @@ def _multi_start_diagnostics(
         effective_diagnostics=False,
         multi_start_diagnostics=False,
     )
-    trials: list[IcpMultiStartTrial] = []
-    for index, direction in enumerate(directions):
+
+    def run_trial(index: int) -> IcpMultiStartTrial:
+        direction = directions[index]
         is_translation = index < 3
         amount = (
             options.multi_start_translation_m
@@ -622,9 +676,16 @@ def _multi_start_diagnostics(
         initial = _left_perturbation(
             axes[index % 3], amount, is_translation
         ).compose(seed_transform)
-        result = RobustPointToPointIcpSolver().solve(
-            source, target, initial_transform=initial, options=nested_options
-        )
+        if _target_search_factory is None and _source_search_factory is None:
+            result = RobustPointToPointIcpSolver().solve(
+                source, target, initial_transform=initial, options=nested_options,
+            )
+        else:
+            result = RobustPointToPointIcpSolver().solve(
+                source, target, initial_transform=initial, options=nested_options,
+                _target_search_factory=_target_search_factory,
+                _source_search_factory=_source_search_factory,
+            )
         if result.transform_target_source is None:
             translation_delta = None
             rotation_delta = None
@@ -650,21 +711,29 @@ def _multi_start_diagnostics(
             if equivalent is not None and distinct is not None
             else None
         )
-        trials.append(
-            IcpMultiStartTrial(
-                direction=direction,
-                amount=amount,
-                unit="m" if is_translation else "rad",
-                status=result.status,
-                holdout_rmse_m=result.holdout_rmse_m,
-                solution_translation_delta_m=translation_delta,
-                solution_rotation_delta_deg=rotation_delta,
-                equivalent_holdout=equivalent,
-                distinct_solution=distinct,
-                symmetry_ambiguous=ambiguous,
-            )
+        return IcpMultiStartTrial(
+            direction=direction,
+            amount=amount,
+            unit="m" if is_translation else "rad",
+            status=result.status,
+            holdout_rmse_m=result.holdout_rmse_m,
+            solution_translation_delta_m=translation_delta,
+            solution_rotation_delta_deg=rotation_delta,
+            equivalent_holdout=equivalent,
+            distinct_solution=distinct,
+            symmetry_ambiguous=ambiguous,
         )
-    return tuple(trials)
+
+    workers = options.multi_start_workers
+    if workers == 0:
+        workers = min(4, os.cpu_count() or 1) if len(source) >= 1500 else 1
+    workers = min(workers, len(directions))
+    if workers == 1:
+        return tuple(run_trial(index) for index in range(len(directions)))
+    # Each solve owns its arrays and spatial indexes. map retains the declared
+    # direction order; the context joins all work before returning or raising.
+    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="calibrex-icp") as executor:
+        return tuple(executor.map(run_trial, range(len(directions))))
 
 
 def _rigid_alignment(source: FloatArray, target: FloatArray) -> SE3:
@@ -685,16 +754,17 @@ def _rigid_alignment(source: FloatArray, target: FloatArray) -> SE3:
 def _information_diagnostics(
     points: FloatArray, options: RobustPointToPointIcpOptions
 ) -> tuple[tuple[float, float, float, float, float, float], int, float]:
-    rows: list[list[float]] = []
-    for x, y, z in points:
-        rows.extend(
-            [
-                [1.0, 0.0, 0.0, 0.0, z, -y],
-                [0.0, 1.0, 0.0, -z, 0.0, x],
-                [0.0, 0.0, 1.0, y, -x, 0.0],
-            ]
-        )
-    spectrum = np.linalg.svd(np.asarray(rows), compute_uv=False)
+    # Preserve the original 3N-by-6 matrix and SVD, including signed zeros and
+    # row order, while filling its columns without per-point Python lists.
+    rows = np.zeros((3 * len(points), 6), dtype=np.float64)
+    rows[0::3, 0] = rows[1::3, 1] = rows[2::3, 2] = 1.0
+    rows[0::3, 4] = points[:, 2]
+    rows[0::3, 5] = -points[:, 1]
+    rows[1::3, 3] = -points[:, 2]
+    rows[1::3, 5] = points[:, 0]
+    rows[2::3, 3] = points[:, 1]
+    rows[2::3, 4] = -points[:, 0]
+    spectrum = np.linalg.svd(rows, compute_uv=False)
     values = tuple(float(value) for value in spectrum[:6])
     rank = int(np.count_nonzero(spectrum > options.rank_tolerance * spectrum[0]))
     condition = values[0] / values[5] if values[5] > 0.0 else math.inf
@@ -741,11 +811,14 @@ def _transform_points(points: FloatArray, transform: SE3) -> FloatArray:
     return points @ rotation.T + np.asarray(transform.translation_m)
 
 
-def _nearest_rmse(points: FloatArray, target: FloatArray) -> float | None:
+def _nearest_rmse(
+    points: FloatArray, target: FloatArray, *, target_search: _ExactNeighbors | None = None,
+) -> float | None:
     if not len(points) or not len(target):
         return None
-    squared = np.sum((points[:, None, :] - target[None, :, :]) ** 2, axis=2)
-    return float(math.sqrt(np.mean(np.min(squared, axis=1))))
+    search = target_search if target_search is not None else _ExactNeighbors(target)
+    _, squared = search.nearest(points)
+    return float(math.sqrt(np.mean(squared)))
 
 
 def _rotation_angle(transform: SE3) -> float:
@@ -777,6 +850,8 @@ def _validate_options(options: RobustPointToPointIcpOptions) -> None:
         raise ValueError("multi_start_translation_m must be positive")
     if options.multi_start_rotation_rad <= 0.0:
         raise ValueError("multi_start_rotation_rad must be positive")
+    if options.multi_start_workers < 0:
+        raise ValueError("multi_start_workers must be nonnegative (0 selects automatically)")
 
 
 def _empty(

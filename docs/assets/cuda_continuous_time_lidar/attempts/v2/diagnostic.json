@@ -1,0 +1,57 @@
+{
+  "provenance": {
+    "source_commit": "f3780b050b1984f1ee6dc02d09c99beca40c2789",
+    "source_sha256": {
+      "src/calibrex/data/adaptive_voxel.py": "c676a4593cddd2f4c827d6e60534333764bf596fa409968cb9a8f170a1d17b87",
+      "src/calibrex/data/odometry_track.py": "1569e661470e902f2f08dde1bf2d0c41cc6540a24f59d9ee961e066d36653c91",
+      "src/calibrex/graph/lidar_point_to_plane.py": "1cf91c6c9ef2aedf7ccbfa33835d592ee80c1ed6cb8f75736b345be984e968c1",
+      "src/calibrex/solvers/continuous_time_lidar_pair_solver.py": "d28c6b0a2afe83fed90772b3debea78be16b9987cf357bd4009d5332d3d418b4",
+      "src/calibrex/solvers/numba_continuous_time_adapter.py": "50adbf844647efc67cfe63b078a2440d40838baea0374275a3ade11370242966",
+      "src/calibrex/solvers/cuda_continuous_time_adapter.py": "81f42bc3292bcdf67eb0847dff441fc05f2e5f3ac6c906873da6fa859e5a4bfa",
+      "src/calibrex/solvers/fixed_trajectory_se3_solver.py": "f581fbb7e27509c9062f010878ff17efbece50c4fdb8c0b18a165898eb7706be",
+      "src/calibrex/solvers/robust_lidar_observations.py": "ff398d558ec6f35eec497d6cdec80286b43ff4fd27a1e3b6a224d8e54098e240",
+      "src/calibrex/evaluation/lidar.py": "2e4c7dda7f81eaa343096ccce57e1f160bc4418d395facfafc4bcbed4ffb16df",
+      "src/calibrex/evaluation/packed_lidar_observations.py": "822720ec7ae4e6b2112e6aa2c4d81136ce4fdba237526292641b93da0300e453",
+      "src/calibrex/data/livox.py": "0773a7e2fccb2d2faa23f9e90636a00355499af131ad671845edb2c8d33b1bfd",
+      "src/calibrex/pipelines/online.py": "29e9f80ba53bca8e644e6568e429475251cc15605d2d9a612f17572abf96aa67",
+      "src/calibrex/core/continuous_time_lidar_artifacts.py": "96c051290b6b4f82f81fcc108b6ea4525b1497af064a3dedb8196e7dedd9d874",
+      "src/calibrex/core/continuous_time_lidar_train_diagnostics.py": "f86b7e9d569b4ef61d85834df790207dbe2f424af17ec0f5df16b9f2aef6fcac",
+      "src/calibrex/core/provenance.py": "eb7849f342892272ae136454da816852d080684b25c8ec55771582c1b8621f47",
+      "tools/rosbag1_to_rosbag2_online_pair.py": "9da3e080b62933d4d75f92c08bba91929fea401d99650e55f78bd3cdabfcc680",
+      "tools/lidar_scan_deskew.py": "e36a870323f76256fb5b3f8b8364cb2edb4c06483b3ea0fe8a99bf2faa6f1ce0",
+      "tools/benchmark_adaptive_plane_search.py": "9b9ad53738f3fd8b2bec35af6ed332bfb211b4d84485cc2bd0e75648a4b1013c",
+      "examples/public_datasets/glim_versatile/online_continuous_time_compiled_full_capture_config.yaml": "c6d93361d1628493be20a64d585394b2e437bffcbd548340a541cc12b1c602b3",
+      "diagnostic-launcher.py.txt": "6360e2f82f2ac4a53868e3f3028ec7f1b7f5434991620ab06632fe4013231989"
+    },
+    "input_sha256": {
+      "data/public/glim_versatile/livox.bag": "f57a2e85339316d4235ab693ab2876aac5e113625c7f8b0f7873b62f92e09643",
+      "data/public/glim_versatile/gt.tar.gz": "4bfd871527d00065898153e77a6764ac331421aca16ff88bde778994f70f5bc9",
+      "data/public/glim_versatile/gt/livox.txt": "bcc75ff7985f2e140e514c69f029153e0127a33ee7abc1b757e077386f5059ad",
+      "data/public/glim_versatile/livox_rosbag2_gt_restamped/livox_rosbag2_gt_restamped.db3": "8d28f0a8ddda13b880e4648e9d687d4a566d40f70b87547f8798fe8a18cfde9e",
+      "data/public/glim_versatile/livox_rosbag2_gt_restamped/metadata.yaml": "7542a3e1689e2007e9c15b8d163cddcbca4d87232dd92b7ecff48ba1e0f6645f",
+      "data/public/glim_versatile/conversion-provenance.json": "7f51da99c1bdc0b2768229e6ff22809d5d0bb22e02dcc62dce2c3ce0dac2da56"
+    },
+    "measurement_sha256": "c02c822247dc7e68b44ee8d533861f5c5697b3919a62d38d554609497263628a"
+  },
+  "counts": {
+    "gpu_linearization_calls": 129,
+    "gpu_linearization_rows": 3782178,
+    "gpu_residual_calls": 207,
+    "gpu_residual_rows": 4898939,
+    "gpu_payload_uploads": 104,
+    "gpu_payload_bytes": 255403104,
+    "cpu_linearization_calls": 0,
+    "cpu_residual_calls": 0,
+    "cpu_normal_calls": 129
+  },
+  "sum_seconds": {
+    "gpu_residual": 1.4837692002765834,
+    "gpu_linearization": 0.9527441003592685
+  },
+  "source_input_guards_passed": true,
+  "complete_result_parity": true,
+  "limitations": [
+    "Instrumented only; not pooled with formal timings. Call sums overlap across candidates.",
+    "Trajectory interpolation, associations and ordered normal equations remain on CPU."
+  ]
+}

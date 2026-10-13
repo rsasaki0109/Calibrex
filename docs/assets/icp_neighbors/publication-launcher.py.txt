@@ -1,0 +1,103 @@
+"""Publish native ICP evidence, preserving every complete numerical payload."""
+import hashlib
+import json
+import subprocess
+from pathlib import Path
+
+from calibrex.core.benchmark import BenchmarkDefinition, aggregate_benchmark_definition
+from calibrex.core.provenance import sha256_path
+from calibrex.core.validation import validate_file
+
+ROOT = Path('outputs/public-kitti-icp-neighbors-v1')
+PILOT = Path('outputs/public-kitti-icp-neighbor-pilot-v2')
+DESTINATION = Path('docs/assets/icp_neighbors')
+COMMIT = 'd2f49e4aa8cbeafb64bc92d6dca347b18323d1a2'
+BASELINE = 'f959c684c3f4e4ec24a884cd4cea8545d44baa4a'
+SOURCES = (
+    'src/calibrex/solvers/robust_point_to_point_icp_solver.py',
+    'src/calibrex/solvers/chen_medioni_point_to_plane_icp_solver.py',
+    'src/calibrex/solvers/_exact_neighbors.py',
+    'src/calibrex/solvers/native_registration_comparison_solver.py',
+    'src/calibrex/core/geometry.py',
+    'src/calibrex/evaluation/holdout.py',
+    'tools/benchmark_icp_neighbors.py',
+)
+PREFIXES = ((str(Path.cwd()), '${WORKSPACE_ROOT}'),
+            ('E:\\datasets\\calibrex_camera_lidar_v06', '${DATASET_ROOT}'))
+
+
+def normalize(value):
+    if isinstance(value, dict):
+        return {normalize(key): normalize(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [normalize(item) for item in value]
+    if not isinstance(value, str):
+        return value
+    for original, replacement in PREFIXES:
+        value = value.replace(original, replacement).replace(original.replace('\\', '/'), replacement)
+    if any(replacement in value for _, replacement in PREFIXES):
+        value = value.replace('\\', '/')
+    return value
+
+
+def digest(value):
+    return hashlib.sha256(json.dumps(value, sort_keys=True,
+                                    separators=(',', ':'), allow_nan=False).encode()).hexdigest()
+
+
+DESTINATION.mkdir(parents=True, exist_ok=True)
+bindings = {}
+for source in sorted(ROOT.glob('baseline.*.txt')):
+    target = DESTINATION / source.name
+    target.write_bytes(source.read_bytes())
+    bindings[target.name] = sha256_path(target)
+target = DESTINATION / 'publication-launcher.py.txt'
+target.write_bytes(Path(__file__).read_bytes())
+bindings[target.name] = sha256_path(target)
+total = 0
+for algorithm in ('point', 'plane'):
+    final = BenchmarkDefinition.model_validate_json((ROOT / f'{algorithm}.definition.json').read_bytes())
+    final_payloads = {}
+    for root, prefix, expected_count in ((ROOT, '', 18), (PILOT, 'pilot.', 2)):
+        original = BenchmarkDefinition.model_validate_json((root / f'{algorithm}.definition.json').read_bytes())
+        definition = BenchmarkDefinition.model_validate(normalize(original.model_dump(mode='json')))
+        assert len(definition.trials) == expected_count
+        anchors = {}
+        for trial in definition.trials:
+            payload = json.loads(trial.provenance.notes[-1].removeprefix('Complete numerical payload: '))
+            assert digest(payload) == trial.provenance.output_sha256
+            assert trial.status == 'success' and trial.metrics['numerical_parity'] == 1.0
+            case = trial.split_id.rsplit('-repeat-', 1)[0]
+            assert payload == anchors.setdefault(case, payload)
+            assert payload == final_payloads.setdefault(case, payload)
+            assert trial.runtime_seconds == trial.metrics['wall_seconds']
+            total += 1
+        if prefix:
+            # The pilot ran with these exact files before their source commit.
+            assert all(final.provenance.source_artifacts.get(key) == value
+                       for key, value in original.provenance.source_artifacts.items()
+                       if not key.startswith('prepared:') and not key.endswith('.bin'))
+            checkout = definition.methods[-1].source_commit
+            definition.methods[-1].source_commit = COMMIT
+            definition.limitations.append(
+                'Single-repetition uncommitted pilot; not the final repeated comparison. '
+                'Original checkout HEAD was ' + checkout + '; recorded measured source bytes '
+                'match the final run. The indexed method is bound to their later source commit ' + COMMIT + '.'
+            )
+        definition.provenance.source_artifacts.update({
+            'original_definition': sha256_path(root / f'{algorithm}.definition.json'),
+            'original_aggregate': sha256_path(root / f'{algorithm}.benchmark.json'),
+            **{'published:' + name: value for name, value in bindings.items()},
+            **{'committed:' + name: hashlib.sha256(subprocess.check_output(
+                ['git', 'show', COMMIT + ':' + name])).hexdigest() for name in SOURCES},
+        })
+        definition.limitations.append(
+            'Local paths are normalized to ${WORKSPACE_ROOT} and ${DATASET_ROOT}. '
+            'Every complete numerical payload and original input/config/output digest is unchanged. '
+            'Output digests bind canonical JSON payloads, not a standalone result file.'
+        )
+        definition.save(DESTINATION / f'{prefix}{algorithm}.definition.json')
+        aggregate_benchmark_definition(definition).save(DESTINATION / f'{prefix}{algorithm}.benchmark.json')
+for path in DESTINATION.glob('*.json'):
+    assert validate_file(path).valid, path
+print('Published 8 schema-valid JSONs with', total, 'complete verified numerical payloads.')

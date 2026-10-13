@@ -1,0 +1,456 @@
+{
+  "provenance": {
+    "commit": "0a30e10021124f52e7afcb44e5b5cf00ba8475c7",
+    "sources": {
+      "src/calibrex/solvers/robust_point_to_point_icp_solver.py": "8b342ffd420b0a6f5bc53d4452fee9ac653427bab38fd875629d473f8b80a37d",
+      "src/calibrex/solvers/cuda_point_to_point_icp_adapter.py": "c73982f263d1235a8539f33ef00331d684c0c925c5851a991f8b1f6c025a7b68",
+      "src/calibrex/solvers/cuda_lidar_map_adapter.py": "c4cbfb6434c6ae0cb91cd5fff38fb349cc959436344aab5737236ad6f5d6a8b6",
+      "src/calibrex/solvers/_exact_neighbors.py": "27665693aa10cc78e9e469fc6602c6332dcbc11aeb39c30129dbce9d9ffabf7f",
+      "src/calibrex/core/geometry.py": "6597695de33360d44b8b18e457f84355df3ace30837462f4b9501193879d66aa",
+      "src/calibrex/evaluation/holdout.py": "24c0eee5b132cf535dbbfb98ceb4b5f5e1b9ebafce68962a6cef8cff6ff30854",
+      "tools/benchmark_cuda_point_to_point_icp.py": "9c99bc848a80703416b53b01ce608d199e4e289a051a32dff734f883f81f0c73",
+      "tools/schemas/icp_pair_fixture.schema.json": "e81d2594239cf5ef642ec83ae907a475f6308b6e3631e34e13c147185065ad26"
+    }
+  },
+  "trials": [
+    {
+      "repeat": 1,
+      "order": [
+        "native",
+        "cuda"
+      ],
+      "subprocess_wall_seconds": 29.58728420000989,
+      "method": "native",
+      "seconds": 26.705164899933152,
+      "point_count": 127303,
+      "target_point_count": 127336,
+      "result_sha256": "e94fd095a742dc2343720446bddbc074de2b96bb5bdfdae248f006978ecaec82",
+      "provenance": {
+        "source": {
+          "commit": "0a30e10021124f52e7afcb44e5b5cf00ba8475c7",
+          "sources": {
+            "src/calibrex/solvers/robust_point_to_point_icp_solver.py": "8b342ffd420b0a6f5bc53d4452fee9ac653427bab38fd875629d473f8b80a37d",
+            "src/calibrex/solvers/cuda_point_to_point_icp_adapter.py": "c73982f263d1235a8539f33ef00331d684c0c925c5851a991f8b1f6c025a7b68",
+            "src/calibrex/solvers/cuda_lidar_map_adapter.py": "c4cbfb6434c6ae0cb91cd5fff38fb349cc959436344aab5737236ad6f5d6a8b6",
+            "src/calibrex/solvers/_exact_neighbors.py": "27665693aa10cc78e9e469fc6602c6332dcbc11aeb39c30129dbce9d9ffabf7f",
+            "src/calibrex/core/geometry.py": "6597695de33360d44b8b18e457f84355df3ace30837462f4b9501193879d66aa",
+            "src/calibrex/evaluation/holdout.py": "24c0eee5b132cf535dbbfb98ceb4b5f5e1b9ebafce68962a6cef8cff6ff30854",
+            "tools/benchmark_cuda_point_to_point_icp.py": "9c99bc848a80703416b53b01ce608d199e4e289a051a32dff734f883f81f0c73",
+            "tools/schemas/icp_pair_fixture.schema.json": "e81d2594239cf5ef642ec83ae907a475f6308b6e3631e34e13c147185065ad26"
+          }
+        },
+        "input_sha256": "b9b6ac62ef2b7be4dcec2eab424c142012c6e948cb3f24bf774b6459efbae2ca",
+        "input": "<DATASET_ROOT>/velodyne_points/data/0000000230.bin",
+        "seed": 20261013,
+        "noise_sigma_m": null,
+        "truth": null,
+        "options": {
+          "max_iterations": 20,
+          "convergence_tolerance_m": 1e-07,
+          "correspondence_distance_m": 1.0,
+          "trim_fraction": 0.8,
+          "mutual_correspondences": true,
+          "min_correspondences": 6,
+          "holdout_ratio": 0.2,
+          "holdout_voxel_size_m": 0.5,
+          "split_seed": 0,
+          "rank_tolerance": 1e-07,
+          "max_condition_number": 100000000.0,
+          "effective_diagnostics": true,
+          "curvature_translation_step_m": 0.01,
+          "curvature_rotation_step_rad": 0.008726646259971648,
+          "min_translation_curvature": 0.001,
+          "min_rotation_curvature_m2_per_rad2": 0.001,
+          "multi_start_diagnostics": true,
+          "multi_start_translation_m": 0.05,
+          "multi_start_rotation_rad": 0.08726646259971647,
+          "symmetry_translation_separation_m": 0.02,
+          "symmetry_rotation_separation_deg": 1.0,
+          "symmetry_equivalent_holdout_margin_m": 0.005,
+          "multi_start_workers": 0
+        },
+        "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+        "numpy": "2.3.4",
+        "scipy": "1.17.1",
+        "blas_environment": {
+          "OPENBLAS_NUM_THREADS": "1",
+          "OMP_NUM_THREADS": "1",
+          "MKL_NUM_THREADS": "1"
+        },
+        "blas_runtime": [
+          {
+            "user_api": "blas",
+            "internal_api": "openblas",
+            "num_threads": 1,
+            "version": "0.3.30",
+            "threading_layer": "pthreads"
+          },
+          {
+            "user_api": "blas",
+            "internal_api": "openblas",
+            "num_threads": 1,
+            "version": "0.3.30",
+            "threading_layer": "pthreads"
+          }
+        ],
+        "cupy_imported": false,
+        "adapter": null,
+        "fixture": {
+          "schema_version": "calibrex.icp_pair_fixture/v0.1",
+          "source": "velodyne_points/data/0000000230.bin",
+          "target": "velodyne_points/data/0000000231.bin",
+          "initial_transform": {
+            "translation_m": [
+              -0.6929738401797074,
+              -0.02503730380464178,
+              0.008070970906430202
+            ],
+            "rotation_quat_xyzw": [
+              0.0020275889296996136,
+              -0.0030471492896563144,
+              0.0017547608139605255,
+              0.999991762255482
+            ]
+          },
+          "reference_transform": {
+            "translation_m": [
+              -0.722952676523831,
+              -0.0050217633649873306,
+              -0.006950597332632258
+            ],
+            "rotation_quat_xyzw": [
+              0.0010286546408843802,
+              -0.0010458753512734844,
+              0.0002557802719452399,
+              0.9999988912948014
+            ]
+          },
+          "options": {
+            "max_iterations": 20,
+            "convergence_tolerance_m": 1e-07,
+            "correspondence_distance_m": 1.0,
+            "trim_fraction": 0.8,
+            "mutual_correspondences": true,
+            "min_correspondences": 6,
+            "holdout_ratio": 0.2,
+            "holdout_voxel_size_m": 0.5,
+            "split_seed": 0,
+            "rank_tolerance": 1e-07,
+            "max_condition_number": 100000000.0,
+            "effective_diagnostics": true,
+            "curvature_translation_step_m": 0.01,
+            "curvature_rotation_step_rad": 0.008726646259971648,
+            "min_translation_curvature": 0.001,
+            "min_rotation_curvature_m2_per_rad2": 0.001,
+            "multi_start_diagnostics": true,
+            "multi_start_translation_m": 0.05,
+            "multi_start_rotation_rad": 0.08726646259971647,
+            "symmetry_translation_separation_m": 0.02,
+            "symmetry_rotation_separation_deg": 1.0,
+            "symmetry_equivalent_holdout_margin_m": 0.005,
+            "multi_start_workers": 0
+          },
+          "provenance": {
+            "generator": "calibrex.prepare_kitti_icp_pairs/v0.1",
+            "source_commit": "0a30e10021124f52e7afcb44e5b5cf00ba8475c7",
+            "source_sha256": {
+              "tools/prepare_kitti_icp_pairs.py": "5cf79839811139b3e9d16224730935ab7375cd346ee02336b7fad3bf441c4cf0",
+              "tools\\schemas\\icp_pair_fixture.schema.json": "e81d2594239cf5ef642ec83ae907a475f6308b6e3631e34e13c147185065ad26",
+              "src/calibrex/data/kitti.py": "2a421e54e35aedd5acfa29067c459fc392debb484d3e18262187231350a6b13f",
+              "src/calibrex/core/geometry.py": "6597695de33360d44b8b18e457f84355df3ace30837462f4b9501193879d66aa",
+              "src/calibrex/solvers/robust_point_to_point_icp_solver.py": "8b342ffd420b0a6f5bc53d4452fee9ac653427bab38fd875629d473f8b80a37d",
+              "src/calibrex/data/kitti_raw_lidar_window_integration.py": "77f8f75320822658f576e55629631c8257ff80ba008db1676f0547b81e4c9fcb"
+            },
+            "input_sha256": {
+              "velodyne_points/data/0000000230.bin": "b9b6ac62ef2b7be4dcec2eab424c142012c6e948cb3f24bf774b6459efbae2ca",
+              "velodyne_points/data/0000000231.bin": "05399157c4a6aad5984d0d5795534ae4003e9747c6185b24a29fdd8f3cadcbc0",
+              "oxts/data/0000000230.txt": "fc496cd4c0a97b2d538946df87699a4a1e2eec6ac468e349774e2d77e1da2451",
+              "oxts/data/0000000231.txt": "fd49334a8d98ae4c7eca6bf51124fe450860383b1d697bce27c1c0f9b645a0b4",
+              "calib_imu_to_velo.txt": "07ca9ed33a2d968fc6358617d2c70e048b6f8e0f6ee5b73ae963afc1b19456ce"
+            },
+            "sequence": "2011_09_30_drive_0018_sync",
+            "source_frame": "0000000230",
+            "target_frame": "0000000231",
+            "initial_perturbation": {
+              "translation_m": [
+                0.03,
+                -0.02,
+                0.015
+              ],
+              "rotation_quat_xyzw": [
+                0.000999996375019711,
+                -0.001999992750039422,
+                0.0014999945625295663,
+                0.9999963750197108
+              ]
+            },
+            "reference_role": "OXTS navigation seed and consistency reference; no deskew",
+            "reference_formula": "inverse(T_world_imu_target*T_imu_velo)*(T_world_imu_source*T_imu_velo)"
+          }
+        },
+        "fixture_sha256": "e5d84bd113d4f89d78e694c76848c0facd94f301b4a0a45caae2194e7f2745c7",
+        "point_budget": 0
+      },
+      "evaluation": {
+        "initial_holdout_rmse_m": 0.1472792588751797,
+        "final_holdout_rmse_m": 0.1421713280842153,
+        "navigation_translation_difference_m": 0.009684965946322253,
+        "navigation_rotation_difference_deg": 0.10246375565065025
+      }
+    },
+    {
+      "repeat": 1,
+      "order": [
+        "native",
+        "cuda"
+      ],
+      "subprocess_wall_seconds": 15.634473599959165,
+      "method": "cuda",
+      "seconds": 12.565171399968676,
+      "point_count": 127303,
+      "target_point_count": 127336,
+      "result_sha256": "e94fd095a742dc2343720446bddbc074de2b96bb5bdfdae248f006978ecaec82",
+      "provenance": {
+        "source": {
+          "commit": "0a30e10021124f52e7afcb44e5b5cf00ba8475c7",
+          "sources": {
+            "src/calibrex/solvers/robust_point_to_point_icp_solver.py": "8b342ffd420b0a6f5bc53d4452fee9ac653427bab38fd875629d473f8b80a37d",
+            "src/calibrex/solvers/cuda_point_to_point_icp_adapter.py": "c73982f263d1235a8539f33ef00331d684c0c925c5851a991f8b1f6c025a7b68",
+            "src/calibrex/solvers/cuda_lidar_map_adapter.py": "c4cbfb6434c6ae0cb91cd5fff38fb349cc959436344aab5737236ad6f5d6a8b6",
+            "src/calibrex/solvers/_exact_neighbors.py": "27665693aa10cc78e9e469fc6602c6332dcbc11aeb39c30129dbce9d9ffabf7f",
+            "src/calibrex/core/geometry.py": "6597695de33360d44b8b18e457f84355df3ace30837462f4b9501193879d66aa",
+            "src/calibrex/evaluation/holdout.py": "24c0eee5b132cf535dbbfb98ceb4b5f5e1b9ebafce68962a6cef8cff6ff30854",
+            "tools/benchmark_cuda_point_to_point_icp.py": "9c99bc848a80703416b53b01ce608d199e4e289a051a32dff734f883f81f0c73",
+            "tools/schemas/icp_pair_fixture.schema.json": "e81d2594239cf5ef642ec83ae907a475f6308b6e3631e34e13c147185065ad26"
+          }
+        },
+        "input_sha256": "b9b6ac62ef2b7be4dcec2eab424c142012c6e948cb3f24bf774b6459efbae2ca",
+        "input": "<DATASET_ROOT>/velodyne_points/data/0000000230.bin",
+        "seed": 20261013,
+        "noise_sigma_m": null,
+        "truth": null,
+        "options": {
+          "max_iterations": 20,
+          "convergence_tolerance_m": 1e-07,
+          "correspondence_distance_m": 1.0,
+          "trim_fraction": 0.8,
+          "mutual_correspondences": true,
+          "min_correspondences": 6,
+          "holdout_ratio": 0.2,
+          "holdout_voxel_size_m": 0.5,
+          "split_seed": 0,
+          "rank_tolerance": 1e-07,
+          "max_condition_number": 100000000.0,
+          "effective_diagnostics": true,
+          "curvature_translation_step_m": 0.01,
+          "curvature_rotation_step_rad": 0.008726646259971648,
+          "min_translation_curvature": 0.001,
+          "min_rotation_curvature_m2_per_rad2": 0.001,
+          "multi_start_diagnostics": true,
+          "multi_start_translation_m": 0.05,
+          "multi_start_rotation_rad": 0.08726646259971647,
+          "symmetry_translation_separation_m": 0.02,
+          "symmetry_rotation_separation_deg": 1.0,
+          "symmetry_equivalent_holdout_margin_m": 0.005,
+          "multi_start_workers": 0
+        },
+        "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+        "numpy": "2.3.4",
+        "scipy": "1.17.1",
+        "blas_environment": {
+          "OPENBLAS_NUM_THREADS": "1",
+          "OMP_NUM_THREADS": "1",
+          "MKL_NUM_THREADS": "1"
+        },
+        "blas_runtime": [
+          {
+            "user_api": "blas",
+            "internal_api": "openblas",
+            "num_threads": 1,
+            "version": "0.3.30",
+            "threading_layer": "pthreads"
+          },
+          {
+            "user_api": "blas",
+            "internal_api": "openblas",
+            "num_threads": 1,
+            "version": "0.3.30",
+            "threading_layer": "pthreads"
+          }
+        ],
+        "cupy_imported": true,
+        "adapter": {
+          "method": "calibrex.cuda_point_to_point_icp/v0.1",
+          "fp64": true,
+          "query_fma": false,
+          "pose_updates_cpu": true,
+          "cupy": "14.2.0",
+          "cuda": 12090,
+          "driver": 13020,
+          "query_sha256": "9f89ea97556f93342928cc595263b26d42644a6273d1f29c29435b838ae6b3b3",
+          "source_sha256": "711a1c927a799961bebaccfe91b815f10ccdc61d76031e69970348d83aa4ad75",
+          "target_sha256": "a302cdbf21eade07f7f89b1c8093eaa6c67617cc37d6808ba8d1250b4d7548b1",
+          "initial_transform": {
+            "translation_m": [
+              -0.6929738401797074,
+              -0.02503730380464178,
+              0.008070970906430202
+            ],
+            "rotation_quat_xyzw": [
+              0.0020275889296996136,
+              -0.0030471492896563144,
+              0.0017547608139605255,
+              0.999991762255482
+            ]
+          },
+          "options": {
+            "max_iterations": 20,
+            "convergence_tolerance_m": 1e-07,
+            "correspondence_distance_m": 1.0,
+            "trim_fraction": 0.8,
+            "mutual_correspondences": true,
+            "min_correspondences": 6,
+            "holdout_ratio": 0.2,
+            "holdout_voxel_size_m": 0.5,
+            "split_seed": 0,
+            "rank_tolerance": 1e-07,
+            "max_condition_number": 100000000.0,
+            "effective_diagnostics": true,
+            "curvature_translation_step_m": 0.01,
+            "curvature_rotation_step_rad": 0.008726646259971648,
+            "min_translation_curvature": 0.001,
+            "min_rotation_curvature_m2_per_rad2": 0.001,
+            "multi_start_diagnostics": true,
+            "multi_start_translation_m": 0.05,
+            "multi_start_rotation_rad": 0.08726646259971647,
+            "symmetry_translation_separation_m": 0.02,
+            "symmetry_rotation_separation_deg": 1.0,
+            "symmetry_equivalent_holdout_margin_m": 0.005,
+            "multi_start_workers": 0
+          },
+          "gpu_query_calls": 327,
+          "gpu_query_rows": 23810798,
+          "target_query_repairs": 0,
+          "source_query_repairs": 0,
+          "static_source_snapshots": 1,
+          "target_snapshots": 1
+        },
+        "fixture": {
+          "schema_version": "calibrex.icp_pair_fixture/v0.1",
+          "source": "velodyne_points/data/0000000230.bin",
+          "target": "velodyne_points/data/0000000231.bin",
+          "initial_transform": {
+            "translation_m": [
+              -0.6929738401797074,
+              -0.02503730380464178,
+              0.008070970906430202
+            ],
+            "rotation_quat_xyzw": [
+              0.0020275889296996136,
+              -0.0030471492896563144,
+              0.0017547608139605255,
+              0.999991762255482
+            ]
+          },
+          "reference_transform": {
+            "translation_m": [
+              -0.722952676523831,
+              -0.0050217633649873306,
+              -0.006950597332632258
+            ],
+            "rotation_quat_xyzw": [
+              0.0010286546408843802,
+              -0.0010458753512734844,
+              0.0002557802719452399,
+              0.9999988912948014
+            ]
+          },
+          "options": {
+            "max_iterations": 20,
+            "convergence_tolerance_m": 1e-07,
+            "correspondence_distance_m": 1.0,
+            "trim_fraction": 0.8,
+            "mutual_correspondences": true,
+            "min_correspondences": 6,
+            "holdout_ratio": 0.2,
+            "holdout_voxel_size_m": 0.5,
+            "split_seed": 0,
+            "rank_tolerance": 1e-07,
+            "max_condition_number": 100000000.0,
+            "effective_diagnostics": true,
+            "curvature_translation_step_m": 0.01,
+            "curvature_rotation_step_rad": 0.008726646259971648,
+            "min_translation_curvature": 0.001,
+            "min_rotation_curvature_m2_per_rad2": 0.001,
+            "multi_start_diagnostics": true,
+            "multi_start_translation_m": 0.05,
+            "multi_start_rotation_rad": 0.08726646259971647,
+            "symmetry_translation_separation_m": 0.02,
+            "symmetry_rotation_separation_deg": 1.0,
+            "symmetry_equivalent_holdout_margin_m": 0.005,
+            "multi_start_workers": 0
+          },
+          "provenance": {
+            "generator": "calibrex.prepare_kitti_icp_pairs/v0.1",
+            "source_commit": "0a30e10021124f52e7afcb44e5b5cf00ba8475c7",
+            "source_sha256": {
+              "tools/prepare_kitti_icp_pairs.py": "5cf79839811139b3e9d16224730935ab7375cd346ee02336b7fad3bf441c4cf0",
+              "tools\\schemas\\icp_pair_fixture.schema.json": "e81d2594239cf5ef642ec83ae907a475f6308b6e3631e34e13c147185065ad26",
+              "src/calibrex/data/kitti.py": "2a421e54e35aedd5acfa29067c459fc392debb484d3e18262187231350a6b13f",
+              "src/calibrex/core/geometry.py": "6597695de33360d44b8b18e457f84355df3ace30837462f4b9501193879d66aa",
+              "src/calibrex/solvers/robust_point_to_point_icp_solver.py": "8b342ffd420b0a6f5bc53d4452fee9ac653427bab38fd875629d473f8b80a37d",
+              "src/calibrex/data/kitti_raw_lidar_window_integration.py": "77f8f75320822658f576e55629631c8257ff80ba008db1676f0547b81e4c9fcb"
+            },
+            "input_sha256": {
+              "velodyne_points/data/0000000230.bin": "b9b6ac62ef2b7be4dcec2eab424c142012c6e948cb3f24bf774b6459efbae2ca",
+              "velodyne_points/data/0000000231.bin": "05399157c4a6aad5984d0d5795534ae4003e9747c6185b24a29fdd8f3cadcbc0",
+              "oxts/data/0000000230.txt": "fc496cd4c0a97b2d538946df87699a4a1e2eec6ac468e349774e2d77e1da2451",
+              "oxts/data/0000000231.txt": "fd49334a8d98ae4c7eca6bf51124fe450860383b1d697bce27c1c0f9b645a0b4",
+              "calib_imu_to_velo.txt": "07ca9ed33a2d968fc6358617d2c70e048b6f8e0f6ee5b73ae963afc1b19456ce"
+            },
+            "sequence": "2011_09_30_drive_0018_sync",
+            "source_frame": "0000000230",
+            "target_frame": "0000000231",
+            "initial_perturbation": {
+              "translation_m": [
+                0.03,
+                -0.02,
+                0.015
+              ],
+              "rotation_quat_xyzw": [
+                0.000999996375019711,
+                -0.001999992750039422,
+                0.0014999945625295663,
+                0.9999963750197108
+              ]
+            },
+            "reference_role": "OXTS navigation seed and consistency reference; no deskew",
+            "reference_formula": "inverse(T_world_imu_target*T_imu_velo)*(T_world_imu_source*T_imu_velo)"
+          }
+        },
+        "fixture_sha256": "e5d84bd113d4f89d78e694c76848c0facd94f301b4a0a45caae2194e7f2745c7",
+        "point_budget": 0
+      },
+      "evaluation": {
+        "initial_holdout_rmse_m": 0.1472792588751797,
+        "final_holdout_rmse_m": 0.1421713280842153,
+        "navigation_translation_difference_m": 0.009684965946322253,
+        "navigation_rotation_difference_deg": 0.10246375565065025
+      }
+    }
+  ],
+  "medians_s": {
+    "native": 26.705164899933152,
+    "cuda": 12.565171399968676
+  },
+  "speedup": 2.1253323213720527,
+  "full_result_equal": true,
+  "cold_policy": "fresh worker and empty CUDA disk cache for every trial",
+  "scope": "complete solve, spatial holdout, rematching, six multi-start diagnostics",
+  "accuracy_scope": "actual frames with OXTS seed; un-deskewed navigation consistency",
+  "whole_medians_s": {
+    "native": 29.58728420000989,
+    "cuda": 15.634473599959165
+  },
+  "whole_speedup": 1.8924387834897856
+}
