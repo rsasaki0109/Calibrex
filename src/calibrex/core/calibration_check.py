@@ -489,6 +489,70 @@ class CheckClosureReport(StrictModel):
     )
 
 
+class CheckAttributionHypothesis(StrictModel):
+    """ "Only this frame's candidate rotation is off": the best such rotation and its fit."""
+
+    frame: str
+    rotation_deg: list[float | None] = Field(
+        min_length=3,
+        max_length=3,
+        description="roll, pitch, yaw about the frame's own axes by which its candidate is "
+        "turned from what the pairs measure (the pairs' convention, rotvec(R_candidate "
+        "R_estimate^T)); null on an axis no observed pair constrains",
+    )
+    std_deg: list[float | None] = Field(min_length=3, max_length=3)
+    chi2: float = Field(ge=0.0)
+    dof: int = Field(ge=0)
+    p_value: float = Field(ge=0.0, le=1.0)
+    pairs: list[str] = Field(
+        default_factory=list, description="the pairs that observe this frame (pair:parent>child)"
+    )
+
+
+class CheckAttributionGroup(StrictModel):
+    """One connected group of frames: which single frame's candidate explains its pair errors.
+
+    ``status``: ``consistent`` when the pair errors fit a candidate with nothing off;
+    ``attributed`` when exactly one frame turned alone explains them and the move is
+    significant; ``ambiguous`` when several frames fit within the 3-dof critical value of
+    the best; ``unexplained`` when no single frame does (more than one is off, or the
+    estimates disagree). A bias shared by every pair through one frame reads as that
+    frame turned.
+    """
+
+    frames: list[str]
+    pairs: list[str]
+    observations: int = Field(ge=0, description="observed rotation axes over all pairs")
+    null_chi2: float = Field(ge=0.0)
+    null_p_value: float = Field(ge=0.0, le=1.0)
+    hypotheses: list[CheckAttributionHypothesis] = Field(default_factory=list)
+    status: Literal["consistent", "attributed", "ambiguous", "unexplained"]
+    frame: str | None = Field(default=None, description="the attributed frame")
+    candidates: list[str] = Field(
+        default_factory=list, description="frames that each explain the errors alone"
+    )
+    summary: str
+
+
+class CheckRotationAttribution(StrictModel):
+    """Which sensor's candidate rotation the pair errors point to.
+
+    Each run pair reads the candidate's rotation error between two frames. If one
+    frame's candidate is off by a small rotation ``w`` (about its own axes), every
+    pair with it as child reads ``R_parent_child w`` and every pair with it as parent
+    reads ``-w``; pairs without it read zero. Each frame's hypothesis is fitted by
+    least squares and judged by its chi-square, next to the hypothesis that nothing is
+    off. Informational: it changes no verdict.
+    """
+
+    assumptions: list[str] = Field(default_factory=list)
+    sigma_floor_deg: float = Field(
+        gt=0.0, description="axis std used at least: rotation floor / sigma_k of the verdicts"
+    )
+    alpha: float = Field(gt=0.0, lt=1.0, description="significance level of the tests")
+    groups: list[CheckAttributionGroup] = Field(default_factory=list)
+
+
 class CheckSummary(StrictModel):
     """Counts derived from the pair records."""
 
@@ -541,6 +605,11 @@ class CalibrationCheckArtifact(StrictModel):
         default=None,
         description="closure of the run's estimates with each other (optional addition); "
         "a failing loop raises overall_verdict to at least warn, never to fail",
+    )
+    rotation_attribution: CheckRotationAttribution | None = Field(
+        default=None,
+        description="which single frame's candidate rotation explains the pair errors "
+        "(optional addition; informational, changes no verdict)",
     )
     evidence_dir: str | None = Field(
         default=None, description="evidence directory, relative to the artifact"
