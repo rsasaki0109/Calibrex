@@ -36,7 +36,11 @@ extern "C" __global__ void native_query3(
     const int row=blockDim.x*blockIdx.x+threadIdx.x;
     if(row>=n) return;
     const double ax=axis_xyz[3*row], ay=axis_xyz[3*row+1], az=axis_xyz[3*row+2];
+#if RIGID_BOUNDS
     const double px=native_xyz[3*row], py=native_xyz[3*row+1], pz=native_xyz[3*row+2];
+#else
+    const double px=ax, py=ay, pz=az;
+#endif
     double best=1.0/0.0; long long chosen=m;
     int stack[STACK_CAPACITY]; double bound[STACK_CAPACITY]; int top=1;
     stack[0]=0; bound[0]=0;
@@ -57,10 +61,14 @@ extern "C" __global__ void native_query3(
             const double p=direction==0 ? ax : (direction==1 ? ay : az);
             const double delta=p-split[node]; const int side=delta<0 ? 0 : 1;
             const int far=child[2*node+1-side], near=child[2*node+side];
+#if RIGID_BOUNDS
             double safe=__dadd_rd(fabs(delta),-error);
             if(safe<0) safe=0;
             safe=__dmul_rd(safe,lower_scale);
             const double lower=__dmul_rd(safe,safe);
+#else
+            const double lower=__dmul_rd(delta,delta);
+#endif
             if(lower<=best) { stack[top]=far; bound[top]=lower; ++top; }
             stack[top]=near; bound[top]=0; ++top;
         }
@@ -79,7 +87,7 @@ class _CudaNeighbors(_ExactNeighbors):
         self.calls = self.rows = self.repairs = 0
         self.direct_calls = self.native_upload_bytes = 0
         self.stack_capacity = 0
-        self._native_kernel: Any = None
+        self._native_kernels: dict[bool, Any] = {}
         self._lock = Lock()
         self.gpu: _CudaTree | None = None
         with cp.cuda.Device(device_id):
@@ -97,10 +105,6 @@ class _CudaNeighbors(_ExactNeighbors):
                     if node.split_dim >= 0:
                         pending.extend(((node.lesser, level+1), (node.greater, level+1)))
                 self.stack_capacity = depth+1
-                self._native_kernel = cp.RawKernel(
-                    _NATIVE_QUERY_SOURCE, "native_query3", options=(
-                        "--fmad=false", f"-DSTACK_CAPACITY={self.stack_capacity}"),
-                )
 
     def _native_nearest(
         self, points: FloatArray, *, raw_points: FloatArray | None = None,
@@ -120,6 +124,14 @@ class _CudaNeighbors(_ExactNeighbors):
         ):
             return None
         with self._lock, cp.cuda.Device(self.device_id), self._stream:
+            rigid = (raw_points is not None or native_reference is not None
+                     or lower_scale != 1. or error != 0.)
+            if rigid not in self._native_kernels:
+                self._native_kernels[rigid] = cp.RawKernel(
+                    _NATIVE_QUERY_SOURCE, "native_query3", options=(
+                        "--fmad=false", f"-DSTACK_CAPACITY={self.stack_capacity}",
+                        f"-DRIGID_BOUNDS={int(rigid)}"),
+                )
             native = cp.asarray(points, dtype=cp.float64, order="C")
             axes = native if raw_points is None else cp.asarray(
                 axis_points, dtype=cp.float64, order="C")
@@ -127,7 +139,7 @@ class _CudaNeighbors(_ExactNeighbors):
                 native_reference, dtype=cp.float64, order="C")
             squared = cp.empty((len(points), 1), dtype=cp.float64)
             indices = cp.empty((len(points), 1), dtype=cp.int64)
-            self._native_kernel(((len(points)+127)//128,), (128,), (
+            self._native_kernels[rigid](((len(points)+127)//128,), (128,), (
                 axes, native, reference, *self.gpu.arrays, np.int32(len(points)),
                 np.int32(len(self._reference)), np.float64(lower_scale), np.float64(error),
                 squared, indices,
