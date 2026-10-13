@@ -233,6 +233,35 @@ def test_parallel_difference_identity_only_excludes_declared_exact_policy(parall
         assert benchmark._comparison_canonical(candidate) != benchmark._canonical(baseline)
 
 
+@pytest.mark.parametrize("backend", ["numba", "cuda"])
+@pytest.mark.parametrize("reused", [False, True])
+def test_projection_identity_excludes_only_the_declared_cache_policy(backend, reused):
+    pytest.importorskip("numba")
+    if backend == "numba":
+        from calibrex.solvers.numba_continuous_time_adapter import numba_continuous_time_identity
+        identity = numba_continuous_time_identity(initial_projection_reused=reused)
+    else:
+        cp = pytest.importorskip("cupy")
+        try:
+            if cp.cuda.runtime.getDeviceCount() == 0:
+                pytest.skip("CUDA device unavailable")
+        except cp.cuda.runtime.CUDARuntimeError:
+            pytest.skip("CUDA device unavailable")
+        from calibrex.solvers.cuda_continuous_time_adapter import cuda_continuous_time_identity
+        identity = cuda_continuous_time_identity(
+            initial_projection_reused=reused, associations_gpu=True)
+    baseline = {"rmse": .1, "provenance": {"notes": []}}
+    candidate = deepcopy(baseline)
+    note = "continuous_time_query_execution: " + identity
+    candidate["provenance"]["notes"] = [note]
+    assert benchmark._comparison_canonical(candidate) == benchmark._canonical(baseline)
+    for forged in (note+";hidden=true", note.replace("initial_projection_bytes=16777216",
+                                                    "initial_projection_bytes=0"),
+                   note.replace("initial_projection_reused=", "initial_projection_reused=unknown")):
+        candidate["provenance"]["notes"] = [forged]
+        assert benchmark._comparison_canonical(candidate) != benchmark._canonical(baseline)
+
+
 def test_cuda_scope_archives_both_old_packing_and_cuda_and_requires_explicit_backends(tmp_path):
     assert benchmark._modules_for_scope("cuda") == (
         *benchmark.COMPILED_MODULES, "calibrex.evaluation.packed_lidar_observations",

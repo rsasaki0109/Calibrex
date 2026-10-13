@@ -372,9 +372,9 @@ def test_complete_dense_hybrid_result_and_telemetry_match_numpy_packing(monkeypa
         solver=FixedTrajectorySe3SolverOptions(max_iterations=1),
     )
     calls = []
-    def observed(*args):
+    def observed(*args, **kwargs):
         calls.append(len(args[3]))
-        return _pack_rig_observations(*args)
+        return _pack_rig_observations(*args, **kwargs)
     monkeypatch.setattr(adapter, "_pack_rig_observations", observed)
     actual = ContinuousTimeLidarPairSolver().solve(problem, options)
     assert calls and min(calls) >= 8192
@@ -517,9 +517,10 @@ def test_parallel_clock_candidates_keep_order_complete_results_and_counters(monk
     monkeypatch.setattr(_PackedObservationBuilder, "capture", classmethod(lambda *args: None))
     expected = ContinuousTimeLidarPairSolver().solve(other, options)
     assert len(calls) == 6
-    assert json.dumps(asdict(actual), sort_keys=True) == (
-        json.dumps(asdict(expected), sort_keys=True)
-    )
+    actual_data = asdict(actual)
+    actual_data["query_backend"] = actual.query_backend.replace(
+        "initial_projection_reused=true;", "initial_projection_reused=false;")
+    assert json.dumps(actual_data, sort_keys=True) == json.dumps(asdict(expected), sort_keys=True)
     assert problem.odometry_track.interpolation_count == other.odometry_track.interpolation_count
     assert problem.odometry_track.clamp_count == other.odometry_track.clamp_count
     assert problem.odometry_track.max_extrapolation_s == other.odometry_track.max_extrapolation_s

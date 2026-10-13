@@ -310,7 +310,7 @@ def test_captured_gpu_summaries_keep_complete_optimizer_history_and_diagnostics(
 
 def test_identity_binds_kernel_and_declares_cpu_trajectory_and_reduction():
     identity = cuda_continuous_time_identity()
-    assert identity.startswith("calibrex.cuda_continuous_time/v0.8;fp64=true;fma=false;")
+    assert identity.startswith("calibrex.cuda_continuous_time/v0.9;fp64=true;fma=false;")
     assert ";trajectory_cpu=true;normal_cpu=true;standalone_residual_cpu=true;" in identity
     assert len(identity.rsplit("=", 1)[1]) == 64
     assert ";associations_gpu=false;" in identity
@@ -339,7 +339,7 @@ def test_gpu_queries_are_recorded_even_when_no_correspondences_reach_the_optimiz
         query_backend="cuda", max_target_points_per_split=None,
     ))
     assert result.status == "insufficient_constraints"
-    assert result.query_backend.startswith("calibrex.cuda_continuous_time/v0.8;")
+    assert result.query_backend.startswith("calibrex.cuda_continuous_time/v0.9;")
     assert ";captured_summary_gpu=false;" in result.query_backend
     assert ";associations_gpu=true;" in result.query_backend
 
