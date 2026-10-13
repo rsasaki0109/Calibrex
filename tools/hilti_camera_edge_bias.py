@@ -12,8 +12,11 @@ never was), the patches there read a different rotation. This tool:
    raw pixel in both cameras, with the ray's angle from each optical axis (``theta``)
    and its direction (towards which other camera);
 3. refits the residual rotation on subsets of the patches: by ``theta`` in the first
-   camera, and, for ``--regions``, by the side of the first camera's view a patch lies
-   on (``left``, ``centre``, ``right`` thirds of its columns, in raw pixels).
+   camera, and by the side of the first camera's view a patch lies on (``left``,
+   ``centre``, ``right`` thirds of its columns, in raw pixels);
+4. refits all patches with terms the rotation model leaves out: a row offset growing
+   with the row (a vertical scale mismatch between the rectified images) and with row
+   times disparity (a baseline direction off along the rectified optical axis).
 
 A lens model that is right everywhere gives the same reading (near zero) on every
 subset. A reading that moves with one camera's ``theta`` or side points at that camera.
@@ -74,10 +77,7 @@ def _inverse(transform: FloatArray) -> FloatArray:
 
 def _sample_map(field: FloatArray, rows: FloatArray, cols: FloatArray) -> FloatArray:
     return np.stack(
-        [
-            ndimage.map_coordinates(field[k], [rows, cols], order=1, mode="nearest")
-            for k in range(2)
-        ]
+        [ndimage.map_coordinates(field[k], [rows, cols], order=1, mode="nearest") for k in range(2)]
     )
 
 
@@ -89,7 +89,8 @@ def _theta_deg(camera: object, raw: FloatArray) -> FloatArray:
 def _fit(
     design: FloatArray, values: FloatArray, frames: NDArray[np.int64], blocks: int = 6
 ) -> tuple[FloatArray, FloatArray]:
-    """Trimmed least squares, with a block jackknife over frames (degrees for rotation)."""
+    """Trimmed least squares with a block jackknife over frames: every coefficient and its
+    std (the first three, the rotation, in degrees)."""
 
     def solve(rows: NDArray[np.bool_]) -> FloatArray:
         keep = rows.copy()
@@ -106,7 +107,9 @@ def _fit(
     groups = np.array_split(np.unique(frames), blocks)
     jack = np.array([solve(~np.isin(frames, group)) for group in groups])
     std = np.sqrt((blocks - 1) / blocks * ((jack - jack.mean(axis=0)) ** 2).sum(axis=0))
-    return np.degrees(estimate[:3]), np.degrees(std[:3])
+    scale = np.ones(len(estimate))
+    scale[:3] = np.degrees(1.0)
+    return estimate * scale, std * scale
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -181,7 +184,12 @@ def main(argv: list[str] | None = None) -> int:
         rows_model = f * np.c_[-(1.0 + (y / f) ** 2), x * y / f**2, x / f]
         design = np.hstack([rows_model @ rect.rectified_from_left, disparity[:, None]])
 
-        def subset(mask: NDArray[np.bool_], design: FloatArray = design) -> dict[str, object]:
+        def subset(
+            mask: NDArray[np.bool_],
+            design: FloatArray = design,
+            offset: FloatArray = offset,
+            frame: NDArray[np.int64] = frame,
+        ) -> dict[str, object]:
             if mask.sum() < args.min_patches:
                 return {"patches": int(mask.sum())}
             value, std = _fit(design[mask], offset[mask], frame[mask])
@@ -189,18 +197,41 @@ def main(argv: list[str] | None = None) -> int:
                 "patches": int(mask.sum()),
                 "residual_deg": {a: round(float(v), 3) for a, v in zip(AXES, value, strict=True)},
                 "std_deg": {a: round(float(s), 3) for a, s in zip(AXES, std, strict=True)},
+                # the disparity term (px per px) and any added terms (px per unit), with stds
+                "other_terms": [
+                    [round(float(v), 5), round(float(e), 5)]
+                    for v, e in zip(value[3:], std[3:], strict=True)
+                ],
             }
 
+        # terms the rotation model leaves out: a row offset growing with the row (a vertical
+        # scale mismatch between the two rectified images) and with row times disparity (a
+        # baseline direction off along the rectified optical axis)
+        every = np.ones(len(offset), dtype=bool)
+        nuisance = {
+            "row": (y / f)[:, None],
+            "row_x_disparity": (y * disparity / f)[:, None],
+        }
+        extended: dict[str, object] = {}
+        for label, columns in (
+            ("row", [nuisance["row"]]),
+            ("row_x_disparity", [nuisance["row_x_disparity"]]),
+            ("both", [nuisance["row"], nuisance["row_x_disparity"]]),
+        ):
+            extended[label] = subset(every, np.hstack([design, *columns]))
         cuts = np.quantile(theta_left, [1 / 3, 2 / 3])
         thirds = np.digitize(raw_left[1], [width / 3, 2 * width / 3])
         entry: dict[str, object] = {
             "check_error_deg": [round(float(v), 3) for v in error],
             "patches": int(known.sum()),
-            "theta_left_deg": [round(float(q), 1) for q in np.quantile(theta_left, [0.1, 0.5, 0.9])],
+            "theta_left_deg": [
+                round(float(q), 1) for q in np.quantile(theta_left, [0.1, 0.5, 0.9])
+            ],
             "theta_right_deg": [
                 round(float(q), 1) for q in np.quantile(theta_right, [0.1, 0.5, 0.9])
             ],
             "all": subset(np.ones(len(offset), dtype=bool)),
+            "with_nuisance_terms": extended,
             "by_theta_left": {
                 f"<{cuts[0]:.0f}": subset(theta_left < cuts[0]),
                 f"{cuts[0]:.0f}-{cuts[1]:.0f}": subset(
