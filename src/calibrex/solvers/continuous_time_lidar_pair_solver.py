@@ -223,6 +223,7 @@ class _QueryReuse:
     cuda_rig: CudaRigLinearizer | None = None
     cuda_planes: CudaPlaneQueries | None = None
     used_cuda: bool = False
+    used_cuda_summary: bool = False
     selections: dict[int, _PackedSelection] = field(default_factory=dict)
 
     def identity(self) -> str:
@@ -231,6 +232,7 @@ class _QueryReuse:
 
             return cuda_continuous_time_identity(
                 associations_gpu=self.cuda_planes is not None and self.cuda_planes.query_calls > 0,
+                captured_summary_gpu=self.used_cuda_summary,
             )
         if self.used_numba or (self.compiled is not None and self.compiled.used):
             from calibrex.solvers.numba_continuous_time_adapter import (
@@ -803,6 +805,8 @@ class ContinuousTimeLidarPairSolver:
         if settings.query_backend in ("numba_cpu", "cuda"):
             from calibrex.solvers.numba_continuous_time_adapter import (
                 _numba_rig_rmse,
+                _numba_rmse_policy,
+                _numba_values_rmse,
                 numba_rig_linearization,
                 numba_rig_normal_equations,
                 numba_rig_residuals,
@@ -819,7 +823,19 @@ class ContinuousTimeLidarPairSolver:
                 return result
 
             array_kernel = compiled_residuals
-            array_rmse_kernel = _numba_rig_rmse
+
+            def compiled_rmse(arrays: _ObservationArrays, transform: SE3) -> tuple[float] | None:
+                if gpu is not None and _numba_rmse_policy() is not None:
+                    values = gpu._captured_residuals(arrays, transform)
+                    if values is not None:
+                        result = _numba_values_rmse(values)
+                        if result is not None:
+                            if query_reuse is not None:
+                                query_reuse.used_cuda = query_reuse.used_cuda_summary = True
+                            return result
+                return _numba_rig_rmse(arrays, transform)
+
+            array_rmse_kernel = compiled_rmse
 
             def compiled_linearization(
                 arrays: _ObservationArrays, transforms: Sequence[SE3], steps: Sequence[float],

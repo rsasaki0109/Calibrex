@@ -390,16 +390,50 @@ def _residual_square_sum(
     return total
 
 
-def _numba_rig_rmse(arrays: _ObservationArrays, transform: SE3) -> tuple[float] | None:
-    """Compute native residual RMSE without creating row arrays or Python floats."""
+def _numba_rmse_policy() -> bool | None:
+    """Select only the interpreter summation policies whose bits are validated."""
     if sys.implementation.name != "cpython" or sys.version_info[:2] not in (
         (3, 10), (3, 11), (3, 12),
     ):
         return None
+    return sys.version_info[:2] == (3, 12)
+
+
+@njit(cache=True, nogil=True, fastmath=False)  # type: ignore[untyped-decorator]
+def _value_square_sum(values: FloatArray, compensated: bool) -> float:
+    total, correction = 0.0, 0.0
+    for value in values:
+        square = value * value
+        updated = total + square
+        if compensated:
+            if abs(total) >= abs(square):
+                correction += (total-updated) + square
+            else:
+                correction += (square-updated) + total
+        total = updated
+    if compensated and correction != 0.0 and math.isfinite(correction):
+        total += correction
+    return total
+
+
+def _numba_values_rmse(values: FloatArray) -> tuple[float] | None:
+    """Reduce captured native residuals in their exact Python summation order."""
+    policy = _numba_rmse_policy()
+    if policy is None or not len(values):
+        return None
+    total = _value_square_sum(values, policy)
+    return (math.sqrt(total / len(values)),)
+
+
+def _numba_rig_rmse(arrays: _ObservationArrays, transform: SE3) -> tuple[float] | None:
+    """Compute native residual RMSE without creating row arrays or Python floats."""
+    policy = _numba_rmse_policy()
+    if policy is None:
+        return None
     values = np.asarray((*transform.translation_m, *transform.rotation_quat_xyzw), dtype=np.float64)
     square_sum = _residual_square_sum(
         arrays.points, arrays.plane_points, arrays.normals, arrays.poses,
-        arrays.sqrt_weights, values, sys.version_info[:2] == (3, 12),
+        arrays.sqrt_weights, values, policy,
     )
     return (math.sqrt(square_sum / len(arrays.points)),) if len(arrays.points) else None
 

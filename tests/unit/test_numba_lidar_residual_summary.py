@@ -59,6 +59,14 @@ def test_both_ordered_sum_policies_preserve_dynamic_range_underflow_and_overflow
     actual_plain = adapter._residual_square_sum(arrays.points, arrays.plane_points, arrays.normals,
         arrays.poses, arrays.sqrt_weights, np.asarray([0.0]*6+[1.0]), False)
     assert _bits(actual_plain) == _bits(plain)
+    assert _bits(adapter._value_square_sum(np.asarray(residuals), False)) == _bits(plain)
+    assert _bits(adapter._value_square_sum(np.asarray(residuals),
+        sys.version_info[:2] >= (3, 12))) == _bits(expected)
+    summary = adapter._numba_values_rmse(np.asarray(residuals))
+    if adapter._numba_rmse_policy() is None:
+        assert summary is None
+    else:
+        assert _bits(summary[0]) == _bits(fixed._rmse(residuals))
 
 
 @pytest.mark.parametrize("loss", ["none", "huber"])
@@ -112,6 +120,7 @@ def test_empty_unsupported_runtime_and_normal_equations_keep_native_contract(mon
         with monkeypatch.context() as context:
             context.setattr(adapter.sys, "version_info", runtime)
             assert adapter._numba_rig_rmse(arrays, SE3.identity()) is None
+            assert adapter._numba_values_rmse(np.ones(64)) is None
     empty = replace(arrays, points=np.empty((0,3)))
     assert adapter._numba_rig_rmse(empty, SE3.identity()) is None
     complete = factor._compiled_system([0.0]*6, robust_loss="huber", huber_delta_m=.05)

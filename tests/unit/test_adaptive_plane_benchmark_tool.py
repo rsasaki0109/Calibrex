@@ -151,6 +151,33 @@ def test_cuda_override_requires_compiled_scope_before_input_reads(tmp_path):
     assert not (tmp_path/"cuda").exists()
 
 
+@pytest.mark.parametrize("associated", [False, True])
+@pytest.mark.parametrize("captured", [False, True])
+def test_captured_summary_identity_excludes_only_exact_cpu_reduction_policy(associated, captured):
+    baseline = {"status": "converged", "rmse": 0.1, "provenance": {"notes": []}}
+    identity = ("continuous_time_query_execution: calibrex.cuda_continuous_time/v0.7;"
+        "fp64=true;fma=false;cupy=14.2.0;cuda=12090;driver=13000;numba=0.65.1;"
+        "trajectory_cpu=true;normal_cpu=true;standalone_residual_cpu=true;"
+        "linearization_cache=last;linearization_cache_bytes=67108864;"
+        f"captured_summary_gpu={str(captured).lower()};summary_reduction_cpu=true;"
+        f"associations_gpu={str(associated).lower()};kernel_sha256="+"a"*64)
+    if associated:
+        identity += ";association_kernel_sha256="+"b"*64
+    candidate = deepcopy(baseline)
+    candidate["provenance"]["notes"] = [identity]
+    assert benchmark._comparison_canonical(candidate) == benchmark._canonical(baseline)
+    candidate["rmse"] = 0.10000000000000002
+    assert benchmark._comparison_canonical(candidate) != benchmark._canonical(baseline)
+    candidate["rmse"] = 0.1
+    for forged in (identity+";hidden=change", identity.replace("fma=false", "fma=true"),
+                   identity.replace("summary_reduction_cpu=true", "summary_reduction_cpu=false"),
+                   identity.replace("captured_summary_gpu=", "captured_summary_gpu=unknown"),
+                   identity.replace("linearization_cache_bytes=67108864",
+                                    "linearization_cache_bytes=1")):
+        candidate["provenance"]["notes"] = [forged]
+        assert benchmark._comparison_canonical(candidate) != benchmark._canonical(baseline)
+
+
 def test_cuda_scope_archives_both_old_packing_and_cuda_and_requires_explicit_backends(tmp_path):
     assert benchmark._modules_for_scope("cuda") == (
         *benchmark.COMPILED_MODULES, "calibrex.evaluation.packed_lidar_observations",

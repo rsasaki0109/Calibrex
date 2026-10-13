@@ -141,6 +141,15 @@ def _comparison_canonical(payload: dict) -> str:
         r"calibrex\.cuda_continuous_time/v0\.6;" + cuda_fields +
         r"standalone_residual_cpu=true;linearization_cache=last;"
         r"linearization_cache_bytes=67108864;associations_gpu=true;kernel_sha256=[0-9a-f]{64};"
+        r"association_kernel_sha256=[0-9a-f]{64}|"
+        r"calibrex\.cuda_continuous_time/v0\.7;" + cuda_fields +
+        r"standalone_residual_cpu=true;linearization_cache=last;"
+        r"linearization_cache_bytes=67108864;captured_summary_gpu=(true|false);"
+        r"summary_reduction_cpu=true;associations_gpu=false;kernel_sha256=[0-9a-f]{64}|"
+        r"calibrex\.cuda_continuous_time/v0\.7;" + cuda_fields +
+        r"standalone_residual_cpu=true;linearization_cache=last;"
+        r"linearization_cache_bytes=67108864;captured_summary_gpu=(true|false);"
+        r"summary_reduction_cpu=true;associations_gpu=true;kernel_sha256=[0-9a-f]{64};"
         r"association_kernel_sha256=[0-9a-f]{64})"
     )
     if "notes" in provenance:

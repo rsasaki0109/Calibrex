@@ -71,7 +71,9 @@ extern "C" __global__ void linearize(const double* points,const double* planes,
 """
 
 
-def cuda_continuous_time_identity(*, associations_gpu: bool = False) -> str:
+def cuda_continuous_time_identity(
+    *, associations_gpu: bool = False, captured_summary_gpu: bool = False,
+) -> str:
     """Identify arithmetic and runtime without recording a device model."""
     association_identity = ""
     if associations_gpu:
@@ -79,12 +81,13 @@ def cuda_continuous_time_identity(*, associations_gpu: bool = False) -> str:
 
         association_identity = f";association_kernel_sha256={cuda_plane_query_source_sha256()}"
     return (
-        "calibrex.cuda_continuous_time/v0.6;fp64=true;fma=false;"
+        "calibrex.cuda_continuous_time/v0.7;fp64=true;fma=false;"
         f"cupy={cp.__version__};cuda={cp.cuda.runtime.runtimeGetVersion()};"
         f"driver={cp.cuda.runtime.driverGetVersion()};"
         f"numba={version('numba')};trajectory_cpu=true;normal_cpu=true;"
         "standalone_residual_cpu=true;"
         "linearization_cache=last;linearization_cache_bytes=67108864;"
+        f"captured_summary_gpu={str(captured_summary_gpu).lower()};summary_reduction_cpu=true;"
         f"associations_gpu={str(associations_gpu).lower()};"
         f"kernel_sha256={hashlib.sha256(_SOURCE.encode()).hexdigest()}"
         + association_identity
@@ -162,6 +165,28 @@ class CudaRigLinearizer:
             self.residual_calls += 1
             self.rows += n
         return list(host.tolist())
+
+    def _captured_residuals(self, arrays: _ObservationArrays, transform: SE3) -> FloatArray | None:
+        """Reuse a previously uploaded batch for internal error summaries only."""
+        with self._lock, cp.cuda.Device(self.device_id), self._stream:
+            if self._arrays is not arrays:
+                return None
+            host_values = np.asarray((*transform.translation_m, *transform.rotation_quat_xyzw),
+                                     dtype=np.float64)
+            if (self._cached_key is not None and self._cached_result is not None
+                and self._cached_key[0][:host_values.nbytes] == host_values.tobytes()):
+                return self._cached_result[0]
+            n = len(arrays.points)
+            values = cp.asarray(host_values)
+            result = cp.empty(n, dtype=cp.float64)
+            if n:
+                self._residuals(((n+127)//128,), (128,),
+                                (*self._payload, values, np.int32(n), result))
+            host: FloatArray = result.get()
+            host.flags.writeable = False
+            self.residual_calls += 1
+            self.rows += n
+            return host
 
     def linearize(
         self, arrays: _ObservationArrays, transforms: Sequence[SE3], steps: Sequence[float],
