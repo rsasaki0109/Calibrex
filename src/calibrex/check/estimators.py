@@ -804,8 +804,13 @@ def run_lidar_lidar(ctx: PairContext) -> EstimatorRun:
 # ---------------------------------------------------------------- camera-imu
 
 
-def camera_model_from_camera_info(bag: Path, topic: str) -> CameraModel:
-    """Pinhole intrinsics and distortion from the first message of a CameraInfo topic."""
+def camera_model_from_camera_info(bag: Path, topic: str, *, rectified: bool = False) -> CameraModel:
+    """Pinhole intrinsics and distortion from the first message of a CameraInfo topic.
+
+    With ``rectified`` (the image topic is an ``image_rect*`` stream), the image has
+    already been undistorted: its camera is the projection ``P`` without distortion, the
+    ROS image_pipeline convention, not ``K`` and ``D``, which describe the raw image.
+    """
 
     from calibrex.data import ros_cdr
     from calibrex.data.rosbag2 import iter_topic_messages
@@ -818,6 +823,13 @@ def camera_model_from_camera_info(bag: Path, topic: str) -> CameraModel:
             raise CheckSkipError(
                 "missing_intrinsics", f"CameraInfo {topic} is uncalibrated (K is zero)"
             )
+        if rectified:
+            p = info.p
+            if len(p) != 12 or not p[0] > 0.0 or not p[5] > 0.0:
+                raise CheckSkipError(
+                    "missing_intrinsics", f"CameraInfo {topic} has no projection P for {topic}"
+                )
+            return CameraModel(p[0], p[5], p[2], p[6], "none", ())
         coeffs = tuple(float(value) for value in info.d)
         model = info.distortion_model.lower()
         distortion: Literal["equidistant", "radtan", "none"]
@@ -835,6 +847,12 @@ def camera_model_from_camera_info(bag: Path, topic: str) -> CameraModel:
             )
         return CameraModel(k[0], k[4], k[2], k[5], distortion, coeffs)
     raise CheckSkipError("missing_intrinsics", f"CameraInfo topic {topic} has no messages")
+
+
+def is_rectified_image_topic(topic: str) -> bool:
+    """Whether an image topic carries rectified images (image_pipeline's ``image_rect*``)."""
+
+    return topic.rstrip("/").rsplit("/", 1)[-1].startswith("image_rect")
 
 
 def _camera_info_topic(ctx: PairContext, image_topic: str) -> str | None:
@@ -870,9 +888,10 @@ def resolve_camera_intrinsics(
                 return model, f"{source.path.name} {key}", key
     info_topic = _camera_info_topic(ctx, image_topic)
     if info_topic is not None:
+        rectified = is_rectified_image_topic(image_topic)
         return (
-            camera_model_from_camera_info(ctx.bag, info_topic),
-            f"CameraInfo {info_topic}",
+            camera_model_from_camera_info(ctx.bag, info_topic, rectified=rectified),
+            f"CameraInfo {info_topic}" + (" (P: the image is rectified)" if rectified else ""),
             "",
         )
     raise CheckSkipError(
