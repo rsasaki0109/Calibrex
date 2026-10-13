@@ -294,6 +294,7 @@ from calibrex.export.ros_tf import export_ros_tf_transforms, export_ros_tf_yaml
 from calibrex.graph.problem import build_problem
 from calibrex.importers.kalibr import import_kalibr_camchain
 from calibrex.importers.koide import import_koide_result
+from calibrex.importers.sensor_calib_tas import sensor_calib_tas_frames
 from calibrex.init_templates import (
     list_sensor_template_names,
     template_summary,
@@ -1416,6 +1417,40 @@ def _build_parser() -> argparse.ArgumentParser:
     imu_lidar_trajectory.add_argument("--output-translation", type=Path)
     imu_lidar_trajectory.add_argument("--json", action="store_true")
     imu_lidar_trajectory.set_defaults(func=_cmd_imu_lidar_trajectory)
+    imu_lidar_joint = imu_lidar_subcommands.add_parser(
+        "joint",
+        help="jointly calibrate IMU rotation, lever arm, clock offset, biases and gravity "
+        "against LiDAR on a B-spline trajectory from one bag",
+    )
+    imu_lidar_joint.add_argument("bag", type=Path, help="rosbag2 directory, .db3, .mcap or .bag")
+    imu_lidar_joint.add_argument("--lidar-topic", required=True, help="PointCloud2 topic")
+    imu_lidar_joint.add_argument("--imu-topic", required=True, help="sensor_msgs/Imu topic")
+    imu_lidar_joint.add_argument(
+        "--acceleration-unit",
+        choices=("mps2", "g"),
+        default="mps2",
+        help="unit of the IMU linear acceleration (Livox reports g)",
+    )
+    imu_lidar_joint.add_argument("--dataset-family", required=True)
+    imu_lidar_joint.add_argument("--dataset-license", required=True)
+    imu_lidar_joint.add_argument(
+        "--max-seconds", type=_positive_float, help="read only this many seconds of the bag"
+    )
+    imu_lidar_joint.add_argument(
+        "--max-rounds",
+        type=_positive_int,
+        default=8,
+        help="map rounds (re-associate LiDAR returns, refit) before giving up on convergence",
+    )
+    imu_lidar_joint.add_argument(
+        "--imu-lowpass-hz",
+        type=_positive_float,
+        help="zero-phase low-pass the IMU at this cutoff and resample at twice it before the "
+        "fit (for platform vibration far above the spline bandwidth)",
+    )
+    imu_lidar_joint.add_argument("--output", type=Path, required=True)
+    imu_lidar_joint.add_argument("--json", action="store_true")
+    imu_lidar_joint.set_defaults(func=_cmd_imu_lidar_joint)
 
     camera_imu = subcommands.add_parser(
         "camera-imu",
@@ -2450,6 +2485,18 @@ def _build_parser() -> argparse.ArgumentParser:
     kalibr_import.add_argument("--training-isolation-evidence")
     kalibr_import.add_argument("--json", action="store_true")
     kalibr_import.set_defaults(func=_cmd_external_run_import_kalibr)
+    tas_import = external_run_subcommands.add_parser(
+        "import-sensor-calib-tas",
+        help=(
+            "import a sensor_calib_tas result (a bag with its *_calibrated tf_static, or "
+            "an echoed ~/sensor_poses YAML) as a slac.check_frames file for calibrex check --tf"
+        ),
+    )
+    tas_import.add_argument("source", type=Path)
+    tas_import.add_argument("--output", type=Path, required=True)
+    tas_import.add_argument("--tool-version")
+    tas_import.add_argument("--json", action="store_true")
+    tas_import.set_defaults(func=_cmd_external_run_import_sensor_calib_tas)
 
     camera_imu_evidence = external_run_subcommands.add_parser(
         "evaluate-camera-imu",
@@ -2486,6 +2533,19 @@ def _build_parser() -> argparse.ArgumentParser:
         help="rotation-vector error composed onto the true T_cam_imu",
     )
     camera_imu_fixture.add_argument("--timeshift-error-sec", type=float, default=0.0)
+    camera_imu_fixture.add_argument(
+        "--translation-error-m",
+        type=float,
+        nargs=3,
+        default=(0.0, 0.0, 0.0),
+        metavar=("X", "Y", "Z"),
+        help="error added to the camchain's T_cam_imu translation",
+    )
+    camera_imu_fixture.add_argument(
+        "--no-accelerometer",
+        action="store_true",
+        help="omit camera positions and accelerometer samples (translation not evaluated)",
+    )
     camera_imu_fixture.add_argument("--motion", choices=("full", "yaw_only"), default="full")
     camera_imu_fixture.add_argument("--json", action="store_true")
     camera_imu_fixture.set_defaults(func=_cmd_external_run_synthesize_camera_imu_fixture)
@@ -2620,6 +2680,24 @@ def _build_parser() -> argparse.ArgumentParser:
     trajectory_intrinsics.add_argument("--recovery-id", default="ct-imu-intrinsics-synthetic")
     trajectory_intrinsics.add_argument("--json", action="store_true")
     trajectory_intrinsics.set_defaults(func=_cmd_trajectory_recover_imu_intrinsics)
+    trajectory_joint = trajectory_subcommands.add_parser(
+        "recover-lidar-imu-joint",
+        help=(
+            "synthetic joint LiDAR-IMU recovery: IMU rotation, gyro bias, lever arm, "
+            "clock offset, accel bias and gravity with controls and separability"
+        ),
+    )
+    trajectory_joint.add_argument("--output", type=Path, required=True)
+    trajectory_joint.add_argument("--seed", type=int, default=20261010)
+    trajectory_joint.add_argument("--recovery-id", default="ct-lidar-imu-joint-synthetic")
+    trajectory_joint.add_argument(
+        "--trajectory",
+        choices=("screw_linear", "cubic_bspline"),
+        default="screw_linear",
+        help="trajectory model: screw-linear knots or a C2 cubic B-spline",
+    )
+    trajectory_joint.add_argument("--json", action="store_true")
+    trajectory_joint.set_defaults(func=_cmd_trajectory_recover_lidar_imu_joint)
     trajectory_window = trajectory_subcommands.add_parser(
         "recover-sliding-window",
         help="synthetic sliding-window marginalization recovery",
@@ -2761,6 +2839,35 @@ def _build_parser() -> argparse.ArgumentParser:
     lifecycle_rollback.add_argument("--timestamp")
     lifecycle_rollback.add_argument("--json", action="store_true")
     lifecycle_rollback.set_defaults(func=_cmd_lifecycle_rollback)
+
+    lifecycle_record_ci = lifecycle_subcommands.add_parser(
+        "record-ci",
+        help="record a calibrex ci decision for one edge: evaluate (and optionally promote) "
+        "the candidate, or roll back an incumbent the decision fails",
+    )
+    lifecycle_record_ci.add_argument(
+        "ci_decision", type=Path, help="calibration-ci.json written by calibrex ci"
+    )
+    lifecycle_record_ci.add_argument("--registry-root", type=Path, required=True)
+    lifecycle_record_ci.add_argument("--edge-id", required=True)
+    lifecycle_record_ci.add_argument("--capture-manifest", type=Path, required=True)
+    lifecycle_record_ci.add_argument("--promotion", type=Path)
+    lifecycle_record_ci.add_argument("--smoke", type=Path)
+    lifecycle_record_ci.add_argument(
+        "--promote",
+        action="store_true",
+        help="promote the candidate when the evaluation admits it (ADOPT)",
+    )
+    lifecycle_record_ci.add_argument(
+        "--rollback-on-fail",
+        action="store_true",
+        help="roll the edge back when a failing decision is about its promoted incumbent",
+    )
+    lifecycle_record_ci.add_argument("--operator", default="unknown")
+    lifecycle_record_ci.add_argument("--timestamp")
+    lifecycle_record_ci.add_argument("--output", type=Path, help="write the decision record")
+    lifecycle_record_ci.add_argument("--json", action="store_true")
+    lifecycle_record_ci.set_defaults(func=_cmd_lifecycle_record_ci)
 
     lifecycle_verify = lifecycle_subcommands.add_parser(
         "verify",
@@ -3133,6 +3240,14 @@ def _build_parser() -> argparse.ArgumentParser:
         help="gnss-lidar: auto (default) deskews the LiDAR odometry with the cloud's "
         "per-point time field and treats clouds without one as rigid scans; none forces "
         "rigid scans (biased at speed); constant_velocity requires the field",
+    )
+    check.add_argument(
+        "--camera-lidar-motion",
+        choices=["auto", "none"],
+        default="auto",
+        help="camera-lidar: auto (default) moves LiDAR points to the image time with an "
+        "odometry, twist or IMU topic connected to the LiDAR in the frame tree (each point by "
+        "its own time when the cloud has a per-point time field); none keeps scans as recorded",
     )
     check.add_argument(
         "--rigid-scan-rotation-floor-deg",
@@ -4512,6 +4627,7 @@ _ESTIMATE_SHARED_DESTS = frozenset(
         "imu_lidar_deskew",
         "lidar_lidar_deskew",
         "gnss_lidar_deskew",
+        "camera_lidar_motion",
         "acceleration_unit",
         "cache_dir",
         "no_cache",
@@ -4551,6 +4667,7 @@ def _cmd_estimate(args: argparse.Namespace) -> int:
         imu_lidar_deskew=args.imu_lidar_deskew,
         lidar_lidar_deskew=args.lidar_lidar_deskew,
         gnss_lidar_deskew=args.gnss_lidar_deskew,
+        camera_lidar_motion=args.camera_lidar_motion,
         evidence_dir=output_dir / "evidence",
         base_dir=output_dir,
         cache_dir=None
@@ -4629,6 +4746,7 @@ def _cmd_drift(args: argparse.Namespace) -> int:
         imu_lidar_deskew=args.imu_lidar_deskew,
         lidar_lidar_deskew=args.lidar_lidar_deskew,
         gnss_lidar_deskew=args.gnss_lidar_deskew,
+        camera_lidar_motion=args.camera_lidar_motion,
         cache_dir=None
         if args.no_cache
         else (args.cache_dir if args.cache_dir is not None else default_cache_dir()),
@@ -4733,6 +4851,7 @@ def _cmd_check(args: argparse.Namespace) -> int:
             imu_lidar_deskew=args.imu_lidar_deskew,
             lidar_lidar_deskew=args.lidar_lidar_deskew,
             gnss_lidar_deskew=args.gnss_lidar_deskew,
+            camera_lidar_motion=args.camera_lidar_motion,
             rigid_scan_rotation_floor_deg=(
                 args.rigid_scan_rotation_floor_deg
                 if args.rigid_scan_rotation_floor_deg is not None
@@ -5194,6 +5313,27 @@ def _cmd_demo_kitti_falsification_benchmark(args: argparse.Namespace) -> int:
     return 1 if args.enforce and benchmark.status != "pass" else 0
 
 
+def _cmd_external_run_import_sensor_calib_tas(args: argparse.Namespace) -> int:
+    if args.source.resolve() == args.output.resolve():
+        _die("the output must not overwrite the sensor_calib_tas source")
+    try:
+        frames = sensor_calib_tas_frames(args.source, tool_version=args.tool_version)
+    except ValueError as exc:
+        _die(str(exc))
+    write_mapping(args.output, frames.model_dump(mode="json", exclude_none=True))
+    _emit(
+        {
+            "frames_file": str(args.output),
+            "source": str(args.source),
+            "source_kind": frames.provenance.source_kind if frames.provenance else None,
+            "frames": [f"{entry.parent} -> {entry.name}" for entry in frames.frames],
+            "usage": f"calibrex check <driving bag> --tf {args.output}",
+        },
+        args.json,
+    )
+    return 0
+
+
 def _cmd_external_run_import_kalibr(args: argparse.Namespace) -> int:
     if args.source.resolve() == args.output.resolve():
         _die("external-run output must not overwrite the Kalibr source artifact")
@@ -5258,6 +5398,12 @@ def _cmd_external_run_evaluate_camera_imu(args: argparse.Namespace) -> int:
             "evidence": str(args.output),
             "holdout_rate_rmse_rad_s": artifact.holdout_rate_rmse_rad_s,
             "control_detection_fraction": artifact.control_detection_fraction,
+            "lever_arm_status": (None if artifact.lever_arm is None else artifact.lever_arm.status),
+            "holdout_specific_force_rmse_m_s2": (
+                None
+                if artifact.lever_arm is None
+                else artifact.lever_arm.holdout_specific_force_rmse_m_s2
+            ),
             "reasons": artifact.reasons,
             "warnings": artifact.warnings,
         },
@@ -5272,7 +5418,9 @@ def _cmd_external_run_synthesize_camera_imu_fixture(args: argparse.Namespace) ->
         seed=args.seed,
         rotation_error_deg=tuple(args.rotation_error_deg),
         timeshift_error_sec=args.timeshift_error_sec,
+        translation_error_m=tuple(args.translation_error_m),
         motion=args.motion,
+        accelerometer=not args.no_accelerometer,
     )
     _emit(
         {
@@ -7215,6 +7363,61 @@ def _cmd_imu_lidar_livox(args: argparse.Namespace) -> int:
     return 1 if artifact.policy_status == "fail" else 0
 
 
+def _cmd_imu_lidar_joint(args: argparse.Namespace) -> int:
+    from calibrex.check.estimators import detect_point_time
+    from calibrex.data.livox_ros2 import LivoxStreamProfile
+    from calibrex.evaluation.lidar_imu_bag_calibration import (
+        LidarImuBagOptions,
+        calibrate_lidar_imu_bag,
+    )
+
+    command = ["calibrex", "imu-lidar", "joint", str(args.bag)]
+    command += ["--lidar-topic", args.lidar_topic, "--imu-topic", args.imu_topic]
+    command += ["--acceleration-unit", args.acceleration_unit]
+    command += ["--dataset-family", args.dataset_family, "--dataset-license", args.dataset_license]
+    if args.max_seconds is not None:
+        command += ["--max-seconds", str(args.max_seconds)]
+    command += ["--max-rounds", str(args.max_rounds)]
+    if args.imu_lowpass_hz is not None:
+        command += ["--imu-lowpass-hz", str(args.imu_lowpass_hz)]
+    command += ["--output", str(args.output)]
+    try:
+        point_time = detect_point_time(args.bag, args.lidar_topic)
+        profile = LivoxStreamProfile(
+            name="joint",
+            point_topic=args.lidar_topic,
+            imu_topic=args.imu_topic,
+            point_time_field=None if point_time is None else point_time[0],
+            point_time_encoding="offset_s" if point_time is None else point_time[1],
+            acceleration_unit=args.acceleration_unit,
+        )
+        artifact = calibrate_lidar_imu_bag(
+            args.bag,
+            profile,
+            LidarImuBagOptions(max_rounds=args.max_rounds, imu_lowpass_hz=args.imu_lowpass_hz),
+            dataset_family=args.dataset_family,
+            dataset_license=args.dataset_license,
+            max_seconds=args.max_seconds,
+            command=command,
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": artifact.policy_status,
+            "artifact": str(args.output),
+            "t_lidar_imu_translation_m": artifact.t_lidar_imu_translation_m,
+            "t_lidar_imu_rotation_quat_xyzw": artifact.t_lidar_imu_rotation_quat_xyzw,
+            "imu_clock_offset_s": artifact.imu_clock_offset_s,
+            "blocks": {record.name: record.verdict for record in artifact.blocks},
+            "reasons": artifact.policy_reasons,
+        },
+        args.json,
+    )
+    return 1 if artifact.policy_status == "fail" else 0
+
+
 def _cmd_imu_lidar_livox_translation(args: argparse.Namespace) -> int:
     command = ["calibrex", "imu-lidar", "livox-translation", *(str(path) for path in args.bags)]
     command += ["--profile", args.profile, "--rotation", str(args.rotation)]
@@ -8119,6 +8322,56 @@ def _cmd_trajectory_recover_imu_accel_bias(args: argparse.Namespace) -> int:
     return 0 if artifact.policy_status != "fail" else 2
 
 
+def _cmd_trajectory_recover_lidar_imu_joint(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.continuous_time_lidar_imu_joint import (
+        run_synthetic_lidar_imu_joint_recovery,
+    )
+
+    command = [
+        "calibrex",
+        "trajectory",
+        "recover-lidar-imu-joint",
+        "--output",
+        str(args.output),
+        "--seed",
+        str(args.seed),
+        "--trajectory",
+        args.trajectory,
+    ]
+    try:
+        artifact = run_synthetic_lidar_imu_joint_recovery(
+            seed=args.seed,
+            command=command,
+            recovery_id=args.recovery_id,
+            trajectory=args.trajectory,
+        )
+        artifact.save(args.output)
+    except (OSError, ValueError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(
+        {
+            "status": "ok",
+            "recovery": str(args.output),
+            "policy_status": artifact.policy_status,
+            "policy_reason": artifact.policy_reason,
+            "interpolation": artifact.interpolation,
+            "fit_status": artifact.fit_status,
+            "parameter_errors": {
+                record.name: record.error_norm for record in artifact.parameters
+            },
+            "controls_detected": sum(record.detected for record in artifact.controls),
+            "controls": len(artifact.controls),
+            "entangled_blocks": [
+                f"{record.block_a}/{record.block_b}"
+                for record in artifact.separability
+                if record.entangled
+            ],
+        },
+        args.json,
+    )
+    return 0 if artifact.policy_status != "fail" else 2
+
+
 def _cmd_trajectory_recover_imu_intrinsics(args: argparse.Namespace) -> int:
     from calibrex.evaluation.continuous_time_imu_intrinsics import (
         run_synthetic_imu_intrinsics_recovery,
@@ -8355,6 +8608,41 @@ def _cmd_lifecycle_rollback(args: argparse.Namespace) -> int:
         raise CalibrexError(str(exc)) from exc
     _emit(_lifecycle_event_summary(event), args.json)
     return 0
+
+
+def _cmd_lifecycle_record_ci(args: argparse.Namespace) -> int:
+    from calibrex.calibration_ci_lifecycle import record_calibration_ci
+
+    command = ["calibrex", "lifecycle", "record-ci", str(args.ci_decision)]
+    command += ["--registry-root", str(args.registry_root), "--edge-id", args.edge_id]
+    command += ["--capture-manifest", str(args.capture_manifest)]
+    for flag, value in (("--promotion", args.promotion), ("--smoke", args.smoke)):
+        if value is not None:
+            command += [flag, str(value)]
+    if args.promote:
+        command.append("--promote")
+    if args.rollback_on_fail:
+        command.append("--rollback-on-fail")
+    try:
+        record = record_calibration_ci(
+            args.ci_decision,
+            args.registry_root,
+            edge_id=args.edge_id,
+            capture_manifest=args.capture_manifest,
+            promotion=args.promotion,
+            smoke=args.smoke,
+            promote=args.promote,
+            rollback_on_fail=args.rollback_on_fail,
+            operator=args.operator,
+            timestamp=args.timestamp,
+            command=command,
+        )
+        if args.output is not None:
+            record.save(args.output)
+    except (OSError, ValueError, CalibrexError) as exc:
+        raise CalibrexError(str(exc)) from exc
+    _emit(record.model_dump(mode="json", exclude_none=True), args.json)
+    return 0 if record.registry_valid else 1
 
 
 def _cmd_lifecycle_verify(args: argparse.Namespace) -> int:

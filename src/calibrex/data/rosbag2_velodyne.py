@@ -22,7 +22,11 @@ from calibrex.core.exceptions import DatasetError
 from calibrex.data.ros_cdr_writer import encode_pointcloud2
 from calibrex.data.rosbag2 import IMAGE_TYPE, iter_messages, list_rosbag2_connections
 from calibrex.data.rosbag2_writer import Rosbag2Writer
-from calibrex.data.velodyne_packets import VELODYNE_SCAN_TYPE, decode_velodyne_scan
+from calibrex.data.velodyne_packets import (
+    VELODYNE_SCAN_TYPE,
+    VelodyneCalibration,
+    decode_velodyne_scan,
+)
 
 _POINT_FIELDS = (
     ("x", 0, 7, 1),
@@ -44,6 +48,8 @@ class VelodyneConversionSummary:
     clouds_written: int
     messages_copied: int
     messages_dropped: int
+    calibration_source: str | None = None
+    calibration_sha256: str | None = None
 
 
 def points_topic_name(packet_topic: str) -> str:
@@ -54,10 +60,18 @@ def points_topic_name(packet_topic: str) -> str:
     return packet_topic + "_points"
 
 
-def encode_scan_as_pointcloud2(topic: str, timestamp_ns: int, payload: bytes) -> bytes:
-    """CDR ``PointCloud2`` (x y z intensity time, float32) of one ``VelodyneScan`` payload."""
+def encode_scan_as_pointcloud2(
+    topic: str,
+    timestamp_ns: int,
+    payload: bytes,
+    calibration: VelodyneCalibration | None = None,
+) -> bytes:
+    """CDR ``PointCloud2`` (x y z intensity time, float32) of one ``VelodyneScan`` payload.
 
-    cloud = decode_velodyne_scan(topic, timestamp_ns, payload)
+    ``calibration`` is the per-unit calibration an HDL-64E or a VLS-128 needs.
+    """
+
+    cloud = decode_velodyne_scan(topic, timestamp_ns, payload, calibration=calibration)
     count = cloud.point_count
     packed = np.zeros((count, 5), dtype="<f4")
     packed[:, :3] = cloud.xyz
@@ -82,12 +96,14 @@ def convert_velodyne_bag(
     keep_images: bool = False,
     max_duration_s: float | None = None,
     overwrite: bool = False,
+    calibration: VelodyneCalibration | None = None,
 ) -> VelodyneConversionSummary:
     """Copy ``source`` to ``destination`` adding a cloud topic per ``VelodyneScan`` topic.
 
     The packet topics themselves and (unless ``keep_images``) the image topics
     are not copied, nor are ``drop_topics``; with ``max_duration_s`` only the
-    first seconds are converted.
+    first seconds are converted. ``calibration`` (the unit's own) is applied to
+    HDL-64E and VLS-128 packets and ignored for the others.
     """
 
     connections = [connection for connection, _ in list_rosbag2_connections(source)]
@@ -124,7 +140,9 @@ def convert_velodyne_bag(
                 writer.write(
                     cloud_topics[connection.topic],
                     timestamp_ns,
-                    encode_scan_as_pointcloud2(connection.topic, timestamp_ns, payload),
+                    encode_scan_as_pointcloud2(
+                        connection.topic, timestamp_ns, payload, calibration
+                    ),
                 )
                 written += 1
             elif connection.topic in skipped:
@@ -139,4 +157,6 @@ def convert_velodyne_bag(
         clouds_written=written,
         messages_copied=copied,
         messages_dropped=dropped,
+        calibration_source=None if calibration is None else calibration.source,
+        calibration_sha256=None if calibration is None else calibration.sha256,
     )

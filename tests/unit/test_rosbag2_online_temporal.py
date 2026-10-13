@@ -65,7 +65,9 @@ def _build_moving_rig_bag(
     *,
     message_count: int = 10,
     target_stamp_offset_s: float = 0.0,
+    source_stamp_offset_s: float = 0.0,
     constant_odometry: bool = False,
+    odometry_padding: bool = False,
 ) -> Path:
     from calibrex.core.geometry import SE3
 
@@ -77,6 +79,26 @@ def _build_moving_rig_bag(
         ("/odom", ODOMETRY_TYPE),
     ]
     messages: list[tuple[str, int, bytes]] = []
+    if odometry_padding:
+        # One extra odometry pose on each side, so stamps shifted by up to one
+        # step still interpolate inside the track.
+        for index in (-1, message_count):
+            timestamp_ns = _BASE_NS + index * _STEP_NS
+            t_world_base = _t_world_base(0 if constant_odometry else index)
+            messages.append(
+                (
+                    "/odom",
+                    timestamp_ns,
+                    _encode_odometry(
+                        frame_id="odom",
+                        child_frame_id="base_link",
+                        secs=timestamp_ns // 1_000_000_000,
+                        nsecs=timestamp_ns % 1_000_000_000,
+                        position=t_world_base.translation_m,
+                        orientation_xyzw=t_world_base.rotation_quat_xyzw,
+                    ),
+                )
+            )
     for index in range(message_count):
         timestamp_ns = _BASE_NS + index * _STEP_NS
         t_world_base = _t_world_base(0 if constant_odometry else index)
@@ -100,7 +122,7 @@ def _build_moving_rig_bag(
                 ),
             )
         )
-        source_stamp_ns = timestamp_ns + 10
+        source_stamp_ns = timestamp_ns + 10 + round(source_stamp_offset_s * 1_000_000_000)
         messages.append(
             (
                 "/livox/lidar",
@@ -141,6 +163,8 @@ def _write_config(
     temporal_options: str = "",
     freeze_estimate: bool = False,
     truth_initial: bool = False,
+    source_sensor_lines: str = "",
+    target_sensor_lines: str = "",
 ) -> None:
     from calibrex.core.geometry import SE3
 
@@ -167,9 +191,11 @@ sensors:
   lidar_map:
     type: lidar
     topic: /livox/lidar
+{source_sensor_lines}
   lidar_stream:
     type: lidar
     topic: /avia/livox/lidar
+{target_sensor_lines}
 frames:
   base_link:
     root: true
@@ -237,6 +263,8 @@ def _run_temporal_session(
     temporal_options: str = _TEMPORAL_OPTIONS,
     freeze_estimate: bool = False,
     truth_initial: bool = False,
+    source_sensor_lines: str = "",
+    target_sensor_lines: str = "",
 ) -> object:
     output_dir = tmp_path / "outputs"
     config_path = tmp_path / "config.yaml"
@@ -248,6 +276,8 @@ def _run_temporal_session(
         temporal_options=temporal_options,
         freeze_estimate=freeze_estimate,
         truth_initial=truth_initial,
+        source_sensor_lines=source_sensor_lines,
+        target_sensor_lines=target_sensor_lines,
     )
     result = run_online_calibration(
         config_path,
@@ -425,3 +455,142 @@ def test_rosbag2_online_temporal_injection_provenance_and_odometry_guard(
     anchored_offset_s = float(temporal["anchored"]["estimate"]["estimated_offset_s"])
     assert abs(anchored_offset_s - (-0.05)) <= _INJECTION_TOLERANCE_S
     assert temporal["anchored"]["estimate_gate_status"] == "pass"
+
+
+# Pillar 3 (ADR 0008): a shared-clock rig whose two LiDARs stamp a sweep at
+# different points. Both capture at the odometry instants; the source driver
+# stamps at the sweep start (30 ms early) and the target driver at the sweep end
+# (30 ms late), so the stamps alone carry a 60 ms convention gap. (The search
+# stays within +-0.10 s: further out, correspondences beyond the gate leave only
+# the floor plane and the RMSE curve degenerates on this noise-free fixture.)
+_SWEEP_PERIOD_S = 0.06
+_ANCHORED_SEARCH = """
+        time_offset_probe_s: [0.05, -0.05]
+        estimate_time_offset: true
+        time_offset_search_bound_s: 0.10
+        online_gate_max_abs_time_offset_s: 0.05
+        time_offset_anchor: initial
+"""
+_DECLARED_SOURCE = f"""    capture_time_reference: scan_start
+    scan_period_s: {_SWEEP_PERIOD_S}"""
+_DECLARED_TARGET = f"""    capture_time_reference: scan_end
+    scan_period_s: {_SWEEP_PERIOD_S}"""
+
+
+def _shared_clock_bag(path: Path) -> Path:
+    return _build_moving_rig_bag(
+        path,
+        source_stamp_offset_s=-0.5 * _SWEEP_PERIOD_S,
+        target_stamp_offset_s=0.5 * _SWEEP_PERIOD_S,
+        odometry_padding=True,
+    )
+
+
+def _anchored_offset_s(result: object) -> float:
+    temporal = result.run.provenance["temporal_evidence"]  # type: ignore[attr-defined]
+    return float(temporal["anchored"]["estimate"]["estimated_offset_s"])
+
+
+def test_declared_capture_time_reference_closes_the_shared_clock_baseline(
+    tmp_path: Path,
+) -> None:
+    pytest.importorskip("numpy")
+    bag = _shared_clock_bag(tmp_path / "shared_clock.db3")
+
+    undeclared_dir = tmp_path / "undeclared"
+    undeclared_dir.mkdir()
+    undeclared = _run_temporal_session(
+        undeclared_dir, bag_path=bag, temporal_options=_ANCHORED_SEARCH, freeze_estimate=True
+    )
+    declared_dir = tmp_path / "declared"
+    declared_dir.mkdir()
+    declared = _run_temporal_session(
+        declared_dir,
+        bag_path=bag,
+        temporal_options=_ANCHORED_SEARCH,
+        freeze_estimate=True,
+        source_sensor_lines=_DECLARED_SOURCE,
+        target_sensor_lines=_DECLARED_TARGET,
+    )
+    injected_dir = tmp_path / "injected"
+    injected_dir.mkdir()
+    injected = _run_temporal_session(
+        injected_dir,
+        bag_path=bag,
+        temporal_options=_ANCHORED_SEARCH + "        inject_time_offset_s: 0.05\n",
+        freeze_estimate=True,
+        source_sensor_lines=_DECLARED_SOURCE,
+        target_sensor_lines=_DECLARED_TARGET,
+    )
+
+    # Read at face value, the stamps carry the whole 60 ms convention gap.
+    assert _anchored_offset_s(undeclared) == pytest.approx(-_SWEEP_PERIOD_S, abs=0.005)
+    # Under the declared convention the anchored baseline is within +-10 ms ...
+    assert abs(_anchored_offset_s(declared)) <= 0.010
+    # ... and an injected +50 ms moves it by exactly -50 ms.
+    differential = _anchored_offset_s(injected) - _anchored_offset_s(declared)
+    assert differential == pytest.approx(-0.05, abs=0.002)
+
+    provenance = declared.run.provenance  # type: ignore[attr-defined]
+    references = provenance["capture_time_reference"]
+    assert references["lidar_map"]["applied_shift_s"] == pytest.approx(0.03)
+    assert references["lidar_map"]["basis"] == "declared_scan_period"
+    assert references["lidar_stream"]["applied_shift_s"] == pytest.approx(-0.03)
+    assert "capture_time_reference" not in undeclared.run.provenance  # type: ignore[attr-defined]
+
+
+def test_capture_time_reference_validation() -> None:
+    from pydantic import ValidationError
+
+    from calibrex.core.config import SensorConfig
+
+    with pytest.raises(ValidationError, match="requires scan_period_s"):
+        SensorConfig(type="lidar", topic="/points", capture_time_reference="scan_end")
+    with pytest.raises(ValidationError, match="only valid for lidar"):
+        SensorConfig(
+            type="camera",
+            topic="/image",
+            capture_time_reference="scan_midpoint",
+        )
+    sensor = SensorConfig(type="lidar", topic="/points", capture_time_reference="scan_midpoint")
+    assert sensor.scan_period_s is None
+
+
+def test_capture_time_reference_is_refused_where_replay_would_ignore_it(tmp_path: Path) -> None:
+    from calibrex.core.exceptions import ConfigError
+
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        f"""
+schema_version: slac.config/v0.1
+project:
+  name: capture_reference_guard
+  output_dir: {tmp_path / "out"}
+dataset:
+  type: livox_pcd
+  path: {tmp_path / "missing"}
+sensors:
+  lidar_map:
+    type: lidar
+    capture_time_reference: scan_midpoint
+  lidar_stream:
+    type: lidar
+frames:
+  base_link:
+    root: true
+  lidar_map:
+    parent: base_link
+  lidar_stream:
+    parent: base_link
+    transform:
+      estimate: true
+pipeline:
+  type: multi_sensor_slac
+  factors:
+    lidar_rig_point_to_plane:
+      enabled: true
+""",
+        encoding="utf-8",
+    )
+    with pytest.raises(ConfigError, match="capture_time_reference applies to rosbag1/rosbag2"):
+        run_online_calibration(config_path, OnlineCalibrationRunOptions())

@@ -197,6 +197,9 @@ class CheckRunOptions:
     """lidar-lidar: auto = per-point time when the reference cloud has it, rigid scans otherwise."""
     gnss_lidar_deskew: Literal["auto", "constant_velocity", "none"] = "auto"
     """gnss-lidar: auto = per-point time when the cloud has it, rigid scans otherwise."""
+    camera_lidar_motion: Literal["auto", "none"] = "auto"
+    """camera-lidar: auto = move points to the image time with a velocity topic when one is
+    connected to the LiDAR, scans as recorded otherwise."""
     evidence_dir: Path | None = None
     base_dir: Path | None = None
     cache_dir: Path | None = None
@@ -295,6 +298,7 @@ def build_calibration_check(
             base_dir=base_dir,
             progress=as_progress(progress),
             bag_sha256=input_sha256,
+            frame_tree=tree,
         )
         closures = build_closure_report(pairs, _closure_edges(pairs, run_memo), run.verdict)
         overall = (
@@ -317,6 +321,7 @@ def build_calibration_check(
             rigid_scan_rotation_floor_deg=run.rigid_scan_rotation_floor_deg,
             lidar_lidar_deskew=run.lidar_lidar_deskew,
             gnss_lidar_deskew=run.gnss_lidar_deskew,
+            camera_lidar_motion=run.camera_lidar_motion,
             topic_kinds=dict(topic_kinds or {}),
         )
         evidence_dir_record = _relative(evidence_dir, base_dir)
@@ -417,6 +422,7 @@ def _run_pairs(
     base_dir: Path,
     progress: CheckProgress,
     bag_sha256: str = "",
+    frame_tree: StaticFrameTree | None = None,
 ) -> tuple[list[CheckPairRecord], dict[tuple[object, ...], Any]]:
     selected = set(run.pairs) if run.pairs is not None else None
     controls = RunControls(
@@ -429,6 +435,8 @@ def _run_pairs(
         rigid_scan_rotation_floor_deg=run.rigid_scan_rotation_floor_deg,
         lidar_lidar_deskew=run.lidar_lidar_deskew,
         gnss_lidar_deskew=run.gnss_lidar_deskew,
+        camera_lidar_motion=run.camera_lidar_motion,
+        frame_tree=frame_tree,
         progress=progress,
         cache=EstimatorCache(run.cache_dir) if run.cache_dir is not None else None,
         bag_sha256=bag_sha256,
@@ -458,15 +466,13 @@ def _run_pairs(
             )
             continue
         sensor_topics = _sensor_topics(record, topics)
-        if run.camera is not None and record.pair in {"camera-imu", "camera-focal", "camera-lidar"}:
-            camera_topics = sensor_topics.get("camera", ())
-            if run.camera not in camera_topics and run.camera not in record.frames:
-                results.append(
-                    _skipped(
-                        record, "not_selected", f"camera {run.camera} was not selected by --camera"
-                    )
+        if not _camera_selected(record, sensor_topics, run.camera):
+            results.append(
+                _skipped(
+                    record, "not_selected", f"camera {run.camera} was not selected by --camera"
                 )
-                continue
+            )
+            continue
         started_pairs += 1
         results.append(
             _run_one(
@@ -531,11 +537,22 @@ def _will_run(
         return False
     if run.pairs is not None and record.pair not in run.pairs:
         return False
-    if run.camera is not None and record.pair in {"camera-imu", "camera-focal", "camera-lidar"}:
-        camera_topics = _sensor_topics(record, topics).get("camera", ())
-        if run.camera not in camera_topics and run.camera not in record.frames:
-            return False
-    return True
+    return _camera_selected(record, _sensor_topics(record, topics), run.camera)
+
+
+CAMERA_PAIRS = frozenset({"camera-imu", "camera-focal", "camera-lidar", "camera-camera"})
+
+
+def _camera_selected(
+    record: CheckPairRecord, sensor_topics: Mapping[str, Sequence[str]], camera: str | None
+) -> bool:
+    """Whether ``--camera`` keeps a camera pair: one of its cameras is the selected one."""
+
+    if camera is None or record.pair not in CAMERA_PAIRS:
+        return True
+    keys = ("first", "second") if record.pair == "camera-camera" else ("camera",)
+    camera_topics = [topic for key in keys for topic in sensor_topics.get(key, ())]
+    return camera in camera_topics or camera in record.frames
 
 
 def _scan_total(

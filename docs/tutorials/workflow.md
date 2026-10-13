@@ -269,14 +269,15 @@ the evidence is in the [camera-LiDAR results](../benchmarks/camera_lidar_check.m
 
 Autoware's all-sensors sample bag stores raw `velodyne_msgs/VelodyneScan` packets and one
 concatenated cloud in `base_link`, so there is no per-sensor cloud to register. Calibrex decodes
-the packets (VLP-16 and VLP-32C, single return) and
+the packets (VLP-16 single and dual return, VLP-32C single return, HDL-64E with its calibration) and
 `tools/velodyne_scan_to_pointcloud2.py` (in the repository) writes a derived bag with one `PointCloud2` per sensor;
 `autoware_auto_vehicle_msgs/VelocityReport` is read as wheel speed and yaw rate. On that bag (36.5 s,
 a straight drive) `lidar-lidar` passes for the deployed `/tf_static` and fails for +1 deg, +3 deg
 and +5 cm perturbations. The IMU and GNSS pairs stay `inconclusive`: a straight drive excites no
 rotation, and the output states the recording length and turning that would. The decoder is checked
 against the bag's own concatenated cloud (median 0.03 cm on the VLP-16, 1.8 to 3.1 cm on the
-VLP-32C); dual-return mode and other models are untested. See
+VLP-32C) and against LidarView's public reference clouds (medians of 0.17 mm or less for every
+supported format); other formats are refused by name. See
 [the Autoware section](calibrex_check.md#autoware-all-sensors-bag1).
 
 ## Where to go next

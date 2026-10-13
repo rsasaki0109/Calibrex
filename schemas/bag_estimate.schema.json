@@ -746,6 +746,7 @@
             "camera-imu",
             "camera-focal",
             "camera-lidar",
+            "camera-camera",
             "gnss-lidar",
             "gnss-imu",
             "lidar-vehicle",
@@ -790,6 +791,7 @@
                 "camera-imu",
                 "camera-focal",
                 "camera-lidar",
+                "camera-camera",
                 "gnss-lidar",
                 "gnss-imu",
                 "lidar-vehicle",
@@ -876,6 +878,15 @@
           ],
           "default": null,
           "title": "Camera"
+        },
+        "camera_lidar_motion": {
+          "default": "auto",
+          "enum": [
+            "auto",
+            "none"
+          ],
+          "title": "Camera Lidar Motion",
+          "type": "string"
         },
         "frame_map": {
           "additionalProperties": {
@@ -1086,6 +1097,7 @@
             "camera-imu",
             "camera-focal",
             "camera-lidar",
+            "camera-camera",
             "gnss-lidar",
             "gnss-imu",
             "lidar-vehicle",
@@ -1116,6 +1128,7 @@
                 "frame_not_in_tree",
                 "frames_not_connected",
                 "degenerate_frames",
+                "no_shared_view",
                 "no_candidate_calibration",
                 "no_vehicle_frame",
                 "method_not_wired",

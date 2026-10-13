@@ -96,6 +96,9 @@ AGROB_MODULAR_E_ARCHIVE = "2023-06-13T170852Z.zip"
 AGROB_MODULAR_E_SIZE_BYTES = 2_548_542_803
 AGROB_MODULAR_E_MD5 = "fa0cea9ea4aafd5e7a0d75676e8e064d"
 
+UZH_FPV_KALIBR_FILES = Path("examples/public_datasets/uzh_fpv_kalibr_camera_imu/files.yaml")
+LIDARVIEW_VELODYNE_FILES = Path("examples/public_datasets/lidarview_velodyne/files.yaml")
+
 
 def main() -> int:
     parser = argparse.ArgumentParser()
@@ -111,6 +114,8 @@ def main() -> int:
             "acfr_vlp_plane_poses",
             "ethz_hand_eye_robot_arm_real",
             "agrob_modular_e",
+            "uzh_fpv_kalibr_camera_imu",
+            "lidarview_velodyne",
         ],
     )
     parser.add_argument(
@@ -159,6 +164,12 @@ def main() -> int:
         return 0
     if args.dataset == "ethz_hand_eye_robot_arm_real":
         download_ethz_hand_eye_robot_arm_real(args.output_dir)
+        return 0
+    if args.dataset == "uzh_fpv_kalibr_camera_imu":
+        download_uzh_fpv_kalibr_camera_imu(args.output_dir)
+        return 0
+    if args.dataset == "lidarview_velodyne":
+        download_lidarview_velodyne(args.output_dir)
         return 0
     if args.dataset == "agrob_modular_e":
         chunk_size = (
@@ -354,6 +365,72 @@ def download_acfr_vlp_plane_poses(output_dir: Path) -> None:
         raise SystemExit(f"ACFR poses.csv digest mismatch: expected {expected}, got {actual}")
     target.write_bytes(data)
     print(f"wrote {target}")
+
+
+def download_uzh_fpv_kalibr_camera_imu(output_dir: Path) -> None:
+    """Download UZH-FPV's Snapdragon Kalibr outputs and camera-IMU calibration bags.
+
+    Each file is checked against its SHA-256 and the zips are extracted. The
+    dataset page states no license; see the listing's ``license`` note.
+    """
+
+    listing = yaml.safe_load(UZH_FPV_KALIBR_FILES.read_text(encoding="utf-8"))
+    target_dir = output_dir / "uzh_fpv_kalibr_camera_imu"
+    target_dir.mkdir(parents=True, exist_ok=True)
+    for name, expected in listing["files"].items():
+        target = target_dir / name
+        if not (target.is_file() and _sha256_file(target) == expected):
+            print(f"downloading {listing['base_url']}{name}")
+            partial = target.with_suffix(target.suffix + ".part")
+            urlretrieve(f"{listing['base_url']}{name}", partial)
+            actual = _sha256_file(partial)
+            if actual != expected:
+                partial.unlink()
+                raise SystemExit(f"{name} digest mismatch: expected {expected}, got {actual}")
+            partial.replace(target)
+        if name.endswith(".zip"):
+            _extract_zip_safely(target, target_dir)
+        print(f"ready {target}")
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(1 << 20), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def download_lidarview_velodyne(output_dir: Path) -> None:
+    """Download LidarView's Velodyne test recordings and the clouds it decoded from them.
+
+    Pinned to one commit of Kitware's Apache-2.0 ``LidarView/velodyneplugin``
+    (Git LFS objects via the GitLab API); every file is checked against its
+    SHA-256 before it is kept. Used by ``tools/validate_velodyne_decode.py --pcap``.
+    """
+
+    from urllib.parse import quote
+
+    listing = yaml.safe_load(LIDARVIEW_VELODYNE_FILES.read_text(encoding="utf-8"))
+    project, commit = listing["gitlab_project_id"], listing["commit"]
+    target_dir = output_dir / "lidarview_velodyne"
+    for relative, expected in listing["files"].items():
+        target = target_dir / relative
+        if target.is_file() and hashlib.sha256(target.read_bytes()).hexdigest() == expected:
+            continue
+        url = (
+            f"https://gitlab.kitware.com/api/v4/projects/{project}/repository/files/"
+            f"{quote(relative, safe='')}/raw?ref={commit}&lfs=true"
+        )
+        request = Request(url, headers={"User-Agent": "Calibrex"})
+        with urlopen(request, timeout=300) as response:
+            data = response.read()
+        actual = hashlib.sha256(data).hexdigest()
+        if actual != expected:
+            raise SystemExit(f"{relative} digest mismatch: expected {expected}, got {actual}")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
+        print(f"wrote {target}")
 
 
 def download_ethz_hand_eye_robot_arm_real(output_dir: Path) -> None:

@@ -169,6 +169,524 @@
   HTML. Partial runs and backend/parity failures remain in the evidence. No
   rosbag or schema change is required.
 
+- **`calibrex external-run import-sensor-calib-tas` imports a sensor_calib_tas result
+  as a `--tf` file.**
+  - **What sensor_calib_tas outputs.** Each sensor's pose in its reference sensor's
+    frame, as `<frame>_calibrated` static transforms or the latched
+    `~/sensor_poses` message. It writes no file.
+  - **The import.** It reads either one (from a bag, or from `ros2 topic echo` YAML)
+    and writes a `slac.check_frames` file under the sensors' own frame names. Given
+    with `--tf`, that file overrides the deployed calibration on a driving bag.
+  - **The test.** On a synthetic driving bag whose deployed LiDAR rotation is 3 deg
+    off, the check fails; with the imported result it passes.
+  - **Schema.** `slac.check_frames` gains an optional `provenance`: generator, tool and
+    license, and the source's SHA-256.
+
+- **A rectified image stream's intrinsics come from CameraInfo's `P`, without
+  distortion.**
+  - **The bug.** An `image_rect*` topic (ROS image_pipeline) carries undistorted images,
+    but the check applied the raw image's `K` and `D` to it.
+  - **Where it showed.** sensor_calib_tas's demo bag. Its front camera publishes
+    `image_rect_color` next to a plumb_bob CameraInfo (k1 = −0.27).
+  - **On that bag.** The demo bag itself is a parked, 4.9 s target session: the check
+    plans its camera-LiDAR and stereo pairs but cannot judge them (see
+    `docs/benchmarks/camera_lidar_check.md`).
+
+- **`camera-camera` skips cameras that share no view, and the check covers all five of
+  Hilti's alphasense cameras.**
+  - **The skip.** The pair measures the share of the first camera's view the second
+    sees under the candidate. Below 5% it is skipped with the new reason code
+    `no_shared_view`, and rectification refuses cameras that face opposite ways.
+  - **All five cameras.** With Hilti's per-camera camchains, `calibrex check` plans 10
+    camera pairs and 5 `camera-imu` pairs.
+  - **Camera pairs.** cam0–cam1 passes on every axis on both recordings. The side and
+    down pairs share 12 to 34% of their view, so they are judged only in part, and
+    their readings differ between recordings by up to 0.3 deg. The opposite side
+    cameras are skipped.
+  - **`camera-imu`.** It passes on 9 of 10 runs; `exp21` cam1 is `warn` at 0.51 deg.
+    Its clock offsets (1.5 to 2.0 ms) agree with Kalibr's `timeshift_cam_imu`
+    (1.7 to 1.9 ms).
+
+- **`camera-camera` checks unsynchronised stereo pairs with a gyro, and reports the
+  cameras' clock offset.**
+  - **When it applies.** An IMU must be connected to the first camera in the candidate
+    tree. Images are then paired with the other camera's nearest image within 30 ms.
+  - **The method.** Each pair is rectified for the rig's turn over its stamped gap. The
+    rotation error and the clock offset are fitted together, and the offset is reported
+    (not judged) as the pair's `time_offset`.
+  - **Evidence.** The artifact gains optional `time_offset_s`, its std and status,
+    `timing_source` and `max_stamp_gap_s`.
+  - **Pairing.** It now takes the nearest image within the tolerance.
+  - **Tests.** Rendered pairs taken 25 ms apart (at 25 and 80 deg/s) read their
+    rotation within 0.05 deg and a zero offset. A 5 ms stamp offset reads −5 ms.
+  - **Hilti (`tools/stereo_timing_injection.py`).**
+    * The synchronised bags read 0 ± 0.15 ms.
+    * A 5 ms stamp offset reads −4.9 ms.
+    * Pairing each image with the next frame (25 ms) still passes. The rotation std
+      grows to 0.08 deg, and without the gyro one axis goes unobserved on `exp01`.
+
+- **`calibrex check` judges a stereo pair's rotation: the `camera-camera` pair.**
+  - **Planning.** It is planned for every two cameras the candidate tree connects
+    (`T_first_second`). Intrinsics come from a Kalibr camchain or `CameraInfo`, and
+    the images must be taken within 2 ms of each other.
+  - **The method.** It rectifies the pair with the candidate and fits the right image's
+    row offsets (`estimate_stereo_rotation`). It judges roll, pitch and yaw about the
+    first camera, each with a block jackknife and a 0.2 deg control. The translation
+    is not judged, and `calibrex estimate` does not export the pair.
+  - **Evidence.** A `slac.stereo_rotation/v0.1` artifact (new schema). The pair-name
+    enums of the check, estimate and drift schemas widen.
+  - **Supporting changes.** `--camera` keeps a pair when either of its cameras is
+    selected. Rectification also takes radial-tangential pinhole cameras
+    (`RadtanCamera`, checked against OpenCV). Patch matching is vectorised: the same
+    samples, ten times faster.
+  - **Hilti 2022 (`exp01`, `exp21`).**
+    * The dataset camchain passes, with every axis observed (std 0.002 to 0.06 deg).
+    * A camchain with cam1 turned 1 deg fails on `exp01` (1.01 deg). On `exp21` it
+      reads 0.895 deg, so `warn`: the turn about the vertical axis is the weakest.
+
+- **The Hilti pair's vertical offset is a relative pitch of the cameras that differs
+  between recordings (development run).**
+  - **The new function.** `vertical_offset_samples` returns every matched patch's
+    vertical offset with its pair, place, disparity and whether it constrains rows.
+    `estimate_vertical_offset` is their median, unchanged.
+  - **The tool.** `tools/hilti_vertical_offset.py` fits the offset's constant,
+    disparity, column and row terms, and correlates each frame's offset with the
+    gyro's rate about the baseline.
+  - **Result.** The offset is a constant, stable within each recording: −0.81 px on
+    `exp21` (2022-04-21) and +0.38 px on `exp01` (2022-03-03). That is a relative pitch
+    0.19 deg apart, against one calibration file.
+  - **Ruled out.**
+    * The scene: the disparity term is at most 0.004 px per px.
+    * Timing: the correlation with an angular rate of up to 26 deg/s is weak, and the
+      implied time offsets disagree in sign.
+
+- **The Hilti data-only decision passes on a second recording, `exp01`, with depth
+  judged (development run).**
+  - **The choice.** The indoor construction site `exp01_construction_ground_level` was
+    chosen before it was scored, because `exp21` is outdoors. The tool and the
+    calibration are unchanged.
+  - **Result.** The reference passes on roll, pitch, yaw and z (+0.005 ± 0.014 m). The
+    known-bad fails on pitch (4.85 deg) and z (+0.245 m).
+  - **What it says about `exp21`.** Its −0.1 m depth offset does not repeat here, so it
+    belongs to that recording.
+  - **Caveats.** The joint stereo fit diverges on `exp01`. The pair's vertical offset
+    is +0.33 px here against −0.83 px on `exp21`.
+
+- **The Hilti data-only decision reads its frames as `calibrex check` does, and
+  passes on rotation (development run).**
+  - **The fix.** `tools/hilti_stereo_falsification.py` said it used the check's frames
+    but paired images and scans by their stamps and left the points where they were
+    measured. It now does what the check does for each candidate: it pairs each image
+    with the scan at the time the candidate's visible points were measured (per-point
+    `timestamp`), and turns the points to the image time with the IMU's gyro.
+    `--stamp-pairing --no-motion` reproduces the earlier run.
+  - **Result on `exp21` (48 frames): `pass`.**
+    * The reference passes on roll, pitch and yaw; the known-bad fails on pitch
+      (4.95 deg).
+    * Stereo depth puts the known-bad 0.250 m beyond the reference. Its std, 0.053 m,
+      is just above the 0.05 m gate, so z is not judged.
+    * Depth still reads the reference about 0.1 m short, which is unexplained.
+  - **Tried and rejected: a disparity scale in the depth estimate**
+    (`tools/stereo_depth_scale_pilot.py`).
+    * A free scale is not separable from depth on camera-facing surfaces: the std
+      grows 3 to 10 times.
+    * Removing the joint fit's scale fixes Hilti's reference, but moves KITTI 0005's
+      first-50 reference beyond its tolerance. That scale also differs between frame
+      selections of one KITTI rig (−0.2% against −1.3%).
+    * The estimator is unchanged; see
+      [the page](docs/benchmarks/hilti_fisheye_stereo_falsification.md).
+
+- **Fisheye stereo pairs feed the stereo depth checks, and the data-only decision runs
+  on Hilti 2022 (development run).**
+  - **Rectification.** `calibrex.evaluation.fisheye_stereo` rectifies an equidistant
+    (Kannala-Brandt) pair read from a Kalibr camchain onto one pinhole camera.
+    `estimate_vertical_offset` measures the rectified pair's leftover row offset from
+    the images alone, and `with_right_row_shift` removes it.
+  - **Reuse.** `judge_candidate` runs the KITTI decision's per-candidate steps on any
+    frames. KITTI's results are unchanged. `tools/hilti_stereo_falsification.py` runs
+    the decision on a Hilti bag.
+  - **First result on `exp21` (47 frames): `inconclusive`,** superseded by the entry
+    above: the reference's z read −0.137 m against a 0.111 m tolerance.
+
+- **The joint stereo fit models the stereo rig's scale and roll.**
+  - **The change.** The rig's disparity scale and the roll between its cameras are
+    fitted beside its offset (`rig_terms`, recorded as `disparity_scale` and
+    `rig_roll_px`). Each iteration's correction is bounded (0.2 m, 2 deg per axis).
+  - **Effect on KITTI.** The reference's x readings across drives and frame selections
+    now span 8 cm instead of 11.4 cm, three of four within 1.3 cm. x and y stay unjudged.
+  - **Ruled out.** Compensating the LiDAR sweep with OXTS motion did not reduce the
+    spread (development run).
+
+- **A known-bad that passes with its error unseen makes the KITTI data-only decision
+  `inconclusive`, not `fail`.**
+  - **The declared axes.** They come from the protocol's declaration of the known-bad (in
+    the camera's frame, beyond 0.5 deg or 0.02 m from the declared reference): pitch and
+    z. Each decision records them as `known_bad_axes`.
+  - **The rule.** A known-bad that passes with none of them judged is `inconclusive`. One
+    that passes with any of them judged still `fail`s. The trial's own verdict (what
+    `calibrex check` reports) is unchanged.
+  - **Effect.** The only row that changes is 0009's first 50 frames: `fail` becomes
+    `inconclusive`.
+
+- **KITTI data-only rotation is judged after removing the depth error stereo measures.**
+  - **The change.** When stereo depth trusts its reading of the candidate's error along
+    the optical axis, the edges run again from the candidate with it removed, and the
+    depth is measured again at their new rotation. Rotation is still judged as the
+    candidate's error, and the shift is recorded (`edge_start_depth_shift_m`).
+  - **Result on 0009.** On the spread frames the known-bad's pitch is now judged and fails
+    (control t 1.99 to 2.2).
+  - **Result on 0005.** The reference passes on both frame selections; its readings
+    barely move (z 0.050 m, yaw 0.50 to 0.40 deg) but fall inside the tolerance, so
+    the data-only status is `pass` (was `inconclusive`). The page says the order was
+    added for 0009's pitch.
+  - **Still failing.** On 0009's first 50 frames the known-bad still passes.
+
+- **Joint six-DoF stereo fit, recorded as a cross-check.**
+  - **Method.** `estimate_stereo_alignment` fits translation and a small rotation together
+    from stereo depth on planar LiDAR surfaces of any facing (normals from neighbourhood
+    PCA). It re-linearises at the corrected transform, with a jackknife per axis and a
+    moved-candidate control per translation axis. It is tested on a rendered street with
+    house fronts. The facing-surface depth estimate shares its matcher, unchanged.
+  - **KITTI.** The data-only trials record it as `stereo_alignment`, and the rendered
+    summary lists its readings. `x` and `y` stay unjudged: the reference's x reads from
+    -4.6 to +7.3 cm across drives and frame selections, against per-run jackknife stds of
+    1 to 3 cm, and y is untrusted on three of four runs.
+
+- **Fixed: KITTI camera-LiDAR pairs after a missing scan loaded the wrong scan.**
+  - **The bug.** KITTI raw streams can skip frames while `timestamps.txt` keeps a blank
+    line for each; drive 0009 has no scans 177-180. `find_camera_lidar_pairs` took a scan's
+    timestamp from its line but its file from its position in the directory, so every pair
+    after the gap loaded the scan four frames (0.4 s) later. The LiDAR-OXTS sampling had
+    the same lookup.
+  - **The fix.** Files are now taken by the frame number in their name, as the drive
+    loader and the rosbag converter already did. Drives without gaps (0005) are
+    unchanged.
+  - **The data-only decision.** It also drops pairs more than 60 ms apart, as the
+    bag-level check does.
+  - **Published results.** The 0009 replication was republished. Every rotation axis of
+    the reference is now judged, and the spread decision passes. The known-bad's pitch is
+    not judged there (control t = 2.0), and on 0009's first 50 frames it still passes.
+
+- **The KITTI data-only decisions are repeated on drive 0009.**
+  - **Why 0009.** It was recorded with the same calibration files (checked by SHA-256),
+    so its reference and known-bad candidates are the same transforms.
+  - **Artifact and tool.** The artifact gains `data_only_replications` (optional,
+    schema-compatible); `tools/publish_kitti_falsification_benchmark.py` gains
+    `--replicate`.
+  - **Result: the 5 cm belongs to drive 0005.** On 0009 the reference reads under 1 cm
+    along the optical axis, against 5 cm on 0005, and the known-bad's 0.25 m fails again.
+  - **Result: rotation on 0009.** The edges judge no rotation on its spread frames. On
+    its first 50 frames the known-bad passes with its pitch unjudged, a `fail` of the
+    data-only decision.
+  - The benchmark page and the published test record all of it.
+
+- **The KITTI data-only decision also judges translation along the optical axis.**
+  - **Why edges cannot.** Moving the candidate along the optical axis keeps a road point on
+    the road and a wall point on its wall, so the shifted cloud still lines up. In a
+    development run the edge estimate ran to its search bound, with its 5 cm controls
+    undetected.
+  - **Stereo depth.** `calibrex.evaluation.stereo_lidar_depth` block-matches LiDAR points
+    on camera-facing surfaces between the rectified stereo images. It fits the disparity
+    residual as a rig offset plus the candidate's depth error (which fades as `1 / Z^2`),
+    with a block jackknife, a moved-candidate control and an occlusion filter. It uses
+    only the stereo pair's own calibration.
+  - **Artifact.** Each data-only trial records the stereo estimate (`depth`), its `z`
+    judgement (`depth_axis`) with the `calibrex check` rule, and
+    `unchecked_translation_axes`. All fields are optional and schema-compatible.
+  - **Result.** The known-bad fails on its 0.25 m (0.26 to 0.28 m against 0.035 to
+    0.082 m) as well as its 5 deg, on both frame selections. The reference is not
+    passed: on the spread frames stereo depth puts it 0.050 m along the optical axis
+    against a 0.050 m tolerance (`warn`). The data-only status is therefore
+    `inconclusive` (it was `pass` with rotation alone). The benchmark page says which
+    choices were made after seeing results.
+
+- **The KITTI falsification is also decided from the images and scans alone.**
+  - **Method.** `calibrex.evaluation.kitti_edge_falsification` starts the camera-LiDAR
+    edge alignment (block jackknife, held-out known-bad controls) at each candidate and
+    judges it with the per-axis rule of `calibrex check`. It passes when the reference
+    passes and the known-bad fails.
+  - **Artifact.** `data_only_status` and `data_only` (optional, schema-compatible) carry
+    one decision on 50 frames spread over the drive and one on the protocol's first 50.
+    The protocol's own status is unchanged.
+  - **Result.** Spread frames: the reference passes (within 0.1 deg) and the known-bad
+    fails on its 5 deg turn (pitch 5.0 against 0.5 deg). The protocol's first 50
+    frames: the reference sits at its yaw tolerance (`warn`), so that row is
+    inconclusive. Translation is not judged. The page says the selection was chosen
+    after both were run.
+
+- **KITTI camera-LiDAR falsification published as a maintained artifact.**
+  - **Published files.** `docs/assets/kitti-camera-lidar-falsification.json` (schema-valid) and
+    its rendered summary, generated by `tools/publish_kitti_falsification_benchmark.py` on
+    the official drive 0005 (50 frame pairs).
+  - **CI test.** `tests/integration/test_kitti_falsification_published.py` checks the
+    committed files on every CI run.
+  - **New per-trial fields.** Each trial now records its policy gates, its headline metrics
+    and its LiDAR-camera evidence checks; trial file paths are relative to the run.
+  - **Provenance.** The git commit is read at the start of the run.
+  - **Result.** The reference passes and the declared known-bad (+5 deg yaw, +0.25 m)
+    fails. The known-bad is rejected only by its comparison with KITTI's own calibration;
+    every check of the images and scans passes it. The benchmark page says so.
+
+- **VLS-128 packets are decoded.** `velodyne_msgs/VelodyneScan` from a VLS-128 / Alpha Prime
+  (product id 0xA1) is decoded in single-return mode (strongest or last). Like an HDL-64E it
+  needs the unit's calibration (`db.xml` or ROS YAML).
+  - **Decoding.** The four laser banks of a firing sequence are read, along with the firing
+    timing (2.89 us cycle, firmware 5.2.3.0 and later). The azimuth advances inside a sequence
+    with LidarView's 0.01 deg rounding.
+  - **Checked against LidarView's 2019 `HDL_128` reference.** The channel order is read back
+    from frame 0, and frames 1 and 2 match exactly (median 0.000 mm). At the earlier
+    firmware's 2.666 us cycle, every point time matches up to one constant.
+  - **What is not tested.** That reference used an unpublished calibration, so the laser table
+    is not tested by it. `Alpha_Prime.xml` as published gives this recording flatter
+    surfaces than the 2019 order does.
+  - **Calibration files.** `load_velodyne_calibration` reads 128-laser files, including
+    LidarView's `Alpha_Prime.xml`, which repeats its XML declaration and spells
+    `horizOffsetCorection`.
+  - **Data.** `lidarview_velodyne` downloads the `HDL_128` recording and `Alpha_Prime.xml`.
+    VLS-128 dual return stays refused by name.
+
+- **Documented: the camera-LiDAR known-bad control near its threshold.** Doubling the frames,
+  8 or 12 blocks, and a rank test were each tried on the KITTI pairings where an axis went
+  unjudged. In each case a held-out block prefers the turned fit, so the data, not the rule,
+  are the limit. Twelve blocks of 96 frames would judge one more axis at about four times the
+  jackknife cost. The rule and the defaults are unchanged.
+
+- **Camera-LiDAR rolling sweep evaluated on a handheld recording.** Hilti 2022 exp21 (first
+  6 GiB, the PandarXT-32 cloud with per-point time, the Alphasense gyro picked automatically):
+  - **Reference.** Moving each point to the image time raises the edge-alignment objective at the
+    reference from 0.360 to 0.387. About 6 % comes from the motion itself and 2 % from per-point
+    timing.
+  - **Perturbations.** All six rotation errors are flagged (five as recorded: roll +3 deg was
+    inconclusive). Yaw +1 deg moved from fail to warn because the yaw std grew.
+  - **New tool.** `tools/trim_partial_rosbag1.py` cuts a range-downloaded ROS 1 bag after its
+    last complete record.
+
+- **Camera-LiDAR check moves LiDAR points to the image time.**
+
+  On a moving rig the LiDAR has turned and moved between a point's measurement and the image.
+  `calibrex check --pairs camera-lidar` now moves every point to the image time with the rig's
+  velocity.
+  - **Source.** An odometry or twist topic, else an IMU (rotation only), whose frame is
+    connected to the LiDAR in the frame tree. Each point is moved by its own time when the
+    cloud has a per-point time field.
+  - **Off switch and record.** `--camera-lidar-motion none` keeps scans as recorded (recorded in
+    the run options). The edge evidence gains an optional `motion_compensation` block.
+  - **New tool.** `tools/camera_lidar_motion_stress.py` pairs every scan with the image one
+    frame away to emulate an unsynchronized camera.
+
+  **Results.**
+  - Synchronized KITTI: 0005 now flags all nine rotation errors (yaw +1 deg moved from pass to
+    warn, yaw tolerance 1.35 to 0.5 deg) and 0009 pitch +1 deg moved from warn to fail. The
+    references still pass; AIST Livox is unchanged (no velocity topic).
+  - Emulated 0.1 s pairings: 13 of 16 rotation errors flagged (12 as recorded, which never
+    judged pitch). On 0005 with the earlier image, yaw went unjudged and yaw +1 and +3 deg
+    passed; the benchmark doc gives every case.
+
+- **Camera-LiDAR check names an image in the camera body frame.**
+
+  When most frames of `calibrex check --pairs camera-lidar` put no LiDAR edge in the image, the
+  frames are read once more as if the image frame were the camera's REP 103 body frame
+  (x forward) instead of its optical frame. If that makes them usable, the `inconclusive`
+  reason says so and names the fix: an optical child frame in a `slac.check_frames` file and
+  `--frame-map TOPIC=FRAME`. On KITTI 0005 with the camera frame replaced by its body frame the
+  reason names it (16 of 16 frames), and the named fix brings the check back to `pass`. Nothing
+  is corrected automatically.
+
+- **Camera-LiDAR check: short recordings use their frame budget.** A recording shorter than 48
+  scans 1 s apart (2.5 s with `--max-duration-s 120`) now spreads up to 48 scans, at least 0.25 s
+  apart, over its length.
+  - **When it applies.** Only when the view changes: the median mean absolute difference of
+    consecutive images must reach 0.05 of full scale. Static recordings repeat one view and keep
+    the regular selection.
+  - **What stays the same.** Long recordings get exactly the frames they got before. The evidence
+    notes say which selection was used.
+  - **Options.** `EdgeAlignmentOptions.short_recording_spacing_s` (0.25) and
+    `short_recording_min_view_change` (0.05). `load_camera_lidar_frames` gains the matching
+    arguments and a `report`.
+
+  **Results.**
+  - KITTI 0005 goes from 16 to 48 frames. Yaw +5 deg is now flagged (`fail`, 4.9 / 1.14 deg),
+    and the reference passes with roll, pitch and yaw judged.
+  - All three +5 deg cases the first benchmark left unchecked are now flagged. The verdict rule
+    (2 deg control, 0.5 deg std bound, t >= 2) is unchanged.
+  - The AIST Livox verdicts are unchanged. The Hilti bags were not re-run.
+
+- **Kalibr lever-arm evidence and a public Kalibr run.**
+
+  `calibrex external-run evaluate-camera-imu` now checks the imported `T_cam_imu` translation
+  against the accelerometer when the recording carries camera positions and accelerometer
+  samples. These are the new optional `position_m` and `imu_accel` fields of
+  `slac.camera_imu_motion_recording/v0.1`.
+  - **Comparison.** The camera trajectory's second divided difference over +-0.25 s is
+    compared with the accelerometer integrated against the same kernel. A bias and the
+    gravity vector are fitted on training windows only.
+  - **Controls.** Six signed +-5 cm controls must raise the holdout residual. One that lowers
+    it fails the candidate; insensitive controls leave the translation inconclusive.
+  - **Output.** The result is the new optional `lever_arm` block of
+    `slac.external_camera_imu_evidence/v0.1`. Its gates are new optional threshold fields.
+  - **Synthetic fixture.** It gains camera positions, a biased accelerometer in a tilted
+    world frame, `--translation-error-m` and `--no-accelerometer`. The truth passes and
+    +-5 cm errors on every axis fail.
+
+  New `tools/aprilgrid_camera_imu_recording.py` (OpenCV, outside the core) turns a Kalibr
+  AprilGrid recording into such a recording.
+
+  **Public run.** UZH-FPV's Kalibr camchain for the Snapdragon forward camera, fitted on the
+  indoor calibration recording, is evaluated on the separately captured outdoor one
+  (`tools/download_public_dataset.py uzh_fpv_kalibr_camera_imu`; dataset license not stated,
+  data outside the repository).
+  - The published translation passes: holdout specific-force RMSE 0.102 m/s^2, 6/6
+    controls. Every +-5 cm perturbation fails.
+  - Rotation and time are not admissible there, because frame-to-frame AprilGrid pose noise
+    gives 0.171 rad/s against the 0.05 budget.
+  - The opt-in test is `tests/integration/test_uzh_fpv_kalibr_camera_imu.py`.
+
+  Schemas regenerated; the additions are optional and compatible.
+- **Velodyne packets: dual return, HDL-64E, and checks against reference clouds.**
+  `calibrex.data.velodyne_packets` now decodes:
+  - VLP-16 dual return, dropping a second return identical to the first;
+  - the HDL-64E, single and dual return. It needs the sensor's own calibration
+    (`load_velodyne_calibration`: Velodyne `db.xml` or ROS `velodyne_pointcloud` YAML), passed
+    with `--calibration` to `tools/velodyne_scan_to_pointcloud2.py`, and the conversion summary
+    records its digest.
+
+  The VLP-32C decoder applies the head's turn between laser pairs within a block. New public helpers
+  are `velodyne_packet_format` and `decode_velodyne_packet` (per-laser ring, return and time).
+
+  `tools/validate_velodyne_decode.py --pcap X.pcap --reference X_n.vtp` compares the decoding with
+  Kitware's Apache-2.0 LidarView test recordings, fetched by
+  `tools/download_public_dataset.py lidarview_velodyne` (pinned commit, SHA-256 checked). Median
+  point distances are 0.17 mm (VLP-16 dual), 0.05 mm (VLP-16 and VLP-32C single; 1.2 mm before
+  the intra-block azimuth step) and 0.000 mm (HDL-64E single and dual). Per-point times agree to
+  0.2 to 0.35 us. The opt-in test is `tests/integration/test_velodyne_lidarview_reference.py`.
+
+  **Behaviour change:** product ids 0x21 (HDL-32E) and 0x24 (VLP-16 Hi-Res) were decoded as a
+  VLP-16 and are now refused, as are VLP-32A/B (0x23; an 11 mm median miss with VLP-32C
+  constants), VLS-128, Velarray and VLP-32C dual return. `calibrex check` names the packet format
+  of a skipped `VelodyneScan` topic. No schema change.
+- **Planar-board line+plane in the CLI.** The `native_planar_board` backend runs a line+plane row
+  (Zhou et al.) next to the plane, point+plane and Horn rows, on the same seeded capture split. A
+  new adapter, `calibrex.solvers.acfr_board_edges`, turns ACFR's camera and LiDAR board corners
+  (rows 2-5, 8-11) into four boundary lines per capture. It orders each corner loop about its
+  oriented board normal, picks the LiDAR labeling (the board is symmetric under a 180° turn) by
+  edge-direction agreement under the train-split plane-only rotation, and rejects pairings whose
+  edge lengths differ by over 15 %. Every step is recorded per capture. The line+plane solver
+  gained twelve held-out ±5 cm / ±5° controls (`LinePlaneProbe`). On ACFR's 40 VLP-16 captures, all
+  match (6 symmetric) and the row passes its default gates: held-out boundary distance 1.39 cm,
+  direction 1.51°, 12/12 controls. Keeping the source row order instead gives 37 cm. There are
+  nine new `line_plane_*` metrics and the opt-in test `tests/integration/test_acfr_line_plane.py`.
+  No schema change.
+- **Camera-LiDAR check: wider start and solid-state LiDAR.** The edge-alignment rotation search
+  also starts from the per-axis maxima of the objective profile (+-8 deg) and keeps that start only
+  when more rotation DoFs pass their held-out control and std bound there (on the Hilti exp07
+  corridor a plain "higher objective" rule picked a ridge and lost the judged roll). KITTI 0005
+  pitch +5 deg (was `pass`, pitch unchecked) and KITTI 0009 pitch +5 deg (was `inconclusive`) now
+  `fail` at 4.95 / 0.5 deg; the other KITTI perturbations and the unmodified references on KITTI
+  0005, 0009 and Hilti exp21, exp07 read as before, and KITTI 0005 yaw +5 deg stays unchecked
+  (jackknife std 0.52 deg over the 0.5 deg bound). Clouds without beam structure (Livox-style
+  non-repetitive scans) now get near-side depth edges among angular neighbours, with a jump that
+  must reach 10 % of the range. On the public AIST Livox Avia dataset (Zenodo 7779880, static) the
+  check judges all three rotation axes on two of five recordings where it previously dropped every
+  frame. New `tools/restamp_rosbag2_headers.py` writes the bag receive time into header stamps for
+  static recordings whose sensors stamp on separate clocks; `examples/public_datasets/
+  aist_lidar_camera_livox/` holds the reference candidate. The verdict rule (2 deg control,
+  0.5 deg std bound, t >= 2) is unchanged. No schema change.
+- **Calibration CI decisions recorded in the lifecycle registry.** New `calibrex lifecycle
+  record-ci <calibration-ci.json>` (`calibrex.calibration_ci_lifecycle`, artifact
+  `slac.calibration_ci_lifecycle/v0.1`) copies the CI decision, candidate result, CI assessment
+  and CI policy into a content-addressed `ci/<sha256>/` snapshot in the registry (written once;
+  differing bytes are refused) and evaluates the candidate with the decision as evidence: PASS with
+  PASS promotion and smoke evidence is promoted with `--promote`, INCONCLUSIVE/WARN is held and
+  FAIL is rejected without touching the incumbent, and `--rollback-on-fail` rolls back a promoted
+  incumbent that a later decision fails, with the decision bound to the rollback event
+  (`rollback_lifecycle` gained an optional `evidence` reference). A candidate changed after the
+  decision is refused, a decision cannot be recorded twice, and the registry is verified after
+  every path. Integration test on real candidates (KITTI evidence demo PASS, precomputed example
+  INCONCLUSIVE, the KITTI candidate under a 90 % known-bad policy FAIL); example workflow
+  `examples/ci/calibration-ci-lifecycle.yml`.
+- **Declared LiDAR capture-time reference in online replay (ADR 0008 Pillar 3).** New
+  `sensors.<lidar>.capture_time_reference` (`scan_start` | `scan_midpoint` | `scan_end`) with
+  `scan_period_s` declares where a message stamp sits in its sweep. Motion-compensated
+  rosbag1/rosbag2 replay places a sensor that is not deskewed per point at its mid-sweep capture
+  time (stamp + period / 2 for `scan_start`, - period / 2 for `scan_end`); per-point offsets, when
+  used, already carry the convention and no shift applies. Provenance records each declared
+  reference with `applied_shift_s` and `basis`; other dataset types refuse the field. Synthetic
+  shared-clock acceptance: a rig whose source stamps at the sweep start and whose target stamps at
+  the sweep end (60 ms gap) reads an anchored offset of -59 ms undeclared and +0.1 ms declared, and
+  an injected +50 ms moves the declared estimate by -50.0 ms. TIERS Indoor02 re-report (new example
+  configs `online_selftest_motion_temporal_anchored_declared*` and
+  `online_kissicp_temporal_anchored_declared`): the anchored selftest baseline reads -19.2 ms
+  undeclared and +18.9 ms declared, injection differentials -46.4 / -35.6 ms, so the real-data
+  condition is not met. A self-pair cannot observe a stamp convention, so the earlier reading of
+  its -25 ms baseline as VLP-16 sweep-end semantics is withdrawn; the Velodyne-to-Ouster pair stays
+  degenerate. Additive config schema change (`schemas/config.schema.json`).
+- **`calibrex imu-lidar joint` on TIERS Indoor02: INCONCLUSIVE; gravity-magnitude prior and
+  opt-in IMU low-pass.** The real-data run (Ouster OS1 points and its 100 Hz IMU, 30 s odometry
+  segment) reads INCONCLUSIVE without retuned gates. An 18 Hz roll/pitch chassis vibration
+  dominates the IMU (gyro 0.19 rad/s RMS on x/y) while the motion below 2 Hz is almost pure yaw, so
+  no rotation, gyro-bias or lever-arm control is detected, and without tilt gravity and the vertical
+  accelerometer bias collapsed (gravity -2.0, bias 7.8 m/s^2, std 15.9). The B-spline fit now takes
+  an optional prior on the gravity magnitude (`BSplineLidarImuProblem.gravity_magnitude_m_s2`),
+  which the bag front end sets to 9.80665 m/s^2 with sigma 0.03; on Indoor02 gravity reads
+  -9.805 m/s^2. New opt-in `--imu-lowpass-hz` (`LidarImuBagOptions.imu_lowpass_hz`) low-passes the
+  IMU with a zero-phase Butterworth filter and resamples it at twice the cutoff before the fit,
+  widening the knots to at least 3 / cutoff (closer knots fit the filtered noise: held-out RMS
+  near 3). `SyntheticLidarImuBagSpec` can inject a roll/pitch vibration of the rig: a 12 s bag
+  with 18 Hz, 0.25 rad/s vibration reads INCONCLUSIVE unfiltered (lever-arm error 15 cm) and, at
+  10 Hz, detects all 32 controls with rotation error 0.055 deg (WARN, rounds not converged). On
+  Indoor02 the filter cuts the IMU noise from 0.154 to 0.038 rad/s, but the roll/pitch of the
+  mounting stays at 0.52 deg formal std, the yaw is unobservable (5.5 deg) and the run stays
+  INCONCLUSIVE. Artifacts: `docs/assets/tiers_lidar_imu_joint/`. Options are recorded in the
+  artifact's `options`; no schema change.
+- **Fix: per-point time offsets under a since-boot header clock.** `classify_point_time` called
+  point times "absolute" when their median lay within 1000 s (or 1e12 ns) of the header stamp,
+  so an Ouster OS1 whose headers run on its since-boot clock (about 750 s after boot in TIERS
+  Indoor02) had its 0-0.1 s offsets read as times 750 s before the header, breaking deskew and
+  per-point timing. Absolute times must now lie within 5 s of the header. `calibrex imu-lidar
+  joint` also decodes the bag once (one `ScanStore` for the angular-rate passes, the odometry
+  segment and the map rounds). No schema change.
+- **`calibrex imu-lidar joint`: joint LiDAR-IMU calibration of a recorded bag.** Runs the cubic
+  B-spline fit of `calibrex.core.continuous_time_bspline_fit` on a bag
+  (`calibrex.evaluation.lidar_imu_bag_calibration`): the angular-rate estimate seeds the rotation,
+  clock offset and gyro bias; gyro-deskewed odometry over the longest reliable segment seeds the
+  spline; map rounds build a plane map from the placed scans (voxel centroids, planar kNN
+  normals), associate per-point-timed returns and refit the IMU rotation, gyro bias, lever arm,
+  clock offset, accelerometer bias and gravity, re-estimating the gyro, accelerometer and plane
+  noise from the residuals; the first round holds the rotation and clock offset at the angular-rate
+  estimate. Every third IMU sample is held out and scores 32 signed controls (Delta chi2 >= 9).
+  New artifact `slac.lidar_imu_bag_calibration/v0.1`: `T_lidar_imu`, clock offset, per-block
+  estimate, formal std, last round change and verdict, the angular-rate estimate and the
+  difference from it, round trace, noise, holdout, controls, separability, PASS / WARN / FAIL /
+  INCONCLUSIVE and provenance with the bag digest. New `calibrex.data.synthetic_lidar_imu_bag`
+  writes a rosbag2 of a 16-beam spinning LiDAR (per-point `offset_time`) and a 200 Hz IMU in a
+  room with a known calibration. Synthetic results: a 12 s bag passes with rotation error
+  0.025 deg, lever arm within about 3 mm, clock offset within 0.05 ms and the injected noise recovered;
+  an 8 s bag stops after four rounds at 0.13 deg and reads WARN (not converged). The formal std
+  holds the plane map fixed and understates the error (about 3 sigma on the 12 s bag). The B-spline
+  fitter now takes the position-control-point Jacobian analytically (positions enter linearly)
+  and skips calibration blocks a residual family does not depend on, about 2x faster with the
+  same results. The TIERS Indoor02 run is recorded in the entry above.
+- **Fix: `calibrex init --template` works from the installed wheel.** The sensor templates lived
+  only in `examples/sensor_templates`, so outside a repository checkout the quickstart's second
+  step failed with "sensor templates are unavailable". The wheel now ships a copy under
+  `calibrex/resources/sensor_templates` (a unit test keeps it byte-identical to the examples), and
+  `tools/local_release_smoke.py` runs `init --template` from the clean wheel. The quickstart in
+  `docs/tutorials/your_own_data.md` and the Hilti camera-IMU page installed `calibrex` from PyPI,
+  where it is not published; they now use the GitHub Release wheel. No schema change.
+- **Optional CUDA backend for the Borer depth-to-depth six-DoF search.**
+  `calibrex camera-lidar benchmark-six-dof --projection-backend cuda` (and
+  `tools/run_borer_six_dof_chunk.py`) moves LiDAR projection, nearest-range visibility and
+  histogram counting to the GPU through CuPy (new extra `calibrex[cuda]`, `cupy-cuda12x`); entropy,
+  MI and the optimizer stay on the original NumPy definitions. Pinhole, double-sphere and MEI
+  cameras; FP64 kernels with fused multiply-add disabled; `--resume` checks the full backend
+  identity; one worker per GPU. `calibrex camera-lidar estimate-six-dof` (#130) runs one
+  estimation from the problem's declared prior on any backend, with optional `--holdout-frame-id`
+  frames, and saves a standard `slac.result/v0.1` result. The default stays `numpy`, and `check` /
+  `estimate` / `drift` do not expose the backend. Real data: on KITTI raw 0018 the converged frozen-protocol trial is
+  exactly equal between NumPy and CUDA (325 evaluations, every candidate record), and the six-DoF
+  search is 15.2x faster on KITTI raw 0018 and 11.3x on KITTI-360 0002 (CUDA; schema-valid
+  timing reports under `docs/assets/gpu_acceleration/`,
+  [tutorial](docs/tutorials/gpu_acceleration.md)). No schema change.
 - **`calibrex check` / `estimate` / `drift` read ROS 1 `.bag` files and every MCAP chunk
   compression directly.** New `calibrex.data.bag_formats` (format detection, ROS 1 index reader:
   topics/types/counts without a scan, chunks without the requested topics skipped, unindexed bags
@@ -235,6 +753,39 @@
   recordings (judged axes only), 23 of 27 rotation errors of 1, 3 and 5 deg are flagged, the rest
   `inconclusive` or `pass` with the axis unchecked; first-run time 20-100 s. Development evidence,
   no leaderboard claim.
+- **C2 cubic B-spline trajectory and a joint LiDAR-IMU fit on it.** New
+  `calibrex.core.continuous_time_bspline`: a uniform cumulative cubic B-spline on SO(3) x R^3 with
+  vectorized evaluation of pose, body angular velocity and acceleration (Sommer et al. recursion)
+  and world linear velocity and acceleration; derivatives are checked against finite differences
+  and continuity across knots. New `calibrex.core.continuous_time_bspline_fit` fits the control
+  points together with the IMU rotation, gyro bias, lever arm, clock offset, accelerometer bias and
+  gravity from per-return LiDAR point-to-plane residuals and direct gyro and accelerometer factors
+  (whitened, Levenberg--Marquardt, control-point Jacobians by vectorized central differences,
+  marginal covariance by Schur complement). `calibrex trajectory recover-lidar-imu-joint
+  --trajectory cubic_bspline` runs the joint recovery against a smooth continuous truth that the
+  spline can only approximate, with 1000 LiDAR returns/s and 100 Hz IMU, every third IMU sample held
+  out: on seeds 20261010, 1 and 2 it passes with trajectory error under 1 cm and 0.3 deg, rotation
+  error 0.01-0.03 deg, clock offset within 0.25 ms, lever arm within 6 mm, holdout RMSE at the noise
+  level, every block within 2.6 sigma and every control detected (Delta chi2 >= 448). The
+  screw-linear runner is unchanged. No real-data front end yet.
+- **Joint continuous-time LiDAR-IMU recovery (synthetic), with the IMU mounting rotation.** The
+  sparse knot-path solver gains `R_body_imu` (`estimate_imu_rotation`, right-perturbation analytic
+  Jacobians for gyro pre-integration and specific force, checked against finite differences) and
+  reports the marginal covariance of the calibration blocks with the knots marginalized
+  (`calibration_covariance`, `calibration_correlation`). New
+  `calibrex trajectory recover-lidar-imu-joint` estimates the knot path from LiDAR point-to-plane
+  returns (no truth pose gauges) together with the IMU rotation, gyro bias, lever arm, clock offset,
+  accelerometer bias and gravity in one fit, holds out every third gyro window and accelerometer
+  sample, runs 32 signed per-axis known-bad controls (whitened holdout chi-square, Delta chi2 >= 9)
+  and reports the correlation of every block pair (`slac.continuous_time_lidar_imu_joint/v0.1`).
+  On seeds 20261010, 1 and 2 the fit starts 4.05 deg from the true mounting rotation and recovers
+  it to 0.05-0.10 deg; every block is within 4 sigma of truth and within the budget of its
+  single-parameter `recover-imu-*` runner, and every control is detected. The
+  strongest couplings are accelerometer bias with gravity (correlation 0.89, just under the 0.9
+  entanglement flag) and lever arm with accelerometer bias (0.77). Synthetic only:
+  the screw-linear knot path has piecewise-constant velocity, so its acceleration sits at the knots
+  and the clock offset is observed only by gyro windows that straddle a knot; a real capture needs
+  a smoother trajectory model first. The existing `recover-*` artifacts are numerically unchanged.
 - **Docs: one workflow, estimate -> check -> drift.** New tutorial
   `docs/tutorials/workflow.md` (first in Get started) with real, abridged outputs from
   `calibrex estimate`, `calibrex check --tf frames.yaml` and `calibrex drift` on Koide

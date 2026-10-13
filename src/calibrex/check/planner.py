@@ -24,6 +24,7 @@ PAIR_SLOTS: dict[CheckPairName, tuple[str, str]] = {
     "camera-imu": ("camera", "imu"),
     "camera-focal": ("camera", "imu"),
     "camera-lidar": ("camera", "lidar"),
+    "camera-camera": ("camera", "camera"),
     "gnss-lidar": ("gnss", "lidar"),
     "gnss-imu": ("gnss", "imu"),
     "lidar-vehicle": ("lidar", "vehicle"),

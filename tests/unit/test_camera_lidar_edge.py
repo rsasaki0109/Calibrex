@@ -15,6 +15,7 @@ from tests.unit.camera_lidar_scene import (
     make_scene,
     perturbed,
     render_image,
+    solid_state_directions,
     true_transform,
 )
 
@@ -26,9 +27,11 @@ from calibrex.core.camera_lidar_edge import (
 )
 from calibrex.data.ros2_camera_lidar import CameraLidarFrame
 from calibrex.evaluation.camera_lidar_edge import (
+    REP103_OPTICAL_FROM_BODY,
     EdgeAlignmentOptions,
     EdgeCamera,
     EdgeObjective,
+    _profile_start,
     estimate_from_frames,
     image_edge_response,
     lidar_depth_edges,
@@ -235,6 +238,29 @@ def test_candidate_that_sees_nothing_is_reported_not_crashed(
     )
     assert artifact.solver_status == "insufficient_samples"
     assert any("fall in the image under the candidate" in r for r in artifact.policy_reasons)
+    assert not any("REP 103 body frame" in r for r in artifact.policy_reasons)
+
+
+def test_image_in_the_camera_body_frame_is_named(
+    truth: np.ndarray, frames: list[CameraLidarFrame]
+) -> None:
+    # the same extrinsic, given for the camera's body frame (x forward) as a tree with
+    # the image published in the body frame would compose it
+    body_from_optical = np.eye(4)
+    body_from_optical[:3, :3] = REP103_OPTICAL_FROM_BODY.T
+    artifact = estimate_from_frames(
+        frames,
+        CAMERA,
+        body_from_optical @ truth,
+        options=FAST,
+        provenance=_provenance(),
+        parent_frame="camera_link",
+    )
+    assert artifact.solver_status == "insufficient_samples"
+    reasons = [r for r in artifact.policy_reasons if "REP 103 body frame" in r]
+    assert len(reasons) == 1
+    assert "'camera_link'" in reasons[0] and "12 of 12 frames" in reasons[0]
+    assert "--frame-map" in reasons[0]
 
 
 def test_options_validate() -> None:
@@ -242,3 +268,96 @@ def test_options_validate() -> None:
         EdgeAlignmentOptions(rotation_levels_deg=(1.0,), translation_levels_m=(0.1, 0.2))
     with pytest.raises(ValueError, match="three blocks"):
         EdgeAlignmentOptions(blocks=2)
+
+
+def test_solid_state_cloud_edges_are_found_among_angular_neighbours(truth: np.ndarray) -> None:
+    points = cast_points(make_scene(3), truth, solid_state_directions(7))
+    beams_only = lidar_depth_edges(
+        points, min_jump_m=0.3, exponent=0.5, max_points=4000, min_ring_fraction=0.5
+    )
+    assert beams_only[0].shape == (0, 3)
+    edge_points, weights, rings, _fraction = lidar_depth_edges(
+        points,
+        min_jump_m=0.3,
+        exponent=0.5,
+        max_points=4000,
+        min_ring_fraction=0.5,
+        unstructured=True,
+    )
+    assert rings == 0
+    assert 100 < len(edge_points) < len(points) // 10
+    assert weights.shape == (len(edge_points),)
+    # Near-side points of the rectangles (5-16 m), not the 30 m wall seen at a grazing angle.
+    assert float(np.linalg.norm(edge_points, axis=1).max()) < 17.0
+
+
+def test_solid_state_frames_recover_the_extrinsic(truth: np.ndarray) -> None:
+    frames = [
+        CameraLidarFrame(
+            time_s=float(index),
+            image_time_s=float(index),
+            image=render_image(make_scene(index)),
+            points=cast_points(make_scene(index), truth, solid_state_directions(100 + index)),
+            cloud_frame_id="lidar",
+            image_frame_id="camera",
+        )
+        for index in range(12)
+    ]
+    candidate = perturbed(truth, (0.8, -1.2, 0.0))
+    artifact = estimate_from_frames(
+        frames, CAMERA, candidate, options=FAST, provenance=_provenance()
+    )
+    assert artifact.policy_status == "pass"
+    assert artifact.samples.median_rings == 0
+    assert artifact.transform is not None
+    estimate = Rotation.from_quat(artifact.transform.rotation_quat_xyzw).as_matrix()
+    assert np.all(np.abs(_rotation_error_deg(estimate, truth)) < 0.3)
+
+
+class _TwoPeaks:
+    """A pitch profile with a local maximum at +1 deg and the global one at -5 deg."""
+
+    def score(self, theta: np.ndarray) -> float:
+        pitch = float(theta[1])
+        return float(
+            0.6 * np.exp(-((pitch - 1.0) ** 2))
+            + np.exp(-((pitch + 5.0) ** 2) / 2.0)
+            - 0.01 * (theta[0] ** 2 + theta[2] ** 2)
+        )
+
+
+def test_profile_start_takes_each_axis_maximum() -> None:
+    start = _profile_start(_TwoPeaks(), EdgeAlignmentOptions())  # type: ignore[arg-type]
+    assert start is not None
+    assert start[1] == pytest.approx(-5.0)
+    assert start[0] == 0.0 and start[2] == 0.0 and not np.any(start[3:])
+    off = EdgeAlignmentOptions(start_scan_deg=None)
+    assert _profile_start(_TwoPeaks(), off) is None  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="start scan"):
+        EdgeAlignmentOptions(start_scan_deg=20.0)
+
+
+def test_observed_rotations_counts_axes_by_the_record_rule() -> None:
+    from calibrex.core.camera_lidar_edge import CameraLidarEdgeControl
+    from calibrex.evaluation.camera_lidar_edge import _observed_rotations
+
+    def control(detected: bool) -> CameraLidarEdgeControl:
+        return CameraLidarEdgeControl(
+            amount=2.0,
+            unit="deg",
+            held_out_blocks=6,
+            detected_blocks=6 if detected else 2,
+            mean_objective_drop=0.01,
+            min_t_statistic=3.0 if detected else 0.5,
+            detected=detected,
+        )
+
+    options = EdgeAlignmentOptions()
+    floor = np.full(6, 0.025)
+    controls = [control(True), control(False), control(True)] + [control(False)] * 3
+    jackknife = np.array([0.1, 0.1, 0.8, 0.01, 0.01, 0.01])
+    theta = np.zeros(6)
+    # roll: observed; pitch: control missed; yaw: std above the 0.5 deg bound.
+    assert _observed_rotations(theta, jackknife, controls, floor, options) == 1
+    theta[0] = options.rotation_bound_deg
+    assert _observed_rotations(theta, jackknife, controls, floor, options) == 0

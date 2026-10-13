@@ -63,6 +63,10 @@ class LinePlaneSolverOptions:
     rank_tolerance: float = 1.0e-7
     max_condition_number: float = 1.0e6
     minimum_edge_angle_deg: float = 10.0
+    known_bad_rotation_deg: float = 5.0
+    known_bad_translation_m: float = 0.05
+    known_bad_direction_margin_deg: float = 0.1
+    known_bad_distance_margin_m: float = 0.005
 
 
 @dataclass(frozen=True)
@@ -71,6 +75,20 @@ class LinePlaneEvaluation:
     plane_offset_rmse_m: float | None
     boundary_direction_rmse_deg: float | None
     boundary_distance_rmse_m: float | None
+
+
+@dataclass(frozen=True)
+class LinePlaneProbe:
+    """One held-out known-bad control: a camera-frame perturbation of the estimate."""
+
+    dof: Literal["x", "y", "z", "roll", "pitch", "yaw"]
+    amount: float
+    unit: Literal["m", "deg"]
+    boundary_distance_rmse_m: float | None
+    boundary_direction_rmse_deg: float | None
+    distance_delta_m: float | None
+    direction_delta_deg: float | None
+    detectable: bool | None
 
 
 @dataclass(frozen=True)
@@ -87,6 +105,7 @@ class PlanarBoardLinePlaneResult:
     condition_number: float | None
     train_evaluation: LinePlaneEvaluation
     holdout_evaluation: LinePlaneEvaluation
+    probes: tuple[LinePlaneProbe, ...] = ()
 
     def as_dict(self) -> dict[str, object]:
         """Return a schema-friendly result including method provenance."""
@@ -108,6 +127,7 @@ class PlanarBoardLinePlaneResult:
             "condition_number": self.condition_number,
             "train_evaluation": self.train_evaluation.__dict__,
             "holdout_evaluation": self.holdout_evaluation.__dict__,
+            "known_bad_probes": [probe.__dict__ for probe in self.probes],
             "method": "zhou_line_plane_closed_form/v0.1",
             "paper_doi": "10.1109/IROS.2018.8593660",
             "frame_convention": "p_camera = R_camera_lidar p_lidar + t_camera_lidar",
@@ -197,6 +217,7 @@ class PlanarBoardLinePlaneSolver:
             condition_number=condition,
             train_evaluation=evaluate_line_plane_observations(train, transform),
             holdout_evaluation=evaluate_line_plane_observations(holdout, transform),
+            probes=_known_bad_probes(holdout, transform, solver_options),
         )
 
 
@@ -233,6 +254,82 @@ def evaluate_line_plane_observations(
         boundary_direction_rmse_deg=_angle_rmse_deg(line_angles),
         boundary_distance_rmse_m=_rmse(line_distances),
     )
+
+
+def _known_bad_probes(
+    holdout: Sequence[LinePlaneBoardObservation],
+    transform: SE3,
+    options: LinePlaneSolverOptions,
+) -> tuple[LinePlaneProbe, ...]:
+    """Apply ±translation and ±rotation per camera axis and re-evaluate the holdout.
+
+    A control is detectable when held-out boundary-distance RMSE rises by more than
+    ``known_bad_distance_margin_m`` or boundary-direction RMSE by more than
+    ``known_bad_direction_margin_deg``.
+    """
+
+    if not holdout:
+        return ()
+    baseline = evaluate_line_plane_observations(holdout, transform)
+    probes: list[LinePlaneProbe] = []
+    dofs: tuple[Literal["x", "y", "z", "roll", "pitch", "yaw"], ...] = (
+        "x",
+        "y",
+        "z",
+        "roll",
+        "pitch",
+        "yaw",
+    )
+    for index, dof in enumerate(dofs):
+        axis = [0.0, 0.0, 0.0]
+        axis[index % 3] = 1.0
+        rotational = index >= 3
+        magnitude = (
+            options.known_bad_rotation_deg if rotational else options.known_bad_translation_m
+        )
+        for sign in (-1.0, 1.0):
+            amount = sign * magnitude
+            if rotational:
+                half = math.radians(amount) / 2.0
+                sine = math.sin(half)
+                delta = SE3(
+                    (0.0, 0.0, 0.0),
+                    (axis[0] * sine, axis[1] * sine, axis[2] * sine, math.cos(half)),
+                )
+            else:
+                delta = SE3(
+                    (amount * axis[0], amount * axis[1], amount * axis[2]), (0.0, 0.0, 0.0, 1.0)
+                )
+            evaluated = evaluate_line_plane_observations(holdout, delta.compose(transform))
+            distance_delta = _difference(
+                evaluated.boundary_distance_rmse_m, baseline.boundary_distance_rmse_m
+            )
+            direction_delta = _difference(
+                evaluated.boundary_direction_rmse_deg, baseline.boundary_direction_rmse_deg
+            )
+            detectable = (
+                distance_delta > options.known_bad_distance_margin_m
+                or direction_delta > options.known_bad_direction_margin_deg
+                if distance_delta is not None and direction_delta is not None
+                else None
+            )
+            probes.append(
+                LinePlaneProbe(
+                    dof,
+                    amount,
+                    "deg" if rotational else "m",
+                    evaluated.boundary_distance_rmse_m,
+                    evaluated.boundary_direction_rmse_deg,
+                    distance_delta,
+                    direction_delta,
+                    detectable,
+                )
+            )
+    return tuple(probes)
+
+
+def _difference(value: float | None, baseline: float | None) -> float | None:
+    return value - baseline if value is not None and baseline is not None else None
 
 
 def _solve_rotation(

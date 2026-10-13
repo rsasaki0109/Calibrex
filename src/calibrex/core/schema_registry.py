@@ -31,6 +31,10 @@ from calibrex.calibration_ci import (
     CalibrationCIArtifact,
     calibration_ci_json_schema,
 )
+from calibrex.calibration_ci_lifecycle import (
+    CalibrationCILifecycleArtifact,
+    calibration_ci_lifecycle_json_schema,
+)
 from calibrex.core.assessment import (
     AssessmentArtifact,
     assessment_json_schema,
@@ -173,6 +177,10 @@ from calibrex.core.continuous_time_lidar_artifacts import (
     ContinuousTimeLidarPairArtifact,
     continuous_time_lidar_pair_json_schema,
 )
+from calibrex.core.continuous_time_lidar_imu_joint import (
+    ContinuousTimeLidarImuJointArtifact,
+    continuous_time_lidar_imu_joint_json_schema,
+)
 from calibrex.core.continuous_time_lidar_point_to_plane import (
     ContinuousTimeLidarPointToPlaneArtifact,
     continuous_time_lidar_point_to_plane_json_schema,
@@ -257,6 +265,10 @@ from calibrex.core.koide_real_pilot import (
 )
 from calibrex.core.koide_runner import (
     koide_runner_json_schema,
+)
+from calibrex.core.lidar_imu_bag_calibration import (
+    LidarImuBagCalibrationArtifact,
+    lidar_imu_bag_calibration_json_schema,
 )
 from calibrex.core.lidar_lidar_extrinsic import (
     LidarLidarExtrinsicArtifact,
@@ -369,6 +381,7 @@ from calibrex.core.sota_audit import (
     sota_audit_result_json_schema,
 )
 from calibrex.core.sota_leaderboard import SotaLeaderboard, sota_leaderboard_json_schema
+from calibrex.core.stereo_rotation import StereoRotationArtifact, stereo_rotation_json_schema
 from calibrex.core.trajectory import (
     TrajectoryArtifact,
     trajectory_json_schema,
@@ -617,6 +630,16 @@ SCHEMA_REGISTRY: Final[tuple[SchemaEntry, ...]] = (
         continuous_time_imu_intrinsics_json_schema,
     ),
     _entry(
+        "continuous-time-lidar-imu-joint",
+        ContinuousTimeLidarImuJointArtifact,
+        continuous_time_lidar_imu_joint_json_schema,
+    ),
+    _entry(
+        "lidar-imu-bag-calibration",
+        LidarImuBagCalibrationArtifact,
+        lidar_imu_bag_calibration_json_schema,
+    ),
+    _entry(
         "calibration-lifecycle", CalibrationLifecycleArtifact, calibration_lifecycle_json_schema
     ),
     _entry("lifecycle-registry", RegistryManifest, lifecycle_registry_json_schema),
@@ -701,6 +724,11 @@ SCHEMA_REGISTRY: Final[tuple[SchemaEntry, ...]] = (
         "environment-readiness", EnvironmentReadinessArtifact, environment_readiness_json_schema
     ),
     _entry("calibration-ci", CalibrationCIArtifact, calibration_ci_json_schema),
+    _entry(
+        "calibration-ci-lifecycle",
+        CalibrationCILifecycleArtifact,
+        calibration_ci_lifecycle_json_schema,
+    ),
     _entry("external-run", ExternalCalibrationRunArtifact, external_run_json_schema),
     _entry(
         "camera-imu-motion-recording",
@@ -847,14 +875,13 @@ SCHEMA_REGISTRY: Final[tuple[SchemaEntry, ...]] = (
     _entry("lidar-lidar-extrinsic", LidarLidarExtrinsicArtifact, lidar_lidar_extrinsic_json_schema),
     _entry("gnss-imu-lever-arm", GnssImuLeverArmArtifact, gnss_imu_lever_arm_json_schema),
     _entry("camera-focal-scale", CameraFocalScaleArtifact, camera_focal_scale_json_schema),
+    _entry("stereo-rotation", StereoRotationArtifact, stereo_rotation_json_schema),
     _entry("camera-lidar-edge", CameraLidarEdgeArtifact, camera_lidar_edge_json_schema),
     _entry("calibration-check", CalibrationCheckArtifact, calibration_check_json_schema),
     _entry("check-frames", CheckFramesFile, check_frames_json_schema),
     _entry("bag-estimate", BagEstimateArtifact, bag_estimate_json_schema),
     _entry("calibration-drift", CalibrationDriftArtifact, calibration_drift_json_schema),
-    _entry(
-        "lidar-wheel-odometry", LidarWheelOdometryArtifact, lidar_wheel_odometry_json_schema
-    ),
+    _entry("lidar-wheel-odometry", LidarWheelOdometryArtifact, lidar_wheel_odometry_json_schema),
     _entry(
         "vehicle-frame-rotation", VehicleFrameRotationArtifact, vehicle_frame_rotation_json_schema
     ),

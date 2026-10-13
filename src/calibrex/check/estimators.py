@@ -32,6 +32,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from calibrex.check.cache import EstimatorCache, cached_artifact
+from calibrex.check.frame_tree import StaticFrameTree
 from calibrex.check.tf_sources import LoadedSource, camchain_entries
 from calibrex.check.verdict import (
     RIGID_SCAN_ROTATION_FLOOR_DEG,
@@ -50,6 +51,7 @@ from calibrex.core.progress import emit_stage
 from calibrex.data.ros_cdr import AUTOWARE_VELOCITY_REPORT_TYPES
 
 if TYPE_CHECKING:
+    from calibrex.core.camera_lidar_edge import CameraLidarEdgeArtifact
     from calibrex.data.livox_ros2 import ScanStore
     from calibrex.evaluation.imu_lidar_rotation import ImuLidarRunOptions
     from calibrex.evaluation.visual_rotation import CameraModel
@@ -142,6 +144,9 @@ class RunControls:
     rigid_scan_rotation_floor_deg: float = RIGID_SCAN_ROTATION_FLOOR_DEG
     lidar_lidar_deskew: Literal["auto", "constant_velocity", "none"] = "auto"
     gnss_lidar_deskew: Literal["auto", "constant_velocity", "none"] = "auto"
+    camera_lidar_motion: Literal["auto", "none"] = "auto"
+    frame_tree: StaticFrameTree | None = None
+    """The candidate tree (static transforms between sensor frames), when known."""
     progress: Callable[[str], None] = field(default=lambda message: None)
     cache: EstimatorCache | None = None
     bag_sha256: str = ""
@@ -344,6 +349,10 @@ def detect_point_time(bag: Path, topic: str) -> tuple[str, PointTimeEncoding] | 
     return None
 
 
+ABSOLUTE_POINT_TIME_WINDOW_S = 5.0
+"""Largest distance from the header stamp at which point times count as absolute."""
+
+
 def classify_point_time(values: Any, header_ns: int) -> PointTimeEncoding | None:
     """Classify decoded per-point time values against the header stamp (ns)."""
 
@@ -355,9 +364,13 @@ def classify_point_time(values: Any, header_ns: int) -> PointTimeEncoding | None
         return None
     median = float(np.median(array))
     header_s = header_ns * 1.0e-9
-    if header_s > 1.0 and abs(median - header_s) < 1.0e3:
+    # An absolute point time lies within a sweep (and some latency) of its
+    # header.  A wider window misreads offsets as absolute times when the
+    # header runs on a sensor's since-boot clock (an Ouster OS1 ~750 s after
+    # boot stamps headers near 750 s while its offsets stay below 0.1 s).
+    if header_s > 1.0 and abs(median - header_s) < ABSOLUTE_POINT_TIME_WINDOW_S:
         return "absolute_s"
-    if header_ns > 0 and abs(median - header_ns) < 1.0e12:
+    if header_ns > 0 and abs(median - header_ns) < ABSOLUTE_POINT_TIME_WINDOW_S * 1.0e9:
         return "absolute_ns"
     if float(np.max(np.abs(array))) < 10.0:
         return "offset_s"
@@ -791,8 +804,13 @@ def run_lidar_lidar(ctx: PairContext) -> EstimatorRun:
 # ---------------------------------------------------------------- camera-imu
 
 
-def camera_model_from_camera_info(bag: Path, topic: str) -> CameraModel:
-    """Pinhole intrinsics and distortion from the first message of a CameraInfo topic."""
+def camera_model_from_camera_info(bag: Path, topic: str, *, rectified: bool = False) -> CameraModel:
+    """Pinhole intrinsics and distortion from the first message of a CameraInfo topic.
+
+    With ``rectified`` (the image topic is an ``image_rect*`` stream), the image has
+    already been undistorted: its camera is the projection ``P`` without distortion, the
+    ROS image_pipeline convention, not ``K`` and ``D``, which describe the raw image.
+    """
 
     from calibrex.data import ros_cdr
     from calibrex.data.rosbag2 import iter_topic_messages
@@ -805,6 +823,13 @@ def camera_model_from_camera_info(bag: Path, topic: str) -> CameraModel:
             raise CheckSkipError(
                 "missing_intrinsics", f"CameraInfo {topic} is uncalibrated (K is zero)"
             )
+        if rectified:
+            p = info.p
+            if len(p) != 12 or not p[0] > 0.0 or not p[5] > 0.0:
+                raise CheckSkipError(
+                    "missing_intrinsics", f"CameraInfo {topic} has no projection P for {topic}"
+                )
+            return CameraModel(p[0], p[5], p[2], p[6], "none", ())
         coeffs = tuple(float(value) for value in info.d)
         model = info.distortion_model.lower()
         distortion: Literal["equidistant", "radtan", "none"]
@@ -822,6 +847,12 @@ def camera_model_from_camera_info(bag: Path, topic: str) -> CameraModel:
             )
         return CameraModel(k[0], k[4], k[2], k[5], distortion, coeffs)
     raise CheckSkipError("missing_intrinsics", f"CameraInfo topic {topic} has no messages")
+
+
+def is_rectified_image_topic(topic: str) -> bool:
+    """Whether an image topic carries rectified images (image_pipeline's ``image_rect*``)."""
+
+    return topic.rstrip("/").rsplit("/", 1)[-1].startswith("image_rect")
 
 
 def _camera_info_topic(ctx: PairContext, image_topic: str) -> str | None:
@@ -857,9 +888,10 @@ def resolve_camera_intrinsics(
                 return model, f"{source.path.name} {key}", key
     info_topic = _camera_info_topic(ctx, image_topic)
     if info_topic is not None:
+        rectified = is_rectified_image_topic(image_topic)
         return (
-            camera_model_from_camera_info(ctx.bag, info_topic),
-            f"CameraInfo {info_topic}",
+            camera_model_from_camera_info(ctx.bag, info_topic, rectified=rectified),
+            f"CameraInfo {info_topic}" + (" (P: the image is rectified)" if rectified else ""),
             "",
         )
     raise CheckSkipError(
@@ -2132,75 +2164,64 @@ CAMERA_LIDAR_TRANSLATION_REASON = (
 )
 
 
-def run_camera_lidar(ctx: PairContext) -> EstimatorRun:
-    """``T_camera_lidar`` rotation by aligning LiDAR depth edges with image edges."""
+# An INS twist is the best velocity source, wheel odometry the least (it slips and may
+# report the rear axle's motion only); an IMU gives rotation alone and comes last.
+_MOTION_KIND_RANK = {"ins": 0, "unknown": 1, "wheel": 2}
 
-    from calibrex.core.camera_lidar_edge import load_camera_lidar_edge
-    from calibrex.evaluation.camera_lidar_edge import (
-        CameraLidarRunInputs,
-        EdgeAlignmentOptions,
-        EdgeCamera,
-        run_ros2_camera_lidar_edge,
-    )
 
-    camera_topics = ctx.sensor_topics.get("camera", ())
-    image_topic = next((t for t in camera_topics if ctx.topic_types.get(t) == IMAGE_TYPE), None)
-    if image_topic is None:
-        raise CheckSkipError(
-            "unsupported_sensor",
-            f"camera topic(s) {', '.join(camera_topics)} are not sensor_msgs/Image "
-            "(compressed images are not supported by the check yet)",
+def camera_lidar_motion_source(
+    ctx: PairContext, lidar_frame: str
+) -> tuple[str, str, FloatArray] | None:
+    """The velocity topic that moves LiDAR points to the image time, if the bag has one.
+
+    Returns ``(topic, message type, T_body_lidar)`` for the best odometry or twist topic
+    (rotation and translation), else an IMU (rotation only), whose frame is connected to
+    the LiDAR in the candidate tree; ``None`` when there is none or motion is turned off.
+    """
+
+    from calibrex.evaluation.camera_lidar_motion import IMU_TYPE, ODOMETRY_TYPE, TWIST_TYPES
+
+    tree = ctx.controls.frame_tree
+    if tree is None or ctx.controls.camera_lidar_motion == "none":
+        return None
+
+    def connected(record: CheckTopicRecord, types: frozenset[str]) -> bool:
+        return (
+            ctx.topic_types.get(record.topic) in types
+            and record.mapped_frame is not None
+            and tree.connected(record.mapped_frame, lidar_frame)
         )
-    lidar_topic = _require_pointcloud2(ctx, ctx.sensor_topics.get("lidar", ()))
-    camera_frame, lidar_frame = ctx.pair.frames[0], ctx.pair.frames[1]
-    model, intrinsics_source, _key = resolve_camera_intrinsics(ctx, image_topic, camera_frame)
-    camera = EdgeCamera(
-        model.fx, model.fy, model.cx, model.cy, model.distortion_model, tuple(model.distortion)
-    )
-    point_time = detect_point_time(ctx.bag, lidar_topic)
-    candidate = ctx.candidate  # T_camera_lidar
-    options = EdgeAlignmentOptions(max_seconds=ctx.controls.max_duration_s)
-    ctx.controls.progress(
-        f"camera-lidar: {image_topic} + {lidar_topic} (intrinsics: {intrinsics_source})"
-    )
-    command = ("calibrex", "check", str(ctx.bag), "camera-lidar", image_topic, lidar_topic)
-    artifact, cached = cached_artifact(
-        ctx.controls.cache,
-        ctx.controls.bag_sha256,
-        "camera_lidar_edge",
-        {
-            "image_topic": image_topic,
-            "lidar_topic": lidar_topic,
-            "camera": camera,
-            "point_time": point_time,
-            "candidate": [round(float(v), 9) for v in candidate.ravel()],
-            "options": options,
-        },
-        loader=load_camera_lidar_edge,
-        compute=lambda: run_ros2_camera_lidar_edge(
-            ctx.bag,
-            CameraLidarRunInputs(
-                image_topic=image_topic,
-                lidar_topic=lidar_topic,
-                camera=camera,
-                candidate=candidate,
-                point_time=point_time,
-                dataset_family=DATASET_FAMILY,
-                dataset_license=DATASET_LICENSE,
-                parent_frame=camera_frame,
-                child_frame=lidar_frame,
-                reference="deployed candidate calibration (T_camera_lidar)",
-                command=command,
-                input_sha256=_digest_or_topic(ctx, image_topic, lidar_topic),
-                input_digest_scope=(
-                    "bag digest (metadata.yaml in full; storage files by name, size and first "
-                    "64 MiB)"
-                ),
-            ),
-            options,
+
+    velocity_types = frozenset({ODOMETRY_TYPE, *TWIST_TYPES})
+    velocity = sorted(
+        (record for record in ctx.topics if connected(record, velocity_types)),
+        key=lambda record: (
+            _MOTION_KIND_RANK.get(record.odometry_kind or "unknown", 1),
+            record.role != "odometry",
+            record.topic,
         ),
-        rebase=lambda hit: hit,
     )
+    gyro = sorted(
+        (record for record in ctx.topics if connected(record, frozenset({IMU_TYPE}))),
+        key=lambda record: record.topic,
+    )
+    for record in (*velocity, *gyro):
+        assert record.mapped_frame is not None
+        relation = tree.lookup(record.mapped_frame, lidar_frame)
+        if relation is not None:
+            return (
+                record.topic,
+                ctx.topic_types[record.topic],
+                transform_matrix(relation.translation_m, relation.rotation_quat_xyzw),
+            )
+    return None
+
+
+def camera_lidar_axis_estimates(
+    artifact: CameraLidarEdgeArtifact, candidate: FloatArray
+) -> list[AxisEstimate]:
+    """The per-axis estimates a camera-lidar edge-alignment artifact gives the verdict."""
+
     solved = artifact.transform is not None
     estimate = (
         transform_matrix(artifact.transform.translation_m, artifact.transform.rotation_quat_xyzw)
@@ -2240,12 +2261,122 @@ def run_camera_lidar(ctx: PairContext) -> EstimatorRun:
                 f"not constrained by the data (reported std {record.std_reported:.4g} deg{bound})"
             )
         estimates.append(AxisEstimate(name, unit, error, record.std_reported, False, reason, code))
+    return estimates
+
+
+def run_camera_lidar(ctx: PairContext) -> EstimatorRun:
+    """``T_camera_lidar`` rotation by aligning LiDAR depth edges with image edges."""
+
+    from calibrex.core.camera_lidar_edge import load_camera_lidar_edge
+    from calibrex.evaluation.camera_lidar_edge import (
+        CameraLidarRunInputs,
+        EdgeAlignmentOptions,
+        EdgeCamera,
+        run_ros2_camera_lidar_edge,
+    )
+    from calibrex.evaluation.camera_lidar_motion import read_lidar_motion
+
+    camera_topics = ctx.sensor_topics.get("camera", ())
+    image_topic = next((t for t in camera_topics if ctx.topic_types.get(t) == IMAGE_TYPE), None)
+    if image_topic is None:
+        raise CheckSkipError(
+            "unsupported_sensor",
+            f"camera topic(s) {', '.join(camera_topics)} are not sensor_msgs/Image "
+            "(compressed images are not supported by the check yet)",
+        )
+    lidar_topic = _require_pointcloud2(ctx, ctx.sensor_topics.get("lidar", ()))
+    camera_frame, lidar_frame = ctx.pair.frames[0], ctx.pair.frames[1]
+    model, intrinsics_source, _key = resolve_camera_intrinsics(ctx, image_topic, camera_frame)
+    camera = EdgeCamera(
+        model.fx, model.fy, model.cx, model.cy, model.distortion_model, tuple(model.distortion)
+    )
+    point_time = detect_point_time(ctx.bag, lidar_topic)
+    candidate = ctx.candidate  # T_camera_lidar
+    options = EdgeAlignmentOptions(max_seconds=ctx.controls.max_duration_s)
+    motion_source = camera_lidar_motion_source(ctx, lidar_frame)
+    ctx.controls.progress(
+        f"camera-lidar: {image_topic} + {lidar_topic} (intrinsics: {intrinsics_source})"
+    )
+    command = ("calibrex", "check", str(ctx.bag), "camera-lidar", image_topic, lidar_topic)
+    artifact, cached = cached_artifact(
+        ctx.controls.cache,
+        ctx.controls.bag_sha256,
+        "camera_lidar_edge",
+        {
+            "image_topic": image_topic,
+            "lidar_topic": lidar_topic,
+            "camera": camera,
+            "point_time": point_time,
+            "candidate": [round(float(v), 9) for v in candidate.ravel()],
+            "options": options,
+            "motion": None
+            if motion_source is None
+            else {
+                "topic": motion_source[0],
+                "type": motion_source[1],
+                "t_body_lidar": [round(float(v), 9) for v in motion_source[2].ravel()],
+            },
+        },
+        loader=load_camera_lidar_edge,
+        compute=lambda: run_ros2_camera_lidar_edge(
+            ctx.bag,
+            CameraLidarRunInputs(
+                image_topic=image_topic,
+                lidar_topic=lidar_topic,
+                camera=camera,
+                candidate=candidate,
+                point_time=point_time,
+                dataset_family=DATASET_FAMILY,
+                dataset_license=DATASET_LICENSE,
+                parent_frame=camera_frame,
+                child_frame=lidar_frame,
+                reference="deployed candidate calibration (T_camera_lidar)",
+                command=command,
+                input_sha256=_digest_or_topic(ctx, image_topic, lidar_topic),
+                input_digest_scope=(
+                    "bag digest (metadata.yaml in full; storage files by name, size and first "
+                    "64 MiB)"
+                ),
+                motion=read_lidar_motion(ctx.bag, *motion_source)
+                if motion_source is not None
+                else None,
+            ),
+            options,
+        ),
+        rebase=lambda hit: hit,
+    )
+    solved = artifact.transform is not None
+    estimates = camera_lidar_axis_estimates(artifact, candidate)
     samples = artifact.samples
     notes = [
         f"intrinsics: {intrinsics_source}",
         f"{samples.frames} frame(s), {samples.edge_points} LiDAR edge points; the camera frame "
         "must be the optical frame (z forward)",
     ]
+    motion = artifact.motion_compensation
+    if motion is not None:
+        moved = (
+            f"median {motion.median_rotation_deg:.2f} deg"
+            + (
+                f", {motion.median_translation_m:.3f} m"
+                if motion.median_translation_m is not None
+                else ""
+            )
+            if motion.median_rotation_deg is not None
+            else "no frame had a motion sample nearby"
+        )
+        notes.append(
+            f"LiDAR points moved to the image time with {motion.source_topic} "
+            f"({'rotation and translation' if motion.kind == 'twist' else 'gyro, rotation only'}"
+            f"; {moved})"
+        )
+    elif ctx.controls.camera_lidar_motion == "none":
+        notes.append("scans used as recorded (--camera-lidar-motion none)")
+    else:
+        notes.append(
+            "scans used as recorded: no odometry, twist or IMU topic is connected to the LiDAR "
+            "in the frame tree"
+        )
     if artifact.objective is not None:
         notes.append(
             f"edge-alignment objective {artifact.objective.start:.4f} at the candidate, "
@@ -2270,6 +2401,199 @@ def run_camera_lidar(ctx: PairContext) -> EstimatorRun:
     )
 
 
+def run_camera_camera(ctx: PairContext) -> EstimatorRun:
+    """A stereo pair's ``T_first_second`` rotation from its rectified row offsets."""
+
+    from calibrex.core.provenance import git_commit
+    from calibrex.core.stereo_rotation import StereoRotationProvenance, load_stereo_rotation
+    from calibrex.evaluation.camera_lidar_motion import IMU_TYPE, read_lidar_motion
+    from calibrex.evaluation.stereo_rotation import (
+        StereoRotationOptions,
+        StereoTiming,
+        estimate_stereo_rotation,
+        read_stereo_frames,
+        shared_view_fraction,
+        stereo_camera,
+    )
+
+    topics: list[str] = []
+    for key in ("first", "second"):
+        candidates = ctx.sensor_topics.get(key, ())
+        image = next((t for t in candidates if ctx.topic_types.get(t) == IMAGE_TYPE), None)
+        if image is None:
+            raise CheckSkipError(
+                "unsupported_sensor",
+                f"camera topic(s) {', '.join(candidates)} are not sensor_msgs/Image "
+                "(compressed images are not supported by the check yet)",
+            )
+        topics.append(image)
+    left_topic, right_topic = topics
+    left_frame, right_frame = ctx.pair.frames[0], ctx.pair.frames[1]
+    left_model, left_source, _ = resolve_camera_intrinsics(ctx, left_topic, left_frame)
+    right_model, right_source, _ = resolve_camera_intrinsics(ctx, right_topic, right_frame)
+    ctx.controls.progress(f"camera-camera: {left_topic} + {right_topic}")
+    candidate = ctx.candidate  # T_first_second
+    options = StereoRotationOptions(max_seconds=ctx.controls.max_duration_s)
+    command = ["calibrex", "check", str(ctx.bag), "camera-camera", left_topic, right_topic]
+    gyro = _camera_gyro(ctx, left_frame)
+
+    def compute() -> Any:
+        motion = (
+            read_lidar_motion(ctx.bag, gyro[0], IMU_TYPE, gyro[1]) if gyro is not None else None
+        )
+        tolerance = options.max_unsynchronised_gap_s if motion is not None else options.max_gap_s
+        frames = read_stereo_frames(ctx.bag, left_topic, right_topic, options, max_gap_s=tolerance)
+        pairs = frames.pairs
+        timing = None
+        if motion is not None and gyro is not None and pairs:
+            sampled = [motion.velocity_at(float(time)) for time in frames.left_times_s]
+            covered = [index for index, rate in enumerate(sampled) if rate is not None]
+            rates = [rate[0] for rate in sampled if rate is not None]
+            pairs = [pairs[index] for index in covered]
+            timing = StereoTiming(
+                gaps_s=(frames.right_times_s - frames.left_times_s)[covered],
+                rates_rad_s=np.asarray(rates, dtype=np.float64).reshape(-1, 3),
+                source=f"gyro {gyro[0]}",
+            )
+        if not pairs:
+            raise CheckSkipError(
+                "missing_topic",
+                f"no image of {left_topic} and {right_topic} within "
+                f"{tolerance * 1e3:g} ms of each other"
+                + (" with the gyro's rate at the time" if motion is not None else ""),
+            )
+        left_height, left_width = pairs[0][0].shape
+        right_height, right_width = pairs[0][1].shape
+        left_camera = stereo_camera(left_model, left_width, left_height)
+        right_camera = stereo_camera(right_model, right_width, right_height)
+        shared = shared_view_fraction(left_camera, right_camera, candidate)
+        if shared < options.min_shared_view:
+            raise CheckSkipError(
+                "no_shared_view",
+                f"under the candidate the cameras share {shared:.0%} of the first one's view "
+                f"(at 10 m), less than {options.min_shared_view:.0%}: not a stereo pair",
+            )
+        return estimate_stereo_rotation(
+            pairs,
+            left_camera,
+            right_camera,
+            candidate,
+            provenance=StereoRotationProvenance(
+                generator="calibrex.check.estimators.run_camera_camera",
+                generator_version="0.1",
+                git_commit=git_commit(),
+                command=command,
+                left_topic=left_topic,
+                right_topic=right_topic,
+                left_frame=left_frame,
+                right_frame=right_frame,
+                intrinsics_source=f"{left_source}; {right_source}",
+                bag_sha256=ctx.controls.bag_sha256 or None,
+            ),
+            options=options,
+            timing=timing,
+        )
+
+    artifact, cached = cached_artifact(
+        ctx.controls.cache,
+        ctx.controls.bag_sha256,
+        "stereo_rotation",
+        {
+            "left_topic": left_topic,
+            "right_topic": right_topic,
+            "left_camera": left_model,
+            "right_camera": right_model,
+            "candidate": [round(float(v), 9) for v in candidate.ravel()],
+            "gyro": None
+            if gyro is None
+            else {"topic": gyro[0], "t_imu_camera": [round(float(v), 9) for v in gyro[1].ravel()]},
+            "options": options,
+        },
+        loader=load_stereo_rotation,
+        compute=compute,
+        rebase=lambda hit: hit,
+    )
+    by_name = {axis.name: axis for axis in artifact.axes}
+    estimates: list[AxisEstimate] = []
+    for name in ("roll", "pitch", "yaw"):
+        axis = by_name.get(name)
+        if axis is None:
+            estimates.append(
+                AxisEstimate(
+                    name, "deg", 0.0, 0.0, False, "; ".join(artifact.policy_reasons), "no_estimate"
+                )
+            )
+            continue
+        response = axis.control_response
+        control_missed = response is None or not (
+            options.min_response <= response <= options.max_response
+        )
+        estimates.append(
+            AxisEstimate(
+                name,
+                "deg",
+                axis.candidate_error_deg,
+                axis.std_deg,
+                axis.observable,
+                None if axis.observable else axis.reason,
+                None
+                if axis.observable
+                else "control_not_detected"
+                if control_missed
+                else "unobservable",
+            )
+        )
+    return EstimatorRun(
+        estimator=artifact.method,
+        artifacts=(
+            EvidenceArtifact(
+                "rotation",
+                artifact,
+                artifact.policy_status,
+                cached if ctx.controls.cache is not None else None,
+            ),
+        ),
+        solved=artifact.policy_status != "inconclusive",
+        policy_status=artifact.policy_status,
+        policy_reasons=tuple(artifact.policy_reasons),
+        estimates=tuple(estimates),
+        compared=candidate,
+        time_offset=CheckTimeOffset(
+            estimate_s=artifact.time_offset_s,
+            std_s=artifact.time_offset_std_s,
+            status=artifact.time_offset_status or "unobservable",
+        )
+        if artifact.time_offset_s is not None
+        else None,
+        notes=(
+            f"intrinsics: {left_source}; {right_source}",
+            "rotation only: the translation between the cameras is not judged",
+            f"timing: {artifact.timing_source}, the cameras' clock offset fitted"
+            if artifact.timing_source
+            else "timing: no gyro connected to the cameras, so the pairs must be synchronised",
+        ),
+    )
+
+
+def _camera_gyro(ctx: PairContext, camera_frame: str) -> tuple[str, FloatArray] | None:
+    """An IMU topic connected to the camera in the candidate tree, and ``T_imu_camera``."""
+
+    tree = ctx.controls.frame_tree
+    if tree is None:
+        return None
+    for record in sorted(ctx.topics, key=lambda item: item.topic):
+        if record.role != "imu" or record.mapped_frame is None:
+            continue
+        if ctx.topic_types.get(record.topic) != "sensor_msgs/msg/Imu":
+            continue
+        relation = tree.lookup(record.mapped_frame, camera_frame)
+        if relation is not None:
+            return record.topic, transform_matrix(
+                relation.translation_m, relation.rotation_quat_xyzw
+            )
+    return None
+
+
 ESTIMATORS: dict[str, Adapter] = {
     "imu-lidar": run_imu_lidar,
     "gnss-lidar": run_gnss_lidar,
@@ -2278,6 +2602,7 @@ ESTIMATORS: dict[str, Adapter] = {
     "camera-imu": run_camera_imu,
     "camera-focal": run_camera_focal,
     "camera-lidar": run_camera_lidar,
+    "camera-camera": run_camera_camera,
     "lidar-vehicle": run_lidar_vehicle,
     "imu-vehicle": run_imu_vehicle,
     "ins-lidar": run_ins_lidar,

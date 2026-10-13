@@ -1,0 +1,341 @@
+{
+  "$defs": {
+    "StereoRotationAxis": {
+      "additionalProperties": false,
+      "description": "The candidate's rotation error about one axis of the left camera.",
+      "properties": {
+        "candidate_error_deg": {
+          "description": "rotvec(R_candidate R_estimate^T) about the left camera's axis",
+          "title": "Candidate Error Deg",
+          "type": "number"
+        },
+        "control_response": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "change of the error when the candidate turns by control_deg about this axis, over control_deg (1 when the axis is fully observed)",
+          "title": "Control Response"
+        },
+        "name": {
+          "enum": [
+            "roll",
+            "pitch",
+            "yaw"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "observable": {
+          "title": "Observable",
+          "type": "boolean"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "std_deg": {
+          "description": "block-jackknife standard deviation",
+          "minimum": 0.0,
+          "title": "Std Deg",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "candidate_error_deg",
+        "std_deg",
+        "observable",
+        "reason"
+      ],
+      "title": "StereoRotationAxis",
+      "type": "object"
+    },
+    "StereoRotationProvenance": {
+      "additionalProperties": false,
+      "description": "Inputs and generator lineage.",
+      "properties": {
+        "bag_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Bag Sha256"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "intrinsics_source": {
+          "title": "Intrinsics Source",
+          "type": "string"
+        },
+        "left_frame": {
+          "title": "Left Frame",
+          "type": "string"
+        },
+        "left_topic": {
+          "title": "Left Topic",
+          "type": "string"
+        },
+        "right_frame": {
+          "title": "Right Frame",
+          "type": "string"
+        },
+        "right_topic": {
+          "title": "Right Topic",
+          "type": "string"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "left_topic",
+        "right_topic",
+        "left_frame",
+        "right_frame",
+        "intrinsics_source"
+      ],
+      "title": "StereoRotationProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "The relative rotation error of a stereo pair's candidate, with evidence.",
+  "properties": {
+    "axes": {
+      "items": {
+        "$ref": "#/$defs/StereoRotationAxis"
+      },
+      "title": "Axes",
+      "type": "array"
+    },
+    "baseline_m": {
+      "minimum": 0.0,
+      "title": "Baseline M",
+      "type": "number"
+    },
+    "frames": {
+      "minimum": 0,
+      "title": "Frames",
+      "type": "integer"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "max_stamp_gap_s": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Stamp Gap S"
+    },
+    "method": {
+      "const": "rectified_row_offsets/v0.1",
+      "default": "rectified_row_offsets/v0.1",
+      "title": "Method",
+      "type": "string"
+    },
+    "options": {
+      "additionalProperties": true,
+      "title": "Options",
+      "type": "object"
+    },
+    "patches": {
+      "minimum": 0,
+      "title": "Patches",
+      "type": "integer"
+    },
+    "patches_constraining_rows": {
+      "minimum": 0,
+      "title": "Patches Constraining Rows",
+      "type": "integer"
+    },
+    "policy_reasons": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Policy Reasons",
+      "type": "array"
+    },
+    "policy_status": {
+      "enum": [
+        "pass",
+        "warn",
+        "fail",
+        "inconclusive"
+      ],
+      "title": "Policy Status",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/StereoRotationProvenance"
+    },
+    "rectified_focal_px": {
+      "exclusiveMinimum": 0.0,
+      "title": "Rectified Focal Px",
+      "type": "number"
+    },
+    "rectified_from_left": {
+      "items": {
+        "items": {
+          "type": "number"
+        },
+        "type": "array"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "title": "Rectified From Left",
+      "type": "array"
+    },
+    "residual_std_px": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Residual Std Px"
+    },
+    "schema_version": {
+      "const": "slac.stereo_rotation/v0.1",
+      "default": "slac.stereo_rotation/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "time_offset_s": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "the right camera's clock minus the left one's: a pair stamped g apart was taken g + time_offset_s apart (only with the rig's rotation from a gyro)",
+      "title": "Time Offset S"
+    },
+    "time_offset_status": {
+      "anyOf": [
+        {
+          "enum": [
+            "estimated",
+            "unobservable"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Time Offset Status"
+    },
+    "time_offset_std_s": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Time Offset Std S"
+    },
+    "timing_source": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Timing Source"
+    },
+    "vertical_baseline_ratio": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "row offset per pixel of disparity (a nuisance term: the baseline's vertical component over its length, in the rectified frame)",
+      "title": "Vertical Baseline Ratio"
+    }
+  },
+  "required": [
+    "policy_status",
+    "policy_reasons",
+    "frames",
+    "patches",
+    "patches_constraining_rows",
+    "baseline_m",
+    "rectified_focal_px",
+    "rectified_from_left",
+    "options",
+    "provenance"
+  ],
+  "title": "StereoRotationArtifact",
+  "type": "object"
+}

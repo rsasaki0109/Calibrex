@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 from pathlib import Path
 
 import pytest
@@ -8,12 +9,12 @@ from calibrex.cli.main import main
 from calibrex.core.validation import validate_file
 from calibrex.evaluation.kitti_falsification_benchmark import (
     KITTI_SEQUENCE,
+    attach_data_only_decisions,
+    replicate_data_only_decisions,
     run_kitti_falsification_benchmark,
 )
 
-FIXTURE = Path(
-    "examples/public_datasets/kitti_lidar_camera_evidence/2011_09_26"
-) / KITTI_SEQUENCE
+FIXTURE = Path("examples/public_datasets/kitti_lidar_camera_evidence/2011_09_26") / KITTI_SEQUENCE
 CONFIG = Path("examples/public_datasets/kitti_lidar_camera_evidence/config.yaml")
 
 
@@ -40,6 +41,26 @@ def test_kitti_falsification_benchmark_materializes_schema_valid_trials(
     }
     assert all(trial.bundle_valid for trial in benchmark.trials)
     assert all(len(trial.artifacts) == 9 for trial in benchmark.trials)
+    # the data-only decision runs on the same frames; two fixture frames decide nothing
+    assert [decision.frame_selection for decision in benchmark.data_only] == ["spread", "first"]
+    assert benchmark.data_only_status == benchmark.data_only[0].status
+    assert all(len(decision.trials) == 2 for decision in benchmark.data_only)
+    # another drive with the same calibration files repeats the decisions; one whose
+    # calibration differs (so its candidates would differ) is refused
+    replicated = replicate_data_only_decisions(benchmark, FIXTURE)
+    assert [item.dataset_sequence for item in replicated.data_only_replications] == [KITTI_SEQUENCE]
+    assert len(replicated.data_only_replications[0].decisions) == 2
+    other = tmp_path / "other" / "2011_09_26"
+    shutil.copytree(FIXTURE.parent, other)
+    calibration = other / "calib_velo_to_cam.txt"
+    calibration.write_text(calibration.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="calibration files differ"):
+        replicate_data_only_decisions(benchmark, other / KITTI_SEQUENCE)
+    turned = {**benchmark.known_bad_transform_camera_lidar, "rotation_quat_xyzw": [0, 0, 0, 1]}
+    with pytest.raises(ValueError, match="does not reproduce"):
+        attach_data_only_decisions(
+            benchmark.model_copy(update={"known_bad_transform_camera_lidar": turned}), FIXTURE
+        )
     report = validate_file(
         tmp_path / "benchmark" / "benchmark.json",
         kind="kitti-falsification",
@@ -93,9 +114,7 @@ def test_kitti_falsification_benchmark_cli_emits_falsification_flag(
 def test_official_kitti_falsification_benchmark(tmp_path: Path) -> None:
     benchmark = run_kitti_falsification_benchmark(
         Path(os.environ["CALIBREX_KITTI_RAW_0005"]),
-        config_path=Path(
-            "examples/public_datasets/kitti_raw_2011_09_26_drive_0005/config.yaml"
-        ),
+        config_path=Path("examples/public_datasets/kitti_raw_2011_09_26_drive_0005/config.yaml"),
         output_dir=tmp_path / "official-kitti-benchmark",
     )
 
@@ -105,3 +124,9 @@ def test_official_kitti_falsification_benchmark(tmp_path: Path) -> None:
     assert by_id["dataset_reference"].assessment_status == "pass"
     assert by_id["known_bad"].assessment_status == "fail"
     assert benchmark.status == "pass"
+    # from the images and scans alone the known-bad fails on every frame selection (the
+    # reference's own reading is pinned by the published-artifact test)
+    for decision in benchmark.data_only:
+        trials = {trial.candidate_id: trial for trial in decision.trials}
+        assert trials["known_bad"].verdict == "fail"
+        assert trials["dataset_reference"].verdict != "fail"

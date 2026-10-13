@@ -163,6 +163,104 @@
       "title": "CameraLidarEdgeDofRecord",
       "type": "object"
     },
+    "CameraLidarEdgeMotion": {
+      "additionalProperties": false,
+      "description": "How the LiDAR points were moved to the image time with the rig's measured motion.",
+      "properties": {
+        "frames_moved": {
+          "minimum": 0,
+          "title": "Frames Moved",
+          "type": "integer"
+        },
+        "frames_without_motion": {
+          "description": "frames kept as recorded because no motion sample was near",
+          "minimum": 0,
+          "title": "Frames Without Motion",
+          "type": "integer"
+        },
+        "kind": {
+          "description": "twist: an odometry or twist topic (rotation and translation); gyro: an IMU (rotation only)",
+          "enum": [
+            "twist",
+            "gyro"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "max_rotation_deg": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Rotation Deg"
+        },
+        "max_translation_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Translation M"
+        },
+        "median_rotation_deg": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "rotation applied at the scan's reference time",
+          "title": "Median Rotation Deg"
+        },
+        "median_translation_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "translation applied at the scan's reference time",
+          "title": "Median Translation M"
+        },
+        "per_point_time": {
+          "description": "whether each point was moved by its own measurement time (otherwise by the scan's reference time)",
+          "title": "Per Point Time",
+          "type": "boolean"
+        },
+        "source_topic": {
+          "title": "Source Topic",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_topic",
+        "kind",
+        "per_point_time",
+        "frames_moved",
+        "frames_without_motion"
+      ],
+      "title": "CameraLidarEdgeMotion",
+      "type": "object"
+    },
     "CameraLidarEdgeObjective": {
       "additionalProperties": false,
       "description": "The edge-alignment objective at the start and at the estimate.",
@@ -450,6 +548,17 @@
       "default": "edge_alignment/v0.1",
       "title": "Method",
       "type": "string"
+    },
+    "motion_compensation": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CameraLidarEdgeMotion"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "objective": {
       "anyOf": [

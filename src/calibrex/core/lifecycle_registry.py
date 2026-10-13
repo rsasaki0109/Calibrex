@@ -1702,12 +1702,17 @@ def rollback_lifecycle(
     target_event_sha256: str | None = None,
     promotion: str | Path | None = None,
     rollback_adapter: LifecycleRollbackAdapter | None = None,
+    evidence: str | Path | None = None,
     operator: str = "unknown",
     reason: str = "rollback calibration edge to prior incumbent",
     timestamp: str | None = None,
     command: Sequence[str] | None = None,
 ) -> LifecycleEvent:
-    """Append a guarded rollback event; no historical event is deleted."""
+    """Append a guarded rollback event; no historical event is deleted.
+
+    ``evidence`` optionally binds the artifact that triggered the rollback (for
+    example a failing Calibration CI decision) to the event by digest.
+    """
 
     registry = LifecycleRegistry.open(root)
     state = registry.state()
@@ -1772,6 +1777,9 @@ def rollback_lifecycle(
         candidate_result=target.incumbent_result,
         promotion=_artifact_ref(registry.root, promotion, "promotion", "rollback_promotion")
         if promotion is not None
+        else None,
+        evidence=_artifact_ref(registry.root, evidence, "evidence", "rollback_evidence")
+        if evidence is not None
         else None,
     )
     event = _event(

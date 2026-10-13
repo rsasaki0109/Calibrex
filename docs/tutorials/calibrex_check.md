@@ -5,7 +5,7 @@ produces a calibration when there is none, `check` judges it on another recordin
 [`calibrex drift`](calibrex_drift.md) compares recordings over time. [The workflow page](workflow.md)
 shows them together; this page is the full `check` reference.
 
-Status: **Phase D** (rig closure, HTML report, the 1 degree demo) on top of **Phase C2** (imu-lidar, lidar-lidar, camera-imu, camera-lidar, the GNSS pairs gnss-lidar and
+Status: **Phase D** (rig closure, HTML report, the 1 degree demo) on top of **Phase C2** (imu-lidar, lidar-lidar, camera-imu, camera-lidar, camera-camera, the GNSS pairs gnss-lidar and
 gnss-imu, and the opt-in vehicle pairs lidar-vehicle, imu-vehicle, ins-lidar,
 lidar-wheel_odometry). The command reads the
 calibration deployed on a robot, works out which sensor pairs a bag can audit,
@@ -15,7 +15,9 @@ judges the deployed (candidate) transform against it: `pass`, `warn`, `fail` or
 wired; `camera-focal` judges the deployed focal lengths rather than an
 extrinsic (see [camera-focal](#camera-focal-the-deployed-focal-length)), and
 `camera-lidar` judges the camera-LiDAR **rotation** only
-(see [camera-lidar](#camera-lidar-targetless-edge-alignment)).
+(see [camera-lidar](#camera-lidar-targetless-edge-alignment)), and so does
+`camera-camera` for a stereo pair
+(see [camera-camera](#camera-camera-a-stereo-pairs-rotation)).
 
 ```bash
 calibrex check my_bag/ --plan --output check.json                 # fast: what could be checked
@@ -72,6 +74,36 @@ its SHA-256 (for `/tf_static`, the hash of the raw messages read).
 Transforms follow `T_parent_child`. A pair named `A-B` carries `T_A_B` composed
 through the tree.
 
+### A result from another calibration tool
+
+`calibrex external-run import-sensor-calib-tas` turns a
+[sensor_calib_tas](https://github.com/UniBwTAS/sensor_calib_tas) result into a
+`slac.check_frames` file. sensor_calib_tas writes no calibration file. After the
+optimization it publishes each sensor's pose in its reference sensor's frame in two
+places:
+
+* static transforms `reference -> <sensor frame>_calibrated` on `/tf_static`;
+* the latched `EstimatedPoses` message on `~/sensor_poses`.
+
+The importer reads either one: a bag recorded through the session, or the output of
+`ros2 topic echo` saved as YAML. In the bag case it takes the latest
+`*_calibrated` transform per sensor; in the YAML case, the last message's `poses`. The
+`poses_in_vehicle_coordinate_system` field uses another axis convention and is not
+read. Each sensor keeps its own frame name, so the file overrides the deployed
+calibration for those frames on a driving bag:
+
+```bash
+calibrex external-run import-sensor-calib-tas tas_session/ --output tas.yaml
+calibrex check drive/ --tf tas.yaml --output check_tas.json
+```
+
+The file's `provenance` names the tool, its license and the SHA-256 of the source.
+
+* **The reference sensor.** Its own pose is not part of the result; it keeps the
+  deployed one.
+* **Cycles.** If the deployed tree has the reference sensor below a calibrated sensor,
+  re-parenting that sensor makes a cycle, and the check refuses the tree.
+
 ## Topic roles and frames
 
 Topics are classified by message type: `lidar` (PointCloud2, Livox CustomMsg),
@@ -92,22 +124,23 @@ sensor.
 ## Pairs
 
 Candidates: `imu-lidar`, `lidar-lidar`, `camera-imu`, `camera-focal`, `camera-lidar`,
-`gnss-lidar`, `gnss-imu`, `lidar-vehicle`, `imu-vehicle`, `ins-lidar`,
+`camera-camera`, `gnss-lidar`, `gnss-imu`, `lidar-vehicle`, `imu-vehicle`, `ins-lidar`,
 `lidar-wheel_odometry`. A pair is `planned` when both frames are in the tree and
 connected and the topics exist. Otherwise it is `skipped` with a reason code:
 
 | Code | Meaning |
 | --- | --- |
-| `missing_topic` | no topic for a required role (or fewer than two LiDARs for `lidar-lidar`) |
+| `missing_topic` | no topic for a required role (or fewer than two LiDARs for `lidar-lidar`, two cameras for `camera-camera`); for `camera-camera`, also no two images within 2 ms of each other |
 | `no_candidate_calibration` | the bag has no `/tf_static` and no `--tf` was given |
 | `no_vehicle_frame` | `--vehicle-frame` was not given, so vehicle pairs are not checked |
 | `frame_not_in_tree` | a sensor topic maps to no frame, or to a frame the tree lacks |
 | `frames_not_connected` | the two frames are in different trees |
+| `no_shared_view` | `camera-camera`: under the candidate, the second camera sees less than 5% of the first one's view, so the two are not a stereo pair |
 | `degenerate_frames` | two sensors of a pair (or a sensor and `--vehicle-frame`) are stamped in the same frame, typically streams already transformed into `base_link`; the candidate would be the identity by construction, so the pair is not run (use `--frame-map` or `--tf` to name the physical sensor frames) |
 | `method_not_wired` | no check method exists for the pair yet (none is unwired in this version; kept for older artifacts) |
 | `not_selected` | a wired pair that `--pairs` or `--camera` left out |
 | `unsupported_sensor` | the sensor cannot be read by the estimator: a LiDAR that is not `PointCloud2`, a LiDAR without a per-point time field only when `--lidar-lidar-deskew`, `--gnss-lidar-deskew` or `--imu-lidar-deskew` is forced to `constant_velocity`/`gyro` (by default such clouds run as rigid scans), a compressed camera image |
-| `missing_intrinsics` | `camera-imu` and `camera-lidar` need intrinsics: a Kalibr camchain given with `--tf`, or a `CameraInfo` topic next to the image topic |
+| `missing_intrinsics` | `camera-imu`, `camera-lidar` and `camera-camera` need intrinsics: a Kalibr camchain given with `--tf`, or a `CameraInfo` topic next to the image topic |
 | `missing_dependency` | `camera-imu` needs OpenCV (`pip install 'calibrex[opencv]'`); `gnss-imu` needs this check's own `gnss-lidar` and `imu-lidar` results; `camera-focal` needs this check's own `camera-imu` result for the same camera (selected, solved, not failed, rotation std at most 0.5 deg about every axis) |
 
 A run can also leave a pair `inconclusive` with one of `estimator_error` (the
@@ -149,11 +182,24 @@ same sources as `camera-imu`; `--camera TOPIC` selects one camera. OpenCV is not
   cached under a key that includes it (a different candidate on the same bag recomputes), and
   `calibrex estimate` runs it only when a `--tf` prior connects the two frames (rotation within a
   few degrees; the camera frame must be the optical frame). `calibrex drift` needs nothing extra.
-* **What it cannot see.** Scans are rigid snapshots (no motion or rolling-sweep compensation);
+* **Rig motion.** A scan and its image are not measured at the same time, and on a moving rig
+  the LiDAR has turned and moved in between. When the bag has an odometry or twist topic
+  (rotation and translation) or else an IMU (rotation only) whose frame is connected to the
+  LiDAR in the frame tree, every point is moved to the image time with that velocity, each by
+  its own time when the cloud has a per-point time field. The evidence records the source and
+  the move (`motion_compensation`); `--camera-lidar-motion none` keeps scans as recorded.
+  The twist is read as REP 105 defines it (an odometry twist in its `child_frame_id`, a twist
+  message in its header frame); a driver that publishes a world-frame velocity there moves the
+  points wrongly, so turn the motion off for such a bag.
+  Evaluated on KITTI with real and emulated unsynchronized pairings in the
+  [benchmark](../benchmarks/camera_lidar_check.md), where it helped in all but one pairing.
+* **What it cannot see.** Without a connected velocity topic, scans are rigid snapshots, and
+  without a per-point time field the rolling sweep is not compensated;
   intrinsics are taken as correct (an intrinsics error reads as an extrinsic error); a scene
   without depth discontinuities and image edges (a plain corridor, a distant skyline) leaves every
-  axis `unobservable` and the pair `inconclusive`. A solid-state LiDAR has no beams and is not
-  supported (its controls fail).
+  axis `unobservable` and the pair `inconclusive`. A solid-state LiDAR has no beams: its depth
+  edges are taken among the angular neighbours of each return instead, which was evaluated only
+  on static Livox Avia recordings ([benchmark](../benchmarks/camera_lidar_check.md)).
 * **Evidence.** `slac.camera_lidar_edge/v0.1` (`edge_alignment` in the evidence directory): the
   start and estimated transform, per DoF the value, jackknife std, status and control, the
   objective at both, the frames and edge counts, the camera, the options and the provenance.
@@ -268,6 +314,149 @@ that was `unchecked` (std over 0.005).
   and `camera-focal` 80-130 s per camera (about 3-4.5 min together); re-check
   with another candidate or `--sigma-k`: 0.03 s each from the cache, 2.8 s wall.
 * exp07 was not run; exp01-exp04 are held out and were not touched.
+
+## camera-camera: a stereo pair's rotation
+
+`camera-camera` is planned for every two cameras whose frames the candidate tree
+connects, with `T_first_second` (the first camera's frame sorts first). It needs both
+cameras' intrinsics (a Kalibr camchain with `--tf`, or `CameraInfo` topics). Without a
+gyro, the image pairs must be taken within 2 ms of each other (a hardware-synchronised
+pair), and the check uses the images alone:
+
+1. Up to 48 image pairs, one per second, are rectified with the candidate, so that a
+   scene point lands on the same row of both images when the candidate is right.
+   Equidistant (fisheye), radial-tangential and undistorted pinhole models are
+   supported.
+2. Textured patches are matched between the rectified images. A wrong candidate
+   rotation shifts the right image's rows in a pattern that names it:
+   * a turn about the baseline shifts every row;
+   * one about the optical axis tilts the rows across the image;
+   * one about the vertical axis bends them towards the corners.
+
+   A term in disparity absorbs a vertical baseline component.
+3. The fit's error is reported about the first camera's x, y and z axes as roll, pitch
+   and yaw, in the check's convention (`rotvec(R_candidate R_estimate^T)`). Each axis
+   has a block-jackknife std over frames and a control: the candidate is turned
+   0.2 deg about the axis and the estimate must follow.
+
+The translation is not judged, and `calibrex estimate` does not export the pair. The
+evidence is a `slac.stereo_rotation/v0.1` artifact.
+
+**Unsynchronised cameras.** When an IMU is connected to the first camera in the
+candidate tree, its gyro gives the rig's rotation at every pair.
+
+* **Pairing.** Each image is paired with the other camera's nearest image within
+  30 ms.
+* **What a gap does.** A pair stamped `g` apart, while the rig turns at `omega`, sees
+  the relative rotation turned by `omega (g + t)`, where `t` is the cameras' clock
+  offset.
+* **The fit.** Each pair is rectified for the turn over its stamped gap. The rotation
+  error and `t` are then fitted together.
+* **The report.** The clock offset is reported, not judged, as the pair's `time_offset`
+  with its jackknife std. The rotation axes are judged as before.
+
+On a hardware-synchronised bag with a gyro, it measures the offset as about zero.
+
+On Hilti, `tools/stereo_timing_injection.py` makes timing errors of known size from the
+synchronised bags (48 pairs each):
+
+| scenario | `exp01` | `exp21` |
+| --- | --- | --- |
+| synchronised | offset −0.04 ± 0.15 ms, `pass` | offset +0.14 ± 0.11 ms, `pass` |
+| right camera's stamps 5 ms late (true offset −5 ms) | −4.87 ± 0.22 ms, `pass` | −4.93 ± 0.16 ms, `pass` |
+| right image one 40 Hz frame (25 ms) later, stamped so | −0.4 ± 1.5 ms, `pass` | +0.5 ± 1.2 ms, `pass` |
+
+* **A 25 ms gap costs precision.** With the gap, the rotation's jackknife std grows to
+  0.07 to 0.08 deg about the vertical axis, from 0.01 to 0.03 deg. The readings move by
+  up to 0.12 deg from the synchronised ones, within 1.5 std.
+* **Without the gyro, the same pairs fail to observe that axis.** On `exp01`, turning at
+  up to 85 deg/s, the vertical axis goes unobserved and the result is `warn`. The
+  injected 25 ms pairs are rectified for each pair's own turn for this reason: at
+  85 deg/s the turn moves rows beyond the matcher's search.
+* **Without a gyro, unsynchronised images are skipped** as `missing_topic` (no two
+  images within 2 ms).
+
+On Hilti 2022's alphasense cam0 and cam1 (equidistant, Kalibr camchain, 48 pairs):
+
+```bash
+calibrex check exp01_head.bag --tf calib_3_cam0-1-camchain-imucam.yaml --pairs camera-camera
+```
+
+| recording | camchain | roll / pitch / yaw error (deg) | verdict |
+| --- | --- | --- | --- |
+| `exp01` | the dataset's | +0.054 / +0.051 / +0.005 | `pass` |
+| `exp01` | cam1 turned 1 deg about cam0's y | +0.048 / +1.010 / +0.008 | `fail` (pitch) |
+| `exp21` | the dataset's | −0.121 / −0.030 / −0.015 | `pass` |
+| `exp21` | cam1 turned 1 deg about cam0's y | −0.098 / +0.895 / −0.030 | `warn` (pitch) |
+
+* **All three axes are observed** on every run: jackknife std 0.002 to 0.06 deg, and
+  control responses 0.69 to 1.12.
+* **The turn about the vertical axis is the weakest.** Here that axis is pitch, about
+  cam0's y. On `exp21` the 1 deg turn reads 0.895 deg, just short of the 1.0 deg that
+  fails at the default 0.5 deg floor.
+* **The floor sets what the check calls drift.** The dataset camchain's own errors
+  (roll: −0.12 deg on `exp21`, +0.05 deg on `exp01`) are far below the default floor.
+  They are the per-recording rotation between the cameras measured in
+  [Hilti fisheye stereo falsification](../benchmarks/hilti_fisheye_stereo_falsification.md#the-vertical-offset-the-cameras-relative-pitch-different-per-recording).
+  With `--rotation-floor-deg 0.1`, `exp21`'s roll would read `warn` and `exp01`'s would
+  still pass. The floor is a policy choice.
+* **Run time** is 1.5 to 6 minutes per pair on these recordings.
+* **The other alphasense cameras** (cam2 to cam4) are not in this camchain, so their
+  pairs are skipped as `frame_not_in_tree`. Their own camchains bring them in (below).
+
+**All five alphasense cameras.** Hilti publishes a camchain per camera: cam0 and cam1
+look forward, cam2 down, and cam3 and cam4 to either side. Giving all four files with
+`--tf`, plus `lidar_calibration.yaml`, plans 10 camera pairs and 5 `camera-imu` pairs:
+
+```bash
+calibrex check exp21_head.bag --pairs camera-camera,camera-imu \
+    --tf calib_3_cam0-1-camchain-imucam.yaml --tf calib_3_cam2-camchain-imucam.yaml \
+    --tf calib_3_cam3-camchain-imucam.yaml --tf calib_3_cam4-camchain-imucam.yaml \
+    --tf lidar_calibration.yaml
+```
+
+| pair | shared view | `exp01` | `exp21` |
+| --- | --- | --- | --- |
+| cam0–cam1 | 94% | `pass` (roll, pitch, yaw) | `pass` (roll, pitch, yaw) |
+| cam0–cam2 | 14% | `inconclusive` | `pass` (yaw) |
+| cam0–cam3 | 30% | `pass` (roll, pitch, yaw) | `inconclusive` |
+| cam0–cam4 | 34% | `pass` (roll, yaw) | `pass` (roll, yaw) |
+| cam1–cam2 | 16% | `pass` (pitch) | `pass` (roll, pitch, yaw) |
+| cam1–cam3 | 33% | `pass` (roll, yaw) | `pass` (roll) |
+| cam1–cam4 | 31% | `pass` (roll, pitch, yaw) | `inconclusive` |
+| cam2–cam3 | 12% | `pass` (roll, pitch, yaw) | `inconclusive` (109 patches) |
+| cam2–cam4 | 12% | `inconclusive` (163 patches) | `inconclusive` (446 patches) |
+| cam3–cam4 | 0% | skipped, `no_shared_view` | skipped, `no_shared_view` |
+
+The shared view is the share of the first camera's view the second also sees, under the
+candidate, at 10 m. Judged axes are in brackets.
+
+* **Only cam0–cam1 is a dependable stereo pair.**
+  * Every other pair shares 12 to 34% of its view, at the edges of both fisheye images.
+  * There the gates leave many axes unjudged, and the control responses scatter from
+    0.25 to 2.9.
+  * Which axes are judged changes between the two recordings.
+* **Where an axis is judged on both recordings, the readings stay well below the 0.5 deg
+  floor, but not within their own std.** cam1–cam3's roll reads −0.10 deg on `exp01`
+  and +0.21 deg on `exp21`, about six times the jackknife std. That is either the rig's
+  drift between sessions (cam0–cam1's roll moved by 0.17 deg) or a bias at the image
+  edges, and these recordings cannot tell which.
+* **`camera-imu` judges every camera against the IMU.**
+  * All ten runs pass, except `exp21` cam1 at `warn` (pitch +0.51 deg against a
+    0.5 deg tolerance). cam0 reads +0.49 deg on the same recording.
+  * Its clock offsets, 1.5 to 2.0 ms across cameras and recordings, agree in size and
+    sign with Kalibr's `timeshift_cam_imu` in the same camchains (1.7 to 1.9 ms; both
+    use `t_imu = t_cam + dt`), an independent measurement:
+
+| camera | offset, `exp01` (ms) | offset, `exp21` (ms) | Kalibr (ms) |
+| --- | --- | --- | --- |
+| cam0 | +1.78 ± 0.38 | +1.97 ± 0.09 | +1.91 |
+| cam1 | +1.87 ± 0.13 | +1.92 ± 0.10 | +1.90 |
+| cam2 | +1.81 ± 0.26 | +1.51 ± 0.29 | +1.94 |
+| cam3 | +1.68 ± 0.37 | +1.62 ± 0.13 | +1.81 |
+| cam4 | +1.62 ± 0.10 | +1.66 ± 0.13 | +1.71 |
+
+The run takes about 15 minutes per recording.
 
 ## Vehicle pairs are opt-in
 
@@ -1179,8 +1368,9 @@ concatenated cloud. The packets are stamped in the sensors' own frames
 above: the cloud is no longer "already in `base_link`" and it has per-point time.
 `calibrex check` plans a `VelodyneScan` topic as an ignored `lidar` with a conversion
 hint; `tools/velodyne_scan_to_pointcloud2.py` (decoder `calibrex.data.velodyne_packets`,
-ROS-independent, from the VLP-16 and VLP-32C manuals) writes a derived bag whose clouds
-are in the sensor frames:
+ROS-independent, from the VLP-16, VLP-32C, HDL-64E and VLS-128 manuals; an HDL-64E or a
+VLS-128 needs its `db.xml` or ROS YAML calibration via `--calibration`) writes a derived
+bag whose clouds are in the sensor frames:
 
 ```bash
 python tools/velodyne_scan_to_pointcloud2.py all-sensors-bag1 aw_points \
@@ -1212,8 +1402,65 @@ signs, so it is a difference between the `/tf_static` yaw and the one used to bu
 cloud, not a decoder constant (1 mrad at 25 m is 2.5 cm, the residual above). The sensor
 frame axes are Autoware's (x forward, y left), not the manual's (x right, y forward):
 decoding with the manual's axes gives a median of 1 to 1.5 m against the cloud, so the
-decoder emits Autoware's axes by default. Not verified: dual-return packets and any
-Velodyne model other than VLP-16 and VLP-32C (experimental).
+decoder emits Autoware's axes by default. These Autoware figures were measured before
+the VLP-32C decoder applied the head's turn between laser pairs inside a block (below);
+the bag is not public, so they were not re-measured.
+
+**Packet formats and their reference clouds.** Kitware's LidarView test recordings
+(Apache-2.0, `python3 tools/download_public_dataset.py lidarview_velodyne`, about 210 MB
+under `data/public`) pair Velodyne pcaps with the frames LidarView decoded from them.
+`tools/validate_velodyne_decode.py --pcap X.pcap --reference X_1.vtp ...` decodes the
+packets of each frame and reports, for every reference point, the distance to the
+nearest decoded point, plus the per-point time against LidarView's. Over frames 1 to 3
+of each recording:
+
+| Recording | Packet format | Median | 90th percentile | Points within 1 mm | Time deviation |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `VLP_16_Single` | VLP-16 strongest (0x22) | 0.051 mm | 0.22 to 0.31 mm | 98 % | 0.25 us |
+| `VLP_16_Dual` | VLP-16 dual (0x22) | 0.166 mm | 0.49 to 0.50 mm | 99 % | 0.26 us |
+| `VLP_32c_Dual` | VLP-32C strongest (0x28) | 0.053 mm | 0.22 mm | 99 to 100 % | 0.26 us |
+| `HDL_64_Single` | HDL-64E single, LidarView's `HDL_64.xml` | 0.000 mm | 0.000 mm | 100 % | 0.34 us |
+| `HDL_64_Dual` | HDL-64E dual, same calibration | 0.000 mm | 0.000 mm | 100 % | 0.20 us |
+| `HDL_128` | VLS-128 strongest (0xA1), laser table read from frame 0 (see below) | 0.000 mm | 0.000 mm | 99 % | 0 us at the 2.666 us cycle |
+
+The time deviation is the median difference from LidarView's per-point stamp (whole
+microseconds) after removing its convention: LidarView stamps an HDL-64E point relative
+to the packet's last firing (288 us, or 172.8 us in dual return, after the first). The
+`VLP_32c_Dual` recording is single return despite its name. The VLP-32C median was
+1.2 mm before the decoder applied the head's turn between the 2.304 us laser pairs of a
+55.296 us block. Two caveats apply to the HDL-64E. Its positions follow LidarView's
+correction model, and the manual's two-point distance interpolation (`distCorrectionX/Y`,
+applied by the ROS driver) differs by a few centimetres. Its single-return packets do
+not say whether they hold the strongest or the last return.
+
+The VLS-128 needs more care because its reference does not come with its calibration.
+LidarView's `HDL_128` recording (2019) is a VLS-128 whose reference frames were decoded
+with a calibration file that is no longer published. Its 128 (elevation, azimuth offset)
+pairs are those of LidarView's `Alpha_Prime.xml` (which the ROS driver's `VLS128.yaml`
+also holds), in another channel order, with channel 38 at (0, 0). So the comparison
+above reads that channel order back from frame 0 and checks frames 1 and 2 against it:
+banks, 4 mm units, the azimuth advance inside a firing sequence and LidarView's
+0.01 deg rounding all match exactly (median 0.000 mm over 185 000 points per frame).
+The laser table itself is not tested by this recording. The firing cycle changed with
+firmware 5.2.3.0 from 2.666 us to 2.89 us. The decoder uses 2.89 us; LidarView stamped
+this recording with 2.666 us, and with that cycle every point's time matches its
+reference up to one constant. With 2.89 us the per-point times differ by up to about
+13 us (0.05 deg of turn at 600 rpm), and the positions are the same either way. Decoded
+with `Alpha_Prime.xml` as published, this recording's surfaces come out flatter than
+with the 2019 channel order: the residual of a plane through 12 neighbours has a median
+of 8.5 mm against 9.9 mm, and a 75th percentile of 12.7 mm against 19.5 mm. That
+suggests the published file fits this unit and the 2019 reference used another one.
+Give a VLS-128 its own calibration.
+
+Every other format is refused with its name, by `velodyne_scan_to_pointcloud2.py` and in
+the `calibrex check` plan:
+
+- HDL-32E (0x21) and VLP-16 Hi-Res (0x24). Earlier versions decoded both as a VLP-16;
+  their elevations differ.
+- VLP-32A/B (0x23). LidarView's `VLP_32c_Single` recording is one; decoded with VLP-32C
+  constants it misses LidarView's cloud by an 11 mm median.
+- Velarray, VLP-32C and VLS-128 dual return, and an HDL-64E or a VLS-128 without its
+  calibration.
 
 `VelocityReport` (header and three float32) was verified on the 873 real messages of
 `migrated/autoware_data/sample-rosbag` (`autoware_vehicle_msgs`; 30 s, 0 to 13.1 m/s). That

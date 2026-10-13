@@ -112,6 +112,32 @@ class CameraLidarEdgeSamples(StrictModel):
     median_rings: int | None = Field(default=None, ge=0)
 
 
+class CameraLidarEdgeMotion(StrictModel):
+    """How the LiDAR points were moved to the image time with the rig's measured motion."""
+
+    source_topic: str
+    kind: Literal["twist", "gyro"] = Field(
+        description="twist: an odometry or twist topic (rotation and translation); "
+        "gyro: an IMU (rotation only)"
+    )
+    per_point_time: bool = Field(
+        description="whether each point was moved by its own measurement time (otherwise "
+        "by the scan's reference time)"
+    )
+    frames_moved: int = Field(ge=0)
+    frames_without_motion: int = Field(
+        ge=0, description="frames kept as recorded because no motion sample was near"
+    )
+    median_rotation_deg: float | None = Field(
+        default=None, ge=0.0, description="rotation applied at the scan's reference time"
+    )
+    max_rotation_deg: float | None = Field(default=None, ge=0.0)
+    median_translation_m: float | None = Field(
+        default=None, ge=0.0, description="translation applied at the scan's reference time"
+    )
+    max_translation_m: float | None = Field(default=None, ge=0.0)
+
+
 class CameraLidarEdgeObjective(StrictModel):
     """The edge-alignment objective at the start and at the estimate."""
 
@@ -134,6 +160,7 @@ class CameraLidarEdgeArtifact(StrictModel):
     dofs: list[CameraLidarEdgeDofRecord]
     objective: CameraLidarEdgeObjective | None = None
     samples: CameraLidarEdgeSamples
+    motion_compensation: CameraLidarEdgeMotion | None = None
     jackknife_fits: int = Field(ge=0)
     camera: dict[str, Any] = Field(default_factory=dict)
     options: dict[str, Any]

@@ -1,0 +1,663 @@
+"""Joint LiDAR-IMU calibration on a cumulative cubic B-spline trajectory.
+
+The body frame is the LiDAR frame.  One Levenberg--Marquardt fit estimates the
+spline control points from LiDAR point-to-plane returns together with the IMU
+calibration blocks:
+
+* gyro: ``omega_imu = R_bi^T omega_body(t_imu - tau) + b_g``;
+* accelerometer: ``f_imu = R_bi^T (R^T (a_world - g) + alpha x l +
+  omega x (omega x l)) + b_a`` with the IMU origin at ``l`` in the body frame;
+* LiDAR: ``n . (R p_body + p - q) = 0`` for a return on a world plane.
+
+``R_bi`` is the IMU mounting rotation (body from IMU, right perturbation),
+``tau`` the IMU clock offset (``t_body = t_imu - tau``) and ``g`` gravity in the
+world frame.  Residuals are whitened by their noise sigma, so the normal matrix
+is ``J^T J`` and the cost is a chi-square.  An optional prior on the gravity
+magnitude, ``(|g| - g0) / sigma``, separates gravity from the accelerometer
+bias when the attitude barely varies (a level platform that only turns about
+the vertical sees ``g_z`` and ``b_a,z`` only through their sum).  Each residual touches the four
+control points of its segment; their Jacobian is taken by central differences
+of the vectorized spline, perturbing one local slot for every residual at once.
+The marginal covariance of the calibration blocks marginalizes the control
+points by Schur complement.
+"""
+
+from __future__ import annotations
+
+import math
+from collections.abc import Callable
+from dataclasses import dataclass, replace
+from typing import Literal, TypeAlias
+
+import numpy as np
+from numpy.typing import NDArray
+from scipy.sparse import coo_matrix, csc_matrix, diags, vstack
+from scipy.sparse.linalg import spsolve
+
+from calibrex.core.continuous_time_bspline import (
+    BSplineStates,
+    CubicBSplineTrajectory,
+    cumulative_basis,
+    evaluate_local_spline,
+    so3_exp_batch,
+)
+from calibrex.core.se3_manifold import (
+    rotation_matrix_to_rotation_vector,
+    rotation_vector_to_matrix,
+)
+
+FloatArray: TypeAlias = NDArray[np.float64]
+CalibrationBlock = Literal[
+    "imu_rotation",
+    "gyro_bias",
+    "lever_arm",
+    "imu_clock_offset",
+    "accel_bias",
+    "gravity",
+]
+CALIBRATION_BLOCKS: tuple[CalibrationBlock, ...] = (
+    "imu_rotation",
+    "gyro_bias",
+    "lever_arm",
+    "imu_clock_offset",
+    "accel_bias",
+    "gravity",
+)
+_BLOCK_WIDTH: dict[CalibrationBlock, int] = {
+    "imu_rotation": 3,
+    "gyro_bias": 3,
+    "lever_arm": 3,
+    "imu_clock_offset": 1,
+    "accel_bias": 3,
+    "gravity": 3,
+}
+_EPSILON = 1.0e-6
+
+
+@dataclass(frozen=True)
+class BSplinePlaneReturns:
+    """LiDAR returns (body frame) on known world planes."""
+
+    times_sec: FloatArray
+    points_body_m: FloatArray
+    plane_points_world_m: FloatArray
+    plane_normals_world: FloatArray
+    sigma_m: float
+
+    def __post_init__(self) -> None:
+        normals = np.asarray(self.plane_normals_world, dtype=float)
+        lengths = np.linalg.norm(normals, axis=1)
+        if np.any(lengths <= 1.0e-12):
+            raise ValueError("plane normals must be non-zero")
+        object.__setattr__(self, "plane_normals_world", normals / lengths[:, None])
+        _check_rows(self.times_sec, (self.points_body_m, self.plane_points_world_m))
+        if self.sigma_m <= 0.0:
+            raise ValueError("plane sigma must be positive")
+
+
+@dataclass(frozen=True)
+class BSplineImuSamples:
+    """IMU readings (IMU frame) stamped on the IMU clock."""
+
+    times_sec: FloatArray
+    values: FloatArray
+    sigma: float
+
+    def __post_init__(self) -> None:
+        _check_rows(self.times_sec, (self.values,))
+        if self.sigma <= 0.0:
+            raise ValueError("IMU sigma must be positive")
+
+
+@dataclass(frozen=True)
+class LidarImuCalibration:
+    """IMU calibration blocks relative to the LiDAR (body) frame."""
+
+    imu_rotation_vector_rad: FloatArray
+    gyro_bias_rad_s: FloatArray
+    lever_arm_body_m: FloatArray
+    imu_clock_offset_sec: float
+    accel_bias_m_s2: FloatArray
+    gravity_world_m_s2: FloatArray
+
+    def vector(self, block: CalibrationBlock) -> FloatArray:
+        """Return one block as a vector."""
+
+        if block == "imu_clock_offset":
+            return np.asarray([self.imu_clock_offset_sec], dtype=float)
+        values: dict[CalibrationBlock, FloatArray] = {
+            "imu_rotation": self.imu_rotation_vector_rad,
+            "gyro_bias": self.gyro_bias_rad_s,
+            "lever_arm": self.lever_arm_body_m,
+            "accel_bias": self.accel_bias_m_s2,
+            "gravity": self.gravity_world_m_s2,
+        }
+        return np.asarray(values[block], dtype=float).reshape(3)
+
+    def stepped(self, block: CalibrationBlock, step: FloatArray) -> LidarImuCalibration:
+        """Apply a tangent step to one block (right perturbation for rotation)."""
+
+        delta = np.asarray(step, dtype=float).reshape(-1)
+        if block == "imu_rotation":
+            rotated = rotation_matrix_to_rotation_vector(
+                rotation_vector_to_matrix(np.asarray(self.imu_rotation_vector_rad))
+                @ rotation_vector_to_matrix(delta)
+            )
+            return replace(self, imu_rotation_vector_rad=np.asarray(rotated, dtype=float))
+        if block == "imu_clock_offset":
+            return replace(self, imu_clock_offset_sec=self.imu_clock_offset_sec + float(delta[0]))
+        if block == "gyro_bias":
+            return replace(self, gyro_bias_rad_s=np.asarray(self.gyro_bias_rad_s) + delta)
+        if block == "lever_arm":
+            return replace(self, lever_arm_body_m=np.asarray(self.lever_arm_body_m) + delta)
+        if block == "accel_bias":
+            return replace(self, accel_bias_m_s2=np.asarray(self.accel_bias_m_s2) + delta)
+        return replace(self, gravity_world_m_s2=np.asarray(self.gravity_world_m_s2) + delta)
+
+
+@dataclass(frozen=True)
+class BSplineLidarImuProblem:
+    """Initial spline, measurements and the calibration blocks to estimate."""
+
+    initial_trajectory: CubicBSplineTrajectory
+    planes: BSplinePlaneReturns
+    gyro: BSplineImuSamples
+    accel: BSplineImuSamples
+    initial_calibration: LidarImuCalibration
+    estimate: tuple[CalibrationBlock, ...] = CALIBRATION_BLOCKS
+    # Known gravity magnitude and its sigma (m/s^2); None leaves |g| free.
+    gravity_magnitude_m_s2: float | None = None
+    gravity_magnitude_sigma_m_s2: float = 0.03
+
+    def __post_init__(self) -> None:
+        if self.gravity_magnitude_m_s2 is not None and (
+            self.gravity_magnitude_m_s2 <= 0.0 or self.gravity_magnitude_sigma_m_s2 <= 0.0
+        ):
+            raise ValueError("gravity magnitude and its sigma must be positive")
+
+
+@dataclass(frozen=True)
+class BSplineLidarImuFitOptions:
+    """Levenberg--Marquardt options."""
+
+    max_iterations: int = 40
+    initial_damping: float = 1.0e-4
+    relative_cost_tolerance: float = 1.0e-10
+    step_tolerance: float = 1.0e-10
+
+
+@dataclass(frozen=True)
+class BSplineLidarImuFitResult:
+    """Fitted spline and calibration with convergence and covariance evidence."""
+
+    status: Literal["converged", "max_iterations", "singular_system"]
+    iterations: int
+    trajectory: CubicBSplineTrajectory
+    calibration: LidarImuCalibration
+    initial_cost: float
+    final_cost: float
+    residual_count: int
+    parameter_count: int
+    calibration_parameter_names: tuple[str, ...]
+    calibration_covariance: FloatArray
+    residual_variance: float
+
+    def block_std(self, block: CalibrationBlock) -> FloatArray:
+        """Return the marginal standard deviation of one estimated block."""
+
+        indices = [
+            index
+            for index, name in enumerate(self.calibration_parameter_names)
+            if name.split("[", 1)[0] == block
+        ]
+        if not indices:
+            raise KeyError(f"{block} was not estimated")
+        diagonal = np.diag(self.calibration_covariance)[indices]
+        return np.sqrt(np.clip(diagonal, 0.0, None))
+
+    def block_correlations(self) -> dict[tuple[str, str], float]:
+        """Return the largest absolute correlation of each pair of blocks."""
+
+        covariance = self.calibration_covariance
+        scale = np.sqrt(np.clip(np.diag(covariance), 1.0e-300, None))
+        correlation = covariance / np.outer(scale, scale)
+        groups: dict[str, list[int]] = {}
+        for index, name in enumerate(self.calibration_parameter_names):
+            groups.setdefault(name.split("[", 1)[0], []).append(index)
+        names = list(groups)
+        return {
+            (left, right): float(
+                np.max(np.abs(correlation[np.ix_(groups[left], groups[right])]))
+            )
+            for position, left in enumerate(names)
+            for right in names[position + 1 :]
+        }
+
+
+def lidar_imu_residuals(
+    trajectory: CubicBSplineTrajectory,
+    calibration: LidarImuCalibration,
+    planes: BSplinePlaneReturns,
+    gyro: BSplineImuSamples,
+    accel: BSplineImuSamples,
+) -> dict[str, FloatArray]:
+    """Return whitened residuals per family (``plane``, ``gyro``, ``accel``)."""
+
+    families = _families(planes, gyro, accel)
+    return {
+        name: family.residual(_gather(trajectory, family.body_times(calibration)), calibration)
+        for name, family in families.items()
+    }
+
+
+def fit_bspline_lidar_imu(
+    problem: BSplineLidarImuProblem,
+    options: BSplineLidarImuFitOptions | None = None,
+) -> BSplineLidarImuFitResult:
+    """Jointly fit the spline control points and the selected calibration blocks."""
+
+    settings = options or BSplineLidarImuFitOptions()
+    estimate = tuple(block for block in CALIBRATION_BLOCKS if block in problem.estimate)
+    families = _families(problem.planes, problem.gyro, problem.accel)
+    trajectory = problem.initial_trajectory
+    calibration = problem.initial_calibration
+    control_columns = 6 * trajectory.control_point_count
+    calibration_columns = sum(_BLOCK_WIDTH[block] for block in estimate)
+    parameter_count = control_columns + calibration_columns
+
+    prior_magnitude = problem.gravity_magnitude_m_s2 if "gravity" in estimate else None
+    gravity_column = control_columns
+    for block in estimate:
+        if block == "gravity":
+            break
+        gravity_column += _BLOCK_WIDTH[block]
+
+    def prior_residual(values: LidarImuCalibration) -> float:
+        assert prior_magnitude is not None
+        magnitude = float(np.linalg.norm(values.gravity_world_m_s2))
+        return (magnitude - prior_magnitude) / problem.gravity_magnitude_sigma_m_s2
+
+    def total_cost(path: CubicBSplineTrajectory, values: LidarImuCalibration) -> float:
+        cost = _cost(path, values, families)
+        if prior_magnitude is None:
+            return cost
+        return cost + prior_residual(values) ** 2
+
+    def linearize(
+        path: CubicBSplineTrajectory, values: LidarImuCalibration
+    ) -> tuple[csc_matrix, FloatArray]:
+        jacobian, residuals = _linearize(path, values, families, estimate)
+        if prior_magnitude is None:
+            return jacobian, residuals
+        gravity = np.asarray(values.gravity_world_m_s2, dtype=float)
+        derivative = gravity / max(float(np.linalg.norm(gravity)), 1.0e-12)
+        row = coo_matrix(
+            (
+                derivative / problem.gravity_magnitude_sigma_m_s2,
+                (np.zeros(3, dtype=np.int64), gravity_column + np.arange(3)),
+            ),
+            shape=(1, parameter_count),
+        )
+        return (
+            vstack([jacobian, row]).tocsc(),
+            np.concatenate([residuals, [prior_residual(values)]]),
+        )
+
+    cost = total_cost(trajectory, calibration)
+    if not math.isfinite(cost):
+        raise ValueError("initial residuals are not finite; check the time domain")
+    initial_cost = cost
+    damping = settings.initial_damping
+    status: Literal["converged", "max_iterations", "singular_system"] = "max_iterations"
+    iterations = 0
+    for iteration in range(settings.max_iterations):
+        iterations = iteration + 1
+        jacobian, residuals = linearize(trajectory, calibration)
+        normal = (jacobian.T @ jacobian).tocsc()
+        gradient = jacobian.T @ residuals
+        scale = np.maximum(normal.diagonal(), 1.0e-12)
+        accepted = False
+        while damping < 1.0e12:
+            try:
+                step = spsolve(
+                    (normal + diags(damping * scale)).tocsc(), -gradient
+                )
+            except RuntimeError:
+                status = "singular_system"
+                break
+            if not np.all(np.isfinite(step)):
+                status = "singular_system"
+                break
+            candidate_trajectory, candidate_calibration = _apply_step(
+                trajectory, calibration, step, estimate
+            )
+            candidate_cost = total_cost(candidate_trajectory, candidate_calibration)
+            if candidate_cost < cost:
+                accepted = True
+                break
+            damping *= 10.0
+        if status == "singular_system" or not accepted:
+            if not accepted and status != "singular_system":
+                status = "converged"
+            break
+        relative = (cost - candidate_cost) / max(cost, 1.0e-300)
+        trajectory, calibration, cost = candidate_trajectory, candidate_calibration, candidate_cost
+        damping = max(damping * 0.3, 1.0e-12)
+        if relative < settings.relative_cost_tolerance or float(
+            np.max(np.abs(step))
+        ) < settings.step_tolerance:
+            status = "converged"
+            break
+
+    jacobian, residuals = linearize(trajectory, calibration)
+    names = tuple(
+        f"{block}[{axis}]" for block in estimate for axis in range(_BLOCK_WIDTH[block])
+    )
+    covariance, variance = _marginal_covariance(jacobian, residuals, control_columns)
+    return BSplineLidarImuFitResult(
+        status=status,
+        iterations=iterations,
+        trajectory=trajectory,
+        calibration=calibration,
+        initial_cost=initial_cost,
+        final_cost=cost,
+        residual_count=int(residuals.size),
+        parameter_count=parameter_count,
+        calibration_parameter_names=names,
+        calibration_covariance=covariance,
+        residual_variance=variance,
+    )
+
+
+@dataclass(frozen=True)
+class _Gathered:
+    rotations: FloatArray
+    positions: FloatArray
+    fraction: FloatArray
+    segment: NDArray[np.int64]
+    spacing: float
+
+    def states(self) -> BSplineStates:
+        return evaluate_local_spline(self.rotations, self.positions, self.fraction, self.spacing)
+
+
+_Sensitivity = tuple[FloatArray | None, FloatArray | None]
+
+
+@dataclass(frozen=True)
+class _Family:
+    times: FloatArray
+    on_imu_clock: bool
+    residual: Callable[[_Gathered, LidarImuCalibration], FloatArray]
+    # Residual derivatives by world position and world acceleration, each
+    # ``(M, width, 3)`` or None; the position control points enter only there.
+    position_sensitivity: Callable[[_Gathered, LidarImuCalibration], _Sensitivity]
+    depends_on: frozenset[CalibrationBlock]
+
+    def body_times(self, calibration: LidarImuCalibration) -> FloatArray:
+        if self.on_imu_clock:
+            return self.times - calibration.imu_clock_offset_sec
+        return self.times
+
+
+def _families(
+    planes: BSplinePlaneReturns,
+    gyro: BSplineImuSamples,
+    accel: BSplineImuSamples,
+) -> dict[str, _Family]:
+    def plane_residual(gathered: _Gathered, _calibration: LidarImuCalibration) -> FloatArray:
+        states = gathered.states()
+        world = (
+            np.einsum("tij,tj->ti", states.rotation_world_body, planes.points_body_m)
+            + states.position_world_m
+        )
+        offset = world - planes.plane_points_world_m
+        distance = np.sum(planes.plane_normals_world * offset, axis=1)
+        return np.asarray(distance[:, None] / planes.sigma_m, dtype=float)
+
+    def gyro_residual(gathered: _Gathered, calibration: LidarImuCalibration) -> FloatArray:
+        states = gathered.states()
+        rotation = rotation_vector_to_matrix(np.asarray(calibration.imu_rotation_vector_rad))
+        predicted = states.angular_velocity_body_rad_s @ rotation + calibration.gyro_bias_rad_s
+        return np.asarray((predicted - gyro.values) / gyro.sigma, dtype=float)
+
+    def accel_residual(gathered: _Gathered, calibration: LidarImuCalibration) -> FloatArray:
+        states = gathered.states()
+        rotation = rotation_vector_to_matrix(np.asarray(calibration.imu_rotation_vector_rad))
+        lever = np.broadcast_to(
+            np.asarray(calibration.lever_arm_body_m), states.position_world_m.shape
+        )
+        omega = states.angular_velocity_body_rad_s
+        kinematic = (
+            np.einsum(
+                "tji,tj->ti",
+                states.rotation_world_body,
+                states.linear_acceleration_world_m_s2 - calibration.gravity_world_m_s2,
+            )
+            + np.cross(states.angular_acceleration_body_rad_s2, lever)
+            + np.cross(omega, np.cross(omega, lever))
+        )
+        predicted = kinematic @ rotation + calibration.accel_bias_m_s2
+        return np.asarray((predicted - accel.values) / accel.sigma, dtype=float)
+
+    def plane_sensitivity(
+        _gathered: _Gathered, _calibration: LidarImuCalibration
+    ) -> _Sensitivity:
+        return (planes.plane_normals_world[:, None, :] / planes.sigma_m, None)
+
+    def gyro_sensitivity(_gathered: _Gathered, _calibration: LidarImuCalibration) -> _Sensitivity:
+        return (None, None)
+
+    def accel_sensitivity(gathered: _Gathered, calibration: LidarImuCalibration) -> _Sensitivity:
+        states = gathered.states()
+        rotation = rotation_vector_to_matrix(np.asarray(calibration.imu_rotation_vector_rad))
+        # predicted = R_bi^T R^T a_world + ..., so d/da = R_bi^T R^T.
+        world_to_imu = np.einsum("ji,tkj->tik", rotation, states.rotation_world_body)
+        return (None, np.asarray(world_to_imu / accel.sigma, dtype=float))
+
+    return {
+        "plane": _Family(
+            np.asarray(planes.times_sec, dtype=float),
+            False,
+            plane_residual,
+            plane_sensitivity,
+            frozenset(),
+        ),
+        "gyro": _Family(
+            np.asarray(gyro.times_sec, dtype=float),
+            True,
+            gyro_residual,
+            gyro_sensitivity,
+            frozenset({"imu_rotation", "gyro_bias", "imu_clock_offset"}),
+        ),
+        "accel": _Family(
+            np.asarray(accel.times_sec, dtype=float),
+            True,
+            accel_residual,
+            accel_sensitivity,
+            frozenset(
+                {"imu_rotation", "lever_arm", "imu_clock_offset", "accel_bias", "gravity"}
+            ),
+        ),
+    }
+
+
+def _gather(trajectory: CubicBSplineTrajectory, times: FloatArray) -> _Gathered:
+    segment, fraction = trajectory.segments(times)
+    slots = segment[:, None] + np.arange(4)[None, :]
+    return _Gathered(
+        rotations=trajectory.rotations[slots],
+        positions=trajectory.positions[slots],
+        fraction=fraction,
+        segment=segment,
+        spacing=trajectory.knot_spacing_sec,
+    )
+
+
+def _cost(
+    trajectory: CubicBSplineTrajectory,
+    calibration: LidarImuCalibration,
+    families: dict[str, _Family],
+) -> float:
+    total = 0.0
+    for family in families.values():
+        try:
+            gathered = _gather(trajectory, family.body_times(calibration))
+        except ValueError:
+            return math.inf
+        residual = family.residual(gathered, calibration)
+        total += float(np.sum(residual * residual))
+    return total
+
+
+def _linearize(
+    trajectory: CubicBSplineTrajectory,
+    calibration: LidarImuCalibration,
+    families: dict[str, _Family],
+    estimate: tuple[CalibrationBlock, ...],
+) -> tuple[csc_matrix, FloatArray]:
+    control_columns = 6 * trajectory.control_point_count
+    parameter_count = control_columns + sum(_BLOCK_WIDTH[block] for block in estimate)
+    rows: list[NDArray[np.int64]] = []
+    columns: list[NDArray[np.int64]] = []
+    values: list[FloatArray] = []
+    residual_parts: list[FloatArray] = []
+    row_offset = 0
+    tangent_steps = so3_exp_batch(np.eye(3) * _EPSILON)
+    tangent_steps_back = so3_exp_batch(-np.eye(3) * _EPSILON)
+    for family in families.values():
+        gathered = _gather(trajectory, family.body_times(calibration))
+        base = family.residual(gathered, calibration)
+        count, width = base.shape
+        residual_parts.append(base.reshape(-1))
+        row_index = row_offset + np.arange(count * width).reshape(count, width)
+        # Positions enter linearly: p = sum_k w_k c_k with w_k = l_k - l_{k+1}
+        # (l_0 = 1, l_4 = 0), and the acceleration likewise with l''.
+        basis, _d_basis, dd_basis = cumulative_basis(gathered.fraction, gathered.spacing)
+        position_weights = basis - np.concatenate([basis[:, 1:], np.zeros((count, 1))], axis=1)
+        dd_padded = np.concatenate([np.zeros((count, 1)), dd_basis[:, 1:]], axis=1)
+        acceleration_weights = dd_padded - np.concatenate(
+            [dd_padded[:, 1:], np.zeros((count, 1))], axis=1
+        )
+        by_position, by_acceleration = family.position_sensitivity(gathered, calibration)
+        for slot in range(4):
+            control = gathered.segment + slot
+            for axis in range(3):
+                if by_position is not None or by_acceleration is not None:
+                    derivative = np.zeros((count, width), dtype=float)
+                    if by_position is not None:
+                        derivative += by_position[:, :, axis] * position_weights[:, slot, None]
+                    if by_acceleration is not None:
+                        derivative += (
+                            by_acceleration[:, :, axis] * acceleration_weights[:, slot, None]
+                        )
+                    _append(rows, columns, values, row_index, 6 * control + axis, derivative)
+                plus_rotations = np.array(gathered.rotations, copy=True)
+                minus_rotations = np.array(gathered.rotations, copy=True)
+                plus_rotations[:, slot] = gathered.rotations[:, slot] @ tangent_steps[axis]
+                minus_rotations[:, slot] = gathered.rotations[:, slot] @ tangent_steps_back[axis]
+                derivative = (
+                    family.residual(replace(gathered, rotations=plus_rotations), calibration)
+                    - family.residual(replace(gathered, rotations=minus_rotations), calibration)
+                ) / (2.0 * _EPSILON)
+                _append(rows, columns, values, row_index, 6 * control + 3 + axis, derivative)
+        column = control_columns
+        for block in estimate:
+            if block not in family.depends_on:
+                column += _BLOCK_WIDTH[block]
+                continue
+            for axis in range(_BLOCK_WIDTH[block]):
+                step = np.zeros(_BLOCK_WIDTH[block], dtype=float)
+                step[axis] = _EPSILON
+                plus = calibration.stepped(block, step)
+                minus = calibration.stepped(block, -step)
+                derivative = (
+                    family.residual(_gather(trajectory, family.body_times(plus)), plus)
+                    - family.residual(_gather(trajectory, family.body_times(minus)), minus)
+                ) / (2.0 * _EPSILON)
+                if np.any(derivative):
+                    _append(
+                        rows,
+                        columns,
+                        values,
+                        row_index,
+                        np.full(count, column, dtype=np.int64),
+                        derivative,
+                    )
+                column += 1
+        row_offset += count * width
+    jacobian = coo_matrix(
+        (np.concatenate(values), (np.concatenate(rows), np.concatenate(columns))),
+        shape=(row_offset, parameter_count),
+    ).tocsc()
+    return jacobian, np.concatenate(residual_parts)
+
+
+def _append(
+    rows: list[NDArray[np.int64]],
+    columns: list[NDArray[np.int64]],
+    values: list[FloatArray],
+    row_index: NDArray[np.int64],
+    column: NDArray[np.int64] | int,
+    derivative: FloatArray,
+) -> None:
+    column_array = np.broadcast_to(
+        np.asarray(column, dtype=np.int64).reshape(-1, 1), row_index.shape
+    )
+    rows.append(row_index.reshape(-1))
+    columns.append(column_array.reshape(-1))
+    values.append(np.asarray(derivative, dtype=float).reshape(-1))
+
+
+def _apply_step(
+    trajectory: CubicBSplineTrajectory,
+    calibration: LidarImuCalibration,
+    step: FloatArray,
+    estimate: tuple[CalibrationBlock, ...],
+) -> tuple[CubicBSplineTrajectory, LidarImuCalibration]:
+    count = trajectory.control_point_count
+    control_step = np.asarray(step[: 6 * count], dtype=float).reshape(count, 6)
+    rotations = np.einsum(
+        "tij,tjk->tik", trajectory.rotations, so3_exp_batch(control_step[:, 3:])
+    )
+    updated = replace(
+        trajectory,
+        rotations=rotations,
+        positions=trajectory.positions + control_step[:, :3],
+    )
+    column = 6 * count
+    for block in estimate:
+        width = _BLOCK_WIDTH[block]
+        calibration = calibration.stepped(block, step[column : column + width])
+        column += width
+    return updated, calibration
+
+
+def _marginal_covariance(
+    jacobian: csc_matrix,
+    residuals: FloatArray,
+    control_columns: int,
+) -> tuple[FloatArray, float]:
+    parameter_count = int(jacobian.shape[1])
+    degrees = max(int(residuals.size) - parameter_count, 1)
+    variance = float(residuals @ residuals) / degrees
+    normal = (jacobian.T @ jacobian).toarray()
+    h_cc = normal[:control_columns, :control_columns]
+    h_cx = normal[:control_columns, control_columns:]
+    h_xx = normal[control_columns:, control_columns:]
+    schur = h_xx - h_cx.T @ np.linalg.solve(h_cc + 1.0e-12 * np.eye(control_columns), h_cx)
+    return np.asarray(np.linalg.pinv(schur) * variance, dtype=float), variance
+
+
+def _check_rows(times: FloatArray, arrays: tuple[FloatArray, ...]) -> None:
+    count = np.asarray(times).reshape(-1).size
+    if count == 0:
+        raise ValueError("measurement arrays must not be empty")
+    if not np.all(np.isfinite(times)):
+        raise ValueError("measurement times must be finite")
+    for array in arrays:
+        values = np.asarray(array, dtype=float)
+        if values.shape != (count, 3):
+            raise ValueError("measurement vectors must have shape (N, 3)")
+        if not np.all(np.isfinite(values)):
+            raise ValueError("measurement vectors must be finite")

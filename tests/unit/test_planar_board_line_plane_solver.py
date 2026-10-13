@@ -142,3 +142,34 @@ def test_multiple_captures_have_deterministic_holdout() -> None:
     assert first.holdout_frame_ids == second.holdout_frame_ids
     assert first.holdout_evaluation.boundary_distance_rmse_m is not None
     assert first.holdout_evaluation.boundary_distance_rmse_m < 1.0e-9
+
+
+def test_holdout_known_bad_controls_cover_six_dof_both_signs() -> None:
+    truth = SE3((0.2, 0.1, -0.05), (0.04, 0.03, -0.08, 0.995))
+    observations = [_capture(truth, f"board-{index:03d}") for index in range(8)]
+    result = PlanarBoardLinePlaneSolver().solve(observations)
+
+    assert [(probe.dof, probe.amount) for probe in result.probes] == [
+        (dof, sign * amount)
+        for dof, amount in (
+            ("x", 0.05),
+            ("y", 0.05),
+            ("z", 0.05),
+            ("roll", 5.0),
+            ("pitch", 5.0),
+            ("yaw", 5.0),
+        )
+        for sign in (-1.0, 1.0)
+    ]
+    assert all(probe.detectable is True for probe in result.probes)
+    assert result.as_dict()["known_bad_probes"][0]["dof"] == "x"
+
+
+def test_controls_need_a_holdout() -> None:
+    truth = SE3((0.2, 0.1, -0.05), (0.04, 0.03, -0.08, 0.995))
+    result = PlanarBoardLinePlaneSolver().solve(
+        [_capture(truth)], options=LinePlaneSolverOptions(holdout_ratio=0.0)
+    )
+
+    assert result.status == "converged"
+    assert result.probes == ()

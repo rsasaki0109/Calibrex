@@ -82,10 +82,33 @@ def lidar_directions() -> FloatArray:
     ).reshape(-1, 3)
 
 
-def cast_points(rects: list[Rect], t_camera_lidar: FloatArray) -> NDArray[np.float32]:
+def solid_state_directions(seed: int, count: int = 24000) -> FloatArray:
+    """Unit rays of a non-repetitive solid-state LiDAR: random over +-35 deg (``x`` forward).
+
+    There are no beams: elevations are spread continuously over the field of view, as in
+    a Livox scan pattern.
+    """
+
+    rng = np.random.default_rng(seed)
+    azimuth = np.radians(rng.uniform(-35.0, 35.0, count))
+    elevation = np.radians(rng.uniform(-35.0, 35.0, count))
+    return np.stack(
+        [
+            np.cos(elevation) * np.cos(azimuth),
+            np.cos(elevation) * np.sin(azimuth),
+            np.sin(elevation),
+        ],
+        axis=-1,
+    )
+
+
+def cast_points(
+    rects: list[Rect], t_camera_lidar: FloatArray, rays_lidar: FloatArray | None = None
+) -> NDArray[np.float32]:
     """LiDAR points (in the LiDAR frame) of the nearest rectangle along every ray."""
 
-    rays_lidar = lidar_directions()
+    if rays_lidar is None:
+        rays_lidar = lidar_directions()
     rotation = t_camera_lidar[:3, :3]
     origin = t_camera_lidar[:3, 3]
     rays_camera = rays_lidar @ rotation.T

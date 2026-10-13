@@ -450,6 +450,7 @@
             "camera-imu",
             "camera-focal",
             "camera-lidar",
+            "camera-camera",
             "gnss-lidar",
             "gnss-imu",
             "lidar-vehicle",
@@ -538,6 +539,7 @@
             "camera-imu",
             "camera-focal",
             "camera-lidar",
+            "camera-camera",
             "gnss-lidar",
             "gnss-imu",
             "lidar-vehicle",
@@ -921,6 +923,23 @@
           "default": null,
           "title": "Camera"
         },
+        "camera_lidar_motion": {
+          "anyOf": [
+            {
+              "enum": [
+                "auto",
+                "none"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "camera-lidar: auto moves LiDAR points to the image time with an odometry, twist or IMU topic of the bag when one is connected to the LiDAR in the frame tree; none keeps scans as recorded",
+          "title": "Camera Lidar Motion"
+        },
         "detection_probe_deg": {
           "exclusiveMinimum": 0.0,
           "title": "Detection Probe Deg",
@@ -1251,6 +1270,7 @@
             "camera-imu",
             "camera-focal",
             "camera-lidar",
+            "camera-camera",
             "gnss-lidar",
             "gnss-imu",
             "lidar-vehicle",
@@ -1281,6 +1301,7 @@
                 "frame_not_in_tree",
                 "frames_not_connected",
                 "degenerate_frames",
+                "no_shared_view",
                 "no_candidate_calibration",
                 "no_vehicle_frame",
                 "method_not_wired",

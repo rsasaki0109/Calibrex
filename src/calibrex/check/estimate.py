@@ -87,8 +87,9 @@ PLACEHOLDER_ROOT = "__estimate_placeholder__"
 """Frame that joins sensor frames no prior connects; never exported."""
 NEEDS_INITIAL_GUESS = frozenset({"lidar-lidar", "camera-lidar"})
 """Pairs whose estimator starts from the candidate transform."""
-NOT_ESTIMATED_PAIRS = frozenset({"camera-focal"})
-"""Pairs that judge intrinsics, not an extrinsic: there is nothing to estimate."""
+NOT_ESTIMATED_PAIRS = frozenset({"camera-focal", "camera-camera"})
+"""Pairs with nothing to export: ``camera-focal`` judges intrinsics, ``camera-camera``
+only the rotation of a pair whose translation it cannot see."""
 ESTIMATE_PAIRS: frozenset[str] = frozenset(estimators.WIRED_CHECK_PAIRS - NOT_ESTIMATED_PAIRS)
 
 ROTATION_AXES: tuple[CheckAxisName, ...] = ("roll", "pitch", "yaw")
@@ -937,6 +938,7 @@ def build_bag_estimate(
         base_dir=base_dir,
         progress=progress,
         bag_sha256=input_sha256,
+        frame_tree=prior,
     )
 
     records: list[EstimatePairRecord] = []
@@ -1024,6 +1026,7 @@ def build_bag_estimate(
             imu_lidar_deskew=run.imu_lidar_deskew,
             lidar_lidar_deskew=run.lidar_lidar_deskew,
             gnss_lidar_deskew=run.gnss_lidar_deskew,
+            camera_lidar_motion=run.camera_lidar_motion,
             topic_kinds=dict(topic_kinds or {}),
             frame_map=overrides,
         ),

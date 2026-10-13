@@ -38,7 +38,11 @@ poses its gates PASS (1.17 cm centre RMSE, 1.68° normal RMSE, 12/12 controls),
 while the 1.76 cm / 0.219° inter-method transform delta remains an ungated WARN
 diagnostic. The upstream ROS/PCL feature extractor stays outside the core and
 its pinned commit, Apache-2.0 license, input digest, and source URL are recorded
-as provenance.
+as provenance. A fourth row, Zhou-style line+plane, takes the four board edges
+from the corner rows through an adapter that orders each corner loop about its
+board normal and resolves the board's 180° symmetry with the train-split
+plane-only rotation. On the same split it passes its gates (1.39 cm held-out
+boundary distance, 1.51° direction, 12/12 controls).
 
 Seven native hand-eye baselines plus Zhuang-Roth-Sudhakar, Shah, Li-Wang-Wu,
 and the closed-form and nonlinear Dornaika-Horaud robot-world/hand-eye
@@ -1032,7 +1036,8 @@ that stays offset. Interpretation (not a measurement): VLP-16 per-point
 `time` offsets on this bag span ≈ [−0.10, 0] s with the header stamp at sweep
 end, so the effective mean capture time sits ≈ 50 ms before the stamp; a
 residual-minimizing δt̂ between 0 and −50 ms is consistent with that scan-time
-semantics rather than with estimator error. By contrast the adapted-mode
+semantics rather than with estimator error (withdrawn on 2026-10-11: a self-pair
+cannot observe a stamp convention; see the Pillar 3 section below). By contrast the adapted-mode
 estimate did not track the injection (−71 ms → −44 ms, a +27 ms shift against
 a −50 ms truth change) — the adapted extrinsic partially absorbs the offset,
 which is exactly the degeneracy the anchor mode was built to expose.
@@ -1048,6 +1053,84 @@ Synthetic moving-rig fixtures (unit tests) recover injected biases to ±5 ms in
 anchored mode with FREE solver while adapted δt̂ ≈ 0 (separability
 **separable**); zero-offset and static-odometry controls assert
 **consistent** and **degenerate** respectively.
+
+### Declared capture-time convention (ADR 0008 Pillar 3)
+
+A LiDAR message stamp marks one instant of a sweep that lasts a scan period.
+`sensors.<lidar>.capture_time_reference` (`scan_start` | `scan_midpoint` |
+`scan_end`) with `scan_period_s` declares which instant. In motion-compensated
+rosbag1/rosbag2 replay, a sensor that is not deskewed per point is then placed
+at its mid-sweep capture time: `stamp + scan_period_s / 2` for `scan_start`,
+`stamp − scan_period_s / 2` for `scan_end`, and the stamp itself for
+`scan_midpoint`. A sensor that is deskewed per point (`point_time_field`) keeps
+its per-point offsets, which already carry the convention, and no shift
+applies. Provenance records `capture_time_reference` per sensor with
+`applied_shift_s` and `basis` (`declared_scan_period` or `per_point_offsets`).
+Other dataset types refuse the field rather than silently ignore it.
+
+```yaml
+sensors:
+  velodyne_vlp16:
+    type: lidar
+    topic: /velodyne_points
+    capture_time_reference: scan_end   # the VLP-16 driver stamps at the sweep end
+    scan_period_s: 0.1
+```
+
+**Synthetic shared-clock selftest (acceptance):** two LiDARs capture at the
+odometry instants on one clock, but the source driver stamps at the sweep start
+and the target driver at the sweep end (period 60 ms). Read at face value the
+stamps carry the whole 60 ms gap: the anchored estimate is −59 ms. Declared,
+the anchored baseline is +0.1 ms (within ±10 ms), and an injected +50 ms moves
+it by −50.0 ms
+(`test_declared_capture_time_reference_closes_the_shared_clock_baseline`).
+
+**TIERS Indoor02, re-reported under the declared convention** (VLP-16
+`scan_end`, 0.1 s; KISS-ICP 1.3.0 odometry from the Velodyne; same replay budget
+and gates as above):
+
+| Run | Declared | Anchor δt̂ | Anchor flatness | RMSE gain at δt̂ | Anchor probes | Separability |
+|-----|----------|-----------|-----------------|-----------------|---------------|--------------|
+| Selftest clean | no | −19.2 ms | 0.31 | 0.4 % | 0 / 3 | consistent |
+| Selftest injected +50 ms | no | −65.6 ms | 0.44 | 3.5 % | 1 / 3 | consistent |
+| Selftest clean | yes | +18.9 ms | 0.39 | 0.9 % | 0 / 3 | consistent |
+| Selftest injected +50 ms | yes | −16.7 ms | 0.31 | 0.7 % | 0 / 3 | consistent |
+| KISS-ICP Velodyne→Ouster | no | −188 ms | 0.040 | 0.6 % | 0 / 3 | degenerate |
+| KISS-ICP Velodyne→Ouster | yes (both `scan_end`) | −150 ms | 0.039 | 0.8 % | 0 / 3 | degenerate |
+
+The real-data acceptance is **not met**: neither selftest baseline is within
+±10 ms, and the injection differentials are −46.4 ms (undeclared) and
+−35.6 ms (declared) instead of −50 ms. The earlier −25 ms → −75 ms (exactly
+−50 ms) did not reproduce with the regenerated KISS-ICP odometry.
+
+Two findings explain the result rather than excuse it:
+
+- **The selftest cannot see a stamp convention.** Source and copy share one
+  stamp convention, and the map and the target are placed through the same
+  odometry, so a declared shift moves both sides together. The −25 ms baseline
+  above was therefore *not* VLP-16 sweep-end stamp semantics, as the
+  interpretation after the first table suggested; that interpretation is
+  withdrawn. Declaring `scan_end` on both sides moved the baseline from
+  −19.2 ms to +18.9 ms, which measures the estimator's resolution on this
+  sequence (the anchored holdout RMSE improves by less than 1 % at δt̂), not a
+  convention.
+- **The cross-sensor pair is degenerate** (flatness 0.04). The conversion
+  restamps the Ouster from its since-boot header clock by the median bag
+  receive time, which lands near the sweep end plus an unmodeled transport
+  latency, so `scan_end` is the closest declaration and the absolute Ouster
+  offset stays unidentified.
+
+Commands (after the selftest and KISS-ICP bag conversions above):
+
+```bash
+calibrex calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_selftest_motion_temporal_anchored_declared_config.yaml --online
+calibrex calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_selftest_motion_temporal_anchored_declared_injected_config.yaml --online
+calibrex calibrate examples/public_datasets/tiers_lidars_dataset_indoor02/online_kissicp_temporal_anchored_declared_config.yaml --online
+```
+
+A real-data acceptance needs two LiDARs on one clock whose stamps sit at
+different points of the sweep, with enough motion for the anchored curve to
+localize.
 
 ### Trajectory evidence (motion-compensated online runs)
 

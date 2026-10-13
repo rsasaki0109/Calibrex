@@ -343,13 +343,14 @@ calibrex sota audit protocol.yaml --output audit.yaml   # exit 0 only for suppor
 
 ## Calibration coverage
 
-All ten target sensor pairs have a native method. "Audit standing" is the
+All eleven target sensor pairs have a native method. "Audit standing" is the
 standing on the [leaderboard](docs/benchmarks/sota_leaderboard.md).
 
 | Pair | Native command | Public data used | Audit standing |
 |---|---|---|:---:|
 | camera (focal lengths) | `calibrex camera-imu focal` | Hilti 2022 | no_claim |
 | camera ↔ IMU | `calibrex camera-imu rotation` | Hilti 2022 (dev exp21, exp07; audit exp01-exp04) | refuted |
+| camera ↔ camera (stereo) | `calibrex check --pairs camera-camera` (rectified row offsets, rotation only; [tutorial](docs/tutorials/calibrex_check.md#camera-camera-a-stereo-pairs-rotation)) | Hilti 2022 exp01, exp21 (check) | no_claim |
 | camera ↔ LiDAR | `calibrex check` / `estimate` / `drift` (targetless edge alignment, rotation only; [results](docs/benchmarks/camera_lidar_check.md)), `calibrex camera-lidar ...`, `calibrex demo kitti-lidar-camera-evidence` | KITTI dev drives and Hilti 2022 (check), KITTI-shaped fixture, A2D2, ACFR | no_claim |
 | GNSS ↔ IMU | `calibrex gnss-imu compose` (from `calibrex gnss-lidar rtk-slam` and IMU-LiDAR) | RTK-SLAM | no_claim |
 | IMU ↔ LiDAR | `calibrex imu-lidar livox`, `livox-translation`, `trajectory` | RTK-SLAM, Zenodo MID360 driving | **supported** (2) / refuted (1) |
@@ -625,7 +626,7 @@ is checked in as a planned template, not a result:
 - native point-to-point, point-to-plane, hand-eye, and robot-world baselines
 - backend-neutral joint SLAC with typed Schur pose elimination
 - radar velocity, LiDAR-IMU rotation, and temporal-offset evidence
-- typed external-run artifacts, a Kalibr camchain importer, and Koide/Open3D,
+- typed external-run artifacts, Kalibr camchain and sensor_calib_tas importers, and Koide/Open3D,
   ROS, and Autoware adapter boundaries
 - a frozen, SHA-bound full-scale KITTI reference-vs-known-bad falsification runner
 

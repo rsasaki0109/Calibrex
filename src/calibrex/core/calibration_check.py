@@ -20,6 +20,7 @@ These fields are optional additions, so plan-only artifacts stay valid.
 from __future__ import annotations
 
 import math
+from datetime import datetime, timezone
 from typing import Literal
 
 from pydantic import Field, field_validator, model_validator
@@ -40,6 +41,7 @@ CheckPairName = Literal[
     "camera-imu",
     "camera-focal",
     "camera-lidar",
+    "camera-camera",
     "gnss-lidar",
     "gnss-imu",
     "lidar-vehicle",
@@ -53,6 +55,7 @@ CHECK_PAIR_NAMES: tuple[CheckPairName, ...] = (
     "camera-imu",
     "camera-focal",
     "camera-lidar",
+    "camera-camera",
     "gnss-lidar",
     "gnss-imu",
     "lidar-vehicle",
@@ -66,6 +69,7 @@ CheckReasonCode = Literal[
     "frame_not_in_tree",
     "frames_not_connected",
     "degenerate_frames",
+    "no_shared_view",
     "no_candidate_calibration",
     "no_vehicle_frame",
     "method_not_wired",
@@ -340,6 +344,12 @@ class CheckOptions(StrictModel):
         description="gnss-lidar deskew selection (LiDAR odometry): auto uses the per-point "
         "time field when the cloud has one and rigid scans otherwise",
     )
+    camera_lidar_motion: Literal["auto", "none"] | None = Field(
+        default=None,
+        description="camera-lidar: auto moves LiDAR points to the image time with an "
+        "odometry, twist or IMU topic of the bag when one is connected to the LiDAR in the "
+        "frame tree; none keeps scans as recorded",
+    )
     topic_kinds: dict[str, str] = Field(
         default_factory=dict,
         description="--topic-kind overrides: odometry/twist topic -> wheel or ins",
@@ -589,18 +599,36 @@ class CheckFramesEntry(StrictModel):
         return value
 
 
+class CheckFramesProvenance(StrictModel):
+    """Where a generated frame file came from (absent for a hand-written one)."""
+
+    generator: str
+    generator_version: str
+    git_commit: str | None = None
+    tool: str | None = Field(default=None, description="the calibration tool whose result this is")
+    tool_license: str | None = None
+    source_kind: str
+    source_name: str
+    source_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    source_digest_scope: str | None = None
+    notes: list[str] = Field(default_factory=list)
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
 class CheckFramesFile(StrictModel):
     """Hand-written static frame tree for ``calibrex check --tf``.
 
     ``topic_frames`` maps bag topics to frames and ``role_frames`` names the
     default frame of a sensor role; both are optional hints used when a
-    topic's header frame id is not in the tree.
+    topic's header frame id is not in the tree. A file written by an importer
+    records its ``provenance``.
     """
 
     schema_version: Literal["slac.check_frames/v0.1"] = CHECK_FRAMES_SCHEMA_VERSION
     frames: list[CheckFramesEntry] = Field(min_length=1)
     topic_frames: dict[str, str] = Field(default_factory=dict)
     role_frames: dict[SensorRole, str] = Field(default_factory=dict)
+    provenance: CheckFramesProvenance | None = None
 
 
 def calibration_check_json_schema() -> dict[str, object]:

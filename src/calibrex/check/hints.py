@@ -35,7 +35,7 @@ TEMPLATE_SCHEMA_VERSION = "slac.check_frames_template/v0.1"
 SLOT_MESSAGE_TYPES: dict[str, str] = {
     "imu": "sensor_msgs/msg/Imu",
     "lidar": "sensor_msgs/msg/PointCloud2",
-    "camera": "sensor_msgs/msg/Image (plus a CameraInfo for camera-imu and camera-lidar)",
+    "camera": "sensor_msgs/msg/Image (plus a CameraInfo or a Kalibr camchain for its intrinsics)",
     "gnss": "sensor_msgs/msg/NavSatFix",
     "ins": "nav_msgs/msg/Odometry classified as ins (--topic-kind TOPIC=ins)",
     "wheel": "nav_msgs/msg/Odometry or TwistStamped classified as wheel (--topic-kind TOPIC=wheel)",
@@ -57,6 +57,10 @@ REASON_HINTS: dict[str, str] = {
         "frames with --frame-map TOPIC=FRAME, or list the sensor frames in --tf"
     ),
     "no_candidate_calibration": TF_FLAG_HINT,
+    "no_shared_view": (
+        "the two cameras do not look at the same scene under the candidate, so they are not "
+        "a stereo pair: nothing to do unless the candidate's camera rotation is wrong"
+    ),
     "no_vehicle_frame": (
         "vehicle pairs are opt-in for ground vehicles: add --vehicle-frame base_link "
         "(use your vehicle frame name)"
