@@ -269,14 +269,7 @@ def run_kitti_edge_decision(
     depth_options: StereoDepthOptions | None = None,
     alignment_options: StereoAlignmentOptions | None = None,
 ) -> KITTIEdgeDecision:
-    """Judge each candidate from the images and scans alone.
-
-    Rotation from edges; translation along the optical axis from the stereo pair, at the
-    rotation the edges estimate.
-    """
-
-    from calibrex.check.estimators import camera_lidar_axis_estimates, transform_matrix
-    from calibrex.check.verdict import VerdictOptions, judge_pair
+    """Judge each candidate from the images and scans alone (:func:`judge_candidate`)."""
 
     commit = git_commit()
     pairs = select_kitti_pairs(dataset, frame_count, selection)
@@ -295,91 +288,23 @@ def run_kitti_edge_decision(
         input_digest_scope="first selected camera image (the benchmark binds every input)",
         dataset_license="CC BY-NC-SA 3.0",
     )
-    edge_options = options or EdgeAlignmentOptions()
-
-    def edges(start: FloatArray) -> CameraLidarEdgeArtifact:
-        return estimate_from_frames(
+    trials = [
+        judge_candidate(
             frames,
             camera,
-            start,
-            options=edge_options,
+            candidate_id,
+            transform,
             provenance=provenance,
             parent_frame="camera_02_rectified",
             child_frame="velo_link",
+            stereo=stereo,
+            stereo_frames=stereo_frames,
+            options=options,
+            depth_options=depth_options,
+            alignment_options=alignment_options,
         )
-
-    trials: list[KITTIEdgeTrial] = []
-    for candidate_id, transform in transforms.items():
-        artifact = edges(transform)
-        depth: StereoDepthEstimate | None = None
-        alignment: StereoAlignmentEstimate | None = None
-        shift: float | None = None
-        if stereo is not None and stereo_frames is not None and artifact.transform is not None:
-            # the candidate's translation at the rotation the edges estimate
-            at_rotation = transform_matrix(transform[:3, 3], artifact.transform.rotation_quat_xyzw)
-            depth = estimate_depth_offset(stereo_frames, stereo, at_rotation, depth_options)
-            if depth.observable and depth.offset_m is not None:
-                # Edges see rotation at a translation: start them again with the
-                # candidate's error along the optical axis removed, as stereo depth
-                # measured it, and measure the depth again at their new rotation.
-                shift = depth.offset_m
-                start = transform.copy()
-                start[2, 3] -= shift
-                second = edges(start)
-                if second.transform is not None:
-                    at_rotation = transform_matrix(
-                        transform[:3, 3], second.transform.rotation_quat_xyzw
-                    )
-                    artifact = second
-                    depth = estimate_depth_offset(stereo_frames, stereo, at_rotation, depth_options)
-            alignment = estimate_stereo_alignment(
-                stereo_frames, stereo, at_rotation, alignment_options
-            )
-        estimates = camera_lidar_axis_estimates(artifact, transform)
-        if depth is not None:
-            estimates = [_depth_estimate(depth) if e.name == "z" else e for e in estimates]
-        judgement = judge_pair(estimates, VerdictOptions())
-        depth_judgement = next((axis for axis in judgement.axes if axis.name == "z"), None)
-        trials.append(
-            KITTIEdgeTrial(
-                candidate_id=candidate_id,
-                verdict=judgement.verdict,
-                axes=[
-                    KITTIEdgeAxis(
-                        name=axis.name,
-                        candidate_error_deg=float(axis.candidate_error),
-                        tolerance_deg=float(axis.tolerance),
-                        estimate_std_deg=float(axis.estimate_std),
-                        status=axis.status,
-                    )
-                    for axis in judgement.axes
-                    if axis.unit == "deg"
-                ],
-                unchecked_rotation_axes=[
-                    item.name
-                    for item in judgement.unchecked
-                    if item.name in {"roll", "pitch", "yaw"}
-                ],
-                depth_axis=(
-                    KITTIDepthAxis(
-                        candidate_error_m=float(depth_judgement.candidate_error),
-                        tolerance_m=float(depth_judgement.tolerance),
-                        estimate_std_m=float(depth_judgement.estimate_std),
-                        status=depth_judgement.status,
-                    )
-                    if depth_judgement is not None
-                    else None
-                ),
-                depth=depth,
-                stereo_alignment=alignment,
-                edge_start_depth_shift_m=shift,
-                unchecked_translation_axes=[
-                    item.name for item in judgement.unchecked if item.name in {"x", "y", "z"}
-                ],
-                frames=artifact.samples.frames,
-                edge_points=artifact.samples.edge_points,
-            )
-        )
+        for candidate_id, transform in transforms.items()
+    ]
     perturbed = (
         perturbed_axes(transforms["dataset_reference"], transforms["known_bad"])
         if {"dataset_reference", "known_bad"} <= set(transforms)
@@ -394,6 +319,120 @@ def run_kitti_edge_decision(
         trials=trials,
         known_bad_axes=perturbed,
         git_commit=commit,
+    )
+
+
+def judge_candidate(
+    frames: Sequence[CameraLidarFrame],
+    camera: EdgeCamera,
+    candidate_id: CandidateId,
+    transform: FloatArray,
+    *,
+    provenance: CameraLidarEdgeProvenance,
+    parent_frame: str,
+    child_frame: str,
+    stereo: RectifiedStereo | None = None,
+    stereo_frames: Sequence[StereoFrame] | None = None,
+    stereo_from_camera: FloatArray | None = None,
+    options: EdgeAlignmentOptions | None = None,
+    depth_options: StereoDepthOptions | None = None,
+    alignment_options: StereoAlignmentOptions | None = None,
+) -> KITTIEdgeTrial:
+    """One candidate ``T_camera_lidar`` judged from the images and scans alone.
+
+    Rotation comes from edge alignment on ``frames`` (``camera``'s images). When a
+    stereo pair is given, translation along the optical axis comes from stereo depth at
+    the rotation the edges estimate; ``stereo_from_camera`` (4x4, identity by default)
+    carries the candidate into the frame ``stereo`` projects from. When that depth is
+    trusted, the edges run again from the candidate with it removed, and the depth is
+    measured again at their new rotation. The joint six-DoF stereo fit is recorded as a
+    cross-check. The axes are judged with the ``calibrex check`` rule.
+    """
+
+    from calibrex.check.estimators import camera_lidar_axis_estimates, transform_matrix
+    from calibrex.check.verdict import VerdictOptions, judge_pair
+
+    edge_options = options or EdgeAlignmentOptions()
+    to_stereo = np.eye(4) if stereo_from_camera is None else np.asarray(stereo_from_camera)
+
+    def edges(start: FloatArray) -> CameraLidarEdgeArtifact:
+        return estimate_from_frames(
+            frames,
+            camera,
+            start,
+            options=edge_options,
+            provenance=provenance,
+            parent_frame=parent_frame,
+            child_frame=child_frame,
+        )
+
+    artifact = edges(transform)
+    depth: StereoDepthEstimate | None = None
+    alignment: StereoAlignmentEstimate | None = None
+    shift: float | None = None
+    if stereo is not None and stereo_frames is not None and artifact.transform is not None:
+        # the candidate's translation at the rotation the edges estimate
+        at_rotation = transform_matrix(transform[:3, 3], artifact.transform.rotation_quat_xyzw)
+        depth = estimate_depth_offset(stereo_frames, stereo, to_stereo @ at_rotation, depth_options)
+        if depth.observable and depth.offset_m is not None:
+            # Edges see rotation at a translation: start them again with the
+            # candidate's error along the optical axis removed, as stereo depth
+            # measured it, and measure the depth again at their new rotation.
+            shift = depth.offset_m
+            start = transform.copy()
+            start[:3, 3] -= to_stereo[:3, :3].T @ np.array([0.0, 0.0, shift])
+            second = edges(start)
+            if second.transform is not None:
+                at_rotation = transform_matrix(
+                    transform[:3, 3], second.transform.rotation_quat_xyzw
+                )
+                artifact = second
+                depth = estimate_depth_offset(
+                    stereo_frames, stereo, to_stereo @ at_rotation, depth_options
+                )
+        alignment = estimate_stereo_alignment(
+            stereo_frames, stereo, to_stereo @ at_rotation, alignment_options
+        )
+    estimates = camera_lidar_axis_estimates(artifact, transform)
+    if depth is not None:
+        estimates = [_depth_estimate(depth) if e.name == "z" else e for e in estimates]
+    judgement = judge_pair(estimates, VerdictOptions())
+    depth_judgement = next((axis for axis in judgement.axes if axis.name == "z"), None)
+    return KITTIEdgeTrial(
+        candidate_id=candidate_id,
+        verdict=judgement.verdict,
+        axes=[
+            KITTIEdgeAxis(
+                name=axis.name,
+                candidate_error_deg=float(axis.candidate_error),
+                tolerance_deg=float(axis.tolerance),
+                estimate_std_deg=float(axis.estimate_std),
+                status=axis.status,
+            )
+            for axis in judgement.axes
+            if axis.unit == "deg"
+        ],
+        unchecked_rotation_axes=[
+            item.name for item in judgement.unchecked if item.name in {"roll", "pitch", "yaw"}
+        ],
+        depth_axis=(
+            KITTIDepthAxis(
+                candidate_error_m=float(depth_judgement.candidate_error),
+                tolerance_m=float(depth_judgement.tolerance),
+                estimate_std_m=float(depth_judgement.estimate_std),
+                status=depth_judgement.status,
+            )
+            if depth_judgement is not None
+            else None
+        ),
+        depth=depth,
+        stereo_alignment=alignment,
+        edge_start_depth_shift_m=shift,
+        unchecked_translation_axes=[
+            item.name for item in judgement.unchecked if item.name in {"x", "y", "z"}
+        ],
+        frames=artifact.samples.frames,
+        edge_points=artifact.samples.edge_points,
     )
 
 
