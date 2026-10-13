@@ -1320,3 +1320,12 @@ for every trial, thread budget, retained failed workers and reproduction command
 The preceding initial-projection cache was rejected: GPU dense improved only
 1.049x and CPU dense regressed by about 5%. Its code was reverted; [all retained
 trials and diagnostics](../assets/initial_lidar_projection_reuse/README.md) remain available.
+
+The follow-up comparison uses actual consecutive KITTI frames with navigation
+initialization and the default 50-iteration budget. All three CPU/CUDA pairs
+converged with identical complete native results; whole-worker medians were
+**56.0 → 25.3 s (2.21x)**.
+Two additional frame pairs retained result parity. The 768-point control used
+native fallback and was slower with cold CUDA initialization; choose CPU for
+small clouds. See the [actual-frame evidence](../assets/cuda_point_to_point_icp/actual_frames/README.md)
+for all trials, holdout scores, caps and reproducible fixture commands.

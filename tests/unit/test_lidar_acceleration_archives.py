@@ -2,6 +2,7 @@
 import math
 from pathlib import Path
 
+from tools.audit_actual_icp_archive import audit as audit_actual
 from tools.audit_cuda_point_icp_archive import audit as audit_icp
 from tools.audit_initial_projection_archive import _aggregate_equal
 from tools.audit_initial_projection_archive import audit as audit_projection
@@ -28,3 +29,9 @@ def test_only_derived_standard_deviation_accepts_one_ulp_runtime_rounding():
         neighbor, 0.)}}, original)
     assert not _aggregate_equal({"distribution": {"mean": neighbor}},
                                 {"distribution": {"mean": value}})
+
+
+def test_actual_frame_archive_preserves_all_full_results_and_evaluation():
+    report = audit_actual(Path("docs/assets/cuda_point_to_point_icp/actual_frames"))
+    assert report["complete_models"] == 14
+    assert report["cohorts"] == 5
