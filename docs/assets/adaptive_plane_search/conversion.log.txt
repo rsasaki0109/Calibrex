@@ -1,0 +1,13 @@
+source: data\public\glim_versatile\livox.bag
+destination: data\public\glim_versatile\livox_rosbag2_gt_restamped
+odom_source: external-trajectory
+trajectory_file: data\public\glim_versatile\gt\livox.txt
+trajectory_time_offset_s: 1655977530.260883
+trajectory_frame_id: world
+synthesized_odometry_topic: /odom (authored by this tool)
+restamp_offsets_ns (median bag_receive_time - header_stamp):
+  /livox/points: 1655977530260882944 ns (1655977530.260883 s)
+topics:
+  /livox/points: count=618 first=1655977640768427962 ns last=1655977702460199489 ns span=61691771527 ns
+  /livox/points_copy: count=618 first=1655977640768427962 ns last=1655977702460199489 ns span=61691771527 ns
+  /odom: count=618 first=1655977640760497152 ns last=1655977702460708096 ns span=61700210944 ns

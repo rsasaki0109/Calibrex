@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import math
 
+import pytest
+
 from calibrex.core.geometry import SE3
 from calibrex.data.livox import LivoxPointRecord
 from calibrex.data.odometry_track import OdometryPoseSample, OdometryTrack
@@ -12,6 +14,16 @@ from calibrex.solvers.continuous_time_lidar_pair_solver import (
     _select_evenly_spaced_indices,
 )
 from calibrex.solvers.fixed_trajectory_se3_solver import FixedTrajectorySe3SolverOptions
+
+
+@pytest.mark.parametrize("invalid", [None, 0, 1, "false", "true"])
+def test_captured_summary_requires_explicit_boolean(invalid) -> None:
+    assert ContinuousTimeLidarPairOptions().cuda_captured_summary is False
+    # Validate before reading problem data or importing any optional adapter.
+    with pytest.raises(ValueError, match="cuda_captured_summary must be a boolean"):
+        ContinuousTimeLidarPairSolver._validate(
+            None, ContinuousTimeLidarPairOptions(cuda_captured_summary=invalid),
+        )
 
 
 def _yaw_quaternion(degrees: float) -> tuple[float, float, float, float]:

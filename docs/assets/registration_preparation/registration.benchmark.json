@@ -1,0 +1,3245 @@
+{
+  "benchmark_id": "public_kitti_registration_preparation",
+  "bootstrap_samples": 1,
+  "bootstrap_seed": 0,
+  "limitations": [
+    "Sampled scan pairs from one public drive; no reference extrinsic or accuracy claim.",
+    "Unchanged native voxel/cap policy; full raw scans enter preprocessing on every call.",
+    "Timing includes both complete native algorithms, not the full calibrate CLI, PCD parsing, external GICP/NDT backends, inspection or report serialization.",
+    "All convergence, degeneracy and diagnostic outputs remain visible; timing success means execution/parity rather than calibration recovery.",
+    "5 shared-host timing repetitions; process/library/OS caches persist; not independent accuracy trials, confidence or a portable speed guarantee.",
+    "Bootstrap fields are schema summaries only; consult every retained trial.",
+    "Local path prefixes are normalized to ${WORKSPACE_ROOT} and ${DATASET_ROOT}. Every complete payload and original input/config/output digest is unchanged. Output digests bind canonical numerical JSON, not a standalone result file."
+  ],
+  "method_summaries": {
+    "indexed_baseline": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": {
+          "distribution": {
+            "count": 30,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "numerical_parity",
+          "rank": 1
+        },
+        "plane_seconds": {
+          "distribution": {
+            "count": 30,
+            "maximum": 1.1151280000340194,
+            "mean": 0.3653279133296261,
+            "mean_ci95_high": 0.39572922999504956,
+            "mean_ci95_low": 0.39572922999504956,
+            "median": 0.2510388999944553,
+            "minimum": 0.12783650000346825,
+            "p90": 0.6425548799626994,
+            "p95": 0.7879678099998267,
+            "standard_deviation": 0.2294921931467948
+          },
+          "metric": "plane_seconds",
+          "rank": 3
+        },
+        "point_seconds": {
+          "distribution": {
+            "count": 30,
+            "maximum": 5.370342199981678,
+            "mean": 1.341916823332819,
+            "mean_ci95_high": 1.5272570766644398,
+            "mean_ci95_low": 1.5272570766644398,
+            "median": 0.9506250500271562,
+            "minimum": 0.28460259997518733,
+            "p90": 2.444817899976625,
+            "p95": 3.6127903250075133,
+            "standard_deviation": 1.1574920436145495
+          },
+          "metric": "point_seconds",
+          "rank": 3
+        },
+        "preparation_seconds": {
+          "distribution": {
+            "count": 30,
+            "maximum": 3.470829900004901,
+            "mean": 1.0948523266687213,
+            "mean_ci95_high": 0.9899597600024814,
+            "mean_ci95_low": 0.9899597600024814,
+            "median": 1.0431901499978267,
+            "minimum": 0.4761537999729626,
+            "p90": 1.6514282899850516,
+            "p95": 2.127942864989744,
+            "standard_deviation": 0.6442751183615243
+          },
+          "metric": "preparation_seconds",
+          "rank": 3
+        },
+        "wall_seconds": {
+          "distribution": {
+            "count": 30,
+            "maximum": 8.122340000001714,
+            "mean": 2.8020970633311664,
+            "mean_ci95_high": 2.912946066661971,
+            "mean_ci95_low": 2.912946066661971,
+            "median": 2.351823799981503,
+            "minimum": 1.3863304000115022,
+            "p90": 4.3922091100132095,
+            "p95": 5.584433814990911,
+            "standard_deviation": 1.5214591898706205
+          },
+          "metric": "wall_seconds",
+          "rank": 3
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 30,
+        "maximum": 8.122340000001714,
+        "mean": 2.8020970633311664,
+        "mean_ci95_high": 2.912946066661971,
+        "mean_ci95_low": 2.912946066661971,
+        "median": 2.351823799981503,
+        "minimum": 1.3863304000115022,
+        "p90": 4.3922091100132095,
+        "p95": 5.584433814990911,
+        "standard_deviation": 1.5214591898706205
+      },
+      "success_count": 30,
+      "trial_count": 30
+    },
+    "vectorized_auto": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": {
+          "distribution": {
+            "count": 30,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "numerical_parity",
+          "rank": 1
+        },
+        "plane_seconds": {
+          "distribution": {
+            "count": 30,
+            "maximum": 0.8243382000364363,
+            "mean": 0.27020480667512553,
+            "mean_ci95_high": 0.2917871966783423,
+            "mean_ci95_low": 0.2917871966783423,
+            "median": 0.22731434999150224,
+            "minimum": 0.10807060002116486,
+            "p90": 0.4284225200128277,
+            "p95": 0.6546400750026798,
+            "standard_deviation": 0.17195818912466768
+          },
+          "metric": "plane_seconds",
+          "rank": 2
+        },
+        "point_seconds": {
+          "distribution": {
+            "count": 30,
+            "maximum": 1.91414489998715,
+            "mean": 0.6243581299941676,
+            "mean_ci95_high": 0.7083315299940296,
+            "mean_ci95_low": 0.7083315299940296,
+            "median": 0.5608505499840248,
+            "minimum": 0.2006167999934405,
+            "p90": 1.0289442599983887,
+            "p95": 1.1645229300018398,
+            "standard_deviation": 0.35405286634217037
+          },
+          "metric": "point_seconds",
+          "rank": 1
+        },
+        "preparation_seconds": {
+          "distribution": {
+            "count": 30,
+            "maximum": 0.39351550000719726,
+            "mean": 0.20365466000512242,
+            "mean_ci95_high": 0.19538543333765118,
+            "mean_ci95_low": 0.19538543333765118,
+            "median": 0.1849192499939818,
+            "minimum": 0.10987280000699684,
+            "p90": 0.3231313900032547,
+            "p95": 0.3297303449944593,
+            "standard_deviation": 0.07278210515460254
+          },
+          "metric": "preparation_seconds",
+          "rank": 1
+        },
+        "wall_seconds": {
+          "distribution": {
+            "count": 30,
+            "maximum": 3.061012900026981,
+            "mean": 1.0982175966744157,
+            "mean_ci95_high": 1.1955041600100231,
+            "mean_ci95_low": 1.1955041600100231,
+            "median": 0.9941450000042096,
+            "minimum": 0.4677548000472598,
+            "p90": 1.8427925600495654,
+            "p95": 1.8869144399941433,
+            "standard_deviation": 0.5350872325013163
+          },
+          "metric": "wall_seconds",
+          "rank": 1
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 30,
+        "maximum": 3.061012900026981,
+        "mean": 1.0982175966744157,
+        "mean_ci95_high": 1.1955041600100231,
+        "mean_ci95_low": 1.1955041600100231,
+        "median": 0.9941450000042096,
+        "minimum": 0.4677548000472598,
+        "p90": 1.8427925600495654,
+        "p95": 1.8869144399941433,
+        "standard_deviation": 0.5350872325013163
+      },
+      "success_count": 30,
+      "trial_count": 30
+    },
+    "vectorized_sequential": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": {
+          "distribution": {
+            "count": 30,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "numerical_parity",
+          "rank": 1
+        },
+        "plane_seconds": {
+          "distribution": {
+            "count": 30,
+            "maximum": 0.8479069000459276,
+            "mean": 0.25031996666608997,
+            "mean_ci95_high": 0.25131199667036225,
+            "mean_ci95_low": 0.25131199667036225,
+            "median": 0.1994915000104811,
+            "minimum": 0.10960680001880974,
+            "p90": 0.44376890996354634,
+            "p95": 0.44956220500171185,
+            "standard_deviation": 0.1498014874769836
+          },
+          "metric": "plane_seconds",
+          "rank": 1
+        },
+        "point_seconds": {
+          "distribution": {
+            "count": 30,
+            "maximum": 2.702404999989085,
+            "mean": 0.8352266800027185,
+            "mean_ci95_high": 0.9396821133384947,
+            "mean_ci95_low": 0.9396821133384947,
+            "median": 0.6318198000080884,
+            "minimum": 0.1858611000352539,
+            "p90": 1.6305377599957867,
+            "p95": 2.0993437750323194,
+            "standard_deviation": 0.5991407875665712
+          },
+          "metric": "point_seconds",
+          "rank": 2
+        },
+        "preparation_seconds": {
+          "distribution": {
+            "count": 30,
+            "maximum": 0.39316279999911785,
+            "mean": 0.2038896699959878,
+            "mean_ci95_high": 0.18208731332755027,
+            "mean_ci95_low": 0.18208731332755027,
+            "median": 0.18593069998314604,
+            "minimum": 0.11684660002356395,
+            "p90": 0.30774874998605817,
+            "p95": 0.345757049974054,
+            "standard_deviation": 0.07227509084293489
+          },
+          "metric": "preparation_seconds",
+          "rank": 2
+        },
+        "wall_seconds": {
+          "distribution": {
+            "count": 30,
+            "maximum": 3.8555939000216313,
+            "mean": 1.2894363166647964,
+            "mean_ci95_high": 1.3730814233364073,
+            "mean_ci95_low": 1.3730814233364073,
+            "median": 0.9497363499831408,
+            "minimum": 0.5280110000167042,
+            "p90": 2.262254290026613,
+            "p95": 2.741091109963598,
+            "standard_deviation": 0.7419686377918563
+          },
+          "metric": "wall_seconds",
+          "rank": 2
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 30,
+        "maximum": 3.8555939000216313,
+        "mean": 1.2894363166647964,
+        "mean_ci95_high": 1.3730814233364073,
+        "mean_ci95_low": 1.3730814233364073,
+        "median": 0.9497363499831408,
+        "minimum": 0.5280110000167042,
+        "p90": 2.262254290026613,
+        "p95": 2.741091109963598,
+        "standard_deviation": 0.7419686377918563
+      },
+      "success_count": 30,
+      "trial_count": 30
+    }
+  },
+  "methods": [
+    {
+      "implementation": "calibrex_native",
+      "label": "indexed_baseline",
+      "method_id": "indexed_baseline",
+      "source_commit": "9fe0d4f6ff866bed771b62ccbe7b7e57924b12bb",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "vectorized_sequential",
+      "method_id": "vectorized_sequential",
+      "source_commit": "41c820f",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "vectorized_auto",
+      "method_id": "vectorized_auto",
+      "source_commit": "41c820f",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    }
+  ],
+  "metrics": [
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Fresh raw reads/verification, preprocessing, both complete solvers",
+      "label": "wall_seconds",
+      "name": "wall_seconds",
+      "primary": true,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Fresh reads/hash verification, decoding, voxel centroids",
+      "label": "preparation_seconds",
+      "name": "preparation_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Complete point-to-point solver including six multi-start trials",
+      "label": "point_seconds",
+      "name": "point_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Complete point-to-plane solver including normals and pose probes",
+      "label": "plane_seconds",
+      "name": "plane_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Bitwise prepared positions and exact complete solver payloads",
+      "label": "numerical_parity",
+      "name": "numerical_parity",
+      "primary": false,
+      "unit": "ratio"
+    }
+  ],
+  "paired_comparisons": [
+    {
+      "candidate_method_id": "vectorized_sequential",
+      "direction": "lower",
+      "improvement_ci95_high": 1.4748399699960524,
+      "improvement_ci95_low": 1.4748399699960524,
+      "improvement_mean": 1.51266074666637,
+      "metric": "wall_seconds",
+      "paired_count": 30,
+      "raw_delta_mean": -1.51266074666637,
+      "reference_method_id": "indexed_baseline"
+    },
+    {
+      "candidate_method_id": "vectorized_sequential",
+      "direction": "lower",
+      "improvement_ci95_high": 0.8724468800064642,
+      "improvement_ci95_low": 0.8724468800064642,
+      "improvement_mean": 0.8909626566727336,
+      "metric": "preparation_seconds",
+      "paired_count": 30,
+      "raw_delta_mean": -0.8909626566727336,
+      "reference_method_id": "indexed_baseline"
+    },
+    {
+      "candidate_method_id": "vectorized_sequential",
+      "direction": "lower",
+      "improvement_ci95_high": 0.4905572966614272,
+      "improvement_ci95_low": 0.4905572966614272,
+      "improvement_mean": 0.5066901433301003,
+      "metric": "point_seconds",
+      "paired_count": 30,
+      "raw_delta_mean": -0.5066901433301003,
+      "reference_method_id": "indexed_baseline"
+    },
+    {
+      "candidate_method_id": "vectorized_sequential",
+      "direction": "lower",
+      "improvement_ci95_high": 0.11183579332816104,
+      "improvement_ci95_low": 0.11183579332816104,
+      "improvement_mean": 0.11500794666353613,
+      "metric": "plane_seconds",
+      "paired_count": 30,
+      "raw_delta_mean": -0.11500794666353613,
+      "reference_method_id": "indexed_baseline"
+    },
+    {
+      "candidate_method_id": "vectorized_sequential",
+      "direction": "higher",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "numerical_parity",
+      "paired_count": 30,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "indexed_baseline"
+    },
+    {
+      "candidate_method_id": "vectorized_auto",
+      "direction": "lower",
+      "improvement_ci95_high": 1.6349875399901066,
+      "improvement_ci95_low": 1.6349875399901066,
+      "improvement_mean": 1.7038794666567507,
+      "metric": "wall_seconds",
+      "paired_count": 30,
+      "raw_delta_mean": -1.7038794666567507,
+      "reference_method_id": "indexed_baseline"
+    },
+    {
+      "candidate_method_id": "vectorized_auto",
+      "direction": "lower",
+      "improvement_ci95_high": 0.8715352200010481,
+      "improvement_ci95_low": 0.8715352200010481,
+      "improvement_mean": 0.8911976666635989,
+      "metric": "preparation_seconds",
+      "paired_count": 30,
+      "raw_delta_mean": -0.8911976666635989,
+      "reference_method_id": "indexed_baseline"
+    },
+    {
+      "candidate_method_id": "vectorized_auto",
+      "direction": "lower",
+      "improvement_ci95_high": 0.68143496333311,
+      "improvement_ci95_low": 0.68143496333311,
+      "improvement_mean": 0.7175586933386512,
+      "metric": "point_seconds",
+      "paired_count": 30,
+      "raw_delta_mean": -0.7175586933386512,
+      "reference_method_id": "indexed_baseline"
+    },
+    {
+      "candidate_method_id": "vectorized_auto",
+      "direction": "lower",
+      "improvement_ci95_high": 0.08201735665594849,
+      "improvement_ci95_low": 0.08201735665594849,
+      "improvement_mean": 0.09512310665450059,
+      "metric": "plane_seconds",
+      "paired_count": 30,
+      "raw_delta_mean": -0.09512310665450059,
+      "reference_method_id": "indexed_baseline"
+    },
+    {
+      "candidate_method_id": "vectorized_auto",
+      "direction": "higher",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "numerical_parity",
+      "paired_count": 30,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "indexed_baseline"
+    }
+  ],
+  "protocol": {
+    "data_license": "KITTI raw dataset terms; raw scans are not redistributed",
+    "dataset_id": "2011_09_30_drive_0018_sync",
+    "dataset_source_sha256": "6d069290c39a3a70f7c0fa460b62ef68802a3a60f70317d24e8a6f64a7eedbbb",
+    "failure_policy": "Retain mismatches as failures and exit nonzero after saving evidence",
+    "initial_estimate_policy": "Identity for all methods; no reference pose",
+    "protocol_id": "public_kitti_registration_preparation/v0.1",
+    "split_policy": "Unchanged spatial source holdout; fresh target rematching",
+    "splits": [
+      {
+        "fit_count": 403,
+        "fit_ids_sha256": "01edfef039be83ea8683c44dbe16213f6c5388b38305fbcea5c21d69c3bc1154",
+        "holdout_count": 97,
+        "holdout_ids_sha256": "6405cdff4b8e0a8523c18810e407ff88ca5efab51ada48413579b667bbdde56f",
+        "seed": 0,
+        "split_id": "0000000000-0000000115-cap-500-repeat-01"
+      },
+      {
+        "fit_count": 403,
+        "fit_ids_sha256": "01edfef039be83ea8683c44dbe16213f6c5388b38305fbcea5c21d69c3bc1154",
+        "holdout_count": 97,
+        "holdout_ids_sha256": "6405cdff4b8e0a8523c18810e407ff88ca5efab51ada48413579b667bbdde56f",
+        "seed": 0,
+        "split_id": "0000000000-0000000115-cap-500-repeat-02"
+      },
+      {
+        "fit_count": 403,
+        "fit_ids_sha256": "01edfef039be83ea8683c44dbe16213f6c5388b38305fbcea5c21d69c3bc1154",
+        "holdout_count": 97,
+        "holdout_ids_sha256": "6405cdff4b8e0a8523c18810e407ff88ca5efab51ada48413579b667bbdde56f",
+        "seed": 0,
+        "split_id": "0000000000-0000000115-cap-500-repeat-03"
+      },
+      {
+        "fit_count": 403,
+        "fit_ids_sha256": "01edfef039be83ea8683c44dbe16213f6c5388b38305fbcea5c21d69c3bc1154",
+        "holdout_count": 97,
+        "holdout_ids_sha256": "6405cdff4b8e0a8523c18810e407ff88ca5efab51ada48413579b667bbdde56f",
+        "seed": 0,
+        "split_id": "0000000000-0000000115-cap-500-repeat-04"
+      },
+      {
+        "fit_count": 403,
+        "fit_ids_sha256": "01edfef039be83ea8683c44dbe16213f6c5388b38305fbcea5c21d69c3bc1154",
+        "holdout_count": 97,
+        "holdout_ids_sha256": "6405cdff4b8e0a8523c18810e407ff88ca5efab51ada48413579b667bbdde56f",
+        "seed": 0,
+        "split_id": "0000000000-0000000115-cap-500-repeat-05"
+      },
+      {
+        "fit_count": 1197,
+        "fit_ids_sha256": "e1c12f5e79fe93a4a3d268a3a53f733629151aeb0d50d66d3f8736899453a0cd",
+        "holdout_count": 303,
+        "holdout_ids_sha256": "3e4c18ac48a220502bd130b296283d5f7e0be11ff902b355a2b7f7c5e97e900a",
+        "seed": 0,
+        "split_id": "0000000000-0000000115-cap-1500-repeat-01"
+      },
+      {
+        "fit_count": 1197,
+        "fit_ids_sha256": "e1c12f5e79fe93a4a3d268a3a53f733629151aeb0d50d66d3f8736899453a0cd",
+        "holdout_count": 303,
+        "holdout_ids_sha256": "3e4c18ac48a220502bd130b296283d5f7e0be11ff902b355a2b7f7c5e97e900a",
+        "seed": 0,
+        "split_id": "0000000000-0000000115-cap-1500-repeat-02"
+      },
+      {
+        "fit_count": 1197,
+        "fit_ids_sha256": "e1c12f5e79fe93a4a3d268a3a53f733629151aeb0d50d66d3f8736899453a0cd",
+        "holdout_count": 303,
+        "holdout_ids_sha256": "3e4c18ac48a220502bd130b296283d5f7e0be11ff902b355a2b7f7c5e97e900a",
+        "seed": 0,
+        "split_id": "0000000000-0000000115-cap-1500-repeat-03"
+      },
+      {
+        "fit_count": 1197,
+        "fit_ids_sha256": "e1c12f5e79fe93a4a3d268a3a53f733629151aeb0d50d66d3f8736899453a0cd",
+        "holdout_count": 303,
+        "holdout_ids_sha256": "3e4c18ac48a220502bd130b296283d5f7e0be11ff902b355a2b7f7c5e97e900a",
+        "seed": 0,
+        "split_id": "0000000000-0000000115-cap-1500-repeat-04"
+      },
+      {
+        "fit_count": 1197,
+        "fit_ids_sha256": "e1c12f5e79fe93a4a3d268a3a53f733629151aeb0d50d66d3f8736899453a0cd",
+        "holdout_count": 303,
+        "holdout_ids_sha256": "3e4c18ac48a220502bd130b296283d5f7e0be11ff902b355a2b7f7c5e97e900a",
+        "seed": 0,
+        "split_id": "0000000000-0000000115-cap-1500-repeat-05"
+      },
+      {
+        "fit_count": 2392,
+        "fit_ids_sha256": "be73b63af78b0001f3a89c5b176c75a6c54ee9a13fb46415581698169b4897ab",
+        "holdout_count": 608,
+        "holdout_ids_sha256": "39a86d72c242c9f79cb72f0f71744e550b1c41c0117deda0c82bc293e7f0a843",
+        "seed": 0,
+        "split_id": "0000000000-0000000115-cap-3000-repeat-01"
+      },
+      {
+        "fit_count": 2392,
+        "fit_ids_sha256": "be73b63af78b0001f3a89c5b176c75a6c54ee9a13fb46415581698169b4897ab",
+        "holdout_count": 608,
+        "holdout_ids_sha256": "39a86d72c242c9f79cb72f0f71744e550b1c41c0117deda0c82bc293e7f0a843",
+        "seed": 0,
+        "split_id": "0000000000-0000000115-cap-3000-repeat-02"
+      },
+      {
+        "fit_count": 2392,
+        "fit_ids_sha256": "be73b63af78b0001f3a89c5b176c75a6c54ee9a13fb46415581698169b4897ab",
+        "holdout_count": 608,
+        "holdout_ids_sha256": "39a86d72c242c9f79cb72f0f71744e550b1c41c0117deda0c82bc293e7f0a843",
+        "seed": 0,
+        "split_id": "0000000000-0000000115-cap-3000-repeat-03"
+      },
+      {
+        "fit_count": 2392,
+        "fit_ids_sha256": "be73b63af78b0001f3a89c5b176c75a6c54ee9a13fb46415581698169b4897ab",
+        "holdout_count": 608,
+        "holdout_ids_sha256": "39a86d72c242c9f79cb72f0f71744e550b1c41c0117deda0c82bc293e7f0a843",
+        "seed": 0,
+        "split_id": "0000000000-0000000115-cap-3000-repeat-04"
+      },
+      {
+        "fit_count": 2392,
+        "fit_ids_sha256": "be73b63af78b0001f3a89c5b176c75a6c54ee9a13fb46415581698169b4897ab",
+        "holdout_count": 608,
+        "holdout_ids_sha256": "39a86d72c242c9f79cb72f0f71744e550b1c41c0117deda0c82bc293e7f0a843",
+        "seed": 0,
+        "split_id": "0000000000-0000000115-cap-3000-repeat-05"
+      },
+      {
+        "fit_count": 392,
+        "fit_ids_sha256": "129f18e9e06bb51ec9a36b271b38f5767d387469075a2fb6111e85a5eb3506e8",
+        "holdout_count": 108,
+        "holdout_ids_sha256": "ab5e81f3751a840d266e03da4e804e79f2cc97e9ccceb85290fac56ac742581c",
+        "seed": 0,
+        "split_id": "0000000115-0000000230-cap-500-repeat-01"
+      },
+      {
+        "fit_count": 392,
+        "fit_ids_sha256": "129f18e9e06bb51ec9a36b271b38f5767d387469075a2fb6111e85a5eb3506e8",
+        "holdout_count": 108,
+        "holdout_ids_sha256": "ab5e81f3751a840d266e03da4e804e79f2cc97e9ccceb85290fac56ac742581c",
+        "seed": 0,
+        "split_id": "0000000115-0000000230-cap-500-repeat-02"
+      },
+      {
+        "fit_count": 392,
+        "fit_ids_sha256": "129f18e9e06bb51ec9a36b271b38f5767d387469075a2fb6111e85a5eb3506e8",
+        "holdout_count": 108,
+        "holdout_ids_sha256": "ab5e81f3751a840d266e03da4e804e79f2cc97e9ccceb85290fac56ac742581c",
+        "seed": 0,
+        "split_id": "0000000115-0000000230-cap-500-repeat-03"
+      },
+      {
+        "fit_count": 392,
+        "fit_ids_sha256": "129f18e9e06bb51ec9a36b271b38f5767d387469075a2fb6111e85a5eb3506e8",
+        "holdout_count": 108,
+        "holdout_ids_sha256": "ab5e81f3751a840d266e03da4e804e79f2cc97e9ccceb85290fac56ac742581c",
+        "seed": 0,
+        "split_id": "0000000115-0000000230-cap-500-repeat-04"
+      },
+      {
+        "fit_count": 392,
+        "fit_ids_sha256": "129f18e9e06bb51ec9a36b271b38f5767d387469075a2fb6111e85a5eb3506e8",
+        "holdout_count": 108,
+        "holdout_ids_sha256": "ab5e81f3751a840d266e03da4e804e79f2cc97e9ccceb85290fac56ac742581c",
+        "seed": 0,
+        "split_id": "0000000115-0000000230-cap-500-repeat-05"
+      },
+      {
+        "fit_count": 1208,
+        "fit_ids_sha256": "a4e8027340573e3a453000ff54507269ffc4ddd6edf406fd4f992878708bd92c",
+        "holdout_count": 292,
+        "holdout_ids_sha256": "1f466196c1ffcfbf8249758bd36715374494f8eb94aa11bcc8a2c895239de6c0",
+        "seed": 0,
+        "split_id": "0000000115-0000000230-cap-1500-repeat-01"
+      },
+      {
+        "fit_count": 1208,
+        "fit_ids_sha256": "a4e8027340573e3a453000ff54507269ffc4ddd6edf406fd4f992878708bd92c",
+        "holdout_count": 292,
+        "holdout_ids_sha256": "1f466196c1ffcfbf8249758bd36715374494f8eb94aa11bcc8a2c895239de6c0",
+        "seed": 0,
+        "split_id": "0000000115-0000000230-cap-1500-repeat-02"
+      },
+      {
+        "fit_count": 1208,
+        "fit_ids_sha256": "a4e8027340573e3a453000ff54507269ffc4ddd6edf406fd4f992878708bd92c",
+        "holdout_count": 292,
+        "holdout_ids_sha256": "1f466196c1ffcfbf8249758bd36715374494f8eb94aa11bcc8a2c895239de6c0",
+        "seed": 0,
+        "split_id": "0000000115-0000000230-cap-1500-repeat-03"
+      },
+      {
+        "fit_count": 1208,
+        "fit_ids_sha256": "a4e8027340573e3a453000ff54507269ffc4ddd6edf406fd4f992878708bd92c",
+        "holdout_count": 292,
+        "holdout_ids_sha256": "1f466196c1ffcfbf8249758bd36715374494f8eb94aa11bcc8a2c895239de6c0",
+        "seed": 0,
+        "split_id": "0000000115-0000000230-cap-1500-repeat-04"
+      },
+      {
+        "fit_count": 1208,
+        "fit_ids_sha256": "a4e8027340573e3a453000ff54507269ffc4ddd6edf406fd4f992878708bd92c",
+        "holdout_count": 292,
+        "holdout_ids_sha256": "1f466196c1ffcfbf8249758bd36715374494f8eb94aa11bcc8a2c895239de6c0",
+        "seed": 0,
+        "split_id": "0000000115-0000000230-cap-1500-repeat-05"
+      },
+      {
+        "fit_count": 2414,
+        "fit_ids_sha256": "50e0a7af57f33139abf47b413f36b7c9262620f490bdff75bc50d4699bc6b336",
+        "holdout_count": 586,
+        "holdout_ids_sha256": "0c9392414139e192b33ca453d063515b6d396845de112725868404b5596fab15",
+        "seed": 0,
+        "split_id": "0000000115-0000000230-cap-3000-repeat-01"
+      },
+      {
+        "fit_count": 2414,
+        "fit_ids_sha256": "50e0a7af57f33139abf47b413f36b7c9262620f490bdff75bc50d4699bc6b336",
+        "holdout_count": 586,
+        "holdout_ids_sha256": "0c9392414139e192b33ca453d063515b6d396845de112725868404b5596fab15",
+        "seed": 0,
+        "split_id": "0000000115-0000000230-cap-3000-repeat-02"
+      },
+      {
+        "fit_count": 2414,
+        "fit_ids_sha256": "50e0a7af57f33139abf47b413f36b7c9262620f490bdff75bc50d4699bc6b336",
+        "holdout_count": 586,
+        "holdout_ids_sha256": "0c9392414139e192b33ca453d063515b6d396845de112725868404b5596fab15",
+        "seed": 0,
+        "split_id": "0000000115-0000000230-cap-3000-repeat-03"
+      },
+      {
+        "fit_count": 2414,
+        "fit_ids_sha256": "50e0a7af57f33139abf47b413f36b7c9262620f490bdff75bc50d4699bc6b336",
+        "holdout_count": 586,
+        "holdout_ids_sha256": "0c9392414139e192b33ca453d063515b6d396845de112725868404b5596fab15",
+        "seed": 0,
+        "split_id": "0000000115-0000000230-cap-3000-repeat-04"
+      },
+      {
+        "fit_count": 2414,
+        "fit_ids_sha256": "50e0a7af57f33139abf47b413f36b7c9262620f490bdff75bc50d4699bc6b336",
+        "holdout_count": 586,
+        "holdout_ids_sha256": "0c9392414139e192b33ca453d063515b6d396845de112725868404b5596fab15",
+        "seed": 0,
+        "split_id": "0000000115-0000000230-cap-3000-repeat-05"
+      }
+    ],
+    "tuning_policy": "Frozen 0.5 m voxel centroids, caps [500, 1500, 3000], config ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1; rotate method order; only execution workers differ"
+  },
+  "provenance": {
+    "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+    "data_verified": true,
+    "generated_at": "2026-10-11T12:46:44.107170+00:00",
+    "generator": "tools.benchmark_registration_preparation",
+    "generator_version": "v0.1",
+    "git_commit": "41c820f",
+    "source_artifacts": {
+      "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000000000.bin": "edcf941b40ac8c1aa2c90675bc7df5ee530ea99426cfa81396bb7158a449ed83",
+      "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000000115.bin": "213948bd8c54c925aca7eb9f3b3c36e95e586b52ee8d9d64056c4fc4aeb12b2d",
+      "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000000230.bin": "b9b6ac62ef2b7be4dcec2eab424c142012c6e948cb3f24bf774b6459efbae2ca",
+      "${WORKSPACE_ROOT}/tools/benchmark_registration_preparation.py": "a2924c30ebc5fe4d4a887f65489207079b72d1fabc776e636f0e1bb940bacd56",
+      "baseline._exact_neighbors.py.txt": "f8f700817336bd956dabe4dbc25c7d647b2f1693efc67d18aa57e4f6a53e7ccf",
+      "baseline.chen_medioni_point_to_plane_icp_solver.py.txt": "fff85c1aae0c4251e872c7bf39e0c91272eb9196f8cd31a2e874af9d11539446",
+      "baseline.native_registration_comparison_solver.py.txt": "2dafd9d8dc53a406e8f54f40341573fdbae7afe1c6147d08cc413eb2254e85e7",
+      "baseline.robust_point_to_point_icp_solver.py.txt": "5cef296f6736332415e2b60b5d860db74b1e8ad8e9c8746c438f450ddcc25b96",
+      "committed:src/calibrex/core/geometry.py": "edc75ef201e05b2b3146996e10a9acd39f9c02521be753e186d4c473a7c11bbb",
+      "committed:src/calibrex/evaluation/holdout.py": "6df7f5c3187fda94a4e8ae63a35405d81ed98bcf1a7f1f5a75081930d354e055",
+      "committed:src/calibrex/solvers/_exact_neighbors.py": "f8f700817336bd956dabe4dbc25c7d647b2f1693efc67d18aa57e4f6a53e7ccf",
+      "committed:src/calibrex/solvers/chen_medioni_point_to_plane_icp_solver.py": "3574ea39d9993ba79972f00c41401c2669ba3048109ffb87be6d8a8a128a5390",
+      "committed:src/calibrex/solvers/native_registration_comparison_solver.py": "f60100ed361ea3bb3be30a30cc4bf450522e57412fb6c9b18b2334f310859baf",
+      "committed:src/calibrex/solvers/robust_point_to_point_icp_solver.py": "aa32b6aee36ccd8a8a37f103f3d8b0c390fdf7c785a9f499c640a2fc696a260d",
+      "committed:tools/benchmark_registration_preparation.py": "a2924c30ebc5fe4d4a887f65489207079b72d1fabc776e636f0e1bb940bacd56",
+      "original_aggregate": "38c2eba218e3945b5d161f9d12d95341dde9535d0013a2e4942599c6f640e627",
+      "original_definition": "f3bac25cd1d18a71c466d95e9677cc4371fddbed3f68747473ac5fdd7c2e3f30",
+      "published:baseline._exact_neighbors.py.txt": "f8f700817336bd956dabe4dbc25c7d647b2f1693efc67d18aa57e4f6a53e7ccf",
+      "published:baseline.chen_medioni_point_to_plane_icp_solver.py.txt": "fff85c1aae0c4251e872c7bf39e0c91272eb9196f8cd31a2e874af9d11539446",
+      "published:baseline.native_registration_comparison_solver.py.txt": "2dafd9d8dc53a406e8f54f40341573fdbae7afe1c6147d08cc413eb2254e85e7",
+      "published:baseline.robust_point_to_point_icp_solver.py.txt": "5cef296f6736332415e2b60b5d860db74b1e8ad8e9c8746c438f450ddcc25b96",
+      "published:measured._exact_neighbors.py.txt": "f8f700817336bd956dabe4dbc25c7d647b2f1693efc67d18aa57e4f6a53e7ccf",
+      "published:measured.benchmark_registration_preparation.py.txt": "a2924c30ebc5fe4d4a887f65489207079b72d1fabc776e636f0e1bb940bacd56",
+      "published:measured.chen_medioni_point_to_plane_icp_solver.py.txt": "3574ea39d9993ba79972f00c41401c2669ba3048109ffb87be6d8a8a128a5390",
+      "published:measured.geometry.py.txt": "edc75ef201e05b2b3146996e10a9acd39f9c02521be753e186d4c473a7c11bbb",
+      "published:measured.holdout.py.txt": "6df7f5c3187fda94a4e8ae63a35405d81ed98bcf1a7f1f5a75081930d354e055",
+      "published:measured.native_registration_comparison_solver.py.txt": "f60100ed361ea3bb3be30a30cc4bf450522e57412fb6c9b18b2334f310859baf",
+      "published:measured.robust_point_to_point_icp_solver.py.txt": "aa32b6aee36ccd8a8a37f103f3d8b0c390fdf7c785a9f499c640a2fc696a260d",
+      "published:publication-launcher.py.txt": "8b466632ae87d1ed2f287bb055f8491ae976391c7d24c008035cd7467c4acc6f",
+      "src/calibrex/core/geometry.py": "6597695de33360d44b8b18e457f84355df3ace30837462f4b9501193879d66aa",
+      "src/calibrex/evaluation/holdout.py": "24c0eee5b132cf535dbbfb98ceb4b5f5e1b9ebafce68962a6cef8cff6ff30854",
+      "src/calibrex/solvers/_exact_neighbors.py": "f8f700817336bd956dabe4dbc25c7d647b2f1693efc67d18aa57e4f6a53e7ccf",
+      "src/calibrex/solvers/chen_medioni_point_to_plane_icp_solver.py": "410ce2c382d20ff9c0f23d5260e1f9f22e314e814f9b7399afea00c227c79c9b",
+      "src/calibrex/solvers/native_registration_comparison_solver.py": "96727a92bbffc864be126efd5e3d59651ab453e98062b7e384d22f5a2f5ab7a5",
+      "src/calibrex/solvers/robust_point_to_point_icp_solver.py": "616dcd00bd4c5338f5562e09b06f100cc69ca0855289f8d469edabc58bad195b"
+    }
+  },
+  "reference_method_id": "indexed_baseline",
+  "schema_version": "slac.benchmark/v0.1",
+  "title": "Public raw-cloud preparation and complete native registration pair",
+  "trials": [
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.23105080000823364,
+        "point_seconds": 0.5539959999732673,
+        "preparation_seconds": 3.470829900004901,
+        "wall_seconds": 4.255876699986402
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 1; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "c0a6e23f2f870aacc1fdf135d32fd7d712ba6e8991ea512cd6de0135ef9c125c"
+      },
+      "runtime_seconds": 4.255876699986402,
+      "split_id": "0000000000-0000000115-cap-500-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.23000399995362386,
+        "point_seconds": 0.32885230000829324,
+        "preparation_seconds": 0.39316279999911785,
+        "wall_seconds": 0.952019099961035
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 1; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "c0a6e23f2f870aacc1fdf135d32fd7d712ba6e8991ea512cd6de0135ef9c125c"
+      },
+      "runtime_seconds": 0.952019099961035,
+      "split_id": "0000000000-0000000115-cap-500-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.24326730001484975,
+        "point_seconds": 0.2930507999844849,
+        "preparation_seconds": 0.39351550000719726,
+        "wall_seconds": 0.9298336000065319
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 1; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "c0a6e23f2f870aacc1fdf135d32fd7d712ba6e8991ea512cd6de0135ef9c125c"
+      },
+      "runtime_seconds": 0.9298336000065319,
+      "split_id": "0000000000-0000000115-cap-500-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.1558025000267662,
+        "point_seconds": 0.29144619998987764,
+        "preparation_seconds": 0.3586904999683611,
+        "wall_seconds": 0.805939199985005
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 2; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "c0a6e23f2f870aacc1fdf135d32fd7d712ba6e8991ea512cd6de0135ef9c125c"
+      },
+      "runtime_seconds": 0.805939199985005,
+      "split_id": "0000000000-0000000115-cap-500-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.13489390001632273,
+        "point_seconds": 0.2269949999754317,
+        "preparation_seconds": 0.2006361000239849,
+        "wall_seconds": 0.5625250000157394
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 2; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "c0a6e23f2f870aacc1fdf135d32fd7d712ba6e8991ea512cd6de0135ef9c125c"
+      },
+      "runtime_seconds": 0.5625250000157394,
+      "split_id": "0000000000-0000000115-cap-500-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.2583165999967605,
+        "point_seconds": 0.4118982000509277,
+        "preparation_seconds": 1.3244767999858595,
+        "wall_seconds": 1.9946916000335477
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 2; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "c0a6e23f2f870aacc1fdf135d32fd7d712ba6e8991ea512cd6de0135ef9c125c"
+      },
+      "runtime_seconds": 1.9946916000335477,
+      "split_id": "0000000000-0000000115-cap-500-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.10943279997445643,
+        "point_seconds": 0.20070829999167472,
+        "preparation_seconds": 0.19542420003563166,
+        "wall_seconds": 0.5055653000017628
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 3; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "c0a6e23f2f870aacc1fdf135d32fd7d712ba6e8991ea512cd6de0135ef9c125c"
+      },
+      "runtime_seconds": 0.5055653000017628,
+      "split_id": "0000000000-0000000115-cap-500-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.16612170002190396,
+        "point_seconds": 0.3294101000064984,
+        "preparation_seconds": 1.1060822999570519,
+        "wall_seconds": 1.6016140999854542
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 3; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "c0a6e23f2f870aacc1fdf135d32fd7d712ba6e8991ea512cd6de0135ef9c125c"
+      },
+      "runtime_seconds": 1.6016140999854542,
+      "split_id": "0000000000-0000000115-cap-500-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.18375909997848794,
+        "point_seconds": 0.3215634999796748,
+        "preparation_seconds": 0.24601910001365468,
+        "wall_seconds": 0.7513416999718174
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 3; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "c0a6e23f2f870aacc1fdf135d32fd7d712ba6e8991ea512cd6de0135ef9c125c"
+      },
+      "runtime_seconds": 0.7513416999718174,
+      "split_id": "0000000000-0000000115-cap-500-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.13647730002412573,
+        "point_seconds": 0.28697079996345565,
+        "preparation_seconds": 1.3572495999978855,
+        "wall_seconds": 1.780697699985467
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 4; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "c0a6e23f2f870aacc1fdf135d32fd7d712ba6e8991ea512cd6de0135ef9c125c"
+      },
+      "runtime_seconds": 1.780697699985467,
+      "split_id": "0000000000-0000000115-cap-500-repeat-04",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.10960680001880974,
+        "point_seconds": 0.22510480001801625,
+        "preparation_seconds": 0.19329939997987822,
+        "wall_seconds": 0.5280110000167042
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 4; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "c0a6e23f2f870aacc1fdf135d32fd7d712ba6e8991ea512cd6de0135ef9c125c"
+      },
+      "runtime_seconds": 0.5280110000167042,
+      "split_id": "0000000000-0000000115-cap-500-repeat-04",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.10807060002116486,
+        "point_seconds": 0.2006167999934405,
+        "preparation_seconds": 0.1590674000326544,
+        "wall_seconds": 0.4677548000472598
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 4; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "c0a6e23f2f870aacc1fdf135d32fd7d712ba6e8991ea512cd6de0135ef9c125c"
+      },
+      "runtime_seconds": 0.4677548000472598,
+      "split_id": "0000000000-0000000115-cap-500-repeat-04",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.22879289998672903,
+        "point_seconds": 0.1858611000352539,
+        "preparation_seconds": 0.24633679998805746,
+        "wall_seconds": 0.6609908000100404
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 5; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "c0a6e23f2f870aacc1fdf135d32fd7d712ba6e8991ea512cd6de0135ef9c125c"
+      },
+      "runtime_seconds": 0.6609908000100404,
+      "split_id": "0000000000-0000000115-cap-500-repeat-05",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.15437309996923432,
+        "point_seconds": 0.25510400003986433,
+        "preparation_seconds": 0.1610355000011623,
+        "wall_seconds": 0.5705126000102609
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 5; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "c0a6e23f2f870aacc1fdf135d32fd7d712ba6e8991ea512cd6de0135ef9c125c"
+      },
+      "runtime_seconds": 0.5705126000102609,
+      "split_id": "0000000000-0000000115-cap-500-repeat-05",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.12783650000346825,
+        "point_seconds": 0.28460259997518733,
+        "preparation_seconds": 1.1180256000370719,
+        "wall_seconds": 1.5304647000157274
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 5; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "c0a6e23f2f870aacc1fdf135d32fd7d712ba6e8991ea512cd6de0135ef9c125c"
+      },
+      "runtime_seconds": 1.5304647000157274,
+      "split_id": "0000000000-0000000115-cap-500-repeat-05",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.283258699986618,
+        "point_seconds": 0.9552930000354536,
+        "preparation_seconds": 0.2136867999797687,
+        "wall_seconds": 1.4522385000018403
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 1; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "cf6bf38d66f236b281464e1f1d9d8deb6684f2434742ab4bf86a4d8d58b9bd53"
+      },
+      "runtime_seconds": 1.4522385000018403,
+      "split_id": "0000000000-0000000115-cap-1500-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.28610919998027384,
+        "point_seconds": 0.7461404000059702,
+        "preparation_seconds": 0.2758027000236325,
+        "wall_seconds": 1.3080523000098765
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 1; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "cf6bf38d66f236b281464e1f1d9d8deb6684f2434742ab4bf86a4d8d58b9bd53"
+      },
+      "runtime_seconds": 1.3080523000098765,
+      "split_id": "0000000000-0000000115-cap-1500-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.3808474999968894,
+        "point_seconds": 1.4734583999961615,
+        "preparation_seconds": 0.9452998000197113,
+        "wall_seconds": 2.799605700012762
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 1; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "cf6bf38d66f236b281464e1f1d9d8deb6684f2434742ab4bf86a4d8d58b9bd53"
+      },
+      "runtime_seconds": 2.799605700012762,
+      "split_id": "0000000000-0000000115-cap-1500-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.18011330004082993,
+        "point_seconds": 0.45397949998732656,
+        "preparation_seconds": 0.18987950001610443,
+        "wall_seconds": 0.8239723000442609
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 2; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "cf6bf38d66f236b281464e1f1d9d8deb6684f2434742ab4bf86a4d8d58b9bd53"
+      },
+      "runtime_seconds": 0.8239723000442609,
+      "split_id": "0000000000-0000000115-cap-1500-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.24376119999215007,
+        "point_seconds": 0.9554143000277691,
+        "preparation_seconds": 0.5925425000023097,
+        "wall_seconds": 1.7917180000222288
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 2; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "cf6bf38d66f236b281464e1f1d9d8deb6684f2434742ab4bf86a4d8d58b9bd53"
+      },
+      "runtime_seconds": 1.7917180000222288,
+      "split_id": "0000000000-0000000115-cap-1500-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.13602999999420717,
+        "point_seconds": 0.6345021000015549,
+        "preparation_seconds": 0.14831100002629682,
+        "wall_seconds": 0.9188431000220589
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 2; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "cf6bf38d66f236b281464e1f1d9d8deb6684f2434742ab4bf86a4d8d58b9bd53"
+      },
+      "runtime_seconds": 0.9188431000220589,
+      "split_id": "0000000000-0000000115-cap-1500-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.23982839996460825,
+        "point_seconds": 0.9458358000265434,
+        "preparation_seconds": 0.6015810000244528,
+        "wall_seconds": 1.7872452000156045
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 3; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "cf6bf38d66f236b281464e1f1d9d8deb6684f2434742ab4bf86a4d8d58b9bd53"
+      },
+      "runtime_seconds": 1.7872452000156045,
+      "split_id": "0000000000-0000000115-cap-1500-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.16205829998943955,
+        "point_seconds": 0.6715095000108704,
+        "preparation_seconds": 0.1312061999924481,
+        "wall_seconds": 0.964773999992758
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 3; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "cf6bf38d66f236b281464e1f1d9d8deb6684f2434742ab4bf86a4d8d58b9bd53"
+      },
+      "runtime_seconds": 0.964773999992758,
+      "split_id": "0000000000-0000000115-cap-1500-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.21750560001237318,
+        "point_seconds": 0.5025928000104614,
+        "preparation_seconds": 0.13209540001116693,
+        "wall_seconds": 0.8521938000340015
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 3; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "cf6bf38d66f236b281464e1f1d9d8deb6684f2434742ab4bf86a4d8d58b9bd53"
+      },
+      "runtime_seconds": 0.8521938000340015,
+      "split_id": "0000000000-0000000115-cap-1500-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.19537060003494844,
+        "point_seconds": 0.7240646999562159,
+        "preparation_seconds": 0.1678049000329338,
+        "wall_seconds": 1.0872402000240982
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 4; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "cf6bf38d66f236b281464e1f1d9d8deb6684f2434742ab4bf86a4d8d58b9bd53"
+      },
+      "runtime_seconds": 1.0872402000240982,
+      "split_id": "0000000000-0000000115-cap-1500-repeat-04",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.24681520002195612,
+        "point_seconds": 0.6094803999876603,
+        "preparation_seconds": 0.1569811999797821,
+        "wall_seconds": 1.0132767999893986
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 4; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "cf6bf38d66f236b281464e1f1d9d8deb6684f2434742ab4bf86a4d8d58b9bd53"
+      },
+      "runtime_seconds": 1.0132767999893986,
+      "split_id": "0000000000-0000000115-cap-1500-repeat-04",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.6749690999859013,
+        "point_seconds": 2.343719099997543,
+        "preparation_seconds": 1.3715645000338554,
+        "wall_seconds": 4.3902527000172995
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 4; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "cf6bf38d66f236b281464e1f1d9d8deb6684f2434742ab4bf86a4d8d58b9bd53"
+      },
+      "runtime_seconds": 4.3902527000172995,
+      "split_id": "0000000000-0000000115-cap-1500-repeat-04",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.4112633000477217,
+        "point_seconds": 1.1168243999709375,
+        "preparation_seconds": 0.3138726000324823,
+        "wall_seconds": 1.8419603000511415
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 5; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "cf6bf38d66f236b281464e1f1d9d8deb6684f2434742ab4bf86a4d8d58b9bd53"
+      },
+      "runtime_seconds": 1.8419603000511415,
+      "split_id": "0000000000-0000000115-cap-1500-repeat-05",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.500627200002782,
+        "point_seconds": 2.0126228000153787,
+        "preparation_seconds": 1.2384045000071637,
+        "wall_seconds": 3.7516545000253245
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 5; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "cf6bf38d66f236b281464e1f1d9d8deb6684f2434742ab4bf86a4d8d58b9bd53"
+      },
+      "runtime_seconds": 3.7516545000253245,
+      "split_id": "0000000000-0000000115-cap-1500-repeat-05",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.2755504999659024,
+        "point_seconds": 1.1782720999908634,
+        "preparation_seconds": 0.24813920003362,
+        "wall_seconds": 1.7019617999903858
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 5; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "cf6bf38d66f236b281464e1f1d9d8deb6684f2434742ab4bf86a4d8d58b9bd53"
+      },
+      "runtime_seconds": 1.7019617999903858,
+      "split_id": "0000000000-0000000115-cap-1500-repeat-05",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.5153995999717154,
+        "point_seconds": 1.2035490000271238,
+        "preparation_seconds": 0.19793709996156394,
+        "wall_seconds": 1.9168856999604031
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 1; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "06a1f4254825bda98a887259c2d1a9008ab4ede6db985e2eb8031513bc521636"
+      },
+      "runtime_seconds": 1.9168856999604031,
+      "split_id": "0000000000-0000000115-cap-3000-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.6389532999601215,
+        "point_seconds": 2.77476330002537,
+        "preparation_seconds": 0.9961001999909058,
+        "wall_seconds": 4.409816799976397
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 1; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "06a1f4254825bda98a887259c2d1a9008ab4ede6db985e2eb8031513bc521636"
+      },
+      "runtime_seconds": 4.409816799976397,
+      "split_id": "0000000000-0000000115-cap-3000-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.4500333999749273,
+        "point_seconds": 1.7749172000330873,
+        "preparation_seconds": 0.1807833999628201,
+        "wall_seconds": 2.4057339999708347
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 1; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "06a1f4254825bda98a887259c2d1a9008ab4ede6db985e2eb8031513bc521636"
+      },
+      "runtime_seconds": 2.4057339999708347,
+      "split_id": "0000000000-0000000115-cap-3000-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.6169907000148669,
+        "point_seconds": 2.408157299971208,
+        "preparation_seconds": 0.8839020000305027,
+        "wall_seconds": 3.9090500000165775
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 2; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "06a1f4254825bda98a887259c2d1a9008ab4ede6db985e2eb8031513bc521636"
+      },
+      "runtime_seconds": 3.9090500000165775,
+      "split_id": "0000000000-0000000115-cap-3000-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.4489863000344485,
+        "point_seconds": 1.5177609999664128,
+        "preparation_seconds": 0.17958250001538545,
+        "wall_seconds": 2.1463298000162467
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 2; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "06a1f4254825bda98a887259c2d1a9008ab4ede6db985e2eb8031513bc521636"
+      },
+      "runtime_seconds": 2.1463298000162467,
+      "split_id": "0000000000-0000000115-cap-3000-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.4187584000173956,
+        "point_seconds": 0.9755399000132456,
+        "preparation_seconds": 0.17494850000366569,
+        "wall_seconds": 1.569246800034307
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 2; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "06a1f4254825bda98a887259c2d1a9008ab4ede6db985e2eb8031513bc521636"
+      },
+      "runtime_seconds": 1.569246800034307,
+      "split_id": "0000000000-0000000115-cap-3000-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.4407385000376962,
+        "point_seconds": 1.614495599991642,
+        "preparation_seconds": 0.19107800000347197,
+        "wall_seconds": 2.24631210003281
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 3; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "06a1f4254825bda98a887259c2d1a9008ab4ede6db985e2eb8031513bc521636"
+      },
+      "runtime_seconds": 2.24631210003281,
+      "split_id": "0000000000-0000000115-cap-3000-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.41327040002215654,
+        "point_seconds": 1.0191798000014387,
+        "preparation_seconds": 0.1801269999705255,
+        "wall_seconds": 1.6125771999941207
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 3; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "06a1f4254825bda98a887259c2d1a9008ab4ede6db985e2eb8031513bc521636"
+      },
+      "runtime_seconds": 1.6125771999941207,
+      "split_id": "0000000000-0000000115-cap-3000-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.5968048999784514,
+        "point_seconds": 2.1075382999842986,
+        "preparation_seconds": 0.6892612000228837,
+        "wall_seconds": 3.393604399985634
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 3; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "06a1f4254825bda98a887259c2d1a9008ab4ede6db985e2eb8031513bc521636"
+      },
+      "runtime_seconds": 3.393604399985634,
+      "split_id": "0000000000-0000000115-cap-3000-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.7685641000280157,
+        "point_seconds": 0.9083074000081979,
+        "preparation_seconds": 0.17341139999916777,
+        "wall_seconds": 1.8502829000353813
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 4; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "06a1f4254825bda98a887259c2d1a9008ab4ede6db985e2eb8031513bc521636"
+      },
+      "runtime_seconds": 1.8502829000353813,
+      "split_id": "0000000000-0000000115-cap-3000-repeat-04",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 1.1151280000340194,
+        "point_seconds": 5.370342199981678,
+        "preparation_seconds": 1.636869799986016,
+        "wall_seconds": 8.122340000001714
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 4; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "06a1f4254825bda98a887259c2d1a9008ab4ede6db985e2eb8031513bc521636"
+      },
+      "runtime_seconds": 8.122340000001714,
+      "split_id": "0000000000-0000000115-cap-3000-repeat-04",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.8479069000459276,
+        "point_seconds": 2.702404999989085,
+        "preparation_seconds": 0.30528199998661876,
+        "wall_seconds": 3.8555939000216313
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 4; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "06a1f4254825bda98a887259c2d1a9008ab4ede6db985e2eb8031513bc521636"
+      },
+      "runtime_seconds": 3.8555939000216313,
+      "split_id": "0000000000-0000000115-cap-3000-repeat-04",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.8804213000112213,
+        "point_seconds": 4.2984487999929115,
+        "preparation_seconds": 1.3666139999986626,
+        "wall_seconds": 6.5454841000027955
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 5; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "06a1f4254825bda98a887259c2d1a9008ab4ede6db985e2eb8031513bc521636"
+      },
+      "runtime_seconds": 6.5454841000027955,
+      "split_id": "0000000000-0000000115-cap-3000-repeat-05",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.4431891999556683,
+        "point_seconds": 2.364783700031694,
+        "preparation_seconds": 0.20750129997031763,
+        "wall_seconds": 3.01547419995768
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 5; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "06a1f4254825bda98a887259c2d1a9008ab4ede6db985e2eb8031513bc521636"
+      },
+      "runtime_seconds": 3.01547419995768,
+      "split_id": "0000000000-0000000115-cap-3000-repeat-05",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.8243382000364363,
+        "point_seconds": 1.91414489998715,
+        "preparation_seconds": 0.3225298000033945,
+        "wall_seconds": 3.061012900026981
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 5; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "06a1f4254825bda98a887259c2d1a9008ab4ede6db985e2eb8031513bc521636"
+      },
+      "runtime_seconds": 3.061012900026981,
+      "split_id": "0000000000-0000000115-cap-3000-repeat-05",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.14357890002429485,
+        "point_seconds": 0.469210600014776,
+        "preparation_seconds": 0.2758726999745704,
+        "wall_seconds": 0.8886622000136413
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 1; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "b39035e26340eb5846d0b7c1c47266bf2fe7a82da808037bfa5c23121404ab9d"
+      },
+      "runtime_seconds": 0.8886622000136413,
+      "split_id": "0000000115-0000000230-cap-500-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.1641109000192955,
+        "point_seconds": 0.40243209997424856,
+        "preparation_seconds": 0.22544060001382604,
+        "wall_seconds": 0.7919836000073701
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 1; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "b39035e26340eb5846d0b7c1c47266bf2fe7a82da808037bfa5c23121404ab9d"
+      },
+      "runtime_seconds": 0.7919836000073701,
+      "split_id": "0000000115-0000000230-cap-500-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.22302730003139004,
+        "point_seconds": 0.6287982999929227,
+        "preparation_seconds": 1.7824546999763697,
+        "wall_seconds": 2.6342803000006825
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 1; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "b39035e26340eb5846d0b7c1c47266bf2fe7a82da808037bfa5c23121404ab9d"
+      },
+      "runtime_seconds": 2.6342803000006825,
+      "split_id": "0000000115-0000000230-cap-500-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.18056010000873357,
+        "point_seconds": 0.5321501999860629,
+        "preparation_seconds": 0.328545700001996,
+        "wall_seconds": 1.0412559999967925
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 2; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "b39035e26340eb5846d0b7c1c47266bf2fe7a82da808037bfa5c23121404ab9d"
+      },
+      "runtime_seconds": 1.0412559999967925,
+      "split_id": "0000000115-0000000230-cap-500-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.17931259999750182,
+        "point_seconds": 0.46907510003075004,
+        "preparation_seconds": 1.250438699964434,
+        "wall_seconds": 1.8988263999926858
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 2; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "b39035e26340eb5846d0b7c1c47266bf2fe7a82da808037bfa5c23121404ab9d"
+      },
+      "runtime_seconds": 1.8988263999926858,
+      "split_id": "0000000115-0000000230-cap-500-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.15534549998119473,
+        "point_seconds": 0.4629290999728255,
+        "preparation_seconds": 0.2349396999925375,
+        "wall_seconds": 0.8532142999465577
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 2; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "b39035e26340eb5846d0b7c1c47266bf2fe7a82da808037bfa5c23121404ab9d"
+      },
+      "runtime_seconds": 0.8532142999465577,
+      "split_id": "0000000115-0000000230-cap-500-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.21903489995747805,
+        "point_seconds": 0.5264526000246406,
+        "preparation_seconds": 1.3522984000155702,
+        "wall_seconds": 2.097785899997689
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 3; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "b39035e26340eb5846d0b7c1c47266bf2fe7a82da808037bfa5c23121404ab9d"
+      },
+      "runtime_seconds": 2.097785899997689,
+      "split_id": "0000000115-0000000230-cap-500-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.14937699999427423,
+        "point_seconds": 0.5162712999735959,
+        "preparation_seconds": 0.25488860002951697,
+        "wall_seconds": 0.9205368999973871
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 3; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "b39035e26340eb5846d0b7c1c47266bf2fe7a82da808037bfa5c23121404ab9d"
+      },
+      "runtime_seconds": 0.9205368999973871,
+      "split_id": "0000000115-0000000230-cap-500-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.20545880001736805,
+        "point_seconds": 0.42897619999712333,
+        "preparation_seconds": 0.22620269999606535,
+        "wall_seconds": 0.8606377000105567
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 3; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "b39035e26340eb5846d0b7c1c47266bf2fe7a82da808037bfa5c23121404ab9d"
+      },
+      "runtime_seconds": 0.8606377000105567,
+      "split_id": "0000000115-0000000230-cap-500-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.13386199995875359,
+        "point_seconds": 0.48787400004221126,
+        "preparation_seconds": 0.22627709998050705,
+        "wall_seconds": 0.8480130999814719
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 4; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "b39035e26340eb5846d0b7c1c47266bf2fe7a82da808037bfa5c23121404ab9d"
+      },
+      "runtime_seconds": 0.8480130999814719,
+      "split_id": "0000000115-0000000230-cap-500-repeat-04",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.13509370002429932,
+        "point_seconds": 0.3913046999950893,
+        "preparation_seconds": 0.24639340001158416,
+        "wall_seconds": 0.7727918000309728
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 4; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "b39035e26340eb5846d0b7c1c47266bf2fe7a82da808037bfa5c23121404ab9d"
+      },
+      "runtime_seconds": 0.7727918000309728,
+      "split_id": "0000000115-0000000230-cap-500-repeat-04",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.2292487999657169,
+        "point_seconds": 0.5477722000214271,
+        "preparation_seconds": 2.410615000000689,
+        "wall_seconds": 3.187635999987833
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 4; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "b39035e26340eb5846d0b7c1c47266bf2fe7a82da808037bfa5c23121404ab9d"
+      },
+      "runtime_seconds": 3.187635999987833,
+      "split_id": "0000000115-0000000230-cap-500-repeat-04",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.16160900000249967,
+        "point_seconds": 0.5975583999534138,
+        "preparation_seconds": 0.258400899998378,
+        "wall_seconds": 1.0175682999542914
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 5; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "b39035e26340eb5846d0b7c1c47266bf2fe7a82da808037bfa5c23121404ab9d"
+      },
+      "runtime_seconds": 1.0175682999542914,
+      "split_id": "0000000115-0000000230-cap-500-repeat-05",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.2711450000060722,
+        "point_seconds": 0.47608209995087236,
+        "preparation_seconds": 1.5649981000460684,
+        "wall_seconds": 2.312225200003013
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 5; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "b39035e26340eb5846d0b7c1c47266bf2fe7a82da808037bfa5c23121404ab9d"
+      },
+      "runtime_seconds": 2.312225200003013,
+      "split_id": "0000000115-0000000230-cap-500-repeat-05",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.20361239998601377,
+        "point_seconds": 0.41389170003822073,
+        "preparation_seconds": 0.3299494999810122,
+        "wall_seconds": 0.9474536000052467
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 5; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "b39035e26340eb5846d0b7c1c47266bf2fe7a82da808037bfa5c23121404ab9d"
+      },
+      "runtime_seconds": 0.9474536000052467,
+      "split_id": "0000000115-0000000230-cap-500-repeat-05",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.27042419998906553,
+        "point_seconds": 0.7403223000001162,
+        "preparation_seconds": 0.3306995999882929,
+        "wall_seconds": 1.3414460999774747
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 1; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "132db2fa77ada91b8181fec494fbb9edb79999ba6ffc411e17d3228cc5814343"
+      },
+      "runtime_seconds": 1.3414460999774747,
+      "split_id": "0000000115-0000000230-cap-1500-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.20060059998650104,
+        "point_seconds": 1.3115075000096112,
+        "preparation_seconds": 1.0902801000047475,
+        "wall_seconds": 2.60238820000086
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 1; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "132db2fa77ada91b8181fec494fbb9edb79999ba6ffc411e17d3228cc5814343"
+      },
+      "runtime_seconds": 2.60238820000086,
+      "split_id": "0000000115-0000000230-cap-1500-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.1327492999844253,
+        "point_seconds": 0.5364722000085749,
+        "preparation_seconds": 0.1201590999844484,
+        "wall_seconds": 0.7893805999774486
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 1; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "132db2fa77ada91b8181fec494fbb9edb79999ba6ffc411e17d3228cc5814343"
+      },
+      "runtime_seconds": 0.7893805999774486,
+      "split_id": "0000000115-0000000230-cap-1500-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.20266409998293966,
+        "point_seconds": 0.7853207000298426,
+        "preparation_seconds": 0.5100008999579586,
+        "wall_seconds": 1.4979856999707408
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 2; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "132db2fa77ada91b8181fec494fbb9edb79999ba6ffc411e17d3228cc5814343"
+      },
+      "runtime_seconds": 1.4979856999707408,
+      "split_id": "0000000115-0000000230-cap-1500-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.17188510001869872,
+        "point_seconds": 0.6291375000146218,
+        "preparation_seconds": 0.1358909999835305,
+        "wall_seconds": 0.936913600016851
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 2; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "132db2fa77ada91b8181fec494fbb9edb79999ba6ffc411e17d3228cc5814343"
+      },
+      "runtime_seconds": 0.936913600016851,
+      "split_id": "0000000115-0000000230-cap-1500-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.15850570000475273,
+        "point_seconds": 0.47031790000619367,
+        "preparation_seconds": 0.14942259999224916,
+        "wall_seconds": 0.7782462000031956
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 2; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "132db2fa77ada91b8181fec494fbb9edb79999ba6ffc411e17d3228cc5814343"
+      },
+      "runtime_seconds": 0.7782462000031956,
+      "split_id": "0000000115-0000000230-cap-1500-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.1312370999949053,
+        "point_seconds": 0.5347228000173345,
+        "preparation_seconds": 0.13807119999546558,
+        "wall_seconds": 0.8040311000077054
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 3; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "132db2fa77ada91b8181fec494fbb9edb79999ba6ffc411e17d3228cc5814343"
+      },
+      "runtime_seconds": 0.8040311000077054,
+      "split_id": "0000000115-0000000230-cap-1500-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.15503700001863763,
+        "point_seconds": 0.43586349999532104,
+        "preparation_seconds": 0.13845559995388612,
+        "wall_seconds": 0.7293560999678448
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 3; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "132db2fa77ada91b8181fec494fbb9edb79999ba6ffc411e17d3228cc5814343"
+      },
+      "runtime_seconds": 0.7293560999678448,
+      "split_id": "0000000115-0000000230-cap-1500-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.2068987999809906,
+        "point_seconds": 0.714515500003472,
+        "preparation_seconds": 0.49831920000724494,
+        "wall_seconds": 1.4197334999917075
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 3; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "132db2fa77ada91b8181fec494fbb9edb79999ba6ffc411e17d3228cc5814343"
+      },
+      "runtime_seconds": 1.4197334999917075,
+      "split_id": "0000000115-0000000230-cap-1500-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.1534144000033848,
+        "point_seconds": 0.3978637999971397,
+        "preparation_seconds": 0.10987280000699684,
+        "wall_seconds": 0.6611510000075214
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 4; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "132db2fa77ada91b8181fec494fbb9edb79999ba6ffc411e17d3228cc5814343"
+      },
+      "runtime_seconds": 0.6611510000075214,
+      "split_id": "0000000115-0000000230-cap-1500-repeat-04",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.208915600029286,
+        "point_seconds": 0.6797237999853678,
+        "preparation_seconds": 0.4984752999735065,
+        "wall_seconds": 1.3871146999881603
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 4; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "132db2fa77ada91b8181fec494fbb9edb79999ba6ffc411e17d3228cc5814343"
+      },
+      "runtime_seconds": 1.3871146999881603,
+      "split_id": "0000000115-0000000230-cap-1500-repeat-04",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.1370903000351973,
+        "point_seconds": 0.517051899980288,
+        "preparation_seconds": 0.1254966999986209,
+        "wall_seconds": 0.7796389000141062
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 4; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "132db2fa77ada91b8181fec494fbb9edb79999ba6ffc411e17d3228cc5814343"
+      },
+      "runtime_seconds": 0.7796389000141062,
+      "split_id": "0000000115-0000000230-cap-1500-repeat-04",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.22473870002431795,
+        "point_seconds": 0.6854379000142217,
+        "preparation_seconds": 0.4761537999729626,
+        "wall_seconds": 1.3863304000115022
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 5; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "132db2fa77ada91b8181fec494fbb9edb79999ba6ffc411e17d3228cc5814343"
+      },
+      "runtime_seconds": 1.3863304000115022,
+      "split_id": "0000000115-0000000230-cap-1500-repeat-05",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.18086760002188385,
+        "point_seconds": 0.45910759997786954,
+        "preparation_seconds": 0.11684660002356395,
+        "wall_seconds": 0.7568218000233173
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 5; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "132db2fa77ada91b8181fec494fbb9edb79999ba6ffc411e17d3228cc5814343"
+      },
+      "runtime_seconds": 0.7568218000233173,
+      "split_id": "0000000115-0000000230-cap-1500-repeat-05",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.13656409998657182,
+        "point_seconds": 0.4178998999996111,
+        "preparation_seconds": 0.1574597000144422,
+        "wall_seconds": 0.7119237000006251
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 5; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "132db2fa77ada91b8181fec494fbb9edb79999ba6ffc411e17d3228cc5814343"
+      },
+      "runtime_seconds": 0.7119237000006251,
+      "split_id": "0000000115-0000000230-cap-1500-repeat-05",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.382212599972263,
+        "point_seconds": 1.2295406999764964,
+        "preparation_seconds": 0.5019454000284895,
+        "wall_seconds": 2.113698699977249
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 1; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "54160dea0ccf4129ae4f4ea4b809ce613f3793986d8bc604716fb7a2650c527b"
+      },
+      "runtime_seconds": 2.113698699977249,
+      "split_id": "0000000115-0000000230-cap-3000-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.2857335999724455,
+        "point_seconds": 0.9159880999941379,
+        "preparation_seconds": 0.15516500000376254,
+        "wall_seconds": 1.356886699970346
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 1; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "54160dea0ccf4129ae4f4ea4b809ce613f3793986d8bc604716fb7a2650c527b"
+      },
+      "runtime_seconds": 1.356886699970346,
+      "split_id": "0000000115-0000000230-cap-3000-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.27702690003206953,
+        "point_seconds": 0.627143099962268,
+        "preparation_seconds": 0.12789510004222393,
+        "wall_seconds": 1.0320651000365615
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 1; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "54160dea0ccf4129ae4f4ea4b809ce613f3793986d8bc604716fb7a2650c527b"
+      },
+      "runtime_seconds": 1.0320651000365615,
+      "split_id": "0000000115-0000000230-cap-3000-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.25967790000140667,
+        "point_seconds": 0.9334442999679595,
+        "preparation_seconds": 0.13425609999103472,
+        "wall_seconds": 1.327378299960401
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 2; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "54160dea0ccf4129ae4f4ea4b809ce613f3793986d8bc604716fb7a2650c527b"
+      },
+      "runtime_seconds": 1.327378299960401,
+      "split_id": "0000000115-0000000230-cap-3000-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.2595001999870874,
+        "point_seconds": 0.5895508999819867,
+        "preparation_seconds": 0.12596210004994646,
+        "wall_seconds": 0.9750132000190206
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 2; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "54160dea0ccf4129ae4f4ea4b809ce613f3793986d8bc604716fb7a2650c527b"
+      },
+      "runtime_seconds": 0.9750132000190206,
+      "split_id": "0000000115-0000000230-cap-3000-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.45553400000790134,
+        "point_seconds": 1.3655743999988772,
+        "preparation_seconds": 0.5661275999736972,
+        "wall_seconds": 2.3872359999804758
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 2; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "54160dea0ccf4129ae4f4ea4b809ce613f3793986d8bc604716fb7a2650c527b"
+      },
+      "runtime_seconds": 2.3872359999804758,
+      "split_id": "0000000115-0000000230-cap-3000-repeat-02",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.2371230999706313,
+        "point_seconds": 0.7405451000086032,
+        "preparation_seconds": 0.18971150001743808,
+        "wall_seconds": 1.1673796999966726
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 3; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "54160dea0ccf4129ae4f4ea4b809ce613f3793986d8bc604716fb7a2650c527b"
+      },
+      "runtime_seconds": 1.1673796999966726,
+      "split_id": "0000000115-0000000230-cap-3000-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.38317290000850335,
+        "point_seconds": 1.4805110999732278,
+        "preparation_seconds": 0.5062231000047177,
+        "wall_seconds": 2.369907099986449
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 3; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "54160dea0ccf4129ae4f4ea4b809ce613f3793986d8bc604716fb7a2650c527b"
+      },
+      "runtime_seconds": 2.369907099986449,
+      "split_id": "0000000115-0000000230-cap-3000-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.25839040003484115,
+        "point_seconds": 0.8999373000115156,
+        "preparation_seconds": 0.15308189997449517,
+        "wall_seconds": 1.311409600020852
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_auto', 'indexed_baseline', 'vectorized_sequential'); repetition 3; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "54160dea0ccf4129ae4f4ea4b809ce613f3793986d8bc604716fb7a2650c527b"
+      },
+      "runtime_seconds": 1.311409600020852,
+      "split_id": "0000000115-0000000230-cap-3000-repeat-03",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.4133950999821536,
+        "point_seconds": 1.379952699993737,
+        "preparation_seconds": 0.5413956000120379,
+        "wall_seconds": 2.3347433999879286
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 4; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "54160dea0ccf4129ae4f4ea4b809ce613f3793986d8bc604716fb7a2650c527b"
+      },
+      "runtime_seconds": 2.3347433999879286,
+      "split_id": "0000000115-0000000230-cap-3000-repeat-04",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.31336410000221804,
+        "point_seconds": 0.8735264000133611,
+        "preparation_seconds": 0.15169929998228326,
+        "wall_seconds": 1.3385897999978624
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 4; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "54160dea0ccf4129ae4f4ea4b809ce613f3793986d8bc604716fb7a2650c527b"
+      },
+      "runtime_seconds": 1.3385897999978624,
+      "split_id": "0000000115-0000000230-cap-3000-repeat-04",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.293940500007011,
+        "point_seconds": 0.6931870999978855,
+        "preparation_seconds": 0.14696649997495115,
+        "wall_seconds": 1.1340940999798477
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 4; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "54160dea0ccf4129ae4f4ea4b809ce613f3793986d8bc604716fb7a2650c527b"
+      },
+      "runtime_seconds": 1.1340940999798477,
+      "split_id": "0000000115-0000000230-cap-3000-repeat-04",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.26174009998794645,
+        "point_seconds": 0.9164038000162691,
+        "preparation_seconds": 0.15321170003153384,
+        "wall_seconds": 1.3313556000357494
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 5; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "54160dea0ccf4129ae4f4ea4b809ce613f3793986d8bc604716fb7a2650c527b"
+      },
+      "runtime_seconds": 1.3313556000357494,
+      "split_id": "0000000115-0000000230-cap-3000-repeat-05",
+      "status": "success"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.2856006000074558,
+        "point_seconds": 0.6394152999855578,
+        "preparation_seconds": 0.1209470999892801,
+        "wall_seconds": 1.0459629999822937
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 5; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "54160dea0ccf4129ae4f4ea4b809ce613f3793986d8bc604716fb7a2650c527b"
+      },
+      "runtime_seconds": 1.0459629999822937,
+      "split_id": "0000000115-0000000230-cap-3000-repeat-05",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.35180189996026456,
+        "point_seconds": 1.4200620999909006,
+        "preparation_seconds": 0.5970402000239119,
+        "wall_seconds": 2.368904199975077
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 1500 3000 --repeats 5",
+        "config_sha256": "ad3fdab03b2328fd4c7bb1ef1b26c7f46fd935f64c37b44dc532de6df54cbfb1",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 5; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in registration.definition.json"
+        ],
+        "output_sha256": "54160dea0ccf4129ae4f4ea4b809ce613f3793986d8bc604716fb7a2650c527b"
+      },
+      "runtime_seconds": 2.368904199975077,
+      "split_id": "0000000115-0000000230-cap-3000-repeat-05",
+      "status": "success"
+    }
+  ]
+}

@@ -1,0 +1,376 @@
+{
+  "benchmark_id": "public_kitti_fused_cpu_signed_axis_validation",
+  "bootstrap_samples": 1,
+  "bootstrap_seed": 0,
+  "limitations": [
+    "Six fixed axis perturbations on one development drive; convergence/parity do not establish independent calibration accuracy.",
+    "Historical CPU results are comparison oracles for numerical payloads, not paired timing measurements."
+  ],
+  "methods": [
+    {
+      "implementation": "imported",
+      "label": "Historical CPU numerical oracle (no timing)",
+      "method_id": "historical_numpy",
+      "source_commit": "46516ec",
+      "tool_name": "Calibrex"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "Fused Numba CPU, two frame threads",
+      "method_id": "numba_cpu",
+      "source_commit": "f00c54b",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    }
+  ],
+  "metrics": [
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "1 means exact equality with the historical complete numerical payload.",
+      "label": "Complete numerical payload parity",
+      "name": "numerical_parity",
+      "primary": false,
+      "unit": "ratio"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Solver evaluation count for this fixed signed-axis problem.",
+      "label": "Evaluations",
+      "name": "evaluation_count",
+      "primary": false,
+      "unit": "count"
+    }
+  ],
+  "protocol": {
+    "data_license": "CC-BY-NC-SA-3.0",
+    "dataset_id": "kitti_raw_2011_09_30_drive_0018",
+    "dataset_source_sha256": "ed5ad3947b2ca94b415ceabbc16d2d767ad084b2e8fd4b83937570c28b6c6e8d",
+    "failure_policy": "Retain each candidate, including nonconvergence or a numerical mismatch.",
+    "initial_estimate_policy": "Dataset reference plus local Euler rotation +/-0.5 deg and camera-frame translation +/-0.5 m, on x, y, z in that order. Controlled prior; reference is never the optimization target.",
+    "protocol_id": "fused_cpu_histogram_signed_axis_parity/v0.1",
+    "split_policy": "Six fixed signed-axis initializations on the same uniform 20-fit/5-holdout provider frames; repetitions are timing observations, not independent recovery trials.",
+    "splits": [
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "x-positive/repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "x-negative/repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "y-positive/repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "y-negative/repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "z-positive/repeat-01"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "z-negative/repeat-01"
+      }
+    ],
+    "tuning_policy": "All cases/settings fixed before execution; no holdout tuning or filtering."
+  },
+  "provenance": {
+    "command": "aggregate six previously saved frozen signed-axis results; numba_cpu; frame_workers=2",
+    "data_verified": true,
+    "generated_at": "2026-10-11T01:46:49.319278+00:00",
+    "generator": "manual.fused_cpu_histogram_signed_axis_validation",
+    "generator_version": "v0.1",
+    "git_commit": "f00c54b",
+    "source_artifacts": {
+      "original_cpu_x-negative": "035f477846a799136d300bff08f6d538cf9bbb0594bb344bc988e6381f74c27d",
+      "original_cpu_x-positive": "c9a4957390cef79fe796d8726fb8a3fcd6af90c4bb33d6d1293e6c4a81056800",
+      "original_cpu_y-negative": "ce7f29693fd263a697cc07e92ecbe71f6644c8163d6103cab2845008829f78e5",
+      "original_cpu_y-positive": "f32ec190e70ed2d205b039afd246103271b49b8f068cf6e014b73b2ce9e2141c",
+      "original_cpu_z-negative": "c535eb2f81aa34a44a71c513eab6eb2e283aeb66ffa9509c0e95ee8967c3ffb8",
+      "original_cpu_z-positive": "9292a8ae32ee2dfcf628d2b57a577c2ed93993e94e81e0ae651cc236207e11fb",
+      "original_local_validation_definition": "f2e24f7b3593ad220d9a515244cffd75f8d33c098f5b96e2754fbd4876bd79ee",
+      "problem_x-negative": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+      "problem_x-positive": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+      "problem_y-negative": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+      "problem_y-positive": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+      "problem_z-negative": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+      "problem_z-positive": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+      "validation_aggregator": "4679f24896071f4eadd433c0655b94bbfb4ddb85ef7fac393d0772b3c1e29977",
+      "validation_launcher": "77e75310f0ef216388e592f0ab3dee9733a901a70c5901e22a697919930ffb71"
+    }
+  },
+  "reference_method_id": "historical_numpy",
+  "schema_version": "slac.benchmark_definition/v0.1",
+  "title": "Fused CPU six-axis numerical validation",
+  "trials": [
+    {
+      "method_id": "historical_numpy",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "historical CPU numerical oracle; not rerun in this validation",
+        "config_sha256": "f4010bd2cb6531dba7ee8ee7321628630800620430ca4a6718b3a71dcb32b465",
+        "input_sha256": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+        "notes": [
+          "Imported frozen historical CPU numerical result; all timing intentionally omitted."
+        ],
+        "output_sha256": "c9a4957390cef79fe796d8726fb8a3fcd6af90c4bb33d6d1293e6c4a81056800"
+      },
+      "split_id": "x-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_count": 229.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "manual-frozen-axis-validation x-positive --projection-backend numba_cpu --frame-workers 2",
+        "config_sha256": "f7cfc71ea160648f0dab2ee009192dcc2d697c5de89e3cc5fb8c4d818ad16431",
+        "input_sha256": "324586d945a85ce806d8fe639e273d212d130dcf3cadc712570c177bd5c5984a",
+        "notes": [
+          "Full original CPU numerical payload SHA256: fdf4d36e8cbe9b8a88a5cb765f4c387f67fa2021df8e51271ce461bb4f9e3160",
+          "Original CPU result SHA256: c9a4957390cef79fe796d8726fb8a3fcd6af90c4bb33d6d1293e6c4a81056800",
+          "Historical CPU is used for numerical validation only; no paired speed ratio is inferred.",
+          "Original launcher saved all six standard results, then failed to aggregate due to missing metric interpretation metadata. Aggregator reads those unchanged result bytes.",
+          "Output SHA256 binds original external bytes; complete numerical payload matched the bound historical CPU result."
+        ],
+        "output_sha256": "190e4bf29774bdf1da31ca4b2540d60f5b488e82c6650205c7170a0792589ade"
+      },
+      "split_id": "x-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "historical_numpy",
+      "metrics": {
+        "evaluation_count": 313.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "historical CPU numerical oracle; not rerun in this validation",
+        "config_sha256": "7b65f411260871a74d4bbdeab8a10c75d6107d704f2a64d08209f5da0ad259d2",
+        "input_sha256": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+        "notes": [
+          "Imported frozen historical CPU numerical result; all timing intentionally omitted."
+        ],
+        "output_sha256": "035f477846a799136d300bff08f6d538cf9bbb0594bb344bc988e6381f74c27d"
+      },
+      "split_id": "x-negative/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_count": 313.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "manual-frozen-axis-validation x-negative --projection-backend numba_cpu --frame-workers 2",
+        "config_sha256": "6bdcc39df3416c1762df9744df91a792877f1b9ca77bfb4ca62ebf36fa036726",
+        "input_sha256": "d2a04a732c731dee68776d229668278f84fdbe441b56124a198794bd19f9bd70",
+        "notes": [
+          "Full original CPU numerical payload SHA256: 87dda842423caf9856487c3c0532b25e0a1b2be6708f1fbfef01c981842e3f30",
+          "Original CPU result SHA256: 035f477846a799136d300bff08f6d538cf9bbb0594bb344bc988e6381f74c27d",
+          "Historical CPU is used for numerical validation only; no paired speed ratio is inferred.",
+          "Original launcher saved all six standard results, then failed to aggregate due to missing metric interpretation metadata. Aggregator reads those unchanged result bytes.",
+          "Output SHA256 binds original external bytes; complete numerical payload matched the bound historical CPU result."
+        ],
+        "output_sha256": "2d1f6f501eeed9448685ad516d430d34adade22c7219d66bf981cc4e1ac75a98"
+      },
+      "split_id": "x-negative/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "historical_numpy",
+      "metrics": {
+        "evaluation_count": 277.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "historical CPU numerical oracle; not rerun in this validation",
+        "config_sha256": "27eac5d33fd02b511eadee82a620266b42d9d84368df4340b78a385dac8dade9",
+        "input_sha256": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+        "notes": [
+          "Imported frozen historical CPU numerical result; all timing intentionally omitted."
+        ],
+        "output_sha256": "f32ec190e70ed2d205b039afd246103271b49b8f068cf6e014b73b2ce9e2141c"
+      },
+      "split_id": "y-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_count": 277.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "manual-frozen-axis-validation y-positive --projection-backend numba_cpu --frame-workers 2",
+        "config_sha256": "9794e17c33f994fedf0dd6ae1da8aee465051e4054ba7b0a7b407d83e281f5d4",
+        "input_sha256": "2bb8898f9f87e925dec07aeb7eea3b5c3f1d8b6a7a2a423a651a41682f4dc5ca",
+        "notes": [
+          "Full original CPU numerical payload SHA256: ff4000687512d5d99ef33b28769a7b03ca064915a332f22457d91edc6b251a0e",
+          "Original CPU result SHA256: f32ec190e70ed2d205b039afd246103271b49b8f068cf6e014b73b2ce9e2141c",
+          "Historical CPU is used for numerical validation only; no paired speed ratio is inferred.",
+          "Original launcher saved all six standard results, then failed to aggregate due to missing metric interpretation metadata. Aggregator reads those unchanged result bytes.",
+          "Output SHA256 binds original external bytes; complete numerical payload matched the bound historical CPU result."
+        ],
+        "output_sha256": "aa870d420b94d7a456c6ec6eeb85fc04db19641b232986b2564c64f4e89d7ae2"
+      },
+      "split_id": "y-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "historical_numpy",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "historical CPU numerical oracle; not rerun in this validation",
+        "config_sha256": "3a96217308608cb6b732da80c8df9efbe10af23f332a04189f1600a9d14a50d9",
+        "input_sha256": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+        "notes": [
+          "Imported frozen historical CPU numerical result; all timing intentionally omitted."
+        ],
+        "output_sha256": "ce7f29693fd263a697cc07e92ecbe71f6644c8163d6103cab2845008829f78e5"
+      },
+      "split_id": "y-negative/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "manual-frozen-axis-validation y-negative --projection-backend numba_cpu --frame-workers 2",
+        "config_sha256": "f8ed477b9d70794c93e1144decdb8eb2f541cfb2eb75bb8d2e5df4f6efe8795a",
+        "input_sha256": "b45df016cef47c11a2e825a869a7d16455dfef64ef0f6759070d8807619eab67",
+        "notes": [
+          "Full original CPU numerical payload SHA256: a83600290648b1cd807f3dc1ae480a836b5ad5442d146106bea72c4239fbab31",
+          "Original CPU result SHA256: ce7f29693fd263a697cc07e92ecbe71f6644c8163d6103cab2845008829f78e5",
+          "Historical CPU is used for numerical validation only; no paired speed ratio is inferred.",
+          "Original launcher saved all six standard results, then failed to aggregate due to missing metric interpretation metadata. Aggregator reads those unchanged result bytes.",
+          "Output SHA256 binds original external bytes; complete numerical payload matched the bound historical CPU result."
+        ],
+        "output_sha256": "dd6b0abcc4b3b753d7901485170d7f7d341b89fa4bff2a2bd78cc9123c732ee4"
+      },
+      "split_id": "y-negative/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "historical_numpy",
+      "metrics": {
+        "evaluation_count": 265.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "historical CPU numerical oracle; not rerun in this validation",
+        "config_sha256": "f8db1eee68cf4a42fd0e244783daabfc44c2a5763b636d37461a1d56d1c78844",
+        "input_sha256": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+        "notes": [
+          "Imported frozen historical CPU numerical result; all timing intentionally omitted."
+        ],
+        "output_sha256": "9292a8ae32ee2dfcf628d2b57a577c2ed93993e94e81e0ae651cc236207e11fb"
+      },
+      "split_id": "z-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_count": 265.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "manual-frozen-axis-validation z-positive --projection-backend numba_cpu --frame-workers 2",
+        "config_sha256": "aed47b192ba57eb69b4a6188e914ca0e225e721fdcd4cef0663a509211116b61",
+        "input_sha256": "54c9f17737e029eb65d0c774317ac0e06556ff2bd46a5611e37edc51979505d4",
+        "notes": [
+          "Full original CPU numerical payload SHA256: 5728c3e4f3a03bd8cc723f5dad3f212f2e32b86c8703a6dd5f383569c4adb10e",
+          "Original CPU result SHA256: 9292a8ae32ee2dfcf628d2b57a577c2ed93993e94e81e0ae651cc236207e11fb",
+          "Historical CPU is used for numerical validation only; no paired speed ratio is inferred.",
+          "Original launcher saved all six standard results, then failed to aggregate due to missing metric interpretation metadata. Aggregator reads those unchanged result bytes.",
+          "Output SHA256 binds original external bytes; complete numerical payload matched the bound historical CPU result."
+        ],
+        "output_sha256": "36ea873f9edc2b2fe550e12294f3650b820a90900cc098c41e77bd12b99bc130"
+      },
+      "split_id": "z-positive/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "historical_numpy",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "historical CPU numerical oracle; not rerun in this validation",
+        "config_sha256": "cbbb4f5fe00d8053ac94e4f4ddd98cdef6f7f91c627dae504fa1a84bcb9fa024",
+        "input_sha256": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+        "notes": [
+          "Imported frozen historical CPU numerical result; all timing intentionally omitted."
+        ],
+        "output_sha256": "c535eb2f81aa34a44a71c513eab6eb2e283aeb66ffa9509c0e95ee8967c3ffb8"
+      },
+      "split_id": "z-negative/repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "numba_cpu",
+      "metrics": {
+        "evaluation_count": 241.0,
+        "numerical_parity": 1.0
+      },
+      "provenance": {
+        "command": "manual-frozen-axis-validation z-negative --projection-backend numba_cpu --frame-workers 2",
+        "config_sha256": "26f16fdc0bd9cb71daa1ded448ef952e5b5fcb46103d0cfa9262e10bd686b115",
+        "input_sha256": "4b8acc8a0257271c55f27fb576f7e184e0cc0dab2f2c1a81d22e541f040f522f",
+        "notes": [
+          "Full original CPU numerical payload SHA256: 98f24ccd4619a8c834e4856b38a879a62b4b4351cf1fd190d19793ef71dbd848",
+          "Original CPU result SHA256: c535eb2f81aa34a44a71c513eab6eb2e283aeb66ffa9509c0e95ee8967c3ffb8",
+          "Historical CPU is used for numerical validation only; no paired speed ratio is inferred.",
+          "Original launcher saved all six standard results, then failed to aggregate due to missing metric interpretation metadata. Aggregator reads those unchanged result bytes.",
+          "Output SHA256 binds original external bytes; complete numerical payload matched the bound historical CPU result."
+        ],
+        "output_sha256": "a117cb7c0737adbdda72e99b9b961da0279df9cc4ae3f3c0e67b5ef67de86174"
+      },
+      "split_id": "z-negative/repeat-01",
+      "status": "success"
+    }
+  ]
+}

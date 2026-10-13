@@ -1,0 +1,164 @@
+"""Audit actual saved outputs, then publish portable digest-bound evidence."""
+from __future__ import annotations
+
+import hashlib
+import importlib.util
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+from calibrex.core.benchmark import BenchmarkDefinition, aggregate_benchmark_definition
+from calibrex.core.continuous_time_lidar_artifacts import ContinuousTimeLidarPairArtifact
+from calibrex.core.io import read_mapping
+
+raw = Path(sys.argv[1])
+destination = Path("docs/assets/adaptive_plane_search")
+destination.mkdir(parents=True, exist_ok=True)
+spec = importlib.util.spec_from_file_location("benchmark", "tools/benchmark_adaptive_plane_search.py")
+benchmark = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(benchmark)
+definition = BenchmarkDefinition.model_validate(read_mapping(raw / "pipeline.definition.json"))
+candidate = next(method.source_commit for method in definition.methods if method.method_id == "sparse")
+baseline = next(method.source_commit for method in definition.methods if method.method_id == "baseline")
+assert candidate == subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+assert len(definition.trials) == 10
+assert all(trial.status == "success" for trial in definition.trials)
+anchor = None
+for trial in definition.trials:
+    measurement = json.loads((raw / f"{trial.method_id}.{trial.split_id}" / "measurement.json").read_bytes())
+    result_path = raw / f"{trial.method_id}.{trial.split_id}" / "result.yaml"
+    result = ContinuousTimeLidarPairArtifact.model_validate(read_mapping(result_path))
+    canonical = benchmark._canonical(result.model_dump(mode="json", exclude_none=True))
+    assert canonical == trial.provenance.notes[-1]
+    assert canonical == benchmark._canonical(measurement["result"])
+    assert benchmark._digest(result_path) == measurement["result_sha256"]
+    assert hashlib.sha256(canonical.encode()).hexdigest() == trial.provenance.output_sha256
+    assert anchor is None or canonical == anchor
+    anchor = canonical
+    assert measurement["adaptive_query_calls"] == 62400
+    assert measurement["sampled_split"]["train_count"] == 1200
+    assert measurement["sampled_split"]["holdout_count"] == 1200
+    assert measurement["sampled_split"]["train_ids_sha256"] != (
+        measurement["sampled_split"]["holdout_ids_sha256"]
+    )
+    assert result.status == "converged" and result.observability.rank == 6
+    assert len(result.iterations) == 8
+    assert result.train_correspondence_count == 894 and result.holdout_correspondence_count == 876
+
+original_bindings = dict(definition.provenance.source_artifacts)
+rewrite = {}
+archive_hashes = {}
+for path in benchmark.SOURCES:
+    name = "measured." + Path(path).name + ".txt"
+    contents = subprocess.check_output(["git", "show", f"{candidate}:{path}"])
+    working = Path(path).read_bytes()
+    assert working.replace(b"\r\n", b"\n") == contents
+    assert original_bindings[path] == benchmark._digest(Path(path))
+    archive_path = destination / name
+    archive_path.write_bytes(contents)
+    rewrite[path] = name
+    archive_hashes[name] = benchmark._digest(archive_path)
+baseline_contents = subprocess.check_output(
+    ["git", "show", f"{baseline}:src/calibrex/data/adaptive_voxel.py"],
+)
+assert baseline_contents == (raw / "baseline.adaptive_voxel.py.txt").read_bytes()
+baseline_name = "baseline.adaptive_voxel.py.txt"
+(destination / baseline_name).write_bytes(baseline_contents)
+archive_hashes[baseline_name] = benchmark._digest(destination / baseline_name)
+rewrite[str((raw / baseline_name).resolve())] = baseline_name
+rewrite[(raw / baseline_name).resolve().as_posix()] = baseline_name
+
+root = Path.cwd()
+def portable(value):
+    if isinstance(value, dict):
+        return {portable(key): portable(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [portable(item) for item in value]
+    if isinstance(value, str):
+        if value in rewrite:
+            return rewrite[value]
+        return (value.replace(sys.executable, "<PYTHON>")
+                .replace(str(root), "<WORKSPACE>").replace(root.as_posix(), "<WORKSPACE>")
+                .replace("\\", "/"))
+    return value
+
+payload = definition.model_dump(mode="json", exclude_none=True)
+for trial in payload["trials"]:
+    notes = trial["provenance"]["notes"]
+    # Decode JSON notes before replacing paths, so escaped Windows separators
+    # cannot bypass private-prefix normalization.
+    notes[0] = json.dumps(portable(json.loads(notes[0])), sort_keys=True)
+    assert benchmark._canonical(portable(json.loads(notes[-1]))) == notes[-1]
+payload = portable(payload)
+published_bindings = payload["provenance"]["source_artifacts"]
+for path, digest in archive_hashes.items():
+    published_bindings[path] = digest
+published = BenchmarkDefinition.model_validate(payload)
+published.save(destination / "pipeline.definition.json")
+aggregate_benchmark_definition(published).save(destination / "pipeline.benchmark.json")
+
+lineage = Path("data/public/glim_versatile/conversion-provenance.json")
+(destination / "conversion-provenance.json").write_bytes(lineage.read_bytes())
+log = Path("data/public/glim_versatile/conversion.log")
+(destination / "conversion.log.txt").write_bytes(log.read_bytes().replace(b"\r\n", b"\n"))
+profile = Path("outputs/glim-adaptive-baseline-profile-v1")
+profile_provenance = json.loads((profile / "profile-provenance.json").read_bytes())
+profile_launcher = subprocess.check_output(
+    ["git", "show", "c501ad863ef8a9db4038875c8904f0f4b880418b:tools/benchmark_adaptive_plane_search.py"],
+).replace(
+    b'CC-BY-4.0 (AIST Zenodo record 6864654)',
+    b'Official AIST Zenodo dataset terms',
+)
+profile_launcher_digest = profile_provenance["bindings"]["tools/benchmark_adaptive_plane_search.py"]
+assert profile_launcher_digest in {
+    hashlib.sha256(profile_launcher).hexdigest(),
+    hashlib.sha256(profile_launcher.replace(b"\n", b"\r\n")).hexdigest(),
+}
+profile_launcher_name = "profile.benchmark_adaptive_plane_search.py.txt"
+(destination / profile_launcher_name).write_bytes(profile_launcher)
+profile_payload = portable(profile_provenance)
+profile_payload["bindings"][profile_launcher_name] = profile_payload["bindings"].pop(
+    "measured.benchmark_adaptive_plane_search.py.txt"
+)
+profile_payload["notes"] = [
+    "Instrumented profile used the preceding uncommitted benchmark launcher; "
+    "its exact contents are reconstructed and checked against the captured digest.",
+    "Profile bindings record working-file bytes; Git archives use LF. "
+    "The actual adaptive module was substituted by the baseline import hook.",
+    "The profile is bottleneck evidence, not a speed measurement.",
+]
+with (destination / "profile-provenance.json").open("w", encoding="utf-8", newline="\n") as stream:
+    json.dump(profile_payload, stream, indent=2)
+    stream.write("\n")
+
+index = {
+    "provenance": {
+        "generator": "publication-launcher.py.txt",
+        "candidate_source_commit": candidate,
+        "baseline_source_commit": baseline,
+        "command": ["<PYTHON>", "publication-launcher.py.txt", raw.as_posix()],
+    },
+    "original_measurement_sha256": {
+        filename: benchmark._digest(raw / filename)
+        for filename in ["pipeline.definition.json", "pipeline.benchmark.json"]
+    },
+    "original_source_bindings": {
+        str(key).replace(str(root), "<WORKSPACE>").replace(
+            root.as_posix(), "<WORKSPACE>",
+        ).replace("\\", "/"): value
+        for key, value in original_bindings.items()
+    },
+    "files": {
+        path.name: benchmark._digest(path)
+        for path in sorted(destination.iterdir())
+        if path.is_file() and path.name not in ("publication-index.json", "README.md")
+    },
+}
+launcher = destination / "publication-launcher.py.txt"
+launcher.write_bytes(Path(__file__).read_bytes().replace(b"\r\n", b"\n"))
+index["files"][launcher.name] = benchmark._digest(launcher)
+(destination / "publication-index.json").write_text(
+    json.dumps(index, indent=2) + "\n", encoding="utf-8", newline="\n",
+)
+print("Audited all 10 saved schema-valid artifacts, result hashes, full parity and source archives.")

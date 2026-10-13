@@ -18,3 +18,74 @@ examples/public_datasets/kitti_lidar_camera_evidence/**/*.txt text eol=lf
 src/calibrex/resources/kitti_lidar_camera_evidence/**/*.txt text eol=lf
 docs/assets/readme-comparison-table.svg text eol=lf
 docs/assets/readme-evidence-card.svg text eol=lf
+docs/assets/featdepth_inference/*.py.txt text eol=lf
+docs/assets/cuda_candidates/*.txt text eol=lf
+docs/assets/input_verification_overlap/*.txt text eol=lf
+docs/assets/icp_neighbors/*.txt text eol=lf
+docs/assets/registration_preparation/*.txt text eol=lf
+docs/assets/livox_evaluation/*.txt text eol=lf
+docs/assets/livox_evaluation/**/*.txt text eol=lf
+docs/assets/livox_geometry/*.txt text eol=lf
+docs/assets/livox_geometry/**/*.txt text eol=lf
+docs/assets/livox_packed/*.txt text eol=lf
+docs/assets/livox_packed/**/*.txt text eol=lf
+
+docs/assets/point_to_plane_factor/*.txt text eol=lf
+
+docs/assets/livox_runtime/*.txt text eol=lf
+
+docs/assets/adaptive_plane_search/*.txt text eol=lf
+
+docs/assets/continuous_time_query_reuse/*.txt text eol=lf
+
+docs/assets/compiled_continuous_time_queries/*.txt text eol=lf
+
+docs/assets/compiled_lidar_linearization/*.txt text eol=lf
+
+docs/assets/cuda_lidar_map/*.txt text eol=lf
+docs/assets/cuda_scan_odometry/*.txt text eol=lf
+# Worker measurements/schemas bind the original Windows or POSIX bytes.
+# Preserve their actual line endings rather than normalizing their digests.
+docs/assets/cuda_scan_odometry/*.measurement.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_scan_odometry/*.measurement.schema.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+# Archive the actual measured source bytes, including original checkout EOLs.
+docs/assets/packed_continuous_time_lidar/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/packed_continuous_time_lidar/**/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_continuous_time_lidar/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_continuous_time_lidar/**/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_continuous_time_lidar/README.md text eol=lf
+docs/assets/cuda_continuous_time_associations/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_continuous_time_associations/**/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_continuous_time_associations/**/*.md text eol=lf
+docs/assets/cuda_continuous_time_associations/README.md text eol=lf
+docs/assets/continuous_time_linearization_reuse/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/continuous_time_linearization_reuse/**/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/continuous_time_linearization_reuse/**/*.md text eol=lf
+docs/assets/continuous_time_linearization_reuse/README.md text eol=lf
+
+docs/assets/continuous_time_observation_packing/**/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/continuous_time_observation_packing/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/continuous_time_observation_packing/README.md text eol=lf
+
+docs/assets/continuous_time_residual_summary/**/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/continuous_time_residual_summary/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/continuous_time_residual_summary/README.md text eol=lf
+
+docs/assets/cuda_captured_residual_summary/**/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_captured_residual_summary/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_captured_residual_summary/README.md text eol=lf
+
+docs/assets/parallel_continuous_time_lidar/**/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/parallel_continuous_time_lidar/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/parallel_continuous_time_lidar/**/*.result.yaml -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/parallel_continuous_time_lidar/README.md text eol=lf
+
+docs/assets/initial_lidar_projection_reuse/**/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/initial_lidar_projection_reuse/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/initial_lidar_projection_reuse/**/*.yaml -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/initial_lidar_projection_reuse/**/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/initial_lidar_projection_reuse/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_point_to_point_icp/**/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_point_to_point_icp/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_point_to_point_icp/**/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_point_to_point_icp/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

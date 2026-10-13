@@ -1,0 +1,148 @@
+"""Audit raw public measurements and publish portable, hash-bound evidence."""
+import hashlib
+import json
+import subprocess
+from pathlib import Path
+
+from calibrex.core.benchmark import BenchmarkArtifact, BenchmarkDefinition, aggregate_benchmark_definition
+from calibrex.core.io import read_mapping
+from calibrex.core.lidar_lidar_extrinsic import LidarLidarExtrinsicArtifact
+from tools import benchmark_cuda_lidar_map as b
+
+raw = Path("outputs/public-kitti-cuda-lidar-map-v1")
+root = Path("docs/assets/cuda_lidar_map")
+root.mkdir(parents=True, exist_ok=True)
+revision = "6d6600cc476203ae578e7ac629b576a20818a7a9"
+definition = BenchmarkDefinition.model_validate(read_mapping(raw / "comparison.definition.json"))
+assert len(definition.trials) == 10
+assert {method.source_commit for method in definition.methods} == {revision}
+archive_hashes = {}
+rewrite = {}
+for path in b.SOURCES:
+    contents = subprocess.check_output(["git", "show", f"{revision}:{path}"])
+    assert Path(path).read_bytes().replace(b"\r\n", b"\n") == contents
+    filename = "measured." + Path(path).name + ".txt"
+    (root / filename).write_bytes(contents)
+    archive_hashes[filename] = b._digest(root / filename)
+    rewrite[path] = filename
+workspace = Path.cwd()
+dataset = next(path for path in definition.provenance.source_artifacts if path.endswith("0000000115.bin"))
+dataset_root = str(Path(dataset).parents[2])
+
+def portable(value):
+    if isinstance(value, dict):
+        return {portable(key): portable(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [portable(item) for item in value]
+    if isinstance(value, str):
+        if value in rewrite:
+            return rewrite[value]
+        value = value.replace(str(workspace), "<WORKSPACE>").replace(workspace.as_posix(), "<WORKSPACE>")
+        value = value.replace(dataset_root, "<DATASET_ROOT>").replace(
+            dataset_root.replace("\\", "/"), "<DATASET_ROOT>",
+        )
+        # The process executable is within this workspace's virtual environment.
+        value = value.replace("<WORKSPACE>\\.venv\\Scripts\\python.exe", "<PYTHON>")
+        return value.replace("\\", "/")
+    return value
+
+measurements = {}
+originals = {}
+for trial in definition.trials:
+    repeat = int(trial.split_id.rsplit("-", 1)[1])
+    folder = raw / f"{trial.method_id}.{repeat:02d}"
+    row = json.loads((folder / "measurement.json").read_bytes())
+    artifact = LidarLidarExtrinsicArtifact.model_validate(read_mapping(folder / "result.json"))
+    assert artifact.model_dump(mode="json", exclude_none=True) == row["artifact"]
+    canonical = json.dumps(row["artifact"], sort_keys=True, separators=(",", ":"))
+    assert canonical == trial.provenance.notes[-1]
+    assert hashlib.sha256(canonical.encode()).hexdigest() == trial.provenance.output_sha256
+    assert b._digest(folder / "result.json") == row["result_sha256"]
+    assert trial.status == "success" and trial.metrics["quality_matches"] == 1
+    assert artifact.policy_status == "pass" and artifact.solver_status == "converged"
+    assert len(artifact.calibrated_dofs) == 6 and artifact.jackknife_fits == 4
+    if trial.method_id == "cuda":
+        metadata = json.loads(trial.provenance.notes[0])
+        assert bool(metadata["cache_before"]) == (repeat != 1)
+        assert metadata["cache_after"] and row["statistics"]["gpu_query_rows"] > 0
+        if repeat != 1:
+            assert metadata["cache_before"] == metadata["cache_after"]
+    key = f"{trial.method_id}.{repeat:02d}"
+    measurements[key] = row
+    (root / (key + ".result.json")).write_bytes((folder / "result.json").read_bytes())
+    portable_row = portable(row)
+    portable_row["artifact"] = row["artifact"]
+    (root / (key + ".measurement.json")).write_text(
+        json.dumps(portable_row, indent=2) + "\n", encoding="utf-8", newline="\n",
+    )
+    originals[key] = {"result_sha256": b._digest(folder / "result.json"),
+                      "measurement_sha256": b._digest(folder / "measurement.json")}
+for repeat in range(1, 6):
+    cpu, gpu = (measurements[f"{method}.{repeat:02d}"] for method in ("cpu", "cuda"))
+    assert not b._compare(cpu["evaluation"], gpu["evaluation"])
+    assert cpu["prepared_sha256"] == gpu["prepared_sha256"]
+    assert cpu["partition_sha256"] == gpu["partition_sha256"]
+    assert cpu["map_points"] == gpu["map_points"]
+    assert cpu["target_points"] == gpu["target_points"]
+payload = definition.model_dump(mode="json", exclude_none=True)
+for trial in payload["trials"]:
+    # Decode embedded metadata before normalizing only paths.
+    trial["provenance"]["notes"][0] = json.dumps(
+        portable(json.loads(trial["provenance"]["notes"][0])), sort_keys=True,
+    )
+payload = portable(payload)
+payload["provenance"]["source_artifacts"].update(archive_hashes)
+published = BenchmarkDefinition.model_validate(payload)
+published.save(root / "comparison.definition.json")
+aggregate_benchmark_definition(published).save(root / "comparison.benchmark.json")
+assert BenchmarkArtifact.model_validate(read_mapping(raw / "comparison.benchmark.json")).model_dump(
+    mode="json", exclude_none=True,
+) == aggregate_benchmark_definition(definition).model_dump(mode="json", exclude_none=True)
+
+# Preserve the earlier four attempts: their final aggregation failed schema
+# validation, while all measured saved/API values and numerical comparisons passed.
+exploration = Path("outputs/cuda-lidar-map-public-explore-v1")
+earlier = []
+times = {"cpu.01": 12.778823, "cuda.01": 13.033223,
+         "cuda.02": 5.486612, "cpu.02": 12.817997}
+for key, wall in times.items():
+    folder = exploration / key
+    row = json.loads((folder / "measurement.json").read_bytes())
+    saved = LidarLidarExtrinsicArtifact.model_validate(read_mapping(folder / "result.json"))
+    assert saved.model_dump(mode="json", exclude_none=True) == row["artifact"]
+    assert b._digest(folder / "result.json") == row["result_sha256"]
+    portable_row = portable(row)
+    portable_row["artifact"] = row["artifact"]
+    earlier.append({"method_repeat": key, "wall_seconds": wall,
+                    "measurement": portable_row, "provenance": {
+                        "original_result_sha256": b._digest(folder / "result.json"),
+                        "original_measurement_sha256": b._digest(folder / "measurement.json"),
+                    }})
+for repeat in (1, 2):
+    assert not b._compare(
+        json.loads((exploration / f"cpu.{repeat:02d}/measurement.json").read_bytes())["evaluation"],
+        json.loads((exploration / f"cuda.{repeat:02d}/measurement.json").read_bytes())["evaluation"],
+    )
+(root / "earlier-attempts.json").write_text(json.dumps({
+    "provenance": {"generator": "publication-launcher.py.txt", "source_commit": revision,
+                   "limitations": ["Earlier dirty-worktree source hashes remain in measurements; "
+                   "the original tool source was not archived. Final aggregation failed due to "
+                   "a missing metric interpretation field. These are separate exploratory attempts, "
+                   "not pooled with the final frozen five-pair cohort."]},
+    "attempts": earlier,
+}, indent=2)+"\n", encoding="utf-8", newline="\n")
+launcher_text = Path(__file__).read_text(encoding="utf-8")
+launcher_text = launcher_text.split("\n# PRIVATE_PUBLICATION_PRIVACY_CHECK")[0]
+launcher_text = launcher_text.replace("import re\n", "")
+(root / "publication-launcher.py.txt").write_text(launcher_text + "\n", encoding="utf-8",
+                                               newline="\n")
+index = {"provenance": {"generator": "publication-launcher.py.txt", "source_commit": revision,
+                        "command": ["<PYTHON>", "publication-launcher.py.txt"]},
+         "original_results": originals,
+         "original_definition_sha256": b._digest(raw / "comparison.definition.json"),
+         "original_aggregate_sha256": b._digest(raw / "comparison.benchmark.json"),
+         "original_working_source_sha256": portable(dict(definition.provenance.source_artifacts)),
+         "files": {p.name: b._digest(p) for p in sorted(root.iterdir())
+                   if p.is_file() and p.name not in ("README.md", "publication-index.json")}}
+(root / "publication-index.json").write_text(json.dumps(index, indent=2)+"\n", encoding="utf-8",
+                                             newline="\n")

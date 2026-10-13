@@ -1,0 +1,25 @@
+"""Separate complete CPU/hybrid control with unchanged source/input guards."""
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+workspace = next(p for p in Path(__file__).resolve().parents if (p/'pyproject.toml').is_file())
+sys.path.insert(0, str(workspace))
+os.chdir(workspace)
+from tools import benchmark_adaptive_plane_search as b
+
+revision = subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+sources = {p:b._digest(Path(p)) for p in (*b.SOURCES, __file__)}
+inputs = b._verified_inputs(b.REPLAY)
+config = Path('examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml')
+digest = b._digest(config)
+subprocess.run([sys.executable,'tools/benchmark_adaptive_plane_search.py',
+    '--baseline-scope','compiled','--baseline-commit','eb50c99878706a45eb0e584f3573507313cdc172',
+    '--candidate-query-backend','cuda','--config',config.as_posix(),'--repetitions','3',
+    '--output-dir','outputs/public-glim-fused-packing-cpu-dense-v1'],check=True)
+assert revision == subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+assert sources == {p:b._digest(Path(p)) for p in sources}
+assert inputs == b._verified_inputs(b.REPLAY)
+assert digest == b._digest(config)
+print('All secondary CPU/hybrid pairs completed with guards.',flush=True)

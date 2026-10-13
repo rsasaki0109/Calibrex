@@ -1,0 +1,682 @@
+{
+  "benchmark_id": "d2d-cuda-stage-profile",
+  "bootstrap_samples": 1,
+  "bootstrap_seed": 0,
+  "limitations": [
+    "Instrumented stream spans are not pure kernel execution times. Do not subtract them from wall time or infer a speedup ceiling.",
+    "Event recording changes scheduling/latency; ordinary and instrumented walls expose observer overhead.",
+    "Single pose, shared host, warmed runtime. No accuracy, portability or confidence claim.",
+    "Loading/verification 2.3964236000319943s and CUDA preparation 0.2288507999619469s are excluded from samples.",
+    "Frames: 20; points: 2503637; samples per repeat: 20",
+    "Environment: Python 3.12.10; Windows-11-10.0.26300-SP0; Intel64 Family 6 Model 158 Stepping 10, GenuineIntel",
+    "Transfer statistics: {\"cache_budget_bytes\": 268435456, \"cached_input_bytes\": 152695584, \"evaluation_input_upload_bytes\": 0, \"evaluation_input_upload_calls\": 0, \"histogram_download_bytes\": 66156480, \"histogram_download_calls\": 403, \"preparation_input_upload_bytes\": 152695584, \"preparation_input_upload_calls\": 20, \"prepared_observation_count\": 20}"
+  ],
+  "method_summaries": {
+    "instrumented": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "instrumented",
+      "metrics": {
+        "numerical_parity": {
+          "distribution": {
+            "count": 10,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "numerical_parity",
+          "rank": 1
+        },
+        "wall_seconds": {
+          "distribution": {
+            "count": 10,
+            "maximum": 0.008945594995748252,
+            "mean": 0.0067061870000907214,
+            "mean_ci95_high": 0.006645193000731524,
+            "mean_ci95_low": 0.006645193000731524,
+            "median": 0.006527127500157803,
+            "minimum": 0.005302855008631013,
+            "p90": 0.008102776500745675,
+            "p95": 0.008524185748246963,
+            "standard_deviation": 0.0010887569916156073
+          },
+          "metric": "wall_seconds",
+          "rank": 2
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 10,
+        "maximum": 0.008945594995748252,
+        "mean": 0.0067061870000907214,
+        "mean_ci95_high": 0.006645193000731524,
+        "mean_ci95_low": 0.006645193000731524,
+        "median": 0.006527127500157803,
+        "minimum": 0.005302855008631013,
+        "p90": 0.008102776500745675,
+        "p95": 0.008524185748246963,
+        "standard_deviation": 0.0010887569916156073
+      },
+      "success_count": 10,
+      "trial_count": 10
+    },
+    "ordinary": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "ordinary",
+      "metrics": {
+        "numerical_parity": {
+          "distribution": {
+            "count": 10,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "numerical_parity",
+          "rank": 1
+        },
+        "wall_seconds": {
+          "distribution": {
+            "count": 10,
+            "maximum": 0.006661984996753745,
+            "mean": 0.005621517000545282,
+            "mean_ci95_high": 0.00558591649896698,
+            "mean_ci95_low": 0.00558591649896698,
+            "median": 0.005557542506721802,
+            "minimum": 0.004921455000294372,
+            "p90": 0.006161809999321121,
+            "p95": 0.006411897498037432,
+            "standard_deviation": 0.0004903299029372267
+          },
+          "metric": "wall_seconds",
+          "rank": 1
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 10,
+        "maximum": 0.006661984996753745,
+        "mean": 0.005621517000545282,
+        "mean_ci95_high": 0.00558591649896698,
+        "mean_ci95_low": 0.00558591649896698,
+        "median": 0.005557542506721802,
+        "minimum": 0.004921455000294372,
+        "p90": 0.006161809999321121,
+        "p95": 0.006411897498037432,
+        "standard_deviation": 0.0004903299029372267
+      },
+      "success_count": 10,
+      "trial_count": 10
+    }
+  },
+  "methods": [
+    {
+      "implementation": "calibrex_native",
+      "label": "ordinary: calibrex.cuda_depth_pair_projector/v0.3;cupy=14.2.0;numpy=2.3.4;cuda_runtime=12090;cuda_driver=13020;device=NVIDIA CUDA GPU;compute=7.5;nvrtc=12.8;kernel_sha256=63e1f2eed8bceede3572e6f1d31827e1bdf4619106aac34648b0ff0af213ab79;fp64;fmad=false;histogram_batch_frames=32",
+      "method_id": "ordinary",
+      "source_commit": "36dedc3",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "instrumented: calibrex.cuda_depth_pair_projector/v0.3;cupy=14.2.0;numpy=2.3.4;cuda_runtime=12090;cuda_driver=13020;device=NVIDIA CUDA GPU;compute=7.5;nvrtc=12.8;kernel_sha256=63e1f2eed8bceede3572e6f1d31827e1bdf4619106aac34648b0ff0af213ab79;fp64;fmad=false;histogram_batch_frames=32",
+      "method_id": "instrumented",
+      "source_commit": "36dedc3",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    }
+  ],
+  "metrics": [
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Host evaluation wall time including histogram transfer and MI",
+      "label": "wall_seconds",
+      "name": "wall_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Exact full evaluation equality with NumPy",
+      "label": "numerical_parity",
+      "name": "numerical_parity",
+      "primary": false,
+      "unit": "ratio"
+    }
+  ],
+  "paired_comparisons": [
+    {
+      "candidate_method_id": "instrumented",
+      "direction": "lower",
+      "improvement_ci95_high": -0.0010592765017645436,
+      "improvement_ci95_low": -0.0010592765017645436,
+      "improvement_mean": -0.00108466999954544,
+      "metric": "wall_seconds",
+      "paired_count": 10,
+      "raw_delta_mean": 0.00108466999954544,
+      "reference_method_id": "ordinary"
+    },
+    {
+      "candidate_method_id": "instrumented",
+      "direction": "higher",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "numerical_parity",
+      "paired_count": 10,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "ordinary"
+    }
+  ],
+  "protocol": {
+    "data_license": "input dataset-specific",
+    "dataset_id": "kitti_raw_2011_09_30_drive_0018",
+    "dataset_source_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+    "failure_policy": "Abort on CUDA or evaluation mismatch; no partial success report",
+    "initial_estimate_policy": "Problem's declared initial pose; unchanged across all samples",
+    "protocol_id": "d2d-cuda-stage-profile/v0.1",
+    "split_policy": "Repeated timing at the declared prior; no accuracy split. The holdout anchor is NumPy evaluation of the same pose.",
+    "splits": [
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "c7c2b31fb726abc59ff9a722153716c808b62f9d33332cef84be42ae73d92ae0",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "seed": 0,
+        "split_id": "0"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "c7c2b31fb726abc59ff9a722153716c808b62f9d33332cef84be42ae73d92ae0",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "seed": 1,
+        "split_id": "1"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "c7c2b31fb726abc59ff9a722153716c808b62f9d33332cef84be42ae73d92ae0",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "seed": 2,
+        "split_id": "2"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "c7c2b31fb726abc59ff9a722153716c808b62f9d33332cef84be42ae73d92ae0",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "seed": 3,
+        "split_id": "3"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "c7c2b31fb726abc59ff9a722153716c808b62f9d33332cef84be42ae73d92ae0",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "seed": 4,
+        "split_id": "4"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "c7c2b31fb726abc59ff9a722153716c808b62f9d33332cef84be42ae73d92ae0",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "seed": 5,
+        "split_id": "5"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "c7c2b31fb726abc59ff9a722153716c808b62f9d33332cef84be42ae73d92ae0",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "seed": 6,
+        "split_id": "6"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "c7c2b31fb726abc59ff9a722153716c808b62f9d33332cef84be42ae73d92ae0",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "seed": 7,
+        "split_id": "7"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "c7c2b31fb726abc59ff9a722153716c808b62f9d33332cef84be42ae73d92ae0",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "seed": 8,
+        "split_id": "8"
+      },
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "c7c2b31fb726abc59ff9a722153716c808b62f9d33332cef84be42ae73d92ae0",
+        "holdout_count": 1,
+        "holdout_ids_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "seed": 9,
+        "split_id": "9"
+      }
+    ],
+    "tuning_policy": "Native histogram settings; ordinary/instrumented order alternates"
+  },
+  "provenance": {
+    "command": "<workspace>\\.venv\\Scripts\\python.exe tools/profile_d2d_cuda.py --problem outputs/public-kitti-six-dof-fused-cpu-v1/demo.problem.json --output-dir outputs/public-kitti-cuda-stage-profile-v1 --exclude-frame-id 0000000460 --exclude-frame-id 0000001035 --exclude-frame-id 0000001611 --exclude-frame-id 0000002186 --exclude-frame-id 0000002761 --repeats 10 --poses-per-repeat 20",
+    "data_verified": true,
+    "generated_at": "2026-10-11T03:28:58.682158+00:00",
+    "generator": "tools.profile_d2d_cuda",
+    "generator_version": "v0.1",
+    "git_commit": "36dedc3",
+    "source_artifacts": {
+      "depth_provider": "7e3ef953a360a7c01ed0cdc3cf947db97fb0aff5912ced805d80bebe210d3360",
+      "problem": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+      "src/calibrex/solvers/borer_depth_to_depth_solver.py": "d326fed2fe34901f335a943580f6542614e1088aed1e95733753e45a9539c358",
+      "src/calibrex/solvers/cuda_depth_to_depth_adapter.py": "de09fa91d39872bf101597fbf829ba106422deed3f0531aeb5935969a616e734",
+      "tools/profile_d2d_cuda.py": "124b65193c5ca7027700954092efb2c5d17c74cdd6fbb51ac3f23a37e1e52a95"
+    }
+  },
+  "reference_method_id": "ordinary",
+  "schema_version": "slac.benchmark/v0.1",
+  "title": "CUDA D2D stream spans and observer overhead",
+  "trials": [
+    {
+      "method_id": "ordinary",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "wall_seconds": 0.005597290009609424
+      },
+      "provenance": {
+        "command": "<workspace>\\.venv\\Scripts\\python.exe tools/profile_d2d_cuda.py --problem outputs/public-kitti-six-dof-fused-cpu-v1/demo.problem.json --output-dir outputs/public-kitti-cuda-stage-profile-v1 --exclude-frame-id 0000000460 --exclude-frame-id 0000001035 --exclude-frame-id 0000001611 --exclude-frame-id 0000002186 --exclude-frame-id 0000002761 --repeats 10 --poses-per-repeat 20",
+        "config_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Execution order: ['ordinary', 'instrumented']"
+        ]
+      },
+      "runtime_seconds": 0.005597290009609424,
+      "split_id": "0",
+      "status": "success"
+    },
+    {
+      "method_id": "instrumented",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "wall_seconds": 0.005954059996292926
+      },
+      "provenance": {
+        "command": "<workspace>\\.venv\\Scripts\\python.exe tools/profile_d2d_cuda.py --problem outputs/public-kitti-six-dof-fused-cpu-v1/demo.problem.json --output-dir outputs/public-kitti-cuda-stage-profile-v1 --exclude-frame-id 0000000460 --exclude-frame-id 0000001035 --exclude-frame-id 0000001611 --exclude-frame-id 0000002186 --exclude-frame-id 0000002761 --repeats 10 --poses-per-repeat 20",
+        "config_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Execution order: ['ordinary', 'instrumented']",
+          "Kernel calls: {\"histogram_stream_seconds\": 400, \"initialize_stream_seconds\": 400, \"project_stream_seconds\": 400, \"select_stream_seconds\": 400}",
+          "Kernel stream seconds per pose: {\"histogram_stream_seconds\": 0.0011225424017757175, \"initialize_stream_seconds\": 0.0006049632007256151, \"project_stream_seconds\": 0.0017210495978593828, \"select_stream_seconds\": 0.0003006272013764828}"
+        ]
+      },
+      "runtime_seconds": 0.005954059996292926,
+      "split_id": "0",
+      "status": "success"
+    },
+    {
+      "method_id": "instrumented",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "wall_seconds": 0.005891669998527504
+      },
+      "provenance": {
+        "command": "<workspace>\\.venv\\Scripts\\python.exe tools/profile_d2d_cuda.py --problem outputs/public-kitti-six-dof-fused-cpu-v1/demo.problem.json --output-dir outputs/public-kitti-cuda-stage-profile-v1 --exclude-frame-id 0000000460 --exclude-frame-id 0000001035 --exclude-frame-id 0000001611 --exclude-frame-id 0000002186 --exclude-frame-id 0000002761 --repeats 10 --poses-per-repeat 20",
+        "config_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Execution order: ['instrumented', 'ordinary']",
+          "Kernel calls: {\"histogram_stream_seconds\": 400, \"initialize_stream_seconds\": 400, \"project_stream_seconds\": 400, \"select_stream_seconds\": 400}",
+          "Kernel stream seconds per pose: {\"histogram_stream_seconds\": 0.00105597600210458, \"initialize_stream_seconds\": 0.0006031295998953283, \"project_stream_seconds\": 0.0016244608011096718, \"select_stream_seconds\": 0.00028963520145043733}"
+        ]
+      },
+      "runtime_seconds": 0.005891669998527504,
+      "split_id": "1",
+      "status": "success"
+    },
+    {
+      "method_id": "ordinary",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "wall_seconds": 0.005386010004440322
+      },
+      "provenance": {
+        "command": "<workspace>\\.venv\\Scripts\\python.exe tools/profile_d2d_cuda.py --problem outputs/public-kitti-six-dof-fused-cpu-v1/demo.problem.json --output-dir outputs/public-kitti-cuda-stage-profile-v1 --exclude-frame-id 0000000460 --exclude-frame-id 0000001035 --exclude-frame-id 0000001611 --exclude-frame-id 0000002186 --exclude-frame-id 0000002761 --repeats 10 --poses-per-repeat 20",
+        "config_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Execution order: ['instrumented', 'ordinary']"
+        ]
+      },
+      "runtime_seconds": 0.005386010004440322,
+      "split_id": "1",
+      "status": "success"
+    },
+    {
+      "method_id": "ordinary",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "wall_seconds": 0.005970680000609718
+      },
+      "provenance": {
+        "command": "<workspace>\\.venv\\Scripts\\python.exe tools/profile_d2d_cuda.py --problem outputs/public-kitti-six-dof-fused-cpu-v1/demo.problem.json --output-dir outputs/public-kitti-cuda-stage-profile-v1 --exclude-frame-id 0000000460 --exclude-frame-id 0000001035 --exclude-frame-id 0000001611 --exclude-frame-id 0000002186 --exclude-frame-id 0000002761 --repeats 10 --poses-per-repeat 20",
+        "config_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Execution order: ['ordinary', 'instrumented']"
+        ]
+      },
+      "runtime_seconds": 0.005970680000609718,
+      "split_id": "2",
+      "status": "success"
+    },
+    {
+      "method_id": "instrumented",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "wall_seconds": 0.005554539998411201
+      },
+      "provenance": {
+        "command": "<workspace>\\.venv\\Scripts\\python.exe tools/profile_d2d_cuda.py --problem outputs/public-kitti-six-dof-fused-cpu-v1/demo.problem.json --output-dir outputs/public-kitti-cuda-stage-profile-v1 --exclude-frame-id 0000000460 --exclude-frame-id 0000001035 --exclude-frame-id 0000001611 --exclude-frame-id 0000002186 --exclude-frame-id 0000002761 --repeats 10 --poses-per-repeat 20",
+        "config_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Execution order: ['ordinary', 'instrumented']",
+          "Kernel calls: {\"histogram_stream_seconds\": 400, \"initialize_stream_seconds\": 400, \"project_stream_seconds\": 400, \"select_stream_seconds\": 400}",
+          "Kernel stream seconds per pose: {\"histogram_stream_seconds\": 0.0010163616007193925, \"initialize_stream_seconds\": 0.0006105103993788361, \"project_stream_seconds\": 0.0015046048019081355, \"select_stream_seconds\": 0.00028401120104826986}"
+        ]
+      },
+      "runtime_seconds": 0.005554539998411201,
+      "split_id": "2",
+      "status": "success"
+    },
+    {
+      "method_id": "instrumented",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "wall_seconds": 0.005302855008631013
+      },
+      "provenance": {
+        "command": "<workspace>\\.venv\\Scripts\\python.exe tools/profile_d2d_cuda.py --problem outputs/public-kitti-six-dof-fused-cpu-v1/demo.problem.json --output-dir outputs/public-kitti-cuda-stage-profile-v1 --exclude-frame-id 0000000460 --exclude-frame-id 0000001035 --exclude-frame-id 0000001611 --exclude-frame-id 0000002186 --exclude-frame-id 0000002761 --repeats 10 --poses-per-repeat 20",
+        "config_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Execution order: ['instrumented', 'ordinary']",
+          "Kernel calls: {\"histogram_stream_seconds\": 400, \"initialize_stream_seconds\": 400, \"project_stream_seconds\": 400, \"select_stream_seconds\": 400}",
+          "Kernel stream seconds per pose: {\"histogram_stream_seconds\": 0.0009697168013080952, \"initialize_stream_seconds\": 0.0005737295998260378, \"project_stream_seconds\": 0.001471360007673502, \"select_stream_seconds\": 0.0002838480008300394}"
+        ]
+      },
+      "runtime_seconds": 0.005302855008631013,
+      "split_id": "3",
+      "status": "success"
+    },
+    {
+      "method_id": "ordinary",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "wall_seconds": 0.004921455000294372
+      },
+      "provenance": {
+        "command": "<workspace>\\.venv\\Scripts\\python.exe tools/profile_d2d_cuda.py --problem outputs/public-kitti-six-dof-fused-cpu-v1/demo.problem.json --output-dir outputs/public-kitti-cuda-stage-profile-v1 --exclude-frame-id 0000000460 --exclude-frame-id 0000001035 --exclude-frame-id 0000001611 --exclude-frame-id 0000002186 --exclude-frame-id 0000002761 --repeats 10 --poses-per-repeat 20",
+        "config_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Execution order: ['instrumented', 'ordinary']"
+        ]
+      },
+      "runtime_seconds": 0.004921455000294372,
+      "split_id": "3",
+      "status": "success"
+    },
+    {
+      "method_id": "ordinary",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "wall_seconds": 0.005018994995043613
+      },
+      "provenance": {
+        "command": "<workspace>\\.venv\\Scripts\\python.exe tools/profile_d2d_cuda.py --problem outputs/public-kitti-six-dof-fused-cpu-v1/demo.problem.json --output-dir outputs/public-kitti-cuda-stage-profile-v1 --exclude-frame-id 0000000460 --exclude-frame-id 0000001035 --exclude-frame-id 0000001611 --exclude-frame-id 0000002186 --exclude-frame-id 0000002761 --repeats 10 --poses-per-repeat 20",
+        "config_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Execution order: ['ordinary', 'instrumented']"
+        ]
+      },
+      "runtime_seconds": 0.005018994995043613,
+      "split_id": "4",
+      "status": "success"
+    },
+    {
+      "method_id": "instrumented",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "wall_seconds": 0.0062951700034318495
+      },
+      "provenance": {
+        "command": "<workspace>\\.venv\\Scripts\\python.exe tools/profile_d2d_cuda.py --problem outputs/public-kitti-six-dof-fused-cpu-v1/demo.problem.json --output-dir outputs/public-kitti-cuda-stage-profile-v1 --exclude-frame-id 0000000460 --exclude-frame-id 0000001035 --exclude-frame-id 0000001611 --exclude-frame-id 0000002186 --exclude-frame-id 0000002761 --repeats 10 --poses-per-repeat 20",
+        "config_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Execution order: ['ordinary', 'instrumented']",
+          "Kernel calls: {\"histogram_stream_seconds\": 400, \"initialize_stream_seconds\": 400, \"project_stream_seconds\": 400, \"select_stream_seconds\": 400}",
+          "Kernel stream seconds per pose: {\"histogram_stream_seconds\": 0.0011556831996887924, \"initialize_stream_seconds\": 0.0006125871994532644, \"project_stream_seconds\": 0.001769491200521588, \"select_stream_seconds\": 0.0002830176010727882}"
+        ]
+      },
+      "runtime_seconds": 0.0062951700034318495,
+      "split_id": "4",
+      "status": "success"
+    },
+    {
+      "method_id": "instrumented",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "wall_seconds": 0.007122630000230857
+      },
+      "provenance": {
+        "command": "<workspace>\\.venv\\Scripts\\python.exe tools/profile_d2d_cuda.py --problem outputs/public-kitti-six-dof-fused-cpu-v1/demo.problem.json --output-dir outputs/public-kitti-cuda-stage-profile-v1 --exclude-frame-id 0000000460 --exclude-frame-id 0000001035 --exclude-frame-id 0000001611 --exclude-frame-id 0000002186 --exclude-frame-id 0000002761 --repeats 10 --poses-per-repeat 20",
+        "config_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Execution order: ['instrumented', 'ordinary']",
+          "Kernel calls: {\"histogram_stream_seconds\": 400, \"initialize_stream_seconds\": 400, \"project_stream_seconds\": 400, \"select_stream_seconds\": 400}",
+          "Kernel stream seconds per pose: {\"histogram_stream_seconds\": 0.0012844864012673497, \"initialize_stream_seconds\": 0.0007350096005015076, \"project_stream_seconds\": 0.0018928447984158994, \"select_stream_seconds\": 0.0003021472013555467}"
+        ]
+      },
+      "runtime_seconds": 0.007122630000230857,
+      "split_id": "5",
+      "status": "success"
+    },
+    {
+      "method_id": "ordinary",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "wall_seconds": 0.006106234999606386
+      },
+      "provenance": {
+        "command": "<workspace>\\.venv\\Scripts\\python.exe tools/profile_d2d_cuda.py --problem outputs/public-kitti-six-dof-fused-cpu-v1/demo.problem.json --output-dir outputs/public-kitti-cuda-stage-profile-v1 --exclude-frame-id 0000000460 --exclude-frame-id 0000001035 --exclude-frame-id 0000001611 --exclude-frame-id 0000002186 --exclude-frame-id 0000002761 --repeats 10 --poses-per-repeat 20",
+        "config_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Execution order: ['instrumented', 'ordinary']"
+        ]
+      },
+      "runtime_seconds": 0.006106234999606386,
+      "split_id": "5",
+      "status": "success"
+    },
+    {
+      "method_id": "ordinary",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "wall_seconds": 0.005624994996469468
+      },
+      "provenance": {
+        "command": "<workspace>\\.venv\\Scripts\\python.exe tools/profile_d2d_cuda.py --problem outputs/public-kitti-six-dof-fused-cpu-v1/demo.problem.json --output-dir outputs/public-kitti-cuda-stage-profile-v1 --exclude-frame-id 0000000460 --exclude-frame-id 0000001035 --exclude-frame-id 0000001611 --exclude-frame-id 0000002186 --exclude-frame-id 0000002761 --repeats 10 --poses-per-repeat 20",
+        "config_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Execution order: ['ordinary', 'instrumented']"
+        ]
+      },
+      "runtime_seconds": 0.005624994996469468,
+      "split_id": "6",
+      "status": "success"
+    },
+    {
+      "method_id": "instrumented",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "wall_seconds": 0.007227135001448915
+      },
+      "provenance": {
+        "command": "<workspace>\\.venv\\Scripts\\python.exe tools/profile_d2d_cuda.py --problem outputs/public-kitti-six-dof-fused-cpu-v1/demo.problem.json --output-dir outputs/public-kitti-cuda-stage-profile-v1 --exclude-frame-id 0000000460 --exclude-frame-id 0000001035 --exclude-frame-id 0000001611 --exclude-frame-id 0000002186 --exclude-frame-id 0000002761 --repeats 10 --poses-per-repeat 20",
+        "config_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Execution order: ['ordinary', 'instrumented']",
+          "Kernel calls: {\"histogram_stream_seconds\": 400, \"initialize_stream_seconds\": 400, \"project_stream_seconds\": 400, \"select_stream_seconds\": 400}",
+          "Kernel stream seconds per pose: {\"histogram_stream_seconds\": 0.0012564496003091333, \"initialize_stream_seconds\": 0.0006828735989518464, \"project_stream_seconds\": 0.0018145888049155476, \"select_stream_seconds\": 0.00031397440065629787}"
+        ]
+      },
+      "runtime_seconds": 0.007227135001448915,
+      "split_id": "6",
+      "status": "success"
+    },
+    {
+      "method_id": "instrumented",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "wall_seconds": 0.006759084996883757
+      },
+      "provenance": {
+        "command": "<workspace>\\.venv\\Scripts\\python.exe tools/profile_d2d_cuda.py --problem outputs/public-kitti-six-dof-fused-cpu-v1/demo.problem.json --output-dir outputs/public-kitti-cuda-stage-profile-v1 --exclude-frame-id 0000000460 --exclude-frame-id 0000001035 --exclude-frame-id 0000001611 --exclude-frame-id 0000002186 --exclude-frame-id 0000002761 --repeats 10 --poses-per-repeat 20",
+        "config_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Execution order: ['instrumented', 'ordinary']",
+          "Kernel calls: {\"histogram_stream_seconds\": 400, \"initialize_stream_seconds\": 400, \"project_stream_seconds\": 400, \"select_stream_seconds\": 400}",
+          "Kernel stream seconds per pose: {\"histogram_stream_seconds\": 0.0011687392009422182, \"initialize_stream_seconds\": 0.000681705600209534, \"project_stream_seconds\": 0.0017743440024554729, \"select_stream_seconds\": 0.00029369920114986594}"
+        ]
+      },
+      "runtime_seconds": 0.006759084996883757,
+      "split_id": "7",
+      "status": "success"
+    },
+    {
+      "method_id": "ordinary",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "wall_seconds": 0.00551779500383418
+      },
+      "provenance": {
+        "command": "<workspace>\\.venv\\Scripts\\python.exe tools/profile_d2d_cuda.py --problem outputs/public-kitti-six-dof-fused-cpu-v1/demo.problem.json --output-dir outputs/public-kitti-cuda-stage-profile-v1 --exclude-frame-id 0000000460 --exclude-frame-id 0000001035 --exclude-frame-id 0000001611 --exclude-frame-id 0000002186 --exclude-frame-id 0000002761 --repeats 10 --poses-per-repeat 20",
+        "config_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Execution order: ['instrumented', 'ordinary']"
+        ]
+      },
+      "runtime_seconds": 0.00551779500383418,
+      "split_id": "7",
+      "status": "success"
+    },
+    {
+      "method_id": "ordinary",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "wall_seconds": 0.006661984996753745
+      },
+      "provenance": {
+        "command": "<workspace>\\.venv\\Scripts\\python.exe tools/profile_d2d_cuda.py --problem outputs/public-kitti-six-dof-fused-cpu-v1/demo.problem.json --output-dir outputs/public-kitti-cuda-stage-profile-v1 --exclude-frame-id 0000000460 --exclude-frame-id 0000001035 --exclude-frame-id 0000001611 --exclude-frame-id 0000002186 --exclude-frame-id 0000002761 --repeats 10 --poses-per-repeat 20",
+        "config_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Execution order: ['ordinary', 'instrumented']"
+        ]
+      },
+      "runtime_seconds": 0.006661984996753745,
+      "split_id": "8",
+      "status": "success"
+    },
+    {
+      "method_id": "instrumented",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "wall_seconds": 0.008945594995748252
+      },
+      "provenance": {
+        "command": "<workspace>\\.venv\\Scripts\\python.exe tools/profile_d2d_cuda.py --problem outputs/public-kitti-six-dof-fused-cpu-v1/demo.problem.json --output-dir outputs/public-kitti-cuda-stage-profile-v1 --exclude-frame-id 0000000460 --exclude-frame-id 0000001035 --exclude-frame-id 0000001611 --exclude-frame-id 0000002186 --exclude-frame-id 0000002761 --repeats 10 --poses-per-repeat 20",
+        "config_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Execution order: ['ordinary', 'instrumented']",
+          "Kernel calls: {\"histogram_stream_seconds\": 400, \"initialize_stream_seconds\": 400, \"project_stream_seconds\": 400, \"select_stream_seconds\": 400}",
+          "Kernel stream seconds per pose: {\"histogram_stream_seconds\": 0.0015704047998413445, \"initialize_stream_seconds\": 0.0009472896005958319, \"project_stream_seconds\": 0.0020482416067272424, \"select_stream_seconds\": 0.0003415056007914245}"
+        ]
+      },
+      "runtime_seconds": 0.008945594995748252,
+      "split_id": "8",
+      "status": "success"
+    },
+    {
+      "method_id": "instrumented",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "wall_seconds": 0.008009130001300945
+      },
+      "provenance": {
+        "command": "<workspace>\\.venv\\Scripts\\python.exe tools/profile_d2d_cuda.py --problem outputs/public-kitti-six-dof-fused-cpu-v1/demo.problem.json --output-dir outputs/public-kitti-cuda-stage-profile-v1 --exclude-frame-id 0000000460 --exclude-frame-id 0000001035 --exclude-frame-id 0000001611 --exclude-frame-id 0000002186 --exclude-frame-id 0000002761 --repeats 10 --poses-per-repeat 20",
+        "config_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Execution order: ['instrumented', 'ordinary']",
+          "Kernel calls: {\"histogram_stream_seconds\": 400, \"initialize_stream_seconds\": 400, \"project_stream_seconds\": 400, \"select_stream_seconds\": 400}",
+          "Kernel stream seconds per pose: {\"histogram_stream_seconds\": 0.0013619664032012227, \"initialize_stream_seconds\": 0.0007385679995641114, \"project_stream_seconds\": 0.0019231711983680722, \"select_stream_seconds\": 0.00033414560076780616}"
+        ]
+      },
+      "runtime_seconds": 0.008009130001300945,
+      "split_id": "9",
+      "status": "success"
+    },
+    {
+      "method_id": "ordinary",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "wall_seconds": 0.0054097299987915905
+      },
+      "provenance": {
+        "command": "<workspace>\\.venv\\Scripts\\python.exe tools/profile_d2d_cuda.py --problem outputs/public-kitti-six-dof-fused-cpu-v1/demo.problem.json --output-dir outputs/public-kitti-cuda-stage-profile-v1 --exclude-frame-id 0000000460 --exclude-frame-id 0000001035 --exclude-frame-id 0000001611 --exclude-frame-id 0000002186 --exclude-frame-id 0000002761 --repeats 10 --poses-per-repeat 20",
+        "config_sha256": "ea99d5521992e24f5266b4a6d69d5d19524ec42a180a0696c032810006d7de86",
+        "input_sha256": "1daf5e6b5da531ca873d0c3b4abab6141fd0f0d49d9937c48cb265851d748f18",
+        "notes": [
+          "Execution order: ['instrumented', 'ordinary']"
+        ]
+      },
+      "runtime_seconds": 0.0054097299987915905,
+      "split_id": "9",
+      "status": "success"
+    }
+  ]
+}

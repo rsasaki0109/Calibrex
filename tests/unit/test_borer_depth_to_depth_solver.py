@@ -1,10 +1,13 @@
 import math
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 
 import numpy as np
 import pytest
 
 from calibrex.core.geometry import SE3
 from calibrex.solvers.borer_depth_to_depth_solver import (
+    DepthPairHistogram,
     DepthToDepthCameraModel,
     DepthToDepthObservation,
     DepthToDepthOptions,
@@ -242,3 +245,65 @@ def test_correspondence_projection_skips_metric_gate_for_disparity_maps() -> Non
 
     assert len(disparity_projections) >= 4
     assert len(metric) == 0
+
+
+class _OrderedBatchProjector:
+    def __init__(self, extra_histograms: int = 0) -> None:
+        self.calls = 0
+        self.extra_histograms = extra_histograms
+
+    def __call__(self, observation, transform, *, use_z_buffer=True):
+        return project_depth_pairs(observation, transform, use_z_buffer=use_z_buffer)
+
+    def histogram_depth_pairs_batch(
+        self, observations, transform, *, use_z_buffer, bins, camera_range, lidar_range,
+    ):
+        self.calls += 1
+        results = []
+        for observation in observations:
+            pairs = self(observation, transform, use_z_buffer=use_z_buffer)
+            results.append(DepthPairHistogram(
+                np.histogram2d(pairs.camera_depth, pairs.lidar_range_m, bins=bins,
+                               range=(camera_range, lidar_range))[0],
+                pairs.camera_depth.size, pairs.projected_count_before_visibility,
+            ))
+        if self.extra_histograms < 0:
+            results.pop()
+        elif self.extra_histograms > 0:
+            results.append(results[-1])
+        yield from results
+
+
+def test_batch_histograms_preserve_order_skips_and_executor_selection() -> None:
+    observation = _synthetic_observation()
+    observations = (
+        replace(observation, frame_id="invalid-depth", depth_map=np.full_like(
+            observation.depth_map, np.nan,
+        )),
+        replace(observation, frame_id="first"),
+        replace(observation, frame_id="empty", lidar_points=np.empty((0, 3))),
+        replace(observation, frame_id="second", depth_map=observation.depth_map * 1.2),
+    )
+    options = DepthToDepthOptions(histogram_bins=24, min_visible_points=100)
+    expected = evaluate_depth_to_depth_mi(observations, SE3.identity(), options)
+    projector = _OrderedBatchProjector()
+    assert evaluate_depth_to_depth_mi(
+        observations, SE3.identity(), options, projector=projector,
+    ) == expected
+    assert projector.calls == 1
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        assert evaluate_depth_to_depth_mi(
+            observations, SE3.identity(), options, projector=projector, frame_executor=executor,
+        ) == expected
+    assert projector.calls == 1
+    assert evaluate_depth_to_depth_mi([], SE3.identity(), projector=projector).frames == ()
+    assert projector.calls == 1
+
+
+@pytest.mark.parametrize("extra", [-1, 1])
+def test_batch_histograms_reject_missing_or_extra_frame_results(extra: int) -> None:
+    observation = _synthetic_observation()
+    with pytest.raises(ValueError, match=r"zip\(\).*argument"):
+        evaluate_depth_to_depth_mi(
+            [observation], SE3.identity(), projector=_OrderedBatchProjector(extra),
+        )

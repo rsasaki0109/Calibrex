@@ -1,0 +1,54 @@
+{
+  "provenance": {
+    "input_sha256": {
+      "data/public/glim_versatile/livox.bag": "f57a2e85339316d4235ab693ab2876aac5e113625c7f8b0f7873b62f92e09643",
+      "data/public/glim_versatile/gt.tar.gz": "4bfd871527d00065898153e77a6764ac331421aca16ff88bde778994f70f5bc9",
+      "data/public/glim_versatile/gt/livox.txt": "bcc75ff7985f2e140e514c69f029153e0127a33ee7abc1b757e077386f5059ad",
+      "data/public/glim_versatile/livox_rosbag2_gt_restamped/livox_rosbag2_gt_restamped.db3": "8d28f0a8ddda13b880e4648e9d687d4a566d40f70b87547f8798fe8a18cfde9e",
+      "data/public/glim_versatile/livox_rosbag2_gt_restamped/metadata.yaml": "7542a3e1689e2007e9c15b8d163cddcbca4d87232dd92b7ecff48ba1e0f6645f",
+      "data/public/glim_versatile/conversion-provenance.json": "7f51da99c1bdc0b2768229e6ff22809d5d0bb22e02dcc62dce2c3ce0dac2da56"
+    }
+  },
+  "attempts": [
+    {
+      "source_commit": "aa19ec5d4bf01e1167e70f48332e6e13d51263c0",
+      "launcher": "launchers/profile-threaded-lidar-v1.py.txt",
+      "status": "failed",
+      "stage": "thread profiling initialization",
+      "observed_error": "ValueError: Another profiling tool is already active",
+      "complete_calibration_result_saved": false
+    },
+    {
+      "source_commit": "3d16f57051da55dad232e3d3ffea1c49b7137c6a",
+      "launcher": "launchers/run-parallel-summary-v1.py.txt",
+      "status": "failed",
+      "stage": "benchmark CLI validation",
+      "observed_error": "CUDA scope requires both declared execution overrides to be cuda",
+      "complete_calibration_result_saved": false
+    },
+    {
+      "source_commit": "3d16f57051da55dad232e3d3ffea1c49b7137c6a",
+      "launcher": "launchers/run-parallel-summary-v2.py.txt",
+      "status": "failed",
+      "stage": "compiled replay module binding validation",
+      "observed_error": "compiled replay module binding mismatch",
+      "complete_calibration_result_saved": true,
+      "model": "attempts/binding-failure/baseline.repeat-01",
+      "parent_whole_wall_persisted": false
+    },
+    {
+      "source_commit": "33858bd2ac853d30cf31645651de4be6e38b4c8c",
+      "launcher": "launchers/run-parallel-summary-v3.py.txt",
+      "status": "stopped",
+      "stage": "default cohort repeat 3 candidate",
+      "reason": "Preliminary CPU speedup 1.47x prompted parallel finite-difference revision.",
+      "completed_cohorts": [
+        "preliminary/cpu-dense",
+        "preliminary/dense"
+      ],
+      "completed_default_workers": 5,
+      "parent_whole_wall_for_completed_default_workers": "attempts/run-v3.stdout.txt",
+      "do_not_pool_with_final_candidate": true
+    }
+  ]
+}

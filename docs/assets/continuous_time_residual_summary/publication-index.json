@@ -1,0 +1,1009 @@
+{
+  "provenance": {
+    "source_commit": "a514397f5219b1423f3aedbc8b79be9b581f928b",
+    "previous_gpu_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447",
+    "cpu_control_commit": "eb50c99878706a45eb0e584f3573507313cdc172",
+    "generator_sha256": "9a59e308a74c3cda4e6293b2eca58811dd9006c46d4307e0b2d4f2334758cb43",
+    "publication_python_runtime": {
+      "version": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+      "implementation": "cpython"
+    },
+    "input_sha256": {
+      "data/public/glim_versatile/livox.bag": "f57a2e85339316d4235ab693ab2876aac5e113625c7f8b0f7873b62f92e09643",
+      "data/public/glim_versatile/gt.tar.gz": "4bfd871527d00065898153e77a6764ac331421aca16ff88bde778994f70f5bc9",
+      "data/public/glim_versatile/gt/livox.txt": "bcc75ff7985f2e140e514c69f029153e0127a33ee7abc1b757e077386f5059ad",
+      "data/public/glim_versatile/livox_rosbag2_gt_restamped/livox_rosbag2_gt_restamped.db3": "8d28f0a8ddda13b880e4648e9d687d4a566d40f70b87547f8798fe8a18cfde9e",
+      "data/public/glim_versatile/livox_rosbag2_gt_restamped/metadata.yaml": "7542a3e1689e2007e9c15b8d163cddcbca4d87232dd92b7ecff48ba1e0f6645f",
+      "data/public/glim_versatile/conversion-provenance.json": "7f51da99c1bdc0b2768229e6ff22809d5d0bb22e02dcc62dce2c3ce0dac2da56"
+    }
+  },
+  "files": {
+    "sources/measured.adaptive_voxel.py.txt": {
+      "sha256": "4a2afd9a882426f0a99dbf7af52f98d49b48e168a32956ec3496f5740c879a14",
+      "source": "src/calibrex/data/adaptive_voxel.py",
+      "source_commit": "a514397f5219b1423f3aedbc8b79be9b581f928b"
+    },
+    "sources/measured.odometry_track.py.txt": {
+      "sha256": "1569e661470e902f2f08dde1bf2d0c41cc6540a24f59d9ee961e066d36653c91",
+      "source": "src/calibrex/data/odometry_track.py",
+      "source_commit": "a514397f5219b1423f3aedbc8b79be9b581f928b"
+    },
+    "sources/measured.numba_lidar_deskew_adapter.py.txt": {
+      "sha256": "53966123b0e942f48929494fba4389062ccee0cd44dc85501e4d3451a84cc0be",
+      "source": "src/calibrex/data/numba_lidar_deskew_adapter.py",
+      "source_commit": "a514397f5219b1423f3aedbc8b79be9b581f928b"
+    },
+    "sources/measured.lidar_point_to_plane.py.txt": {
+      "sha256": "4ca03bfd97d9a091b010e4805862ee46345486bb9ffbb6cf71c083dac81efb92",
+      "source": "src/calibrex/graph/lidar_point_to_plane.py",
+      "source_commit": "a514397f5219b1423f3aedbc8b79be9b581f928b"
+    },
+    "sources/measured.continuous_time_lidar_pair_solver.py.txt": {
+      "sha256": "687dee66b430ccb21ea848acf1b9f37c30885569f0a09882ea5fe58b3c22b15f",
+      "source": "src/calibrex/solvers/continuous_time_lidar_pair_solver.py",
+      "source_commit": "a514397f5219b1423f3aedbc8b79be9b581f928b"
+    },
+    "sources/measured.numba_continuous_time_adapter.py.txt": {
+      "sha256": "f4b8f569d540a7ed87d44e185799c366725b788e6c2289e24132f691f9a0c77b",
+      "source": "src/calibrex/solvers/numba_continuous_time_adapter.py",
+      "source_commit": "a514397f5219b1423f3aedbc8b79be9b581f928b"
+    },
+    "sources/measured.cuda_continuous_time_adapter.py.txt": {
+      "sha256": "1c6cdd826fb47a73ac7af4e3941ac3597f8a74d9a78e7247683c83f6dc71bd6c",
+      "source": "src/calibrex/solvers/cuda_continuous_time_adapter.py",
+      "source_commit": "a514397f5219b1423f3aedbc8b79be9b581f928b"
+    },
+    "sources/measured.cuda_plane_query_adapter.py.txt": {
+      "sha256": "1e01de434b7baf5f635493d06435d42f87456340cb95fa5405a5761225ae0c03",
+      "source": "src/calibrex/solvers/cuda_plane_query_adapter.py",
+      "source_commit": "a514397f5219b1423f3aedbc8b79be9b581f928b"
+    },
+    "sources/measured.fixed_trajectory_se3_solver.py.txt": {
+      "sha256": "4eccbe682e48453d65d339f60c1c6ee0293df0269c547f64629c527bbf58e388",
+      "source": "src/calibrex/solvers/fixed_trajectory_se3_solver.py",
+      "source_commit": "a514397f5219b1423f3aedbc8b79be9b581f928b"
+    },
+    "sources/measured.robust_lidar_observations.py.txt": {
+      "sha256": "ff398d558ec6f35eec497d6cdec80286b43ff4fd27a1e3b6a224d8e54098e240",
+      "source": "src/calibrex/solvers/robust_lidar_observations.py",
+      "source_commit": "a514397f5219b1423f3aedbc8b79be9b581f928b"
+    },
+    "sources/measured.lidar.py.txt": {
+      "sha256": "2e4c7dda7f81eaa343096ccce57e1f160bc4418d395facfafc4bcbed4ffb16df",
+      "source": "src/calibrex/evaluation/lidar.py",
+      "source_commit": "a514397f5219b1423f3aedbc8b79be9b581f928b"
+    },
+    "sources/measured.packed_lidar_observations.py.txt": {
+      "sha256": "f648006f405e0228debc858b0ca25aa99b6e8181a786ba33b4245b810869d396",
+      "source": "src/calibrex/evaluation/packed_lidar_observations.py",
+      "source_commit": "a514397f5219b1423f3aedbc8b79be9b581f928b"
+    },
+    "sources/measured.livox.py.txt": {
+      "sha256": "0773a7e2fccb2d2faa23f9e90636a00355499af131ad671845edb2c8d33b1bfd",
+      "source": "src/calibrex/data/livox.py",
+      "source_commit": "a514397f5219b1423f3aedbc8b79be9b581f928b"
+    },
+    "sources/measured.online.py.txt": {
+      "sha256": "090e373de41196825a09dd4735964cbcdcae766cb81cd643b061750272d08452",
+      "source": "src/calibrex/pipelines/online.py",
+      "source_commit": "a514397f5219b1423f3aedbc8b79be9b581f928b"
+    },
+    "sources/measured.continuous_time_lidar_artifacts.py.txt": {
+      "sha256": "96c051290b6b4f82f81fcc108b6ea4525b1497af064a3dedb8196e7dedd9d874",
+      "source": "src/calibrex/core/continuous_time_lidar_artifacts.py",
+      "source_commit": "a514397f5219b1423f3aedbc8b79be9b581f928b"
+    },
+    "sources/measured.continuous_time_lidar_train_diagnostics.py.txt": {
+      "sha256": "f86b7e9d569b4ef61d85834df790207dbe2f424af17ec0f5df16b9f2aef6fcac",
+      "source": "src/calibrex/core/continuous_time_lidar_train_diagnostics.py",
+      "source_commit": "a514397f5219b1423f3aedbc8b79be9b581f928b"
+    },
+    "sources/measured.provenance.py.txt": {
+      "sha256": "eb7849f342892272ae136454da816852d080684b25c8ec55771582c1b8621f47",
+      "source": "src/calibrex/core/provenance.py",
+      "source_commit": "a514397f5219b1423f3aedbc8b79be9b581f928b"
+    },
+    "sources/measured.rosbag1_to_rosbag2_online_pair.py.txt": {
+      "sha256": "9da3e080b62933d4d75f92c08bba91929fea401d99650e55f78bd3cdabfcc680",
+      "source": "tools/rosbag1_to_rosbag2_online_pair.py",
+      "source_commit": "a514397f5219b1423f3aedbc8b79be9b581f928b"
+    },
+    "sources/measured.lidar_scan_deskew.py.txt": {
+      "sha256": "e36a870323f76256fb5b3f8b8364cb2edb4c06483b3ea0fe8a99bf2faa6f1ce0",
+      "source": "tools/lidar_scan_deskew.py",
+      "source_commit": "a514397f5219b1423f3aedbc8b79be9b581f928b"
+    },
+    "sources/measured.benchmark_adaptive_plane_search.py.txt": {
+      "sha256": "5a36c6d4d610fe38c38196e5fa18b6f848e2731c436ef3f5945eb6cd99ccec49",
+      "source": "tools/benchmark_adaptive_plane_search.py",
+      "source_commit": "a514397f5219b1423f3aedbc8b79be9b581f928b"
+    },
+    "previous_gpu/baseline.livox.py.txt": {
+      "sha256": "50dfd41ad1beb55893636965cf8d12f8afc5aec69a91d3cba1cc762901036ed6",
+      "source": "src/calibrex/data/livox.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "previous_gpu/baseline.odometry_track.py.txt": {
+      "sha256": "660a735db57a92c164b9d20f470ba966f462cc83699e04856cc5f63092dab763",
+      "source": "src/calibrex/data/odometry_track.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "previous_gpu/baseline.lidar_point_to_plane.py.txt": {
+      "sha256": "0e7d630d7b1115b0ec41d94158a03a090d11dc54c8ccd8a69a7a21945779b36b",
+      "source": "src/calibrex/graph/lidar_point_to_plane.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "previous_gpu/baseline.lidar.py.txt": {
+      "sha256": "8e08c74cc5d6d11d96dae66c53a3e6b2c645bff28f7e0b56fc38567ec8cf4519",
+      "source": "src/calibrex/evaluation/lidar.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "previous_gpu/baseline.continuous_time_lidar_pair_solver.py.txt": {
+      "sha256": "2ac36c5c31d2c9f63c45fa779ca7156696e4d3e0f96d12976dcfa86c0859fae0",
+      "source": "src/calibrex/solvers/continuous_time_lidar_pair_solver.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "previous_gpu/baseline.adaptive_voxel.py.txt": {
+      "sha256": "122ef1128e7bea57a8d6e4cf462d825a00056ffa2ea30df2f98a5fd8f6dbff7d",
+      "source": "src/calibrex/data/adaptive_voxel.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "previous_gpu/baseline.online.py.txt": {
+      "sha256": "090e373de41196825a09dd4735964cbcdcae766cb81cd643b061750272d08452",
+      "source": "src/calibrex/pipelines/online.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "previous_gpu/baseline.fixed_trajectory_se3_solver.py.txt": {
+      "sha256": "8f7ab1c2f75fff00154e0f554c880aee81bf97ccd2106bfb5e62165df5cfb2bc",
+      "source": "src/calibrex/solvers/fixed_trajectory_se3_solver.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "previous_gpu/baseline.numba_continuous_time_adapter.py.txt": {
+      "sha256": "a5fbfa157b6eda2338a5939cd9e273023b60137feedffda83416d013e85e0715",
+      "source": "src/calibrex/solvers/numba_continuous_time_adapter.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "previous_gpu/baseline.robust_lidar_observations.py.txt": {
+      "sha256": "99601cc85aed82b5ccdddf33d1d8c079470b2b8785ee4057e8853094779df95b",
+      "source": "src/calibrex/solvers/robust_lidar_observations.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "previous_gpu/baseline.packed_lidar_observations.py.txt": {
+      "sha256": "f648006f405e0228debc858b0ca25aa99b6e8181a786ba33b4245b810869d396",
+      "source": "src/calibrex/evaluation/packed_lidar_observations.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "previous_gpu/baseline.cuda_continuous_time_adapter.py.txt": {
+      "sha256": "1c6cdd826fb47a73ac7af4e3941ac3597f8a74d9a78e7247683c83f6dc71bd6c",
+      "source": "src/calibrex/solvers/cuda_continuous_time_adapter.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "previous_gpu/baseline.cuda_plane_query_adapter.py.txt": {
+      "sha256": "1e01de434b7baf5f635493d06435d42f87456340cb95fa5405a5761225ae0c03",
+      "source": "src/calibrex/solvers/cuda_plane_query_adapter.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "previous_gpu/baseline.numba_lidar_deskew_adapter.py.txt": {
+      "sha256": "53966123b0e942f48929494fba4389062ccee0cd44dc85501e4d3451a84cc0be",
+      "source": "src/calibrex/data/numba_lidar_deskew_adapter.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "sources/measured.online_continuous_time_compiled_dense_capture_config.yaml.txt": {
+      "sha256": "1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186",
+      "source": "examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml",
+      "source_commit": "a514397f5219b1423f3aedbc8b79be9b581f928b"
+    },
+    "dense/baseline.repeat-01.measurement.json": {
+      "sha256": "52a13131001ffe2d130aa7d1372d6d5e14c28fd61ff79126511b294f5281d89f",
+      "original_sha256": "8ee1d383569f45a1f3bb5b34869f502e04fc3f3992d44b5522e87a8094079a1b",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module",
+        "loaded_replay_module"
+      ]
+    },
+    "dense/baseline.repeat-01.result.yaml": {
+      "sha256": "2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f",
+      "original_sha256": "2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f"
+    },
+    "dense/sparse.repeat-01.measurement.json": {
+      "sha256": "dd431848002b3f17d02ea91d495f946f65d7d5579cf8af3df7d00f1031a67f6c",
+      "original_sha256": "e012e2536013618cf9045da7732147cb47d27faa275fd2406c77e10b0a5b8fc9",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module",
+        "loaded_replay_module"
+      ]
+    },
+    "dense/sparse.repeat-01.result.yaml": {
+      "sha256": "2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f",
+      "original_sha256": "2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f"
+    },
+    "dense/sparse.repeat-02.measurement.json": {
+      "sha256": "636eb987bb4f3f265e13b7c7efb073e485fdcb59765a1590b657f5f2c6260c1e",
+      "original_sha256": "c092beb1e2df185d3827d859a635114365cb6941b85dae5321038c5d617bba88",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module",
+        "loaded_replay_module"
+      ]
+    },
+    "dense/sparse.repeat-02.result.yaml": {
+      "sha256": "2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f",
+      "original_sha256": "2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f"
+    },
+    "dense/baseline.repeat-02.measurement.json": {
+      "sha256": "c69b6e17531be7698e1e47701736a89a74bc4d786dc6ce066a76ee542f5bb022",
+      "original_sha256": "2308b6e65935dde5c0a2cf09ed8fe6e80d2b6cbe3c8cd1067580fcba1f34629d",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module",
+        "loaded_replay_module"
+      ]
+    },
+    "dense/baseline.repeat-02.result.yaml": {
+      "sha256": "2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f",
+      "original_sha256": "2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f"
+    },
+    "dense/baseline.repeat-03.measurement.json": {
+      "sha256": "dab98c7894a9372efc711b125563a13ae01894683702bddb71e1b4696da2eff5",
+      "original_sha256": "328075b2494c3ec7b7e5d0244c327d9384ce4edd1599ebb96f9d2b04141ab607",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module",
+        "loaded_replay_module"
+      ]
+    },
+    "dense/baseline.repeat-03.result.yaml": {
+      "sha256": "2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f",
+      "original_sha256": "2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f"
+    },
+    "dense/sparse.repeat-03.measurement.json": {
+      "sha256": "f49817c438c54ff75c85aa2e3fb02f055cb79016313a8995b574eb55e2accda8",
+      "original_sha256": "8b29e0eae2bc50b47998eade9757d709e5f710940a8b0288351ad83533033ec5",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module",
+        "loaded_replay_module"
+      ]
+    },
+    "dense/sparse.repeat-03.result.yaml": {
+      "sha256": "2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f",
+      "original_sha256": "2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f"
+    },
+    "dense/pipeline.definition.json": {
+      "sha256": "26bb0d342faa83b0c5cf1b8637fe86f61d72d8f89ada442d9cb3e80029e31319",
+      "original_sha256": "4e2eb04e8a707be68f98111736066597c5381ce035fa877ef133c2bbb1b49fd5"
+    },
+    "dense/pipeline.benchmark.json": {
+      "sha256": "f87fee559d6506fc1a89db60fc48fe4e454a3e224d0bdde14c8000771db40995",
+      "original_sha256": "3e8b7773743d72ee2f7cc97213ec4937ebed0ce42b80fcadc4d6107311964b26"
+    },
+    "sources/measured.online_continuous_time_compiled_full_capture_config.yaml.txt": {
+      "sha256": "c6d93361d1628493be20a64d585394b2e437bffcbd548340a541cc12b1c602b3",
+      "source": "examples/public_datasets/glim_versatile/online_continuous_time_compiled_full_capture_config.yaml",
+      "source_commit": "a514397f5219b1423f3aedbc8b79be9b581f928b"
+    },
+    "full/baseline.repeat-01.measurement.json": {
+      "sha256": "32be7bb0a42ccfcccd254f0f6ee6be3097a726e26284879d90cf5843bd3dbd57",
+      "original_sha256": "4ae4066023e0a2a9ecc4c90cfb80e0d2b8bdbfc97fb16c1d6a4392bf95927057",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module"
+      ]
+    },
+    "full/baseline.repeat-01.result.yaml": {
+      "sha256": "deaa6d31ddd7cd65019b61c5a32289125a287bff3a334b6d6819d5678c9e70a2",
+      "original_sha256": "deaa6d31ddd7cd65019b61c5a32289125a287bff3a334b6d6819d5678c9e70a2"
+    },
+    "full/sparse.repeat-01.measurement.json": {
+      "sha256": "2d9bd79c195e2baa6115d3fbb0381e954a26fda0777eef09cd33e115a1b27742",
+      "original_sha256": "64e725c08166935f64b14d2d11c897dc8b433ab7b9ee13edd6794fda9d75bce9",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module"
+      ]
+    },
+    "full/sparse.repeat-01.result.yaml": {
+      "sha256": "deaa6d31ddd7cd65019b61c5a32289125a287bff3a334b6d6819d5678c9e70a2",
+      "original_sha256": "deaa6d31ddd7cd65019b61c5a32289125a287bff3a334b6d6819d5678c9e70a2"
+    },
+    "full/sparse.repeat-02.measurement.json": {
+      "sha256": "40ddbec7f729de3ba649292bb76c11807109c550f74a10fbbd1116a14390807d",
+      "original_sha256": "12a9171ba972f6317416a0adc57349ad0440e096e4e90c2f6966ab6711419531",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module"
+      ]
+    },
+    "full/sparse.repeat-02.result.yaml": {
+      "sha256": "deaa6d31ddd7cd65019b61c5a32289125a287bff3a334b6d6819d5678c9e70a2",
+      "original_sha256": "deaa6d31ddd7cd65019b61c5a32289125a287bff3a334b6d6819d5678c9e70a2"
+    },
+    "full/baseline.repeat-02.measurement.json": {
+      "sha256": "c28cd9e53e8cb4b48faf700f147db1a8d4c80a4fe35f3d4e2b31fac15fcc9eb9",
+      "original_sha256": "1130ec1a50840dac7887c03b3aba11234192cd144b326d2010dbff87ec9ac30f",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module"
+      ]
+    },
+    "full/baseline.repeat-02.result.yaml": {
+      "sha256": "deaa6d31ddd7cd65019b61c5a32289125a287bff3a334b6d6819d5678c9e70a2",
+      "original_sha256": "deaa6d31ddd7cd65019b61c5a32289125a287bff3a334b6d6819d5678c9e70a2"
+    },
+    "full/baseline.repeat-03.measurement.json": {
+      "sha256": "7254fca886e85afa0a68c9f6068a7e39663a117f01c5fc3f98d1ff545dc5cf2b",
+      "original_sha256": "3f3c75c37aff7196d0cd6b23c378cd26cbc297f7991f7e39141c145e93f91eab",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module"
+      ]
+    },
+    "full/baseline.repeat-03.result.yaml": {
+      "sha256": "deaa6d31ddd7cd65019b61c5a32289125a287bff3a334b6d6819d5678c9e70a2",
+      "original_sha256": "deaa6d31ddd7cd65019b61c5a32289125a287bff3a334b6d6819d5678c9e70a2"
+    },
+    "full/sparse.repeat-03.measurement.json": {
+      "sha256": "b131d88a8695617b68d1bc6f170008a195b10e7d5234a29735b2109f7fb04437",
+      "original_sha256": "c0e2c8fb5e1e942450b9fd5ed186ed41def9a1af4e44ba8b46e4d7263614e1f0",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module"
+      ]
+    },
+    "full/sparse.repeat-03.result.yaml": {
+      "sha256": "deaa6d31ddd7cd65019b61c5a32289125a287bff3a334b6d6819d5678c9e70a2",
+      "original_sha256": "deaa6d31ddd7cd65019b61c5a32289125a287bff3a334b6d6819d5678c9e70a2"
+    },
+    "full/pipeline.definition.json": {
+      "sha256": "84b6a1e13a8c4e578f9a39f983c6813f7d43a32e8b35f73ff7dc5dea1aef00bc",
+      "original_sha256": "2867e293b852ced513b6d7c0453d95c41abd7b97142eda21b497ac1dc3844962"
+    },
+    "full/pipeline.benchmark.json": {
+      "sha256": "3025d8816463d57e6d82b048fb02ee6be6e66e076530a85a40415e3799511b9c",
+      "original_sha256": "974b4d534be057cfb0c1f3da8807d07a37ea3b18aceaba800d20610265ad8289"
+    },
+    "sources/measured.online_continuous_time_compiled_queries_config.yaml.txt": {
+      "sha256": "677b4b8eed3a989949e37da0bc6fc59124262805151e6ab154ee2a5576387e55",
+      "source": "examples/public_datasets/glim_versatile/online_continuous_time_compiled_queries_config.yaml",
+      "source_commit": "a514397f5219b1423f3aedbc8b79be9b581f928b"
+    },
+    "default/baseline.repeat-01.measurement.json": {
+      "sha256": "77b77e06d6b314d34a388925442db84fafc8d7c5ff9c9938c845acb7b0f0cca2",
+      "original_sha256": "2ffd713846405be65f1272a34885227bf74b1a6bda64a8f0037d0643d8ae48d4",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules"
+      ]
+    },
+    "default/baseline.repeat-01.result.yaml": {
+      "sha256": "d64bca0bb22867ebc72e160ca1cdb84dbef135da24209348c90c6205545f2f76",
+      "original_sha256": "d64bca0bb22867ebc72e160ca1cdb84dbef135da24209348c90c6205545f2f76"
+    },
+    "default/sparse.repeat-01.measurement.json": {
+      "sha256": "d6e4cacd2230add3d50f728999fbf1fecdea653372e2d85f00e4c4b56908ed05",
+      "original_sha256": "a197d1568b973d7764feaf3ae89820c9f7623464d4694a2941be382dbadce442",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules"
+      ]
+    },
+    "default/sparse.repeat-01.result.yaml": {
+      "sha256": "d64bca0bb22867ebc72e160ca1cdb84dbef135da24209348c90c6205545f2f76",
+      "original_sha256": "d64bca0bb22867ebc72e160ca1cdb84dbef135da24209348c90c6205545f2f76"
+    },
+    "default/sparse.repeat-02.measurement.json": {
+      "sha256": "d0f5e714ec416e3ed8da87ed3393739077b1e8e04e3a6f327f208f6b6053efc3",
+      "original_sha256": "c5759c5b8a8ae61c406917c50555d958f94e19d99aab85a594bae10b43b244b4",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules"
+      ]
+    },
+    "default/sparse.repeat-02.result.yaml": {
+      "sha256": "d64bca0bb22867ebc72e160ca1cdb84dbef135da24209348c90c6205545f2f76",
+      "original_sha256": "d64bca0bb22867ebc72e160ca1cdb84dbef135da24209348c90c6205545f2f76"
+    },
+    "default/baseline.repeat-02.measurement.json": {
+      "sha256": "6b931eba64de648b1d4fae323c8286a2175fdaa554187abf5ef53b8af9f01636",
+      "original_sha256": "240b42052027fcd9f486d9061d055e6c022f5e6bdb997b0756310e3095ec86c0",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules"
+      ]
+    },
+    "default/baseline.repeat-02.result.yaml": {
+      "sha256": "d64bca0bb22867ebc72e160ca1cdb84dbef135da24209348c90c6205545f2f76",
+      "original_sha256": "d64bca0bb22867ebc72e160ca1cdb84dbef135da24209348c90c6205545f2f76"
+    },
+    "default/baseline.repeat-03.measurement.json": {
+      "sha256": "962f00e25bc462a6a1a69ef7b957dd76b35c9f3d028601ce681fb772f80826b9",
+      "original_sha256": "2cea2ad3f1d55094bc51722f4e4eb33a291c1ebcb4cc6916064bbc78f0fab888",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules"
+      ]
+    },
+    "default/baseline.repeat-03.result.yaml": {
+      "sha256": "d64bca0bb22867ebc72e160ca1cdb84dbef135da24209348c90c6205545f2f76",
+      "original_sha256": "d64bca0bb22867ebc72e160ca1cdb84dbef135da24209348c90c6205545f2f76"
+    },
+    "default/sparse.repeat-03.measurement.json": {
+      "sha256": "45f823104edd2cf2b1df55cf422e922f23bd73180e8170441f06474a7accc29b",
+      "original_sha256": "2d9e498cf02dd6113254637d21f32c6b156faf0e0420018f3f7213149fa3103e",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules"
+      ]
+    },
+    "default/sparse.repeat-03.result.yaml": {
+      "sha256": "d64bca0bb22867ebc72e160ca1cdb84dbef135da24209348c90c6205545f2f76",
+      "original_sha256": "d64bca0bb22867ebc72e160ca1cdb84dbef135da24209348c90c6205545f2f76"
+    },
+    "default/pipeline.definition.json": {
+      "sha256": "82e5bd426b63412bc88264882bbbe5a5fb56f9183bf9811c93765efb1de0f5d6",
+      "original_sha256": "de2dcb27b9f2636e23abb002f0cff202f0aa84de227d89b65142089a52f86885"
+    },
+    "default/pipeline.benchmark.json": {
+      "sha256": "4606bc02308a806c20e9df96f9fe8420bc5efa91ffeb88fe22fc746d666b07db",
+      "original_sha256": "2d036f66e98bdff42a03b7ec4c355a4fd035a52d785e1b6a6dedd74001409a59"
+    },
+    "cpu_control/baseline.livox.py.txt": {
+      "sha256": "50dfd41ad1beb55893636965cf8d12f8afc5aec69a91d3cba1cc762901036ed6",
+      "source": "src/calibrex/data/livox.py",
+      "source_commit": "eb50c99878706a45eb0e584f3573507313cdc172"
+    },
+    "cpu_control/baseline.odometry_track.py.txt": {
+      "sha256": "660a735db57a92c164b9d20f470ba966f462cc83699e04856cc5f63092dab763",
+      "source": "src/calibrex/data/odometry_track.py",
+      "source_commit": "eb50c99878706a45eb0e584f3573507313cdc172"
+    },
+    "cpu_control/baseline.lidar_point_to_plane.py.txt": {
+      "sha256": "bfbf42d647e868101f07d8613230f331d5ffb21a1ca885e6e7d9404e9fcc63b8",
+      "source": "src/calibrex/graph/lidar_point_to_plane.py",
+      "source_commit": "eb50c99878706a45eb0e584f3573507313cdc172"
+    },
+    "cpu_control/baseline.lidar.py.txt": {
+      "sha256": "8e08c74cc5d6d11d96dae66c53a3e6b2c645bff28f7e0b56fc38567ec8cf4519",
+      "source": "src/calibrex/evaluation/lidar.py",
+      "source_commit": "eb50c99878706a45eb0e584f3573507313cdc172"
+    },
+    "cpu_control/baseline.continuous_time_lidar_pair_solver.py.txt": {
+      "sha256": "2b83cdfdfab352429edb87f7beb0289dafd8ed3faad10aa6ceb80dbcbb6d5ca8",
+      "source": "src/calibrex/solvers/continuous_time_lidar_pair_solver.py",
+      "source_commit": "eb50c99878706a45eb0e584f3573507313cdc172"
+    },
+    "cpu_control/baseline.adaptive_voxel.py.txt": {
+      "sha256": "8092345b64133e7f80680e6283cf5da1950b098881327ce62b0dfec22e10acb1",
+      "source": "src/calibrex/data/adaptive_voxel.py",
+      "source_commit": "eb50c99878706a45eb0e584f3573507313cdc172"
+    },
+    "cpu_control/baseline.online.py.txt": {
+      "sha256": "fdf0f78525b75693c9c09011b1126e2439cbcb3f663e5c4b3fefbb404aebdb81",
+      "source": "src/calibrex/pipelines/online.py",
+      "source_commit": "eb50c99878706a45eb0e584f3573507313cdc172"
+    },
+    "cpu_control/baseline.fixed_trajectory_se3_solver.py.txt": {
+      "sha256": "3231303433662c6bafdea3b4a4520842304f89226d6f29f95fe0398bd74f577e",
+      "source": "src/calibrex/solvers/fixed_trajectory_se3_solver.py",
+      "source_commit": "eb50c99878706a45eb0e584f3573507313cdc172"
+    },
+    "cpu_control/baseline.numba_continuous_time_adapter.py.txt": {
+      "sha256": "50adbf844647efc67cfe63b078a2440d40838baea0374275a3ade11370242966",
+      "source": "src/calibrex/solvers/numba_continuous_time_adapter.py",
+      "source_commit": "eb50c99878706a45eb0e584f3573507313cdc172"
+    },
+    "cpu_control/baseline.robust_lidar_observations.py.txt": {
+      "sha256": "99601cc85aed82b5ccdddf33d1d8c079470b2b8785ee4057e8853094779df95b",
+      "source": "src/calibrex/solvers/robust_lidar_observations.py",
+      "source_commit": "eb50c99878706a45eb0e584f3573507313cdc172"
+    },
+    "cpu-dense/baseline.repeat-01.measurement.json": {
+      "sha256": "49c7af58df34de7b2bac8181e50be6dbffa3ccddbf9cf3fe2881bb30335f1f7b",
+      "original_sha256": "7d8509479586a9a8002a0f5cffaeb6511650c6b2ee5f590198f524b6a119ac23",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules"
+      ]
+    },
+    "cpu-dense/baseline.repeat-01.result.yaml": {
+      "sha256": "3011fc0ac940bb09d3c00a240974b8c31e6524c90bf5b648506f325f802fed30",
+      "original_sha256": "3011fc0ac940bb09d3c00a240974b8c31e6524c90bf5b648506f325f802fed30"
+    },
+    "cpu-dense/sparse.repeat-01.measurement.json": {
+      "sha256": "9bc2d56358af9ef06628f6f85a7c9508fbae9aeaec105264ce38868d593de1d8",
+      "original_sha256": "fc47ab8096b2c1c06f1cb0e95cb693fbcbf3b97af93710cad97724f1f9702f53",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module",
+        "loaded_replay_module"
+      ]
+    },
+    "cpu-dense/sparse.repeat-01.result.yaml": {
+      "sha256": "2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f",
+      "original_sha256": "2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f"
+    },
+    "cpu-dense/sparse.repeat-02.measurement.json": {
+      "sha256": "06ba407da0b6a2f3463fc9c968054deab8cebea1a599f05a844a26c7d5bdf069",
+      "original_sha256": "aef8008efec750a6d84d15e9985c2e5ef47ce794e791c54a5b2e0fce22f9501a",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module",
+        "loaded_replay_module"
+      ]
+    },
+    "cpu-dense/sparse.repeat-02.result.yaml": {
+      "sha256": "2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f",
+      "original_sha256": "2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f"
+    },
+    "cpu-dense/baseline.repeat-02.measurement.json": {
+      "sha256": "83f4048edd5a7607387d6b396274af72a2200add165c7ecad668710bdaa4b7e8",
+      "original_sha256": "78e9ed0170af3e3a6f312d5a1aa3483b3e39e1636c7337e446f2f14d6f7fc5b1",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules"
+      ]
+    },
+    "cpu-dense/baseline.repeat-02.result.yaml": {
+      "sha256": "3011fc0ac940bb09d3c00a240974b8c31e6524c90bf5b648506f325f802fed30",
+      "original_sha256": "3011fc0ac940bb09d3c00a240974b8c31e6524c90bf5b648506f325f802fed30"
+    },
+    "cpu-dense/baseline.repeat-03.measurement.json": {
+      "sha256": "718262da674f4fa7b05c947a4fbd1ec5922c03380346813d05cc07fd0f35627f",
+      "original_sha256": "57b194ecf8235ff3f50c2ac30804290c062af038eb0ca5c0685c5e7751996cb8",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules"
+      ]
+    },
+    "cpu-dense/baseline.repeat-03.result.yaml": {
+      "sha256": "3011fc0ac940bb09d3c00a240974b8c31e6524c90bf5b648506f325f802fed30",
+      "original_sha256": "3011fc0ac940bb09d3c00a240974b8c31e6524c90bf5b648506f325f802fed30"
+    },
+    "cpu-dense/sparse.repeat-03.measurement.json": {
+      "sha256": "68564b555ac3ade9dce456e9ed2075e52996df4fb22e866a742c08d431cf5f9d",
+      "original_sha256": "0856b09a674364c6fa17cbcba4d66423915ec1761a009ae1a18de1c9d503716e",
+      "changed_fields": [
+        "loaded_module",
+        "loaded_evaluation_modules",
+        "loaded_cuda_module",
+        "loaded_cuda_plane_module",
+        "loaded_replay_module"
+      ]
+    },
+    "cpu-dense/sparse.repeat-03.result.yaml": {
+      "sha256": "2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f",
+      "original_sha256": "2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f"
+    },
+    "cpu-dense/pipeline.definition.json": {
+      "sha256": "6f5ee63e2aa40c45c6667a71393cdb7078bcfdfe032056b6802946d1280f6a6d",
+      "original_sha256": "010db303b9c29bd8403854c7677b6c6a09985e5bb75a5414ab516fbe3c0a4415"
+    },
+    "cpu-dense/pipeline.benchmark.json": {
+      "sha256": "d1f02ea5c1b4970d38e3f6436e2612d022ec18eec2e4c179b18bb8cf4d8660b6",
+      "original_sha256": "2d053a92c0cc9b7ff54c040643ff20234cd2c468914d6b04fbd9dc90ffac537f"
+    },
+    "profile_sources/adaptive_voxel.py.txt": {
+      "sha256": "4a2afd9a882426f0a99dbf7af52f98d49b48e168a32956ec3496f5740c879a14",
+      "source": "src/calibrex/data/adaptive_voxel.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "profile_sources/odometry_track.py.txt": {
+      "sha256": "1569e661470e902f2f08dde1bf2d0c41cc6540a24f59d9ee961e066d36653c91",
+      "source": "src/calibrex/data/odometry_track.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "profile_sources/numba_lidar_deskew_adapter.py.txt": {
+      "sha256": "53966123b0e942f48929494fba4389062ccee0cd44dc85501e4d3451a84cc0be",
+      "source": "src/calibrex/data/numba_lidar_deskew_adapter.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "profile_sources/lidar_point_to_plane.py.txt": {
+      "sha256": "07988e80791cf4dcf42888dedcd81b13dad6bda8a46b15bfac542a1587bfb33f",
+      "source": "src/calibrex/graph/lidar_point_to_plane.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "profile_sources/continuous_time_lidar_pair_solver.py.txt": {
+      "sha256": "b01b85592f7b5537fd969d0a8ee6df7395469a899e2db860bd98d1de11c4ddab",
+      "source": "src/calibrex/solvers/continuous_time_lidar_pair_solver.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "profile_sources/numba_continuous_time_adapter.py.txt": {
+      "sha256": "6a51a68126a20b4a198d8b3a2b14e8b03448396e398b36774f797fb2126c2f10",
+      "source": "src/calibrex/solvers/numba_continuous_time_adapter.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "profile_sources/cuda_continuous_time_adapter.py.txt": {
+      "sha256": "1c6cdd826fb47a73ac7af4e3941ac3597f8a74d9a78e7247683c83f6dc71bd6c",
+      "source": "src/calibrex/solvers/cuda_continuous_time_adapter.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "profile_sources/cuda_plane_query_adapter.py.txt": {
+      "sha256": "1e01de434b7baf5f635493d06435d42f87456340cb95fa5405a5761225ae0c03",
+      "source": "src/calibrex/solvers/cuda_plane_query_adapter.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "profile_sources/fixed_trajectory_se3_solver.py.txt": {
+      "sha256": "940f1c9669cd6492daf7923fbde8577ef9b3e19e562378fac3294152ebea919a",
+      "source": "src/calibrex/solvers/fixed_trajectory_se3_solver.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "profile_sources/robust_lidar_observations.py.txt": {
+      "sha256": "ff398d558ec6f35eec497d6cdec80286b43ff4fd27a1e3b6a224d8e54098e240",
+      "source": "src/calibrex/solvers/robust_lidar_observations.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "profile_sources/lidar.py.txt": {
+      "sha256": "2e4c7dda7f81eaa343096ccce57e1f160bc4418d395facfafc4bcbed4ffb16df",
+      "source": "src/calibrex/evaluation/lidar.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "profile_sources/packed_lidar_observations.py.txt": {
+      "sha256": "f648006f405e0228debc858b0ca25aa99b6e8181a786ba33b4245b810869d396",
+      "source": "src/calibrex/evaluation/packed_lidar_observations.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "profile_sources/livox.py.txt": {
+      "sha256": "0773a7e2fccb2d2faa23f9e90636a00355499af131ad671845edb2c8d33b1bfd",
+      "source": "src/calibrex/data/livox.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "profile_sources/online.py.txt": {
+      "sha256": "090e373de41196825a09dd4735964cbcdcae766cb81cd643b061750272d08452",
+      "source": "src/calibrex/pipelines/online.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "profile_sources/continuous_time_lidar_artifacts.py.txt": {
+      "sha256": "96c051290b6b4f82f81fcc108b6ea4525b1497af064a3dedb8196e7dedd9d874",
+      "source": "src/calibrex/core/continuous_time_lidar_artifacts.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "profile_sources/continuous_time_lidar_train_diagnostics.py.txt": {
+      "sha256": "f86b7e9d569b4ef61d85834df790207dbe2f424af17ec0f5df16b9f2aef6fcac",
+      "source": "src/calibrex/core/continuous_time_lidar_train_diagnostics.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "profile_sources/provenance.py.txt": {
+      "sha256": "eb7849f342892272ae136454da816852d080684b25c8ec55771582c1b8621f47",
+      "source": "src/calibrex/core/provenance.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "profile_sources/rosbag1_to_rosbag2_online_pair.py.txt": {
+      "sha256": "9da3e080b62933d4d75f92c08bba91929fea401d99650e55f78bd3cdabfcc680",
+      "source": "tools/rosbag1_to_rosbag2_online_pair.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "profile_sources/lidar_scan_deskew.py.txt": {
+      "sha256": "e36a870323f76256fb5b3f8b8364cb2edb4c06483b3ea0fe8a99bf2faa6f1ce0",
+      "source": "tools/lidar_scan_deskew.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "profile_sources/benchmark_adaptive_plane_search.py.txt": {
+      "sha256": "5a36c6d4d610fe38c38196e5fa18b6f848e2731c436ef3f5945eb6cd99ccec49",
+      "source": "tools/benchmark_adaptive_plane_search.py",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447"
+    },
+    "profile/measurement.json": {
+      "sha256": "50f3d13c77ffccef4f89619a9f6098da18b63886f4cd232f9f487e5f5777756b",
+      "original_sha256": "c853cf86ce5319aff545de4b7f1559d84d2d3e6becfd23b116867860644cf98f"
+    },
+    "profile/result.yaml": {
+      "sha256": "5ef45ff94897cd0c3133099d433803933344e39411df2c8980a5658335c31f7b",
+      "original_sha256": "5ef45ff94897cd0c3133099d433803933344e39411df2c8980a5658335c31f7b"
+    },
+    "profile/diagnostic.json": {
+      "sha256": "c003b601f992dfde2393af7422dbf420f5dfaac3a4434d01f2dfdd30d27e9f80",
+      "original_sha256": "46c999b74cd8b862547cc86e06df5c130565358c35871b3a7d438294c8c3ba1e"
+    },
+    "profile/launcher.py.txt": {
+      "sha256": "db85e08198187ba8cd672a6526c935b9433b8280ff903307f72831ac441b1d1d",
+      "original_sha256": "db85e08198187ba8cd672a6526c935b9433b8280ff903307f72831ac441b1d1d"
+    },
+    "diagnostic/diagnostic.json": {
+      "sha256": "86aa386586bc393b40e60727152e8192069f16fc8a7601abb997754d350c4400",
+      "original_sha256": "417df8e80da1ab86f1bf88e7d8ea10d5d3d76f1b10aebd2a14cd53d14eb1d601"
+    },
+    "diagnostic/measurement.json": {
+      "sha256": "b7b350b2b0e10018b247186d89aa73366f020de648b5ee0b8484fd9394f19540",
+      "original_sha256": "eaffb37fcfafc8bbce8262cc4a00a867d561e42363984625ee736f993df12598"
+    },
+    "diagnostic/result.yaml": {
+      "sha256": "2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f",
+      "original_sha256": "2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f"
+    },
+    "run-residual-summary-v1.py.txt": {
+      "sha256": "ded5672a98542c802a8183275e880d9df67592999c1d64dee384d4c77efba605",
+      "original_sha256": "ded5672a98542c802a8183275e880d9df67592999c1d64dee384d4c77efba605"
+    },
+    "run-residual-summary-cpu-v1.py.txt": {
+      "sha256": "7fda769134bef2241a1e9a26097ff208b41a484bf667b2836764a9ea54542b5b",
+      "original_sha256": "7fda769134bef2241a1e9a26097ff208b41a484bf667b2836764a9ea54542b5b"
+    },
+    "diagnose-residual-summary-v1.py.txt": {
+      "sha256": "8e2474ee04038fb4162621a3a2acb459b0aa872ce29f914bce24b83f622cc4bf",
+      "original_sha256": "8e2474ee04038fb4162621a3a2acb459b0aa872ce29f914bce24b83f622cc4bf"
+    },
+    "README.md": {
+      "sha256": "c9654424fc4e3ca044a7e3a09ca57f6f9da9c063944812554a51472d1e3f738a"
+    }
+  },
+  "summaries": {
+    "dense": {
+      "medians": {
+        "baseline": {
+          "subprocess_wall_seconds": 69.80555559997447,
+          "pipeline_seconds": 65.36061420000624,
+          "solver_seconds": 47.28198909992352,
+          "worker_cpu_seconds": 85.625
+        },
+        "sparse": {
+          "subprocess_wall_seconds": 50.653481199988164,
+          "pipeline_seconds": 46.19358829990961,
+          "solver_seconds": 28.482889399980195,
+          "worker_cpu_seconds": 73.96875
+        }
+      },
+      "pairs": [
+        {
+          "baseline": 60.541125099989586,
+          "sparse": 57.13382929994259
+        },
+        {
+          "baseline": 69.80555559997447,
+          "sparse": 35.29012950009201
+        },
+        {
+          "baseline": 69.89685970009305,
+          "sparse": 50.653481199988164
+        }
+      ],
+      "ratio_of_medians": 1.3780998649307203,
+      "median_paired_ratio": 1.3799023886261421,
+      "sampled_split": {
+        "train_count": 768000,
+        "train_ids_sha256": "ad16fb4625f6ee3cfc1b9d56e1f09218f6e58c50e85d27fbe881bf6adc2fabeb",
+        "holdout_count": 192000,
+        "holdout_ids_sha256": "c49427174a3fc9b314ac70bd5e6c782e8c77422cd2faa589a6e48214e6cf74bd"
+      },
+      "status": "max_iterations",
+      "rank": 6
+    },
+    "full": {
+      "medians": {
+        "baseline": {
+          "subprocess_wall_seconds": 13.870382399996743,
+          "pipeline_seconds": 9.654090500087477,
+          "solver_seconds": 5.776587600004859,
+          "worker_cpu_seconds": 15.640625
+        },
+        "sparse": {
+          "subprocess_wall_seconds": 13.226074600010179,
+          "pipeline_seconds": 9.536393100046553,
+          "solver_seconds": 5.78028920001816,
+          "worker_cpu_seconds": 14.484375
+        }
+      },
+      "pairs": [
+        {
+          "baseline": 25.900847499957308,
+          "sparse": 25.043426500051282
+        },
+        {
+          "baseline": 13.870382399996743,
+          "sparse": 10.238290300010704
+        },
+        {
+          "baseline": 13.174194699968211,
+          "sparse": 13.226074600010179
+        }
+      ],
+      "ratio_of_medians": 1.0487149679305505,
+      "median_paired_ratio": 1.034237367634348,
+      "sampled_split": {
+        "train_count": 38400,
+        "train_ids_sha256": "912447b46ab6efb37ad4879711e2e3cb23910e1f121453ae50e4daecc7af9925",
+        "holdout_count": 9600,
+        "holdout_ids_sha256": "3e5f3f6ad7ac01170ac3a56001ace2dfaa596f5e9b655c9119d5f00364a64cfe"
+      },
+      "status": "max_iterations",
+      "rank": 6
+    },
+    "default": {
+      "medians": {
+        "baseline": {
+          "subprocess_wall_seconds": 7.703579799970612,
+          "pipeline_seconds": 4.634621499921195,
+          "solver_seconds": 3.273769000079483,
+          "worker_cpu_seconds": 9.0
+        },
+        "sparse": {
+          "subprocess_wall_seconds": 8.765064799925312,
+          "pipeline_seconds": 5.20232450007461,
+          "solver_seconds": 3.711051100050099,
+          "worker_cpu_seconds": 10.375
+        }
+      },
+      "pairs": [
+        {
+          "baseline": 15.982607399928384,
+          "sparse": 16.56826959992759
+        },
+        {
+          "baseline": 6.441744199953973,
+          "sparse": 8.765064799925312
+        },
+        {
+          "baseline": 7.703579799970612,
+          "sparse": 6.2282997000729665
+        }
+      ],
+      "ratio_of_medians": 0.8788959324107056,
+      "median_paired_ratio": 0.9646515771326074,
+      "sampled_split": {
+        "train_count": 6000,
+        "train_ids_sha256": "8396d3bb0e0ad9134aafbb7e812eadd3110dfc75a18ddd201e10e6d1a5c50386",
+        "holdout_count": 3200,
+        "holdout_ids_sha256": "0ca2151339586575d990b37935a6b44627e981399845f0f51c4f18c08afb2af1"
+      },
+      "status": "converged",
+      "rank": 6
+    },
+    "cpu-dense": {
+      "medians": {
+        "baseline": {
+          "subprocess_wall_seconds": 196.07686529995408,
+          "pipeline_seconds": 190.66824970010202,
+          "solver_seconds": 145.01987499999814,
+          "worker_cpu_seconds": 305.328125
+        },
+        "sparse": {
+          "subprocess_wall_seconds": 39.02652960002888,
+          "pipeline_seconds": 35.89711709995754,
+          "solver_seconds": 22.90617500001099,
+          "worker_cpu_seconds": 55.875
+        }
+      },
+      "pairs": [
+        {
+          "baseline": 289.69168369995896,
+          "sparse": 50.459870200022124
+        },
+        {
+          "baseline": 149.82935570005793,
+          "sparse": 35.99959290004335
+        },
+        {
+          "baseline": 196.07686529995408,
+          "sparse": 39.02652960002888
+        }
+      ],
+      "ratio_of_medians": 5.024194241955067,
+      "median_paired_ratio": 5.024194241955067,
+      "sampled_split": {
+        "train_count": 768000,
+        "train_ids_sha256": "ad16fb4625f6ee3cfc1b9d56e1f09218f6e58c50e85d27fbe881bf6adc2fabeb",
+        "holdout_count": 192000,
+        "holdout_ids_sha256": "c49427174a3fc9b314ac70bd5e6c782e8c77422cd2faa589a6e48214e6cf74bd"
+      },
+      "status": "max_iterations",
+      "rank": 6
+    }
+  },
+  "pre_change_counts": {
+    "gpu_linearization_calls": 56,
+    "gpu_linearization_requests": 129,
+    "initial_rank_calls": 26,
+    "initial_rank_compiled": 26,
+    "gpu_linearization_cache_hits": 73,
+    "max_per_context_cache_bytes": 33398792,
+    "gpu_linearization_rows": 32768988,
+    "gpu_residual_calls": 0,
+    "gpu_residual_rows": 0,
+    "gpu_payload_uploads": 26,
+    "gpu_payload_bytes": 2066730664,
+    "cpu_linearization_calls": 0,
+    "cpu_residual_calls": 207,
+    "cpu_normal_calls": 129,
+    "cpu_uniform_query_calls": 0,
+    "cpu_adaptive_query_calls": 0,
+    "cpu_adaptive_repaired_rows": 0,
+    "compiled_packing_calls": 52,
+    "compiled_packing_rows": 24960000,
+    "cpu_distinct_centroid_tie_rows": 307670,
+    "cpu_residual_kernel_calls": 207,
+    "cpu_residual_kernel_rows": 97716129,
+    "fixed_rmse_calls": 128,
+    "fixed_rmse_rows": 74920896,
+    "pair_rmse_calls": 26,
+    "pair_rmse_rows": 1753719,
+    "compiled_replay_calls": 120,
+    "compiled_replay_rows": 960000,
+    "gpu_plane_query_calls": 52,
+    "gpu_uniform_query_rows": 24960000,
+    "gpu_adaptive_query_rows": 24960000,
+    "gpu_map_upload_bytes": 105635,
+    "gpu_query_upload_bytes": 1198080000
+  },
+  "pre_change_call_sums": {
+    "CudaPlaneQueries.query": 5.71989630011376,
+    "compiled_packing": 2.7596566998399794,
+    "_PackedObservationBuilder.build": 8.894644699757919,
+    "cpu_residual_kernel": 9.421329599688761,
+    "cpu_residual_calls": 12.476100300555117,
+    "fixed_rmse": 7.442819699412212,
+    "gpu_linearization": 12.107272300403565,
+    "cpu_normal_calls": 2.4378966002259403,
+    "pair_rmse": 0.1198845999315381
+  },
+  "actual_counts": {
+    "gpu_linearization_calls": 56,
+    "gpu_linearization_requests": 129,
+    "initial_rank_calls": 26,
+    "initial_rank_compiled": 26,
+    "gpu_linearization_cache_hits": 73,
+    "max_per_context_cache_bytes": 33398792,
+    "gpu_linearization_rows": 32768988,
+    "gpu_residual_calls": 0,
+    "gpu_residual_rows": 0,
+    "gpu_payload_uploads": 26,
+    "gpu_payload_bytes": 2066730664,
+    "cpu_linearization_calls": 0,
+    "cpu_residual_calls": 53,
+    "cpu_summary_calls": 154,
+    "cpu_summary_rows": 76674615,
+    "discarded_residual_lists_avoided": 102,
+    "discarded_residual_rows_avoided": 59724347,
+    "cpu_normal_calls": 129,
+    "cpu_uniform_query_calls": 0,
+    "cpu_adaptive_query_calls": 0,
+    "cpu_adaptive_repaired_rows": 0,
+    "compiled_packing_calls": 52,
+    "compiled_packing_rows": 24960000,
+    "cpu_distinct_centroid_tie_rows": 307670,
+    "compiled_replay_calls": 120,
+    "compiled_replay_rows": 960000,
+    "gpu_plane_query_calls": 52,
+    "gpu_uniform_query_rows": 24960000,
+    "gpu_adaptive_query_rows": 24960000,
+    "gpu_map_upload_bytes": 105635,
+    "gpu_query_upload_bytes": 1198080000
+  },
+  "diagnostic_call_sums": {
+    "CudaPlaneQueries.query": 4.749704699846916,
+    "compiled_packing": 2.238720399676822,
+    "_PackedObservationBuilder.build": 7.411736399866641,
+    "cpu_residual_calls": 2.508685000706464,
+    "cpu_summary": 10.066798600251786,
+    "gpu_linearization": 5.372967098839581,
+    "cpu_normal_calls": 2.0642914994386956
+  }
+}

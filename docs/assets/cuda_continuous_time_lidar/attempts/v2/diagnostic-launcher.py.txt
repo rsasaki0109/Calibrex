@@ -1,0 +1,88 @@
+"""Count actual CUDA calls outside the formal timing cohort."""
+import json
+import os
+import subprocess
+import sys
+import time
+from argparse import Namespace
+from pathlib import Path
+from threading import Lock
+
+workspace = next(p for p in Path(__file__).resolve().parents if (p/'pyproject.toml').is_file())
+sys.path.insert(0, str(workspace))
+os.chdir(workspace)
+from tools import benchmark_adaptive_plane_search as b
+
+out = Path('outputs/public-glim-cuda-continuous-diagnostic-v2')
+out.mkdir()
+config = Path('examples/public_datasets/glim_versatile/online_continuous_time_compiled_full_capture_config.yaml')
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['NUMBA_CACHE_DIR'] = str(Path('outputs/public-glim-cuda-continuous-full-v2/numba-cache/sparse').resolve())
+os.environ['CUPY_CACHE_DIR'] = str(Path('outputs/public-glim-cuda-continuous-full-v2/cuda-cache/sparse').resolve())
+sources = {p:b._digest(Path(p)) for p in (*b.SOURCES, config.as_posix())}
+sources['diagnostic-launcher.py.txt'] = b._digest(Path(__file__))
+inputs = b._verified_inputs(b.REPLAY)
+revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+from calibrex.solvers.cuda_continuous_time_adapter import CudaRigLinearizer
+from calibrex.solvers import numba_continuous_time_adapter as a
+counts = {'gpu_linearization_calls':0, 'gpu_linearization_rows':0,
+    'gpu_residual_calls':0, 'gpu_residual_rows':0, 'gpu_payload_uploads':0,
+    'gpu_payload_bytes':0, 'cpu_linearization_calls':0, 'cpu_residual_calls':0,
+    'cpu_normal_calls':0}
+timers = {}
+lock = Lock()
+
+def observed_gpu(name, label):
+    native = getattr(CudaRigLinearizer, name)
+    def observed(self, arrays, *args):
+        start = time.perf_counter()
+        result = native(self, arrays, *args)
+        with lock:
+            counts[label+'_calls'] += 1
+            counts[label+'_rows'] += len(arrays.points)
+            timers[label] = timers.get(label, 0.0)+time.perf_counter()-start
+        return result
+    setattr(CudaRigLinearizer, name, observed)
+
+capture = CudaRigLinearizer._capture
+def observed_capture(self, arrays):
+    changed = self._arrays is not arrays
+    result = capture(self, arrays)
+    if changed:
+        with lock:
+            counts['gpu_payload_uploads'] += 1
+            counts['gpu_payload_bytes'] += sum(v.nbytes for v in (
+                arrays.points, arrays.plane_points, arrays.normals, arrays.poses, arrays.sqrt_weights))
+    return result
+CudaRigLinearizer._capture = observed_capture
+observed_gpu('linearize', 'gpu_linearization')
+observed_gpu('residuals', 'gpu_residual')
+for name, key in [('numba_rig_linearization','cpu_linearization_calls'),
+                  ('numba_rig_residuals','cpu_residual_calls'),
+                  ('numba_rig_normal_equations','cpu_normal_calls')]:
+    def wrap(native, key):
+        def observed(*args, **kwargs):
+            result = native(*args, **kwargs)
+            with lock:
+                counts[key] += 1
+            return result
+        return observed
+    setattr(a, name, wrap(getattr(a, name), key))
+b._worker(Namespace(worker='sparse', baseline_scope='compiled', candidate_query_backend='cuda',
+                    config=config, output_dir=out/'worker'))
+assert revision == subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+assert sources == {p:(b._digest(Path(__file__)) if p=='diagnostic-launcher.py.txt'
+                     else b._digest(Path(p))) for p in sources}
+assert inputs == b._verified_inputs(b.REPLAY)
+row = json.loads((out/'worker/measurement.json').read_bytes())
+reference = json.loads(Path('outputs/public-glim-cuda-continuous-full-v2/sparse.repeat-01/measurement.json').read_bytes())
+assert b._canonical(row['result']) == b._canonical(reference['result'])
+assert counts['gpu_linearization_calls'] > 0 and counts['cpu_normal_calls'] > 0
+payload = {'provenance':{'source_commit':revision, 'source_sha256':sources,
+    'input_sha256':inputs, 'measurement_sha256':b._digest(out/'worker/measurement.json')},
+    'counts':counts, 'sum_seconds':timers, 'source_input_guards_passed':True,
+    'complete_result_parity':True, 'limitations':[
+        'Instrumented only; not pooled with formal timings. Call sums overlap across candidates.',
+        'Trajectory interpolation, associations and ordered normal equations remain on CPU.']}
+(out/'diagnostic.json').write_text(json.dumps(payload,indent=2)+'\n',encoding='utf-8',newline='\n')
+print(json.dumps(payload['counts'],indent=2),flush=True)

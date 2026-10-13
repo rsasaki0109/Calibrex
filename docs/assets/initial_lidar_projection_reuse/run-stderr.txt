@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "<WORKSPACE>/.tmp-calibrex-diagnose-initial-projection-v1.py", line 194, in <module>
+    assert counts['cpu_residual_calls']==1 and counts['cpu_normal_calls']==129
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+Traceback (most recent call last):
+  File "<WORKSPACE>/.tmp-calibrex-run-initial-projection-v1.py", line 40, in <module>
+    subprocess.run([sys.executable,'.tmp-calibrex-diagnose-initial-projection-v1.py',mode],check=True)
+  File "<USER>/AppData/Local/Programs/Python/Python312/Lib/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['<USER>//Workspace//Calibrex//.venv//Scripts//python.exe', '.tmp-calibrex-diagnose-initial-projection-v1.py', 'gpu']' returned non-zero exit status 1.

@@ -1,0 +1,153 @@
+"""Publish digest-bound metadata; preserve the complete numeric payloads."""
+
+import hashlib
+import json
+import os
+import subprocess
+from pathlib import Path
+
+import cupy
+
+from calibrex.core.benchmark import BenchmarkDefinition, aggregate_benchmark_definition
+from calibrex.core.camera_lidar_artifacts import CameraLidarCalibrationProblem
+from calibrex.core.provenance import sha256_path
+from calibrex.core.result import CalibrationResult, load_result
+from calibrex.core.validation import validate_file
+from calibrex.pipelines.public_camera_lidar_demo import _numerical_payload
+
+DESTINATION = Path('docs/assets/cuda_candidates')
+SWEEP = Path('outputs/public-kitti-cuda-candidates-v2')
+FRESH = Path('outputs/public-kitti-cuda-candidates-fresh-v2')
+ORACLES = Path(os.environ['CALIBREX_PUBLIC_SWEEP_ROOT'])
+CASES = ('x-positive','x-negative','y-positive','y-negative','z-positive','z-negative')
+PREFIXES = [(str(ORACLES.resolve()), '${PUBLIC_SWEEP_ROOT}'),
+            (str(ORACLES), '${PUBLIC_SWEEP_ROOT}'),
+            (str(Path.cwd()), '${WORKSPACE_ROOT}'),
+            ('E:\\datasets\\calibrex_camera_lidar_v06', '${DATASET_ROOT}')]
+GPU_NAME = cupy.cuda.runtime.getDeviceProperties(0)['name']
+if isinstance(GPU_NAME, bytes):
+    GPU_NAME = GPU_NAME.decode('utf-8')
+
+
+def normalize(value):
+    if isinstance(value, dict):
+        return {normalize(key):normalize(item) for key,item in value.items()}
+    if isinstance(value, list):
+        return [normalize(item) for item in value]
+    if not isinstance(value, str):
+        return value
+    if value.startswith(('{','[')):
+        try:
+            parsed=json.loads(value)
+            if isinstance(parsed,(dict,list)):
+                return json.dumps(normalize(parsed),sort_keys=True)
+        except ValueError:
+            pass
+    for prefix,replacement in PREFIXES:
+        value=value.replace(prefix,replacement).replace(prefix.replace('\\','/'),replacement)
+    if '${WORKSPACE_ROOT}' in value or '${DATASET_ROOT}' in value:
+        value=value.replace('\\','/')
+    return value.replace(GPU_NAME, 'NVIDIA CUDA GPU')
+
+
+def publish_result(source, name):
+    original=load_result(source)
+    result=CalibrationResult.model_validate(normalize(original.model_dump(mode='json')))
+    assert _numerical_payload(result)==_numerical_payload(original)
+    result.run.provenance['publication']={
+        'original_sha256':sha256_path(source), 'original_path':normalize(str(source.resolve())),
+        'normalization':'Parsed paths and GPU model anonymized; complete numerical payload unchanged.',
+        'publication_launcher_sha256':sha256_path(Path(__file__)),
+    }
+    target=DESTINATION/name
+    result.save(target)
+    return sha256_path(target)
+
+
+DESTINATION.mkdir(parents=True,exist_ok=True)
+bindings={}
+for case in CASES:
+    expected=_numerical_payload(load_result(ORACLES/case/'numpy.result.json'))
+    for method in ('baseline_cuda','candidate_cuda'):
+        for repetition in range(1,4):
+            original=load_result(SWEEP/f'{case}.{method}.repeat-{repetition:02d}.result.json')
+            assert _numerical_payload(original)==expected
+        name=f'{case}.{method}.result.json'
+        bindings[name]=publish_result(SWEEP/f'{case}.{method}.repeat-01.result.json',name)
+    name=f'{case}.numpy-oracle.result.json'
+    bindings[name]=publish_result(ORACLES/case/'numpy.result.json',name)
+    source=ORACLES/case/'demo.problem.json'
+    problem=CameraLidarCalibrationProblem.model_validate(normalize(json.loads(source.read_bytes())))
+    target=DESTINATION/f'{case}.problem.json'
+    problem.save(target)
+    bindings[target.name]=sha256_path(target)
+for method in ('baseline_cuda','candidate_cuda'):
+    expected=_numerical_payload(load_result(ORACLES/'x-positive/numpy.result.json'))
+    for repetition in range(1,4):
+        assert _numerical_payload(load_result(FRESH/f'single.{method}.repeat-{repetition:02d}.result.json'))==expected
+    name=f'fresh.{method}.result.json'
+    bindings[name]=publish_result(FRESH/f'single.{method}.repeat-01.result.json',name)
+for source in sorted(SWEEP.glob('baseline.*.txt')):
+    target=DESTINATION/source.name
+    target.write_bytes(source.read_bytes())
+    bindings[target.name]=sha256_path(target)
+target=DESTINATION/'publication-launcher.py.txt'
+target.write_bytes(Path(__file__).read_bytes())
+bindings[target.name]=sha256_path(target)
+measured_commit='feaffa0ac283d4312fb2f9e2c031e86303272d42'
+committed_hashes={
+    'committed:'+source:hashlib.sha256(subprocess.check_output(['git','show',measured_commit+':'+source])).hexdigest()
+    for source in (
+        'src/calibrex/solvers/borer_depth_to_depth_solver.py',
+        'src/calibrex/solvers/borer_six_dof_solver.py',
+        'src/calibrex/solvers/cuda_depth_to_depth_adapter.py',
+        'src/calibrex/solvers/cuda_depth_to_depth_batch.py',
+        'tools/benchmark_d2d_cuda_candidates.py',
+    )
+}
+for root,prefix in (
+    (SWEEP,'sweep'), (FRESH,'fresh'),
+    (Path('outputs/public-kitti-cuda-candidates-v1'),'superseded-sweep'),
+    (Path('outputs/public-kitti-cuda-candidates-fresh-v1'),'superseded-fresh'),
+):
+    original=BenchmarkDefinition.model_validate_json((root/'comparison.definition.json').read_bytes())
+    definition=BenchmarkDefinition.model_validate(normalize(original.model_dump(mode='json')))
+    assert len(definition.trials)==len(original.trials)
+    assert all(trial.status=='success' for trial in definition.trials)
+    definition.limitations[0]=(
+        'One public sequence; six frozen signed-axis initializations and three invocations per backend per case. '
+        if prefix.endswith('sweep') else
+        'One public sequence; one frozen initialization and three invocations per backend. '
+    ) + 'Repetitions measure timing on the same frames, not independent accuracy or statistical confidence.'
+    summary=json.loads((root/'summary.json').read_bytes())
+    definition.limitations.append(
+        'Separately charged input snapshot captures: '+json.dumps(summary['snapshots'],sort_keys=True)
+    )
+    definition.provenance.source_artifacts['original_timing_summary']=sha256_path(root/'summary.json')
+    definition.provenance.source_artifacts.update({
+        'original_definition':sha256_path(root/'comparison.definition.json'),
+        'original_aggregate':sha256_path(root/'comparison.benchmark.json'),
+        **{'published:'+name:digest for name,digest in bindings.items()},
+        **(committed_hashes if not prefix.startswith('superseded-') else {}),
+    })
+    definition.limitations.append(
+        'Published paths are normalized and GPU model anonymized. Original result/input/code digests remain intact; '
+        'representative full results are repetition 1, chosen before inspecting timings. '
+        'All raw trials remain in this definition; all full numeric payloads were checked.'
+    )
+    if prefix.startswith('superseded-'):
+        definition.limitations.append(
+            'Superseded by a fix that restores the caller device context before yielding '
+            'histograms. Kernel arithmetic is unchanged. These earlier timings are retained '
+            'for transparency and are not the final implementation measurements.'
+        )
+    definition.save(DESTINATION/(prefix+'.definition.json'))
+    aggregate=aggregate_benchmark_definition(definition)
+    aggregate.save(DESTINATION/(prefix+'.benchmark.json'))
+for path in DESTINATION.glob('*.json'):
+    report=validate_file(path)
+    assert report.valid,(path,report)
+    content=path.read_text(encoding='utf-8')
+    assert 'C:\\\\Users\\\\rsasa' not in content
+    assert 'E:/datasets' not in content
+print('Published',len(list(DESTINATION.glob('*.json'))),'schema-valid JSONs;',len(bindings),'digest bindings')

@@ -20,7 +20,7 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Literal, TypeAlias
+from typing import Literal, Protocol, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -29,6 +29,32 @@ from scipy.spatial.transform import Rotation
 
 FloatArray: TypeAlias = NDArray[np.float64]
 EXTRINSIC_DOFS: tuple[str, ...] = ("roll", "pitch", "yaw", "x", "y", "z")
+MapBackend: TypeAlias = Literal["cpu", "cuda"]
+
+
+class _MapRuntime(Protocol):
+    def identity(self) -> str: ...
+
+    def residuals(self, sample: MapSample, extrinsic: FloatArray) -> FloatArray: ...
+
+    def normal_equations(
+        self, samples: Sequence[MapSample], extrinsic: FloatArray,
+    ) -> tuple[FloatArray, FloatArray, FloatArray]: ...
+
+
+def _map_runtime(
+    samples: Sequence[MapSample], options: MapSampleOptions, backend: MapBackend,
+) -> _MapRuntime | None:
+    if backend == "cpu":
+        return None
+    if backend != "cuda":
+        raise ValueError("map registration backend must be cpu or cuda")
+    try:
+        from calibrex.solvers.cuda_lidar_map_adapter import CudaMapRuntime
+    except ImportError as exc:
+        message = "CUDA map registration requires the optional calibrex[cuda] adapter"
+        raise ValueError(message) from exc
+    return CudaMapRuntime(samples, options)
 
 
 @dataclass(frozen=True)
@@ -92,6 +118,9 @@ class MapSample:
         return residual, normals, self.target_points[valid]
 
 
+_NATIVE_MAP_RESIDUALS = MapSample.residuals
+
+
 @dataclass(frozen=True)
 class MapExtrinsicResult:
     """Joint estimate of ``X = T_reference_target`` with its analytic covariance."""
@@ -103,12 +132,16 @@ class MapExtrinsicResult:
     samples: int
     correspondences: int
     iterations: int
+    execution_backend: str = "numpy_scipy"
 
 
 def solve_map_extrinsic(
     samples: Sequence[MapSample],
     initial: FloatArray,
     options: MapSampleOptions | None = None,
+    *,
+    backend: MapBackend = "cpu",
+    _runtime: _MapRuntime | None = None,
 ) -> MapExtrinsicResult:
     """Gauss-Newton with Huber weights over every sample's correspondences.
 
@@ -118,8 +151,11 @@ def solve_map_extrinsic(
     """
 
     opts = options or MapSampleOptions()
+    runtime = _runtime if _runtime is not None else _map_runtime(samples, opts, backend)
+    identity = "numpy_scipy" if runtime is None else runtime.identity()
     if len(samples) < 3:
-        return MapExtrinsicResult("insufficient_samples", None, None, None, len(samples), 0, 0)
+        return MapExtrinsicResult("insufficient_samples", None, None, None, len(samples), 0, 0,
+                                  identity)
     extrinsic = np.asarray(initial, dtype=np.float64).copy()
     hessian = np.eye(6)
     sigma = opts.huber_m
@@ -131,7 +167,7 @@ def solve_map_extrinsic(
         gradient = np.zeros(6)
         stacked: list[FloatArray] = []
         count = 0
-        for sample in samples:
+        for sample in (samples if runtime is None else ()):
             residual, normals, points = sample.residuals(extrinsic, opts)
             if len(residual) == 0:
                 continue
@@ -141,9 +177,13 @@ def solve_map_extrinsic(
             gradient += jacobian.T @ (weight * residual)
             stacked.append(residual)
             count += len(residual)
+        if runtime is not None:
+            hessian, gradient, residual = runtime.normal_equations(samples, extrinsic)
+            stacked = [residual]
+            count = len(residual)
         if count < 30:
             return MapExtrinsicResult(
-                "insufficient_samples", None, None, None, len(samples), count, iteration
+                "insufficient_samples", None, None, None, len(samples), count, iteration, identity
             )
         step = -np.linalg.solve(hessian + 1e-9 * np.eye(6), gradient)
         update = np.eye(4)
@@ -168,7 +208,8 @@ def solve_map_extrinsic(
             status = "converged"
             break
     covariance = np.linalg.inv(hessian + 1e-12 * np.eye(6)) * sigma**2
-    return MapExtrinsicResult(status, extrinsic, covariance, sigma, len(samples), count, iteration)
+    return MapExtrinsicResult(status, extrinsic, covariance, sigma, len(samples), count, iteration,
+                              identity)
 
 
 def chi_square(
@@ -176,6 +217,9 @@ def chi_square(
     extrinsic: FloatArray,
     sigma_m: float,
     options: MapSampleOptions | None = None,
+    *,
+    backend: MapBackend = "cpu",
+    _runtime: _MapRuntime | None = None,
 ) -> tuple[float, float, int]:
     """Clipped chi-square, median absolute residual, and correspondences for fixed ``X``.
 
@@ -184,11 +228,15 @@ def chi_square(
     """
 
     opts = options or MapSampleOptions()
+    runtime = _runtime if _runtime is not None else _map_runtime(samples, opts, backend)
     total = 0.0
     residual_parts: list[FloatArray] = []
     count = 0
     for sample in samples:
-        residual, _, _ = sample.residuals(extrinsic, opts)
+        if runtime is None:
+            residual, _, _ = sample.residuals(extrinsic, opts)
+        else:
+            residual = runtime.residuals(sample, extrinsic)
         lost = len(sample.target_points) - len(residual)
         total += float(np.sum(np.minimum((residual / sigma_m) ** 2, 25.0))) + 25.0 * lost
         residual_parts.append(residual)

@@ -515,3 +515,43 @@ def test_declared_capture_time_reference_defers_to_per_point_offsets(tmp_path: P
     # Per-point offsets already place every return; the declaration changes nothing.
     assert _translation_error_m(estimate, plain) < 1.0e-9
     assert _rotation_error_deg(estimate, plain) < 1.0e-9
+
+
+def test_compiled_deskew_preserves_capture_reference_and_native_rows(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pytest.importorskip("numba")
+    from calibrex.core.config import load_config
+    from calibrex.data import numba_lidar_deskew_adapter
+    from calibrex.pipelines.online import _load_rosbag2_online_pair, _solve_inputs
+
+    bag = _build_deskew_sweep_bag(tmp_path / "capture.db3", message_count=2)
+    config_path = tmp_path / "config.yaml"
+    _write_config(
+        config_path, bag_path=bag, output_dir=tmp_path / "out", deskew=True,
+        declare_capture_time_reference=True,
+    )
+    config = load_config(config_path)
+    factor = config.pipeline.factors["lidar_rig_point_to_plane"]
+    factor.options["max_target_points"] = 4096
+    inputs = _solve_inputs(config)
+    arguments = {
+        "source_sensor": "lidar_map", "target_sensor": "lidar_stream",
+        "t_base_source": SE3.identity(),
+    }
+    native = _load_rosbag2_online_pair(config, inputs, **arguments)
+    factor.options["continuous_time_query_backend"] = "numba_cpu"
+    # Run the real compiled batch on this small fixture without a dense bag.
+    monkeypatch.setattr(numba_lidar_deskew_adapter, "_MIN_DESKEW_ROWS", 1)
+    compiled = _load_rosbag2_online_pair(config, inputs, **arguments)
+
+    assert compiled[0] == native[0]
+    assert compiled[1] == native[1]
+    assert compiled[2]["compiled_deskew_execution"].startswith(
+        "calibrex.numba_lidar_deskew/v0.1;"
+    )
+    for sensor in ("lidar_map", "lidar_stream"):
+        reference = compiled[2]["capture_time_reference"][sensor]
+        assert reference == native[2]["capture_time_reference"][sensor]
+        assert reference["basis"] == "per_point_offsets"
+        assert reference["applied_shift_s"] == 0.0

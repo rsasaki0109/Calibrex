@@ -240,18 +240,25 @@ def verify_depth_provider_files(
             references.append(observation.uncertainty)
     issues = []
     for reference in references:
-        path = Path(reference.path)
-        if root is not None and not path.is_absolute():
-            path = root / path
-        observed = sha256_path(path)
-        if observed is None:
-            issues.append(f"missing:{reference.path}")
-        elif observed != reference.sha256:
-            issues.append(
-                f"digest_mismatch:{reference.path}:"
-                f"expected={reference.sha256}:observed={observed}"
-            )
+        issue = _verify_depth_file_reference(reference, root)
+        if issue is not None:
+            issues.append(issue)
     return issues
+
+
+def _verify_depth_file_reference(reference: DepthFileReference, root: Path | None) -> str | None:
+    path = Path(reference.path)
+    if root is not None and not path.is_absolute():
+        path = root / path
+    observed = sha256_path(path)
+    if observed is None:
+        return f"missing:{reference.path}"
+    if observed != reference.sha256:
+        return (
+            f"digest_mismatch:{reference.path}:"
+            f"expected={reference.sha256}:observed={observed}"
+        )
+    return None
 
 
 def default_depth_provider_provenance(

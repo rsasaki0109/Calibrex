@@ -3,8 +3,12 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import subprocess
 from pathlib import Path
+
+_LARGE_FILE_THRESHOLD_BYTES = 64 * 1024 * 1024
+_LARGE_FILE_BUFFER_BYTES = 16 * 1024 * 1024
 
 
 def sha256_path(path: Path) -> str | None:
@@ -42,5 +46,13 @@ def git_commit() -> str | None:
 
 def _hash_file(path: Path, digest: hashlib._Hash) -> None:
     with path.open("rb") as stream:
+        if os.fstat(stream.fileno()).st_size >= _LARGE_FILE_THRESHOLD_BYTES:
+            # Reuse one bounded buffer. Fewer Python/GIL transitions also let
+            # a concurrent estimation thread enqueue work without interference.
+            buffer = bytearray(_LARGE_FILE_BUFFER_BYTES)
+            view = memoryview(buffer)
+            while count := stream.readinto(buffer):
+                digest.update(view[:count])
+            return
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(chunk)

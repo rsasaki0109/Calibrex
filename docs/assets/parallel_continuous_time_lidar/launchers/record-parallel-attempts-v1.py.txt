@@ -1,0 +1,23 @@
+"""Retain the stopped preliminary cohort and its complete outputs before revising code."""
+import json
+import sys
+from pathlib import Path
+sys.path.insert(0,str(Path.cwd()))
+from tools import benchmark_adaptive_plane_search as b
+roots=[Path('outputs/public-glim-parallel-summary-'+label+'-v2')
+       for label in ('cpu-dense','dense','default')]
+inputs=b._verified_inputs(b.REPLAY)
+files={p.as_posix():b._digest(p) for root in roots for p in root.rglob('*')
+       if p.is_file() and not any('cache' in part for part in p.parts)}
+payload={'provenance':{'source_commit':'33858bd2ac853d30cf31645651de4be6e38b4c8c',
+    'source_snapshot':'outputs/parallel-summary-source-338-v1',
+    'launcher_sha256':b._digest(Path('.tmp-calibrex-run-parallel-summary-v3.py')),
+    'input_sha256':inputs,'output_sha256':files},
+    'status':'stopped','reason':'Completed CPU cohort reached only 1.47x; revise finite differences.',
+    'complete_cohorts':['cpu-dense','dense'],'incomplete_cohort':'default',
+    'complete_measurements':{root.name:len(list(root.glob('*/measurement.json'))) for root in roots},
+    'parent_pid':30644,'diagnostic_chain_pid':20960,
+    'stopped_process_snapshot_sha256':b._digest(Path('outputs/parallel-summary-v3.stopped-processes.json')),
+    'timings_must_not_be_pooled_with_revised_candidate':True}
+Path('outputs/parallel-summary-v3.stop-record.json').write_text(json.dumps(payload,indent=2)+'\n')
+print(payload['complete_measurements'])

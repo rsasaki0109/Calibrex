@@ -1,0 +1,67 @@
+"""Probe exception-free vector lowering on valid immutable quaternion rows."""
+import hashlib
+import json
+import statistics
+import subprocess
+import sys
+import time
+from pathlib import Path
+import numpy as np
+from numba import njit
+from calibrex.solvers import numba_continuous_time_adapter as a
+
+numpy_rows=njit(cache=False,nogil=True,fastmath=False,error_model='numpy')(a._residual_rows.py_func)
+@njit(cache=False,nogil=True,fastmath=False)
+def simd_summary(points,planes,normals,poses,weights,transform,compensated):
+    values=numpy_rows(points,planes,normals,poses,weights,transform)
+    return a._value_square_sum(values,compensated)
+
+def digest(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+source='src/calibrex/solvers/numba_continuous_time_adapter.py'
+guards={source:digest(source),'probe-launcher.py.txt':digest(__file__)}
+report={'provenance':{'source_commit':subprocess.check_output(
+    ['git','rev-parse','HEAD'],text=True).strip(),'source_sha256':guards,'python_version':sys.version},
+    'kernel_only':True,'requires_valid_nonzero_quaternions':True,'cases':[]}
+for count in (8192,600000):
+    rng=np.random.default_rng(419)
+    arrays=(rng.normal(size=(count,3)),rng.normal(size=(count,3)),
+            rng.normal(size=(count,3)),rng.normal(size=(count,7)),
+            rng.uniform(0.,2.,size=count),np.asarray([.1,-.2,.3,.2,-.3,.1,.9]))
+    for array in arrays:
+        array.flags.writeable=False
+    reference=a._residual_rows(*arrays)
+    actual=numpy_rows(*arrays)
+    assert np.array_equal(reference.view(np.uint64),actual.view(np.uint64))
+    case={'count':count,'seed':419,'input_sha256':hashlib.sha256(
+        b''.join(v.tobytes() for v in arrays)).hexdigest(),
+        'residuals_sha256':hashlib.sha256(actual.tobytes()).hexdigest(),'policies':[]}
+    for policy in (False,True):
+        baseline=a._residual_square_sum(*arrays,policy)
+        candidate=simd_summary(*arrays,policy)
+        assert np.float64(baseline).tobytes()==np.float64(candidate).tobytes()
+        trials=[]
+        for repeat in range(9):
+            methods=[('baseline',a._residual_square_sum),('candidate',simd_summary)]
+            if repeat%2:
+                methods.reverse()
+            row={'repeat':repeat+1,'order':[m for m,_ in methods]}
+            for name,method in methods:
+                start=time.perf_counter()
+                value=method(*arrays,policy)
+                row[name]=time.perf_counter()-start
+                assert np.float64(value).tobytes()==np.float64(baseline).tobytes()
+            trials.append(row)
+        case['policies'].append({'compensated':policy,'sum_hex':float(baseline).hex(),'trials':trials})
+        medians={m:statistics.median(t[m] for t in trials) for m in ('baseline','candidate')}
+        print(json.dumps({'count':count,'compensated':policy,'medians':medians,
+                          'kernel_ratio':medians['baseline']/medians['candidate']}),flush=True)
+    report['cases'].append(case)
+report['llvm_vector_loop_present']='vector.body' in numpy_rows.inspect_llvm(numpy_rows.signatures[0])
+assert guards=={source:digest(source),'probe-launcher.py.txt':digest(__file__)}
+out=Path('outputs/simd-residual-probe-v1')
+out.mkdir()
+(out/'probe.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8',newline='\n')
+(out/'probe-launcher.py.txt').write_bytes(Path(__file__).read_bytes())
+(out/'baseline.numba_continuous_time_adapter.py.txt').write_bytes(Path(source).read_bytes())
+print('LLVM vector loop present:',report['llvm_vector_loop_present'],flush=True)

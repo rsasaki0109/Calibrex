@@ -4,11 +4,17 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from math import isclose, radians, sqrt
+from math import isclose, isfinite, radians, sqrt
 from typing import Literal
 
+import numpy as np
+
 from calibrex.core.geometry import SE3
-from calibrex.graph.lidar_point_to_plane import LidarRigPointToPlaneFactor
+from calibrex.graph.lidar_point_to_plane import (
+    _NATIVE_COMPILED_SYSTEM,
+    LidarRigPointToPlaneFactor,
+    _ordered_normal_equations,
+)
 
 SolverStatus = Literal["converged", "max_iterations", "rejected", "insufficient_constraints"]
 RobustLoss = Literal["none", "huber"]
@@ -100,13 +106,15 @@ class FixedTrajectorySe3ExtrinsicSolver:
         solver_options = options or FixedTrajectorySe3SolverOptions()
         correction = [0.0 for _ in range(6)]
         damping = solver_options.initial_damping
-        initial_rmse = _rmse(factor.residuals(correction))
+        initial_rmse = _factor_rmse(factor, correction)
         current_rmse = initial_rmse
         accepted_steps = 0
         rejected_steps = 0
         history: list[FixedTrajectorySe3Iteration] = []
 
-        initial_rank = factor.evaluate(correction).rank
+        initial_rank = factor._compiled_initial_rank(correction)
+        if initial_rank is None:
+            initial_rank = factor.evaluate(correction).rank
         if initial_rank == 0:
             return self._result(
                 factor=factor,
@@ -123,13 +131,23 @@ class FixedTrajectorySe3ExtrinsicSolver:
         status: SolverStatus = "max_iterations"
         stop_reason = "maximum iterations reached"
         for iteration in range(solver_options.max_iterations):
-            residuals = factor.residuals(correction)
-            linearization = factor.linearize(correction)
-            hessian, gradient = _weighted_normal_equations(
-                residuals,
-                linearization.jacobian,
-                solver_options,
+            compiled_system = getattr(factor, "_compiled_system", None)
+            system = (
+                compiled_system(correction, robust_loss=solver_options.robust_loss,
+                                huber_delta_m=solver_options.huber_delta_m,
+                                **({"_include_residuals": False} if getattr(
+                                    compiled_system, "__func__", None,
+                                ) is _NATIVE_COMPILED_SYSTEM else {}))
+                if compiled_system is not None else None
             )
+            if system is None:
+                residuals = factor.residuals(correction)
+                linearization = factor.linearize(correction)
+                hessian, gradient = _weighted_normal_equations(
+                    residuals, linearization.jacobian, solver_options,
+                )
+            else:
+                residuals, hessian, gradient = system
             step = _solve_damped_system(hessian, gradient, damping)
             if step is None:
                 rejected_steps += 1
@@ -142,7 +160,7 @@ class FixedTrajectorySe3ExtrinsicSolver:
 
             step = _limit_step(step, solver_options)
             candidate = [value + delta for value, delta in zip(correction, step, strict=True)]
-            candidate_rmse = _rmse(factor.residuals(candidate))
+            candidate_rmse = _factor_rmse(factor, candidate)
             accepted = _is_improvement(current_rmse, candidate_rmse)
             history.append(
                 FixedTrajectorySe3Iteration(
@@ -228,6 +246,20 @@ def _weighted_normal_equations(
     jacobian: Sequence[Sequence[float]],
     options: FixedTrajectorySe3SolverOptions,
 ) -> tuple[list[list[float]], list[float]]:
+    if (
+        len(residuals) >= 64 and len(residuals) == len(jacobian)
+        and all(len(row) == 6 for row in jacobian)
+        and isfinite(options.huber_delta_m)
+    ):
+        rows = np.asarray(jacobian, dtype=np.float64)
+        values = np.asarray(residuals, dtype=np.float64)
+        if np.all(np.isfinite(rows)) and np.all(np.isfinite(values)):
+            weights = np.ones(len(values), dtype=np.float64)
+            if options.robust_loss != "none":
+                absolute = np.abs(values)
+                outside = (absolute > options.huber_delta_m) & (absolute != 0.0)
+                np.divide(options.huber_delta_m, absolute, out=weights, where=outside)
+            return _ordered_normal_equations(rows, values, weights)
     hessian = [[0.0 for _ in range(6)] for _ in range(6)]
     gradient = [0.0 for _ in range(6)]
     for residual, row in zip(residuals, jacobian, strict=True):
@@ -326,6 +358,16 @@ def _rmse(values: Sequence[float]) -> float | None:
     if not values:
         return None
     return sqrt(sum(value * value for value in values) / len(values))
+
+
+_NATIVE_RMSE = _rmse
+_NATIVE_SUM = sum
+
+
+def _factor_rmse(factor: LidarRigPointToPlaneFactor, correction: Sequence[float]) -> float | None:
+    summary = (factor._compiled_rmse(correction)
+               if _rmse is _NATIVE_RMSE and sum is _NATIVE_SUM else None)
+    return summary[0] if summary is not None else _rmse(factor.residuals(correction))
 
 
 def _norm(values: Sequence[float]) -> float:

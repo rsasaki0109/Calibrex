@@ -1,0 +1,405 @@
+{
+  "dataset_family": "KITTI raw",
+  "dataset_id": "kitti_raw_2011_09_30_drive_0018",
+  "depth_provider_path": "${DATASET_ROOT}/runs/kitti_raw_0018/featdepth-provider.json",
+  "depth_provider_sha256": "7e3ef953a360a7c01ed0cdc3cf947db97fb0aff5912ced805d80bebe210d3360",
+  "frame_convention": "T_parent_child",
+  "initial_transform_camera_lidar": {
+    "child": "lidar",
+    "convention": "T_parent_child",
+    "estimate_id": "controlled-public-demo-initial",
+    "parent": "camera_2",
+    "provenance": {
+      "adapter_version": "calibrex.public_six_dof_demo/v0.2",
+      "command": "calibrex demo kitti-six-dof-sweep ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/runs/kitti_raw_0018/featdepth-provider.json --output-dir ${PUBLIC_SWEEP_ROOT} --json",
+      "evidence_level": "unknown",
+      "execution_mode": "offline_batch",
+      "notes": [
+        "Controlled demo initialization: dataset reference plus fixed local Euler offsets. Rotation deg xyz=(0.0, 0.0, -0.5); camera-frame translation m xyz=(0.0, 0.0, -0.5). This is not an independently measured prior."
+      ],
+      "producer": "slac_native",
+      "role_in_comparison": "candidate",
+      "source": "controlled perturbation of dataset reference",
+      "source_commit": "46516ec",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    },
+    "quality": {
+      "grade": "warn",
+      "std_rotation_deg": [],
+      "std_translation_m": []
+    },
+    "rotation_quat_xyzw": [
+      0.4969416828591306,
+      -0.5062578863551312,
+      0.49463124113506235,
+      0.5020874940023483
+    ],
+    "translation_m": [
+      0.05624655421119172,
+      -0.07481401634273016,
+      -0.8277935834433039
+    ]
+  },
+  "observations": [
+    {
+      "depth_observation_frame_id": "0000000000",
+      "frame_id": "0000000000",
+      "lidar": {
+        "encoding": "kitti_velodyne_f32x4",
+        "path": "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000000000.bin",
+        "sha256": "edcf941b40ac8c1aa2c90675bc7df5ee530ea99426cfa81396bb7158a449ed83",
+        "size_bytes": 2031296
+      },
+      "lidar_capture_time_ns": 1317383679232045294,
+      "split_id": "evaluation"
+    },
+    {
+      "depth_observation_frame_id": "0000000115",
+      "frame_id": "0000000115",
+      "lidar": {
+        "encoding": "kitti_velodyne_f32x4",
+        "path": "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000000115.bin",
+        "sha256": "213948bd8c54c925aca7eb9f3b3c36e95e586b52ee8d9d64056c4fc4aeb12b2d",
+        "size_bytes": 2034528
+      },
+      "lidar_capture_time_ns": 1317383691215840792,
+      "split_id": "evaluation"
+    },
+    {
+      "depth_observation_frame_id": "0000000230",
+      "frame_id": "0000000230",
+      "lidar": {
+        "encoding": "kitti_velodyne_f32x4",
+        "path": "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000000230.bin",
+        "sha256": "b9b6ac62ef2b7be4dcec2eab424c142012c6e948cb3f24bf774b6459efbae2ca",
+        "size_bytes": 2036848
+      },
+      "lidar_capture_time_ns": 1317383703200953597,
+      "split_id": "evaluation"
+    },
+    {
+      "depth_observation_frame_id": "0000000345",
+      "frame_id": "0000000345",
+      "lidar": {
+        "encoding": "kitti_velodyne_f32x4",
+        "path": "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000000345.bin",
+        "sha256": "2a5f331a041437dcfbc3d066f896fb8ac4757b30b4f64fb7f05c50bc2691bdcf",
+        "size_bytes": 2025568
+      },
+      "lidar_capture_time_ns": 1317383715187864033,
+      "split_id": "evaluation"
+    },
+    {
+      "depth_observation_frame_id": "0000000460",
+      "frame_id": "0000000460",
+      "lidar": {
+        "encoding": "kitti_velodyne_f32x4",
+        "path": "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000000460.bin",
+        "sha256": "01ae97b9acedf5df82108fe1c6924a0055c1401699b383ed76c8a6c7db3c5f46",
+        "size_bytes": 2016704
+      },
+      "lidar_capture_time_ns": 1317383727174085439,
+      "split_id": "evaluation"
+    },
+    {
+      "depth_observation_frame_id": "0000000575",
+      "frame_id": "0000000575",
+      "lidar": {
+        "encoding": "kitti_velodyne_f32x4",
+        "path": "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000000575.bin",
+        "sha256": "7113228787634c5328c839a930c5a773c8bfe452e7ed003d1999b34c28615cdd",
+        "size_bytes": 2017920
+      },
+      "lidar_capture_time_ns": 1317383739161304087,
+      "split_id": "evaluation"
+    },
+    {
+      "depth_observation_frame_id": "0000000690",
+      "frame_id": "0000000690",
+      "lidar": {
+        "encoding": "kitti_velodyne_f32x4",
+        "path": "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000000690.bin",
+        "sha256": "835578d89b41f182b4b6eb1d31c2932a382e0ccce01b38c56736c29c23a45ab9",
+        "size_bytes": 2018608
+      },
+      "lidar_capture_time_ns": 1317383751145690053,
+      "split_id": "evaluation"
+    },
+    {
+      "depth_observation_frame_id": "0000000805",
+      "frame_id": "0000000805",
+      "lidar": {
+        "encoding": "kitti_velodyne_f32x4",
+        "path": "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000000805.bin",
+        "sha256": "686bbd59d73a581c089d2be975d1bccb329f1f89f096ddc18a8f5b9517ed1ac8",
+        "size_bytes": 2022256
+      },
+      "lidar_capture_time_ns": 1317383763133931682,
+      "split_id": "evaluation"
+    },
+    {
+      "depth_observation_frame_id": "0000000920",
+      "frame_id": "0000000920",
+      "lidar": {
+        "encoding": "kitti_velodyne_f32x4",
+        "path": "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000000920.bin",
+        "sha256": "3d191372bd6083a44ffb1194bf61cfb90dc987a487b7a06279140dbe1e28edb6",
+        "size_bytes": 2018400
+      },
+      "lidar_capture_time_ns": 1317383775117815171,
+      "split_id": "evaluation"
+    },
+    {
+      "depth_observation_frame_id": "0000001035",
+      "frame_id": "0000001035",
+      "lidar": {
+        "encoding": "kitti_velodyne_f32x4",
+        "path": "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000001035.bin",
+        "sha256": "84f5e8a0d29429fb54c09ec8810431f3163cd115d35617f5004929e69067ce27",
+        "size_bytes": 2035680
+      },
+      "lidar_capture_time_ns": 1317383787093627929,
+      "split_id": "evaluation"
+    },
+    {
+      "depth_observation_frame_id": "0000001150",
+      "frame_id": "0000001150",
+      "lidar": {
+        "encoding": "kitti_velodyne_f32x4",
+        "path": "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000001150.bin",
+        "sha256": "60b25400558458fdec41f43906c5de6599e8f7b9bc4a81d5d38fadef2e255fe0",
+        "size_bytes": 2024288
+      },
+      "lidar_capture_time_ns": 1317383799069505809,
+      "split_id": "evaluation"
+    },
+    {
+      "depth_observation_frame_id": "0000001265",
+      "frame_id": "0000001265",
+      "lidar": {
+        "encoding": "kitti_velodyne_f32x4",
+        "path": "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000001265.bin",
+        "sha256": "337051e516bebe3da2db51d054bdb83de8d28c404ad5bb438dfb0eeebad6ec9c",
+        "size_bytes": 1976256
+      },
+      "lidar_capture_time_ns": 1317383811053645753,
+      "split_id": "evaluation"
+    },
+    {
+      "depth_observation_frame_id": "0000001381",
+      "frame_id": "0000001381",
+      "lidar": {
+        "encoding": "kitti_velodyne_f32x4",
+        "path": "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000001381.bin",
+        "sha256": "42e72d19c4676e39e59dbf0191eaeed063ed1b64e14e56bf7ea95a68273ad827",
+        "size_bytes": 1895328
+      },
+      "lidar_capture_time_ns": 1317383823140991428,
+      "split_id": "evaluation"
+    },
+    {
+      "depth_observation_frame_id": "0000001496",
+      "frame_id": "0000001496",
+      "lidar": {
+        "encoding": "kitti_velodyne_f32x4",
+        "path": "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000001496.bin",
+        "sha256": "567426966538a7702f9cd35b6a96d75a89a3ea7cfd30f2b886d9a3643dbf19ad",
+        "size_bytes": 2017040
+      },
+      "lidar_capture_time_ns": 1317383835118394013,
+      "split_id": "evaluation"
+    },
+    {
+      "depth_observation_frame_id": "0000001611",
+      "frame_id": "0000001611",
+      "lidar": {
+        "encoding": "kitti_velodyne_f32x4",
+        "path": "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000001611.bin",
+        "sha256": "01a658158708637850fafe2e30e5fd92fadd956dd6e897740c31bacd45b9cb24",
+        "size_bytes": 2019648
+      },
+      "lidar_capture_time_ns": 1317383847103378274,
+      "split_id": "evaluation"
+    },
+    {
+      "depth_observation_frame_id": "0000001726",
+      "frame_id": "0000001726",
+      "lidar": {
+        "encoding": "kitti_velodyne_f32x4",
+        "path": "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000001726.bin",
+        "sha256": "043d8f67db775e1ac4e6db8c7e513a98a782325697bbe73f6d1479946f177cd5",
+        "size_bytes": 1991408
+      },
+      "lidar_capture_time_ns": 1317383859079203527,
+      "split_id": "evaluation"
+    },
+    {
+      "depth_observation_frame_id": "0000001841",
+      "frame_id": "0000001841",
+      "lidar": {
+        "encoding": "kitti_velodyne_f32x4",
+        "path": "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000001841.bin",
+        "sha256": "021cbf72beece0fdd4feec212e514f71725a08be66680e1c2e820c1e7a610c1d",
+        "size_bytes": 2005056
+      },
+      "lidar_capture_time_ns": 1317383871057151859,
+      "split_id": "evaluation"
+    },
+    {
+      "depth_observation_frame_id": "0000001956",
+      "frame_id": "0000001956",
+      "lidar": {
+        "encoding": "kitti_velodyne_f32x4",
+        "path": "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000001956.bin",
+        "sha256": "4ca638d849ced039cc86aeabba478cd1420411c29c7d9c3af3a013f70d3ce321",
+        "size_bytes": 1912896
+      },
+      "lidar_capture_time_ns": 1317383883038471647,
+      "split_id": "evaluation"
+    },
+    {
+      "depth_observation_frame_id": "0000002071",
+      "frame_id": "0000002071",
+      "lidar": {
+        "encoding": "kitti_velodyne_f32x4",
+        "path": "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000002071.bin",
+        "sha256": "733f64efb53985f07037e1bc6f322b6c1db07e586e90c40aa75a151b6fe0e94e",
+        "size_bytes": 2010096
+      },
+      "lidar_capture_time_ns": 1317383895010155487,
+      "split_id": "evaluation"
+    },
+    {
+      "depth_observation_frame_id": "0000002186",
+      "frame_id": "0000002186",
+      "lidar": {
+        "encoding": "kitti_velodyne_f32x4",
+        "path": "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000002186.bin",
+        "sha256": "2e89800cecba8ea9fff20be07ad6e38c4eebdd0a5bc7ef0f8636e5afd6798a0a",
+        "size_bytes": 1993936
+      },
+      "lidar_capture_time_ns": 1317383906986340523,
+      "split_id": "evaluation"
+    },
+    {
+      "depth_observation_frame_id": "0000002301",
+      "frame_id": "0000002301",
+      "lidar": {
+        "encoding": "kitti_velodyne_f32x4",
+        "path": "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000002301.bin",
+        "sha256": "f7909209ad09ca535abcd2378f48d9270e3f9b396e712c745ac25ef4713546e0",
+        "size_bytes": 2012016
+      },
+      "lidar_capture_time_ns": 1317383918957073143,
+      "split_id": "evaluation"
+    },
+    {
+      "depth_observation_frame_id": "0000002416",
+      "frame_id": "0000002416",
+      "lidar": {
+        "encoding": "kitti_velodyne_f32x4",
+        "path": "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000002416.bin",
+        "sha256": "40baf5c7b1e30981c50014669010e34ad9478e70ddaa7b3603ee173d0b9c0591",
+        "size_bytes": 2009872
+      },
+      "lidar_capture_time_ns": 1317383930934700479,
+      "split_id": "evaluation"
+    },
+    {
+      "depth_observation_frame_id": "0000002531",
+      "frame_id": "0000002531",
+      "lidar": {
+        "encoding": "kitti_velodyne_f32x4",
+        "path": "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000002531.bin",
+        "sha256": "f67cbebf06ca082746c03583e8c09fdcd0ada8c5458ff23dc3033d84d1d2965d",
+        "size_bytes": 2008480
+      },
+      "lidar_capture_time_ns": 1317383942915284161,
+      "split_id": "evaluation"
+    },
+    {
+      "depth_observation_frame_id": "0000002646",
+      "frame_id": "0000002646",
+      "lidar": {
+        "encoding": "kitti_velodyne_f32x4",
+        "path": "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000002646.bin",
+        "sha256": "2d1c4ebabe81c242d4ae18ba0f963a054266c46c237f474fb972f0314ea3b651",
+        "size_bytes": 1990032
+      },
+      "lidar_capture_time_ns": 1317383954894691124,
+      "split_id": "evaluation"
+    },
+    {
+      "depth_observation_frame_id": "0000002761",
+      "frame_id": "0000002761",
+      "lidar": {
+        "encoding": "kitti_velodyne_f32x4",
+        "path": "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000002761.bin",
+        "sha256": "219ebf2e1b256854ea89c359dac5636489526cad2d43412938775cc8a1b4f2b1",
+        "size_bytes": 1960304
+      },
+      "lidar_capture_time_ns": 1317383966873161582,
+      "split_id": "evaluation"
+    }
+  ],
+  "problem_id": "kitti_raw_2011_09_30_drive_0018-image_02-d2d-public-six-dof-demo",
+  "provenance": {
+    "command": [
+      "calibrex",
+      "demo",
+      "kitti-six-dof-sweep",
+      "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync",
+      "${DATASET_ROOT}/runs/kitti_raw_0018/featdepth-provider.json",
+      "--output-dir",
+      "${PUBLIC_SWEEP_ROOT}",
+      "--json"
+    ],
+    "config_sha256": "b7e7a2cd8cf95d9685156fdbe3dd65907a2051cc2821680c126bfa5bffee29fa",
+    "created_at": "2026-10-11T00:13:07.584529+00:00",
+    "generator": "calibrex.pipelines.public_camera_lidar_demo",
+    "generator_version": "calibrex.public_six_dof_demo/v0.2",
+    "git_commit": "46516ec",
+    "source_sha256": "886f06bbbda5c2ed1e0c9dd495a3c5ef984f69f5f15e6add8750518006482371"
+  },
+  "reference_transform_camera_lidar": {
+    "child": "lidar",
+    "convention": "T_parent_child",
+    "parent": "camera_2",
+    "provenance": {
+      "adapter_version": "calibrex.kitti_camera_lidar_problem/v0.2",
+      "evidence_level": "dataset_provided",
+      "execution_mode": "imported",
+      "notes": [
+        "calib_velo_to_cam transformed through R_rect_00 and the selected P_rect_XX camera-origin offset"
+      ],
+      "producer": "dataset_provider",
+      "role_in_comparison": "selected_reference",
+      "source": "KITTI raw calibration",
+      "source_path": "${DATASET_ROOT}/kitti_raw/2011_09_30",
+      "tool_name": "calibrex",
+      "tool_version": "0.5.1"
+    },
+    "quality": {
+      "grade": "warn",
+      "std_rotation_deg": [],
+      "std_translation_m": []
+    },
+    "rotation_quat_xyzw": [
+      -0.4991459120684823,
+      0.5040847568861339,
+      -0.4968172956264801,
+      -0.49992448540430684
+    ],
+    "translation_m": [
+      0.05624655421119172,
+      -0.07481401634273016,
+      -0.32779358344330395
+    ]
+  },
+  "rotation_bound_deg": 2.0,
+  "schema_version": "slac.camera_lidar_problem/v0.1",
+  "sequence_id": "2011_09_30_drive_0018_sync",
+  "time_convention": "KITTI per-stream capture timestamps in UTC nanoseconds; same numeric frame IDs are paired; raw scans are not motion compensated",
+  "translation_bound_m": 1.0
+}

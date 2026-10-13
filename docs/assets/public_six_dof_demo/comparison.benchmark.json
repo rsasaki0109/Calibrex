@@ -1,0 +1,653 @@
+{
+  "benchmark_id": "kitti_raw_2011_09_30_drive_0018-image_02-d2d-public-six-dof-demo",
+  "bootstrap_samples": 1,
+  "bootstrap_seed": 0,
+  "limitations": [
+    "One sequence, one perturbation, one invocation per backend; timing is descriptive. Single-pair bootstrap intervals do not establish statistical confidence.",
+    "Optimizer convergence and CPU/GPU parity do not establish calibration accuracy. Dataset reference is not independent metrology; covariance/observability remain unknown.",
+    "Only the supplied frozen provider frames are eligible; uniform selection is by position within that provider. Learned depth and frame synchronization can bias the fit.",
+    "Provider training/evaluation overlap: possible. official non-online-refined checkpoint selected; repository does not publish enough training IDs to exclude drive overlap",
+    "training/evaluation drive overlap cannot be excluded",
+    "raw FeatDepth inverse-depth/disparity is retained for D2D histograms",
+    "metric depth conversion parameters are recorded but not applied",
+    "checkpoint sha256=559f168c762d01af7c745b32ced8930a12423a0e9b62af791f7d894bd902af27"
+  ],
+  "method_summaries": {
+    "cuda": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "cuda",
+      "metrics": {
+        "holdout_mi": {
+          "distribution": {
+            "count": 1,
+            "maximum": 1.2934945423757032,
+            "mean": 1.2934945423757032,
+            "mean_ci95_high": 1.2934945423757032,
+            "mean_ci95_low": 1.2934945423757032,
+            "median": 1.2934945423757032,
+            "minimum": 1.2934945423757032,
+            "p90": 1.2934945423757032,
+            "p95": 1.2934945423757032,
+            "standard_deviation": 0.0
+          },
+          "metric": "holdout_mi",
+          "rank": 1
+        },
+        "initial_rotation_difference_deg": {
+          "distribution": {
+            "count": 1,
+            "maximum": 0.4999999999999031,
+            "mean": 0.4999999999999031,
+            "mean_ci95_high": 0.4999999999999031,
+            "mean_ci95_low": 0.4999999999999031,
+            "median": 0.4999999999999031,
+            "minimum": 0.4999999999999031,
+            "p90": 0.4999999999999031,
+            "p95": 0.4999999999999031,
+            "standard_deviation": 0.0
+          },
+          "metric": "initial_rotation_difference_deg",
+          "rank": 1
+        },
+        "initial_translation_difference_m": {
+          "distribution": {
+            "count": 1,
+            "maximum": 0.5,
+            "mean": 0.5,
+            "mean_ci95_high": 0.5,
+            "mean_ci95_low": 0.5,
+            "median": 0.5,
+            "minimum": 0.5,
+            "p90": 0.5,
+            "p95": 0.5,
+            "standard_deviation": 0.0
+          },
+          "metric": "initial_translation_difference_m",
+          "rank": 1
+        },
+        "numerical_parity": {
+          "distribution": {
+            "count": 1,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "numerical_parity",
+          "rank": 1
+        },
+        "pipeline_seconds": {
+          "distribution": {
+            "count": 1,
+            "maximum": 15.398265499970876,
+            "mean": 15.398265499970876,
+            "mean_ci95_high": 15.398265499970876,
+            "mean_ci95_low": 15.398265499970876,
+            "median": 15.398265499970876,
+            "minimum": 15.398265499970876,
+            "p90": 15.398265499970876,
+            "p95": 15.398265499970876,
+            "standard_deviation": 0.0
+          },
+          "metric": "pipeline_seconds",
+          "rank": 1
+        },
+        "rotation_difference_deg": {
+          "distribution": {
+            "count": 1,
+            "maximum": 0.3909230132921424,
+            "mean": 0.3909230132921424,
+            "mean_ci95_high": 0.3909230132921424,
+            "mean_ci95_low": 0.3909230132921424,
+            "median": 0.3909230132921424,
+            "minimum": 0.3909230132921424,
+            "p90": 0.3909230132921424,
+            "p95": 0.3909230132921424,
+            "standard_deviation": 0.0
+          },
+          "metric": "rotation_difference_deg",
+          "rank": 1
+        },
+        "solve_seconds": {
+          "distribution": {
+            "count": 1,
+            "maximum": 6.734188000031281,
+            "mean": 6.734188000031281,
+            "mean_ci95_high": 6.734188000031281,
+            "mean_ci95_low": 6.734188000031281,
+            "median": 6.734188000031281,
+            "minimum": 6.734188000031281,
+            "p90": 6.734188000031281,
+            "p95": 6.734188000031281,
+            "standard_deviation": 0.0
+          },
+          "metric": "solve_seconds",
+          "rank": 1
+        },
+        "train_mi": {
+          "distribution": {
+            "count": 1,
+            "maximum": 1.2342895217787462,
+            "mean": 1.2342895217787462,
+            "mean_ci95_high": 1.2342895217787462,
+            "mean_ci95_low": 1.2342895217787462,
+            "median": 1.2342895217787462,
+            "minimum": 1.2342895217787462,
+            "p90": 1.2342895217787462,
+            "p95": 1.2342895217787462,
+            "standard_deviation": 0.0
+          },
+          "metric": "train_mi",
+          "rank": 1
+        },
+        "translation_difference_m": {
+          "distribution": {
+            "count": 1,
+            "maximum": 0.16007810593582122,
+            "mean": 0.16007810593582122,
+            "mean_ci95_high": 0.16007810593582122,
+            "mean_ci95_low": 0.16007810593582122,
+            "median": 0.16007810593582122,
+            "minimum": 0.16007810593582122,
+            "p90": 0.16007810593582122,
+            "p95": 0.16007810593582122,
+            "standard_deviation": 0.0
+          },
+          "metric": "translation_difference_m",
+          "rank": 1
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 1,
+        "maximum": 15.398265499970876,
+        "mean": 15.398265499970876,
+        "mean_ci95_high": 15.398265499970876,
+        "mean_ci95_low": 15.398265499970876,
+        "median": 15.398265499970876,
+        "minimum": 15.398265499970876,
+        "p90": 15.398265499970876,
+        "p95": 15.398265499970876,
+        "standard_deviation": 0.0
+      },
+      "success_count": 1,
+      "trial_count": 1
+    },
+    "numpy": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "numpy",
+      "metrics": {
+        "holdout_mi": {
+          "distribution": {
+            "count": 1,
+            "maximum": 1.2934945423757032,
+            "mean": 1.2934945423757032,
+            "mean_ci95_high": 1.2934945423757032,
+            "mean_ci95_low": 1.2934945423757032,
+            "median": 1.2934945423757032,
+            "minimum": 1.2934945423757032,
+            "p90": 1.2934945423757032,
+            "p95": 1.2934945423757032,
+            "standard_deviation": 0.0
+          },
+          "metric": "holdout_mi",
+          "rank": 1
+        },
+        "initial_rotation_difference_deg": {
+          "distribution": {
+            "count": 1,
+            "maximum": 0.4999999999999031,
+            "mean": 0.4999999999999031,
+            "mean_ci95_high": 0.4999999999999031,
+            "mean_ci95_low": 0.4999999999999031,
+            "median": 0.4999999999999031,
+            "minimum": 0.4999999999999031,
+            "p90": 0.4999999999999031,
+            "p95": 0.4999999999999031,
+            "standard_deviation": 0.0
+          },
+          "metric": "initial_rotation_difference_deg",
+          "rank": 1
+        },
+        "initial_translation_difference_m": {
+          "distribution": {
+            "count": 1,
+            "maximum": 0.5,
+            "mean": 0.5,
+            "mean_ci95_high": 0.5,
+            "mean_ci95_low": 0.5,
+            "median": 0.5,
+            "minimum": 0.5,
+            "p90": 0.5,
+            "p95": 0.5,
+            "standard_deviation": 0.0
+          },
+          "metric": "initial_translation_difference_m",
+          "rank": 1
+        },
+        "numerical_parity": {
+          "distribution": {
+            "count": 1,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "numerical_parity",
+          "rank": 1
+        },
+        "pipeline_seconds": {
+          "distribution": {
+            "count": 1,
+            "maximum": 60.75143270002445,
+            "mean": 60.75143270002445,
+            "mean_ci95_high": 60.75143270002445,
+            "mean_ci95_low": 60.75143270002445,
+            "median": 60.75143270002445,
+            "minimum": 60.75143270002445,
+            "p90": 60.75143270002445,
+            "p95": 60.75143270002445,
+            "standard_deviation": 0.0
+          },
+          "metric": "pipeline_seconds",
+          "rank": 2
+        },
+        "rotation_difference_deg": {
+          "distribution": {
+            "count": 1,
+            "maximum": 0.3909230132921424,
+            "mean": 0.3909230132921424,
+            "mean_ci95_high": 0.3909230132921424,
+            "mean_ci95_low": 0.3909230132921424,
+            "median": 0.3909230132921424,
+            "minimum": 0.3909230132921424,
+            "p90": 0.3909230132921424,
+            "p95": 0.3909230132921424,
+            "standard_deviation": 0.0
+          },
+          "metric": "rotation_difference_deg",
+          "rank": 1
+        },
+        "solve_seconds": {
+          "distribution": {
+            "count": 1,
+            "maximum": 54.82382989994949,
+            "mean": 54.82382989994949,
+            "mean_ci95_high": 54.82382989994949,
+            "mean_ci95_low": 54.82382989994949,
+            "median": 54.82382989994949,
+            "minimum": 54.82382989994949,
+            "p90": 54.82382989994949,
+            "p95": 54.82382989994949,
+            "standard_deviation": 0.0
+          },
+          "metric": "solve_seconds",
+          "rank": 2
+        },
+        "train_mi": {
+          "distribution": {
+            "count": 1,
+            "maximum": 1.2342895217787462,
+            "mean": 1.2342895217787462,
+            "mean_ci95_high": 1.2342895217787462,
+            "mean_ci95_low": 1.2342895217787462,
+            "median": 1.2342895217787462,
+            "minimum": 1.2342895217787462,
+            "p90": 1.2342895217787462,
+            "p95": 1.2342895217787462,
+            "standard_deviation": 0.0
+          },
+          "metric": "train_mi",
+          "rank": 1
+        },
+        "translation_difference_m": {
+          "distribution": {
+            "count": 1,
+            "maximum": 0.16007810593582122,
+            "mean": 0.16007810593582122,
+            "mean_ci95_high": 0.16007810593582122,
+            "mean_ci95_low": 0.16007810593582122,
+            "median": 0.16007810593582122,
+            "minimum": 0.16007810593582122,
+            "p90": 0.16007810593582122,
+            "p95": 0.16007810593582122,
+            "standard_deviation": 0.0
+          },
+          "metric": "translation_difference_m",
+          "rank": 1
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 1,
+        "maximum": 60.75143270002445,
+        "mean": 60.75143270002445,
+        "mean_ci95_high": 60.75143270002445,
+        "mean_ci95_low": 60.75143270002445,
+        "median": 60.75143270002445,
+        "minimum": 60.75143270002445,
+        "p90": 60.75143270002445,
+        "p95": 60.75143270002445,
+        "standard_deviation": 0.0
+      },
+      "success_count": 1,
+      "trial_count": 1
+    }
+  },
+  "methods": [
+    {
+      "implementation": "calibrex_native",
+      "label": "NumPy CPU reference",
+      "method_id": "numpy",
+      "source_commit": "76b3a1b",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "cuda candidate",
+      "method_id": "cuda",
+      "source_commit": "76b3a1b",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    }
+  ],
+  "metrics": [
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "One invocation; includes lazy JIT.",
+      "label": "Solve time",
+      "name": "solve_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Load, prepare, solve, holdout.",
+      "label": "Pipeline time",
+      "name": "pipeline_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Controlled initial difference to dataset reference.",
+      "label": "Initial rotation difference",
+      "name": "initial_rotation_difference_deg",
+      "primary": false,
+      "unit": "deg"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Controlled initial difference to dataset reference.",
+      "label": "Initial translation difference",
+      "name": "initial_translation_difference_m",
+      "primary": false,
+      "unit": "m"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Difference to dataset-provided calibration, not metrology error.",
+      "label": "Rotation difference",
+      "name": "rotation_difference_deg",
+      "primary": false,
+      "unit": "deg"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Difference to dataset-provided calibration, not metrology error.",
+      "label": "Translation difference",
+      "name": "translation_difference_m",
+      "primary": false,
+      "unit": "m"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Fit-only frozen histogram ranges.",
+      "label": "Training mutual information",
+      "name": "train_mi",
+      "primary": false,
+      "unit": "nat"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Prespecified five frames excluded from fit and histogram range selection.",
+      "label": "Holdout mutual information",
+      "name": "holdout_mi",
+      "primary": false,
+      "unit": "nat"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Full trace, output poses, metrics, and holdout evaluations match exactly.",
+      "label": "Exact numerical parity",
+      "name": "numerical_parity",
+      "primary": false,
+      "unit": "ratio"
+    }
+  ],
+  "paired_comparisons": [
+    {
+      "candidate_method_id": "cuda",
+      "direction": "lower",
+      "improvement_ci95_high": 48.089641899918206,
+      "improvement_ci95_low": 48.089641899918206,
+      "improvement_mean": 48.089641899918206,
+      "metric": "solve_seconds",
+      "paired_count": 1,
+      "raw_delta_mean": -48.089641899918206,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "cuda",
+      "direction": "lower",
+      "improvement_ci95_high": 45.353167200053576,
+      "improvement_ci95_low": 45.353167200053576,
+      "improvement_mean": 45.353167200053576,
+      "metric": "pipeline_seconds",
+      "paired_count": 1,
+      "raw_delta_mean": -45.353167200053576,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "cuda",
+      "direction": "lower",
+      "improvement_ci95_high": -0.0,
+      "improvement_ci95_low": -0.0,
+      "improvement_mean": 0.0,
+      "metric": "initial_rotation_difference_deg",
+      "paired_count": 1,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "cuda",
+      "direction": "lower",
+      "improvement_ci95_high": -0.0,
+      "improvement_ci95_low": -0.0,
+      "improvement_mean": 0.0,
+      "metric": "initial_translation_difference_m",
+      "paired_count": 1,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "cuda",
+      "direction": "lower",
+      "improvement_ci95_high": -0.0,
+      "improvement_ci95_low": -0.0,
+      "improvement_mean": 0.0,
+      "metric": "rotation_difference_deg",
+      "paired_count": 1,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "cuda",
+      "direction": "lower",
+      "improvement_ci95_high": -0.0,
+      "improvement_ci95_low": -0.0,
+      "improvement_mean": 0.0,
+      "metric": "translation_difference_m",
+      "paired_count": 1,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "cuda",
+      "direction": "higher",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "train_mi",
+      "paired_count": 1,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "cuda",
+      "direction": "higher",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "holdout_mi",
+      "paired_count": 1,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "numpy"
+    },
+    {
+      "candidate_method_id": "cuda",
+      "direction": "higher",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "numerical_parity",
+      "paired_count": 1,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "numpy"
+    }
+  ],
+  "protocol": {
+    "data_license": "CC-BY-NC-SA-3.0",
+    "dataset_id": "kitti_raw_2011_09_30_drive_0018",
+    "dataset_source_sha256": "ed5ad3947b2ca94b415ceabbc16d2d767ad084b2e8fd4b83937570c28b6c6e8d",
+    "failure_policy": "Preserve failed/partial trials and available standard results; never replace an unavailable candidate with CPU output.",
+    "initial_estimate_policy": "Controlled demo initialization: dataset reference plus fixed local Euler offsets. Rotation deg xyz=(0.5, 0.0, 0.0); camera-frame translation m xyz=(0.5, 0.0, 0.0). This is not an independently measured prior.",
+    "protocol_id": "calibrex.public_six_dof_demo/v0.1",
+    "split_policy": "25 numeric-ordered, uniformly selected provider positions; every fifth frame is holdout (20 fit / 5 holdout), fixed before optimization.",
+    "splits": [
+      {
+        "fit_count": 20,
+        "fit_ids_sha256": "6d0702b27bbb4bb7290d0f4235600fae671c0accd5305d1552f6ccf95bb4288d",
+        "holdout_count": 5,
+        "holdout_ids_sha256": "0ae59feab3528170dfedd179529c56d209b6ccd73b404c0e51fe930bbcca83a9",
+        "seed": 0,
+        "split_id": "uniform-25-fit20-holdout5"
+      }
+    ],
+    "tuning_policy": "Same solver settings for both backends; no holdout tuning."
+  },
+  "provenance": {
+    "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-cuda-v2 --json",
+    "data_verified": true,
+    "generated_at": "2026-10-10T22:41:55.228338+00:00",
+    "generator": "calibrex.pipelines.public_camera_lidar_demo",
+    "generator_version": "calibrex.public_six_dof_demo/v0.1",
+    "git_commit": "76b3a1b",
+    "source_artifacts": {
+      "assets/frame-0000000460.png": "0f1f1e7601d72c4c2eb42b065c0fc11a60c225ad2bee835b6c6ac5efc1d09c43",
+      "assets/frame-0000001611.png": "34345b5e6e568c0e641128edebb847ed668ac903daa5a85d7bd0ab46dcd31eab",
+      "assets/frame-0000002761.png": "7b2b9b6c7232fcf1f0feefd519ad831c299e385c4a9135ca5599081e21d4e2d7",
+      "demo.problem.json": "e119229f3f57ebaf02acb3cde770db6efd8291973931ba69840581e977e60a3e",
+      "depth_provider": "7e3ef953a360a7c01ed0cdc3cf947db97fb0aff5912ced805d80bebe210d3360",
+      "local_benchmark_before_publication": "90fb2271c14a3f423462f0604d08e5b880d245d00417a3eca293e0bf3980ae5a",
+      "public_camera_lidar_demo.py": "8402e8ccf18c57572e17c1046384c376dd397cb0ecb3b35e54ebe620ad62ea8f",
+      "public_six_dof_demo.py": "ed1797d658d0210b7d6c038646d810f89f79a9c56bee8d2d351c5ad810823435",
+      "source.problem.json": "9cc8d0997ea2dc0fe5f7aab33fa6bcbc26559ca608cc6e6acfc3357e17308b47"
+    }
+  },
+  "reference_method_id": "numpy",
+  "schema_version": "slac.benchmark/v0.1",
+  "title": "KITTI raw six-DoF public-data demo",
+  "trials": [
+    {
+      "method_id": "numpy",
+      "metrics": {
+        "holdout_mi": 1.2934945423757032,
+        "initial_rotation_difference_deg": 0.4999999999999031,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 60.75143270002445,
+        "rotation_difference_deg": 0.3909230132921424,
+        "solve_seconds": 54.82382989994949,
+        "train_mi": 1.2342895217787462,
+        "translation_difference_m": 0.16007810593582122
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-cuda-v2 --json",
+        "config_sha256": "3b4b768d9308acaced10a70de2f8a3cb0f79e03e47267cda18f6c7cc83ef6592",
+        "input_sha256": "e119229f3f57ebaf02acb3cde770db6efd8291973931ba69840581e977e60a3e",
+        "notes": [
+          "Same controlled initial pose and 20/5 split for both executions.",
+          "Original local result SHA256: 4b65d618dc02d2d48b641802a47f7f56bb936269e2dc56b9feb49eced7e0a7f5"
+        ],
+        "output_sha256": "78a3a7c86f61109bffe1f758f457d2504e78fc06ce4330069e731c5faf0c7380"
+      },
+      "runtime_seconds": 60.75143270002445,
+      "split_id": "uniform-25-fit20-holdout5",
+      "status": "success"
+    },
+    {
+      "method_id": "cuda",
+      "metrics": {
+        "holdout_mi": 1.2934945423757032,
+        "initial_rotation_difference_deg": 0.4999999999999031,
+        "initial_translation_difference_m": 0.5,
+        "numerical_parity": 1.0,
+        "pipeline_seconds": 15.398265499970876,
+        "rotation_difference_deg": 0.3909230132921424,
+        "solve_seconds": 6.734188000031281,
+        "train_mi": 1.2342895217787462,
+        "translation_difference_m": 0.16007810593582122
+      },
+      "provenance": {
+        "command": "calibrex demo kitti-six-dof ${DATASET_ROOT}/calibrex_camera_lidar_v06/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync ${DATASET_ROOT}/calibrex_camera_lidar_v06/runs/kitti_raw_0018/featdepth-provider.json --output-dir outputs/public-kitti-six-dof-cuda-v2 --json",
+        "config_sha256": "3b4b768d9308acaced10a70de2f8a3cb0f79e03e47267cda18f6c7cc83ef6592",
+        "input_sha256": "e119229f3f57ebaf02acb3cde770db6efd8291973931ba69840581e977e60a3e",
+        "notes": [
+          "Same controlled initial pose and 20/5 split for both executions.",
+          "Original local result SHA256: 7cf20add603c2ff76d0954a3c4ad3ac004b343de144816ab089a62746ea831f5"
+        ],
+        "output_sha256": "e3706a810b9f765f0f2b1dcf627e2695ac8a17d013db9ce2732adb9fa06f110b"
+      },
+      "runtime_seconds": 15.398265499970876,
+      "split_id": "uniform-25-fit20-holdout5",
+      "status": "success"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "source", "target", "initial_transform", "reference_transform", "options", "provenance"],
+  "properties": {
+    "schema_version": {"const": "calibrex.icp_pair_fixture/v0.1"},
+    "source": {"type": "string", "minLength": 1},
+    "target": {"type": "string", "minLength": 1},
+    "initial_transform": {"$ref": "#/$defs/transform"},
+    "reference_transform": {"$ref": "#/$defs/transform"},
+    "options": {"type": "object"},
+    "provenance": {
+      "type": "object",
+      "required": ["generator", "source_commit", "input_sha256", "source_sha256", "reference_role"],
+      "properties": {
+        "generator": {"type": "string"},
+        "source_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "input_sha256": {"$ref": "#/$defs/digests"},
+        "source_sha256": {"$ref": "#/$defs/digests"},
+        "reference_role": {"type": "string"}
+      }
+    }
+  },
+  "$defs": {
+    "digests": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
+    "transform": {
+      "type": "object", "additionalProperties": false,
+      "required": ["translation_m", "rotation_quat_xyzw"],
+      "properties": {
+        "translation_m": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}},
+        "rotation_quat_xyzw": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "number"}}
+      }
+    }
+  }
+}

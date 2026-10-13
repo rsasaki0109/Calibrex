@@ -1,0 +1,102 @@
+"""Profile actual native workers without replacing guarded solver/factor methods."""
+import cProfile
+import hashlib
+import io
+import json
+import os
+import pstats
+import subprocess
+import sys
+from argparse import Namespace
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from threading import Lock
+
+workspace = next(p for p in Path(__file__).resolve().parents if (p/'pyproject.toml').is_file())
+sys.path.insert(0,str(workspace))
+os.chdir(workspace)
+from tools import benchmark_adaptive_plane_search as b
+from calibrex.core.continuous_time_lidar_artifacts import ContinuousTimeLidarPairArtifact
+from calibrex.core.io import read_mapping
+
+out=Path('outputs/public-glim-threaded-lidar-profile-v1')
+out.mkdir()
+config=Path('examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml')
+os.environ['OMP_NUM_THREADS']='1'
+os.environ['NUMBA_CACHE_DIR']=str(Path('outputs/public-glim-captured-summary-dense-v1/numba-cache/sparse').resolve())
+os.environ['CUPY_CACHE_DIR']=str(Path('outputs/public-glim-captured-summary-dense-v1/cuda-cache/sparse').resolve())
+sources={p:b._digest(Path(p)) for p in (*b.SOURCES, config.as_posix())}
+sources['profile-launcher.py.txt']=b._digest(Path(__file__))
+inputs=b._verified_inputs(b.REPLAY)
+revision=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+for source in (*b.SOURCES,config.as_posix()):
+    raw=Path(source).read_bytes()
+    assert raw.replace(b'\r\n',b'\n')==subprocess.check_output(['git','show',f'{revision}:{source}'])
+    archive=out/('source.'+Path(source).name+'.txt')
+    archive.write_bytes(raw)
+(out/'profile-launcher.py.txt').write_bytes(Path(__file__).read_bytes())
+profiles=[]
+lock=Lock()
+native_init=ThreadPoolExecutor.__init__
+def profiled_init(self,*args,**kwargs):
+    prior=kwargs.get('initializer')
+    prior_args=kwargs.get('initargs',())
+    def initialize():
+        profiler=cProfile.Profile()
+        with lock:
+            profiles.append(profiler)
+        profiler.enable()
+        if prior is not None:
+            prior(*prior_args)
+    kwargs['initializer']=initialize
+    kwargs['initargs']=()
+    native_init(self,*args,**kwargs)
+ThreadPoolExecutor.__init__=profiled_init
+main=cProfile.Profile()
+main.enable()
+b._worker(Namespace(worker='sparse',baseline_scope='cuda-full',candidate_query_backend='cuda',
+                    config=config,output_dir=out/'worker'))
+main.disable()
+ThreadPoolExecutor.__init__=native_init
+assert revision==subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+assert sources=={p:b._digest(Path(__file__)) if p=='profile-launcher.py.txt'
+                 else b._digest(Path(p)) for p in sources}
+assert inputs==b._verified_inputs(b.REPLAY)
+row=json.loads((out/'worker/measurement.json').read_bytes())
+model=ContinuousTimeLidarPairArtifact.model_validate(read_mapping(out/'worker/result.yaml'))
+assert b._canonical(row['result'])==b._canonical(model.model_dump(mode='json',exclude_none=True))
+def without_git(value):
+    if isinstance(value,dict):
+        return {k:without_git(v) for k,v in value.items() if k!='git_commit'}
+    if isinstance(value,list):
+        return [without_git(v) for v in value]
+    return value
+reference=json.loads(Path('docs/assets/cuda_captured_residual_summary/dense/sparse.repeat-01.measurement.json').read_bytes())
+assert b._comparison_canonical(without_git(row['result']))==b._comparison_canonical(without_git(reference['result']))
+records=[]
+for label,profile in [('main',main),*[(f'worker-{i}',p) for i,p in enumerate(profiles,1)]]:
+    stats=pstats.Stats(profile)
+    for (filename,line,function),(primitive,total,own,cumulative,callers) in stats.stats.items():
+        records.append({'thread':label,'file':filename,'line':line,'function':function,
+                        'primitive_calls':primitive,'total_calls':total,'own_seconds':own,
+                        'cumulative_seconds':cumulative})
+    text=io.StringIO()
+    pstats.Stats(profile,stream=text).strip_dirs().sort_stats('cumulative').print_stats(45)
+    (out/(label+'.stats.txt')).write_text(text.getvalue(),encoding='utf-8',newline='\n')
+payload={'provenance':{'source_commit':revision,'source_sha256':sources,
+    'input_sha256':inputs,'measurement_sha256':b._digest(out/'worker/measurement.json'),
+    'python_version':sys.version},'source_input_guards_passed':True,
+    'complete_result_parity':True,'profiled_worker_threads':len(profiles),'records':records,
+    'limitations':['Instrumented profiling only, excluded from formal timing.',
+                   'Cumulative call times nest and overlap across worker threads.']}
+(out/'profile.json').write_text(json.dumps(payload,indent=2)+'\n',encoding='utf-8',newline='\n')
+combined={}
+for record in records:
+    if 'calibrex' in record['file'] and record['function']!='<genexpr>':
+        key=(Path(record['file']).name,record['function'])
+        item=combined.setdefault(key,{'calls':0,'own':0.,'cumulative':0.})
+        item['calls']+=record['total_calls']
+        item['own']+=record['own_seconds']
+        item['cumulative']+=record['cumulative_seconds']
+for key,item in sorted(combined.items(),key=lambda kv:kv[1]['cumulative'],reverse=True)[:28]:
+    print(json.dumps({'function':key,**item}),flush=True)

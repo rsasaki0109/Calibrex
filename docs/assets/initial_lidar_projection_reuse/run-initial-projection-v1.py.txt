@@ -1,0 +1,41 @@
+"""Fresh public CPU/CUDA comparisons and independent work counters."""
+import os
+import subprocess
+import sys
+from pathlib import Path
+workspace=next(p for p in Path(__file__).resolve().parents if (p/'pyproject.toml').is_file())
+sys.path.insert(0,str(workspace))
+os.chdir(workspace)
+from tools import benchmark_adaptive_plane_search as b
+revision=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+assert revision=='fdfeeb976221bb6aa3292de1177c4e6e25521330'
+snapshot=Path('outputs/initial-projection-source-v1')
+snapshot.mkdir()
+configs=[f'examples/public_datasets/glim_versatile/online_continuous_time_{s}_config.yaml'
+         for s in ('compiled_dense_capture','compiled_queries')]
+for source in (*b.SOURCES,*configs):
+    raw=Path(source).read_bytes()
+    assert raw.replace(b'\r\n',b'\n')==subprocess.check_output(['git','show',f'{revision}:{source}'])
+    dest=snapshot/source
+    dest.parent.mkdir(parents=True,exist_ok=True)
+    dest.write_bytes(raw)
+guards={s:b._digest(Path(s)) for s in (*b.SOURCES,*configs,__file__)}
+inputs=b._verified_inputs(b.REPLAY)
+for label,stem,backend,repeats in (
+    ('gpu-dense','compiled_dense_capture','cuda',3),
+    ('cpu-dense','compiled_dense_capture','numba_cpu',3),
+    ('default-smoke','compiled_queries','cuda',1),
+):
+    subprocess.run([sys.executable,'tools/benchmark_adaptive_plane_search.py',
+        '--baseline-scope','cpu-full' if backend=='numba_cpu' else 'cuda-full',
+        '--baseline-commit','39867cfe33ac5f88ca8e102f363158025982b406',
+        '--candidate-query-backend',backend,'--baseline-query-backend',backend,
+        '--config',f'examples/public_datasets/glim_versatile/online_continuous_time_{stem}_config.yaml',
+        '--repetitions',str(repeats),'--output-dir',f'outputs/public-glim-initial-projection-{label}-v1'],check=True)
+    assert revision==subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+    assert guards=={s:b._digest(Path(s)) for s in guards}
+    assert inputs==b._verified_inputs(b.REPLAY)
+    print(f'Complete guarded {label} cohort.',flush=True)
+for mode in ('gpu','cpu'):
+    subprocess.run([sys.executable,'.tmp-calibrex-diagnose-initial-projection-v1.py',mode],check=True)
+print('All initial-projection comparisons and work diagnostics completed.',flush=True)

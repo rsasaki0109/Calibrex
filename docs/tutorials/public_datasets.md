@@ -1,5 +1,9 @@
 # Public Datasets
 
+For Camera–LiDAR six-DoF GPU evaluation without a personal recording, see the
+[KITTI raw CPU/GPU demo](public_six_dof_demo.md). It consumes raw public data
+directly and writes an offline calibration comparison with holdout overlays.
+
 Calibrex examples should prefer public datasets over synthetic-only workflows.
 Large datasets are not committed to the repository. Instead, Calibrex keeps
 small manifests, configs, and source metadata.

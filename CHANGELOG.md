@@ -2,6 +2,173 @@
 
 ## Unreleased
 
+- Fuse native LiDAR residuals and ordered squared-error accumulation on the
+  optional CPU adapter for factors with at least 8,192 rows. Match CPython
+  3.10/3.11 and 3.12 summation policies and retain public hooks and diagnostics.
+  Avoid discarded optimizer residual lists. Publish full paired controls,
+  actual work and the observed small-workload timing regression.
+
+- Fuse optional CPU LiDAR plane scoring and observation gathers for batches of
+  at least 8,192 rows. Preserve ordered FP64 scores, native distance ties,
+  signed zeros, independent read-only output columns and small-batch fallback.
+  Publish all fresh whole-process controls and actual GPU/CPU work; the
+  incremental gain over the preceding GPU implementation is modest.
+
+- Reuse the last exact CUDA LiDAR finite differences with bitwise transform/step
+  keys, owned writable return arrays and a 64 MiB host-cache limit. Compute only
+  initial solver rank for native compiled factors with at least 8,192 residuals;
+  retain full final diagnostics and public evaluation hooks. Publish complete
+  public dense GPU/CPU controls, actual launch/cache counts, small-workload timing
+  regressions and stopped comparisons with source/input lineage.
+
+- Query captured continuous-time LiDAR uniform/adaptive plane maps together on
+  an owned CUDA stream, preserving neighborhood order and native boundary/tie
+  repair. Batch large-frame deskew on the optional CPU adapter with exact
+  timestamps, poses, world points and failure counters; keep small frames on
+  the original replay path. Stream diagnostic XYZ without materializing unused
+  observations. Record actual GPU/CPU work and publish complete paired controls,
+  cold/slower runs and the preceding small-frame regression.
+
+- Add optional CUDA numerical finite differences for dense
+  continuous-time LiDAR refinement. Retain all thirteen evaluations, exact
+  arithmetic and native ordered CPU normal equations. Share compiled kernels
+  across owned streams, retain cheap standalone residuals on CPU, and keep
+  small capture budgets on CPU without importing CUDA. Reuse native selected
+  timestamp arrays and count backing allocations in the bounded pose cache.
+  Record actual execution and publish full public-data comparisons,
+  including slower preceding attempts and initially empty compiler caches.
+
+- Keep optional compiled continuous-time LiDAR poses and observations in read-only
+  numeric batches through association and MAD filtering. Fuse finite differences,
+  avoid unused Jacobian conversions, and evaluate large independent clock
+  candidates with three owned threads without nested worker pools. Preserve
+  numerical values, diagnostic counters, custom-method fallbacks and schemas;
+  publish complete public-data comparisons and all preceding attempts.
+
+- Add optional fused CUDA point-to-plane LiDAR odometry, including on-device
+  normal covariance preparation and captured spatial queries. Retain native
+  time-gap scaling and deskew policies, record actual device work and native
+  repairs, and expose explicit coordinate canonicalization for reproducible
+  dense geometry. Preserve CPU defaults and publish full public temporal replays.
+
+- Add an optional CUDA backend for LiDAR-LiDAR map registration and blocked
+  evidence evaluation. Keep point queries, normal preparation, residuals,
+  analytic Jacobians and Huber systems on device, with native uncertainty
+  repairs and unchanged calibration/evidence policies. Record execution
+  provenance and publish complete fresh-process public-data comparisons.
+
+- Retain continuous-time numerical finite differences and robust normal equations
+  in numeric arrays with the optional CPU backend. Reuse captured observation
+  fields, batched ordered hybrid selection and prepared MAD arrays/medians,
+  plus bounded pose batches and unambiguous adaptive gates,
+  preserving exact output values, support-floor ties, custom-method fallbacks
+  and schema stability. Publish independent initially empty compiler-cache
+  comparisons against the preceding compiled-query version.
+
+- Add optional compiled CPU kernels for continuous-time interpolation, world
+  coordinates and repeated point-to-plane residuals, preserving arithmetic
+  order and numerical finite differences. Batch exact adaptive centroid queries
+  with scalar gate/tie handling and unsupported-map fallbacks. Record actual
+  optional kernel execution in provenance; retain the Python default and result
+  schemas. Publish complete public-data comparisons with empty initial compiler
+  caches and all saved numerical results checked.
+
+- Reuse captured uniform plane geometry, bounded adaptive neighborhoods and
+  odometry poses/slerp constants during continuous-time refinement. Batch moving
+  world coordinates in the scalar Hamilton order and overlap complete input
+  hashing with computation, rejecting changed inputs. Publish separate complete
+  public-data comparisons at the existing and default sampling budgets, with
+  exact saved-artifact parity and unchanged temporal holdout.
+
+- Search only occupied adaptive voxel cells in the original level/x/y/z order,
+  preserving nearest ties, scalar distances and inclusive gates. Publish fresh
+  complete continuous-time comparisons on the public GLIM Livox identity control,
+  with exact saved-artifact parity, actual sampled train/holdout identities and
+  verified raw/converted input lineage.
+
+- Reuse captured Livox records for solid-state quality bins and native input
+  loading; decode checked binary PCD views and preserve ordered statistics.
+  Evaluate independent controls with bounded CPU workers and isolated query caches,
+  defer unused spatial-tree imports, batch static plane association and accumulate
+  native normal equations in the original product/addition order. Preserve solver
+  history, diagnostics and quality; publish separate full-point and existing-budget
+  complete-process comparisons against the preceding accelerated version.
+
+- Batch native fixed-rig point-to-plane residuals in bounded observation chunks,
+  preserving Hamilton products, normalization counts, finite differences and
+  complete solver history. Retain scalar handling for small/nonfinite inputs and
+  refresh observation arrays on replacement. Publish incremental full-process
+  and optimizer timings on the existing public Livox configuration, with exact
+  result parity and unchanged observability/quality judgments.
+
+- Pack exact Livox voxel neighborhoods within the existing 8 MiB lookup budget
+  and share read-only transformed coordinates between voxel and plane evidence.
+  Preserve ordered voxel sums, first-seen keys, nearest ties and all control cases.
+  Measure candidate/control evaluation within the same complete calibration run
+  and publish phase and whole-process gains separately, with exact result parity.
+
+- Share Livox captured inputs and statistics across inspection, candidate/control
+  evaluation and registration within one calibration run. Reuse source voxel sums
+  and immutable plane arrays, cap compact direct-index tables at 8 MiB each and
+  avoid distances for empty neighbors. Preserve all numerical outputs and fresh
+  inputs on the next run. Publish separate cumulative, incremental, intermediate
+  and interrupted-worker timing evidence without mixing their measurement scopes.
+
+- Accelerate Livox candidate and perturbation evaluation with invocation-scoped
+  decoded records, invariant statistics and source planes. Batch exact 27-voxel
+  associations using checked sparse integer keys, and preserve the scalar
+  Hamilton-product ordering in batched coordinate transforms. Keep all input
+  points, controls, support denominators and quality decisions; retain complete
+  public calibration subprocess timings and numerical parity evidence.
+
+- Vectorize native registration voxel centroids, point ICP information matrices
+  and batched target-normal PCA, retaining input-order sums and existing numeric
+  behavior. Reuse training coordinates and run independent multi-start trials
+  with bounded CPU threads on larger clouds. `multi_start_workers=1` selects
+  sequential execution; the automatic default preserves ordered diagnostics.
+  Public raw-scan evidence includes fresh verification/preprocessing, both full
+  ICP calls, sequential controls and all repeated numerical payloads.
+
+- Add caller-owned immutable, verified Camera–LiDAR input snapshots for repeated
+  six-DoF estimates. Public demos and sweeps opt in with
+  `--reuse-verified-inputs`; pipeline summaries include initial capture once.
+  Check the problem SHA-256 on every estimate, bind loaded arrays to verified
+  bytes, and record snapshot scope/cost. Default runs still verify fresh files.
+
+- Batch ordered CUDA D2D histograms in groups of at most 32 frames. Share pose
+  and histogram-edge uploads, reuse invocation-local projection scratch, and
+  download each group's counts together. Preserve native frame reduction,
+  exact visibility/tie rules, and record histogram download counters.
+
+- Fuse CPU D2D projection, visibility, and histogram accumulation in the
+  optional `numba_cpu` backend. Freeze feature bins, reuse thread-local scratch,
+  visit only touched pixels, and release the GIL for frame parallelism. Keep
+  float64 projection, histogram edge rules, visibility counts, and tie order.
+
+- Parallelize independent D2D frame evaluations inside one six-DoF estimate
+  with persistent CPU threads. `estimate-six-dof --frame-workers` and public
+  demos' `--candidate-frame-workers` preserve frame reduction order, full search
+  traces, and holdout evaluation; results record requested/effective workers.
+  Defaults remain serial and CUDA requires one frame worker.
+
+- Add `calibrex demo kitti-six-dof-sweep` for six prespecified signed-axis
+  initializations on the same public KITTI fit/holdout frames. Save a plan before
+  optimization, retain all case evidence, and compare numerical traces within
+  each case. CPU-only sweeps support isolated worker processes via `--workers`;
+  CUDA comparisons stay serial. The overview links every case report.
+
+- Add `--repetitions` to the public KITTI six-DoF demo. Reuse one frozen
+  problem and initial pose, alternate CPU/candidate order, retain every attempt,
+  and report successful-run timing medians/ranges. Exact parity is checked across
+  repetitions as well as backends; image overlays keep the first pair.
+
+- Add `calibrex demo kitti-six-dof` to compare NumPy and an explicitly selected
+  CUDA/CPU backend on public KITTI raw data with a frozen depth provider. The
+  command fixes a 20-fit/5-holdout split and controlled initial perturbation,
+  saves standard results and a benchmark, and produces offline image-overlay
+  HTML. Partial runs and backend/parity failures remain in the evidence. No
+  rosbag or schema change is required.
+
 - **`calibrex external-run import-sensor-calib-tas` imports a sensor_calib_tas result
   as a `--tf` file.**
   - **What sensor_calib_tas outputs.** Each sensor's pose in its reference sensor's
@@ -517,7 +684,7 @@
   frames, and saves a standard `slac.result/v0.1` result. The default stays `numpy`, and `check` /
   `estimate` / `drift` do not expose the backend. Real data: on KITTI raw 0018 the converged frozen-protocol trial is
   exactly equal between NumPy and CUDA (325 evaluations, every candidate record), and the six-DoF
-  search is 15.2x faster on KITTI raw 0018 and 11.3x on KITTI-360 0002 (GTX 1660 Ti; schema-valid
+  search is 15.2x faster on KITTI raw 0018 and 11.3x on KITTI-360 0002 (CUDA; schema-valid
   timing reports under `docs/assets/gpu_acceleration/`,
   [tutorial](docs/tutorials/gpu_acceleration.md)). No schema change.
 - **`calibrex check` / `estimate` / `drift` read ROS 1 `.bag` files and every MCAP chunk

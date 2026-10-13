@@ -1,0 +1,143 @@
+{
+  "method": "cuda",
+  "seconds": 24.452328599989414,
+  "point_count": 127158,
+  "result_sha256": "1030b7f5074f8be83df162c84f9ff68f799301072b1b04b16a147bc65e0cbbda",
+  "provenance": {
+    "source": {
+      "commit": "85a3f0d037dbbc29d3ecbd8a50ae721ada34f8bc",
+      "sources": {
+        "src/calibrex/solvers/robust_point_to_point_icp_solver.py": "507e5f4035158fc6121b33f793f95c82bf9985ab863dd2b5048647e10858e6fc",
+        "src/calibrex/solvers/cuda_point_to_point_icp_adapter.py": "c73982f263d1235a8539f33ef00331d684c0c925c5851a991f8b1f6c025a7b68",
+        "src/calibrex/solvers/cuda_lidar_map_adapter.py": "c4cbfb6434c6ae0cb91cd5fff38fb349cc959436344aab5737236ad6f5d6a8b6",
+        "src/calibrex/solvers/_exact_neighbors.py": "27665693aa10cc78e9e469fc6602c6332dcbc11aeb39c30129dbce9d9ffabf7f",
+        "src/calibrex/core/geometry.py": "6597695de33360d44b8b18e457f84355df3ace30837462f4b9501193879d66aa",
+        "src/calibrex/evaluation/holdout.py": "24c0eee5b132cf535dbbfb98ceb4b5f5e1b9ebafce68962a6cef8cff6ff30854",
+        "tools/benchmark_cuda_point_to_point_icp.py": "22947e33248ef21264b4e4918a3d1ba2dc706550b71bdc59bf56f7ea2a0ec332"
+      }
+    },
+    "input_sha256": "213948bd8c54c925aca7eb9f3b3c36e95e586b52ee8d9d64056c4fc4aeb12b2d",
+    "input": "<DATASET_ROOT>/0000000115.bin",
+    "seed": 20261013,
+    "noise_sigma_m": 0.002,
+    "truth": {
+      "translation_m": [
+        0.03,
+        -0.02,
+        0.015
+      ],
+      "rotation_quat_xyzw": [
+        0.000999996375019711,
+        -0.001999992750039422,
+        0.0014999945625295663,
+        0.9999963750197108
+      ]
+    },
+    "options": {
+      "max_iterations": 50,
+      "convergence_tolerance_m": 1e-07,
+      "correspondence_distance_m": 1.0,
+      "trim_fraction": 0.8,
+      "mutual_correspondences": true,
+      "min_correspondences": 6,
+      "holdout_ratio": 0.2,
+      "holdout_voxel_size_m": 0.5,
+      "split_seed": 0,
+      "rank_tolerance": 1e-07,
+      "max_condition_number": 100000000.0,
+      "effective_diagnostics": true,
+      "curvature_translation_step_m": 0.01,
+      "curvature_rotation_step_rad": 0.008726646259971648,
+      "min_translation_curvature": 0.001,
+      "min_rotation_curvature_m2_per_rad2": 0.001,
+      "multi_start_diagnostics": true,
+      "multi_start_translation_m": 0.05,
+      "multi_start_rotation_rad": 0.08726646259971647,
+      "symmetry_translation_separation_m": 0.02,
+      "symmetry_rotation_separation_deg": 1.0,
+      "symmetry_equivalent_holdout_margin_m": 0.005,
+      "multi_start_workers": 0
+    },
+    "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "numpy": "2.3.4",
+    "scipy": "1.17.1",
+    "blas_environment": {
+      "OPENBLAS_NUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1",
+      "MKL_NUM_THREADS": "1"
+    },
+    "blas_runtime": [
+      {
+        "user_api": "blas",
+        "internal_api": "openblas",
+        "num_threads": 1,
+        "version": "0.3.30",
+        "threading_layer": "pthreads"
+      },
+      {
+        "user_api": "blas",
+        "internal_api": "openblas",
+        "num_threads": 1,
+        "version": "0.3.30",
+        "threading_layer": "pthreads"
+      }
+    ],
+    "cupy_imported": true,
+    "adapter": {
+      "method": "calibrex.cuda_point_to_point_icp/v0.1",
+      "fp64": true,
+      "query_fma": false,
+      "pose_updates_cpu": true,
+      "cupy": "14.2.0",
+      "cuda": 12090,
+      "driver": 13020,
+      "query_sha256": "9f89ea97556f93342928cc595263b26d42644a6273d1f29c29435b838ae6b3b3",
+      "source_sha256": "d137e6bbf32f641afd506437bcf39c68ae2fb7aeec893457e1e2ca8a4cc41a97",
+      "target_sha256": "78bd18e843776de8d566f1b28f9c885138cf7ee1a412689da60f332245427c03",
+      "initial_transform": {
+        "translation_m": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "rotation_quat_xyzw": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      "options": {
+        "max_iterations": 50,
+        "convergence_tolerance_m": 1e-07,
+        "correspondence_distance_m": 1.0,
+        "trim_fraction": 0.8,
+        "mutual_correspondences": true,
+        "min_correspondences": 6,
+        "holdout_ratio": 0.2,
+        "holdout_voxel_size_m": 0.5,
+        "split_seed": 0,
+        "rank_tolerance": 1e-07,
+        "max_condition_number": 100000000.0,
+        "effective_diagnostics": true,
+        "curvature_translation_step_m": 0.01,
+        "curvature_rotation_step_rad": 0.008726646259971648,
+        "min_translation_curvature": 0.001,
+        "min_rotation_curvature_m2_per_rad2": 0.001,
+        "multi_start_diagnostics": true,
+        "multi_start_translation_m": 0.05,
+        "multi_start_rotation_rad": 0.08726646259971647,
+        "symmetry_translation_separation_m": 0.02,
+        "symmetry_rotation_separation_deg": 1.0,
+        "symmetry_equivalent_holdout_margin_m": 0.005,
+        "multi_start_workers": 0
+      },
+      "gpu_query_calls": 375,
+      "gpu_query_rows": 32411910,
+      "target_query_repairs": 0,
+      "source_query_repairs": 0,
+      "static_source_snapshots": 1,
+      "target_snapshots": 1
+    }
+  }
+}

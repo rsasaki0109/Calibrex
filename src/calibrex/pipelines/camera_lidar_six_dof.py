@@ -7,6 +7,8 @@ import json
 import math
 import time
 from collections.abc import Sequence
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
 from dataclasses import fields, replace
 from pathlib import Path
 from typing import Any, Literal
@@ -26,7 +28,11 @@ from calibrex.core.result import (
     build_result_provenance,
     load_result,
 )
-from calibrex.evaluation.borer_rotation_benchmark import load_borer_problem
+from calibrex.evaluation.borer_rotation_benchmark import (
+    _prepare_borer_problem,
+    _PreparedBorerInputs,
+)
+from calibrex.pipelines.camera_lidar_input_snapshot import CameraLidarSixDofInputSnapshot
 from calibrex.solvers.borer_depth_to_depth_solver import (
     DepthToDepthEvaluation,
     evaluate_depth_to_depth_mi,
@@ -36,9 +42,12 @@ from calibrex.solvers.borer_six_dof_solver import BorerSixDofOptions, BorerSixDo
 from calibrex.solvers.depth_to_depth_runtime import (
     ProjectionBackend,
     create_depth_pair_projector,
+    depth_pair_transfer_statistics,
+    validate_cuda_cache_bytes,
+    validate_frame_workers,
 )
 
-SIX_DOF_ESTIMATE_VERSION = "calibrex.camera_lidar_six_dof_estimate/v0.1"
+SIX_DOF_ESTIMATE_VERSION = "calibrex.camera_lidar_six_dof_estimate/v0.4"
 
 
 def run_camera_lidar_six_dof_estimate(
@@ -46,19 +55,31 @@ def run_camera_lidar_six_dof_estimate(
     *,
     options: BorerSixDofOptions | None = None,
     projection_backend: ProjectionBackend = "numpy",
+    frame_workers: int = 1,
+    cuda_cache_bytes: int | None = None,
     initial_result_path: str | Path | None = None,
     holdout_frame_ids: Sequence[str] = (),
+    input_snapshot: CameraLidarSixDofInputSnapshot | None = None,
+    overlap_input_verification: bool = True,
     command: Sequence[str],
 ) -> CalibrationResult:
     """Refine the declared prior once; reference values never enter optimization.
 
-    All problem/provider file digests are verified before solving. Histogram
+    All problem/provider file digests are verified on every ordinary call.
+    The optional checkpoint check overlaps array loading and calculation;
+    completion is required before an output result is constructed or returned.
+    Set overlap_input_verification=False for sequential input verification.
+    An explicit input_snapshot reuses its verified immutable arrays; its
+    preparation cost is recorded separately from this invocation's timing.
+    The problem artifact is still checked on every call. Histogram
     ranges are resolved from training frames only and then frozen for holdout
     evaluation. Convergence records optimizer termination, not calibration
     accuracy. Insufficient inputs produce a failed result with no output pose.
     """
 
     started = time.perf_counter()
+    validate_cuda_cache_bytes(projection_backend, cuda_cache_bytes)
+    validate_frame_workers(projection_backend, frame_workers)
     settings = options or BorerSixDofOptions()
     settings_payload = _settings_payload(settings)
     # Reject non-finite Python API inputs before loading data or starting CUDA.
@@ -66,7 +87,29 @@ def run_camera_lidar_six_dof_estimate(
     if settings.objective not in ("mutual_information", "normalized_mutual_information"):
         raise ValueError("unsupported six-DoF objective")
     path = Path(problem_path)
-    loaded = load_borer_problem(path)
+    scope = (
+        _prepare_borer_problem(path, overlap_checkpoint=overlap_input_verification)
+        if input_snapshot is None
+        else nullcontext(_PreparedBorerInputs(input_snapshot._loaded_for_estimate(path)))
+    )
+    with scope as prepared_inputs:
+        return _run_loaded_six_dof_estimate(
+            path, prepared_inputs=prepared_inputs, started=started,
+            settings=settings, projection_backend=projection_backend,
+            frame_workers=frame_workers, cuda_cache_bytes=cuda_cache_bytes,
+            initial_result_path=initial_result_path, holdout_frame_ids=holdout_frame_ids,
+            input_snapshot=input_snapshot, command=command,
+        )
+
+
+def _run_loaded_six_dof_estimate(
+    path: Path, *, prepared_inputs: _PreparedBorerInputs, started: float,
+    settings: BorerSixDofOptions, projection_backend: ProjectionBackend,
+    frame_workers: int, cuda_cache_bytes: int | None,
+    initial_result_path: str | Path | None, holdout_frame_ids: Sequence[str],
+    input_snapshot: CameraLidarSixDofInputSnapshot | None, command: Sequence[str],
+) -> CalibrationResult:
+    loaded = prepared_inputs.loaded
     problem = loaded.problem
     if settings.rotation_bound_deg > problem.rotation_bound_deg:
         raise ValueError("six-DoF rotation bound exceeds the problem rotation bound")
@@ -115,31 +158,51 @@ def run_camera_lidar_six_dof_estimate(
     if not train:
         raise ValueError("at least one training frame is required")
     settings = replace(settings, d2d=resolve_depth_to_depth_options(train, settings.d2d))
-    inputs_verified_at = time.perf_counter()
-    projector, identity = create_depth_pair_projector(projection_backend, loaded.observations)
+    inputs_ready_at = time.perf_counter()
+    projector, identity = create_depth_pair_projector(
+        projection_backend,
+        loaded.observations,
+        cuda_cache_bytes=cuda_cache_bytes,
+        histogram_options=settings.d2d,
+    )
     settings = replace(settings, projector=projector, projection_backend=identity)
-    prepared_at = time.perf_counter()
-    solved = BorerSixDofSolver().solve(train, prior.as_se3(), settings)
-    solved_at = time.perf_counter()
-    initial_holdout = final_holdout = None
-    if holdout:
-        initial_holdout = evaluate_depth_to_depth_mi(
-            holdout,
-            prior.as_se3(),
-            settings.d2d,
-            projector=projector,
+    effective_workers = min(frame_workers, max(len(train), len(holdout)))
+    pool = (
+        ThreadPoolExecutor(max_workers=effective_workers, thread_name_prefix="calibrex-d2d")
+        if effective_workers > 1 else nullcontext(None)
+    )
+    with pool as executor:
+        prepared_at = time.perf_counter()
+        solved = BorerSixDofSolver().solve(
+            train, prior.as_se3(), settings, frame_executor=executor,
         )
-        final_holdout = evaluate_depth_to_depth_mi(
-            holdout,
-            solved.transform_camera_lidar,
-            settings.d2d,
-            projector=projector,
-        )
+        solved_at = time.perf_counter()
+        initial_holdout = final_holdout = None
+        if holdout:
+            initial_holdout = evaluate_depth_to_depth_mi(
+                holdout, prior.as_se3(), settings.d2d,
+                projector=projector, frame_executor=executor,
+            )
+            final_holdout = evaluate_depth_to_depth_mi(
+                holdout, solved.transform_camera_lidar, settings.d2d,
+                projector=projector, frame_executor=executor,
+            )
     evaluated_at = time.perf_counter()
+    prepared_inputs.complete_verification()
+    verification_wait = time.perf_counter() - evaluated_at
+    verification_strategy = (
+        "verified_snapshot" if input_snapshot is not None else
+        "checkpoint_overlap" if prepared_inputs.checkpoint_verification is not None else
+        "sequential"
+    )
     config_payload = {
         "pipeline_version": SIX_DOF_ESTIMATE_VERSION,
         "options": _settings_payload(settings),
         "projection_backend": identity,
+        "frame_workers": frame_workers,
+        "effective_frame_workers": effective_workers,
+        "input_mode": "fresh_files" if input_snapshot is None else "verified_snapshot",
+        "input_verification_strategy": verification_strategy,
         "initial_transform": prior.as_se3().as_dict(),
         "train_frame_ids": [item.frame_id for item in train],
         "holdout_frame_ids": [item.frame_id for item in holdout],
@@ -200,6 +263,17 @@ def run_camera_lidar_six_dof_estimate(
             "pipeline": SIX_DOF_ESTIMATE_VERSION,
             "problem_path": str(path),
             "input_digests": input_digests,
+            "input_verification": (
+                {"mode": "fresh_files", "external_files_reverified": True,
+                 "problem_artifact_reverified": True, "preparation_in_run_timing": True,
+                 "strategy": verification_strategy,
+                 "checkpoint_verification_seconds": prepared_inputs.checkpoint_verification_seconds,
+                 "completion_wait_seconds": verification_wait,
+                 "checkpoint_time_overlaps_phases": (
+                     prepared_inputs.checkpoint_verification is not None
+                 )}
+                if input_snapshot is None else input_snapshot.provenance()
+            ),
             "dataset_id": problem.dataset_id,
             "dataset_family": problem.dataset_family,
             "sequence_id": problem.sequence_id,
@@ -210,6 +284,7 @@ def run_camera_lidar_six_dof_estimate(
             ),
             "configuration": config_payload,
             "projection_backend": identity,
+            "projection_transfer_statistics": depth_pair_transfer_statistics(projector),
             "solver_result": solved.as_dict(),
             "initial_holdout_evaluation": (
                 initial_holdout.as_dict() if initial_holdout is not None else None
@@ -218,8 +293,10 @@ def run_camera_lidar_six_dof_estimate(
                 final_holdout.as_dict() if final_holdout is not None else None
             ),
             "timing_seconds": {
-                "input_verification_and_loading": inputs_verified_at - started,
-                "backend_preparation": prepared_at - inputs_verified_at,
+                # Input waiting can occur both before and after computation.
+                # Count the final wait once; background wall is diagnostic only.
+                "input_verification_and_loading": inputs_ready_at - started + verification_wait,
+                "backend_preparation": prepared_at - inputs_ready_at,
                 "solve": solved_at - prepared_at,
                 "holdout_evaluation": evaluated_at - solved_at,
             },

@@ -12,9 +12,25 @@ from __future__ import annotations
 
 import math
 import random
-from collections.abc import Sequence
+from collections import OrderedDict
+from collections.abc import Callable, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from typing import Literal
+from os import cpu_count
+from typing import TYPE_CHECKING, Literal
+
+import numpy as np
+
+if TYPE_CHECKING:
+    from calibrex.data.adaptive_voxel import AdaptivePlaneQueryContext
+    from calibrex.solvers.cuda_continuous_time_adapter import CudaRigLinearizer
+    from calibrex.solvers.cuda_plane_query_adapter import CudaPlaneQueries
+    from calibrex.solvers.numba_continuous_time_adapter import (
+        FloatArray,
+        IntArray,
+        NumbaContinuousTimeQueryContext,
+        _CapturedTimestampRows,
+    )
 
 from calibrex.core.continuous_time_lidar_train_diagnostics import (
     ContinuousTimeLidarTrainDiagnosticsData,
@@ -24,17 +40,30 @@ from calibrex.core.continuous_time_lidar_train_diagnostics import (
 )
 from calibrex.core.geometry import SE3, Vector3
 from calibrex.core.time import apply_time_offset_ns
+from calibrex.data import adaptive_voxel as adaptive_voxel_module
 from calibrex.data.adaptive_voxel import (
     AdaptiveVoxelPlaneMap,
     AdaptiveVoxelPolicy,
     build_adaptive_voxel_plane_map,
 )
-from calibrex.data.livox import LivoxPointRecord, VoxelPlaneMap, build_voxel_plane_map
+from calibrex.data.livox import (
+    LivoxPointRecord,
+    VoxelPlaneMap,
+    VoxelPlaneQueryContext,
+    build_voxel_plane_map,
+)
 from calibrex.data.odometry_track import OdometryTrack
 from calibrex.evaluation.lidar import build_rig_point_to_plane_observations
+from calibrex.evaluation.packed_lidar_observations import _PackedObservationBuilder
 from calibrex.graph.lidar_point_to_plane import (
+    _NATIVE_CORRECTION,
+    _NATIVE_LINEARIZE,
+    _NATIVE_RESIDUALS,
     LidarRigPointToPlaneEvaluation,
     LidarRigPointToPlaneFactor,
+    _ObservationArrays,
+    _PackedObservations,
+    _PreparedObservationBuilder,
 )
 from calibrex.solvers.fixed_trajectory_se3_solver import (
     FixedTrajectorySe3ExtrinsicSolver,
@@ -43,6 +72,7 @@ from calibrex.solvers.fixed_trajectory_se3_solver import (
 )
 from calibrex.solvers.robust_lidar_observations import (
     RobustObservationFilterResult,
+    _filter_packed_factor_mad,
     filter_lidar_observations_mad,
 )
 
@@ -103,6 +133,9 @@ class ContinuousTimeLidarPairOptions:
     solver: FixedTrajectorySe3SolverOptions = field(
         default_factory=FixedTrajectorySe3SolverOptions
     )
+    query_backend: Literal["python", "numba_cpu", "cuda"] = "python"
+    # Experimental: whole-pipeline gains have not been established.
+    cuda_captured_summary: bool = False
 
 
 @dataclass(frozen=True)
@@ -147,6 +180,7 @@ class ContinuousTimeLidarPairResult:
         "positive offset evaluates target capture at odometry time "
         "t_capture + offset"
     )
+    query_backend: str = "python"
 
 
 @dataclass(frozen=True)
@@ -171,6 +205,69 @@ class _FactorBuild:
     outlier_rejected_count: int
 
 
+@dataclass(frozen=True)
+class _PackedSelection:
+    original: tuple[int, ...]
+    selected: tuple[int, ...]
+    positions: IntArray
+    timestamps: _CapturedTimestampRows
+
+
+@dataclass
+class _QueryReuse:
+    planes: VoxelPlaneQueryContext | None
+    poses: OrderedDict[int, tuple[SE3, SE3, SE3]] = field(default_factory=OrderedDict)
+    compiled: NumbaContinuousTimeQueryContext | None = None
+    adaptive: AdaptivePlaneQueryContext | None = None
+    used_numba: bool = False
+    observation_builder: _PreparedObservationBuilder | None = None
+    packed_builder: _PackedObservationBuilder | None = None
+    executor: ThreadPoolExecutor | None = None
+    summary_executor: ThreadPoolExecutor | None = None
+    cuda_rig: CudaRigLinearizer | None = None
+    cuda_planes: CudaPlaneQueries | None = None
+    used_cuda: bool = False
+    used_cuda_summary: bool = False
+    used_parallel_summary: bool = False
+    used_cpu_linearization_cache: bool = False
+    used_cpu_parallel_linearization: bool = False
+    selections: dict[int, _PackedSelection] = field(default_factory=dict)
+
+    def identity(self) -> str:
+        if self.used_cuda or (self.cuda_planes is not None and self.cuda_planes.query_calls > 0):
+            from calibrex.solvers.cuda_continuous_time_adapter import cuda_continuous_time_identity
+
+            return cuda_continuous_time_identity(
+                associations_gpu=self.cuda_planes is not None and self.cuda_planes.query_calls > 0,
+                captured_summary_gpu=self.used_cuda_summary,
+                summary_parallel_cpu=self.used_parallel_summary,
+            )
+        if self.used_numba or (self.compiled is not None and self.compiled.used):
+            from calibrex.solvers.numba_continuous_time_adapter import (
+                numba_continuous_time_identity,
+            )
+
+            return numba_continuous_time_identity(
+                summary_parallel_cpu=self.used_parallel_summary,
+                linearization_cache_cpu=self.used_cpu_linearization_cache,
+                linearization_parallel_cpu=self.used_cpu_parallel_linearization,
+            )
+        return "python"
+
+    def source_pose(self, timestamp_ns: int, pose: SE3, base: SE3) -> SE3:
+        eligible = type(pose) is SE3 and type(base) is SE3
+        cached = self.poses.get(timestamp_ns) if eligible else None
+        if cached is not None and cached[0] is pose and cached[1] is base:
+            self.poses.move_to_end(timestamp_ns)
+            return cached[2]
+        result = pose.compose(base)
+        if eligible:
+            self.poses[timestamp_ns] = (pose, base, result)
+            if len(self.poses) > 8192:
+                self.poses.popitem(last=False)
+        return result
+
+
 class ContinuousTimeLidarPairSolver:
     """Profile a scalar clock offset while re-solving a LiDAR extrinsic."""
 
@@ -182,6 +279,45 @@ class ContinuousTimeLidarPairSolver:
         """Return a deterministic continuous-time profile/holdout result."""
 
         settings = options or ContinuousTimeLidarPairOptions()
+        track = problem.odometry_track
+        parallel = (
+            settings.query_backend in ("numba_cpu", "cuda") and len(problem.target_points) >= 16384
+            and (not settings.max_target_points_per_split
+                 or settings.max_target_points_per_split >= 8192)
+            and type(self) is ContinuousTimeLidarPairSolver
+            and "_evaluate_offset" not in self.__dict__
+            and type(self)._evaluate_offset is _NATIVE_OFFSET_EVALUATION
+            and type(track) is OdometryTrack
+            and "interpolate" not in track.__dict__
+            and OdometryTrack.interpolate is _NATIVE_INTERPOLATION
+            and "_record_extrapolation" not in track.__dict__
+            and OdometryTrack._record_extrapolation is _NATIVE_EXTRAPOLATION
+            and LidarRigPointToPlaneFactor.residuals is _NATIVE_RESIDUALS
+            and LidarRigPointToPlaneFactor.linearize is _NATIVE_LINEARIZE
+            and LidarRigPointToPlaneFactor._corrected_transform is _NATIVE_CORRECTION
+            and FixedTrajectorySe3ExtrinsicSolver.solve is _NATIVE_FIXED_SOLVE
+        )
+        if parallel:
+            with ThreadPoolExecutor(max_workers=3, thread_name_prefix="calibrex-lidar") as executor:
+                if (settings.query_backend == "numba_cpu"
+                    and len(problem.target_points) >= 32768 and (cpu_count() or 1) >= 6
+                    and (not settings.max_target_points_per_split
+                         or settings.max_target_points_per_split >= 32768)):
+                    # Use a separate bounded pool: candidate workers must never
+                    # wait on tasks queued to their own occupied executor.
+                    with ThreadPoolExecutor(
+                        max_workers=3, thread_name_prefix="calibrex-summary",
+                    ) as summary_executor:
+                        return self._solve(problem, settings, executor, summary_executor)
+                return self._solve(problem, settings, executor)
+        return self._solve(problem, settings, None)
+
+    def _solve(
+        self, problem: ContinuousTimeLidarPairProblem, settings: ContinuousTimeLidarPairOptions,
+        executor: ThreadPoolExecutor | None,
+        summary_executor: ThreadPoolExecutor | None = None,
+    ) -> ContinuousTimeLidarPairResult:
+
         self._validate(problem, settings)
         train_indices, holdout_indices = _resolve_indices(problem)
         initial_offset = _clip(
@@ -215,6 +351,74 @@ class ContinuousTimeLidarPairSolver:
             if settings.voxel_strategy == "adaptive"
             else None
         )
+        query_reuse = _QueryReuse(
+            VoxelPlaneQueryContext(source_plane_map) if source_plane_map is not None else None,
+        )
+        query_reuse.executor = executor
+        query_reuse.summary_executor = summary_executor
+        query_reuse.observation_builder = _PreparedObservationBuilder(problem.target_points)
+        if adaptive_plane_map is not None:
+            # Historical adaptive-only benchmark archives predate the batch context.
+            factory = getattr(adaptive_voxel_module, "AdaptivePlaneQueryContext", None)
+            if factory is not None:
+                query_reuse.adaptive = factory(adaptive_plane_map)
+        if settings.query_backend in ("numba_cpu", "cuda"):
+            try:
+                from calibrex.solvers.numba_continuous_time_adapter import (
+                    NumbaContinuousTimeQueryContext,
+                )
+            except ImportError as exc:
+                raise ValueError(
+                    "compiled queries require the optional calibrex[numba] dependency"
+                ) from exc
+
+            query_reuse.compiled = NumbaContinuousTimeQueryContext.capture(problem.odometry_track)
+            if query_reuse.compiled is not None:
+                query_reuse.packed_builder = _PackedObservationBuilder.capture(
+                    problem.target_points, query_reuse.planes, query_reuse.adaptive,
+                )
+                if (query_reuse.packed_builder is not None
+                    and apply_time_offset_ns is _NATIVE_TIME_OFFSET
+                    and _select_evenly_spaced_indices is _NATIVE_SELECTION
+                    and FixedTrajectorySe3ExtrinsicSolver.solve is _NATIVE_FIXED_SOLVE
+                    and LidarRigPointToPlaneFactor.residuals is _NATIVE_RESIDUALS
+                    and LidarRigPointToPlaneFactor.linearize is _NATIVE_LINEARIZE
+                    and OdometryTrack.interpolate is _NATIVE_INTERPOLATION
+                    and OdometryTrack._record_extrapolation is _NATIVE_EXTRAPOLATION
+                    and "_record_extrapolation" not in problem.odometry_track.__dict__):
+                    from calibrex.solvers.numba_continuous_time_adapter import (
+                        _CapturedTimestampRows,
+                    )
+
+                    for original in (train_indices, holdout_indices):
+                        captured_indices = _select_evenly_spaced_indices(
+                            original, settings.max_target_points_per_split,
+                            seed=settings.sampling_seed,
+                        )
+                        times = _CapturedTimestampRows.capture(
+                            [problem.target_capture_timestamps_ns[i] for i in captured_indices],
+                        )
+                        if times is not None:
+                            positions = np.asarray(captured_indices, dtype=np.int64)
+                            positions.flags.writeable = False
+                            query_reuse.selections[id(original)] = _PackedSelection(
+                                original, captured_indices, positions, times,
+                            )
+            # Small capture budgets remain on CPU, avoiding CUDA import/context
+            # costs. Once captured, GPU batches retain even MAD-trimmed rows.
+            if (settings.query_backend == "cuda" and query_reuse.packed_builder is not None
+                and min(len(problem.target_points), settings.max_target_points_per_split
+                        or len(problem.target_points)) >= 8192):
+                try:
+                    from calibrex.solvers.cuda_continuous_time_adapter import CudaRigLinearizer
+                except ImportError as exc:
+                    raise ValueError("CUDA rig queries require calibrex[cuda,numba]") from exc
+                query_reuse.cuda_rig = CudaRigLinearizer()
+                from calibrex.solvers.cuda_plane_query_adapter import CudaPlaneQueries
+
+                query_reuse.cuda_planes = CudaPlaneQueries.capture(
+                    query_reuse.planes, query_reuse.adaptive,
+                )
         initial = self._evaluate_offset(
             problem,
             settings,
@@ -225,6 +429,7 @@ class ContinuousTimeLidarPairSolver:
             train_indices,
             holdout_indices,
             problem.initial_t_source_target,
+            query_reuse,
         )
         if initial is None:
             return ContinuousTimeLidarPairResult(
@@ -242,6 +447,7 @@ class ContinuousTimeLidarPairSolver:
                 outlier_rejected_count=0,
                 observability=None,
                 iterations=(),
+                query_backend=query_reuse.identity(),
             )
 
         current = initial
@@ -256,9 +462,10 @@ class ContinuousTimeLidarPairSolver:
                 step,
                 settings.max_abs_time_offset_sec,
             )
-            evaluated: list[_OffsetEvaluation] = []
-            for offset in candidates:
-                candidate = self._evaluate_offset(
+            def evaluate_candidate(
+                offset: float, initial_transform: SE3 = current.solver_result.refined_transform,
+            ) -> _OffsetEvaluation | None:
+                return self._evaluate_offset(
                     problem,
                     settings,
                     source_records,
@@ -267,10 +474,17 @@ class ContinuousTimeLidarPairSolver:
                     offset,
                     train_indices,
                     holdout_indices,
-                    current.solver_result.refined_transform,
+                    initial_transform,
+                    query_reuse,
                 )
-                if candidate is not None:
-                    evaluated.append(candidate)
+            if query_reuse.executor is not None and query_reuse.packed_builder is not None:
+                # Results retain candidate order, so all selection and trace ties
+                # follow the serial contract. Track counters are recorded under
+                # its existing lock and immutable numeric batches are shared.
+                candidate_results = list(query_reuse.executor.map(evaluate_candidate, candidates))
+            else:
+                candidate_results = [evaluate_candidate(offset) for offset in candidates]
+            evaluated = [candidate for candidate in candidate_results if candidate is not None]
             if not evaluated:
                 step *= 0.5
                 if step < settings.minimum_time_step_sec:
@@ -352,6 +566,7 @@ class ContinuousTimeLidarPairSolver:
                 train_indices,
                 holdout_indices,
                 current.solver_result.refined_transform,
+                query_reuse,
             )
             if refined is None:
                 break
@@ -368,14 +583,7 @@ class ContinuousTimeLidarPairSolver:
         final_residuals = current.train_factor.residuals(
             current.solver_result.correction
         )
-        final_ranges = [
-            math.sqrt(
-                observation.point_lidar_m[0] ** 2
-                + observation.point_lidar_m[1] ** 2
-                + observation.point_lidar_m[2] ** 2
-            )
-            for observation in current.train_factor.observations
-        ]
+        final_ranges = current.train_factor._point_ranges()
         train_diagnostics = ContinuousTimeLidarTrainDiagnosticsData(
             sampled_source_record_count=len(source_records),
             train_target_point_count=len(train_indices),
@@ -417,6 +625,7 @@ class ContinuousTimeLidarPairSolver:
             observability=evaluation,
             iterations=tuple(trace),
             train_diagnostics=train_diagnostics,
+            query_backend=query_reuse.identity(),
         )
 
     def _evaluate_offset(
@@ -430,6 +639,7 @@ class ContinuousTimeLidarPairSolver:
         train_indices: Sequence[int],
         holdout_indices: Sequence[int],
         initial_transform: SE3,
+        query_reuse: _QueryReuse | None = None,
     ) -> _OffsetEvaluation | None:
         train_build = self._factor_for_indices(
             problem,
@@ -440,6 +650,7 @@ class ContinuousTimeLidarPairSolver:
             offset_sec,
             train_indices,
             initial_transform,
+            query_reuse,
         )
         if train_build is None:
             return None
@@ -461,19 +672,20 @@ class ContinuousTimeLidarPairSolver:
                 offset_sec,
                 holdout_indices,
                 initial_transform,
+                query_reuse,
             )
             if holdout_build is not None:
                 holdout_factor = holdout_build.factor
                 holdout_outlier_rejected_count = holdout_build.outlier_rejected_count
-                holdout_rmse = _rmse(holdout_factor.residuals(solver_result.correction))
+                holdout_rmse = _factor_rmse(holdout_factor, solver_result.correction)
         return _OffsetEvaluation(
             offset_sec=offset_sec,
             solver_result=solver_result,
             train_factor=train_factor,
             holdout_factor=holdout_factor,
-            train_correspondence_count=len(train_factor.observations),
+            train_correspondence_count=train_factor._observation_count(),
             holdout_correspondence_count=(
-                len(holdout_factor.observations) if holdout_factor is not None else 0
+                holdout_factor._observation_count() if holdout_factor is not None else 0
             ),
             holdout_rmse_m=holdout_rmse,
             train_outlier_rejected_count=train_build.outlier_rejected_count,
@@ -496,58 +708,220 @@ class ContinuousTimeLidarPairSolver:
         offset_sec: float,
         indices: Sequence[int],
         initial_transform: SE3,
+        query_reuse: _QueryReuse | None = None,
     ) -> _FactorBuild | None:
-        selected_indices = _select_evenly_spaced_indices(
-            indices,
-            settings.max_target_points_per_split,
-            seed=settings.sampling_seed,
+        captured = query_reuse.selections.get(id(indices)) if query_reuse is not None else None
+        if (captured is not None and (captured.original is not indices
+            or apply_time_offset_ns is not _NATIVE_TIME_OFFSET
+            or _select_evenly_spaced_indices is not _NATIVE_SELECTION)):
+            captured = None
+        selected_indices = (captured.selected if captured is not None else
+                            _select_evenly_spaced_indices(
+                                indices, settings.max_target_points_per_split,
+                                seed=settings.sampling_seed,
+                            ))
+        target_points: list[Vector3] | None = (
+            None if captured is not None else
+            [problem.target_points[index] for index in selected_indices]
         )
-        target_points = [problem.target_points[index] for index in selected_indices]
         target_poses: list[SE3] = []
-        for index in selected_indices:
+        coordinates = None
+        compiled = None
+        packed: _PackedObservations | None = None
+        rows_evaluated = False
+        if (query_reuse is not None and query_reuse.compiled is not None
+            and query_reuse.packed_builder is not None and len(selected_indices) >= 64):
+            positions = (captured.positions if captured is not None
+                         else np.asarray(selected_indices, dtype=np.int64))
+            prepared = (captured.timestamps.shifted(
+                apply_time_offset_ns(0, offset_sec), int(query_reuse.compiled.times[0]),
+            ) if captured is not None else None)
+            if prepared is not None:
+                batch = query_reuse.compiled._evaluate_prepared_rows(
+                    problem.odometry_track, prepared, query_reuse.packed_builder.points[positions],
+                    problem.t_base_source, initial_transform,
+                    settings.max_odometry_extrapolation_s,
+                )
+            else:
+                batch = query_reuse.compiled._evaluate_rows(
+                    problem.odometry_track,
+                    [apply_time_offset_ns(problem.target_capture_timestamps_ns[index], offset_sec)
+                     for index in selected_indices], query_reuse.packed_builder.points[positions],
+                    problem.t_base_source, initial_transform,
+                    settings.max_odometry_extrapolation_s,
+                )
+            if batch is not None:
+                rows, coordinates, usable = batch
+                if not usable:
+                    return None
+                rows_evaluated = True
+                from calibrex.solvers.numba_continuous_time_adapter import (
+                    _pack_rig_observations,
+                )
+
+                packed = query_reuse.packed_builder.build(
+                    positions, rows, coordinates, voxel_size_m=problem.voxel_size_m,
+                    correspondence_gate_m=problem.correspondence_gate_m,
+                    _position_query=(query_reuse.cuda_planes.query
+                                     if query_reuse.cuda_planes is not None else None),
+                    _array_packer=_pack_rig_observations,
+                )
+                if packed is None:
+                    # Query counters were already recorded. Materialize those
+                    # same normalized rows without interpolating a second time.
+                    from calibrex.solvers.numba_continuous_time_adapter import (
+                        _materialize_pose_rows,
+                    )
+                    target_poses = _materialize_pose_rows(rows)
+        if not rows_evaluated and query_reuse is not None and query_reuse.compiled is not None:
+            target_points = [problem.target_points[index] for index in selected_indices]
+            compiled = query_reuse.compiled.evaluate(
+                problem.odometry_track,
+                [apply_time_offset_ns(problem.target_capture_timestamps_ns[index], offset_sec)
+                 for index in selected_indices], target_points, problem.t_base_source,
+                initial_transform, settings.max_odometry_extrapolation_s,
+            )
+        if compiled is not None:
+            target_poses, coordinates, usable = compiled
+            if not usable:
+                return None
+        for index in (() if compiled is not None or rows_evaluated else selected_indices):
             capture_ns = apply_time_offset_ns(
                 problem.target_capture_timestamps_ns[index], offset_sec
             )
             pose, _clamped, extrapolation_s = problem.odometry_track.interpolate(capture_ns)
             if extrapolation_s > settings.max_odometry_extrapolation_s:
                 return None
-            target_poses.append(pose.compose(problem.t_base_source))
-        observations = build_rig_point_to_plane_observations(
+            target_poses.append(
+                query_reuse.source_pose(capture_ns, pose, problem.t_base_source)
+                if query_reuse is not None else pose.compose(problem.t_base_source)
+            )
+        if packed is None and target_points is None:
+            target_points = [problem.target_points[index] for index in selected_indices]
+        observations = packed if packed is not None else build_rig_point_to_plane_observations(
             source_records=list(source_records),
-            target_points=target_points,
+            target_points=target_points or [],
             initial_t_source_target=initial_transform,
             target_t_world_source=target_poses,
             voxel_size_m=problem.voxel_size_m,
             correspondence_gate_m=problem.correspondence_gate_m,
             source_plane_map=source_plane_map,
             adaptive_plane_map=adaptive_plane_map,
+            source_plane_queries=query_reuse.planes if query_reuse is not None else None,
+            _prepared_world_coordinates=coordinates,
+            _adaptive_queries=query_reuse.adaptive if query_reuse is not None else None,
+            _observation_builder=(
+                query_reuse.observation_builder if query_reuse is not None else None
+            ),
         )
         if len(observations) < settings.min_correspondences:
             return None
         candidate_correspondence_count = len(observations)
         outlier_rejected_count = 0
+        array_kernel: Callable[[_ObservationArrays, SE3], list[float]] | None = None
+        array_rmse_kernel: Callable[[_ObservationArrays, SE3], tuple[float] | None] | None = None
+        array_linearizer: Callable[
+            [_ObservationArrays, Sequence[SE3], Sequence[float]], tuple[FloatArray, FloatArray],
+        ] | None = None
+        array_normal_kernel: Callable[
+            [FloatArray, FloatArray, bool, float], tuple[list[list[float]], list[float]],
+        ] | None = None
+        if settings.query_backend in ("numba_cpu", "cuda"):
+            from calibrex.solvers.numba_continuous_time_adapter import (
+                NumbaRigLinearizer,
+                _numba_parallel_rig_rmse,
+                _numba_rig_rmse,
+                _numba_rmse_policy,
+                _numba_values_rmse,
+                numba_rig_linearization,
+                numba_rig_normal_equations,
+                numba_rig_residuals,
+            )
+            gpu = (query_reuse.cuda_rig.fork() if query_reuse is not None
+                   and query_reuse.cuda_rig is not None else None)
+            cpu = (NumbaRigLinearizer(query_reuse.summary_executor)
+                   if gpu is None and query_reuse is not None
+                   and query_reuse.summary_executor is not None else None)
+
+            def compiled_residuals(arrays: _ObservationArrays, transform: SE3) -> list[float]:
+                # Single evaluations are cheaper on CPU. Capture only the
+                # retained MAD batch for repeated thirteen-way GPU differences.
+                result = numba_rig_residuals(arrays, transform)
+                if query_reuse is not None:
+                    query_reuse.used_numba = True
+                return result
+
+            array_kernel = compiled_residuals
+
+            def compiled_rmse(arrays: _ObservationArrays, transform: SE3) -> tuple[float] | None:
+                if (settings.cuda_captured_summary and gpu is not None
+                        and _numba_rmse_policy() is not None):
+                    values = gpu._captured_residuals(arrays, transform)
+                    if values is not None:
+                        result = _numba_values_rmse(values)
+                        if result is not None:
+                            if query_reuse is not None:
+                                query_reuse.used_cuda = query_reuse.used_cuda_summary = True
+                            return result
+                if query_reuse is not None and query_reuse.summary_executor is not None:
+                    result = _numba_parallel_rig_rmse(
+                        arrays, transform, query_reuse.summary_executor,
+                    )
+                    if result is not None:
+                        query_reuse.used_parallel_summary = True
+                        return result
+                return _numba_rig_rmse(arrays, transform)
+
+            array_rmse_kernel = compiled_rmse
+
+            def compiled_linearization(
+                arrays: _ObservationArrays, transforms: Sequence[SE3], steps: Sequence[float],
+            ) -> tuple[FloatArray, FloatArray]:
+                if gpu is not None:
+                    result = gpu.linearize(arrays, transforms, steps)
+                    if query_reuse is not None:
+                        query_reuse.used_cuda = True
+                else:
+                    result = (cpu.linearize(arrays, transforms, steps) if cpu is not None
+                              else numba_rig_linearization(arrays, transforms, steps))
+                    if cpu is not None and query_reuse is not None:
+                        if cpu.cache_hits:
+                            query_reuse.used_cpu_linearization_cache = True
+                        if cpu.parallel_calls:
+                            query_reuse.used_cpu_parallel_linearization = True
+                if query_reuse is not None:
+                    query_reuse.used_numba = True
+                return result
+
+            array_linearizer = compiled_linearization
+            array_normal_kernel = numba_rig_normal_equations
+        factor = LidarRigPointToPlaneFactor(
+            variable=problem.variable, t_ego_lidar=initial_transform, observations=observations,
+            sensor=problem.sensor, _array_kernel=array_kernel, _array_linearizer=array_linearizer,
+            _array_rmse_kernel=array_rmse_kernel,
+            _array_normal_kernel=array_normal_kernel,
+        )
         if settings.outlier_policy == "mad":
-            filtered: RobustObservationFilterResult = filter_lidar_observations_mad(
-                observations,
-                variable=problem.variable,
-                t_ego_lidar=initial_transform,
-                sensor=problem.sensor,
-                mad_scale=settings.outlier_mad_scale,
+            rejected = _filter_packed_factor_mad(
+                factor, mad_scale=settings.outlier_mad_scale,
                 minimum_threshold_m=settings.outlier_min_threshold_m,
                 minimum_inlier_fraction=settings.outlier_min_inlier_fraction,
                 minimum_inliers=settings.min_correspondences,
             )
-            observations = list(filtered.observations)
-            outlier_rejected_count = filtered.rejected_count
-        if len(observations) < settings.min_correspondences:
+            if rejected is None:
+                filtered: RobustObservationFilterResult = filter_lidar_observations_mad(
+                    factor.observations, variable=problem.variable, t_ego_lidar=initial_transform,
+                    sensor=problem.sensor, mad_scale=settings.outlier_mad_scale,
+                    minimum_threshold_m=settings.outlier_min_threshold_m,
+                    minimum_inlier_fraction=settings.outlier_min_inlier_fraction,
+                    minimum_inliers=settings.min_correspondences, _factor=factor,
+                )
+                rejected = filtered.rejected_count
+            outlier_rejected_count = rejected
+        if factor._observation_count() < settings.min_correspondences:
             return None
         return _FactorBuild(
-            factor=LidarRigPointToPlaneFactor(
-                variable=problem.variable,
-                t_ego_lidar=initial_transform,
-                observations=observations,
-                sensor=problem.sensor,
-            ),
+            factor=factor,
             candidate_correspondence_count=candidate_correspondence_count,
             outlier_rejected_count=outlier_rejected_count,
         )
@@ -557,6 +931,10 @@ class ContinuousTimeLidarPairSolver:
         problem: ContinuousTimeLidarPairProblem,
         settings: ContinuousTimeLidarPairOptions,
     ) -> None:
+        if settings.query_backend not in ("python", "numba_cpu", "cuda"):
+            raise ValueError("unsupported continuous-time query_backend")
+        if not isinstance(settings.cuda_captured_summary, bool):
+            raise ValueError("cuda_captured_summary must be a boolean")
         if len(problem.target_points) != len(problem.target_capture_timestamps_ns):
             raise ValueError("target points and capture timestamps must have equal length")
         if not problem.target_points:
@@ -682,3 +1060,21 @@ def _rmse(values: Sequence[float]) -> float | None:
     if not values:
         return None
     return math.sqrt(sum(value * value for value in values) / len(values))
+
+
+_NATIVE_RMSE = _rmse
+_NATIVE_SUM = sum
+
+
+def _factor_rmse(factor: LidarRigPointToPlaneFactor, correction: Sequence[float]) -> float | None:
+    summary = (factor._compiled_rmse(correction)
+               if _rmse is _NATIVE_RMSE and sum is _NATIVE_SUM else None)
+    return summary[0] if summary is not None else _rmse(factor.residuals(correction))
+
+
+_NATIVE_OFFSET_EVALUATION = ContinuousTimeLidarPairSolver._evaluate_offset
+_NATIVE_INTERPOLATION = OdometryTrack.interpolate
+_NATIVE_EXTRAPOLATION = OdometryTrack._record_extrapolation
+_NATIVE_FIXED_SOLVE = FixedTrajectorySe3ExtrinsicSolver.solve
+_NATIVE_TIME_OFFSET = apply_time_offset_ns
+_NATIVE_SELECTION = _select_evenly_spaced_indices

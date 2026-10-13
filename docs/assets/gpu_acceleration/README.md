@@ -56,7 +56,7 @@ records, output transforms and initial/final holdout evaluations.
 | NumPy | 2.352 s | <0.001 s | 29.591 s | 0.105 s |
 | CUDA | 2.350 s | 0.618 s | 1.847 s | 0.006 s |
 
-This is an end-to-end smoke check on the same GTX 1660 Ti, not a repeated timing
+This is an end-to-end smoke check on the same NVIDIA CUDA GPU, not a repeated timing
 benchmark. The declared problem prior is the dataset reference; this run does
 not demonstrate recovery from an independently measured prior or establish
 calibration accuracy. Quality remains `warn`, with no estimated covariance or
@@ -80,4 +80,47 @@ calibrex camera-lidar estimate-six-dof problem.yaml \
   --holdout-frame-id 0000002301 --holdout-frame-id 0000002416 \
   --holdout-frame-id 0000002531 --holdout-frame-id 0000002646 \
   --holdout-frame-id 0000002761 --output outputs/estimate-BACKEND.yaml --json
+```
+
+## Large integrated inputs and cache comparison
+
+`kitti_raw_cache_projection.benchmark.json` and
+`kitti_raw_cache_six_dof.benchmark.json` compare NumPy, the default 256 MiB CUDA
+input cache and a 2048 MiB CUDA input cache in one process with rotating timing
+order. The existing KITTI raw 0018 radius-5 integrated problem contains
+33,173,268 points across 25 frames and uses the existing frozen FeatDepth
+provider. No depth maps or sensor inputs were regenerated.
+
+All measured feature arrays, MI records and complete solver results/traces
+match NumPy exactly. Each search is capped at 13 evaluations, with three
+timing repetitions per implementation. This measures latency and numerical
+equivalence; it does not establish convergence or calibration accuracy.
+
+The default cache retains six frames (268,045,632 bytes) and uploads
+884,222,944 input bytes per full candidate evaluation. The larger cache retains
+all 25 frames (1,152,268,576 bytes), with zero large input uploads during
+evaluation. The repeated-search medians are 2.384 s and 0.404 s respectively.
+Upload counters exclude small pose/bin-edge uploads and returned histograms.
+Both CUDA projectors remain resident together: allocation-pool/device readings
+are aggregate snapshots, while cached-input bytes and upload counters are
+per projector. Loading/verification and cache preparation are outside the
+reported search timing. NumPy search times vary substantially in this run;
+individual timings remain in the reports.
+
+- Integrated problem SHA-256: `869e64208ef5f6b6387f3f052ded88a9d80ef27995bcadd534bf259063fca5c0`
+
+Each report records the original local report digest before path/host
+normalization in `provenance.source_artifacts.local_report_before_publication`.
+Numerical records and original input/configuration/code digests are unchanged.
+Measurements preceded the feature commit: `git_commit` identifies the base
+checkout, while `source_artifacts` hashes identify the modified measurement code.
+Raw sensor data, model checkpoints and depth maps remain external. Reproduce
+with the same verified integrated problem:
+
+```bash
+python tools/benchmark_d2d_projection.py \
+  --problem problem-integrated-r5.yaml --backends numpy cuda \
+  --cuda-cache-mib 256 --compare-cuda-cache-mib 2048 \
+  --repeats 3 --solve-evaluations 13 --solver-repeats 3 \
+  --output-dir outputs/d2d-cache-comparison
 ```

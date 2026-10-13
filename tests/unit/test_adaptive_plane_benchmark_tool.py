@@ -1,0 +1,411 @@
+"""Protect complete-artifact comparisons and provenance guards."""
+
+import json
+from copy import deepcopy
+from dataclasses import replace
+
+import pytest
+from tools import benchmark_adaptive_plane_search as benchmark
+
+from calibrex.core.geometry import SE3
+from calibrex.data.odometry_track import OdometryTrack
+from calibrex.solvers.continuous_time_lidar_pair_solver import (
+    ContinuousTimeLidarPairOptions,
+    ContinuousTimeLidarPairProblem,
+)
+
+
+def test_canonical_preserves_every_numerical_value_status_and_lineage():
+    payload = {
+        "status": "rejected",
+        "estimated_time_offset_sec": -0.0,
+        "iterations": [{"accepted": False, "candidate_train_rmse_m": [None, 0.001]}],
+        "provenance": {
+            "git_commit": "measured",
+            "source_sha256": {"data\\recording": "verified"},
+        },
+        "dataset_path": "data\\recording",
+    }
+    original = deepcopy(payload)
+    canonical = benchmark._canonical(payload)
+    normalized = json.loads(canonical)
+    assert payload == original
+    assert normalized["status"] == "rejected"
+    assert normalized["iterations"] == original["iterations"]
+    assert normalized["provenance"]["git_commit"] == "measured"
+    assert normalized["provenance"]["source_sha256"] == {"data/recording": "verified"}
+    assert normalized["dataset_path"] == "data/recording"
+    assert '"estimated_time_offset_sec":-0.0' in canonical
+    payload["iterations"][0]["accepted"] = True
+    assert benchmark._canonical(payload) != canonical
+
+
+def test_comparison_excludes_only_exact_execution_identity_and_preserves_full_artifact():
+    baseline = {"status": "converged", "provenance": {"git_commit": "bound", "notes": [
+        "continuous_time_query_execution: counterfeit", "other lineage",
+    ]}, "estimated_time_offset_sec": -0.0}
+    candidate = deepcopy(baseline)
+    identity = (
+        "continuous_time_query_execution: calibrex.numba_continuous_time/v0.1;"
+        "numba=0.65.1;fastmath=false;cache=true"
+    )
+    candidate["provenance"]["notes"].append(identity)
+    full = benchmark._canonical(candidate)
+    assert benchmark._comparison_canonical(candidate) == benchmark._canonical(baseline)
+    assert benchmark._canonical(candidate) == full
+    assert full != benchmark._canonical(baseline)
+    other_version = deepcopy(baseline)
+    other_version["provenance"]["notes"].append(identity.replace("v0.1", "v0.2"))
+    assert benchmark._comparison_canonical(other_version) == benchmark._canonical(baseline)
+    packed_version = deepcopy(baseline)
+    packed_version["provenance"]["notes"].append(identity.replace("v0.1", "v0.3"))
+    assert benchmark._comparison_canonical(packed_version) == benchmark._canonical(baseline)
+    for forged in (
+        identity + ";hidden=change", identity.replace("fastmath=false", "fastmath=true"),
+        identity.replace("v0.1", "v0.8"),
+    ):
+        changed = deepcopy(baseline)
+        changed["provenance"]["notes"].append(forged)
+        assert benchmark._comparison_canonical(changed) != benchmark._comparison_canonical(baseline)
+    for key, value in (("status", "rejected"), ("estimated_time_offset_sec", 1e-15)):
+        changed = deepcopy(candidate)
+        changed[key] = value
+        assert benchmark._comparison_canonical(changed) != benchmark._comparison_canonical(baseline)
+
+
+def test_compiled_default_config_preserves_capture_and_sampling():
+    from calibrex.core.config import load_config
+
+    root = "examples/public_datasets/glim_versatile/"
+    baseline = load_config(root + "online_continuous_time_default_budget_config.yaml")
+    compiled = load_config(root + "online_continuous_time_compiled_queries_config.yaml")
+    left, right = [config.model_dump(mode="json") for config in (baseline, compiled)]
+    for payload in (left, right):
+        payload.pop("project")
+    opts = right["pipeline"]["factors"]["lidar_rig_point_to_plane"]["options"]
+    assert opts.pop("continuous_time_query_backend") == "numba_cpu"
+    assert left == right
+
+
+def test_cuda_comparison_preserves_results_and_excludes_only_bound_execution_identity():
+    baseline = {"status": "converged", "provenance": {"git_commit": "bound", "notes": []}}
+    candidate = deepcopy(baseline)
+    identity = (
+        "continuous_time_query_execution: calibrex.cuda_continuous_time/v0.1;"
+        "fp64=true;fma=false;cupy=14.0.1;cuda=12090;driver=13000;numba=0.65.1;"
+        "trajectory_cpu=true;normal_cpu=true;kernel_sha256=" + "a"*64
+    )
+    candidate["provenance"]["notes"].append(identity)
+    assert benchmark._comparison_canonical(candidate) == benchmark._canonical(baseline)
+    assert benchmark._canonical(candidate) != benchmark._canonical(baseline)
+    newer = deepcopy(candidate)
+    newer["provenance"]["notes"] = [identity.replace("v0.1", "v0.2")]
+    assert benchmark._comparison_canonical(newer) == benchmark._canonical(baseline)
+    selective = deepcopy(candidate)
+    selective_identity = identity.replace("v0.1", "v0.4").replace(
+        "kernel_sha256=", "standalone_residual_cpu=true;kernel_sha256=",
+    )
+    selective["provenance"]["notes"] = [selective_identity]
+    assert benchmark._comparison_canonical(selective) == benchmark._canonical(baseline)
+    association_identity = selective_identity.replace("v0.4", "v0.5").replace(
+        "kernel_sha256=", "associations_gpu=true;kernel_sha256=",
+    ) + ";association_kernel_sha256=" + "b"*64
+    changed = deepcopy(baseline)
+    changed["provenance"]["notes"] = [association_identity]
+    assert benchmark._comparison_canonical(changed) == benchmark._canonical(baseline)
+    cached_identity = association_identity.replace("v0.5", "v0.6").replace(
+        "associations_gpu=true;", "linearization_cache=last;linearization_cache_bytes=67108864;"
+        "associations_gpu=true;",
+    )
+    for cached in (cached_identity, cached_identity.replace(
+        "associations_gpu=true", "associations_gpu=false",
+    ).rsplit(";association_kernel_sha256", 1)[0]):
+        changed["provenance"]["notes"] = [cached]
+        assert benchmark._comparison_canonical(changed) == benchmark._canonical(baseline)
+    forged_identities = (
+        selective_identity.replace("standalone_residual_cpu=true;", ""),
+        selective_identity.replace("standalone_residual_cpu=true", "standalone_residual_cpu=false"),
+        association_identity.rsplit(";association_kernel_sha256", 1)[0],
+        association_identity.replace("associations_gpu=true", "associations_gpu=false"),
+        cached_identity.replace("linearization_cache=last;", ""),
+        cached_identity.replace(
+            "linearization_cache_bytes=67108864", "linearization_cache_bytes=1",
+        ),
+        cached_identity + ";hidden=change",
+    )
+    for forged in forged_identities:
+        changed = deepcopy(baseline)
+        changed["provenance"]["notes"] = [forged]
+        assert benchmark._comparison_canonical(changed) != benchmark._canonical(baseline)
+    for forged in (identity+";hidden=change", identity.replace("fma=false", "fma=true"),
+                   identity.replace("normal_cpu=true", "normal_cpu=false")):
+        changed = deepcopy(baseline)
+        changed["provenance"]["notes"].append(forged)
+        assert benchmark._comparison_canonical(changed) != benchmark._canonical(baseline)
+
+
+def test_cuda_override_requires_compiled_scope_before_input_reads(tmp_path):
+    with pytest.raises(ValueError, match="override requires compiled scope"):
+        benchmark.main(["--output-dir", str(tmp_path/"cuda"),
+                        "--candidate-query-backend", "cuda"])
+    assert not (tmp_path/"cuda").exists()
+
+
+@pytest.mark.parametrize("associated", [False, True])
+@pytest.mark.parametrize("captured", [False, True])
+def test_captured_summary_identity_excludes_only_exact_cpu_reduction_policy(associated, captured):
+    baseline = {"status": "converged", "rmse": 0.1, "provenance": {"notes": []}}
+    identity = ("continuous_time_query_execution: calibrex.cuda_continuous_time/v0.7;"
+        "fp64=true;fma=false;cupy=14.2.0;cuda=12090;driver=13000;numba=0.65.1;"
+        "trajectory_cpu=true;normal_cpu=true;standalone_residual_cpu=true;"
+        "linearization_cache=last;linearization_cache_bytes=67108864;"
+        f"captured_summary_gpu={str(captured).lower()};summary_reduction_cpu=true;"
+        f"associations_gpu={str(associated).lower()};kernel_sha256="+"a"*64)
+    if associated:
+        identity += ";association_kernel_sha256="+"b"*64
+    candidate = deepcopy(baseline)
+    candidate["provenance"]["notes"] = [identity]
+    assert benchmark._comparison_canonical(candidate) == benchmark._canonical(baseline)
+    candidate["rmse"] = 0.10000000000000002
+    assert benchmark._comparison_canonical(candidate) != benchmark._canonical(baseline)
+    candidate["rmse"] = 0.1
+    for forged in (identity+";hidden=change", identity.replace("fma=false", "fma=true"),
+                   identity.replace("summary_reduction_cpu=true", "summary_reduction_cpu=false"),
+                   identity.replace("captured_summary_gpu=", "captured_summary_gpu=unknown"),
+                   identity.replace("linearization_cache_bytes=67108864",
+                                    "linearization_cache_bytes=1")):
+        candidate["provenance"]["notes"] = [forged]
+        assert benchmark._comparison_canonical(candidate) != benchmark._canonical(baseline)
+
+
+@pytest.mark.parametrize("backend", ["numba", "cuda"])
+@pytest.mark.parametrize("parallel", [False, True])
+def test_parallel_summary_identity_keeps_exact_worker_budget_and_numerical_differences(
+    backend, parallel,
+):
+    baseline = {"status": "converged", "rmse": 0.1, "provenance": {"notes": []}}
+    policy = (f"summary_parallel_cpu={str(parallel).lower()};summary_workers=3;"
+              "summary_min_rows=32768;summary_workspace_bytes=16777216")
+    if backend == "numba":
+        identity = ("calibrex.numba_continuous_time/v0.8;numba=0.65.1;"
+                    "fastmath=false;cache=true;"+policy+
+                    ";linearization_cache_cpu=true;linearization_cache_bytes=67108864")
+    else:
+        identity = ("calibrex.cuda_continuous_time/v0.8;fp64=true;fma=false;"
+            "cupy=14.2.0;cuda=12090;driver=13000;numba=0.65.1;trajectory_cpu=true;"
+            "normal_cpu=true;standalone_residual_cpu=true;linearization_cache=last;"
+            "linearization_cache_bytes=67108864;captured_summary_gpu=false;"
+            "summary_reduction_cpu=true;"+policy+";associations_gpu=false;kernel_sha256="+"a"*64)
+    note = "continuous_time_query_execution: "+identity
+    candidate = deepcopy(baseline)
+    candidate["provenance"]["notes"] = [note]
+    assert benchmark._comparison_canonical(candidate) == benchmark._canonical(baseline)
+    candidate["rmse"] = 0.10000000000000002
+    assert benchmark._comparison_canonical(candidate) != benchmark._canonical(baseline)
+    candidate["rmse"] = 0.1
+    for forged in (note+";hidden=change", note.replace("summary_workers=3", "summary_workers=4"),
+                   note.replace("summary_min_rows=32768", "summary_min_rows=1"),
+                   note.replace("summary_workspace_bytes=16777216", "summary_workspace_bytes=0"),
+                   note.replace("summary_parallel_cpu=", "summary_parallel_cpu=unknown")):
+        candidate["provenance"]["notes"] = [forged]
+        assert benchmark._comparison_canonical(candidate) != benchmark._canonical(baseline)
+
+
+@pytest.mark.parametrize("parallel", [False, True])
+@pytest.mark.parametrize("cached", [False, True])
+def test_parallel_difference_identity_only_excludes_declared_exact_policy(parallel, cached):
+    baseline = {"status": "converged", "rmse": .1, "provenance": {"notes": []}}
+    identity = ("calibrex.numba_continuous_time/v0.9;numba=0.65.1;fastmath=false;cache=true;"
+        "summary_parallel_cpu=true;summary_workers=3;summary_min_rows=32768;"
+        f"summary_workspace_bytes=16777216;linearization_cache_cpu={str(cached).lower()};"
+        f"linearization_cache_bytes=67108864;linearization_parallel_cpu={str(parallel).lower()};"
+        "linearization_min_rows=32768;linearization_workspace_bytes=33554432")
+    note = "continuous_time_query_execution: " + identity
+    candidate = deepcopy(baseline)
+    candidate["provenance"]["notes"] = [note]
+    assert benchmark._comparison_canonical(candidate) == benchmark._canonical(baseline)
+    for forged in (note + ";unlisted=true", note.replace("v0.9", "v0.10"),
+                   note.replace("linearization_parallel_cpu=", "linearization_parallel_cpu=x"),
+                   note.replace("linearization_min_rows=32768", "linearization_min_rows=1"),
+                   note.replace("linearization_workspace_bytes=33554432",
+                                "linearization_workspace_bytes=0")):
+        candidate["provenance"]["notes"] = [forged]
+        assert benchmark._comparison_canonical(candidate) != benchmark._canonical(baseline)
+
+
+def test_cuda_scope_archives_both_old_packing_and_cuda_and_requires_explicit_backends(tmp_path):
+    assert benchmark._modules_for_scope("cuda") == (
+        *benchmark.COMPILED_MODULES, "calibrex.evaluation.packed_lidar_observations",
+        "calibrex.solvers.cuda_continuous_time_adapter",
+    )
+    with pytest.raises(ValueError, match="both declared execution overrides"):
+        benchmark.main(["--output-dir", str(tmp_path/"missing"), "--baseline-scope", "cuda",
+                        "--candidate-query-backend", "cuda"])
+    with pytest.raises(ValueError, match="baseline query override requires CUDA scope"):
+        benchmark.main(["--output-dir", str(tmp_path/"wrong"), "--baseline-query-backend", "cuda"])
+    assert not (tmp_path/"missing").exists() and not (tmp_path/"wrong").exists()
+
+
+def test_full_cpu_scope_binds_replay_and_rejects_gpu_or_missing_overrides_before_inputs(tmp_path):
+    assert benchmark._modules_for_scope("cpu-full") == benchmark.FULL_CUDA_MODULES
+    for options in ([], ["--candidate-query-backend", "cuda", "--baseline-query-backend", "cuda"],
+                    ["--candidate-query-backend", "numba_cpu"]):
+        with pytest.raises(ValueError, match="full CPU scope requires"):
+            benchmark.main(["--output-dir", str(tmp_path/"cpu-full"),
+                            "--baseline-scope", "cpu-full", *options])
+    assert not (tmp_path/"cpu-full").exists()
+
+
+def test_full_cuda_scope_archives_preceding_associations_and_replay_before_input_reads(tmp_path):
+    assert benchmark._modules_for_scope("cuda-full") == (
+        *benchmark.CUDA_MODULES, "calibrex.solvers.cuda_plane_query_adapter",
+        "calibrex.data.numba_lidar_deskew_adapter",
+    )
+    with pytest.raises(ValueError, match="both declared execution overrides"):
+        benchmark.main(["--output-dir", str(tmp_path/"missing"), "--baseline-scope", "cuda-full",
+                        "--candidate-query-backend", "cuda"])
+    assert not (tmp_path/"missing").exists()
+
+
+def test_replay_comparison_excludes_only_the_exact_bound_cpu_execution_identity():
+    baseline = {"status":"converged", "provenance":{"notes":[]}}
+    candidate = deepcopy(baseline)
+    identity = ("continuous_time_replay_execution: calibrex.numba_lidar_deskew/v0.1;"
+                "numba=0.65.1;fastmath=false;cache=true;point_pose_cpu=true;source_sha256="+"a"*64)
+    candidate["provenance"]["notes"] = [identity]
+    assert benchmark._comparison_canonical(candidate) == benchmark._canonical(baseline)
+    for forged in (identity+";hidden=change",
+                   identity.replace("point_pose_cpu=true", "point_pose_cpu=false"),
+                   identity.replace("fastmath=false", "fastmath=true"), identity[:-1]):
+        candidate["provenance"]["notes"] = [forged]
+        assert benchmark._comparison_canonical(candidate) != benchmark._canonical(baseline)
+
+
+def test_dense_config_changes_only_the_explicit_per_message_capture_budget():
+    from calibrex.core.config import load_config
+
+    root = "examples/public_datasets/glim_versatile/"
+    left, right = [load_config(root+name).model_dump(mode="json") for name in (
+        "online_continuous_time_compiled_full_capture_config.yaml",
+        "online_continuous_time_compiled_dense_capture_config.yaml",
+    )]
+    for value in (left, right):
+        value.pop("project")
+    options = right["pipeline"]["factors"]["lidar_rig_point_to_plane"]["options"]
+    assert options["max_target_points"] == 8000
+    options["max_target_points"] = 400
+    assert left == right
+
+
+@pytest.mark.parametrize("option", ["--repetitions", "--omp-threads"])
+def test_invalid_budget_is_rejected_before_reading_inputs_or_creating_outputs(tmp_path, option):
+    destination = tmp_path / "output"
+    with pytest.raises(ValueError, match="must be positive"):
+        benchmark.main(["--output-dir", str(destination), option, "0"])
+    assert not destination.exists()
+
+
+def test_nonempty_outputs_are_preserved(tmp_path):
+    destination = tmp_path / "output"
+    destination.mkdir()
+    evidence = destination / "existing.json"
+    evidence.write_text("preserve", encoding="utf-8")
+    with pytest.raises(ValueError, match="new or empty"):
+        benchmark.main(["--output-dir", str(destination)])
+    assert evidence.read_text(encoding="utf-8") == "preserve"
+
+
+def test_compiled_scope_requires_a_declared_optional_backend_before_input_reads(tmp_path):
+    destination = tmp_path / "compiled"
+    with pytest.raises(ValueError, match="requires continuous_time_query_backend"):
+        benchmark.main(["--output-dir", str(destination), "--baseline-scope", "compiled"])
+    assert not destination.exists()
+
+
+def test_digest_streams_and_supports_official_md5(tmp_path):
+    path = tmp_path / "input"
+    path.write_bytes(b"abc")
+    assert benchmark._digest(path, "md5") == "900150983cd24fb0d6963f7d28e17f72"
+    assert benchmark._digest(path) == (
+        "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+    )
+
+
+def test_split_binding_hashes_the_actual_capped_disjoint_point_identities():
+    problem = ContinuousTimeLidarPairProblem(
+        source_records=[], target_points=[(1.0, 2.0, 3.0)] * 6,
+        target_capture_timestamps_ns=[10, 11, 12, 13, 14, 15],
+        odometry_track=OdometryTrack([]), t_base_source=SE3.identity(),
+        initial_t_source_target=SE3.identity(), variable="extrinsic", sensor="lidar",
+        voxel_size_m=0.5, correspondence_gate_m=1.5,
+        train_indices=(0, 1, 2), holdout_indices=(3, 4, 5),
+    )
+    options = ContinuousTimeLidarPairOptions(max_target_points_per_split=2)
+    binding = benchmark._split_binding(problem, options)
+    assert binding["train_count"] == binding["holdout_count"] == 2
+    assert binding["train_ids_sha256"] != binding["holdout_ids_sha256"]
+    assert binding == benchmark._split_binding(problem, options)
+    unselected = replace(problem, target_capture_timestamps_ns=[10, 99, 12, 13, 14, 15])
+    assert binding == benchmark._split_binding(unselected, options)
+    selected = replace(problem, target_capture_timestamps_ns=[10, 11, 99, 13, 14, 15])
+    changed = benchmark._split_binding(selected, options)
+    assert changed["train_ids_sha256"] != binding["train_ids_sha256"]
+    assert changed["holdout_ids_sha256"] == binding["holdout_ids_sha256"]
+    moved = replace(problem, target_points=[(9.0, 2.0, 3.0), *problem.target_points[1:]])
+    assert benchmark._split_binding(moved, options)["train_ids_sha256"] != (
+        binding["train_ids_sha256"]
+    )
+
+
+@pytest.mark.parametrize("scope", ["cpu-full", "compiled", "cuda", "cuda-full"])
+@pytest.mark.parametrize("policy", ["persistent", "cold"])
+def test_compiled_methods_have_independent_cache_roots_and_cold_repeats(tmp_path, scope, policy):
+    baseline = benchmark._numba_cache_directory(tmp_path, scope, policy, "baseline", 1)
+    candidate = benchmark._numba_cache_directory(tmp_path, scope, policy, "sparse", 1)
+    assert baseline != candidate
+    baseline.mkdir(parents=True)
+    (baseline / "compiled.nbc").write_bytes(b"baseline compiler cache")
+    assert not candidate.exists()
+    second = benchmark._numba_cache_directory(tmp_path, scope, policy, "baseline", 2)
+    assert (second == baseline) == (policy == "persistent")
+
+
+def test_runtime_scope_contains_all_geometry_interpolation_and_hash_overlap_modules():
+    assert set(benchmark.RUNTIME_MODULES) == {
+        "calibrex.data.livox", "calibrex.data.odometry_track",
+        "calibrex.graph.lidar_point_to_plane", "calibrex.evaluation.lidar",
+        "calibrex.solvers.continuous_time_lidar_pair_solver",
+        "calibrex.data.adaptive_voxel", "calibrex.pipelines.online",
+    }
+    assert all(
+        "src/" + name.replace(".", "/") + ".py" in benchmark.SOURCES
+        for name in benchmark.RUNTIME_MODULES
+    )
+    assert benchmark._modules_for_scope("compiled") == (*benchmark.RUNTIME_MODULES,
+        "calibrex.solvers.fixed_trajectory_se3_solver",
+        "calibrex.solvers.numba_continuous_time_adapter",
+        "calibrex.solvers.robust_lidar_observations")
+    assert benchmark._modules_for_scope("runtime") == benchmark.RUNTIME_MODULES
+    assert benchmark._modules_for_scope("adaptive") == (benchmark.MODULE,)
+
+
+def test_default_budget_config_keeps_the_same_public_capture_and_matches_sampling_defaults():
+    from calibrex.core.config import load_config
+    from calibrex.solvers.continuous_time_lidar_pair_solver import ContinuousTimeLidarPairOptions
+
+    bounded = load_config(benchmark.CONFIG).model_dump(mode="json")
+    default = load_config(
+        "examples/public_datasets/glim_versatile/online_continuous_time_default_budget_config.yaml"
+    ).model_dump(mode="json")
+    defaults = ContinuousTimeLidarPairOptions()
+    opts = default["pipeline"]["factors"]["lidar_rig_point_to_plane"]["options"]
+    assert opts["continuous_time_max_source_records"] == defaults.max_source_records
+    assert opts["continuous_time_max_target_points_per_split"] == (
+        defaults.max_target_points_per_split
+    )
+    for payload in (bounded, default):
+        payload.pop("project")
+        options = payload["pipeline"]["factors"]["lidar_rig_point_to_plane"]["options"]
+        options.pop("continuous_time_max_source_records")
+        options.pop("continuous_time_max_target_points_per_split")
+    assert bounded == default

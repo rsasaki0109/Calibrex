@@ -1,0 +1,474 @@
+schema_version: slac.continuous_time_lidar_pair_result/v0.1
+config_path: examples\public_datasets\glim_versatile\online_continuous_time_compiled_dense_capture_config.yaml
+dataset_path: data\public\glim_versatile\livox_rosbag2_gt_restamped
+source_sensor: livox_avia
+target_sensor: livox_avia_copy
+odometry_topic: /odom
+variable: T_livox_avia_livox_avia_copy
+trajectory_model: piecewise_se3_fixed_odometry
+time_offset_sign_convention: positive offset evaluates target capture at odometry
+  time t_capture + offset
+initial_transform:
+  convention: T_parent_child
+  parent: livox_avia
+  child: livox_avia_copy
+  translation_m:
+  - 0.0
+  - 0.0
+  - 0.0
+  rotation_quat_xyzw:
+  - 0.0
+  - 0.0
+  - 0.0
+  - 1.0
+  quality:
+    grade: warn
+    std_translation_m: []
+    std_rotation_deg: []
+  estimate_id: T_livox_avia_livox_avia_copy
+  provenance:
+    producer: slac_native
+    execution_mode: online_stream
+    role_in_comparison: initial
+    evidence_level: unknown
+    source: calibrex.solvers.continuous_time_lidar_pair_solver
+    tool_name: continuous_time_lidar_pair_solver
+    notes:
+    - clock offset was profiled with extrinsic re-optimization
+    - supplied piecewise odometry trajectory remained fixed
+refined_transform:
+  convention: T_parent_child
+  parent: livox_avia
+  child: livox_avia_copy
+  translation_m:
+  - -0.006420340124736379
+  - 0.012652173241256342
+  - -0.02301366535108216
+  rotation_quat_xyzw:
+  - 0.0015393622259474641
+  - 0.0014500790167938124
+  - -0.0016957407406766722
+  - 0.9999963260423125
+  quality:
+    grade: warn
+    std_translation_m: []
+    std_rotation_deg: []
+  estimate_id: T_livox_avia_livox_avia_copy
+  provenance:
+    producer: slac_native
+    execution_mode: online_stream
+    role_in_comparison: output
+    evidence_level: algorithmically_refined
+    source: calibrex.solvers.continuous_time_lidar_pair_solver
+    tool_name: continuous_time_lidar_pair_solver
+    notes:
+    - clock offset was profiled with extrinsic re-optimization
+    - supplied piecewise odometry trajectory remained fixed
+initial_time_offset_sec: 0.0
+estimated_time_offset_sec: -0.025
+initial_train_rmse_m: 0.057370176200909506
+final_train_rmse_m: 0.049086313809198166
+final_holdout_rmse_m: 0.09394581201769982
+train_correspondence_count: 582119
+holdout_correspondence_count: 67602
+outlier_rejected_count: 137613
+observability:
+  rank: 6
+  condition_number: 19.16563571890005
+  weak_directions: []
+  residual_count: 582119
+status: max_iterations
+reason: maximum time-profile iterations reached
+options:
+  initial_time_offset_sec: 0.0
+  max_abs_time_offset_sec: 0.2
+  initial_time_step_sec: 0.02
+  minimum_time_step_sec: 0.005
+  max_iterations: 8
+  min_correspondences: 6
+  max_odometry_extrapolation_s: 0.25
+  max_source_records: 6000
+  sampling_seed: 0
+  holdout_start_fraction: 0.8
+  outlier_policy: mad
+  outlier_mad_scale: 3.5
+  outlier_min_threshold_m: 0.02
+  outlier_min_inlier_fraction: 0.25
+  voxel_strategy: adaptive
+  adaptive_use_uniform_fallback: true
+  adaptive_range_reference_m: 10.0
+  adaptive_range_exponent: 0.5
+  adaptive_min_voxel_size_m: 0.25
+  adaptive_max_voxel_size_m: 1.5
+  adaptive_min_points_per_voxel: 6
+  correspondence_refinement_iterations: 1
+  fixed_extrinsic_max_iterations: 8
+  fixed_extrinsic_robust_loss: huber
+iterations:
+- iteration: 1
+  candidate_offsets_sec:
+  - -0.02
+  - 0.0
+  - 0.02
+  candidate_train_rmse_m:
+  - 0.049464184358660665
+  - 0.051407362455503015
+  - 0.05628604472487857
+  candidate_holdout_rmse_m:
+  - 0.09571184213218482
+  - 0.0995716460260033
+  - 0.10503184050579091
+  selected_offset_sec: -0.02
+  train_rmse_m: 0.049464184358660665
+  holdout_rmse_m: 0.09571184213218482
+  accepted: true
+- iteration: 2
+  candidate_offsets_sec:
+  - -0.04
+  - -0.02
+  - 0.0
+  candidate_train_rmse_m:
+  - 0.05034493304978426
+  - 0.04923052897228388
+  - 0.05159287671975171
+  candidate_holdout_rmse_m:
+  - 0.09232701146014846
+  - 0.09490251830075698
+  - 0.09838642904203788
+  selected_offset_sec: -0.02
+  train_rmse_m: 0.04923052897228388
+  holdout_rmse_m: 0.09490251830075698
+  accepted: true
+- iteration: 3
+  candidate_offsets_sec:
+  - -0.04
+  - -0.02
+  - 0.0
+  candidate_train_rmse_m:
+  - 0.05017957712410044
+  - 0.04920955182585908
+  - 0.05166518259829283
+  candidate_holdout_rmse_m:
+  - 0.09226143336514588
+  - 0.09472422154419698
+  - 0.09804927304845115
+  selected_offset_sec: -0.02
+  train_rmse_m: 0.04920955182585908
+  holdout_rmse_m: 0.09472422154419698
+  accepted: true
+- iteration: 4
+  candidate_offsets_sec:
+  - -0.04
+  - -0.02
+  - 0.0
+  candidate_train_rmse_m:
+  - 0.05013989598511986
+  - 0.04919190012576584
+  - 0.05169859175392839
+  candidate_holdout_rmse_m:
+  - 0.09224386074850734
+  - 0.09469400106615077
+  - 0.09795286792497307
+  selected_offset_sec: -0.02
+  train_rmse_m: 0.04919190012576584
+  holdout_rmse_m: 0.09469400106615077
+  accepted: true
+- iteration: 5
+  candidate_offsets_sec:
+  - -0.04
+  - -0.02
+  - 0.0
+  candidate_train_rmse_m:
+  - 0.050148602401232784
+  - 0.049196494644328084
+  - 0.05170673011454384
+  candidate_holdout_rmse_m:
+  - 0.09224456206028672
+  - 0.09464812459715029
+  - 0.09792994259823051
+  selected_offset_sec: -0.02
+  train_rmse_m: 0.049196494644328084
+  holdout_rmse_m: 0.09464812459715029
+  accepted: false
+- iteration: 6
+  candidate_offsets_sec:
+  - -0.03
+  - -0.02
+  - -0.01
+  candidate_train_rmse_m:
+  - 0.049254414884859835
+  - 0.049196494644328084
+  - 0.05004123042570123
+  candidate_holdout_rmse_m:
+  - 0.09327456638580518
+  - 0.09464812459715029
+  - 0.09669399004715376
+  selected_offset_sec: -0.02
+  train_rmse_m: 0.049196494644328084
+  holdout_rmse_m: 0.09464812459715029
+  accepted: false
+- iteration: 7
+  candidate_offsets_sec:
+  - -0.025
+  - -0.02
+  - -0.015
+  candidate_train_rmse_m:
+  - 0.04915182128104535
+  - 0.049196494644328084
+  - 0.04954701745283863
+  candidate_holdout_rmse_m:
+  - 0.09396282460661212
+  - 0.09464812459715029
+  - 0.09560747346271412
+  selected_offset_sec: -0.025
+  train_rmse_m: 0.04915182128104535
+  holdout_rmse_m: 0.09396282460661212
+  accepted: true
+- iteration: 8
+  candidate_offsets_sec:
+  - -0.03
+  - -0.025
+  - -0.02
+  candidate_train_rmse_m:
+  - 0.04920669024899803
+  - 0.049086313809198166
+  - 0.049237487153924925
+  candidate_holdout_rmse_m:
+  - 0.09331292621654655
+  - 0.09394581201769982
+  - 0.09465328227401543
+  selected_offset_sec: -0.025
+  train_rmse_m: 0.049086313809198166
+  holdout_rmse_m: 0.09394581201769982
+  accepted: true
+train_diagnostics:
+  schema_version: slac.continuous_time_lidar_train_diagnostics/v0.1
+  selection_metric: train_rmse_m
+  holdout_used_for_selection: false
+  sampled_source_record_count: 3000
+  train_target_point_count: 768000
+  train_candidate_correspondence_count: 702199
+  train_correspondence_count: 582119
+  train_outlier_rejected_count: 120080
+  train_outlier_rejection_rate: 0.17100565509207505
+  selected_time_offset_sec: -0.025
+  final_residuals:
+    count: 582119
+    rmse_m: 0.049086313809198166
+    mean_m: 0.00022182881892681
+    mean_abs_m: 0.03390641312015003
+    median_abs_m: 0.020085512198455592
+    p95_abs_m: 0.11547177200020867
+    p99_abs_m: 0.14258218679290402
+    min_m: -0.15050776556112222
+    max_m: 0.15050762941857973
+  range_bins:
+  - lower_bound_m: 0.0
+    upper_bound_m: 5.0
+    correspondence_count: 298763
+    residuals:
+      count: 298763
+      rmse_m: 0.046055824692420436
+      mean_m: -0.00036575976958494845
+      mean_abs_m: 0.030864503702020984
+      median_abs_m: 0.017042839693617674
+      p95_abs_m: 0.11012936173918453
+      p99_abs_m: 0.14093666243147648
+      min_m: -0.15050467931466352
+      max_m: 0.15050759959305018
+  - lower_bound_m: 5.0
+    upper_bound_m: 10.0
+    correspondence_count: 263934
+    residuals:
+      count: 263934
+      rmse_m: 0.05225479649587614
+      mean_m: 0.000815590919709922
+      mean_abs_m: 0.03717917506802076
+      median_abs_m: 0.02368782072911011
+      p95_abs_m: 0.12044440480932947
+      p99_abs_m: 0.1440526617234342
+      min_m: -0.15050776556112222
+      max_m: 0.15050762941857973
+  - lower_bound_m: 10.0
+    upper_bound_m: 20.0
+    correspondence_count: 19422
+    residuals:
+      count: 19422
+      rmse_m: 0.049811504827055965
+      mean_m: 0.0011916425951315577
+      mean_abs_m: 0.03622423989077997
+      median_abs_m: 0.02516671154667886
+      p95_abs_m: 0.11346537286318881
+      p99_abs_m: 0.14195267782381665
+      min_m: -0.1503789243744528
+      max_m: 0.15049950912438015
+  - lower_bound_m: 20.0
+    upper_bound_m: 40.0
+    correspondence_count: 0
+    residuals:
+      count: 0
+  - lower_bound_m: 40.0
+    upper_bound_m: 80.0
+    correspondence_count: 0
+    residuals:
+      count: 0
+  - lower_bound_m: 80.0
+    correspondence_count: 0
+    residuals:
+      count: 0
+  profile:
+  - iteration: 1
+    candidate_offsets_sec:
+    - -0.02
+    - 0.0
+    - 0.02
+    candidate_train_rmse_m:
+    - 0.049464184358660665
+    - 0.051407362455503015
+    - 0.05628604472487857
+    selected_offset_sec: -0.02
+    train_rmse_m: 0.049464184358660665
+    train_correspondence_count: 582974
+    train_outlier_rejected_count: 119173
+    accepted: true
+  - iteration: 2
+    candidate_offsets_sec:
+    - -0.04
+    - -0.02
+    - 0.0
+    candidate_train_rmse_m:
+    - 0.05034493304978426
+    - 0.04923052897228388
+    - 0.05159287671975171
+    selected_offset_sec: -0.02
+    train_rmse_m: 0.04923052897228388
+    train_correspondence_count: 582373
+    train_outlier_rejected_count: 119760
+    accepted: true
+  - iteration: 3
+    candidate_offsets_sec:
+    - -0.04
+    - -0.02
+    - 0.0
+    candidate_train_rmse_m:
+    - 0.05017957712410044
+    - 0.04920955182585908
+    - 0.05166518259829283
+    selected_offset_sec: -0.02
+    train_rmse_m: 0.04920955182585908
+    train_correspondence_count: 582290
+    train_outlier_rejected_count: 119850
+    accepted: true
+  - iteration: 4
+    candidate_offsets_sec:
+    - -0.04
+    - -0.02
+    - 0.0
+    candidate_train_rmse_m:
+    - 0.05013989598511986
+    - 0.04919190012576584
+    - 0.05169859175392839
+    selected_offset_sec: -0.02
+    train_rmse_m: 0.04919190012576584
+    train_correspondence_count: 582225
+    train_outlier_rejected_count: 119902
+    accepted: true
+  - iteration: 5
+    candidate_offsets_sec:
+    - -0.04
+    - -0.02
+    - 0.0
+    candidate_train_rmse_m:
+    - 0.050148602401232784
+    - 0.049196494644328084
+    - 0.05170673011454384
+    selected_offset_sec: -0.02
+    train_rmse_m: 0.049196494644328084
+    train_correspondence_count: 582226
+    train_outlier_rejected_count: 119911
+    accepted: false
+  - iteration: 6
+    candidate_offsets_sec:
+    - -0.03
+    - -0.02
+    - -0.01
+    candidate_train_rmse_m:
+    - 0.049254414884859835
+    - 0.049196494644328084
+    - 0.05004123042570123
+    selected_offset_sec: -0.02
+    train_rmse_m: 0.049196494644328084
+    train_correspondence_count: 582226
+    train_outlier_rejected_count: 119911
+    accepted: false
+  - iteration: 7
+    candidate_offsets_sec:
+    - -0.025
+    - -0.02
+    - -0.015
+    candidate_train_rmse_m:
+    - 0.04915182128104535
+    - 0.049196494644328084
+    - 0.04954701745283863
+    selected_offset_sec: -0.025
+    train_rmse_m: 0.04915182128104535
+    train_correspondence_count: 582352
+    train_outlier_rejected_count: 119880
+    accepted: true
+  - iteration: 8
+    candidate_offsets_sec:
+    - -0.03
+    - -0.025
+    - -0.02
+    candidate_train_rmse_m:
+    - 0.04920669024899803
+    - 0.049086313809198166
+    - 0.049237487153924925
+    selected_offset_sec: -0.025
+    train_rmse_m: 0.049086313809198166
+    train_correspondence_count: 582119
+    train_outlier_rejected_count: 120080
+    accepted: true
+  provenance:
+    source_paths:
+    - examples\public_datasets\glim_versatile\online_continuous_time_compiled_dense_capture_config.yaml
+    - data\public\glim_versatile\livox_rosbag2_gt_restamped
+    source_sha256:
+      examples\public_datasets\glim_versatile\online_continuous_time_compiled_dense_capture_config.yaml: 1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186
+      data\public\glim_versatile\livox_rosbag2_gt_restamped: bf305b5e1b72d998c8d1871bb6fae346a4374897033e98da982f977b38693185
+    tool_name: calibrex
+    tool_version: 0.5.1
+    git_commit: 4a7a5f3
+    notes:
+    - all residual summaries and profile candidates are train-only
+    - holdout_used_for_selection is fixed false by the diagnostics schema
+    - range bins use target LiDAR point range in meters
+provenance:
+  source_paths:
+  - examples\public_datasets\glim_versatile\online_continuous_time_compiled_dense_capture_config.yaml
+  - data\public\glim_versatile\livox_rosbag2_gt_restamped
+  source_sha256:
+    examples\public_datasets\glim_versatile\online_continuous_time_compiled_dense_capture_config.yaml: 1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186
+    data\public\glim_versatile\livox_rosbag2_gt_restamped: bf305b5e1b72d998c8d1871bb6fae346a4374897033e98da982f977b38693185
+  tool_name: calibrex
+  tool_version: 0.5.1
+  git_commit: 4a7a5f3
+  notes:
+  - continuous-time profile re-solves the six-DoF extrinsic at every clock candidate
+  - target holdout is the latest capture frame group and is never used for optimization
+  - train diagnostics summarize only the selected train factor and train profile
+  - trajectory_model is piecewise SE(3) interpolation of supplied odometry; trajectory
+    knots are fixed
+  - train_frame_count=96
+  - holdout_frame_count=24
+  - holdout_start_fraction=0.8
+  - sampling_seed=0
+  - source_record_cap=6000
+  - target_point_cap_per_split=None
+  - outlier_policy=mad
+  - voxel_strategy=adaptive
+  - replay_source_message_count=1
+  - adaptive correspondences use a uniform voxel fallback and select the lower initial
+    point-to-plane residual
+  - 'continuous_time_query_execution: calibrex.cuda_continuous_time/v0.5;fp64=true;fma=false;cupy=14.2.0;cuda=12090;driver=13020;numba=0.65.1;trajectory_cpu=true;normal_cpu=true;standalone_residual_cpu=true;associations_gpu=true;kernel_sha256=ad35e19c4f402fa99c14ce8e2a496f65a35c67655bdb795e6111d0f03d592be0;association_kernel_sha256=b5f446ea685f32adaaaf96aafe44d423b8e05601dbc6ffb17fb7b8cc4ae124ad'
+  - 'continuous_time_replay_execution: calibrex.numba_lidar_deskew/v0.1;numba=0.65.1;fastmath=false;cache=true;point_pose_cpu=true;source_sha256=02b461312debade47d8ee3b3dc57bb158a644a7e8ac7d9d9088b1f98960604c6'

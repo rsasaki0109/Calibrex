@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "<WORKSPACE>/tools/benchmark_adaptive_plane_search.py", line 768, in <module>
+    main()
+  File "<WORKSPACE>/tools/benchmark_adaptive_plane_search.py", line 612, in main
+    raise ValueError("CUDA plane query module binding mismatch")
+ValueError: CUDA plane query module binding mismatch
+Traceback (most recent call last):
+  File "<WORKSPACE>/.tmp-calibrex-run-linearization-reuse-v1.py", line 15, in <module>
+    subprocess.run([sys.executable,'tools/benchmark_adaptive_plane_search.py',
+  File "<USER>/AppData/Local/Programs/Python/Python312/Lib/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['<USER>//Workspace//Calibrex//.venv//Scripts//python.exe', 'tools/benchmark_adaptive_plane_search.py', '--baseline-scope', 'cuda', '--baseline-commit', '9f68d3d165385fa6a3f154d5e14fe31676b40a85', '--candidate-query-backend', 'cuda', '--baseline-query-backend', 'cuda', '--config', 'examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml', '--repetitions', '5', '--output-dir', 'outputs/public-glim-linearization-reuse-dense-v1']' returned non-zero exit status 1.

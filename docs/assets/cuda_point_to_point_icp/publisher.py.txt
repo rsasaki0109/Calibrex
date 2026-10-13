@@ -1,0 +1,102 @@
+"""Preserve original result bytes once per digest, plus every measurement/failure."""
+import hashlib
+import json
+import re
+import subprocess
+from pathlib import Path
+
+root = Path('docs/assets/cuda_point_to_point_icp')
+root.mkdir(exist_ok=True)
+workspace = str(Path.cwd())
+index = {'provenance': {'publication_commit': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+    'publisher_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest()},
+    'files': {}, 'runs': {}, 'failures': [], 'complete_models': 0}
+def sha(raw): return hashlib.sha256(raw).hexdigest()
+def save(name, raw):
+    if isinstance(raw,dict): raw=(json.dumps(raw,indent=2,allow_nan=False)+'\n').encode()
+    private_pattern = ('g'+'tx'+r'|16'+r'60[\s_-]*ti|c:[/\\]+users[/\\]+rsasa')
+    assert not re.search(private_pattern,raw.decode(),re.I), name
+    path=root/name
+    path.parent.mkdir(parents=True,exist_ok=True)
+    if path.exists(): assert path.read_bytes()==raw
+    else: path.write_bytes(raw)
+    index['files'][name]=sha(raw)
+def portable_log(raw):
+    value=raw.decode().replace(workspace,'<WORKSPACE>').replace(workspace.replace('\\','/'),'<WORKSPACE>')
+    value=re.sub(r'C:[/\\]+Users[/\\]+rsasa', '<USER>', value, flags=re.I)
+    return value.encode()
+
+for name, folder, compare in [
+    ('pilot','public-kitti-cuda-point-icp-pilot-v1',False),
+    ('single','public-kitti-cuda-point-icp-single-pilot-v1',True),
+    ('bounded','public-kitti-cuda-point-icp-bounded-v1',True),
+    ('pre-guard','public-kitti-cuda-point-icp-final-v1',True),
+    ('final','public-kitti-cuda-point-icp-final-v2',True),
+]:
+    out=Path('outputs')/folder
+    run={'workers':[], 'sources': name+'/sources','compare':compare}
+    for path in (out/'sources').glob('*.txt'):
+        save(name+'/sources/'+path.name,path.read_bytes())
+    for path in out.glob('*/measurement.json'):
+        row=json.loads(path.read_bytes())
+        for source,digest in row['provenance']['source']['sources'].items():
+            captured=(out/'sources'/ (Path(source).name+'.txt')).read_bytes()
+            assert sha(captured)==digest
+            assert captured.replace(b'\r\n',b'\n')==subprocess.check_output(
+                ['git','show',row['provenance']['source']['commit']+':'+source])
+        result=path.with_name('result.json').read_bytes()
+        assert sha(result)==row['result_sha256']
+        result_name='results/'+sha(result)+'.json'
+        measurement_name=name+'/'+path.parent.name+'.measurement.json'
+        save(result_name,result)
+        save(measurement_name,path.read_bytes())
+        run['workers'].append({'measurement':measurement_name,'result':result_name})
+        index['complete_models']+=1
+    for path in out.glob('*.log.txt'):
+        raw=path.read_bytes()
+        converted=portable_log(raw)
+        save(name+'/'+path.name,converted)
+        if not raw.strip():
+            index['failures'].append({'cohort':name,'log':name+'/'+path.name,
+                'stage':'worker exited without measurement or result', 'exit_code':3221225477,
+                'original_log_sha256':sha(raw), 'result_available':False})
+    if (out/'summary.json').exists(): save(name+'/summary.json',(out/'summary.json').read_bytes())
+    index['runs'][name]=run
+
+# A second unbounded run failed in the native CPU worker, before a CUDA worker.
+out=Path('outputs/public-kitti-cuda-point-icp-formal-v1')
+for path in (out/'sources').glob('*.txt'):
+    save('failed-native/sources/'+path.name,path.read_bytes())
+path=out/'native.01.log.txt'
+raw=path.read_bytes()
+save('failed-native/native.01.log.txt',portable_log(raw))
+index['failures'].append({'cohort':'unbounded-native','log':'failed-native/native.01.log.txt',
+    'stage':'native CPU worker access violation before any CUDA worker',
+    'exit_code':3221225477,'original_log_sha256':sha(raw),'result_available':False})
+
+# Successful unbounded GPU diagnostic is separate from the paired formal data.
+out=Path('outputs/public-kitti-cuda-point-icp-auto-diagnostic-v1')
+row=json.loads((out/'measurement.json').read_bytes())
+result=(out/'result.json').read_bytes()
+assert sha(result)==row['result_sha256']
+save('auto-diagnostic/measurement.json',(out/'measurement.json').read_bytes())
+save('results/'+sha(result)+'.json',result)
+index['runs']['auto-diagnostic']={'workers':[{'measurement':'auto-diagnostic/measurement.json',
+    'result':'results/'+sha(result)+'.json'}], 'sources':'pilot/sources','compare':False}
+index['complete_models']+=1
+
+# The precursor probe remains labelled kernel-only and is never pooled with ICP.
+out=Path('outputs/rigid-neighbors-probe-v1')
+probe=json.loads((out/'probe.json').read_bytes())
+save('probe/probe.json',(out/'probe.json').read_bytes())
+save('probe/launcher.py.txt',Path('.tmp-calibrex-probe-rigid-neighbors-v1.py').read_bytes())
+for source,digest in probe['provenance']['source_sha256'].items():
+    raw=subprocess.check_output(['git','show',probe['provenance']['source_commit']+':'+source])
+    possible=[raw,raw.replace(b'\n',b'\r\n'),Path(source).read_bytes()]
+    matches=[r for r in possible if sha(r)==digest]
+    assert matches, source
+    save('probe/sources/'+Path(source).name+'.txt',matches[0])
+save('publisher.py.txt',Path(__file__).read_bytes())
+save('publication-index.json',index)
+print({'complete_models':index['complete_models'],'unique_results':len(list((root/'results').glob('*.json'))),
+       'failures':len(index['failures'])})

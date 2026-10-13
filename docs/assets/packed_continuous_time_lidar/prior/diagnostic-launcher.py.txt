@@ -1,0 +1,62 @@
+"""Record actual packed preparation on the frozen public workload, outside timing cohorts."""
+import json
+import os
+import subprocess
+from argparse import Namespace
+from pathlib import Path
+
+from tools import benchmark_adaptive_plane_search as benchmark
+
+config = Path('examples/public_datasets/glim_versatile/online_continuous_time_compiled_full_capture_config.yaml')
+output = Path('outputs/public-glim-packed-diagnostic-v1')
+assert not output.exists()
+output.mkdir()
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['NUMBA_CACHE_DIR'] = str(Path('outputs/public-glim-packed-full-v1/numba-cache/sparse').resolve())
+sources = {path: benchmark._digest(Path(path)) for path in (*benchmark.SOURCES, config.as_posix(), __file__)}
+inputs = benchmark._verified_inputs(benchmark.REPLAY)
+revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+from calibrex.evaluation.packed_lidar_observations import _PackedObservationBuilder
+from calibrex.graph.lidar_point_to_plane import _PackedObservations
+
+build = _PackedObservationBuilder.build
+materialize = _PackedObservations.materialize
+counts = {'successful_packed_batches': 0, 'packed_input_rows': 0, 'packed_correspondences': 0,
+          'fallback_batches': 0, 'materialized_batches': 0, 'materialized_rows': 0}
+
+def observed_build(self, indices, poses, world, **kwargs):
+    result = build(self, indices, poses, world, **kwargs)
+    if result is None:
+        counts['fallback_batches'] += 1
+    else:
+        counts['successful_packed_batches'] += 1
+        counts['packed_input_rows'] += len(indices)
+        counts['packed_correspondences'] += len(result)
+    return result
+
+def observed_materialize(self):
+    counts['materialized_batches'] += 1
+    counts['materialized_rows'] += len(self)
+    return materialize(self)
+
+_PackedObservationBuilder.build = observed_build
+_PackedObservations.materialize = observed_materialize
+benchmark._worker(Namespace(worker='sparse', baseline_scope='compiled', config=config,
+                            output_dir=output/'worker'))
+assert revision == subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+assert sources == {path: benchmark._digest(Path(path)) for path in sources}
+assert inputs == benchmark._verified_inputs(benchmark.REPLAY)
+assert counts['successful_packed_batches'] == 52 and counts['fallback_batches'] == 0
+assert counts['packed_input_rows'] == 1248000 and counts['packed_correspondences'] > 1000000
+assert counts['materialized_batches'] == 1
+row = json.loads((output/'worker/measurement.json').read_bytes())
+reference = json.loads(Path('outputs/public-glim-packed-full-v1/sparse.repeat-01/measurement.json').read_bytes())
+assert benchmark._canonical(row['result']) == benchmark._canonical(reference['result'])
+payload = {'provenance': {'source_commit': revision, 'generator': 'diagnostic-launcher.py.txt',
+    'source_sha256': {('diagnostic-launcher.py.txt' if path == __file__ else path): digest
+                     for path, digest in sources.items()}, 'input_sha256': inputs,
+    'measurement_sha256': benchmark._digest(output/'worker/measurement.json')},
+    'counts': counts, 'source_input_guards_passed': True,
+    'limitations': ['Instrumented diagnostic only; not pooled with formal timing trials.']}
+(output/'diagnostic.json').write_text(json.dumps(payload, indent=2)+'\n', encoding='utf-8', newline='\n')
+print(json.dumps(counts), flush=True)

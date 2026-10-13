@@ -8,9 +8,10 @@ snapshots: do not modify their arrays while using this projector.
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Sequence
+import math
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 
 import cupy as cp
 import numpy as np
@@ -23,19 +24,37 @@ from calibrex.solvers.borer_depth_to_depth_solver import (
     _empty_projection,
     _rotation_matrix,
 )
+from calibrex.solvers.depth_to_depth_runtime import DEFAULT_CUDA_CACHE_BYTES
 
-CUDA_DEPTH_PAIR_PROJECTOR_VERSION: Final = "calibrex.cuda_depth_pair_projector/v0.2"
+if TYPE_CHECKING:
+    from calibrex.solvers.cuda_depth_to_depth_batch import CudaPoseBatch
+
+CUDA_DEPTH_PAIR_PROJECTOR_VERSION: Final = "calibrex.cuda_depth_pair_projector/v0.4"
 _THREADS: Final = 256
+_HISTOGRAM_BATCH_FRAMES: Final = 32
+
+
+def _validate_histogram_configuration(
+    bins: int, camera_range: tuple[float, float], lidar_range: tuple[float, float],
+) -> None:
+    if isinstance(bins, bool) or not isinstance(bins, int) or bins < 1:
+        raise ValueError("histogram bins must be a positive integer")
+    if not all(
+        len(limits) == 2
+        and all(math.isfinite(value) for value in limits)
+        and limits[0] < limits[1]
+        for limits in (camera_range, lidar_range)
+    ):
+        raise ValueError("histogram ranges must be finite and increasing")
 
 # Positive double bit patterns are ordered like unsigned integers. Two separate
 # atomic minima retain the nearest range, then the first input index on ties.
 # FMA is disabled to preserve the CPU expression order at pixel boundaries.
 _SOURCE: Final = r"""
-extern "C" __global__ void initialize(
-    const long long pixel_count, const long long n,
+__device__ void initialize_pixel(
+    const long long pixel, const long long pixel_count, const long long n,
     unsigned long long* best_range, unsigned long long* best_index)
 {
-    const long long pixel = (long long)blockIdx.x * blockDim.x + threadIdx.x;
     if (pixel < pixel_count) {
         best_range[pixel] = 0x7ff0000000000000ULL; // positive infinity
         best_index[pixel] = n;
@@ -44,8 +63,8 @@ extern "C" __global__ void initialize(
     }
 }
 
-extern "C" __global__ void project(
-    const double* points, const long long n, const double* rt,
+__device__ void project_point(
+    const long long i, const double* points, const long long n, const double* rt,
     const int width, const int height, const double fx, const double fy,
     const double cx, const double cy, const int kind, const double xi,
     const double alpha, const double k1, const double k2,
@@ -53,7 +72,6 @@ extern "C" __global__ void project(
     long long* pixels, double* ranges, unsigned long long* best_range,
     unsigned long long* best_index)
 {
-    const long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= n) return;
     pixels[i] = -1;
     const double px = points[3*i], py = points[3*i+1], pz = points[3*i+2];
@@ -107,11 +125,10 @@ extern "C" __global__ void project(
         atomicAdd(best_index + (long long)width*height, (unsigned long long)__popc(active));
 }
 
-extern "C" __global__ void select_visible(
-    const long long* pixels, const double* ranges, const long long n,
+__device__ void select_visible_point(
+    const long long i, const long long* pixels, const double* ranges, const long long n,
     const unsigned long long* best_range, unsigned long long* best_index)
 {
-    const long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
     if (i >= n || pixels[i] < 0) return;
     const long long pixel = pixels[i];
     if ((unsigned long long)__double_as_longlong(ranges[i]) == best_range[pixel])
@@ -131,13 +148,12 @@ __device__ int histogram_bin(const double value, const double* edges, const int 
     return lower-1;
 }
 
-extern "C" __global__ void histogram_pairs(
-    const long long n, const long long pixel_count, const int z_buffer,
+__device__ void histogram_pixel(
+    const long long i, const long long n, const long long pixel_count, const int z_buffer,
     const long long* pixels, const unsigned long long* best_index,
     const double* depth, const double* lidar_range, const int bins,
     const double* edges, unsigned long long* histogram)
 {
-    const long long i = (long long)blockIdx.x * blockDim.x + threadIdx.x;
     const long long bins_squared = (long long)bins*bins;
     if (i == 0) histogram[bins_squared+1] = best_index[pixel_count];
     if (i >= (z_buffer ? pixel_count : n)) return;
@@ -157,6 +173,47 @@ extern "C" __global__ void histogram_pairs(
     if (camera_bin >= 0 && lidar_bin >= 0)
         atomicAdd(histogram + (long long)camera_bin*bins + lidar_bin, 1ULL);
 }
+
+extern "C" __global__ void initialize(
+    const long long pixel_count, const long long n,
+    unsigned long long* best_range, unsigned long long* best_index)
+{
+    initialize_pixel((long long)blockIdx.x * blockDim.x + threadIdx.x,
+                     pixel_count, n, best_range, best_index);
+}
+
+extern "C" __global__ void project(
+    const double* points, const long long n, const double* rt,
+    const int width, const int height, const double fx, const double fy,
+    const double cx, const double cy, const int kind, const double xi,
+    const double alpha, const double k1, const double k2,
+    const double p1, const double p2, const int z_buffer,
+    long long* pixels, double* ranges, unsigned long long* best_range,
+    unsigned long long* best_index)
+{
+    project_point((long long)blockIdx.x * blockDim.x + threadIdx.x,
+                  points, n, rt, width, height, fx, fy, cx, cy, kind, xi,
+                  alpha, k1, k2, p1, p2, z_buffer, pixels, ranges, best_range, best_index);
+}
+
+extern "C" __global__ void select_visible(
+    const long long* pixels, const double* ranges, const long long n,
+    const unsigned long long* best_range, unsigned long long* best_index)
+{
+    select_visible_point((long long)blockIdx.x * blockDim.x + threadIdx.x,
+                         pixels, ranges, n, best_range, best_index);
+}
+
+extern "C" __global__ void histogram_pairs(
+    const long long n, const long long pixel_count, const int z_buffer,
+    const long long* pixels, const unsigned long long* best_index,
+    const double* depth, const double* lidar_range, const int bins,
+    const double* edges, unsigned long long* histogram)
+{
+    histogram_pixel((long long)blockIdx.x * blockDim.x + threadIdx.x,
+                    n, pixel_count, z_buffer, pixels, best_index, depth,
+                    lidar_range, bins, edges, histogram);
+}
 """
 
 
@@ -165,6 +222,14 @@ class _DeviceObservation:
     points: Any
     depth: Any
     lidar_range: Any
+
+
+@dataclass(frozen=True)
+class _DeviceProjectionWorkspace:
+    pixels: Any
+    ranges: Any
+    best_range: Any
+    best_index: Any
 
 
 class CudaDepthPairProjector:
@@ -181,10 +246,13 @@ class CudaDepthPairProjector:
         self,
         observations: Sequence[DepthToDepthObservation] = (),
         *,
-        cache_bytes: int = 256 * 1024 * 1024,
+        cache_bytes: int = DEFAULT_CUDA_CACHE_BYTES,
+        candidate_workspace_bytes: int = 1024**3,
     ) -> None:
         if cache_bytes < 0:
             raise ValueError("cache_bytes must be non-negative")
+        if candidate_workspace_bytes < 0:
+            raise ValueError("candidate_workspace_bytes must be non-negative")
         try:
             self._device = cp.cuda.Device()
             if cp.cuda.runtime.getDeviceCount() < 1:
@@ -203,41 +271,175 @@ class CudaDepthPairProjector:
                 f"cuda projection requires a working CuPy/CUDA runtime and CUDA toolkit: {exc}"
             ) from exc
         self._prepared: dict[int, tuple[DepthToDepthObservation, _DeviceObservation]] = {}
+        self.cache_budget_bytes = cache_bytes
         self.cached_input_bytes: int = 0
-        for observation in observations:
-            if id(observation) in self._prepared:
-                continue
-            size = (
-                observation.lidar_points.nbytes
-                + observation.depth_map.nbytes
-                + observation.lidar_range_m.nbytes
-            )
-            if self.cached_input_bytes + size <= cache_bytes:
-                self._prepared[id(observation)] = (observation, self._upload(observation))
-                self.cached_input_bytes += size
+        self._input_upload_calls = 0
+        self._input_upload_bytes = 0
+        self._histogram_download_calls = 0
+        self._histogram_download_bytes = 0
+        self._pose_batch: CudaPoseBatch | None = None
+        self._candidate_workspace_bytes = candidate_workspace_bytes
+        self._candidate_workspace_peak_bytes = 0
+        try:
+            for observation in observations:
+                if id(observation) in self._prepared:
+                    continue
+                size = (
+                    observation.lidar_points.nbytes
+                    + observation.depth_map.nbytes
+                    + observation.lidar_range_m.nbytes
+                )
+                if self.cached_input_bytes + size <= cache_bytes:
+                    self._prepared[id(observation)] = (observation, self._upload(observation))
+                    self.cached_input_bytes += size
+        except cp.cuda.memory.OutOfMemoryError as exc:
+            raise ValueError(
+                "CUDA input cache allocation failed; lower --cuda-cache-mib "
+                "(0 disables caching) and leave room for projection scratch buffers"
+            ) from exc
+        self._preparation_upload_calls = self._input_upload_calls
+        self._preparation_upload_bytes = self._input_upload_bytes
 
     def _upload(self, observation: DepthToDepthObservation) -> _DeviceObservation:
-        return _DeviceObservation(
+        inputs = _DeviceObservation(
             cp.asarray(np.ascontiguousarray(observation.lidar_points, dtype=np.float64)),
             cp.asarray(np.ascontiguousarray(observation.depth_map, dtype=np.float64)),
             cp.asarray(np.ascontiguousarray(observation.lidar_range_m, dtype=np.float64)),
         )
+        self._input_upload_calls += 1
+        self._input_upload_bytes += int(
+            inputs.points.nbytes + inputs.depth.nbytes + inputs.lidar_range.nbytes
+        )
+        return inputs
+
+    def transfer_statistics(self) -> dict[str, int]:
+        """Snapshot successful input uploads and histogram downloads.
+
+        Input counters exclude the small pose and histogram edges. Histogram
+        counters cover count downloads; pair-array downloads are excluded.
+        They add no device synchronizations to the normal evaluation path.
+        """
+
+        return {
+            "cache_budget_bytes": self.cache_budget_bytes,
+            "cached_input_bytes": self.cached_input_bytes,
+            "prepared_observation_count": len(self._prepared),
+            "preparation_input_upload_calls": self._preparation_upload_calls,
+            "preparation_input_upload_bytes": self._preparation_upload_bytes,
+            "evaluation_input_upload_calls": self._input_upload_calls
+            - self._preparation_upload_calls,
+            "evaluation_input_upload_bytes": self._input_upload_bytes
+            - self._preparation_upload_bytes,
+            "histogram_download_calls": self._histogram_download_calls,
+            "histogram_download_bytes": self._histogram_download_bytes,
+            "candidate_cached_input_bytes": self._pose_batch.input_bytes if self._pose_batch else 0,
+            "candidate_original_point_count": (
+                self._pose_batch.original_points if self._pose_batch else 0
+            ),
+            "candidate_retained_point_count": (
+                self._pose_batch.retained_points if self._pose_batch else 0
+            ),
+            "candidate_workspace_peak_bytes": self._candidate_workspace_peak_bytes,
+        }
 
     def identity(self) -> str:
         """Return dependency, device and numerical-policy provenance."""
 
         with self._device:
+            from calibrex.solvers.cuda_depth_to_depth_batch import _BATCH_SOURCE
+
             properties = cp.cuda.runtime.getDeviceProperties(self._device.id)
             name = properties["name"].decode("utf-8")
             nvrtc_major, nvrtc_minor = cp.cuda.nvrtc.getVersion()
-            return (
+            identity = (
                 f"{CUDA_DEPTH_PAIR_PROJECTOR_VERSION};cupy={cp.__version__}"
                 f";numpy={np.__version__};cuda_runtime={cp.cuda.runtime.runtimeGetVersion()}"
                 f";cuda_driver={cp.cuda.runtime.driverGetVersion()};device={name}"
                 f";compute={properties['major']}.{properties['minor']}"
                 f";nvrtc={nvrtc_major}.{nvrtc_minor}"
                 f";kernel_sha256={hashlib.sha256(_SOURCE.encode()).hexdigest()};fp64;fmad=false"
+                f";histogram_batch_frames={_HISTOGRAM_BATCH_FRAMES}"
+                f";candidate_batch_size=4;candidate_workspace_bytes={self._candidate_workspace_bytes}"
+                f";batch_kernel_sha256={hashlib.sha256((_SOURCE+_BATCH_SOURCE).encode()).hexdigest()}"
             )
+            # Default-budget aliases share an identity; explicit changes in
+            # performance configuration must have a distinct runtime identity.
+            if self.cache_budget_bytes != DEFAULT_CUDA_CACHE_BYTES:
+                identity += f";cache_bytes={self.cache_budget_bytes}"
+            return identity
+
+    def prepare_pose_search(
+        self, observations: Sequence[DepthToDepthObservation], initial: SE3, *,
+        rotation_bound_deg: float, translation_bound_m: float,
+    ) -> None:
+        """Prepare one search; input copies share the configured cache byte budget.
+
+        Scratch is separately bounded to 1 GiB by default. Uncached inputs,
+        more than 32 frames, and allocation failures use the ordinary path.
+        """
+
+        from calibrex.solvers.cuda_depth_to_depth_batch import MAX_BATCH_FRAMES, CudaPoseBatch
+
+        if not all(math.isfinite(value) and value > 0.0
+                   for value in (rotation_bound_deg, translation_bound_m)):
+            raise ValueError("pose search bounds must be finite and positive")
+        self._pose_batch = None
+        if (not observations or len(observations) > MAX_BATCH_FRAMES
+                or not self._candidate_workspace_bytes
+                or any(id(item) not in self._prepared for item in observations)):
+            return
+        # Refuse oversized scratch before any compact copies or allocation.
+        minimum = sum((item.camera.width*item.camera.height+1)*16 for item in observations)
+        if minimum+16 > self._candidate_workspace_bytes:
+            return
+        with self._device:
+            try:
+                batch = CudaPoseBatch(
+                    observations, self._prepared, initial, rotation_bound_deg, translation_bound_m,
+                    input_budget_bytes=self.cache_budget_bytes-self.cached_input_bytes,
+                    workspace_budget_bytes=self._candidate_workspace_bytes,
+                )
+            except (cp.cuda.memory.OutOfMemoryError, ValueError):
+                return
+        self._pose_batch = batch
+        self._candidate_workspace_peak_bytes = max(
+            self._candidate_workspace_peak_bytes, batch.workspace_bytes,
+        )
+
+    def histogram_depth_pairs_poses(
+        self, observations: Sequence[DepthToDepthObservation], transforms: Sequence[SE3], *,
+        use_z_buffer: bool, bins: int, camera_range: tuple[float, float],
+        lidar_range: tuple[float, float],
+    ) -> Iterator[tuple[DepthPairHistogram, ...]]:
+        """Yield one ordered frame tuple per pose, using bounded prepared scratch."""
+
+        _validate_histogram_configuration(bins, camera_range, lidar_range)
+        batch = self._pose_batch
+        if batch is None or not batch.supports(observations, transforms):
+            for transform in transforms:
+                yield tuple(self.histogram_depth_pairs_batch(
+                    tuple(observations), transform, use_z_buffer=use_z_buffer, bins=bins,
+                    camera_range=camera_range, lidar_range=lidar_range,
+                ))
+            return
+        try:
+            chunks = iter(batch.histogram_chunks(
+                transforms, use_z_buffer=use_z_buffer, bins=bins,
+                camera_range=camera_range, lidar_range=lidar_range,
+                download=self._download_histograms,
+            ))
+            while True:
+                with self._device:
+                    host = next(chunks, None)
+                if host is None:
+                    break
+                # Never suspend an iterator while the caller's device is changed.
+                for pose_rows in host:
+                    yield tuple(self._host_histogram(row, bins) for row in pose_rows)
+        except Exception:
+            # A failed launch/download cannot leave reusable, partially updated scratch.
+            self._pose_batch = None
+            raise
 
     def __call__(
         self,
@@ -295,18 +497,22 @@ class CudaDepthPairProjector:
         observation: DepthToDepthObservation,
         transform: SE3,
         use_z_buffer: bool,
+        *,
+        rt: Any | None = None,
+        workspace: _DeviceProjectionWorkspace | None = None,
     ) -> tuple[Any, Any, _DeviceObservation]:
         prepared = self._prepared.get(id(observation))
         inputs = prepared[1] if prepared is not None else self._upload(observation)
         count = observation.lidar_points.shape[0]
         camera = observation.camera
         pixel_count = camera.width * camera.height
-        rotation = _rotation_matrix(transform.rotation_quat_xyzw)
-        rt = cp.asarray(np.concatenate((rotation.ravel(), transform.translation_m)))
-        pixels = cp.empty(count, dtype=cp.int64)
-        ranges = cp.empty(count, dtype=cp.float64)
-        best_range = cp.empty(pixel_count, dtype=cp.uint64)
-        best_index = cp.empty(pixel_count + 1, dtype=cp.uint64)
+        if rt is None:
+            rotation = _rotation_matrix(transform.rotation_quat_xyzw)
+            rt = cp.asarray(np.concatenate((rotation.ravel(), transform.translation_m)))
+        if workspace is None:
+            workspace = self._projection_workspace(count, pixel_count)
+        pixels, ranges = workspace.pixels, workspace.ranges
+        best_range, best_index = workspace.best_range, workspace.best_index
         self._initialize(
             ((pixel_count + 1 + _THREADS - 1) // _THREADS,),
             (_THREADS,),
@@ -344,6 +550,15 @@ class CudaDepthPairProjector:
             )
         return pixels, best_index, inputs
 
+    @staticmethod
+    def _projection_workspace(count: int, pixel_count: int) -> _DeviceProjectionWorkspace:
+        return _DeviceProjectionWorkspace(
+            cp.empty(count, dtype=cp.int64),
+            cp.empty(count, dtype=cp.float64),
+            cp.empty(pixel_count, dtype=cp.uint64),
+            cp.empty(pixel_count + 1, dtype=cp.uint64),
+        )
+
     def histogram_depth_pairs(
         self,
         observation: DepthToDepthObservation,
@@ -371,28 +586,124 @@ class CudaDepthPairProjector:
                 )
             )
             result = cp.zeros(bins * bins + 2, dtype=cp.uint64)
-            count = observation.lidar_points.shape[0]
-            pixel_count = observation.camera.width * observation.camera.height
-            work = pixel_count if use_z_buffer else count
-            self._histogram(
-                ((work + _THREADS - 1) // _THREADS,),
-                (_THREADS,),
-                (
-                    np.int64(count),
-                    np.int64(pixel_count),
-                    np.int32(use_z_buffer),
-                    pixels,
-                    best_index,
-                    inputs.depth,
-                    inputs.lidar_range,
-                    np.int32(bins),
-                    edges,
-                    result,
-                ),
+            self._enqueue_histogram(
+                observation, pixels, best_index, inputs, use_z_buffer, bins, edges, result
             )
-            host = cp.asnumpy(result)
+            host = self._download_histograms(result)
+        return self._host_histogram(host, bins)
+
+    def _enqueue_histogram(
+        self,
+        observation: DepthToDepthObservation,
+        pixels: Any,
+        best_index: Any,
+        inputs: _DeviceObservation,
+        use_z_buffer: bool,
+        bins: int,
+        edges: Any,
+        result: Any,
+    ) -> None:
+        count = observation.lidar_points.shape[0]
+        pixel_count = observation.camera.width * observation.camera.height
+        work = pixel_count if use_z_buffer else count
+        self._histogram(
+            ((work + _THREADS - 1) // _THREADS,),
+            (_THREADS,),
+            (
+                np.int64(count),
+                np.int64(pixel_count),
+                np.int32(use_z_buffer),
+                pixels,
+                best_index,
+                inputs.depth,
+                inputs.lidar_range,
+                np.int32(bins),
+                edges,
+                result,
+            ),
+        )
+
+    def _download_histograms(self, result: Any) -> Any:
+        host = cp.asnumpy(result)
+        self._histogram_download_calls += 1
+        self._histogram_download_bytes += int(host.nbytes)
+        return host
+
+    @staticmethod
+    def _host_histogram(host: Any, bins: int) -> DepthPairHistogram:
         return DepthPairHistogram(
             histogram=host[: bins * bins].astype(np.float64).reshape(bins, bins),
             visible_point_count=int(host[-2]),
             projected_count_before_visibility=int(host[-1]),
         )
+
+    def histogram_depth_pairs_batch(
+        self,
+        observations: tuple[DepthToDepthObservation, ...] | list[DepthToDepthObservation],
+        transform_camera_lidar: SE3,
+        *,
+        use_z_buffer: bool,
+        bins: int,
+        camera_range: tuple[float, float],
+        lidar_range: tuple[float, float],
+    ) -> Iterator[DepthPairHistogram]:
+        """Stream ordered histograms with one download per at most 32 frames.
+
+        One pose/edge upload and one scratch workspace are shared within this
+        invocation. Kernels for successive frames reuse scratch in current-stream
+        order. Device results are bounded to 32 rows; no trial cache is retained.
+        """
+
+        _validate_histogram_configuration(bins, camera_range, lidar_range)
+        if not observations:
+            return
+        with self._device:
+            rotation = _rotation_matrix(transform_camera_lidar.rotation_quat_xyzw)
+            rt = cp.asarray(
+                np.concatenate(
+                    (
+                        rotation.ravel(),
+                        transform_camera_lidar.translation_m,
+                    )
+                )
+            )
+            edges = cp.asarray(
+                np.concatenate(
+                    (
+                        np.linspace(*camera_range, bins + 1),
+                        np.linspace(*lidar_range, bins + 1),
+                    )
+                )
+            )
+            workspace = self._projection_workspace(
+                max(item.lidar_points.shape[0] for item in observations),
+                max(item.camera.width * item.camera.height for item in observations),
+            )
+        for start in range(0, len(observations), _HISTOGRAM_BATCH_FRAMES):
+            chunk = observations[start : start + _HISTOGRAM_BATCH_FRAMES]
+            with self._device:
+                result = cp.zeros((len(chunk), bins * bins + 2), dtype=cp.uint64)
+                for index, observation in enumerate(chunk):
+                    if not observation.lidar_points.size:
+                        continue
+                    pixels, best_index, inputs = self._device_projection(
+                        observation,
+                        transform_camera_lidar,
+                        use_z_buffer,
+                        rt=rt,
+                        workspace=workspace,
+                    )
+                    self._enqueue_histogram(
+                        observation,
+                        pixels,
+                        best_index,
+                        inputs,
+                        use_z_buffer,
+                        bins,
+                        edges,
+                        result[index],
+                    )
+                host = self._download_histograms(result)
+                del result
+            for row in host:
+                yield self._host_histogram(row, bins)

@@ -1,0 +1,82 @@
+"""Archive real-frame trials with exact frozen inputs/code and full native results."""
+import hashlib
+import json
+import subprocess
+from pathlib import Path
+
+root=Path('docs/assets/cuda_point_to_point_icp/actual_frames')
+root.mkdir(exist_ok=True)
+index={'provenance':{'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+    'publisher_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest()},
+    'files':{},'runs':{},'complete_models':0}
+def sha(raw): return hashlib.sha256(raw).hexdigest()
+def save(name,raw):
+    if isinstance(raw,dict): raw=(json.dumps(raw,indent=2,allow_nan=False)+'\n').encode()
+    assert str(Path.cwd()).encode() not in raw
+    path=root/name
+    path.parent.mkdir(parents=True,exist_ok=True)
+    if path.exists(): assert path.read_bytes()==raw
+    else: path.write_bytes(raw)
+    index['files'][name]=sha(raw)
+protocol=json.loads(Path('outputs/public-kitti-real-icp-protocol-v1.json').read_bytes())
+save('protocol.json',protocol)
+save('launcher.py.txt',Path('.tmp-calibrex-run-real-icp-v1.py').read_bytes())
+data_root=Path('data/public/kitti_raw_icp/2011_09_30_drive_0018_sync')
+for label,folder in [('pilot','public-kitti-real-icp-pilot-v1')]+[
+    (j['label'],'public-kitti-real-icp-'+j['label']+'-v1') for j in protocol['jobs']]:
+    out=Path('outputs')/folder
+    summary=json.loads((out/'summary.json').read_bytes())
+    run={'workers':[],'sources':label+'/sources','summary':label+'/summary.json',
+         'fixture':label+'/fixture.json'}
+    for path in (out/'sources').glob('*.txt'):
+        save(label+'/sources/'+path.name,path.read_bytes())
+    save(run['summary'],(out/'summary.json').read_bytes())
+    for path in sorted(out.glob('*/measurement.json')):
+        raw=path.read_bytes()
+        row=json.loads(raw)
+        source=row['provenance']['source']
+        for name,digest in source['sources'].items():
+            captured=(out/'sources'/(Path(name).name+'.txt')).read_bytes()
+            assert sha(captured)==digest
+            assert captured.replace(b'\r\n',b'\n')==subprocess.check_output(['git','show',source['commit']+':'+name])
+        fixture=row['provenance']['fixture']
+        fixture_paths=list(Path('outputs/kitti-icp-pairs-v1').glob('*.json'))+list(
+            Path('outputs/kitti-icp-pairs-default-v1').glob('*.json'))
+        fixture_raw=next(p.read_bytes() for p in fixture_paths
+                         if sha(p.read_bytes())==row['provenance']['fixture_sha256'])
+        save(run['fixture'],fixture_raw)
+        assert index['files'][run['fixture']]==row['provenance']['fixture_sha256']
+        for name,digest in fixture['provenance']['input_sha256'].items():
+            assert sha((data_root/name).read_bytes())==digest
+        for name,digest in fixture['provenance']['source_sha256'].items():
+            source_raw=Path(name).read_bytes()
+            assert sha(source_raw)==digest
+            assert source_raw.replace(b'\r\n',b'\n')==subprocess.check_output(
+                ['git','show',fixture['provenance']['source_commit']+':'+name.replace('\\','/')])
+            save('fixture_sources/'+Path(name).name+'.txt',source_raw)
+        model=path.with_name('result.json').read_bytes()
+        assert sha(model)==row['result_sha256']
+        result_name='results/'+sha(model)+'.json'
+        measurement_name=label+'/'+path.parent.name+'.measurement.json'
+        save(result_name,model)
+        save(measurement_name,raw)
+        run['workers'].append({'measurement':measurement_name,'result':result_name})
+        index['complete_models']+=1
+    for path in out.glob('*.log.txt'):
+        save(label+'/'+path.name,path.read_bytes())
+    index['runs'][label]=run
+# Preserve the schema-valid acquisition manifest with portable local path metadata.
+manifest=json.loads(Path('outputs/kitti-icp-selection-v1.json').read_bytes())
+workspace=str(Path.cwd())
+def portable(value):
+    if isinstance(value,dict): return {k:portable(v) for k,v in value.items()}
+    if isinstance(value,list): return [portable(v) for v in value]
+    if isinstance(value,str): return value.replace(workspace,'<WORKSPACE>').replace('\\','/')
+    return value
+save('acquisition.json',portable(manifest))
+for path in data_root.glob('oxts/data/*.txt'):
+    save('navigation/'+path.name,path.read_bytes())
+save('navigation/calib_imu_to_velo.txt', (data_root/'calib_imu_to_velo.txt').read_bytes())
+save('publisher.py.txt',Path(__file__).read_bytes())
+save('publication-index.json',index)
+print({'complete_models':index['complete_models'],'unique_results':len(list((root/'results').glob('*.json')))})

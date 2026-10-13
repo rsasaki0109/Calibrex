@@ -1,0 +1,684 @@
+{
+  "benchmark_id": "public_kitti_registration_preparation",
+  "bootstrap_samples": 1,
+  "bootstrap_seed": 0,
+  "limitations": [
+    "Sampled scan pairs from one public drive; no reference extrinsic or accuracy claim.",
+    "Unchanged native voxel/cap policy; full raw scans enter preprocessing on every call.",
+    "Timing includes both complete native algorithms, not the full calibrate CLI, PCD parsing, external GICP/NDT backends, inspection or report serialization.",
+    "All convergence, degeneracy and diagnostic outputs remain visible; timing success means execution/parity rather than calibration recovery.",
+    "1 shared-host timing repetitions; process/library/OS caches persist; not independent accuracy trials, confidence or a portable speed guarantee.",
+    "Bootstrap fields are schema summaries only; consult every retained trial.",
+    "Early tool pilot on uncommitted source; original checkout HEAD: 9fe0d4f. Recorded source-byte hashes are preserved. Two failures are solely the sequential control recording multi_start_workers=1 in the plane solver options. All other numerical fields match final cases; raw payloads/statuses/digests stay unchanged. The final tool passes the same plane options to every method.",
+    "Local path prefixes are normalized to ${WORKSPACE_ROOT} and ${DATASET_ROOT}. Every complete payload and original input/config/output digest is unchanged. Output digests bind canonical numerical JSON, not a standalone result file."
+  ],
+  "method_summaries": {
+    "indexed_baseline": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": {
+          "distribution": {
+            "count": 2,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "numerical_parity",
+          "rank": 1
+        },
+        "plane_seconds": {
+          "distribution": {
+            "count": 2,
+            "maximum": 0.19158009998500347,
+            "mean": 0.17525024997303262,
+            "mean_ci95_high": 0.15892039996106178,
+            "mean_ci95_low": 0.15892039996106178,
+            "median": 0.17525024997303262,
+            "minimum": 0.15892039996106178,
+            "p90": 0.1883141299826093,
+            "p95": 0.18994711498380637,
+            "standard_deviation": 0.016329850011970848
+          },
+          "metric": "plane_seconds",
+          "rank": 2
+        },
+        "point_seconds": {
+          "distribution": {
+            "count": 2,
+            "maximum": 0.45777580002322793,
+            "mean": 0.39357605000259355,
+            "mean_ci95_high": 0.45777580002322793,
+            "mean_ci95_low": 0.45777580002322793,
+            "median": 0.39357605000259355,
+            "minimum": 0.32937629998195916,
+            "p90": 0.4449358500191011,
+            "p95": 0.4513558250211645,
+            "standard_deviation": 0.06419975002063438
+          },
+          "metric": "point_seconds",
+          "rank": 2
+        },
+        "preparation_seconds": {
+          "distribution": {
+            "count": 2,
+            "maximum": 1.6443986000376754,
+            "mean": 1.2372040000045672,
+            "mean_ci95_high": 0.8300093999714591,
+            "mean_ci95_low": 0.8300093999714591,
+            "median": 1.2372040000045672,
+            "minimum": 0.8300093999714591,
+            "p90": 1.5629596800310537,
+            "p95": 1.6036791400343646,
+            "standard_deviation": 0.40719460003310814
+          },
+          "metric": "preparation_seconds",
+          "rank": 2
+        },
+        "wall_seconds": {
+          "distribution": {
+            "count": 2,
+            "maximum": 2.165355000004638,
+            "mean": 1.8060302999801934,
+            "mean_ci95_high": 1.4467055999557488,
+            "mean_ci95_low": 1.4467055999557488,
+            "median": 1.8060302999801934,
+            "minimum": 1.4467055999557488,
+            "p90": 2.093490059999749,
+            "p95": 2.1294225300021936,
+            "standard_deviation": 0.3593247000244446
+          },
+          "metric": "wall_seconds",
+          "rank": 2
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 2,
+        "maximum": 2.165355000004638,
+        "mean": 1.8060302999801934,
+        "mean_ci95_high": 1.4467055999557488,
+        "mean_ci95_low": 1.4467055999557488,
+        "median": 1.8060302999801934,
+        "minimum": 1.4467055999557488,
+        "p90": 2.093490059999749,
+        "p95": 2.1294225300021936,
+        "standard_deviation": 0.3593247000244446
+      },
+      "success_count": 2,
+      "trial_count": 2
+    },
+    "vectorized_auto": {
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": {
+          "distribution": {
+            "count": 2,
+            "maximum": 1.0,
+            "mean": 1.0,
+            "mean_ci95_high": 1.0,
+            "mean_ci95_low": 1.0,
+            "median": 1.0,
+            "minimum": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "standard_deviation": 0.0
+          },
+          "metric": "numerical_parity",
+          "rank": 1
+        },
+        "plane_seconds": {
+          "distribution": {
+            "count": 2,
+            "maximum": 0.15793420001864433,
+            "mean": 0.14502185001038015,
+            "mean_ci95_high": 0.13210950000211596,
+            "mean_ci95_low": 0.13210950000211596,
+            "median": 0.14502185001038015,
+            "minimum": 0.13210950000211596,
+            "p90": 0.15535173001699148,
+            "p95": 0.1566429650178179,
+            "standard_deviation": 0.012912350008264184
+          },
+          "metric": "plane_seconds",
+          "rank": 1
+        },
+        "point_seconds": {
+          "distribution": {
+            "count": 2,
+            "maximum": 0.3714005000074394,
+            "mean": 0.35705269998288713,
+            "mean_ci95_high": 0.3714005000074394,
+            "mean_ci95_low": 0.3714005000074394,
+            "median": 0.35705269998288713,
+            "minimum": 0.34270489995833486,
+            "p90": 0.36853094000252895,
+            "p95": 0.3699657200049842,
+            "standard_deviation": 0.01434780002455227
+          },
+          "metric": "point_seconds",
+          "rank": 1
+        },
+        "preparation_seconds": {
+          "distribution": {
+            "count": 2,
+            "maximum": 0.2575307000079192,
+            "mean": 0.21476370000164025,
+            "mean_ci95_high": 0.17199669999536127,
+            "mean_ci95_low": 0.17199669999536127,
+            "median": 0.21476370000164025,
+            "minimum": 0.17199669999536127,
+            "p90": 0.24897730000666343,
+            "p95": 0.2532540000072913,
+            "standard_deviation": 0.04276700000627898
+          },
+          "metric": "preparation_seconds",
+          "rank": 1
+        },
+        "wall_seconds": {
+          "distribution": {
+            "count": 2,
+            "maximum": 0.7581697999848984,
+            "mean": 0.7168382499949075,
+            "mean_ci95_high": 0.6755067000049166,
+            "mean_ci95_low": 0.6755067000049166,
+            "median": 0.7168382499949075,
+            "minimum": 0.6755067000049166,
+            "p90": 0.7499034899869003,
+            "p95": 0.7540366449858993,
+            "standard_deviation": 0.04133154998999089
+          },
+          "metric": "wall_seconds",
+          "rank": 1
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 2,
+        "maximum": 0.7581697999848984,
+        "mean": 0.7168382499949075,
+        "mean_ci95_high": 0.6755067000049166,
+        "mean_ci95_low": 0.6755067000049166,
+        "median": 0.7168382499949075,
+        "minimum": 0.6755067000049166,
+        "p90": 0.7499034899869003,
+        "p95": 0.7540366449858993,
+        "standard_deviation": 0.04133154998999089
+      },
+      "success_count": 2,
+      "trial_count": 2
+    },
+    "vectorized_sequential": {
+      "failure_count": 2,
+      "failure_rate": 1.0,
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": {
+          "distribution": {
+            "count": 0
+          },
+          "metric": "numerical_parity"
+        },
+        "plane_seconds": {
+          "distribution": {
+            "count": 0
+          },
+          "metric": "plane_seconds"
+        },
+        "point_seconds": {
+          "distribution": {
+            "count": 0
+          },
+          "metric": "point_seconds"
+        },
+        "preparation_seconds": {
+          "distribution": {
+            "count": 0
+          },
+          "metric": "preparation_seconds"
+        },
+        "wall_seconds": {
+          "distribution": {
+            "count": 0
+          },
+          "metric": "wall_seconds"
+        }
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "runtime_seconds": {
+        "count": 2,
+        "maximum": 0.582344299997203,
+        "mean": 0.5816449999983888,
+        "mean_ci95_high": 0.582344299997203,
+        "mean_ci95_low": 0.582344299997203,
+        "median": 0.5816449999983888,
+        "minimum": 0.5809456999995746,
+        "p90": 0.5822044399974402,
+        "p95": 0.5822743699973216,
+        "standard_deviation": 0.0006992999988142401
+      },
+      "success_count": 0,
+      "trial_count": 2
+    }
+  },
+  "methods": [
+    {
+      "implementation": "calibrex_native",
+      "label": "indexed_baseline",
+      "method_id": "indexed_baseline",
+      "source_commit": "9fe0d4f6ff866bed771b62ccbe7b7e57924b12bb",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "vectorized_sequential",
+      "method_id": "vectorized_sequential",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    },
+    {
+      "implementation": "calibrex_native",
+      "label": "vectorized_auto",
+      "method_id": "vectorized_auto",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1"
+    }
+  ],
+  "metrics": [
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Fresh raw reads/verification, preprocessing, both complete solvers",
+      "label": "wall_seconds",
+      "name": "wall_seconds",
+      "primary": true,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Fresh reads/hash verification, decoding, voxel centroids",
+      "label": "preparation_seconds",
+      "name": "preparation_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Complete point-to-point solver including six multi-start trials",
+      "label": "point_seconds",
+      "name": "point_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "lower",
+      "display_scale": 1.0,
+      "interpretation": "Complete point-to-plane solver including normals and pose probes",
+      "label": "plane_seconds",
+      "name": "plane_seconds",
+      "primary": false,
+      "unit": "s"
+    },
+    {
+      "direction": "higher",
+      "display_scale": 1.0,
+      "interpretation": "Bitwise prepared positions and exact complete solver payloads",
+      "label": "numerical_parity",
+      "name": "numerical_parity",
+      "primary": false,
+      "unit": "ratio"
+    }
+  ],
+  "paired_comparisons": [
+    {
+      "candidate_method_id": "vectorized_sequential",
+      "direction": "lower",
+      "metric": "wall_seconds",
+      "paired_count": 0,
+      "reference_method_id": "indexed_baseline"
+    },
+    {
+      "candidate_method_id": "vectorized_sequential",
+      "direction": "lower",
+      "metric": "preparation_seconds",
+      "paired_count": 0,
+      "reference_method_id": "indexed_baseline"
+    },
+    {
+      "candidate_method_id": "vectorized_sequential",
+      "direction": "lower",
+      "metric": "point_seconds",
+      "paired_count": 0,
+      "reference_method_id": "indexed_baseline"
+    },
+    {
+      "candidate_method_id": "vectorized_sequential",
+      "direction": "lower",
+      "metric": "plane_seconds",
+      "paired_count": 0,
+      "reference_method_id": "indexed_baseline"
+    },
+    {
+      "candidate_method_id": "vectorized_sequential",
+      "direction": "higher",
+      "metric": "numerical_parity",
+      "paired_count": 0,
+      "reference_method_id": "indexed_baseline"
+    },
+    {
+      "candidate_method_id": "vectorized_auto",
+      "direction": "lower",
+      "improvement_ci95_high": 0.7711988999508321,
+      "improvement_ci95_low": 0.7711988999508321,
+      "improvement_mean": 1.0891920499852858,
+      "metric": "wall_seconds",
+      "paired_count": 2,
+      "raw_delta_mean": -1.0891920499852858,
+      "reference_method_id": "indexed_baseline"
+    },
+    {
+      "candidate_method_id": "vectorized_auto",
+      "direction": "lower",
+      "improvement_ci95_high": 0.6580126999760978,
+      "improvement_ci95_low": 0.6580126999760978,
+      "improvement_mean": 1.022440300002927,
+      "metric": "preparation_seconds",
+      "paired_count": 2,
+      "raw_delta_mean": -1.022440300002927,
+      "reference_method_id": "indexed_baseline"
+    },
+    {
+      "candidate_method_id": "vectorized_auto",
+      "direction": "lower",
+      "improvement_ci95_high": 0.08637530001578853,
+      "improvement_ci95_low": 0.08637530001578853,
+      "improvement_mean": 0.03652335001970641,
+      "metric": "point_seconds",
+      "paired_count": 2,
+      "raw_delta_mean": -0.03652335001970641,
+      "reference_method_id": "indexed_baseline"
+    },
+    {
+      "candidate_method_id": "vectorized_auto",
+      "direction": "lower",
+      "improvement_ci95_high": 0.02681089995894581,
+      "improvement_ci95_low": 0.02681089995894581,
+      "improvement_mean": 0.030228399962652475,
+      "metric": "plane_seconds",
+      "paired_count": 2,
+      "raw_delta_mean": -0.030228399962652475,
+      "reference_method_id": "indexed_baseline"
+    },
+    {
+      "candidate_method_id": "vectorized_auto",
+      "direction": "higher",
+      "improvement_ci95_high": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_mean": 0.0,
+      "metric": "numerical_parity",
+      "paired_count": 2,
+      "raw_delta_mean": 0.0,
+      "reference_method_id": "indexed_baseline"
+    }
+  ],
+  "protocol": {
+    "data_license": "KITTI raw dataset terms; raw scans are not redistributed",
+    "dataset_id": "2011_09_30_drive_0018_sync",
+    "dataset_source_sha256": "6d069290c39a3a70f7c0fa460b62ef68802a3a60f70317d24e8a6f64a7eedbbb",
+    "failure_policy": "Retain mismatches as failures and exit nonzero after saving evidence",
+    "initial_estimate_policy": "Identity for all methods; no reference pose",
+    "protocol_id": "public_kitti_registration_preparation/v0.1",
+    "split_policy": "Unchanged spatial source holdout; fresh target rematching",
+    "splits": [
+      {
+        "fit_count": 403,
+        "fit_ids_sha256": "01edfef039be83ea8683c44dbe16213f6c5388b38305fbcea5c21d69c3bc1154",
+        "holdout_count": 97,
+        "holdout_ids_sha256": "6405cdff4b8e0a8523c18810e407ff88ca5efab51ada48413579b667bbdde56f",
+        "seed": 0,
+        "split_id": "0000000000-0000000115-cap-500-repeat-01"
+      },
+      {
+        "fit_count": 392,
+        "fit_ids_sha256": "129f18e9e06bb51ec9a36b271b38f5767d387469075a2fb6111e85a5eb3506e8",
+        "holdout_count": 108,
+        "holdout_ids_sha256": "ab5e81f3751a840d266e03da4e804e79f2cc97e9ccceb85290fac56ac742581c",
+        "seed": 0,
+        "split_id": "0000000115-0000000230-cap-500-repeat-01"
+      }
+    ],
+    "tuning_policy": "Frozen 0.5 m voxel centroids, caps [500], config 6fe46f448a23a0e4476233da865d3f60aa9bc4c3ff02dbd42b575dd52c9c26fc; rotate method order; only execution workers differ"
+  },
+  "provenance": {
+    "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-tool-pilot-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 --repeats 1",
+    "data_verified": false,
+    "generated_at": "2026-10-11T12:41:05.575254+00:00",
+    "generator": "tools.benchmark_registration_preparation",
+    "generator_version": "v0.1",
+    "git_commit": "9fe0d4f",
+    "source_artifacts": {
+      "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000000000.bin": "edcf941b40ac8c1aa2c90675bc7df5ee530ea99426cfa81396bb7158a449ed83",
+      "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000000115.bin": "213948bd8c54c925aca7eb9f3b3c36e95e586b52ee8d9d64056c4fc4aeb12b2d",
+      "${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync/velodyne_points/data/0000000230.bin": "b9b6ac62ef2b7be4dcec2eab424c142012c6e948cb3f24bf774b6459efbae2ca",
+      "${WORKSPACE_ROOT}/tools/benchmark_registration_preparation.py": "4610574b6ce0a425adc632e49cde9035354ee8deaf2f4fc14459e2bd39095322",
+      "baseline._exact_neighbors.py.txt": "f8f700817336bd956dabe4dbc25c7d647b2f1693efc67d18aa57e4f6a53e7ccf",
+      "baseline.chen_medioni_point_to_plane_icp_solver.py.txt": "fff85c1aae0c4251e872c7bf39e0c91272eb9196f8cd31a2e874af9d11539446",
+      "baseline.native_registration_comparison_solver.py.txt": "2dafd9d8dc53a406e8f54f40341573fdbae7afe1c6147d08cc413eb2254e85e7",
+      "baseline.robust_point_to_point_icp_solver.py.txt": "5cef296f6736332415e2b60b5d860db74b1e8ad8e9c8746c438f450ddcc25b96",
+      "committed:src/calibrex/core/geometry.py": "edc75ef201e05b2b3146996e10a9acd39f9c02521be753e186d4c473a7c11bbb",
+      "committed:src/calibrex/evaluation/holdout.py": "6df7f5c3187fda94a4e8ae63a35405d81ed98bcf1a7f1f5a75081930d354e055",
+      "committed:src/calibrex/solvers/_exact_neighbors.py": "f8f700817336bd956dabe4dbc25c7d647b2f1693efc67d18aa57e4f6a53e7ccf",
+      "committed:src/calibrex/solvers/chen_medioni_point_to_plane_icp_solver.py": "3574ea39d9993ba79972f00c41401c2669ba3048109ffb87be6d8a8a128a5390",
+      "committed:src/calibrex/solvers/native_registration_comparison_solver.py": "f60100ed361ea3bb3be30a30cc4bf450522e57412fb6c9b18b2334f310859baf",
+      "committed:src/calibrex/solvers/robust_point_to_point_icp_solver.py": "aa32b6aee36ccd8a8a37f103f3d8b0c390fdf7c785a9f499c640a2fc696a260d",
+      "committed:tools/benchmark_registration_preparation.py": "a2924c30ebc5fe4d4a887f65489207079b72d1fabc776e636f0e1bb940bacd56",
+      "original_aggregate": "624f1076013e15fc1f5d10817080b0fe119a218c9bb5084d620a7720a52d6785",
+      "original_definition": "ec7c5158f9c6000093cc322c26caa4e23c3dc5c123863d433f87a6fdae6cdd00",
+      "published:baseline._exact_neighbors.py.txt": "f8f700817336bd956dabe4dbc25c7d647b2f1693efc67d18aa57e4f6a53e7ccf",
+      "published:baseline.chen_medioni_point_to_plane_icp_solver.py.txt": "fff85c1aae0c4251e872c7bf39e0c91272eb9196f8cd31a2e874af9d11539446",
+      "published:baseline.native_registration_comparison_solver.py.txt": "2dafd9d8dc53a406e8f54f40341573fdbae7afe1c6147d08cc413eb2254e85e7",
+      "published:baseline.robust_point_to_point_icp_solver.py.txt": "5cef296f6736332415e2b60b5d860db74b1e8ad8e9c8746c438f450ddcc25b96",
+      "published:measured._exact_neighbors.py.txt": "f8f700817336bd956dabe4dbc25c7d647b2f1693efc67d18aa57e4f6a53e7ccf",
+      "published:measured.benchmark_registration_preparation.py.txt": "a2924c30ebc5fe4d4a887f65489207079b72d1fabc776e636f0e1bb940bacd56",
+      "published:measured.chen_medioni_point_to_plane_icp_solver.py.txt": "3574ea39d9993ba79972f00c41401c2669ba3048109ffb87be6d8a8a128a5390",
+      "published:measured.geometry.py.txt": "edc75ef201e05b2b3146996e10a9acd39f9c02521be753e186d4c473a7c11bbb",
+      "published:measured.holdout.py.txt": "6df7f5c3187fda94a4e8ae63a35405d81ed98bcf1a7f1f5a75081930d354e055",
+      "published:measured.native_registration_comparison_solver.py.txt": "f60100ed361ea3bb3be30a30cc4bf450522e57412fb6c9b18b2334f310859baf",
+      "published:measured.robust_point_to_point_icp_solver.py.txt": "aa32b6aee36ccd8a8a37f103f3d8b0c390fdf7c785a9f499c640a2fc696a260d",
+      "published:publication-launcher.py.txt": "8b466632ae87d1ed2f287bb055f8491ae976391c7d24c008035cd7467c4acc6f",
+      "src/calibrex/core/geometry.py": "6597695de33360d44b8b18e457f84355df3ace30837462f4b9501193879d66aa",
+      "src/calibrex/evaluation/holdout.py": "24c0eee5b132cf535dbbfb98ceb4b5f5e1b9ebafce68962a6cef8cff6ff30854",
+      "src/calibrex/solvers/_exact_neighbors.py": "f8f700817336bd956dabe4dbc25c7d647b2f1693efc67d18aa57e4f6a53e7ccf",
+      "src/calibrex/solvers/chen_medioni_point_to_plane_icp_solver.py": "410ce2c382d20ff9c0f23d5260e1f9f22e314e814f9b7399afea00c227c79c9b",
+      "src/calibrex/solvers/native_registration_comparison_solver.py": "96727a92bbffc864be126efd5e3d59651ab453e98062b7e384d22f5a2f5ab7a5",
+      "src/calibrex/solvers/robust_point_to_point_icp_solver.py": "36e5760519fd4521b35722b49c458c9caff5da2707826ed5a79018f953927f51"
+    }
+  },
+  "reference_method_id": "indexed_baseline",
+  "schema_version": "slac.benchmark/v0.1",
+  "title": "Public raw-cloud preparation and complete native registration pair",
+  "trials": [
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.19158009998500347,
+        "point_seconds": 0.32937629998195916,
+        "preparation_seconds": 1.6443986000376754,
+        "wall_seconds": 2.165355000004638
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-tool-pilot-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 --repeats 1",
+        "config_sha256": "6fe46f448a23a0e4476233da865d3f60aa9bc4c3ff02dbd42b575dd52c9c26fc",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 1; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in pilot-v1.registration.definition.json"
+        ],
+        "output_sha256": "c0a6e23f2f870aacc1fdf135d32fd7d712ba6e8991ea512cd6de0135ef9c125c"
+      },
+      "runtime_seconds": 2.165355000004638,
+      "split_id": "0000000000-0000000115-cap-500-repeat-01",
+      "status": "success"
+    },
+    {
+      "failure_reason": "Complete numerical payload mismatch",
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 0.0,
+        "plane_seconds": 0.15248410002095625,
+        "point_seconds": 0.2355927000171505,
+        "preparation_seconds": 0.19286889996146783,
+        "wall_seconds": 0.5809456999995746
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-tool-pilot-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 --repeats 1",
+        "config_sha256": "6fe46f448a23a0e4476233da865d3f60aa9bc4c3ff02dbd42b575dd52c9c26fc",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 1; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in pilot-v1.registration.definition.json"
+        ],
+        "output_sha256": "d06f52ce4e85e9224a16989018aa9bb95ed552475e008c47b31cd0c247580afe"
+      },
+      "runtime_seconds": 0.5809456999995746,
+      "split_id": "0000000000-0000000115-cap-500-repeat-01",
+      "status": "failed"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.15793420001864433,
+        "point_seconds": 0.34270489995833486,
+        "preparation_seconds": 0.2575307000079192,
+        "wall_seconds": 0.7581697999848984
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-tool-pilot-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 --repeats 1",
+        "config_sha256": "6fe46f448a23a0e4476233da865d3f60aa9bc4c3ff02dbd42b575dd52c9c26fc",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "096b9906a34237615d620e06d8823081e6f9904bcba39cd0baf79af145c76225",
+        "notes": [
+          "Order: ('indexed_baseline', 'vectorized_sequential', 'vectorized_auto'); repetition 1; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in pilot-v1.registration.definition.json"
+        ],
+        "output_sha256": "c0a6e23f2f870aacc1fdf135d32fd7d712ba6e8991ea512cd6de0135ef9c125c"
+      },
+      "runtime_seconds": 0.7581697999848984,
+      "split_id": "0000000000-0000000115-cap-500-repeat-01",
+      "status": "success"
+    },
+    {
+      "failure_reason": "Complete numerical payload mismatch",
+      "method_id": "vectorized_sequential",
+      "metrics": {
+        "numerical_parity": 0.0,
+        "plane_seconds": 0.10435450001386926,
+        "point_seconds": 0.2843669999856502,
+        "preparation_seconds": 0.19362279999768361,
+        "wall_seconds": 0.582344299997203
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-tool-pilot-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 --repeats 1",
+        "config_sha256": "6fe46f448a23a0e4476233da865d3f60aa9bc4c3ff02dbd42b575dd52c9c26fc",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 1; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in pilot-v1.registration.definition.json"
+        ],
+        "output_sha256": "20947cac0f0122fc67c6e9ea0783ca35c52d5db3b2f8728fb9a0bfa8eba02520"
+      },
+      "runtime_seconds": 0.582344299997203,
+      "split_id": "0000000115-0000000230-cap-500-repeat-01",
+      "status": "failed"
+    },
+    {
+      "method_id": "vectorized_auto",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.13210950000211596,
+        "point_seconds": 0.3714005000074394,
+        "preparation_seconds": 0.17199669999536127,
+        "wall_seconds": 0.6755067000049166
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-tool-pilot-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 --repeats 1",
+        "config_sha256": "6fe46f448a23a0e4476233da865d3f60aa9bc4c3ff02dbd42b575dd52c9c26fc",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 1; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in pilot-v1.registration.definition.json"
+        ],
+        "output_sha256": "b39035e26340eb5846d0b7c1c47266bf2fe7a82da808037bfa5c23121404ab9d"
+      },
+      "runtime_seconds": 0.6755067000049166,
+      "split_id": "0000000115-0000000230-cap-500-repeat-01",
+      "status": "success"
+    },
+    {
+      "method_id": "indexed_baseline",
+      "metrics": {
+        "numerical_parity": 1.0,
+        "plane_seconds": 0.15892039996106178,
+        "point_seconds": 0.45777580002322793,
+        "preparation_seconds": 0.8300093999714591,
+        "wall_seconds": 1.4467055999557488
+      },
+      "provenance": {
+        "command": "tools/benchmark_registration_preparation.py ${DATASET_ROOT}/kitti_raw/2011_09_30/2011_09_30_drive_0018_sync --output-dir outputs/public-kitti-registration-preparation-tool-pilot-v1 --pair 0000000000:0000000115 --pair 0000000115:0000000230 --sizes 500 --repeats 1",
+        "config_sha256": "6fe46f448a23a0e4476233da865d3f60aa9bc4c3ff02dbd42b575dd52c9c26fc",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "input_sha256": "b64bbee5d00f455283f50f3c2be2f7c9301f3d2958608d8b116171e5f5d3b083",
+        "notes": [
+          "Order: ('vectorized_sequential', 'vectorized_auto', 'indexed_baseline'); repetition 1; shared host; no warmup.",
+          "Python 3.12.10; NumPy 2.3.4; SciPy 1.17.1; logical CPUs 12.",
+          "Wall includes fresh scan reads/hash verification, decoding, two-cloud voxel centroids and both solver calls with as_dict. All ICP iterations, holdout and diagnostics remain enabled. Prepared/output digesting and benchmark serialization are excluded.",
+          "Automatic multi-start: up to four workers for >=1500 source points, otherwise one; explicit sequential method uses one.",
+          "Complete numerical payload retained in pilot-v1.registration.definition.json"
+        ],
+        "output_sha256": "b39035e26340eb5846d0b7c1c47266bf2fe7a82da808037bfa5c23121404ab9d"
+      },
+      "runtime_seconds": 1.4467055999557488,
+      "split_id": "0000000115-0000000230-cap-500-repeat-01",
+      "status": "success"
+    }
+  ]
+}

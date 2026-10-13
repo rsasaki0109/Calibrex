@@ -1,0 +1,262 @@
+{
+  "provenance": {
+    "publication_commit": "85a3f0d037dbbc29d3ecbd8a50ae721ada34f8bc",
+    "publisher_sha256": "e1337dadc3938695fa60af50530ef37029ffd4b0d95d085758d73bc7e66a6cbc"
+  },
+  "files": {
+    "pilot/sources/benchmark_cuda_point_to_point_icp.py.txt": "9242c7c196531a22ab725a401f794f71a2eb02b7bd439e98779027af7648f8e8",
+    "pilot/sources/cuda_lidar_map_adapter.py.txt": "c4cbfb6434c6ae0cb91cd5fff38fb349cc959436344aab5737236ad6f5d6a8b6",
+    "pilot/sources/cuda_point_to_point_icp_adapter.py.txt": "ae5af897f152327e284dda3307b9baaef3d8d1d2c9a08825e110c92b0911bfce",
+    "pilot/sources/geometry.py.txt": "6597695de33360d44b8b18e457f84355df3ace30837462f4b9501193879d66aa",
+    "pilot/sources/holdout.py.txt": "24c0eee5b132cf535dbbfb98ceb4b5f5e1b9ebafce68962a6cef8cff6ff30854",
+    "pilot/sources/robust_point_to_point_icp_solver.py.txt": "507e5f4035158fc6121b33f793f95c82bf9985ab863dd2b5048647e10858e6fc",
+    "pilot/sources/_exact_neighbors.py.txt": "27665693aa10cc78e9e469fc6602c6332dcbc11aeb39c30129dbce9d9ffabf7f",
+    "results/1030b7f5074f8be83df162c84f9ff68f799301072b1b04b16a147bc65e0cbbda.json": "1030b7f5074f8be83df162c84f9ff68f799301072b1b04b16a147bc65e0cbbda",
+    "pilot/native.01.measurement.json": "de9c0549aaa9d85798da981a545eb8e3d8a36d0fefa0da36d8bac818bf20dc81",
+    "pilot/cuda.01.log.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "pilot/native.01.log.txt": "681a5453734d00d88a02e3bd2e5c44ba63b3bc890753655b12aeef7954ccc632",
+    "single/sources/benchmark_cuda_point_to_point_icp.py.txt": "9242c7c196531a22ab725a401f794f71a2eb02b7bd439e98779027af7648f8e8",
+    "single/sources/cuda_lidar_map_adapter.py.txt": "c4cbfb6434c6ae0cb91cd5fff38fb349cc959436344aab5737236ad6f5d6a8b6",
+    "single/sources/cuda_point_to_point_icp_adapter.py.txt": "ae5af897f152327e284dda3307b9baaef3d8d1d2c9a08825e110c92b0911bfce",
+    "single/sources/geometry.py.txt": "6597695de33360d44b8b18e457f84355df3ace30837462f4b9501193879d66aa",
+    "single/sources/holdout.py.txt": "24c0eee5b132cf535dbbfb98ceb4b5f5e1b9ebafce68962a6cef8cff6ff30854",
+    "single/sources/robust_point_to_point_icp_solver.py.txt": "507e5f4035158fc6121b33f793f95c82bf9985ab863dd2b5048647e10858e6fc",
+    "single/sources/_exact_neighbors.py.txt": "27665693aa10cc78e9e469fc6602c6332dcbc11aeb39c30129dbce9d9ffabf7f",
+    "single/cuda.01.measurement.json": "9169a923b598928f62560887440c9d813e6cdd1781900bcb5f3734d0beb8cfde",
+    "single/native.01.measurement.json": "f64b2d658886b2450ae4fc705e1738157287f27f4131b45839e14e3779697d55",
+    "single/cuda.01.log.txt": "dce5ba77264100a6413615f94d41590f6dc60502a65e5307643092ffee157a6a",
+    "single/native.01.log.txt": "58b553fd59718388fc0da4cbc6f3e46f89d5c714fab418b3384828bb9b7eb056",
+    "single/summary.json": "2933db2f6310b09f6857a3d9183d5377ae93617e1dee259cf412290ac0beff56",
+    "bounded/sources/benchmark_cuda_point_to_point_icp.py.txt": "9242c7c196531a22ab725a401f794f71a2eb02b7bd439e98779027af7648f8e8",
+    "bounded/sources/cuda_lidar_map_adapter.py.txt": "c4cbfb6434c6ae0cb91cd5fff38fb349cc959436344aab5737236ad6f5d6a8b6",
+    "bounded/sources/cuda_point_to_point_icp_adapter.py.txt": "ae5af897f152327e284dda3307b9baaef3d8d1d2c9a08825e110c92b0911bfce",
+    "bounded/sources/geometry.py.txt": "6597695de33360d44b8b18e457f84355df3ace30837462f4b9501193879d66aa",
+    "bounded/sources/holdout.py.txt": "24c0eee5b132cf535dbbfb98ceb4b5f5e1b9ebafce68962a6cef8cff6ff30854",
+    "bounded/sources/robust_point_to_point_icp_solver.py.txt": "507e5f4035158fc6121b33f793f95c82bf9985ab863dd2b5048647e10858e6fc",
+    "bounded/sources/_exact_neighbors.py.txt": "27665693aa10cc78e9e469fc6602c6332dcbc11aeb39c30129dbce9d9ffabf7f",
+    "bounded/cuda.01.measurement.json": "d3d69accc4e51471a1ce45dab1d689e4cb4ec950a669dd8d8cbb080f588a62db",
+    "bounded/cuda.02.measurement.json": "99afd4757f3d1f46fd28b72207de5399c88321a3e77e5cfd87f01e3a80fb7333",
+    "bounded/cuda.03.measurement.json": "f959d56e04497fdb63b725dffea07cb5ad310086cb4a4e409f98656fcfa7e316",
+    "bounded/native.01.measurement.json": "58342dd8a7ba1d317f8e4d6d74380c435b44f9ef5020e8ffff40c16e4911572d",
+    "bounded/native.02.measurement.json": "c848f2087c77ef9cfa8aaa6a32fab0146befba8940b1f43ddcdfb6f82f96e657",
+    "bounded/native.03.measurement.json": "690a2a5849b6626c60ee216ee4df500425ebfbd48a5ea0ea1d3fc3f623144d88",
+    "bounded/cuda.01.log.txt": "7bfba5ae1e369e0847c5fb2ee196b0dd77d1e8eab15742a0c45bf5482236962a",
+    "bounded/cuda.02.log.txt": "509116e899a27bc111f61aef7531458002eda9e0ddeba2e84c1bedb6cdc75460",
+    "bounded/cuda.03.log.txt": "2155844a992f4bf9cd99ecce1e0fecaabb3eba243ccb33d4747424dc3665e24f",
+    "bounded/native.01.log.txt": "34856a59e9f1503158c6cf477908a061ba17248ce15c21d542fabee97efcb277",
+    "bounded/native.02.log.txt": "738923dcb94e2783080f52bb7920a559b32b635248753aeaa3308b0826c9a475",
+    "bounded/native.03.log.txt": "83cf636b620f9a9397e1409db08898a548cfe69dee25068829be9f0fc17c06f3",
+    "bounded/summary.json": "ba655cc55505a86b3ff675c650bc7d1af74fe3de2ac6ff7c81e8471228ef9491",
+    "pre-guard/sources/benchmark_cuda_point_to_point_icp.py.txt": "22947e33248ef21264b4e4918a3d1ba2dc706550b71bdc59bf56f7ea2a0ec332",
+    "pre-guard/sources/cuda_lidar_map_adapter.py.txt": "c4cbfb6434c6ae0cb91cd5fff38fb349cc959436344aab5737236ad6f5d6a8b6",
+    "pre-guard/sources/cuda_point_to_point_icp_adapter.py.txt": "b3c2f4557d43a0175918517d95c64600a0f9ced98e9c09618dda8043550e6902",
+    "pre-guard/sources/geometry.py.txt": "6597695de33360d44b8b18e457f84355df3ace30837462f4b9501193879d66aa",
+    "pre-guard/sources/holdout.py.txt": "24c0eee5b132cf535dbbfb98ceb4b5f5e1b9ebafce68962a6cef8cff6ff30854",
+    "pre-guard/sources/robust_point_to_point_icp_solver.py.txt": "507e5f4035158fc6121b33f793f95c82bf9985ab863dd2b5048647e10858e6fc",
+    "pre-guard/sources/_exact_neighbors.py.txt": "27665693aa10cc78e9e469fc6602c6332dcbc11aeb39c30129dbce9d9ffabf7f",
+    "pre-guard/cuda.01.measurement.json": "818c28f449b591d76bb1eff040460b9b5198d28b5bdfc59136e1de5ec87c30b4",
+    "pre-guard/cuda.02.measurement.json": "9fd70be90943ce0eec0c73e9c859b7eedd2c42b367fd2479773e2619b658066e",
+    "pre-guard/cuda.03.measurement.json": "167d97d579fcca32d6e85282a3dc023ea7f8d8b1ebb3eab85bd948255ea7d03b",
+    "pre-guard/native.01.measurement.json": "bfc686ae5449a1655e40507014b1866a7dc5440723179d8cb47556ff79c0b329",
+    "pre-guard/native.02.measurement.json": "1b402f3d1ec8fa098edd06ffecfb670d21265484a942c10362a60a2abc2a63cf",
+    "pre-guard/native.03.measurement.json": "c50377b730d2e236bc1b44a87b6ba098542a9d19e5f3907274b3293af63c16de",
+    "pre-guard/cuda.01.log.txt": "2af7830224328c6c3be7a5f343594790420f7fc99cde1d3dce80045cf67e6c03",
+    "pre-guard/cuda.02.log.txt": "6c6d020d1b56fb2d2ec2385fa21c4eb6a9fe70761e61662fc88628b0a561c743",
+    "pre-guard/cuda.03.log.txt": "9c142f9eb76a08dc445c4e47d9e3b1590234425985a49ca70b5637fc6273a126",
+    "pre-guard/native.01.log.txt": "6fa39a6cb18cec89e94b837f49a5e37d98eb1bb9b8fba52911876dc5b98626a1",
+    "pre-guard/native.02.log.txt": "8c6e07a92f86cd6b762c2740134119d3802d25b628fe5053f0b9c44773a46d19",
+    "pre-guard/native.03.log.txt": "8de218984cb2ca0dc90a41232f352d26a193aecea05dbc5c64cfcb086963c511",
+    "pre-guard/summary.json": "618ff19411712f4727397a6e5a7189126e365b8f1942f0039ce957830503524f",
+    "final/sources/benchmark_cuda_point_to_point_icp.py.txt": "22947e33248ef21264b4e4918a3d1ba2dc706550b71bdc59bf56f7ea2a0ec332",
+    "final/sources/cuda_lidar_map_adapter.py.txt": "c4cbfb6434c6ae0cb91cd5fff38fb349cc959436344aab5737236ad6f5d6a8b6",
+    "final/sources/cuda_point_to_point_icp_adapter.py.txt": "c73982f263d1235a8539f33ef00331d684c0c925c5851a991f8b1f6c025a7b68",
+    "final/sources/geometry.py.txt": "6597695de33360d44b8b18e457f84355df3ace30837462f4b9501193879d66aa",
+    "final/sources/holdout.py.txt": "24c0eee5b132cf535dbbfb98ceb4b5f5e1b9ebafce68962a6cef8cff6ff30854",
+    "final/sources/robust_point_to_point_icp_solver.py.txt": "507e5f4035158fc6121b33f793f95c82bf9985ab863dd2b5048647e10858e6fc",
+    "final/sources/_exact_neighbors.py.txt": "27665693aa10cc78e9e469fc6602c6332dcbc11aeb39c30129dbce9d9ffabf7f",
+    "final/cuda.01.measurement.json": "dc4f76c951520ca8f11e97c245976ca4da2f1cb4b9d1688cb88526c8e9ee5cf3",
+    "final/cuda.02.measurement.json": "b8cbdde335142bb57a90c0bf817bcd3188133c434c2d759395c70b8bdc38c1e8",
+    "final/cuda.03.measurement.json": "b047592d730debb7dd87aaa799a37d0c50e0903ccdb1b4456e855eff13b49066",
+    "final/native.01.measurement.json": "b610494d453db40d28c77f284bbf2f9941641847a22c1bae91cf34376f2839d2",
+    "final/native.02.measurement.json": "e8284af667446e45efca44c500f5a237646d0373d1d836477e198d530e18f550",
+    "final/native.03.measurement.json": "1fb182ebb958117ee0721a7ae89123abecdf85abfa153a0a69a7de512a6f4b4c",
+    "final/cuda.01.log.txt": "08e7cb302cd1009d975017a918dfde0e00a27bf1ee38d91f7692833b2d613dc9",
+    "final/cuda.02.log.txt": "e180e8e756c99dee4021800bb7cf47087a2ad471ba2bc706b5d94902076cdf47",
+    "final/cuda.03.log.txt": "e4074cc4002546277df9b2ab33c8fa2dc8011f01f22ca0c6194c4d83b28f990e",
+    "final/native.01.log.txt": "c2dd14503e0cc9233e99d59792af89e0cdde2825a4b5b670bbcfef3d091e3ac3",
+    "final/native.02.log.txt": "04ce8cc7aa1c5cdab72080b5da36c2f2d1ae3cac06712e5e83194c2a36dc3c7e",
+    "final/native.03.log.txt": "867d8cba21b734feb472d51e4666a09f261047aff791143844aecaaf236e87d1",
+    "final/summary.json": "d4380f807d886564872de51e3238f31cb6f16bbbda6b02c7bedc533c5f849016",
+    "failed-native/sources/benchmark_cuda_point_to_point_icp.py.txt": "9242c7c196531a22ab725a401f794f71a2eb02b7bd439e98779027af7648f8e8",
+    "failed-native/sources/cuda_lidar_map_adapter.py.txt": "c4cbfb6434c6ae0cb91cd5fff38fb349cc959436344aab5737236ad6f5d6a8b6",
+    "failed-native/sources/cuda_point_to_point_icp_adapter.py.txt": "ae5af897f152327e284dda3307b9baaef3d8d1d2c9a08825e110c92b0911bfce",
+    "failed-native/sources/geometry.py.txt": "6597695de33360d44b8b18e457f84355df3ace30837462f4b9501193879d66aa",
+    "failed-native/sources/holdout.py.txt": "24c0eee5b132cf535dbbfb98ceb4b5f5e1b9ebafce68962a6cef8cff6ff30854",
+    "failed-native/sources/robust_point_to_point_icp_solver.py.txt": "507e5f4035158fc6121b33f793f95c82bf9985ab863dd2b5048647e10858e6fc",
+    "failed-native/sources/_exact_neighbors.py.txt": "27665693aa10cc78e9e469fc6602c6332dcbc11aeb39c30129dbce9d9ffabf7f",
+    "failed-native/native.01.log.txt": "0326d774e0e0ae9a362598e0655be02941c72196b0b083a97dbc3d9412bdba5d",
+    "auto-diagnostic/measurement.json": "9d59beefceaa56d3cc712dcaae5eccfefc1d2ebc8184a54606c4f486e2e4a01f",
+    "probe/probe.json": "76fbff76cb120ac2fec53597a015f8fa82e86ea4579845a5cfc40b774067f2bd",
+    "probe/launcher.py.txt": "d06c1e469374f66874d85681ea6b3a4785c6a264d82e0b39d928f4bdd1e21603",
+    "probe/sources/_exact_neighbors.py.txt": "27665693aa10cc78e9e469fc6602c6332dcbc11aeb39c30129dbce9d9ffabf7f",
+    "probe/sources/robust_point_to_point_icp_solver.py.txt": "616dcd00bd4c5338f5562e09b06f100cc69ca0855289f8d469edabc58bad195b",
+    "probe/sources/cuda_lidar_map_adapter.py.txt": "c4cbfb6434c6ae0cb91cd5fff38fb349cc959436344aab5737236ad6f5d6a8b6",
+    "publisher.py.txt": "205e560c6d2d6fc0e624783cc88cdd447664d0e27279dfc00f0f2e10e58f81d2"
+  },
+  "runs": {
+    "pilot": {
+      "workers": [
+        {
+          "measurement": "pilot/native.01.measurement.json",
+          "result": "results/1030b7f5074f8be83df162c84f9ff68f799301072b1b04b16a147bc65e0cbbda.json"
+        }
+      ],
+      "sources": "pilot/sources",
+      "compare": false
+    },
+    "single": {
+      "workers": [
+        {
+          "measurement": "single/cuda.01.measurement.json",
+          "result": "results/1030b7f5074f8be83df162c84f9ff68f799301072b1b04b16a147bc65e0cbbda.json"
+        },
+        {
+          "measurement": "single/native.01.measurement.json",
+          "result": "results/1030b7f5074f8be83df162c84f9ff68f799301072b1b04b16a147bc65e0cbbda.json"
+        }
+      ],
+      "sources": "single/sources",
+      "compare": true
+    },
+    "bounded": {
+      "workers": [
+        {
+          "measurement": "bounded/cuda.01.measurement.json",
+          "result": "results/1030b7f5074f8be83df162c84f9ff68f799301072b1b04b16a147bc65e0cbbda.json"
+        },
+        {
+          "measurement": "bounded/cuda.02.measurement.json",
+          "result": "results/1030b7f5074f8be83df162c84f9ff68f799301072b1b04b16a147bc65e0cbbda.json"
+        },
+        {
+          "measurement": "bounded/cuda.03.measurement.json",
+          "result": "results/1030b7f5074f8be83df162c84f9ff68f799301072b1b04b16a147bc65e0cbbda.json"
+        },
+        {
+          "measurement": "bounded/native.01.measurement.json",
+          "result": "results/1030b7f5074f8be83df162c84f9ff68f799301072b1b04b16a147bc65e0cbbda.json"
+        },
+        {
+          "measurement": "bounded/native.02.measurement.json",
+          "result": "results/1030b7f5074f8be83df162c84f9ff68f799301072b1b04b16a147bc65e0cbbda.json"
+        },
+        {
+          "measurement": "bounded/native.03.measurement.json",
+          "result": "results/1030b7f5074f8be83df162c84f9ff68f799301072b1b04b16a147bc65e0cbbda.json"
+        }
+      ],
+      "sources": "bounded/sources",
+      "compare": true
+    },
+    "pre-guard": {
+      "workers": [
+        {
+          "measurement": "pre-guard/cuda.01.measurement.json",
+          "result": "results/1030b7f5074f8be83df162c84f9ff68f799301072b1b04b16a147bc65e0cbbda.json"
+        },
+        {
+          "measurement": "pre-guard/cuda.02.measurement.json",
+          "result": "results/1030b7f5074f8be83df162c84f9ff68f799301072b1b04b16a147bc65e0cbbda.json"
+        },
+        {
+          "measurement": "pre-guard/cuda.03.measurement.json",
+          "result": "results/1030b7f5074f8be83df162c84f9ff68f799301072b1b04b16a147bc65e0cbbda.json"
+        },
+        {
+          "measurement": "pre-guard/native.01.measurement.json",
+          "result": "results/1030b7f5074f8be83df162c84f9ff68f799301072b1b04b16a147bc65e0cbbda.json"
+        },
+        {
+          "measurement": "pre-guard/native.02.measurement.json",
+          "result": "results/1030b7f5074f8be83df162c84f9ff68f799301072b1b04b16a147bc65e0cbbda.json"
+        },
+        {
+          "measurement": "pre-guard/native.03.measurement.json",
+          "result": "results/1030b7f5074f8be83df162c84f9ff68f799301072b1b04b16a147bc65e0cbbda.json"
+        }
+      ],
+      "sources": "pre-guard/sources",
+      "compare": true
+    },
+    "final": {
+      "workers": [
+        {
+          "measurement": "final/cuda.01.measurement.json",
+          "result": "results/1030b7f5074f8be83df162c84f9ff68f799301072b1b04b16a147bc65e0cbbda.json"
+        },
+        {
+          "measurement": "final/cuda.02.measurement.json",
+          "result": "results/1030b7f5074f8be83df162c84f9ff68f799301072b1b04b16a147bc65e0cbbda.json"
+        },
+        {
+          "measurement": "final/cuda.03.measurement.json",
+          "result": "results/1030b7f5074f8be83df162c84f9ff68f799301072b1b04b16a147bc65e0cbbda.json"
+        },
+        {
+          "measurement": "final/native.01.measurement.json",
+          "result": "results/1030b7f5074f8be83df162c84f9ff68f799301072b1b04b16a147bc65e0cbbda.json"
+        },
+        {
+          "measurement": "final/native.02.measurement.json",
+          "result": "results/1030b7f5074f8be83df162c84f9ff68f799301072b1b04b16a147bc65e0cbbda.json"
+        },
+        {
+          "measurement": "final/native.03.measurement.json",
+          "result": "results/1030b7f5074f8be83df162c84f9ff68f799301072b1b04b16a147bc65e0cbbda.json"
+        }
+      ],
+      "sources": "final/sources",
+      "compare": true
+    },
+    "auto-diagnostic": {
+      "workers": [
+        {
+          "measurement": "auto-diagnostic/measurement.json",
+          "result": "results/1030b7f5074f8be83df162c84f9ff68f799301072b1b04b16a147bc65e0cbbda.json"
+        }
+      ],
+      "sources": "pilot/sources",
+      "compare": false
+    }
+  },
+  "failures": [
+    {
+      "cohort": "pilot",
+      "log": "pilot/cuda.01.log.txt",
+      "stage": "worker exited without measurement or result",
+      "exit_code": 3221225477,
+      "original_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "result_available": false
+    },
+    {
+      "cohort": "unbounded-native",
+      "log": "failed-native/native.01.log.txt",
+      "stage": "native CPU worker access violation before any CUDA worker",
+      "exit_code": 3221225477,
+      "original_log_sha256": "d7403a10348c62a31717ca7e0b6bf6e45c5feba2bdce8215b5b03c585a983d84",
+      "result_available": false
+    }
+  ],
+  "complete_models": 22,
+  "publisher_portability": {
+    "original_sha256": "e1337dadc3938695fa60af50530ef37029ffd4b0d95d085758d73bc7e66a6cbc",
+    "portable_sha256": "205e560c6d2d6fc0e624783cc88cdd447664d0e27279dfc00f0f2e10e58f81d2",
+    "change": "split privacy-pattern literal without behavior changes"
+  },
+  "validation": {
+    "distinct_targeted_tests": 198,
+    "mypy_source_modules": 357,
+    "byte_identical_schemas": 126,
+    "strict_documentation_build": true
+  }
+}

@@ -1,0 +1,191 @@
+{
+  "provenance": {
+    "source_commit": "aa19ec5d4bf01e1167e70f48332e6e13d51263c0",
+    "source_sha256": {
+      "profile/sources/numba_continuous_time_adapter.py.txt": "a644c40104fba05acfceff736d177af5e3c6904cd792c13a25bd5d986489b20d",
+      "probes/threaded-summary/probe-launcher.py.txt": "40e0a91cec0c2511495ead175eab6c4718f1beba8291d4df87398746c80f4b12"
+    },
+    "python_version": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]"
+  },
+  "kernel_only": true,
+  "cases": [
+    {
+      "count": 600000,
+      "seed": 419,
+      "concurrent_callers": 1,
+      "input_sha256": "e22ed6f85d2d36e0b59de0c85b4911082acbe3a23fda53687f58038c104541e6",
+      "trials": [
+        {
+          "repeat": 1,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": 0.07635069999378175,
+          "candidate": 0.029865500051528215
+        },
+        {
+          "repeat": 2,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": 0.03411529993172735,
+          "baseline": 0.09323160001076758
+        },
+        {
+          "repeat": 3,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": 0.08315309998579323,
+          "candidate": 0.033203399972990155
+        },
+        {
+          "repeat": 4,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": 0.03333310002926737,
+          "baseline": 0.08611749997362494
+        },
+        {
+          "repeat": 5,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": 0.08047390007413924,
+          "candidate": 0.030271499999798834
+        },
+        {
+          "repeat": 6,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": 0.03374189999885857,
+          "baseline": 0.08722019998822361
+        },
+        {
+          "repeat": 7,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": 0.075286699924618,
+          "candidate": 0.036560599924996495
+        },
+        {
+          "repeat": 8,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": 0.03685190004762262,
+          "baseline": 0.07843100000172853
+        },
+        {
+          "repeat": 9,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": 0.0746144000440836,
+          "candidate": 0.03021569992415607
+        }
+      ]
+    },
+    {
+      "count": 600000,
+      "seed": 419,
+      "concurrent_callers": 3,
+      "input_sha256": "e22ed6f85d2d36e0b59de0c85b4911082acbe3a23fda53687f58038c104541e6",
+      "trials": [
+        {
+          "repeat": 1,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": 0.1372008000034839,
+          "candidate": 0.04198589990846813
+        },
+        {
+          "repeat": 2,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": 0.04326009994838387,
+          "baseline": 0.113987100077793
+        },
+        {
+          "repeat": 3,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": 0.12673729995731264,
+          "candidate": 0.03575559996534139
+        },
+        {
+          "repeat": 4,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": 0.03752200002782047,
+          "baseline": 0.12495279998984188
+        },
+        {
+          "repeat": 5,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": 0.1547260000370443,
+          "candidate": 0.04207019996829331
+        },
+        {
+          "repeat": 6,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": 0.04011009994428605,
+          "baseline": 0.1013754999730736
+        },
+        {
+          "repeat": 7,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": 0.1337416999740526,
+          "candidate": 0.043697600020095706
+        },
+        {
+          "repeat": 8,
+          "order": [
+            "candidate",
+            "baseline"
+          ],
+          "candidate": 0.042532000108622015,
+          "baseline": 0.10850820003543049
+        },
+        {
+          "repeat": 9,
+          "order": [
+            "baseline",
+            "candidate"
+          ],
+          "baseline": 0.15684059995692223,
+          "candidate": 0.038078100071288645
+        }
+      ]
+    }
+  ]
+}
