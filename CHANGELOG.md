@@ -15,7 +15,7 @@
   - **Hilti.**
     - A 1 deg turn of cam3 now fails its camera pairs, and attribution names cam3.
     - 31 camera-pair axes are judged on the two recordings, against 27 before.
-    - Linearisation about a wrong candidate left residuals of 0.4 to 1.6 px; they now
+    - Linearisation about a wrong candidate left residuals of 0.3 to 1.6 px; they now
       drop to 0.1 to 0.3 px.
     - The side pairs' pitch is now measured. It shows cam3's candidate about 0.38 deg
       off on both recordings, and a 0.5 deg disagreement between cam0–cam4 and

@@ -454,7 +454,7 @@ candidate attenuated, is now measured. It shows two things:
   (`warn`) and cam1–cam4 reads −0.02 deg. cam0 and cam1 agree to 0.05 deg, so around
   the triangle the two disagree by about 0.5 deg.
   * Started from candidates turned −0.5, 0 and +0.5 deg, each pair returns the same
-    reading within 0.1 deg. This is a pair-specific bias, not instability
+    reading within about 0.1 deg. This is a pair-specific bias, not instability
     ([benchmark](../benchmarks/hilti_fisheye_stereo_falsification.md#re-centring-the-rectification-2026-10-13)).
   * The closure report cannot see it. Its loops go through the IMU, whose
     `camera-imu` pitch is unjudged.

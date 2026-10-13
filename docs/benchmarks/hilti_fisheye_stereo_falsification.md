@@ -244,14 +244,31 @@ so a start-independent reading comes out the same each time. It does this with t
 re-centring and with the single measurement used before. `exp01`, 48 frames where all
 five cameras fired together:
 
-START_TABLE
+| pair | start (pitch) | re-centred: pitch, residual | single: pitch, residual |
+| --- | --- | --- | --- |
+| cam0–cam3 | −0.5 deg | +0.38, 0.17 px | +0.38, 0.17 px |
+| cam0–cam3 | 0 | +0.36, 0.14 px | +0.31, 0.66 px |
+| cam0–cam3 | +0.5 deg | +0.37, 0.32 px | −0.30 (unjudged), 1.60 px |
+| cam1–cam3 | −0.5 deg | +0.38, 0.18 px | +0.38, 0.18 px |
+| cam1–cam3 | 0 | +0.39, 0.13 px | +0.25 (unjudged), 0.43 px |
+| cam1–cam3 | +0.5 deg | +0.44, 0.11 px | −0.78 (unjudged), 0.97 px |
+| cam0–cam4 | −0.5 deg | −0.37 (unjudged), 0.12 px | `inconclusive` |
+| cam0–cam4 | 0 | −0.48 (unjudged), 0.13 px | −0.32 (unjudged), 0.29 px |
+| cam0–cam4 | +0.5 deg | −0.43, 0.20 px | −0.43, 0.20 px |
+| cam1–cam4 | −0.5 deg | −0.04, 0.20 px | +0.15, 0.40 px |
+| cam1–cam4 | 0 | −0.02, 0.19 px | −0.02, 0.19 px |
+| cam1–cam4 | +0.5 deg | +0.00, 0.28 px | −0.03, 0.23 px |
 
-* **The re-centred readings agree across the starts within 0.1 deg.** Their residuals
+The pitch is in degrees against the camchain. Where the start lands within 0.2 deg of
+the reading, the re-centring does nothing and the two methods agree.
+
+* **The re-centred readings agree across the starts within 0.11 deg.** Their residuals
   are 0.1 to 0.3 px.
-* **The single measurement does not.** Started 0.5 deg away from where the
-  re-centring converges, its residual grows to 0.4 to 1.6 px. It reads up to 0.15 deg
-  lower or collapses (`inconclusive`). The earlier side-pair readings were attenuated
-  by this linearisation about the candidate.
+* **The single measurement does not.** When the reading is 0.4 to 0.9 deg from the
+  start, the residual grows to 0.29 to 1.60 px. The reading is then attenuated (+0.31
+  and +0.25 instead of +0.37), lands on the wrong side (−0.78), or collapses
+  (`inconclusive`). The check's earlier readings were single measurements from the
+  candidate, the 0 rows.
 * **cam3's candidate pitch is about 0.38 deg off.** cam0–cam3 and cam1–cam3 agree, and
   cam0–cam3 reads +0.40 deg on `exp21`.
 * **cam0–cam4 and cam1–cam4 disagree on pitch by about 0.45 deg.** Each is stable
