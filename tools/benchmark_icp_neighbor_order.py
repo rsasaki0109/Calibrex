@@ -28,6 +28,13 @@ def _sha(raw: bytes) -> str:
 
 
 def _write(path: Path, model: object) -> None:
+    if isinstance(model, dict) and model.get("schema_version"):
+        import jsonschema
+
+        schema_path = (
+            Path(__file__).with_name("schemas") / "icp_neighbor_order_comparison.schema.json"
+        )
+        jsonschema.validate(model, json.loads(schema_path.read_bytes()))
     path.write_text(json.dumps(model, indent=2, allow_nan=False) + "\n", encoding="utf-8")
 
 
@@ -165,6 +172,8 @@ def _compare(args: argparse.Namespace) -> None:
     (root / "fixture.json").write_bytes(fixture_raw)
     identity = _identity()
     protocol = {
+        "schema_version": "calibrex.icp_neighbor_order_comparison/v0.1",
+        "kind": "protocol",
         "provenance": {
             "generator": "calibrex.icp_neighbor_order_comparison/v0.1",
             "current": identity,
@@ -229,7 +238,15 @@ def _compare(args: argparse.Namespace) -> None:
                 "exit_code": process.returncode,
             }
             trials.append(trial)
-            _write(root / "attempts.json", {"provenance": protocol["provenance"], "trials": trials})
+            _write(
+                root / "attempts.json",
+                {
+                    "schema_version": protocol["schema_version"],
+                    "kind": "attempts",
+                    "provenance": protocol["provenance"],
+                    "trials": trials,
+                },
+            )
             if process.returncode:
                 raise RuntimeError(f"worker failed; retained {output} and its log")
             record = json.loads((output / "measurement.json").read_bytes())
@@ -248,7 +265,15 @@ def _compare(args: argparse.Namespace) -> None:
                 raise RuntimeError("native worker imported CuPy")
             if _identity() != identity or _sha(Path(__file__).read_bytes()) != _sha(launcher_raw):
                 raise RuntimeError("HEAD or measured source changed during comparison")
-            _write(root / "attempts.json", {"provenance": protocol["provenance"], "trials": trials})
+            _write(
+                root / "attempts.json",
+                {
+                    "schema_version": protocol["schema_version"],
+                    "kind": "attempts",
+                    "provenance": protocol["provenance"],
+                    "trials": trials,
+                },
+            )
             print(
                 json.dumps(
                     {
@@ -274,6 +299,8 @@ def _compare(args: argparse.Namespace) -> None:
     _write(
         root / "summary.json",
         {
+            "schema_version": protocol["schema_version"],
+            "kind": "summary",
             "provenance": protocol["provenance"],
             "trials": trials,
             "whole_medians_s": whole,
