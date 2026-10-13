@@ -73,7 +73,7 @@ def _factor(observations):
 
 
 @pytest.mark.parametrize("weight", [0.0, 1.0])
-@pytest.mark.parametrize("count", [63, 64, 4097])
+@pytest.mark.parametrize("count", [63, 64, 8191, 8192])
 def test_initial_rank_and_complete_solver_history_match_the_full_diagnostic_path(weight, count):
     rng = np.random.default_rng(93)
     observations = [graph.LidarPointToPlaneObservation(
@@ -82,7 +82,7 @@ def test_initial_rank_and_complete_solver_history_match_the_full_diagnostic_path
                       rng.normal(size=(count, 3)).tolist(), strict=True)]
     factor, reference = _factor(observations), _factor(observations)
     expected = reference.evaluate().rank
-    assert factor._compiled_initial_rank([0.0]*6) == (expected if count >= 64 else None)
+    assert factor._compiled_initial_rank([0.0]*6) == (expected if count >= 8192 else None)
     # An instance hook forces the original public evaluation at solver entry.
     reference.evaluate = lambda correction: LidarRigPointToPlaneFactor.evaluate(
         reference, correction,
@@ -96,7 +96,7 @@ def test_initial_rank_and_complete_solver_history_match_the_full_diagnostic_path
 def test_compiled_initial_rank_avoids_unused_normalization_and_honors_public_hooks(monkeypatch):
     observations = [graph.LidarPointToPlaneObservation(
         (1.0, 0.2, 0.3), (0.1, 0.1, 0.1), (0.0, 0.0, 1.0),
-    )]*64
+    )]*8192
     factor = _factor(observations)
     def unexpected(*args):
         raise AssertionError("rank does not need range normalization")

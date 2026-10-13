@@ -304,7 +304,8 @@ class LidarRigPointToPlaneFactor:
     def _compiled_initial_rank(self, correction: Sequence[float]) -> int | None:
         # The optimizer consumes only rank at entry. Full public diagnostics
         # remain available and are still produced for the final calibration.
-        if (type(self) is not LidarRigPointToPlaneFactor or "evaluate" in self.__dict__
+        if (self._observation_count() < 8192 or type(self) is not LidarRigPointToPlaneFactor
+                or "evaluate" in self.__dict__
                 or type(self).evaluate is not _NATIVE_EVALUATE):
             return None
         dense = self._compiled_linearization(correction)
