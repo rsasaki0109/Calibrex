@@ -111,7 +111,8 @@ class _CudaRigidSource:
                     float(np.max(np.abs(transform.translation_m), initial=0.)))
         error = 512*np.finfo(np.float64).eps*scale*max(1., float(np.linalg.norm(rotation, 1)))
         minimum = float(np.linalg.svd(rotation, compute_uv=False)[-1])
-        if not np.isfinite(error) or not .999999999999 <= minimum <= 1.000000000001:
+        if (scale >= 1e50 or not np.isfinite(error)
+            or not .999999999999 <= minimum <= 1.000000000001):
             return _ExactNeighbors(transformed_source).nearest(points)[0]
         rows = np.flatnonzero(distance[:, 1]-distance[:, 0] <= 2*error)
         for row in rows:

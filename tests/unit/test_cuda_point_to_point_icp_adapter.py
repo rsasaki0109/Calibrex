@@ -121,3 +121,14 @@ def test_empty_result_keeps_provenance():
     assert result.result.status == "insufficient_correspondences"
     assert result.provenance["gpu_query_calls"] == 0
     assert result.provenance["target_snapshots"] == 0
+
+
+@pytest.mark.parametrize("translation", [1e60, 1e160, 1e300])
+def test_extreme_translation_uses_native_search_without_overflowing_repair_radius(translation):
+    raw = np.random.default_rng(55).normal(size=(1200, 3))
+    transform = SE3((translation, translation, translation), (0., 0., 0., 1.))
+    moved = _transform_points(raw, transform)
+    queries = moved[:13].copy()
+    search = _CudaRigidSource(raw, cp.cuda.runtime.getDevice())
+    np.testing.assert_array_equal(search.nearest(moved, queries, transform),
+                                  _ExactNeighbors(moved).nearest(queries)[0])
