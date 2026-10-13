@@ -106,6 +106,15 @@ def _digest(path: Path, algorithm: str = "sha256") -> str:
     return digest.hexdigest()
 
 
+def _numba_cache_directory(
+    output: Path, scope: str, policy: str, method: str, repeat: int,
+) -> Path:
+    """Keep compiled methods and cold repetitions in separate cache directories."""
+    name = (f"{method}.repeat-{repeat:02d}" if policy == "cold" else
+            method if scope in ("compiled", "cuda", "cuda-full", "cpu-full") else "shared")
+    return output / "numba-cache" / name
+
+
 def _canonical(payload: dict) -> str:
     """Normalize only platform path separators; keep all values and provenance."""
     def visit(value):
@@ -546,7 +555,7 @@ def main(argv: list[str] | None = None) -> None:
     if config.dataset.type != "rosbag2":
         raise ValueError("public adaptive benchmark requires the converted rosbag2 fixture")
     factor = config.pipeline.factors.get("lidar_rig_point_to_plane")
-    if args.baseline_scope in ("compiled", "cuda", "cuda-full") and (
+    if args.baseline_scope in ("compiled", "cuda", "cuda-full", "cpu-full") and (
         factor is None or factor.options.get("continuous_time_query_backend") != "numba_cpu"
     ):
         raise ValueError("compiled scope requires continuous_time_query_backend: numba_cpu")
@@ -601,9 +610,8 @@ def main(argv: list[str] | None = None) -> None:
             if args.baseline_query_backend is not None:
                 command.extend(["--baseline-query-backend", args.baseline_query_backend])
             print(f"START {repeat} {method}", flush=True)
-            cache_directory = args.output_dir / "numba-cache" / (
-                f"{method}.repeat-{repeat:02d}" if args.numba_cache_policy == "cold" else
-                method if args.baseline_scope in ("compiled", "cuda", "cuda-full") else "shared"
+            cache_directory = _numba_cache_directory(
+                args.output_dir, args.baseline_scope, args.numba_cache_policy, method, repeat,
             )
             cache_directory.mkdir(parents=True, exist_ok=True)
             environment["NUMBA_CACHE_DIR"] = str(cache_directory)

@@ -357,6 +357,19 @@ def test_split_binding_hashes_the_actual_capped_disjoint_point_identities():
     )
 
 
+@pytest.mark.parametrize("scope", ["cpu-full", "compiled", "cuda", "cuda-full"])
+@pytest.mark.parametrize("policy", ["persistent", "cold"])
+def test_compiled_methods_have_independent_cache_roots_and_cold_repeats(tmp_path, scope, policy):
+    baseline = benchmark._numba_cache_directory(tmp_path, scope, policy, "baseline", 1)
+    candidate = benchmark._numba_cache_directory(tmp_path, scope, policy, "sparse", 1)
+    assert baseline != candidate
+    baseline.mkdir(parents=True)
+    (baseline / "compiled.nbc").write_bytes(b"baseline compiler cache")
+    assert not candidate.exists()
+    second = benchmark._numba_cache_directory(tmp_path, scope, policy, "baseline", 2)
+    assert (second == baseline) == (policy == "persistent")
+
+
 def test_runtime_scope_contains_all_geometry_interpolation_and_hash_overlap_modules():
     assert set(benchmark.RUNTIME_MODULES) == {
         "calibrex.data.livox", "calibrex.data.odometry_track",
