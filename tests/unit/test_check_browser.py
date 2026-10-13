@@ -89,6 +89,7 @@ def test_plan_of_the_sample_bag() -> None:
     ]
     skipped = {p.pair: p.reason_code for p in artifact.pairs if p.status == "skipped"}
     assert skipped == {
+        "camera-camera": "missing_topic",
         "lidar-vehicle": "no_vehicle_frame",
         "imu-vehicle": "no_vehicle_frame",
         "ins-lidar": "missing_topic",

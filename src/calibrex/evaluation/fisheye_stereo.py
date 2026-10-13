@@ -17,9 +17,10 @@ the left camera's frame can be judged with the stereo-depth estimators unchanged
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TypeAlias
+from typing import Protocol, TypeAlias
 
 import numpy as np
+from numpy.lib.stride_tricks import sliding_window_view
 from numpy.typing import NDArray
 from scipy import ndimage
 
@@ -72,11 +73,55 @@ class EquidistantCamera:
 
 
 @dataclass(frozen=True)
+class RadtanCamera:
+    """A pinhole camera with radial-tangential distortion (``k1 k2 p1 p2 [k3]``)."""
+
+    fx: float
+    fy: float
+    cx: float
+    cy: float
+    distortion: tuple[float, ...]
+    width: int
+    height: int
+
+    def project(self, points: FloatArray) -> tuple[FloatArray, FloatArray, NDArray[np.bool_]]:
+        """Pixels ``(u, v)`` of camera-frame points, and which are in front of the camera."""
+
+        z = points[:, 2]
+        safe = np.where(np.abs(z) > 1.0e-12, z, 1.0e-12)
+        x, y = points[:, 0] / safe, points[:, 1] / safe
+        k1, k2, p1, p2, k3 = (tuple(self.distortion) + (0.0,) * 5)[:5]
+        r2 = x * x + y * y
+        radial = 1.0 + r2 * (k1 + r2 * (k2 + r2 * k3))
+        xd = x * radial + 2.0 * p1 * x * y + p2 * (r2 + 2.0 * x * x)
+        yd = y * radial + p1 * (r2 + 2.0 * y * y) + 2.0 * p2 * x * y
+        return self.fx * xd + self.cx, self.fy * yd + self.cy, z > 0.0
+
+
+class StereoCamera(Protocol):
+    """What rectification needs of a camera: its focal lengths, size and projection."""
+
+    @property
+    def fx(self) -> float: ...
+
+    @property
+    def fy(self) -> float: ...
+
+    @property
+    def width(self) -> int: ...
+
+    @property
+    def height(self) -> int: ...
+
+    def project(self, points: FloatArray) -> tuple[FloatArray, FloatArray, NDArray[np.bool_]]: ...
+
+
+@dataclass(frozen=True)
 class FisheyeStereoRectification:
     """A rectified fisheye pair: shared pinhole camera, rotations and resampling maps."""
 
-    left: EquidistantCamera
-    right: EquidistantCamera
+    left: StereoCamera
+    right: StereoCamera
     rectified_from_left: FloatArray
     """3x3 rotation from the left camera's frame into the rectified frame."""
     rectified_from_right: FloatArray
@@ -112,8 +157,8 @@ class FisheyeStereoRectification:
 
 
 def rectify_fisheye_pair(
-    left: EquidistantCamera,
-    right: EquidistantCamera,
+    left: StereoCamera,
+    right: StereoCamera,
     right_from_left: FloatArray,
     *,
     focal_scale: float = 1.0,
@@ -261,6 +306,7 @@ def vertical_offset_samples(
         if len(strong) == 0:
             continue
         picks = strong[rng.choice(len(strong), min(patches_per_pair, len(strong)), replace=False)]
+        size = 2 * half_px + 1
         for row, col in picks:
             rows = slice(row - half_px, row + half_px + 1)
             cols = slice(col - half_px, col + half_px + 1)
@@ -269,17 +315,18 @@ def vertical_offset_samples(
             norm = np.sqrt((patch**2).sum())
             if norm < 1.0e-6:
                 continue
-            scores = np.full((2 * rows_px + 1, max_disparity_px + 1), -2.0)
-            for i, dy in enumerate(range(-rows_px, rows_px + 1)):
-                for dx in range(max_disparity_px + 1):
-                    window = right[
-                        row + dy - half_px : row + dy + half_px + 1,
-                        col - dx - half_px : col - dx + half_px + 1,
-                    ]
-                    window = window - window.mean()
-                    scores[i, dx] = (patch * window).sum() / max(
-                        norm * np.sqrt((window**2).sum()), 1.0e-9
-                    )
+            # every window of the right image within rows_px rows and max_disparity_px
+            # columns to the left: windows[i, j] sits rows_px - i rows up and
+            # max_disparity_px - j columns left
+            strip = right[
+                row - rows_px - half_px : row + rows_px + half_px + 1,
+                col - max_disparity_px - half_px : col + half_px + 1,
+            ]
+            windows = sliding_window_view(strip, (size, size))
+            centred = windows - windows.mean(axis=(2, 3), keepdims=True)
+            energy = np.sqrt((centred**2).sum(axis=(2, 3)))
+            scores = (centred * patch).sum(axis=(2, 3)) / np.maximum(norm * energy, 1.0e-9)
+            scores = scores[:, ::-1]  # column j now holds disparity j
             i, dx = np.unravel_index(int(np.argmax(scores)), scores.shape)
             if scores[i, dx] < min_zncc or i in (0, 2 * rows_px):
                 continue

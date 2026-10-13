@@ -2382,6 +2382,136 @@ def run_camera_lidar(ctx: PairContext) -> EstimatorRun:
     )
 
 
+def run_camera_camera(ctx: PairContext) -> EstimatorRun:
+    """A stereo pair's ``T_first_second`` rotation from its rectified row offsets."""
+
+    from calibrex.core.provenance import git_commit
+    from calibrex.core.stereo_rotation import StereoRotationProvenance, load_stereo_rotation
+    from calibrex.evaluation.stereo_rotation import (
+        StereoRotationOptions,
+        estimate_stereo_rotation,
+        read_stereo_pairs,
+        stereo_camera,
+    )
+
+    topics: list[str] = []
+    for key in ("first", "second"):
+        candidates = ctx.sensor_topics.get(key, ())
+        image = next((t for t in candidates if ctx.topic_types.get(t) == IMAGE_TYPE), None)
+        if image is None:
+            raise CheckSkipError(
+                "unsupported_sensor",
+                f"camera topic(s) {', '.join(candidates)} are not sensor_msgs/Image "
+                "(compressed images are not supported by the check yet)",
+            )
+        topics.append(image)
+    left_topic, right_topic = topics
+    left_frame, right_frame = ctx.pair.frames[0], ctx.pair.frames[1]
+    left_model, left_source, _ = resolve_camera_intrinsics(ctx, left_topic, left_frame)
+    right_model, right_source, _ = resolve_camera_intrinsics(ctx, right_topic, right_frame)
+    ctx.controls.progress(f"camera-camera: {left_topic} + {right_topic}")
+    candidate = ctx.candidate  # T_first_second
+    options = StereoRotationOptions(max_seconds=ctx.controls.max_duration_s)
+    command = ["calibrex", "check", str(ctx.bag), "camera-camera", left_topic, right_topic]
+
+    def compute() -> Any:
+        pairs = read_stereo_pairs(ctx.bag, left_topic, right_topic, options)
+        if not pairs:
+            raise CheckSkipError(
+                "missing_topic",
+                f"no image of {left_topic} and {right_topic} within "
+                f"{options.max_gap_s * 1e3:g} ms of each other",
+            )
+        left_height, left_width = pairs[0][0].shape
+        right_height, right_width = pairs[0][1].shape
+        return estimate_stereo_rotation(
+            pairs,
+            stereo_camera(left_model, left_width, left_height),
+            stereo_camera(right_model, right_width, right_height),
+            candidate,
+            provenance=StereoRotationProvenance(
+                generator="calibrex.check.estimators.run_camera_camera",
+                generator_version="0.1",
+                git_commit=git_commit(),
+                command=command,
+                left_topic=left_topic,
+                right_topic=right_topic,
+                left_frame=left_frame,
+                right_frame=right_frame,
+                intrinsics_source=f"{left_source}; {right_source}",
+                bag_sha256=ctx.controls.bag_sha256 or None,
+            ),
+            options=options,
+        )
+
+    artifact, cached = cached_artifact(
+        ctx.controls.cache,
+        ctx.controls.bag_sha256,
+        "stereo_rotation",
+        {
+            "left_topic": left_topic,
+            "right_topic": right_topic,
+            "left_camera": left_model,
+            "right_camera": right_model,
+            "candidate": [round(float(v), 9) for v in candidate.ravel()],
+            "options": options,
+        },
+        loader=load_stereo_rotation,
+        compute=compute,
+        rebase=lambda hit: hit,
+    )
+    by_name = {axis.name: axis for axis in artifact.axes}
+    estimates: list[AxisEstimate] = []
+    for name in ("roll", "pitch", "yaw"):
+        axis = by_name.get(name)
+        if axis is None:
+            estimates.append(
+                AxisEstimate(
+                    name, "deg", 0.0, 0.0, False, "; ".join(artifact.policy_reasons), "no_estimate"
+                )
+            )
+            continue
+        response = axis.control_response
+        control_missed = response is None or not (
+            options.min_response <= response <= options.max_response
+        )
+        estimates.append(
+            AxisEstimate(
+                name,
+                "deg",
+                axis.candidate_error_deg,
+                axis.std_deg,
+                axis.observable,
+                None if axis.observable else axis.reason,
+                None
+                if axis.observable
+                else "control_not_detected"
+                if control_missed
+                else "unobservable",
+            )
+        )
+    return EstimatorRun(
+        estimator=artifact.method,
+        artifacts=(
+            EvidenceArtifact(
+                "rotation",
+                artifact,
+                artifact.policy_status,
+                cached if ctx.controls.cache is not None else None,
+            ),
+        ),
+        solved=artifact.policy_status != "inconclusive",
+        policy_status=artifact.policy_status,
+        policy_reasons=tuple(artifact.policy_reasons),
+        estimates=tuple(estimates),
+        compared=candidate,
+        notes=(
+            f"intrinsics: {left_source}; {right_source}",
+            "rotation only: the translation between the cameras is not judged",
+        ),
+    )
+
+
 ESTIMATORS: dict[str, Adapter] = {
     "imu-lidar": run_imu_lidar,
     "gnss-lidar": run_gnss_lidar,
@@ -2390,6 +2520,7 @@ ESTIMATORS: dict[str, Adapter] = {
     "camera-imu": run_camera_imu,
     "camera-focal": run_camera_focal,
     "camera-lidar": run_camera_lidar,
+    "camera-camera": run_camera_camera,
     "lidar-vehicle": run_lidar_vehicle,
     "imu-vehicle": run_imu_vehicle,
     "ins-lidar": run_ins_lidar,

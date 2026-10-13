@@ -94,6 +94,7 @@ ValidationKind = Literal[
     "gnss-imu-lever-arm",
     "lidar-wheel-odometry",
     "camera-focal-scale",
+    "stereo-rotation",
     "camera-lidar-edge",
     "calibration-check",
     "bag-estimate",

@@ -466,15 +466,13 @@ def _run_pairs(
             )
             continue
         sensor_topics = _sensor_topics(record, topics)
-        if run.camera is not None and record.pair in {"camera-imu", "camera-focal", "camera-lidar"}:
-            camera_topics = sensor_topics.get("camera", ())
-            if run.camera not in camera_topics and run.camera not in record.frames:
-                results.append(
-                    _skipped(
-                        record, "not_selected", f"camera {run.camera} was not selected by --camera"
-                    )
+        if not _camera_selected(record, sensor_topics, run.camera):
+            results.append(
+                _skipped(
+                    record, "not_selected", f"camera {run.camera} was not selected by --camera"
                 )
-                continue
+            )
+            continue
         started_pairs += 1
         results.append(
             _run_one(
@@ -539,11 +537,22 @@ def _will_run(
         return False
     if run.pairs is not None and record.pair not in run.pairs:
         return False
-    if run.camera is not None and record.pair in {"camera-imu", "camera-focal", "camera-lidar"}:
-        camera_topics = _sensor_topics(record, topics).get("camera", ())
-        if run.camera not in camera_topics and run.camera not in record.frames:
-            return False
-    return True
+    return _camera_selected(record, _sensor_topics(record, topics), run.camera)
+
+
+CAMERA_PAIRS = frozenset({"camera-imu", "camera-focal", "camera-lidar", "camera-camera"})
+
+
+def _camera_selected(
+    record: CheckPairRecord, sensor_topics: Mapping[str, Sequence[str]], camera: str | None
+) -> bool:
+    """Whether ``--camera`` keeps a camera pair: one of its cameras is the selected one."""
+
+    if camera is None or record.pair not in CAMERA_PAIRS:
+        return True
+    keys = ("first", "second") if record.pair == "camera-camera" else ("camera",)
+    camera_topics = [topic for key in keys for topic in sensor_topics.get(key, ())]
+    return camera in camera_topics or camera in record.frames
 
 
 def _scan_total(

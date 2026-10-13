@@ -192,6 +192,10 @@ def _rig_tree() -> StaticFrameTree:
 def test_all_pairs_planned_with_composed_transforms() -> None:
     records = plan_pairs(_rig_topics(), _rig_tree(), vehicle_frame="base")
 
+    # the rig has one camera: the stereo pair is the only one it cannot form
+    stereo = _by_pair(records, "camera-camera")
+    assert [(r.status, r.reason_code) for r in stereo] == [("skipped", "missing_topic")]
+    records = [r for r in records if r.pair != "camera-camera"]
     assert {r.status for r in records} == {"planned"}
     names = [r.pair for r in records]
     assert names == [
@@ -468,3 +472,17 @@ def test_encoded_pointcloud_topic_is_flagged_and_raw_one_is_kept(tmp_path: Path)
 
     assert flagged[0].ignored_reason is not None and "Draco" in flagged[0].ignored_reason
     assert flagged[1].ignored_reason is None
+
+
+def test_two_cameras_form_a_stereo_pair_with_the_composed_transform() -> None:
+    topics = [_topic("/right/image", "camera", "cam_r"), _topic("/left/image", "camera", "cam_l")]
+    tree = _tree(("base", "cam_l", 0.5), ("base", "cam_r", 0.6))
+
+    [record] = _by_pair(plan_pairs(topics, tree), "camera-camera")
+
+    assert record.status == "planned"
+    assert record.frames == ["cam_l", "cam_r"]
+    assert record.candidate_transform is not None
+    assert record.candidate_transform.parent_frame == "cam_l"
+    assert record.candidate_transform.child_frame == "cam_r"
+    assert record.candidate_transform.translation_m[0] == pytest.approx(0.1)

@@ -131,6 +131,11 @@ row, on the patches whose texture constrains rows, with a jackknife over frames.
   extrinsic that drifts by 0.1 to 0.2 deg between sessions is itself a finding: it is
   the kind of drift `calibrex check` exists to catch.
 
+The `camera-camera` pair of `calibrex check` now measures this rotation on any stereo
+bag. On these recordings it reads −0.12 deg about cam0's x on `exp21` and +0.05 deg on
+`exp01`, and fails a camchain turned 1 deg on `exp01`; see
+[the tutorial](../tutorials/calibrex_check.md#camera-camera-a-stereo-pairs-rotation).
+
 ## Earlier run: stamp pairing, no motion
 
 The first run paired images and scans by their stamps and left the points where they

@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- **`calibrex check` judges a stereo pair's rotation: the `camera-camera` pair.**
+  - **Planning.** It is planned for every two cameras the candidate tree connects
+    (`T_first_second`). Intrinsics come from a Kalibr camchain or `CameraInfo`, and
+    the images must be taken within 2 ms of each other.
+  - **The method.** It rectifies the pair with the candidate and fits the right image's
+    row offsets (`estimate_stereo_rotation`). It judges roll, pitch and yaw about the
+    first camera, each with a block jackknife and a 0.2 deg control. The translation
+    is not judged, and `calibrex estimate` does not export the pair.
+  - **Evidence.** A `slac.stereo_rotation/v0.1` artifact (new schema). The pair-name
+    enums of the check, estimate and drift schemas widen.
+  - **Supporting changes.** `--camera` keeps a pair when either of its cameras is
+    selected. Rectification also takes radial-tangential pinhole cameras
+    (`RadtanCamera`, checked against OpenCV). Patch matching is vectorised: the same
+    samples, ten times faster.
+  - **Hilti 2022 (`exp01`, `exp21`).**
+    * The dataset camchain passes, with every axis observed (std 0.002 to 0.06 deg).
+    * A camchain with cam1 turned 1 deg fails on `exp01` (1.01 deg). On `exp21` it
+      reads 0.895 deg, so `warn`: the turn about the vertical axis is the weakest.
+
 - **The Hilti pair's vertical offset is a relative pitch of the cameras that differs
   between recordings (development run).**
   - **The new function.** `vertical_offset_samples` returns every matched patch's

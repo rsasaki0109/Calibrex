@@ -5,7 +5,7 @@ produces a calibration when there is none, `check` judges it on another recordin
 [`calibrex drift`](calibrex_drift.md) compares recordings over time. [The workflow page](workflow.md)
 shows them together; this page is the full `check` reference.
 
-Status: **Phase D** (rig closure, HTML report, the 1 degree demo) on top of **Phase C2** (imu-lidar, lidar-lidar, camera-imu, camera-lidar, the GNSS pairs gnss-lidar and
+Status: **Phase D** (rig closure, HTML report, the 1 degree demo) on top of **Phase C2** (imu-lidar, lidar-lidar, camera-imu, camera-lidar, camera-camera, the GNSS pairs gnss-lidar and
 gnss-imu, and the opt-in vehicle pairs lidar-vehicle, imu-vehicle, ins-lidar,
 lidar-wheel_odometry). The command reads the
 calibration deployed on a robot, works out which sensor pairs a bag can audit,
@@ -15,7 +15,9 @@ judges the deployed (candidate) transform against it: `pass`, `warn`, `fail` or
 wired; `camera-focal` judges the deployed focal lengths rather than an
 extrinsic (see [camera-focal](#camera-focal-the-deployed-focal-length)), and
 `camera-lidar` judges the camera-LiDAR **rotation** only
-(see [camera-lidar](#camera-lidar-targetless-edge-alignment)).
+(see [camera-lidar](#camera-lidar-targetless-edge-alignment)), and so does
+`camera-camera` for a stereo pair
+(see [camera-camera](#camera-camera-a-stereo-pairs-rotation)).
 
 ```bash
 calibrex check my_bag/ --plan --output check.json                 # fast: what could be checked
@@ -92,13 +94,13 @@ sensor.
 ## Pairs
 
 Candidates: `imu-lidar`, `lidar-lidar`, `camera-imu`, `camera-focal`, `camera-lidar`,
-`gnss-lidar`, `gnss-imu`, `lidar-vehicle`, `imu-vehicle`, `ins-lidar`,
+`camera-camera`, `gnss-lidar`, `gnss-imu`, `lidar-vehicle`, `imu-vehicle`, `ins-lidar`,
 `lidar-wheel_odometry`. A pair is `planned` when both frames are in the tree and
 connected and the topics exist. Otherwise it is `skipped` with a reason code:
 
 | Code | Meaning |
 | --- | --- |
-| `missing_topic` | no topic for a required role (or fewer than two LiDARs for `lidar-lidar`) |
+| `missing_topic` | no topic for a required role (or fewer than two LiDARs for `lidar-lidar`, two cameras for `camera-camera`); for `camera-camera`, also no two images within 2 ms of each other |
 | `no_candidate_calibration` | the bag has no `/tf_static` and no `--tf` was given |
 | `no_vehicle_frame` | `--vehicle-frame` was not given, so vehicle pairs are not checked |
 | `frame_not_in_tree` | a sensor topic maps to no frame, or to a frame the tree lacks |
@@ -107,7 +109,7 @@ connected and the topics exist. Otherwise it is `skipped` with a reason code:
 | `method_not_wired` | no check method exists for the pair yet (none is unwired in this version; kept for older artifacts) |
 | `not_selected` | a wired pair that `--pairs` or `--camera` left out |
 | `unsupported_sensor` | the sensor cannot be read by the estimator: a LiDAR that is not `PointCloud2`, a LiDAR without a per-point time field only when `--lidar-lidar-deskew`, `--gnss-lidar-deskew` or `--imu-lidar-deskew` is forced to `constant_velocity`/`gyro` (by default such clouds run as rigid scans), a compressed camera image |
-| `missing_intrinsics` | `camera-imu` and `camera-lidar` need intrinsics: a Kalibr camchain given with `--tf`, or a `CameraInfo` topic next to the image topic |
+| `missing_intrinsics` | `camera-imu`, `camera-lidar` and `camera-camera` need intrinsics: a Kalibr camchain given with `--tf`, or a `CameraInfo` topic next to the image topic |
 | `missing_dependency` | `camera-imu` needs OpenCV (`pip install 'calibrex[opencv]'`); `gnss-imu` needs this check's own `gnss-lidar` and `imu-lidar` results; `camera-focal` needs this check's own `camera-imu` result for the same camera (selected, solved, not failed, rotation std at most 0.5 deg about every axis) |
 
 A run can also leave a pair `inconclusive` with one of `estimator_error` (the
@@ -281,6 +283,61 @@ that was `unchecked` (std over 0.005).
   and `camera-focal` 80-130 s per camera (about 3-4.5 min together); re-check
   with another candidate or `--sigma-k`: 0.03 s each from the cache, 2.8 s wall.
 * exp07 was not run; exp01-exp04 are held out and were not touched.
+
+## camera-camera: a stereo pair's rotation
+
+`camera-camera` is planned for every two cameras whose frames the candidate tree
+connects, with `T_first_second` (the first camera's frame sorts first). It needs both
+cameras' intrinsics (a Kalibr camchain with `--tf`, or `CameraInfo` topics) and image
+pairs taken within 2 ms of each other, so a hardware-synchronised pair. It uses the
+images alone:
+
+1. Up to 48 image pairs, one per second, are rectified with the candidate, so that a
+   scene point lands on the same row of both images when the candidate is right.
+   Equidistant (fisheye), radial-tangential and undistorted pinhole models are
+   supported.
+2. Textured patches are matched between the rectified images. A wrong candidate
+   rotation shifts the right image's rows in a pattern that names it:
+   * a turn about the baseline shifts every row;
+   * one about the optical axis tilts the rows across the image;
+   * one about the vertical axis bends them towards the corners.
+
+   A term in disparity absorbs a vertical baseline component.
+3. The fit's error is reported about the first camera's x, y and z axes as roll, pitch
+   and yaw, in the check's convention (`rotvec(R_candidate R_estimate^T)`). Each axis
+   has a block-jackknife std over frames and a control: the candidate is turned
+   0.2 deg about the axis and the estimate must follow.
+
+The translation is not judged, and `calibrex estimate` does not export the pair. The
+evidence is a `slac.stereo_rotation/v0.1` artifact.
+
+On Hilti 2022's alphasense cam0 and cam1 (equidistant, Kalibr camchain, 48 pairs):
+
+```bash
+calibrex check exp01_head.bag --tf calib_3_cam0-1-camchain-imucam.yaml --pairs camera-camera
+```
+
+| recording | camchain | roll / pitch / yaw error (deg) | verdict |
+| --- | --- | --- | --- |
+| `exp01` | the dataset's | +0.054 / +0.051 / +0.005 | `pass` |
+| `exp01` | cam1 turned 1 deg about cam0's y | +0.048 / +1.010 / +0.008 | `fail` (pitch) |
+| `exp21` | the dataset's | −0.121 / −0.030 / −0.015 | `pass` |
+| `exp21` | cam1 turned 1 deg about cam0's y | −0.098 / +0.895 / −0.030 | `warn` (pitch) |
+
+* **All three axes are observed** on every run: jackknife std 0.002 to 0.06 deg, and
+  control responses 0.69 to 1.12.
+* **The turn about the vertical axis is the weakest.** Here that axis is pitch, about
+  cam0's y. On `exp21` the 1 deg turn reads 0.895 deg, just short of the 1.0 deg that
+  fails at the default 0.5 deg floor.
+* **The floor sets what the check calls drift.** The dataset camchain's own errors
+  (roll: −0.12 deg on `exp21`, +0.05 deg on `exp01`) are far below the default floor.
+  They are the per-recording rotation between the cameras measured in
+  [Hilti fisheye stereo falsification](../benchmarks/hilti_fisheye_stereo_falsification.md#the-vertical-offset-the-cameras-relative-pitch-different-per-recording).
+  With `--rotation-floor-deg 0.1`, `exp21`'s roll would read `warn` and `exp01`'s would
+  still pass. The floor is a policy choice.
+* **Run time** is 1.5 to 6 minutes per pair on these recordings.
+* **The other alphasense cameras** (cam2 to cam4) are not in this camchain, so their
+  pairs are skipped as `frame_not_in_tree`.
 
 ## Vehicle pairs are opt-in
 
