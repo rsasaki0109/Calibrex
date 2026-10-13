@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- **The Hilti pair's vertical offset is a relative pitch of the cameras that differs
+  between recordings (development run).**
+  - **The new function.** `vertical_offset_samples` returns every matched patch's
+    vertical offset with its pair, place, disparity and whether it constrains rows.
+    `estimate_vertical_offset` is their median, unchanged.
+  - **The tool.** `tools/hilti_vertical_offset.py` fits the offset's constant,
+    disparity, column and row terms, and correlates each frame's offset with the
+    gyro's rate about the baseline.
+  - **Result.** The offset is a constant, stable within each recording: −0.81 px on
+    `exp21` (2022-04-21) and +0.38 px on `exp01` (2022-03-03). That is a relative pitch
+    0.19 deg apart, against one calibration file.
+  - **Ruled out.**
+    * The scene: the disparity term is at most 0.004 px per px.
+    * Timing: the correlation with an angular rate of up to 26 deg/s is weak, and the
+      implied time offsets disagree in sign.
+
 - **The Hilti data-only decision passes on a second recording, `exp01`, with depth
   judged (development run).**
   - **The choice.** The indoor construction site `exp01_construction_ground_level` was

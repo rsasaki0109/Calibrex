@@ -96,9 +96,40 @@ most 1.48 deg).
   jackknife std exceeds its gates) and fits a disparity scale of −7.1% and −4.3%. As on
   KITTI, it judges nothing.
 * **The vertical offset changes sign between recordings**: +0.33 px here, −0.83 px on
-  `exp21`. It is measured from each recording's own images and removed before matching.
-  Both recordings use the same calibration file, and why the offset differs is not
-  known.
+  `exp21`. The next section traces it to the cameras' relative pitch.
+
+## The vertical offset: the cameras' relative pitch, different per recording
+
+The decision removes one row offset per recording, measured from its rectified images.
+`tools/hilti_vertical_offset.py` samples every frame's matched patches and separates
+the explanations. It fits the offset as a constant plus terms in disparity, column and
+row, on the patches whose texture constrains rows, with a jackknife over frames.
+
+| | `exp21` (2022-04-21) | `exp01` (2022-03-03) |
+| --- | --- | --- |
+| patches (constraining rows) | 12,367 (5,117) | 7,606 (4,301) |
+| constant | −0.809 ± 0.078 px | +0.378 ± 0.020 px |
+| per px of disparity | −0.008 ± 0.009 px | +0.004 ± 0.002 px |
+| per 100 columns | +0.000 ± 0.021 px | +0.027 ± 0.013 px |
+| per 100 rows | −0.040 ± 0.047 px | −0.050 ± 0.043 px |
+| first half, second half (frame medians) | −0.86, −0.84 px | +0.32, +0.36 px |
+| correlation with the gyro's rate about the baseline | −0.17 (implied −0.16 ms) | +0.11 (implied +0.19 ms) |
+
+* **A constant: a relative pitch.** Each recording's offset is almost all constant and
+  stable over the recording. At fx = 351 px it is a relative pitch of −0.13 deg on
+  `exp21` and +0.06 deg on `exp01` against the camchain. That is 0.19 deg between two
+  recordings seven weeks apart, both against the same calibration file.
+* **Not the scene.** A vertical baseline component would grow with disparity. It is at
+  most 0.004 px per px here, so a near indoor scene and a far outdoor one would differ
+  by a fraction of the 1.19 px between them.
+* **Not timing.** A time offset between the cameras would make the offset follow the
+  rig's angular rate. With rates up to 26 deg/s, the correlation is weak, and the
+  implied time offsets (under 0.2 ms) disagree in sign between the two recordings.
+* **What this does not tell.** Whether the rig moved between sessions or the camchain
+  was already off for both cannot be told from two recordings. Measuring the offset per
+  recording from its own images, as the decision does, is right either way. A stereo
+  extrinsic that drifts by 0.1 to 0.2 deg between sessions is itself a finding: it is
+  the kind of drift `calibrex check` exists to catch.
 
 ## Earlier run: stamp pairing, no motion
 
@@ -163,6 +194,14 @@ with 50 frames per KITTI run and 47 frames of the earlier Hilti run.
 python tools/hilti_stereo_falsification.py exp21_head.bag \
     --camchain calib_3_cam0-1-camchain-imucam.yaml \
     --lidar-calibration lidar_calibration.yaml --output hilti_exp21.json
+```
+
+The vertical offset's analysis (about 6 minutes per recording):
+
+```bash
+python tools/hilti_vertical_offset.py exp21_head.bag \
+    --camchain calib_3_cam0-1-camchain-imucam.yaml \
+    --lidar-calibration lidar_calibration.yaml --output exp21_vertical.json
 ```
 
 `exp01_head.bag` is made the same way as `exp21_head.bag`
