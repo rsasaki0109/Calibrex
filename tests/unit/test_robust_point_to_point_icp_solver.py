@@ -177,23 +177,3 @@ def test_result_is_invariant_to_input_order_with_stable_ids() -> None:
     assert first.transform_target_source == second.transform_target_source
     assert first.train_source_ids == second.train_source_ids
     assert first.holdout_source_ids == second.holdout_source_ids
-def test_mutual_search_only_queries_targets_that_pass_the_distance_gate(monkeypatch):
-    import numpy as np
-
-    from calibrex.solvers._exact_neighbors import _ExactNeighbors
-    from calibrex.solvers.robust_point_to_point_icp_solver import _correspondences
-
-    source = np.array([[0., 0., 0.], [10., 0., 0.]])
-    target = np.array([[.5, 0., 0.], [20., 0., 0.]])
-    original = _ExactNeighbors.nearest
-    source_query_counts = []
-    def nearest(self, points):
-        if np.array_equal(self._reference, source):
-            source_query_counts.append(len(points))
-        return original(self, points)
-    monkeypatch.setattr(_ExactNeighbors, "nearest", nearest)
-    result = _correspondences(source, target, RobustPointToPointIcpOptions(
-        trim_fraction=1., correspondence_distance_m=1.))
-    assert result[3].tolist() == [0] and result[4].tolist() == [0]
-    assert result[2].tolist() == [.5]
-    assert source_query_counts == [1]

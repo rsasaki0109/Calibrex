@@ -14,19 +14,6 @@ FloatArray: TypeAlias = NDArray[np.float64]
 IntArray: TypeAlias = NDArray[np.int64]
 
 
-def _first_of_two(indices: IntArray, squared: FloatArray) -> NDArray[np.bool_]:
-    """Return the first lexicographic distance/index candidate without row sorts."""
-
-    left, right = squared[:, 0], squared[:, 1]
-    tie_first = indices[:, 0] <= indices[:, 1]
-    first = (left < right) | ((left == right) & tie_first)
-    if np.isnan(squared).any():
-        # Match NumPy's NaNs-last ordering and stable equal-key ordering.
-        left_nan, right_nan = np.isnan(left), np.isnan(right)
-        first |= right_nan & (~left_nan | tie_first)
-    return first
-
-
 class _ExactNeighbors:
     """Own one immutable reference cloud; never retain it beyond an invocation.
 
@@ -62,25 +49,17 @@ class _ExactNeighbors:
         _, candidates = tree.query(points, k=list(range(1, width + 1)), eps=0.0)
         candidates = np.asarray(candidates, dtype=np.int64)
         squared = np.sum((points[:, None, :] - self._reference[candidates]) ** 2, axis=2)
-        if count == 1 and width == 2:
-            first = _first_of_two(candidates, squared)
-            indices = np.where(first[:, None], candidates[:, :1], candidates[:, 1:2])
-            distances = np.where(first[:, None], squared[:, :1], squared[:, 1:2])
-            remaining = np.where(first, squared[:, 1], squared[:, 0])
-        else:
-            order = np.lexsort((candidates, squared), axis=1)
-            candidates = np.take_along_axis(candidates, order, axis=1)
-            squared = np.take_along_axis(squared, order, axis=1)
-            indices = candidates[:, :count].copy()
-            distances = squared[:, :count].copy()
-            remaining = squared[:, count] if width > count else None
+        order = np.lexsort((candidates, squared), axis=1)
+        candidates = np.take_along_axis(candidates, order, axis=1)
+        squared = np.take_along_axis(squared, order, axis=1)
+        indices = candidates[:, :count].copy()
+        distances = squared[:, :count].copy()
         if width == count:
             return indices, distances
 
-        cutoff = distances[:, count - 1]
+        cutoff = squared[:, count - 1]
         guard = np.maximum(64.0 * np.finfo(np.float64).eps * cutoff, np.finfo(np.float64).tiny)
-        assert remaining is not None
-        ambiguous = np.flatnonzero(remaining <= cutoff + guard)
+        ambiguous = np.flatnonzero(squared[:, count] <= cutoff + guard)
         if not len(ambiguous):
             return indices, distances
         radii = np.nextafter(np.sqrt(cutoff[ambiguous] + guard[ambiguous]), np.inf)
@@ -116,5 +95,4 @@ class _ExactNeighbors:
 
 def _tree_safe(points: FloatArray) -> bool:
     # Keep squared distances and the boundary guard far below float64 overflow.
-    return bool(np.isfinite(points).all()
-                and float(np.max(np.abs(points), initial=0.0)) <= 1.0e150)
+    return bool(np.isfinite(points).all() and np.max(np.abs(points), initial=0.0) <= 1.0e150)

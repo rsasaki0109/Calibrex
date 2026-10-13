@@ -1,0 +1,165 @@
+"""Real-device parity including native ties, repairs and complete ICP diagnostics."""
+from __future__ import annotations
+
+import json
+
+import numpy as np
+import pytest
+
+pytest.importorskip("cupy")
+import cupy as cp
+
+from calibrex.core.geometry import SE3
+from calibrex.solvers._exact_neighbors import _ExactNeighbors
+from calibrex.solvers.cuda_point_to_point_icp_adapter import (
+    CudaPointToPointIcpAdapter,
+    _CudaNeighbors,
+    _CudaRigidSource,
+)
+from calibrex.solvers.robust_point_to_point_icp_solver import (
+    IcpPoint,
+    RobustPointToPointIcpOptions,
+    RobustPointToPointIcpSolver,
+    _transform_points,
+)
+
+
+@pytest.fixture(scope="module", autouse=True)
+def require_cuda():
+    try:
+        count = cp.cuda.runtime.getDeviceCount()
+    except cp.cuda.runtime.CUDARuntimeError:
+        count = 0
+    if not count:
+        pytest.skip("requires a CUDA device")
+
+
+@pytest.mark.parametrize("count", [1, 4, 16, 18, 2500])
+def test_forward_distance_bits_and_ties(count):
+    rng = np.random.default_rng(35)
+    reference = rng.normal(size=(2500, 3))
+    reference[:30] = [0., 0., 0.]
+    queries = np.concatenate((rng.normal(size=(73, 3)), [[0., 0., 0.]]))
+    actual = _CudaNeighbors(reference, cp.cuda.runtime.getDevice())
+    for left, right in zip(actual.query(queries, count),
+                           _ExactNeighbors(reference).query(queries, count), strict=True):
+        np.testing.assert_array_equal(left, right)
+    assert actual.calls == (1 if count <= 16 else 0)
+    if count <= 16:
+        assert actual.repairs >= 1
+
+
+@pytest.mark.parametrize("scale", [1e-160, 1., 1e12, 1e49, 1e51])
+def test_wide_coordinates_and_native_fallback(scale):
+    rng = np.random.default_rng(35)
+    reference, queries = rng.normal(size=(1100, 3))*scale, rng.normal(size=(13, 3))*scale
+    search = _CudaNeighbors(reference, cp.cuda.runtime.getDevice())
+    for left, right in zip(search.query(queries, 3),
+                           _ExactNeighbors(reference).query(queries, 3), strict=True):
+        np.testing.assert_array_equal(left, right)
+
+
+@pytest.mark.parametrize("translation", [0., 3., 1e9])
+@pytest.mark.parametrize("quaternion", [(0., 0., 0., 1.), (.3, -.2, .1, .8)])
+def test_static_inverse_search_certifies_world_frame_ties(translation, quaternion):
+    rng = np.random.default_rng(39)
+    reference = rng.normal(size=(2100, 3))
+    reference[:20] = [1., 0., 0.]
+    reference[20:40] = [-1., 0., 0.]
+    reference[40:] += 50.
+    transform = SE3((translation, -translation/2, translation/3), quaternion)
+    moved = _transform_points(reference, transform)
+    raw_queries = np.concatenate((rng.normal(size=(67, 3)), [[0., 0., 0.]]))
+    queries = _transform_points(raw_queries, transform)
+    search = _CudaRigidSource(reference, cp.cuda.runtime.getDevice())
+    np.testing.assert_array_equal(search.nearest(moved, queries, transform),
+                                  _ExactNeighbors(moved).nearest(queries)[0])
+    assert search.search.calls == 1
+    assert search.repairs >= 1
+
+
+def test_owned_source_and_small_cloud_fallback():
+    original = np.random.default_rng(31).normal(size=(1500, 3))
+    captured = original.copy()
+    search = _CudaNeighbors(original, cp.cuda.runtime.getDevice())
+    original[:] = 0.
+    queries = captured[:20]
+    np.testing.assert_array_equal(search.nearest(queries)[0], np.arange(20))
+    small = _CudaRigidSource(captured[:10], cp.cuda.runtime.getDevice())
+    np.testing.assert_array_equal(small.nearest(captured[:10], queries, SE3.identity()),
+                                  _ExactNeighbors(captured[:10]).nearest(queries)[0])
+    assert small.search.calls == 0
+
+
+@pytest.mark.parametrize("workers,mutual", [(1, True), (3, True), (1, False)])
+def test_complete_solve_keeps_history_holdout_rematching_and_multi_start(workers, mutual):
+    rng = np.random.default_rng(73)
+    source = rng.uniform(-3., 3., (1700, 3))
+    truth = SE3((.02, -.03, .01), (.001, -.002, .003, 1.))
+    target = _transform_points(source, truth)
+    inputs = [[IcpPoint(f"{name}-{i:05d}", tuple(row)) for i, row in enumerate(cloud)]
+              for name, cloud in (("source", source), ("target", target))]
+    options = RobustPointToPointIcpOptions(max_iterations=15, multi_start_workers=workers,
+                                         mutual_correspondences=mutual)
+    expected = RobustPointToPointIcpSolver().solve(*inputs, options=options)
+    actual = CudaPointToPointIcpAdapter().solve(*inputs, options=options)
+    assert json.dumps(actual.result.as_dict(), sort_keys=True) == json.dumps(
+        expected.as_dict(), sort_keys=True)
+    assert expected.status == "converged"
+    np.testing.assert_allclose(expected.transform_target_source.translation_m,
+                               truth.translation_m, atol=1e-12)
+    assert len(actual.result.multi_start_trials) == 6
+    assert actual.provenance["gpu_query_calls"] > 0
+    assert actual.provenance["static_source_snapshots"] == int(mutual)
+    assert actual.provenance["target_snapshots"] == 1
+    assert len(actual.provenance["source_sha256"]) == 64
+    json.dumps(actual.as_dict(), allow_nan=False)
+
+
+def test_empty_result_keeps_provenance():
+    result = CudaPointToPointIcpAdapter().solve([], [])
+    assert result.result.status == "insufficient_correspondences"
+    assert result.provenance["gpu_query_calls"] == 0
+    assert result.provenance["target_snapshots"] == 0
+
+
+@pytest.mark.parametrize("translation", [1e60, 1e160, 1e300])
+def test_extreme_translation_uses_native_search_without_overflowing_repair_radius(translation):
+    raw = np.random.default_rng(55).normal(size=(1200, 3))
+    transform = SE3((translation, translation, translation), (0., 0., 0., 1.))
+    moved = _transform_points(raw, transform)
+    queries = moved[:13].copy()
+    search = _CudaRigidSource(raw, cp.cuda.runtime.getDevice())
+    np.testing.assert_array_equal(search.nearest(moved, queries, transform),
+                                  _ExactNeighbors(moved).nearest(queries)[0])
+@pytest.mark.parametrize("kind", ["random", "duplicate", "flat", "line"])
+def test_specialized_pair_kernel_matches_generic_proposals_and_distance_bits(kind):
+    import cupy as cp
+
+    from calibrex.solvers.cuda_lidar_map_adapter import _CudaTree
+    from calibrex.solvers.cuda_point_to_point_icp_adapter import _CudaPairTree
+
+    rng = np.random.default_rng(20261013)
+    reference = rng.normal(size=(4096, 3))
+    if kind == "duplicate":
+        reference[:] = 0.
+    elif kind == "flat":
+        reference[:, 2] = 0.
+    elif kind == "line":
+        reference[:, 1:] = 0.
+    points = np.vstack((reference[::7], rng.normal(size=(128, 3))))
+    generic = _CudaTree(reference)
+    specialized = _CudaPairTree(reference)
+    expected_d, expected_i = generic.query(cp.asarray(points), 2)
+    actual_d, actual_i = specialized.query(cp.asarray(points), 2)
+    np.testing.assert_array_equal(cp.asnumpy(actual_i), cp.asnumpy(expected_i))
+    np.testing.assert_array_equal(cp.asnumpy(actual_d).view(np.uint64),
+                                  cp.asnumpy(expected_d).view(np.uint64))
+    assert specialized.stack_capacity < 64
+    assert specialized.pair_calls == specialized.query_calls == 1
+    wider_d, wider_i = specialized.query(cp.asarray(points), 3)
+    expected_d, expected_i = generic.query(cp.asarray(points), 3)
+    np.testing.assert_array_equal(cp.asnumpy(wider_i), cp.asnumpy(expected_i))
+    np.testing.assert_array_equal(cp.asnumpy(wider_d).view(np.uint64),
+                                  cp.asnumpy(expected_d).view(np.uint64))
+    assert specialized.pair_calls == 1 and specialized.query_calls == 2

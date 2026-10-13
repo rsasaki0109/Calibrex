@@ -1,0 +1,42 @@
+{
+  "schema_version": "calibrex.icp_neighbor_order_comparison/v0.1",
+  "kind": "protocol",
+  "provenance": {
+    "generator": "calibrex.icp_neighbor_order_comparison/v0.1",
+    "current": {
+      "commit": "7e81e0a0352774796d6e2bdae3b2655792b8434e",
+      "sources": {
+        "src/calibrex/solvers/robust_point_to_point_icp_solver.py": "cad8f7b9b029f64ec65334e83ac5983d5654f33a0e306c8edcbd3938dbfdeec4",
+        "src/calibrex/solvers/cuda_point_to_point_icp_adapter.py": "c379b055b0cccfd152df9488acb54eda7086bde0886e60804d74cf2eca978bdb",
+        "src/calibrex/solvers/cuda_lidar_map_adapter.py": "c2a18ca83389b4e350b9ac4ed98bf98bc72b51b3f97c4386be27dc8a4df7513e",
+        "src/calibrex/solvers/_exact_neighbors.py": "e58c0da31188131aef5b622b4c8fd60ee890ea4ab282e3778664caebebf46f1f",
+        "src/calibrex/core/geometry.py": "6597695de33360d44b8b18e457f84355df3ace30837462f4b9501193879d66aa",
+        "src/calibrex/evaluation/holdout.py": "24c0eee5b132cf535dbbfb98ceb4b5f5e1b9ebafce68962a6cef8cff6ff30854",
+        "tools/benchmark_cuda_point_to_point_icp.py": "cdfd3162667958b55759ed6334a1372ffec2f1e797ff2ebd791ad720a82ff9e6",
+        "tools/schemas/icp_pair_fixture.schema.json": "e81d2594239cf5ef642ec83ae907a475f6308b6e3631e34e13c147185065ad26"
+      }
+    },
+    "prior_commit": "4ef988ee543d6c1f9303f5a6758c89960b857015",
+    "launcher_sha256": "0871e870e560582d81b8b30e1133143adcebeceda7053e705effbb25e0b7b182",
+    "fixture_sha256": "73133b4fcffc08ea4d61c3add588c47f827ced710ea55f0827eb3bea0484c6a1"
+  },
+  "backend": "native",
+  "repeats": 3,
+  "point_budget": 0,
+  "planned_orders": [
+    [
+      "prior",
+      "candidate"
+    ],
+    [
+      "candidate",
+      "prior"
+    ],
+    [
+      "prior",
+      "candidate"
+    ]
+  ],
+  "scope": "fresh subprocess startup, guards, full solve, evaluation and saves",
+  "cold_policy": "one BLAS thread; separate initially empty CUDA disk cache per worker"
+}

@@ -1,0 +1,67 @@
+import argparse
+import hashlib
+import importlib.abc
+import importlib.util
+import json
+import os
+from pathlib import Path
+import sys
+import time
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--variant", choices=("prior", "candidate"), required=True)
+parser.add_argument("--method", choices=("native", "cuda"), default="cuda")
+parser.add_argument("--fixture", default="outputs/kitti-icp-pairs-default-v1/0000000115-0000000116.json")
+parser.add_argument("--point-budget", type=int, default=0)
+parser.add_argument("--output", required=True)
+args = parser.parse_args()
+for name in ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS"):
+    os.environ[name] = "1"
+started = time.perf_counter()
+baseline = Path("outputs/two-neighbor-baseline-v1").resolve()
+manifest = json.loads((baseline/"manifest.json").read_bytes())
+mapping = {path.removeprefix("src/").removesuffix(".py").replace("/", "."):
+           (baseline / Path(path).name, sha) for path, sha in manifest["files"].items()
+           if path.startswith("src/")}
+for path, sha in mapping.values():
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == sha
+
+class PriorSources(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path, target=None):
+        if fullname in mapping:
+            assert fullname not in sys.modules
+            return importlib.util.spec_from_file_location(fullname, mapping[fullname][0])
+        return None
+
+if args.variant == "prior":
+    sys.meta_path.insert(0, PriorSources())
+from tools import benchmark_cuda_point_to_point_icp as benchmark
+from argparse import Namespace
+benchmark._worker(Namespace(
+    output=args.output, method=args.method, workers=0, seed=20261013,
+    pair_fixture=args.fixture,
+    data_root="data/public/kitti_raw_icp/2011_09_30_drive_0018_sync", point_budget=args.point_budget,
+))
+whole = time.perf_counter()-started
+execution = {}
+for module_name, (prior_path, sha) in mapping.items():
+    if module_name not in sys.modules:
+        continue
+    actual = Path(sys.modules[module_name].__file__).resolve()
+    if args.variant == "prior":
+        assert actual == prior_path and hashlib.sha256(actual.read_bytes()).hexdigest() == sha
+    else:
+        assert not actual.is_relative_to(baseline)
+    execution[module_name] = {"sha256":hashlib.sha256(actual.read_bytes()).hexdigest(),
+                             "binding":"frozen_prior" if args.variant=="prior" else "current_checkout"}
+output = Path(args.output)
+record = json.loads((output/"measurement.json").read_bytes())
+record.update({"variant":args.variant,"internal_whole_seconds":whole})
+record["provenance"].update({"execution_sources":execution,"prior_commit":manifest["commit"],
+    "worker_sha256":hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+    "scope":"fresh worker startup, input guards, full ICP and six starts, holdout evaluation and save"})
+(output/"measurement.json").write_text(json.dumps(record,indent=2)+"\n",encoding="utf-8")
+golden = Path("docs/assets/cuda_point_to_point_icp/actual_frames/results")/(record["result_sha256"]+".json")
+assert (output/"result.json").read_bytes() == golden.read_bytes()
+print(json.dumps({"variant":args.variant,"method":args.method,"internal_whole":whole,
+                 "solver_seconds":record["seconds"],"published_result_equal":True}),flush=True)
