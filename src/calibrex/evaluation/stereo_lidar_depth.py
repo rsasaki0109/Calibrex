@@ -345,6 +345,13 @@ class StereoAlignmentOptions:
     min_view_cos: float = 0.3
     """``|normal . ray|`` above it: the surface is not seen edge-on."""
     iterations: int = 2
+    max_step_m: float = 0.2
+    max_step_deg: float = 2.0
+    """Largest correction one iteration applies per axis: an axis the data barely
+    constrain (y against a roll of the rig on the road) must not throw the transform out
+    of view before its own std and control say it is not trusted."""
+    rig_terms: bool = True
+    """Fit the rig's own disparity scale and inter-camera roll beside its offset."""
     translation_control_m: float = 0.10
     max_translation_std_m: float = 0.05
     max_rotation_std_deg: float = 0.5
@@ -375,9 +382,20 @@ class StereoAlignmentEstimate(StrictModel):
     )
     axes: list[StereoAxisEstimate] = Field(default_factory=list)
     disparity_offset_px: float | None = None
+    disparity_scale: float | None = Field(
+        default=None, description="the rig's relative disparity scale error (rig terms)"
+    )
+    rig_roll_px: float | None = Field(
+        default=None,
+        description="disparity error per unit of normalised image row: a roll between the "
+        "two cameras (rig terms)",
+    )
     points: int = Field(ge=0)
     frames: int = Field(ge=0)
     reason: str
+
+
+RIG_COLUMNS = 2
 
 
 def surface_rows(
@@ -386,20 +404,23 @@ def surface_rows(
     transform: FloatArray,
     options: StereoAlignmentOptions,
 ) -> tuple[FloatArray, FloatArray]:
-    """Per matched point: the six regressors of the candidate's error, and the residual.
+    """Per matched point: the regressors of the candidate's error and the rig, and the residual.
 
     A point ``p`` on a surface with normal ``n`` that the candidate puts ``d`` away from
     where it is projects onto a pixel whose stereo depth belongs to the surface, so the
     disparity residual is ``base * (n . d) / (Z * (n . p))``. With ``d = dt + w x p`` for
     a translation error ``dt`` and a small rotation error ``w`` (rad, about the camera
     axes, applied on the left) the regressors are ``base * n / (Z (n . p))`` and
-    ``base * (p x n) / (Z (n . p))``.
+    ``base * (p x n) / (Z (n . p))``. Two more columns model the rig itself (zero when
+    ``rig_terms`` is off): a disparity scale error (the predicted disparity) and a roll
+    between the cameras (the normalised image row). On KITTI's road both look like a
+    LiDAR height error, and on one-sided streets like a lateral one.
     """
 
     matching = options.matching
     points = _points_in_view(frame, transform, matching)
     if len(points) <= matching.normal_neighbours:
-        return np.zeros((0, 6)), np.zeros(0)
+        return np.zeros((0, 6 + RIG_COLUMNS)), np.zeros(0)
     _, neighbours = cKDTree(points).query(points, k=matching.normal_neighbours)
     local = points[neighbours] - points[neighbours].mean(axis=1, keepdims=True)
     values, vectors = np.linalg.eigh(np.einsum("nki,nkj->nij", local, local))
@@ -413,17 +434,26 @@ def surface_rows(
     index, residual = _match(frame, stereo, points, usable, matching)
     p, n = points[index], normals[index]
     scale = stereo.base_px_m / (p[:, 2:3] * (n * p).sum(axis=1, keepdims=True))
-    return np.c_[n * scale, np.cross(p, n) * scale], residual
+    rig = np.zeros((len(index), RIG_COLUMNS))
+    if options.rig_terms and len(index):
+        homogeneous = np.c_[p, np.ones(len(p))]
+        left = homogeneous @ stereo.left.T
+        right = homogeneous @ stereo.right.T
+        rig[:, 0] = left[:, 0] / left[:, 2] - right[:, 0] / right[:, 2]
+        rig[:, 1] = (left[:, 1] / left[:, 2] - stereo.left[1, 2]) / stereo.left[1, 1]
+    return np.c_[n * scale, np.cross(p, n) * scale, rig], residual
 
 
 def fit_surface_offsets(rows: FloatArray, residual: FloatArray) -> FloatArray:
-    """``[delta_px, dx, dy, dz, wx, wy, wz]`` of ``residual = delta + rows @ error``.
+    """``[delta_px, dx, dy, dz, wx, wy, wz, scale, roll_px]`` of
+    ``residual = delta + rows @ coefficients``.
 
     Least squares, three passes trimming residuals beyond 3 robust standard deviations.
+    A rig column that is all zero (rig terms off) gets a zero coefficient.
     """
 
     keep = np.ones(len(residual), dtype=bool)
-    coefficients = np.zeros(7)
+    coefficients = np.zeros(1 + rows.shape[1])
     for _ in range(3):
         design = np.c_[np.ones(int(keep.sum())), rows[keep]]
         coefficients, *_ = np.linalg.lstsq(design, residual[keep], rcond=None)
@@ -459,7 +489,7 @@ def estimate_stereo_alignment(
     current = np.asarray(transform, dtype=np.float64).copy()
     for _ in range(opts.iterations):
         per_frame = [surface_rows(frame, stereo, current, opts) for frame in frames]
-        current = _corrected(current, fit_surface_offsets(*_stack(per_frame)))
+        current = _corrected(current, _bounded(fit_surface_offsets(*_stack(per_frame)), opts))
     per_frame = [surface_rows(frame, stereo, current, opts) for frame in frames]
     points = sum(len(residual) for _, residual in per_frame)
     if points < matching.min_points:
@@ -533,6 +563,8 @@ def estimate_stereo_alignment(
     return StereoAlignmentEstimate(
         axes=axes,
         disparity_offset_px=float(final[0]),
+        disparity_scale=float(final[7]) if opts.rig_terms else None,
+        rig_roll_px=float(final[8]) if opts.rig_terms else None,
         points=points,
         frames=len(frames),
         reason=f"{points} matched points on planar surfaces, {opts.iterations} iteration(s)",
@@ -543,8 +575,16 @@ def _stack(per_frame: Sequence[tuple[FloatArray, FloatArray]]) -> tuple[FloatArr
     rows = [item[0] for item in per_frame if len(item[1])]
     residual = [item[1] for item in per_frame if len(item[1])]
     if not rows:
-        return np.zeros((0, 6)), np.zeros(0)
+        return np.zeros((0, 6 + RIG_COLUMNS)), np.zeros(0)
     return np.concatenate(rows), np.concatenate(residual)
+
+
+def _bounded(coefficients: FloatArray, options: StereoAlignmentOptions) -> FloatArray:
+    bounded = coefficients.copy()
+    bounded[1:4] = np.clip(bounded[1:4], -options.max_step_m, options.max_step_m)
+    limit = np.radians(options.max_step_deg)
+    bounded[4:7] = np.clip(bounded[4:7], -limit, limit)
+    return bounded
 
 
 def _corrected(transform: FloatArray, coefficients: FloatArray) -> FloatArray:

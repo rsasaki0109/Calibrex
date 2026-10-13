@@ -134,8 +134,9 @@ accuracy.
    spread frames; on its first 50 frames the known-bad passes with its pitch
    and depth unjudged, which the decision reports as inconclusive (the data do
    not see its error). A joint six-DoF stereo fit is recorded as a cross-check;
-   its x of the same calibration varies by 12 cm across runs, more than its
-   1-3 cm jackknife std, so `x` and `y` stay unjudged. The remaining gaps are
+   with the stereo rig's scale and roll fitted, its x of the same calibration
+   still spans 8 cm across runs (three within 1.3 cm, one turning segment
+   apart), more than its 1-3 cm jackknife std, so `x` and `y` stay unjudged. The remaining gaps are
    rotation and depth on 5 s of driving and a lateral translation estimate
    whose systematic error is bounded.
 2. **Common external execution adoption:** the external-run artifact is proven

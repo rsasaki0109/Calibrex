@@ -150,7 +150,7 @@ def test_drive_0009_repeats_the_decision_on_spread_frames() -> None:
 
 def test_the_joint_stereo_fit_is_recorded_but_its_lateral_readings_disagree() -> None:
     # The published cross-check: the joint six-DoF stereo fit reads the same calibration's
-    # x from -4.6 to +7.3 cm over drives 0005 and 0009 and their two frame selections,
+    # x from -2.7 to +5.3 cm over drives 0005 and 0009 and their two frame selections,
     # while each run's jackknife std is under 3 cm. That spread is why x and y are not
     # judged; its z of the known-bad agrees with the judged facing-surface z.
     artifact = _artifact()
@@ -171,5 +171,9 @@ def test_the_joint_stereo_fit_is_recorded_but_its_lateral_readings_disagree() ->
                 reference_x.append(axes["x"])
             else:
                 assert 0.2 < axes["z"].offset < 0.3
-    assert max(a.offset for a in reference_x) - min(a.offset for a in reference_x) > 0.1
+    offsets = sorted(a.offset for a in reference_x)
+    # with the rig's scale and roll fitted, three runs agree within 2 cm, but the fourth
+    # (0005, first 50: 5 s of a slow turn) sits 6 cm or more away, beyond its std
+    assert offsets[-1] - offsets[0] > 0.06
+    assert offsets[-1] - offsets[1] < 0.02
     assert all(a.std < 0.03 for a in reference_x)

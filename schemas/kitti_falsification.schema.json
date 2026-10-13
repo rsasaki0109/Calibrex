@@ -631,6 +631,19 @@
           "default": null,
           "title": "Disparity Offset Px"
         },
+        "disparity_scale": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the rig's relative disparity scale error (rig terms)",
+          "title": "Disparity Scale"
+        },
         "frames": {
           "minimum": 0,
           "title": "Frames",
@@ -649,6 +662,19 @@
         "reason": {
           "title": "Reason",
           "type": "string"
+        },
+        "rig_roll_px": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "disparity error per unit of normalised image row: a roll between the two cameras (rig terms)",
+          "title": "Rig Roll Px"
         }
       },
       "required": [
