@@ -23,6 +23,8 @@ def _sha(raw: bytes) -> str:
 def audit(root: Path) -> dict[str, object]:
     """Validate digests, complete models, frozen imports, quality and speed ratios."""
     index = json.loads((root / "publication-index.json").read_bytes())
+    index_schema = Path(__file__).with_name("schemas") / "bspline_lidar_imu_publication.schema.json"
+    jsonschema.validate(index, json.loads(index_schema.read_bytes()))
     actual = {p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file()}
     if actual != set(index["files"]) | {"publication-index.json"}:
         raise ValueError("publication index does not bind every archive file")
@@ -31,6 +33,8 @@ def audit(root: Path) -> dict[str, object]:
             raise ValueError(f"archive digest differs: {relative}")
     schema = json.loads((root / "comparison.schema.json").read_bytes())
     protocol = json.loads((root / "protocol.json").read_bytes())
+    if index["provenance"]["input_protocol_sha256"] != _sha((root / "protocol.json").read_bytes()):
+        raise ValueError("publication input binding differs")
     summary = json.loads((root / "summary.json").read_bytes())
     for record in (protocol, summary):
         jsonschema.validate(record, schema)
