@@ -13,6 +13,25 @@
   the real-data calibration verdict remains INCONCLUSIVE. See
   `docs/benchmarks/bspline_lidar_imu_acceleration.md`.
 
+- **`camera-camera` re-centres its rectification and finds errors of several degrees.**
+  - **The problem.** The matcher searched ±4 rows and only positive disparities. A
+    candidate more than about 0.7 deg off (at 350 px) left the pair
+    `estimator_failed`. A 1 deg turn of Hilti cam3 went unseen.
+  - **The fix.** A coarse measurement comes first (±12 rows, disparities from −30 px).
+    When it reads more than 0.2 deg, the rectification is re-centred on the estimate,
+    and the final measurement composes with that turn.
+  - **New evidence fields.** The artifact records the turn as `recentred_by_deg`
+    (optional), and `vertical_offset_samples` takes `min_disparity_px`.
+  - **Synthetic.** 3 deg about each axis, and 5 deg, are recovered to 0.06 deg.
+  - **Hilti.**
+    - A 1 deg turn of cam3 now fails its camera pairs, and attribution names cam3.
+    - 31 camera-pair axes are judged on the two recordings, against 27 before.
+    - Linearisation about a wrong candidate left residuals of 0.3 to 1.6 px; they now
+      drop to 0.1 to 0.3 px.
+    - The side pairs' pitch is now measured. It shows cam3's candidate about 0.38 deg
+      off on both recordings, and a 0.5 deg disagreement between cam0–cam4 and
+      cam1–cam4 (`exp01` cam0–cam4 is now `warn`).
+
 - **`calibrex check` says which frame's rotation the pair errors point to.**
   - **The fit.** For each connected group of run pairs, every frame is assumed to be
     the only one off. Its turn is fitted to the pairs' rotation errors (a child turned
@@ -26,8 +45,9 @@
     and the HTML report. Informational: no verdict changes.
   - **On Hilti.** `exp01` is consistent. On `exp21`, a common turn of the IMU of
     about 0.5 deg explains all the camera-IMU errors.
-  - **Limit.** A 1 deg turn of cam3 goes unseen: its camera pairs fail to estimate,
-    because the turn moves rows beyond the ±4 px search.
+  - **Limit (fixed by the re-centring above).** A 1 deg turn of cam3 went unseen: its
+    camera pairs failed to estimate, because the turn moved rows beyond the ±4 px
+    search.
 
 - **Hilti camera pairs: the difference between recordings is the rig, not a bias at the
   image edges.**
