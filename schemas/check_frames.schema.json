@@ -40,10 +40,106 @@
       ],
       "title": "CheckFramesEntry",
       "type": "object"
+    },
+    "CheckFramesProvenance": {
+      "additionalProperties": false,
+      "description": "Where a generated frame file came from (absent for a hand-written one).",
+      "properties": {
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "source_digest_scope": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Digest Scope"
+        },
+        "source_kind": {
+          "title": "Source Kind",
+          "type": "string"
+        },
+        "source_name": {
+          "title": "Source Name",
+          "type": "string"
+        },
+        "source_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Sha256",
+          "type": "string"
+        },
+        "tool": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the calibration tool whose result this is",
+          "title": "Tool"
+        },
+        "tool_license": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool License"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "source_kind",
+        "source_name",
+        "source_sha256"
+      ],
+      "title": "CheckFramesProvenance",
+      "type": "object"
     }
   },
   "additionalProperties": false,
-  "description": "Hand-written static frame tree for ``calibrex check --tf``.\n\n``topic_frames`` maps bag topics to frames and ``role_frames`` names the\ndefault frame of a sensor role; both are optional hints used when a\ntopic's header frame id is not in the tree.",
+  "description": "Hand-written static frame tree for ``calibrex check --tf``.\n\n``topic_frames`` maps bag topics to frames and ``role_frames`` names the\ndefault frame of a sensor role; both are optional hints used when a\ntopic's header frame id is not in the tree. A file written by an importer\nrecords its ``provenance``.",
   "properties": {
     "frames": {
       "items": {
@@ -52,6 +148,17 @@
       "minItems": 1,
       "title": "Frames",
       "type": "array"
+    },
+    "provenance": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CheckFramesProvenance"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "role_frames": {
       "additionalProperties": {

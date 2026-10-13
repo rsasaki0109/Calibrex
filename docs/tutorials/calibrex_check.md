@@ -74,6 +74,36 @@ its SHA-256 (for `/tf_static`, the hash of the raw messages read).
 Transforms follow `T_parent_child`. A pair named `A-B` carries `T_A_B` composed
 through the tree.
 
+### A result from another calibration tool
+
+`calibrex external-run import-sensor-calib-tas` turns a
+[sensor_calib_tas](https://github.com/UniBwTAS/sensor_calib_tas) result into a
+`slac.check_frames` file. sensor_calib_tas writes no calibration file. After the
+optimization it publishes each sensor's pose in its reference sensor's frame in two
+places:
+
+* static transforms `reference -> <sensor frame>_calibrated` on `/tf_static`;
+* the latched `EstimatedPoses` message on `~/sensor_poses`.
+
+The importer reads either one: a bag recorded through the session, or the output of
+`ros2 topic echo` saved as YAML. In the bag case it takes the latest
+`*_calibrated` transform per sensor; in the YAML case, the last message's `poses`. The
+`poses_in_vehicle_coordinate_system` field uses another axis convention and is not
+read. Each sensor keeps its own frame name, so the file overrides the deployed
+calibration for those frames on a driving bag:
+
+```bash
+calibrex external-run import-sensor-calib-tas tas_session/ --output tas.yaml
+calibrex check drive/ --tf tas.yaml --output check_tas.json
+```
+
+The file's `provenance` names the tool, its license and the SHA-256 of the source.
+
+* **The reference sensor.** Its own pose is not part of the result; it keeps the
+  deployed one.
+* **Cycles.** If the deployed tree has the reference sensor below a calibrated sensor,
+  re-parenting that sensor makes a cycle, and the check refuses the tree.
+
 ## Topic roles and frames
 
 Topics are classified by message type: `lidar` (PointCloud2, Livox CustomMsg),

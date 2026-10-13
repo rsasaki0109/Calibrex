@@ -294,6 +294,7 @@ from calibrex.export.ros_tf import export_ros_tf_transforms, export_ros_tf_yaml
 from calibrex.graph.problem import build_problem
 from calibrex.importers.kalibr import import_kalibr_camchain
 from calibrex.importers.koide import import_koide_result
+from calibrex.importers.sensor_calib_tas import sensor_calib_tas_frames
 from calibrex.init_templates import (
     list_sensor_template_names,
     template_summary,
@@ -2409,6 +2410,18 @@ def _build_parser() -> argparse.ArgumentParser:
     kalibr_import.add_argument("--training-isolation-evidence")
     kalibr_import.add_argument("--json", action="store_true")
     kalibr_import.set_defaults(func=_cmd_external_run_import_kalibr)
+    tas_import = external_run_subcommands.add_parser(
+        "import-sensor-calib-tas",
+        help=(
+            "import a sensor_calib_tas result (a bag with its *_calibrated tf_static, or "
+            "an echoed ~/sensor_poses YAML) as a slac.check_frames file for calibrex check --tf"
+        ),
+    )
+    tas_import.add_argument("source", type=Path)
+    tas_import.add_argument("--output", type=Path, required=True)
+    tas_import.add_argument("--tool-version")
+    tas_import.add_argument("--json", action="store_true")
+    tas_import.set_defaults(func=_cmd_external_run_import_sensor_calib_tas)
 
     camera_imu_evidence = external_run_subcommands.add_parser(
         "evaluate-camera-imu",
@@ -5223,6 +5236,27 @@ def _cmd_demo_kitti_falsification_benchmark(args: argparse.Namespace) -> int:
     }
     _emit(payload, args.json)
     return 1 if args.enforce and benchmark.status != "pass" else 0
+
+
+def _cmd_external_run_import_sensor_calib_tas(args: argparse.Namespace) -> int:
+    if args.source.resolve() == args.output.resolve():
+        _die("the output must not overwrite the sensor_calib_tas source")
+    try:
+        frames = sensor_calib_tas_frames(args.source, tool_version=args.tool_version)
+    except ValueError as exc:
+        _die(str(exc))
+    write_mapping(args.output, frames.model_dump(mode="json", exclude_none=True))
+    _emit(
+        {
+            "frames_file": str(args.output),
+            "source": str(args.source),
+            "source_kind": frames.provenance.source_kind if frames.provenance else None,
+            "frames": [f"{entry.parent} -> {entry.name}" for entry in frames.frames],
+            "usage": f"calibrex check <driving bag> --tf {args.output}",
+        },
+        args.json,
+    )
+    return 0
 
 
 def _cmd_external_run_import_kalibr(args: argparse.Namespace) -> int:

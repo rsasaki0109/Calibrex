@@ -626,7 +626,7 @@ is checked in as a planned template, not a result:
 - native point-to-point, point-to-plane, hand-eye, and robot-world baselines
 - backend-neutral joint SLAC with typed Schur pose elimination
 - radar velocity, LiDAR-IMU rotation, and temporal-offset evidence
-- typed external-run artifacts, a Kalibr camchain importer, and Koide/Open3D,
+- typed external-run artifacts, Kalibr camchain and sensor_calib_tas importers, and Koide/Open3D,
   ROS, and Autoware adapter boundaries
 - a frozen, SHA-bound full-scale KITTI reference-vs-known-bad falsification runner
 
