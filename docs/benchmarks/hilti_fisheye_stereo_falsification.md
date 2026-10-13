@@ -273,8 +273,10 @@ the reading, the re-centring does nothing and the two methods agree.
   cam0–cam3 reads +0.40 deg on `exp21`.
 * **cam0–cam4 and cam1–cam4 disagree on pitch by about 0.45 deg.** Each is stable
   across starts. cam0 and cam1 agree to 0.05 deg, so one of the two pairs carries a
-  bias of that size, specific to its view. The check's closure loops go through the
-  IMU, whose camera-IMU pitch is unjudged, so they cannot see it.
+  bias of that size, specific to its view. With its spanning forest built from the
+  best-observed estimates first, the check's closure report flags it: the loop
+  cam1–cam4–cam0–cam3 misses by −0.51 deg in pitch (`warn`). Its loops used to go
+  through the IMU, whose camera-IMU pitch is unjudged, and could not see it.
 
 ## Earlier run: stamp pairing, no motion
 
