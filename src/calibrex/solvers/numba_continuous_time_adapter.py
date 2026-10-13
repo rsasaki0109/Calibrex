@@ -6,9 +6,12 @@ import math
 import sys
 from collections import OrderedDict
 from collections.abc import Sequence
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import suppress
 from dataclasses import dataclass, field
 from importlib.metadata import version
 from itertools import pairwise
+from threading import Lock
 from typing import TYPE_CHECKING, TypeAlias, cast
 
 import numpy as np
@@ -130,9 +133,17 @@ def _pack_rig_observations(
     return _ObservationArrays(xyz, centers, normals, rows, weights, None)
 
 
-def numba_continuous_time_identity() -> str:
+def numba_continuous_time_identity(
+    *, summary_parallel_cpu: bool = False, linearization_cache_cpu: bool = False,
+) -> str:
     """Identify the optional runtime and its arithmetic/compilation policy."""
-    return f"calibrex.numba_continuous_time/v0.7;numba={version('numba')};fastmath=false;cache=true"
+    return (
+        f"calibrex.numba_continuous_time/v0.8;numba={version('numba')};fastmath=false;cache=true;"
+        f"summary_parallel_cpu={str(summary_parallel_cpu).lower()};summary_workers=3;"
+        "summary_min_rows=32768;summary_workspace_bytes=16777216;"
+        f"linearization_cache_cpu={str(linearization_cache_cpu).lower()};"
+        "linearization_cache_bytes=67108864"
+    )
 
 
 @njit(cache=True, nogil=True, fastmath=False, inline="always")  # type: ignore[untyped-decorator]
@@ -280,6 +291,27 @@ def _residual_rows(
             normals[row, 0] * dx + normals[row, 1] * dy + normals[row, 2] * dz
         )
     return result
+
+
+@njit(cache=True, nogil=True, fastmath=False)  # type: ignore[untyped-decorator]
+def _residual_rows_into(
+    points: FloatArray, planes: FloatArray, normals: FloatArray, poses: FloatArray,
+    weights: FloatArray, transform: FloatArray, result: FloatArray, start: int, stop: int,
+) -> None:
+    """Compute independent rows into a disjoint slice without changing arithmetic."""
+    t = (transform[0], transform[1], transform[2])
+    q = (transform[3], transform[4], transform[5], transform[6])
+    for row in range(start, stop):
+        pt = (poses[row, 0], poses[row, 1], poses[row, 2])
+        pq = (poses[row, 3], poses[row, 4], poses[row, 5], poses[row, 6])
+        wt, wq = _composed(pt, pq, t, q)
+        rotated = _rotated(wq, (points[row, 0], points[row, 1], points[row, 2]))
+        dx = rotated[0] + wt[0] - planes[row, 0]
+        dy = rotated[1] + wt[1] - planes[row, 1]
+        dz = rotated[2] + wt[2] - planes[row, 2]
+        result[row] = weights[row] * (
+            normals[row, 0] * dx + normals[row, 1] * dy + normals[row, 2] * dz
+        )
 
 
 @njit(cache=True, nogil=True, fastmath=False)  # type: ignore[untyped-decorator]
@@ -438,6 +470,38 @@ def _numba_rig_rmse(arrays: _ObservationArrays, transform: SE3) -> tuple[float] 
     return (math.sqrt(square_sum / len(arrays.points)),) if len(arrays.points) else None
 
 
+def _numba_parallel_rig_rmse(
+    arrays: _ObservationArrays, transform: SE3, executor: ThreadPoolExecutor,
+) -> tuple[float] | None:
+    """Split row computation, then retain the exact ordered CPU reduction."""
+    n = len(arrays.points)
+    policy = _numba_rmse_policy()
+    if (policy is None or n < 32768 or n * 8 > 16 * 1024**2
+        or any(value.flags.writeable for value in (
+            arrays.points, arrays.plane_points, arrays.normals, arrays.poses, arrays.sqrt_weights,
+        ))):
+        return None
+    values = np.asarray((*transform.translation_m, *transform.rotation_quat_xyzw), dtype=np.float64)
+    output = np.empty(n, dtype=np.float64)
+    midpoint = n // 2
+    arguments = (arrays.points, arrays.plane_points, arrays.normals, arrays.poses,
+                 arrays.sqrt_weights, values, output)
+    future = executor.submit(
+        _residual_rows_into, arrays.points, arrays.plane_points, arrays.normals,
+        arrays.poses, arrays.sqrt_weights, values, output, midpoint, n,
+    )
+    try:
+        _residual_rows_into(*arguments, 0, midpoint)
+    except BaseException:
+        # No task may outlive this request's output, including on an exception.
+        with suppress(BaseException):
+            future.result()
+        raise
+    future.result()
+    total = _value_square_sum(output, policy)
+    return (math.sqrt(total / n),)
+
+
 @njit(cache=True, nogil=True, fastmath=False)  # type: ignore[untyped-decorator]
 def _fused_jacobian_rows(
     points: FloatArray, planes: FloatArray, normals: FloatArray, poses: FloatArray,
@@ -476,6 +540,58 @@ def numba_rig_linearization(
         tuple[FloatArray, FloatArray],
         _jacobian_rows(*arguments),
     )
+
+
+class NumbaRigLinearizer:
+    """Own the last immutable CPU difference batch with a bounded host cache."""
+
+    def __init__(self) -> None:
+        self._arrays: _ObservationArrays | None = None
+        self._key: tuple[bytes, bytes] | None = None
+        self._result: tuple[FloatArray, FloatArray] | None = None
+        self._lock = Lock()
+        self.calls = 0
+        self.cache_hits = 0
+        self.cache_bytes = 0
+        self.rows = 0
+
+    def _clear(self) -> None:
+        self._arrays = None
+        self._key = None
+        self._result = None
+        self.cache_bytes = 0
+
+    def linearize(
+        self, arrays: _ObservationArrays, transforms: Sequence[SE3], steps: Sequence[float],
+    ) -> tuple[FloatArray, FloatArray]:
+        """Retain exact differences while giving every caller writable owned arrays."""
+        if len(transforms) != 13 or len(steps) != 6:
+            raise ValueError("CPU rig differences require thirteen transforms and six steps")
+        if any(step == 0.0 for step in steps):
+            raise ZeroDivisionError("division by zero")
+        values = np.asarray(
+            [(*t.translation_m, *t.rotation_quat_xyzw) for t in transforms], dtype=np.float64,
+        )
+        key = values.tobytes(), np.asarray(steps, dtype=np.float64).tobytes()
+        immutable = not any(value.flags.writeable for value in (
+            arrays.points, arrays.plane_points, arrays.normals, arrays.poses, arrays.sqrt_weights,
+        ))
+        with self._lock:
+            if (immutable and self._arrays is arrays and self._key == key
+                and self._result is not None):
+                self.cache_hits += 1
+                return self._result[0].copy(), self._result[1].copy()
+            self._clear()
+            residuals, jacobian = numba_rig_linearization(arrays, transforms, steps)
+            self.calls += 1
+            self.rows += len(arrays.points)
+            size = residuals.nbytes + jacobian.nbytes
+            if immutable and size <= 64 * 1024**2:
+                saved_r, saved_j = residuals.copy(), jacobian.copy()
+                saved_r.flags.writeable = saved_j.flags.writeable = False
+                self._arrays, self._key, self._result = arrays, key, (saved_r, saved_j)
+                self.cache_bytes = size
+            return residuals, jacobian
 
 
 def numba_rig_normal_equations(

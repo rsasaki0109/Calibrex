@@ -127,6 +127,10 @@ def _comparison_canonical(payload: dict) -> str:
     execution = (
         r"continuous_time_query_execution: (python|calibrex\.numba_continuous_time/v0\.[1-7];"
         r"numba=[0-9.]+;fastmath=false;cache=(true|false)|"
+        r"calibrex\.numba_continuous_time/v0\.8;numba=[0-9.]+;fastmath=false;cache=true;"
+        r"summary_parallel_cpu=(true|false);summary_workers=3;summary_min_rows=32768;"
+        r"summary_workspace_bytes=16777216;linearization_cache_cpu=(true|false);"
+        r"linearization_cache_bytes=67108864|"
         r"calibrex\.cuda_continuous_time/v0\.[1-3];" + cuda_fields +
         r"kernel_sha256=[0-9a-f]{64}|calibrex\.cuda_continuous_time/v0\.4;" + cuda_fields +
         r"standalone_residual_cpu=true;kernel_sha256=[0-9a-f]{64}|"
@@ -150,6 +154,19 @@ def _comparison_canonical(payload: dict) -> str:
         r"standalone_residual_cpu=true;linearization_cache=last;"
         r"linearization_cache_bytes=67108864;captured_summary_gpu=(true|false);"
         r"summary_reduction_cpu=true;associations_gpu=true;kernel_sha256=[0-9a-f]{64};"
+        r"association_kernel_sha256=[0-9a-f]{64}|"
+        r"calibrex\.cuda_continuous_time/v0\.8;" + cuda_fields +
+        r"standalone_residual_cpu=true;linearization_cache=last;"
+        r"linearization_cache_bytes=67108864;captured_summary_gpu=(true|false);"
+        r"summary_reduction_cpu=true;summary_parallel_cpu=(true|false);summary_workers=3;"
+        r"summary_min_rows=32768;summary_workspace_bytes=16777216;"
+        r"associations_gpu=false;kernel_sha256=[0-9a-f]{64}|"
+        r"calibrex\.cuda_continuous_time/v0\.8;" + cuda_fields +
+        r"standalone_residual_cpu=true;linearization_cache=last;"
+        r"linearization_cache_bytes=67108864;captured_summary_gpu=(true|false);"
+        r"summary_reduction_cpu=true;summary_parallel_cpu=(true|false);summary_workers=3;"
+        r"summary_min_rows=32768;summary_workspace_bytes=16777216;"
+        r"associations_gpu=true;kernel_sha256=[0-9a-f]{64};"
         r"association_kernel_sha256=[0-9a-f]{64})"
     )
     if "notes" in provenance:

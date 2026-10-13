@@ -73,6 +73,7 @@ extern "C" __global__ void linearize(const double* points,const double* planes,
 
 def cuda_continuous_time_identity(
     *, associations_gpu: bool = False, captured_summary_gpu: bool = False,
+    summary_parallel_cpu: bool = False,
 ) -> str:
     """Identify arithmetic and runtime without recording a device model."""
     association_identity = ""
@@ -81,13 +82,15 @@ def cuda_continuous_time_identity(
 
         association_identity = f";association_kernel_sha256={cuda_plane_query_source_sha256()}"
     return (
-        "calibrex.cuda_continuous_time/v0.7;fp64=true;fma=false;"
+        "calibrex.cuda_continuous_time/v0.8;fp64=true;fma=false;"
         f"cupy={cp.__version__};cuda={cp.cuda.runtime.runtimeGetVersion()};"
         f"driver={cp.cuda.runtime.driverGetVersion()};"
         f"numba={version('numba')};trajectory_cpu=true;normal_cpu=true;"
         "standalone_residual_cpu=true;"
         "linearization_cache=last;linearization_cache_bytes=67108864;"
         f"captured_summary_gpu={str(captured_summary_gpu).lower()};summary_reduction_cpu=true;"
+        f"summary_parallel_cpu={str(summary_parallel_cpu).lower()};summary_workers=3;"
+        "summary_min_rows=32768;summary_workspace_bytes=16777216;"
         f"associations_gpu={str(associations_gpu).lower()};"
         f"kernel_sha256={hashlib.sha256(_SOURCE.encode()).hexdigest()}"
         + association_identity

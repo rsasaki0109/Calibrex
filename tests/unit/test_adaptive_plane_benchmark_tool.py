@@ -178,6 +178,39 @@ def test_captured_summary_identity_excludes_only_exact_cpu_reduction_policy(asso
         assert benchmark._comparison_canonical(candidate) != benchmark._canonical(baseline)
 
 
+@pytest.mark.parametrize("backend", ["numba", "cuda"])
+@pytest.mark.parametrize("parallel", [False, True])
+def test_parallel_summary_identity_keeps_exact_worker_budget_and_numerical_differences(
+    backend, parallel,
+):
+    baseline = {"status": "converged", "rmse": 0.1, "provenance": {"notes": []}}
+    policy = (f"summary_parallel_cpu={str(parallel).lower()};summary_workers=3;"
+              "summary_min_rows=32768;summary_workspace_bytes=16777216")
+    if backend == "numba":
+        identity = ("calibrex.numba_continuous_time/v0.8;numba=0.65.1;"
+                    "fastmath=false;cache=true;"+policy+
+                    ";linearization_cache_cpu=true;linearization_cache_bytes=67108864")
+    else:
+        identity = ("calibrex.cuda_continuous_time/v0.8;fp64=true;fma=false;"
+            "cupy=14.2.0;cuda=12090;driver=13000;numba=0.65.1;trajectory_cpu=true;"
+            "normal_cpu=true;standalone_residual_cpu=true;linearization_cache=last;"
+            "linearization_cache_bytes=67108864;captured_summary_gpu=false;"
+            "summary_reduction_cpu=true;"+policy+";associations_gpu=false;kernel_sha256="+"a"*64)
+    note = "continuous_time_query_execution: "+identity
+    candidate = deepcopy(baseline)
+    candidate["provenance"]["notes"] = [note]
+    assert benchmark._comparison_canonical(candidate) == benchmark._canonical(baseline)
+    candidate["rmse"] = 0.10000000000000002
+    assert benchmark._comparison_canonical(candidate) != benchmark._canonical(baseline)
+    candidate["rmse"] = 0.1
+    for forged in (note+";hidden=change", note.replace("summary_workers=3", "summary_workers=4"),
+                   note.replace("summary_min_rows=32768", "summary_min_rows=1"),
+                   note.replace("summary_workspace_bytes=16777216", "summary_workspace_bytes=0"),
+                   note.replace("summary_parallel_cpu=", "summary_parallel_cpu=unknown")):
+        candidate["provenance"]["notes"] = [forged]
+        assert benchmark._comparison_canonical(candidate) != benchmark._canonical(baseline)
+
+
 def test_cuda_scope_archives_both_old_packing_and_cuda_and_requires_explicit_backends(tmp_path):
     assert benchmark._modules_for_scope("cuda") == (
         *benchmark.COMPILED_MODULES, "calibrex.evaluation.packed_lidar_observations",

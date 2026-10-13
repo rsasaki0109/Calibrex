@@ -16,6 +16,7 @@ from collections import OrderedDict
 from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
+from os import cpu_count
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
@@ -222,10 +223,13 @@ class _QueryReuse:
     observation_builder: _PreparedObservationBuilder | None = None
     packed_builder: _PackedObservationBuilder | None = None
     executor: ThreadPoolExecutor | None = None
+    summary_executor: ThreadPoolExecutor | None = None
     cuda_rig: CudaRigLinearizer | None = None
     cuda_planes: CudaPlaneQueries | None = None
     used_cuda: bool = False
     used_cuda_summary: bool = False
+    used_parallel_summary: bool = False
+    used_cpu_linearization_cache: bool = False
     selections: dict[int, _PackedSelection] = field(default_factory=dict)
 
     def identity(self) -> str:
@@ -235,13 +239,17 @@ class _QueryReuse:
             return cuda_continuous_time_identity(
                 associations_gpu=self.cuda_planes is not None and self.cuda_planes.query_calls > 0,
                 captured_summary_gpu=self.used_cuda_summary,
+                summary_parallel_cpu=self.used_parallel_summary,
             )
         if self.used_numba or (self.compiled is not None and self.compiled.used):
             from calibrex.solvers.numba_continuous_time_adapter import (
                 numba_continuous_time_identity,
             )
 
-            return numba_continuous_time_identity()
+            return numba_continuous_time_identity(
+                summary_parallel_cpu=self.used_parallel_summary,
+                linearization_cache_cpu=self.used_cpu_linearization_cache,
+            )
         return "python"
 
     def source_pose(self, timestamp_ns: int, pose: SE3, base: SE3) -> SE3:
@@ -289,12 +297,22 @@ class ContinuousTimeLidarPairSolver:
         )
         if parallel:
             with ThreadPoolExecutor(max_workers=3, thread_name_prefix="calibrex-lidar") as executor:
+                if (len(problem.target_points) >= 32768 and (cpu_count() or 1) >= 6
+                    and (not settings.max_target_points_per_split
+                         or settings.max_target_points_per_split >= 32768)):
+                    # Use a separate bounded pool: candidate workers must never
+                    # wait on tasks queued to their own occupied executor.
+                    with ThreadPoolExecutor(
+                        max_workers=3, thread_name_prefix="calibrex-summary",
+                    ) as summary_executor:
+                        return self._solve(problem, settings, executor, summary_executor)
                 return self._solve(problem, settings, executor)
         return self._solve(problem, settings, None)
 
     def _solve(
         self, problem: ContinuousTimeLidarPairProblem, settings: ContinuousTimeLidarPairOptions,
         executor: ThreadPoolExecutor | None,
+        summary_executor: ThreadPoolExecutor | None = None,
     ) -> ContinuousTimeLidarPairResult:
 
         self._validate(problem, settings)
@@ -334,6 +352,7 @@ class ContinuousTimeLidarPairSolver:
             VoxelPlaneQueryContext(source_plane_map) if source_plane_map is not None else None,
         )
         query_reuse.executor = executor
+        query_reuse.summary_executor = summary_executor
         query_reuse.observation_builder = _PreparedObservationBuilder(problem.target_points)
         if adaptive_plane_map is not None:
             # Historical adaptive-only benchmark archives predate the batch context.
@@ -806,6 +825,8 @@ class ContinuousTimeLidarPairSolver:
         ] | None = None
         if settings.query_backend in ("numba_cpu", "cuda"):
             from calibrex.solvers.numba_continuous_time_adapter import (
+                NumbaRigLinearizer,
+                _numba_parallel_rig_rmse,
                 _numba_rig_rmse,
                 _numba_rmse_policy,
                 _numba_values_rmse,
@@ -815,6 +836,8 @@ class ContinuousTimeLidarPairSolver:
             )
             gpu = (query_reuse.cuda_rig.fork() if query_reuse is not None
                    and query_reuse.cuda_rig is not None else None)
+            cpu = (NumbaRigLinearizer() if gpu is None and query_reuse is not None
+                   and query_reuse.summary_executor is not None else None)
 
             def compiled_residuals(arrays: _ObservationArrays, transform: SE3) -> list[float]:
                 # Single evaluations are cheaper on CPU. Capture only the
@@ -836,6 +859,13 @@ class ContinuousTimeLidarPairSolver:
                             if query_reuse is not None:
                                 query_reuse.used_cuda = query_reuse.used_cuda_summary = True
                             return result
+                if query_reuse is not None and query_reuse.summary_executor is not None:
+                    result = _numba_parallel_rig_rmse(
+                        arrays, transform, query_reuse.summary_executor,
+                    )
+                    if result is not None:
+                        query_reuse.used_parallel_summary = True
+                        return result
                 return _numba_rig_rmse(arrays, transform)
 
             array_rmse_kernel = compiled_rmse
@@ -848,7 +878,10 @@ class ContinuousTimeLidarPairSolver:
                     if query_reuse is not None:
                         query_reuse.used_cuda = True
                 else:
-                    result = numba_rig_linearization(arrays, transforms, steps)
+                    result = (cpu.linearize(arrays, transforms, steps) if cpu is not None
+                              else numba_rig_linearization(arrays, transforms, steps))
+                    if cpu is not None and cpu.cache_hits and query_reuse is not None:
+                        query_reuse.used_cpu_linearization_cache = True
                 if query_reuse is not None:
                     query_reuse.used_numba = True
                 return result
