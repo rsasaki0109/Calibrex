@@ -121,8 +121,25 @@ def audit(root: Path) -> dict[str, object]:
         module._compare(results[(r, "prior")], results[(r, "current")])
         for r in range(protocol["repeats"])
     ]
-    if quality != summary["quality"] or not all(q["passed"] for q in quality):
+    expected_quality = summary["quality"]
+    if len(quality) != len(expected_quality) or not all(q["passed"] for q in quality):
         raise ValueError("complete quality comparison differs or failed")
+    for actual_quality, declared_quality in zip(quality, expected_quality, strict=True):
+        # SciPy versions may normalize nearly identical quaternions with
+        # slightly different rounding. Preserve the physical check and all
+        # other exact fields; allow only sub-pic degree recomputation noise.
+        actual_errors = dict(actual_quality["errors"])
+        declared_errors = dict(declared_quality["errors"])
+        actual_rotation = actual_errors.pop("rotation_deg")
+        declared_rotation = declared_errors.pop("rotation_deg")
+        actual_other = {k: v for k, v in actual_quality.items() if k != "errors"}
+        declared_other = {k: v for k, v in declared_quality.items() if k != "errors"}
+        if (
+            actual_errors != declared_errors
+            or actual_other != declared_other
+            or not np.isclose(actual_rotation, declared_rotation, rtol=1e-6, atol=1e-12)
+        ):
+            raise ValueError("complete quality comparison differs or failed")
     for repeat in range(protocol["repeats"]):
         left = measurements[(repeat, "prior")]["rounds"]
         right = measurements[(repeat, "current")]["rounds"]

@@ -36,6 +36,17 @@ def test_complete_public_comparison_audits_without_bag_or_cuda() -> None:
     assert result["fit_speedup"] > 4.0
 
 
+def test_audit_allows_only_tiny_quaternion_recomputation_roundoff(tmp_path: Path) -> None:
+    root = tmp_path / "archive"
+    shutil.copytree(ROOT, root)
+    path = root / "summary.json"
+    value = json.loads(path.read_bytes())
+    value["quality"][0]["errors"]["rotation_deg"] += 1e-15
+    _rewrite(path, value)
+    _refresh_index(root)
+    assert audit(root)["quality_passed"]
+
+
 @pytest.mark.parametrize("mutation", ["result", "missing_worker", "import", "ratio", "covariance"])
 def test_audit_rejects_changed_result_worker_source_ratio_or_covariance(
     tmp_path: Path, mutation: str
