@@ -417,6 +417,12 @@ The checked stream contract is
 [`glim_versatile/manifest.yaml`](https://github.com/rsasaki0109/Calibrex/blob/main/examples/public_datasets/glim_versatile/manifest.yaml)
 and validates with `calibrex validate --kind dataset-manifest`.
 
+The original PointCloud2 and IMU streams also provide the
+[joint B-spline LiDAR-IMU acceleration comparison](../benchmarks/bspline_lidar_imu_acceleration.md):
+three alternating complete runs per implementation on the first 12 seconds,
+with full calibration, covariance and holdout evidence. That run retains an
+INCONCLUSIVE calibration verdict; it measures runtime and regression parity.
+
 The ROS 1 PointCloud2 header carries the relative Livox clock (about 110 s),
 while bag records use epoch time. The reproducible conversion therefore
 restamps `/livox/points` with the measured median record/header offset and

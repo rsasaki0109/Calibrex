@@ -1,0 +1,126 @@
+from pathlib import Path
+import hashlib
+import json
+import shutil
+import tarfile
+
+source = Path('outputs/glim-joint-bspline-formal-v1')
+destination = Path('docs/assets/bspline_lidar_imu_acceleration')
+destination.mkdir(exist_ok=False)
+summary = json.loads((source / 'summary.json').read_bytes())
+attempts = json.loads((source / 'attempts.json').read_bytes())
+protocol = json.loads((source / 'protocol.json').read_bytes())
+for name in ('protocol.json', 'attempts.json', 'summary.json'):
+    shutil.copyfile(source / name, destination / name)
+for attempt in attempts:
+    root = destination / attempt['worker']
+    root.mkdir()
+    for name in ('measurement.json', 'result.json', 'worker.log'):
+        shutil.copyfile(source / attempt['worker'] / name, root / name)
+for variant in ('prior', 'current'):
+    root = source / f'sources-{variant}'
+    shutil.copyfile(root / 'manifest.json', destination / f'sources-{variant}-manifest.json')
+    with tarfile.open(destination / f'sources-{variant}.tar.gz', 'w:gz') as archive:
+        archive.add('LICENSE', arcname='LICENSE', recursive=False)
+        for path in sorted((root / 'src').rglob('*.py')):
+            archive.add(path, arcname=path.relative_to(root).as_posix(), recursive=False)
+shutil.copyfile('tools/benchmark_bspline_lidar_imu.py', destination / 'benchmark.py.txt')
+shutil.copyfile('tools/schemas/bspline_lidar_imu_comparison.schema.json', destination / 'comparison.schema.json')
+
+whole = summary['whole_median_seconds']
+fitting = summary['fit_median_seconds']
+table = '\n'.join([
+    '| Scope | Prior median | Analytic median | Speedup |',
+    '| --- | ---: | ---: | ---: |',
+    f"| Complete worker | {whole['prior']:.3f} s | {whole['current']:.3f} s | {summary['whole_speedup']:.3f}x |",
+    f"| Four fits, including covariance | {fitting['prior']:.3f} s | {fitting['current']:.3f} s | {summary['fit_speedup']:.3f}x |",
+])
+trials = '\n'.join([
+    '| Trial | Variant | Whole seconds | Fit seconds |',
+    '| --- | --- | ---: | ---: |',
+] + [f"| {a['repeat']} | {a['variant']} | {a['whole_seconds']:.6f} | {json.loads((source / a['worker'] / 'measurement.json').read_bytes())['fit_seconds']:.6f} |" for a in attempts])
+quality = summary['quality'][0]
+readme = f'''# Public GLIM joint B-spline CPU acceleration
+
+The complete native bag calibration runs {summary['whole_speedup']:.3f}x faster
+on this public 12-second clip. Its four complete spline fits, including
+marginal covariance, run {summary['fit_speedup']:.3f}x faster. Three alternating
+fresh-process pairs use one BLAS thread and the same four map rounds and
+30-iteration fit caps. GPU is not required.
+
+{table}
+
+{trials}
+
+## Method and source binding
+
+- Prior: `{protocol['baseline_commit']}`.
+- Current measured source: `{protocol['current_commit']}`.
+- Original AIST GLIM `livox.bag` SHA-256: `{protocol['bag_sha256']}`.
+- PointCloud2 `/livox/points`, point-time `t`; IMU `/livox/imu`, acceleration in g.
+- The first 12 seconds yield a roughly 11.5-second reliable odometry segment
+  and 118 spline controls; the full 61-second recording is not timed here.
+- Whole time runs from process launch through bag reading, angular-rate
+  initialization, gyro-deskewed odometry, map association and all four fits,
+  covariance, noise update, holdout and 32 signed controls, result saving,
+  input hashing and verified imports. Source preparation in the parent is
+  outside the timed worker. Fit time includes each fit's covariance.
+
+Every worker has its complete schema-valid `result.json`, full per-round
+covariance/trajectory/calibration in `measurement.json`, and original log.
+Both exact frozen source trees are in tar archives; their raw-byte manifests
+and each worker's actual module-import digests are retained. The executed
+benchmark launcher and its tool-only schema are frozen here. `publication-index.json`
+binds every published file except itself. The raw recording is not redistributed.
+
+## Result agreement and limits
+
+All three quality comparisons pass. Policy, block/control, separability and
+convergence decisions agree; parameter estimates, std, last-round changes,
+noise, control chi-square and correlations meet the fixed protocol tolerances.
+For the first pair, rotation differs by {quality['errors']['rotation_deg']:.3g} deg,
+lever arm by {quality['errors']['lever_arm_m']:.3g} m and clock offset by
+{quality['errors']['clock_offset_s']:.3g} s. Whitened holdout RMS differs by at most
+{quality['max_holdout_whitened_rms_difference']:.3g}. The audit additionally checks
+full per-round covariance and trajectory arrays and costs.
+
+All six workers report **INCONCLUSIVE**. This capture and its estimated plane
+map do not provide independent absolute extrinsic truth. Formal covariance
+holds the plane map fixed. This is a performance/regression comparison, not
+an accuracy or observability claim, and does not predict all recordings' speed.
+
+The exploratory profiles under ignored `outputs/` were used to identify the
+rotation finite differences. Their initial-odometry timing changed substantially
+between runs, so their total-time ratio is not used in these results. The
+single formal cohort above is the source of every reported speed ratio.
+
+## Audit and reproduce
+
+```bash
+python -m tools.audit_bspline_lidar_imu_benchmark
+python -m tools.benchmark_bspline_lidar_imu \\
+  --baseline-commit {protocol['baseline_commit']} \\
+  --bag data/public/glim_versatile/livox.bag \\
+  --max-seconds 12 --max-rounds 4 --repeats 3 \\
+  --output outputs/glim-joint-bspline-comparison
+```
+
+The comparison output must not exist and runtime source changes must be
+committed. The archive audit needs the ordinary CPU dependencies only; it
+does not open a bag or import CUDA. See the
+[benchmark explanation](../../benchmarks/bspline_lidar_imu_acceleration.md).
+'''
+(destination / 'README.md').write_text(readme, encoding='utf-8', newline='\n')
+docs = Path('docs/benchmarks/bspline_lidar_imu_acceleration.md')
+content = docs.read_text(encoding='utf-8')
+content = content.replace('<!-- bspline_results -->', table)
+docs.write_text(content, encoding='utf-8', newline='\n')
+shutil.copyfile(__file__, destination / 'publisher.py.txt')
+files = {p.relative_to(destination).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+         for p in sorted(destination.rglob('*')) if p.is_file()}
+(destination / 'publication-index.json').write_text(json.dumps({
+    'schema_version': 'slac.bspline_lidar_imu_publication/v0.1',
+    'provenance': {'input_protocol_sha256': hashlib.sha256((source / 'protocol.json').read_bytes()).hexdigest()},
+    'files': files,
+}, indent=2) + '\n', encoding='utf-8', newline='\n')
+print({'files': len(files), 'whole_speedup': summary['whole_speedup'], 'fit_speedup': summary['fit_speedup']})

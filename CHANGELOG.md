@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Use analytic SO(3) spline-control and IMU calibration Jacobians in the
+  joint B-spline LiDAR-IMU fitter, sharing base states and computing only the
+  derivatives needed by each residual family. On a public GLIM 12-second clip,
+  three alternating CPU pairs measured 2.55x complete-worker acceleration
+  (325 to 127 s medians) and 6.32x across the four fits including covariance
+  (252 to 40 s), with matching calibration/evidence decisions. Public APIs
+  and all 130 exported schemas are unchanged. Complete source-bound trials,
+  per-round covariance/trajectory arrays and a CPU-only audit are archived;
+  the real-data calibration verdict remains INCONCLUSIVE. See
+  `docs/benchmarks/bspline_lidar_imu_acceleration.md`.
+
 - **`calibrex check` says which frame's rotation the pair errors point to.**
   - **The fit.** For each connected group of run pairs, every frame is assumed to be
     the only one off. Its turn is fitted to the pairs' rotation errors (a child turned

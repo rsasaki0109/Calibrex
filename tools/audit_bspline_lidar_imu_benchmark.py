@@ -1,0 +1,179 @@
+"""CPU-only audit of the complete public GLIM B-spline acceleration archive."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import statistics
+import tarfile
+from pathlib import Path
+from types import ModuleType
+
+import jsonschema
+import numpy as np
+
+from calibrex.core.lidar_imu_bag_calibration import LidarImuBagCalibrationArtifact
+
+
+def _sha(raw: bytes) -> str:
+    return hashlib.sha256(raw).hexdigest()
+
+
+def audit(root: Path) -> dict[str, object]:
+    """Validate digests, complete models, frozen imports, quality and speed ratios."""
+    index = json.loads((root / "publication-index.json").read_bytes())
+    actual = {p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file()}
+    if actual != set(index["files"]) | {"publication-index.json"}:
+        raise ValueError("publication index does not bind every archive file")
+    for relative, digest in index["files"].items():
+        if _sha((root / relative).read_bytes()) != digest:
+            raise ValueError(f"archive digest differs: {relative}")
+    schema = json.loads((root / "comparison.schema.json").read_bytes())
+    protocol = json.loads((root / "protocol.json").read_bytes())
+    summary = json.loads((root / "summary.json").read_bytes())
+    for record in (protocol, summary):
+        jsonschema.validate(record, schema)
+    launcher = root / "benchmark.py.txt"
+    if _sha(launcher.read_bytes()) != protocol["launcher_sha256"]:
+        raise ValueError("frozen comparison launcher differs")
+    # Execute the bound comparison definition without creating cache files in
+    # the immutable evidence archive.
+    module = ModuleType("_frozen_bspline_comparison")
+    module.__file__ = str(launcher)
+    exec(compile(launcher.read_bytes(), str(launcher), "exec"), module.__dict__)
+    sources = {}
+    for variant in ("prior", "current"):
+        expected = json.loads((root / f"sources-{variant}-manifest.json").read_bytes())
+        with tarfile.open(root / f"sources-{variant}.tar.gz") as bundle:
+            archived = {}
+            for member in bundle.getmembers():
+                if not member.isfile() or not member.name.endswith(".py"):
+                    continue
+                if not member.name.startswith("src/calibrex/") or ".." in Path(member.name).parts:
+                    raise ValueError("unexpected frozen source archive path")
+                stream = bundle.extractfile(member)
+                assert stream is not None
+                archived[member.name.removeprefix("src/")] = _sha(stream.read())
+        if archived != expected:
+            raise ValueError(f"frozen {variant} source tree differs")
+        sources[variant] = expected
+    attempts = json.loads((root / "attempts.json").read_bytes())
+    expected_workers = {(r, v) for r in range(protocol["repeats"]) for v in sources}
+    if (
+        len(attempts) != len(expected_workers)
+        or {(a["repeat"], a["variant"]) for a in attempts} != expected_workers
+    ):
+        raise ValueError("comparison is missing or duplicating a complete worker")
+    results, measurements = {}, {}
+    for attempt in attempts:
+        if attempt["exit_code"] != 0:
+            raise ValueError("comparison contains a failed worker")
+        directory = root / attempt["worker"]
+        record = json.loads((directory / "measurement.json").read_bytes())
+        jsonschema.validate(record, schema)
+        variant = attempt["variant"]
+        provenance = record["provenance"]
+        raw_result = (directory / "result.json").read_bytes()
+        result = json.loads(raw_result)
+        LidarImuBagCalibrationArtifact.model_validate(result)
+        expected_commit = protocol["baseline_commit" if variant == "prior" else "current_commit"]
+        if result["provenance"]["git_commit"] != expected_commit:
+            raise ValueError("result does not name the measured source commit")
+        if (
+            record["variant"] != variant
+            or provenance["result_sha256"] != _sha(raw_result)
+            or provenance["bag_sha256"] != protocol["bag_sha256"]
+            or provenance["launcher_sha256"] != protocol["launcher_sha256"]
+            or provenance["source_manifest_sha256"]
+            != _sha((root / f"sources-{variant}-manifest.json").read_bytes())
+        ):
+            raise ValueError("worker source/input/result binding differs")
+        if set(provenance["blas_threads"].values()) != {"1"}:
+            raise ValueError("worker did not use the declared BLAS thread budget")
+        executed = provenance["executed_sources"]
+        if "calibrex/core/continuous_time_bspline_fit.py" not in executed:
+            raise ValueError("worker did not bind the executed fitter")
+        if any(sources[variant].get(name) != digest for name, digest in executed.items()):
+            raise ValueError("actual worker imports differ from frozen sources")
+        if not (
+            attempt["whole_seconds"] >= record["pipeline_seconds"] >= record["fit_seconds"] > 0
+        ):
+            raise ValueError("timing scopes are inconsistent")
+        if len(record["rounds"]) != len(result["rounds"]):
+            raise ValueError("worker did not retain every fit round")
+        for fitted, reported in zip(record["rounds"], result["rounds"], strict=True):
+            if (
+                fitted["status"] != reported["fit_status"]
+                or fitted["iterations"] != reported["iterations"]
+            ):
+                raise ValueError("full fit record differs from reported round")
+            covariance = np.asarray(fitted["calibration_covariance"])
+            if (
+                covariance.ndim != 2
+                or covariance.shape[0] != covariance.shape[1]
+                or not np.all(np.isfinite(covariance))
+            ):
+                raise ValueError("fit covariance is incomplete or non-finite")
+        key = (attempt["repeat"], variant)
+        results[key], measurements[key] = result, record
+    quality = [
+        module._compare(results[(r, "prior")], results[(r, "current")])
+        for r in range(protocol["repeats"])
+    ]
+    if quality != summary["quality"] or not all(q["passed"] for q in quality):
+        raise ValueError("complete quality comparison differs or failed")
+    for repeat in range(protocol["repeats"]):
+        left = measurements[(repeat, "prior")]["rounds"]
+        right = measurements[(repeat, "current")]["rounds"]
+        for prior_fit, current_fit in zip(left, right, strict=True):
+            if (
+                prior_fit["status"] != current_fit["status"]
+                or prior_fit["residual_count"] != current_fit["residual_count"]
+                or prior_fit["parameter_count"] != current_fit["parameter_count"]
+            ):
+                raise ValueError("fit round status or dimensions differ")
+            for field in ("calibration_covariance", "trajectory_positions", "trajectory_rotations"):
+                if not np.allclose(prior_fit[field], current_fit[field], rtol=1e-4, atol=1e-8):
+                    raise ValueError(f"full per-round {field} differs")
+            for field in ("initial_cost", "final_cost", "residual_variance"):
+                if not np.isclose(prior_fit[field], current_fit[field], rtol=1e-6, atol=1e-5):
+                    raise ValueError(f"fit round {field} differs")
+    for scope in ("whole", "fit"):
+        medians = {
+            v: statistics.median(
+                a["whole_seconds"]
+                if scope == "whole"
+                else measurements[(a["repeat"], v)]["fit_seconds"]
+                for a in attempts
+                if a["variant"] == v
+            )
+            for v in sources
+        }
+        if (
+            medians != summary[f"{scope}_median_seconds"]
+            or medians["prior"] / medians["current"] != summary[f"{scope}_speedup"]
+        ):
+            raise ValueError(f"{scope} speed ratio differs")
+    for name in ("protocol", "attempts"):
+        if summary["provenance"][f"{name}_sha256"] != _sha((root / f"{name}.json").read_bytes()):
+            raise ValueError("summary input binding differs")
+    return {
+        "workers": len(attempts),
+        "files": len(index["files"]),
+        "whole_speedup": summary["whole_speedup"],
+        "fit_speedup": summary["fit_speedup"],
+        "quality_passed": True,
+    }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "archive", nargs="?", type=Path, default=Path("docs/assets/bspline_lidar_imu_acceleration")
+    )
+    print(json.dumps(audit(parser.parse_args().archive), indent=2))
+
+
+if __name__ == "__main__":
+    main()
