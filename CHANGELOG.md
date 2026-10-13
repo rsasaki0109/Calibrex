@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- **`calibrex external-run import-sensor-calib-tas` imports a sensor_calib_tas result
+  as a `--tf` file.**
+  - **What sensor_calib_tas outputs.** Each sensor's pose in its reference sensor's
+    frame, as `<frame>_calibrated` static transforms or the latched
+    `~/sensor_poses` message. It writes no file.
+  - **The import.** It reads either one (from a bag, or from `ros2 topic echo` YAML)
+    and writes a `slac.check_frames` file under the sensors' own frame names. Given
+    with `--tf`, that file overrides the deployed calibration on a driving bag.
+  - **The test.** On a synthetic driving bag whose deployed LiDAR rotation is 3 deg
+    off, the check fails; with the imported result it passes.
+  - **Schema.** `slac.check_frames` gains an optional `provenance`: generator, tool and
+    license, and the source's SHA-256.
+
 - **A rectified image stream's intrinsics come from CameraInfo's `P`, without
   distortion.**
   - **The bug.** An `image_rect*` topic (ROS image_pipeline) carries undistorted images,

@@ -454,6 +454,17 @@ driving. The run found one bug, fixed since: the front camera publishes
 image's (k1 = −0.27). The check now reads a rectified stream's intrinsics from `P`
 without distortion, the ROS image_pipeline convention.
 
+The demo bag holds no result, so it has no `*_calibrated` frame on `/tf_static`. Once
+a session has been solved and recorded,
+`calibrex external-run import-sensor-calib-tas` turns its result into a `--tf` file.
+The check then judges that target calibration on a driving bag. The synthetic test
+(`tests/unit/test_import_sensor_calib_tas.py`) runs this end to end:
+
+* **Without the import.** A driving bag whose deployed LiDAR rotation is 3 deg off
+  fails.
+* **With it.** The same bag passes with the imported result, and the override is
+  listed in the report.
+
 ## Limitations
 
 * Rotation only; translation is reported unchecked on every run.
