@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Fuse optional CPU LiDAR plane scoring and observation gathers for batches of
+  at least 8,192 rows. Preserve ordered FP64 scores, native distance ties,
+  signed zeros, independent read-only output columns and small-batch fallback.
+  Publish all fresh whole-process controls and actual GPU/CPU work; the
+  incremental gain over the preceding GPU implementation is modest.
+
 - Reuse the last exact CUDA LiDAR finite differences with bitwise transform/step
   keys, owned writable return arrays and a 64 MiB host-cache limit. Compute only
   initial solver rank for native compiled factors with at least 8,192 residuals;

@@ -1062,6 +1062,40 @@ The copied public topic supplies execution parity, without independent
 two-sensor accuracy evidence. See the [complete association/replay evidence](../assets/cuda_continuous_time_associations/README.md)
 for all trials, source/input bindings, actual work and preserved preceding candidates.
 
+## Fusing CPU observation construction around GPU queries
+
+Large compiled LiDAR batches combine raw-normal scores, plane selection and
+ordered gathers in two CPU Numba kernels. They release the GIL with fastmath
+disabled and keep the existing three candidate workers. Batches below 8,192
+rows retain NumPy construction. Equal-centroid score ties keep the first plane;
+other exact score ties retain Python `math.dist`. Outputs use independent
+read-only allocations, and public query/observation guards remain active.
+
+Three fresh alternating pairs per workload retain compilation, startup, replay,
+all candidates/refinements, transfers, diagnostics, hashes and saves. Initial
+compiler caches are empty and separate for each method; all trials are retained.
+
+| Comparison | Baseline whole median | Candidate whole median | Ratio of medians | Median paired ratio |
+|---|---:|---:|---:|---:|
+| Previous GPU, 960,000 captured points | 53.362673 s | 50.009781 s | 1.067x | 1.100x |
+| Previous GPU, 48,000 captured points | 10.123346 s | 9.228069 s | 1.097x | 1.061x |
+| Previous GPU, default sampling | 5.450336 s | 5.448372 s | 1.000x | 0.992x |
+| Packed CPU, separate dense control | 136.841544 s | 45.582851 s | 3.002x | 2.930x |
+
+The incremental whole-pipeline improvement is modest; GPU coverage remains
+unchanged. The separate CPU control describes the cumulative hybrid pipeline.
+These cohorts must not be pooled or multiplied by earlier results. Every
+complete result value, history and diagnostic matches after validating
+execution notes. The copied public sensor topic is an execution parity control,
+without independent two-sensor accuracy evidence.
+
+An independent diagnostic records 52 compiled construction calls covering
+24,960,000 rows and 307,670 distinct-centroid ties requiring native distance
+comparisons. It also confirms the existing 52 GPU queries, 56 actual GPU
+linearizations and 73 linearization cache hits. See the
+[complete construction evidence](../assets/continuous_time_observation_packing/README.md)
+for every trial, preserved diagnostics, exact source/input bindings and limits.
+
 ## Reusing exact continuous-time LiDAR differences
 
 The CUDA adapter keeps one exact residual/Jacobian entry per owned context,

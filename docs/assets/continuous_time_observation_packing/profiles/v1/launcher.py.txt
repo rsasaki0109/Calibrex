@@ -1,0 +1,90 @@
+"""Count exact hybrid score ties outside formal performance measurements."""
+import json
+import os
+import subprocess
+import sys
+import time
+from argparse import Namespace
+from pathlib import Path
+from threading import Lock
+
+workspace = next(p for p in Path(__file__).resolve().parents if (p/'pyproject.toml').is_file())
+sys.path.insert(0, str(workspace))
+os.chdir(workspace)
+from tools import benchmark_adaptive_plane_search as b
+import numpy as np
+from calibrex.evaluation.packed_lidar_observations import _PackedObservationBuilder
+
+out = Path('outputs/public-glim-association-ties-profile-v1')
+out.mkdir()
+config = Path('examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml')
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['NUMBA_CACHE_DIR'] = str(Path('outputs/public-glim-linearization-reuse-dense-v3/numba-cache/sparse').resolve())
+os.environ['CUPY_CACHE_DIR'] = str(Path('outputs/public-glim-linearization-reuse-dense-v3/cuda-cache/sparse').resolve())
+sources = {p: b._digest(Path(p)) for p in (*b.SOURCES, config.as_posix(), __file__)}
+revision = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+inputs = b._verified_inputs(b.REPLAY)
+archive = out/'source'
+archive.mkdir()
+for source in sources:
+    (archive/Path(source).name).write_bytes(Path(source).read_bytes())
+counts = {'build_calls': 0, 'rows': 0, 'both_present': 0, 'score_ties': 0,
+          'same_centroid_ties': 0, 'different_centroid_ties': 0}
+timers = {'build_seconds': 0.0, 'instrumentation_seconds': 0.0}
+lock = Lock()
+native_build = _PackedObservationBuilder.build
+
+def observed(self, indices, poses, world, **kwargs):
+    query = kwargs.get('_position_query')
+    def observed_query(*args, **kw):
+        result = query(*args, **kw)
+        if result is not None and self.uniform_columns is not None and self.adaptive_columns is not None:
+            start = time.perf_counter()
+            positions = result
+            columns = (self.uniform_columns, self.adaptive_columns)
+            centers = [column.centroids[np.maximum(pos, 0)] for pos, column in zip(positions, columns)]
+            valid = [(pos >= 0) & column.valid[np.maximum(pos, 0)] for pos, column in zip(positions, columns)]
+            scores = []
+            for pos, column, center in zip(positions, columns, centers):
+                raw = column.raw_normals[np.maximum(pos, 0)]
+                delta = world-center
+                scores.append(np.abs(raw[:,0]*delta[:,0]+raw[:,1]*delta[:,1]+raw[:,2]*delta[:,2]))
+            ties = valid[0] & valid[1] & (scores[0] == scores[1])
+            same = ties & np.all(centers[0] == centers[1], axis=1)
+            with lock:
+                counts['both_present'] += int(np.count_nonzero(valid[0] & valid[1]))
+                counts['score_ties'] += int(np.count_nonzero(ties))
+                counts['same_centroid_ties'] += int(np.count_nonzero(same))
+                counts['different_centroid_ties'] += int(np.count_nonzero(ties & ~same))
+                timers['instrumentation_seconds'] += time.perf_counter()-start
+        return result
+    if query is not None:
+        kwargs['_position_query'] = observed_query
+    start = time.perf_counter()
+    result = native_build(self, indices, poses, world, **kwargs)
+    with lock:
+        counts['build_calls'] += 1
+        counts['rows'] += len(world)
+        timers['build_seconds'] += time.perf_counter()-start
+    return result
+
+_PackedObservationBuilder.build = observed
+b._worker(Namespace(worker='sparse', baseline_scope='compiled', candidate_query_backend='cuda',
+                    config=config, output_dir=out/'worker'))
+assert revision == subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+assert sources == {p: b._digest(Path(p)) for p in sources}
+assert inputs == b._verified_inputs(b.REPLAY)
+row = json.loads((out/'worker/measurement.json').read_bytes())
+reference = json.loads(Path('outputs/public-glim-linearization-reuse-dense-v3/sparse.repeat-01/measurement.json').read_bytes())
+left, right = row['result'], reference['result']
+left['provenance'].pop('git_commit')
+right['provenance'].pop('git_commit')
+assert b._canonical(left) == b._canonical(right)
+payload = {'provenance': {'source_commit': revision, 'source_sha256': sources,
+                         'input_sha256': inputs, 'measurement_sha256': b._digest(out/'worker/measurement.json')},
+           'counts': counts, 'call_sum_seconds': timers, 'source_input_guards_passed': True,
+           'historical_numeric_parity': True,
+           'limitations': ['Instrumented diagnostic only; nested and concurrent call sums overlap.',
+                          'Historical comparison excludes only git commit and validated execution notes; full saved results retained.']}
+(out/'diagnostic.json').write_text(json.dumps(payload, indent=2)+'\n', encoding='utf-8')
+print(json.dumps(payload, indent=2), flush=True)
