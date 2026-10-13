@@ -77,8 +77,21 @@ class StereoRotationOptions:
     min_response: float = 0.5
     max_response: float = 1.5
     max_std_deg: float = 0.1
+    rows_px: int = 4
+    """Rows searched each way when matching a patch on the final measurement."""
+    coarse_rows_px: int = 12
+    """Rows searched each way on a first, coarse measurement (about 2 deg at 350 px)."""
+    coarse_patches_per_pair: int = 100
+    coarse_min_disparity_px: int = -30
+    """The coarse search also looks right: a turn about the rectified y axis moves far
+    points to negative disparity (about 6 px per degree at 350 px)."""
+    recentre_deg: float = 0.2
+    """An error beyond this re-centres the rectification on the estimate and measures again."""
+    max_recentres: int = 3
 
     def __post_init__(self) -> None:
+        if self.rows_px < 1 or self.coarse_rows_px < self.rows_px or self.max_recentres < 0:
+            raise ValueError("need rows_px >= 1, coarse_rows_px >= rows_px, max_recentres >= 0")
         if self.blocks < 3 or self.max_pairs < self.blocks:
             raise ValueError("need three jackknife blocks and at least as many pairs")
         if (
@@ -255,6 +268,8 @@ def estimate_stereo_rotation(
     opts = options or StereoRotationOptions()
     candidate = np.asarray(candidate, dtype=np.float64)
 
+    recentred_by: list[float] | None = None
+
     def artifact(
         status: Literal["pass", "warn", "fail", "inconclusive"],
         reason: str,
@@ -280,6 +295,7 @@ def estimate_stereo_rotation(
             time_offset_status=time_status(measured) if axes and measured and timing else None,
             timing_source=timing.source if timing else None,
             max_stamp_gap_s=float(np.abs(timing.gaps_s).max()) if timing and len(pairs) else None,
+            recentred_by_deg=recentred_by,
             options=asdict(opts),
             limitations=[
                 "rotation only: the translation between the cameras is not judged",
@@ -302,7 +318,27 @@ def estimate_stereo_rotation(
             f"{len(pairs)} synchronised image pairs, fewer than {opts.blocks}",
             None,
         )
-    base = _measure(pairs, left, right, candidate, opts, timing)
+    # a candidate far off moves rows beyond the row search: a coarse measurement with a
+    # wider search finds the error, the rectification is re-centred on it, and the final
+    # measurement (with the usual search) is made there; the error is their composition
+    working = candidate
+    first = _measure(pairs, left, right, candidate, opts, timing, coarse=True)
+    if _usable(first, opts, coarse=True) and np.linalg.norm(first.error_deg) > opts.recentre_deg:
+        working = _recentred(candidate, first.error_deg)
+    base = _measure(pairs, left, right, working, opts, timing)
+    for _ in range(opts.max_recentres):
+        if not _usable(base, opts) or np.linalg.norm(base.error_deg) <= opts.recentre_deg:
+            break
+        working = _recentred(working, base.error_deg)
+        base = _measure(pairs, left, right, working, opts, timing)
+    recentred = _error_deg(candidate, working)
+    if np.linalg.norm(recentred) > 0.0:
+        recentred_by = [float(value) for value in recentred]
+    total_error = (
+        _error_deg(candidate, _recentred(working, base.error_deg))
+        if np.all(np.isfinite(base.error_deg))
+        else base.error_deg
+    )
     if base.rows_known < opts.min_patches:
         return artifact(
             "inconclusive",
@@ -311,9 +347,9 @@ def estimate_stereo_rotation(
         )
     axes: list[StereoRotationAxis] = []
     for index, name in enumerate(AXES):
-        turned = candidate.copy()
+        turned = working.copy()
         turn = Rotation.from_rotvec(np.radians(opts.control_deg) * np.eye(3)[index]).as_matrix()
-        turned[:3, :3] = turn @ candidate[:3, :3]
+        turned[:3, :3] = turn @ working[:3, :3]
         moved = _measure(pairs, left, right, turned, opts, timing)
         response = float((moved.error_deg[index] - base.error_deg[index]) / opts.control_deg)
         std = float(base.std_deg[index])
@@ -329,7 +365,7 @@ def estimate_stereo_rotation(
         axes.append(
             StereoRotationAxis(
                 name=name,
-                candidate_error_deg=float(base.error_deg[index]),
+                candidate_error_deg=float(total_error[index]),
                 std_deg=std,
                 control_response=response,
                 observable=not problems,
@@ -355,6 +391,8 @@ def _measure(
     candidate: FloatArray,
     options: StereoRotationOptions,
     timing: StereoTiming | None = None,
+    *,
+    coarse: bool = False,
 ) -> _Measurement:
     rectification = rectify_fisheye_pair(left, right, _inverse(candidate))
     # with timing, each pair is rectified for the rig's turn over its stamped gap, so its
@@ -377,8 +415,10 @@ def _measure(
     ]
     samples = vertical_offset_samples(
         rectified,
-        patches_per_pair=options.patches_per_pair,
+        patches_per_pair=options.coarse_patches_per_pair if coarse else options.patches_per_pair,
+        rows_px=options.coarse_rows_px if coarse else options.rows_px,
         max_disparity_px=options.max_disparity_px,
+        min_disparity_px=options.coarse_min_disparity_px if coarse else 0,
     )
     column = {name: samples[:, i] for i, name in enumerate(VERTICAL_OFFSET_COLUMNS)}
     known = column["vertical_texture"] > 0.5
@@ -422,6 +462,31 @@ def _measure(
         residual_std_px=residual,
         rectification=rectification,
     )
+
+
+def _usable(
+    measured: _Measurement, options: StereoRotationOptions, *, coarse: bool = False
+) -> bool:
+    """Enough matched patches (in proportion, for the sparser coarse measurement)."""
+
+    needed = options.min_patches
+    if coarse:
+        needed = needed * options.coarse_patches_per_pair // options.patches_per_pair
+    return measured.rows_known >= needed and bool(np.all(np.isfinite(measured.error_deg)))
+
+
+def _recentred(candidate: FloatArray, error_deg: FloatArray) -> FloatArray:
+    """The rig the error says: ``R_estimate = exp(-error) R_candidate`` (left camera axes)."""
+
+    moved = candidate.copy()
+    moved[:3, :3] = Rotation.from_rotvec(-np.radians(error_deg)).as_matrix() @ candidate[:3, :3]
+    return moved
+
+
+def _error_deg(candidate: FloatArray, estimate: FloatArray) -> FloatArray:
+    """``rotvec(R_candidate R_estimate^T)`` in degrees."""
+
+    return np.degrees(Rotation.from_matrix(candidate[:3, :3] @ estimate[:3, :3].T).as_rotvec())
 
 
 def _trimmed_fit(design: FloatArray, values: FloatArray) -> tuple[FloatArray, float]:
