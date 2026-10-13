@@ -1,0 +1,182 @@
+"""Publish every formal trial and diagnostic with exact source/input bindings."""
+import hashlib
+import json
+import re
+import statistics
+import subprocess
+import sys
+from pathlib import Path
+
+workspace = next(p for p in Path(__file__).resolve().parents if (p/'pyproject.toml').is_file())
+sys.path.insert(0, str(workspace))
+from calibrex.core.benchmark import BenchmarkDefinition, BenchmarkArtifact, aggregate_benchmark_definition
+from calibrex.core.continuous_time_lidar_artifacts import ContinuousTimeLidarPairArtifact
+from calibrex.core.io import read_mapping
+from tools import benchmark_adaptive_plane_search as b
+
+root = Path('outputs/initial-projection-publication-v1')
+root.mkdir(exist_ok=True)
+candidate = 'fdfeeb976221bb6aa3292de1177c4e6e25521330'
+previous = '39867cfe33ac5f88ca8e102f363158025982b406'
+index = {'provenance': {'source_commit': candidate, 'previous_source_commit': previous,
+                        'generator_sha256': b._digest(Path(__file__))},
+         'files': {}, 'summaries': {}}
+index['provenance']['publication_python_runtime'] = {'version': sys.version, 'implementation': sys.implementation.name}
+rewrites = {}
+frozen = Path('outputs/initial-projection-source-v1')
+
+def sha(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+def save(name, raw, **meta):
+    if isinstance(raw, (dict, list)):
+        raw = (json.dumps(raw, indent=2, allow_nan=False)+'\n').encode()
+    assert not re.search(r'gtx|1660[\s_-]*ti|c:[/\\]+users[/\\]+rsasa', raw.decode(), re.I), name
+    path = root/name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(raw)
+    index['files'][name] = {'sha256': sha(raw), **meta}
+
+def portable(value):
+    if isinstance(value, dict):
+        return {portable(k): portable(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [portable(v) for v in value]
+    if isinstance(value, str):
+        if value in rewrites:
+            return rewrites[value]
+        value = value.replace(sys.executable, '<PYTHON>').replace(str(workspace), '<WORKSPACE>')
+        value = value.replace(workspace.as_posix(), '<WORKSPACE>').replace('\\', '/')
+        return re.sub(r'c:/+users/+rsasa', '<USER>', value, flags=re.I)
+    return value
+
+for source in b.SOURCES:
+    name = 'sources/measured.'+Path(source).name+'.txt'
+    raw = (frozen/source).read_bytes()
+    assert raw.replace(b'\r\n', b'\n') == subprocess.check_output(['git','show',f'{candidate}:{source}'])
+    save(name, raw, source=source, source_commit=candidate)
+    for key in (source, str(Path(source).resolve()), Path(source).resolve().as_posix()):
+        rewrites[key] = name
+
+for label in ('gpu-dense', 'cpu-dense', 'default-smoke'):
+    out = Path(f'outputs/public-glim-initial-projection-{label}-v1')
+    definition = BenchmarkDefinition.model_validate(read_mapping(out/'pipeline.definition.json'))
+    aggregate = BenchmarkArtifact.model_validate(read_mapping(out/'pipeline.benchmark.json'))
+    assert aggregate_benchmark_definition(definition) == aggregate and len(definition.trials) == (2 if label == 'default-smoke' else 6)
+    baseline = previous
+    assert {m.method_id: m.source_commit for m in definition.methods} == {'baseline': baseline, 'sparse': candidate}
+    for source in b.SOURCES:
+        assert definition.provenance.source_artifacts[source] == b._digest(frozen/source)
+    modules = b.FULL_CUDA_MODULES
+    prefix = 'previous_source'
+    for module in modules:
+        source = 'src/'+module.replace('.', '/')+'.py'
+        original = out/('baseline.'+module.rsplit('.', 1)[1]+'.py.txt')
+        raw = original.read_bytes()
+        assert raw == subprocess.check_output(['git', 'show', f'{baseline}:{source}'])
+        name = prefix+'/'+original.name
+        if name in index['files']:
+            assert index['files'][name]['sha256'] == sha(raw)
+        else:
+            save(name, raw, source=source, source_commit=baseline)
+        for key in (original.as_posix(), str(original.resolve()), original.resolve().as_posix()):
+            rewrites[key] = name
+    config = next(k for k in definition.provenance.source_artifacts if k.startswith('examples/'))
+    name = 'sources/measured.'+Path(config).name+'.txt'
+    assert definition.provenance.source_artifacts[config] == b._digest(frozen/config)
+    save(name, (frozen/config).read_bytes(), source=config, source_commit=candidate)
+    rewrites[config] = name
+    anchor = split = None
+    for trial in definition.trials:
+        folder = out/(trial.method_id+'.'+trial.split_id)
+        row = json.loads((folder/'measurement.json').read_bytes())
+        model = ContinuousTimeLidarPairArtifact.model_validate(read_mapping(folder/'result.yaml'))
+        canonical = b._canonical(model.model_dump(mode='json', exclude_none=True))
+        assert canonical == b._canonical(row['result']) == trial.provenance.notes[-1]
+        assert sha(canonical.encode()) == trial.provenance.output_sha256
+        assert b._digest(folder/'result.yaml') == row['result_sha256']
+        assert trial.status == 'success' and trial.metrics['complete_result_matches'] == 1
+        compared = b._comparison_canonical(row['result'])
+        if anchor is None:
+            anchor, split = compared, row['sampled_split']
+        assert compared == anchor and split == row['sampled_split']
+        info = json.loads(trial.provenance.notes[0])
+        assert info['numba_cache_policy'] == 'persistent'
+        if trial.split_id == 'repeat-01':
+            assert not info['numba_cache_before'] and not info['cuda_cache_before']
+        converted = portable(row)
+        converted['result'] = row['result']
+        changed = [k for k in row if converted[k] != row[k]]
+        assert set(changed) <= {'loaded_module','loaded_evaluation_modules','loaded_cuda_module',
+                                'loaded_cuda_plane_module','loaded_replay_module'}
+        name = f'{label}/{folder.name}'
+        save(name+'.measurement.json', converted, original_sha256=b._digest(folder/'measurement.json'), changed_fields=changed)
+        save(name+'.result.yaml', (folder/'result.yaml').read_bytes(), original_sha256=row['result_sha256'])
+    payload = definition.model_dump(mode='json', exclude_none=True)
+    for trial in payload['trials']:
+        trial['provenance']['notes'][0] = json.dumps(portable(json.loads(trial['provenance']['notes'][0])), sort_keys=True)
+        assert portable(trial['provenance']['notes'][-1]) == trial['provenance']['notes'][-1]
+    converted = BenchmarkDefinition.model_validate(portable(payload))
+    assert [t.metrics for t in converted.trials] == [t.metrics for t in definition.trials]
+    save(label+'/pipeline.definition.json', converted.model_dump(mode='json', exclude_none=True), original_sha256=b._digest(out/'pipeline.definition.json'))
+    save(label+'/pipeline.benchmark.json', aggregate_benchmark_definition(converted).model_dump(mode='json', exclude_none=True), original_sha256=b._digest(out/'pipeline.benchmark.json'))
+    medians = {m: {k: statistics.median(t.metrics[k] for t in definition.trials if t.method_id == m)
+                   for k in ('subprocess_wall_seconds','pipeline_seconds','solver_seconds','worker_cpu_seconds')}
+               for m in ('baseline','sparse')}
+    pairs = [{m: next(t.runtime_seconds for t in definition.trials if t.method_id == m and t.split_id == f'repeat-{i:02d}')
+              for m in ('baseline','sparse')} for i in range(1, 2 if label == 'default-smoke' else 4)]
+    index['summaries'][label] = {'medians': medians, 'pairs': pairs,
+        'ratio_of_medians': medians['baseline']['subprocess_wall_seconds']/medians['sparse']['subprocess_wall_seconds'],
+        'median_paired_ratio': statistics.median(p['baseline']/p['sparse'] for p in pairs),
+        'sampled_split': split, 'status': model.status, 'rank': model.observability.rank}
+    index['provenance']['input_sha256'] = b._verified_inputs(b.REPLAY)
+
+
+# Keep the exact diagnostics and saved models outside the formal timers.
+for mode,label in [('gpu','gpu-dense'),('cpu','cpu-dense')]:
+    out=Path(f'outputs/public-glim-initial-projection-diagnostic-{mode}-v2')
+    diagnostic=json.loads((out/'diagnostic.json').read_bytes())
+    assert diagnostic['provenance']['source_commit']==candidate
+    assert diagnostic['source_input_guards_passed'] and diagnostic['complete_result_parity']
+    for source,digest in diagnostic['provenance']['source_sha256'].items():
+        if source=='diagnostic-launcher.py.txt':
+            rewrites[source]='diagnose-initial-projection-v2.py.txt'
+        else:
+            assert digest==b._digest(frozen/source)
+    folder='diagnostic-'+mode
+    save(folder+'/diagnostic.json',portable(diagnostic),original_sha256=b._digest(out/'diagnostic.json'))
+    row=json.loads((out/'worker/measurement.json').read_bytes())
+    reference=json.loads(Path(f'outputs/public-glim-initial-projection-{label}-v1/sparse.repeat-01/measurement.json').read_bytes())
+    assert b._canonical(row['result'])==b._canonical(reference['result'])
+    model=ContinuousTimeLidarPairArtifact.model_validate(read_mapping(out/'worker/result.yaml'))
+    assert b._canonical(row['result'])==b._canonical(model.model_dump(mode='json',exclude_none=True))
+    converted=portable(row)
+    converted['result']=row['result']
+    save(folder+'/measurement.json',converted,original_sha256=b._digest(out/'worker/measurement.json'))
+    save(folder+'/result.yaml',(out/'worker/result.yaml').read_bytes(),original_sha256=b._digest(out/'worker/result.yaml'))
+    index[folder+'_counts']=diagnostic['counts']
+    index[folder+'_call_sums']=diagnostic['sum_seconds']
+
+for name in ('run-initial-projection-v1','diagnose-initial-projection-v1','diagnose-initial-projection-v2'):
+    path=Path('.tmp-calibrex-'+name+'.py')
+    save(name+'.py.txt',path.read_bytes(),original_sha256=b._digest(path))
+for label in ('gpu-dense','cpu-dense','default-smoke'):
+    out=Path(f'outputs/public-glim-initial-projection-{label}-v1')
+    for path in out.glob('*.log'):
+        save(label+'/logs/'+path.name+'.txt',portable(path.read_text(encoding='utf-8')).encode(),original_sha256=b._digest(path))
+for stream in ('stdout','stderr'):
+    path=Path('outputs/initial-projection-v1.'+stream+'.log')
+    save('run-'+stream+'.txt',portable(path.read_text(encoding='utf-8')).encode(),original_sha256=b._digest(path))
+index['validation']={'targeted_tests_passed':330,'mypy_source_files':356,'schemas_byte_identical':126}
+(root/'publication-index.json').write_text(json.dumps(index,indent=2)+'\n',encoding='utf-8',newline='\n')
+print({label:round(summary['ratio_of_medians'],3) for label,summary in index['summaries'].items()})
+
+# Retain the completed worker from the failed counter assertion, without inventing counters.
+out=Path('outputs/public-glim-initial-projection-diagnostic-gpu-v1')
+row=json.loads((out/'worker/measurement.json').read_bytes())
+converted=portable(row)
+converted['result']=row['result']
+save('failed-diagnostic/measurement.json',converted,original_sha256=b._digest(out/'worker/measurement.json'))
+save('failed-diagnostic/result.yaml',(out/'worker/result.yaml').read_bytes(),original_sha256=b._digest(out/'worker/result.yaml'))
+save('failed-diagnostic/failure.json',{'provenance':{'source_commit':candidate,'input_sha256':index['provenance']['input_sha256'],'launcher_sha256':b._digest(Path('.tmp-calibrex-diagnose-initial-projection-v1.py'))},'stage':'counter assertion after complete parity-matching worker','incorrect_expected_cpu_residual_calls':1,'observed_corrected_cpu_residual_calls':0,'complete_result_saved':True})
+(root/'publication-index.json').write_text(json.dumps(index,indent=2)+'\n',encoding='utf-8',newline='\n')

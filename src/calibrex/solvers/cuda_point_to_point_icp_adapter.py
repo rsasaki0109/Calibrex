@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from threading import Lock
 from typing import TypeAlias, cast
 
@@ -185,7 +185,7 @@ class CudaPointToPointIcpAdapter:
             "query_sha256": hashlib.sha256(_SOURCE.encode()).hexdigest(),
             "source_sha256": digest(source_points), "target_sha256": digest(target_points),
             "initial_transform": (initial_transform or SE3.identity()).as_dict(),
-            "options": (options or RobustPointToPointIcpOptions()).__dict__,
+            "options": asdict(options or RobustPointToPointIcpOptions()),
             "gpu_query_calls": sum(value.calls for value in searches),
             "gpu_query_rows": sum(value.rows for value in searches),
             "target_query_repairs": sum(value.repairs for value in targets),

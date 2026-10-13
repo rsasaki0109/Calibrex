@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.metadata
 import json
 import os
 import statistics
@@ -40,6 +41,8 @@ def _identity() -> dict[str, object]:
 
 
 def _worker(args: argparse.Namespace) -> None:
+    from threadpoolctl import threadpool_info
+
     from calibrex.core.geometry import SE3
     from calibrex.solvers.robust_point_to_point_icp_solver import (
         IcpPoint,
@@ -84,6 +87,12 @@ def _worker(args: argparse.Namespace) -> None:
                   "input": "<DATASET_ROOT>/" + Path(args.input).name,
                   "seed": args.seed, "noise_sigma_m": .002, "truth": truth.as_dict(),
                   "options": asdict(options), "python": sys.version, "numpy": np.__version__,
+                  "scipy": importlib.metadata.version("scipy"),
+                  "blas_environment": {key: os.environ.get(key) for key in (
+                      "OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS")},
+                  "blas_runtime": [{key: entry.get(key) for key in (
+                      "user_api", "internal_api", "num_threads", "version", "threading_layer")}
+                      for entry in threadpool_info()],
                   "cupy_imported": "cupy" in sys.modules,
                   "adapter": adapter_provenance}}
     (output / "measurement.json").write_text(json.dumps(record, indent=2) + "\n", encoding="utf-8")
@@ -98,13 +107,14 @@ def main() -> None:
     parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--workers", type=int, default=0)
     parser.add_argument("--seed", type=int, default=20261013)
+    parser.add_argument("--blas-threads", type=int, default=1)
     parser.add_argument("--method", choices=("native", "cuda"))
     args = parser.parse_args()
     if args.method:
         _worker(args)
         return
-    if args.repeats < 1:
-        parser.error("--repeats must be positive")
+    if args.repeats < 1 or args.blas_threads < 1:
+        parser.error("--repeats and --blas-threads must be positive")
     output = Path(args.output)
     output.mkdir(parents=True)
     identity = _identity()
@@ -120,8 +130,15 @@ def main() -> None:
             child = output / f"{method}.{repeat:02d}"
             command = [sys.executable, __file__, "--input", args.input, "--output", str(child),
                        "--method", method, "--workers", str(args.workers), "--seed", str(args.seed)]
+            environment = dict(os.environ, PYTHONFAULTHANDLER="1",
+                               OPENBLAS_NUM_THREADS=str(args.blas_threads),
+                               OMP_NUM_THREADS=str(args.blas_threads),
+                               MKL_NUM_THREADS=str(args.blas_threads))
+            started = time.perf_counter()
             with (output / f"{method}.{repeat:02d}.log.txt").open("wb") as log:
-                subprocess.run(command, check=True, stdout=log, stderr=subprocess.STDOUT)
+                subprocess.run(command, check=True, stdout=log, stderr=subprocess.STDOUT,
+                               env=environment)
+            whole_seconds = time.perf_counter() - started
             measurement = json.loads((child / "measurement.json").read_text(encoding="utf-8"))
             result = (child / "result.json").read_bytes()
             if anchor is None:
@@ -130,10 +147,16 @@ def main() -> None:
                 raise RuntimeError(f"full result differs: {method}, trial {repeat}")
             if measurement["provenance"]["source"] != identity:
                 raise RuntimeError("worker source identity differs")
-            trial = {"repeat": repeat, "order": list(order), **measurement}
+            blas = measurement["provenance"]["blas_runtime"]
+            if not blas or any(entry["num_threads"] != args.blas_threads for entry in blas
+                               if entry["user_api"] == "blas"):
+                raise RuntimeError("worker BLAS thread budget was not applied")
+            trial = {"repeat": repeat, "order": list(order),
+                     "subprocess_wall_seconds": whole_seconds, **measurement}
             trials.append(trial)
             print(json.dumps({"repeat": repeat, "method": method,
-                              "seconds": measurement["seconds"], "full_result_equal": True}),
+                              "seconds": measurement["seconds"], "whole_seconds": whole_seconds,
+                              "full_result_equal": True}),
                   flush=True)
     medians = {method: statistics.median(t["seconds"] for t in trials if t["method"] == method)
                for method in ("native", "cuda")}
@@ -142,6 +165,10 @@ def main() -> None:
                "cold_policy": "fresh worker and empty CUDA disk cache for every trial",
                "scope": "complete solve, spatial holdout, rematching, six multi-start diagnostics",
                "accuracy_scope": "copied public scan execution control"}
+    whole = {method: statistics.median(t["subprocess_wall_seconds"] for t in trials
+                                      if t["method"] == method) for method in ("native", "cuda")}
+    summary["whole_medians_s"] = whole
+    summary["whole_speedup"] = whole["native"] / whole["cuda"]
     (output / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
 
 
