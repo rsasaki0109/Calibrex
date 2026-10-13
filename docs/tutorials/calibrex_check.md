@@ -339,7 +339,9 @@ pair), and the check uses the images alone:
    has a block-jackknife std over frames and a control: the candidate is turned
    0.2 deg about the axis and the estimate must follow. The std is the spread within
    the frames analysed. On Hilti, other parts of the same recording move a side pair's
-   reading by about 1.5 times its std.
+   reading by about 1.5 times its std. That cannot change a verdict: an axis is judged
+   only with a std of at most 0.1 deg, so its tolerance is always the 0.5 deg floor
+   (3 x 0.1 < 0.5).
 
 The translation is not judged, and `calibrex estimate` does not export the pair. The
 evidence is a `slac.stereo_rotation/v0.1` artifact.
