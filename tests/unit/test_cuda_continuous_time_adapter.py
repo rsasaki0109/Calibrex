@@ -342,7 +342,14 @@ def test_gpu_queries_are_recorded_even_when_no_correspondences_reach_the_optimiz
 
 
 @pytest.mark.parametrize("count", [1024, 18000])
-def test_complete_clock_profile_keeps_results_telemetry_and_actual_backend(count):
+@pytest.mark.parametrize("captured_summary", [False, True])
+def test_complete_clock_profile_keeps_results_telemetry_and_actual_backend(
+    count, captured_summary, monkeypatch,
+):
+    if not captured_summary:
+        def unexpected(*args, **kwargs):
+            raise AssertionError("default summaries must retain the ordered CPU route")
+        monkeypatch.setattr(CudaRigLinearizer, "_captured_residuals", unexpected)
     records = [LivoxPointRecord(
         (float(x)+0.25, float(y)+0.25, float(z)+0.25, 0.0),
         normal_xyz=(float(x)+4.0, float(y)+4.0, float(z)+4.0),
@@ -360,6 +367,7 @@ def test_complete_clock_profile_keeps_results_telemetry_and_actual_backend(count
         query_backend="numba_cpu", max_target_points_per_split=None, max_iterations=2,
         voxel_strategy="adaptive", adaptive_min_points_per_voxel=1,
         solver=FixedTrajectorySe3SolverOptions(max_iterations=2),
+        cuda_captured_summary=captured_summary,
     )
     other = replace(problem, odometry_track=OdometryTrack(samples))
     cpu = ContinuousTimeLidarPairSolver().solve(problem, options)
@@ -369,7 +377,8 @@ def test_complete_clock_profile_keeps_results_telemetry_and_actual_backend(count
     )
     assert gpu.query_backend.startswith(expected_prefix)
     if count == 18000:
-        assert ";captured_summary_gpu=true;summary_reduction_cpu=true;" in gpu.query_backend
+        flag = str(captured_summary).lower()
+        assert f";captured_summary_gpu={flag};summary_reduction_cpu=true;" in gpu.query_backend
     assert asdict(replace(cpu, query_backend="same")) == asdict(replace(gpu, query_backend="same"))
     for name in ("interpolation_count", "clamp_count", "max_extrapolation_s"):
         assert getattr(problem.odometry_track, name) == getattr(other.odometry_track, name)

@@ -133,6 +133,8 @@ class ContinuousTimeLidarPairOptions:
         default_factory=FixedTrajectorySe3SolverOptions
     )
     query_backend: Literal["python", "numba_cpu", "cuda"] = "python"
+    # Experimental: whole-pipeline gains have not been established.
+    cuda_captured_summary: bool = False
 
 
 @dataclass(frozen=True)
@@ -825,7 +827,8 @@ class ContinuousTimeLidarPairSolver:
             array_kernel = compiled_residuals
 
             def compiled_rmse(arrays: _ObservationArrays, transform: SE3) -> tuple[float] | None:
-                if gpu is not None and _numba_rmse_policy() is not None:
+                if (settings.cuda_captured_summary and gpu is not None
+                        and _numba_rmse_policy() is not None):
                     values = gpu._captured_residuals(arrays, transform)
                     if values is not None:
                         result = _numba_values_rmse(values)
@@ -890,6 +893,8 @@ class ContinuousTimeLidarPairSolver:
     ) -> None:
         if settings.query_backend not in ("python", "numba_cpu", "cuda"):
             raise ValueError("unsupported continuous-time query_backend")
+        if not isinstance(settings.cuda_captured_summary, bool):
+            raise ValueError("cuda_captured_summary must be a boolean")
         if len(problem.target_points) != len(problem.target_capture_timestamps_ns):
             raise ValueError("target points and capture timestamps must have equal length")
         if not problem.target_points:
