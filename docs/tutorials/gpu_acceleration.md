@@ -1062,6 +1062,46 @@ The copied public topic supplies execution parity, without independent
 two-sensor accuracy evidence. See the [complete association/replay evidence](../assets/cuda_continuous_time_associations/README.md)
 for all trials, source/input bindings, actual work and preserved preceding candidates.
 
+## Fusing ordered CPU residual error summaries
+
+Native compiled factors with at least 8,192 observations compute residuals and
+their squared-error sum in one CPU Numba pass, releasing the GIL and avoiding
+Python row objects. Fastmath remains disabled. CPython 3.10/3.11 use ordered
+addition; CPython 3.12 uses its native compensation policy, including overflow
+handling. Python performs the final division and square root. Smaller factors,
+other runtimes and custom residual/correction or reduction hooks retain the
+original path. Public residuals and final diagnostics remain complete.
+
+The native optimizer also requests normal equations without converting their
+discarded residual vector to a list. Direct callers and custom compiled-system
+hooks retain complete residuals and their existing argument contract.
+
+Three alternating fresh-process pairs retain compilation, startup, replay, all
+candidates/refinements, transfers, diagnostics, hashes and saves. Each method
+owns initially empty persistent compiler caches. Every trial is retained.
+
+| Comparison | Baseline whole median | Candidate whole median | Ratio of medians | Median paired ratio |
+|---|---:|---:|---:|---:|
+| Previous GPU, 960,000 captured points | 69.805556 s | 50.653481 s | 1.378x | 1.380x |
+| Previous GPU, 48,000 captured points | 13.870382 s | 13.226075 s | 1.049x | 1.034x |
+| Previous GPU, default sampling | 7.703580 s | 8.765065 s | 0.879x | 0.965x |
+| Packed CPU, separate dense control | 196.076865 s | 39.026530 s | 5.024x | 5.024x |
+
+Default timing regresses by about 14% in the ratio of medians, while keeping the
+original residual/RMSE route. The cause of timing variation remains unresolved.
+Cold CPU wall of 289.691684 s is retained. Separate cohorts are not pooled or
+multiplied by previous ratios. Every complete numerical result, optimization
+history and diagnostic matches after validating execution identity notes.
+
+An independent diagnostic records 154 summary calls over 76,674,615 rows and
+102 discarded residual lists avoided over another 59,724,347 rows. Existing
+GPU work remains 52 plane queries, 56 finite-difference launches and 73 cache
+hits. GPU coverage remains unchanged. The public sensor is copied into two
+topics as an execution parity control, without independent two-sensor accuracy
+evidence. See the [complete summary evidence](../assets/continuous_time_residual_summary/README.md)
+for all trials, preserved profiles, summation policy, source/input bindings
+and limits.
+
 ## Fusing CPU observation construction around GPU queries
 
 Large compiled LiDAR batches combine raw-normal scores, plane selection and

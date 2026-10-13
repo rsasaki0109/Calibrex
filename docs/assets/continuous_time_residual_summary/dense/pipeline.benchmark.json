@@ -1,0 +1,881 @@
+{
+  "schema_version": "slac.benchmark/v0.1",
+  "benchmark_id": "glim-complete-continuous-time-cuda-full",
+  "title": "Public GLIM Livox complete continuous-time refinement",
+  "protocol": {
+    "protocol_id": "glim-cuda-full-fresh-subprocess-v5",
+    "dataset_id": "glim_versatile",
+    "dataset_doi": "10.5281/zenodo.6864654",
+    "dataset_source_sha256": "107e3deb3aaeab52628a93d8c6eed80aa1663c3492f6a4d2e280d553e47cd27c",
+    "data_license": "CC-BY-4.0 (AIST Zenodo record 6864654)",
+    "split_policy": "Latest capture frames held out; repeats share the same accuracy fixture",
+    "splits": [
+      {
+        "split_id": "repeat-01",
+        "seed": 0,
+        "fit_count": 768000,
+        "holdout_count": 192000,
+        "fit_ids_sha256": "ad16fb4625f6ee3cfc1b9d56e1f09218f6e58c50e85d27fbe881bf6adc2fabeb",
+        "holdout_ids_sha256": "c49427174a3fc9b314ac70bd5e6c782e8c77422cd2faa589a6e48214e6cf74bd"
+      },
+      {
+        "split_id": "repeat-02",
+        "seed": 0,
+        "fit_count": 768000,
+        "holdout_count": 192000,
+        "fit_ids_sha256": "ad16fb4625f6ee3cfc1b9d56e1f09218f6e58c50e85d27fbe881bf6adc2fabeb",
+        "holdout_ids_sha256": "c49427174a3fc9b314ac70bd5e6c782e8c77422cd2faa589a6e48214e6cf74bd"
+      },
+      {
+        "split_id": "repeat-03",
+        "seed": 0,
+        "fit_count": 768000,
+        "holdout_count": 192000,
+        "fit_ids_sha256": "ad16fb4625f6ee3cfc1b9d56e1f09218f6e58c50e85d27fbe881bf6adc2fabeb",
+        "holdout_ids_sha256": "c49427174a3fc9b314ac70bd5e6c782e8c77422cd2faa589a6e48214e6cf74bd"
+      }
+    ],
+    "initial_estimate_policy": "Same supplied public config, initial estimate and temporal split",
+    "tuning_policy": "Reverse order every other repeat; child OMP_NUM_THREADS=1",
+    "failure_policy": "Keep all timings and mismatches; no warmup or excluded outliers"
+  },
+  "metrics": [
+    {
+      "name": "pipeline_seconds",
+      "label": "pipeline_seconds",
+      "unit": "s",
+      "display_scale": 1.0,
+      "direction": "lower",
+      "primary": false,
+      "interpretation": "Full evaluation API including replay and provenance hashing"
+    },
+    {
+      "name": "solver_seconds",
+      "label": "solver_seconds",
+      "unit": "s",
+      "display_scale": 1.0,
+      "direction": "lower",
+      "primary": false,
+      "interpretation": "Complete clock profile and extrinsic solver call"
+    },
+    {
+      "name": "adaptive_query_seconds",
+      "label": "adaptive_query_seconds",
+      "unit": "s",
+      "display_scale": 1.0,
+      "direction": "lower",
+      "primary": false,
+      "interpretation": "Sum of adaptive nearest-plane call durations, including wrapper overhead; durations can overlap for parallel candidates"
+    },
+    {
+      "name": "adaptive_query_calls",
+      "label": "adaptive_query_calls",
+      "unit": "calls",
+      "display_scale": 1.0,
+      "direction": "lower",
+      "primary": false,
+      "interpretation": "Actual adaptive nearest-plane calls in the complete run"
+    },
+    {
+      "name": "worker_import_seconds",
+      "label": "worker_import_seconds",
+      "unit": "s",
+      "display_scale": 1.0,
+      "direction": "lower",
+      "primary": false,
+      "interpretation": "Worker entry through imports, excluding interpreter startup"
+    },
+    {
+      "name": "uniform_normal_calculations",
+      "label": "uniform_normal_calculations",
+      "unit": "calls",
+      "display_scale": 1.0,
+      "direction": "lower",
+      "primary": false,
+      "interpretation": "Actual uniform geometric fallback calls"
+    },
+    {
+      "name": "interpolated_pose_calculations",
+      "label": "interpolated_pose_calculations",
+      "unit": "calls",
+      "display_scale": 1.0,
+      "direction": "lower",
+      "primary": false,
+      "interpretation": "Interior odometry SE3 interpolation calls"
+    },
+    {
+      "name": "worker_cpu_seconds",
+      "label": "worker_cpu_seconds",
+      "unit": "s",
+      "display_scale": 1.0,
+      "direction": "lower",
+      "primary": false,
+      "interpretation": "All-thread process CPU from worker entry through saved-result hash; excludes interpreter startup and measurement JSON serialization"
+    },
+    {
+      "name": "subprocess_wall_seconds",
+      "label": "subprocess_wall_seconds",
+      "unit": "s",
+      "display_scale": 1.0,
+      "direction": "lower",
+      "primary": true,
+      "interpretation": "Fresh complete process wall, including artifact saves"
+    },
+    {
+      "name": "complete_result_matches",
+      "label": "complete_result_matches",
+      "unit": "bool",
+      "display_scale": 1.0,
+      "direction": "higher",
+      "primary": false,
+      "interpretation": "All artifact values except the exact kernel identity note"
+    }
+  ],
+  "methods": [
+    {
+      "method_id": "baseline",
+      "label": "baseline",
+      "implementation": "subprocess",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1",
+      "source_commit": "7253ce21d1e0c50bfa6e08d574946cb574a9c447",
+      "adapter_version": "continuous-time-cuda-full/v5"
+    },
+    {
+      "method_id": "sparse",
+      "label": "sparse",
+      "implementation": "subprocess",
+      "tool_name": "Calibrex",
+      "tool_version": "0.5.1",
+      "source_commit": "a514397f5219b1423f3aedbc8b79be9b581f928b",
+      "adapter_version": "continuous-time-cuda-full/v5"
+    }
+  ],
+  "trials": [
+    {
+      "method_id": "baseline",
+      "split_id": "repeat-01",
+      "status": "success",
+      "metrics": {
+        "adaptive_query_calls": 0.0,
+        "adaptive_query_seconds": 0.0,
+        "complete_result_matches": 1.0,
+        "interpolated_pose_calculations": 20324944.0,
+        "pipeline_seconds": 57.147713000071235,
+        "solver_seconds": 39.508357299957424,
+        "subprocess_wall_seconds": 60.541125099989586,
+        "uniform_normal_calculations": 883.0,
+        "worker_cpu_seconds": 78.4375,
+        "worker_import_seconds": 2.3833684000419453
+      },
+      "runtime_seconds": 60.541125099989586,
+      "provenance": {
+        "command": "<PYTHON> <WORKSPACE>/tools/benchmark_adaptive_plane_search.py --worker baseline --baseline-scope cuda-full --config examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml --output-dir <WORKSPACE>/outputs/public-glim-residual-summary-dense-v1/baseline.repeat-01 --candidate-query-backend cuda --baseline-query-backend cuda",
+        "config_sha256": "1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186",
+        "input_sha256": "107e3deb3aaeab52628a93d8c6eed80aa1663c3492f6a4d2e280d553e47cd27c",
+        "output_sha256": "eda0e9be2d9393bc3dd917c3f040a188eff62b273260e475ff8c4b963e051942",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "notes": [
+          "{\"cuda_cache_after\": {\"9ed58aaf0a8ff1513d8b1ff1f380f41d5d36ce51.cubin\": \"439af15bcb3e76072e7edf15df7826ea82900d542fef8a25a06add2bb01f6da4\", \"f4331870c33b1b7c90f548c88d07b801503c89e5.cubin\": \"84d63457c31f3966a080e1ce0b4a3b07748a9ea2aa61ff30168c7ea31a327b15\"}, \"cuda_cache_before\": {}, \"execution_override\": \"cuda\", \"loaded_cuda_module\": \"previous_gpu/baseline.cuda_continuous_time_adapter.py.txt\", \"loaded_evaluation_modules\": {\"calibrex.data.adaptive_voxel\": \"previous_gpu/baseline.adaptive_voxel.py.txt\", \"calibrex.data.livox\": \"previous_gpu/baseline.livox.py.txt\", \"calibrex.data.numba_lidar_deskew_adapter\": \"previous_gpu/baseline.numba_lidar_deskew_adapter.py.txt\", \"calibrex.data.odometry_track\": \"previous_gpu/baseline.odometry_track.py.txt\", \"calibrex.evaluation.lidar\": \"previous_gpu/baseline.lidar.py.txt\", \"calibrex.evaluation.packed_lidar_observations\": \"previous_gpu/baseline.packed_lidar_observations.py.txt\", \"calibrex.graph.lidar_point_to_plane\": \"previous_gpu/baseline.lidar_point_to_plane.py.txt\", \"calibrex.pipelines.online\": \"previous_gpu/baseline.online.py.txt\", \"calibrex.solvers.continuous_time_lidar_pair_solver\": \"previous_gpu/baseline.continuous_time_lidar_pair_solver.py.txt\", \"calibrex.solvers.cuda_continuous_time_adapter\": \"previous_gpu/baseline.cuda_continuous_time_adapter.py.txt\", \"calibrex.solvers.cuda_plane_query_adapter\": \"previous_gpu/baseline.cuda_plane_query_adapter.py.txt\", \"calibrex.solvers.fixed_trajectory_se3_solver\": \"previous_gpu/baseline.fixed_trajectory_se3_solver.py.txt\", \"calibrex.solvers.numba_continuous_time_adapter\": \"previous_gpu/baseline.numba_continuous_time_adapter.py.txt\", \"calibrex.solvers.robust_lidar_observations\": \"previous_gpu/baseline.robust_lidar_observations.py.txt\"}, \"loaded_module\": \"previous_gpu/baseline.adaptive_voxel.py.txt\", \"numba_cache_after\": {\"baseline.numba_continuous_time_adapter.py._association_choices-30.py312.1.nbc\": \"2c23e423bf698c4c43c0db8f9a28d3e20d4b6377b51e5d5cd277a9ecc3d25a8e\", \"baseline.numba_continuous_time_adapter.py._association_choices-30.py312.nbi\": \"25db0bf76fc54da24da35bfbfa44f552add6b4643a5ae4a707060890396473c4\", \"baseline.numba_continuous_time_adapter.py._gather_observation_rows-68.py312.1.nbc\": \"37384c985ddb84f290b66b9fc09505a964933f2d9a45c443c531ecf2abbdde70\", \"baseline.numba_continuous_time_adapter.py._gather_observation_rows-68.py312.nbi\": \"28c13f659a298125d58fc29367b3c5aca80a8e1a59137b490f3354c31580009a\", \"baseline.numba_continuous_time_adapter.py._normal_rows-334.py312.1.nbc\": \"2611a5e679da68346b9979a418d4a8d4a4ecdd2845010b763b3f94923178be1e\", \"baseline.numba_continuous_time_adapter.py._normal_rows-334.py312.nbi\": \"4225618b2f7791cc4891e211aafd750457c37f81d85a2c2f9e8cc04e06f9e75d\", \"baseline.numba_continuous_time_adapter.py._pose_world_rows-179.py312.1.nbc\": \"badb356723640263d81a0adb2669945f6510e2cead66af05b404a55595f1b199\", \"baseline.numba_continuous_time_adapter.py._pose_world_rows-179.py312.2.nbc\": \"96d92dbaefdc7185678377d863862ca97558cf49188a0a2ee09521b78c4f9a02\", \"baseline.numba_continuous_time_adapter.py._pose_world_rows-179.py312.nbi\": \"20069f00403b3faaef565034e8057a1b058558594118ba6084860aa3e0a8d0eb\", \"baseline.numba_continuous_time_adapter.py._residual_rows-259.py312.1.nbc\": \"b6d93a44e3963963cc8aea21a9651f60692dc56d4512a59f785c7c8460b47774\", \"baseline.numba_continuous_time_adapter.py._residual_rows-259.py312.nbi\": \"7a6e92405f20d525e70608a7168dd889fbf6ac9e68464ab2ab63ed4096e11cac\", \"baseline.numba_continuous_time_adapter.py._world_rows-285.py312.1.nbc\": \"caa2cb37d7d9ab85a0b1d3ea888a4b9d8b13d5a94a1379f49297e01bbcdc6d31\", \"baseline.numba_continuous_time_adapter.py._world_rows-285.py312.nbi\": \"0ea4626a5fe9dbff395d7da986bbd615c4484cc5ceee9c8cad600bd08ccc4067\"}, \"numba_cache_before\": {}, \"numba_cache_policy\": \"persistent\", \"order\": [\"baseline\", \"sparse\"], \"repeat\": 1, \"result_sha256\": \"2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f\", \"sampled_split\": {\"holdout_count\": 192000, \"holdout_ids_sha256\": \"c49427174a3fc9b314ac70bd5e6c782e8c77422cd2faa589a6e48214e6cf74bd\", \"train_count\": 768000, \"train_ids_sha256\": \"ad16fb4625f6ee3cfc1b9d56e1f09218f6e58c50e85d27fbe881bf6adc2fabeb\"}}",
+          "{\"config_path\":\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\",\"dataset_path\":\"data/public/glim_versatile/livox_rosbag2_gt_restamped\",\"estimated_time_offset_sec\":-0.025,\"final_holdout_rmse_m\":0.09394581201769982,\"final_train_rmse_m\":0.049086313809198166,\"holdout_correspondence_count\":67602,\"initial_time_offset_sec\":0.0,\"initial_train_rmse_m\":0.057370176200909506,\"initial_transform\":{\"child\":\"livox_avia_copy\",\"convention\":\"T_parent_child\",\"estimate_id\":\"T_livox_avia_livox_avia_copy\",\"parent\":\"livox_avia\",\"provenance\":{\"evidence_level\":\"unknown\",\"execution_mode\":\"online_stream\",\"notes\":[\"clock offset was profiled with extrinsic re-optimization\",\"supplied piecewise odometry trajectory remained fixed\"],\"producer\":\"slac_native\",\"role_in_comparison\":\"initial\",\"source\":\"calibrex.solvers.continuous_time_lidar_pair_solver\",\"tool_name\":\"continuous_time_lidar_pair_solver\"},\"quality\":{\"grade\":\"warn\",\"std_rotation_deg\":[],\"std_translation_m\":[]},\"rotation_quat_xyzw\":[0.0,0.0,0.0,1.0],\"translation_m\":[0.0,0.0,0.0]},\"iterations\":[{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09571184213218482,0.0995716460260033,0.10503184050579091],\"candidate_offsets_sec\":[-0.02,0.0,0.02],\"candidate_train_rmse_m\":[0.049464184358660665,0.051407362455503015,0.05628604472487857],\"holdout_rmse_m\":0.09571184213218482,\"iteration\":1,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.049464184358660665},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09232701146014846,0.09490251830075698,0.09838642904203788],\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05034493304978426,0.04923052897228388,0.05159287671975171],\"holdout_rmse_m\":0.09490251830075698,\"iteration\":2,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.04923052897228388},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09226143336514588,0.09472422154419698,0.09804927304845115],\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05017957712410044,0.04920955182585908,0.05166518259829283],\"holdout_rmse_m\":0.09472422154419698,\"iteration\":3,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.04920955182585908},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09224386074850734,0.09469400106615077,0.09795286792497307],\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05013989598511986,0.04919190012576584,0.05169859175392839],\"holdout_rmse_m\":0.09469400106615077,\"iteration\":4,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.04919190012576584},{\"accepted\":false,\"candidate_holdout_rmse_m\":[0.09224456206028672,0.09464812459715029,0.09792994259823051],\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.050148602401232784,0.049196494644328084,0.05170673011454384],\"holdout_rmse_m\":0.09464812459715029,\"iteration\":5,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.049196494644328084},{\"accepted\":false,\"candidate_holdout_rmse_m\":[0.09327456638580518,0.09464812459715029,0.09669399004715376],\"candidate_offsets_sec\":[-0.03,-0.02,-0.01],\"candidate_train_rmse_m\":[0.049254414884859835,0.049196494644328084,0.05004123042570123],\"holdout_rmse_m\":0.09464812459715029,\"iteration\":6,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.049196494644328084},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09396282460661212,0.09464812459715029,0.09560747346271412],\"candidate_offsets_sec\":[-0.025,-0.02,-0.015],\"candidate_train_rmse_m\":[0.04915182128104535,0.049196494644328084,0.04954701745283863],\"holdout_rmse_m\":0.09396282460661212,\"iteration\":7,\"selected_offset_sec\":-0.025,\"train_rmse_m\":0.04915182128104535},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09331292621654655,0.09394581201769982,0.09465328227401543],\"candidate_offsets_sec\":[-0.03,-0.025,-0.02],\"candidate_train_rmse_m\":[0.04920669024899803,0.049086313809198166,0.049237487153924925],\"holdout_rmse_m\":0.09394581201769982,\"iteration\":8,\"selected_offset_sec\":-0.025,\"train_rmse_m\":0.049086313809198166}],\"observability\":{\"condition_number\":19.16563571890005,\"rank\":6,\"residual_count\":582119,\"weak_directions\":[]},\"odometry_topic\":\"/odom\",\"options\":{\"adaptive_max_voxel_size_m\":1.5,\"adaptive_min_points_per_voxel\":6,\"adaptive_min_voxel_size_m\":0.25,\"adaptive_range_exponent\":0.5,\"adaptive_range_reference_m\":10.0,\"adaptive_use_uniform_fallback\":true,\"correspondence_refinement_iterations\":1,\"fixed_extrinsic_max_iterations\":8,\"fixed_extrinsic_robust_loss\":\"huber\",\"holdout_start_fraction\":0.8,\"initial_time_offset_sec\":0.0,\"initial_time_step_sec\":0.02,\"max_abs_time_offset_sec\":0.2,\"max_iterations\":8,\"max_odometry_extrapolation_s\":0.25,\"max_source_records\":6000,\"min_correspondences\":6,\"minimum_time_step_sec\":0.005,\"outlier_mad_scale\":3.5,\"outlier_min_inlier_fraction\":0.25,\"outlier_min_threshold_m\":0.02,\"outlier_policy\":\"mad\",\"sampling_seed\":0,\"voxel_strategy\":\"adaptive\"},\"outlier_rejected_count\":137613,\"provenance\":{\"git_commit\":\"a514397\",\"notes\":[\"continuous-time profile re-solves the six-DoF extrinsic at every clock candidate\",\"target holdout is the latest capture frame group and is never used for optimization\",\"train diagnostics summarize only the selected train factor and train profile\",\"trajectory_model is piecewise SE(3) interpolation of supplied odometry; trajectory knots are fixed\",\"train_frame_count=96\",\"holdout_frame_count=24\",\"holdout_start_fraction=0.8\",\"sampling_seed=0\",\"source_record_cap=6000\",\"target_point_cap_per_split=None\",\"outlier_policy=mad\",\"voxel_strategy=adaptive\",\"replay_source_message_count=1\",\"adaptive correspondences use a uniform voxel fallback and select the lower initial point-to-plane residual\",\"continuous_time_query_execution: calibrex.cuda_continuous_time/v0.6;fp64=true;fma=false;cupy=14.2.0;cuda=12090;driver=13020;numba=0.65.1;trajectory_cpu=true;normal_cpu=true;standalone_residual_cpu=true;linearization_cache=last;linearization_cache_bytes=67108864;associations_gpu=true;kernel_sha256=ad35e19c4f402fa99c14ce8e2a496f65a35c67655bdb795e6111d0f03d592be0;association_kernel_sha256=b5f446ea685f32adaaaf96aafe44d423b8e05601dbc6ffb17fb7b8cc4ae124ad\",\"continuous_time_replay_execution: calibrex.numba_lidar_deskew/v0.1;numba=0.65.1;fastmath=false;cache=true;point_pose_cpu=true;source_sha256=53966123b0e942f48929494fba4389062ccee0cd44dc85501e4d3451a84cc0be\"],\"source_paths\":[\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\",\"data/public/glim_versatile/livox_rosbag2_gt_restamped\"],\"source_sha256\":{\"data/public/glim_versatile/livox_rosbag2_gt_restamped\":\"bf305b5e1b72d998c8d1871bb6fae346a4374897033e98da982f977b38693185\",\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\":\"1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186\"},\"tool_name\":\"calibrex\",\"tool_version\":\"0.5.1\"},\"reason\":\"maximum time-profile iterations reached\",\"refined_transform\":{\"child\":\"livox_avia_copy\",\"convention\":\"T_parent_child\",\"estimate_id\":\"T_livox_avia_livox_avia_copy\",\"parent\":\"livox_avia\",\"provenance\":{\"evidence_level\":\"algorithmically_refined\",\"execution_mode\":\"online_stream\",\"notes\":[\"clock offset was profiled with extrinsic re-optimization\",\"supplied piecewise odometry trajectory remained fixed\"],\"producer\":\"slac_native\",\"role_in_comparison\":\"output\",\"source\":\"calibrex.solvers.continuous_time_lidar_pair_solver\",\"tool_name\":\"continuous_time_lidar_pair_solver\"},\"quality\":{\"grade\":\"warn\",\"std_rotation_deg\":[],\"std_translation_m\":[]},\"rotation_quat_xyzw\":[0.0015393622259474641,0.0014500790167938124,-0.0016957407406766722,0.9999963260423125],\"translation_m\":[-0.006420340124736379,0.012652173241256342,-0.02301366535108216]},\"schema_version\":\"slac.continuous_time_lidar_pair_result/v0.1\",\"source_sensor\":\"livox_avia\",\"status\":\"max_iterations\",\"target_sensor\":\"livox_avia_copy\",\"time_offset_sign_convention\":\"positive offset evaluates target capture at odometry time t_capture + offset\",\"train_correspondence_count\":582119,\"train_diagnostics\":{\"final_residuals\":{\"count\":582119,\"max_m\":0.15050762941857973,\"mean_abs_m\":0.03390641312015003,\"mean_m\":0.00022182881892681,\"median_abs_m\":0.020085512198455592,\"min_m\":-0.15050776556112222,\"p95_abs_m\":0.11547177200020867,\"p99_abs_m\":0.14258218679290402,\"rmse_m\":0.049086313809198166},\"holdout_used_for_selection\":false,\"profile\":[{\"accepted\":true,\"candidate_offsets_sec\":[-0.02,0.0,0.02],\"candidate_train_rmse_m\":[0.049464184358660665,0.051407362455503015,0.05628604472487857],\"iteration\":1,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582974,\"train_outlier_rejected_count\":119173,\"train_rmse_m\":0.049464184358660665},{\"accepted\":true,\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05034493304978426,0.04923052897228388,0.05159287671975171],\"iteration\":2,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582373,\"train_outlier_rejected_count\":119760,\"train_rmse_m\":0.04923052897228388},{\"accepted\":true,\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05017957712410044,0.04920955182585908,0.05166518259829283],\"iteration\":3,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582290,\"train_outlier_rejected_count\":119850,\"train_rmse_m\":0.04920955182585908},{\"accepted\":true,\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05013989598511986,0.04919190012576584,0.05169859175392839],\"iteration\":4,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582225,\"train_outlier_rejected_count\":119902,\"train_rmse_m\":0.04919190012576584},{\"accepted\":false,\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.050148602401232784,0.049196494644328084,0.05170673011454384],\"iteration\":5,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582226,\"train_outlier_rejected_count\":119911,\"train_rmse_m\":0.049196494644328084},{\"accepted\":false,\"candidate_offsets_sec\":[-0.03,-0.02,-0.01],\"candidate_train_rmse_m\":[0.049254414884859835,0.049196494644328084,0.05004123042570123],\"iteration\":6,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582226,\"train_outlier_rejected_count\":119911,\"train_rmse_m\":0.049196494644328084},{\"accepted\":true,\"candidate_offsets_sec\":[-0.025,-0.02,-0.015],\"candidate_train_rmse_m\":[0.04915182128104535,0.049196494644328084,0.04954701745283863],\"iteration\":7,\"selected_offset_sec\":-0.025,\"train_correspondence_count\":582352,\"train_outlier_rejected_count\":119880,\"train_rmse_m\":0.04915182128104535},{\"accepted\":true,\"candidate_offsets_sec\":[-0.03,-0.025,-0.02],\"candidate_train_rmse_m\":[0.04920669024899803,0.049086313809198166,0.049237487153924925],\"iteration\":8,\"selected_offset_sec\":-0.025,\"train_correspondence_count\":582119,\"train_outlier_rejected_count\":120080,\"train_rmse_m\":0.049086313809198166}],\"provenance\":{\"git_commit\":\"a514397\",\"notes\":[\"all residual summaries and profile candidates are train-only\",\"holdout_used_for_selection is fixed false by the diagnostics schema\",\"range bins use target LiDAR point range in meters\"],\"source_paths\":[\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\",\"data/public/glim_versatile/livox_rosbag2_gt_restamped\"],\"source_sha256\":{\"data/public/glim_versatile/livox_rosbag2_gt_restamped\":\"bf305b5e1b72d998c8d1871bb6fae346a4374897033e98da982f977b38693185\",\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\":\"1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186\"},\"tool_name\":\"calibrex\",\"tool_version\":\"0.5.1\"},\"range_bins\":[{\"correspondence_count\":298763,\"lower_bound_m\":0.0,\"residuals\":{\"count\":298763,\"max_m\":0.15050759959305018,\"mean_abs_m\":0.030864503702020984,\"mean_m\":-0.00036575976958494845,\"median_abs_m\":0.017042839693617674,\"min_m\":-0.15050467931466352,\"p95_abs_m\":0.11012936173918453,\"p99_abs_m\":0.14093666243147648,\"rmse_m\":0.046055824692420436},\"upper_bound_m\":5.0},{\"correspondence_count\":263934,\"lower_bound_m\":5.0,\"residuals\":{\"count\":263934,\"max_m\":0.15050762941857973,\"mean_abs_m\":0.03717917506802076,\"mean_m\":0.000815590919709922,\"median_abs_m\":0.02368782072911011,\"min_m\":-0.15050776556112222,\"p95_abs_m\":0.12044440480932947,\"p99_abs_m\":0.1440526617234342,\"rmse_m\":0.05225479649587614},\"upper_bound_m\":10.0},{\"correspondence_count\":19422,\"lower_bound_m\":10.0,\"residuals\":{\"count\":19422,\"max_m\":0.15049950912438015,\"mean_abs_m\":0.03622423989077997,\"mean_m\":0.0011916425951315577,\"median_abs_m\":0.02516671154667886,\"min_m\":-0.1503789243744528,\"p95_abs_m\":0.11346537286318881,\"p99_abs_m\":0.14195267782381665,\"rmse_m\":0.049811504827055965},\"upper_bound_m\":20.0},{\"correspondence_count\":0,\"lower_bound_m\":20.0,\"residuals\":{\"count\":0},\"upper_bound_m\":40.0},{\"correspondence_count\":0,\"lower_bound_m\":40.0,\"residuals\":{\"count\":0},\"upper_bound_m\":80.0},{\"correspondence_count\":0,\"lower_bound_m\":80.0,\"residuals\":{\"count\":0}}],\"sampled_source_record_count\":3000,\"schema_version\":\"slac.continuous_time_lidar_train_diagnostics/v0.1\",\"selected_time_offset_sec\":-0.025,\"selection_metric\":\"train_rmse_m\",\"train_candidate_correspondence_count\":702199,\"train_correspondence_count\":582119,\"train_outlier_rejected_count\":120080,\"train_outlier_rejection_rate\":0.17100565509207505,\"train_target_point_count\":768000},\"trajectory_model\":\"piecewise_se3_fixed_odometry\",\"variable\":\"T_livox_avia_livox_avia_copy\"}"
+        ]
+      }
+    },
+    {
+      "method_id": "sparse",
+      "split_id": "repeat-01",
+      "status": "success",
+      "metrics": {
+        "adaptive_query_calls": 0.0,
+        "adaptive_query_seconds": 0.0,
+        "complete_result_matches": 1.0,
+        "interpolated_pose_calculations": 19558547.0,
+        "pipeline_seconds": 54.00952600000892,
+        "solver_seconds": 35.030151700018905,
+        "subprocess_wall_seconds": 57.13382929994259,
+        "uniform_normal_calculations": 883.0,
+        "worker_cpu_seconds": 77.078125,
+        "worker_import_seconds": 2.1327829000074416
+      },
+      "runtime_seconds": 57.13382929994259,
+      "provenance": {
+        "command": "<PYTHON> <WORKSPACE>/tools/benchmark_adaptive_plane_search.py --worker sparse --baseline-scope cuda-full --config examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml --output-dir <WORKSPACE>/outputs/public-glim-residual-summary-dense-v1/sparse.repeat-01 --candidate-query-backend cuda --baseline-query-backend cuda",
+        "config_sha256": "1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186",
+        "input_sha256": "107e3deb3aaeab52628a93d8c6eed80aa1663c3492f6a4d2e280d553e47cd27c",
+        "output_sha256": "eda0e9be2d9393bc3dd917c3f040a188eff62b273260e475ff8c4b963e051942",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "notes": [
+          "{\"cuda_cache_after\": {\"9ed58aaf0a8ff1513d8b1ff1f380f41d5d36ce51.cubin\": \"439af15bcb3e76072e7edf15df7826ea82900d542fef8a25a06add2bb01f6da4\", \"f4331870c33b1b7c90f548c88d07b801503c89e5.cubin\": \"84d63457c31f3966a080e1ce0b4a3b07748a9ea2aa61ff30168c7ea31a327b15\"}, \"cuda_cache_before\": {}, \"execution_override\": \"cuda\", \"loaded_cuda_module\": \"sources/measured.cuda_continuous_time_adapter.py.txt\", \"loaded_evaluation_modules\": {\"calibrex.data.adaptive_voxel\": \"sources/measured.adaptive_voxel.py.txt\", \"calibrex.data.livox\": \"sources/measured.livox.py.txt\", \"calibrex.data.numba_lidar_deskew_adapter\": \"sources/measured.numba_lidar_deskew_adapter.py.txt\", \"calibrex.data.odometry_track\": \"sources/measured.odometry_track.py.txt\", \"calibrex.evaluation.lidar\": \"sources/measured.lidar.py.txt\", \"calibrex.evaluation.packed_lidar_observations\": \"sources/measured.packed_lidar_observations.py.txt\", \"calibrex.graph.lidar_point_to_plane\": \"sources/measured.lidar_point_to_plane.py.txt\", \"calibrex.pipelines.online\": \"sources/measured.online.py.txt\", \"calibrex.solvers.continuous_time_lidar_pair_solver\": \"sources/measured.continuous_time_lidar_pair_solver.py.txt\", \"calibrex.solvers.cuda_continuous_time_adapter\": \"sources/measured.cuda_continuous_time_adapter.py.txt\", \"calibrex.solvers.cuda_plane_query_adapter\": \"sources/measured.cuda_plane_query_adapter.py.txt\", \"calibrex.solvers.fixed_trajectory_se3_solver\": \"sources/measured.fixed_trajectory_se3_solver.py.txt\", \"calibrex.solvers.numba_continuous_time_adapter\": \"sources/measured.numba_continuous_time_adapter.py.txt\", \"calibrex.solvers.robust_lidar_observations\": \"sources/measured.robust_lidar_observations.py.txt\"}, \"loaded_module\": \"sources/measured.adaptive_voxel.py.txt\", \"numba_cache_after\": {\"numba_continuous_time_adapter._association_choices-30.py312.1.nbc\": \"ebe0e4c5d961561e27cec89c4248418c1221ef429c1c48e217f5c0021d748690\", \"numba_continuous_time_adapter._association_choices-30.py312.nbi\": \"f4044d5348d5fe2a44e230750429fd1785acd72ecec62ed1e0468e2ccf197170\", \"numba_continuous_time_adapter._gather_observation_rows-68.py312.1.nbc\": \"789e964afbd01f6a426d03deea1e994e24a35ad22649ff552b4acfc9937d646d\", \"numba_continuous_time_adapter._gather_observation_rows-68.py312.nbi\": \"508a4e32042c70ae86d036af561c172e9bc43ecfd9f2704771f5255948609e04\", \"numba_continuous_time_adapter._normal_rows-334.py312.1.nbc\": \"df8e4539586de84723ee87eef563012e26650a4e06d5959aefb5422c21ae705b\", \"numba_continuous_time_adapter._normal_rows-334.py312.nbi\": \"4f9365eb0210edbd3e5340d0555fde9e9d7f99988d10ec37e6d2589e3aeab410\", \"numba_continuous_time_adapter._one_residual-354.py312.1.nbc\": \"27706ef3e4e2f5ac5e74d32c522e1fcc038e4c52da83e652ccb262bc001123ae\", \"numba_continuous_time_adapter._one_residual-354.py312.nbi\": \"68fb47af6ee07206b209ed2ecbc5b87419a33563fb678ee676b1090bc98b88b3\", \"numba_continuous_time_adapter._pose_world_rows-179.py312.1.nbc\": \"ff3d6920b6745871cc7d70525fa542c3bab9535561da148067bb1ee95dd16e72\", \"numba_continuous_time_adapter._pose_world_rows-179.py312.2.nbc\": \"9468285068c971f4319b4abc8004514a8d6cf3586d3bc94f59693472b7739e3b\", \"numba_continuous_time_adapter._pose_world_rows-179.py312.nbi\": \"9555165b22eef0b09936166bc92e70c05d9b941bbab6d1f3ee66176901fb46ab\", \"numba_continuous_time_adapter._residual_rows-259.py312.1.nbc\": \"7c936479a9a29f733d8f5b01843a47167847a56ba62035b176f4a4767eb56388\", \"numba_continuous_time_adapter._residual_rows-259.py312.nbi\": \"19ca1956f51d70b3b62910e18bc4606ed37e6464460cccaef76660801ad5521b\", \"numba_continuous_time_adapter._residual_square_sum-370.py312.1.nbc\": \"2630c6a91e8ec1e332a17d6bcea7d805e7c670e0228de04a1aed6b26266e5420\", \"numba_continuous_time_adapter._residual_square_sum-370.py312.nbi\": \"eaa24609e2887684dfa7baacc2b9190165bc253b71a92f9c9498ffaf6108e850\", \"numba_continuous_time_adapter._world_rows-285.py312.1.nbc\": \"d923c2e21f7ffbc10d0c51d79a0de94c0308e1625a1addfcc0503762f280fe2e\", \"numba_continuous_time_adapter._world_rows-285.py312.nbi\": \"9ea0355dc050bab0cbe58553d5b6b3e66c6825e2108540afa66e24d1c36a16cf\"}, \"numba_cache_before\": {}, \"numba_cache_policy\": \"persistent\", \"order\": [\"baseline\", \"sparse\"], \"repeat\": 1, \"result_sha256\": \"2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f\", \"sampled_split\": {\"holdout_count\": 192000, \"holdout_ids_sha256\": \"c49427174a3fc9b314ac70bd5e6c782e8c77422cd2faa589a6e48214e6cf74bd\", \"train_count\": 768000, \"train_ids_sha256\": \"ad16fb4625f6ee3cfc1b9d56e1f09218f6e58c50e85d27fbe881bf6adc2fabeb\"}}",
+          "{\"config_path\":\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\",\"dataset_path\":\"data/public/glim_versatile/livox_rosbag2_gt_restamped\",\"estimated_time_offset_sec\":-0.025,\"final_holdout_rmse_m\":0.09394581201769982,\"final_train_rmse_m\":0.049086313809198166,\"holdout_correspondence_count\":67602,\"initial_time_offset_sec\":0.0,\"initial_train_rmse_m\":0.057370176200909506,\"initial_transform\":{\"child\":\"livox_avia_copy\",\"convention\":\"T_parent_child\",\"estimate_id\":\"T_livox_avia_livox_avia_copy\",\"parent\":\"livox_avia\",\"provenance\":{\"evidence_level\":\"unknown\",\"execution_mode\":\"online_stream\",\"notes\":[\"clock offset was profiled with extrinsic re-optimization\",\"supplied piecewise odometry trajectory remained fixed\"],\"producer\":\"slac_native\",\"role_in_comparison\":\"initial\",\"source\":\"calibrex.solvers.continuous_time_lidar_pair_solver\",\"tool_name\":\"continuous_time_lidar_pair_solver\"},\"quality\":{\"grade\":\"warn\",\"std_rotation_deg\":[],\"std_translation_m\":[]},\"rotation_quat_xyzw\":[0.0,0.0,0.0,1.0],\"translation_m\":[0.0,0.0,0.0]},\"iterations\":[{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09571184213218482,0.0995716460260033,0.10503184050579091],\"candidate_offsets_sec\":[-0.02,0.0,0.02],\"candidate_train_rmse_m\":[0.049464184358660665,0.051407362455503015,0.05628604472487857],\"holdout_rmse_m\":0.09571184213218482,\"iteration\":1,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.049464184358660665},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09232701146014846,0.09490251830075698,0.09838642904203788],\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05034493304978426,0.04923052897228388,0.05159287671975171],\"holdout_rmse_m\":0.09490251830075698,\"iteration\":2,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.04923052897228388},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09226143336514588,0.09472422154419698,0.09804927304845115],\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05017957712410044,0.04920955182585908,0.05166518259829283],\"holdout_rmse_m\":0.09472422154419698,\"iteration\":3,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.04920955182585908},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09224386074850734,0.09469400106615077,0.09795286792497307],\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05013989598511986,0.04919190012576584,0.05169859175392839],\"holdout_rmse_m\":0.09469400106615077,\"iteration\":4,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.04919190012576584},{\"accepted\":false,\"candidate_holdout_rmse_m\":[0.09224456206028672,0.09464812459715029,0.09792994259823051],\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.050148602401232784,0.049196494644328084,0.05170673011454384],\"holdout_rmse_m\":0.09464812459715029,\"iteration\":5,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.049196494644328084},{\"accepted\":false,\"candidate_holdout_rmse_m\":[0.09327456638580518,0.09464812459715029,0.09669399004715376],\"candidate_offsets_sec\":[-0.03,-0.02,-0.01],\"candidate_train_rmse_m\":[0.049254414884859835,0.049196494644328084,0.05004123042570123],\"holdout_rmse_m\":0.09464812459715029,\"iteration\":6,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.049196494644328084},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09396282460661212,0.09464812459715029,0.09560747346271412],\"candidate_offsets_sec\":[-0.025,-0.02,-0.015],\"candidate_train_rmse_m\":[0.04915182128104535,0.049196494644328084,0.04954701745283863],\"holdout_rmse_m\":0.09396282460661212,\"iteration\":7,\"selected_offset_sec\":-0.025,\"train_rmse_m\":0.04915182128104535},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09331292621654655,0.09394581201769982,0.09465328227401543],\"candidate_offsets_sec\":[-0.03,-0.025,-0.02],\"candidate_train_rmse_m\":[0.04920669024899803,0.049086313809198166,0.049237487153924925],\"holdout_rmse_m\":0.09394581201769982,\"iteration\":8,\"selected_offset_sec\":-0.025,\"train_rmse_m\":0.049086313809198166}],\"observability\":{\"condition_number\":19.16563571890005,\"rank\":6,\"residual_count\":582119,\"weak_directions\":[]},\"odometry_topic\":\"/odom\",\"options\":{\"adaptive_max_voxel_size_m\":1.5,\"adaptive_min_points_per_voxel\":6,\"adaptive_min_voxel_size_m\":0.25,\"adaptive_range_exponent\":0.5,\"adaptive_range_reference_m\":10.0,\"adaptive_use_uniform_fallback\":true,\"correspondence_refinement_iterations\":1,\"fixed_extrinsic_max_iterations\":8,\"fixed_extrinsic_robust_loss\":\"huber\",\"holdout_start_fraction\":0.8,\"initial_time_offset_sec\":0.0,\"initial_time_step_sec\":0.02,\"max_abs_time_offset_sec\":0.2,\"max_iterations\":8,\"max_odometry_extrapolation_s\":0.25,\"max_source_records\":6000,\"min_correspondences\":6,\"minimum_time_step_sec\":0.005,\"outlier_mad_scale\":3.5,\"outlier_min_inlier_fraction\":0.25,\"outlier_min_threshold_m\":0.02,\"outlier_policy\":\"mad\",\"sampling_seed\":0,\"voxel_strategy\":\"adaptive\"},\"outlier_rejected_count\":137613,\"provenance\":{\"git_commit\":\"a514397\",\"notes\":[\"continuous-time profile re-solves the six-DoF extrinsic at every clock candidate\",\"target holdout is the latest capture frame group and is never used for optimization\",\"train diagnostics summarize only the selected train factor and train profile\",\"trajectory_model is piecewise SE(3) interpolation of supplied odometry; trajectory knots are fixed\",\"train_frame_count=96\",\"holdout_frame_count=24\",\"holdout_start_fraction=0.8\",\"sampling_seed=0\",\"source_record_cap=6000\",\"target_point_cap_per_split=None\",\"outlier_policy=mad\",\"voxel_strategy=adaptive\",\"replay_source_message_count=1\",\"adaptive correspondences use a uniform voxel fallback and select the lower initial point-to-plane residual\",\"continuous_time_query_execution: calibrex.cuda_continuous_time/v0.6;fp64=true;fma=false;cupy=14.2.0;cuda=12090;driver=13020;numba=0.65.1;trajectory_cpu=true;normal_cpu=true;standalone_residual_cpu=true;linearization_cache=last;linearization_cache_bytes=67108864;associations_gpu=true;kernel_sha256=ad35e19c4f402fa99c14ce8e2a496f65a35c67655bdb795e6111d0f03d592be0;association_kernel_sha256=b5f446ea685f32adaaaf96aafe44d423b8e05601dbc6ffb17fb7b8cc4ae124ad\",\"continuous_time_replay_execution: calibrex.numba_lidar_deskew/v0.1;numba=0.65.1;fastmath=false;cache=true;point_pose_cpu=true;source_sha256=53966123b0e942f48929494fba4389062ccee0cd44dc85501e4d3451a84cc0be\"],\"source_paths\":[\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\",\"data/public/glim_versatile/livox_rosbag2_gt_restamped\"],\"source_sha256\":{\"data/public/glim_versatile/livox_rosbag2_gt_restamped\":\"bf305b5e1b72d998c8d1871bb6fae346a4374897033e98da982f977b38693185\",\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\":\"1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186\"},\"tool_name\":\"calibrex\",\"tool_version\":\"0.5.1\"},\"reason\":\"maximum time-profile iterations reached\",\"refined_transform\":{\"child\":\"livox_avia_copy\",\"convention\":\"T_parent_child\",\"estimate_id\":\"T_livox_avia_livox_avia_copy\",\"parent\":\"livox_avia\",\"provenance\":{\"evidence_level\":\"algorithmically_refined\",\"execution_mode\":\"online_stream\",\"notes\":[\"clock offset was profiled with extrinsic re-optimization\",\"supplied piecewise odometry trajectory remained fixed\"],\"producer\":\"slac_native\",\"role_in_comparison\":\"output\",\"source\":\"calibrex.solvers.continuous_time_lidar_pair_solver\",\"tool_name\":\"continuous_time_lidar_pair_solver\"},\"quality\":{\"grade\":\"warn\",\"std_rotation_deg\":[],\"std_translation_m\":[]},\"rotation_quat_xyzw\":[0.0015393622259474641,0.0014500790167938124,-0.0016957407406766722,0.9999963260423125],\"translation_m\":[-0.006420340124736379,0.012652173241256342,-0.02301366535108216]},\"schema_version\":\"slac.continuous_time_lidar_pair_result/v0.1\",\"source_sensor\":\"livox_avia\",\"status\":\"max_iterations\",\"target_sensor\":\"livox_avia_copy\",\"time_offset_sign_convention\":\"positive offset evaluates target capture at odometry time t_capture + offset\",\"train_correspondence_count\":582119,\"train_diagnostics\":{\"final_residuals\":{\"count\":582119,\"max_m\":0.15050762941857973,\"mean_abs_m\":0.03390641312015003,\"mean_m\":0.00022182881892681,\"median_abs_m\":0.020085512198455592,\"min_m\":-0.15050776556112222,\"p95_abs_m\":0.11547177200020867,\"p99_abs_m\":0.14258218679290402,\"rmse_m\":0.049086313809198166},\"holdout_used_for_selection\":false,\"profile\":[{\"accepted\":true,\"candidate_offsets_sec\":[-0.02,0.0,0.02],\"candidate_train_rmse_m\":[0.049464184358660665,0.051407362455503015,0.05628604472487857],\"iteration\":1,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582974,\"train_outlier_rejected_count\":119173,\"train_rmse_m\":0.049464184358660665},{\"accepted\":true,\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05034493304978426,0.04923052897228388,0.05159287671975171],\"iteration\":2,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582373,\"train_outlier_rejected_count\":119760,\"train_rmse_m\":0.04923052897228388},{\"accepted\":true,\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05017957712410044,0.04920955182585908,0.05166518259829283],\"iteration\":3,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582290,\"train_outlier_rejected_count\":119850,\"train_rmse_m\":0.04920955182585908},{\"accepted\":true,\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05013989598511986,0.04919190012576584,0.05169859175392839],\"iteration\":4,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582225,\"train_outlier_rejected_count\":119902,\"train_rmse_m\":0.04919190012576584},{\"accepted\":false,\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.050148602401232784,0.049196494644328084,0.05170673011454384],\"iteration\":5,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582226,\"train_outlier_rejected_count\":119911,\"train_rmse_m\":0.049196494644328084},{\"accepted\":false,\"candidate_offsets_sec\":[-0.03,-0.02,-0.01],\"candidate_train_rmse_m\":[0.049254414884859835,0.049196494644328084,0.05004123042570123],\"iteration\":6,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582226,\"train_outlier_rejected_count\":119911,\"train_rmse_m\":0.049196494644328084},{\"accepted\":true,\"candidate_offsets_sec\":[-0.025,-0.02,-0.015],\"candidate_train_rmse_m\":[0.04915182128104535,0.049196494644328084,0.04954701745283863],\"iteration\":7,\"selected_offset_sec\":-0.025,\"train_correspondence_count\":582352,\"train_outlier_rejected_count\":119880,\"train_rmse_m\":0.04915182128104535},{\"accepted\":true,\"candidate_offsets_sec\":[-0.03,-0.025,-0.02],\"candidate_train_rmse_m\":[0.04920669024899803,0.049086313809198166,0.049237487153924925],\"iteration\":8,\"selected_offset_sec\":-0.025,\"train_correspondence_count\":582119,\"train_outlier_rejected_count\":120080,\"train_rmse_m\":0.049086313809198166}],\"provenance\":{\"git_commit\":\"a514397\",\"notes\":[\"all residual summaries and profile candidates are train-only\",\"holdout_used_for_selection is fixed false by the diagnostics schema\",\"range bins use target LiDAR point range in meters\"],\"source_paths\":[\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\",\"data/public/glim_versatile/livox_rosbag2_gt_restamped\"],\"source_sha256\":{\"data/public/glim_versatile/livox_rosbag2_gt_restamped\":\"bf305b5e1b72d998c8d1871bb6fae346a4374897033e98da982f977b38693185\",\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\":\"1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186\"},\"tool_name\":\"calibrex\",\"tool_version\":\"0.5.1\"},\"range_bins\":[{\"correspondence_count\":298763,\"lower_bound_m\":0.0,\"residuals\":{\"count\":298763,\"max_m\":0.15050759959305018,\"mean_abs_m\":0.030864503702020984,\"mean_m\":-0.00036575976958494845,\"median_abs_m\":0.017042839693617674,\"min_m\":-0.15050467931466352,\"p95_abs_m\":0.11012936173918453,\"p99_abs_m\":0.14093666243147648,\"rmse_m\":0.046055824692420436},\"upper_bound_m\":5.0},{\"correspondence_count\":263934,\"lower_bound_m\":5.0,\"residuals\":{\"count\":263934,\"max_m\":0.15050762941857973,\"mean_abs_m\":0.03717917506802076,\"mean_m\":0.000815590919709922,\"median_abs_m\":0.02368782072911011,\"min_m\":-0.15050776556112222,\"p95_abs_m\":0.12044440480932947,\"p99_abs_m\":0.1440526617234342,\"rmse_m\":0.05225479649587614},\"upper_bound_m\":10.0},{\"correspondence_count\":19422,\"lower_bound_m\":10.0,\"residuals\":{\"count\":19422,\"max_m\":0.15049950912438015,\"mean_abs_m\":0.03622423989077997,\"mean_m\":0.0011916425951315577,\"median_abs_m\":0.02516671154667886,\"min_m\":-0.1503789243744528,\"p95_abs_m\":0.11346537286318881,\"p99_abs_m\":0.14195267782381665,\"rmse_m\":0.049811504827055965},\"upper_bound_m\":20.0},{\"correspondence_count\":0,\"lower_bound_m\":20.0,\"residuals\":{\"count\":0},\"upper_bound_m\":40.0},{\"correspondence_count\":0,\"lower_bound_m\":40.0,\"residuals\":{\"count\":0},\"upper_bound_m\":80.0},{\"correspondence_count\":0,\"lower_bound_m\":80.0,\"residuals\":{\"count\":0}}],\"sampled_source_record_count\":3000,\"schema_version\":\"slac.continuous_time_lidar_train_diagnostics/v0.1\",\"selected_time_offset_sec\":-0.025,\"selection_metric\":\"train_rmse_m\",\"train_candidate_correspondence_count\":702199,\"train_correspondence_count\":582119,\"train_outlier_rejected_count\":120080,\"train_outlier_rejection_rate\":0.17100565509207505,\"train_target_point_count\":768000},\"trajectory_model\":\"piecewise_se3_fixed_odometry\",\"variable\":\"T_livox_avia_livox_avia_copy\"}"
+        ]
+      }
+    },
+    {
+      "method_id": "sparse",
+      "split_id": "repeat-02",
+      "status": "success",
+      "metrics": {
+        "adaptive_query_calls": 0.0,
+        "adaptive_query_seconds": 0.0,
+        "complete_result_matches": 1.0,
+        "interpolated_pose_calculations": 21858940.0,
+        "pipeline_seconds": 32.60251660004724,
+        "solver_seconds": 22.58485450001899,
+        "subprocess_wall_seconds": 35.29012950009201,
+        "uniform_normal_calculations": 883.0,
+        "worker_cpu_seconds": 52.25,
+        "worker_import_seconds": 1.825122500071302
+      },
+      "runtime_seconds": 35.29012950009201,
+      "provenance": {
+        "command": "<PYTHON> <WORKSPACE>/tools/benchmark_adaptive_plane_search.py --worker sparse --baseline-scope cuda-full --config examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml --output-dir <WORKSPACE>/outputs/public-glim-residual-summary-dense-v1/sparse.repeat-02 --candidate-query-backend cuda --baseline-query-backend cuda",
+        "config_sha256": "1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186",
+        "input_sha256": "107e3deb3aaeab52628a93d8c6eed80aa1663c3492f6a4d2e280d553e47cd27c",
+        "output_sha256": "eda0e9be2d9393bc3dd917c3f040a188eff62b273260e475ff8c4b963e051942",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "notes": [
+          "{\"cuda_cache_after\": {\"9ed58aaf0a8ff1513d8b1ff1f380f41d5d36ce51.cubin\": \"439af15bcb3e76072e7edf15df7826ea82900d542fef8a25a06add2bb01f6da4\", \"f4331870c33b1b7c90f548c88d07b801503c89e5.cubin\": \"84d63457c31f3966a080e1ce0b4a3b07748a9ea2aa61ff30168c7ea31a327b15\"}, \"cuda_cache_before\": {\"9ed58aaf0a8ff1513d8b1ff1f380f41d5d36ce51.cubin\": \"439af15bcb3e76072e7edf15df7826ea82900d542fef8a25a06add2bb01f6da4\", \"f4331870c33b1b7c90f548c88d07b801503c89e5.cubin\": \"84d63457c31f3966a080e1ce0b4a3b07748a9ea2aa61ff30168c7ea31a327b15\"}, \"execution_override\": \"cuda\", \"loaded_cuda_module\": \"sources/measured.cuda_continuous_time_adapter.py.txt\", \"loaded_evaluation_modules\": {\"calibrex.data.adaptive_voxel\": \"sources/measured.adaptive_voxel.py.txt\", \"calibrex.data.livox\": \"sources/measured.livox.py.txt\", \"calibrex.data.numba_lidar_deskew_adapter\": \"sources/measured.numba_lidar_deskew_adapter.py.txt\", \"calibrex.data.odometry_track\": \"sources/measured.odometry_track.py.txt\", \"calibrex.evaluation.lidar\": \"sources/measured.lidar.py.txt\", \"calibrex.evaluation.packed_lidar_observations\": \"sources/measured.packed_lidar_observations.py.txt\", \"calibrex.graph.lidar_point_to_plane\": \"sources/measured.lidar_point_to_plane.py.txt\", \"calibrex.pipelines.online\": \"sources/measured.online.py.txt\", \"calibrex.solvers.continuous_time_lidar_pair_solver\": \"sources/measured.continuous_time_lidar_pair_solver.py.txt\", \"calibrex.solvers.cuda_continuous_time_adapter\": \"sources/measured.cuda_continuous_time_adapter.py.txt\", \"calibrex.solvers.cuda_plane_query_adapter\": \"sources/measured.cuda_plane_query_adapter.py.txt\", \"calibrex.solvers.fixed_trajectory_se3_solver\": \"sources/measured.fixed_trajectory_se3_solver.py.txt\", \"calibrex.solvers.numba_continuous_time_adapter\": \"sources/measured.numba_continuous_time_adapter.py.txt\", \"calibrex.solvers.robust_lidar_observations\": \"sources/measured.robust_lidar_observations.py.txt\"}, \"loaded_module\": \"sources/measured.adaptive_voxel.py.txt\", \"numba_cache_after\": {\"numba_continuous_time_adapter._association_choices-30.py312.1.nbc\": \"ebe0e4c5d961561e27cec89c4248418c1221ef429c1c48e217f5c0021d748690\", \"numba_continuous_time_adapter._association_choices-30.py312.nbi\": \"f4044d5348d5fe2a44e230750429fd1785acd72ecec62ed1e0468e2ccf197170\", \"numba_continuous_time_adapter._gather_observation_rows-68.py312.1.nbc\": \"789e964afbd01f6a426d03deea1e994e24a35ad22649ff552b4acfc9937d646d\", \"numba_continuous_time_adapter._gather_observation_rows-68.py312.nbi\": \"508a4e32042c70ae86d036af561c172e9bc43ecfd9f2704771f5255948609e04\", \"numba_continuous_time_adapter._normal_rows-334.py312.1.nbc\": \"df8e4539586de84723ee87eef563012e26650a4e06d5959aefb5422c21ae705b\", \"numba_continuous_time_adapter._normal_rows-334.py312.nbi\": \"4f9365eb0210edbd3e5340d0555fde9e9d7f99988d10ec37e6d2589e3aeab410\", \"numba_continuous_time_adapter._one_residual-354.py312.1.nbc\": \"27706ef3e4e2f5ac5e74d32c522e1fcc038e4c52da83e652ccb262bc001123ae\", \"numba_continuous_time_adapter._one_residual-354.py312.nbi\": \"68fb47af6ee07206b209ed2ecbc5b87419a33563fb678ee676b1090bc98b88b3\", \"numba_continuous_time_adapter._pose_world_rows-179.py312.1.nbc\": \"ff3d6920b6745871cc7d70525fa542c3bab9535561da148067bb1ee95dd16e72\", \"numba_continuous_time_adapter._pose_world_rows-179.py312.2.nbc\": \"9468285068c971f4319b4abc8004514a8d6cf3586d3bc94f59693472b7739e3b\", \"numba_continuous_time_adapter._pose_world_rows-179.py312.nbi\": \"9555165b22eef0b09936166bc92e70c05d9b941bbab6d1f3ee66176901fb46ab\", \"numba_continuous_time_adapter._residual_rows-259.py312.1.nbc\": \"7c936479a9a29f733d8f5b01843a47167847a56ba62035b176f4a4767eb56388\", \"numba_continuous_time_adapter._residual_rows-259.py312.nbi\": \"19ca1956f51d70b3b62910e18bc4606ed37e6464460cccaef76660801ad5521b\", \"numba_continuous_time_adapter._residual_square_sum-370.py312.1.nbc\": \"2630c6a91e8ec1e332a17d6bcea7d805e7c670e0228de04a1aed6b26266e5420\", \"numba_continuous_time_adapter._residual_square_sum-370.py312.nbi\": \"eaa24609e2887684dfa7baacc2b9190165bc253b71a92f9c9498ffaf6108e850\", \"numba_continuous_time_adapter._world_rows-285.py312.1.nbc\": \"d923c2e21f7ffbc10d0c51d79a0de94c0308e1625a1addfcc0503762f280fe2e\", \"numba_continuous_time_adapter._world_rows-285.py312.nbi\": \"9ea0355dc050bab0cbe58553d5b6b3e66c6825e2108540afa66e24d1c36a16cf\"}, \"numba_cache_before\": {\"numba_continuous_time_adapter._association_choices-30.py312.1.nbc\": \"ebe0e4c5d961561e27cec89c4248418c1221ef429c1c48e217f5c0021d748690\", \"numba_continuous_time_adapter._association_choices-30.py312.nbi\": \"f4044d5348d5fe2a44e230750429fd1785acd72ecec62ed1e0468e2ccf197170\", \"numba_continuous_time_adapter._gather_observation_rows-68.py312.1.nbc\": \"789e964afbd01f6a426d03deea1e994e24a35ad22649ff552b4acfc9937d646d\", \"numba_continuous_time_adapter._gather_observation_rows-68.py312.nbi\": \"508a4e32042c70ae86d036af561c172e9bc43ecfd9f2704771f5255948609e04\", \"numba_continuous_time_adapter._normal_rows-334.py312.1.nbc\": \"df8e4539586de84723ee87eef563012e26650a4e06d5959aefb5422c21ae705b\", \"numba_continuous_time_adapter._normal_rows-334.py312.nbi\": \"4f9365eb0210edbd3e5340d0555fde9e9d7f99988d10ec37e6d2589e3aeab410\", \"numba_continuous_time_adapter._one_residual-354.py312.1.nbc\": \"27706ef3e4e2f5ac5e74d32c522e1fcc038e4c52da83e652ccb262bc001123ae\", \"numba_continuous_time_adapter._one_residual-354.py312.nbi\": \"68fb47af6ee07206b209ed2ecbc5b87419a33563fb678ee676b1090bc98b88b3\", \"numba_continuous_time_adapter._pose_world_rows-179.py312.1.nbc\": \"ff3d6920b6745871cc7d70525fa542c3bab9535561da148067bb1ee95dd16e72\", \"numba_continuous_time_adapter._pose_world_rows-179.py312.2.nbc\": \"9468285068c971f4319b4abc8004514a8d6cf3586d3bc94f59693472b7739e3b\", \"numba_continuous_time_adapter._pose_world_rows-179.py312.nbi\": \"9555165b22eef0b09936166bc92e70c05d9b941bbab6d1f3ee66176901fb46ab\", \"numba_continuous_time_adapter._residual_rows-259.py312.1.nbc\": \"7c936479a9a29f733d8f5b01843a47167847a56ba62035b176f4a4767eb56388\", \"numba_continuous_time_adapter._residual_rows-259.py312.nbi\": \"19ca1956f51d70b3b62910e18bc4606ed37e6464460cccaef76660801ad5521b\", \"numba_continuous_time_adapter._residual_square_sum-370.py312.1.nbc\": \"2630c6a91e8ec1e332a17d6bcea7d805e7c670e0228de04a1aed6b26266e5420\", \"numba_continuous_time_adapter._residual_square_sum-370.py312.nbi\": \"eaa24609e2887684dfa7baacc2b9190165bc253b71a92f9c9498ffaf6108e850\", \"numba_continuous_time_adapter._world_rows-285.py312.1.nbc\": \"d923c2e21f7ffbc10d0c51d79a0de94c0308e1625a1addfcc0503762f280fe2e\", \"numba_continuous_time_adapter._world_rows-285.py312.nbi\": \"9ea0355dc050bab0cbe58553d5b6b3e66c6825e2108540afa66e24d1c36a16cf\"}, \"numba_cache_policy\": \"persistent\", \"order\": [\"sparse\", \"baseline\"], \"repeat\": 2, \"result_sha256\": \"2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f\", \"sampled_split\": {\"holdout_count\": 192000, \"holdout_ids_sha256\": \"c49427174a3fc9b314ac70bd5e6c782e8c77422cd2faa589a6e48214e6cf74bd\", \"train_count\": 768000, \"train_ids_sha256\": \"ad16fb4625f6ee3cfc1b9d56e1f09218f6e58c50e85d27fbe881bf6adc2fabeb\"}}",
+          "{\"config_path\":\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\",\"dataset_path\":\"data/public/glim_versatile/livox_rosbag2_gt_restamped\",\"estimated_time_offset_sec\":-0.025,\"final_holdout_rmse_m\":0.09394581201769982,\"final_train_rmse_m\":0.049086313809198166,\"holdout_correspondence_count\":67602,\"initial_time_offset_sec\":0.0,\"initial_train_rmse_m\":0.057370176200909506,\"initial_transform\":{\"child\":\"livox_avia_copy\",\"convention\":\"T_parent_child\",\"estimate_id\":\"T_livox_avia_livox_avia_copy\",\"parent\":\"livox_avia\",\"provenance\":{\"evidence_level\":\"unknown\",\"execution_mode\":\"online_stream\",\"notes\":[\"clock offset was profiled with extrinsic re-optimization\",\"supplied piecewise odometry trajectory remained fixed\"],\"producer\":\"slac_native\",\"role_in_comparison\":\"initial\",\"source\":\"calibrex.solvers.continuous_time_lidar_pair_solver\",\"tool_name\":\"continuous_time_lidar_pair_solver\"},\"quality\":{\"grade\":\"warn\",\"std_rotation_deg\":[],\"std_translation_m\":[]},\"rotation_quat_xyzw\":[0.0,0.0,0.0,1.0],\"translation_m\":[0.0,0.0,0.0]},\"iterations\":[{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09571184213218482,0.0995716460260033,0.10503184050579091],\"candidate_offsets_sec\":[-0.02,0.0,0.02],\"candidate_train_rmse_m\":[0.049464184358660665,0.051407362455503015,0.05628604472487857],\"holdout_rmse_m\":0.09571184213218482,\"iteration\":1,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.049464184358660665},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09232701146014846,0.09490251830075698,0.09838642904203788],\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05034493304978426,0.04923052897228388,0.05159287671975171],\"holdout_rmse_m\":0.09490251830075698,\"iteration\":2,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.04923052897228388},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09226143336514588,0.09472422154419698,0.09804927304845115],\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05017957712410044,0.04920955182585908,0.05166518259829283],\"holdout_rmse_m\":0.09472422154419698,\"iteration\":3,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.04920955182585908},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09224386074850734,0.09469400106615077,0.09795286792497307],\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05013989598511986,0.04919190012576584,0.05169859175392839],\"holdout_rmse_m\":0.09469400106615077,\"iteration\":4,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.04919190012576584},{\"accepted\":false,\"candidate_holdout_rmse_m\":[0.09224456206028672,0.09464812459715029,0.09792994259823051],\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.050148602401232784,0.049196494644328084,0.05170673011454384],\"holdout_rmse_m\":0.09464812459715029,\"iteration\":5,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.049196494644328084},{\"accepted\":false,\"candidate_holdout_rmse_m\":[0.09327456638580518,0.09464812459715029,0.09669399004715376],\"candidate_offsets_sec\":[-0.03,-0.02,-0.01],\"candidate_train_rmse_m\":[0.049254414884859835,0.049196494644328084,0.05004123042570123],\"holdout_rmse_m\":0.09464812459715029,\"iteration\":6,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.049196494644328084},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09396282460661212,0.09464812459715029,0.09560747346271412],\"candidate_offsets_sec\":[-0.025,-0.02,-0.015],\"candidate_train_rmse_m\":[0.04915182128104535,0.049196494644328084,0.04954701745283863],\"holdout_rmse_m\":0.09396282460661212,\"iteration\":7,\"selected_offset_sec\":-0.025,\"train_rmse_m\":0.04915182128104535},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09331292621654655,0.09394581201769982,0.09465328227401543],\"candidate_offsets_sec\":[-0.03,-0.025,-0.02],\"candidate_train_rmse_m\":[0.04920669024899803,0.049086313809198166,0.049237487153924925],\"holdout_rmse_m\":0.09394581201769982,\"iteration\":8,\"selected_offset_sec\":-0.025,\"train_rmse_m\":0.049086313809198166}],\"observability\":{\"condition_number\":19.16563571890005,\"rank\":6,\"residual_count\":582119,\"weak_directions\":[]},\"odometry_topic\":\"/odom\",\"options\":{\"adaptive_max_voxel_size_m\":1.5,\"adaptive_min_points_per_voxel\":6,\"adaptive_min_voxel_size_m\":0.25,\"adaptive_range_exponent\":0.5,\"adaptive_range_reference_m\":10.0,\"adaptive_use_uniform_fallback\":true,\"correspondence_refinement_iterations\":1,\"fixed_extrinsic_max_iterations\":8,\"fixed_extrinsic_robust_loss\":\"huber\",\"holdout_start_fraction\":0.8,\"initial_time_offset_sec\":0.0,\"initial_time_step_sec\":0.02,\"max_abs_time_offset_sec\":0.2,\"max_iterations\":8,\"max_odometry_extrapolation_s\":0.25,\"max_source_records\":6000,\"min_correspondences\":6,\"minimum_time_step_sec\":0.005,\"outlier_mad_scale\":3.5,\"outlier_min_inlier_fraction\":0.25,\"outlier_min_threshold_m\":0.02,\"outlier_policy\":\"mad\",\"sampling_seed\":0,\"voxel_strategy\":\"adaptive\"},\"outlier_rejected_count\":137613,\"provenance\":{\"git_commit\":\"a514397\",\"notes\":[\"continuous-time profile re-solves the six-DoF extrinsic at every clock candidate\",\"target holdout is the latest capture frame group and is never used for optimization\",\"train diagnostics summarize only the selected train factor and train profile\",\"trajectory_model is piecewise SE(3) interpolation of supplied odometry; trajectory knots are fixed\",\"train_frame_count=96\",\"holdout_frame_count=24\",\"holdout_start_fraction=0.8\",\"sampling_seed=0\",\"source_record_cap=6000\",\"target_point_cap_per_split=None\",\"outlier_policy=mad\",\"voxel_strategy=adaptive\",\"replay_source_message_count=1\",\"adaptive correspondences use a uniform voxel fallback and select the lower initial point-to-plane residual\",\"continuous_time_query_execution: calibrex.cuda_continuous_time/v0.6;fp64=true;fma=false;cupy=14.2.0;cuda=12090;driver=13020;numba=0.65.1;trajectory_cpu=true;normal_cpu=true;standalone_residual_cpu=true;linearization_cache=last;linearization_cache_bytes=67108864;associations_gpu=true;kernel_sha256=ad35e19c4f402fa99c14ce8e2a496f65a35c67655bdb795e6111d0f03d592be0;association_kernel_sha256=b5f446ea685f32adaaaf96aafe44d423b8e05601dbc6ffb17fb7b8cc4ae124ad\",\"continuous_time_replay_execution: calibrex.numba_lidar_deskew/v0.1;numba=0.65.1;fastmath=false;cache=true;point_pose_cpu=true;source_sha256=53966123b0e942f48929494fba4389062ccee0cd44dc85501e4d3451a84cc0be\"],\"source_paths\":[\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\",\"data/public/glim_versatile/livox_rosbag2_gt_restamped\"],\"source_sha256\":{\"data/public/glim_versatile/livox_rosbag2_gt_restamped\":\"bf305b5e1b72d998c8d1871bb6fae346a4374897033e98da982f977b38693185\",\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\":\"1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186\"},\"tool_name\":\"calibrex\",\"tool_version\":\"0.5.1\"},\"reason\":\"maximum time-profile iterations reached\",\"refined_transform\":{\"child\":\"livox_avia_copy\",\"convention\":\"T_parent_child\",\"estimate_id\":\"T_livox_avia_livox_avia_copy\",\"parent\":\"livox_avia\",\"provenance\":{\"evidence_level\":\"algorithmically_refined\",\"execution_mode\":\"online_stream\",\"notes\":[\"clock offset was profiled with extrinsic re-optimization\",\"supplied piecewise odometry trajectory remained fixed\"],\"producer\":\"slac_native\",\"role_in_comparison\":\"output\",\"source\":\"calibrex.solvers.continuous_time_lidar_pair_solver\",\"tool_name\":\"continuous_time_lidar_pair_solver\"},\"quality\":{\"grade\":\"warn\",\"std_rotation_deg\":[],\"std_translation_m\":[]},\"rotation_quat_xyzw\":[0.0015393622259474641,0.0014500790167938124,-0.0016957407406766722,0.9999963260423125],\"translation_m\":[-0.006420340124736379,0.012652173241256342,-0.02301366535108216]},\"schema_version\":\"slac.continuous_time_lidar_pair_result/v0.1\",\"source_sensor\":\"livox_avia\",\"status\":\"max_iterations\",\"target_sensor\":\"livox_avia_copy\",\"time_offset_sign_convention\":\"positive offset evaluates target capture at odometry time t_capture + offset\",\"train_correspondence_count\":582119,\"train_diagnostics\":{\"final_residuals\":{\"count\":582119,\"max_m\":0.15050762941857973,\"mean_abs_m\":0.03390641312015003,\"mean_m\":0.00022182881892681,\"median_abs_m\":0.020085512198455592,\"min_m\":-0.15050776556112222,\"p95_abs_m\":0.11547177200020867,\"p99_abs_m\":0.14258218679290402,\"rmse_m\":0.049086313809198166},\"holdout_used_for_selection\":false,\"profile\":[{\"accepted\":true,\"candidate_offsets_sec\":[-0.02,0.0,0.02],\"candidate_train_rmse_m\":[0.049464184358660665,0.051407362455503015,0.05628604472487857],\"iteration\":1,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582974,\"train_outlier_rejected_count\":119173,\"train_rmse_m\":0.049464184358660665},{\"accepted\":true,\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05034493304978426,0.04923052897228388,0.05159287671975171],\"iteration\":2,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582373,\"train_outlier_rejected_count\":119760,\"train_rmse_m\":0.04923052897228388},{\"accepted\":true,\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05017957712410044,0.04920955182585908,0.05166518259829283],\"iteration\":3,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582290,\"train_outlier_rejected_count\":119850,\"train_rmse_m\":0.04920955182585908},{\"accepted\":true,\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05013989598511986,0.04919190012576584,0.05169859175392839],\"iteration\":4,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582225,\"train_outlier_rejected_count\":119902,\"train_rmse_m\":0.04919190012576584},{\"accepted\":false,\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.050148602401232784,0.049196494644328084,0.05170673011454384],\"iteration\":5,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582226,\"train_outlier_rejected_count\":119911,\"train_rmse_m\":0.049196494644328084},{\"accepted\":false,\"candidate_offsets_sec\":[-0.03,-0.02,-0.01],\"candidate_train_rmse_m\":[0.049254414884859835,0.049196494644328084,0.05004123042570123],\"iteration\":6,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582226,\"train_outlier_rejected_count\":119911,\"train_rmse_m\":0.049196494644328084},{\"accepted\":true,\"candidate_offsets_sec\":[-0.025,-0.02,-0.015],\"candidate_train_rmse_m\":[0.04915182128104535,0.049196494644328084,0.04954701745283863],\"iteration\":7,\"selected_offset_sec\":-0.025,\"train_correspondence_count\":582352,\"train_outlier_rejected_count\":119880,\"train_rmse_m\":0.04915182128104535},{\"accepted\":true,\"candidate_offsets_sec\":[-0.03,-0.025,-0.02],\"candidate_train_rmse_m\":[0.04920669024899803,0.049086313809198166,0.049237487153924925],\"iteration\":8,\"selected_offset_sec\":-0.025,\"train_correspondence_count\":582119,\"train_outlier_rejected_count\":120080,\"train_rmse_m\":0.049086313809198166}],\"provenance\":{\"git_commit\":\"a514397\",\"notes\":[\"all residual summaries and profile candidates are train-only\",\"holdout_used_for_selection is fixed false by the diagnostics schema\",\"range bins use target LiDAR point range in meters\"],\"source_paths\":[\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\",\"data/public/glim_versatile/livox_rosbag2_gt_restamped\"],\"source_sha256\":{\"data/public/glim_versatile/livox_rosbag2_gt_restamped\":\"bf305b5e1b72d998c8d1871bb6fae346a4374897033e98da982f977b38693185\",\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\":\"1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186\"},\"tool_name\":\"calibrex\",\"tool_version\":\"0.5.1\"},\"range_bins\":[{\"correspondence_count\":298763,\"lower_bound_m\":0.0,\"residuals\":{\"count\":298763,\"max_m\":0.15050759959305018,\"mean_abs_m\":0.030864503702020984,\"mean_m\":-0.00036575976958494845,\"median_abs_m\":0.017042839693617674,\"min_m\":-0.15050467931466352,\"p95_abs_m\":0.11012936173918453,\"p99_abs_m\":0.14093666243147648,\"rmse_m\":0.046055824692420436},\"upper_bound_m\":5.0},{\"correspondence_count\":263934,\"lower_bound_m\":5.0,\"residuals\":{\"count\":263934,\"max_m\":0.15050762941857973,\"mean_abs_m\":0.03717917506802076,\"mean_m\":0.000815590919709922,\"median_abs_m\":0.02368782072911011,\"min_m\":-0.15050776556112222,\"p95_abs_m\":0.12044440480932947,\"p99_abs_m\":0.1440526617234342,\"rmse_m\":0.05225479649587614},\"upper_bound_m\":10.0},{\"correspondence_count\":19422,\"lower_bound_m\":10.0,\"residuals\":{\"count\":19422,\"max_m\":0.15049950912438015,\"mean_abs_m\":0.03622423989077997,\"mean_m\":0.0011916425951315577,\"median_abs_m\":0.02516671154667886,\"min_m\":-0.1503789243744528,\"p95_abs_m\":0.11346537286318881,\"p99_abs_m\":0.14195267782381665,\"rmse_m\":0.049811504827055965},\"upper_bound_m\":20.0},{\"correspondence_count\":0,\"lower_bound_m\":20.0,\"residuals\":{\"count\":0},\"upper_bound_m\":40.0},{\"correspondence_count\":0,\"lower_bound_m\":40.0,\"residuals\":{\"count\":0},\"upper_bound_m\":80.0},{\"correspondence_count\":0,\"lower_bound_m\":80.0,\"residuals\":{\"count\":0}}],\"sampled_source_record_count\":3000,\"schema_version\":\"slac.continuous_time_lidar_train_diagnostics/v0.1\",\"selected_time_offset_sec\":-0.025,\"selection_metric\":\"train_rmse_m\",\"train_candidate_correspondence_count\":702199,\"train_correspondence_count\":582119,\"train_outlier_rejected_count\":120080,\"train_outlier_rejection_rate\":0.17100565509207505,\"train_target_point_count\":768000},\"trajectory_model\":\"piecewise_se3_fixed_odometry\",\"variable\":\"T_livox_avia_livox_avia_copy\"}"
+        ]
+      }
+    },
+    {
+      "method_id": "baseline",
+      "split_id": "repeat-02",
+      "status": "success",
+      "metrics": {
+        "adaptive_query_calls": 0.0,
+        "adaptive_query_seconds": 0.0,
+        "complete_result_matches": 1.0,
+        "interpolated_pose_calculations": 21855736.0,
+        "pipeline_seconds": 66.5074071000563,
+        "solver_seconds": 48.86027619999368,
+        "subprocess_wall_seconds": 69.80555559997447,
+        "uniform_normal_calculations": 883.0,
+        "worker_cpu_seconds": 91.59375,
+        "worker_import_seconds": 2.275142800062895
+      },
+      "runtime_seconds": 69.80555559997447,
+      "provenance": {
+        "command": "<PYTHON> <WORKSPACE>/tools/benchmark_adaptive_plane_search.py --worker baseline --baseline-scope cuda-full --config examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml --output-dir <WORKSPACE>/outputs/public-glim-residual-summary-dense-v1/baseline.repeat-02 --candidate-query-backend cuda --baseline-query-backend cuda",
+        "config_sha256": "1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186",
+        "input_sha256": "107e3deb3aaeab52628a93d8c6eed80aa1663c3492f6a4d2e280d553e47cd27c",
+        "output_sha256": "eda0e9be2d9393bc3dd917c3f040a188eff62b273260e475ff8c4b963e051942",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "notes": [
+          "{\"cuda_cache_after\": {\"9ed58aaf0a8ff1513d8b1ff1f380f41d5d36ce51.cubin\": \"439af15bcb3e76072e7edf15df7826ea82900d542fef8a25a06add2bb01f6da4\", \"f4331870c33b1b7c90f548c88d07b801503c89e5.cubin\": \"84d63457c31f3966a080e1ce0b4a3b07748a9ea2aa61ff30168c7ea31a327b15\"}, \"cuda_cache_before\": {\"9ed58aaf0a8ff1513d8b1ff1f380f41d5d36ce51.cubin\": \"439af15bcb3e76072e7edf15df7826ea82900d542fef8a25a06add2bb01f6da4\", \"f4331870c33b1b7c90f548c88d07b801503c89e5.cubin\": \"84d63457c31f3966a080e1ce0b4a3b07748a9ea2aa61ff30168c7ea31a327b15\"}, \"execution_override\": \"cuda\", \"loaded_cuda_module\": \"previous_gpu/baseline.cuda_continuous_time_adapter.py.txt\", \"loaded_evaluation_modules\": {\"calibrex.data.adaptive_voxel\": \"previous_gpu/baseline.adaptive_voxel.py.txt\", \"calibrex.data.livox\": \"previous_gpu/baseline.livox.py.txt\", \"calibrex.data.numba_lidar_deskew_adapter\": \"previous_gpu/baseline.numba_lidar_deskew_adapter.py.txt\", \"calibrex.data.odometry_track\": \"previous_gpu/baseline.odometry_track.py.txt\", \"calibrex.evaluation.lidar\": \"previous_gpu/baseline.lidar.py.txt\", \"calibrex.evaluation.packed_lidar_observations\": \"previous_gpu/baseline.packed_lidar_observations.py.txt\", \"calibrex.graph.lidar_point_to_plane\": \"previous_gpu/baseline.lidar_point_to_plane.py.txt\", \"calibrex.pipelines.online\": \"previous_gpu/baseline.online.py.txt\", \"calibrex.solvers.continuous_time_lidar_pair_solver\": \"previous_gpu/baseline.continuous_time_lidar_pair_solver.py.txt\", \"calibrex.solvers.cuda_continuous_time_adapter\": \"previous_gpu/baseline.cuda_continuous_time_adapter.py.txt\", \"calibrex.solvers.cuda_plane_query_adapter\": \"previous_gpu/baseline.cuda_plane_query_adapter.py.txt\", \"calibrex.solvers.fixed_trajectory_se3_solver\": \"previous_gpu/baseline.fixed_trajectory_se3_solver.py.txt\", \"calibrex.solvers.numba_continuous_time_adapter\": \"previous_gpu/baseline.numba_continuous_time_adapter.py.txt\", \"calibrex.solvers.robust_lidar_observations\": \"previous_gpu/baseline.robust_lidar_observations.py.txt\"}, \"loaded_module\": \"previous_gpu/baseline.adaptive_voxel.py.txt\", \"numba_cache_after\": {\"baseline.numba_continuous_time_adapter.py._association_choices-30.py312.1.nbc\": \"2c23e423bf698c4c43c0db8f9a28d3e20d4b6377b51e5d5cd277a9ecc3d25a8e\", \"baseline.numba_continuous_time_adapter.py._association_choices-30.py312.nbi\": \"25db0bf76fc54da24da35bfbfa44f552add6b4643a5ae4a707060890396473c4\", \"baseline.numba_continuous_time_adapter.py._gather_observation_rows-68.py312.1.nbc\": \"37384c985ddb84f290b66b9fc09505a964933f2d9a45c443c531ecf2abbdde70\", \"baseline.numba_continuous_time_adapter.py._gather_observation_rows-68.py312.nbi\": \"28c13f659a298125d58fc29367b3c5aca80a8e1a59137b490f3354c31580009a\", \"baseline.numba_continuous_time_adapter.py._normal_rows-334.py312.1.nbc\": \"2611a5e679da68346b9979a418d4a8d4a4ecdd2845010b763b3f94923178be1e\", \"baseline.numba_continuous_time_adapter.py._normal_rows-334.py312.nbi\": \"4225618b2f7791cc4891e211aafd750457c37f81d85a2c2f9e8cc04e06f9e75d\", \"baseline.numba_continuous_time_adapter.py._pose_world_rows-179.py312.1.nbc\": \"badb356723640263d81a0adb2669945f6510e2cead66af05b404a55595f1b199\", \"baseline.numba_continuous_time_adapter.py._pose_world_rows-179.py312.2.nbc\": \"96d92dbaefdc7185678377d863862ca97558cf49188a0a2ee09521b78c4f9a02\", \"baseline.numba_continuous_time_adapter.py._pose_world_rows-179.py312.nbi\": \"20069f00403b3faaef565034e8057a1b058558594118ba6084860aa3e0a8d0eb\", \"baseline.numba_continuous_time_adapter.py._residual_rows-259.py312.1.nbc\": \"b6d93a44e3963963cc8aea21a9651f60692dc56d4512a59f785c7c8460b47774\", \"baseline.numba_continuous_time_adapter.py._residual_rows-259.py312.nbi\": \"7a6e92405f20d525e70608a7168dd889fbf6ac9e68464ab2ab63ed4096e11cac\", \"baseline.numba_continuous_time_adapter.py._world_rows-285.py312.1.nbc\": \"caa2cb37d7d9ab85a0b1d3ea888a4b9d8b13d5a94a1379f49297e01bbcdc6d31\", \"baseline.numba_continuous_time_adapter.py._world_rows-285.py312.nbi\": \"0ea4626a5fe9dbff395d7da986bbd615c4484cc5ceee9c8cad600bd08ccc4067\"}, \"numba_cache_before\": {\"baseline.numba_continuous_time_adapter.py._association_choices-30.py312.1.nbc\": \"2c23e423bf698c4c43c0db8f9a28d3e20d4b6377b51e5d5cd277a9ecc3d25a8e\", \"baseline.numba_continuous_time_adapter.py._association_choices-30.py312.nbi\": \"25db0bf76fc54da24da35bfbfa44f552add6b4643a5ae4a707060890396473c4\", \"baseline.numba_continuous_time_adapter.py._gather_observation_rows-68.py312.1.nbc\": \"37384c985ddb84f290b66b9fc09505a964933f2d9a45c443c531ecf2abbdde70\", \"baseline.numba_continuous_time_adapter.py._gather_observation_rows-68.py312.nbi\": \"28c13f659a298125d58fc29367b3c5aca80a8e1a59137b490f3354c31580009a\", \"baseline.numba_continuous_time_adapter.py._normal_rows-334.py312.1.nbc\": \"2611a5e679da68346b9979a418d4a8d4a4ecdd2845010b763b3f94923178be1e\", \"baseline.numba_continuous_time_adapter.py._normal_rows-334.py312.nbi\": \"4225618b2f7791cc4891e211aafd750457c37f81d85a2c2f9e8cc04e06f9e75d\", \"baseline.numba_continuous_time_adapter.py._pose_world_rows-179.py312.1.nbc\": \"badb356723640263d81a0adb2669945f6510e2cead66af05b404a55595f1b199\", \"baseline.numba_continuous_time_adapter.py._pose_world_rows-179.py312.2.nbc\": \"96d92dbaefdc7185678377d863862ca97558cf49188a0a2ee09521b78c4f9a02\", \"baseline.numba_continuous_time_adapter.py._pose_world_rows-179.py312.nbi\": \"20069f00403b3faaef565034e8057a1b058558594118ba6084860aa3e0a8d0eb\", \"baseline.numba_continuous_time_adapter.py._residual_rows-259.py312.1.nbc\": \"b6d93a44e3963963cc8aea21a9651f60692dc56d4512a59f785c7c8460b47774\", \"baseline.numba_continuous_time_adapter.py._residual_rows-259.py312.nbi\": \"7a6e92405f20d525e70608a7168dd889fbf6ac9e68464ab2ab63ed4096e11cac\", \"baseline.numba_continuous_time_adapter.py._world_rows-285.py312.1.nbc\": \"caa2cb37d7d9ab85a0b1d3ea888a4b9d8b13d5a94a1379f49297e01bbcdc6d31\", \"baseline.numba_continuous_time_adapter.py._world_rows-285.py312.nbi\": \"0ea4626a5fe9dbff395d7da986bbd615c4484cc5ceee9c8cad600bd08ccc4067\"}, \"numba_cache_policy\": \"persistent\", \"order\": [\"sparse\", \"baseline\"], \"repeat\": 2, \"result_sha256\": \"2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f\", \"sampled_split\": {\"holdout_count\": 192000, \"holdout_ids_sha256\": \"c49427174a3fc9b314ac70bd5e6c782e8c77422cd2faa589a6e48214e6cf74bd\", \"train_count\": 768000, \"train_ids_sha256\": \"ad16fb4625f6ee3cfc1b9d56e1f09218f6e58c50e85d27fbe881bf6adc2fabeb\"}}",
+          "{\"config_path\":\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\",\"dataset_path\":\"data/public/glim_versatile/livox_rosbag2_gt_restamped\",\"estimated_time_offset_sec\":-0.025,\"final_holdout_rmse_m\":0.09394581201769982,\"final_train_rmse_m\":0.049086313809198166,\"holdout_correspondence_count\":67602,\"initial_time_offset_sec\":0.0,\"initial_train_rmse_m\":0.057370176200909506,\"initial_transform\":{\"child\":\"livox_avia_copy\",\"convention\":\"T_parent_child\",\"estimate_id\":\"T_livox_avia_livox_avia_copy\",\"parent\":\"livox_avia\",\"provenance\":{\"evidence_level\":\"unknown\",\"execution_mode\":\"online_stream\",\"notes\":[\"clock offset was profiled with extrinsic re-optimization\",\"supplied piecewise odometry trajectory remained fixed\"],\"producer\":\"slac_native\",\"role_in_comparison\":\"initial\",\"source\":\"calibrex.solvers.continuous_time_lidar_pair_solver\",\"tool_name\":\"continuous_time_lidar_pair_solver\"},\"quality\":{\"grade\":\"warn\",\"std_rotation_deg\":[],\"std_translation_m\":[]},\"rotation_quat_xyzw\":[0.0,0.0,0.0,1.0],\"translation_m\":[0.0,0.0,0.0]},\"iterations\":[{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09571184213218482,0.0995716460260033,0.10503184050579091],\"candidate_offsets_sec\":[-0.02,0.0,0.02],\"candidate_train_rmse_m\":[0.049464184358660665,0.051407362455503015,0.05628604472487857],\"holdout_rmse_m\":0.09571184213218482,\"iteration\":1,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.049464184358660665},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09232701146014846,0.09490251830075698,0.09838642904203788],\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05034493304978426,0.04923052897228388,0.05159287671975171],\"holdout_rmse_m\":0.09490251830075698,\"iteration\":2,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.04923052897228388},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09226143336514588,0.09472422154419698,0.09804927304845115],\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05017957712410044,0.04920955182585908,0.05166518259829283],\"holdout_rmse_m\":0.09472422154419698,\"iteration\":3,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.04920955182585908},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09224386074850734,0.09469400106615077,0.09795286792497307],\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05013989598511986,0.04919190012576584,0.05169859175392839],\"holdout_rmse_m\":0.09469400106615077,\"iteration\":4,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.04919190012576584},{\"accepted\":false,\"candidate_holdout_rmse_m\":[0.09224456206028672,0.09464812459715029,0.09792994259823051],\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.050148602401232784,0.049196494644328084,0.05170673011454384],\"holdout_rmse_m\":0.09464812459715029,\"iteration\":5,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.049196494644328084},{\"accepted\":false,\"candidate_holdout_rmse_m\":[0.09327456638580518,0.09464812459715029,0.09669399004715376],\"candidate_offsets_sec\":[-0.03,-0.02,-0.01],\"candidate_train_rmse_m\":[0.049254414884859835,0.049196494644328084,0.05004123042570123],\"holdout_rmse_m\":0.09464812459715029,\"iteration\":6,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.049196494644328084},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09396282460661212,0.09464812459715029,0.09560747346271412],\"candidate_offsets_sec\":[-0.025,-0.02,-0.015],\"candidate_train_rmse_m\":[0.04915182128104535,0.049196494644328084,0.04954701745283863],\"holdout_rmse_m\":0.09396282460661212,\"iteration\":7,\"selected_offset_sec\":-0.025,\"train_rmse_m\":0.04915182128104535},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09331292621654655,0.09394581201769982,0.09465328227401543],\"candidate_offsets_sec\":[-0.03,-0.025,-0.02],\"candidate_train_rmse_m\":[0.04920669024899803,0.049086313809198166,0.049237487153924925],\"holdout_rmse_m\":0.09394581201769982,\"iteration\":8,\"selected_offset_sec\":-0.025,\"train_rmse_m\":0.049086313809198166}],\"observability\":{\"condition_number\":19.16563571890005,\"rank\":6,\"residual_count\":582119,\"weak_directions\":[]},\"odometry_topic\":\"/odom\",\"options\":{\"adaptive_max_voxel_size_m\":1.5,\"adaptive_min_points_per_voxel\":6,\"adaptive_min_voxel_size_m\":0.25,\"adaptive_range_exponent\":0.5,\"adaptive_range_reference_m\":10.0,\"adaptive_use_uniform_fallback\":true,\"correspondence_refinement_iterations\":1,\"fixed_extrinsic_max_iterations\":8,\"fixed_extrinsic_robust_loss\":\"huber\",\"holdout_start_fraction\":0.8,\"initial_time_offset_sec\":0.0,\"initial_time_step_sec\":0.02,\"max_abs_time_offset_sec\":0.2,\"max_iterations\":8,\"max_odometry_extrapolation_s\":0.25,\"max_source_records\":6000,\"min_correspondences\":6,\"minimum_time_step_sec\":0.005,\"outlier_mad_scale\":3.5,\"outlier_min_inlier_fraction\":0.25,\"outlier_min_threshold_m\":0.02,\"outlier_policy\":\"mad\",\"sampling_seed\":0,\"voxel_strategy\":\"adaptive\"},\"outlier_rejected_count\":137613,\"provenance\":{\"git_commit\":\"a514397\",\"notes\":[\"continuous-time profile re-solves the six-DoF extrinsic at every clock candidate\",\"target holdout is the latest capture frame group and is never used for optimization\",\"train diagnostics summarize only the selected train factor and train profile\",\"trajectory_model is piecewise SE(3) interpolation of supplied odometry; trajectory knots are fixed\",\"train_frame_count=96\",\"holdout_frame_count=24\",\"holdout_start_fraction=0.8\",\"sampling_seed=0\",\"source_record_cap=6000\",\"target_point_cap_per_split=None\",\"outlier_policy=mad\",\"voxel_strategy=adaptive\",\"replay_source_message_count=1\",\"adaptive correspondences use a uniform voxel fallback and select the lower initial point-to-plane residual\",\"continuous_time_query_execution: calibrex.cuda_continuous_time/v0.6;fp64=true;fma=false;cupy=14.2.0;cuda=12090;driver=13020;numba=0.65.1;trajectory_cpu=true;normal_cpu=true;standalone_residual_cpu=true;linearization_cache=last;linearization_cache_bytes=67108864;associations_gpu=true;kernel_sha256=ad35e19c4f402fa99c14ce8e2a496f65a35c67655bdb795e6111d0f03d592be0;association_kernel_sha256=b5f446ea685f32adaaaf96aafe44d423b8e05601dbc6ffb17fb7b8cc4ae124ad\",\"continuous_time_replay_execution: calibrex.numba_lidar_deskew/v0.1;numba=0.65.1;fastmath=false;cache=true;point_pose_cpu=true;source_sha256=53966123b0e942f48929494fba4389062ccee0cd44dc85501e4d3451a84cc0be\"],\"source_paths\":[\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\",\"data/public/glim_versatile/livox_rosbag2_gt_restamped\"],\"source_sha256\":{\"data/public/glim_versatile/livox_rosbag2_gt_restamped\":\"bf305b5e1b72d998c8d1871bb6fae346a4374897033e98da982f977b38693185\",\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\":\"1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186\"},\"tool_name\":\"calibrex\",\"tool_version\":\"0.5.1\"},\"reason\":\"maximum time-profile iterations reached\",\"refined_transform\":{\"child\":\"livox_avia_copy\",\"convention\":\"T_parent_child\",\"estimate_id\":\"T_livox_avia_livox_avia_copy\",\"parent\":\"livox_avia\",\"provenance\":{\"evidence_level\":\"algorithmically_refined\",\"execution_mode\":\"online_stream\",\"notes\":[\"clock offset was profiled with extrinsic re-optimization\",\"supplied piecewise odometry trajectory remained fixed\"],\"producer\":\"slac_native\",\"role_in_comparison\":\"output\",\"source\":\"calibrex.solvers.continuous_time_lidar_pair_solver\",\"tool_name\":\"continuous_time_lidar_pair_solver\"},\"quality\":{\"grade\":\"warn\",\"std_rotation_deg\":[],\"std_translation_m\":[]},\"rotation_quat_xyzw\":[0.0015393622259474641,0.0014500790167938124,-0.0016957407406766722,0.9999963260423125],\"translation_m\":[-0.006420340124736379,0.012652173241256342,-0.02301366535108216]},\"schema_version\":\"slac.continuous_time_lidar_pair_result/v0.1\",\"source_sensor\":\"livox_avia\",\"status\":\"max_iterations\",\"target_sensor\":\"livox_avia_copy\",\"time_offset_sign_convention\":\"positive offset evaluates target capture at odometry time t_capture + offset\",\"train_correspondence_count\":582119,\"train_diagnostics\":{\"final_residuals\":{\"count\":582119,\"max_m\":0.15050762941857973,\"mean_abs_m\":0.03390641312015003,\"mean_m\":0.00022182881892681,\"median_abs_m\":0.020085512198455592,\"min_m\":-0.15050776556112222,\"p95_abs_m\":0.11547177200020867,\"p99_abs_m\":0.14258218679290402,\"rmse_m\":0.049086313809198166},\"holdout_used_for_selection\":false,\"profile\":[{\"accepted\":true,\"candidate_offsets_sec\":[-0.02,0.0,0.02],\"candidate_train_rmse_m\":[0.049464184358660665,0.051407362455503015,0.05628604472487857],\"iteration\":1,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582974,\"train_outlier_rejected_count\":119173,\"train_rmse_m\":0.049464184358660665},{\"accepted\":true,\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05034493304978426,0.04923052897228388,0.05159287671975171],\"iteration\":2,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582373,\"train_outlier_rejected_count\":119760,\"train_rmse_m\":0.04923052897228388},{\"accepted\":true,\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05017957712410044,0.04920955182585908,0.05166518259829283],\"iteration\":3,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582290,\"train_outlier_rejected_count\":119850,\"train_rmse_m\":0.04920955182585908},{\"accepted\":true,\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05013989598511986,0.04919190012576584,0.05169859175392839],\"iteration\":4,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582225,\"train_outlier_rejected_count\":119902,\"train_rmse_m\":0.04919190012576584},{\"accepted\":false,\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.050148602401232784,0.049196494644328084,0.05170673011454384],\"iteration\":5,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582226,\"train_outlier_rejected_count\":119911,\"train_rmse_m\":0.049196494644328084},{\"accepted\":false,\"candidate_offsets_sec\":[-0.03,-0.02,-0.01],\"candidate_train_rmse_m\":[0.049254414884859835,0.049196494644328084,0.05004123042570123],\"iteration\":6,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582226,\"train_outlier_rejected_count\":119911,\"train_rmse_m\":0.049196494644328084},{\"accepted\":true,\"candidate_offsets_sec\":[-0.025,-0.02,-0.015],\"candidate_train_rmse_m\":[0.04915182128104535,0.049196494644328084,0.04954701745283863],\"iteration\":7,\"selected_offset_sec\":-0.025,\"train_correspondence_count\":582352,\"train_outlier_rejected_count\":119880,\"train_rmse_m\":0.04915182128104535},{\"accepted\":true,\"candidate_offsets_sec\":[-0.03,-0.025,-0.02],\"candidate_train_rmse_m\":[0.04920669024899803,0.049086313809198166,0.049237487153924925],\"iteration\":8,\"selected_offset_sec\":-0.025,\"train_correspondence_count\":582119,\"train_outlier_rejected_count\":120080,\"train_rmse_m\":0.049086313809198166}],\"provenance\":{\"git_commit\":\"a514397\",\"notes\":[\"all residual summaries and profile candidates are train-only\",\"holdout_used_for_selection is fixed false by the diagnostics schema\",\"range bins use target LiDAR point range in meters\"],\"source_paths\":[\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\",\"data/public/glim_versatile/livox_rosbag2_gt_restamped\"],\"source_sha256\":{\"data/public/glim_versatile/livox_rosbag2_gt_restamped\":\"bf305b5e1b72d998c8d1871bb6fae346a4374897033e98da982f977b38693185\",\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\":\"1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186\"},\"tool_name\":\"calibrex\",\"tool_version\":\"0.5.1\"},\"range_bins\":[{\"correspondence_count\":298763,\"lower_bound_m\":0.0,\"residuals\":{\"count\":298763,\"max_m\":0.15050759959305018,\"mean_abs_m\":0.030864503702020984,\"mean_m\":-0.00036575976958494845,\"median_abs_m\":0.017042839693617674,\"min_m\":-0.15050467931466352,\"p95_abs_m\":0.11012936173918453,\"p99_abs_m\":0.14093666243147648,\"rmse_m\":0.046055824692420436},\"upper_bound_m\":5.0},{\"correspondence_count\":263934,\"lower_bound_m\":5.0,\"residuals\":{\"count\":263934,\"max_m\":0.15050762941857973,\"mean_abs_m\":0.03717917506802076,\"mean_m\":0.000815590919709922,\"median_abs_m\":0.02368782072911011,\"min_m\":-0.15050776556112222,\"p95_abs_m\":0.12044440480932947,\"p99_abs_m\":0.1440526617234342,\"rmse_m\":0.05225479649587614},\"upper_bound_m\":10.0},{\"correspondence_count\":19422,\"lower_bound_m\":10.0,\"residuals\":{\"count\":19422,\"max_m\":0.15049950912438015,\"mean_abs_m\":0.03622423989077997,\"mean_m\":0.0011916425951315577,\"median_abs_m\":0.02516671154667886,\"min_m\":-0.1503789243744528,\"p95_abs_m\":0.11346537286318881,\"p99_abs_m\":0.14195267782381665,\"rmse_m\":0.049811504827055965},\"upper_bound_m\":20.0},{\"correspondence_count\":0,\"lower_bound_m\":20.0,\"residuals\":{\"count\":0},\"upper_bound_m\":40.0},{\"correspondence_count\":0,\"lower_bound_m\":40.0,\"residuals\":{\"count\":0},\"upper_bound_m\":80.0},{\"correspondence_count\":0,\"lower_bound_m\":80.0,\"residuals\":{\"count\":0}}],\"sampled_source_record_count\":3000,\"schema_version\":\"slac.continuous_time_lidar_train_diagnostics/v0.1\",\"selected_time_offset_sec\":-0.025,\"selection_metric\":\"train_rmse_m\",\"train_candidate_correspondence_count\":702199,\"train_correspondence_count\":582119,\"train_outlier_rejected_count\":120080,\"train_outlier_rejection_rate\":0.17100565509207505,\"train_target_point_count\":768000},\"trajectory_model\":\"piecewise_se3_fixed_odometry\",\"variable\":\"T_livox_avia_livox_avia_copy\"}"
+        ]
+      }
+    },
+    {
+      "method_id": "baseline",
+      "split_id": "repeat-03",
+      "status": "success",
+      "metrics": {
+        "adaptive_query_calls": 0.0,
+        "adaptive_query_seconds": 0.0,
+        "complete_result_matches": 1.0,
+        "interpolated_pose_calculations": 21092943.0,
+        "pipeline_seconds": 65.36061420000624,
+        "solver_seconds": 47.28198909992352,
+        "subprocess_wall_seconds": 69.89685970009305,
+        "uniform_normal_calculations": 883.0,
+        "worker_cpu_seconds": 85.625,
+        "worker_import_seconds": 3.3401442000176758
+      },
+      "runtime_seconds": 69.89685970009305,
+      "provenance": {
+        "command": "<PYTHON> <WORKSPACE>/tools/benchmark_adaptive_plane_search.py --worker baseline --baseline-scope cuda-full --config examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml --output-dir <WORKSPACE>/outputs/public-glim-residual-summary-dense-v1/baseline.repeat-03 --candidate-query-backend cuda --baseline-query-backend cuda",
+        "config_sha256": "1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186",
+        "input_sha256": "107e3deb3aaeab52628a93d8c6eed80aa1663c3492f6a4d2e280d553e47cd27c",
+        "output_sha256": "eda0e9be2d9393bc3dd917c3f040a188eff62b273260e475ff8c4b963e051942",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "notes": [
+          "{\"cuda_cache_after\": {\"9ed58aaf0a8ff1513d8b1ff1f380f41d5d36ce51.cubin\": \"439af15bcb3e76072e7edf15df7826ea82900d542fef8a25a06add2bb01f6da4\", \"f4331870c33b1b7c90f548c88d07b801503c89e5.cubin\": \"84d63457c31f3966a080e1ce0b4a3b07748a9ea2aa61ff30168c7ea31a327b15\"}, \"cuda_cache_before\": {\"9ed58aaf0a8ff1513d8b1ff1f380f41d5d36ce51.cubin\": \"439af15bcb3e76072e7edf15df7826ea82900d542fef8a25a06add2bb01f6da4\", \"f4331870c33b1b7c90f548c88d07b801503c89e5.cubin\": \"84d63457c31f3966a080e1ce0b4a3b07748a9ea2aa61ff30168c7ea31a327b15\"}, \"execution_override\": \"cuda\", \"loaded_cuda_module\": \"previous_gpu/baseline.cuda_continuous_time_adapter.py.txt\", \"loaded_evaluation_modules\": {\"calibrex.data.adaptive_voxel\": \"previous_gpu/baseline.adaptive_voxel.py.txt\", \"calibrex.data.livox\": \"previous_gpu/baseline.livox.py.txt\", \"calibrex.data.numba_lidar_deskew_adapter\": \"previous_gpu/baseline.numba_lidar_deskew_adapter.py.txt\", \"calibrex.data.odometry_track\": \"previous_gpu/baseline.odometry_track.py.txt\", \"calibrex.evaluation.lidar\": \"previous_gpu/baseline.lidar.py.txt\", \"calibrex.evaluation.packed_lidar_observations\": \"previous_gpu/baseline.packed_lidar_observations.py.txt\", \"calibrex.graph.lidar_point_to_plane\": \"previous_gpu/baseline.lidar_point_to_plane.py.txt\", \"calibrex.pipelines.online\": \"previous_gpu/baseline.online.py.txt\", \"calibrex.solvers.continuous_time_lidar_pair_solver\": \"previous_gpu/baseline.continuous_time_lidar_pair_solver.py.txt\", \"calibrex.solvers.cuda_continuous_time_adapter\": \"previous_gpu/baseline.cuda_continuous_time_adapter.py.txt\", \"calibrex.solvers.cuda_plane_query_adapter\": \"previous_gpu/baseline.cuda_plane_query_adapter.py.txt\", \"calibrex.solvers.fixed_trajectory_se3_solver\": \"previous_gpu/baseline.fixed_trajectory_se3_solver.py.txt\", \"calibrex.solvers.numba_continuous_time_adapter\": \"previous_gpu/baseline.numba_continuous_time_adapter.py.txt\", \"calibrex.solvers.robust_lidar_observations\": \"previous_gpu/baseline.robust_lidar_observations.py.txt\"}, \"loaded_module\": \"previous_gpu/baseline.adaptive_voxel.py.txt\", \"numba_cache_after\": {\"baseline.numba_continuous_time_adapter.py._association_choices-30.py312.1.nbc\": \"2c23e423bf698c4c43c0db8f9a28d3e20d4b6377b51e5d5cd277a9ecc3d25a8e\", \"baseline.numba_continuous_time_adapter.py._association_choices-30.py312.nbi\": \"25db0bf76fc54da24da35bfbfa44f552add6b4643a5ae4a707060890396473c4\", \"baseline.numba_continuous_time_adapter.py._gather_observation_rows-68.py312.1.nbc\": \"37384c985ddb84f290b66b9fc09505a964933f2d9a45c443c531ecf2abbdde70\", \"baseline.numba_continuous_time_adapter.py._gather_observation_rows-68.py312.nbi\": \"28c13f659a298125d58fc29367b3c5aca80a8e1a59137b490f3354c31580009a\", \"baseline.numba_continuous_time_adapter.py._normal_rows-334.py312.1.nbc\": \"2611a5e679da68346b9979a418d4a8d4a4ecdd2845010b763b3f94923178be1e\", \"baseline.numba_continuous_time_adapter.py._normal_rows-334.py312.nbi\": \"4225618b2f7791cc4891e211aafd750457c37f81d85a2c2f9e8cc04e06f9e75d\", \"baseline.numba_continuous_time_adapter.py._pose_world_rows-179.py312.1.nbc\": \"badb356723640263d81a0adb2669945f6510e2cead66af05b404a55595f1b199\", \"baseline.numba_continuous_time_adapter.py._pose_world_rows-179.py312.2.nbc\": \"96d92dbaefdc7185678377d863862ca97558cf49188a0a2ee09521b78c4f9a02\", \"baseline.numba_continuous_time_adapter.py._pose_world_rows-179.py312.nbi\": \"20069f00403b3faaef565034e8057a1b058558594118ba6084860aa3e0a8d0eb\", \"baseline.numba_continuous_time_adapter.py._residual_rows-259.py312.1.nbc\": \"b6d93a44e3963963cc8aea21a9651f60692dc56d4512a59f785c7c8460b47774\", \"baseline.numba_continuous_time_adapter.py._residual_rows-259.py312.nbi\": \"7a6e92405f20d525e70608a7168dd889fbf6ac9e68464ab2ab63ed4096e11cac\", \"baseline.numba_continuous_time_adapter.py._world_rows-285.py312.1.nbc\": \"caa2cb37d7d9ab85a0b1d3ea888a4b9d8b13d5a94a1379f49297e01bbcdc6d31\", \"baseline.numba_continuous_time_adapter.py._world_rows-285.py312.nbi\": \"0ea4626a5fe9dbff395d7da986bbd615c4484cc5ceee9c8cad600bd08ccc4067\"}, \"numba_cache_before\": {\"baseline.numba_continuous_time_adapter.py._association_choices-30.py312.1.nbc\": \"2c23e423bf698c4c43c0db8f9a28d3e20d4b6377b51e5d5cd277a9ecc3d25a8e\", \"baseline.numba_continuous_time_adapter.py._association_choices-30.py312.nbi\": \"25db0bf76fc54da24da35bfbfa44f552add6b4643a5ae4a707060890396473c4\", \"baseline.numba_continuous_time_adapter.py._gather_observation_rows-68.py312.1.nbc\": \"37384c985ddb84f290b66b9fc09505a964933f2d9a45c443c531ecf2abbdde70\", \"baseline.numba_continuous_time_adapter.py._gather_observation_rows-68.py312.nbi\": \"28c13f659a298125d58fc29367b3c5aca80a8e1a59137b490f3354c31580009a\", \"baseline.numba_continuous_time_adapter.py._normal_rows-334.py312.1.nbc\": \"2611a5e679da68346b9979a418d4a8d4a4ecdd2845010b763b3f94923178be1e\", \"baseline.numba_continuous_time_adapter.py._normal_rows-334.py312.nbi\": \"4225618b2f7791cc4891e211aafd750457c37f81d85a2c2f9e8cc04e06f9e75d\", \"baseline.numba_continuous_time_adapter.py._pose_world_rows-179.py312.1.nbc\": \"badb356723640263d81a0adb2669945f6510e2cead66af05b404a55595f1b199\", \"baseline.numba_continuous_time_adapter.py._pose_world_rows-179.py312.2.nbc\": \"96d92dbaefdc7185678377d863862ca97558cf49188a0a2ee09521b78c4f9a02\", \"baseline.numba_continuous_time_adapter.py._pose_world_rows-179.py312.nbi\": \"20069f00403b3faaef565034e8057a1b058558594118ba6084860aa3e0a8d0eb\", \"baseline.numba_continuous_time_adapter.py._residual_rows-259.py312.1.nbc\": \"b6d93a44e3963963cc8aea21a9651f60692dc56d4512a59f785c7c8460b47774\", \"baseline.numba_continuous_time_adapter.py._residual_rows-259.py312.nbi\": \"7a6e92405f20d525e70608a7168dd889fbf6ac9e68464ab2ab63ed4096e11cac\", \"baseline.numba_continuous_time_adapter.py._world_rows-285.py312.1.nbc\": \"caa2cb37d7d9ab85a0b1d3ea888a4b9d8b13d5a94a1379f49297e01bbcdc6d31\", \"baseline.numba_continuous_time_adapter.py._world_rows-285.py312.nbi\": \"0ea4626a5fe9dbff395d7da986bbd615c4484cc5ceee9c8cad600bd08ccc4067\"}, \"numba_cache_policy\": \"persistent\", \"order\": [\"baseline\", \"sparse\"], \"repeat\": 3, \"result_sha256\": \"2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f\", \"sampled_split\": {\"holdout_count\": 192000, \"holdout_ids_sha256\": \"c49427174a3fc9b314ac70bd5e6c782e8c77422cd2faa589a6e48214e6cf74bd\", \"train_count\": 768000, \"train_ids_sha256\": \"ad16fb4625f6ee3cfc1b9d56e1f09218f6e58c50e85d27fbe881bf6adc2fabeb\"}}",
+          "{\"config_path\":\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\",\"dataset_path\":\"data/public/glim_versatile/livox_rosbag2_gt_restamped\",\"estimated_time_offset_sec\":-0.025,\"final_holdout_rmse_m\":0.09394581201769982,\"final_train_rmse_m\":0.049086313809198166,\"holdout_correspondence_count\":67602,\"initial_time_offset_sec\":0.0,\"initial_train_rmse_m\":0.057370176200909506,\"initial_transform\":{\"child\":\"livox_avia_copy\",\"convention\":\"T_parent_child\",\"estimate_id\":\"T_livox_avia_livox_avia_copy\",\"parent\":\"livox_avia\",\"provenance\":{\"evidence_level\":\"unknown\",\"execution_mode\":\"online_stream\",\"notes\":[\"clock offset was profiled with extrinsic re-optimization\",\"supplied piecewise odometry trajectory remained fixed\"],\"producer\":\"slac_native\",\"role_in_comparison\":\"initial\",\"source\":\"calibrex.solvers.continuous_time_lidar_pair_solver\",\"tool_name\":\"continuous_time_lidar_pair_solver\"},\"quality\":{\"grade\":\"warn\",\"std_rotation_deg\":[],\"std_translation_m\":[]},\"rotation_quat_xyzw\":[0.0,0.0,0.0,1.0],\"translation_m\":[0.0,0.0,0.0]},\"iterations\":[{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09571184213218482,0.0995716460260033,0.10503184050579091],\"candidate_offsets_sec\":[-0.02,0.0,0.02],\"candidate_train_rmse_m\":[0.049464184358660665,0.051407362455503015,0.05628604472487857],\"holdout_rmse_m\":0.09571184213218482,\"iteration\":1,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.049464184358660665},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09232701146014846,0.09490251830075698,0.09838642904203788],\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05034493304978426,0.04923052897228388,0.05159287671975171],\"holdout_rmse_m\":0.09490251830075698,\"iteration\":2,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.04923052897228388},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09226143336514588,0.09472422154419698,0.09804927304845115],\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05017957712410044,0.04920955182585908,0.05166518259829283],\"holdout_rmse_m\":0.09472422154419698,\"iteration\":3,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.04920955182585908},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09224386074850734,0.09469400106615077,0.09795286792497307],\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05013989598511986,0.04919190012576584,0.05169859175392839],\"holdout_rmse_m\":0.09469400106615077,\"iteration\":4,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.04919190012576584},{\"accepted\":false,\"candidate_holdout_rmse_m\":[0.09224456206028672,0.09464812459715029,0.09792994259823051],\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.050148602401232784,0.049196494644328084,0.05170673011454384],\"holdout_rmse_m\":0.09464812459715029,\"iteration\":5,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.049196494644328084},{\"accepted\":false,\"candidate_holdout_rmse_m\":[0.09327456638580518,0.09464812459715029,0.09669399004715376],\"candidate_offsets_sec\":[-0.03,-0.02,-0.01],\"candidate_train_rmse_m\":[0.049254414884859835,0.049196494644328084,0.05004123042570123],\"holdout_rmse_m\":0.09464812459715029,\"iteration\":6,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.049196494644328084},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09396282460661212,0.09464812459715029,0.09560747346271412],\"candidate_offsets_sec\":[-0.025,-0.02,-0.015],\"candidate_train_rmse_m\":[0.04915182128104535,0.049196494644328084,0.04954701745283863],\"holdout_rmse_m\":0.09396282460661212,\"iteration\":7,\"selected_offset_sec\":-0.025,\"train_rmse_m\":0.04915182128104535},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09331292621654655,0.09394581201769982,0.09465328227401543],\"candidate_offsets_sec\":[-0.03,-0.025,-0.02],\"candidate_train_rmse_m\":[0.04920669024899803,0.049086313809198166,0.049237487153924925],\"holdout_rmse_m\":0.09394581201769982,\"iteration\":8,\"selected_offset_sec\":-0.025,\"train_rmse_m\":0.049086313809198166}],\"observability\":{\"condition_number\":19.16563571890005,\"rank\":6,\"residual_count\":582119,\"weak_directions\":[]},\"odometry_topic\":\"/odom\",\"options\":{\"adaptive_max_voxel_size_m\":1.5,\"adaptive_min_points_per_voxel\":6,\"adaptive_min_voxel_size_m\":0.25,\"adaptive_range_exponent\":0.5,\"adaptive_range_reference_m\":10.0,\"adaptive_use_uniform_fallback\":true,\"correspondence_refinement_iterations\":1,\"fixed_extrinsic_max_iterations\":8,\"fixed_extrinsic_robust_loss\":\"huber\",\"holdout_start_fraction\":0.8,\"initial_time_offset_sec\":0.0,\"initial_time_step_sec\":0.02,\"max_abs_time_offset_sec\":0.2,\"max_iterations\":8,\"max_odometry_extrapolation_s\":0.25,\"max_source_records\":6000,\"min_correspondences\":6,\"minimum_time_step_sec\":0.005,\"outlier_mad_scale\":3.5,\"outlier_min_inlier_fraction\":0.25,\"outlier_min_threshold_m\":0.02,\"outlier_policy\":\"mad\",\"sampling_seed\":0,\"voxel_strategy\":\"adaptive\"},\"outlier_rejected_count\":137613,\"provenance\":{\"git_commit\":\"a514397\",\"notes\":[\"continuous-time profile re-solves the six-DoF extrinsic at every clock candidate\",\"target holdout is the latest capture frame group and is never used for optimization\",\"train diagnostics summarize only the selected train factor and train profile\",\"trajectory_model is piecewise SE(3) interpolation of supplied odometry; trajectory knots are fixed\",\"train_frame_count=96\",\"holdout_frame_count=24\",\"holdout_start_fraction=0.8\",\"sampling_seed=0\",\"source_record_cap=6000\",\"target_point_cap_per_split=None\",\"outlier_policy=mad\",\"voxel_strategy=adaptive\",\"replay_source_message_count=1\",\"adaptive correspondences use a uniform voxel fallback and select the lower initial point-to-plane residual\",\"continuous_time_query_execution: calibrex.cuda_continuous_time/v0.6;fp64=true;fma=false;cupy=14.2.0;cuda=12090;driver=13020;numba=0.65.1;trajectory_cpu=true;normal_cpu=true;standalone_residual_cpu=true;linearization_cache=last;linearization_cache_bytes=67108864;associations_gpu=true;kernel_sha256=ad35e19c4f402fa99c14ce8e2a496f65a35c67655bdb795e6111d0f03d592be0;association_kernel_sha256=b5f446ea685f32adaaaf96aafe44d423b8e05601dbc6ffb17fb7b8cc4ae124ad\",\"continuous_time_replay_execution: calibrex.numba_lidar_deskew/v0.1;numba=0.65.1;fastmath=false;cache=true;point_pose_cpu=true;source_sha256=53966123b0e942f48929494fba4389062ccee0cd44dc85501e4d3451a84cc0be\"],\"source_paths\":[\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\",\"data/public/glim_versatile/livox_rosbag2_gt_restamped\"],\"source_sha256\":{\"data/public/glim_versatile/livox_rosbag2_gt_restamped\":\"bf305b5e1b72d998c8d1871bb6fae346a4374897033e98da982f977b38693185\",\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\":\"1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186\"},\"tool_name\":\"calibrex\",\"tool_version\":\"0.5.1\"},\"reason\":\"maximum time-profile iterations reached\",\"refined_transform\":{\"child\":\"livox_avia_copy\",\"convention\":\"T_parent_child\",\"estimate_id\":\"T_livox_avia_livox_avia_copy\",\"parent\":\"livox_avia\",\"provenance\":{\"evidence_level\":\"algorithmically_refined\",\"execution_mode\":\"online_stream\",\"notes\":[\"clock offset was profiled with extrinsic re-optimization\",\"supplied piecewise odometry trajectory remained fixed\"],\"producer\":\"slac_native\",\"role_in_comparison\":\"output\",\"source\":\"calibrex.solvers.continuous_time_lidar_pair_solver\",\"tool_name\":\"continuous_time_lidar_pair_solver\"},\"quality\":{\"grade\":\"warn\",\"std_rotation_deg\":[],\"std_translation_m\":[]},\"rotation_quat_xyzw\":[0.0015393622259474641,0.0014500790167938124,-0.0016957407406766722,0.9999963260423125],\"translation_m\":[-0.006420340124736379,0.012652173241256342,-0.02301366535108216]},\"schema_version\":\"slac.continuous_time_lidar_pair_result/v0.1\",\"source_sensor\":\"livox_avia\",\"status\":\"max_iterations\",\"target_sensor\":\"livox_avia_copy\",\"time_offset_sign_convention\":\"positive offset evaluates target capture at odometry time t_capture + offset\",\"train_correspondence_count\":582119,\"train_diagnostics\":{\"final_residuals\":{\"count\":582119,\"max_m\":0.15050762941857973,\"mean_abs_m\":0.03390641312015003,\"mean_m\":0.00022182881892681,\"median_abs_m\":0.020085512198455592,\"min_m\":-0.15050776556112222,\"p95_abs_m\":0.11547177200020867,\"p99_abs_m\":0.14258218679290402,\"rmse_m\":0.049086313809198166},\"holdout_used_for_selection\":false,\"profile\":[{\"accepted\":true,\"candidate_offsets_sec\":[-0.02,0.0,0.02],\"candidate_train_rmse_m\":[0.049464184358660665,0.051407362455503015,0.05628604472487857],\"iteration\":1,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582974,\"train_outlier_rejected_count\":119173,\"train_rmse_m\":0.049464184358660665},{\"accepted\":true,\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05034493304978426,0.04923052897228388,0.05159287671975171],\"iteration\":2,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582373,\"train_outlier_rejected_count\":119760,\"train_rmse_m\":0.04923052897228388},{\"accepted\":true,\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05017957712410044,0.04920955182585908,0.05166518259829283],\"iteration\":3,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582290,\"train_outlier_rejected_count\":119850,\"train_rmse_m\":0.04920955182585908},{\"accepted\":true,\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05013989598511986,0.04919190012576584,0.05169859175392839],\"iteration\":4,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582225,\"train_outlier_rejected_count\":119902,\"train_rmse_m\":0.04919190012576584},{\"accepted\":false,\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.050148602401232784,0.049196494644328084,0.05170673011454384],\"iteration\":5,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582226,\"train_outlier_rejected_count\":119911,\"train_rmse_m\":0.049196494644328084},{\"accepted\":false,\"candidate_offsets_sec\":[-0.03,-0.02,-0.01],\"candidate_train_rmse_m\":[0.049254414884859835,0.049196494644328084,0.05004123042570123],\"iteration\":6,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582226,\"train_outlier_rejected_count\":119911,\"train_rmse_m\":0.049196494644328084},{\"accepted\":true,\"candidate_offsets_sec\":[-0.025,-0.02,-0.015],\"candidate_train_rmse_m\":[0.04915182128104535,0.049196494644328084,0.04954701745283863],\"iteration\":7,\"selected_offset_sec\":-0.025,\"train_correspondence_count\":582352,\"train_outlier_rejected_count\":119880,\"train_rmse_m\":0.04915182128104535},{\"accepted\":true,\"candidate_offsets_sec\":[-0.03,-0.025,-0.02],\"candidate_train_rmse_m\":[0.04920669024899803,0.049086313809198166,0.049237487153924925],\"iteration\":8,\"selected_offset_sec\":-0.025,\"train_correspondence_count\":582119,\"train_outlier_rejected_count\":120080,\"train_rmse_m\":0.049086313809198166}],\"provenance\":{\"git_commit\":\"a514397\",\"notes\":[\"all residual summaries and profile candidates are train-only\",\"holdout_used_for_selection is fixed false by the diagnostics schema\",\"range bins use target LiDAR point range in meters\"],\"source_paths\":[\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\",\"data/public/glim_versatile/livox_rosbag2_gt_restamped\"],\"source_sha256\":{\"data/public/glim_versatile/livox_rosbag2_gt_restamped\":\"bf305b5e1b72d998c8d1871bb6fae346a4374897033e98da982f977b38693185\",\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\":\"1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186\"},\"tool_name\":\"calibrex\",\"tool_version\":\"0.5.1\"},\"range_bins\":[{\"correspondence_count\":298763,\"lower_bound_m\":0.0,\"residuals\":{\"count\":298763,\"max_m\":0.15050759959305018,\"mean_abs_m\":0.030864503702020984,\"mean_m\":-0.00036575976958494845,\"median_abs_m\":0.017042839693617674,\"min_m\":-0.15050467931466352,\"p95_abs_m\":0.11012936173918453,\"p99_abs_m\":0.14093666243147648,\"rmse_m\":0.046055824692420436},\"upper_bound_m\":5.0},{\"correspondence_count\":263934,\"lower_bound_m\":5.0,\"residuals\":{\"count\":263934,\"max_m\":0.15050762941857973,\"mean_abs_m\":0.03717917506802076,\"mean_m\":0.000815590919709922,\"median_abs_m\":0.02368782072911011,\"min_m\":-0.15050776556112222,\"p95_abs_m\":0.12044440480932947,\"p99_abs_m\":0.1440526617234342,\"rmse_m\":0.05225479649587614},\"upper_bound_m\":10.0},{\"correspondence_count\":19422,\"lower_bound_m\":10.0,\"residuals\":{\"count\":19422,\"max_m\":0.15049950912438015,\"mean_abs_m\":0.03622423989077997,\"mean_m\":0.0011916425951315577,\"median_abs_m\":0.02516671154667886,\"min_m\":-0.1503789243744528,\"p95_abs_m\":0.11346537286318881,\"p99_abs_m\":0.14195267782381665,\"rmse_m\":0.049811504827055965},\"upper_bound_m\":20.0},{\"correspondence_count\":0,\"lower_bound_m\":20.0,\"residuals\":{\"count\":0},\"upper_bound_m\":40.0},{\"correspondence_count\":0,\"lower_bound_m\":40.0,\"residuals\":{\"count\":0},\"upper_bound_m\":80.0},{\"correspondence_count\":0,\"lower_bound_m\":80.0,\"residuals\":{\"count\":0}}],\"sampled_source_record_count\":3000,\"schema_version\":\"slac.continuous_time_lidar_train_diagnostics/v0.1\",\"selected_time_offset_sec\":-0.025,\"selection_metric\":\"train_rmse_m\",\"train_candidate_correspondence_count\":702199,\"train_correspondence_count\":582119,\"train_outlier_rejected_count\":120080,\"train_outlier_rejection_rate\":0.17100565509207505,\"train_target_point_count\":768000},\"trajectory_model\":\"piecewise_se3_fixed_odometry\",\"variable\":\"T_livox_avia_livox_avia_copy\"}"
+        ]
+      }
+    },
+    {
+      "method_id": "sparse",
+      "split_id": "repeat-03",
+      "status": "success",
+      "metrics": {
+        "adaptive_query_calls": 0.0,
+        "adaptive_query_seconds": 0.0,
+        "complete_result_matches": 1.0,
+        "interpolated_pose_calculations": 21858940.0,
+        "pipeline_seconds": 46.19358829990961,
+        "solver_seconds": 28.482889399980195,
+        "subprocess_wall_seconds": 50.653481199988164,
+        "uniform_normal_calculations": 883.0,
+        "worker_cpu_seconds": 73.96875,
+        "worker_import_seconds": 3.3901238999096677
+      },
+      "runtime_seconds": 50.653481199988164,
+      "provenance": {
+        "command": "<PYTHON> <WORKSPACE>/tools/benchmark_adaptive_plane_search.py --worker sparse --baseline-scope cuda-full --config examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml --output-dir <WORKSPACE>/outputs/public-glim-residual-summary-dense-v1/sparse.repeat-03 --candidate-query-backend cuda --baseline-query-backend cuda",
+        "config_sha256": "1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186",
+        "input_sha256": "107e3deb3aaeab52628a93d8c6eed80aa1663c3492f6a4d2e280d553e47cd27c",
+        "output_sha256": "eda0e9be2d9393bc3dd917c3f040a188eff62b273260e475ff8c4b963e051942",
+        "execution_host": "Windows-11-10.0.26300-SP0",
+        "notes": [
+          "{\"cuda_cache_after\": {\"9ed58aaf0a8ff1513d8b1ff1f380f41d5d36ce51.cubin\": \"439af15bcb3e76072e7edf15df7826ea82900d542fef8a25a06add2bb01f6da4\", \"f4331870c33b1b7c90f548c88d07b801503c89e5.cubin\": \"84d63457c31f3966a080e1ce0b4a3b07748a9ea2aa61ff30168c7ea31a327b15\"}, \"cuda_cache_before\": {\"9ed58aaf0a8ff1513d8b1ff1f380f41d5d36ce51.cubin\": \"439af15bcb3e76072e7edf15df7826ea82900d542fef8a25a06add2bb01f6da4\", \"f4331870c33b1b7c90f548c88d07b801503c89e5.cubin\": \"84d63457c31f3966a080e1ce0b4a3b07748a9ea2aa61ff30168c7ea31a327b15\"}, \"execution_override\": \"cuda\", \"loaded_cuda_module\": \"sources/measured.cuda_continuous_time_adapter.py.txt\", \"loaded_evaluation_modules\": {\"calibrex.data.adaptive_voxel\": \"sources/measured.adaptive_voxel.py.txt\", \"calibrex.data.livox\": \"sources/measured.livox.py.txt\", \"calibrex.data.numba_lidar_deskew_adapter\": \"sources/measured.numba_lidar_deskew_adapter.py.txt\", \"calibrex.data.odometry_track\": \"sources/measured.odometry_track.py.txt\", \"calibrex.evaluation.lidar\": \"sources/measured.lidar.py.txt\", \"calibrex.evaluation.packed_lidar_observations\": \"sources/measured.packed_lidar_observations.py.txt\", \"calibrex.graph.lidar_point_to_plane\": \"sources/measured.lidar_point_to_plane.py.txt\", \"calibrex.pipelines.online\": \"sources/measured.online.py.txt\", \"calibrex.solvers.continuous_time_lidar_pair_solver\": \"sources/measured.continuous_time_lidar_pair_solver.py.txt\", \"calibrex.solvers.cuda_continuous_time_adapter\": \"sources/measured.cuda_continuous_time_adapter.py.txt\", \"calibrex.solvers.cuda_plane_query_adapter\": \"sources/measured.cuda_plane_query_adapter.py.txt\", \"calibrex.solvers.fixed_trajectory_se3_solver\": \"sources/measured.fixed_trajectory_se3_solver.py.txt\", \"calibrex.solvers.numba_continuous_time_adapter\": \"sources/measured.numba_continuous_time_adapter.py.txt\", \"calibrex.solvers.robust_lidar_observations\": \"sources/measured.robust_lidar_observations.py.txt\"}, \"loaded_module\": \"sources/measured.adaptive_voxel.py.txt\", \"numba_cache_after\": {\"numba_continuous_time_adapter._association_choices-30.py312.1.nbc\": \"ebe0e4c5d961561e27cec89c4248418c1221ef429c1c48e217f5c0021d748690\", \"numba_continuous_time_adapter._association_choices-30.py312.nbi\": \"f4044d5348d5fe2a44e230750429fd1785acd72ecec62ed1e0468e2ccf197170\", \"numba_continuous_time_adapter._gather_observation_rows-68.py312.1.nbc\": \"789e964afbd01f6a426d03deea1e994e24a35ad22649ff552b4acfc9937d646d\", \"numba_continuous_time_adapter._gather_observation_rows-68.py312.nbi\": \"508a4e32042c70ae86d036af561c172e9bc43ecfd9f2704771f5255948609e04\", \"numba_continuous_time_adapter._normal_rows-334.py312.1.nbc\": \"df8e4539586de84723ee87eef563012e26650a4e06d5959aefb5422c21ae705b\", \"numba_continuous_time_adapter._normal_rows-334.py312.nbi\": \"4f9365eb0210edbd3e5340d0555fde9e9d7f99988d10ec37e6d2589e3aeab410\", \"numba_continuous_time_adapter._one_residual-354.py312.1.nbc\": \"27706ef3e4e2f5ac5e74d32c522e1fcc038e4c52da83e652ccb262bc001123ae\", \"numba_continuous_time_adapter._one_residual-354.py312.nbi\": \"68fb47af6ee07206b209ed2ecbc5b87419a33563fb678ee676b1090bc98b88b3\", \"numba_continuous_time_adapter._pose_world_rows-179.py312.1.nbc\": \"ff3d6920b6745871cc7d70525fa542c3bab9535561da148067bb1ee95dd16e72\", \"numba_continuous_time_adapter._pose_world_rows-179.py312.2.nbc\": \"9468285068c971f4319b4abc8004514a8d6cf3586d3bc94f59693472b7739e3b\", \"numba_continuous_time_adapter._pose_world_rows-179.py312.nbi\": \"9555165b22eef0b09936166bc92e70c05d9b941bbab6d1f3ee66176901fb46ab\", \"numba_continuous_time_adapter._residual_rows-259.py312.1.nbc\": \"7c936479a9a29f733d8f5b01843a47167847a56ba62035b176f4a4767eb56388\", \"numba_continuous_time_adapter._residual_rows-259.py312.nbi\": \"19ca1956f51d70b3b62910e18bc4606ed37e6464460cccaef76660801ad5521b\", \"numba_continuous_time_adapter._residual_square_sum-370.py312.1.nbc\": \"2630c6a91e8ec1e332a17d6bcea7d805e7c670e0228de04a1aed6b26266e5420\", \"numba_continuous_time_adapter._residual_square_sum-370.py312.nbi\": \"eaa24609e2887684dfa7baacc2b9190165bc253b71a92f9c9498ffaf6108e850\", \"numba_continuous_time_adapter._world_rows-285.py312.1.nbc\": \"d923c2e21f7ffbc10d0c51d79a0de94c0308e1625a1addfcc0503762f280fe2e\", \"numba_continuous_time_adapter._world_rows-285.py312.nbi\": \"9ea0355dc050bab0cbe58553d5b6b3e66c6825e2108540afa66e24d1c36a16cf\"}, \"numba_cache_before\": {\"numba_continuous_time_adapter._association_choices-30.py312.1.nbc\": \"ebe0e4c5d961561e27cec89c4248418c1221ef429c1c48e217f5c0021d748690\", \"numba_continuous_time_adapter._association_choices-30.py312.nbi\": \"f4044d5348d5fe2a44e230750429fd1785acd72ecec62ed1e0468e2ccf197170\", \"numba_continuous_time_adapter._gather_observation_rows-68.py312.1.nbc\": \"789e964afbd01f6a426d03deea1e994e24a35ad22649ff552b4acfc9937d646d\", \"numba_continuous_time_adapter._gather_observation_rows-68.py312.nbi\": \"508a4e32042c70ae86d036af561c172e9bc43ecfd9f2704771f5255948609e04\", \"numba_continuous_time_adapter._normal_rows-334.py312.1.nbc\": \"df8e4539586de84723ee87eef563012e26650a4e06d5959aefb5422c21ae705b\", \"numba_continuous_time_adapter._normal_rows-334.py312.nbi\": \"4f9365eb0210edbd3e5340d0555fde9e9d7f99988d10ec37e6d2589e3aeab410\", \"numba_continuous_time_adapter._one_residual-354.py312.1.nbc\": \"27706ef3e4e2f5ac5e74d32c522e1fcc038e4c52da83e652ccb262bc001123ae\", \"numba_continuous_time_adapter._one_residual-354.py312.nbi\": \"68fb47af6ee07206b209ed2ecbc5b87419a33563fb678ee676b1090bc98b88b3\", \"numba_continuous_time_adapter._pose_world_rows-179.py312.1.nbc\": \"ff3d6920b6745871cc7d70525fa542c3bab9535561da148067bb1ee95dd16e72\", \"numba_continuous_time_adapter._pose_world_rows-179.py312.2.nbc\": \"9468285068c971f4319b4abc8004514a8d6cf3586d3bc94f59693472b7739e3b\", \"numba_continuous_time_adapter._pose_world_rows-179.py312.nbi\": \"9555165b22eef0b09936166bc92e70c05d9b941bbab6d1f3ee66176901fb46ab\", \"numba_continuous_time_adapter._residual_rows-259.py312.1.nbc\": \"7c936479a9a29f733d8f5b01843a47167847a56ba62035b176f4a4767eb56388\", \"numba_continuous_time_adapter._residual_rows-259.py312.nbi\": \"19ca1956f51d70b3b62910e18bc4606ed37e6464460cccaef76660801ad5521b\", \"numba_continuous_time_adapter._residual_square_sum-370.py312.1.nbc\": \"2630c6a91e8ec1e332a17d6bcea7d805e7c670e0228de04a1aed6b26266e5420\", \"numba_continuous_time_adapter._residual_square_sum-370.py312.nbi\": \"eaa24609e2887684dfa7baacc2b9190165bc253b71a92f9c9498ffaf6108e850\", \"numba_continuous_time_adapter._world_rows-285.py312.1.nbc\": \"d923c2e21f7ffbc10d0c51d79a0de94c0308e1625a1addfcc0503762f280fe2e\", \"numba_continuous_time_adapter._world_rows-285.py312.nbi\": \"9ea0355dc050bab0cbe58553d5b6b3e66c6825e2108540afa66e24d1c36a16cf\"}, \"numba_cache_policy\": \"persistent\", \"order\": [\"baseline\", \"sparse\"], \"repeat\": 3, \"result_sha256\": \"2f7b17a7fa69e243279c624787e9d13a7408277b520a9b5a9a0400a91fd7c37f\", \"sampled_split\": {\"holdout_count\": 192000, \"holdout_ids_sha256\": \"c49427174a3fc9b314ac70bd5e6c782e8c77422cd2faa589a6e48214e6cf74bd\", \"train_count\": 768000, \"train_ids_sha256\": \"ad16fb4625f6ee3cfc1b9d56e1f09218f6e58c50e85d27fbe881bf6adc2fabeb\"}}",
+          "{\"config_path\":\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\",\"dataset_path\":\"data/public/glim_versatile/livox_rosbag2_gt_restamped\",\"estimated_time_offset_sec\":-0.025,\"final_holdout_rmse_m\":0.09394581201769982,\"final_train_rmse_m\":0.049086313809198166,\"holdout_correspondence_count\":67602,\"initial_time_offset_sec\":0.0,\"initial_train_rmse_m\":0.057370176200909506,\"initial_transform\":{\"child\":\"livox_avia_copy\",\"convention\":\"T_parent_child\",\"estimate_id\":\"T_livox_avia_livox_avia_copy\",\"parent\":\"livox_avia\",\"provenance\":{\"evidence_level\":\"unknown\",\"execution_mode\":\"online_stream\",\"notes\":[\"clock offset was profiled with extrinsic re-optimization\",\"supplied piecewise odometry trajectory remained fixed\"],\"producer\":\"slac_native\",\"role_in_comparison\":\"initial\",\"source\":\"calibrex.solvers.continuous_time_lidar_pair_solver\",\"tool_name\":\"continuous_time_lidar_pair_solver\"},\"quality\":{\"grade\":\"warn\",\"std_rotation_deg\":[],\"std_translation_m\":[]},\"rotation_quat_xyzw\":[0.0,0.0,0.0,1.0],\"translation_m\":[0.0,0.0,0.0]},\"iterations\":[{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09571184213218482,0.0995716460260033,0.10503184050579091],\"candidate_offsets_sec\":[-0.02,0.0,0.02],\"candidate_train_rmse_m\":[0.049464184358660665,0.051407362455503015,0.05628604472487857],\"holdout_rmse_m\":0.09571184213218482,\"iteration\":1,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.049464184358660665},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09232701146014846,0.09490251830075698,0.09838642904203788],\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05034493304978426,0.04923052897228388,0.05159287671975171],\"holdout_rmse_m\":0.09490251830075698,\"iteration\":2,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.04923052897228388},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09226143336514588,0.09472422154419698,0.09804927304845115],\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05017957712410044,0.04920955182585908,0.05166518259829283],\"holdout_rmse_m\":0.09472422154419698,\"iteration\":3,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.04920955182585908},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09224386074850734,0.09469400106615077,0.09795286792497307],\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05013989598511986,0.04919190012576584,0.05169859175392839],\"holdout_rmse_m\":0.09469400106615077,\"iteration\":4,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.04919190012576584},{\"accepted\":false,\"candidate_holdout_rmse_m\":[0.09224456206028672,0.09464812459715029,0.09792994259823051],\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.050148602401232784,0.049196494644328084,0.05170673011454384],\"holdout_rmse_m\":0.09464812459715029,\"iteration\":5,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.049196494644328084},{\"accepted\":false,\"candidate_holdout_rmse_m\":[0.09327456638580518,0.09464812459715029,0.09669399004715376],\"candidate_offsets_sec\":[-0.03,-0.02,-0.01],\"candidate_train_rmse_m\":[0.049254414884859835,0.049196494644328084,0.05004123042570123],\"holdout_rmse_m\":0.09464812459715029,\"iteration\":6,\"selected_offset_sec\":-0.02,\"train_rmse_m\":0.049196494644328084},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09396282460661212,0.09464812459715029,0.09560747346271412],\"candidate_offsets_sec\":[-0.025,-0.02,-0.015],\"candidate_train_rmse_m\":[0.04915182128104535,0.049196494644328084,0.04954701745283863],\"holdout_rmse_m\":0.09396282460661212,\"iteration\":7,\"selected_offset_sec\":-0.025,\"train_rmse_m\":0.04915182128104535},{\"accepted\":true,\"candidate_holdout_rmse_m\":[0.09331292621654655,0.09394581201769982,0.09465328227401543],\"candidate_offsets_sec\":[-0.03,-0.025,-0.02],\"candidate_train_rmse_m\":[0.04920669024899803,0.049086313809198166,0.049237487153924925],\"holdout_rmse_m\":0.09394581201769982,\"iteration\":8,\"selected_offset_sec\":-0.025,\"train_rmse_m\":0.049086313809198166}],\"observability\":{\"condition_number\":19.16563571890005,\"rank\":6,\"residual_count\":582119,\"weak_directions\":[]},\"odometry_topic\":\"/odom\",\"options\":{\"adaptive_max_voxel_size_m\":1.5,\"adaptive_min_points_per_voxel\":6,\"adaptive_min_voxel_size_m\":0.25,\"adaptive_range_exponent\":0.5,\"adaptive_range_reference_m\":10.0,\"adaptive_use_uniform_fallback\":true,\"correspondence_refinement_iterations\":1,\"fixed_extrinsic_max_iterations\":8,\"fixed_extrinsic_robust_loss\":\"huber\",\"holdout_start_fraction\":0.8,\"initial_time_offset_sec\":0.0,\"initial_time_step_sec\":0.02,\"max_abs_time_offset_sec\":0.2,\"max_iterations\":8,\"max_odometry_extrapolation_s\":0.25,\"max_source_records\":6000,\"min_correspondences\":6,\"minimum_time_step_sec\":0.005,\"outlier_mad_scale\":3.5,\"outlier_min_inlier_fraction\":0.25,\"outlier_min_threshold_m\":0.02,\"outlier_policy\":\"mad\",\"sampling_seed\":0,\"voxel_strategy\":\"adaptive\"},\"outlier_rejected_count\":137613,\"provenance\":{\"git_commit\":\"a514397\",\"notes\":[\"continuous-time profile re-solves the six-DoF extrinsic at every clock candidate\",\"target holdout is the latest capture frame group and is never used for optimization\",\"train diagnostics summarize only the selected train factor and train profile\",\"trajectory_model is piecewise SE(3) interpolation of supplied odometry; trajectory knots are fixed\",\"train_frame_count=96\",\"holdout_frame_count=24\",\"holdout_start_fraction=0.8\",\"sampling_seed=0\",\"source_record_cap=6000\",\"target_point_cap_per_split=None\",\"outlier_policy=mad\",\"voxel_strategy=adaptive\",\"replay_source_message_count=1\",\"adaptive correspondences use a uniform voxel fallback and select the lower initial point-to-plane residual\",\"continuous_time_query_execution: calibrex.cuda_continuous_time/v0.6;fp64=true;fma=false;cupy=14.2.0;cuda=12090;driver=13020;numba=0.65.1;trajectory_cpu=true;normal_cpu=true;standalone_residual_cpu=true;linearization_cache=last;linearization_cache_bytes=67108864;associations_gpu=true;kernel_sha256=ad35e19c4f402fa99c14ce8e2a496f65a35c67655bdb795e6111d0f03d592be0;association_kernel_sha256=b5f446ea685f32adaaaf96aafe44d423b8e05601dbc6ffb17fb7b8cc4ae124ad\",\"continuous_time_replay_execution: calibrex.numba_lidar_deskew/v0.1;numba=0.65.1;fastmath=false;cache=true;point_pose_cpu=true;source_sha256=53966123b0e942f48929494fba4389062ccee0cd44dc85501e4d3451a84cc0be\"],\"source_paths\":[\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\",\"data/public/glim_versatile/livox_rosbag2_gt_restamped\"],\"source_sha256\":{\"data/public/glim_versatile/livox_rosbag2_gt_restamped\":\"bf305b5e1b72d998c8d1871bb6fae346a4374897033e98da982f977b38693185\",\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\":\"1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186\"},\"tool_name\":\"calibrex\",\"tool_version\":\"0.5.1\"},\"reason\":\"maximum time-profile iterations reached\",\"refined_transform\":{\"child\":\"livox_avia_copy\",\"convention\":\"T_parent_child\",\"estimate_id\":\"T_livox_avia_livox_avia_copy\",\"parent\":\"livox_avia\",\"provenance\":{\"evidence_level\":\"algorithmically_refined\",\"execution_mode\":\"online_stream\",\"notes\":[\"clock offset was profiled with extrinsic re-optimization\",\"supplied piecewise odometry trajectory remained fixed\"],\"producer\":\"slac_native\",\"role_in_comparison\":\"output\",\"source\":\"calibrex.solvers.continuous_time_lidar_pair_solver\",\"tool_name\":\"continuous_time_lidar_pair_solver\"},\"quality\":{\"grade\":\"warn\",\"std_rotation_deg\":[],\"std_translation_m\":[]},\"rotation_quat_xyzw\":[0.0015393622259474641,0.0014500790167938124,-0.0016957407406766722,0.9999963260423125],\"translation_m\":[-0.006420340124736379,0.012652173241256342,-0.02301366535108216]},\"schema_version\":\"slac.continuous_time_lidar_pair_result/v0.1\",\"source_sensor\":\"livox_avia\",\"status\":\"max_iterations\",\"target_sensor\":\"livox_avia_copy\",\"time_offset_sign_convention\":\"positive offset evaluates target capture at odometry time t_capture + offset\",\"train_correspondence_count\":582119,\"train_diagnostics\":{\"final_residuals\":{\"count\":582119,\"max_m\":0.15050762941857973,\"mean_abs_m\":0.03390641312015003,\"mean_m\":0.00022182881892681,\"median_abs_m\":0.020085512198455592,\"min_m\":-0.15050776556112222,\"p95_abs_m\":0.11547177200020867,\"p99_abs_m\":0.14258218679290402,\"rmse_m\":0.049086313809198166},\"holdout_used_for_selection\":false,\"profile\":[{\"accepted\":true,\"candidate_offsets_sec\":[-0.02,0.0,0.02],\"candidate_train_rmse_m\":[0.049464184358660665,0.051407362455503015,0.05628604472487857],\"iteration\":1,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582974,\"train_outlier_rejected_count\":119173,\"train_rmse_m\":0.049464184358660665},{\"accepted\":true,\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05034493304978426,0.04923052897228388,0.05159287671975171],\"iteration\":2,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582373,\"train_outlier_rejected_count\":119760,\"train_rmse_m\":0.04923052897228388},{\"accepted\":true,\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05017957712410044,0.04920955182585908,0.05166518259829283],\"iteration\":3,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582290,\"train_outlier_rejected_count\":119850,\"train_rmse_m\":0.04920955182585908},{\"accepted\":true,\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.05013989598511986,0.04919190012576584,0.05169859175392839],\"iteration\":4,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582225,\"train_outlier_rejected_count\":119902,\"train_rmse_m\":0.04919190012576584},{\"accepted\":false,\"candidate_offsets_sec\":[-0.04,-0.02,0.0],\"candidate_train_rmse_m\":[0.050148602401232784,0.049196494644328084,0.05170673011454384],\"iteration\":5,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582226,\"train_outlier_rejected_count\":119911,\"train_rmse_m\":0.049196494644328084},{\"accepted\":false,\"candidate_offsets_sec\":[-0.03,-0.02,-0.01],\"candidate_train_rmse_m\":[0.049254414884859835,0.049196494644328084,0.05004123042570123],\"iteration\":6,\"selected_offset_sec\":-0.02,\"train_correspondence_count\":582226,\"train_outlier_rejected_count\":119911,\"train_rmse_m\":0.049196494644328084},{\"accepted\":true,\"candidate_offsets_sec\":[-0.025,-0.02,-0.015],\"candidate_train_rmse_m\":[0.04915182128104535,0.049196494644328084,0.04954701745283863],\"iteration\":7,\"selected_offset_sec\":-0.025,\"train_correspondence_count\":582352,\"train_outlier_rejected_count\":119880,\"train_rmse_m\":0.04915182128104535},{\"accepted\":true,\"candidate_offsets_sec\":[-0.03,-0.025,-0.02],\"candidate_train_rmse_m\":[0.04920669024899803,0.049086313809198166,0.049237487153924925],\"iteration\":8,\"selected_offset_sec\":-0.025,\"train_correspondence_count\":582119,\"train_outlier_rejected_count\":120080,\"train_rmse_m\":0.049086313809198166}],\"provenance\":{\"git_commit\":\"a514397\",\"notes\":[\"all residual summaries and profile candidates are train-only\",\"holdout_used_for_selection is fixed false by the diagnostics schema\",\"range bins use target LiDAR point range in meters\"],\"source_paths\":[\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\",\"data/public/glim_versatile/livox_rosbag2_gt_restamped\"],\"source_sha256\":{\"data/public/glim_versatile/livox_rosbag2_gt_restamped\":\"bf305b5e1b72d998c8d1871bb6fae346a4374897033e98da982f977b38693185\",\"examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml\":\"1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186\"},\"tool_name\":\"calibrex\",\"tool_version\":\"0.5.1\"},\"range_bins\":[{\"correspondence_count\":298763,\"lower_bound_m\":0.0,\"residuals\":{\"count\":298763,\"max_m\":0.15050759959305018,\"mean_abs_m\":0.030864503702020984,\"mean_m\":-0.00036575976958494845,\"median_abs_m\":0.017042839693617674,\"min_m\":-0.15050467931466352,\"p95_abs_m\":0.11012936173918453,\"p99_abs_m\":0.14093666243147648,\"rmse_m\":0.046055824692420436},\"upper_bound_m\":5.0},{\"correspondence_count\":263934,\"lower_bound_m\":5.0,\"residuals\":{\"count\":263934,\"max_m\":0.15050762941857973,\"mean_abs_m\":0.03717917506802076,\"mean_m\":0.000815590919709922,\"median_abs_m\":0.02368782072911011,\"min_m\":-0.15050776556112222,\"p95_abs_m\":0.12044440480932947,\"p99_abs_m\":0.1440526617234342,\"rmse_m\":0.05225479649587614},\"upper_bound_m\":10.0},{\"correspondence_count\":19422,\"lower_bound_m\":10.0,\"residuals\":{\"count\":19422,\"max_m\":0.15049950912438015,\"mean_abs_m\":0.03622423989077997,\"mean_m\":0.0011916425951315577,\"median_abs_m\":0.02516671154667886,\"min_m\":-0.1503789243744528,\"p95_abs_m\":0.11346537286318881,\"p99_abs_m\":0.14195267782381665,\"rmse_m\":0.049811504827055965},\"upper_bound_m\":20.0},{\"correspondence_count\":0,\"lower_bound_m\":20.0,\"residuals\":{\"count\":0},\"upper_bound_m\":40.0},{\"correspondence_count\":0,\"lower_bound_m\":40.0,\"residuals\":{\"count\":0},\"upper_bound_m\":80.0},{\"correspondence_count\":0,\"lower_bound_m\":80.0,\"residuals\":{\"count\":0}}],\"sampled_source_record_count\":3000,\"schema_version\":\"slac.continuous_time_lidar_train_diagnostics/v0.1\",\"selected_time_offset_sec\":-0.025,\"selection_metric\":\"train_rmse_m\",\"train_candidate_correspondence_count\":702199,\"train_correspondence_count\":582119,\"train_outlier_rejected_count\":120080,\"train_outlier_rejection_rate\":0.17100565509207505,\"train_target_point_count\":768000},\"trajectory_model\":\"piecewise_se3_fixed_odometry\",\"variable\":\"T_livox_avia_livox_avia_copy\"}"
+        ]
+      }
+    }
+  ],
+  "method_summaries": {
+    "baseline": {
+      "method_id": "baseline",
+      "trial_count": 3,
+      "success_count": 3,
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "runtime_seconds": {
+        "count": 3,
+        "mean": 66.74784680001903,
+        "median": 69.80555559997447,
+        "standard_deviation": 4.388973289649638,
+        "minimum": 60.541125099989586,
+        "maximum": 69.89685970009305,
+        "p90": 69.87859888006933,
+        "p95": 69.88772929008118,
+        "mean_ci95_low": 69.86642500005352,
+        "mean_ci95_high": 69.86642500005352
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "metrics": {
+        "pipeline_seconds": {
+          "metric": "pipeline_seconds",
+          "distribution": {
+            "count": 3,
+            "mean": 63.00524476671126,
+            "median": 65.36061420000624,
+            "standard_deviation": 4.168276405326231,
+            "minimum": 57.147713000071235,
+            "maximum": 66.5074071000563,
+            "p90": 66.27804852004628,
+            "p95": 66.3927278100513,
+            "mean_ci95_low": 65.74287850002293,
+            "mean_ci95_high": 65.74287850002293
+          },
+          "rank": 2
+        },
+        "solver_seconds": {
+          "metric": "solver_seconds",
+          "distribution": {
+            "count": 3,
+            "mean": 45.216874199958205,
+            "median": 47.28198909992352,
+            "standard_deviation": 4.087633499614651,
+            "minimum": 39.508357299957424,
+            "maximum": 48.86027619999368,
+            "p90": 48.54461877997964,
+            "p95": 48.70244748998666,
+            "mean_ci95_low": 47.808084799946904,
+            "mean_ci95_high": 47.808084799946904
+          },
+          "rank": 2
+        },
+        "adaptive_query_seconds": {
+          "metric": "adaptive_query_seconds",
+          "distribution": {
+            "count": 3,
+            "mean": 0.0,
+            "median": 0.0,
+            "standard_deviation": 0.0,
+            "minimum": 0.0,
+            "maximum": 0.0,
+            "p90": 0.0,
+            "p95": 0.0,
+            "mean_ci95_low": 0.0,
+            "mean_ci95_high": 0.0
+          },
+          "rank": 1
+        },
+        "adaptive_query_calls": {
+          "metric": "adaptive_query_calls",
+          "distribution": {
+            "count": 3,
+            "mean": 0.0,
+            "median": 0.0,
+            "standard_deviation": 0.0,
+            "minimum": 0.0,
+            "maximum": 0.0,
+            "p90": 0.0,
+            "p95": 0.0,
+            "mean_ci95_low": 0.0,
+            "mean_ci95_high": 0.0
+          },
+          "rank": 1
+        },
+        "worker_import_seconds": {
+          "metric": "worker_import_seconds",
+          "distribution": {
+            "count": 3,
+            "mean": 2.6662184667075053,
+            "median": 2.3833684000419453,
+            "standard_deviation": 0.4785813171140613,
+            "minimum": 2.275142800062895,
+            "maximum": 3.3401442000176758,
+            "p90": 3.14878904002253,
+            "p95": 3.244466620020103,
+            "mean_ci95_low": 2.985143733366082,
+            "mean_ci95_high": 2.985143733366082
+          },
+          "rank": 2
+        },
+        "uniform_normal_calculations": {
+          "metric": "uniform_normal_calculations",
+          "distribution": {
+            "count": 3,
+            "mean": 883.0,
+            "median": 883.0,
+            "standard_deviation": 0.0,
+            "minimum": 883.0,
+            "maximum": 883.0,
+            "p90": 883.0,
+            "p95": 883.0,
+            "mean_ci95_low": 883.0,
+            "mean_ci95_high": 883.0
+          },
+          "rank": 1
+        },
+        "interpolated_pose_calculations": {
+          "metric": "interpolated_pose_calculations",
+          "distribution": {
+            "count": 3,
+            "mean": 21091207.666666668,
+            "median": 21092943.0,
+            "standard_deviation": 624944.4217167547,
+            "minimum": 20324944.0,
+            "maximum": 21855736.0,
+            "p90": 21703177.4,
+            "p95": 21779456.7,
+            "mean_ci95_low": 21347207.333333332,
+            "mean_ci95_high": 21347207.333333332
+          },
+          "rank": 1
+        },
+        "worker_cpu_seconds": {
+          "metric": "worker_cpu_seconds",
+          "distribution": {
+            "count": 3,
+            "mean": 85.21875,
+            "median": 85.625,
+            "standard_deviation": 5.3786930142616125,
+            "minimum": 78.4375,
+            "maximum": 91.59375,
+            "p90": 90.4,
+            "p95": 90.99687499999999,
+            "mean_ci95_low": 87.61458333333333,
+            "mean_ci95_high": 87.61458333333333
+          },
+          "rank": 2
+        },
+        "subprocess_wall_seconds": {
+          "metric": "subprocess_wall_seconds",
+          "distribution": {
+            "count": 3,
+            "mean": 66.74784680001903,
+            "median": 69.80555559997447,
+            "standard_deviation": 4.388973289649638,
+            "minimum": 60.541125099989586,
+            "maximum": 69.89685970009305,
+            "p90": 69.87859888006933,
+            "p95": 69.88772929008118,
+            "mean_ci95_low": 69.86642500005352,
+            "mean_ci95_high": 69.86642500005352
+          },
+          "rank": 2
+        },
+        "complete_result_matches": {
+          "metric": "complete_result_matches",
+          "distribution": {
+            "count": 3,
+            "mean": 1.0,
+            "median": 1.0,
+            "standard_deviation": 0.0,
+            "minimum": 1.0,
+            "maximum": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "mean_ci95_low": 1.0,
+            "mean_ci95_high": 1.0
+          },
+          "rank": 1
+        }
+      }
+    },
+    "sparse": {
+      "method_id": "sparse",
+      "trial_count": 3,
+      "success_count": 3,
+      "failure_count": 0,
+      "failure_rate": 0.0,
+      "runtime_seconds": {
+        "count": 3,
+        "mean": 47.692480000007585,
+        "median": 50.653481199988164,
+        "standard_deviation": 9.160147426623398,
+        "minimum": 35.29012950009201,
+        "maximum": 57.13382929994259,
+        "p90": 55.83775967995171,
+        "p95": 56.485794489947146,
+        "mean_ci95_low": 45.532363966689445,
+        "mean_ci95_high": 45.532363966689445
+      },
+      "peak_memory_mb": {
+        "count": 0
+      },
+      "metrics": {
+        "pipeline_seconds": {
+          "metric": "pipeline_seconds",
+          "distribution": {
+            "count": 3,
+            "mean": 44.26854363332192,
+            "median": 46.19358829990961,
+            "standard_deviation": 8.844748369843739,
+            "minimum": 32.60251660004724,
+            "maximum": 54.00952600000892,
+            "p90": 52.44633845998905,
+            "p95": 53.227932229998984,
+            "mean_ci95_low": 41.66323106662215,
+            "mean_ci95_high": 41.66323106662215
+          },
+          "rank": 1
+        },
+        "solver_seconds": {
+          "metric": "solver_seconds",
+          "distribution": {
+            "count": 3,
+            "mean": 28.699298533339363,
+            "median": 28.482889399980195,
+            "standard_deviation": 5.08307520331491,
+            "minimum": 22.58485450001899,
+            "maximum": 35.030151700018905,
+            "p90": 33.720699240011164,
+            "p95": 34.37542547001503,
+            "mean_ci95_low": 26.516877766659793,
+            "mean_ci95_high": 26.516877766659793
+          },
+          "rank": 1
+        },
+        "adaptive_query_seconds": {
+          "metric": "adaptive_query_seconds",
+          "distribution": {
+            "count": 3,
+            "mean": 0.0,
+            "median": 0.0,
+            "standard_deviation": 0.0,
+            "minimum": 0.0,
+            "maximum": 0.0,
+            "p90": 0.0,
+            "p95": 0.0,
+            "mean_ci95_low": 0.0,
+            "mean_ci95_high": 0.0
+          },
+          "rank": 1
+        },
+        "adaptive_query_calls": {
+          "metric": "adaptive_query_calls",
+          "distribution": {
+            "count": 3,
+            "mean": 0.0,
+            "median": 0.0,
+            "standard_deviation": 0.0,
+            "minimum": 0.0,
+            "maximum": 0.0,
+            "p90": 0.0,
+            "p95": 0.0,
+            "mean_ci95_low": 0.0,
+            "mean_ci95_high": 0.0
+          },
+          "rank": 1
+        },
+        "worker_import_seconds": {
+          "metric": "worker_import_seconds",
+          "distribution": {
+            "count": 3,
+            "mean": 2.449343099996137,
+            "median": 2.1327829000074416,
+            "standard_deviation": 0.6769860242460318,
+            "minimum": 1.825122500071302,
+            "maximum": 3.3901238999096677,
+            "p90": 3.1386556999292226,
+            "p95": 3.264389799919445,
+            "mean_ci95_low": 2.8684567666302123,
+            "mean_ci95_high": 2.8684567666302123
+          },
+          "rank": 1
+        },
+        "uniform_normal_calculations": {
+          "metric": "uniform_normal_calculations",
+          "distribution": {
+            "count": 3,
+            "mean": 883.0,
+            "median": 883.0,
+            "standard_deviation": 0.0,
+            "minimum": 883.0,
+            "maximum": 883.0,
+            "p90": 883.0,
+            "p95": 883.0,
+            "mean_ci95_low": 883.0,
+            "mean_ci95_high": 883.0
+          },
+          "rank": 1
+        },
+        "interpolated_pose_calculations": {
+          "metric": "interpolated_pose_calculations",
+          "distribution": {
+            "count": 3,
+            "mean": 21092142.333333332,
+            "median": 21858940.0,
+            "standard_deviation": 1084415.6597960438,
+            "minimum": 19558547.0,
+            "maximum": 21858940.0,
+            "p90": 21858940.0,
+            "p95": 21858940.0,
+            "mean_ci95_low": 21858940.0,
+            "mean_ci95_high": 21858940.0
+          },
+          "rank": 2
+        },
+        "worker_cpu_seconds": {
+          "metric": "worker_cpu_seconds",
+          "distribution": {
+            "count": 3,
+            "mean": 67.765625,
+            "median": 73.96875,
+            "standard_deviation": 11.044395790871345,
+            "minimum": 52.25,
+            "maximum": 77.078125,
+            "p90": 76.45625,
+            "p95": 76.7671875,
+            "mean_ci95_low": 66.72916666666667,
+            "mean_ci95_high": 66.72916666666667
+          },
+          "rank": 1
+        },
+        "subprocess_wall_seconds": {
+          "metric": "subprocess_wall_seconds",
+          "distribution": {
+            "count": 3,
+            "mean": 47.692480000007585,
+            "median": 50.653481199988164,
+            "standard_deviation": 9.160147426623398,
+            "minimum": 35.29012950009201,
+            "maximum": 57.13382929994259,
+            "p90": 55.83775967995171,
+            "p95": 56.485794489947146,
+            "mean_ci95_low": 45.532363966689445,
+            "mean_ci95_high": 45.532363966689445
+          },
+          "rank": 1
+        },
+        "complete_result_matches": {
+          "metric": "complete_result_matches",
+          "distribution": {
+            "count": 3,
+            "mean": 1.0,
+            "median": 1.0,
+            "standard_deviation": 0.0,
+            "minimum": 1.0,
+            "maximum": 1.0,
+            "p90": 1.0,
+            "p95": 1.0,
+            "mean_ci95_low": 1.0,
+            "mean_ci95_high": 1.0
+          },
+          "rank": 1
+        }
+      }
+    }
+  },
+  "paired_comparisons": [
+    {
+      "reference_method_id": "baseline",
+      "candidate_method_id": "sparse",
+      "metric": "pipeline_seconds",
+      "direction": "lower",
+      "paired_count": 3,
+      "raw_delta_mean": -18.736701133389335,
+      "improvement_mean": 18.736701133389335,
+      "improvement_ci95_low": 24.079647433400776,
+      "improvement_ci95_high": 24.079647433400776
+    },
+    {
+      "reference_method_id": "baseline",
+      "candidate_method_id": "sparse",
+      "metric": "solver_seconds",
+      "direction": "lower",
+      "paired_count": 3,
+      "raw_delta_mean": -16.517575666618843,
+      "improvement_mean": 16.517575666618843,
+      "improvement_ci95_low": 21.29120703328711,
+      "improvement_ci95_high": 21.29120703328711
+    },
+    {
+      "reference_method_id": "baseline",
+      "candidate_method_id": "sparse",
+      "metric": "adaptive_query_seconds",
+      "direction": "lower",
+      "paired_count": 3,
+      "raw_delta_mean": 0.0,
+      "improvement_mean": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_ci95_high": 0.0
+    },
+    {
+      "reference_method_id": "baseline",
+      "candidate_method_id": "sparse",
+      "metric": "adaptive_query_calls",
+      "direction": "lower",
+      "paired_count": 3,
+      "raw_delta_mean": 0.0,
+      "improvement_mean": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_ci95_high": 0.0
+    },
+    {
+      "reference_method_id": "baseline",
+      "candidate_method_id": "sparse",
+      "metric": "worker_import_seconds",
+      "direction": "lower",
+      "paired_count": 3,
+      "raw_delta_mean": -0.21687536671136817,
+      "improvement_mean": 0.21687536671136817,
+      "improvement_ci95_low": 0.11668696673586965,
+      "improvement_ci95_high": 0.11668696673586965
+    },
+    {
+      "reference_method_id": "baseline",
+      "candidate_method_id": "sparse",
+      "metric": "uniform_normal_calculations",
+      "direction": "lower",
+      "paired_count": 3,
+      "raw_delta_mean": 0.0,
+      "improvement_mean": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_ci95_high": 0.0
+    },
+    {
+      "reference_method_id": "baseline",
+      "candidate_method_id": "sparse",
+      "metric": "interpolated_pose_calculations",
+      "direction": "lower",
+      "paired_count": 3,
+      "raw_delta_mean": 934.6666666666666,
+      "improvement_mean": -934.6666666666666,
+      "improvement_ci95_low": -511732.6666666667,
+      "improvement_ci95_high": -511732.6666666667
+    },
+    {
+      "reference_method_id": "baseline",
+      "candidate_method_id": "sparse",
+      "metric": "worker_cpu_seconds",
+      "direction": "lower",
+      "paired_count": 3,
+      "raw_delta_mean": -17.453125,
+      "improvement_mean": 17.453125,
+      "improvement_ci95_low": 20.885416666666668,
+      "improvement_ci95_high": 20.885416666666668
+    },
+    {
+      "reference_method_id": "baseline",
+      "candidate_method_id": "sparse",
+      "metric": "subprocess_wall_seconds",
+      "direction": "lower",
+      "paired_count": 3,
+      "raw_delta_mean": -19.055366800011445,
+      "improvement_mean": 19.055366800011445,
+      "improvement_ci95_low": 24.334061033364076,
+      "improvement_ci95_high": 24.334061033364076
+    },
+    {
+      "reference_method_id": "baseline",
+      "candidate_method_id": "sparse",
+      "metric": "complete_result_matches",
+      "direction": "higher",
+      "paired_count": 3,
+      "raw_delta_mean": 0.0,
+      "improvement_mean": 0.0,
+      "improvement_ci95_low": 0.0,
+      "improvement_ci95_high": 0.0
+    }
+  ],
+  "reference_method_id": "baseline",
+  "bootstrap_samples": 1,
+  "bootstrap_seed": 0,
+  "limitations": [
+    "Single public sensor duplicated as an identity control; no absolute two-sensor accuracy claim.",
+    "Fresh interpreters; no warmup or outlier exclusion; OS caches persist.",
+    "Scope cuda-full substitutes 14 modules. All candidates, refinements, train/holdout budgets and writers are shared. Module filenames and source/input bytes are verified.",
+    "Wall includes startup, imports, replay, optimization, diagnostics, input hashes, YAML output and worker measurement save; parent audits and CLI presentation are excluded.",
+    "Phase timers wrap existing calls without extra work; their wrapper cost is included.",
+    "Full saved/API artifacts and git revision are retained. Comparison normalizes path separators and excludes only the exact optional kernel identity note.",
+    "Numba cache policy is recorded per trial, with compiled file hashes before/after. The first candidate uses an empty cache; all import/compile/load work is inside wall.",
+    "Compiled scope gives each method its own persistent cache, initially empty.",
+    "Candidate execution override: cuda; baseline execution override: cuda; all physical options and splits are shared. CUDA runs also own a fresh persistent kernel cache with trial-level before/after digests; compilation stays inside wall. CUDA dispatch retains CPU execution below the 8192-row capture budget.",
+    "Worker CPU sums all worker threads from entry through the saved-result hash; interpreter startup and measurement JSON serialization are outside that diagnostic.",
+    "Raw checksums and conversion lineage are verified before measurement.",
+    "Split IDs hash ordered sampled target indices, capture timestamps and XYZ; the distinct temporal partitions and unchanged sampling caps are verified each run.",
+    "Descriptive timings are local observations, not portable confidence estimates."
+  ],
+  "provenance": {
+    "generator": "tools.benchmark_adaptive_plane_search",
+    "generator_version": "v0.5",
+    "generated_at": "2026-10-13T04:13:01.911110+00:00",
+    "git_commit": "a514397",
+    "command": "<PYTHON> <WORKSPACE>/tools/benchmark_adaptive_plane_search.py --baseline-scope cuda-full --baseline-commit 7253ce21d1e0c50bfa6e08d574946cb574a9c447 --candidate-query-backend cuda --baseline-query-backend cuda --config examples/public_datasets/glim_versatile/online_continuous_time_compiled_dense_capture_config.yaml --repetitions 3 --output-dir outputs/public-glim-residual-summary-dense-v1",
+    "source_artifacts": {
+      "previous_gpu/baseline.adaptive_voxel.py.txt": "122ef1128e7bea57a8d6e4cf462d825a00056ffa2ea30df2f98a5fd8f6dbff7d",
+      "previous_gpu/baseline.continuous_time_lidar_pair_solver.py.txt": "2ac36c5c31d2c9f63c45fa779ca7156696e4d3e0f96d12976dcfa86c0859fae0",
+      "previous_gpu/baseline.cuda_continuous_time_adapter.py.txt": "1c6cdd826fb47a73ac7af4e3941ac3597f8a74d9a78e7247683c83f6dc71bd6c",
+      "previous_gpu/baseline.cuda_plane_query_adapter.py.txt": "1e01de434b7baf5f635493d06435d42f87456340cb95fa5405a5761225ae0c03",
+      "previous_gpu/baseline.fixed_trajectory_se3_solver.py.txt": "8f7ab1c2f75fff00154e0f554c880aee81bf97ccd2106bfb5e62165df5cfb2bc",
+      "previous_gpu/baseline.lidar.py.txt": "8e08c74cc5d6d11d96dae66c53a3e6b2c645bff28f7e0b56fc38567ec8cf4519",
+      "previous_gpu/baseline.lidar_point_to_plane.py.txt": "0e7d630d7b1115b0ec41d94158a03a090d11dc54c8ccd8a69a7a21945779b36b",
+      "previous_gpu/baseline.livox.py.txt": "50dfd41ad1beb55893636965cf8d12f8afc5aec69a91d3cba1cc762901036ed6",
+      "previous_gpu/baseline.numba_continuous_time_adapter.py.txt": "a5fbfa157b6eda2338a5939cd9e273023b60137feedffda83416d013e85e0715",
+      "previous_gpu/baseline.numba_lidar_deskew_adapter.py.txt": "53966123b0e942f48929494fba4389062ccee0cd44dc85501e4d3451a84cc0be",
+      "previous_gpu/baseline.odometry_track.py.txt": "660a735db57a92c164b9d20f470ba966f462cc83699e04856cc5f63092dab763",
+      "previous_gpu/baseline.online.py.txt": "090e373de41196825a09dd4735964cbcdcae766cb81cd643b061750272d08452",
+      "previous_gpu/baseline.packed_lidar_observations.py.txt": "f648006f405e0228debc858b0ca25aa99b6e8181a786ba33b4245b810869d396",
+      "previous_gpu/baseline.robust_lidar_observations.py.txt": "99601cc85aed82b5ccdddf33d1d8c079470b2b8785ee4057e8853094779df95b",
+      "data/public/glim_versatile/conversion-provenance.json": "7f51da99c1bdc0b2768229e6ff22809d5d0bb22e02dcc62dce2c3ce0dac2da56",
+      "data/public/glim_versatile/gt.tar.gz": "4bfd871527d00065898153e77a6764ac331421aca16ff88bde778994f70f5bc9",
+      "data/public/glim_versatile/gt/livox.txt": "bcc75ff7985f2e140e514c69f029153e0127a33ee7abc1b757e077386f5059ad",
+      "data/public/glim_versatile/livox.bag": "f57a2e85339316d4235ab693ab2876aac5e113625c7f8b0f7873b62f92e09643",
+      "data/public/glim_versatile/livox_rosbag2_gt_restamped/livox_rosbag2_gt_restamped.db3": "8d28f0a8ddda13b880e4648e9d687d4a566d40f70b87547f8798fe8a18cfde9e",
+      "data/public/glim_versatile/livox_rosbag2_gt_restamped/metadata.yaml": "7542a3e1689e2007e9c15b8d163cddcbca4d87232dd92b7ecff48ba1e0f6645f",
+      "sources/measured.online_continuous_time_compiled_dense_capture_config.yaml.txt": "1e84922f03bde8b97f598237d8cd53e7a716db84a5f1f5651aa45043953d0186",
+      "sources/measured.continuous_time_lidar_artifacts.py.txt": "96c051290b6b4f82f81fcc108b6ea4525b1497af064a3dedb8196e7dedd9d874",
+      "sources/measured.continuous_time_lidar_train_diagnostics.py.txt": "f86b7e9d569b4ef61d85834df790207dbe2f424af17ec0f5df16b9f2aef6fcac",
+      "sources/measured.provenance.py.txt": "eb7849f342892272ae136454da816852d080684b25c8ec55771582c1b8621f47",
+      "sources/measured.adaptive_voxel.py.txt": "4a2afd9a882426f0a99dbf7af52f98d49b48e168a32956ec3496f5740c879a14",
+      "sources/measured.livox.py.txt": "0773a7e2fccb2d2faa23f9e90636a00355499af131ad671845edb2c8d33b1bfd",
+      "sources/measured.numba_lidar_deskew_adapter.py.txt": "53966123b0e942f48929494fba4389062ccee0cd44dc85501e4d3451a84cc0be",
+      "sources/measured.odometry_track.py.txt": "1569e661470e902f2f08dde1bf2d0c41cc6540a24f59d9ee961e066d36653c91",
+      "sources/measured.lidar.py.txt": "2e4c7dda7f81eaa343096ccce57e1f160bc4418d395facfafc4bcbed4ffb16df",
+      "sources/measured.packed_lidar_observations.py.txt": "f648006f405e0228debc858b0ca25aa99b6e8181a786ba33b4245b810869d396",
+      "sources/measured.lidar_point_to_plane.py.txt": "4ca03bfd97d9a091b010e4805862ee46345486bb9ffbb6cf71c083dac81efb92",
+      "sources/measured.online.py.txt": "090e373de41196825a09dd4735964cbcdcae766cb81cd643b061750272d08452",
+      "sources/measured.continuous_time_lidar_pair_solver.py.txt": "687dee66b430ccb21ea848acf1b9f37c30885569f0a09882ea5fe58b3c22b15f",
+      "sources/measured.cuda_continuous_time_adapter.py.txt": "1c6cdd826fb47a73ac7af4e3941ac3597f8a74d9a78e7247683c83f6dc71bd6c",
+      "sources/measured.cuda_plane_query_adapter.py.txt": "1e01de434b7baf5f635493d06435d42f87456340cb95fa5405a5761225ae0c03",
+      "sources/measured.fixed_trajectory_se3_solver.py.txt": "4eccbe682e48453d65d339f60c1c6ee0293df0269c547f64629c527bbf58e388",
+      "sources/measured.numba_continuous_time_adapter.py.txt": "f4b8f569d540a7ed87d44e185799c366725b788e6c2289e24132f691f9a0c77b",
+      "sources/measured.robust_lidar_observations.py.txt": "ff398d558ec6f35eec497d6cdec80286b43ff4fd27a1e3b6a224d8e54098e240",
+      "sources/measured.benchmark_adaptive_plane_search.py.txt": "5a36c6d4d610fe38c38196e5fa18b6f848e2731c436ef3f5945eb6cd99ccec49",
+      "sources/measured.lidar_scan_deskew.py.txt": "e36a870323f76256fb5b3f8b8364cb2edb4c06483b3ea0fe8a99bf2faa6f1ce0",
+      "sources/measured.rosbag1_to_rosbag2_online_pair.py.txt": "9da3e080b62933d4d75f92c08bba91929fea401d99650e55f78bd3cdabfcc680"
+    },
+    "data_verified": true
+  }
+}

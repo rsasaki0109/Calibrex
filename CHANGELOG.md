@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Fuse native LiDAR residuals and ordered squared-error accumulation on the
+  optional CPU adapter for factors with at least 8,192 rows. Match CPython
+  3.10/3.11 and 3.12 summation policies and retain public hooks and diagnostics.
+  Avoid discarded optimizer residual lists. Publish full paired controls,
+  actual work and the observed small-workload timing regression.
+
 - Fuse optional CPU LiDAR plane scoring and observation gathers for batches of
   at least 8,192 rows. Preserve ordered FP64 scores, native distance ties,
   signed zeros, independent read-only output columns and small-batch fallback.
