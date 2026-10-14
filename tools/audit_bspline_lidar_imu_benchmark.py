@@ -321,6 +321,22 @@ def audit(root: Path) -> dict[str, object]:
             "odometry_seconds", "odometry_calls",
         } <= record.keys():
             raise ValueError("odometry observation is missing")
+        if (hasattr(module, "_time_odometry")
+                and provenance.get("odometry_backend") == "cuda"):
+            adapter_source = source_bytes[variant][
+                "calibrex/solvers/cuda_scan_odometry_adapter.py"
+            ]
+            expected_scope = (
+                "standard __call__ path; excludes device gyro_deskew"
+                if b"class CudaScanPreprocessor" in adapter_source
+                else "native preprocess_scan; device preprocessor unavailable"
+            )
+            if record.get("preprocessing_scope") != expected_scope:
+                raise ValueError("preprocessing timing scope is not declared correctly")
+            if b"def gyro_deskew(" in adapter_source and not {
+                "gyro_preprocessing_seconds", "gyro_preprocessing_calls",
+            } <= record.keys():
+                raise ValueError("gyro_preprocessing observation is missing")
         for scope in ("odometry", "gyro_preprocessing"):
             if (scope + "_seconds" in record
                     and not (0 < record[scope + "_seconds"] <= record["pipeline_seconds"]
@@ -462,6 +478,12 @@ def audit(root: Path) -> dict[str, object]:
                           "normal_speedup": normal_medians["prior"] / normal_medians["current"]}
     front_summary = {}
     for scope in ("spatial_build", "preprocessing", "controls", "registration", "odometry"):
+        if (scope == "preprocessing"
+                and any("gyro_preprocessing_seconds" in record
+                        for record in measurements.values())):
+            # Device gyro preprocessing bypasses the timed __call__ path. The
+            # complete odometry scope remains comparable across both versions.
+            continue
         if all(scope + "_seconds" in record for record in measurements.values()):
             medians = {
                 variant: statistics.median(measurements[(r, variant)][scope + "_seconds"]

@@ -1,0 +1,31 @@
+{
+  "schema_version": "slac.bspline_lidar_imu_comparison/v0.1",
+  "record_type": "protocol",
+  "baseline_commit": "9cf33f996aaaffaf40ab053fc6b3ad1d5f94f46d",
+  "current_commit": "6d5db689ade25af5b6f69de9f960f684449ce7eb",
+  "repeats": 3,
+  "max_seconds": 6.0,
+  "max_rounds": 4,
+  "bag_sha256": "f57a2e85339316d4235ab693ab2876aac5e113625c7f8b0f7873b62f92e09643",
+  "launcher_sha256": "fd2994fe5947250f3324787d150a2043b18e03b49675f5131b2e3e7c06ee46c8",
+  "scope": "fresh process through complete bag calibration, saved evidence and import verification",
+  "quality_tolerances": {
+    "rotation_deg": 0.001,
+    "lever_arm_m": 1e-05,
+    "clock_offset_s": 1e-07,
+    "holdout_whitened_rms": 1e-05,
+    "block_evidence_relative": 0.0001,
+    "block_evidence_absolute": 1e-08,
+    "control_chi2_relative": 1e-05,
+    "control_chi2_absolute": 1e-05
+  },
+  "comparison": "cuda-cuda",
+  "odometry_options": {
+    "voxel_size_m": 0.03,
+    "local_map_scans": 3,
+    "geometry_quantum_m": 1e-09,
+    "motion_translation_quantum_m": 1e-06,
+    "motion_rotation_quantum_rad": 1e-07
+  },
+  "isolated_cuda_caches": true
+}

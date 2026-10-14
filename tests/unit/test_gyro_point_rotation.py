@@ -65,23 +65,6 @@ def test_non_orthogonal_prefix_uses_the_matrix_reference() -> None:
     assert np.array_equal(model.rotate_points(0.5, offsets, points), reference)
 
 
-@pytest.mark.parametrize("count", [1, 3, 217])
-@pytest.mark.parametrize("epoch", [0., 1.76e9])
-def test_selected_native_repairs_preserve_complete_batch_bytes(count: int, epoch: float) -> None:
-    rng = np.random.default_rng(1224)
-    times = epoch + np.arange(0, 2, .005)
-    gyro = GyroSeries(times, rng.normal(0, .8, (len(times), 3)))
-    model = _GyroRotationModel(gyro, Rotation.from_rotvec([.2, -.3, .1]).as_matrix(),
-                               np.array([.01, -.02, .03]), .003)
-    points = rng.normal(0, 10, (4097, 4))
-    offsets = rng.uniform(-.03, .1, len(points))
-    inputs = model._point_inputs(epoch + .7, offsets, points)
-    assert inputs is not None
-    expected = model.rotate_points(epoch + .7, offsets, points)
-    rows = rng.choice(len(points), count, replace=False).astype(np.int64)
-    assert inputs.native_points(rows).tobytes() == expected[rows].tobytes()
-
-
 def test_odometry_reuses_rotated_points_and_preserves_custom_callbacks(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

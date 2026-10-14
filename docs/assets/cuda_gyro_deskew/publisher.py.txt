@@ -1,0 +1,135 @@
+from pathlib import Path
+import hashlib
+import json
+import shutil
+import statistics
+import tarfile
+
+source = Path('outputs/gyro-deskew-formal-v2')
+observation = Path('outputs/gyro-deskew-observation-v2')
+root = Path('docs/assets/cuda_gyro_deskew')
+root.mkdir(exist_ok=False)
+protocol = json.loads((source / 'protocol.json').read_bytes())
+summary = json.loads((source / 'summary.json').read_bytes())
+attempts = json.loads((source / 'attempts.json').read_bytes())
+observed = json.loads((observation / 'observation.json').read_bytes())
+assert summary['quality_passed'] and len(attempts) == 6
+assert observed['exit_code'] == 0 and not observed['provenance']['terminated_on_interference']
+assert all(row['foreign'] == row['unknown'] == 0 for row in observed['samples'])
+for name in ('protocol.json', 'summary.json', 'attempts.json'):
+    shutil.copyfile(source / name, root / name)
+for attempt in attempts:
+    folder = root / attempt['worker']
+    folder.mkdir()
+    for name in ('measurement.json', 'result.json', 'worker.log'):
+        shutil.copyfile(source / attempt['worker'] / name, folder / name)
+for repeat in range(3):
+    records = [json.loads((root / f'{repeat:02}-{v}/measurement.json').read_bytes())
+               for v in ('prior', 'current')]
+    assert len(records[0]['rounds']) == len(records[1]['rounds']) == 4
+    for left, right in zip(records[0]['rounds'], records[1]['rounds'], strict=True):
+        assert {k: v for k, v in left.items() if k != 'seconds'} == {
+            k: v for k, v in right.items() if k != 'seconds'}
+    results = [json.loads((root / f'{repeat:02}-{v}/result.json').read_bytes())
+               for v in ('prior', 'current')]
+    assert results[0]['controls'] == results[1]['controls'] and len(results[1]['controls']) == 32
+    assert results[0]['holdout_whitened_rms'] == results[1]['holdout_whitened_rms']
+for variant in ('prior', 'current'):
+    folder = source / f'sources-{variant}'
+    shutil.copyfile(folder / 'manifest.json', root / f'sources-{variant}-manifest.json')
+    with tarfile.open(root / f'sources-{variant}.tar.gz', 'w:gz') as archive:
+        archive.add('LICENSE', arcname='LICENSE', recursive=False)
+        for path in sorted((folder / 'src').rglob('*.py')):
+            archive.add(path, arcname=path.relative_to(folder).as_posix(), recursive=False)
+for original, name in [
+    ('tools/benchmark_bspline_lidar_imu.py', 'benchmark.py.txt'),
+    ('tools/schemas/bspline_lidar_imu_comparison.schema.json', 'comparison.schema.json'),
+    ('tests/unit/test_cuda_gyro_deskew.py', 'gyro-tests.py.txt'),
+    ('tests/unit/test_gyro_point_rotation.py', 'native-point-tests.py.txt'),
+    ('tests/unit/test_cuda_scan_odometry_adapter.py', 'odometry-tests.py.txt'),
+    (__file__, 'publisher.py.txt'),
+]:
+    shutil.copyfile(original, root / name)
+for name in ('observation.json', 'observation.schema.json', 'observer.py.txt'):
+    shutil.copyfile(observation / name, root / name)
+
+rows = ['| Scope | Previous median | Prototype median | Observed ratio |',
+        '| --- | ---: | ---: | --- |',
+        f"| Whole worker | {summary['whole_median_seconds']['prior']:.3f} s | "
+        f"{summary['whole_median_seconds']['current']:.3f} s | {summary['whole_speedup']:.3f}x |"]
+for scope, title in [('odometry', 'Complete odometry'),
+                     ('registration', 'Nested complete registration'),
+                     ('normal_preparation', 'Nested normal preparation'),
+                     ('fit', 'Unchanged fit/covariance')]:
+    medians = {v: statistics.median(
+        json.loads((root / f'{r:02}-{v}/measurement.json').read_bytes())[scope + '_seconds']
+        for r in range(3)) for v in ('prior', 'current')}
+    rows.append(f"| {title} | {medians['prior']:.3f} s | {medians['current']:.3f} s | "
+                f"{medians['prior'] / medians['current']:.3f}x |")
+value = json.loads((root / '00-current/result.json').read_bytes())
+counters = [report['statistics'] for name in ('initial_odometry_execution', 'segment_odometry_execution')
+            for report in value['options'][name]]
+totals = {key: sum(row[key] for row in counters) for key in (
+    'gpu_gyro_rotation_calls', 'gpu_gyro_rotation_rows', 'gpu_gyro_translation_calls',
+    'native_gyro_point_repairs')}
+assert totals['gpu_gyro_rotation_calls'] > 0
+text = f'''# Rejected GPU gyro deskew prototype
+
+Whole-worker medians improve by only {100 * (1 - 1 / summary['whole_speedup']):.1f}%.
+This does not establish the substantial whole-pipeline benefit sought by this
+project. The prototype is rejected; active runtime code is restored to the
+previous implementation. Its measured sources and GPU tests remain frozen here.
+
+''' + '\n'.join(rows) + f'''
+
+Three alternating previous/current pairs replay the same first six seconds of
+the public GLIM Livox bag with four map rounds. All 12 complete fitted
+trajectories/covariances/costs, holdout values and all 32 signed controls per pair
+are exactly equal. Point, neighbor, iteration and validation budgets are equal.
+Verdicts remain INCONCLUSIVE without independent extrinsic truth.
+
+The prototype evaluates per-point gyro rotations in FP64 on the GPU and reuses
+them across translation/registration rounds of a scan. Prefixes remain on the
+device; quantization-boundary points are recomputed by the native implementation.
+An explicit positive geometry grid is required; zero/default grids and custom
+rotation callbacks preserve the native path. The measured candidate records
+{totals['gpu_gyro_rotation_calls']:,} rotation calls over
+{totals['gpu_gyro_rotation_rows']:,} rows, {totals['gpu_gyro_translation_calls']:,}
+translation calls and {totals['native_gyro_point_repairs']:,} native point repairs
+per worker. This archive does not infer whole-pipeline speed from a microbenchmark.
+
+Complete odometry includes gyro work, preprocessing, target and normal
+preparation and registration. Registration and normals are nested scopes.
+Standard `__call__` preprocessing excludes device gyro deskew; its timings are
+retained but cannot compare total preprocessing across these two paths. The
+unchanged fit timing difference illustrates residual measurement variation.
+Component ratios must not be multiplied.
+
+The observer detected no foreign or unknown CUDA compute processes in
+{len(observed['samples'])} ten-second observations. Sampling does not establish
+continuous GPU exclusivity, observe all graphics activity or reserve the CPU.
+Each worker runs in a fresh process with one BLAS/OMP/MKL thread and a separate
+initially empty CuPy compilation cache. Whole timing includes imports, bag
+decoding, compilation, all odometry, fits, covariance, controls and validation.
+Process IDs and names are not published; raw bag data is not redistributed.
+
+Baseline source: `{protocol['baseline_commit']}`. Measured prototype:
+`{protocol['current_commit']}`. Public input SHA-256:
+`{protocol['bag_sha256']}`. The publication index binds all workers,
+source archives/manifests, launcher/schema, tests, observer and publisher.
+
+```bash
+python -m tools.audit_bspline_lidar_imu_benchmark docs/assets/cuda_gyro_deskew
+```
+'''
+(root / 'README.md').write_text(text, encoding='utf-8', newline='\n')
+files = {p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+         for p in sorted(root.rglob('*')) if p.is_file()}
+(root / 'publication-index.json').write_text(json.dumps({
+    'schema_version': 'slac.bspline_lidar_imu_publication/v0.1',
+    'provenance': {'input_protocol_sha256': hashlib.sha256((root / 'protocol.json').read_bytes()).hexdigest()},
+    'files': files,
+}, indent=2) + '\n', encoding='utf-8', newline='\n')
+print({'published_files': len(files) + 1, 'full_fit_rounds': 12,
+       'exact_equality': True, 'whole_speedup': summary['whole_speedup'],
+       'observations': len(observed['samples']), 'gpu_work': totals})

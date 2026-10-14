@@ -114,7 +114,8 @@ def _worker(args: argparse.Namespace) -> None:
             if hasattr(CudaOdometryTarget, "preprocessor")
             else _time_method(odometry, "preprocess_scan")
         )
-        if hasattr(CudaOdometryTarget.preprocessor, "gyro_deskew"):
+        if (hasattr(CudaOdometryTarget, "preprocessor")
+                and hasattr(CudaOdometryTarget.preprocessor, "gyro_deskew")):
             gyro_preprocessing_timing = _time_method(
                 CudaOdometryTarget.preprocessor, "gyro_deskew",
             )
@@ -226,7 +227,10 @@ def _worker(args: argparse.Namespace) -> None:
                if spatial_timing is not None else {}),
             **({"preprocessing_seconds": preprocessing_timing["seconds"],
                 "preprocessing_calls": preprocessing_timing["calls"],
-                "preprocessing_scope": "standard __call__ path; excludes device gyro_deskew"}
+                "preprocessing_scope": (
+                    "standard __call__ path; excludes device gyro_deskew"
+                    if hasattr(CudaOdometryTarget, "preprocessor")
+                    else "native preprocess_scan; device preprocessor unavailable")}
                if preprocessing_timing is not None else {}),
             **({"gyro_preprocessing_seconds": gyro_preprocessing_timing["seconds"],
                 "gyro_preprocessing_calls": gyro_preprocessing_timing["calls"]}

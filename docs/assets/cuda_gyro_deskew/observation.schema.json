@@ -1,0 +1,52 @@
+{
+  "type": "object",
+  "required": [
+    "samples",
+    "exit_code",
+    "provenance"
+  ],
+  "properties": {
+    "samples": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "offset_seconds",
+          "own",
+          "foreign",
+          "unknown"
+        ],
+        "properties": {
+          "offset_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "own": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "foreign": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "unknown": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "exit_code": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "provenance": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false
+}
