@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+- **`camera-camera` fits a vertical scale mismatch instead of reading it as a turn.**
+  - **The problem.** A focal length or distortion slightly off in either camera makes
+    one rectified image a little taller than the other. The rotation model read that
+    as a turn: a 0.5% fy error gives roll −0.17 / pitch +0.34 deg on a synthetic
+    forward pair and pitch −0.66 deg on one 60 deg apart.
+  - **On Hilti.** This was the cam0–cam4 / cam1–cam4 pitch disagreement (`warn`, and
+    a closure `warn`). Refitted with the term, cam1–cam4's pitch is degenerate with it
+    and the triangle closes (−0.49 → +0.02 deg).
+  - **The fix.** The term is fitted with a 0.3% prior. The rotation is fitted with the
+    result removed, and the remaining uncertainty goes into each axis's std
+    (`scale_std_deg`) but not into the observability gate.
+  - **The result.** The false `warn` is gone, a 1 deg turn of cam3 still fails, and
+    attribution still names cam3. 29 camera-pair axes are judged, against 31.
+  - **New evidence fields.** `row_scale_ratio` and its std are recorded (optional).
+  - **New tool.** `tools/hilti_camera_edge_bias.py` refits a pair by image region and
+    with the left-out terms.
+
 - **Closure loops are built from the best-observed estimates first.**
   - **The problem.** The spanning forest took estimates in pair-type order. On a
     camera rig, every camera pair therefore closed through the IMU. Where

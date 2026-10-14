@@ -46,7 +46,17 @@ class StereoRotationAxis(StrictModel):
     candidate_error_deg: float = Field(
         description="rotvec(R_candidate R_estimate^T) about the left camera's axis"
     )
-    std_deg: float = Field(ge=0.0, description="block-jackknife standard deviation")
+    std_deg: float = Field(
+        ge=0.0,
+        description="standard deviation: the block jackknife over frames combined with "
+        "scale_std_deg",
+    )
+    scale_std_deg: float | None = Field(
+        default=None,
+        ge=0.0,
+        description="the part of std_deg from the vertical scale mismatch the images leave "
+        "to its prior (row_scale_ratio_std); the observability gate uses the rest",
+    )
     control_response: float | None = Field(
         default=None,
         description="change of the error when the candidate turns by control_deg about this "
@@ -76,6 +86,13 @@ class StereoRotationArtifact(StrictModel):
         "vertical component over its length, in the rectified frame)",
     )
     residual_std_px: float | None = Field(default=None, ge=0.0)
+    row_scale_ratio: float | None = Field(
+        default=None,
+        description="row offset per pixel of row (a nuisance term: the right rectified "
+        "image's vertical scale over the left's, minus one; a focal length or distortion "
+        "slightly off in either camera)",
+    )
+    row_scale_ratio_std: float | None = Field(default=None, ge=0.0)
     time_offset_s: float | None = Field(
         default=None,
         description="the right camera's clock minus the left one's: a pair stamped g apart "

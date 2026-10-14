@@ -88,6 +88,13 @@ class StereoRotationOptions:
     recentre_deg: float = 0.2
     """An error beyond this re-centres the rectification on the estimate and measures again."""
     max_recentres: int = 3
+    fit_row_scale: bool = True
+    """Fit a row offset proportional to the row: the two rectified images' vertical scales
+    differ when one camera's focal length or distortion is slightly off. Where the matched
+    patches sit on one side of the image (cameras far apart), it can hardly be told from a
+    turn: the images then leave it to ``row_scale_prior``."""
+    row_scale_prior: float = 0.003
+    """Std of that scale mismatch before the images are seen (0.3%: a pixel at 350 px)."""
 
     def __post_init__(self) -> None:
         if self.rows_px < 1 or self.coarse_rows_px < self.rows_px or self.max_recentres < 0:
@@ -139,6 +146,11 @@ class _Measurement:
     vertical_baseline_ratio: float
     residual_std_px: float
     rectification: FisheyeStereoRectification
+    row_scale_ratio: float | None = None
+    row_scale_ratio_std: float | None = None
+    noise_std_deg: FloatArray | None = None
+    """The jackknife part of ``std_deg`` (the images' noise), without the scale's."""
+    scale_std_deg: FloatArray | None = None
 
 
 def stereo_camera(model: CameraModel, width: int, height: int) -> StereoCamera:
@@ -289,6 +301,8 @@ def estimate_stereo_rotation(
             ).tolist(),
             axes=list(axes),
             vertical_baseline_ratio=measured.vertical_baseline_ratio if axes and measured else None,
+            row_scale_ratio=measured.row_scale_ratio if axes and measured else None,
+            row_scale_ratio_std=measured.row_scale_ratio_std if axes and measured else None,
             residual_std_px=measured.residual_std_px if axes and measured else None,
             time_offset_s=measured.time_offset_s if axes and measured else None,
             time_offset_std_s=measured.time_offset_std_s if axes and measured else None,
@@ -353,9 +367,10 @@ def estimate_stereo_rotation(
         moved = _measure(pairs, left, right, turned, opts, timing)
         response = float((moved.error_deg[index] - base.error_deg[index]) / opts.control_deg)
         std = float(base.std_deg[index])
+        noise = float(base.noise_std_deg[index]) if base.noise_std_deg is not None else std
         problems = []
-        if std > opts.max_std_deg:
-            problems.append(f"jackknife std {std:.3f} deg exceeds {opts.max_std_deg:g} deg")
+        if noise > opts.max_std_deg:
+            problems.append(f"jackknife std {noise:.3f} deg exceeds {opts.max_std_deg:g} deg")
         if not opts.min_response <= response <= opts.max_response:
             problems.append(
                 f"turning the candidate {opts.control_deg:g} deg moved the estimate by "
@@ -367,6 +382,9 @@ def estimate_stereo_rotation(
                 name=name,
                 candidate_error_deg=float(total_error[index]),
                 std_deg=std,
+                scale_std_deg=(
+                    float(base.scale_std_deg[index]) if base.scale_std_deg is not None else None
+                ),
                 control_response=response,
                 observable=not problems,
                 reason="; ".join(problems)
@@ -437,23 +455,54 @@ def _measure(
         rates = np.asarray(timing.rates_rad_s, dtype=np.float64)[pair]
         columns.append(-(rotation * rates).sum(axis=1)[:, None])  # per second of offset
     design = np.hstack(columns)
+    blocks = np.array_split(np.arange(len(pairs)), options.blocks)
 
-    def fit(rows: NDArray[np.bool_]) -> tuple[FloatArray, float]:
-        return _trimmed_fit(design[rows], values[rows])
+    def jackknife_std(design: FloatArray, values: FloatArray) -> FloatArray:
+        jackknife = np.array(
+            [
+                _trimmed_fit(design[~np.isin(pair, block)], values[~np.isin(pair, block)])[0]
+                for block in blocks
+            ]
+        )
+        count = len(blocks)
+        return np.sqrt(
+            (count - 1) / count * ((jackknife - jackknife.mean(axis=0)) ** 2).sum(axis=0)
+        )
 
-    if len(values) < design.shape[1] + 1:
+    if len(values) < design.shape[1] + 2:
         nan = np.full(3, np.nan)
         return _Measurement(
             nan, nan, None, None, len(samples), int(known.sum()), np.nan, np.nan, rectification
         )
-    coefficients, residual = fit(np.ones(len(values), dtype=bool))
-    blocks = np.array_split(np.arange(len(pairs)), options.blocks)
-    jackknife = np.array([fit(~np.isin(pair, block))[0] for block in blocks])
-    count = len(blocks)
-    std = np.sqrt((count - 1) / count * ((jackknife - jackknife.mean(axis=0)) ** 2).sum(axis=0))
+    # the vertical scale mismatch: what the images say about it (free fit), combined with
+    # its prior; the rotation is then fitted with it removed, and its remaining uncertainty
+    # reaches each axis through how strongly the axis follows it
+    row_scale: float | None = None
+    row_scale_std: float | None = None
+    scale_std = np.zeros(3)
+    if options.fit_row_scale:
+        scale_column = y / f  # px of offset per pixel of scale at one focal length
+        free = np.hstack([design, scale_column[:, None]])
+        data_value = float(_trimmed_fit(free, values)[0][-1])
+        data_std = float(jackknife_std(free, values)[-1])
+        prior = options.row_scale_prior * f
+        weight = prior**2 / (prior**2 + data_std**2) if prior > 0.0 else 0.0
+        value = data_value * weight
+        spread = (
+            float(np.sqrt(data_std**2 * prior**2 / (data_std**2 + prior**2)))
+            if prior > 0.0
+            else 0.0
+        )
+        values = values - value * scale_column
+        follows = -np.linalg.lstsq(design, scale_column, rcond=None)[0][:3]
+        scale_std = np.abs(follows) * spread
+        row_scale, row_scale_std = value / f, spread / f
+    coefficients, residual = _trimmed_fit(design, values)
+    std = jackknife_std(design, values)
+    noise = std[:3]
     return _Measurement(
         error_deg=np.degrees(coefficients[:3]),
-        std_deg=np.degrees(std[:3]),
+        std_deg=np.degrees(np.hypot(noise, scale_std)),
         time_offset_s=float(coefficients[4]) if timing is not None else None,
         time_offset_std_s=float(std[4]) if timing is not None else None,
         patches=len(samples),
@@ -461,6 +510,10 @@ def _measure(
         vertical_baseline_ratio=float(coefficients[3]),
         residual_std_px=residual,
         rectification=rectification,
+        row_scale_ratio=row_scale,
+        row_scale_ratio_std=row_scale_std,
+        noise_std_deg=np.degrees(noise),
+        scale_std_deg=np.degrees(scale_std),
     )
 
 

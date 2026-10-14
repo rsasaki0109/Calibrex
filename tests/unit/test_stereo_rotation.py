@@ -2,12 +2,20 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
 import pytest
 from scipy.spatial.transform import Rotation
-from tests.unit.stereo_scene import LEFT, RIGHT, TRUTH, render_pairs, render_turning_pairs
+from tests.unit.stereo_scene import (
+    LEFT,
+    RIGHT,
+    TRUTH,
+    render,
+    render_pairs,
+    render_turning_pairs,
+)
 
 from calibrex.check.estimators import rotation_errors_deg
 from calibrex.core.stereo_rotation import StereoRotationProvenance
@@ -163,3 +171,56 @@ def test_the_shared_view_of_two_cameras_follows_their_angle() -> None:
     assert same > 0.85
     assert 0.0 < square < same
     assert opposite == 0.0
+
+
+def _pairs_with_right_camera(
+    truth: np.ndarray, right_true: object, count: int = 8, seed: int = 4
+) -> list[tuple[np.ndarray, np.ndarray]]:
+    """Pairs whose right images come from ``right_true``, not the model the fit is given."""
+
+    rng = np.random.default_rng(seed)
+    pairs = []
+    for _ in range(count):
+        world_left = Rotation.from_euler(
+            "zyx",
+            [rng.uniform(-180, 180), rng.uniform(-30, 30), rng.uniform(-20, 20)],
+            degrees=True,
+        ).as_matrix()
+        pairs.append(
+            (
+                render(LEFT, world_left, np.zeros(3)),
+                render(right_true, world_left @ truth[:3, :3], world_left @ truth[:3, 3]),  # type: ignore[arg-type]
+            )
+        )
+    return pairs
+
+
+SIDE = np.eye(4)
+SIDE[:3, :3] = Rotation.from_euler("xyz", [0.3, 60.0, 0.2], degrees=True).as_matrix()
+SIDE[:3, 3] = [0.08, 0.0, -0.05]
+
+
+@pytest.mark.parametrize("truth", [TRUTH, SIDE], ids=["forward", "60 deg apart"])
+def test_a_vertical_scale_mismatch_is_fitted_not_read_as_a_turn(truth: np.ndarray) -> None:
+    # the right camera's true fy is 0.5% above its model: its rectified rows are 0.5% too
+    # far from the centre. Read as a turn, that is ~0.3 to 0.7 deg; fitted, it is the scale.
+    pairs = _pairs_with_right_camera(truth, replace(RIGHT, fy=RIGHT.fy * 1.005))
+    options = StereoRotationOptions(patches_per_pair=150, min_patches=200)
+    fitted = estimate_stereo_rotation(
+        pairs, LEFT, RIGHT, truth, provenance=PROVENANCE, options=options
+    )
+    ignored = estimate_stereo_rotation(
+        pairs,
+        LEFT,
+        RIGHT,
+        truth,
+        provenance=PROVENANCE,
+        options=replace(options, fit_row_scale=False),
+    )
+
+    assert fitted.policy_status == "pass"
+    assert all(abs(axis.candidate_error_deg) < 0.15 for axis in fitted.axes)
+    assert all(axis.scale_std_deg is not None for axis in fitted.axes)
+    assert fitted.row_scale_ratio == pytest.approx(0.005, abs=0.001)
+    assert max(abs(axis.candidate_error_deg) for axis in ignored.axes) > 0.3
+    assert ignored.row_scale_ratio is None

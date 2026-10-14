@@ -39,8 +39,22 @@
           "title": "Reason",
           "type": "string"
         },
+        "scale_std_deg": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the part of std_deg from the vertical scale mismatch the images leave to its prior (row_scale_ratio_std); the observability gate uses the rest",
+          "title": "Scale Std Deg"
+        },
         "std_deg": {
-          "description": "block-jackknife standard deviation",
+          "description": "standard deviation: the block jackknife over frames combined with scale_std_deg",
           "minimum": 0.0,
           "title": "Std Deg",
           "type": "number"
@@ -267,6 +281,32 @@
       ],
       "default": null,
       "title": "Residual Std Px"
+    },
+    "row_scale_ratio": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "row offset per pixel of row (a nuisance term: the right rectified image's vertical scale over the left's, minus one; a focal length or distortion slightly off in either camera)",
+      "title": "Row Scale Ratio"
+    },
+    "row_scale_ratio_std": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Row Scale Ratio Std"
     },
     "schema_version": {
       "const": "slac.stereo_rotation/v0.1",
