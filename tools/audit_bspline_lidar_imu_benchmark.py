@@ -273,6 +273,16 @@ def audit(root: Path) -> dict[str, object]:
                          and record["normal_preparation_calls"] > 0
                          and provenance.get("odometry_backend") == "cuda")):
             raise ValueError("normal preparation timing scope is inconsistent")
+        for scope in ("spatial_build", "preprocessing"):
+            seconds_key, calls_key = scope + "_seconds", scope + "_calls"
+            if (protocol.get("comparison") == "cuda-cuda" and hasattr(module, "_time_method")
+                    and not {seconds_key, calls_key} <= record.keys()):
+                raise ValueError(f"{scope} observation is missing")
+            if (seconds_key in record
+                    and not (0 <= record[seconds_key] <= record["pipeline_seconds"]
+                             and record[calls_key] > 0
+                             and provenance.get("odometry_backend") == "cuda")):
+                raise ValueError(f"{scope} timing scope is inconsistent")
         if len(record["rounds"]) != len(result["rounds"]):
             raise ValueError("worker did not retain every fit round")
         for fitted, reported in zip(record["rounds"], result["rounds"], strict=True):
@@ -362,6 +372,18 @@ def audit(root: Path) -> dict[str, object]:
             raise ValueError("normal preparation median is not positive")
         normal_summary = {"normal_median_seconds": normal_medians,
                           "normal_speedup": normal_medians["prior"] / normal_medians["current"]}
+    front_summary = {}
+    for scope in ("spatial_build", "preprocessing"):
+        if all(scope + "_seconds" in record for record in measurements.values()):
+            medians = {
+                variant: statistics.median(measurements[(r, variant)][scope + "_seconds"]
+                                           for r in range(protocol["repeats"]))
+                for variant in ("prior", "current")
+            }
+            if any(value <= 0 for value in medians.values()):
+                raise ValueError(f"{scope} median is not positive")
+            front_summary[scope + "_median_seconds"] = medians
+            front_summary[scope + "_speedup"] = medians["prior"] / medians["current"]
     return {
         "workers": len(attempts),
         "files": len(index["files"]),
@@ -369,6 +391,7 @@ def audit(root: Path) -> dict[str, object]:
         "fit_speedup": summary["fit_speedup"],
         "quality_passed": True,
         **normal_summary,
+        **front_summary,
     }
 
 

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Prototype exact GPU scan cropping/voxel centroids and device spatial-tree
+  construction for optional CUDA odometry. Source-bound public GLIM comparisons
+  retain complete fitted evidence; the observed 1.30x whole-worker ratio remains
+  modest and varies with host load. CPU defaults and core schemas are unchanged.
+
 - Add public-data diagnostics for exact GPU spatial-query candidates, with
   source-bound shaders, complete timing samples, exhaustive-neighbor tests and
   a CPU-only integrity audit. The observed 1.60x heap-query gain is an isolated
