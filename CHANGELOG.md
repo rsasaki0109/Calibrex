@@ -17,6 +17,7 @@
     between `exp01`'s halves, by up to 0.3 deg, while interleaved windows agree.
   - **Docs.** `docs/benchmarks/hilti_camera_imu.md` has the numbers. No verdict rule
     changes.
+
 - **The all-camera check runs about twice as fast, with the same results.**
   - **The stereo matcher.** `camera-camera` searched each patch's ZNCC match with a
     Python loop. It now matches blocks of patches as array operations: box sums give
