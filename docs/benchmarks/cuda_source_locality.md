@@ -1,5 +1,21 @@
 # Spatial scheduling of CUDA registration queries
 
+The latest three-pair comparison detected no competing CUDA compute processes
+in 42 ten-second observations, but **did not establish a useful speedup**.
+Whole medians are 64.765 s / 64.220 s (1.008x); complete registration increases
+from 17.903 s to 19.216 s (0.932x, 7.3% longer). All 12 full fitted rounds,
+holdout values and all 32 signed controls per pair are exactly equal.
+The source-ordering prototype stays a draft and should not be adopted as an
+effective acceleration on the basis of this workload.
+
+The [latest monitored archive](../assets/cuda_source_locality/repeat-v3/README.md)
+uses exactly the same runtime sources, frozen launcher and public workload.
+The observer would stop only this benchmark's process tree if foreign or unknown
+CUDA process membership appeared. None appeared. Ten-second process sampling
+does not prove continuous GPU exclusivity; CPU resources and graphics activity
+remain unreserved. This measurement includes fresh-process imports and initially
+empty worker compilation caches rather than just warm kernel execution.
+
 Dense CUDA odometry sources now sort their query-row indices by 63-bit Morton
 codes once per registration. Nearby points run together and reuse nearby tree
 nodes. The order is retained across all ICP iterations. Sources below 4096 rows
@@ -40,7 +56,7 @@ association, fits/covariance and validation. This chat launched no heavy local
 tests during the cohort. Another independent CUDA sanitizer workload was
 observed on the shared host during the first pair. This is a contended cohort:
 the timings cannot establish the isolated performance effect of this change.
-The prototype stays a draft pending measurements without competing GPU workloads.
+The later monitored comparison above provides the current performance assessment.
 
 A [monitored repeat](../assets/cuda_source_locality/repeat-v2/README.md) started
 with no CUDA compute processes, then detected competing workloads in 32 of 52

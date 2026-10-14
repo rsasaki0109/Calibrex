@@ -394,6 +394,8 @@ def audit(root: Path) -> dict[str, object]:
     repeat_summary = {}
     if (root / "repeat-v2").exists():
         repeat_summary["monitored_repeat"] = audit(root / "repeat-v2")
+    if (root / "repeat-v3").exists():
+        repeat_summary["latest_monitored_repeat"] = audit(root / "repeat-v3")
     if (root / "observation.json").exists():
         observed = json.loads((root / "observation.json").read_bytes())
         observation_schema = root / "observation.schema.json"
@@ -402,7 +404,8 @@ def audit(root: Path) -> dict[str, object]:
         if (binding["observer_sha256"] != _sha((root / "observer.py.txt").read_bytes())
                 or binding["schema_sha256"] != _sha(observation_schema.read_bytes())
                 or binding["launcher_sha256"] != protocol["launcher_sha256"]
-                or observed["exit_code"] != 0):
+                or observed["exit_code"] != 0
+                or binding.get("terminated_on_interference", False)):
             raise ValueError("GPU observation source/schema/launcher binding differs")
         command = binding["benchmark_command"]
         for option, value in (("--comparison", protocol["comparison"]),

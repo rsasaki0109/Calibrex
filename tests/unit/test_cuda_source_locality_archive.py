@@ -22,18 +22,26 @@ def test_complete_source_locality_archive_audits_registration_and_quality() -> N
     assert repeated["gpu_observation_samples"] == 52
     assert repeated["foreign_gpu_samples"] == 32
     assert repeated["unknown_gpu_samples"] == 0
+    latest = result["latest_monitored_repeat"]
+    assert latest["quality_passed"] and latest["workers"] == 6
+    assert latest["gpu_observation_samples"] == 42
+    assert latest["foreign_gpu_samples"] == latest["unknown_gpu_samples"] == 0
+    assert latest["whole_speedup"] == pytest.approx(1.0084855003963806)
+    assert latest["registration_speedup"] == pytest.approx(0.9316863965857922)
 
 
 @pytest.mark.parametrize("mutation", ["observer", "launcher", "schema", "interval",
-                                      "offset", "negative", "command", "geometry"])
+                                      "offset", "negative", "command", "geometry",
+                                      "terminated"])
+@pytest.mark.parametrize("repeat_name", ["repeat-v2", "repeat-v3"])
 def test_monitored_repeat_rejects_rebound_false_observation(
-    tmp_path: Path, mutation: str,
+    tmp_path: Path, mutation: str, repeat_name: str,
 ) -> None:
     from jsonschema import ValidationError
 
     root = tmp_path / "archive"
     shutil.copytree(ROOT, root)
-    repeated = root / "repeat-v2"
+    repeated = root / repeat_name
     path = repeated / "observation.json"
     record = json.loads(path.read_bytes())
     if mutation in ("observer", "launcher", "schema"):
@@ -44,6 +52,8 @@ def test_monitored_repeat_rejects_rebound_false_observation(
         record["samples"][-1]["offset_seconds"] = 0
     elif mutation == "negative":
         record["samples"][0]["foreign"] = -1
+    elif mutation == "terminated":
+        record["provenance"]["terminated_on_interference"] = True
     else:
         command = record["provenance"]["benchmark_command"]
         option = "--max-seconds" if mutation == "command" else "--odometry-voxel-size-m"

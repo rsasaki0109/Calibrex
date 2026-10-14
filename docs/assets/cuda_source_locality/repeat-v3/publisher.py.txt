@@ -1,0 +1,78 @@
+from pathlib import Path
+import hashlib,json,shutil,statistics
+
+parent=Path('docs/assets/cuda_source_locality')
+source=Path('outputs/source-locality-formal-v3')
+observation=Path('outputs/source-locality-observation-v3')
+root=parent/'repeat-v3';root.mkdir(exist_ok=False)
+summary=json.loads((source/'summary.json').read_bytes())
+assert summary['quality_passed']
+observed_input=json.loads((observation/'observation.json').read_bytes())
+assert observed_input['exit_code']==0
+assert all(row['foreign']==row['unknown']==0 for row in observed_input['samples'])
+assert not observed_input['provenance']['terminated_on_interference']
+for name in ('protocol.json','attempts.json','summary.json'):
+    shutil.copyfile(source/name,root/name)
+attempts=json.loads((source/'attempts.json').read_bytes())
+for a in attempts:
+    folder=root/a['worker'];folder.mkdir()
+    for name in ('measurement.json','result.json','worker.log'):
+        shutil.copyfile(source/a['worker']/name,folder/name)
+for variant in ('prior','current'):
+    name=f'sources-{variant}-manifest.json'
+    assert (parent/name).read_bytes()==(source/f'sources-{variant}'/'manifest.json').read_bytes()
+    for file in (name,f'sources-{variant}.tar.gz'):
+        shutil.copyfile(parent/file,root/file)
+for name in ('benchmark.py.txt','comparison.schema.json','source-order-tests.py.txt','odometry-tests.py.txt'):
+    shutil.copyfile(parent/name,root/name)
+for name in ('observation.json','observation.schema.json','observer.py.txt'):
+    shutil.copyfile(observation/name,root/name)
+shutil.copyfile(__file__,root/'publisher.py.txt')
+observed=json.loads((root/'observation.json').read_bytes())
+foreign=sum(row['foreign']>0 for row in observed['samples'])
+unknown=sum(row['unknown']>0 for row in observed['samples'])
+text=f'''# Monitored repeat of CUDA source scheduling
+
+This repeat keeps exactly the same runtime source bytes and workload as the
+parent comparison. Source manifests match; the existing bound source archives
+are reused byte-for-byte. The measured current commit includes publication
+changes only.
+
+The observer sampled CUDA process membership every ten seconds: {len(observed['samples'])}
+samples, {foreign} with foreign GPU processes, and {unknown} with unknown process
+membership. No foreign or unknown compute processes were detected. The observer
+would terminate only the owned cohort if interference appeared. Periodic sampling
+does not prove continuous GPU exclusivity. No process names
+or process IDs are published. This periodic check also does not reserve CPU
+resources or detect all graphics activity.
+
+All three complete comparisons retain exact calibration, holdout and decision
+equality. Full fitted trajectories, covariance, costs and 32 controls are kept.
+Verdicts remain INCONCLUSIVE without independent extrinsic truth.
+
+Whole medians are {summary['whole_median_seconds']['prior']:.3f} s and
+{summary['whole_median_seconds']['current']:.3f} s (observed ratio
+{summary['whole_speedup']:.3f}x). These are retained timings, not an isolated
+speedup claim. The 1.008x whole ratio does not establish a meaningful performance
+benefit; registration medians increase from 17.903 s to 19.216 s (0.932x).
+The source-ordering prototype should not be adopted as an effective acceleration
+on the basis of this workload.
+
+The index binds six complete workers, source archives/manifests, frozen launcher,
+schemas, tests, observer source/report and publisher. The report binds the
+observer and launcher hashes. The parent audit also checks this nested repeat.
+'''
+(root/'README.md').write_text(text,encoding='utf-8',newline='\n')
+def index(folder,protocol):
+    values={p.relative_to(folder).as_posix():hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in sorted(folder.rglob('*')) if p.is_file() and p!=folder/'publication-index.json'}
+    (folder/'publication-index.json').write_text(json.dumps({
+        'schema_version':'slac.bspline_lidar_imu_publication/v0.1',
+        'provenance':{'input_protocol_sha256':hashlib.sha256(protocol.read_bytes()).hexdigest()},
+        'files':values},indent=2)+'\n',encoding='utf-8',newline='\n')
+index(root,root/'protocol.json')
+readme=parent/'README.md'
+readme.write_text(readme.read_text(encoding='utf-8')+f'\nA [third monitored comparison](repeat-v3/README.md) retained all three exact quality\ncomparisons, with zero foreign or unknown GPU processes in {len(observed["samples"])} samples.\nWhole medians are 64.765 s / 64.220 s (1.008x); registration is slower\n(17.903 s / 19.216 s, 0.932x). This does not establish a useful acceleration.\n',encoding='utf-8',newline='\n')
+index(parent,parent/'protocol.json')
+print({'repeat_files':len(json.loads((root/'publication-index.json').read_bytes())['files'])+1,
+       'foreign_samples':foreign,'observation_samples':len(observed['samples'])})

@@ -1,0 +1,952 @@
+{
+  "blocks": [
+    {
+      "controls": 6,
+      "controls_detected": 0,
+      "estimate": [
+        0.015394877909932372,
+        0.016969386504029012,
+        0.0008517565905702163
+      ],
+      "formal_std": [
+        0.009765846301782564,
+        0.011701989514093666,
+        0.015852665592809
+      ],
+      "last_round_change": [
+        0.002397394246657734,
+        -0.001552346443133525,
+        0.013313466771107842
+      ],
+      "name": "imu_rotation",
+      "reason": "6 of 6 signed controls not detected; formal std 0.0159 above 0.00872665",
+      "unit": "rad",
+      "verdict": "weak"
+    },
+    {
+      "controls": 6,
+      "controls_detected": 0,
+      "estimate": [
+        0.0018751586046948934,
+        0.00025627585252277143,
+        -0.00010943556836837364
+      ],
+      "formal_std": [
+        0.0019051328643997659,
+        0.0018649123709371092,
+        0.0018412815724825858
+      ],
+      "last_round_change": [
+        -7.185507084157242e-05,
+        -0.00028023369108166304,
+        -6.633528708443911e-05
+      ],
+      "name": "gyro_bias",
+      "reason": "6 of 6 signed controls not detected",
+      "unit": "rad/s",
+      "verdict": "weak"
+    },
+    {
+      "controls": 6,
+      "controls_detected": 6,
+      "estimate": [
+        -0.021105100607876685,
+        -0.017234549918266163,
+        0.15498656463562077
+      ],
+      "formal_std": [
+        0.035058658829383256,
+        0.02406639050837072,
+        0.03597450543914362
+      ],
+      "last_round_change": [
+        0.06376686272738721,
+        0.018505778194121778,
+        -0.08311711885673623
+      ],
+      "name": "lever_arm",
+      "reason": "all signed controls detected",
+      "unit": "m",
+      "verdict": "estimated"
+    },
+    {
+      "controls": 2,
+      "controls_detected": 2,
+      "estimate": [
+        0.0052273672603582715
+      ],
+      "formal_std": [
+        0.0005250177783900352
+      ],
+      "last_round_change": [
+        -0.00011622352247110234
+      ],
+      "name": "imu_clock_offset",
+      "reason": "all signed controls detected",
+      "unit": "s",
+      "verdict": "estimated"
+    },
+    {
+      "controls": 6,
+      "controls_detected": 6,
+      "estimate": [
+        -0.03809690475170653,
+        0.16761099226666026,
+        -0.043886578276386805
+      ],
+      "formal_std": [
+        0.16131375209292334,
+        0.13059559139250512,
+        0.045119049488722925
+      ],
+      "last_round_change": [
+        -0.06245666414878338,
+        -0.008930761313354518,
+        -0.014461724803934196
+      ],
+      "name": "accel_bias",
+      "reason": "all signed controls detected",
+      "unit": "m/s^2",
+      "verdict": "estimated"
+    },
+    {
+      "controls": 6,
+      "controls_detected": 6,
+      "estimate": [
+        2.0128142498277484,
+        1.4578046785938978,
+        -9.485234474151488
+      ],
+      "formal_std": [
+        0.11974052832547323,
+        0.10952013869317039,
+        0.04408458952200575
+      ],
+      "last_round_change": [
+        -0.059112178192864295,
+        0.027329854956315236,
+        -0.011078491090437126
+      ],
+      "name": "gravity",
+      "reason": "all signed controls detected",
+      "unit": "m/s^2",
+      "verdict": "estimated"
+    }
+  ],
+  "control_delta_chi2_threshold": 9.0,
+  "control_points": 58,
+  "controls": [
+    {
+      "axis": 0,
+      "delta_chi2": 1.6764995709297636,
+      "detected": false,
+      "family": "gyro",
+      "magnitude": 0.017453292519943295,
+      "parameter": "imu_rotation",
+      "sign": -1,
+      "unit": "rad"
+    },
+    {
+      "axis": 0,
+      "delta_chi2": 2.143955697012643,
+      "detected": false,
+      "family": "gyro",
+      "magnitude": 0.017453292519943295,
+      "parameter": "imu_rotation",
+      "sign": 1,
+      "unit": "rad"
+    },
+    {
+      "axis": 1,
+      "delta_chi2": 2.1930639743884512,
+      "detected": false,
+      "family": "gyro",
+      "magnitude": 0.017453292519943295,
+      "parameter": "imu_rotation",
+      "sign": -1,
+      "unit": "rad"
+    },
+    {
+      "axis": 1,
+      "delta_chi2": 1.328629069055296,
+      "detected": false,
+      "family": "gyro",
+      "magnitude": 0.017453292519943295,
+      "parameter": "imu_rotation",
+      "sign": 1,
+      "unit": "rad"
+    },
+    {
+      "axis": 2,
+      "delta_chi2": 0.9607916817035402,
+      "detected": false,
+      "family": "gyro",
+      "magnitude": 0.017453292519943295,
+      "parameter": "imu_rotation",
+      "sign": -1,
+      "unit": "rad"
+    },
+    {
+      "axis": 2,
+      "delta_chi2": 1.1002939884140233,
+      "detected": false,
+      "family": "gyro",
+      "magnitude": 0.017453292519943295,
+      "parameter": "imu_rotation",
+      "sign": 1,
+      "unit": "rad"
+    },
+    {
+      "axis": 0,
+      "delta_chi2": 3.8544298180470378,
+      "detected": false,
+      "family": "gyro",
+      "magnitude": 0.005,
+      "parameter": "gyro_bias",
+      "sign": -1,
+      "unit": "rad/s"
+    },
+    {
+      "axis": 0,
+      "delta_chi2": 4.175360127456088,
+      "detected": false,
+      "family": "gyro",
+      "magnitude": 0.005,
+      "parameter": "gyro_bias",
+      "sign": 1,
+      "unit": "rad/s"
+    },
+    {
+      "axis": 1,
+      "delta_chi2": 5.190818530207707,
+      "detected": false,
+      "family": "gyro",
+      "magnitude": 0.005,
+      "parameter": "gyro_bias",
+      "sign": -1,
+      "unit": "rad/s"
+    },
+    {
+      "axis": 1,
+      "delta_chi2": 2.8389714152954184,
+      "detected": false,
+      "family": "gyro",
+      "magnitude": 0.005,
+      "parameter": "gyro_bias",
+      "sign": 1,
+      "unit": "rad/s"
+    },
+    {
+      "axis": 2,
+      "delta_chi2": 4.396876957944187,
+      "detected": false,
+      "family": "gyro",
+      "magnitude": 0.005,
+      "parameter": "gyro_bias",
+      "sign": -1,
+      "unit": "rad/s"
+    },
+    {
+      "axis": 2,
+      "delta_chi2": 3.6329129875589388,
+      "detected": false,
+      "family": "gyro",
+      "magnitude": 0.005,
+      "parameter": "gyro_bias",
+      "sign": 1,
+      "unit": "rad/s"
+    },
+    {
+      "delta_chi2": 58.7209644959612,
+      "detected": true,
+      "family": "gyro",
+      "magnitude": 0.005,
+      "parameter": "imu_clock_offset",
+      "sign": -1,
+      "unit": "s"
+    },
+    {
+      "delta_chi2": 13.855104409218256,
+      "detected": true,
+      "family": "gyro",
+      "magnitude": 0.005,
+      "parameter": "imu_clock_offset",
+      "sign": 1,
+      "unit": "s"
+    },
+    {
+      "axis": 0,
+      "delta_chi2": 119.5686206591829,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.05,
+      "parameter": "lever_arm",
+      "sign": -1,
+      "unit": "m"
+    },
+    {
+      "axis": 0,
+      "delta_chi2": 173.838970050753,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.05,
+      "parameter": "lever_arm",
+      "sign": 1,
+      "unit": "m"
+    },
+    {
+      "axis": 1,
+      "delta_chi2": 129.42604854559,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.05,
+      "parameter": "lever_arm",
+      "sign": -1,
+      "unit": "m"
+    },
+    {
+      "axis": 1,
+      "delta_chi2": 120.09049324513558,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.05,
+      "parameter": "lever_arm",
+      "sign": 1,
+      "unit": "m"
+    },
+    {
+      "axis": 2,
+      "delta_chi2": 159.5722458203993,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.05,
+      "parameter": "lever_arm",
+      "sign": -1,
+      "unit": "m"
+    },
+    {
+      "axis": 2,
+      "delta_chi2": 131.95103613496894,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.05,
+      "parameter": "lever_arm",
+      "sign": 1,
+      "unit": "m"
+    },
+    {
+      "axis": 0,
+      "delta_chi2": 364.9221165491938,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.2,
+      "parameter": "accel_bias",
+      "sign": -1,
+      "unit": "m/s^2"
+    },
+    {
+      "axis": 0,
+      "delta_chi2": 334.56987941848524,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.2,
+      "parameter": "accel_bias",
+      "sign": 1,
+      "unit": "m/s^2"
+    },
+    {
+      "axis": 1,
+      "delta_chi2": 339.32578261889944,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.2,
+      "parameter": "accel_bias",
+      "sign": -1,
+      "unit": "m/s^2"
+    },
+    {
+      "axis": 1,
+      "delta_chi2": 360.16621334878005,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.2,
+      "parameter": "accel_bias",
+      "sign": 1,
+      "unit": "m/s^2"
+    },
+    {
+      "axis": 2,
+      "delta_chi2": 318.13860365631103,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.2,
+      "parameter": "accel_bias",
+      "sign": -1,
+      "unit": "m/s^2"
+    },
+    {
+      "axis": 2,
+      "delta_chi2": 381.3533923113696,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.2,
+      "parameter": "accel_bias",
+      "sign": 1,
+      "unit": "m/s^2"
+    },
+    {
+      "axis": 0,
+      "delta_chi2": 331.80267228338835,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.2,
+      "parameter": "gravity",
+      "sign": -1,
+      "unit": "m/s^2"
+    },
+    {
+      "axis": 0,
+      "delta_chi2": 367.68932368429114,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.2,
+      "parameter": "gravity",
+      "sign": 1,
+      "unit": "m/s^2"
+    },
+    {
+      "axis": 1,
+      "delta_chi2": 360.1403907990409,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.2,
+      "parameter": "gravity",
+      "sign": -1,
+      "unit": "m/s^2"
+    },
+    {
+      "axis": 1,
+      "delta_chi2": 339.35160516863857,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.2,
+      "parameter": "gravity",
+      "sign": 1,
+      "unit": "m/s^2"
+    },
+    {
+      "axis": 2,
+      "delta_chi2": 380.5370156542715,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.2,
+      "parameter": "gravity",
+      "sign": -1,
+      "unit": "m/s^2"
+    },
+    {
+      "axis": 2,
+      "delta_chi2": 318.9549803134023,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.2,
+      "parameter": "gravity",
+      "sign": 1,
+      "unit": "m/s^2"
+    }
+  ],
+  "converged": false,
+  "entangled_correlation_threshold": 0.9,
+  "holdout_imu_samples": 366,
+  "holdout_whitened_rms": {
+    "accel": 0.9868917713766505,
+    "gyro": 1.0078075643674569,
+    "plane": 1.0210424892370813
+  },
+  "imu_clock_offset_s": 0.0052273672603582715,
+  "initial": {
+    "clock_offset_s": 0.009075255939221795,
+    "gyro_bias_rad_s": [
+      0.002414767913240258,
+      0.0005356269217805345,
+      0.0006001982669319816
+    ],
+    "method": "angular_rate_alignment/v0.1",
+    "policy_status": "inconclusive",
+    "rotation_vector_rad": [
+      0.02399904019177775,
+      0.016079827453305894,
+      -0.0008667484768059162
+    ]
+  },
+  "knot_spacing_s": 0.1,
+  "limitations": [
+    "The plane map is built from the trajectory being fitted, so the formal std (map held fixed) understates the uncertainty; read it with last_round_change and rotation_difference_from_initial_deg.",
+    "One segment (the longest reliable odometry window) is calibrated; other parts of the bag are not used.",
+    "Gravity carries a prior on its magnitude (gravity_magnitude_m_s2 with gravity_magnitude_sigma_m_s2): without tilt only g_z + b_a,z is observed, so the vertical accelerometer bias rests on that prior; see the separability records."
+  ],
+  "method": "cubic_bspline_joint/v0.1",
+  "noise_sigmas": {
+    "accel": 0.20459459745358724,
+    "gyro": 0.04773901485011594,
+    "plane": 0.02397765293391368
+  },
+  "options": {
+    "association_gate_m": 0.3,
+    "gravity_magnitude_m_s2": 9.80665,
+    "gravity_magnitude_sigma_m_s2": 0.03,
+    "holdout_every": 3,
+    "holdout_fail_whitened_rms": 2.0,
+    "imu_lowpass_hz": null,
+    "initial_odometry_execution": [
+      {
+        "executed_backends": [
+          "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=531a0c44df08563596f81dc9cc467de1b7d8be7884e666e0fe611ce7ea4c4baa;system_sha256=f9f5ddd2236ae85007647775c96fae2403c84edb5cc2ff0209c391c3c460b712"
+        ],
+        "requested_backend": "cuda",
+        "statistics": {
+          "gpu_fused_system_calls": 829,
+          "gpu_normal_kernel_calls": 56,
+          "gpu_normal_rows": 2585953,
+          "gpu_preprocess_calls": 169,
+          "gpu_preprocess_input_rows": 5931882,
+          "gpu_preprocess_kernel_calls": 338,
+          "gpu_preprocess_output_rows": 4801747,
+          "gpu_query_calls": 885,
+          "gpu_query_rows": 18859432,
+          "gpu_system_refresh_calls": 0,
+          "gpu_tree_build_kernel_calls": 168,
+          "gpu_tree_builds": 56,
+          "native_preprocess_calls": 0,
+          "native_tree_builds": 29,
+          "public_node_tree_captures": 0,
+          "scalar_motion_repairs": 2,
+          "scalar_normal_repairs": 53,
+          "scalar_query_repairs": 53,
+          "scalar_registration_repairs": 2,
+          "serialized_tree_captures": 0
+        }
+      },
+      {
+        "executed_backends": [
+          "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=531a0c44df08563596f81dc9cc467de1b7d8be7884e666e0fe611ce7ea4c4baa;system_sha256=f9f5ddd2236ae85007647775c96fae2403c84edb5cc2ff0209c391c3c460b712"
+        ],
+        "requested_backend": "cuda",
+        "statistics": {
+          "gpu_fused_system_calls": 634,
+          "gpu_normal_kernel_calls": 56,
+          "gpu_normal_rows": 2491780,
+          "gpu_preprocess_calls": 169,
+          "gpu_preprocess_input_rows": 5898228,
+          "gpu_preprocess_kernel_calls": 338,
+          "gpu_preprocess_output_rows": 4675253,
+          "gpu_query_calls": 690,
+          "gpu_query_rows": 14748048,
+          "gpu_system_refresh_calls": 0,
+          "gpu_tree_build_kernel_calls": 168,
+          "gpu_tree_builds": 56,
+          "native_preprocess_calls": 0,
+          "native_tree_builds": 33,
+          "public_node_tree_captures": 0,
+          "scalar_motion_repairs": 2,
+          "scalar_normal_repairs": 53,
+          "scalar_query_repairs": 53,
+          "scalar_registration_repairs": 3,
+          "serialized_tree_captures": 0
+        }
+      },
+      {
+        "executed_backends": [
+          "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=531a0c44df08563596f81dc9cc467de1b7d8be7884e666e0fe611ce7ea4c4baa;system_sha256=f9f5ddd2236ae85007647775c96fae2403c84edb5cc2ff0209c391c3c460b712"
+        ],
+        "requested_backend": "cuda",
+        "statistics": {
+          "gpu_fused_system_calls": 582,
+          "gpu_normal_kernel_calls": 56,
+          "gpu_normal_rows": 2462692,
+          "gpu_preprocess_calls": 169,
+          "gpu_preprocess_input_rows": 5888636,
+          "gpu_preprocess_kernel_calls": 338,
+          "gpu_preprocess_output_rows": 4639638,
+          "gpu_query_calls": 638,
+          "gpu_query_rows": 13681511,
+          "gpu_system_refresh_calls": 0,
+          "gpu_tree_build_kernel_calls": 168,
+          "gpu_tree_builds": 56,
+          "native_preprocess_calls": 0,
+          "native_tree_builds": 27,
+          "public_node_tree_captures": 0,
+          "scalar_motion_repairs": 0,
+          "scalar_normal_repairs": 66,
+          "scalar_query_repairs": 66,
+          "scalar_registration_repairs": 0,
+          "serialized_tree_captures": 0
+        }
+      },
+      {
+        "executed_backends": [
+          "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=531a0c44df08563596f81dc9cc467de1b7d8be7884e666e0fe611ce7ea4c4baa;system_sha256=f9f5ddd2236ae85007647775c96fae2403c84edb5cc2ff0209c391c3c460b712"
+        ],
+        "requested_backend": "cuda",
+        "statistics": {
+          "gpu_fused_system_calls": 554,
+          "gpu_normal_kernel_calls": 56,
+          "gpu_normal_rows": 2449227,
+          "gpu_preprocess_calls": 169,
+          "gpu_preprocess_input_rows": 5883530,
+          "gpu_preprocess_kernel_calls": 338,
+          "gpu_preprocess_output_rows": 4622784,
+          "gpu_query_calls": 610,
+          "gpu_query_rows": 13109710,
+          "gpu_system_refresh_calls": 0,
+          "gpu_tree_build_kernel_calls": 168,
+          "gpu_tree_builds": 56,
+          "native_preprocess_calls": 0,
+          "native_tree_builds": 25,
+          "public_node_tree_captures": 0,
+          "scalar_motion_repairs": 0,
+          "scalar_normal_repairs": 48,
+          "scalar_query_repairs": 48,
+          "scalar_registration_repairs": 0,
+          "serialized_tree_captures": 0
+        }
+      },
+      {
+        "executed_backends": [
+          "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=531a0c44df08563596f81dc9cc467de1b7d8be7884e666e0fe611ce7ea4c4baa;system_sha256=f9f5ddd2236ae85007647775c96fae2403c84edb5cc2ff0209c391c3c460b712"
+        ],
+        "requested_backend": "cuda",
+        "statistics": {
+          "gpu_fused_system_calls": 551,
+          "gpu_normal_kernel_calls": 56,
+          "gpu_normal_rows": 2443218,
+          "gpu_preprocess_calls": 169,
+          "gpu_preprocess_input_rows": 5880690,
+          "gpu_preprocess_kernel_calls": 338,
+          "gpu_preprocess_output_rows": 4615047,
+          "gpu_query_calls": 607,
+          "gpu_query_rows": 13039519,
+          "gpu_system_refresh_calls": 0,
+          "gpu_tree_build_kernel_calls": 168,
+          "gpu_tree_builds": 56,
+          "native_preprocess_calls": 0,
+          "native_tree_builds": 27,
+          "public_node_tree_captures": 0,
+          "scalar_motion_repairs": 1,
+          "scalar_normal_repairs": 67,
+          "scalar_query_repairs": 67,
+          "scalar_registration_repairs": 1,
+          "serialized_tree_captures": 0
+        }
+      },
+      {
+        "executed_backends": [
+          "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=531a0c44df08563596f81dc9cc467de1b7d8be7884e666e0fe611ce7ea4c4baa;system_sha256=f9f5ddd2236ae85007647775c96fae2403c84edb5cc2ff0209c391c3c460b712"
+        ],
+        "requested_backend": "cuda",
+        "statistics": {
+          "gpu_fused_system_calls": 546,
+          "gpu_normal_kernel_calls": 56,
+          "gpu_normal_rows": 2442166,
+          "gpu_preprocess_calls": 169,
+          "gpu_preprocess_input_rows": 5880783,
+          "gpu_preprocess_kernel_calls": 338,
+          "gpu_preprocess_output_rows": 4613669,
+          "gpu_query_calls": 602,
+          "gpu_query_rows": 12937883,
+          "gpu_system_refresh_calls": 0,
+          "gpu_tree_build_kernel_calls": 168,
+          "gpu_tree_builds": 56,
+          "native_preprocess_calls": 0,
+          "native_tree_builds": 34,
+          "public_node_tree_captures": 0,
+          "scalar_motion_repairs": 2,
+          "scalar_normal_repairs": 73,
+          "scalar_query_repairs": 73,
+          "scalar_registration_repairs": 3,
+          "serialized_tree_captures": 0
+        }
+      },
+      {
+        "executed_backends": [
+          "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=531a0c44df08563596f81dc9cc467de1b7d8be7884e666e0fe611ce7ea4c4baa;system_sha256=f9f5ddd2236ae85007647775c96fae2403c84edb5cc2ff0209c391c3c460b712"
+        ],
+        "requested_backend": "cuda",
+        "statistics": {
+          "gpu_fused_system_calls": 539,
+          "gpu_normal_kernel_calls": 56,
+          "gpu_normal_rows": 2441501,
+          "gpu_preprocess_calls": 169,
+          "gpu_preprocess_input_rows": 5879818,
+          "gpu_preprocess_kernel_calls": 338,
+          "gpu_preprocess_output_rows": 4612352,
+          "gpu_query_calls": 595,
+          "gpu_query_rows": 12797717,
+          "gpu_system_refresh_calls": 0,
+          "gpu_tree_build_kernel_calls": 168,
+          "gpu_tree_builds": 56,
+          "native_preprocess_calls": 0,
+          "native_tree_builds": 30,
+          "public_node_tree_captures": 0,
+          "scalar_motion_repairs": 0,
+          "scalar_normal_repairs": 53,
+          "scalar_query_repairs": 53,
+          "scalar_registration_repairs": 2,
+          "serialized_tree_captures": 0
+        }
+      }
+    ],
+    "knot_spacing_s": 0.1,
+    "map_max_planarity": 0.1,
+    "map_points_per_scan": 1500,
+    "map_voxel_m": 0.15,
+    "max_rounds": 4,
+    "max_seconds": 6.0,
+    "max_segment_s": 30.0,
+    "method_disagreement_deg": 1.0,
+    "odometry_backend": "cuda",
+    "odometry_options": {
+      "convergence_rotation_rad": 1e-05,
+      "convergence_translation_m": 0.0001,
+      "deskew_iterations": 1,
+      "geometry_quantum_m": 1e-09,
+      "huber_delta_m": 0.1,
+      "local_map_scans": 3,
+      "max_correspondence_m": 1.5,
+      "max_iterations": 30,
+      "max_planarity_ratio": 0.2,
+      "max_range_m": 60.0,
+      "min_correspondences": 200,
+      "min_range_m": 1.0,
+      "motion_rotation_quantum_rad": 1e-07,
+      "motion_translation_quantum_m": 1e-06,
+      "normal_neighbours": 10,
+      "voxel_size_m": 0.03
+    },
+    "plane_gate_m": 0.1,
+    "returns_per_scan": 300,
+    "rotation_convergence_deg": 0.005,
+    "seed": 20261011,
+    "segment_odometry_execution": [
+      {
+        "executed_backends": [
+          "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=531a0c44df08563596f81dc9cc467de1b7d8be7884e666e0fe611ce7ea4c4baa;system_sha256=f9f5ddd2236ae85007647775c96fae2403c84edb5cc2ff0209c391c3c460b712"
+        ],
+        "requested_backend": "cuda",
+        "statistics": {
+          "gpu_fused_system_calls": 542,
+          "gpu_normal_kernel_calls": 56,
+          "gpu_normal_rows": 2440957,
+          "gpu_preprocess_calls": 169,
+          "gpu_preprocess_input_rows": 5879706,
+          "gpu_preprocess_kernel_calls": 338,
+          "gpu_preprocess_output_rows": 4611767,
+          "gpu_query_calls": 598,
+          "gpu_query_rows": 12856136,
+          "gpu_system_refresh_calls": 0,
+          "gpu_tree_build_kernel_calls": 168,
+          "gpu_tree_builds": 56,
+          "native_preprocess_calls": 0,
+          "native_tree_builds": 26,
+          "public_node_tree_captures": 0,
+          "scalar_motion_repairs": 3,
+          "scalar_normal_repairs": 61,
+          "scalar_query_repairs": 61,
+          "scalar_registration_repairs": 3,
+          "serialized_tree_captures": 0
+        }
+      }
+    ],
+    "warmup_rounds": 1
+  },
+  "policy_reasons": [
+    "imu_rotation is weak: 6 of 6 signed controls not detected; formal std 0.0159 above 0.00872665"
+  ],
+  "policy_status": "inconclusive",
+  "provenance": {
+    "bag": "livox.bag",
+    "command": [
+      "python",
+      "-m",
+      "tools.benchmark_bspline_lidar_imu",
+      "--worker",
+      "--variant",
+      "prior",
+      "--max-seconds",
+      "6.0",
+      "--max-rounds",
+      "4",
+      "--comparison",
+      "cuda-cuda",
+      "--odometry-voxel-size-m",
+      "0.03",
+      "--odometry-local-map-scans",
+      "3",
+      "--odometry-geometry-quantum-m",
+      "1e-09",
+      "--odometry-motion-translation-quantum-m",
+      "1e-06",
+      "--odometry-motion-rotation-quantum-rad",
+      "1e-07"
+    ],
+    "created_at": "2026-10-14T10:56:07.535961+00:00",
+    "dataset_family": "glim_versatile",
+    "dataset_license": "upstream AIST GLIM dataset terms",
+    "generator": "calibrex.evaluation.lidar_imu_bag_calibration",
+    "generator_version": "0.5.1",
+    "git_commit": "9cf33f996aaaffaf40ab053fc6b3ad1d5f94f46d",
+    "imu_topic": "/livox/imu",
+    "input_digest_scope": "bag metadata.yaml in full; bag databases by size and first 64 MiB",
+    "input_sha256": "2d5ce57c440c22057e4c16abb1dc67a73e23ac5b19a0b79150afb02edfbdbd06",
+    "lidar_topic": "/livox/points",
+    "point_time_field": "t"
+  },
+  "rotation_difference_from_initial_deg": 0.5052886691201401,
+  "rounds": [
+    {
+      "fit_status": "converged",
+      "iterations": 6,
+      "map_planes": 4938,
+      "plane_returns": 13121,
+      "rotation_change_deg": 0.0,
+      "round": 0
+    },
+    {
+      "fit_status": "converged",
+      "iterations": 19,
+      "map_planes": 4939,
+      "plane_returns": 13588,
+      "rotation_change_deg": 0.7679962467820837,
+      "round": 1
+    },
+    {
+      "fit_status": "converged",
+      "iterations": 13,
+      "map_planes": 4950,
+      "plane_returns": 13485,
+      "rotation_change_deg": 0.36764497866307744,
+      "round": 2
+    },
+    {
+      "fit_status": "converged",
+      "iterations": 11,
+      "map_planes": 4941,
+      "plane_returns": 13482,
+      "rotation_change_deg": 0.7801608365529822,
+      "round": 3
+    }
+  ],
+  "scans": 55,
+  "schema_version": "slac.lidar_imu_bag_calibration/v0.1",
+  "segment_duration_s": 5.5,
+  "segment_start_s": 110.79992746,
+  "separability": [
+    {
+      "block_a": "imu_rotation",
+      "block_b": "gyro_bias",
+      "entangled": false,
+      "max_abs_correlation": 0.22157882889235644
+    },
+    {
+      "block_a": "imu_rotation",
+      "block_b": "lever_arm",
+      "entangled": false,
+      "max_abs_correlation": 0.25415798065859846
+    },
+    {
+      "block_a": "imu_rotation",
+      "block_b": "imu_clock_offset",
+      "entangled": false,
+      "max_abs_correlation": 0.1431865806594901
+    },
+    {
+      "block_a": "imu_rotation",
+      "block_b": "accel_bias",
+      "entangled": false,
+      "max_abs_correlation": 0.6452459709670554
+    },
+    {
+      "block_a": "imu_rotation",
+      "block_b": "gravity",
+      "entangled": false,
+      "max_abs_correlation": 0.48992518803531354
+    },
+    {
+      "block_a": "gyro_bias",
+      "block_b": "lever_arm",
+      "entangled": false,
+      "max_abs_correlation": 0.035861057544482836
+    },
+    {
+      "block_a": "gyro_bias",
+      "block_b": "imu_clock_offset",
+      "entangled": false,
+      "max_abs_correlation": 0.026918940247265738
+    },
+    {
+      "block_a": "gyro_bias",
+      "block_b": "accel_bias",
+      "entangled": false,
+      "max_abs_correlation": 0.1626518700525957
+    },
+    {
+      "block_a": "gyro_bias",
+      "block_b": "gravity",
+      "entangled": false,
+      "max_abs_correlation": 0.04832415746460154
+    },
+    {
+      "block_a": "lever_arm",
+      "block_b": "imu_clock_offset",
+      "entangled": false,
+      "max_abs_correlation": 0.03132659439205278
+    },
+    {
+      "block_a": "lever_arm",
+      "block_b": "accel_bias",
+      "entangled": false,
+      "max_abs_correlation": 0.3413886796401443
+    },
+    {
+      "block_a": "lever_arm",
+      "block_b": "gravity",
+      "entangled": false,
+      "max_abs_correlation": 0.3534458187213417
+    },
+    {
+      "block_a": "imu_clock_offset",
+      "block_b": "accel_bias",
+      "entangled": false,
+      "max_abs_correlation": 0.08457191084263456
+    },
+    {
+      "block_a": "imu_clock_offset",
+      "block_b": "gravity",
+      "entangled": false,
+      "max_abs_correlation": 0.025603577148400183
+    },
+    {
+      "block_a": "accel_bias",
+      "block_b": "gravity",
+      "entangled": false,
+      "max_abs_correlation": 0.8503776541921777
+    }
+  ],
+  "t_lidar_imu_rotation_quat_xyzw": [
+    0.007697270353990436,
+    0.008484507407401825,
+    0.00042586896705313953,
+    0.999934289740468
+  ],
+  "t_lidar_imu_translation_m": [
+    -0.021105100607876685,
+    -0.017234549918266163,
+    0.15498656463562077
+  ],
+  "train_imu_samples": 733,
+  "train_whitened_rms": {
+    "accel": 1.0,
+    "gyro": 1.0,
+    "plane": 1.0210424892370813
+  }
+}

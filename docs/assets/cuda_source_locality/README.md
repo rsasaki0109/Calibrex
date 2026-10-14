@@ -63,3 +63,8 @@ See [implementation and reproduction](../../benchmarks/cuda_source_locality.md).
 A [monitored repeat](repeat-v2/README.md) retained all three exact quality
 comparisons, but detected foreign GPU workloads in 32 of 52 samples.
 It therefore also does not establish an isolated performance effect.
+
+A [third monitored comparison](repeat-v3/README.md) retained all three exact quality
+comparisons, with zero foreign or unknown GPU processes in 42 samples.
+Whole medians are 64.765 s / 64.220 s (1.008x); registration is slower
+(17.903 s / 19.216 s, 0.932x). This does not establish a useful acceleration.

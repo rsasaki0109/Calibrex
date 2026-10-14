@@ -1,0 +1,89 @@
+from pathlib import Path
+import datetime,hashlib,json,subprocess,sys,time
+import jsonschema,psutil
+
+root=Path('outputs/source-locality-observation-v3');root.mkdir(exist_ok=False)
+(root/'observer.py.txt').write_bytes(Path(__file__).read_bytes())
+tag='source-locality-formal-v3'
+command=[sys.executable,'-m','tools.benchmark_bspline_lidar_imu','--comparison','cuda-cuda',
+         '--baseline-commit','9cf33f996aaaffaf40ab053fc6b3ad1d5f94f46d',
+         '--max-seconds','6','--max-rounds','4','--repeats','3',
+         '--odometry-voxel-size-m','.03','--odometry-local-map-scans','3',
+         '--odometry-geometry-quantum-m','1e-9',
+         '--odometry-motion-translation-quantum-m','1e-6',
+         '--odometry-motion-rotation-quantum-rad','1e-7',
+         '--output','outputs/'+tag]
+query=['nvidia-smi','--query-compute-apps=pid','--format=csv,noheader,nounits']
+schema={'type':'object','required':['samples','exit_code','provenance'],
+        'properties':{'samples':{'type':'array','minItems':1,'items':{
+            'type':'object','required':['offset_seconds','own','foreign','unknown'],
+            'properties':{'offset_seconds':{'type':'number','minimum':0},
+                          'own':{'type':'integer','minimum':0},
+                          'foreign':{'type':'integer','minimum':0},
+                          'unknown':{'type':'integer','minimum':0}},'additionalProperties':False}},
+            'exit_code':{'type':['integer','null']},'provenance':{'type':'object'}},
+        'additionalProperties':False}
+(root/'observation.schema.json').write_text(json.dumps(schema,indent=2)+'\n',encoding='utf-8')
+record={'samples':[],'exit_code':None,'provenance':{
+    'observer_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+    'launcher_sha256':hashlib.sha256(Path('tools/benchmark_bspline_lidar_imu.py').read_bytes()).hexdigest(),
+    'schema_sha256':hashlib.sha256((root/'observation.schema.json').read_bytes()).hexdigest(),
+    'benchmark_command':['<PYTHON>',*command[1:]],'query_command':query,
+    'sampling_interval_seconds':10,'psutil':psutil.__version__,
+    'termination_policy':'Terminate only the owned benchmark process tree on foreign or unknown CUDA process observations.',
+    'terminated_on_interference':False,
+    'started_at_utc':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+    'limitation':'Periodic process observation, not continuous GPU isolation or CPU reservation.'}}
+start=time.perf_counter()
+def sample():
+    own=foreign=unknown=0
+    response=subprocess.run(query,capture_output=True,text=True,timeout=10)
+    if response.returncode:
+        unknown=1
+    else:
+        for line in response.stdout.splitlines():
+            if not line.strip():continue
+            try:
+                pid=int(line.strip())
+                args=psutil.Process(pid).cmdline()
+                if tag in ' '.join(args):own+=1
+                else:foreign+=1
+            except psutil.NoSuchProcess:
+                continue
+            except (ValueError,psutil.AccessDenied):
+                unknown+=1
+    row={'offset_seconds':time.perf_counter()-start,'own':own,'foreign':foreign,'unknown':unknown}
+    record['samples'].append(row)
+    jsonschema.validate(record,schema)
+    (root/'observation.json').write_text(json.dumps(record,indent=2)+'\n',encoding='utf-8')
+    if foreign or unknown:print(json.dumps({'gpu_observation':row}),flush=True)
+    return row
+initial=sample()
+if initial['foreign'] or initial['unknown']:
+    raise RuntimeError('GPU process state was not clear at cohort start')
+process=subprocess.Popen(command)
+while process.poll() is None:
+    time.sleep(10)
+    row=sample()
+    if row['foreign'] or row['unknown']:
+        record['provenance']['terminated_on_interference']=True
+        parent=psutil.Process(process.pid)
+        descendants=parent.children(recursive=True)
+        for owned in reversed(descendants):
+            try:owned.terminate()
+            except psutil.NoSuchProcess:pass
+        process.terminate()
+        _,alive=psutil.wait_procs(descendants,timeout=5)
+        for owned in alive:
+            try:owned.kill()
+            except psutil.NoSuchProcess:pass
+        try:process.wait(timeout=5)
+        except subprocess.TimeoutExpired:process.kill()
+        break
+record['exit_code']=process.wait()
+sample()
+print(json.dumps({'gpu_observation_samples':len(record['samples']),
+                  'foreign_samples':sum(s['foreign']>0 for s in record['samples']),
+                  'unknown_samples':sum(s['unknown']>0 for s in record['samples']),
+                  'exit_code':record['exit_code']}),flush=True)
+sys.exit(record['exit_code'])
