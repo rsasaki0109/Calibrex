@@ -2,16 +2,19 @@
 """Drive the pre-registered Hilti camera audits: download, run, delete, one recording at a time.
 
 An evaluation harness, not part of the Calibrex package. It reads the recordings, files
-and pinned hashes from ``docs/benchmarks/hilti_camera_sota_preregistration.yaml`` and
+and pinned hashes from the claim's pre-registration
+(``docs/benchmarks/hilti_camera_sota_preregistration.yaml``, or
+``docs/benchmarks/hilti_camera_imu_v3_preregistration.yaml`` for ``camera-imu-v3``) and
 runs its ``run_recipe``:
 
 * ``camera-camera``: for every evaluation recording, download the first 5 GB
   (``tools/hilti_download.py``), run ``tools/hilti_camera_sota_run.py`` with the two
   pre-registered injections, delete the download. The next download overlaps the
   current runs (network and CPU are separate bottlenecks here).
-* ``camera-imu-v2``: for every evaluation recording, download the full bag, check its
-  SHA-256 against the pinned one, run v1's ``calibrex camera-imu rotation`` command for
-  cam0 and cam1, delete the bag.
+* ``camera-imu-v2`` and ``camera-imu-v3``: for every evaluation recording, download the
+  full bag, check its SHA-256 against the pinned one, run v1's ``calibrex camera-imu
+  rotation`` command for cam0 and cam1, delete the bag. v3 keeps each run's log beside its
+  artifact, where its scorer reads an estimator refusal.
 
 A recording whose outputs already exist is not run again, so an interrupted driver can
 be restarted; every command, exit code and wall time goes to ``evaluate_record.json``.
@@ -38,7 +41,11 @@ from typing import Any
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-PREREGISTRATION = ROOT / "docs" / "benchmarks" / "hilti_camera_sota_preregistration.yaml"
+PREREGISTRATIONS = {
+    "camera-camera": ROOT / "docs" / "benchmarks" / "hilti_camera_sota_preregistration.yaml",
+    "camera-imu-v2": ROOT / "docs" / "benchmarks" / "hilti_camera_sota_preregistration.yaml",
+    "camera-imu-v3": ROOT / "docs" / "benchmarks" / "hilti_camera_imu_v3_preregistration.yaml",
+}
 HEAD_BYTES = 5_000_000_000
 CAMERA_IMU_COMMAND = [
     "--imu-topic",
@@ -163,7 +170,8 @@ def camera_camera(args: argparse.Namespace, plan: dict[str, Any], record: Record
 
 
 def camera_imu(args: argparse.Namespace, plan: dict[str, Any], record: Record) -> None:
-    recordings = plan["recordings"]["evaluation"]["camera-imu-v2"]
+    recordings = plan["recordings"]["evaluation"][args.claim]
+    log_dir = args.output_dir if args.claim == "camera-imu-v3" else args.work_dir
     bags = plan["recordings"]["bags"]
     chain = args.calibration_dir / "calib_3_cam0-1-camchain-imucam.yaml"
     for recording in recordings:
@@ -202,7 +210,7 @@ def camera_imu(args: argparse.Namespace, plan: dict[str, Any], record: Record) -
                 "--output",
                 str(output),
             ]
-            log_path = args.work_dir / f"{camera}_{recording}.log"
+            log_path = log_dir / f"{camera}_{recording}.log"
             label = f"camera-imu {camera} {recording}"
             thread = threading.Thread(target=record.run, args=(label, command, log_path))
             thread.start()
@@ -215,12 +223,12 @@ def camera_imu(args: argparse.Namespace, plan: dict[str, Any], record: Record) -
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("claim", choices=("camera-camera", "camera-imu-v2"))
+    parser.add_argument("claim", choices=tuple(PREREGISTRATIONS))
     parser.add_argument("--calibration-dir", type=Path, required=True)
     parser.add_argument("--work-dir", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args(argv)
-    plan = yaml.safe_load(PREREGISTRATION.read_text(encoding="utf-8"))
+    plan = yaml.safe_load(PREREGISTRATIONS[args.claim].read_text(encoding="utf-8"))
     for name, digest in plan["recordings"]["calibration_sha256"].items():
         if sha256_file(args.calibration_dir / name) != digest:
             parser.error(f"{name} does not match the pre-registered SHA-256")
