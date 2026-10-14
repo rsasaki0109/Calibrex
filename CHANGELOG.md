@@ -2,6 +2,49 @@
 
 ## Unreleased
 
+- **The KITTI camera-LiDAR check audit is pre-registered: honest per-axis verdicts.**
+  - **The claim.** On 23 KITTI 2011_09_26 drives no camera-LiDAR method has read,
+    `calibrex check --pairs camera-lidar`:
+    - never flags KITTI's calibration, and every axis it judges there is within
+      0.75 deg of it; it judges at least half of the axes;
+    - started 1 or 3 deg off, about one camera axis, judges every axis within 1.5 deg
+      of KITTI's calibration;
+    - flags at least 90 percent of the 3 deg turns about axes it judged and never
+      judges such a turned axis right, and flags at least 75 percent of the 1 deg turns.
+  - **It is a check claim**, not a calibration-accuracy claim: the check starts at the
+    candidate, and no external camera-LiDAR baseline is integrated.
+  - **Drives.** Every unread 2011_09_26 drive with at least 125 frames, chosen from the
+    archives' file lists; their sizes, ETags and the calibration archive's SHA-256 are
+    pinned.
+  - **Thresholds.** v3's rules on the 13 development drives (`5d72a6c`), which pass every
+    requirement except the drive count, set for the evaluation.
+  - **Tools**, frozen at `71a115b`: `tools/score_kitti_camera_lidar.py`,
+    `tools/build_kitti_camera_lidar_audit.py`, and the KITTI driver
+    `tools/kitti_camera_lidar_sota_evaluate.py`. The page is
+    `docs/benchmarks/kitti_camera_lidar_check.md`.
+
+- **camera-lidar no longer fails KITTI's own calibration.**
+  - **The problem.** On 13 KITTI 2011_09_26 drives, the check failed KITTI's
+    calibration on 5. The estimate settled 2 to 11 deg away and passed its own
+    controls there.
+  - **Four changes**, each tested on those drives:
+    - The edge response has its local mean removed (`edge_background_sigma_px`, 20 px).
+      The objective no longer pulls towards textured regions; on 0028 it had climbed
+      11 deg in yaw.
+    - A spinning LiDAR's frame that repeats the last kept view is dropped
+      (`repeated_view_change`, 0.05). 0057 stands 29 s at a crossing.
+    - `calibrex convert kitti-raw --velodyne-time azimuth` adds a per-point time,
+      modelled from the azimuth and the sweep's stamps, so the rolling sweep is moved to
+      the image time.
+    - The search also starts from each axis's profile maximum on its own. From 3 deg
+      off, the search had run along a ridge on 4 drives; on 0015 a 3 deg roll turn was
+      judged right.
+  - **Now.** KITTI's calibration passes on all 13 drives, 36 of 39 axes judged, every
+    judged axis within 0.35 deg. Every 1 and 3 deg turn about a judged axis is flagged,
+    on that axis only. Details in `docs/benchmarks/camera_lidar_check.md`.
+  - **Test fix.** The drift test compared a rotation-vector component with the 2.5 deg
+    turn; the component moves 1.84 deg. It now expects that.
+
 - **camera-imu has a supported SOTA claim: the Hilti camera-IMU v3 audit, 7 of 7 gates.**
   - **The runs.**
     - Five recordings on which no camera-IMU estimate had been made: exp05, exp06,

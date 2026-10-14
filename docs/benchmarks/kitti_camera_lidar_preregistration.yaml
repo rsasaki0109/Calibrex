@@ -1,0 +1,217 @@
+# Pre-registration of the KITTI camera-LiDAR check audit (v1): honest per-axis verdicts of
+# calibrex check camera-lidar on KITTI raw drives it has never read.
+# It is binding once committed; its SHA-256 is cited by the audit protocol, and no
+# camera-LiDAR method is run on an evaluation drive before this commit.
+#
+# Written on 2026-10-14.  camera-lidar has no audited claim.  The method was developed on
+# 13 KITTI 2011_09_26 drives: the first run on all 13 failed KITTI's own calibration on 5
+# (camera_lidar_check.md#thirteen-kitti-drives-2026-10-14); the estimator was changed until
+# they passed, and those 13 drives are spent.  The evaluation drives were chosen by a
+# length rule from the zip archives' file lists (tools/kitti_drive_metadata.py): no image,
+# point cloud or OXTS record of theirs has been downloaded, decoded or read.
+#
+# This is a check claim, not a calibration-accuracy claim.  The method starts at the
+# candidate and judges whether each rotation axis is right; it is not compared with
+# targetless calibration methods that start from large errors (docs/research/
+# camera_lidar_sota_plan.md tracks those), and no external camera-LiDAR baseline is
+# integrated.  The reference is KITTI's target-based calibration (calib_velo_to_cam with
+# the rectification of calib_cam_to_cam), itself a calibration with error, not ground truth.
+claims:
+  kitti-camera-lidar-check-v1:
+    text: >-
+      On 23 KITTI raw 2011_09_26 drives that no Calibrex camera-LiDAR method had read,
+      calibrex check --pairs camera-lidar gives honest per-axis verdicts against KITTI's
+      calibration (calib_velo_to_cam with the rectification of calib_cam_to_cam): it never
+      flags that calibration (no warn or fail); every rotation axis it judges there
+      (reported std at most 0.5 deg and its 2 deg known-bad control detected on held-out
+      frames) is within 0.75 deg of it, and it judges at least half of the axes; started at
+      that calibration with the camera turned 1 or 3 deg about one of its axes, every axis
+      it judges is within 1.5 deg of KITTI's calibration; it flags a 3 deg turn about an
+      axis it judged on the drive in at least 90 percent of the trials and never judges
+      such a turned axis right; and it flags a 1 deg turn in at least 75 percent of the
+      trials.
+    scope:
+      modalities: [camera, lidar]
+      quantities: [rotation]
+      category: targetless_camera_lidar_check
+    protocol_id: kitti-camera-lidar-check-v1
+recordings:
+  development: >-
+    13 KITTI raw 2011_09_26 drives, every one camera-lidar has run on: 0005, 0009, 0014,
+    0015, 0022, 0027, 0028, 0035, 0039, 0046, 0051, 0057 and 0059 (the first five were the
+    lidar-vehicle development drives, the other eight its evaluation drives).  Their
+    development scores are committed (docs/assets/kitti_camera_lidar/development).
+  selection_rule: >-
+    Every KITTI raw 2011_09_26 synced drive that no Calibrex camera-LiDAR method has read
+    and that has at least 125 image_02 frames and 125 Velodyne scans (12.5 s; the shortest
+    development drive, 0046, has 125).  The repository never references 0011, 0013, 0017,
+    0019, 0020, 0023, 0029, 0032, 0036, 0048, 0052, 0056, 0060, 0061, 0064, 0070, 0079,
+    0084, 0086, 0087, 0091, 0093, 0095, 0096, 0101, 0104, 0106, 0113, 0117 and 0119; it
+    names 0001, 0002 and 0018 only for other datasets (a test's fake 2011_01_01 drive,
+    KITTI-360, 2011_09_30), and none of the three was read.  Frame counts come from the
+    archives' central directories; 0001 (108), 0002 (77), 0017 (114), 0020 (86), 0048 (22),
+    0052 (78), 0060 (78), 0079 (100), 0113 (87) and 0119 (no image_02 or Velodyne) are
+    shorter.  The 23 others are all used, whatever their size (0.6 to 3.6 GB); none is
+    dropped later for any reason other than the scoring rules.
+  exposure: >-
+    Only each archive's HTTP headers (size, ETag) and zip central directory (file names)
+    were fetched.
+  evaluation: ['0011', '0013', '0018', '0019', '0023', '0029', '0032', '0036', '0056', '0061', '0064', '0070', '0084', '0086', '0087', '0091', '0093', '0095', '0096', '0101', '0104', '0106', '0117']
+  archives:
+    '0011': {size_bytes: 939815328, etag: a446fc889b82b7b71b51becb76610fb0-113}
+    '0013': {size_bytes: 630044598, etag: fc44314e968e786e4dc9bf119a6e69d0-76}
+    '0018': {size_bytes: 1115646800, etag: c62f0cbd484d817668e18aeb5c4cf4e3-133}
+    '0019': {size_bytes: 2097547106, etag: 1eea12f29a5662aacbd40be81d628279-251}
+    '0023': {size_bytes: 1999129806, etag: cc2e0afe8b7851e2cd43c4bd9ad95226-239}
+    '0029': {size_bytes: 1684284933, etag: cb732feb2679e7a2739effc88708adca-201}
+    '0032': {size_bytes: 1451679572, etag: e18ba4f067bb4d3afa3125718752a166-174}
+    '0036': {size_bytes: 3257339348, etag: eebe877bc4b25dba399a89923564dec3-389}
+    '0056': {size_bytes: 1214030003, etag: 7c9f22be3afc0a5ce72ecaf93fee3201-145}
+    '0061': {size_bytes: 3049963820, etag: 74b3d827d85a557230df367b546e1ea2-364}
+    '0064': {size_bytes: 2376539657, etag: c90c41ed228aabf41f2aee549566471f-284}
+    '0070': {size_bytes: 1759098358, etag: c32be2e811bcc2052321566804bcd0ae-210}
+    '0084': {size_bytes: 1574584300, etag: 4d5ef7ed2dfcc8a0fd4e71d8c7085bfe-188}
+    '0086': {size_bytes: 3055393176, etag: 88a0e2d8a557d04d00bc3ea512e66d50-365}
+    '0087': {size_bytes: 3138789859, etag: 742c64e239dcf22a2d49180349f47c5a-375}
+    '0091': {size_bytes: 1419552280, etag: 3b168cde2724e8717b60d683336ab244-170}
+    '0093': {size_bytes: 1720308957, etag: 6caddf8a4a7a0da6c4b75f741f3d3056-206}
+    '0095': {size_bytes: 1097371915, etag: 6d0363c8161e8e9f14bd1e62e71a67d1-131}
+    '0096': {size_bytes: 2016323567, etag: e922b6df7a75be0905a8a3bde3200fb4-241}
+    '0101': {size_bytes: 3617310729, etag: d4341e87b794660068df943117d3273c-432}
+    '0104': {size_bytes: 1310103586, etag: e73a7f2979a43ab1dc887a446b7e5a80-157}
+    '0106': {size_bytes: 936875950, etag: 1203f615f9539cb48b4c128d6b910ad7-112}
+    '0117': {size_bytes: 2786458483, etag: 7bb51740a5920b21c0ba34bd2393779c-333}
+  calibration_archive: 2011_09_26_calib.zip (4068 bytes)
+  calibration_archive_sha256: e0108cfd000cf802c14ed94fba38601185c792e5640abba015a34b7a85b812e0
+run_recipe:
+  frozen_code_commit_note: >-
+    Run from a checkout whose src/ and tools/ equal frozen_code_commit; the commit that
+    adds this file changes docs only.
+  driver: >-
+    python tools/kitti_camera_lidar_sota_evaluate.py --preregistration
+    docs/benchmarks/kitti_camera_lidar_preregistration.yaml --work-dir WORK --output-dir
+    RUNS.  It downloads 2011_09_26_calib.zip (its SHA-256 must equal
+    calibration_archive_sha256, or nothing runs) and then one drive at a time; a drive
+    whose archive size or ETag differs from archives is not run and fails.  It records
+    every archive's SHA-256, unzips it, runs tools/kitti_camera_lidar_sota_run.py and
+    deletes the drive, the archive and the bag.
+  velodyne_time: azimuth
+  velodyne_time_rationale: >-
+    Chosen on the development drives.  With the same code, the conversion without the
+    per-point time (none) also passes KITTI's calibration on all 13 drives, but judges axes
+    up to 7.38 deg off KITTI in turned runs (0057 roll, 3 deg pitch turn; 2.18 deg on 0014,
+    whose 1 deg yaw turn reads -1.00); with it (azimuth) the worst is 0.89 deg
+    (docs/assets/kitti_camera_lidar/development/scores.json and velodyne_time_none/).
+  injections: ['x:3', 'y:3', 'z:3', 'x:1', 'y:1', 'z:1']
+  per_drive: >-
+    calibrex convert kitti-raw DRIVE --calib-dir CAL --camera image_02 --velodyne-time
+    VELODYNE_TIME --output BAG --overwrite; then, at once as separate processes, calibrex
+    check BAG --pairs camera-lidar --no-cache --fail-on never --evidence-dir ... --output
+    baseline.json, and the same with --tf INJECTION_frames.yaml for every injection (the
+    camera turned by DEG about its own AXIS: T_camera_lidar' = Rot(AXIS, DEG) T_camera_lidar).
+    The check's defaults are used: at most 48 scans, 1 s apart, or spread over a recording
+    shorter than that.
+  rerun_policy: >-
+    A run is done once.  It is repeated only when the process failed before writing its
+    artifact for a reason outside the method (killed, out of memory, I/O error, a full
+    disk, a failed download), with the same command.  Every artifact and every failed
+    attempt is kept and listed in the audit.
+  environment: >-
+    The repository's .venv at frozen_code_commit (python 3.12, numpy 2.x); the exact
+    versions are recorded in every manifest.
+scoring:
+  scorer: >-
+    python tools/score_kitti_camera_lidar.py RUNS WORK/2011_09_26 OUT --drive 0011
+    --drive 0013 ... (the 23 evaluation drives, in the order above), then python
+    tools/build_kitti_camera_lidar_audit.py OUT/scores.json
+    docs/benchmarks/kitti_camera_lidar_preregistration.yaml OUT, and calibrex sota audit
+    on the protocol it writes.  Both are frozen at frozen_code_commit; their thresholds
+    are module constants.
+  reference: >-
+    KITTI's calibration: the baseline run's candidate T_cam2_velo, which calibrex convert
+    kitti-raw composes from the calibration files; the scorer checks its rotation against
+    R_rect_00 R of calib_cam_to_cam.txt and calib_velo_to_cam.txt (within 1e-6 deg), and
+    every turned run's candidate against that rotation turned by the injection.
+  drive: >-
+    A drive is failed when its archive differs from archives, or its conversion or one of
+    its seven checks did not finish (non-zero exit code, or no artifact, camera-lidar pair
+    record or evidence).  It is not usable when the baseline estimator refused
+    (solver_status insufficient_samples: fewer usable frames than it needs); a not-usable
+    drive is never gated and counts against scored-drives-coverage.  Every other drive is
+    scored.
+  axis: >-
+    roll, pitch, yaw: the components (deg) of rotvec(R_est R_ref^T), a small rotation about
+    the x, y and z axes of the camera's optical frame.  An axis is judged on a run when
+    calibrex check judges it there: the pair record lists it in axes (estimated, reported
+    std at most 0.5 deg, its 2 deg known-bad control detected on held-out frames, not at
+    the search bound).
+  trial: >-
+    One injection AXIS:DEG on a scored drive.  It counts when that axis is judged on the
+    drive's baseline run.  It is flagged when the turned run judges the axis warn or fail,
+    judged right when it judges the axis pass, and otherwise unjudged.
+  requirements:
+    - {id: no-failed-drives, rule: no drive is failed}
+    - {id: vendor-calibration-not-flagged, rule: no scored drive's baseline verdict is warn or fail}
+    - {id: judged-axis-accuracy, rule: every judged axis of every scored baseline run has an absolute error <= 0.75 deg}
+    - {id: judged-axis-coverage, rule: 'at least half of the scored baseline runs'' axes are judged, coverage'}
+    - {id: turned-judged-axis-accuracy, rule: every axis judged in any turned run of a scored drive has an absolute error <= 1.5 deg}
+    - {id: turn-3deg-flagged, rule: 'at most 0.1 of the counted 3 deg trials are not flagged'}
+    - {id: turn-3deg-never-judged-right, rule: no counted 3 deg trial is judged right}
+    - {id: turn-1deg-flagged, rule: 'at most 0.25 of the counted 1 deg trials are not flagged'}
+    - {id: scored-drives-coverage, rule: 'at least 15 of the 23 drives are scored, coverage'}
+  verdict_rules:
+    supported: every requirement passes
+    refuted: a requirement other than the two coverage requirements fails
+    inconclusive: >-
+      no such requirement fails, but a coverage requirement fails or a requirement has
+      nothing to measure; the audit is then incomplete
+threshold_rationale:
+  rule: >-
+    v3's rules (hilti_camera_imu_v3_preregistration.yaml): an error threshold is 1.5 times
+    the worst development value, rounded up to the next 0.25 deg; the coverage floor is
+    the development rate divided by 1.5, rounded down to the next 0.25.  The development
+    values were computed with the frozen scorer on the 13 development drives at commit
+    5d72a6c (docs/assets/kitti_camera_lidar/development/scores.json: every requirement
+    passes except scored-drives-coverage, which is set for the 23 evaluation drives).
+  judged-axis-accuracy: 'dev worst 0.35 deg (0057 pitch; 0.25 or less elsewhere); 1.5x = 0.525; threshold 0.75 deg'
+  turned-judged-axis-accuracy: 'dev worst 0.891 deg (0057 pitch, 3 deg pitch turn; 0.45 or less elsewhere); 1.5x = 1.34; threshold 1.5 deg'
+  judged-axis-coverage: 'dev 36 of 39 axes judged (0.923); / 1.5 = 0.615; threshold 0.5'
+  turn-3deg-flagged: >-
+    dev 36 of 36 flagged.  With none missed in 36, the 95 percent upper bound of the miss
+    rate is 3 / 36 = 0.083 (rule of three); the allowance is that rounded up to 0.1.
+  turn-1deg-flagged: >-
+    dev 36 of 36 flagged, read 0.60 to 1.25 deg.  A 1 deg turn is twice the check's 0.5
+    deg floor, so a reading 0.5 deg low misses it; the allowance is 0.25.
+  turn-3deg-never-judged-right: >-
+    dev 0 of 36.  Judging a 3 deg-turned axis right is the wrong verdict that matters
+    most, so none is allowed; the earlier code (6ea6110) judged one right (0015 roll read
+    0.45 deg), which the per-axis starts fixed.
+  vendor-calibration-not-flagged: dev 0 of 13 (the first run, before the fixes, flagged 5)
+  no-failed-drives: dev 0 of 13; none allowed (v3's rule)
+  scored-drives-coverage: 'dev 13 of 13 (1.0); / 1.5 = 0.667 of 23 = 15.3; at least 15'
+  what_was_not_judged: >-
+    0014 roll and 0057 roll and yaw were never judged (controls not detected).  Their
+    baseline errors were +0.25, -0.00 and +6.70 deg: 0057's yaw estimate is 6.7 deg off,
+    and the check leaves it unchecked.
+  known_risks: >-
+    A drive that stands for most of its length keeps few frames: 0057 kept 9 of 37 (8 are
+    needed), judged pitch only, and read a 3 deg pitch turn as 2.10 deg; such a drive may
+    be not usable or judge little, which the coverage gates allow.  The check samples at
+    most 48 scans 1 s apart whatever the drive's length (the evaluation drives have 144 to
+    936 frames).  The azimuth time model is a model of KITTI's sweep, not a measurement.
+invalidates:
+  - a change to src/ or tools/ after frozen_code_commit before every evaluation run is done
+  - changing the scorer, builder or driver, a threshold, an injection, a drive or a requirement after any evaluation run
+  - running any camera-LiDAR method on an evaluation drive before this file is committed
+  - an archive whose size or ETag differs from archives (that drive fails), or a calibration archive whose SHA-256 differs (nothing runs)
+  - dropping a drive for any reason other than the rules above
+analysis_plan:
+  - Download one drive at a time, verify it, run it, delete it.
+  - Score and build the audit with the frozen tools; record it with calibrex sota audit; publish it on the leaderboard whether it is supported, refuted or incomplete, with every drive and failed attempt listed.
+coverage:
+  minimum_dataset_families: 1
+  minimum_independent_rigs: 1
+  note: >-
+    One rig, one day and one dataset family: every drive shares KITTI's 2011_09_26
+    calibration.  The turned candidates of a drive share its images and scans.
+frozen_code_commit: 71a115b6d106baaf625a3f2c57d251c0c89929d8
