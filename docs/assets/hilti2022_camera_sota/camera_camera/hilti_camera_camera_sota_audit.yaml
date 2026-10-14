@@ -1,0 +1,92 @@
+schema_version: slac.sota_audit_result/v0.1
+audit_id: hilti-camera-camera-v1-audit
+protocol_id: hilti-camera-camera-v1
+scope:
+  modalities:
+  - camera
+  - camera
+  quantities:
+  - rotation
+  category: targetless_camera_camera
+claim_text: On twelve Hilti 2022 recordings not used in development, Calibrex's targetless
+  camera-camera check reproduces Kalibr's rotation of five camera pairs within 0.75
+  deg on every judged axis, scores at least 70 percent of them, flags a 1 deg turn
+  of a forward or a side camera in at least 90 percent of evaluable trials, and names
+  the turned camera in at least half.
+verdict: refuted
+achieved_dataset_families:
+- hilti2022
+achieved_independent_rig_count: 1
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: accuracy-vs-kalibr
+  required: true
+  status: achieved
+  observed_value: 0.3268331236939981
+  threshold: 0.75
+  reason: observed 0.326833123694 meets less_equal 0.75
+  evidence_path: docs/assets/hilti2022_camera_sota/camera_camera/hilti_camera_camera_units_benchmark.yaml
+  evidence_sha256: 136888ae9770c4d0a7be3be10b23d7c246ebcfad7f775ba0ca804a2290c42f0a
+- requirement_id: no-failed-units
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: docs/assets/hilti2022_camera_sota/camera_camera/hilti_camera_camera_units_benchmark.yaml
+  evidence_sha256: 136888ae9770c4d0a7be3be10b23d7c246ebcfad7f775ba0ca804a2290c42f0a
+- requirement_id: scored-units-coverage
+  required: true
+  status: achieved
+  observed_value: 0.21666666666666667
+  threshold: 0.3
+  reason: observed 0.216666666667 meets less_equal 0.3
+  evidence_path: docs/assets/hilti2022_camera_sota/camera_camera/hilti_camera_camera_unit_coverage_benchmark.yaml
+  evidence_sha256: 8bbc7cdf669915a23401952a75fccb3b420e06b71c87a722554cda0e9e438c4b
+- requirement_id: detection
+  required: true
+  status: contradicted
+  observed_value: 0.30434782608695654
+  threshold: 0.1
+  reason: observed 0.304347826087 does not meet less_equal 0.1
+  evidence_path: docs/assets/hilti2022_camera_sota/camera_camera/hilti_camera_camera_trials_benchmark.yaml
+  evidence_sha256: 12d83592b9843bc907a4bb4b11fe0f773c39b20d3a9073e440d63e8ab12817c5
+- requirement_id: localization
+  required: true
+  status: contradicted
+  observed_value: 0.5217391304347826
+  threshold: 0.5
+  reason: observed 0.521739130435 does not meet less_equal 0.5
+  evidence_path: docs/assets/hilti2022_camera_sota/camera_camera/hilti_camera_camera_trials_benchmark.yaml
+  evidence_sha256: 12d83592b9843bc907a4bb4b11fe0f773c39b20d3a9073e440d63e8ab12817c5
+- requirement_id: evaluable-trials-coverage
+  required: true
+  status: achieved
+  observed_value: 0.041666666666666664
+  threshold: 0.3
+  reason: observed 0.0416666666667 meets less_equal 0.3
+  evidence_path: docs/assets/hilti2022_camera_sota/camera_camera/hilti_camera_camera_trial_coverage_benchmark.yaml
+  evidence_sha256: 474e065b50770d27ed421d3ff4f89995c94d7aa06f6080ae0954f11382ba60cb
+summary: At least one frozen required numerical or integrity gate is contradicted;
+  the declared SOTA claim is not supported.
+provenance:
+  generator: calibrex.evaluation.sota_audit
+  generator_version: 0.5.1
+  git_commit: 1c87031
+  command:
+  - calibrex
+  - sota
+  - audit
+  - docs/assets/hilti2022_camera_sota/camera_camera/hilti_camera_camera_sota_protocol.yaml
+  - --output
+  - docs/assets/hilti2022_camera_sota/camera_camera/hilti_camera_camera_sota_audit.yaml
+  source_sha256:
+    protocol: 32f6cff2cf58826827b40af72d43b18162c767ba04fe91b2724051443f76210b
+    accuracy-vs-kalibr: 136888ae9770c4d0a7be3be10b23d7c246ebcfad7f775ba0ca804a2290c42f0a
+    no-failed-units: 136888ae9770c4d0a7be3be10b23d7c246ebcfad7f775ba0ca804a2290c42f0a
+    scored-units-coverage: 8bbc7cdf669915a23401952a75fccb3b420e06b71c87a722554cda0e9e438c4b
+    detection: 12d83592b9843bc907a4bb4b11fe0f773c39b20d3a9073e440d63e8ab12817c5
+    localization: 12d83592b9843bc907a4bb4b11fe0f773c39b20d3a9073e440d63e8ab12817c5
+    evaluable-trials-coverage: 474e065b50770d27ed421d3ff4f89995c94d7aa06f6080ae0954f11382ba60cb
+  created_at: '2026-10-14T07:27:08.618005+00:00'

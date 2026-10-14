@@ -1,0 +1,104 @@
+schema_version: slac.sota_audit_protocol/v0.1
+protocol_id: hilti-camera-camera-v1
+scope:
+  modalities:
+  - camera
+  - camera
+  quantities:
+  - rotation
+  category: targetless_camera_camera
+claim_text: On twelve Hilti 2022 recordings not used in development, Calibrex's targetless
+  camera-camera check reproduces Kalibr's rotation of five camera pairs within 0.75
+  deg on every judged axis, scores at least 70 percent of them, flags a 1 deg turn
+  of a forward or a side camera in at least 90 percent of evaluable trials, and names
+  the turned camera in at least half.
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: accuracy-vs-kalibr
+  phase: audit
+  description: every scored unit has every judged axis within 0.75 deg of Kalibr
+  dataset_family: hilti2022
+  independent_rig: true
+  rig_id: hilti2022-alphasense
+  evidence_path: hilti_camera_camera_units_benchmark.yaml
+  evidence_sha256: 136888ae9770c4d0a7be3be10b23d7c246ebcfad7f775ba0ca804a2290c42f0a
+  method_id: calibrex_check
+  metric: max_abs_error_deg
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.75
+  required: true
+- requirement_id: no-failed-units
+  phase: audit
+  description: no gated unit fails
+  dataset_family: hilti2022
+  independent_rig: false
+  evidence_path: hilti_camera_camera_units_benchmark.yaml
+  evidence_sha256: 136888ae9770c4d0a7be3be10b23d7c246ebcfad7f775ba0ca804a2290c42f0a
+  method_id: calibrex_check
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: scored-units-coverage
+  phase: audit
+  description: at least 70 percent of gated units are scored
+  dataset_family: hilti2022
+  independent_rig: false
+  evidence_path: hilti_camera_camera_unit_coverage_benchmark.yaml
+  evidence_sha256: 8bbc7cdf669915a23401952a75fccb3b420e06b71c87a722554cda0e9e438c4b
+  method_id: calibrex_check
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.3
+  required: true
+- requirement_id: detection
+  phase: audit
+  description: at least 90 percent of evaluable trials flag the turn
+  dataset_family: hilti2022
+  independent_rig: false
+  evidence_path: hilti_camera_camera_trials_benchmark.yaml
+  evidence_sha256: 12d83592b9843bc907a4bb4b11fe0f773c39b20d3a9073e440d63e8ab12817c5
+  method_id: calibrex_check
+  metric: missed_detection
+  statistic: metric_mean
+  comparison: less_equal
+  threshold: 0.1
+  required: true
+- requirement_id: localization
+  phase: audit
+  description: at least 50 percent of evaluable trials name the turned camera
+  dataset_family: hilti2022
+  independent_rig: false
+  evidence_path: hilti_camera_camera_trials_benchmark.yaml
+  evidence_sha256: 12d83592b9843bc907a4bb4b11fe0f773c39b20d3a9073e440d63e8ab12817c5
+  method_id: calibrex_check
+  metric: missed_localization
+  statistic: metric_mean
+  comparison: less_equal
+  threshold: 0.5
+  required: true
+- requirement_id: evaluable-trials-coverage
+  phase: audit
+  description: at least 70 percent of injection trials are evaluable
+  dataset_family: hilti2022
+  independent_rig: false
+  evidence_path: hilti_camera_camera_trial_coverage_benchmark.yaml
+  evidence_sha256: 474e065b50770d27ed421d3ff4f89995c94d7aa06f6080ae0954f11382ba60cb
+  method_id: calibrex_check
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.3
+  required: true
+provenance:
+  generator: tools/build_hilti_camera_camera_audit.py
+  generator_version: 0.5.1
+  command:
+  - python
+  - tools/build_hilti_camera_camera_audit.py
+  - SCORES.json
+  source_sha256:
+    preregistration: ad14d5905a0b7da6b6ae9bc489aa704fd2c20b6726b00b07e6c65bc61f0ef440
+    scores: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+  created_at: '2026-10-14T07:23:45.799408+00:00'

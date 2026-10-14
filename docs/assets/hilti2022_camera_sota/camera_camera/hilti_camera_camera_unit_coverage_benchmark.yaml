@@ -1,0 +1,1682 @@
+schema_version: slac.benchmark/v0.1
+benchmark_id: hilti-camera-camera-unit-coverage
+title: Hilti camera-camera gated units that were scored
+protocol:
+  protocol_id: hilti-camera-camera-v1
+  dataset_id: hilti2022_unused_recordings_first_5gb
+  dataset_source_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+  data_license: Hilti SLAM Challenge 2022 terms (CC BY-NC-SA 3.0)
+  split_policy: one split per gated pair and recording; a unit that is not scored
+    fails
+  splits:
+  - split_id: exp05-cam0-cam1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: b961fc2c9800c17a5b9816431af5cc5fb6f9c2d5f80ae83f4b8285c6b0580587
+    holdout_ids_sha256: 6c1f122b8d01be53ab1885f1d1efe81ba6454cdb74dc8591404f831ebc3635fd
+  - split_id: exp05-cam0-cam3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 0d1cea3ddee498348bed9d419087d0b995a046cffedbb7cf19f43fce1d5bd7ba
+    holdout_ids_sha256: 583ee01a2455d39e5f0635569ae93d087fec3328a580ce6c53694526af645df6
+  - split_id: exp05-cam1-cam3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: c97d73167127dc59be138ac6cc77238fb040631c4de3607e25da49ff0e29da38
+    holdout_ids_sha256: 0a91d185c222c1c2b4c357093a6ff98a1ad289d47bfd3521e57bdf994dc073cc
+  - split_id: exp05-cam0-cam4
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 63ec98c551694eea799798f601b1e51ecd0687422b16a6b67b312eda8738acef
+    holdout_ids_sha256: 8101438173c8391b55f323af791670b0aa5a121d2e150db5ff97a03edf236113
+  - split_id: exp05-cam1-cam4
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 5d30faf59b1c0989b5c109884bb26613175d0c459c4fa5bc9f462f907a4ce2f6
+    holdout_ids_sha256: 714ba92a3df8b1644b757d74130dc68b7f1c397b01aaca019602fc9ccc412ae8
+  - split_id: exp06-cam0-cam1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: d7296eed3b004eb2845d5480b4f1cbd1980d88704dae0d2eef533562b7fea0cf
+    holdout_ids_sha256: 3d833d0f424f0f66c36fe7e245201802d1068867646b9bfd5ade17a8929b51eb
+  - split_id: exp06-cam0-cam3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: f53f1dce33a0501438a7f011319acac76830e1b0658c003d82ce609f67627be4
+    holdout_ids_sha256: 004c242ad6f558b64e9c9493366119c08ed0777b86c2d97b0cd649c9dd65f934
+  - split_id: exp06-cam1-cam3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 3838b364351db4ec6b774837cb5cf053ad13c822c074bfc4002b281a02a992c8
+    holdout_ids_sha256: 1223b7c81003d7fdb9b2b1b8f6dde40db6a69805c7c8b10f75a05bddd2a50613
+  - split_id: exp06-cam0-cam4
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: e8bfc5322f5af3197b39552d2311ad8df11ff08dc9d7605d3d3944f21c78faef
+    holdout_ids_sha256: 49dc70672815adbd360120cbc3dffd7958a8baf423381efa1f6cff9409cdd7d4
+  - split_id: exp06-cam1-cam4
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: a1be990864a101c2a7ed7a6bc8a51f34bbef849f1908c14a2e3f9558ae7f866a
+    holdout_ids_sha256: c2c60a6636884979493bd69ee70f919f3e4be9b899ac36bc75c2bfb68dc46afa
+  - split_id: exp09-cam0-cam1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: bd39c17a080dca569c6576186ce7359cb4bbbfe2bff4eda88d7aa628d2e40cfc
+    holdout_ids_sha256: 1b1f0cbc95a5348e2ad12c9a29c0d1b4e967a11541219ba4c6fad7374ae29899
+  - split_id: exp09-cam0-cam3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 7ac0f4f231ec1454a2a1140714f6293986d7ec24f41ce1fd24c0da2c3ebc44a0
+    holdout_ids_sha256: 7590621c35e78578adcba13b45f3bd492c618408d5e2400cd656ce781417b094
+  - split_id: exp09-cam1-cam3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 8099888c3dca1161130112ce3846db309a4192f1b3c3d55324e117ab30592b1e
+    holdout_ids_sha256: 5e9ce467bfbfd23acf8bcf7dc6cf7b66a4cc5f464eebe8fd952263d5f1c63b9b
+  - split_id: exp09-cam0-cam4
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: beb7852f1964bc64f8e1e76fb1e858e0803a0f3a84338bf92bf69a0dc9e550c0
+    holdout_ids_sha256: e6a380a31a144a0ea722ce26253d3c581903ec591ea7d66f0d5c54116a87b4a6
+  - split_id: exp09-cam1-cam4
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 49098886251b0baea20907f23d8fd526636d3237dbf17119f4bfc068a7fd9943
+    holdout_ids_sha256: 4698543eda8987caeb29fe1073b22d49d8a024d1f1afea899793bf6be4eed903
+  - split_id: exp10-cam0-cam1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: e3b7a3840c2d8a6cfe946b0f92c9200c45cbc283f08697819d9c6f3b6e4eb3c7
+    holdout_ids_sha256: 6145d6f3dd0207eeee0c66806aad510c9a25267a0da5860ddb614a46eda1c5b1
+  - split_id: exp10-cam0-cam3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: b4c9a306473244cd2ae1fd7a471de7174fb7235146d3ee55e1f65991deb685cd
+    holdout_ids_sha256: 1281979744acdc8bc499b6ad1364f47243af9117ad9766817547cab415b25e6b
+  - split_id: exp10-cam1-cam3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: f49ca3a190e669589e6f23df8191789e8707c97f4b13748836108c663645d271
+    holdout_ids_sha256: 8a51a6a61a32e89727e55a066f1141492e89b9be4274e32aaf11543abe4de6c3
+  - split_id: exp10-cam0-cam4
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 211f74f88756b3f0c18be9449abe4495e59e763cb78a4de29347607d5a8ef910
+    holdout_ids_sha256: 9ba9256aaf0dd2b2f45ca6f03c1e6aed6c81479f92a40b22bd631bf222780e57
+  - split_id: exp10-cam1-cam4
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: f26ee1c2c481f7383ac6879a9afee5e31e24aa931cacfba9ccd81cbb062a9b8e
+    holdout_ids_sha256: 7237f5b1afe7ccbd3c5541f4c26cf1a1f8f68d9147820f2ba642df5ec1a76810
+  - split_id: exp11-cam0-cam1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: be685005bd71fa56b904a2d0b4f1fe754c002514ba1bd6ca8bff5df82aa49659
+    holdout_ids_sha256: 5d6dbdcb9047d9e4ccf8f281caa68f1a5b1f1cb5def79a03e8c671fae2a1c473
+  - split_id: exp11-cam0-cam3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 7294d3dae9367c6464bbc526cbe40041a8f1375fea5cb4e7c42562a692065bb6
+    holdout_ids_sha256: 1e190f80ad305afb5e87e15faa71d0bde7b8aeaafe668d81873c38f5aa84fa37
+  - split_id: exp11-cam1-cam3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 35552715963f33c5262c0ab485e3ae042ef74c35f6fe6ec4339383887b0a1ca1
+    holdout_ids_sha256: ffa0a4a2ea74d0fa88cb435c085f0e4d292bff548dac23485a874ae601a62357
+  - split_id: exp11-cam0-cam4
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: e27797fa68f2d3f1c5cfb2d843f9d57b0c3aeb51a32088ecdf0803bab1b5354b
+    holdout_ids_sha256: b30e92ed2af92a6eeba6e877e06ba746f960e8c062e27a373aded3e98434c82f
+  - split_id: exp11-cam1-cam4
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 8601dfbd3190545085143b9bd0f6d3f90e448fffdd10ada9fd3c36181199c6f5
+    holdout_ids_sha256: dd5238a3f62f4a246742f7e1e41e55728ead69052523d3dfd5a080bdd4a372b1
+  - split_id: exp14-cam0-cam1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 78e9ecf03a73b0bc3c9bcdd9342a9e53b6f31cf124a4b87e02e0af393b84dee1
+    holdout_ids_sha256: 608247abda20f62ed6e903a21496a39afd177542ac41325cfa371f727339ef68
+  - split_id: exp14-cam0-cam3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 69c2535c5377f32b633b550990bb652873e8a3b2ea2253849418199bc182937b
+    holdout_ids_sha256: 393c1fa32bb8833bb6dd9a36fbbf05c7734739fa966d59ee4a0b5d55ee1e5ad5
+  - split_id: exp14-cam1-cam3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 445d0b388165b8e4c61b991ee19046a1085254bd746fba9947cb24efe3f21575
+    holdout_ids_sha256: 68b1402e988f95d37ba68716ac265442f79e3bda6834dd433352a6caafe4f601
+  - split_id: exp14-cam0-cam4
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 3ac9e4e19cac57e731d8fab7b004a32e1a215e91f824af74c876ac496f922ad2
+    holdout_ids_sha256: cb4981bf2df4138904548af3f0117d3e027c56c1c69d4ee1054ab0e76b74ec00
+  - split_id: exp14-cam1-cam4
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: cbfdfc691d87a475897eeae97af91310980b9e4f997537415a8ed455e4e6be43
+    holdout_ids_sha256: 2ebc099f15ed835a499a3b5eaf78caa0b76925c5a4d26dbeb6fcf9e2dae18b8e
+  - split_id: exp15-cam0-cam1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 331ce582352d571eaa883d1846c180beab4b0b60cd900a726e2c3078b31ae7a3
+    holdout_ids_sha256: 4c4d836ca8079475e9b419e8c7e13553fbbff3aeb1d2f4709d63c5ea07e04a51
+  - split_id: exp15-cam0-cam3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: d0b49e2335f9683b648ae599e006282e93452d2db46df441a69fe5f293a94488
+    holdout_ids_sha256: a63b721c33b7bd0240367f7cf3e8c6cd17f8b55446f2b3d425077e11eb1ab212
+  - split_id: exp15-cam1-cam3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 8c4c0a14c488089404d08f5b8b81c39f66cbac4d48cdbb6c7632b8f7f9c1d2a6
+    holdout_ids_sha256: dc200f018f11599dcf682521c55f1b2aa53de4ccc45c910a987897a4f0b1594c
+  - split_id: exp15-cam0-cam4
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: d67e31506c8dd118438209ef9279e2eefc35705028923983368ff5c14b1ae917
+    holdout_ids_sha256: 4e28784b354da760d657095555e50437f69ad9f80239575075f38e0aa226a14f
+  - split_id: exp15-cam1-cam4
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 1794b9001d26d0016df51e0667831cff8af4175e87bce68e4832289b1abc007b
+    holdout_ids_sha256: f9f1f0908c2885929d751074eec41d62466aa8b7c2dbbe794cbc9951188de75f
+  - split_id: exp16-cam0-cam1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 64e74a79a6799319fa27f656114d6edf834bcc92c7b7846eb2b6c0bb3d061cd1
+    holdout_ids_sha256: 6545b086bd9d3d0d44cb65158084ac69696fdca4ed468d56db787d71a2723139
+  - split_id: exp16-cam0-cam3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 6ea7c96beab4e34763fe81453be9c9af7f6cfe60ea9b678f56db50867a9f4ebc
+    holdout_ids_sha256: 11f9a0b9cac9d72b25faf54c6d65daa6b694bbae8b3a8661201035ddd10dfd52
+  - split_id: exp16-cam1-cam3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 2539f06546b915b4fd2a4177a847f9199e5ff198f194294fe6c50888c74f484b
+    holdout_ids_sha256: 866721fece8af72b5dd07801945a29fe68c86aba274ccadc9c378ab7f472ecf6
+  - split_id: exp16-cam0-cam4
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: eb00f10e551bf30fd26ac47eb43e8e29dccd61cb7d2a4b2dc28a6d33f8e06cca
+    holdout_ids_sha256: 7f1fbf86202ba1a9a2ea92fe07249dd52bf3f843cf364e39036e7b22a73a6248
+  - split_id: exp16-cam1-cam4
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 5646fc77da34a495e7f522ec2958b850554b33259cdf34e4696af157041e72d8
+    holdout_ids_sha256: a3137ad5afa513c0b03bf9593bc6f0e83fb74f1daedeb14854b3273b1b2d9ad1
+  - split_id: exp18-cam0-cam1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 4539894ce964165c3b11b14d848a2c8dfe241768de14f19218653da497a9f5f2
+    holdout_ids_sha256: 81e3b4613f54ea4b7272b8642bc3e0e2da14104f8fab732929db5ec0bff27bcf
+  - split_id: exp18-cam0-cam3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: fa3ef63db9df7b482b037770882a13fe00f1b692ef597434e1f9b6575f7337ed
+    holdout_ids_sha256: 058d7567b3962b2443ce69e17edcaaf7e2c9168be4c5c55268363ca8bd9f3ddb
+  - split_id: exp18-cam1-cam3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: d135126efe2d2234ccc454f4eb4b79fe71b71e1275cbd245195a9abe0ebab734
+    holdout_ids_sha256: ce898138f121aff919be3630c34603d50d701b3f6e32ea5a52b2e8135ee766e6
+  - split_id: exp18-cam0-cam4
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 169669ead26b392c5856e03ce7d20140174d6833b3727cb09d4cea03d838bd83
+    holdout_ids_sha256: 2fc0695e920292c41af195fdb0bb84809d856aa74fa3450906a9d340b8bc1f9e
+  - split_id: exp18-cam1-cam4
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: fd98d8fcdaab67ac63ba01be8f11e292a4a0b620847a015f034f8515a30a8fde
+    holdout_ids_sha256: a317224e3ba7428f9574773f74439482e5c2a6a0e97503ef374f9859783f0ad5
+  - split_id: exp23p0-cam0-cam1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: aed10b2d0b36f89331fb3ea84f73c2662dedcab33dd885f4efaa4aa3dad2f7d9
+    holdout_ids_sha256: 1da05b9d82a03a1b77d21cbfdb4595c4040350a42d6921e127905da273a26573
+  - split_id: exp23p0-cam0-cam3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: a02ecab6b17c0e6f91dbeb1214caa07dc4f7f4721ffc89ad9a180eb522e58430
+    holdout_ids_sha256: 6d25b553a190446cda8225bbace7fe83218418b304b772bc809c7df091099a18
+  - split_id: exp23p0-cam1-cam3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: beba487fc40e8942ea2b67577329b44d1061ef81396a11e268c0d08c71e3679d
+    holdout_ids_sha256: dcea8ef54ba9d44197fd2e2e0adfe1c781c772c3a3fbc56bd79e492f39231696
+  - split_id: exp23p0-cam0-cam4
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: cfb27b6b428b67a197f42a098092144fd0c5487442ff3052a28b80b2e96ec583
+    holdout_ids_sha256: e80eda25e14ed6c01066c4b53052776a53a824f6dfdc59a5b28623a45ba4f181
+  - split_id: exp23p0-cam1-cam4
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 225c80b8c691bcb974baafc6594b366c90289862811f91facb420dde1faa4598
+    holdout_ids_sha256: 5ee17055474806332b8a7ae951a0104d29270c83d38a0575881ba780a39e8a8c
+  - split_id: exp23p1-cam0-cam1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 23a48bc0b58a4e39241d7a5b656774dfd445a585711572e71d9566faddf0fd6f
+    holdout_ids_sha256: b9da1c4b81025bddacef1c9dfc65ef859562d370c5bc2a6af20a99892de862ad
+  - split_id: exp23p1-cam0-cam3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 58a6bf643ad5c472a3e2bc6241341020451f7c50543431493d05e6a3806e99d9
+    holdout_ids_sha256: 957ad99925171b30c2a3364e745859104277ce936b5a77dc2a4b78927218afb8
+  - split_id: exp23p1-cam1-cam3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 855e69a1965cd63df37be8ebe03f7a62e6a2aab24aead6bd7d6ddf5ac68b90dd
+    holdout_ids_sha256: 6e36d8c1c5626565070dc884696305702062ae9d292a777c6e14cf933581f2e1
+  - split_id: exp23p1-cam0-cam4
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 5ccaa02f491a07c5951b5366918235dddf36e20382760a745a280871715059d3
+    holdout_ids_sha256: 595c10c88f2ad24c2aa9ba37c0498e674c4615c8ce55a931646a76fff635d43b
+  - split_id: exp23p1-cam1-cam4
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: cb113855f544043be9cd23e76e1f2a70148bb384869313cf3b9776acddb749e7
+    holdout_ids_sha256: 13ba49f7145c6eaa83925f35eaf6cd7b6803ca5c843d3f42d427595ca15cc2df
+  - split_id: exp23p2-cam0-cam1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: f78588c31f358a189dcd60e08e29976dbadcc749f90e715d5af09783b6825d95
+    holdout_ids_sha256: 92fe3921df695db2e0ac33b80d516d0d94840437725808e8dec476b146a676ff
+  - split_id: exp23p2-cam0-cam3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: c5978ae75d118c0e2c42e63ace0e9b74feb70856aff6ff001fa87c2bda9beac3
+    holdout_ids_sha256: b28229940b0fbe989afcd9539d446b2540eca441f3935ee5f0702e08ac2aa861
+  - split_id: exp23p2-cam1-cam3
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: de85d934ba000a620960d3de945a391ae663e33ea33e352b1b9069173c84a0c8
+    holdout_ids_sha256: c88a4c6371560d2b5d881bedbe8cc7a2db877a8f0939dac29248fd24c08fa0aa
+  - split_id: exp23p2-cam0-cam4
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 3f4d7dd4fcf2440d8f83eeb91acdb0221a7712818451bad9522d5508e1465fcd
+    holdout_ids_sha256: 299be8dbc4faf8a3b538f5c2b277de406ba09655849d2528f3ffb40c578cd80a
+  - split_id: exp23p2-cam1-cam4
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 2fe8ac25596ec46270b68cedbcbc15e9a74d2a6a8b7cdd03295147d76dd16f79
+    holdout_ids_sha256: 8bc42212dd83a06b897e5782d463f277c7c4f104c6e2fa3d3295eb01a577e25d
+  initial_estimate_policy: the candidate is Kalibr's calibration (or it turned by
+    the injection); the check re-centres its rectification on its own estimate
+  tuning_policy: procedure and thresholds pre-registered before the evaluation runs
+  failure_policy: a crashed run or a missing or skipped gated pair fails its units
+metrics:
+- name: scored
+  label: unit scored
+  unit: '1'
+  display_scale: 1.0
+  direction: lower
+  primary: true
+  interpretation: 1 for a scored unit
+methods:
+- method_id: kalibr_reference
+  label: Hilti Kalibr calibration (the reference; error against itself is 0)
+  implementation: calibrex_native
+  tool_name: kalibr
+- method_id: calibrex_check
+  label: Calibrex targetless camera-camera check
+  implementation: calibrex_native
+  tool_name: calibrex
+trials:
+- method_id: kalibr_reference
+  split_id: exp05-cam0-cam1
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp05-cam0-cam3
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp05-cam1-cam3
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp05-cam0-cam4
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp05-cam1-cam4
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp06-cam0-cam1
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp06-cam0-cam3
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp06-cam1-cam3
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp06-cam0-cam4
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp06-cam1-cam4
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp09-cam0-cam1
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp09-cam0-cam3
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp09-cam1-cam3
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp09-cam0-cam4
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp09-cam1-cam4
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp10-cam0-cam1
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp10-cam0-cam3
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp10-cam1-cam3
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp10-cam0-cam4
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp10-cam1-cam4
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp11-cam0-cam1
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp11-cam0-cam3
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp11-cam1-cam3
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp11-cam0-cam4
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp11-cam1-cam4
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp14-cam0-cam1
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp14-cam0-cam3
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp14-cam1-cam3
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp14-cam0-cam4
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp14-cam1-cam4
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp15-cam0-cam1
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp15-cam0-cam3
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp15-cam1-cam3
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp15-cam0-cam4
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp15-cam1-cam4
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp16-cam0-cam1
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp16-cam0-cam3
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp16-cam1-cam3
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp16-cam0-cam4
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp16-cam1-cam4
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp18-cam0-cam1
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp18-cam0-cam3
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp18-cam1-cam3
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp18-cam0-cam4
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp18-cam1-cam4
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp23p0-cam0-cam1
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp23p0-cam0-cam3
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp23p0-cam1-cam3
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp23p0-cam0-cam4
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp23p0-cam1-cam4
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp23p1-cam0-cam1
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp23p1-cam0-cam3
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp23p1-cam1-cam3
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp23p1-cam0-cam4
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp23p1-cam1-cam4
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp23p2-cam0-cam1
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp23p2-cam0-cam3
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp23p2-cam1-cam3
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp23p2-cam0-cam4
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp23p2-cam1-cam4
+  status: success
+  metrics:
+    scored: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp05-cam0-cam1
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp05-cam0-cam3
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp05-cam1-cam3
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp05-cam0-cam4
+  status: failed
+  metrics: {}
+  failure_reason: 'inconclusive: the estimator did not produce an estimate: 329 matched
+    patches constrain rows, fewer than 500'
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp05-cam1-cam4
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp06-cam0-cam1
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp06-cam0-cam3
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp06-cam1-cam3
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp06-cam0-cam4
+  status: failed
+  metrics: {}
+  failure_reason: 'inconclusive: the estimator did not produce an estimate: 368 matched
+    patches constrain rows, fewer than 500'
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp06-cam1-cam4
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp09-cam0-cam1
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp09-cam0-cam3
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp09-cam1-cam3
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp09-cam0-cam4
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp09-cam1-cam4
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp10-cam0-cam1
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp10-cam0-cam3
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp10-cam1-cam3
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp10-cam0-cam4
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp10-cam1-cam4
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp11-cam0-cam1
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp11-cam0-cam3
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp11-cam1-cam3
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp11-cam0-cam4
+  status: failed
+  metrics: {}
+  failure_reason: 'inconclusive: the estimator did not produce an estimate: 1258 of
+    2194 matched patches constrain rows; observable: none'
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp11-cam1-cam4
+  status: failed
+  metrics: {}
+  failure_reason: 'inconclusive: the estimator did not produce an estimate: 1932 of
+    2593 matched patches constrain rows; observable: none'
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp14-cam0-cam1
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp14-cam0-cam3
+  status: failed
+  metrics: {}
+  failure_reason: 'inconclusive: the estimator did not produce an estimate: 4011 of
+    4722 matched patches constrain rows; observable: none'
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp14-cam1-cam3
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp14-cam0-cam4
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp14-cam1-cam4
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp15-cam0-cam1
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp15-cam0-cam3
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp15-cam1-cam3
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp15-cam0-cam4
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp15-cam1-cam4
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp16-cam0-cam1
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp16-cam0-cam3
+  status: failed
+  metrics: {}
+  failure_reason: 'inconclusive: the estimator did not produce an estimate: 2539 of
+    3032 matched patches constrain rows; observable: none'
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp16-cam1-cam3
+  status: failed
+  metrics: {}
+  failure_reason: 'inconclusive: the estimator did not produce an estimate: 1344 of
+    1611 matched patches constrain rows; observable: none'
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp16-cam0-cam4
+  status: failed
+  metrics: {}
+  failure_reason: 'inconclusive: the estimator did not produce an estimate: 826 of
+    1706 matched patches constrain rows; observable: none'
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp16-cam1-cam4
+  status: failed
+  metrics: {}
+  failure_reason: 'inconclusive: the estimator did not produce an estimate: 1900 of
+    2953 matched patches constrain rows; observable: none'
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp18-cam0-cam1
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp18-cam0-cam3
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp18-cam1-cam3
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp18-cam0-cam4
+  status: failed
+  metrics: {}
+  failure_reason: 'inconclusive: the estimator did not produce an estimate: 1715 of
+    2564 matched patches constrain rows; observable: none'
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp18-cam1-cam4
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp23p0-cam0-cam1
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp23p0-cam0-cam3
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp23p0-cam1-cam3
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp23p0-cam0-cam4
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp23p0-cam1-cam4
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp23p1-cam0-cam1
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp23p1-cam0-cam3
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp23p1-cam1-cam3
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp23p1-cam0-cam4
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp23p1-cam1-cam4
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp23p2-cam0-cam1
+  status: failed
+  metrics: {}
+  failure_reason: 'inconclusive: the estimator did not produce an estimate: 4923 of
+    6227 matched patches constrain rows; observable: none'
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp23p2-cam0-cam3
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp23p2-cam1-cam3
+  status: success
+  metrics:
+    scored: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp23p2-cam0-cam4
+  status: failed
+  metrics: {}
+  failure_reason: 'inconclusive: the estimator did not produce an estimate: 1148 of
+    1444 matched patches constrain rows; observable: none'
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp23p2-cam1-cam4
+  status: failed
+  metrics: {}
+  failure_reason: 'inconclusive: the estimator did not produce an estimate: 1042 of
+    1276 matched patches constrain rows; observable: none'
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+method_summaries:
+  kalibr_reference:
+    method_id: kalibr_reference
+    trial_count: 60
+    success_count: 60
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      scored:
+        metric: scored
+        distribution:
+          count: 60
+          mean: 0.0
+          median: 0.0
+          standard_deviation: 0.0
+          minimum: 0.0
+          maximum: 0.0
+          p90: 0.0
+          p95: 0.0
+          mean_ci95_low: 0.0
+          mean_ci95_high: 0.0
+        rank: 1
+  calibrex_check:
+    method_id: calibrex_check
+    trial_count: 60
+    success_count: 47
+    failure_count: 13
+    failure_rate: 0.21666666666666667
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      scored:
+        metric: scored
+        distribution:
+          count: 47
+          mean: 1.0
+          median: 1.0
+          standard_deviation: 0.0
+          minimum: 1.0
+          maximum: 1.0
+          p90: 1.0
+          p95: 1.0
+          mean_ci95_low: 1.0
+          mean_ci95_high: 1.0
+        rank: 2
+paired_comparisons:
+- reference_method_id: kalibr_reference
+  candidate_method_id: calibrex_check
+  metric: scored
+  direction: lower
+  paired_count: 47
+  raw_delta_mean: 1.0
+  improvement_mean: -1.0
+  improvement_ci95_low: -1.0
+  improvement_ci95_high: -1.0
+reference_method_id: kalibr_reference
+bootstrap_samples: 2000
+bootstrap_seed: 0
+limitations:
+- The reference is Hilti's target-based Kalibr calibration, not ground truth.
+- The pairs of one recording share cameras and a scene; they are not independent.
+- The three exp23 parts are consecutive parts of one session.
+provenance:
+  generator: tools/build_hilti_camera_camera_audit.py
+  generator_version: 0.5.1
+  generated_at: '2026-10-14T07:23:45.374165+00:00'
+  command: python tools/build_hilti_camera_camera_audit.py SCORES.json PREREGISTRATION
+    OUT
+  source_artifacts: {}
+  data_verified: true
