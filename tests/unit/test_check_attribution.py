@@ -267,3 +267,191 @@ def test_a_barely_constrained_direction_is_not_fitted() -> None:
     b = next(item for item in group.hypotheses if item.frame == "b")
     assert b.rotation_deg[1] is None and b.std_deg[1] is None
     assert all(value is None or abs(value) < 1.0 for value in b.rotation_deg)
+
+
+# A LiDAR rig with lever arms: an IMU, two LiDARs a metre or so away, and a GNSS antenna.
+LIDAR_RIG = {
+    "imu": (Rotation.identity(), np.zeros(3)),
+    "lidar_a": (
+        Rotation.from_euler("xyz", (0.0, 0.0, 90.0), degrees=True),
+        np.array([1.2, 0.0, 0.8]),
+    ),
+    "lidar_b": (
+        Rotation.from_euler("xyz", (0.0, 10.0, -90.0), degrees=True),
+        np.array([-0.4, 0.9, 0.6]),
+    ),
+    "gnss": (Rotation.identity(), np.array([0.3, -0.5, 1.4])),
+}
+LIDAR_PAIRS = [("imu", "lidar_a"), ("imu", "lidar_b"), ("lidar_a", "lidar_b"), ("gnss", "lidar_a")]
+
+
+def _rig_observations(
+    turned: dict[str, tuple[float, float, float]],
+    moved: dict[str, tuple[float, float, float]],
+    pairs: list[tuple[str, str]],
+    *,
+    std_deg: float = 0.03,
+    std_m: float = 0.002,
+    seed: int = 0,
+) -> list[AttributionObservation]:
+    """Exact pair errors of a rig whose candidates are turned by ``w`` and moved by ``u``."""
+
+    rng = np.random.default_rng(seed)
+    truth = {}
+    for frame, (rotation, position) in LIDAR_RIG.items():
+        w = np.radians(turned.get(frame, (0.0, 0.0, 0.0)))
+        u = np.array(moved.get(frame, (0.0, 0.0, 0.0)))
+        truth[frame] = (rotation * Rotation.from_rotvec(-w), position - rotation.apply(u))
+
+    def relative(poses: dict, parent: str, child: str) -> tuple[Rotation, np.ndarray]:  # type: ignore[type-arg]
+        (rp, pp), (rc, pc) = poses[parent], poses[child]
+        return rp.inv() * rc, rp.inv().apply(pc - pp)
+
+    observations = []
+    for parent, child in pairs:
+        r_cand, t_cand = relative(LIDAR_RIG, parent, child)
+        r_true, t_true = relative(truth, parent, child)
+        r_est = Rotation.from_rotvec(np.radians(rng.normal(0.0, 0.3 * std_deg, 3))) * r_true
+        t_est = t_true + rng.normal(0.0, 0.3 * std_m, 3)
+        observations.append(
+            AttributionObservation(
+                label=f"lidar:{parent}>{child}",
+                parent=parent,
+                child=child,
+                candidate_rotation=r_cand.as_matrix(),
+                error_deg=np.degrees((r_cand * r_est.inv()).as_rotvec()),
+                std_deg=np.full(3, std_deg),
+                observed=(True, True, True),
+                candidate_translation=t_cand,
+                translation_error_m=t_cand - t_est,
+                translation_std_m=np.full(3, std_m),
+                translation_observed=(True, True, True),
+            )
+        )
+    return observations
+
+
+def test_a_moved_frame_is_named_with_its_shift() -> None:
+    shift = (0.08, -0.05, 0.03)
+    group = _only_group(
+        build_rotation_attribution(_rig_observations({}, {"lidar_b": shift}, LIDAR_PAIRS), OPTIONS)
+    )
+    assert group.status == "attributed", group.summary
+    assert group.frame == "lidar_b"
+    assert group.translation_observations == 12
+    best = group.hypotheses[0]
+    assert best.translation_m == pytest.approx(list(shift), abs=0.003)
+    assert best.rotation_deg == pytest.approx([0.0, 0.0, 0.0], abs=0.05)
+    assert "moved by x +0.080" in group.summary
+
+
+def test_a_parent_s_turn_swings_its_children_on_their_lever_arms() -> None:
+    # 1 deg about the IMU's z moves lidar_a (1.2 m out) by 2 cm in the imu-lidar pair: that
+    # is the IMU turned, not the LiDAR moved
+    turn = (0.0, 0.0, 1.0)
+    observations = _rig_observations({"imu": turn}, {}, LIDAR_PAIRS)
+    assert np.linalg.norm(observations[0].translation_error_m) == pytest.approx(0.021, abs=0.002)
+    group = _only_group(build_rotation_attribution(observations, OPTIONS))
+    assert group.status == "attributed", group.summary
+    assert group.frame == "imu"
+    best = group.hypotheses[0]
+    assert best.rotation_deg == pytest.approx(list(turn), abs=0.05)
+    assert best.translation_m == pytest.approx([0.0, 0.0, 0.0], abs=0.003)
+
+
+def test_a_turned_and_moved_frame_is_named_with_both() -> None:
+    turn, shift = (0.0, 0.8, 0.0), (0.0, 0.0, -0.06)
+    group = _only_group(
+        build_rotation_attribution(
+            _rig_observations({"lidar_a": turn}, {"lidar_a": shift}, LIDAR_PAIRS), OPTIONS
+        )
+    )
+    assert group.status == "attributed", group.summary
+    best = group.hypotheses[0]
+    assert best.frame == "lidar_a"
+    assert best.rotation_deg == pytest.approx(list(turn), abs=0.05)
+    assert best.translation_m == pytest.approx(list(shift), abs=0.003)
+
+
+def test_a_shift_below_the_translation_floor_is_consistent() -> None:
+    group = _only_group(
+        build_rotation_attribution(
+            _rig_observations({}, {"lidar_b": (0.004, 0.0, 0.0)}, LIDAR_PAIRS), OPTIONS
+        )
+    )
+    assert group.status == "consistent", group.summary
+    assert "rotation or translation" in group.summary
+
+
+def test_two_moved_frames_are_not_blamed_on_one() -> None:
+    group = _only_group(
+        build_rotation_attribution(
+            _rig_observations(
+                {}, {"lidar_a": (0.06, 0.0, 0.0), "lidar_b": (0.0, 0.0, 0.07)}, LIDAR_PAIRS
+            ),
+            OPTIONS,
+        )
+    )
+    assert group.status == "unexplained", group.summary
+
+
+def test_a_frame_no_translation_pair_reaches_has_no_shift() -> None:
+    # gnss>lidar_a is the only pair with translation; imu's shift is not constrained
+    rotation_only = [
+        AttributionObservation(
+            label=item.label,
+            parent=item.parent,
+            child=item.child,
+            candidate_rotation=item.candidate_rotation,
+            error_deg=item.error_deg,
+            std_deg=item.std_deg,
+            observed=item.observed,
+        )
+        for item in _rig_observations({}, {}, LIDAR_PAIRS[:3])
+    ]
+    observations = rotation_only + _rig_observations({}, {}, [("gnss", "lidar_a")])
+    group = _only_group(build_rotation_attribution(observations, OPTIONS))
+    imu = next(item for item in group.hypotheses if item.frame == "imu")
+    assert imu.translation_m == [None, None, None]
+    gnss = next(item for item in group.hypotheses if item.frame == "gnss")
+    assert all(value is not None for value in gnss.translation_m or [])
+    # without any translation pair the shift is absent, not undetermined
+    lone = _only_group(build_rotation_attribution(rotation_only, OPTIONS))
+    assert all(item.translation_m is None for item in lone.hypotheses)
+    assert lone.translation_observations == 0
+
+
+def test_run_records_give_the_translation_their_estimators_reported() -> None:
+    record = CheckPairRecord.model_validate(
+        {
+            "pair": "imu-lidar",
+            "frames": ["imu", "lidar_a"],
+            "status": "pass",
+            "compared_transform": CheckTransform(
+                parent_frame="imu",
+                child_frame="lidar_a",
+                translation_m=[1.2, 0.0, 0.8],
+                rotation_quat_xyzw=[0.0, 0.0, 0.0, 1.0],
+            ).model_dump(),
+        }
+    )
+    compared = np.eye(4)
+    compared[:3, 3] = [1.2, 0.0, 0.8]
+    estimates = [
+        AxisEstimate(name, "deg", 0.1, 0.05, estimated=True) for name in ("roll", "pitch", "yaw")
+    ]
+    estimates += [
+        AxisEstimate("x", "m", 0.03, 0.004, estimated=True),
+        AxisEstimate("y", "m", -0.01, 0.004, estimated=True),
+        AxisEstimate("z", "m", 0.0, 0.5, estimated=False),
+    ]
+    edge = edge_from_estimates("imu-lidar", "imu", "lidar_a", compared, estimates)
+    (observation,) = observations_from_run([record], {("imu-lidar", ("imu", "lidar_a")): edge})
+    assert observation.translation_observed == (True, True, False)
+    assert observation.translation_error_m is not None
+    assert observation.translation_error_m[:2] == pytest.approx([0.03, -0.01])
+    assert observation.candidate_translation == pytest.approx([1.2, 0.0, 0.8])
+    report = build_rotation_attribution([observation], OPTIONS)
+    assert report is not None
+    assert report.sigma_floor_m == pytest.approx(0.02 / 3.0)
+    assert CheckRotationAttribution.model_validate(report.model_dump(mode="json")) == report

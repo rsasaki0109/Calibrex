@@ -151,7 +151,7 @@
     },
     "CheckAttributionGroup": {
       "additionalProperties": false,
-      "description": "One connected group of frames: which single frame's candidate explains its pair errors.\n\n``status``: ``consistent`` when the pair errors fit a candidate with nothing off;\n``attributed`` when exactly one frame turned alone explains them and the move is\nsignificant; ``ambiguous`` when several frames fit within the 3-dof critical value of\nthe best; ``unexplained`` when no single frame does (more than one is off, or the\nestimates disagree). A bias shared by every pair through one frame reads as that\nframe turned.",
+      "description": "One connected group of frames: which single frame's candidate explains its pair errors.\n\n``status``: ``consistent`` when the pair errors fit a candidate with nothing off;\n``attributed`` when exactly one frame turned (and, with translation, moved) alone\nexplains them and the move is significant; ``ambiguous`` when several frames fit\nwithin the critical value of the best (3 dof, 6 when the group observes\ntranslation); ``unexplained`` when no single frame does (more than one is off, or\nthe estimates disagree). A bias shared by every pair through one frame reads as that\nframe turned or moved.",
       "properties": {
         "candidates": {
           "description": "frames that each explain the errors alone",
@@ -225,6 +225,13 @@
         "summary": {
           "title": "Summary",
           "type": "string"
+        },
+        "translation_observations": {
+          "default": 0,
+          "description": "observed translation axes over all pairs",
+          "minimum": 0,
+          "title": "Translation Observations",
+          "type": "integer"
         }
       },
       "required": [
@@ -241,7 +248,7 @@
     },
     "CheckAttributionHypothesis": {
       "additionalProperties": false,
-      "description": "\"Only this frame's candidate rotation is off\": the best such rotation and its fit.",
+      "description": "\"Only this frame's candidate is off\": the best such turn (and shift) and its fit.",
       "properties": {
         "chi2": {
           "minimum": 0.0,
@@ -303,6 +310,55 @@
           "minItems": 3,
           "title": "Std Deg",
           "type": "array"
+        },
+        "translation_m": {
+          "anyOf": [
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "maxItems": 3,
+              "minItems": 3,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "x, y, z along the frame's own axes by which its candidate is moved from what the pairs measure (the pairs' convention, t_candidate - t_estimate); null on an axis no observed pair constrains, absent when no pair of the group estimates translation",
+          "title": "Translation M"
+        },
+        "translation_std_m": {
+          "anyOf": [
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "maxItems": 3,
+              "minItems": 3,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Translation Std M"
         }
       },
       "required": [
@@ -1630,7 +1686,7 @@
     },
     "CheckRotationAttribution": {
       "additionalProperties": false,
-      "description": "Which sensor's candidate rotation the pair errors point to.\n\nEach run pair reads the candidate's rotation error between two frames. If one\nframe's candidate is off by a small rotation ``w`` (about its own axes), every\npair with it as child reads ``R_parent_child w`` and every pair with it as parent\nreads ``-w``; pairs without it read zero. Each frame's hypothesis is fitted by\nleast squares and judged by its chi-square, next to the hypothesis that nothing is\noff. Informational: it changes no verdict.",
+      "description": "Which sensor's candidate the pair errors point to.\n\nEach run pair reads the candidate's rotation error between two frames, and its\ntranslation error when it estimates translation. If one frame's candidate is off by\na small rotation ``w`` and shift ``u`` (about and along its own axes), every pair\nwith it as child reads ``R_parent_child w`` and ``R_parent_child u``, and every pair\nwith it as parent reads ``-w`` and ``t_parent_child x w - u``; pairs without it read\nzero. Each frame's hypothesis is fitted by least squares and judged by its\nchi-square, next to the hypothesis that nothing is off. Informational: it changes no\nverdict.",
       "properties": {
         "alpha": {
           "description": "significance level of the tests",
@@ -1658,6 +1714,20 @@
           "exclusiveMinimum": 0.0,
           "title": "Sigma Floor Deg",
           "type": "number"
+        },
+        "sigma_floor_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "translation axis std used at least: translation floor / sigma_k",
+          "title": "Sigma Floor M"
         }
       },
       "required": [

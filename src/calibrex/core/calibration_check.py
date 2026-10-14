@@ -490,7 +490,7 @@ class CheckClosureReport(StrictModel):
 
 
 class CheckAttributionHypothesis(StrictModel):
-    """ "Only this frame's candidate rotation is off": the best such rotation and its fit."""
+    """ "Only this frame's candidate is off": the best such turn (and shift) and its fit."""
 
     frame: str
     rotation_deg: list[float | None] = Field(
@@ -501,6 +501,16 @@ class CheckAttributionHypothesis(StrictModel):
         "R_estimate^T)); null on an axis no observed pair constrains",
     )
     std_deg: list[float | None] = Field(min_length=3, max_length=3)
+    translation_m: list[float | None] | None = Field(
+        default=None,
+        min_length=3,
+        max_length=3,
+        description="x, y, z along the frame's own axes by which its candidate is moved from "
+        "what the pairs measure (the pairs' convention, t_candidate - t_estimate); null on an "
+        "axis no observed pair constrains, absent when no pair of the group estimates "
+        "translation",
+    )
+    translation_std_m: list[float | None] | None = Field(default=None, min_length=3, max_length=3)
     chi2: float = Field(ge=0.0)
     dof: int = Field(ge=0)
     p_value: float = Field(ge=0.0, le=1.0)
@@ -513,16 +523,20 @@ class CheckAttributionGroup(StrictModel):
     """One connected group of frames: which single frame's candidate explains its pair errors.
 
     ``status``: ``consistent`` when the pair errors fit a candidate with nothing off;
-    ``attributed`` when exactly one frame turned alone explains them and the move is
-    significant; ``ambiguous`` when several frames fit within the 3-dof critical value of
-    the best; ``unexplained`` when no single frame does (more than one is off, or the
-    estimates disagree). A bias shared by every pair through one frame reads as that
-    frame turned.
+    ``attributed`` when exactly one frame turned (and, with translation, moved) alone
+    explains them and the move is significant; ``ambiguous`` when several frames fit
+    within the critical value of the best (3 dof, 6 when the group observes
+    translation); ``unexplained`` when no single frame does (more than one is off, or
+    the estimates disagree). A bias shared by every pair through one frame reads as that
+    frame turned or moved.
     """
 
     frames: list[str]
     pairs: list[str]
     observations: int = Field(ge=0, description="observed rotation axes over all pairs")
+    translation_observations: int = Field(
+        default=0, ge=0, description="observed translation axes over all pairs"
+    )
     null_chi2: float = Field(ge=0.0)
     null_p_value: float = Field(ge=0.0, le=1.0)
     hypotheses: list[CheckAttributionHypothesis] = Field(default_factory=list)
@@ -535,19 +549,26 @@ class CheckAttributionGroup(StrictModel):
 
 
 class CheckRotationAttribution(StrictModel):
-    """Which sensor's candidate rotation the pair errors point to.
+    """Which sensor's candidate the pair errors point to.
 
-    Each run pair reads the candidate's rotation error between two frames. If one
-    frame's candidate is off by a small rotation ``w`` (about its own axes), every
-    pair with it as child reads ``R_parent_child w`` and every pair with it as parent
-    reads ``-w``; pairs without it read zero. Each frame's hypothesis is fitted by
-    least squares and judged by its chi-square, next to the hypothesis that nothing is
-    off. Informational: it changes no verdict.
+    Each run pair reads the candidate's rotation error between two frames, and its
+    translation error when it estimates translation. If one frame's candidate is off by
+    a small rotation ``w`` and shift ``u`` (about and along its own axes), every pair
+    with it as child reads ``R_parent_child w`` and ``R_parent_child u``, and every pair
+    with it as parent reads ``-w`` and ``t_parent_child x w - u``; pairs without it read
+    zero. Each frame's hypothesis is fitted by least squares and judged by its
+    chi-square, next to the hypothesis that nothing is off. Informational: it changes no
+    verdict.
     """
 
     assumptions: list[str] = Field(default_factory=list)
     sigma_floor_deg: float = Field(
         gt=0.0, description="axis std used at least: rotation floor / sigma_k of the verdicts"
+    )
+    sigma_floor_m: float | None = Field(
+        default=None,
+        gt=0.0,
+        description="translation axis std used at least: translation floor / sigma_k",
     )
     alpha: float = Field(gt=0.0, lt=1.0, description="significance level of the tests")
     groups: list[CheckAttributionGroup] = Field(default_factory=list)

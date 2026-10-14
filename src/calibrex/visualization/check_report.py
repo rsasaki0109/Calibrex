@@ -317,20 +317,40 @@ def _attribution_section(artifact: CalibrationCheckArtifact) -> str:
             if best is not None
             else ""
         )
+        shift = (
+            ", ".join(
+                f"{name} {_number(value)} &plusmn; {_number(std)}"
+                for name, value, std in zip(
+                    ("x", "y", "z"), best.translation_m, best.translation_std_m, strict=True
+                )
+                if value is not None and std is not None
+            )
+            if best is not None
+            and best.translation_m is not None
+            and best.translation_std_m is not None
+            else ""
+        )
         rows.append(
             f"<tr><td>{escape(', '.join(group.frames))}</td><td>{_badge(group.status)}</td>"
             f"<td>{escape(best.frame) if best is not None else ''}</td><td>{turn}</td>"
-            f"<td>{escape(group.summary)}</td></tr>"
+            f"<td>{shift}</td><td>{escape(group.summary)}</td></tr>"
         )
     return "".join(
         [
             "<h2>Which frame the errors point to</h2>",
             '<p class="note">Each frame alone is assumed off by a small rotation (about its '
-            "own axes, in degrees) and fitted to the pair errors; the fits are compared with "
-            f"nothing off. Axis std is at least {_number(report.sigma_floor_deg)} deg, the "
-            "verdicts' resolution. Informational: no verdict changes.</p>",
+            "own axes, in degrees) and, where pairs estimate translation, a shift (along its "
+            "own axes, in metres), fitted to the pair errors; the fits are compared with "
+            f"nothing off. Axis std is at least {_number(report.sigma_floor_deg)} deg"
+            + (
+                f" and {_number(report.sigma_floor_m)} m"
+                if report.sigma_floor_m is not None
+                else ""
+            )
+            + ", the verdicts' resolution. Informational: no verdict changes.</p>",
             '<div class="tablewrap"><table><thead><tr><th>frames</th><th>status</th>'
-            "<th>best single frame</th><th>its turn (deg)</th><th>summary</th></tr></thead>"
+            "<th>best single frame</th><th>its turn (deg)</th><th>its shift (m)</th>"
+            "<th>summary</th></tr></thead>"
             "<tbody>" + "".join(rows) + "</tbody></table></div>",
             "<details><summary>assumptions</summary><ul>"
             + "".join(f"<li>{escape(item)}</li>" for item in report.assumptions)
