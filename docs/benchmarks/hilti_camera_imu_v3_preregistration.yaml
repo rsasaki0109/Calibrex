@@ -1,0 +1,180 @@
+# Pre-registration of the Hilti 2022 camera-IMU v3 audit: honest per-axis verdicts.
+# It is binding once committed; its SHA-256 is cited by the audit protocol, and no
+# camera-IMU estimate is made on an evaluation recording before this commit.
+#
+# Written on 2026-10-14.  v1 (hilti_camera_imu_preregistration.yaml, refuted 6/7) and
+# v2 (hilti_camera_sota_preregistration.yaml, claim camera-imu-v2, refuted 5/7) both
+# held their accuracy gates.  Each failed on gates about axes the method itself reports
+# it cannot pin down: v1 and v2 required every unit to be constrained on all three
+# axes, and v2's consistency gate compared whole rotations, unconstrained axes
+# included.  The method reports such axes as not estimated, or not confirmed by their
+# control, and calibrex check leaves them unchecked.  v3 claims what the method
+# reports: it gates the axes the method judges and requires it to judge at least half
+# of them.
+#
+# Like v1 and v2, this is an accuracy-against-a-reference audit: no targetless external
+# camera-IMU baseline is integrated.  The reference is Hilti's target-based Kalibr
+# calibration (calib_3), itself a calibration with error, not ground truth.
+claims:
+  camera-imu-v3:
+    text: >-
+      On five Hilti 2022 recordings on which no camera-IMU estimate had been made,
+      Calibrex's targetless camera-IMU rotation for the two forward Alphasense cameras
+      (cam0, cam1) gives honest per-axis verdicts against Hilti's Kalibr calibration:
+      every rotation axis it judges (reported std at most 0.3 deg and its 1 deg
+      known-bad control detected on held-out windows) is within 1.0 deg, every clock
+      offset it judges within 0.75 ms; it judges at least half of the axes; an axis
+      judged on several recordings spans at most 1.0 deg; and an axis judged for both
+      cameras reproduces Kalibr's cam0-to-cam1 rotation within 0.75 deg.
+    scope:
+      modalities: [camera, imu]
+      quantities: [rotation, time_offset]
+      category: targetless_camera_imu
+    protocol_id: hilti-camera-imu-v3
+    relation_to_v1_v2: >-
+      Same estimator, same command and recipe (v1's run_recipe), same reference, same
+      usable-unit rule and the same two gated cameras.  What changes is the scoring:
+      per judged axis instead of per unit, and a coverage gate on how many axes are
+      judged instead of a requirement that all are.  The thresholds are re-derived from
+      all 22 units camera-IMU has run on (threshold_rationale).
+recordings:
+  development: >-
+    Every recording camera-IMU has run on, 11 recordings and 22 units, all with v1's
+    command: exp07 and exp21 (v1 development), exp01-exp04 (v1 evaluation, spent), and
+    exp15, exp16 and the three parts of exp23 (v2 evaluation, spent).  Their artifacts
+    are committed (docs/assets/hilti2022_camera_imu, hilti2022_camera_imu_audit,
+    hilti2022_camera_sota/camera_imu_v2/runs).
+  selection_rule: >-
+    Every Hilti 2022 sequence on which no camera-IMU estimate has been made: exp05,
+    exp06, exp09, exp10, exp11, exp14 and exp18.  exp09 (34.1 GB) and exp10 (28.3 GB)
+    are excluded by size alone: this environment has about 29 GB free, and a full bag
+    must fit together with the runs.  The other five are all used, whatever their
+    length (74 to 152 s); none is dropped later for any reason other than the
+    usable-unit rule.
+  exposure: >-
+    The camera-camera audit (hilti_camera_sota_preregistration.yaml, refuted) ran
+    calibrex check --pairs camera-camera on the first 5 GB (about 63 s) of each of the
+    five.  Its runs read their images and the IMU (for the cameras' clock offset), and
+    their camera-camera results have been seen.  Every camera-imu pair record in those
+    runs is skipped (not_selected, 180 of 180), so no camera-IMU estimate has been made
+    on them.
+  evaluation:
+    camera-imu-v3: [exp05, exp06, exp11, exp14, exp18]
+  bags:
+    exp05: {file: exp05_construction_upper_level_2.bag, size_bytes: 10311807906, duration_s: 124.8, lfs_sha256: b1f886ca4876664236e34a69ec83ebd9a48190190a9758431c4940a7bad6bbb2}
+    exp06: {file: exp06_construction_upper_level_3.bag, size_bytes: 12535443209, duration_s: 150.8, lfs_sha256: e9b8ca34a1e9dd1b4fff53357989141b9ef2af67ee115d9c6351aa72519d8b80}
+    exp11: {file: exp11_lower_gallery.bag, size_bytes: 12467443010, duration_s: 152.0, lfs_sha256: 61067f1bd52146d16a052503e8e430d08a90826f733045ad0df03811801431a2}
+    exp14: {file: exp14_basement_2.bag, size_bytes: 6260771085, duration_s: 74.0, lfs_sha256: 18eea013076b8263ababf4f36eb68d331564a0a493262b006dc0dddc2aa85b82}
+    exp18: {file: exp18_corridor_lower_gallery_2.bag, size_bytes: 8657654860, duration_s: 109.4, lfs_sha256: 98373b52f207b9ace3914792b5604a6642f89441190cabca6acbaf1d17249280}
+  calibration_sha256:
+    calib_3_cam0-1-camchain-imucam.yaml: 344ab530f12ea3eb8c658bdc005368275eccd70bca559a9fab8713a98cb1c60e
+run_recipe:
+  frozen_code_commit_note: >-
+    Run from a checkout whose src/ and tools/ equal frozen_code_commit; the commit that
+    adds this file changes docs only.
+  driver: >-
+    python tools/hilti_camera_sota_evaluate.py camera-imu-v3 --calibration-dir CAL
+    --work-dir WORK --output-dir RUNS, one recording at a time.  It downloads the full
+    bag with tools/hilti_download.py, which hashes the bytes as it writes them; the
+    SHA-256 must equal lfs_sha256, or the recording's units are invalid.  A failed
+    download may be repeated; it reads no message.
+  camera-imu-v3: >-
+    Per recording R and camera K in cam0, cam1, v1's command unchanged:
+    calibrex camera-imu rotation BAG
+    --camchain CAL/calib_3_cam0-1-camchain-imucam.yaml --camera camK
+    --imu-topic /alphasense/imu --image-topic /alphasense/camK/image_raw
+    --frame-stride 4 --min-window-rotation-deg 1.0 --observable-rotation-std-deg 0.3
+    --dataset-family hilti2022 --dataset-license "Hilti SLAM Challenge 2022 terms"
+    --output RUNS/camK_R.yaml, its output and errors kept in RUNS/camK_R.log.  The two
+    cameras run at once, as separate processes.  The bag is deleted after both.
+  rerun_policy: >-
+    A run is done once.  It is repeated only when the process failed before writing its
+    artifact for a reason outside the method (killed, out of memory, I/O error, a full
+    disk), with the same command.  Every artifact and every failed attempt is kept and
+    listed in the audit.
+  environment: >-
+    The repository's .venv at frozen_code_commit (python 3.12, numpy 2.x, OpenCV 4.x;
+    the exact versions are recorded by the artifacts and the scorer).
+scoring:
+  scorer: >-
+    python tools/score_hilti_camera_imu_v3.py RUNS CAL/calib_3_cam0-1-camchain-imucam.yaml
+    OUT --recording exp05 --recording exp06 --recording exp11 --recording exp14
+    --recording exp18, then python tools/build_hilti_camera_imu_v3_audit.py
+    OUT/scores.json docs/benchmarks/hilti_camera_imu_v3_preregistration.yaml OUT, and
+    calibrex sota audit on the protocol it writes.  Both are frozen at
+    frozen_code_commit; their thresholds are module constants.
+  gated_cameras: [cam0, cam1]
+  unit: >-
+    One camera on one recording.  A missing artifact is a failed unit, except when its
+    log shows the estimator's refusal for too few tracking windows ("camera tracking
+    produced N windows; at least 3 are needed"): that unit has fewer than 8 windows and
+    is not usable.  Usable (v1's rule): at least 8 windows after the static-window
+    exclusion and at most 25 percent failed frame pairs; a not-usable unit is
+    inconclusive and never gated.  A usable unit whose solver did not converge or whose
+    policy is fail is failed.  Every other usable unit is scored.
+  axis: >-
+    roll, pitch, yaw: the components (deg) of rotvec(R_est R_ref^T), a small rotation
+    about the camera's x, y and z axes that takes Kalibr's R_cam_imu (T_cam_imu of the
+    camchain) to the estimate.  An axis is judged when the artifact reports it
+    estimated (std_reported <= 0.3 deg) and its 1 deg known-bad control is present and
+    detected on held-out windows; calibrex check applies the same rule.  The clock
+    offset is judged by the same rule (std_reported <= 2 ms, 10 ms control); its error
+    is time_offset_s - timeshift_cam_imu.
+  requirements:
+    - {id: judged-axis-accuracy, rule: every judged axis of every scored unit has an absolute error <= 1.0 deg}
+    - {id: judged-time-offset, rule: every judged clock offset of a scored unit is within 0.75 ms}
+    - {id: judged-axis-coverage, rule: at least half of the scored units' axes are judged, coverage}
+    - {id: no-failed-units, rule: no unit is failed}
+    - {id: judged-axis-consistency, rule: 'per camera and axis judged on at least two recordings, max - min of its errors <= 1.0 deg'}
+    - {id: judged-axis-relative, rule: 'per recording scored for both cameras and per axis judged for both, the matching component of rotvec((R0 R1^T)(R0ref R1ref^T)^T) (cam0 axes) is within 0.75 deg'}
+    - {id: scored-recordings-coverage, rule: 'at least 3 of the 5 recordings are scored for both cameras, coverage'}
+  verdict_rules:
+    supported: every requirement passes
+    refuted: a requirement other than the two coverage requirements fails
+    inconclusive: >-
+      no such requirement fails, but a coverage requirement fails or a requirement has
+      nothing to measure (for example no axis judged twice); the audit is then
+      incomplete
+threshold_rationale:
+  rule: >-
+    Each gate is 1.5 times the worst development value over the 22 development units,
+    rounded up to the next 0.25 (deg or ms).  v1 used twice the worst of its 4
+    development units; with 22 units, the worst already covers more of the spread.  The
+    coverage floor is the development rate divided by 1.5, rounded down to the next
+    0.25.  The development values were computed with the frozen scorer
+    (docs/assets/hilti2022_camera_imu_v3/development_scores.json: supported on every
+    requirement).
+  judged-axis-accuracy: 'dev worst 0.650 deg (cam0 exp03 pitch); 1.5x = 0.975; threshold 1.0 deg'
+  judged-time-offset: 'dev worst 0.479 ms (cam0 exp23p2); 1.5x = 0.719; threshold 0.75 ms'
+  judged-axis-consistency: 'dev worst span 0.614 deg (cam0 yaw, judged on 9 recordings); 1.5x = 0.921; threshold 1.0 deg'
+  judged-axis-relative: 'dev worst 0.386 deg (exp23p2 pitch); 1.5x = 0.580; threshold 0.75 deg'
+  judged-axis-coverage: 'dev 58 of 66 axes judged (0.879); / 1.5 = 0.586; threshold 0.5'
+  scored-recordings-coverage: v1's rule, at least 3 recordings scored for both cameras
+  what_was_not_judged: >-
+    The 8 development axes not judged had errors of 0.07 to 0.77 deg; the largest
+    development error of all (cam0 exp15 pitch, 0.768 deg) is one whose control was not
+    detected.
+  known_risks: >-
+    The evaluation recordings are shorter than most development ones.  The shortest
+    development recording, exp04 (126 s, 14-15 windows), judged 3 of its 6 axes; the
+    next shortest, exp07 and exp21 (about 145 and 150 s, 14-16 windows), judged 6 and 5.
+    exp14 (74 s) will probably have fewer than 8 windows and be not usable; the coverage
+    gates allow it.  Every cam0 pitch error in development is negative (-0.20
+    to -0.77 deg): part of it is the rig-level offset about the IMU's vertical axis
+    (hilti_camera_imu.md), which the accuracy gate must absorb.
+invalidates:
+  - a change to src/ or tools/ after frozen_code_commit before every evaluation run is done
+  - changing the scorer, builder or driver, a threshold, a gated camera, a recording or a requirement after any evaluation run
+  - making any camera-IMU estimate on an evaluation recording before this file is committed
+  - a full bag whose SHA-256 differs from lfs_sha256 (that recording's units are invalid)
+  - dropping a recording or unit for any reason other than the rules above
+analysis_plan:
+  - Download one recording at a time, verify its SHA-256, run both cameras, delete it.
+  - Score and build the audit with the frozen tools; record it with calibrex sota audit; publish it on the leaderboard whether it is supported, refuted or incomplete, with every unit and failed attempt listed.
+coverage:
+  minimum_dataset_families: 1
+  minimum_independent_rigs: 1
+  note: >-
+    One rig and one dataset family.  cam0 and cam1 share a scene and a Kalibr run; their
+    units are not independent.
+frozen_code_commit: ea5ff4070815dc7550509c8a21f272ac52cdf106

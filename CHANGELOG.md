@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- **The Hilti camera-IMU v3 audit is pre-registered: honest per-axis verdicts.**
+  - **Why.** v1 and v2 held their accuracy gates. Both failed on gates about axes the
+    method itself reports it cannot pin down.
+  - **The claim.**
+    - Every axis the method judges is within 1.0 deg of Kalibr. An axis is judged when
+      its std is at most 0.3 deg and its 1 deg control is detected.
+    - Judged clock offsets are within 0.75 ms.
+    - At least half of the axes are judged.
+    - A judged axis spans at most 1.0 deg across recordings.
+    - The cam0-cam1 rotation is within 0.75 deg per axis judged for both.
+  - **Recordings.** exp05, exp06, exp11, exp14 and exp18, on which no camera-IMU
+    estimate has been made.
+  - **Thresholds.** 1.5 times the worst of the 22 development units, rounded up.
+    Development scores `supported` (`docs/assets/hilti2022_camera_imu_v3/`).
+  - **Tools**, frozen at `ea5ff40`:
+    - `tools/score_hilti_camera_imu_v3.py`;
+    - `tools/build_hilti_camera_imu_v3_audit.py`;
+    - a `camera-imu-v3` mode in `tools/hilti_camera_sota_evaluate.py`.
+
 - **Two pre-registered Hilti 2022 camera audits, both refuted.**
   - **How they ran.** `docs/benchmarks/hilti_camera_sota_preregistration.yaml` fixed
     both claims, their recordings and the recordings' SHA-256 before any estimator read
