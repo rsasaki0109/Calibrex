@@ -37,7 +37,8 @@ def _cuda_kernel_hashes(sources: dict[str, bytes]) -> tuple[str, str]:
     query = constants("calibrex/solvers/cuda_lidar_map_adapter.py")["_SOURCE"]
     system = constants("calibrex/solvers/cuda_scan_odometry_adapter.py")
     return _sha(query.encode()), _sha(
-        (system["_SYSTEM_SOURCE"] + system["_FUSED_SOURCE"] + system["_COVARIANCE_SOURCE"]).encode()
+        (system["_SYSTEM_SOURCE"] + system["_FUSED_SOURCE"] + system["_COVARIANCE_SOURCE"]
+         + system.get("_NORMAL_SOURCE", "")).encode()
     )
 
 
@@ -220,6 +221,10 @@ def audit(root: Path) -> dict[str, object]:
                     if match is None or match[1] != provenance.get("cupy"):
                         raise ValueError("executed GPU identity differs from its bound kernels")
                     counters = report["statistics"]
+                    if ("gpu_normal_kernel_calls" in counters
+                            and counters.get("gpu_normal_rows", 0) > 0
+                            and counters["gpu_normal_kernel_calls"] <= 0):
+                        raise ValueError("GPU normal rows have no recorded normal kernel work")
                     if ("calibrex/solvers/scipy_spatial_snapshot.py" in executed
                             and counters.get("serialized_tree_captures", 0)
                             + counters.get("public_node_tree_captures", 0) <= 0):
@@ -233,6 +238,11 @@ def audit(root: Path) -> dict[str, object]:
             attempt["whole_seconds"] >= record["pipeline_seconds"] >= record["fit_seconds"] > 0
         ):
             raise ValueError("timing scopes are inconsistent")
+        if ("normal_preparation_seconds" in record
+                and not (0 <= record["normal_preparation_seconds"] <= record["pipeline_seconds"]
+                         and record["normal_preparation_calls"] > 0
+                         and provenance.get("odometry_backend") == "cuda")):
+            raise ValueError("normal preparation timing scope is inconsistent")
         if len(record["rounds"]) != len(result["rounds"]):
             raise ValueError("worker did not retain every fit round")
         for fitted, reported in zip(record["rounds"], result["rounds"], strict=True):

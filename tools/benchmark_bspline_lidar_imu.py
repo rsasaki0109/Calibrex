@@ -21,6 +21,7 @@ import tarfile
 import time
 from dataclasses import replace
 from pathlib import Path
+from typing import Any
 
 
 def _digest(path: Path) -> str:
@@ -92,6 +93,12 @@ def _worker(args: argparse.Namespace) -> None:
             raise RuntimeError("worker CUDA compilation cache was not empty")
     from calibrex.data.livox_ros2 import LivoxStreamProfile
     from calibrex.evaluation import lidar_imu_bag_calibration as runner
+
+    normal_timing = None
+    if backend == "cuda":
+        from calibrex.solvers.cuda_scan_odometry_adapter import CudaOdometryTarget
+
+        normal_timing = _time_normal_preparation(CudaOdometryTarget)
 
     rounds: list[dict[str, object]] = []
     original = runner.fit_bspline_lidar_imu
@@ -185,6 +192,9 @@ def _worker(args: argparse.Namespace) -> None:
             "variant": args.variant,
             "pipeline_seconds": pipeline_seconds,
             "fit_seconds": sum(float(r["seconds"]) for r in rounds),
+            **({"normal_preparation_seconds": normal_timing["seconds"],
+                "normal_preparation_calls": normal_timing["calls"]}
+               if normal_timing is not None else {}),
             "rounds": rounds,
             "provenance": {
                 "bag_sha256": _digest(Path(args.bag)),
@@ -324,6 +334,35 @@ def _validate_backend_execution(result: dict, backend: str) -> None:
             statistics.get(name, 0) <= 0 for name in ("gpu_query_rows", "gpu_fused_system_calls")
         ):
             raise ValueError("CUDA pass did not execute spatial queries and systems")
+
+
+def _time_normal_preparation(holder: Any) -> dict[str, float | int]:
+    """Time outermost preparation calls; nested cache completion is counted once.
+
+    Existing preparation synchronizes for its decision flags. No additional GPU
+    synchronization is inserted by this observer. The bound launcher identifies it.
+    """
+    totals: dict[str, float | int] = {"calls": 0, "seconds": 0.0}
+    depth = 0
+    for name in ("_ensure", "_ensure_all"):
+        if not hasattr(holder, name):
+            continue
+        original = getattr(holder, name)
+
+        def measured(*args: Any, _original: Any = original, **kwargs: Any) -> Any:
+            nonlocal depth
+            depth += 1
+            begin = time.perf_counter()
+            try:
+                return _original(*args, **kwargs)
+            finally:
+                depth -= 1
+                if depth == 0:
+                    totals["calls"] += 1
+                    totals["seconds"] += time.perf_counter() - begin
+
+        setattr(holder, name, measured)
+    return totals
 
 
 def _backend(comparison: str, variant: str) -> str:

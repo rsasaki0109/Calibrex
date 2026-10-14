@@ -246,3 +246,70 @@ def test_cuda_repairs_an_ambiguous_motion_grid_boundary() -> None:
     _same(native, actual)
     np.testing.assert_array_equal(native.transform, actual.transform)
     assert target.statistics()["scalar_motion_repairs"] == 1
+
+
+@pytest.mark.parametrize("scale", [1e-6, 1., 1e6])
+def test_fused_normals_keep_native_planes_and_directions_without_library_eigh(
+    monkeypatch: pytest.MonkeyPatch, scale: float,
+) -> None:
+    rotation = Rotation.from_rotvec([.2, -.3, .4]).as_matrix()
+    points = (_scene() @ rotation.T) * scale
+    options = ScanOdometryOptions()
+    expected, planar = estimate_normals(points, cKDTree(points), options)
+    target = CudaOdometryTarget(points, options)
+
+    def forbidden(*args: object, **kwargs: object) -> None:
+        pytest.fail("normal preparation invoked the batched library eigensolver")
+
+    monkeypatch.setattr(cp.linalg, "eigh", forbidden)
+    actual = cp.asnumpy(target.normals)
+    np.testing.assert_array_equal(cp.asnumpy(target.planar), planar)
+    np.testing.assert_allclose(np.abs(np.sum(actual * expected, axis=1)), 1., atol=1e-12)
+    np.testing.assert_allclose(np.linalg.norm(actual, axis=1), 1., atol=1e-14)
+    assert target.statistics()["gpu_normal_kernel_calls"] > 0
+    assert target.statistics()["scalar_normal_repairs"] < len(points)
+    first = target.statistics().copy()
+    target._ensure_all()
+    assert target.statistics() == first
+
+
+def test_completing_partially_cached_normals_does_not_recompute_rows() -> None:
+    points = _scene()
+    target = CudaOdometryTarget(points, ScanOdometryOptions())
+    target._ensure(cp.asarray([0, 0, 1, 10, 10]))
+    assert target.statistics()["gpu_normal_rows"] == 3
+    target._ensure_all()
+    assert target.statistics()["gpu_normal_rows"] == len(points)
+    first = target.statistics().copy()
+    target._ensure(cp.asarray([0, 0, 5]))
+    assert target.statistics() == first
+
+
+def test_complete_normal_preparation_crosses_chunk_boundaries() -> None:
+    points = np.random.default_rng(67).uniform(-5, 5, (66001, 3))
+    points[:, 0] = 4
+    target = CudaOdometryTarget(points, ScanOdometryOptions())
+    normals = cp.asnumpy(target.normals)
+    np.testing.assert_allclose(np.abs(normals[:, 0]), 1., atol=1e-12)
+    np.testing.assert_allclose(normals[:, 1:], 0., atol=1e-12)
+    assert cp.asnumpy(target.planar).all()
+    assert target.statistics()["gpu_normal_rows"] == len(points)
+    assert target.statistics()["gpu_normal_kernel_calls"] == 2
+
+
+@pytest.mark.parametrize("low", [.2 - 1e-9, .2, .2 + 1e-9])
+def test_fused_normal_classification_repairs_repeated_upper_root_boundaries(low: float) -> None:
+    # Six symmetric axis points have diagonal covariance (low, 1, 1).
+    points = np.concatenate((np.diag(np.sqrt([3 * low, 3., 3.])),
+                             -np.diag(np.sqrt([3 * low, 3., 3.]))))
+    target = CudaOdometryTarget(points, ScanOdometryOptions(normal_neighbours=6))
+    rows = cp.asarray([0], dtype=cp.int64)
+    indexes = cp.asarray([[0, 1, 2, 3, 4, 5, 6]], dtype=cp.int64)
+    # Distinct boundary distances isolate numerical classification from tie repair.
+    distances = cp.asarray([[1., 2., 3., 4., 5., 6., 7.]])
+    flags = cp.empty(1, dtype=cp.uint8)
+    target.normal_kernel((1,), (128,), (
+        target.tree.data, indexes, distances, rows, np.int32(1), np.int32(6), np.float64(.2),
+        target._normals, target._planar, target.done, flags,
+    ))
+    assert cp.asnumpy(flags).tolist() == [1]

@@ -74,6 +74,75 @@ extern "C" __global__ void covariance3(
 }
 """
 
+_NORMAL_SOURCE = r"""
+// FP64 symmetric 3x3 PCA; uncertain memberships/eigenspaces retain native repairs.
+extern "C" __global__ void normals3(
+    const double* points, const long long* indices, const double* distances,
+    const long long* rows, const int n, const int k, const double ratio,
+    double* normal, bool* planar, bool* done, unsigned char* repair) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;
+    if(row>=n) return;
+    const double eps=2.2204460492503131e-16;
+    double mean[3]={0,0,0},c[9]={0,0,0,0,0,0,0,0,0};
+    for(int j=0;j<k;j++) for(int a=0;a<3;a++)
+        mean[a]+=points[3*indices[row*(k+1)+j]+a];
+    for(int a=0;a<3;a++) mean[a]/=k;
+    for(int j=0;j<k;j++) {
+        double d[3];
+        for(int a=0;a<3;a++) d[a]=points[3*indices[row*(k+1)+j]+a]-mean[a];
+        for(int a=0;a<3;a++) for(int b=0;b<3;b++) c[3*a+b]+=d[a]*d[b];
+    }
+    for(int a=0;a<9;a++) c[a]/=k;
+    double scale=fmax(fmax(fabs(c[0]),fabs(c[4])),fabs(c[8]));
+    bool bad=!(scale>0) || !isfinite(scale);
+    double unit=fmax(scale,2.2250738585072014e-308);
+    for(int a=0;a<9;a++) c[a]/=unit;
+    double trace=c[0]+c[4]+c[8],q=trace/3;
+    double x=c[0]-q,y=c[4]-q,z=c[8]-q;
+    double p=sqrt((x*x+y*y+z*z+2*(c[1]*c[1]+c[2]*c[2]+c[5]*c[5]))/6);
+    bad|=!(p>64*eps);
+    double inv=1/fmax(p,2.2250738585072014e-308);
+    double b0=x*inv,b1=y*inv,b2=z*inv;
+    double b3=c[1]*inv,b4=c[2]*inv,b5=c[5]*inv;
+    double determinant=b0*b1*b2+2*b3*b4*b5-b0*b5*b5-b1*b4*b4-b2*b3*b3;
+    double phi=acos(fmax(-1.0,fmin(1.0,determinant/2)))/3;
+    double low=q+2*p*cos(phi+2.0943951023931954923);
+    double high=q+2*p*cos(phi),mid=trace-low-high;
+    double a[9];for(int j=0;j<9;j++) a[j]=c[j];
+    a[0]-=low;a[4]-=low;a[8]-=low;
+    double best=-1,v[3]={0,0,0};
+    for(int i=0;i<3;i++) {
+        int j=(i+1)%3;
+        double w[3]={a[3*i+1]*a[3*j+2]-a[3*i+2]*a[3*j+1],
+                     a[3*i+2]*a[3*j]-a[3*i]*a[3*j+2],
+                     a[3*i]*a[3*j+1]-a[3*i+1]*a[3*j]};
+        double norm=w[0]*w[0]+w[1]*w[1]+w[2]*w[2];
+        if(norm>best) {best=norm;for(int u=0;u<3;u++) v[u]=w[u];}
+    }
+    bad|=!(best>0) || !isfinite(best);
+    double length=sqrt(fmax(best,2.2250738585072014e-308));
+    for(int u=0;u<3;u++) v[u]/=length;
+    double residual=0;
+    for(int i=0;i<3;i++) {
+        double r=c[3*i]*v[0]+c[3*i+1]*v[1]+c[3*i+2]*v[2]-low*v[i];
+        residual+=r*r;
+    }
+    double floor=1e-12/unit,spectral=fmax(fabs(high),2.2250738585072014e-308);
+    double threshold=ratio*fmax(mid,floor);
+    // Cover closed-form root error near repeated upper eigenvalues.
+    bad|=mid-low<=1e-4*spectral || fabs(low-threshold)<=2e-8*spectral;
+    bad|=!isfinite(residual) || sqrt(residual)>64*eps*spectral;
+    bool tied=distances[row*(k+1)+k]-distances[row*(k+1)+k-1]
+              <=64*eps*fmax(1.0,distances[row*(k+1)+k]);
+    long long target=rows[row];
+    for(int u=0;u<3;u++) normal[3*target+u]=v[u];
+    planar[target]=low<=threshold;
+    done[target]=true;
+    repair[row]=(bad||tied)?1:0;
+}
+"""
+
+
 _FUSED_SOURCE = r"""
 extern "C" __global__ void project_query_system3(
     const double* xyz, const double* matrix, const double* reference,
@@ -152,7 +221,7 @@ def execution_identity() -> str:
     """Identify arithmetic, query code and runtime without the device model."""
     properties = cp.cuda.runtime.getDeviceProperties(cp.cuda.runtime.getDevice())
     system_digest = hashlib.sha256(
-        (_SYSTEM_SOURCE + _FUSED_SOURCE + _COVARIANCE_SOURCE).encode(),
+        (_SYSTEM_SOURCE + _FUSED_SOURCE + _COVARIANCE_SOURCE + _NORMAL_SOURCE).encode(),
     ).hexdigest()
     return (
         "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;"
@@ -200,6 +269,8 @@ class CudaOdometryTarget:
         self.normal_rows = 0
         self.registration_repairs = 0
         self.motion_repairs = 0
+        self.normal_kernel_calls = 0
+        self._all_done = False
         self.identity = execution_identity()
         with cp.cuda.Device(self.device_id):
             self.system_kernel = cp.RawKernel(_SYSTEM_SOURCE, "system3", options=("--fmad=false",))
@@ -213,69 +284,59 @@ class CudaOdometryTarget:
                 "covariance3",
                 options=("--fmad=false",),
             )
+            self.normal_kernel = cp.RawKernel(
+                _NORMAL_SOURCE, "normals3", options=("--fmad=false",),
+            )
 
     @property
     def normals(self) -> cp.ndarray:
         """Return the complete normal array, materializing it for explicit readers."""
         with cp.cuda.Device(self.device_id):
-            self._ensure(cp.arange(len(self.host)))
+            self._ensure_all()
         return self._normals
 
     @property
     def planar(self) -> cp.ndarray:
         """Return all planarity decisions; registration requests only its hits."""
         with cp.cuda.Device(self.device_id):
-            self._ensure(cp.arange(len(self.host)))
+            self._ensure_all()
         return self._planar
 
     def _ensure(self, hit: cp.ndarray) -> None:
+        if self._all_done:
+            return
         missing = cp.unique(hit[~self.done[hit]])
+        self._compute_normals(missing)
+
+    def _ensure_all(self) -> None:
+        if self._all_done:
+            return
+        if self.normal_rows:
+            self._ensure(cp.asarray(np.arange(len(self.host), dtype=np.int64)))
+        else:
+            self._compute_normals(
+                cp.asarray(np.arange(len(self.host), dtype=np.int64)), complete=True,
+            )
+
+    def _compute_normals(self, missing: cp.ndarray, *, complete: bool = False) -> None:
         k = min(self.options.normal_neighbours, len(self.host))
-        margin = 64 * np.finfo(np.float64).eps
         for start in range(0, len(missing), 65536):
             rows = missing[start : start + 65536]
             self.normal_rows += len(rows)
-            distances, indexes = self.tree.query(self.tree.data[rows], k + 1)
-            ambiguous = distances[:, k] - distances[:, k - 1] <= (
-                margin * cp.maximum(1.0, distances[:, k])
-            )
-            repair = (
-                cp.asnumpy(cp.flatnonzero(ambiguous))
-                if int(cp.count_nonzero(ambiguous))
-                else np.empty(0, dtype=np.intp)
-            )
-            if len(repair):
-                native_rows = cp.asnumpy(rows[cp.asarray(repair)])
-                _, native = self.tree.cpu.query(self.host[native_rows], k=k)
-                indexes[cp.asarray(repair), :k] = cp.asarray(native)
-                self.query_repairs += len(repair)
-            covariance = cp.empty((len(rows), 3, 3), dtype=cp.float64)
-            self.covariance_kernel(
+            queries = self.tree.data[start:start + len(rows)] if complete else self.tree.data[rows]
+            distances, indexes = self.tree.query(queries, k + 1)
+            flags = cp.empty(len(rows), dtype=cp.uint8)
+            self.normal_kernel(
                 ((len(rows) + 127) // 128,),
                 (128,),
                 (
-                    self.tree.data,
-                    indexes,
-                    np.int32(len(rows)),
-                    np.int32(k),
-                    covariance,
+                    self.tree.data, indexes, distances, rows, np.int32(len(rows)), np.int32(k),
+                    np.float64(self.options.max_planarity_ratio), self._normals, self._planar,
+                    self.done, flags,
                 ),
             )
-            values, vectors = cp.linalg.eigh(covariance)
-            ratio = self.options.max_planarity_ratio
-            self._normals[rows] = vectors[:, :, 0]
-            self._planar[rows] = values[:, 0] <= ratio * cp.maximum(values[:, 1], 1e-12)
-            scale = cp.maximum(cp.abs(values[:, 2]), np.finfo(np.float64).tiny)
-            # Thin scan-line neighbourhoods can amplify eigensolver roundoff
-            # in the normal direction even away from the planarity threshold.
-            uncertain = (values[:, 1] - values[:, 0] <= 1e-4 * scale) | (
-                cp.abs(values[:, 0] - ratio * cp.maximum(values[:, 1], 1e-12)) <= margin * scale
-            )
-            repair = (
-                cp.asnumpy(cp.flatnonzero(uncertain))
-                if int(cp.count_nonzero(uncertain))
-                else np.empty(0, dtype=np.intp)
-            )
+            self.normal_kernel_calls += 1
+            repair = np.flatnonzero(cp.asnumpy(flags))
             if len(repair):
                 native_rows = cp.asnumpy(rows[cp.asarray(repair)])
                 _, native_indices = self.tree.cpu.query(self.host[native_rows], k=k)
@@ -290,7 +351,7 @@ class CudaOdometryTarget:
                 self._normals[selected] = cp.asarray(normals)
                 self._planar[selected] = cp.asarray(planar)
                 self.normal_repairs += len(repair)
-            self.done[rows] = True
+        self._all_done = self.normal_rows == len(self.host)
 
     def register(self, source: FloatArray, initial: FloatArray) -> ScanRegistration:
         """Run native odometry iteration/stopping semantics on this captured target."""
@@ -314,7 +375,7 @@ class CudaOdometryTarget:
             # Sparse sources request only their hits to avoid preparing a large,
             # mostly unused target. This changes work scheduling, not geometry.
             if len(points) >= len(self.host) / 10:
-                self._ensure(cp.arange(len(self.host)))
+                self._ensure_all()
             terms = cp.empty((31, len(points)), dtype=cp.float64)
             uncertain = cp.empty(len(points), dtype=cp.float64)
             moved = cp.empty_like(points)
@@ -486,6 +547,7 @@ class CudaOdometryTarget:
             "gpu_fused_system_calls": self.fused_calls,
             "gpu_system_refresh_calls": self.system_refresh_calls,
             "gpu_normal_rows": self.normal_rows,
+            "gpu_normal_kernel_calls": self.normal_kernel_calls,
             "scalar_registration_repairs": self.registration_repairs,
             "scalar_motion_repairs": self.motion_repairs,
         }

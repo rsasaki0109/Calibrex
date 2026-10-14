@@ -11,10 +11,27 @@ from tools.benchmark_bspline_lidar_imu import (
     _backend,
     _compare,
     _manifest,
+    _time_normal_preparation,
     _validate_backend_execution,
     _verify_sources,
     _write,
 )
+
+
+def test_normal_timing_counts_nested_cache_completion_once() -> None:
+    class Target:
+        def _ensure(self, value: int) -> int:
+            return value + 1
+
+        def _ensure_all(self) -> int:
+            return self._ensure(5)
+
+    timings = _time_normal_preparation(Target)
+    assert Target()._ensure_all() == 6
+    assert timings["calls"] == 1
+    assert Target()._ensure(7) == 8
+    assert timings["calls"] == 2
+    assert timings["seconds"] >= 0
 
 
 @pytest.mark.parametrize("comparison,prior,current", [
