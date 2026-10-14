@@ -1,0 +1,4 @@
+status: warn
+artifact: /home/user/sota_eval/runs_v3/cam1_exp11.yaml
+calibrated_dofs: ['roll', 'pitch', 'yaw', 'time_offset', 'gyro_bias_x', 'gyro_bias_y', 'gyro_bias_z']
+reasons: ['pitch is reported as estimated but a known-bad 1 deg shift is not detected on held-out windows (delta chi-square -1.1)']

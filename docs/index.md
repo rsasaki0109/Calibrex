@@ -168,8 +168,9 @@ pre-registered audit marks `supported`. Refuted audits are listed too.
 |---|---|---|
 | `imu-lidar` | <span class="cx-pill supported">supported</span> | Livox MID360 against LI-Init: rotation and clock offset, and the full extrinsic in a second round (the first round was refuted) |
 | `lidar-vehicle` | <span class="cx-pill supported">supported</span> | KITTI motion-only rotation against calib_imu_to_velo, eight unseen drives |
+| `camera-imu` | <span class="cx-pill supported">supported</span> | Hilti 2022 forward cameras against Kalibr: every judged axis within 1 deg, five unseen recordings (third round; the first two were refuted) |
 | `lidar-lidar` | <span class="cx-pill refuted">refuted</span> | NTU VIRAL, 2/4 gates |
-| `camera-imu` | <span class="cx-pill refuted">refuted</span> | Hilti 2022 against Kalibr, 6/7 gates |
+| `camera-camera` | <span class="cx-pill refuted">refuted</span> | Hilti 2022 against Kalibr, 4/6 gates |
 | `camera`, `camera-lidar`, `gnss-imu`, `imu-vehicle`, `ins-lidar`, `lidar-wheel_odometry` | <span class="cx-pill no_claim">no_claim</span> | Native method, no audited claim yet |
 
 [Full leaderboard and protocols :material-arrow-right:](benchmarks/sota_leaderboard.md){ .md-button }

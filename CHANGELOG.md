@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+- **camera-imu has a supported SOTA claim: the Hilti camera-IMU v3 audit, 7 of 7 gates.**
+  - **The runs.**
+    - Five recordings on which no camera-IMU estimate had been made: exp05, exp06,
+      exp11, exp14 and exp18.
+    - Every bag's SHA-256 matched the pinned one. All ten runs exited 0 on their only
+      attempt, from the frozen code.
+  - **The results.**
+    - Every judged axis was within 0.528 deg of Kalibr (gate 1.0), and every clock
+      offset within 0.470 ms (gate 0.75).
+    - 26 of 30 axes were judged.
+    - Across recordings, a judged axis spanned at most 0.408 deg (gate 1.0).
+    - The cam0-cam1 rotation was within 0.444 deg per jointly judged axis (gate 0.75).
+  - **What the method declined to judge.** The four axes it left unjudged include the
+    two largest errors, exp18's pitch (-0.87 and -0.68 deg).
+  - **It claims less than v1 (post-hoc, v1's unchanged scorer).** Under v1's rules the
+    same runs are refuted: `constrained` fails on three units, and the whole relative
+    rotation on exp14 is 0.57 deg.
+  - **Leaderboard.** `camera-imu` stands `supported` (1 supported, 2 refuted). The
+    results are in `docs/benchmarks/hilti_camera_imu.md` and
+    `docs/assets/hilti2022_camera_imu_v3/`.
+
 - **The Hilti camera-IMU v3 audit is pre-registered: honest per-axis verdicts.**
   - **Why.** v1 and v2 held their accuracy gates. Both failed on gates about axes the
     method itself reports it cannot pin down.

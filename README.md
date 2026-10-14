@@ -349,8 +349,8 @@ standing on the [leaderboard](docs/benchmarks/sota_leaderboard.md).
 | Pair | Native command | Public data used | Audit standing |
 |---|---|---|:---:|
 | camera (focal lengths) | `calibrex camera-imu focal` | Hilti 2022 | no_claim |
-| camera ↔ IMU | `calibrex camera-imu rotation` | Hilti 2022 (dev exp21, exp07; audit exp01-exp04) | refuted |
-| camera ↔ camera (stereo) | `calibrex check --pairs camera-camera` (rectified row offsets, rotation only; [tutorial](docs/tutorials/calibrex_check.md#camera-camera-a-stereo-pairs-rotation)) | Hilti 2022 exp01, exp21 (check) | no_claim |
+| camera ↔ IMU | `calibrex camera-imu rotation` | Hilti 2022 (dev exp21, exp07; audits on exp01-exp04, exp15-exp23 and exp05-exp18) | **supported** (1) / refuted (2) |
+| camera ↔ camera (stereo) | `calibrex check --pairs camera-camera` (rectified row offsets, rotation only; [tutorial](docs/tutorials/calibrex_check.md#camera-camera-a-stereo-pairs-rotation)) | Hilti 2022 (dev exp01, exp21; audit on twelve recordings) | refuted |
 | camera ↔ LiDAR | `calibrex check` / `estimate` / `drift` (targetless edge alignment, rotation only; [results](docs/benchmarks/camera_lidar_check.md)), `calibrex camera-lidar ...`, `calibrex demo kitti-lidar-camera-evidence` | KITTI dev drives and Hilti 2022 (check), KITTI-shaped fixture, A2D2, ACFR | no_claim |
 | GNSS ↔ IMU | `calibrex gnss-imu compose` (from `calibrex gnss-lidar rtk-slam` and IMU-LiDAR) | RTK-SLAM | no_claim |
 | IMU ↔ LiDAR | `calibrex imu-lidar livox`, `livox-translation`, `trajectory` | RTK-SLAM, Zenodo MID360 driving | **supported** (2) / refuted (1) |

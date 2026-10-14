@@ -407,6 +407,99 @@ Runtime was 1240 s of wall time with two runs in parallel (cam0 and cam1 each
 The held-out recordings are now spent for camera-IMU. cam2-cam4 were not run on
 them.
 
+## Pre-registered audit v3: supported (7 of 7 gates)
+
+v3 was committed in
+[`hilti_camera_imu_v3_preregistration.yaml`](hilti_camera_imu_v3_preregistration.yaml)
+(commit `adb2981`, SHA-256 `e32a24e0...eaeece`) before camera-IMU ran on any evaluation
+recording. The code was frozen at `ea5ff40`; `src/` and `tools/` were identical to it for
+every run.
+
+**What v3 claims.** v1's estimator and command, scored by the method's own per-axis
+verdicts.
+
+- **Judged axis.** The artifact reports the axis `estimated` (std at most 0.3 deg) and
+  its 1 deg known-bad control is detected on held-out windows. `calibrex check` applies
+  the same rule before it judges an axis.
+- **Gates.**
+  - Every judged axis is within 1.0 deg of Kalibr.
+  - Every judged clock offset is within 0.75 ms.
+  - At least half of the axes are judged.
+  - A judged axis spans at most 1.0 deg across recordings.
+  - The cam0-cam1 rotation is within 0.75 deg per axis judged for both cameras.
+- **Thresholds.** 1.5 times the worst of the 22 development units (every unit
+  camera-IMU had run on), rounded up to 0.25.
+
+**How it ran.**
+
+- **Recordings.** exp05, exp06, exp11, exp14 and exp18 (74 to 152 s): every Hilti 2022
+  recording on which no camera-IMU estimate had been made, except exp09 and exp10, which
+  do not fit the disk. The camera-camera audit had read their first 5 GB; it made no
+  camera-IMU estimate.
+- **Execution.** `tools/hilti_camera_sota_evaluate.py camera-imu-v3` downloaded each bag
+  in full, checked its SHA-256 against the pinned one (all five matched), ran cam0 and
+  cam1, and deleted it. All ten runs exited 0 on their only attempt. The whole
+  evaluation took 13 minutes.
+- **Records.** Every artifact, log and download record is under
+  [`docs/assets/hilti2022_camera_imu_v3/`](https://github.com/rsasaki0109/Calibrex/tree/main/docs/assets/hilti2022_camera_imu_v3),
+  with the scores, the six benchmarks, the protocol and the audit.
+
+| Requirement | Observed | Threshold | Result |
+| --- | --- | --- | :---: |
+| judged-axis-accuracy | max 0.528 deg (cam0 exp14 pitch) | <= 1.0 deg | pass |
+| judged-time-offset | max 0.470 ms (cam1 exp05) | <= 0.75 ms | pass |
+| judged-axis-coverage | 26 of 30 axes (87 %) | >= 50 % | pass |
+| no-failed-units | 0 failed | 0 | pass |
+| judged-axis-consistency | max 0.408 deg (cam1 yaw) | <= 1.0 deg | pass |
+| judged-axis-relative | max 0.444 deg (exp14 yaw) | <= 0.75 deg | pass |
+| scored-recordings-coverage | 5 of 5 recordings | >= 3 | pass |
+
+Errors to Kalibr in deg, about the camera's axes. A bold value is an axis the method did
+not judge; the reason follows it.
+
+| Unit | Windows | Roll | Pitch | Yaw | Clock offset | Policy |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| cam0 exp05 | 14 | -0.007 | -0.232 | +0.057 | -0.10 ms | pass |
+| cam0 exp06 | 16 | +0.036 | -0.325 | +0.102 | -0.16 ms | pass |
+| cam0 exp11 | 16 | -0.124 | -0.389 | **+0.074** (std 0.445) | -0.41 ms | inconclusive |
+| cam0 exp14 | 8 | -0.011 | -0.528 | +0.182 | -0.10 ms | pass |
+| cam0 exp18 | 11 | -0.057 | **-0.869** (std 0.338) | +0.057 | +0.22 ms | inconclusive |
+| cam1 exp05 | 14 | -0.076 | -0.243 | +0.146 | -0.47 ms | pass |
+| cam1 exp06 | 18 | -0.113 | -0.349 | -0.060 | -0.11 ms | pass |
+| cam1 exp11 | 17 | +0.064 | **-0.458** (control missed) | -0.038 | -0.41 ms | warn |
+| cam1 exp14 | 8 | -0.183 | -0.212 | -0.262 | -0.03 ms | pass |
+| cam1 exp18 | 12 | -0.334 | **-0.682** (std 0.815) | -0.168 | -0.40 ms | inconclusive |
+
+**What the result says.**
+
+- **The axes the method declined to judge include the two largest errors.**
+  - cam0 exp18 pitch (-0.87 deg) and cam1 exp18 pitch (-0.68 deg) are both reported
+    unobservable.
+  - Every judged axis is within 0.53 deg.
+  - In development too, the largest error (cam0 exp15 pitch, -0.77 deg) was an axis
+    whose control was missed.
+- **The short recordings held.** exp14 (74 s) gave exactly 8 windows for each camera, the
+  least a usable unit may have. It judged all six axes, with stds up to 0.28 deg. Its
+  cam0 pitch, -0.53 deg, is the largest judged error.
+- **Pitch is negative on every unit, judged or not (-0.21 to -0.87 deg), as in
+  development.** For the forward cameras, pitch is about the vertical axis. That fits the
+  rig-level offset about the IMU's vertical axis
+  ([above](#rig-and-motion-parts-on-exp01-and-exp21)), plus a motion-dependent part.
+- **v3 is supported because it claims less than v1** (post-hoc, with v1's unchanged
+  scorer; [scores](../assets/hilti2022_camera_imu_v3/posthoc_v1_rules/scores.json)).
+  Under v1's rules these same ten runs are refuted on two gates:
+  - `constrained` fails on three units (cam0 exp11, cam0 exp18, cam1 exp18);
+  - the whole relative rotation on exp14 is 0.570 deg, over 0.5 deg.
+
+**What the claim does not cover.**
+
+- It covers the two forward cameras of one rig, on one dataset family. The reference is
+  Hilti's Kalibr calibration, not ground truth.
+- It gates only the axes the method judges; 4 of the 30 were not judged.
+- Its clock-offset and relative bounds (0.75 ms, 0.75 deg per axis) are looser than v1's
+  (0.5 ms, 0.5 deg for the whole rotation). They come from the larger development set,
+  by the rule stated before the runs.
+
 ## Next steps
 
 - Understand the side-camera errors.
@@ -422,12 +515,13 @@ them.
     consistency bound.
   - A new claim needs new recordings (exp01-exp04 and the five v2 recordings are
     spent) and, ideally, a targetless external baseline.
-- **v3 is pre-registered**
-  ([`hilti_camera_imu_v3_preregistration.yaml`](hilti_camera_imu_v3_preregistration.yaml)).
-  - It gates only the axes the method judges: estimated, and confirmed by their 1 deg
-    control, the rule `calibrex check` applies. At least half of the axes must be judged.
-  - It runs on exp05, exp06, exp11, exp14 and exp18, on which no camera-IMU estimate
-    has been made.
-  - Its thresholds are 1.5 times the worst of the 22 units camera-IMU has run on.
+- **v3 is supported**
+  ([above](#pre-registered-audit-v3-supported-7-of-7-gates)). It gates only the axes the
+  method judges, and requires at least half of them judged.
+  - A stronger claim, every axis constrained as v1 asked, would need recordings with
+    more excitation about the camera's pitch axis.
+  - Hilti 2022 has only exp09 and exp10 left for camera-IMU, too large for this
+    environment.
 
-No SOTA claim is made for camera-IMU: both pre-registered audits are refuted.
+camera-IMU has one supported claim, v3, within the scope stated in it. v1 and v2 stay
+refuted and listed.
