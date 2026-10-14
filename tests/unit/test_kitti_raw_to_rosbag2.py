@@ -13,6 +13,7 @@ from scipy.spatial.transform import Rotation
 from calibrex.check.tf_sources import load_bag_tf_static
 from calibrex.cli.main import main
 from calibrex.core.exceptions import DatasetError
+from calibrex.data import ros_cdr
 from calibrex.data.kitti_ins_lidar import load_kitti_ins_lidar_drive
 from calibrex.data.kitti_raw_to_rosbag2 import (
     CONVERSION_FILENAME,
@@ -425,3 +426,56 @@ def test_cli_convert_with_camera(tmp_path: Path, capsys: pytest.CaptureFixture[s
     assert code == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["message_counts"]["/camera/image_raw"] == FRAMES
+
+
+def _write_sweep_stamps(drive: Path, half_ms: int = 50) -> None:
+    """Sweep start and end ``half_ms`` before and after each forward-facing stamp."""
+
+    folder = drive / "velodyne_points"
+    stamps = (folder / "timestamps.txt").read_text(encoding="utf-8").splitlines()
+    for name, sign in (("timestamps_start.txt", -1), ("timestamps_end.txt", 1)):
+        lines = []
+        for stamp in stamps:
+            day, clock = stamp.split(" ")
+            hours, minutes, seconds = clock.split(":")
+            moved = float(seconds) + sign * half_ms / 1000.0
+            lines.append(f"{day} {hours}:{minutes}:{moved:012.9f}")
+        (folder / name).write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def test_azimuth_velodyne_time_models_each_point_from_its_sweep(tmp_path: Path) -> None:
+    from calibrex.check.estimators import detect_point_time
+
+    drive = write_drive(tmp_path)
+    _write_sweep_stamps(drive)
+    bag = tmp_path / "bag"
+    result = convert_kitti_raw_to_rosbag2(drive, bag, velodyne_time="azimuth")
+    assert result.provenance["velodyne_time"] == "azimuth"
+    assert detect_point_time(bag, LIDAR_TOPIC) == ("time", "offset_s")
+    for index, (_conn, stamp, payload) in enumerate(iter_topic_messages(bag, LIDAR_TOPIC)):
+        cloud = ros_cdr.decode_ros2_pointcloud2(
+            LIDAR_TOPIC, stamp, payload, point_time_field="time"
+        )
+        raw = np.fromfile(drive / "velodyne_points" / "data" / f"{index:010d}.bin", "<f4")
+        raw = raw.reshape(-1, 4)
+        np.testing.assert_array_equal(cloud.xyz, raw[:, :3].astype(np.float64))
+        # clockwise from above, forward (+x) at the stamp, 0.1 s per sweep
+        expected = -np.arctan2(raw[:, 1], raw[:, 0]).astype(np.float64) / (2.0 * np.pi) * 0.1
+        np.testing.assert_allclose(cloud.point_time_offsets_s, expected, atol=1e-6)
+
+
+def test_azimuth_velodyne_time_points_on_the_axes() -> None:
+    from calibrex.data.kitti_raw_to_rosbag2 import azimuth_time_offsets_s
+
+    points = np.array([[10, 0, 0], [0, 10, 0], [0, -10, 0], [-10, 1e-6, 0]], dtype=np.float32)
+    np.testing.assert_allclose(
+        azimuth_time_offsets_s(points, 0.1), [0.0, -0.025, 0.025, -0.05], atol=1e-6
+    )
+
+
+def test_azimuth_velodyne_time_needs_the_sweep_stamps(tmp_path: Path) -> None:
+    drive = write_drive(tmp_path)
+    with pytest.raises(DatasetError, match="timestamps_start"):
+        convert_kitti_raw_to_rosbag2(drive, tmp_path / "bag", velodyne_time="azimuth")
+    default = convert_kitti_raw_to_rosbag2(drive, tmp_path / "plain")
+    assert default.provenance["velodyne_time"] == "none"

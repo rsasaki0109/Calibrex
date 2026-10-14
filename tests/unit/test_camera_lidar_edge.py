@@ -337,6 +337,24 @@ def test_profile_start_takes_each_axis_maximum() -> None:
         EdgeAlignmentOptions(start_scan_deg=20.0)
 
 
+def test_each_profile_maximum_is_also_a_start_of_its_own() -> None:
+    from calibrex.evaluation.camera_lidar_edge import _profile_starts
+
+    scan = np.array([-3.0, 8.0, 0.0, 0.0, 0.0, 0.0])
+    starts = _profile_starts(scan)
+    # roll alone, pitch alone, then both: a camera turned about one axis is found from that
+    # axis's maximum even when another axis's profile only rises towards the scan's end
+    assert [list(start[:3]) for start in starts] == [
+        [-3.0, 0.0, 0.0],
+        [0.0, 8.0, 0.0],
+        [-3.0, 8.0, 0.0],
+    ]
+    assert _profile_starts(np.array([0.0, -2.5, 0.0, 0.0, 0.0, 0.0]))[0][1] == -2.5
+    assert len(_profile_starts(np.array([0.0, -2.5, 0.0, 0.0, 0.0, 0.0]))) == 1
+    assert _profile_starts(np.zeros(6)) == []
+    assert _profile_starts(None) == []
+
+
 def test_observed_rotations_counts_axes_by_the_record_rule() -> None:
     from calibrex.core.camera_lidar_edge import CameraLidarEdgeControl
     from calibrex.evaluation.camera_lidar_edge import _observed_rotations
@@ -361,3 +379,64 @@ def test_observed_rotations_counts_axes_by_the_record_rule() -> None:
     assert _observed_rotations(theta, jackknife, controls, floor, options) == 1
     theta[0] = options.rotation_bound_deg
     assert _observed_rotations(theta, jackknife, controls, floor, options) == 0
+
+
+def test_background_subtraction_stops_the_pull_towards_texture() -> None:
+    # A faint edge where the LiDAR's edge points belong, above a busy texture: the raw
+    # response is higher anywhere in the texture than on the faint edge, so a search
+    # would leave the calibration for the texture (KITTI highway and city drives did).
+    rng = np.random.default_rng(3)
+    image = np.full((300, 400), 100, dtype=np.uint8)
+    image[:150, 200:] = 130
+    image[150:] = rng.integers(0, 256, (150, 400), dtype=np.uint8)
+    rows = np.arange(20, 131)
+
+    def mean_response(response: np.ndarray, du: int, dv: int) -> float:
+        return float(response[rows + dv, 200 + du].mean())
+
+    raw = image_edge_response(image, max_width=960, gamma=0.98, radius=40)
+    flat = image_edge_response(image, max_width=960, gamma=0.98, radius=40, background_sigma=20)
+    assert raw is not None and flat is not None
+    assert mean_response(raw[0], 0, 160) > mean_response(raw[0], 0, 0)
+    at_edge = mean_response(flat[0], 0, 0)
+    assert at_edge > mean_response(flat[0], 0, 160)
+    assert at_edge > max(mean_response(flat[0], du, 0) for du in (-40, -20, 20, 40))
+
+
+def test_the_background_width_is_an_option() -> None:
+    assert EdgeAlignmentOptions().edge_background_sigma_px == 20.0
+    assert EdgeAlignmentOptions(edge_background_sigma_px=None).edge_background_sigma_px is None
+
+
+def _repeated(truth: np.ndarray, solid_state: bool) -> list[CameraLidarFrame]:
+    """Frames 0, 0, 0, 1, 2: a rig standing at scene 0 for three frames, then moving."""
+
+    frames = []
+    for time, index in enumerate((0, 0, 0, 1, 2)):
+        directions = solid_state_directions(100 + time) if solid_state else None
+        frames.append(
+            CameraLidarFrame(
+                time_s=float(time),
+                image_time_s=float(time),
+                image=render_image(make_scene(index)),
+                points=cast_points(make_scene(index), truth, directions),
+                cloud_frame_id="lidar",
+                image_frame_id="camera",
+            )
+        )
+    return frames
+
+
+def test_a_spinning_lidar_at_a_standing_rig_repeats_one_view(truth: np.ndarray) -> None:
+    prepared, dropped = prepare_frames(_repeated(truth, False), CAMERA, truth, FAST)
+    assert [frame.time_s for frame in prepared] == [0.0, 3.0, 4.0]
+    assert len(dropped) == 2 and all("repeats the last kept view" in item for item in dropped)
+    kept, none_dropped = prepare_frames(
+        _repeated(truth, False), CAMERA, truth, EdgeAlignmentOptions(repeated_view_change=None)
+    )
+    assert len(kept) == 5 and not none_dropped
+
+
+def test_a_solid_state_lidar_at_a_standing_rig_keeps_its_frames(truth: np.ndarray) -> None:
+    prepared, dropped = prepare_frames(_repeated(truth, True), CAMERA, truth, FAST)
+    assert len(prepared) == 5 and not dropped

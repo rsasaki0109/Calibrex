@@ -40,7 +40,9 @@ Two pairs have only refuted audits:
   - A 1 deg turn of a camera was flagged in only 70 percent of the trials and named
     in 48 percent.
 
-Every other target pair has a native method but no audited claim yet.
+Every other target pair has a native method but no audited claim yet. One is
+pre-registered and not yet run: `camera-lidar`, the
+[KITTI camera-LiDAR check audit](kitti_camera_lidar_check.md) on 23 unread drives.
 
 | Pair | Standing | Supported | Refuted | Incomplete | Target |
 | --- | --- | ---: | ---: | ---: | --- |

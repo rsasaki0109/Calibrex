@@ -10,10 +10,18 @@ Contents and frames
 -------------------
 ``/velodyne_points`` (``sensor_msgs/PointCloud2``, ``velo_link``)
     x, y, z, intensity as float32. KITTI raw Velodyne sweeps carry **no per-point
-    time**, and none is invented: the cloud has no time field, so scan deskewing
-    (and ``imu-lidar``) is unsupported on it, exactly as the KITTI text
+    time**. By default none is invented: the cloud has no time field, so scan
+    deskewing (and ``imu-lidar``) is unsupported on it, exactly as the KITTI text
     pipelines register sweeps as rigid snapshots. The header stamp is KITTI's
     ``velodyne_points/timestamps.txt`` (the forward-facing, mid-sweep time).
+
+    ``velodyne_time="azimuth"`` adds a float32 ``time`` field: each point's offset (s)
+    from the header stamp, modelled from its azimuth. The HDL-64E turns clockwise seen
+    from above at a constant rate, faces forward (``+x``) at the header stamp, and its
+    sweep runs from ``timestamps_start.txt`` to ``timestamps_end.txt`` (cut behind the
+    car), so a point at azimuth ``atan2(y, x)`` was measured
+    ``-atan2(y, x) / (2 pi) * (t_end - t_start)`` from the header stamp. This is the usual
+    KITTI deskewing model; the sweep's own timing is a model, not a measurement.
 ``/oxts/imu`` (``sensor_msgs/Imu``, ``imu_link``)
     OXTS body-frame angular rate ``wx, wy, wz`` and acceleration ``ax, ay, az``.
     No orientation (``orientation_covariance[0] = -1``).
@@ -62,7 +70,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, TypeAlias
+from typing import Any, Literal, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -75,6 +83,7 @@ from calibrex.data.kitti import read_calibration_file, read_png_luminance, read_
 from calibrex.data.kitti_ins_lidar import KittiInsLidarDrive, load_kitti_ins_lidar_drive
 from calibrex.data.ros_cdr_writer import (
     POINT_FIELD_FLOAT32,
+    PointFieldSpec,
     Transform,
     encode_camera_info,
     encode_image,
@@ -101,16 +110,21 @@ TF_STATIC_TOPIC = "/tf_static"
 IMAGE_TOPIC = "/camera/image_raw"
 CAMERA_INFO_TOPIC = "/camera/camera_info"
 LIDAR_FRAME = "velo_link"
+VelodyneTime: TypeAlias = Literal["none", "azimuth"]
 IMU_FRAME = "imu_link"
 BASE_FRAME = "base_link"
 ODOM_FRAME = "odom"
 KITTI_LICENSE = "CC BY-NC-SA 3.0"
 
-CLOUD_FIELDS = (
+CLOUD_FIELDS: tuple[PointFieldSpec, ...] = (
     ("x", 0, POINT_FIELD_FLOAT32, 1),
     ("y", 4, POINT_FIELD_FLOAT32, 1),
     ("z", 8, POINT_FIELD_FLOAT32, 1),
     ("intensity", 12, POINT_FIELD_FLOAT32, 1),
+)
+TIMED_CLOUD_FIELDS: tuple[PointFieldSpec, ...] = (
+    *CLOUD_FIELDS,
+    ("time", 16, POINT_FIELD_FLOAT32, 1),
 )
 
 
@@ -150,6 +164,7 @@ def convert_kitti_raw_to_rosbag2(
     command: list[str] | None = None,
     overwrite: bool = False,
     camera: str | None = None,
+    velodyne_time: VelodyneTime = "none",
 ) -> KittiConversionResult:
     """Write KITTI raw ``*_sync`` drive(s) as one rosbag2 directory ``output``.
 
@@ -160,7 +175,9 @@ def convert_kitti_raw_to_rosbag2(
 
     ``camera`` (for example ``"image_02"``) also writes that camera's images, its
     ``CameraInfo`` and the ``imu_link -> cam<N>_optical`` transform; drives without the
-    camera directory are an error.
+    camera directory are an error. ``velodyne_time="azimuth"`` adds the per-point time
+    field of the module docstring; drives without ``timestamps_start.txt`` and
+    ``timestamps_end.txt`` are then an error.
     """
 
     roots = (
@@ -180,6 +197,11 @@ def convert_kitti_raw_to_rosbag2(
         except ValueError as exc:
             raise DatasetError(str(exc)) from exc
     loaded.sort(key=lambda item: float(item[1].trajectory.times_s[0]))
+    sweeps = (
+        [_sweep_durations(root) for root, _drive in loaded]
+        if velodyne_time == "azimuth"
+        else [None] * len(loaded)
+    )
     vendor = loaded[0][1].vendor_t_imu_lidar  # one calibration file: identical for every drive
     digests = [drive.input_sha256 for _root, drive in loaded]
     combined_digest = hashlib.sha256("".join(digests).encode("ascii")).hexdigest()
@@ -251,8 +273,15 @@ def convert_kitti_raw_to_rosbag2(
             "(kitti_oxts_pose_world_imu)",
         },
         "topics": {
-            LIDAR_TOPIC: "PointCloud2 velo_link: x y z intensity (float32); no per-point time "
-            "field because KITTI raw sweeps have none (nothing was synthesized)",
+            LIDAR_TOPIC: (
+                "PointCloud2 velo_link: x y z intensity time (float32); time is each point's "
+                "offset (s) from the header stamp, modelled from its azimuth: "
+                "-atan2(y, x) / (2 pi) * (t_end - t_start) of its sweep (velodyne_points "
+                "timestamps_start.txt and timestamps_end.txt)"
+                if velodyne_time == "azimuth"
+                else "PointCloud2 velo_link: x y z intensity (float32); no per-point time "
+                "field because KITTI raw sweeps have none (nothing was synthesized)"
+            ),
             IMU_TOPIC: "Imu imu_link: OXTS body-frame wx wy wz and ax ay az; no orientation",
             FIX_TOPIC: "NavSatFix imu_link: OXTS lat/lon/alt; the GNSS position solution is "
             "taken at the OXTS unit (antenna lever arm not published)",
@@ -310,11 +339,14 @@ def convert_kitti_raw_to_rosbag2(
             (TWIST_TOPIC, "geometry_msgs/msg/TwistStamped"),
         ):
             writer.add_topic(topic, message_type)
-        for (root, drive), (oxts_ns, velodyne_ns) in zip(loaded, stamps, strict=True):
-            _write_drive(writer, root, drive, oxts_ns, velodyne_ns, counts)
+        for (root, drive), (oxts_ns, velodyne_ns), sweep in zip(
+            loaded, stamps, sweeps, strict=True
+        ):
+            _write_drive(writer, root, drive, oxts_ns, velodyne_ns, counts, sweep)
             if camera_setup is not None:
                 _write_camera(writer, root, camera_setup, counts)
     counts[TF_STATIC_TOPIC] = 1
+    provenance["velodyne_time"] = velodyne_time
     provenance["message_counts"] = counts
     sidecar = Path(output) / CONVERSION_FILENAME
     sidecar.write_text(json.dumps(provenance, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -328,6 +360,7 @@ def _write_drive(
     oxts_ns: dict[int, int],
     velodyne_ns: dict[int, int],
     counts: dict[str, int],
+    sweeps: dict[int, float] | None = None,
 ) -> None:
     trajectory = drive.trajectory
     oxts_files = {int(path.stem): path for path in (root / "oxts" / "data").glob("*.txt")}
@@ -395,18 +428,55 @@ def _write_drive(
     for frame in drive.velodyne_frames:
         stamp = velodyne_ns[frame.frame_index]
         points = np.fromfile(frame.path, dtype="<f4").reshape(-1, 4)
+        fields, step = CLOUD_FIELDS, 16
+        if sweeps is not None:
+            sweep = sweeps.get(frame.frame_index, float(np.median(list(sweeps.values()))))
+            offsets = azimuth_time_offsets_s(points[:, :3], sweep)
+            points = np.column_stack((points, offsets.astype("<f4")))
+            fields, step = TIMED_CLOUD_FIELDS, 20
         writer.write(
             LIDAR_TOPIC,
             stamp,
             encode_pointcloud2(
                 frame_id=LIDAR_FRAME,
                 timestamp_ns=stamp,
-                fields=CLOUD_FIELDS,
-                point_step=16,
-                data=np.ascontiguousarray(points).tobytes(),
+                fields=fields,
+                point_step=step,
+                data=np.ascontiguousarray(points, dtype="<f4").tobytes(),
             ),
         )
         counts[LIDAR_TOPIC] += 1
+
+
+def azimuth_time_offsets_s(points: NDArray[np.float32], sweep_s: float) -> FloatArray:
+    """Each point's measurement time (s) relative to the forward-facing header stamp.
+
+    The scanner turns clockwise seen from above (azimuth decreasing) at a constant rate
+    and faces ``+x`` at the header stamp, so ``-atan2(y, x) / (2 pi)`` of a sweep.
+    """
+
+    azimuth = np.arctan2(points[:, 1].astype(np.float64), points[:, 0].astype(np.float64))
+    return -azimuth / (2.0 * np.pi) * float(sweep_s)
+
+
+def _sweep_durations(root: Path) -> dict[int, float]:
+    """Each Velodyne sweep's duration (s), from its start and end timestamps."""
+
+    folder = root / "velodyne_points"
+    starts = {
+        item.index: item.timestamp_ns for item in read_timestamps(folder / "timestamps_start.txt")
+    }
+    ends = {
+        item.index: item.timestamp_ns for item in read_timestamps(folder / "timestamps_end.txt")
+    }
+    if not starts or not ends:
+        raise DatasetError(
+            f"{root} has no velodyne_points/timestamps_start.txt and timestamps_end.txt, "
+            "which the azimuth per-point time needs"
+        )
+    return {
+        index: (ends[index] - start) * 1.0e-9 for index, start in starts.items() if index in ends
+    }
 
 
 @dataclass(frozen=True)

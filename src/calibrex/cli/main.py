@@ -1266,6 +1266,14 @@ def _build_parser() -> argparse.ArgumentParser:
         help="also write this camera (for example image_02): /camera/image_raw, "
         "/camera/camera_info and the imu_link to camera tf, so camera-lidar can be checked",
     )
+    convert_kitti.add_argument(
+        "--velodyne-time",
+        choices=("none", "azimuth"),
+        default="none",
+        help="per-point time of the Velodyne sweeps: none (rigid snapshots, the default) or "
+        "azimuth (each point's time modelled from its azimuth and the sweep's start and end "
+        "timestamps, so camera-lidar and the deskewing pairs can move points at speed)",
+    )
     convert_kitti.add_argument("--output", type=Path, required=True, help="bag directory to write")
     convert_kitti.add_argument("--overwrite", action="store_true", help="replace an existing bag")
     convert_kitti.add_argument("--json", action="store_true")
@@ -5247,6 +5255,7 @@ def _cmd_convert_kitti_raw(args: argparse.Namespace) -> int:
         command=["calibrex", *args.invoked_argv],
         overwrite=args.overwrite,
         camera=args.camera,
+        velodyne_time=args.velodyne_time,
     )
     payload = {
         "bag": str(result.bag),

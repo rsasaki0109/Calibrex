@@ -5,7 +5,8 @@ bag's images and point clouds, without a target. This page records how the metho
 what it did against the reference calibrations of two public datasets, and where it does not
 work. It is **development evidence, not a claim**: the pair stays `no_claim` on the
 [leaderboard](sota_leaderboard.md) and the thresholds below were set while looking at these
-recordings (no frozen audit, no held-out data scored).
+recordings (no frozen audit, no held-out data scored). A claim built on them is
+pre-registered on unread KITTI drives: [KITTI camera-LiDAR check audit](kitti_camera_lidar_check.md).
 
 ## Which method, and why
 
@@ -51,7 +52,8 @@ deg (too noisy).
   `T_cam0_lidar` and given as a `slac.check_frames` file; intrinsics from the Kalibr camchain
   (`calib_3_cam0-1-camchain-imucam.yaml`). `--max-duration-s 120`, so 48 frames 2.5 s apart.
 * **KITTI raw**, development drives only: `2011_09_26_drive_0005_sync` (154 frames, 15 s) and
-  `drive_0009_sync` (443, 45 s). Drives 0027-0059 were not touched. Converted with
+  `drive_0009_sync` (443, 45 s). Drives 0027-0059 were not touched until the 13-drive run
+  below. Converted with
   `calibrex convert kitti-raw DRIVE --camera image_02`, which writes the rectified `image_02`, its
   `CameraInfo` and `imu_link -> cam2_optical` composed from `calib_velo_to_cam.txt` and
   `calib_cam_to_cam.txt`, so the **vendor calibration is the candidate**. Frames are 1 s apart
@@ -465,15 +467,122 @@ The check then judges that target calibration on a driving bag. The synthetic te
 * **With it.** The same bag passes with the imported result, and the override is
   listed in the report.
 
+## Thirteen KITTI drives (2026-10-14)
+
+Before a pre-registered audit, the check ran on 13 KITTI 2011_09_26 drives: 0005, 0009,
+0014, 0015, 0022, and the eight drives 0027 to 0059 that it had not read before. On each
+drive it judged KITTI's own calibration and six turned candidates: the camera turned 1 and 3
+deg about each of its own axes (`T_camera_lidar' = R T_camera_lidar`). The harness is
+`tools/kitti_camera_lidar_sota_evaluate.py`, which downloads, converts and checks one drive
+at a time; the defaults are unchanged (48 scans, 2 deg control, 0.5 deg std bound, `t >= 2`).
+These 13 drives are now spent: everything below was decided while looking at them.
+
+**The first run (the code of `c83ab6c`) failed KITTI's calibration on 5 of the 13
+drives.** The estimate settled 2 to 11 deg away from it and passed its own held-out
+controls there (estimate minus KITTI, deg):
+
+| Drive | roll | pitch | yaw |
+| --- | ---: | ---: | ---: |
+| 0015 | +2.55 | - | - |
+| 0027 | -2.05 | - | - |
+| 0028 | - | -3.50 | -11.45 |
+| 0051 | - | +3.40 | - |
+| 0057 | +7.70 | - | +0.60 |
+
+Four changes followed, each tested on these drives:
+
+* **The objective pulled towards texture.** The edge response is spilled outward from every
+  edge (Levinson and Thrun's Eq. 1), so a textured region (foliage, a facade, gravel) is
+  high all over. Moving the LiDAR's depth edges into such a region raises the objective
+  whether or not they meet an image edge. On 0028 the yaw profile rose all the way to the
+  11 deg the estimate reached. The response now has its local mean (a Gaussian of 20 px of
+  the downscaled image, `edge_background_sigma_px`) subtracted, so a point scores for
+  lying on an edge rather than in a busy region. 0028's profiles then peak at KITTI's
+  calibration; 0005's stay as sharp.
+* **A standing rig repeats one view.** 0057 stands 29 s at a crossing: 28 of its 37
+  selected frames show the same scan with only passing traffic changed (image change 0.002
+  to 0.034, against 0.06 to 0.18 while driving). They add weight but no view, and make the
+  jackknife blocks and controls copies of each other. A spinning LiDAR's frame is now
+  dropped when its image differs from the last kept frame's by less than 0.05 of full
+  scale (`repeated_view_change`). A solid-state LiDAR keeps such frames: its pattern fills
+  in. 0057 keeps 9 frames and judges pitch only; 0051 drops 11 and 0009 3.
+* **The rolling sweep.** A KITTI scan takes about 0.1 s; at 36 km/h the car moves a metre
+  in it. `calibrex convert kitti-raw --velodyne-time azimuth` now adds a per-point `time`
+  field modelled from each point's azimuth and the sweep's start and end stamps (the usual
+  KITTI deskewing model: clockwise, forward at the header stamp). The check then pairs the
+  image with the time its visible points were measured and moves each point to the image
+  time with the OXTS velocity. The default stays `none`.
+* **A turned candidate could end on a ridge.** With the first three changes every drive
+  passed KITTI's calibration, and every 1 deg turn about a judged axis was flagged, but 5
+  of 36 3 deg turns were not. From 3 deg away, the search from the candidate, and from all
+  the per-axis profile maxima together, ran along a ridge (on 0015, roll +2.5 with yaw -4)
+  to an optimum with fewer axes observed. On 0015 the roll turn then read 0.45 deg and was
+  judged right. In the four cases examined (0015 roll and pitch, 0028 pitch and yaw), the
+  profile maximum of the turned axis alone was at the turn, -3.0 deg, and the search from
+  it found the right optimum with all three axes observed. The search now also starts from
+  each axis's maximum on its own; an optimum replaces the candidate's by the existing rule
+  (more rotation DoFs observed, or as many with a higher objective).
+
+With all four (commit `5d72a6c`, `--velodyne-time azimuth`), every drive passes KITTI's
+calibration, and every turn about an axis judged on the drive is flagged on that axis and
+on no other. Estimate minus KITTI for the baseline (deg; "-" not judged), then the check's
+verdict on the turned axis and its reading (deg; `*` the axis is not judged on the drive's
+baseline):
+
+| Drive | Baseline | roll | pitch | yaw | roll +3 / +1 | pitch +3 / +1 | yaw +3 / +1 |
+| --- | --- | ---: | ---: | ---: | --- | --- | --- |
+| 0005 | pass | -0.10 | -0.10 | +0.10 | fail 3.00 / fail 1.05 | fail 3.05 / fail 1.10 | fail 2.90 / warn 0.95 |
+| 0009 | pass | +0.15 | -0.05 | +0.05 | fail 2.80 / warn 0.80 | fail 3.00 / fail 1.05 | fail 2.95 / warn 0.95 |
+| 0014 | pass | - | -0.05 | -0.05 | unjudged / unjudged * | fail 3.00 / fail 1.05 | fail 3.05 / fail 1.05 |
+| 0015 | pass | +0.10 | -0.05 | -0.05 | fail 2.85 / warn 0.90 | fail 3.00 / fail 1.05 | fail 3.05 / fail 1.05 |
+| 0022 | pass | +0.05 | -0.15 | -0.15 | fail 2.85 / warn 0.90 | fail 3.10 / fail 1.15 | fail 3.10 / fail 1.05 |
+| 0027 | pass | +0.05 | -0.25 | -0.20 | fail 3.00 / warn 0.90 | fail 3.20 / fail 1.20 | fail 3.20 / fail 1.20 |
+| 0028 | pass | +0.10 | -0.25 | -0.10 | fail 2.75 / warn 0.90 | fail 3.20 / fail 1.25 | fail 3.10 / fail 1.20 |
+| 0035 | pass | +0.10 | -0.20 | -0.00 | fail 2.85 / warn 0.90 | fail 3.15 / fail 1.15 | fail 3.00 / warn 1.00 |
+| 0039 | pass | +0.15 | -0.05 | -0.00 | fail 2.80 / warn 0.85 | fail 3.00 / warn 1.00 | fail 3.00 / warn 1.00 |
+| 0046 | pass | -0.10 | -0.20 | -0.00 | fail 2.90 / fail 1.00 | fail 3.10 / fail 1.15 | fail 3.05 / warn 1.00 |
+| 0051 | pass | +0.20 | -0.05 | -0.05 | fail 2.80 / warn 0.80 | fail 3.00 / fail 1.05 | fail 3.00 / warn 1.00 |
+| 0057 | pass | - | +0.35 | - | unjudged / unjudged * | fail 2.10 / warn 0.60 | unjudged / unjudged * |
+| 0059 | pass | +0.10 | -0.05 | +0.15 | fail 2.85 / warn 0.90 | fail 3.00 / warn 1.00 | fail 2.85 / warn 0.85 |
+
+* **KITTI's calibration:** 13 of 13 pass; 36 of 39 axes judged; every judged axis within
+  0.35 deg of KITTI (0057 pitch; 0.25 deg or less on the other drives).
+* **3 deg turns:** 36 of 36 flagged, read within 0.25 deg of 3 except on 0057 (2.10).
+* **1 deg turns:** 36 of 36 flagged (`warn` or `fail`), read within 0.25 deg of 1 except on
+  0057 (0.60).
+* **Every axis judged in a turned run** is within 0.89 deg of KITTI's calibration (0057).
+* **Unjudged:** 0014 roll and 0057 roll and yaw on the baseline (their controls are not
+  detected), so their turns are not counted. The turned runs leave them unjudged too, except
+  0057's 3 deg pitch run, which judges roll 0.81 deg off KITTI.
+
+**The per-point time matters on two drives.** The same code without it
+(`--velodyne-time none`) also passes KITTI's calibration on all 13 drives (36 of 39 axes
+judged, all within 0.40 deg) and flags 35 of 36 turns of each size. Its turned runs, though,
+judge axes up to 7.4 deg off KITTI's calibration (0057: roll, in the 3 deg pitch run) and up
+to 2.2 deg on 0014, whose 1 deg yaw turn reads -1.00 and 3 deg yaw turn 1.10; on 0057 a 1 deg
+pitch turn is judged right. With the per-point time the worst is 0.89 deg. The audit therefore
+converts with `--velodyne-time azimuth`, a choice made on these drives.
+
+Each check took 35 to 140 s, with a drive's seven checks running at once on 4 cores. The
+scores are in
+[`docs/assets/kitti_camera_lidar/development/`](../assets/kitti_camera_lidar/development/scores.json),
+with those without the per-point time (`velodyne_time_none/`) and before the per-axis starts
+(`before_per_axis_starts/`, commit `6ea6110`). The claim built on them is pre-registered on
+23 KITTI drives the check has never read:
+[KITTI camera-LiDAR check audit](kitti_camera_lidar_check.md).
+
 ## Limitations
 
 * Rotation only; translation is reported unchecked on every run.
 * On a recording with little structure an axis is not judged: exp07 (a corridor) and exp02-exp04
   judge a single axis. The verdict says which.
 * A start more than about 3 deg away could leave the search in a spurious optimum; the per-axis
-  profile start (above) now judges KITTI 0005 and 0009 pitch +5 deg, and the short-recording
-  selection (above) KITTI 0005 yaw +5 deg. An axis the recording does not resolve stays
-  unchecked whatever the start, and a start beyond the +-8 deg scan is not covered.
+  profile starts (above) now judge KITTI 0005 and 0009 pitch +5 deg and every 3 deg turn of the
+  13 KITTI drives, and the short-recording selection (above) KITTI 0005 yaw +5 deg. An axis the
+  recording does not resolve stays unchecked whatever the start, and a start beyond the +-8 deg
+  scan is not covered.
+* A rig that stands still for most of a recording keeps few frames (KITTI 0057: 9 of 37) and
+  judges little.
 * The jackknife std ignores systematic effects, so a std of 0.03 deg does not mean 0.03 deg
   accuracy (see exp07); the 0.5 deg floor is the resolution.
 * Intrinsics are not handled. Rig motion is compensated only with a velocity topic connected to
