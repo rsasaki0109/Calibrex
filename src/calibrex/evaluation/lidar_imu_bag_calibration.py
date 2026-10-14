@@ -29,7 +29,7 @@ from __future__ import annotations
 import hashlib
 import math
 from collections.abc import Callable, Iterator
-from dataclasses import dataclass, field, replace
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import TypeAlias
 
@@ -229,6 +229,7 @@ def calibrate_lidar_imu_bag(
         opts.rotation,
         windowing=replace(opts.rotation.windowing, window_duration_s=opts.max_segment_s),
     )
+    segment_execution: list[dict[str, object]] = []
     _gyro, windows = collect_livox_windows(
         [bag_path],
         profile,
@@ -238,6 +239,7 @@ def calibrate_lidar_imu_bag(
         ),
         max_seconds=max_seconds,
         scan_store=store,
+        execution_reports=segment_execution,
     )
     if not windows:
         raise ValueError("no reliable LiDAR odometry segment in the bag")
@@ -430,6 +432,10 @@ def calibrate_lidar_imu_bag(
             "gravity_magnitude_sigma_m_s2": opts.gravity_magnitude_sigma_m_s2,
             "seed": opts.seed,
             "max_seconds": max_seconds,
+            "odometry_backend": opts.rotation.windowing.odometry_backend,
+            "odometry_options": asdict(opts.rotation.windowing.odometry),
+            "initial_odometry_execution": initial.options.get("odometry_execution", []),
+            "segment_odometry_execution": segment_execution,
         },
         limitations=list(LIMITATIONS),
         provenance=LidarImuBagProvenance(

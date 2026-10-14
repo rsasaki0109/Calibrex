@@ -20,6 +20,7 @@ from numpy.typing import NDArray
 from calibrex.solvers.gnss_lever_arm_solver import OdometryWindow
 from calibrex.solvers.scan_to_scan_odometry import (
     IncrementalScanOdometry,
+    OdometryBackend,
     RotationModel,
     ScanOdometryOptions,
     ScanRegistration,
@@ -42,6 +43,11 @@ class WindowingOptions:
             voxel_size_m=0.3, min_range_m=1.0, max_range_m=60.0, local_map_scans=5
         )
     )
+    odometry_backend: OdometryBackend = "cpu"
+
+    def __post_init__(self) -> None:
+        if self.odometry_backend not in ("cpu", "cuda"):
+            raise ValueError(f"unknown odometry backend: {self.odometry_backend}")
 
 
 @dataclass
@@ -57,6 +63,8 @@ class OdometrySegmenter:
     scans_covered: int = 0
     segments: int = 0
     unreliable: int = 0
+    execution_backends: set[str] = field(default_factory=set)
+    execution_statistics: dict[str, int] = field(default_factory=dict)
     _odometry: IncrementalScanOdometry | None = None
     _times: list[float] = field(default_factory=list)
 
@@ -70,7 +78,8 @@ class OdometrySegmenter:
         self.scans_covered += 1
         if self._odometry is None:
             self._odometry = IncrementalScanOdometry(
-                self.options.odometry, rotation_model=self.rotation_model
+                self.options.odometry, rotation_model=self.rotation_model,
+                backend=self.options.odometry_backend,
             )
             self._times = []
         self._odometry.add(scan, time_s, offsets_s)
@@ -83,6 +92,9 @@ class OdometrySegmenter:
             return
         result = self._odometry.result()
         self._odometry = None
+        self.execution_backends.add(result.execution_backend)
+        for name, value in result.execution_statistics.items():
+            self.execution_statistics[name] = self.execution_statistics.get(name, 0) + value
         if len(result.poses) < 2:
             return
         self.segments += 1
@@ -95,6 +107,15 @@ class OdometrySegmenter:
                 self._cut(times[start:index], poses[start:index])
                 start = index
         self._cut(times[start:], poses[start:])
+
+    def execution_report(self) -> dict[str, object]:
+        """Report the requested backend, actual identities and work across restarts."""
+
+        return {
+            "requested_backend": self.options.odometry_backend,
+            "executed_backends": sorted(self.execution_backends),
+            "statistics": dict(self.execution_statistics),
+        }
 
     def _reliable(self, registration: ScanRegistration) -> bool:
         return (

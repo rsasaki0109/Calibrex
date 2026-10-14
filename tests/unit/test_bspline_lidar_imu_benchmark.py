@@ -6,7 +6,13 @@ import copy
 from pathlib import Path
 
 import pytest
-from tools.benchmark_bspline_lidar_imu import _compare, _manifest, _verify_sources, _write
+from tools.benchmark_bspline_lidar_imu import (
+    _compare,
+    _manifest,
+    _validate_backend_execution,
+    _verify_sources,
+    _write,
+)
 
 
 def _evidence() -> dict:
@@ -85,3 +91,28 @@ def test_record_schema_rejects_incomplete_measurement(tmp_path: Path) -> None:
             tmp_path / "measurement.json",
             {"schema_version": "slac.bspline_lidar_imu_comparison/v0.1", "record_type": "worker"},
         )
+
+
+@pytest.mark.parametrize("mutation", ["identity", "queries", "systems", "negative", "missing"])
+def test_gpu_comparison_requires_actual_work_in_every_odometry_pass(mutation: str) -> None:
+    report = {
+        "requested_backend": "cuda",
+        "executed_backends": ["calibrex.cuda_scan_odometry/v0.1;test"],
+        "statistics": {"gpu_query_rows": 1000, "gpu_fused_system_calls": 10},
+    }
+    result = {"options": {
+        "odometry_backend": "cuda", "initial_odometry_execution": [report],
+        "segment_odometry_execution": [copy.deepcopy(report)],
+    }}
+    _validate_backend_execution(result, "cuda")
+    if mutation == "identity":
+        report["executed_backends"] = ["numpy_scipy"]
+    elif mutation in ("queries", "systems"):
+        report["statistics"]["gpu_query_rows" if mutation == "queries"
+                              else "gpu_fused_system_calls"] = 0
+    elif mutation == "negative":
+        report["statistics"]["scalar_query_repairs"] = -1
+    else:
+        result["options"]["segment_odometry_execution"] = []
+    with pytest.raises(ValueError):
+        _validate_backend_execution(result, "cuda")

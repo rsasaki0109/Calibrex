@@ -193,3 +193,56 @@ def test_cuda_thin_neighborhoods_keep_native_normal_directions() -> None:
     np.testing.assert_array_equal(cp.asnumpy(target.normals), native)
     np.testing.assert_array_equal(cp.asnumpy(target.planar), planar)
     assert target.statistics()["scalar_normal_repairs"] == len(points)
+
+
+def test_cuda_registration_computes_only_hit_normals_and_reuses_them() -> None:
+    points = _scene()
+    source = points[:400]
+    options = ScanOdometryOptions()
+    target = CudaOdometryTarget(points, options)
+    assert target.statistics()["gpu_normal_rows"] == 0
+    native = register_point_to_plane(source, points, np.eye(4), options)
+    _same(native, target.register(source, np.eye(4)))
+    first = target.statistics().copy()
+    assert 0 < first["gpu_normal_rows"] < len(points)
+    assert first["gpu_system_refresh_calls"] > 0
+    _same(native, target.register(source, np.eye(4)))
+    assert target.statistics()["gpu_normal_rows"] == first["gpu_normal_rows"]
+    assert target.statistics()["gpu_system_refresh_calls"] == first["gpu_system_refresh_calls"]
+
+
+def test_cuda_out_of_gate_points_do_not_compute_normals() -> None:
+    target_points = _scene()
+    source = target_points[:400] + 100
+    options = ScanOdometryOptions()
+    target = CudaOdometryTarget(target_points, options)
+    native = register_point_to_plane(source, target_points, np.eye(4), options)
+    _same(native, target.register(source, np.eye(4)))
+    assert target.statistics()["gpu_normal_rows"] == 0
+    assert target.statistics()["gpu_system_refresh_calls"] == 0
+
+
+def test_cuda_motion_grid_returns_identical_native_motion() -> None:
+    points = _scene()
+    source = points - np.array([0.12, -0.08, 0.03])
+    options = ScanOdometryOptions(motion_translation_quantum_m=1e-6,
+                                  motion_rotation_quantum_rad=1e-7)
+    target = CudaOdometryTarget(points, options)
+    native = register_point_to_plane(source, points, np.eye(4), options)
+    actual = target.register(source, np.eye(4))
+    _same(native, actual)
+    np.testing.assert_array_equal(native.transform, actual.transform)
+
+
+def test_cuda_repairs_an_ambiguous_motion_grid_boundary() -> None:
+    points = _scene()
+    source = points - np.array([0.12, 0, 0])
+    options = ScanOdometryOptions(max_iterations=1)
+    probe = register_point_to_plane(source, points, np.eye(4), options)
+    options = replace(options, motion_translation_quantum_m=2 * abs(probe.transform[0, 3]))
+    target = CudaOdometryTarget(points, options)
+    native = register_point_to_plane(source, points, np.eye(4), options)
+    actual = target.register(source, np.eye(4))
+    _same(native, actual)
+    np.testing.assert_array_equal(native.transform, actual.transform)
+    assert target.statistics()["scalar_motion_repairs"] == 1

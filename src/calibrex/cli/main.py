@@ -1448,6 +1448,30 @@ def _build_parser() -> argparse.ArgumentParser:
         help="zero-phase low-pass the IMU at this cutoff and resample at twice it before the "
         "fit (for platform vibration far above the spline bandwidth)",
     )
+    imu_lidar_joint.add_argument(
+        "--odometry-backend", choices=("cpu", "cuda"), default="cpu",
+        help="backend for initial and gyro-deskewed scan odometry (CUDA is optional)",
+    )
+    imu_lidar_joint.add_argument(
+        "--odometry-voxel-size-m", type=_positive_float,
+        help="voxel size for scan odometry; smaller values retain denser geometry",
+    )
+    imu_lidar_joint.add_argument(
+        "--odometry-local-map-scans", type=_positive_int,
+        help="number of recent scans used by odometry",
+    )
+    imu_lidar_joint.add_argument(
+        "--odometry-geometry-quantum-m", type=_positive_float,
+        help="optional coordinate grid for reproducible odometry geometry (off by default)",
+    )
+    imu_lidar_joint.add_argument(
+        "--odometry-motion-translation-quantum-m", type=_positive_float,
+        help="optional translation grid for accepted scan motions (off by default)",
+    )
+    imu_lidar_joint.add_argument(
+        "--odometry-motion-rotation-quantum-rad", type=_positive_float,
+        help="optional rotation-vector grid for accepted scan motions (off by default)",
+    )
     imu_lidar_joint.add_argument("--output", type=Path, required=True)
     imu_lidar_joint.add_argument("--json", action="store_true")
     imu_lidar_joint.set_defaults(func=_cmd_imu_lidar_joint)
@@ -7366,10 +7390,12 @@ def _cmd_imu_lidar_livox(args: argparse.Namespace) -> int:
 def _cmd_imu_lidar_joint(args: argparse.Namespace) -> int:
     from calibrex.check.estimators import detect_point_time
     from calibrex.data.livox_ros2 import LivoxStreamProfile
+    from calibrex.evaluation.imu_lidar_rotation import ImuLidarRunOptions
     from calibrex.evaluation.lidar_imu_bag_calibration import (
         LidarImuBagOptions,
         calibrate_lidar_imu_bag,
     )
+    from calibrex.evaluation.odometry_windows import WindowingOptions
 
     command = ["calibrex", "imu-lidar", "joint", str(args.bag)]
     command += ["--lidar-topic", args.lidar_topic, "--imu-topic", args.imu_topic]
@@ -7380,6 +7406,25 @@ def _cmd_imu_lidar_joint(args: argparse.Namespace) -> int:
     command += ["--max-rounds", str(args.max_rounds)]
     if args.imu_lowpass_hz is not None:
         command += ["--imu-lowpass-hz", str(args.imu_lowpass_hz)]
+    command += ["--odometry-backend", args.odometry_backend]
+    windowing = WindowingOptions(odometry_backend=args.odometry_backend)
+    odometry_settings = {
+        "voxel_size_m": args.odometry_voxel_size_m,
+        "local_map_scans": args.odometry_local_map_scans,
+        "geometry_quantum_m": args.odometry_geometry_quantum_m,
+        "motion_translation_quantum_m": args.odometry_motion_translation_quantum_m,
+        "motion_rotation_quantum_rad": args.odometry_motion_rotation_quantum_rad,
+    }
+    for name, value in odometry_settings.items():
+        if value is not None:
+            flag = "--odometry-" + name.replace("_", "-")
+            command += [flag, str(value)]
+    windowing = dataclasses.replace(
+        windowing, odometry=dataclasses.replace(
+            windowing.odometry, **{key: value for key, value in odometry_settings.items()
+                                  if value is not None},
+        ),
+    )
     command += ["--output", str(args.output)]
     try:
         point_time = detect_point_time(args.bag, args.lidar_topic)
@@ -7394,7 +7439,10 @@ def _cmd_imu_lidar_joint(args: argparse.Namespace) -> int:
         artifact = calibrate_lidar_imu_bag(
             args.bag,
             profile,
-            LidarImuBagOptions(max_rounds=args.max_rounds, imu_lowpass_hz=args.imu_lowpass_hz),
+            LidarImuBagOptions(
+                max_rounds=args.max_rounds, imu_lowpass_hz=args.imu_lowpass_hz,
+                rotation=ImuLidarRunOptions(windowing=windowing),
+            ),
             dataset_family=args.dataset_family,
             dataset_license=args.dataset_license,
             max_seconds=args.max_seconds,
