@@ -273,10 +273,81 @@ the reading, the re-centring does nothing and the two methods agree.
   cam0–cam3 reads +0.40 deg on `exp21`.
 * **cam0–cam4 and cam1–cam4 disagree on pitch by about 0.45 deg.** Each is stable
   across starts. cam0 and cam1 agree to 0.05 deg, so one of the two pairs carries a
-  bias of that size, specific to its view. With its spanning forest built from the
-  best-observed estimates first, the check's closure report flags it: the loop
-  cam1–cam4–cam0–cam3 misses by −0.51 deg in pitch (`warn`). Its loops used to go
-  through the IMU, whose camera-IMU pitch is unjudged, and could not see it.
+  bias of that size, specific to its view. The next section traces it to a vertical
+  scale mismatch read as a turn.
+
+## The vertical scale of side pairs (2026-10-14)
+
+Which of cam0–cam4 and cam1–cam4 is biased? cam4 sits 5.8 cm behind cam1 and
+13.4 cm from cam0, on their left; cam1 is on cam0's left.
+
+**First suspect: the lens model at the edge of the view.**
+`tools/hilti_camera_edge_bias.py` rectifies each pair with the check's estimate,
+matches again, and traces every patch to its raw pixel in both cameras. It then
+refits the residual rotation on subsets of the patches.
+* **Where the patches lie.** Both pairs' patches lie 30 to 61 deg from the optical
+  axes (10th to 90th percentile).
+* **No trend.** The residual pitch shows no trend with either camera's angle.
+* **The lens curves.** Up to 60 deg, the five cameras' equidistant curves agree
+  within a pixel. cam0's curve bends away beyond 70 deg (444 px at 80 deg, against
+  446 to 450 for the others; decreasing beyond 90 deg), but no pair uses those
+  angles.
+
+**Second suspect: a term the rotation model leaves out.** In a side pair, the matched
+patches sit on one side of the rectified image. There, a row offset proportional to
+the row cannot be told from a turn about the vertical axis. Such an offset is a
+vertical scale mismatch between the rectified images: a focal length or distortion
+slightly off in either camera. The tool refits all patches with that term added
+(`exp01`):
+
+| pair | pitch, rotation only | pitch, with the scale term |
+| --- | --- | --- |
+| cam0–cam4 | −0.47 ± 0.03 deg | −0.43 ± 0.05 deg |
+| cam1–cam4 | −0.04 ± 0.06 deg | −0.51 ± 0.47 deg |
+| triangle cam0–cam4 − cam0–cam1 − cam1–cam4 | −0.49 deg | +0.02 deg |
+
+* **cam1–cam4.** Its pitch is degenerate with the scale term: the std grows eightfold.
+  Its tight −0.04 deg holds only if the two cameras' vertical scales agree exactly.
+* **cam0–cam4.** Its pitch is not degenerate.
+* **The triangle.** With the term, it closes.
+* **`exp21`.** The freed fits are too uncertain to confirm it (stds 0.2 to 0.8 deg).
+
+**On synthetic pairs** (`tests/unit/test_stereo_rotation.py`), the right camera's true
+fy is 0.5% above its model:
+
+| pair | rotation only | with the scale term |
+| --- | --- | --- |
+| forward | roll −0.17, pitch +0.34 deg (`warn`) | within 0.03 deg (`pass`); scale read 0.57% |
+| 60 deg apart | pitch −0.66 deg (`warn`) | pitch −0.10 ± 0.07 deg (`pass`); scale read 0.51% |
+
+A 0.5% scale mismatch, a pixel or two of focal length, makes about the half degree
+seen on Hilti.
+
+**The estimator now fits the scale term.**
+* **Freely fitted, it costs detection.** On the side pairs pitch became unjudged, and
+  a 1 deg turn of cam3 went unseen again.
+* **So it gets a prior.** The images' estimate of the scale is combined with a prior of
+  0.3%. The rotation is fitted with the result removed. What stays uncertain is added
+  to each axis's std, not to the observability gate.
+
+All-camera `calibrex check` runs:
+
+| | rotation only (#203) | scale term with prior |
+| --- | --- | --- |
+| `exp01` cam0–cam4 | `warn`, pitch −0.56 deg | `pass` (pitch −0.63 deg fails its control, response 1.72: unjudged) |
+| `exp01` cam1–cam4 pitch | −0.02 ± 0.06 deg | −0.10 ± 0.19 deg (0.18 of it the scale) |
+| cam3's pitch (cam0–cam3, cam1–cam3) | +0.37, +0.39 deg (`exp01`); +0.40 (`exp21`) | +0.24 ± 0.06, +0.32 ± 0.10 (`exp01`); +0.24 ± 0.19 (`exp21`) |
+| cam3 turned 1 deg (`exp01`) | `fail`, cam3 named at +1.38 deg | `fail`, cam3 named at +1.32 ± 0.12 deg |
+| judged camera-pair axes, both recordings | 31 | 29 |
+| closure, `exp01` | `warn` (the triangle above) | `pass` |
+
+* **The scale mismatches are not stable.** The fitted ratios move between recordings
+  (cam0–cam4 +0.03% on `exp01`, +0.30% on `exp21`). The term absorbs more than one
+  camera's focal length, and these recordings do not name a camera whose lens model
+  is off.
+* **What can be said.** cam1–cam4's pitch could not be measured independently of the
+  two cameras' vertical scales. The disagreement it showed is within the uncertainty
+  that scale adds.
 
 ## Earlier run: stamp pairing, no motion
 
