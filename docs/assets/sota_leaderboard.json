@@ -115,6 +115,34 @@
       "verdict": "supported"
     },
     {
+      "achieved_dataset_families": [
+        "kitti_raw"
+      ],
+      "achieved_independent_rig_count": 1,
+      "audit_id": "kitti-camera-lidar-check-v1",
+      "audit_path": "docs/assets/kitti_camera_lidar/evaluation/kitti_camera_lidar_sota_audit.yaml",
+      "audit_schema_version": "slac.sota_audit_result/v0.1",
+      "audit_sha256": "26734dd7b8b4afe482cfab40752dc6d02eaa3845c2d6ab04dd6393cea8260ca2",
+      "claim_text": "On 23 KITTI raw 2011_09_26 drives that no Calibrex camera-LiDAR method had read, calibrex check --pairs camera-lidar gives honest per-axis verdicts against KITTI's calibration (calib_velo_to_cam with the rectification of calib_cam_to_cam): it never flags that calibration (no warn or fail); every rotation axis it judges there (reported std at most 0.5 deg and its 2 deg known-bad control detected on held-out frames) is within 0.75 deg of it, and it judges at least half of the axes; started at that calibration with the camera turned 1 or 3 deg about one of its axes, every axis it judges is within 1.5 deg of KITTI's calibration; it flags a 3 deg turn about an axis it judged on the drive in at least 90 percent of the trials and never judges such a turned axis right; and it flags a 1 deg turn in at least 75 percent of the trials.",
+      "pair_id": "camera-lidar",
+      "protocol_id": "kitti-camera-lidar-check-v1",
+      "requirement_counts": {
+        "achieved": 5,
+        "contradicted": 4
+      },
+      "scope": {
+        "category": "targetless_camera_lidar_check",
+        "modalities": [
+          "camera",
+          "lidar"
+        ],
+        "quantities": [
+          "rotation"
+        ]
+      },
+      "verdict": "refuted"
+    },
+    {
       "achieved_dataset_families": [],
       "achieved_independent_rig_count": 0,
       "audit_id": "mid360-imu-lidar-extrinsic-vs-li-init-v1",
@@ -285,8 +313,8 @@
     {
       "incomplete_claims": 0,
       "pair_id": "camera-lidar",
-      "refuted_claims": 0,
-      "standing": "no_claim",
+      "refuted_claims": 1,
+      "standing": "refuted",
       "supported_claims": 0,
       "target": true
     },
@@ -356,6 +384,7 @@
       "docs/assets/hilti_camera_imu_sota_audit.yaml",
       "docs/assets/hilti2022_camera_sota/camera_imu_v2/hilti_camera_imu_v2_sota_audit.yaml",
       "docs/assets/hilti2022_camera_imu_v3/hilti_camera_imu_v3_sota_audit.yaml",
+      "docs/assets/kitti_camera_lidar/evaluation/kitti_camera_lidar_sota_audit.yaml",
       "docs/assets/mid360_imu_lidar_extrinsic_sota_audit.yaml",
       "docs/assets/mid360_imu_lidar_extrinsic_v2_sota_audit.yaml",
       "docs/assets/mid360_imu_lidar_sota_audit.yaml",
@@ -386,10 +415,10 @@
       "--target-pair",
       "lidar-wheel_odometry"
     ],
-    "created_at": "2026-10-14T11:00:20.165470+00:00",
+    "created_at": "2026-10-14T15:30:20.912891+00:00",
     "generator": "calibrex.evaluation.sota_leaderboard",
     "generator_version": "0.5.1",
-    "git_commit": "adb2981"
+    "git_commit": "ecf7d68"
   },
   "schema_version": "slac.sota_leaderboard/v0.1"
 }

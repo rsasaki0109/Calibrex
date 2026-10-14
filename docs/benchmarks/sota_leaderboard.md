@@ -30,7 +30,7 @@ See [MID360 IMU-LiDAR Calibration](mid360_imu_lidar.md),
 and [Hilti 2022 Camera-IMU Rotation](hilti_camera_imu.md) for the scope of each claim
 and what it does not claim.
 
-Two pairs have only refuted audits:
+Three pairs have only refuted audits:
 
 - **`lidar-lidar`**: 2 of 4 gates
   ([NTU VIRAL LiDAR-LiDAR](ntu_viral_lidar_lidar.md#pre-registered-audit-refuted)).
@@ -39,17 +39,22 @@ Two pairs have only refuted audits:
   - Accuracy against Kalibr held: every scored pair was within 0.33 deg.
   - A 1 deg turn of a camera was flagged in only 70 percent of the trials and named
     in 48 percent.
+- **`camera-lidar`**: 5 of 9 gates
+  ([KITTI camera-LiDAR check audit](kitti_camera_lidar_check.md#results-refuted-5-of-9-gates)).
+  - On 20 of 23 unseen KITTI drives the check passed KITTI's calibration, every judged
+    axis within 0.45 deg. Over all 23 it flagged 57 of 61 3 deg and 60 of 61 1 deg
+    turns about judged axes.
+  - On the other three it flagged KITTI's calibration, judging an axis up to 9.6 deg off,
+    and once judged a 3 deg-turned axis right.
 
-Every other target pair has a native method but no audited claim yet. One is
-pre-registered and not yet run: `camera-lidar`, the
-[KITTI camera-LiDAR check audit](kitti_camera_lidar_check.md) on 23 unread drives.
+Every other target pair has a native method but no audited claim yet.
 
 | Pair | Standing | Supported | Refuted | Incomplete | Target |
 | --- | --- | ---: | ---: | ---: | --- |
 | `camera` | no_claim | 0 | 0 | 0 | yes |
 | `camera-camera` | refuted | 0 | 1 | 0 | yes |
 | `camera-imu` | supported | 1 | 2 | 0 | yes |
-| `camera-lidar` | no_claim | 0 | 0 | 0 | yes |
+| `camera-lidar` | refuted | 0 | 1 | 0 | yes |
 | `gnss-imu` | no_claim | 0 | 0 | 0 | yes |
 | `imu-lidar` | supported | 2 | 1 | 0 | yes |
 | `imu-vehicle` | no_claim | 0 | 0 | 0 | yes |
@@ -64,6 +69,7 @@ pre-registered and not yet run: `camera-lidar`, the
 | `camera-imu` | targetless_camera_imu | rotation, time_offset | refuted | 6/7 | `hilti-camera-imu-v1` |
 | `camera-imu` | targetless_camera_imu | rotation, time_offset | refuted | 5/7 | `hilti-camera-imu-v2` |
 | `camera-imu` | targetless_camera_imu | rotation, time_offset | supported | 7/7 | `hilti-camera-imu-v3` |
+| `camera-lidar` | targetless_camera_lidar_check | rotation | refuted | 5/9 | `kitti-camera-lidar-check-v1` |
 | `imu-lidar` | targetless_imu_lidar | rotation, translation, time_offset | refuted | 0/8 | `mid360-imu-lidar-extrinsic-vs-li-init-v1` |
 | `imu-lidar` | targetless_imu_lidar | rotation, translation, time_offset | supported | 4/4 | `mid360-imu-lidar-extrinsic-vs-li-init-v2` |
 | `imu-lidar` | targetless_imu_lidar | rotation, time_offset | supported | 4/4 | `mid360-imu-lidar-rotation-vs-li-init-v1` |

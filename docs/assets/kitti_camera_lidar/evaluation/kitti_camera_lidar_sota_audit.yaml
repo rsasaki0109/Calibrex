@@ -1,0 +1,119 @@
+schema_version: slac.sota_audit_result/v0.1
+audit_id: kitti-camera-lidar-check-v1
+protocol_id: kitti-camera-lidar-check-v1
+scope:
+  modalities:
+  - camera
+  - lidar
+  quantities:
+  - rotation
+  category: targetless_camera_lidar_check
+claim_text: 'On 23 KITTI raw 2011_09_26 drives that no Calibrex camera-LiDAR method
+  had read, calibrex check --pairs camera-lidar gives honest per-axis verdicts against
+  KITTI''s calibration (calib_velo_to_cam with the rectification of calib_cam_to_cam):
+  it never flags that calibration (no warn or fail); every rotation axis it judges
+  there (reported std at most 0.5 deg and its 2 deg known-bad control detected on
+  held-out frames) is within 0.75 deg of it, and it judges at least half of the axes;
+  started at that calibration with the camera turned 1 or 3 deg about one of its axes,
+  every axis it judges is within 1.5 deg of KITTI''s calibration; it flags a 3 deg
+  turn about an axis it judged on the drive in at least 90 percent of the trials and
+  never judges such a turned axis right; and it flags a 1 deg turn in at least 75
+  percent of the trials.'
+verdict: refuted
+achieved_dataset_families:
+- kitti_raw
+achieved_independent_rig_count: 1
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: no-failed-drives
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: docs/assets/kitti_camera_lidar/evaluation/kitti_camera_lidar_drives_benchmark.yaml
+  evidence_sha256: 0a4a26831bb36369fdbcdcdf30053ad5d93873d25efd4e2b69f9c031312f34a7
+- requirement_id: vendor-calibration-not-flagged
+  required: true
+  status: contradicted
+  observed_value: 1.0
+  threshold: 0.0
+  reason: observed 1 does not meet less_equal 0
+  evidence_path: docs/assets/kitti_camera_lidar/evaluation/kitti_camera_lidar_baseline_benchmark.yaml
+  evidence_sha256: 7cf1773035e1a964db37d0ab8e7de7ba1426ddd3bddbb7d222332bde59d864e7
+- requirement_id: judged-axis-accuracy
+  required: true
+  status: contradicted
+  observed_value: 9.599999999999996
+  threshold: 0.75
+  reason: observed 9.6 does not meet less_equal 0.75
+  evidence_path: docs/assets/kitti_camera_lidar/evaluation/kitti_camera_lidar_axes_benchmark.yaml
+  evidence_sha256: d2f3bad8a830bf88947002bd59e09a4849cf7cc140cf7bb5952f1939ed4d36e2
+- requirement_id: judged-axis-coverage
+  required: true
+  status: achieved
+  observed_value: 0.34782608695652173
+  threshold: 1.5
+  reason: observed 0.347826086957 meets less_equal 1.5
+  evidence_path: docs/assets/kitti_camera_lidar/evaluation/kitti_camera_lidar_coverage_benchmark.yaml
+  evidence_sha256: 50b446b134599d148578212ebc78463a83e18d724585cf6752ef54b80a11deda
+- requirement_id: turned-judged-axis-accuracy
+  required: true
+  status: contradicted
+  observed_value: 9.65844909194789
+  threshold: 1.5
+  reason: observed 9.65844909195 does not meet less_equal 1.5
+  evidence_path: docs/assets/kitti_camera_lidar/evaluation/kitti_camera_lidar_turned_benchmark.yaml
+  evidence_sha256: 29000e0e10619dd09d61cab512123fc95b14ac717dd70b724990f56e766ad62b
+- requirement_id: turn-3deg-flagged
+  required: true
+  status: achieved
+  observed_value: 0.06557377049180328
+  threshold: 0.1
+  reason: observed 0.0655737704918 meets less_equal 0.1
+  evidence_path: docs/assets/kitti_camera_lidar/evaluation/kitti_camera_lidar_turn3_benchmark.yaml
+  evidence_sha256: da5b88ff7be630f442177f0197802a9d65f6af2f69f8cf4a469223e6e733522d
+- requirement_id: turn-3deg-never-judged-right
+  required: true
+  status: contradicted
+  observed_value: 1.0
+  threshold: 0.0
+  reason: observed 1 does not meet less_equal 0
+  evidence_path: docs/assets/kitti_camera_lidar/evaluation/kitti_camera_lidar_turn3_judged_right_benchmark.yaml
+  evidence_sha256: ccfb62e35cea6c791ca33332669a2014f07d19bf7515804b404e89458ebca8f8
+- requirement_id: turn-1deg-flagged
+  required: true
+  status: achieved
+  observed_value: 0.01639344262295082
+  threshold: 0.25
+  reason: observed 0.016393442623 meets less_equal 0.25
+  evidence_path: docs/assets/kitti_camera_lidar/evaluation/kitti_camera_lidar_turn1_benchmark.yaml
+  evidence_sha256: 66ef1aac7d1eab22c5f892434926beb465e139c338aaf9c0336d7c1fd2e3e992
+- requirement_id: scored-drives-coverage
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.34782608695652173
+  reason: observed 0 meets less_equal 0.347826086957
+  evidence_path: docs/assets/kitti_camera_lidar/evaluation/kitti_camera_lidar_evaluation_benchmark.yaml
+  evidence_sha256: 45f5c2ba0cacb3d27a02241b910c98554fff3b1a295a905d897e648f1f62706e
+summary: At least one frozen required numerical or integrity gate is contradicted;
+  the declared SOTA claim is not supported.
+provenance:
+  generator: calibrex.evaluation.sota_audit
+  generator_version: 0.5.1
+  git_commit: ecf7d68
+  command: []
+  source_sha256:
+    protocol: 8f405eddf995e5305a9454e95ba83f56834824ad95867ee04545da29b84e7a7b
+    no-failed-drives: 0a4a26831bb36369fdbcdcdf30053ad5d93873d25efd4e2b69f9c031312f34a7
+    vendor-calibration-not-flagged: 7cf1773035e1a964db37d0ab8e7de7ba1426ddd3bddbb7d222332bde59d864e7
+    judged-axis-accuracy: d2f3bad8a830bf88947002bd59e09a4849cf7cc140cf7bb5952f1939ed4d36e2
+    judged-axis-coverage: 50b446b134599d148578212ebc78463a83e18d724585cf6752ef54b80a11deda
+    turned-judged-axis-accuracy: 29000e0e10619dd09d61cab512123fc95b14ac717dd70b724990f56e766ad62b
+    turn-3deg-flagged: da5b88ff7be630f442177f0197802a9d65f6af2f69f8cf4a469223e6e733522d
+    turn-3deg-never-judged-right: ccfb62e35cea6c791ca33332669a2014f07d19bf7515804b404e89458ebca8f8
+    turn-1deg-flagged: 66ef1aac7d1eab22c5f892434926beb465e139c338aaf9c0336d7c1fd2e3e992
+    scored-drives-coverage: 45f5c2ba0cacb3d27a02241b910c98554fff3b1a295a905d897e648f1f62706e
+  created_at: '2026-10-14T15:29:08.539927+00:00'

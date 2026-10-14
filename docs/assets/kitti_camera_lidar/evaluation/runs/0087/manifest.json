@@ -1,0 +1,202 @@
+{
+  "recording": "0087",
+  "drive": "2011_09_26_drive_0087_sync",
+  "calibration_sha256": {
+    "calib_cam_to_cam.txt": "edc1eae281cb95e41798a98dcc545521449527145477ff852dbf3a4ec48c643c",
+    "calib_imu_to_velo.txt": "07ca9ed33a2d968fc6358617d2c70e048b6f8e0f6ee5b73ae963afc1b19456ce",
+    "calib_velo_to_cam.txt": "9dc0c3e92dfceceb9500caa2c9488261a52640e43c3f7c3045ca1ed7927e7266"
+  },
+  "download": {
+    "url": "https://s3.eu-central-1.amazonaws.com/avg-kitti/raw_data/2011_09_26_drive_0087/2011_09_26_drive_0087_sync.zip",
+    "size_bytes": 3138789859,
+    "etag": "742c64e239dcf22a2d49180349f47c5a-375",
+    "ok": true,
+    "sha256": "d14788e217d3ec86dbfc85c15a17dc943b9f020d62ad2c854fd70152e070b9c3",
+    "wall_s": 123.6
+  },
+  "git_commit": "ecf7d6835520bed8b5f13a5725ffb48984430d7c",
+  "tool_sha256": "3fac7878afd3453b20d3d4341b37ff40d70c9ad2b51504eb9ffed2dc84f8bb76",
+  "environment": {
+    "python": "3.12.3",
+    "numpy": "2.5.3",
+    "platform": "Linux-6.18.44-fc-v114-x86_64-with-glibc2.39"
+  },
+  "convert": {
+    "command": [
+      "/home/user/Calibrex/.venv/bin/calibrex",
+      "convert",
+      "kitti-raw",
+      "/home/user/kitti_cl/eval_work/2011_09_26/2011_09_26_drive_0087_sync",
+      "--calib-dir",
+      "/home/user/kitti_cl/eval_work/2011_09_26",
+      "--camera",
+      "image_02",
+      "--velodyne-time",
+      "azimuth",
+      "--output",
+      "/home/user/kitti_cl/eval_work/bag_0087",
+      "--overwrite"
+    ],
+    "exit_code": 0,
+    "wall_s": 24.6
+  },
+  "runs": {
+    "baseline": {
+      "command": [
+        "/home/user/Calibrex/.venv/bin/calibrex",
+        "check",
+        "/home/user/kitti_cl/eval_work/bag_0087",
+        "--pairs",
+        "camera-lidar",
+        "--no-cache",
+        "--fail-on",
+        "never",
+        "--evidence-dir",
+        "/home/user/kitti_cl/eval/runs/0087/baseline_evidence",
+        "--output",
+        "/home/user/kitti_cl/eval/runs/0087/baseline.json"
+      ],
+      "exit_code": 0,
+      "wall_s": 66.8,
+      "artifact": "baseline.json"
+    },
+    "inject_x+3": {
+      "axis": "x",
+      "degrees": 3.0,
+      "command": [
+        "/home/user/Calibrex/.venv/bin/calibrex",
+        "check",
+        "/home/user/kitti_cl/eval_work/bag_0087",
+        "--pairs",
+        "camera-lidar",
+        "--no-cache",
+        "--tf",
+        "/home/user/kitti_cl/eval/runs/0087/inject_x+3_frames.yaml",
+        "--fail-on",
+        "never",
+        "--evidence-dir",
+        "/home/user/kitti_cl/eval/runs/0087/inject_x+3_evidence",
+        "--output",
+        "/home/user/kitti_cl/eval/runs/0087/inject_x+3.json"
+      ],
+      "exit_code": 0,
+      "wall_s": 82.3,
+      "artifact": "inject_x+3.json"
+    },
+    "inject_y+3": {
+      "axis": "y",
+      "degrees": 3.0,
+      "command": [
+        "/home/user/Calibrex/.venv/bin/calibrex",
+        "check",
+        "/home/user/kitti_cl/eval_work/bag_0087",
+        "--pairs",
+        "camera-lidar",
+        "--no-cache",
+        "--tf",
+        "/home/user/kitti_cl/eval/runs/0087/inject_y+3_frames.yaml",
+        "--fail-on",
+        "never",
+        "--evidence-dir",
+        "/home/user/kitti_cl/eval/runs/0087/inject_y+3_evidence",
+        "--output",
+        "/home/user/kitti_cl/eval/runs/0087/inject_y+3.json"
+      ],
+      "exit_code": 0,
+      "wall_s": 82.8,
+      "artifact": "inject_y+3.json"
+    },
+    "inject_z+3": {
+      "axis": "z",
+      "degrees": 3.0,
+      "command": [
+        "/home/user/Calibrex/.venv/bin/calibrex",
+        "check",
+        "/home/user/kitti_cl/eval_work/bag_0087",
+        "--pairs",
+        "camera-lidar",
+        "--no-cache",
+        "--tf",
+        "/home/user/kitti_cl/eval/runs/0087/inject_z+3_frames.yaml",
+        "--fail-on",
+        "never",
+        "--evidence-dir",
+        "/home/user/kitti_cl/eval/runs/0087/inject_z+3_evidence",
+        "--output",
+        "/home/user/kitti_cl/eval/runs/0087/inject_z+3.json"
+      ],
+      "exit_code": 0,
+      "wall_s": 82.3,
+      "artifact": "inject_z+3.json"
+    },
+    "inject_x+1": {
+      "axis": "x",
+      "degrees": 1.0,
+      "command": [
+        "/home/user/Calibrex/.venv/bin/calibrex",
+        "check",
+        "/home/user/kitti_cl/eval_work/bag_0087",
+        "--pairs",
+        "camera-lidar",
+        "--no-cache",
+        "--tf",
+        "/home/user/kitti_cl/eval/runs/0087/inject_x+1_frames.yaml",
+        "--fail-on",
+        "never",
+        "--evidence-dir",
+        "/home/user/kitti_cl/eval/runs/0087/inject_x+1_evidence",
+        "--output",
+        "/home/user/kitti_cl/eval/runs/0087/inject_x+1.json"
+      ],
+      "exit_code": 0,
+      "wall_s": 83.0,
+      "artifact": "inject_x+1.json"
+    },
+    "inject_y+1": {
+      "axis": "y",
+      "degrees": 1.0,
+      "command": [
+        "/home/user/Calibrex/.venv/bin/calibrex",
+        "check",
+        "/home/user/kitti_cl/eval_work/bag_0087",
+        "--pairs",
+        "camera-lidar",
+        "--no-cache",
+        "--tf",
+        "/home/user/kitti_cl/eval/runs/0087/inject_y+1_frames.yaml",
+        "--fail-on",
+        "never",
+        "--evidence-dir",
+        "/home/user/kitti_cl/eval/runs/0087/inject_y+1_evidence",
+        "--output",
+        "/home/user/kitti_cl/eval/runs/0087/inject_y+1.json"
+      ],
+      "exit_code": 0,
+      "wall_s": 82.3,
+      "artifact": "inject_y+1.json"
+    },
+    "inject_z+1": {
+      "axis": "z",
+      "degrees": 1.0,
+      "command": [
+        "/home/user/Calibrex/.venv/bin/calibrex",
+        "check",
+        "/home/user/kitti_cl/eval_work/bag_0087",
+        "--pairs",
+        "camera-lidar",
+        "--no-cache",
+        "--tf",
+        "/home/user/kitti_cl/eval/runs/0087/inject_z+1_frames.yaml",
+        "--fail-on",
+        "never",
+        "--evidence-dir",
+        "/home/user/kitti_cl/eval/runs/0087/inject_z+1_evidence",
+        "--output",
+        "/home/user/kitti_cl/eval/runs/0087/inject_z+1.json"
+      ],
+      "exit_code": 0,
+      "wall_s": 73.1,
+      "artifact": "inject_z+1.json"
+    }
+  }
+}

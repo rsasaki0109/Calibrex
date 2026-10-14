@@ -1,0 +1,706 @@
+schema_version: slac.benchmark/v0.1
+benchmark_id: kitti-camera-lidar-check-v1-coverage
+title: 'KITTI camera-lidar check: baseline axes not judged'
+protocol:
+  protocol_id: kitti-camera-lidar-check-v1
+  dataset_id: kitti_raw_2011_09_26_unused_drives_image_02_velodyne
+  dataset_source_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+  data_license: CC BY-NC-SA 3.0
+  split_policy: one split per scored drive
+  splits:
+  - split_id: '0011'
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 3ebae8d5fce74d234f946764042fa9f707a4fd7d3f5738a6eaeee61e91547fd2
+    holdout_ids_sha256: a8d0b6f0939cfd883251f62b265f971ef8a5ab97eee32b91460f08b965601d93
+  - split_id: '0013'
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: c45614f64ce385a7886433a0bd6446347feaa306cd272b9d694295d86a58b1a9
+    holdout_ids_sha256: 18303683dba5587003399c2103c2cbd8448bed6601514d9ea159a5af102e1310
+  - split_id: 0018
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: a8f646031b584eba34c48d13907bbe72016664594c5af6d93042497d4ca09ca0
+    holdout_ids_sha256: 7550e2da7b7a165c69fb72da92347f15b535eeebe8ea58913b09542376e83917
+  - split_id: 0019
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: bebbd315b4d12ea0e1fe29f32d27c7093f043fb4e4295911e5cb4583e55621e0
+    holdout_ids_sha256: 5e5dca63a627cc52986d9e4cf1ed33075ff5b76a41074600730a045900c437b1
+  - split_id: '0023'
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: f4f0195694adf99a7835898ccc3d586ffc2ee71bf93ee09cdd055eae5c36c6ce
+    holdout_ids_sha256: e78b541c01a9ef618e791024edc6ff082d46ae701f9e3cba5259330fe135a84b
+  - split_id: 0029
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: b359c962ff8f4bc855ff9233e0fe2e9b7e2b4645b6dc20d0fe68380153a33bbc
+    holdout_ids_sha256: d5d54e22bb3e1c4845c71a474be13a66e2c58f7c1cc87937fd5910937717200e
+  - split_id: '0032'
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 7e861f2c0b16c3b70427bff178f744fca5401235bc28b3842cf20591dde52adb
+    holdout_ids_sha256: dbf35b2fd7c6f8c3f31f8eaad6418eafd4be769158ed331331d22b604c0b1b74
+  - split_id: '0036'
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 79bf986576acb94b3851cfe7030df4737aec49ee541f191dbe3f6532abb10178
+    holdout_ids_sha256: 727350de59be2e3c8ba1ea001e81a8d86e3931813e915dbb384e405c142912e3
+  - split_id: '0056'
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 26f25f9163197c4e75f94c63d931caf3dd32071df97b83abb4a482695dbe9116
+    holdout_ids_sha256: be1132d420395967a8031a9b4cf4071de312156e8b8aa8479eacb622cf79a60e
+  - split_id: '0061'
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: d1a66d773c4b6cb02b392209640a1ec505c7ee3a4dcda1e8ddcb2ec1e633aeae
+    holdout_ids_sha256: 7d8df4566d04c5f3004c3d66f86da1e77e52a9a8229ccf50ea5114bd77833d70
+  - split_id: '0064'
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 299e09d399807c6e74d666b8e59749cbba565ee94ab61b344521ab34b17141c6
+    holdout_ids_sha256: 16b08f787a72d69011e629382a03a0965e30b60da661323b43f975633602ae80
+  - split_id: '0070'
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 01583ffcb9b8dc34596b8c41ddd151954a1546483b210c629e98aa253064b595
+    holdout_ids_sha256: 71ffe84afd528a0365d6ec95c89a64cd6979b4a15730649feddf2dc390db9e3c
+  - split_id: 0084
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 282a9ac3bb41417f13ed446461fab1d2ebdc916b617c260ac8754512dd43c969
+    holdout_ids_sha256: 36c75cddc5a6fa13d903d0378dd01396fd921b0d61c551bdcba338c9c0ee4729
+  - split_id: 0086
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: c9f1a23a894f88c77caa5760663383a040ea371b26dc0a34108b6a0aa83739a9
+    holdout_ids_sha256: e26519f17417183b0619c8e997449409084446f2b5b1dfbc1258a99cbcfe73c8
+  - split_id: 0087
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: fd8b9d55d35eb323688acfa0935ead81fce26772531639843916044053eaa636
+    holdout_ids_sha256: e3e54cd90759e644036cf64ac6b088e7ffb743a0c557712b483ccf880965e1bf
+  - split_id: 0091
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: d0ba054e0a7ec674a05821c73ffd09a36bfb52babf5f7035a21af45b890aafeb
+    holdout_ids_sha256: ec93c401eb906c3af6ecc3e1882436a8a4abb23ff2d7045e91e16f774eae4552
+  - split_id: 0093
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 7feb7b3bad3b93c725c7d61b70aeb5fae2154b509f750d4ccc69c66e095411af
+    holdout_ids_sha256: 52f456f3c549b12d4325980bebf3942d72d834d4f8e01954f4cdddb9ec0cbab8
+  - split_id: 0095
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: c553a84c17c25cd0988033f123974a44c8ec8b456150eda01722a6aec3a0ed89
+    holdout_ids_sha256: 5d2ba1f31c30be4b9f210e183e384ebcca0ebdfcacd3ff40a783e6c5fc59804f
+  - split_id: 0096
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 386ab200f1bcc58e4f2e34f5e478d73d5c61ff40fb8bd413b4f4468a796ca24a
+    holdout_ids_sha256: b6792dadca7cfa5b5aeb02b950f3e717bd3d985346a948ba506293e3fc31c235
+  - split_id: '0101'
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 1d8c9d36625fa7fb4c27a6de1d0772b91b1b6ed920587a113bea6258509217eb
+    holdout_ids_sha256: 07334386287751ba02a4588c1a0875dbd074a61bd9e6ab7c48d244eacd0c99e0
+  - split_id: '0104'
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: aa9f048645159ad1c082e851c068315c3e6a03f33576a6b171910af8010c17cd
+    holdout_ids_sha256: aeb32cfe00d196040e9758c276853282721fbd222038a54e9ae04d6686066e1b
+  - split_id: '0106'
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 7ec58d90786fe3ed780373ec23b3f2ae91063baf9feee09a08b76ac839f4769f
+    holdout_ids_sha256: d102a5e24978f472c57411fb2d5a04a7e23451955316112d8276637bda628eb0
+  - split_id: '0117'
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 840f9549c4e6d4fdd74fb14c027f3020bb980fec83610c72b21f29ca0eac7b10
+    holdout_ids_sha256: 7c6886ff572fd550ea7fb64059a9f7082863f528c60f99a397dcd9b66fcab25f
+  initial_estimate_policy: 'the check starts at the candidate: KITTI''s calibration,
+    or it turned by the pre-registered injection'
+  tuning_policy: procedure and thresholds pre-registered before the evaluation runs
+  failure_policy: a download, conversion or check failure fails the drive
+metrics:
+- name: unjudged_axes
+  label: number of the drive's rotation axes not judged
+  unit: '1'
+  display_scale: 1.0
+  direction: lower
+  primary: true
+  interpretation: 3 - judged
+methods:
+- method_id: kitti_reference
+  label: KITTI calib_velo_to_cam (the reference; error against itself is 0)
+  implementation: calibrex_native
+  tool_name: kitti
+- method_id: calibrex_check
+  label: calibrex check camera-lidar (targetless edge alignment from the candidate)
+  implementation: calibrex_native
+  tool_name: calibrex
+trials:
+- method_id: kitti_reference
+  split_id: '0011'
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: '0013'
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0018
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0019
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: '0023'
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0029
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: '0032'
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: '0036'
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: '0056'
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: '0061'
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: '0064'
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: '0070'
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0084
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0086
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0087
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0091
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0093
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0095
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0096
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: '0101'
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: '0104'
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: '0106'
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: '0117'
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: '0011'
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: '0013'
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0018
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0019
+  status: success
+  metrics:
+    unjudged_axes: 1.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: '0023'
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0029
+  status: success
+  metrics:
+    unjudged_axes: 1.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: '0032'
+  status: success
+  metrics:
+    unjudged_axes: 1.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: '0036'
+  status: success
+  metrics:
+    unjudged_axes: 1.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: '0056'
+  status: success
+  metrics:
+    unjudged_axes: 1.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: '0061'
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: '0064'
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: '0070'
+  status: success
+  metrics:
+    unjudged_axes: 2.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0084
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0086
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0087
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0091
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0093
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0095
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0096
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: '0101'
+  status: success
+  metrics:
+    unjudged_axes: 1.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: '0104'
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: '0106'
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: '0117'
+  status: success
+  metrics:
+    unjudged_axes: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+method_summaries:
+  kitti_reference:
+    method_id: kitti_reference
+    trial_count: 23
+    success_count: 23
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      unjudged_axes:
+        metric: unjudged_axes
+        distribution:
+          count: 23
+          mean: 0.0
+          median: 0.0
+          standard_deviation: 0.0
+          minimum: 0.0
+          maximum: 0.0
+          p90: 0.0
+          p95: 0.0
+          mean_ci95_low: 0.0
+          mean_ci95_high: 0.0
+        rank: 1
+  calibrex_check:
+    method_id: calibrex_check
+    trial_count: 23
+    success_count: 23
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      unjudged_axes:
+        metric: unjudged_axes
+        distribution:
+          count: 23
+          mean: 0.34782608695652173
+          median: 0.0
+          standard_deviation: 0.560178205509788
+          minimum: 0.0
+          maximum: 2.0
+          p90: 1.0
+          p95: 1.0
+          mean_ci95_low: 0.13043478260869565
+          mean_ci95_high: 0.6086956521739131
+        rank: 2
+paired_comparisons:
+- reference_method_id: kitti_reference
+  candidate_method_id: calibrex_check
+  metric: unjudged_axes
+  direction: lower
+  paired_count: 23
+  raw_delta_mean: 0.34782608695652173
+  improvement_mean: -0.34782608695652173
+  improvement_ci95_low: -0.6086956521739131
+  improvement_ci95_high: -0.13043478260869565
+reference_method_id: kitti_reference
+bootstrap_samples: 2000
+bootstrap_seed: 0
+limitations:
+- The reference is KITTI's target-based calibration, not ground truth.
+- Every drive is from one day and one rig; drives are not independent rigs.
+- Only the axes the check judges are gated; the others are counted by coverage.
+- Turned candidates are the reference turned about one camera axis at a time.
+provenance:
+  generator: tools/build_kitti_camera_lidar_audit.py
+  generator_version: 0.5.1
+  generated_at: '2026-10-14T15:29:06.458195+00:00'
+  command: python tools/build_kitti_camera_lidar_audit.py SCORES.json PREREG OUT
+  source_artifacts: {}
+  data_verified: true
