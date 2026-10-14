@@ -228,6 +228,13 @@ def audit(root: Path) -> dict[str, object]:
                     if match is None or match[1] != provenance.get("cupy"):
                         raise ValueError("executed GPU identity differs from its bound kernels")
                     counters = report["statistics"]
+                    if "gpu_fixed_query_calls" in adapter_constants:
+                        calls = counters.get("gpu_fixed_query_calls", -1)
+                        rows = counters.get("gpu_fixed_query_rows", -1)
+                        if (not 0 < calls <= counters.get("gpu_query_calls", 0)
+                                or not calls <= rows <= counters.get("gpu_query_rows", 0)
+                                or rows < counters.get("gpu_normal_rows", 0)):
+                            raise ValueError("GPU fixed-query accounting is inconsistent")
                     if normal_counter_expected and "gpu_normal_kernel_calls" not in counters:
                         raise ValueError("GPU normal kernel accounting is missing")
                     if ("gpu_normal_kernel_calls" in counters

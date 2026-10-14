@@ -189,7 +189,9 @@ def _worker(args: argparse.Namespace) -> None:
                      "form an identity execution control, not independent two-sensor accuracy."],
         provenance=LidarLidarProvenance(
             generator="tools.benchmark_cuda_lidar_map", generator_version=__version__,
-            git_commit=subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+            git_commit=getattr(args, "source_commit", None) or subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], text=True,
+            ).strip(),
             command=["<PYTHON>", "tools/benchmark_cuda_lidar_map.py", "--worker", args.worker],
             dataset_family="kitti_raw", sequence_ids=[args.sequence.name],
             reference_topic="public_scan_window", target_topic="public_scan_copy",
