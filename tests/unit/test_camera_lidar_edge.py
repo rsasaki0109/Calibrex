@@ -355,6 +355,53 @@ def test_each_profile_maximum_is_also_a_start_of_its_own() -> None:
     assert _profile_starts(None) == []
 
 
+def test_a_far_optimum_replaces_the_current_one_only_with_more_axes_and_none_at_the_bound() -> None:
+    from calibrex.evaluation.camera_lidar_edge import _replaces_current
+
+    options = EdgeAlignmentOptions()
+    inside = np.array([-3.0, 0.2, 0.1, 0.0, 0.0, 0.0])
+    assert _replaces_current(1, 3, inside, options)
+    assert _replaces_current(0, 2, inside, options)
+    # as many DoFs observed: the objective no longer decides (KITTI 0029, yaw 9.6 deg off)
+    assert not _replaces_current(2, 2, inside, options)
+    # a single DoF observed is not enough (a turned run of KITTI 0056, roll 6.6 deg off)
+    assert not _replaces_current(0, 1, inside, options)
+    assert _replaces_current(0, 1, inside, EdgeAlignmentOptions(start_scan_min_observed=1))
+    # a rotation DoF at the search bound (KITTI 0056, yaw at -12 deg)
+    at_bound = inside.copy()
+    at_bound[2] = -options.rotation_bound_deg
+    assert not _replaces_current(0, 3, at_bound, options)
+    with pytest.raises(ValueError, match="start_scan_min_observed"):
+        EdgeAlignmentOptions(start_scan_min_observed=4)
+
+
+class _BlockDrops:
+    """A held-out block whose objective drops by a set amount when an axis is shifted."""
+
+    def __init__(self, drops: dict[int, float]) -> None:
+        self.drops = drops
+
+    def score(self, theta: np.ndarray) -> float:
+        return -sum(drop for axis, drop in self.drops.items() if theta[axis] != 0.0)
+
+
+def test_a_control_needs_t_of_2_5() -> None:
+    from calibrex.evaluation.camera_lidar_edge import _controls
+
+    assert EdgeAlignmentOptions().min_control_t == 2.5
+    # per-block drops for roll and pitch whose t statistics are 2.33 and 2.62
+    roll = [-0.5488, 0.4512, 1.4512, 2.4512, 0.9512, 0.9512]
+    pitch = [-0.4304, 0.5696, 1.5696, 2.5696, 1.0696, 1.0696]
+    blocks = [_BlockDrops({0: r, 1: p}) for r, p in zip(roll, pitch, strict=True)]
+    fits = np.zeros((6, 6))
+    t = [float(np.mean(d) / (np.std(d, ddof=1) / np.sqrt(6))) for d in (roll, pitch)]
+    assert t[0] == pytest.approx(2.33, abs=0.01) and t[1] == pytest.approx(2.62, abs=0.01)
+    controls = _controls(blocks, fits, EdgeAlignmentOptions())  # type: ignore[arg-type]
+    assert [controls[0].detected, controls[1].detected] == [False, True]
+    earlier = _controls(blocks, fits, EdgeAlignmentOptions(min_control_t=2.0))  # type: ignore[arg-type]
+    assert earlier[0].detected  # the bound before KITTI's first audit judged it
+
+
 def test_observed_rotations_counts_axes_by_the_record_rule() -> None:
     from calibrex.core.camera_lidar_edge import CameraLidarEdgeControl
     from calibrex.evaluation.camera_lidar_edge import _observed_rotations

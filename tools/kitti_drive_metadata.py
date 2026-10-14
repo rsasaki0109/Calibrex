@@ -10,6 +10,7 @@ how the evaluation drives of the KITTI camera-lidar pre-registration are chosen 
 any estimator reads them::
 
     python tools/kitti_drive_metadata.py OUT.json 0002 0011 ...
+    python tools/kitti_drive_metadata.py OUT.json --date 2011_09_30 0016 0020 ...
 """
 
 from __future__ import annotations
@@ -46,8 +47,8 @@ def head(url: str) -> tuple[int, str]:
     return int(fields["content-length"]), fields["etag"].strip('"')
 
 
-def metadata(drive: str) -> dict[str, object]:
-    name = f"{DATE}_drive_{drive}"
+def metadata(drive: str, date: str = DATE) -> dict[str, object]:
+    name = f"{date}_drive_{drive}"
     url = f"{S3}/{name}/{name}_sync.zip"
     size, etag = head(url)
     tail_length = min(size, 1 << 16)
@@ -80,10 +81,15 @@ def metadata(drive: str) -> dict[str, object]:
 
 def main(argv: list[str] | None = None) -> int:
     args = sys.argv[1:] if argv is None else argv
+    date = DATE
+    if "--date" in args:
+        index = args.index("--date")
+        date = args[index + 1]
+        args = args[:index] + args[index + 2 :]
     output, drives = Path(args[0]), args[1:]
     result = {}
     for drive in drives:
-        result[drive] = metadata(drive)
+        result[drive] = metadata(drive, date)
         print(drive, json.dumps(result[drive]), flush=True)
     output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     return 0
