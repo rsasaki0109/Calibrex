@@ -1,0 +1,185 @@
+{
+  "samples": [
+    {
+      "offset_seconds": 0.07529219996649772,
+      "own": 0,
+      "foreign": 2,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 10.216051600058563,
+      "own": 0,
+      "foreign": 2,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 20.317228500032797,
+      "own": 0,
+      "foreign": 2,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 30.411159900017083,
+      "own": 0,
+      "foreign": 2,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 40.494770299992524,
+      "own": 1,
+      "foreign": 2,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 50.58378069999162,
+      "own": 1,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 60.68802870006766,
+      "own": 1,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 70.78984570002649,
+      "own": 1,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 80.86951750004664,
+      "own": 1,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 90.96188700001221,
+      "own": 1,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 101.03654430003371,
+      "own": 1,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 111.43687320000026,
+      "own": 0,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 121.54992240003776,
+      "own": 1,
+      "foreign": 2,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 131.65036390000023,
+      "own": 1,
+      "foreign": 2,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 141.73212289996445,
+      "own": 1,
+      "foreign": 2,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 151.82677090005018,
+      "own": 1,
+      "foreign": 2,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 161.90800689999014,
+      "own": 1,
+      "foreign": 3,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 172.02699789998587,
+      "own": 1,
+      "foreign": 3,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 182.14011400006711,
+      "own": 1,
+      "foreign": 3,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 192.24944360007066,
+      "own": 1,
+      "foreign": 3,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 202.33251500001643,
+      "own": 1,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 213.1152054000413,
+      "own": 0,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 213.18531319999602,
+      "own": 0,
+      "foreign": 0,
+      "unknown": 0
+    }
+  ],
+  "exit_code": 0,
+  "provenance": {
+    "observer_sha256": "2a9ba2c1d6e525f1035bf38aa187fbb27c04154f86f26026531b0babc0153fc6",
+    "launcher_sha256": "ed66605ee1785ae263877643158abb8144dd2b7a24aff30618d7ec834badd1a6",
+    "schema_sha256": "b213b9f3acadb96a5424b19ae71532f57c9b789d7ceca590f42384b0932d06cf",
+    "benchmark_command": [
+      "<PYTHON>",
+      "-m",
+      "tools.benchmark_bspline_lidar_imu",
+      "--comparison",
+      "cuda-cuda",
+      "--baseline-commit",
+      "9cf33f996aaaffaf40ab053fc6b3ad1d5f94f46d",
+      "--max-seconds",
+      "6",
+      "--max-rounds",
+      "4",
+      "--repeats",
+      "1",
+      "--odometry-voxel-size-m",
+      ".03",
+      "--odometry-local-map-scans",
+      "3",
+      "--odometry-geometry-quantum-m",
+      "1e-9",
+      "--odometry-motion-translation-quantum-m",
+      "1e-6",
+      "--odometry-motion-rotation-quantum-rad",
+      "1e-7",
+      "--output",
+      "outputs/packed-neighbor-validation-v1"
+    ],
+    "query_command": [
+      "nvidia-smi",
+      "--query-compute-apps=pid",
+      "--format=csv,noheader,nounits"
+    ],
+    "sampling_interval_seconds": 10,
+    "psutil": "7.2.2",
+    "scope": "Complete public-result comparison on a shared GPU; timings cannot establish an isolated speedup.",
+    "started_at_utc": "2026-10-14T11:27:05.457459+00:00",
+    "limitation": "Periodic process observation, not continuous GPU isolation or CPU reservation."
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "schema_version": "slac.bspline_lidar_imu_comparison/v0.1",
+  "record_type": "summary",
+  "whole_median_seconds": {
+    "prior": 89.96345219993964,
+    "current": 96.68352920003235
+  },
+  "whole_speedup": 0.9304940866795492,
+  "fit_median_seconds": {
+    "prior": 15.082315100124106,
+    "current": 25.080998199991882
+  },
+  "fit_speedup": 0.6013442917965278,
+  "quality": [
+    {
+      "passed": true,
+      "decisions_equal": true,
+      "numeric_evidence_equal": true,
+      "errors": {
+        "rotation_deg": 0.0,
+        "lever_arm_m": 0.0,
+        "clock_offset_s": 0.0
+      },
+      "max_holdout_whitened_rms_difference": 0.0
+    }
+  ],
+  "quality_passed": true,
+  "provenance": {
+    "protocol_sha256": "cc1e64a2fff101cf575d84d12827bd414f79be3e1ee8744e637f16a6ff4e1c5f",
+    "attempts_sha256": "ced4a7b5e74be4ed466c14c00316fe237eb1b0da6391e8a88f90891bd79d232f"
+  }
+}

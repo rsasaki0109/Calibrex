@@ -1,0 +1,88 @@
+from pathlib import Path
+import hashlib,json,shutil,tarfile
+source=Path('outputs/packed-neighbor-validation-v1')
+observation=Path('outputs/packed-neighbor-observation-v1')
+root=Path('docs/assets/cuda_packed_neighbors');root.mkdir(exist_ok=False)
+protocol=json.loads((source/'protocol.json').read_bytes())
+summary=json.loads((source/'summary.json').read_bytes())
+attempts=json.loads((source/'attempts.json').read_bytes())
+assert summary['quality_passed'] and len(attempts)==2
+for name in ('protocol.json','summary.json','attempts.json'):
+    shutil.copyfile(source/name,root/name)
+for attempt in attempts:
+    folder=root/attempt['worker'];folder.mkdir()
+    for name in ('measurement.json','result.json','worker.log'):
+        shutil.copyfile(source/attempt['worker']/name,folder/name)
+prior=json.loads((root/'00-prior/measurement.json').read_bytes())
+current=json.loads((root/'00-current/measurement.json').read_bytes())
+assert len(prior['rounds'])==len(current['rounds'])==4
+for left,right in zip(prior['rounds'],current['rounds'],strict=True):
+    assert {k:v for k,v in left.items() if k!='seconds'}=={k:v for k,v in right.items() if k!='seconds'}
+before=json.loads((root/'00-prior/result.json').read_bytes())
+after=json.loads((root/'00-current/result.json').read_bytes())
+assert before['controls']==after['controls'] and len(after['controls'])==32
+assert before['holdout_whitened_rms']==after['holdout_whitened_rms']
+for variant in ('prior','current'):
+    folder=source/f'sources-{variant}'
+    shutil.copyfile(folder/'manifest.json',root/f'sources-{variant}-manifest.json')
+    with tarfile.open(root/f'sources-{variant}.tar.gz','w:gz') as archive:
+        archive.add('LICENSE',arcname='LICENSE',recursive=False)
+        for path in sorted((folder/'src').rglob('*.py')):
+            archive.add(path,arcname=path.relative_to(folder).as_posix(),recursive=False)
+for original,name in [('tools/benchmark_bspline_lidar_imu.py','benchmark.py.txt'),
+                       ('tools/schemas/bspline_lidar_imu_comparison.schema.json','comparison.schema.json'),
+                       ('tests/unit/test_cuda_packed_reference.py','packed-tests.py.txt'),
+                       ('tests/unit/test_cuda_spatial_candidates.py','candidate-tests.py.txt'),
+                       ('tests/unit/test_cuda_scan_odometry_adapter.py','odometry-tests.py.txt'),
+                       (__file__,'publisher.py.txt')]:
+    shutil.copyfile(original,root/name)
+for name in ('observation.json','observation.schema.json','observer.py.txt'):
+    shutil.copyfile(observation/name,root/name)
+observed=json.loads((root/'observation.json').read_bytes())
+foreign=sum(row['foreign']>0 for row in observed['samples'])
+unknown=sum(row['unknown']>0 for row in observed['samples'])
+assert observed['exit_code']==0
+text=f'''# Packed CUDA neighbors: complete result validation
+
+Baseline source: `{protocol['baseline_commit']}`. Prototype source:
+`{protocol['current_commit']}`. Public GLIM Livox input SHA-256:
+`{protocol['bag_sha256']}`. Raw data is not redistributed.
+
+One complete previous/current pair replays six seconds with four map rounds,
+identical point/neighbor/iteration budgets and all 32 signed controls. Calibration,
+holdout values, controls and all four full fitted trajectory/covariance/cost
+records are exactly equal. Real-data verdicts remain INCONCLUSIVE without
+independent extrinsic truth.
+
+The ten-second observer records {len(observed['samples'])} samples, {foreign} with
+foreign compute processes and {unknown} with unknown membership. **This is a
+shared-GPU result validation, not an isolated speed comparison.** Complete
+worker timings remain in attempts.json and measurement.json for audit; they
+cannot establish a performance effect. No process names or IDs are published.
+Periodic process sampling does not establish continuous exclusivity or reserve
+CPU resources. Fresh workers use separate initially empty compilation caches.
+
+The prototype packs target coordinates in the existing leaf order once per
+target. Original coordinates and point IDs remain authoritative for normals,
+system terms and native repairs. Exact max-heap candidate search sorts its final
+neighbors by distance then original point ID. No geometric precision or
+validation budgets are reduced. The unsuccessful source-row scheduling
+prototype is excluded from both versions.
+
+The index binds two complete workers, frozen sources/manifests, launcher/schema,
+device tests, observer source/schema/report and publisher. The CPU audit checks
+actual packed rows/bytes, source and result bindings and registration timing.
+
+```bash
+python -m tools.audit_bspline_lidar_imu_benchmark docs/assets/cuda_packed_neighbors
+```
+'''
+(root/'README.md').write_text(text,encoding='utf-8',newline='\n')
+files={p.relative_to(root).as_posix():hashlib.sha256(p.read_bytes()).hexdigest()
+       for p in sorted(root.rglob('*')) if p.is_file()}
+(root/'publication-index.json').write_text(json.dumps({
+    'schema_version':'slac.bspline_lidar_imu_publication/v0.1',
+    'provenance':{'input_protocol_sha256':hashlib.sha256((root/'protocol.json').read_bytes()).hexdigest()},
+    'files':files},indent=2)+'\n',encoding='utf-8',newline='\n')
+print({'published_files':len(files)+1,'full_fit_rounds':4,'controls':32,
+       'exact_equality':True,'foreign_samples':foreign,'observation_samples':len(observed['samples'])})
