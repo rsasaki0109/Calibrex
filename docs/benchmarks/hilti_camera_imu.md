@@ -422,5 +422,12 @@ them.
     consistency bound.
   - A new claim needs new recordings (exp01-exp04 and the five v2 recordings are
     spent) and, ideally, a targetless external baseline.
+- **v3 is pre-registered**
+  ([`hilti_camera_imu_v3_preregistration.yaml`](hilti_camera_imu_v3_preregistration.yaml)).
+  - It gates only the axes the method judges: estimated, and confirmed by their 1 deg
+    control, the rule `calibrex check` applies. At least half of the axes must be judged.
+  - It runs on exp05, exp06, exp11, exp14 and exp18, on which no camera-IMU estimate
+    has been made.
+  - Its thresholds are 1.5 times the worst of the 22 units camera-IMU has run on.
 
 No SOTA claim is made for camera-IMU: both pre-registered audits are refuted.
