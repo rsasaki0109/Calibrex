@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+- **Attribution reads translation too.**
+  - **The change.** Pairs that estimate translation (`imu-lidar`, `lidar-lidar`,
+    `ins-lidar`, `gnss-lidar`) now add their `t_candidate - t_estimate` to the
+    attribution. Each frame's hypothesis is a turn and, where translation is observed, a
+    shift along its own axes.
+  - **The lever arm.** A parent's turn swings the child's origin: a pair reads
+    `t_parent_child × w` from its parent's turn `w`. A 1 deg turn of an IMU with a LiDAR
+    1.2 m away is named as the IMU turned, not as the LiDAR moved 2 cm.
+  - **Floors.** Translation axes count at least at the translation floor over `sigma_k`
+    (6.7 mm by default). Directions pinned down worse than the floors are not fitted.
+  - **Unchanged without translation.** Groups with rotation only give the same
+    hypotheses, statuses and summaries as before (59 random rigs: largest difference
+    6e-16).
+  - **On Hilti `exp21`** (first 40 s, `imu-lidar` with the lever arm, two
+    `camera-imu`). The baseline is `consistent`. With the LiDAR's candidate moved 5 cm,
+    `imu-lidar` reads `warn` and attribution is `ambiguous` between the IMU and the
+    LiDAR, each moved 3.4 cm. The cameras are ruled out. One translation pair cannot
+    tell its two frames apart.
+  - **Schema.** New optional fields: `translation_m` and `translation_std_m` per
+    hypothesis, `translation_observations` per group, `sigma_floor_m` on the report.
+
 - **The all-camera check runs about twice as fast, with the same results.**
   - **The stereo matcher.** `camera-camera` searched each patch's ZNCC match with a
     Python loop. It now matches blocks of patches as array operations: box sums give
