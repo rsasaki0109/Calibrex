@@ -249,6 +249,14 @@ def audit(root: Path) -> dict[str, object]:
                                 <= counters.get("gpu_preprocess_input_rows", 0)
                                 or counters.get("native_preprocess_calls", -1) < 0)):
                         raise ValueError("GPU preprocessing accounting is inconsistent")
+                    if ("gpu_source_order_calls" in adapter_constants
+                            and (not 0 < counters.get("gpu_source_order_calls", 0)
+                                 <= counters["gpu_fused_system_calls"]
+                                 or counters.get("gpu_source_order_rows", 0)
+                                 < 4096 * counters["gpu_source_order_calls"]
+                                 or counters.get("gpu_source_order_kernel_calls", -1)
+                                 != counters["gpu_source_order_calls"])):
+                        raise ValueError("GPU source ordering accounting is inconsistent")
                     if ("calibrex/solvers/scipy_spatial_snapshot.py" in executed
                             and counters.get("serialized_tree_captures", 0)
                             + counters.get("public_node_tree_captures", 0)
@@ -290,6 +298,21 @@ def audit(root: Path) -> dict[str, object]:
                 and not (0 < record["controls_seconds"] <= record["pipeline_seconds"]
                          and record["controls_calls"] == 1)):
             raise ValueError("controls timing scope is inconsistent")
+        if (provenance.get("odometry_backend") == "cuda"
+                and hasattr(module, "_time_registration")
+                and not {"registration_seconds", "registration_calls"} <= record.keys()):
+            raise ValueError("registration observation is missing")
+        if ("registration_seconds" in record
+                and not (0 < record["registration_seconds"] <= record["pipeline_seconds"]
+                         and record["registration_calls"] > 0
+                         and provenance.get("odometry_backend") == "cuda")):
+            raise ValueError("registration timing scope is inconsistent")
+        if "registration_calls" in record:
+            reports = (result["options"]["initial_odometry_execution"]
+                       + result["options"]["segment_odometry_execution"])
+            if sum(report["statistics"].get("gpu_source_order_calls", 0)
+                   for report in reports) > record["registration_calls"]:
+                raise ValueError("GPU source ordering exceeds observed registrations")
         if len(record["rounds"]) != len(result["rounds"]):
             raise ValueError("worker did not retain every fit round")
         for fitted, reported in zip(record["rounds"], result["rounds"], strict=True):
@@ -380,7 +403,7 @@ def audit(root: Path) -> dict[str, object]:
         normal_summary = {"normal_median_seconds": normal_medians,
                           "normal_speedup": normal_medians["prior"] / normal_medians["current"]}
     front_summary = {}
-    for scope in ("spatial_build", "preprocessing", "controls"):
+    for scope in ("spatial_build", "preprocessing", "controls", "registration"):
         if all(scope + "_seconds" in record for record in measurements.values()):
             medians = {
                 variant: statistics.median(measurements[(r, variant)][scope + "_seconds"]

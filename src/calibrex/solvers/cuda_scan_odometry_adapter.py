@@ -182,7 +182,7 @@ extern "C" __global__ void normals3(
 
 _FUSED_SOURCE = r"""
 extern "C" __global__ void project_query_system3(
-    const double* xyz, const double* matrix, const double* reference,
+    const long long* source_order, const double* xyz, const double* matrix, const double* reference,
     const long long* order, const int* axis, const double* split,
     const int* child, const long long* span, const double* boxes, const double* normal,
     const bool* planar, const bool* done, const int n, const int m, const double gate,
@@ -191,6 +191,7 @@ extern "C" __global__ void project_query_system3(
     long long* pending_out) {
     int row=blockDim.x*blockIdx.x+threadIdx.x;
     if(row>=n) return;
+    row=source_order[row];
     const double* s=xyz+3*row;
     double p[3];
     for(int a=0;a<3;a++)
@@ -381,6 +382,8 @@ class CudaOdometryTarget:
         self.registration_repairs = 0
         self.motion_repairs = 0
         self.normal_kernel_calls = 0
+        self.source_order_calls = 0
+        self.source_order_rows = 0
         self._all_done = False
         self.identity = execution_identity()
         with cp.cuda.Device(self.device_id):
@@ -398,6 +401,7 @@ class CudaOdometryTarget:
             self.normal_kernel = cp.RawKernel(
                 _NORMAL_SOURCE, "normals3", options=("--fmad=false",),
             )
+            self.source_order_kernel = cp.RawKernel(_SOURCE, "morton3", options=("--fmad=false",))
 
     @property
     def normals(self) -> cp.ndarray:
@@ -469,7 +473,7 @@ class CudaOdometryTarget:
         host_source = _coordinates(
             _quantize_geometry(source, self.options.geometry_quantum_m), "odometry source",
         )
-        if self.host.nbytes * 8 + host_source.nbytes * 12 > 1024**3:
+        if self.host.nbytes * 8 + host_source.nbytes * 13 > 1024**3:
             raise ValueError("CUDA odometry inputs exceed the 1 GiB payload budget")
         transform = np.array(initial, dtype=np.float64, copy=True)
         if transform.shape != (4, 4) or not np.isfinite(transform).all():
@@ -482,6 +486,7 @@ class CudaOdometryTarget:
         scale = max(self.scale, float(np.max(np.abs(host_source))) if len(host_source) else 1.0)
         with cp.cuda.Device(self.device_id):
             points = cp.asarray(host_source)
+            source_order = self._source_order(host_source, points)
             # Dense overlap amortizes one batched normal query/eigensolve.
             # Sparse sources request only their hits to avoid preparing a large,
             # mostly unused target. This changes work scheduling, not geometry.
@@ -509,6 +514,7 @@ class CudaOdometryTarget:
                         ((len(points) + 127) // 128,),
                         (128,),
                         (
+                            source_order,
                             points,
                             matrix,
                             self.tree.data,
@@ -630,6 +636,23 @@ class CudaOdometryTarget:
             execution_backend=self.identity,
         )
 
+    def _source_order(self, host: FloatArray, points: cp.ndarray) -> cp.ndarray:
+        """Schedule nearby queries together; every output still uses its original row."""
+        if len(points) < 4096:
+            return cp.arange(len(points), dtype=cp.int64)
+        codes = cp.empty(len(points), dtype=cp.uint64)
+        lows = [np.float64(host[:, axis].min()) for axis in range(3)]
+        highs = [np.float64(host[:, axis].max()) for axis in range(3)]
+        self.source_order_kernel(
+            ((len(points) + 127) // 128,), (128,),
+            (points, np.int32(len(points)), *lows, *highs, codes),
+        )
+        self.source_order_calls += 1
+        self.source_order_rows += len(points)
+        # Stable Morton order is reused by every registration iteration. Terms
+        # are written to original rows so the existing reduction order is intact.
+        return cp.argsort(codes, kind="stable")
+
     def _near_motion_boundary(self, transform: FloatArray) -> bool:
         """Use the native registration when the requested motion grid is ambiguous."""
         if (self.options.motion_translation_quantum_m == 0
@@ -662,6 +685,9 @@ class CudaOdometryTarget:
             "gpu_system_refresh_calls": self.system_refresh_calls,
             "gpu_normal_rows": self.normal_rows,
             "gpu_normal_kernel_calls": self.normal_kernel_calls,
+            "gpu_source_order_calls": self.source_order_calls,
+            "gpu_source_order_rows": self.source_order_rows,
+            "gpu_source_order_kernel_calls": self.source_order_calls,
             "scalar_registration_repairs": self.registration_repairs,
             "scalar_motion_repairs": self.motion_repairs,
         }
