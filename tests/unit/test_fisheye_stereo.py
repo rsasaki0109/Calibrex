@@ -6,6 +6,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from numpy.lib.stride_tricks import sliding_window_view
 from scipy import ndimage
 
 from calibrex.evaluation.fisheye_stereo import (
@@ -190,3 +191,102 @@ def test_a_negative_disparity_is_found_when_the_search_looks_right() -> None:
     assert np.median(offset) == pytest.approx(0.5, abs=0.1)
     with pytest.raises(ValueError, match="min_disparity_px"):
         vertical_offset_samples([(texture, right)], max_disparity_px=5, min_disparity_px=10)
+
+
+# The per-patch loop the vectorised matcher replaced, kept to pin its results.
+def _reference_samples(
+    pairs: list[tuple[np.ndarray, np.ndarray]],
+    *,
+    patches_per_pair: int = 300,
+    half_px: int = 6,
+    rows_px: int = 4,
+    max_disparity_px: int = 60,
+    min_zncc: float = 0.9,
+    min_gradient: float = 25.0,
+    seed: int = 0,
+    min_disparity_px: int = 0,
+) -> np.ndarray:
+
+    if min_disparity_px > max_disparity_px:
+        raise ValueError("min_disparity_px must not exceed max_disparity_px")
+    rng = np.random.default_rng(seed)
+    samples: list[tuple[float, float, float, float, float, float]] = []
+    for index, (left, right) in enumerate(pairs):
+        gy, gx = np.gradient(np.asarray(left, dtype=np.float64))
+        margin = half_px + rows_px + 1
+        strong = np.argwhere(np.hypot(gx, gy) > min_gradient)
+        height, width = left.shape
+        strong = strong[
+            (strong[:, 0] >= margin)
+            & (strong[:, 0] < height - margin)
+            & (strong[:, 1] >= margin + max_disparity_px)
+            & (strong[:, 1] < width - margin + min(min_disparity_px, 0))
+        ]
+        if len(strong) == 0:
+            continue
+        picks = strong[rng.choice(len(strong), min(patches_per_pair, len(strong)), replace=False)]
+        size = 2 * half_px + 1
+        for row, col in picks:
+            rows = slice(row - half_px, row + half_px + 1)
+            cols = slice(col - half_px, col + half_px + 1)
+            patch = left[rows, cols]
+            patch = patch - patch.mean()
+            norm = np.sqrt((patch**2).sum())
+            if norm < 1.0e-6:
+                continue
+            # every window of the right image within rows_px rows and between
+            # max_disparity_px columns left and -min_disparity_px right: windows[i, j]
+            # sits rows_px - i rows up and max_disparity_px - j columns left
+            strip = right[
+                row - rows_px - half_px : row + rows_px + half_px + 1,
+                col - max_disparity_px - half_px : col - min_disparity_px + half_px + 1,
+            ]
+            windows = sliding_window_view(strip, (size, size))
+            centred = windows - windows.mean(axis=(2, 3), keepdims=True)
+            energy = np.sqrt((centred**2).sum(axis=(2, 3)))
+            scores = (centred * patch).sum(axis=(2, 3)) / np.maximum(norm * energy, 1.0e-9)
+            scores = scores[:, ::-1]  # column j now holds disparity min_disparity_px + j
+            i, dx = np.unravel_index(int(np.argmax(scores)), scores.shape)
+            if scores[i, dx] < min_zncc or i in (0, 2 * rows_px):
+                continue
+            before, at, after = scores[i - 1, dx], scores[i, dx], scores[i + 1, dx]
+            curvature = before - 2.0 * at + after
+            step = 0.5 * (before - after) / curvature if abs(curvature) > 1.0e-9 else 0.0
+            vertical = float(np.abs(gy[rows, cols]).mean() > np.abs(gx[rows, cols]).mean())
+            samples.append(
+                (
+                    float(index),
+                    float(row),
+                    float(col),
+                    float(dx + min_disparity_px),
+                    i - rows_px + float(step),
+                    vertical,
+                )
+            )
+    return np.asarray(samples, dtype=np.float64).reshape(-1, len(VERTICAL_OFFSET_COLUMNS))
+
+
+@pytest.mark.parametrize(
+    ("rows_px", "min_disparity_px", "patches"),
+    [(4, 0, 120), (12, -30, 60), (4, -5, 200)],
+)
+def test_the_vectorised_matcher_gives_the_loop_s_samples(
+    rows_px: int, min_disparity_px: int, patches: int
+) -> None:
+    rng = np.random.default_rng(12)
+    pairs = []
+    for shift in ((-0.7, -12.0), (0.4, -3.0), (1.3, 7.0)):
+        texture = ndimage.gaussian_filter(rng.uniform(0, 255, (180, 260)), 1.5) * 4.0
+        texture[:, :40] = 128.0  # a blank band: low-energy windows
+        pairs.append((texture, ndimage.shift(texture, shift, order=1, mode="nearest")))
+    options = {
+        "patches_per_pair": patches,
+        "rows_px": rows_px,
+        "min_disparity_px": min_disparity_px,
+        "max_disparity_px": 40,
+    }
+    expected = _reference_samples(pairs, **options)
+    actual = vertical_offset_samples(pairs, **options)
+    assert len(expected) > 50
+    assert actual.shape == expected.shape
+    assert actual == pytest.approx(expected, abs=1.0e-6)

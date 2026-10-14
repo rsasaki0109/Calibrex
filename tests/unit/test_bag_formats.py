@@ -576,6 +576,38 @@ def test_estimator_input_digests_accept_a_bare_bag_file(tmp_path: Path) -> None:
     assert bag_input_digest([bag])[0] != digest
 
 
+def test_a_repeat_imu_read_of_an_unchanged_bag_is_not_read_again(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import os
+
+    from calibrex.data import ros2_camera_imu
+
+    bag = tmp_path / "recording.bag"
+    _write_imu_bag(bag)
+    reads: list[str] = []
+    original = ros2_camera_imu._read_ros2_imu
+
+    def counting(*args: Any) -> Any:
+        reads.append(args[1])
+        return original(*args)
+
+    monkeypatch.setattr(ros2_camera_imu, "_read_ros2_imu", counting)
+    monkeypatch.setattr(ros2_camera_imu, "_IMU_READS", {})
+    first = ros2_camera_imu.load_ros2_imu(bag, "/imu")
+    assert ros2_camera_imu.load_ros2_imu(bag, "/imu") is first
+    assert len(first.times_s) == 30 and reads == ["/imu"]
+    with pytest.raises(ValueError, match="read-only"):
+        first.gyro_rps[0, 0] = 1.0  # a caller cannot change what the next one gets
+    in_g = ros2_camera_imu.load_ros2_imu(bag, "/imu", acceleration_unit="g")
+    assert in_g.accel_mps2[1, 0] == pytest.approx(first.accel_mps2[1, 0] * 9.80665)
+    assert ros2_camera_imu.load_ros2_imu(bag, "/imu") is first  # both reads are kept
+    stat = bag.stat()
+    os.utime(bag, ns=(stat.st_atime_ns, stat.st_mtime_ns + 1_000_000_000))  # rewritten
+    assert ros2_camera_imu.load_ros2_imu(bag, "/imu") is not first
+    assert reads == ["/imu", "/imu", "/imu"]
+
+
 # -- global time order across overlapping chunks ---------------------------------------------
 
 

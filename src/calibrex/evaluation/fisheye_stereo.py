@@ -299,9 +299,11 @@ def vertical_offset_samples(
     if min_disparity_px > max_disparity_px:
         raise ValueError("min_disparity_px must not exceed max_disparity_px")
     rng = np.random.default_rng(seed)
-    samples: list[tuple[float, float, float, float, float, float]] = []
-    for index, (left, right) in enumerate(pairs):
-        gy, gx = np.gradient(np.asarray(left, dtype=np.float64))
+    blocks: list[FloatArray] = []
+    for index, (left_image, right_image) in enumerate(pairs):
+        left = np.asarray(left_image, dtype=np.float64)
+        right = np.asarray(right_image, dtype=np.float64)
+        gy, gx = np.gradient(left)
         margin = half_px + rows_px + 1
         strong = np.argwhere(np.hypot(gx, gy) > min_gradient)
         height, width = left.shape
@@ -314,45 +316,111 @@ def vertical_offset_samples(
         if len(strong) == 0:
             continue
         picks = strong[rng.choice(len(strong), min(patches_per_pair, len(strong)), replace=False)]
-        size = 2 * half_px + 1
-        for row, col in picks:
-            rows = slice(row - half_px, row + half_px + 1)
-            cols = slice(col - half_px, col + half_px + 1)
-            patch = left[rows, cols]
-            patch = patch - patch.mean()
-            norm = np.sqrt((patch**2).sum())
-            if norm < 1.0e-6:
-                continue
-            # every window of the right image within rows_px rows and between
-            # max_disparity_px columns left and -min_disparity_px right: windows[i, j]
-            # sits rows_px - i rows up and max_disparity_px - j columns left
-            strip = right[
-                row - rows_px - half_px : row + rows_px + half_px + 1,
-                col - max_disparity_px - half_px : col - min_disparity_px + half_px + 1,
-            ]
-            windows = sliding_window_view(strip, (size, size))
-            centred = windows - windows.mean(axis=(2, 3), keepdims=True)
-            energy = np.sqrt((centred**2).sum(axis=(2, 3)))
-            scores = (centred * patch).sum(axis=(2, 3)) / np.maximum(norm * energy, 1.0e-9)
-            scores = scores[:, ::-1]  # column j now holds disparity min_disparity_px + j
-            i, dx = np.unravel_index(int(np.argmax(scores)), scores.shape)
-            if scores[i, dx] < min_zncc or i in (0, 2 * rows_px):
-                continue
-            before, at, after = scores[i - 1, dx], scores[i, dx], scores[i + 1, dx]
-            curvature = before - 2.0 * at + after
-            step = 0.5 * (before - after) / curvature if abs(curvature) > 1.0e-9 else 0.0
-            vertical = float(np.abs(gy[rows, cols]).mean() > np.abs(gx[rows, cols]).mean())
-            samples.append(
-                (
-                    float(index),
-                    float(row),
-                    float(col),
-                    float(dx + min_disparity_px),
-                    i - rows_px + float(step),
-                    vertical,
-                )
-            )
-    return np.asarray(samples, dtype=np.float64).reshape(-1, len(VERTICAL_OFFSET_COLUMNS))
+        block = _match_patches(
+            left,
+            right,
+            picks,
+            np.abs(gy),
+            np.abs(gx),
+            half_px=half_px,
+            rows_px=rows_px,
+            max_disparity_px=max_disparity_px,
+            min_disparity_px=min_disparity_px,
+            min_zncc=min_zncc,
+        )
+        if len(block):
+            blocks.append(np.c_[np.full(len(block), float(index)), block])
+    if not blocks:
+        return np.zeros((0, len(VERTICAL_OFFSET_COLUMNS)))
+    return np.vstack(blocks)
+
+
+def _box_sums(image: FloatArray, size: int) -> FloatArray:
+    """The sum of every ``size`` x ``size`` window, indexed by its top-left pixel."""
+
+    padded = np.zeros((image.shape[0] + 1, image.shape[1] + 1))
+    padded[1:, 1:] = np.cumsum(np.cumsum(image, axis=0), axis=1)
+    below, right = padded[size:, size:], padded[:-size, size:]
+    return below - right - padded[size:, :-size] + padded[:-size, :-size]
+
+
+def _match_patches(
+    left: FloatArray,
+    right: FloatArray,
+    picks: NDArray[np.int64],
+    abs_gy: FloatArray,
+    abs_gx: FloatArray,
+    *,
+    half_px: int,
+    rows_px: int,
+    max_disparity_px: int,
+    min_disparity_px: int,
+    min_zncc: float,
+    chunk: int = 256,
+) -> FloatArray:
+    """Match every picked left patch in the right image at once.
+
+    The zero-normalised cross-correlation of a zero-mean patch ``p`` with a window ``w``
+    is ``sum(w p) / (|p| |w - mean(w)|)``: the numerator needs no centred window, and the
+    windows' energies come from box sums of the right image. Returns the rows of
+    :data:`VERTICAL_OFFSET_COLUMNS` after the pair index, in the picks' order.
+    """
+
+    size = 2 * half_px + 1
+    count = size * size
+    rows, cols = picks[:, 0], picks[:, 1]
+    patches = sliding_window_view(left, (size, size))[rows - half_px, cols - half_px]
+    patches = patches - patches.mean(axis=(1, 2), keepdims=True)
+    norm = np.sqrt((patches**2).sum(axis=(1, 2)))
+    # window (i, j) of a patch sits rows_px - i rows up and max_disparity_px - j columns
+    # left of it; its top-left pixel in the right image:
+    n_rows = 2 * rows_px + 1
+    n_cols = max_disparity_px - min_disparity_px + 1
+    top = (rows - rows_px - half_px)[:, None, None] + np.arange(n_rows)[None, :, None]
+    side = (cols - max_disparity_px - half_px)[:, None, None] + np.arange(n_cols)[None, None, :]
+    sums = _box_sums(right, size)[top, side]
+    squares = _box_sums(right * right, size)[top, side]
+    variance = squares - sums * sums / count
+    # a flat window is centred to exactly zero by the direct sum; here the difference of
+    # two large box sums leaves rounding: call it flat below that rounding
+    flat = variance <= 1.0e-9 * np.maximum(squares, 1.0)
+    energy = np.sqrt(np.where(flat, 0.0, variance))
+    numerator = np.empty((len(picks), n_rows, n_cols))
+    strip_rows = np.arange(n_rows + size - 1)
+    strip_cols = np.arange(n_cols + size - 1)
+    for start in range(0, len(picks), chunk):
+        part = slice(start, start + chunk)
+        strips = right[
+            (rows[part] - rows_px - half_px)[:, None, None] + strip_rows[None, :, None],
+            (cols[part] - max_disparity_px - half_px)[:, None, None] + strip_cols[None, None, :],
+        ]
+        windows = sliding_window_view(strips, (size, size), axis=(1, 2))
+        numerator[part] = np.einsum("nijab,nab->nij", windows, patches[part])
+    scores = np.where(flat, 0.0, numerator) / np.maximum(norm[:, None, None] * energy, 1.0e-9)
+    scores = scores[:, :, ::-1]  # column j now holds disparity min_disparity_px + j
+    flat = scores.reshape(len(picks), -1).argmax(axis=1)
+    i, dx = np.unravel_index(flat, (n_rows, n_cols))
+    best = scores[np.arange(len(picks)), i, dx]
+    keep = (norm >= 1.0e-6) & (best >= min_zncc) & (i > 0) & (i < 2 * rows_px)
+    index = np.flatnonzero(keep)
+    i, dx = i[keep], dx[keep]
+    before = scores[index, i - 1, dx]
+    at = scores[index, i, dx]
+    after = scores[index, i + 1, dx]
+    curvature = before - 2.0 * at + after
+    safe = np.abs(curvature) > 1.0e-9
+    step = np.where(safe, 0.5 * (before - after) / np.where(safe, curvature, 1.0), 0.0)
+    vertical = (
+        _box_sums(abs_gy, size)[rows - half_px, cols - half_px]
+        > _box_sums(abs_gx, size)[rows - half_px, cols - half_px]
+    )[keep]
+    return np.c_[
+        rows[keep].astype(np.float64),
+        cols[keep].astype(np.float64),
+        (dx + min_disparity_px).astype(np.float64),
+        i - rows_px + step,
+        vertical.astype(np.float64),
+    ]
 
 
 def estimate_vertical_offset(

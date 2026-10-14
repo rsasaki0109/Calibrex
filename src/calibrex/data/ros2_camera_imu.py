@@ -21,6 +21,10 @@ from calibrex.data.rosbag2 import iter_messages
 
 GrayImage: TypeAlias = NDArray[np.uint8]
 _CHANNELS = {"mono8": 1, "mono16": 1, "rgb8": 3, "bgr8": 3, "rgba8": 4, "bgra8": 4}
+# A check reads one IMU topic for every camera paired with it; the last reads are kept,
+# keyed by the bag's files (name, size, modification time), the topic and the unit.
+_IMU_READS: dict[tuple[object, ...], ImuSamples] = {}
+_IMU_READS_KEPT = 2
 
 
 def load_ros2_imu(
@@ -29,8 +33,35 @@ def load_ros2_imu(
     *,
     acceleration_unit: Literal["mps2", "g"] = "mps2",
 ) -> ImuSamples:
-    """Read every ``sensor_msgs/msg/Imu`` sample of a topic into SI units, time-sorted."""
+    """Read every ``sensor_msgs/msg/Imu`` sample of a topic into SI units, time-sorted.
 
+    A repeat read of an unchanged bag returns the samples of the last read; their arrays
+    are read-only.
+    """
+
+    key = (_bag_files_key(Path(bag_dir)), topic, acceleration_unit)
+    cached = _IMU_READS.get(key)
+    if cached is None:
+        cached = _read_ros2_imu(bag_dir, topic, acceleration_unit)
+        for array in (cached.times_s, cached.gyro_rps, cached.accel_mps2):
+            array.setflags(write=False)
+        _IMU_READS[key] = cached
+        while len(_IMU_READS) > _IMU_READS_KEPT:
+            _IMU_READS.pop(next(iter(_IMU_READS)))
+    return cached
+
+
+def _bag_files_key(root: Path) -> tuple[object, ...]:
+    files = sorted(item for item in root.iterdir() if item.is_file()) if root.is_dir() else [root]
+    return (
+        str(root.resolve()),
+        *((item.name, item.stat().st_size, item.stat().st_mtime_ns) for item in files),
+    )
+
+
+def _read_ros2_imu(
+    bag_dir: str | Path, topic: str, acceleration_unit: Literal["mps2", "g"]
+) -> ImuSamples:
     times: list[float] = []
     gyro: list[tuple[float, float, float]] = []
     accel: list[tuple[float, float, float]] = []
@@ -93,10 +124,13 @@ def iter_gray_images(
         if max_seconds is not None and time_s - first > max_seconds:
             return
         assert message.data is not None
-        yield time_s, to_gray(
-            bytes(message.data),
-            height=message.height,
-            width=message.width,
-            step=message.step,
-            encoding=message.encoding,
+        yield (
+            time_s,
+            to_gray(
+                bytes(message.data),
+                height=message.height,
+                width=message.width,
+                step=message.step,
+                encoding=message.encoding,
+            ),
         )

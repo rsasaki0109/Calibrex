@@ -424,7 +424,8 @@ calibrex check exp01_head.bag --tf calib_3_cam0-1-camchain-imucam.yaml --pairs c
   [Hilti fisheye stereo falsification](../benchmarks/hilti_fisheye_stereo_falsification.md#the-vertical-offset-the-cameras-relative-pitch-different-per-recording).
   With `--rotation-floor-deg 0.1`, `exp21`'s roll would read `warn` and `exp01`'s would
   still pass. The floor is a policy choice.
-* **Run time** is 1.5 to 6 minutes per pair on these recordings.
+* **Run time** is under a minute per pair on these recordings (40 to 50 s for
+  cam0–cam1). It was 1.5 to 6 minutes before the patch matcher was vectorised.
 * **The other alphasense cameras** (cam2 to cam4) are not in this camchain, so their
   pairs are skipped as `frame_not_in_tree`. Their own camchains bring them in (below).
 
@@ -506,7 +507,11 @@ what changed:
 | cam3 | +1.68 ± 0.37 | +1.62 ± 0.13 | +1.81 |
 | cam4 | +1.62 ± 0.10 | +1.66 ± 0.13 | +1.71 |
 
-The run takes about 15 minutes per recording.
+The run takes about 9 minutes per recording on a shared 4-core machine (568 s on
+`exp01`, 543 s on `exp21`). The pairs' run times sum to 530 and 481 s, against 1132
+and 1026 s before the patch matcher and the camera's pure-rotation RANSAC were
+vectorised and the IMU was read once per run. Every pair's errors and stds are the
+same to 1e-11 deg.
 
 ## Vehicle pairs are opt-in
 
