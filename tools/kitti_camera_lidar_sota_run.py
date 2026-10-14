@@ -117,6 +117,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--recording", required=True, help="e.g. 0005")
     parser.add_argument("--calib-dir", type=Path, default=None, help="default: the drive's parent")
     parser.add_argument("--inject", action="append", default=[], help="AXIS:DEG, e.g. y:3")
+    parser.add_argument(
+        "--velodyne-time",
+        choices=("none", "azimuth"),
+        default="none",
+        help="passed to calibrex convert kitti-raw --velodyne-time",
+    )
     parser.add_argument("--bag-dir", type=Path, required=True, help="where the bag is written")
     parser.add_argument("--keep-bag", action="store_true")
     parser.add_argument(
@@ -155,6 +161,8 @@ def main(argv: list[str] | None = None) -> int:
             str(calib_dir),
             "--camera",
             CAMERA,
+            "--velodyne-time",
+            args.velodyne_time,
             "--output",
             str(args.bag_dir),
             "--overwrite",

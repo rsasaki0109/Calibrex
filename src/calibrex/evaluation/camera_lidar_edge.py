@@ -193,6 +193,20 @@ class EdgeAlignmentOptions:
     image_max_width: int = 960
     spill_gamma: float = 0.98
     spill_radius_px: int = 40
+    # The edge response minus its local mean (a Gaussian of this many pixels of the
+    # downscaled image): without it the objective rewards moving points into textured
+    # regions, and on KITTI highway and city drives it drifted to a wrong rotation several
+    # degrees away whose objective was higher than at the calibration.  ``None`` keeps the
+    # raw response.
+    edge_background_sigma_px: float | None = 20.0
+    # A spinning LiDAR at a standing rig repeats one scan: a frame whose image differs from
+    # the last kept frame's by less than this (mean absolute difference of every fourth
+    # pixel, fraction of full scale) adds no view, only weight, and makes the blocks of the
+    # jackknife and the controls copies of each other.  Such frames are dropped; a solid-
+    # state LiDAR keeps them (its pattern fills in).  KITTI 0057 stands for 29 s at a
+    # crossing (changes 0.002-0.034, from traffic) and drives off (0.06-0.18).  ``None``
+    # keeps every frame.
+    repeated_view_change: float | None = 0.05
     image_margin_px: float = 80.0
     rotation_bound_deg: float = 12.0
     translation_bound_m: float = 0.2
@@ -253,11 +267,19 @@ class EdgeAlignmentOptions:
 
 
 def image_edge_response(
-    gray: NDArray[np.uint8], *, max_width: int, gamma: float, radius: int
+    gray: NDArray[np.uint8],
+    *,
+    max_width: int,
+    gamma: float,
+    radius: int,
+    background_sigma: float | None = None,
 ) -> tuple[Float32Array, int] | None:
     """Edge image with inverse-distance spill (Levinson-Thrun Eq. 1) and its downscale factor.
 
-    ``None`` when the image carries no edges (flat or saturated).
+    ``background_sigma`` (pixels of the downscaled image) subtracts the response's local
+    mean, a Gaussian of that width: a point then scores for lying on an edge rather than
+    in a textured region, so the objective does not drift towards the image's busiest
+    part. ``None`` when the image carries no edges (flat or saturated).
     """
 
     factor = max(1, math.ceil(gray.shape[1] / max_width))
@@ -290,7 +312,10 @@ def image_edge_response(
         mode="edge",
     )
     spread = np.maximum(padded, edge)
-    return (edge / 3.0 + spread * (2.0 / 3.0)).astype(np.float32), factor
+    response = edge / 3.0 + spread * (2.0 / 3.0)
+    if background_sigma is not None:
+        response = response - ndimage.gaussian_filter(response, background_sigma)
+    return response.astype(np.float32), factor
 
 
 def _ring_centers(elevation_deg: FloatArray) -> FloatArray:
@@ -530,6 +555,7 @@ def prepare_frames(
     emit_stage(f"camera-lidar: preparing {len(frames)} frame(s)")
     rotation = candidate[:3, :3]
     translation = candidate[:3, 3]
+    last_view: Float32Array | None = None
     for index, frame in enumerate(frames):
         emit_tick(index + 1, len(frames))
         response = image_edge_response(
@@ -537,6 +563,7 @@ def prepare_frames(
             max_width=options.image_max_width,
             gamma=options.spill_gamma,
             radius=options.spill_radius_px,
+            background_sigma=options.edge_background_sigma_px,
         )
         if response is None:
             dropped.append(f"t={frame.time_s:.1f}s: the image has no edges")
@@ -573,6 +600,17 @@ def prepare_frames(
                 "fall in the image under the candidate"
             )
             continue
+        view = frame.image[::4, ::4].astype(np.float32)
+        if options.repeated_view_change is not None and rings > 0 and last_view is not None:
+            change = float(np.mean(np.abs(view - last_view))) / 255.0
+            if view.shape == last_view.shape and change < options.repeated_view_change:
+                dropped.append(
+                    f"t={frame.time_s:.1f}s: repeats the last kept view (image change "
+                    f"{change:.3f} < {options.repeated_view_change:g}; a spinning LiDAR at a "
+                    "standing rig adds no view)"
+                )
+                continue
+        last_view = view
         prepared.append(
             PreparedFrame(
                 time_s=frame.time_s,

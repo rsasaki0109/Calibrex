@@ -501,7 +501,13 @@ def test_drift_flags_a_remounted_camera_and_ignores_translation(
     axes = {axis.name: axis for axis in pair.axes}
     assert axes["pitch"].status == "drift"
     assert not any(name in axes and axes[name].status == "drift" for name in ("x", "y", "z"))
-    assert axes["pitch"].max_abs_difference == pytest.approx(2.5, abs=0.7)
+    # drift compares rotation-vector components of T_camera_lidar: the 2.5 deg turn about the
+    # camera's y axis moves the pitch component by 1.84 deg, not by 2.5
+    change = (
+        Rotation.from_matrix(remounted[:3, :3]).as_rotvec()
+        - Rotation.from_matrix(truth[:3, :3]).as_rotvec()
+    )
+    assert axes["pitch"].max_abs_difference == pytest.approx(abs(np.degrees(change[1])), abs=0.3)
 
 
 def _pair_with_rotation(rotvec_deg: tuple[float, float, float]) -> object:

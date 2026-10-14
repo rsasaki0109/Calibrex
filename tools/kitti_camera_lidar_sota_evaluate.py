@@ -133,6 +133,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--preregistration", type=Path, default=None)
     parser.add_argument("--drive", action="append", default=[], help="development: e.g. 0005")
     parser.add_argument("--inject", action="append", default=[], help="development: AXIS:DEG")
+    parser.add_argument("--velodyne-time", choices=("none", "azimuth"), default="none")
     parser.add_argument("--work-dir", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     args = parser.parse_args(argv)
@@ -141,8 +142,9 @@ def main(argv: list[str] | None = None) -> int:
         plan = yaml.safe_load(args.preregistration.read_text(encoding="utf-8"))
         drives = list(plan["recordings"]["evaluation"])
         injections = list(plan["run_recipe"]["injections"])
+        velodyne_time = str(plan["run_recipe"]["velodyne_time"])
     else:
-        drives, injections = args.drive, args.inject
+        drives, injections, velodyne_time = args.drive, args.inject, args.velodyne_time
     if not drives:
         parser.error("no drives: pass --drive or --preregistration")
     args.work_dir.mkdir(parents=True, exist_ok=True)
@@ -206,6 +208,8 @@ def main(argv: list[str] | None = None) -> int:
             "--calib-dir",
             str(calib_dir),
             *[item for spec in injections for item in ("--inject", spec)],
+            "--velodyne-time",
+            velodyne_time,
             "--bag-dir",
             str(args.work_dir / f"bag_{drive}"),
             "--download-record",
