@@ -161,6 +161,78 @@ gyro and the accelerometer are assumed to share one frame. A rotation between
 them inside the IMU would appear exactly like this, but the data at hand
 cannot distinguish that from an error in the reference.
 
+### Rig and motion parts on `exp01` and `exp21`
+
+The all-camera `calibrex check` names the IMU on `exp21`: one turn of its candidate,
+(+0.32, +0.19, +0.41) deg, explains every `camera-imu` error
+([tutorial](../tutorials/calibrex_check.md#which-frame-the-errors-point-to)).
+`tools/hilti_camera_imu_offset.py` asks which part of that turn belongs to the rig and
+which to the motion.
+
+**How it works.**
+
+- For each camera, the tool tracks the images as the check does. It then fits the gyro
+  on three sets of moving windows:
+  - all of them;
+  - the two halves in time, which see different motion;
+  - the even and odd windows, which see the same motion, interleaved.
+- It pools the five cameras per split into one rig offset.
+- **Convention.** `w` is about the IMU axes, with `E = C exp(w)`. Here `C` is Kalibr's
+  `R_cam_imu` and `E` the estimate. The attribution's turn of the IMU is `-w`.
+- **The z axis is vertical in use.** The mean specific force on `exp21` is
+  (0.67, −0.01, −9.66) m/s², and the median tilt is 6 deg.
+- **Data and windows.** The head bags hold 81 s. The fits use 4 s windows, 17 to 19 of
+  them. The check's 10 s windows give 7 to 9 windows: the same picture, with rougher
+  stds.
+
+| deg (IMU x / y / z) | `exp01` | `exp21` |
+| --- | --- | --- |
+| Rig offset, all windows | −0.08 ± 0.04 / −0.02 ± 0.05 / **−0.39 ± 0.07** | −0.23 ± 0.08 / −0.23 ± 0.05 / **−0.42 ± 0.04** |
+| Cameras' χ² about it (4 dof) | 6.9 / 5.7 / 4.3 | 3.3 / 3.0 / 4.4 |
+| First − second half (z-score) | −0.22 (−2.7) / +0.28 (+3.2) / −0.33 (−2.1) | −0.18 (−1.3) / +0.10 (+0.7) / +0.09 (+0.9) |
+| Even − odd (z-score) | +0.03 (+0.4) / −0.03 (−0.4) / +0.03 (+0.2) | +0.01 (+0.1) / +0.01 (+0.1) / +0.03 (+0.3) |
+| Rig offset with the check's 10 s windows | −0.04 / −0.06 / −0.31 | −0.16 / −0.21 / −0.43 |
+| z of the rotation part of a full linear fit, per camera | −0.01 to −0.55 | −0.33 to −0.63 |
+
+The pooled stds treat the cameras as independent. They share the gyro and the motion,
+so the stds are optimistic; the χ² shows whether the cameras agree.
+
+**What the evidence shows**
+
+- **About IMU z, every camera reads the same turn on both recordings: −0.39 and
+  −0.42 deg.**
+  - The cameras face forward, down, left and right. A camera-side cause would not give
+    one turn about the IMU's axes.
+  - This is a rotation between the gyro frame, which `camera-imu` measures, and Kalibr's
+    IMU frame.
+  - `exp07`'s forward cameras read −0.12 deg about z (above), so two of three
+    recordings agree on it.
+- **It is not the gyro's scale or non-orthogonality.**
+  - A full linear fit `w_cam = A w_gyro` keeps the turn in the rotation part of `A`.
+  - The symmetric parts differ from camera to camera, as found before.
+- **The horizontal components move with the motion.**
+  - They differ between the recordings: −0.23 / −0.23 against −0.08 / −0.02 deg.
+  - On `exp01` they differ between the halves by up to 0.3 deg (z-scores 2.7 and 3.2).
+    The z component there also moves (−0.58 against −0.25 deg).
+  - Interleaved windows agree everywhere. The stds describe the noise within one kind
+    of motion; another part of the recording moves the reading by more. This is the
+    same pattern as the camera pairs.
+- **What the check names on `exp21` therefore has two parts.**
+  - The z part, about 0.4 deg, recurs on `exp01` with every camera.
+  - The x and y part, about 0.2 deg, belongs to `exp21`'s motion.
+  - Together they make the 0.5 deg `camera-imu` errors. At the 0.5 deg floor, they put
+    cam1's pitch at `warn` (0.51 deg).
+
+**What remains open**
+
+The data cannot tell whether the gyro frame or Kalibr's IMU frame is off. Kalibr's
+`calibrated` IMU model assumes the gyro and accelerometer share one frame. A rotation
+between them, or a Kalibr error about z, would both look like this.
+
+No verdict rule changes. The motion-dependent part is the open question for
+`camera-imu` stds, as for the camera pairs. Results are in
+`docs/assets/hilti2022_camera_imu/offset_{exp01,exp21}_w{4,10}.json`.
+
 ## Why the reported std exceeds 0.1 deg
 
 Every Hilti verdict is `inconclusive`, and in every case it is the window
