@@ -1,0 +1,303 @@
+{
+  "units": {
+    "exp01": {
+      "cam0-cam1": {
+        "state": "scored",
+        "reason": null,
+        "verdict": "pass",
+        "max_abs_error_deg": 0.056705072784307683,
+        "judged_axes": {
+          "roll": 0.056705072784307683,
+          "pitch": 0.05471268910958872,
+          "yaw": 0.007873628046832096
+        }
+      },
+      "cam0-cam3": {
+        "state": "scored",
+        "reason": null,
+        "verdict": "pass",
+        "max_abs_error_deg": 0.23664316134022378,
+        "judged_axes": {
+          "roll": -0.0015464872294714167,
+          "pitch": 0.23664316134022378,
+          "yaw": -0.04727110147015629
+        }
+      },
+      "cam1-cam3": {
+        "state": "scored",
+        "reason": null,
+        "verdict": "pass",
+        "max_abs_error_deg": 0.3180182660445726,
+        "judged_axes": {
+          "roll": -0.031296615449048076,
+          "pitch": 0.3180182660445726,
+          "yaw": -0.0054478322070772595
+        }
+      },
+      "cam0-cam4": {
+        "state": "scored",
+        "reason": null,
+        "verdict": "pass",
+        "max_abs_error_deg": 0.06393477218612915,
+        "judged_axes": {
+          "roll": 0.06393477218612915,
+          "yaw": 0.06319783320939897
+        }
+      },
+      "cam1-cam4": {
+        "state": "scored",
+        "reason": null,
+        "verdict": "pass",
+        "max_abs_error_deg": 0.10173260177861183,
+        "judged_axes": {
+          "roll": -0.022178950024626578,
+          "pitch": -0.10173260177861183,
+          "yaw": 0.049940918814506595
+        }
+      }
+    },
+    "exp21": {
+      "cam0-cam1": {
+        "state": "scored",
+        "reason": null,
+        "verdict": "pass",
+        "max_abs_error_deg": 0.12413487604190916,
+        "judged_axes": {
+          "roll": -0.12413487604190916,
+          "pitch": -0.023916312958759553,
+          "yaw": -0.012323231034617672
+        }
+      },
+      "cam0-cam3": {
+        "state": "scored",
+        "reason": null,
+        "verdict": "pass",
+        "max_abs_error_deg": 0.24253625573217846,
+        "judged_axes": {
+          "pitch": 0.24253625573217846,
+          "yaw": 0.0772889800960205
+        }
+      },
+      "cam1-cam3": {
+        "state": "scored",
+        "reason": null,
+        "verdict": "pass",
+        "max_abs_error_deg": 0.12754153068011026,
+        "judged_axes": {
+          "roll": 0.12648758666821341,
+          "pitch": 0.030100624695896482,
+          "yaw": -0.12754153068011026
+        }
+      },
+      "cam0-cam4": {
+        "state": "scored",
+        "reason": null,
+        "verdict": "pass",
+        "max_abs_error_deg": 0.11428199888464137,
+        "judged_axes": {
+          "roll": -0.09583683690191426,
+          "yaw": -0.11428199888464137
+        }
+      },
+      "cam1-cam4": {
+        "state": "scored",
+        "reason": null,
+        "verdict": "pass",
+        "max_abs_error_deg": 0.02077576877362599,
+        "judged_axes": {
+          "roll": 0.02077576877362599,
+          "yaw": 0.003755322716029382
+        }
+      }
+    }
+  },
+  "reported_units": {
+    "exp01": {
+      "cam0-cam2": {
+        "state": "inconclusive",
+        "reason": "the estimator did not produce an estimate: 820 of 1091 matched patches constrain rows; observable: none",
+        "verdict": "inconclusive",
+        "max_abs_error_deg": null,
+        "judged_axes": {}
+      },
+      "cam1-cam2": {
+        "state": "inconclusive",
+        "reason": "the estimator did not produce an estimate: 1075 of 1881 matched patches constrain rows; observable: none",
+        "verdict": "inconclusive",
+        "max_abs_error_deg": null,
+        "judged_axes": {}
+      },
+      "cam2-cam3": {
+        "state": "inconclusive",
+        "reason": "the estimator did not produce an estimate: 383 matched patches constrain rows, fewer than 500",
+        "verdict": "inconclusive",
+        "max_abs_error_deg": null,
+        "judged_axes": {}
+      },
+      "cam2-cam4": {
+        "state": "inconclusive",
+        "reason": "the estimator did not produce an estimate: 163 matched patches constrain rows, fewer than 500",
+        "verdict": "inconclusive",
+        "max_abs_error_deg": null,
+        "judged_axes": {}
+      }
+    },
+    "exp21": {
+      "cam0-cam2": {
+        "state": "scored",
+        "reason": null,
+        "verdict": "pass",
+        "max_abs_error_deg": 0.11767284085758131,
+        "judged_axes": {
+          "yaw": 0.11767284085758131
+        }
+      },
+      "cam1-cam2": {
+        "state": "scored",
+        "reason": null,
+        "verdict": "pass",
+        "max_abs_error_deg": 0.21946171963718292,
+        "judged_axes": {
+          "roll": 0.21946171963718292,
+          "yaw": -0.1792243411128428
+        }
+      },
+      "cam2-cam3": {
+        "state": "inconclusive",
+        "reason": "the estimator did not produce an estimate: 109 matched patches constrain rows, fewer than 500",
+        "verdict": "inconclusive",
+        "max_abs_error_deg": null,
+        "judged_axes": {}
+      },
+      "cam2-cam4": {
+        "state": "inconclusive",
+        "reason": "the estimator did not produce an estimate: 446 matched patches constrain rows, fewer than 500",
+        "verdict": "inconclusive",
+        "max_abs_error_deg": null,
+        "judged_axes": {}
+      }
+    }
+  },
+  "trials": {
+    "exp01": {
+      "inject_cam3_y+1": {
+        "evaluable": true,
+        "detected": true,
+        "localized": true,
+        "reason": null,
+        "attribution": {
+          "status": "attributed",
+          "frame": "alphasense/cam3/image_raw"
+        },
+        "pair_verdicts": {
+          "cam0-cam3": "fail",
+          "cam1-cam3": "fail"
+        }
+      },
+      "inject_cam1_y+1": {
+        "evaluable": true,
+        "detected": true,
+        "localized": true,
+        "reason": null,
+        "attribution": {
+          "status": "attributed",
+          "frame": "alphasense/cam1/image_raw"
+        },
+        "pair_verdicts": {
+          "cam0-cam1": "fail",
+          "cam1-cam3": "warn",
+          "cam1-cam4": "fail"
+        }
+      }
+    },
+    "exp21": {
+      "inject_cam3_y+1": {
+        "evaluable": true,
+        "detected": true,
+        "localized": true,
+        "reason": null,
+        "attribution": {
+          "status": "attributed",
+          "frame": "alphasense/cam3/image_raw"
+        },
+        "pair_verdicts": {
+          "cam0-cam3": "fail",
+          "cam1-cam3": "pass"
+        }
+      },
+      "inject_cam1_y+1": {
+        "evaluable": true,
+        "detected": true,
+        "localized": false,
+        "reason": null,
+        "attribution": {
+          "status": "ambiguous",
+          "frame": null
+        },
+        "pair_verdicts": {
+          "cam0-cam1": "warn",
+          "cam1-cam3": "inconclusive",
+          "cam1-cam4": "pass"
+        }
+      }
+    }
+  },
+  "summary": {
+    "units": 10,
+    "scored_units": 10,
+    "failed_units": 0,
+    "trials": 4,
+    "evaluable_trials": 4,
+    "detection_rate": 1.0,
+    "localization_rate": 0.75
+  },
+  "requirements": {
+    "accuracy-vs-kalibr": {
+      "status": "pass",
+      "observed": 0.3180182660445726,
+      "threshold": 0.75
+    },
+    "no-failed-units": {
+      "status": "pass",
+      "observed": 0.0,
+      "threshold": 0.0
+    },
+    "scored-units-coverage": {
+      "status": "pass",
+      "observed": 1.0,
+      "threshold": 0.7
+    },
+    "detection": {
+      "status": "pass",
+      "observed": 1.0,
+      "threshold": 0.9
+    },
+    "localization": {
+      "status": "pass",
+      "observed": 0.75,
+      "threshold": 0.5
+    },
+    "evaluable-trials-coverage": {
+      "status": "pass",
+      "observed": 1.0,
+      "threshold": 0.7
+    }
+  },
+  "verdict": "supported",
+  "provenance": {
+    "generator": "tools/score_hilti_camera_camera.py",
+    "calibrex_version": "0.5.1",
+    "git_commit": "07c8d05ad78128b72acffbfd5c90db771a54d5e2",
+    "scorer_sha256": "3c3867ceac5caf05adf2f8a09a7caf3691f4849cedc08fef7c595c0b6f93adbb",
+    "python": "3.12.3",
+    "scored_at": "2026-10-14T05:35:23+00:00",
+    "recordings": [
+      "exp01",
+      "exp21"
+    ],
+    "manifests_sha256": {
+      "exp01": "e879c1b6e598c871ef25c014a002eb89f58b2e346f5eadab812f463d3181df72",
+      "exp21": "7c29d6bfcbeb4d3b4a9ca101c75339f930b96b6c587aaa33545408816954b9d0"
+    }
+  }
+}
