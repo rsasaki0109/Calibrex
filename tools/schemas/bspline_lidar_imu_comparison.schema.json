@@ -147,6 +147,11 @@
         "controls_calls": {"const": 1},
         "registration_seconds": {"type": "number", "minimum": 0},
         "registration_calls": {"type": "integer", "minimum": 1},
+        "odometry_seconds": {"type": "number", "minimum": 0},
+        "odometry_calls": {"type": "integer", "minimum": 1},
+        "gyro_preprocessing_seconds": {"type": "number", "minimum": 0},
+        "gyro_preprocessing_calls": {"type": "integer", "minimum": 1},
+        "preprocessing_scope": {"type": "string"},
         "rounds": {
           "type": "array",
           "minItems": 1,

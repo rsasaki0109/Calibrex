@@ -317,6 +317,15 @@ def audit(root: Path) -> dict[str, object]:
                          and record["registration_calls"] > 0
                          and provenance.get("odometry_backend") == "cuda")):
             raise ValueError("registration timing scope is inconsistent")
+        if hasattr(module, "_time_odometry") and not {
+            "odometry_seconds", "odometry_calls",
+        } <= record.keys():
+            raise ValueError("odometry observation is missing")
+        for scope in ("odometry", "gyro_preprocessing"):
+            if (scope + "_seconds" in record
+                    and not (0 < record[scope + "_seconds"] <= record["pipeline_seconds"]
+                             and record[scope + "_calls"] > 0)):
+                raise ValueError(f"{scope} timing scope is inconsistent")
         if len(record["rounds"]) != len(result["rounds"]):
             raise ValueError("worker did not retain every fit round")
         for fitted, reported in zip(record["rounds"], result["rounds"], strict=True):
@@ -452,7 +461,7 @@ def audit(root: Path) -> dict[str, object]:
         normal_summary = {"normal_median_seconds": normal_medians,
                           "normal_speedup": normal_medians["prior"] / normal_medians["current"]}
     front_summary = {}
-    for scope in ("spatial_build", "preprocessing", "controls", "registration"):
+    for scope in ("spatial_build", "preprocessing", "controls", "registration", "odometry"):
         if all(scope + "_seconds" in record for record in measurements.values()):
             medians = {
                 variant: statistics.median(measurements[(r, variant)][scope + "_seconds"]

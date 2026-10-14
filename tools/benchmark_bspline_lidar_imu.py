@@ -93,9 +93,12 @@ def _worker(args: argparse.Namespace) -> None:
             raise RuntimeError("worker CUDA compilation cache was not empty")
     from calibrex.data.livox_ros2 import LivoxStreamProfile
     from calibrex.evaluation import lidar_imu_bag_calibration as runner
+    from calibrex.solvers import scan_to_scan_odometry as odometry
 
     controls_timing = _time_controls(runner)
+    odometry_timing = _time_odometry(odometry.IncrementalScanOdometry)
     normal_timing = None
+    gyro_preprocessing_timing = None
     spatial_timing = preprocessing_timing = registration_timing = None
     if backend == "cuda":
         from calibrex.solvers.cuda_scan_odometry_adapter import CudaOdometryTarget
@@ -111,6 +114,10 @@ def _worker(args: argparse.Namespace) -> None:
             if hasattr(CudaOdometryTarget, "preprocessor")
             else _time_method(odometry, "preprocess_scan")
         )
+        if hasattr(CudaOdometryTarget.preprocessor, "gyro_deskew"):
+            gyro_preprocessing_timing = _time_method(
+                CudaOdometryTarget.preprocessor, "gyro_deskew",
+            )
 
     rounds: list[dict[str, object]] = []
     original = runner.fit_bspline_lidar_imu
@@ -204,6 +211,8 @@ def _worker(args: argparse.Namespace) -> None:
             "variant": args.variant,
             "pipeline_seconds": pipeline_seconds,
             "fit_seconds": sum(float(r["seconds"]) for r in rounds),
+            "odometry_seconds": odometry_timing["seconds"],
+            "odometry_calls": odometry_timing["calls"],
             "controls_seconds": controls_timing["seconds"],
             "controls_calls": controls_timing["calls"],
             **({"registration_seconds": registration_timing["seconds"],
@@ -216,8 +225,12 @@ def _worker(args: argparse.Namespace) -> None:
                 "spatial_build_calls": spatial_timing["calls"]}
                if spatial_timing is not None else {}),
             **({"preprocessing_seconds": preprocessing_timing["seconds"],
-                "preprocessing_calls": preprocessing_timing["calls"]}
+                "preprocessing_calls": preprocessing_timing["calls"],
+                "preprocessing_scope": "standard __call__ path; excludes device gyro_deskew"}
                if preprocessing_timing is not None else {}),
+            **({"gyro_preprocessing_seconds": gyro_preprocessing_timing["seconds"],
+                "gyro_preprocessing_calls": gyro_preprocessing_timing["calls"]}
+               if gyro_preprocessing_timing is not None else {}),
             "rounds": rounds,
             "provenance": {
                 "bag_sha256": _digest(Path(args.bag)),
@@ -384,6 +397,11 @@ def _time_controls(holder: Any) -> dict[str, float | int]:
 def _time_registration(holder: Any) -> dict[str, float | int]:
     """Include normals, all iterations, reductions and native repairs."""
     return _time_method(holder, "register")
+
+
+def _time_odometry(holder: Any) -> dict[str, float | int]:
+    """Include deskew, preprocessing, tree construction and complete registration."""
+    return _time_method(holder, "add")
 
 
 def _time_normal_preparation(holder: Any) -> dict[str, float | int]:
