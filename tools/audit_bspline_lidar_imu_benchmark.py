@@ -241,6 +241,13 @@ def audit(root: Path) -> dict[str, object]:
                                 or not 0 <= counters.get("native_tree_builds", -1)
                                 <= counters["gpu_tree_builds"])):
                         raise ValueError("GPU tree construction accounting is inconsistent")
+                    if ("gpu_packed_reference_rows" in adapter_constants
+                            and (counters.get("gpu_packed_reference_rows", 0) <= 0
+                                 or counters["gpu_packed_reference_rows"]
+                                 < counters.get("gpu_normal_rows", 0)
+                                 or counters.get("gpu_packed_reference_bytes", 0)
+                                 != 24 * counters["gpu_packed_reference_rows"])):
+                        raise ValueError("GPU packed reference accounting is inconsistent")
                     if ("gpu_preprocess_calls" in adapter_constants
                             and (counters.get("gpu_preprocess_calls", 0) <= 0
                                 or counters.get("gpu_preprocess_kernel_calls", 0)
@@ -290,6 +297,15 @@ def audit(root: Path) -> dict[str, object]:
                 and not (0 < record["controls_seconds"] <= record["pipeline_seconds"]
                          and record["controls_calls"] == 1)):
             raise ValueError("controls timing scope is inconsistent")
+        if (provenance.get("odometry_backend") == "cuda"
+                and hasattr(module, "_time_registration")
+                and not {"registration_seconds", "registration_calls"} <= record.keys()):
+            raise ValueError("registration observation is missing")
+        if ("registration_seconds" in record
+                and not (0 < record["registration_seconds"] <= record["pipeline_seconds"]
+                         and record["registration_calls"] > 0
+                         and provenance.get("odometry_backend") == "cuda")):
+            raise ValueError("registration timing scope is inconsistent")
         if len(record["rounds"]) != len(result["rounds"]):
             raise ValueError("worker did not retain every fit round")
         for fitted, reported in zip(record["rounds"], result["rounds"], strict=True):
@@ -380,7 +396,7 @@ def audit(root: Path) -> dict[str, object]:
         normal_summary = {"normal_median_seconds": normal_medians,
                           "normal_speedup": normal_medians["prior"] / normal_medians["current"]}
     front_summary = {}
-    for scope in ("spatial_build", "preprocessing", "controls"):
+    for scope in ("spatial_build", "preprocessing", "controls", "registration"):
         if all(scope + "_seconds" in record for record in measurements.values()):
             medians = {
                 variant: statistics.median(measurements[(r, variant)][scope + "_seconds"]

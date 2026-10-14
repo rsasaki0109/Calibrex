@@ -26,7 +26,8 @@ from calibrex.solvers.lidar_lidar_map_solver import (
 
 _SOURCE = r'''
 extern "C" __global__ void query3(
-    const double* xyz, const double* reference, const long long* order,
+    const double* xyz, const double* reference, const double* packed_reference,
+    const long long* order,
     const int* axis, const double* split, const int* child,
     const long long* span, const double* boxes, const int n, const int m, const int k,
     double* distance, long long* index) {
@@ -45,19 +46,22 @@ extern "C" __global__ void query3(
             d[a]=fmax(0.0,fmax(boxes[6*node+a]-p[a],p[a]-boxes[6*node+3+a]));
         // Retain equal and roundoff-close boxes; candidate distance arithmetic is unchanged.
         double lower=(d[0]*d[0]+d[1]*d[1]+d[2]*d[2])*(1.0-16.0*2.2204460492503131e-16);
-        if(lower > best[k-1]) continue;
+        if(lower > best[0]) continue;
         if(axis[node]<0){
             for(long long j=span[2*node];j<span[2*node+1];j++){
                 long long position=order[j];
-                double x=p[0]-reference[3*position];
-                double y=p[1]-reference[3*position+1];
-                double z=p[2]-reference[3*position+2];
+                double x=p[0]-packed_reference[3*j];
+                double y=p[1]-packed_reference[3*j+1];
+                double z=p[2]-packed_reference[3*j+2];
                 double d=x*x+y*y+z*z;
-                if(d<best[k-1] || (d==best[k-1] && position<chosen[k-1])){
-                    int slot=k-1;
-                    while(slot>0 && (d<best[slot-1] ||
-                         (d==best[slot-1] && position<chosen[slot-1]))){
-                        best[slot]=best[slot-1];chosen[slot]=chosen[slot-1];--slot;
+                if(d<best[0] || (d==best[0] && position<chosen[0])){
+                    int slot=0;
+                    while(2*slot+1<k){
+                        int child=2*slot+1;
+                        if(child+1<k && (best[child+1]>best[child] ||
+                           (best[child+1]==best[child] && chosen[child+1]>chosen[child]))) ++child;
+                        if(best[child]<d || (best[child]==d && chosen[child]<=position)) break;
+                        best[slot]=best[child];chosen[slot]=chosen[child];slot=child;
                     }
                     best[slot]=d;chosen[slot]=position;
                 }
@@ -73,17 +77,30 @@ extern "C" __global__ void query3(
                                  *(1.0-16.0*2.2204460492503131e-16);
             }
             int near=lower_child[0]<=lower_child[1]?0:1,far=1-near;
-            if(lower_child[far]<=best[k-1]) stack[top++]=far==0?left:right;
-            if(lower_child[near]<=best[k-1]) stack[top++]=near==0?left:right;
+            if(lower_child[far]<=best[0]) stack[top++]=far==0?left:right;
+            if(lower_child[near]<=best[0]) stack[top++]=near==0?left:right;
         }else{
             double delta=p[axis[node]]-split[node];
             int side=delta<0?0:1;
             int far=child[2*node+1-side], near=child[2*node+side];
-            if(delta*delta <= best[k-1]){
+            if(delta*delta <= best[0]){
                 stack[top]=far;++top;
             }
             stack[top]=near;++top;
         }
+    }
+    for(int end=k-1;end>0;--end){
+        double d=best[end];long long position=chosen[end];
+        best[end]=best[0];chosen[end]=chosen[0];
+        int slot=0;
+        while(2*slot+1<end){
+            int child=2*slot+1;
+            if(child+1<end && (best[child+1]>best[child] ||
+               (best[child+1]==best[child] && chosen[child+1]>chosen[child]))) ++child;
+            if(best[child]<d || (best[child]==d && chosen[child]<=position)) break;
+            best[slot]=best[child];chosen[slot]=chosen[child];slot=child;
+        }
+        best[slot]=d;chosen[slot]=position;
     }
     for(int j=0;j<k;j++){distance[row*k+j]=sqrt(best[j]);index[row*k+j]=chosen[j];}
 }
@@ -212,7 +229,7 @@ def _coordinates(values: FloatArray, name: str) -> FloatArray:
 class _CudaTree:
     def __init__(self, points: FloatArray) -> None:
         self._host = _coordinates(points, "spatial tree")
-        if self._host.nbytes * 16 > _MAX_RETAINED_BYTES:
+        if self._host.nbytes * 17 > _MAX_RETAINED_BYTES:
             raise ValueError("CUDA spatial construction exceeds the 1 GiB payload budget")
         self._cpu: cKDTree | None = None
         self._cpu_lock = Lock()
@@ -252,10 +269,14 @@ class _CudaTree:
         active = (parents < 0) | (axes[cp.maximum(parents, 0)] >= 0)
         mapping = cp.cumsum(active, dtype=cp.int32) - 1
         selected = cp.flatnonzero(active)
+        # Keep the original data for normal/system indexing and pack the query
+        # coordinates in leaf order once. Candidate IDs retain original indices.
+        self.packed = cp.ascontiguousarray(self.data[order])
         self.arrays = (order, axes[selected], splits[selected], mapping[children[selected]],
                        spans[selected], boxes[selected])
         self.kernel = cp.RawKernel(_SOURCE, "query3", options=("--fmad=false",))
-        self.bytes = int(self.data.nbytes + sum(array.nbytes for array in self.arrays))
+        self.bytes = int(self.data.nbytes + self.packed.nbytes
+                         + sum(array.nbytes for array in self.arrays))
         self.query_calls = 0
         self.query_rows = 0
 
@@ -275,7 +296,7 @@ class _CudaTree:
         indexes = cp.empty((len(points), k), dtype=cp.int64)
         if len(points):
             self.kernel(((len(points) + 127) // 128,), (128,), (
-                points, self.data, *self.arrays, np.int32(len(points)),
+                points, self.data, self.packed, *self.arrays, np.int32(len(points)),
                 np.int32(len(self.data)), np.int32(k), distances, indexes,
             ))
             self.query_calls += 1
@@ -428,6 +449,12 @@ class CudaMapRuntime:
             "prepared_samples": len(self.samples),
             "gpu_query_calls": sum(sample.tree.query_calls for sample in self.samples.values()),
             "gpu_query_rows": sum(sample.tree.query_rows for sample in self.samples.values()),
+            "gpu_packed_reference_rows": sum(
+                len(sample.tree.packed) for sample in self.samples.values()
+            ),
+            "gpu_packed_reference_bytes": sum(
+                sample.tree.packed.nbytes for sample in self.samples.values()
+            ),
             "gpu_tree_builds": len(self.samples),
             "gpu_tree_build_kernel_calls": sum(
                 sample.tree.build_kernel_calls for sample in self.samples.values()

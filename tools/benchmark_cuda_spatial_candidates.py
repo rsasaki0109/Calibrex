@@ -26,8 +26,8 @@ from calibrex.solvers.scipy_spatial_snapshot import capture_spatial_tree
 FloatArray = NDArray[np.float64]
 
 
-def _heap_source(source: str) -> str:
-    """Replace sorted insertion by an exact max heap and final ascending sort."""
+def _heap_source(source: str, *, sorted_output: bool = False) -> str:
+    """Select exact sorted insertion or max-heap search with ascending output."""
     insertion = """                if(d<best[k-1] || (d==best[k-1] && position<chosen[k-1])){
                     int slot=k-1;
                     while(slot>0 && (d<best[slot-1] ||
@@ -62,7 +62,17 @@ def _heap_source(source: str) -> str:
         best[slot]=d;chosen[slot]=position;
     }
 """
-    if source.count(insertion) != 1 or source.count(output) != 1:
+    is_sorted = source.count(insertion) == 1 and source.count(output) == 1
+    is_heap = source.count(replacement) == 1 and source.count(sort + output) == 1
+    if (sorted_output and is_sorted) or (not sorted_output and is_heap):
+        return source
+    if sorted_output and is_heap:
+        result = source.replace(replacement, insertion).replace(sort + output, output)
+        for old in ("if(lower > best[0])", "if(lower_child[far]<=best[0])",
+                    "if(lower_child[near]<=best[0])", "if(delta*delta <= best[0])"):
+            result = result.replace(old, old.replace("best[0]", "best[k-1]"))
+        return result
+    if not is_sorted:
         raise ValueError("query shader changed; candidate requires review")
     return source.replace(insertion, replacement).replace("best[k-1]", "best[0]").replace(
         output, sort + output,
@@ -137,7 +147,10 @@ def _measure(
                 kernel = cp.RawKernel(shader, "query3", options=("--fmad=false",))
                 distances = cp.empty((len(points), k), dtype=cp.float64)
                 indexes = cp.empty((len(points), k), dtype=cp.int64)
-                args = (points, reference, *arrays, np.int32(len(points)), np.int32(len(target)),
+                packed = ((cp.ascontiguousarray(reference[arrays[0]]),)
+                          if "const double* packed_reference" in shader else ())
+                args = (points, reference, *packed, *arrays,
+                        np.int32(len(points)), np.int32(len(target)),
                         np.int32(k), distances, indexes)
                 grid = ((len(points) + 127) // 128,)
                 kernel(grid, (128,), args)
@@ -207,7 +220,8 @@ def main() -> None:
     from calibrex.solvers.cuda_scan_odometry_adapter import execution_identity
 
     target, source, initial = _capture(args.bag, args.output)
-    shaders = {"sorted": _SOURCE, "heap": _heap_source(_SOURCE)}
+    shaders = {"sorted": _heap_source(_SOURCE, sorted_output=True),
+               "heap": _heap_source(_SOURCE)}
     for name, shader in shaders.items():
         (args.output / f"{name}.cu.txt").write_bytes(shader.encode())
     moving = source @ initial[:3, :3].T + initial[:3, 3]

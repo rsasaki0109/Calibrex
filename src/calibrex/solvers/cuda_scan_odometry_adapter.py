@@ -183,6 +183,7 @@ extern "C" __global__ void normals3(
 _FUSED_SOURCE = r"""
 extern "C" __global__ void project_query_system3(
     const double* xyz, const double* matrix, const double* reference,
+    const double* packed_reference,
     const long long* order, const int* axis, const double* split,
     const int* child, const long long* span, const double* boxes, const double* normal,
     const bool* planar, const bool* done, const int n, const int m, const double gate,
@@ -207,9 +208,9 @@ extern "C" __global__ void project_query_system3(
         if(axis[node]<0){
             for(long long v=span[2*node];v<span[2*node+1];v++){
                 long long position=order[v];
-                double x=p[0]-reference[3*position];
-                double y=p[1]-reference[3*position+1];
-                double z=p[2]-reference[3*position+2];
+                double x=p[0]-packed_reference[3*v];
+                double y=p[1]-packed_reference[3*v+1];
+                double z=p[2]-packed_reference[3*v+2];
                 double d=x*x+y*y+z*z;
                 if(d<best[1] || (d==best[1] && position<chosen[1])){
                     if(d<best[0] || (d==best[0] && position<chosen[0])){
@@ -469,7 +470,9 @@ class CudaOdometryTarget:
         host_source = _coordinates(
             _quantize_geometry(source, self.options.geometry_quantum_m), "odometry source",
         )
-        if self.host.nbytes * 8 + host_source.nbytes * 12 > 1024**3:
+        retained = (self.tree.bytes + self._normals.nbytes
+                    + self._planar.nbytes + self.done.nbytes)
+        if retained + host_source.nbytes * 15 > 1024**3:
             raise ValueError("CUDA odometry inputs exceed the 1 GiB payload budget")
         transform = np.array(initial, dtype=np.float64, copy=True)
         if transform.shape != (4, 4) or not np.isfinite(transform).all():
@@ -512,6 +515,7 @@ class CudaOdometryTarget:
                             points,
                             matrix,
                             self.tree.data,
+                            self.tree.packed,
                             *self.tree.arrays,
                             self._normals,
                             self._planar,
@@ -662,6 +666,8 @@ class CudaOdometryTarget:
             "gpu_system_refresh_calls": self.system_refresh_calls,
             "gpu_normal_rows": self.normal_rows,
             "gpu_normal_kernel_calls": self.normal_kernel_calls,
+            "gpu_packed_reference_rows": len(self.tree.packed),
+            "gpu_packed_reference_bytes": self.tree.packed.nbytes,
             "scalar_registration_repairs": self.registration_repairs,
             "scalar_motion_repairs": self.motion_repairs,
         }
