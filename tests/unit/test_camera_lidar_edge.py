@@ -337,6 +337,24 @@ def test_profile_start_takes_each_axis_maximum() -> None:
         EdgeAlignmentOptions(start_scan_deg=20.0)
 
 
+def test_each_profile_maximum_is_also_a_start_of_its_own() -> None:
+    from calibrex.evaluation.camera_lidar_edge import _profile_starts
+
+    scan = np.array([-3.0, 8.0, 0.0, 0.0, 0.0, 0.0])
+    starts = _profile_starts(scan)
+    # roll alone, pitch alone, then both: a camera turned about one axis is found from that
+    # axis's maximum even when another axis's profile only rises towards the scan's end
+    assert [list(start[:3]) for start in starts] == [
+        [-3.0, 0.0, 0.0],
+        [0.0, 8.0, 0.0],
+        [-3.0, 8.0, 0.0],
+    ]
+    assert _profile_starts(np.array([0.0, -2.5, 0.0, 0.0, 0.0, 0.0]))[0][1] == -2.5
+    assert len(_profile_starts(np.array([0.0, -2.5, 0.0, 0.0, 0.0, 0.0]))) == 1
+    assert _profile_starts(np.zeros(6)) == []
+    assert _profile_starts(None) == []
+
+
 def test_observed_rotations_counts_axes_by_the_record_rule() -> None:
     from calibrex.core.camera_lidar_edge import CameraLidarEdgeControl
     from calibrex.evaluation.camera_lidar_edge import _observed_rotations

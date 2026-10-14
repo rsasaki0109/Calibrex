@@ -224,10 +224,11 @@ class EdgeAlignmentOptions:
     estimate_translation: bool = False
     # Wide-basin start: the objective is profiled along each rotation axis over
     # +-``start_scan_deg`` (the other axes at the candidate) and the search also runs from
-    # the per-axis maxima; the better final objective wins, so a start the search already
-    # handled is kept.  A candidate a few degrees off often sits next to a local maximum
-    # the coordinate search cannot leave (KITTI 0005 pitch +5 deg stops at +2).  ``None``
-    # turns the scan off.
+    # each axis's maximum alone and from all of them together; an optimum replaces the
+    # candidate's when it observes more rotation DoFs, or as many with a higher objective.
+    # A candidate a few degrees off often sits next to a local maximum the coordinate
+    # search cannot leave (KITTI 0005 pitch +5 deg stops at +2).  ``None`` turns the scan
+    # off.
     start_scan_deg: float | None = 8.0
     start_scan_step_deg: float = 0.5
     # Accept clouds without beam structure (solid-state, non-repetitive scanning): their
@@ -894,31 +895,40 @@ def estimate_from_frames(
         prepared, camera, candidate, theta, blocks, block_objectives, opts
     )
     start_reason: str | None = None
-    scan_start = _profile_start(objective, opts)
-    if scan_start is not None and np.any(scan_start != 0.0):
-        emit_stage("camera-lidar: searching from the per-axis profile maxima")
+    observed = _observed_rotations(theta, jackknife, controls, std_floor, opts)
+    candidate_observed = observed
+    tried = [theta[:3].copy()]
+    for scan_start in _profile_starts(_profile_start(objective, opts)):
+        emit_stage(
+            "camera-lidar: searching from the profile maxima "
+            f"({', '.join(f'{v:+.1f}' for v in scan_start[:3])} deg)"
+        )
         widened, widened_score = fit_extrinsic(objective, scan_start, opts)
-        if np.any(np.abs(widened[:3] - theta[:3]) > opts.rotation_levels_deg[-1]):
-            widened_evidence = _evidence(
-                prepared, camera, candidate, widened, blocks, block_objectives, opts
+        if any(
+            np.all(np.abs(widened[:3] - seen) <= opts.rotation_levels_deg[-1]) for seen in tried
+        ):
+            continue  # an optimum already weighed
+        tried.append(widened[:3].copy())
+        widened_evidence = _evidence(
+            prepared, camera, candidate, widened, blocks, block_objectives, opts
+        )
+        # A far optimum can be a ridge of the scene rather than the calibration (a
+        # corridor): keep it only when more rotation DoFs pass their held-out controls
+        # and std bound there, or as many with a higher objective.
+        widened_observed = _observed_rotations(
+            widened, widened_evidence[1], widened_evidence[2], std_floor, opts
+        )
+        if widened_observed > observed or (
+            widened_observed == observed and widened_score > score + opts.min_gain
+        ):
+            start_reason = (
+                "the estimate comes from the search started at the profile maxima "
+                f"({', '.join(f'{v:+.1f}' for v in scan_start[:3])} deg): it observes "
+                f"{widened_observed} rotation DoF(s) against {candidate_observed} from the "
+                "candidate"
             )
-            # A far optimum can be a ridge of the scene rather than the calibration (a
-            # corridor): keep it only when more rotation DoFs pass their held-out controls
-            # and std bound there, or as many with a higher objective.
-            observed = _observed_rotations(theta, jackknife, controls, std_floor, opts)
-            widened_observed = _observed_rotations(
-                widened, widened_evidence[1], widened_evidence[2], std_floor, opts
-            )
-            if widened_observed > observed or (
-                widened_observed == observed and widened_score > score + opts.min_gain
-            ):
-                start_reason = (
-                    "the estimate comes from the search started at the per-axis profile maxima "
-                    f"({', '.join(f'{v:+.1f}' for v in scan_start[:3])} deg): it observes "
-                    f"{widened_observed} rotation DoF(s) against {observed} from the candidate"
-                )
-                theta, score = widened, widened_score
-                fit_array, jackknife, controls = widened_evidence
+            theta, score, observed = widened, widened_score, widened_observed
+            fit_array, jackknife, controls = widened_evidence
     estimate = _transform(candidate, theta)
 
     reference_vector = Rotation.from_matrix(estimate[:3, :3]).as_rotvec()
@@ -1108,6 +1118,28 @@ def _profile_start(objective: EdgeObjective, options: EdgeAlignmentOptions) -> F
             values.append(objective.score(theta))
         start[axis] = float(offsets[int(np.argmax(values))])
     return start
+
+
+def _profile_starts(scan_start: FloatArray | None) -> list[FloatArray]:
+    """Starts from the profile maxima: each axis's maximum on its own, then all of them.
+
+    An axis's profile is taken with the other axes at the candidate, so its maximum is a
+    start for that axis alone: on KITTI a camera turned 3 deg about one axis was found
+    from that axis's maximum, while the search from all the maxima together (and from the
+    candidate) ran along a ridge to a wrong optimum with fewer axes observed.
+    """
+
+    if scan_start is None:
+        return []
+    starts: list[FloatArray] = []
+    for axis in range(3):
+        if scan_start[axis] != 0.0:
+            single = np.zeros(6)
+            single[axis] = scan_start[axis]
+            starts.append(single)
+    if len(starts) > 1:
+        starts.append(scan_start.copy())
+    return starts
 
 
 def _controls(
