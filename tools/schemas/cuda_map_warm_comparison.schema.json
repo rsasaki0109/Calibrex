@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Complete warm CUDA map comparison",
+  "type": "object",
+  "required": ["schema_version", "record_type", "provenance"],
+  "properties": {
+    "schema_version": {"const": "calibrex.cuda_map_warm_pipeline/v0.1"},
+    "provenance": {"type": "object", "required": ["scope", "launcher_sha256"], "properties": {
+      "scope": {"type": "string", "minLength": 1}, "launcher_sha256": {"$ref": "#/$defs/sha"}
+    }}
+  },
+  "$defs": {
+    "sha": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "seconds": {"type": "number", "exclusiveMinimum": 0},
+    "medians": {"type": "object", "required": ["prior", "current"], "additionalProperties": false,
+      "properties": {"prior": {"$ref": "#/$defs/seconds"}, "current": {"$ref": "#/$defs/seconds"}}}
+  },
+  "oneOf": [
+    {
+      "required": ["commits", "repeats", "warm_calls_per_worker"],
+      "properties": {
+        "record_type": {"const": "protocol"},
+        "commits": {"type": "object", "required": ["prior", "current"], "additionalProperties": false,
+          "properties": {"prior": {"type": "string", "pattern": "^[0-9a-f]{40}$"}, "current": {"type": "string", "pattern": "^[0-9a-f]{40}$"}}},
+        "repeats": {"type": "integer", "minimum": 1}, "warm_calls_per_worker": {"type": "integer", "minimum": 1}
+      }
+    },
+    {
+      "required": ["rows", "warm_api_median_seconds"],
+      "properties": {
+        "record_type": {"const": "worker"},
+        "warm_api_median_seconds": {"$ref": "#/$defs/seconds"},
+        "rows": {"type": "array", "minItems": 2, "items": {
+          "type": "object", "additionalProperties": false,
+          "required": ["call", "phase", "api_seconds", "whole_call_seconds", "nvrtc_calls", "nvrtc_seconds", "measurement_sha256"],
+          "properties": {
+            "call": {"type": "integer", "minimum": 0}, "phase": {"enum": ["prime", "warm"]},
+            "api_seconds": {"$ref": "#/$defs/seconds"}, "whole_call_seconds": {"$ref": "#/$defs/seconds"},
+            "nvrtc_calls": {"type": "integer", "minimum": 0}, "nvrtc_seconds": {"type": "number", "minimum": 0},
+            "measurement_sha256": {"$ref": "#/$defs/sha"}
+          }
+        }}
+      }
+    },
+    {
+      "required": ["warm_api_median_seconds", "warm_api_speedup", "quality_exact", "pairs", "warm_calls_per_worker"],
+      "properties": {
+        "record_type": {"const": "summary"},
+        "warm_api_median_seconds": {"$ref": "#/$defs/medians"}, "warm_api_speedup": {"$ref": "#/$defs/seconds"},
+        "quality_exact": {"const": true}, "pairs": {"type": "integer", "minimum": 1}, "warm_calls_per_worker": {"type": "integer", "minimum": 1}
+      }
+    }
+  ]
+}
