@@ -52,7 +52,7 @@ def test_device_bvh_has_exact_leaf_and_parent_bounds_without_native_build(count:
     np.testing.assert_array_equal(spans[internal, 1], np.maximum(spans[left, 1], spans[right, 1]))
     np.testing.assert_array_equal(boxes[internal, 0], np.minimum(boxes[left, 0], boxes[right, 0]))
     np.testing.assert_array_equal(boxes[internal, 1], np.maximum(boxes[left, 1], boxes[right, 1]))
-    assert tree.build_kernel_calls == 1 + int(count > 0) + int(count > 1)
+    assert tree.build_kernel_calls == 3 + int(count > 0) + int(count > 1)
     split_nodes = internal[axis[internal] < 3]
     for node in split_nodes:
         dimension = axis[node]

@@ -45,7 +45,7 @@ def audit(root: Path) -> dict[str, Any]:
         or protocol["map_launcher_sha256"] != _sha(root / "map-benchmark.py.txt")
     ):
         raise ValueError("protocol or launcher binding differs")
-    manifests, shaders, raw_sources = {}, {}, {}
+    manifests, shaders, raw_sources, features, compacted = {}, {}, {}, {}, {}
     for variant in ("prior", "current"):
         manifest = json.loads((root / f"sources-{variant}-manifest.json").read_bytes())
         archived = {}
@@ -63,15 +63,17 @@ def audit(root: Path) -> dict[str, Any]:
                 if variant == "current":
                     raw_sources[name] = source
                 if name == "calibrex/solvers/cuda_lidar_map_adapter.py":
-                    shader = next(
-                        node.value.value
-                        for node in ast.parse(source).body
-                        if isinstance(node, ast.Assign)
-                        and any(
-                            isinstance(target, ast.Name) and target.id == "_SOURCE"
-                            for target in node.targets
-                        )
-                    )
+                    parsed = ast.parse(source)
+                    constants = {target.id: node.value.value for node in parsed.body
+                                 if isinstance(node, ast.Assign)
+                                 and isinstance(node.value, ast.Constant)
+                                 and isinstance(node.value.value, str)
+                                 for target in node.targets if isinstance(target, ast.Name)}
+                    shader = constants["_SOURCE"] + constants.get("_MAP_SOURCE", "")
+                    compacted[variant] = "_MAP_SOURCE" in constants
+                    features[variant] = {node.value for node in ast.walk(parsed)
+                                         if isinstance(node, ast.Constant)
+                                         and isinstance(node.value, str)}
                     shaders[variant] = hashlib.sha256(shader.encode()).hexdigest()
         if archived != manifest:
             raise ValueError("frozen source archive differs from manifest")
@@ -143,18 +145,33 @@ def audit(root: Path) -> dict[str, Any]:
         if (
             counters["prepared_samples"] != 6
             or counters["gpu_tree_builds"] != 6
-            or counters["gpu_tree_build_kernel_calls"] != 18
+            or counters["gpu_tree_build_kernel_calls"] != (
+                30 if compacted[variant] else 18
+            )
             or counters["gpu_query_calls"] <= 0
             or counters["gpu_query_rows"] < sum(row["map_points"])
             or row["map_points"] != [127158, 127158, 127303, 127303, 126598, 126598]
             or row["target_points"] != row["map_points"]
         ):
             raise ValueError("complete public query work differs")
-        if variant == "current" and (
+        if "gpu_fixed_query_calls" in features[variant] and (
             counters.get("gpu_fixed_query_calls") != counters["gpu_query_calls"]
             or counters.get("gpu_fixed_query_rows") != counters["gpu_query_rows"]
         ):
             raise ValueError("specialized query accounting differs")
+        if "gpu_map_fused_kernel_calls" in features[variant] and (
+            counters.get("gpu_map_fused_kernel_calls", 0) <= 0
+            or counters.get("gpu_map_fused_residual_rows", 0)
+            != counters["gpu_query_rows"] - sum(row["map_points"])
+            or not 0 < counters.get("gpu_map_fused_system_rows", 0)
+            <= counters["gpu_map_fused_residual_rows"]
+        ):
+            raise ValueError("fused map execution accounting differs")
+        if "nvrtc_compilation" in binding:
+            compilation = binding["nvrtc_compilation"]
+            if (compilation["calls"] <= 0
+                    or not 0 < compilation["seconds"] <= row["api_seconds"]):
+                raise ValueError("compilation timing scope differs")
         if not 0 < row["api_seconds"] <= attempt["whole_seconds"]:
             raise ValueError("timing scope differs")
         measurements[(attempt["repeat"], variant)] = row

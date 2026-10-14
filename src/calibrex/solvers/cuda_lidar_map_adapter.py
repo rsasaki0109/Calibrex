@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Sequence
+from functools import lru_cache
 from threading import Lock
 from typing import Any
 
@@ -195,6 +196,127 @@ extern "C" __global__ void leaf_refit3(
 _CHUNK = 65536
 _MAX_RETAINED_BYTES = 1024 * 1024 * 1024
 
+_MAP_SOURCE = r'''
+extern "C" __global__ void tree_active3(const int* parent,const int* axis,
+    const int n,unsigned char* active) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;if(row>=n)return;
+    int p=parent[row];active[row]=(p<0 || axis[p]>=0)?1:0;
+}
+extern "C" __global__ void tree_compact3(const unsigned char* active,const int* prefix,
+    const int* axis,const double* split,const int* child,const long long* span,
+    const double* boxes,const int n,int* out_axis,double* out_split,int* out_child,
+    long long* out_span,double* out_boxes) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;if(row>=n || !active[row])return;
+    int out=prefix[row]-1;out_axis[out]=axis[row];out_split[out]=split[row];
+    for(int a=0;a<2;a++) {
+        out_child[2*out+a]=prefix[child[2*row+a]]-1;
+        out_span[2*out+a]=span[2*row+a];
+    }
+    for(int a=0;a<6;a++)out_boxes[6*out+a]=boxes[6*row+a];
+}
+extern "C" __global__ void neighbor_flags3(const double* distance,const int n,
+    const int k,const double margin,unsigned char* flags) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;if(row>=n)return;
+    double last=distance[row*(k+1)+k];
+    flags[row]=last-distance[row*(k+1)+k-1]<=margin*fmax(1.0,last)?1:0;
+}
+extern "C" __global__ void scatter_indices3(const long long* rows,const long long* update,
+    const int n,const int k,const int stride,long long* indices) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;if(row>=n)return;
+    for(int a=0;a<k;a++)indices[rows[row]*stride+a]=update[row*k+a];
+}
+extern "C" __global__ void gather_indices3(const long long* rows,const long long* indices,
+    const int n,const int k,const int stride,long long* out) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;if(row>=n)return;
+    for(int a=0;a<k;a++)out[row*k+a]=indices[rows[row]*stride+a];
+}
+extern "C" __global__ void normal_flags3(const double* values,const double* vectors,
+    const int n,const long long row_stride,const long long axis_stride,const double ratio,
+    const double margin,double* normals,bool* planar,unsigned char* flags) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;if(row>=n)return;
+    double low=values[3*row],mid=values[3*row+1],high=values[3*row+2];
+    for(int a=0;a<3;a++)normals[3*row+a]=vectors[row*row_stride+a*axis_stride];
+    planar[row]=low<=ratio*mid;
+    double scale=fmax(fabs(high),2.2250738585072014e-308);
+    flags[row]=(fabs(mid)<=margin*scale || fabs(low-ratio*mid)<=margin*scale)?1:0;
+}
+extern "C" __global__ void scatter_normals3(const long long* rows,const double* update,
+    const bool* mask,const int n,double* normals,bool* planar) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;if(row>=n)return;
+    for(int a=0;a<3;a++)normals[3*rows[row]+a]=update[3*row+a];
+    planar[rows[row]]=mask[row];
+}
+extern "C" __global__ void gate_flags3(const double* distance,const int n,
+    const double gate,const double error,unsigned char* flags) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;if(row>=n)return;
+    flags[row]=(distance[2*row+1]-distance[2*row]<=2*error
+                || fabs(distance[2*row]-gate)<=error)?1:0;
+}
+extern "C" __global__ void scatter_hits3(const long long* rows,const double* distance,
+    const long long* index,const double* points,const int n,double* out_distance,
+    long long* out_index,double* world) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;if(row>=n)return;
+    long long at=rows[row];out_distance[2*at]=distance[row];out_index[2*at]=index[row];
+    for(int a=0;a<3;a++)world[3*at+a]=points[3*row+a];
+}
+extern "C" __global__ void residual_rows3(const double* world,const double* maps,
+    const double* normals,const bool* planar,const double* distance,const long long* index,
+    const int n,const int m,const double gate,unsigned char* valid,double* residual) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;if(row>=n)return;
+    long long hit=index[2*row];bool keep=distance[2*row]<gate && hit<m;
+    if(keep)keep=planar[hit];valid[row]=keep?1:0;double r=0;
+    if(keep) {
+        double x=(world[3*row]-maps[3*hit])*normals[3*hit];
+        double y=(world[3*row+1]-maps[3*hit+1])*normals[3*hit+1];
+        double z=(world[3*row+2]-maps[3*hit+2])*normals[3*hit+2];
+        r=(x+y)+z;
+    }
+    residual[row]=r;
+}
+extern "C" __global__ void pack_rows3(const long long* rows,const long long* index,
+    const double* points,const double* normals,const double* residual,const int n,
+    double* out_residual,double* out_normals,double* out_points) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;if(row>=n)return;
+    long long at=rows[row],hit=index[2*at];out_residual[row]=residual[at];
+    for(int a=0;a<3;a++) {
+        out_normals[3*row+a]=normals[3*hit+a];out_points[3*row+a]=points[3*at+a];
+    }
+}
+extern "C" __global__ void jacobian_rows3(const double* rotated,const double* normals,
+    const double* residual,const int n,const double tx,const double ty,const double tz,
+    const double huber,double* jacobian,double* weighted,double* weighted_residual) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;if(row>=n)return;
+    double p[3]={rotated[3*row]+tx,rotated[3*row+1]+ty,rotated[3*row+2]+tz};
+    const double* a=normals+3*row;
+    double j[6]={p[1]*a[2]-p[2]*a[1],p[2]*a[0]-p[0]*a[2],p[0]*a[1]-p[1]*a[0],a[0],a[1],a[2]};
+    double r=residual[row];
+    double denominator=isnan(r)?r:fmax(fabs(r),1e-12);
+    double quotient=huber/denominator,w=isnan(quotient)?quotient:fmin(1.0,quotient);
+    for(int i=0;i<6;i++){jacobian[6*row+i]=j[i];weighted[6*row+i]=j[i]*w;}
+    weighted_residual[row]=w*r;
+}
+'''
+
+
+class _MapOps:
+    def __init__(self) -> None:
+        self.module = cp.RawModule(code=_MAP_SOURCE, options=("--fmad=false",))
+        self.kernels: dict[str, Any] = {}
+
+    def launch(self, name: str, count: int, *arguments: Any) -> int:
+        if count == 0:
+            return 0
+        if name not in self.kernels:
+            self.kernels[name] = self.module.get_function(name)
+        self.kernels[name](((count + 127) // 128,), (128,), arguments)
+        return 1
+
+
+@lru_cache(maxsize=8)
+def _map_ops(device_id: int) -> _MapOps:
+    with cp.cuda.Device(device_id):
+        return _MapOps()
+
 
 def _host(values: Any) -> FloatArray:
     return np.asarray(cp.asnumpy(values), dtype=np.float64)
@@ -249,11 +371,23 @@ class _CudaTree:
                     (self.data, order, np.int32(count), np.int32(leaves),
                      axes, children, parents, arrivals, spans, boxes, splits))
         self.build_kernel_calls += 1
-        active = (parents < 0) | (axes[cp.maximum(parents, 0)] >= 0)
-        mapping = cp.cumsum(active, dtype=cp.int32) - 1
-        selected = cp.flatnonzero(active)
-        self.arrays = (order, axes[selected], splits[selected], mapping[children[selected]],
-                       spans[selected], boxes[selected])
+        ops = _map_ops(cp.cuda.runtime.getDevice())
+        active = cp.empty(nodes, dtype=cp.uint8)
+        self.build_kernel_calls += ops.launch(
+            "tree_active3", nodes, parents, axes, np.int32(nodes), active,
+        )
+        prefix = cp.cumsum(active, dtype=cp.int32)
+        retained = int(prefix[-1].get())
+        out_axis = cp.empty(retained, dtype=cp.int32)
+        out_split = cp.empty(retained, dtype=cp.float64)
+        out_child = cp.empty((retained, 2), dtype=cp.int32)
+        out_span = cp.empty((retained, 2), dtype=cp.int64)
+        out_boxes = cp.empty((retained, 2, 3), dtype=cp.float64)
+        self.build_kernel_calls += ops.launch(
+            "tree_compact3", nodes, active, prefix, axes, splits, children, spans, boxes,
+            np.int32(nodes), out_axis, out_split, out_child, out_span, out_boxes,
+        )
+        self.arrays = (order, out_axis, out_split, out_child, out_span, out_boxes)
         self.kernel = cp.RawKernel(_SOURCE, "query3", options=("--fmad=false",))
         self.bytes = int(self.data.nbytes + sum(array.nbytes for array in self.arrays))
         self.query_calls = 0
@@ -305,6 +439,9 @@ class _CudaSample:
         self.normals = cp.empty_like(self.maps)
         self.planar = cp.empty(len(self.maps), dtype=cp.bool_)
         self.repaired_queries = 0
+        self.ops = _map_ops(cp.cuda.runtime.getDevice())
+        self.fused_calls = 0
+        self.fused_residual_rows = 0
         # A pre-existing native preparation may encode its caller's captured
         # neighborhood policy; retain those normals exactly when present.
         if sample._normals is not None and sample._planar is not None:
@@ -318,40 +455,52 @@ class _CudaSample:
                 # Equal/roundoff-close boundary neighbors retain SciPy's exact
                 # membership/order. Only the uncertain rows cross back to CPU.
                 margin = 64 * np.finfo(np.float64).eps
-                ambiguous = distances[:, k] - distances[:, k - 1] <= (
-                    margin * cp.maximum(1.0, distances[:, k])
-                )
-                rows = cp.asnumpy(cp.flatnonzero(ambiguous))
+                flags = cp.empty(stop - start, dtype=cp.uint8)
+                self._launch("neighbor_flags3", stop - start, distances,
+                             np.int32(stop - start), np.int32(k), np.float64(margin), flags)
+                rows = np.flatnonzero(cp.asnumpy(flags))
                 if len(rows):
                     _, native = self.tree.cpu.query(self.maps_host[start + rows], k=k)
-                    indexes[cp.asarray(rows), :k] = cp.asarray(native)
+                    self._launch(
+                        "scatter_indices3", len(rows), cp.asarray(rows), cp.asarray(native),
+                        np.int32(len(rows)), np.int32(k), np.int32(k + 1), indexes,
+                    )
                     self.repaired_queries += len(rows)
                 neighbors = self.maps[indexes[:, :k]]
                 centered = neighbors - neighbors.mean(axis=1, keepdims=True)
                 covariance = cp.einsum("nki,nkj->nij", centered, centered) / max(k, 1)
                 values, vectors = cp.linalg.eigh(covariance)
-                self.normals[start:stop] = vectors[:, :, 0]
-                self.planar[start:stop] = values[:, 0] <= options.max_planarity_ratio * values[:, 1]
                 # Repair ill-conditioned neighborhoods and planarity boundaries
                 # with the original native covariance/eigensolve.
-                scale = cp.maximum(cp.abs(values[:, 2]), np.finfo(np.float64).tiny)
-                uncertain = (cp.abs(values[:, 1]) <= margin * scale) | (
-                    cp.abs(values[:, 0] - options.max_planarity_ratio * values[:, 1])
-                    <= margin * scale
+                self._launch(
+                    "normal_flags3", stop - start, values, vectors, np.int32(stop - start),
+                    np.int64(vectors.strides[0] // 8), np.int64(vectors.strides[1] // 8),
+                    np.float64(options.max_planarity_ratio), np.float64(margin),
+                    self.normals[start:stop], self.planar[start:stop], flags,
                 )
-                rows = cp.asnumpy(cp.flatnonzero(uncertain))
+                rows = np.flatnonzero(cp.asnumpy(flags))
                 if len(rows):
-                    native_indices = cp.asnumpy(indexes[cp.asarray(rows), :k])
+                    selected = cp.empty((len(rows), k), dtype=cp.int64)
+                    self._launch("gather_indices3", len(rows), cp.asarray(rows), indexes,
+                                 np.int32(len(rows)), np.int32(k), np.int32(k + 1), selected)
+                    native_indices = cp.asnumpy(selected)
                     native = self.maps_host[native_indices]
                     centered_host = native - native.mean(axis=1, keepdims=True)
                     matrix = np.einsum("nki,nkj->nij", centered_host, centered_host) / max(k, 1)
                     eigenvalues, eigenvectors = np.linalg.eigh(matrix)
-                    self.normals[start + cp.asarray(rows)] = cp.asarray(eigenvectors[:, :, 0])
-                    self.planar[start + cp.asarray(rows)] = cp.asarray(
-                        eigenvalues[:, 0] <= options.max_planarity_ratio * eigenvalues[:, 1]
+                    self._launch(
+                        "scatter_normals3", len(rows), cp.asarray(rows),
+                        cp.asarray(np.ascontiguousarray(eigenvectors[:, :, 0])),
+                        cp.asarray(
+                            eigenvalues[:, 0] <= options.max_planarity_ratio * eigenvalues[:, 1],
+                        ),
+                        np.int32(len(rows)), self.normals[start:stop], self.planar[start:stop],
                     )
         self.bytes = int(self.tree.bytes + self.points.nbytes + self.pose_device.nbytes
                          + self.normals.nbytes + self.planar.nbytes)
+
+    def _launch(self, name: str, count: int, *arguments: Any) -> None:
+        self.fused_calls += self.ops.launch(name, count, *arguments)
 
     def residuals(self, extrinsic: FloatArray, gate: float) -> tuple[Any, Any, Any]:
         if extrinsic.shape != (4, 4) or not np.isfinite(extrinsic).all():
@@ -363,23 +512,33 @@ class _CudaSample:
         # Account conservatively for distance arithmetic and transform roundoff.
         error = (128 * np.finfo(np.float64).eps * self.coordinate_scale
                  * max(1.0, np.linalg.norm(transform, 1)))
-        ambiguous = (distances[:, 1] - distances[:, 0] <= 2 * error) | (
-            cp.abs(distances[:, 0] - gate) <= error
-        )
-        rows = cp.asnumpy(cp.flatnonzero(ambiguous))
+        flags = cp.empty(len(self.points), dtype=cp.uint8)
+        self._launch("gate_flags3", len(self.points), distances, np.int32(len(self.points)),
+                     np.float64(gate), np.float64(error), flags)
+        rows = np.flatnonzero(cp.asnumpy(flags))
         if len(rows):
             moving = (self.points_host[rows] @ transform[:3, :3].T + transform[:3, 3])
             native_distance, native_index = self.tree.cpu.query(moving, distance_upper_bound=gate)
-            indexes[cp.asarray(rows), 0] = cp.asarray(native_index)
-            distances[cp.asarray(rows), 0] = cp.asarray(native_distance)
-            world[cp.asarray(rows)] = cp.asarray(moving)
+            self._launch("scatter_hits3", len(rows), cp.asarray(rows), cp.asarray(native_distance),
+                         cp.asarray(native_index), cp.asarray(moving), np.int32(len(rows)),
+                         distances, indexes, world)
             self.repaired_queries += len(rows)
-        valid = (distances[:, 0] < gate) & (indexes[:, 0] < len(self.maps))
-        valid[valid] &= self.planar[indexes[valid, 0]]
-        selected = indexes[valid, 0]
-        normals = self.normals[selected]
-        residual = cp.sum((world[valid] - self.maps[selected]) * normals, axis=1)
-        return residual, normals, self.points[valid]
+        full_residual = cp.empty(len(self.points), dtype=cp.float64)
+        self._launch(
+            "residual_rows3", len(self.points), world, self.maps, self.normals, self.planar,
+            distances, indexes, np.int32(len(self.points)), np.int32(len(self.maps)),
+            np.float64(gate), flags, full_residual,
+        )
+        self.fused_residual_rows += len(self.points)
+        selected = np.flatnonzero(cp.asnumpy(flags))
+        residual = cp.empty(len(selected), dtype=cp.float64)
+        normals = cp.empty((len(selected), 3), dtype=cp.float64)
+        points = cp.empty_like(normals)
+        self._launch(
+            "pack_rows3", len(selected), cp.asarray(selected), indexes, self.points,
+            self.normals, full_residual, np.int32(len(selected)), residual, normals, points,
+        )
+        return residual, normals, points
 
 
 class CudaMapRuntime:
@@ -398,6 +557,8 @@ class CudaMapRuntime:
         self.device_id = cp.cuda.runtime.getDevice()
         self.samples: dict[int, _CudaSample] = {}
         self.retained_bytes = 0
+        self.system_kernel_calls = 0
+        self.system_rows = 0
         with cp.cuda.Device(self.device_id):
             for sample in samples:
                 # Preflight the main payloads before constructing a new snapshot.
@@ -418,7 +579,7 @@ class CudaMapRuntime:
             "calibrex.cuda_lidar_map/v0.1;fp64=true;query_fma=false;"
             f"cupy={cp.__version__};cuda={cp.cuda.runtime.runtimeGetVersion()};"
             f"driver={cp.cuda.runtime.driverGetVersion()};cc={capability};"
-            f"query_sha256={hashlib.sha256(_SOURCE.encode()).hexdigest()}"
+            f"query_sha256={hashlib.sha256((_SOURCE + _MAP_SOURCE).encode()).hexdigest()}"
         )
 
     def statistics(self) -> dict[str, int]:
@@ -438,6 +599,13 @@ class CudaMapRuntime:
             "scalar_query_repairs": sum(
                 sample.repaired_queries for sample in self.samples.values()
             ),
+            "gpu_map_fused_kernel_calls": self.system_kernel_calls + sum(
+                sample.fused_calls for sample in self.samples.values()
+            ),
+            "gpu_map_fused_residual_rows": sum(
+                sample.fused_residual_rows for sample in self.samples.values()
+            ),
+            "gpu_map_fused_system_rows": self.system_rows,
         }
 
     def _sample(self, sample: MapSample) -> _CudaSample:
@@ -470,16 +638,19 @@ class CudaMapRuntime:
                 )
                 if not len(residual):
                     continue
-                reference = points @ transform[:3, :3].T + transform[:3, 3]
+                rotated = points @ transform[:3, :3].T
                 normal_reference = normals @ prepared.pose_device[:3, :3]
-                jacobian = cp.column_stack([
-                    cp.cross(reference, normal_reference), normal_reference,
-                ])
-                weight = cp.minimum(
-                    1.0, self.options.huber_m / cp.maximum(cp.abs(residual), 1e-12),
+                jacobian = cp.empty((len(points), 6), dtype=cp.float64)
+                weighted = cp.empty_like(jacobian)
+                weighted_residual = cp.empty_like(residual)
+                self.system_kernel_calls += prepared.ops.launch(
+                    "jacobian_rows3", len(points), rotated, normal_reference, residual,
+                    np.int32(len(points)), *[np.float64(value) for value in extrinsic[:3, 3]],
+                    np.float64(self.options.huber_m), jacobian, weighted, weighted_residual,
                 )
-                hessian += jacobian.T @ (jacobian * weight[:, None])
-                gradient += jacobian.T @ (weight * residual)
+                self.system_rows += len(points)
+                hessian += jacobian.T @ weighted
+                gradient += jacobian.T @ weighted_residual
                 parts.append(residual)
             residuals = cp.concatenate(parts) if parts else cp.empty(0, dtype=cp.float64)
             return _host(hessian), _host(gradient), _host(residuals)

@@ -10,6 +10,7 @@ import cupy as cp
 import numpy as np
 
 from calibrex.solvers.cuda_lidar_map_adapter import (
+    _MAP_SOURCE,
     _SOURCE,
     _coordinates,
     _CudaTree,
@@ -279,7 +280,7 @@ def execution_identity() -> str:
         f"cupy={cp.__version__};cuda={cp.cuda.runtime.runtimeGetVersion()};"
         f"driver={cp.cuda.runtime.driverGetVersion()};"
         f"cc={properties['major']}.{properties['minor']};"
-        f"query_sha256={hashlib.sha256(_SOURCE.encode()).hexdigest()};"
+        f"query_sha256={hashlib.sha256((_SOURCE + _MAP_SOURCE).encode()).hexdigest()};"
         f"system_sha256={system_digest}"
     )
 

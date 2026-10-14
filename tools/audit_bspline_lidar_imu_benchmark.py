@@ -34,7 +34,8 @@ def _cuda_kernel_hashes(sources: dict[str, bytes]) -> tuple[str, str]:
                         result[target.id] = node.value.value
         return result
 
-    query = constants("calibrex/solvers/cuda_lidar_map_adapter.py")["_SOURCE"]
+    map_sources = constants("calibrex/solvers/cuda_lidar_map_adapter.py")
+    query = map_sources["_SOURCE"] + map_sources.get("_MAP_SOURCE", "")
     system = constants("calibrex/solvers/cuda_scan_odometry_adapter.py")
     return _sha(query.encode()), _sha(
         (system["_SYSTEM_SOURCE"] + system["_FUSED_SOURCE"] + system["_COVARIANCE_SOURCE"]
