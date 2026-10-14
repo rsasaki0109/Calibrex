@@ -349,7 +349,9 @@ def calibrate_lidar_imu_bag(
     holdout_rms = _whitened_rms(trajectory, calibration, planes, holdout_gyro, holdout_accel)
 
     def holdout_chi2(family: LidarImuBagFamily, values: LidarImuCalibration) -> float:
-        residuals = lidar_imu_residuals(trajectory, values, planes, holdout_gyro, holdout_accel)
+        residuals = lidar_imu_residuals(
+            trajectory, values, planes, holdout_gyro, holdout_accel, families=(family,),
+        )
         return float(np.sum(residuals[family] ** 2))
 
     controls = _controls(holdout_chi2, calibration, opts.control_delta_chi2)

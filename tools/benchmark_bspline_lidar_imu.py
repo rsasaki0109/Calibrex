@@ -94,6 +94,7 @@ def _worker(args: argparse.Namespace) -> None:
     from calibrex.data.livox_ros2 import LivoxStreamProfile
     from calibrex.evaluation import lidar_imu_bag_calibration as runner
 
+    controls_timing = _time_controls(runner)
     normal_timing = None
     spatial_timing = preprocessing_timing = None
     if backend == "cuda":
@@ -202,6 +203,8 @@ def _worker(args: argparse.Namespace) -> None:
             "variant": args.variant,
             "pipeline_seconds": pipeline_seconds,
             "fit_seconds": sum(float(r["seconds"]) for r in rounds),
+            "controls_seconds": controls_timing["seconds"],
+            "controls_calls": controls_timing["calls"],
             **({"normal_preparation_seconds": normal_timing["seconds"],
                 "normal_preparation_calls": normal_timing["calls"]}
                if normal_timing is not None else {}),
@@ -367,6 +370,11 @@ def _time_method(holder: Any, name: str) -> dict[str, float | int]:
 
     setattr(holder, name, measured)
     return totals
+
+
+def _time_controls(holder: Any) -> dict[str, float | int]:
+    """Observe the complete signed holdout-control suite once per pipeline."""
+    return _time_method(holder, "_controls")
 
 
 def _time_normal_preparation(holder: Any) -> dict[str, float | int]:

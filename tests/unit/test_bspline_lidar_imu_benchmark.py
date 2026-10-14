@@ -5,17 +5,33 @@ from __future__ import annotations
 import copy
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from tools.benchmark_bspline_lidar_imu import (
     _backend,
     _compare,
     _manifest,
+    _time_controls,
     _time_normal_preparation,
     _validate_backend_execution,
     _verify_sources,
     _write,
 )
+
+
+def test_controls_observer_preserves_result_and_exception() -> None:
+    def controls(fail: bool) -> list[int]:
+        if fail:
+            raise ValueError("original error")
+        return [3, 7]
+
+    holder = SimpleNamespace(_controls=controls)
+    timings = _time_controls(holder)
+    assert holder._controls(False) == [3, 7]
+    with pytest.raises(ValueError, match="original error"):
+        holder._controls(True)
+    assert timings["calls"] == 2 and timings["seconds"] > 0
 
 
 def test_normal_timing_counts_nested_cache_completion_once() -> None:

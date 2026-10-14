@@ -55,6 +55,7 @@ from calibrex.core.se3_manifold import (
 )
 
 FloatArray: TypeAlias = NDArray[np.float64]
+ResidualFamily = Literal["plane", "gyro", "accel"]
 CalibrationBlock = Literal[
     "imu_rotation",
     "gyro_bias",
@@ -248,13 +249,22 @@ def lidar_imu_residuals(
     planes: BSplinePlaneReturns,
     gyro: BSplineImuSamples,
     accel: BSplineImuSamples,
+    *,
+    families: tuple[ResidualFamily, ...] = ("plane", "gyro", "accel"),
 ) -> dict[str, FloatArray]:
-    """Return whitened residuals per family (``plane``, ``gyro``, ``accel``)."""
+    """Return whitened residuals for the requested families, in their given order.
 
-    families = _families(planes, gyro, accel)
+    The default evaluates all families. Selecting a subset avoids evaluating
+    unrelated spline timestamps, without changing the selected residuals.
+    """
+
+    evaluators = _families(planes, gyro, accel)
+    if set(families) - evaluators.keys():
+        raise ValueError("residual families must be plane, gyro or accel")
+    selected = {name: evaluators[name] for name in families}
     return {
         name: family.residual(_gather(trajectory, family.body_times(calibration)), calibration)
-        for name, family in families.items()
+        for name, family in selected.items()
     }
 
 

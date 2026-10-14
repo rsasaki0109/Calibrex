@@ -47,7 +47,19 @@ def test_synthetic_bag_reads_back_with_point_times_and_clock_offset(tmp_path: Pa
     assert float(np.median(np.linalg.norm(imu.accel_mps2, axis=1))) == pytest.approx(9.81, abs=1.0)
 
 
-def test_cli_joint_calibration_recovers_the_injected_calibration(tmp_path: Path) -> None:
+def test_cli_joint_calibration_recovers_the_injected_calibration(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from calibrex.evaluation import lidar_imu_bag_calibration as runner
+
+    original = runner.lidar_imu_residuals
+    calls: list[tuple[str, ...]] = []
+
+    def observed(*args, **kwargs):
+        calls.append(kwargs.get("families", ("plane", "gyro", "accel")))
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(runner, "lidar_imu_residuals", observed)
     bag = write_synthetic_lidar_imu_bag(tmp_path / "bag", SPEC)
     output = tmp_path / "calibration.json"
     exit_code = main(
@@ -93,6 +105,9 @@ def test_cli_joint_calibration_recovers_the_injected_calibration(tmp_path: Path)
     assert artifact["holdout_whitened_rms"]["gyro"] < 1.5
     assert artifact["provenance"]["point_time_field"] == "offset_time"
     assert artifact["provenance"]["command"][:3] == ["calibrex", "imu-lidar", "joint"]
+    selected = [family for family in calls if len(family) == 1]
+    assert len(selected) == len(artifact["controls"]) + 2
+    assert set(selected) == {("gyro",), ("accel",)}
 
 
 def test_band_limit_removes_vibration_without_delaying_the_motion() -> None:

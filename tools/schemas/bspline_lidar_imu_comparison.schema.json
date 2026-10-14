@@ -143,6 +143,8 @@
         "spatial_build_calls": {"type": "integer", "minimum": 1},
         "preprocessing_seconds": {"type": "number", "minimum": 0},
         "preprocessing_calls": {"type": "integer", "minimum": 1},
+        "controls_seconds": {"type": "number", "minimum": 0},
+        "controls_calls": {"const": 1},
         "rounds": {
           "type": "array",
           "minItems": 1,

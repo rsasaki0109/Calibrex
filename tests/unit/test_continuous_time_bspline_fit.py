@@ -14,6 +14,7 @@ from calibrex.core.continuous_time_bspline_fit import (
     BSplineLidarImuProblem,
     BSplinePlaneReturns,
     LidarImuCalibration,
+    ResidualFamily,
     fit_bspline_lidar_imu,
     lidar_imu_residuals,
 )
@@ -92,6 +93,41 @@ def test_residuals_vanish_on_noise_free_spline_data() -> None:
     residuals = lidar_imu_residuals(spline, TRUTH, planes, gyro, accel)
     for family, values in residuals.items():
         assert np.max(np.abs(values)) < 1.0e-8, family
+
+
+@pytest.mark.parametrize("families", [("plane",), ("gyro",), ("accel",),
+                                      ("accel", "gyro"), ()])
+def test_selected_residuals_keep_exact_values_and_order(
+    families: tuple[ResidualFamily, ...],
+) -> None:
+    spline = _truth_spline()
+    planes, gyro, accel = _measurements(spline, np.random.default_rng(18))
+    changed = replace(TRUTH, gyro_bias_rad_s=TRUTH.gyro_bias_rad_s + .07,
+                      accel_bias_m_s2=TRUTH.accel_bias_m_s2 - .15,
+                      imu_clock_offset_sec=TRUTH.imu_clock_offset_sec + .001)
+    expected = lidar_imu_residuals(spline, changed, planes, gyro, accel)
+    actual = lidar_imu_residuals(spline, changed, planes, gyro, accel, families=families)
+    assert tuple(actual) == families
+    for name in families:
+        np.testing.assert_array_equal(actual[name].view(np.uint64),
+                                      expected[name].view(np.uint64))
+
+
+def test_selected_imu_residuals_do_not_evaluate_unrelated_plane_times() -> None:
+    spline = _truth_spline()
+    planes, gyro, accel = _measurements(spline, np.random.default_rng(19))
+    outside = replace(planes, times_sec=planes.times_sec + spline.end_time_sec + 1)
+    expected = lidar_imu_residuals(spline, TRUTH, planes, gyro, accel)
+    actual = lidar_imu_residuals(spline, TRUTH, outside, gyro, accel,
+                               families=("gyro", "accel"))
+    for name in ("gyro", "accel"):
+        np.testing.assert_array_equal(actual[name], expected[name])
+    assert lidar_imu_residuals(spline, TRUTH, outside, gyro, accel, families=()) == {}
+    with pytest.raises(ValueError, match="outside"):
+        lidar_imu_residuals(spline, TRUTH, outside, gyro, accel)
+    with pytest.raises(ValueError, match="residual families"):
+        lidar_imu_residuals(spline, TRUTH, planes, gyro, accel,
+                           families=("unknown",))  # type: ignore[arg-type]
 
 
 def test_fit_recovers_calibration_and_reports_marginal_std() -> None:
