@@ -16,6 +16,7 @@ from typing import Any
 import jsonschema
 from tools.benchmark_cuda_fixed_neighbors import _quality
 
+from calibrex.core.lidar_imu_bag_calibration import LidarImuBagCalibrationArtifact
 from calibrex.core.lidar_lidar_extrinsic import LidarLidarExtrinsicArtifact
 
 
@@ -64,16 +65,22 @@ def audit(root: Path) -> dict[str, Any]:
                     raw_sources[name] = source
                 if name == "calibrex/solvers/cuda_lidar_map_adapter.py":
                     parsed = ast.parse(source)
-                    constants = {target.id: node.value.value for node in parsed.body
-                                 if isinstance(node, ast.Assign)
-                                 and isinstance(node.value, ast.Constant)
-                                 and isinstance(node.value.value, str)
-                                 for target in node.targets if isinstance(target, ast.Name)}
+                    constants = {
+                        target.id: node.value.value
+                        for node in parsed.body
+                        if isinstance(node, ast.Assign)
+                        and isinstance(node.value, ast.Constant)
+                        and isinstance(node.value.value, str)
+                        for target in node.targets
+                        if isinstance(target, ast.Name)
+                    }
                     shader = constants["_SOURCE"] + constants.get("_MAP_SOURCE", "")
                     compacted[variant] = "_MAP_SOURCE" in constants
-                    features[variant] = {node.value for node in ast.walk(parsed)
-                                         if isinstance(node, ast.Constant)
-                                         and isinstance(node.value, str)}
+                    features[variant] = {
+                        node.value
+                        for node in ast.walk(parsed)
+                        if isinstance(node, ast.Constant) and isinstance(node.value, str)
+                    }
                     shaders[variant] = hashlib.sha256(shader.encode()).hexdigest()
         if archived != manifest:
             raise ValueError("frozen source archive differs from manifest")
@@ -145,9 +152,7 @@ def audit(root: Path) -> dict[str, Any]:
         if (
             counters["prepared_samples"] != 6
             or counters["gpu_tree_builds"] != 6
-            or counters["gpu_tree_build_kernel_calls"] != (
-                30 if compacted[variant] else 18
-            )
+            or counters["gpu_tree_build_kernel_calls"] != (30 if compacted[variant] else 18)
             or counters["gpu_query_calls"] <= 0
             or counters["gpu_query_rows"] < sum(row["map_points"])
             or row["map_points"] != [127158, 127158, 127303, 127303, 126598, 126598]
@@ -163,14 +168,14 @@ def audit(root: Path) -> dict[str, Any]:
             counters.get("gpu_map_fused_kernel_calls", 0) <= 0
             or counters.get("gpu_map_fused_residual_rows", 0)
             != counters["gpu_query_rows"] - sum(row["map_points"])
-            or not 0 < counters.get("gpu_map_fused_system_rows", 0)
+            or not 0
+            < counters.get("gpu_map_fused_system_rows", 0)
             <= counters["gpu_map_fused_residual_rows"]
         ):
             raise ValueError("fused map execution accounting differs")
         if "nvrtc_compilation" in binding:
             compilation = binding["nvrtc_compilation"]
-            if (compilation["calls"] <= 0
-                    or not 0 < compilation["seconds"] <= row["api_seconds"]):
+            if compilation["calls"] <= 0 or not 0 < compilation["seconds"] <= row["api_seconds"]:
                 raise ValueError("compilation timing scope differs")
         if not 0 < row["api_seconds"] <= attempt["whole_seconds"]:
             raise ValueError("timing scope differs")
@@ -253,6 +258,165 @@ def audit(root: Path) -> dict[str, Any]:
             or report["profile_total_seconds"] != stats.total_tt
         ):
             raise ValueError("cold compilation totals differ")
+    extra = {}
+    if all("nvrtc_compilation" in row["frozen_provenance"] for row in measurements.values()):
+        extra["compilation_median_seconds"] = {
+            variant: statistics.median(
+                measurements[(repeat, variant)]["frozen_provenance"]["nvrtc_compilation"]["seconds"]
+                for repeat in range(protocol["repeats"])
+            )
+            for variant in manifests
+        }
+        extra["compiled_programs"] = {
+            variant: [
+                measurements[(repeat, variant)]["frozen_provenance"]["nvrtc_compilation"]["calls"]
+                for repeat in range(protocol["repeats"])
+            ]
+            for variant in manifests
+        }
+    warm = root / "warm"
+    if warm.exists():
+        warm_summary = json.loads((warm / "summary.json").read_bytes())
+        jsonschema.validate(warm_summary, json.loads((warm / "summary.schema.json").read_bytes()))
+        if warm_summary["provenance"]["helper_sha256"] != _sha(warm / "helper.py.txt"):
+            raise ValueError("warm launcher binding differs")
+        warm_records = {}
+        medians = {}
+        for variant in manifests:
+            report = json.loads((warm / variant / "measurement.json").read_bytes())
+            binding = report["provenance"]
+            if (
+                binding["helper_sha256"] != _sha(warm / "helper.py.txt")
+                or binding["source_commit"] != protocol["commits"][variant]
+                or binding["source_manifest_sha256"]
+                != _sha(root / f"sources-{variant}-manifest.json")
+            ):
+                raise ValueError("warm source binding differs")
+            if (
+                len(report["rows"]) != 4
+                or [row["repeat"] for row in report["rows"]] != list(range(4))
+                or any(row["nvrtc_calls"] != 0 for row in report["rows"][1:])
+            ):
+                raise ValueError("warm cache execution differs")
+            for repeat, row in enumerate(report["rows"]):
+                folder = warm / variant / f"{repeat:02d}"
+                record = json.loads((folder / "measurement.json").read_bytes())
+                model = LidarLidarExtrinsicArtifact.model_validate_json(
+                    (folder / "result.json").read_bytes(),
+                )
+                if (
+                    record["result_sha256"] != _sha(folder / "result.json")
+                    or record["artifact"] != model.model_dump(mode="json", exclude_none=True)
+                    or model.provenance.git_commit != protocol["commits"][variant]
+                    or row["api_seconds"] != record["api_seconds"]
+                    or row["api_seconds"] > row["whole_call_seconds"]
+                    or record["provenance"]["input_sha256"] != protocol["input_sha256"]
+                ):
+                    raise ValueError("warm complete result or timing differs")
+                if (
+                    any(
+                        manifests[variant].get(name.removeprefix("src/")) != digest
+                        for name, digest in record["provenance"]["source_sha256"].items()
+                        if name.startswith("src/")
+                    )
+                    or record["provenance"]["source_sha256"].get(
+                        "tools/benchmark_cuda_lidar_map.py"
+                    )
+                    != protocol["map_launcher_sha256"]
+                    or record["evaluation"]["result"]["execution_backend"].split("query_sha256=")[
+                        -1
+                    ]
+                    != shaders[variant]
+                ):
+                    raise ValueError("warm executed source or shader differs")
+                warm_records[(repeat, variant)] = record
+            medians[variant] = statistics.median(row["api_seconds"] for row in report["rows"][1:])
+            if medians[variant] != report["warm_api_median_seconds"]:
+                raise ValueError("warm median differs")
+        quality = [
+            _quality(warm_records[(repeat, "prior")], warm_records[(repeat, "current")])
+            for repeat in range(4)
+        ]
+        if (
+            not all(quality)
+            or quality != warm_summary["quality_exact"]
+            or medians != warm_summary["warm_api_median_seconds"]
+            or medians["prior"] / medians["current"] != warm_summary["warm_api_speedup"]
+        ):
+            raise ValueError("warm full quality or ratio differs")
+        extra["warm_api_speedup"] = warm_summary["warm_api_speedup"]
+    joint = root / "joint-validation"
+    if joint.exists():
+        report = json.loads((joint / "summary.json").read_bytes())
+        jsonschema.validate(report, json.loads((joint / "summary.schema.json").read_bytes()))
+        if (
+            report["provenance"]["launcher_sha256"] != _sha(joint / "benchmark.py.txt")
+            or report["provenance"]["current_full_commit"] != protocol["commits"]["current"]
+        ):
+            raise ValueError("shared-path launcher binding differs")
+        records, models = {}, {}
+        for variant in manifests:
+            folder = joint / variant
+            records[variant] = json.loads((folder / "measurement.json").read_bytes())
+            models[variant] = LidarImuBagCalibrationArtifact.model_validate_json(
+                (folder / "result.json").read_bytes(),
+            ).model_dump(mode="json")
+            source_manifest = (
+                joint / "sources-prior-manifest.json"
+                if variant == "prior"
+                else root / "sources-current-manifest.json"
+            )
+            source_hashes = json.loads(source_manifest.read_bytes())
+            if variant == "prior":
+                archived = {}
+                with tarfile.open(joint / "sources-prior.tar.gz") as bundle:
+                    for member in bundle.getmembers():
+                        if not member.isfile() or not member.name.endswith(".py"):
+                            continue
+                        if (
+                            not member.name.startswith("src/calibrex/")
+                            or ".." in Path(member.name).parts
+                        ):
+                            raise ValueError("shared-path archive member differs")
+                        stream = bundle.extractfile(member)
+                        assert stream is not None
+                        archived[member.name.removeprefix("src/")] = hashlib.sha256(
+                            stream.read(),
+                        ).hexdigest()
+                if archived != source_hashes:
+                    raise ValueError("shared-path source archive differs")
+            binding = records[variant]["provenance"]
+            if (
+                binding["result_sha256"] != _sha(folder / "result.json")
+                or binding["source_manifest_sha256"] != _sha(source_manifest)
+                or any(
+                    source_hashes.get(name) != digest
+                    for name, digest in binding["executed_sources"].items()
+                )
+            ):
+                raise ValueError("shared-path executed source or result differs")
+            if variant == "current" and (
+                binding["launcher_sha256"] != _sha(joint / "benchmark.py.txt")
+                or not protocol["commits"][variant].startswith(
+                    models[variant]["provenance"]["git_commit"]
+                )
+            ):
+                raise ValueError("shared-path measured commit or launcher differs")
+        if (
+            report["quality_exact"] is not True
+            or models["prior"]["controls"] != models["current"]["controls"]
+            or len(models["current"]["controls"]) != 32
+            or models["prior"]["holdout_whitened_rms"] != models["current"]["holdout_whitened_rms"]
+            or len(records["current"]["rounds"]) != 4
+        ):
+            raise ValueError("shared-path complete evidence differs")
+        for a, b in zip(records["prior"]["rounds"], records["current"]["rounds"], strict=True):
+            if {key: value for key, value in a.items() if key != "seconds"} != {
+                key: value for key, value in b.items() if key != "seconds"
+            }:
+                raise ValueError("shared-path full fit differs")
+        extra["joint_fit_rounds_exact"] = 4
+        extra["joint_signed_controls_exact"] = 32
     return {
         "workers": len(attempts),
         "quality_exact": True,
@@ -261,6 +425,7 @@ def audit(root: Path) -> dict[str, Any]:
         "observations": len(samples),
         "foreign_samples": 0,
         "unknown_samples": 0,
+        **extra,
     }
 
 

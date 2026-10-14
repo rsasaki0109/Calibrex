@@ -1,0 +1,39 @@
+from pathlib import Path
+import argparse,hashlib,importlib.util,json,os,statistics,sys,time
+from types import SimpleNamespace
+
+parser=argparse.ArgumentParser();parser.add_argument('--variant',choices=['prior','current'],required=True)
+args=parser.parse_args();workspace=Path.cwd()
+formal=workspace/'outputs/fused-map-formal-v1'
+protocol=json.loads((formal/'protocol.json').read_bytes())
+source=formal/f'sources-{args.variant}'
+root=workspace/'outputs/fused-map-warm-v1'/args.variant;root.mkdir(parents=True,exist_ok=False)
+(root/'helper.py.txt').write_bytes(Path(__file__).read_bytes())
+sys.path.insert(0,str(source/'src'));os.chdir(source)
+import cupy as cp
+spec=importlib.util.spec_from_file_location('_bound_map',source/'tools/benchmark_cuda_lidar_map.py')
+bench=importlib.util.module_from_spec(spec);spec.loader.exec_module(bench)
+original=cp.cuda.nvrtc.compileProgram
+calls=0
+def compile_observed(*a,**k):
+    global calls
+    calls+=1;return original(*a,**k)
+cp.cuda.nvrtc.compileProgram=compile_observed
+rows=[]
+for repeat in range(4):
+    before=calls;begin=time.perf_counter()
+    bench._worker(SimpleNamespace(sequence=workspace/'data/public/kitti_raw_icp/2011_09_30_drive_0018_sync',
+                                output_dir=root/f'{repeat:02d}',half_window=0,worker='cuda',
+                                source_commit=protocol['commits'][args.variant]))
+    value=json.loads((root/f'{repeat:02d}/measurement.json').read_bytes())
+    row={'repeat':repeat,'phase':'prime' if repeat==0 else 'warm','api_seconds':value['api_seconds'],
+         'whole_call_seconds':time.perf_counter()-begin,'nvrtc_calls':calls-before}
+    rows.append(row);print(json.dumps({'variant':args.variant,**row}),flush=True)
+    if repeat:assert row['nvrtc_calls']==0
+cp.cuda.nvrtc.compileProgram=original
+payload={'rows':rows,'warm_api_median_seconds':statistics.median(row['api_seconds'] for row in rows[1:]),
+         'provenance':{'helper_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+              'source_commit':protocol['commits'][args.variant],
+              'source_manifest_sha256':hashlib.sha256((source/'manifest.json').read_bytes()).hexdigest(),
+              'scope':'three complete warm API calls after one owned prime; fresh process and separate cache per variant; fixed variant order, CPU/GPU unreserved; excludes imports'}}
+(root/'measurement.json').write_text(json.dumps(payload,indent=2),encoding='utf-8')

@@ -1,0 +1,99 @@
+"""Bind descriptive warm runs and shared-tree quality to the cold publication."""
+
+from pathlib import Path
+import hashlib
+import json
+import shutil
+import statistics
+
+from calibrex.core.lidar_imu_bag_calibration import LidarImuBagCalibrationArtifact
+from tools.benchmark_cuda_fixed_neighbors import _quality
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def write(path, value):
+    path.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n", encoding="utf-8", newline="\n")
+
+
+root = Path("docs/assets/cuda_map_fusion")
+protocol = json.loads((root / "protocol.json").read_bytes())
+warm = root / "warm"
+warm.mkdir(exist_ok=True)
+records, medians = {}, {}
+for variant in ("prior", "current"):
+    source = Path("outputs/fused-map-warm-v1") / variant
+    target = warm / variant
+    target.mkdir(exist_ok=True)
+    shutil.copyfile(source / "measurement.json", target / "measurement.json")
+    report = json.loads((target / "measurement.json").read_bytes())
+    for repeat in range(4):
+        folder = target / f"{repeat:02d}"
+        folder.mkdir(exist_ok=True)
+        for name in ("measurement.json", "result.json"):
+            shutil.copyfile(source / f"{repeat:02d}" / name, folder / name)
+        records[(repeat, variant)] = json.loads((folder / "measurement.json").read_bytes())
+    medians[variant] = statistics.median(row["api_seconds"] for row in report["rows"][1:])
+    assert medians[variant] == report["warm_api_median_seconds"]
+    assert all(row["nvrtc_calls"] == 0 for row in report["rows"][1:])
+shutil.copyfile("outputs/fused-map-warm-v1/current/helper.py.txt", warm / "helper.py.txt")
+quality = [_quality(records[(repeat, "prior")], records[(repeat, "current")]) for repeat in range(4)]
+assert all(quality)
+write(warm / "summary.json", {
+    "warm_api_median_seconds": medians,
+    "warm_api_speedup": medians["prior"] / medians["current"],
+    "quality_exact": quality,
+    "provenance": {
+        "helper_sha256": sha(warm / "helper.py.txt"),
+        "scope": "three complete warm calls after one owned prime per variant; separate process and cache per variant; fixed order, unreserved CPU/GPU; excludes imports",
+    },
+})
+
+joint = root / "joint-validation"
+joint.mkdir(exist_ok=True)
+prior = Path("docs/assets/cuda_gyro_deskew")
+for variant, source in (
+    ("prior", prior / "00-prior"),
+    ("current", Path("outputs/fused-map-joint-validation-v1")),
+):
+    target = joint / variant
+    target.mkdir(exist_ok=True)
+    for name in ("measurement.json", "result.json"):
+        shutil.copyfile(source / name, target / name)
+for name in ("sources-prior.tar.gz", "sources-prior-manifest.json"):
+    shutil.copyfile(prior / name, joint / name)
+shutil.copyfile("tools/benchmark_bspline_lidar_imu.py", joint / "benchmark.py.txt")
+rows = {variant: json.loads((joint / variant / "measurement.json").read_bytes()) for variant in ("prior", "current")}
+models = {variant: LidarImuBagCalibrationArtifact.model_validate_json((joint / variant / "result.json").read_bytes()) for variant in ("prior", "current")}
+assert len(rows["current"]["rounds"]) == 4
+for a, b in zip(rows["prior"]["rounds"], rows["current"]["rounds"], strict=True):
+    assert {k: v for k, v in a.items() if k != "seconds"} == {k: v for k, v in b.items() if k != "seconds"}
+assert models["prior"].controls == models["current"].controls
+assert len(models["current"].controls) == 32
+assert models["prior"].holdout_whitened_rms == models["current"].holdout_whitened_rms
+write(joint / "summary.json", {
+    "full_fit_rounds": 4,
+    "signed_controls": 32,
+    "quality_exact": True,
+    "provenance": {
+        "scope": "current shared tree path quality only; earlier baseline timings not compared",
+        "current_full_commit": protocol["commits"]["current"],
+        "launcher_sha256": sha(joint / "benchmark.py.txt"),
+    },
+})
+for target in (warm, joint):
+    shutil.copyfile("tools/schemas/cuda_map_auxiliary_validation.schema.json", target / "summary.schema.json")
+readme = root / "README.md"
+text = readme.read_text(encoding="utf-8")
+if "[warm check]" not in text:
+    text += "\nThe [warm check](warm/summary.json) excludes imports and reports 1.514 s → 1.430 s (1.059x) across three calls after each variant's own prime, with zero new compilations and exact complete results. Its fixed order and unreserved resources make it descriptive. The main benefit is first-use compilation reduction.\n\nThe [GLIM shared-path validation](joint-validation/summary.json) retains four complete identical fitted trajectories/covariances/costs, holdout and 32 signed controls. It is a quality check only; timings from the earlier baseline are not compared.\n"
+readme.write_text(text, encoding="utf-8", newline="\n")
+shutil.copyfile(__file__, root / "extensions-publisher.py.txt")
+write(root / "publication-index.json", {
+    "schema_version": "calibrex.cuda_map_pipeline/v0.1",
+    "record_type": "publication",
+    "files": {p.relative_to(root).as_posix(): sha(p) for p in sorted(root.rglob("*")) if p.is_file() and p.name != "publication-index.json"},
+    "provenance": {"protocol_sha256": sha(root / "protocol.json")},
+})

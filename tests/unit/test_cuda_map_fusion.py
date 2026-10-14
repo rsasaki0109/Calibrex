@@ -24,8 +24,10 @@ def previous() -> ModuleType:
         count = 0
     if not count:
         pytest.skip("requires a CUDA device")
-    path = (Path(__file__).resolve().parents[2]
-            / "docs/assets/cuda_fixed_neighbors/sources-prior.tar.gz")
+    path = (
+        Path(__file__).resolve().parents[2]
+        / "docs/assets/cuda_fixed_neighbors/sources-prior.tar.gz"
+    )
     with tarfile.open(path) as archive:
         stream = archive.extractfile("src/calibrex/solvers/cuda_lidar_map_adapter.py")
         assert stream is not None
@@ -38,7 +40,9 @@ def previous() -> ModuleType:
 @pytest.mark.parametrize("count", [17, 4097])
 @pytest.mark.parametrize("precomputed", [False, True])
 def test_fused_residuals_and_normal_systems_keep_previous_gpu_bytes(
-    previous: ModuleType, count: int, precomputed: bool,
+    previous: ModuleType,
+    count: int,
+    precomputed: bool,
 ) -> None:
     rng = np.random.default_rng(705)
     world = rng.normal(size=(1003, 3))
@@ -52,9 +56,17 @@ def test_fused_residuals_and_normal_systems_keep_previous_gpu_bytes(
         sample.prepare(options)
     old = previous.CudaMapRuntime([sample], options)
     current = CudaMapRuntime([sample], options)
-    for transform in (np.eye(4), np.array([
-        [1, 0, 0, .04], [0, 1, 0, -.03], [0, 0, 1, .02], [0, 0, 0, 1],
-    ])):
+    for transform in (
+        np.eye(4),
+        np.array(
+            [
+                [1, 0, 0, 0.04],
+                [0, 1, 0, -0.03],
+                [0, 0, 1, 0.02],
+                [0, 0, 0, 1],
+            ]
+        ),
+    ):
         left = old.residuals(sample, transform)
         right = current.residuals(sample, transform)
         assert right.tobytes() == left.tobytes()
@@ -75,7 +87,10 @@ def test_fused_empty_and_all_unmatched_rows(previous: ModuleType) -> None:
         old = previous.CudaMapRuntime([sample], options)
         current = CudaMapRuntime([sample], options)
         assert current.residuals(sample, np.eye(4)).shape == (0,)
-        for a, b in zip(current.normal_equations([sample], np.eye(4)),
-                        old.normal_equations([sample], np.eye(4)), strict=True):
+        for a, b in zip(
+            current.normal_equations([sample], np.eye(4)),
+            old.normal_equations([sample], np.eye(4)),
+            strict=True,
+        ):
             assert a.tobytes() == b.tobytes()
         assert current.statistics()["gpu_map_fused_system_rows"] == 0

@@ -1,0 +1,100 @@
+{
+  "samples": [
+    {
+      "offset_seconds": 1.1327589000575244,
+      "own": 0,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 11.914130500052124,
+      "own": 0,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 21.981826500035822,
+      "own": 1,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 32.05431480007246,
+      "own": 1,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 42.116106100031175,
+      "own": 1,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 52.20454369997606,
+      "own": 1,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 62.27865660004318,
+      "own": 1,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 72.34766299999319,
+      "own": 1,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 83.10283940006047,
+      "own": 0,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 93.85687140002847,
+      "own": 0,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 93.91901479999069,
+      "own": 0,
+      "foreign": 0,
+      "unknown": 0
+    }
+  ],
+  "exit_code": 0,
+  "provenance": {
+    "observer_sha256": "ac3dd423192f36f1164e2acb11986d9200e9bfdab95975e87f6a7b268d04a23f",
+    "launcher_sha256": "06c1098d2c1f24104c9f17651fc31d4d804aff179987b1eb40224f199ee52d3d",
+    "schema_sha256": "b213b9f3acadb96a5424b19ae71532f57c9b789d7ceca590f42384b0932d06cf",
+    "benchmark_command": [
+      "<PYTHON>",
+      "-m",
+      "tools.benchmark_cuda_map_pipeline",
+      "--baseline-commit",
+      "1f45f4f1b034b2430e7b22c4036912e7c68936d1",
+      "--sequence",
+      "data/public/kitti_raw_icp/2011_09_30_drive_0018_sync",
+      "--repeats",
+      "3",
+      "--output",
+      "outputs/fused-map-formal-v1"
+    ],
+    "query_command": [
+      "nvidia-smi",
+      "--query-compute-apps=pid",
+      "--format=csv,noheader,nounits"
+    ],
+    "sampling_interval_seconds": 10,
+    "psutil": "7.2.2",
+    "termination_policy": "Terminate only the owned benchmark process tree on foreign or unknown CUDA process observations.",
+    "terminated_on_interference": false,
+    "started_at_utc": "2026-10-14T19:50:08.780920+00:00",
+    "limitation": "Periodic process observation, not continuous GPU isolation or CPU reservation."
+  }
+}

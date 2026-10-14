@@ -1,0 +1,39 @@
+{
+  "rows": [
+    {
+      "repeat": 0,
+      "phase": "prime",
+      "api_seconds": 5.294204100035131,
+      "whole_call_seconds": 7.340882300049998,
+      "nvrtc_calls": 17
+    },
+    {
+      "repeat": 1,
+      "phase": "warm",
+      "api_seconds": 1.4322741000214592,
+      "whole_call_seconds": 1.6548593000043184,
+      "nvrtc_calls": 0
+    },
+    {
+      "repeat": 2,
+      "phase": "warm",
+      "api_seconds": 1.4283847000915557,
+      "whole_call_seconds": 1.6208752999082208,
+      "nvrtc_calls": 0
+    },
+    {
+      "repeat": 3,
+      "phase": "warm",
+      "api_seconds": 1.4297318999888375,
+      "whole_call_seconds": 1.6281756999669597,
+      "nvrtc_calls": 0
+    }
+  ],
+  "warm_api_median_seconds": 1.4297318999888375,
+  "provenance": {
+    "helper_sha256": "bfb3953dec2809b2bd6f6cb47f44fe42b8b4e93ca19c581aea474072b420aadd",
+    "source_commit": "211f11225f4e24d2b9d3da08ec9891e97a7a47fc",
+    "source_manifest_sha256": "e101739214d3024e812bceea85d14aaae7d26dbbdedb73de31a22198505d3e8c",
+    "scope": "three complete warm API calls after one owned prime; fresh process and separate cache per variant; fixed variant order, CPU/GPU unreserved; excludes imports"
+  }
+}

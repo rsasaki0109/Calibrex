@@ -43,7 +43,16 @@
         "result_sha256": {"$ref": "#/$defs/sha"},
         "prepared_sha256": {"$ref": "#/$defs/sha"},
         "partition_sha256": {"$ref": "#/$defs/digests", "minProperties": 2, "maxProperties": 2},
-        "frozen_provenance": {"type": "object", "required": ["source_commit", "source_manifest_sha256", "executed_sources", "launcher_sha256", "map_launcher_sha256", "cuda_cache_initially_empty", "threads"]}
+        "frozen_provenance": {
+          "type": "object",
+          "required": ["source_commit", "source_manifest_sha256", "executed_sources", "launcher_sha256", "map_launcher_sha256", "cuda_cache_initially_empty", "threads", "nvrtc_compilation"],
+          "properties": {
+            "nvrtc_compilation": {
+              "type": "object", "additionalProperties": false, "required": ["calls", "seconds"],
+              "properties": {"calls": {"type": "integer", "minimum": 1}, "seconds": {"type": "number", "exclusiveMinimum": 0}}
+            }
+          }
+        }
       }
     },
     {
