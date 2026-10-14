@@ -412,9 +412,15 @@ them.
 - Understand the side-camera errors.
 - Decide how the audit treats a rig-level IMU-frame offset. The rotation of
   each camera relative to the gyro frame is what this method estimates.
-- Decide how a short recording is judged: the pre-registered audit on
-  exp01-exp04 was refuted by the `constrained` gate on the 126 s exp04 alone.
-  A new claim needs new recordings (exp01-exp04 are spent) and, ideally, a
-  targetless external baseline.
+- Decide how observability is judged. The pre-registered audit on exp01-exp04
+  was refuted by the `constrained` gate on the 126 s exp04 alone. Its successor,
+  v2, kept every gate and required recordings of at least 200 s; it was refuted
+  too ([v2 audit](hilti_camera_sota.md#camera-imu-v2-refuted-5-of-7-gates)).
+  - Yaw was not constrained on two units of 260 s and 321 s (cam0 exp15, cam1
+    exp23p1), so length is not what decides it.
+  - cam0's estimates spread 0.81 deg across the five recordings, over the 0.75 deg
+    consistency bound.
+  - A new claim needs new recordings (exp01-exp04 and the five v2 recordings are
+    spent) and, ideally, a targetless external baseline.
 
-No SOTA claim is made for camera-IMU: its pre-registered audit is refuted.
+No SOTA claim is made for camera-IMU: both pre-registered audits are refuted.

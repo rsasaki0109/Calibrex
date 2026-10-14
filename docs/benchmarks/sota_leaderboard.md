@@ -6,7 +6,7 @@ standing per sensor pair, and the target pairs that have no audited claim yet.
 
 ## Current standings
 
-As of 2026-10-02, **two pairs have supported SOTA claims**:
+As of 2026-10-14, **two pairs have supported SOTA claims**:
 
 - **`imu-lidar`** (Livox MID360, against LI-Init):
   - rotation and clock offset;
@@ -17,18 +17,32 @@ As of 2026-10-02, **two pairs have supported SOTA claims**:
 
 See [MID360 IMU-LiDAR Calibration](mid360_imu_lidar.md) and
 [KITTI LiDAR-Vehicle Rotation](kitti_lidar_vehicle.md#pre-registered-audit-supported)
-for the scope of each claim and what it does not claim. Every other target
-pair has a native method but no audited claim yet, except `lidar-lidar`, whose
-pre-registered audit was refuted
-([NTU VIRAL LiDAR-LiDAR](ntu_viral_lidar_lidar.md#pre-registered-audit-refuted)),
-and `camera-imu`, whose pre-registered audit was also refuted (6/7 gates; the
-`constrained` gate failed on the shortest recording,
-[Hilti camera-IMU](hilti_camera_imu.md#pre-registered-audit-refuted)).
+for the scope of each claim and what it does not claim.
+
+Three pairs have only refuted audits:
+
+- **`lidar-lidar`**: 2 of 4 gates
+  ([NTU VIRAL LiDAR-LiDAR](ntu_viral_lidar_lidar.md#pre-registered-audit-refuted)).
+- **`camera-imu`**, twice
+  ([v1](hilti_camera_imu.md#pre-registered-audit-refuted),
+  [v2](hilti_camera_sota.md#camera-imu-v2-refuted-5-of-7-gates)).
+  - v1 (6 of 7 gates) failed the `constrained` gate on its shortest recording.
+  - v2 restricted v1's claim to recordings of at least 200 s, on five new
+    recordings (5 of 7 gates). `constrained` failed again, on two long recordings,
+    and the cross-recording consistency exceeded 0.75 deg.
+- **`camera-camera`**: 4 of 6 gates
+  ([Hilti camera SOTA audits](hilti_camera_sota.md#camera-camera-refuted-4-of-6-gates)).
+  - Accuracy against Kalibr held: every scored pair was within 0.33 deg.
+  - A 1 deg turn of a camera was flagged in only 70 percent of the trials and named
+    in 48 percent.
+
+Every other target pair has a native method but no audited claim yet.
 
 | Pair | Standing | Supported | Refuted | Incomplete | Target |
 | --- | --- | ---: | ---: | ---: | --- |
 | `camera` | no_claim | 0 | 0 | 0 | yes |
-| `camera-imu` | refuted | 0 | 1 | 0 | yes |
+| `camera-camera` | refuted | 0 | 1 | 0 | yes |
+| `camera-imu` | refuted | 0 | 2 | 0 | yes |
 | `camera-lidar` | no_claim | 0 | 0 | 0 | yes |
 | `gnss-imu` | no_claim | 0 | 0 | 0 | yes |
 | `imu-lidar` | supported | 2 | 1 | 0 | yes |
@@ -40,7 +54,9 @@ and `camera-imu`, whose pre-registered audit was also refuted (6/7 gates; the
 
 | Pair | Category | Quantities | Verdict | Gates (achieved/total) | Protocol |
 | --- | --- | --- | --- | --- | --- |
+| `camera-camera` | targetless_camera_camera | rotation | refuted | 4/6 | `hilti-camera-camera-v1` |
 | `camera-imu` | targetless_camera_imu | rotation, time_offset | refuted | 6/7 | `hilti-camera-imu-v1` |
+| `camera-imu` | targetless_camera_imu | rotation, time_offset | refuted | 5/7 | `hilti-camera-imu-v2` |
 | `imu-lidar` | targetless_imu_lidar | rotation, translation, time_offset | refuted | 0/8 | `mid360-imu-lidar-extrinsic-vs-li-init-v1` |
 | `imu-lidar` | targetless_imu_lidar | rotation, translation, time_offset | supported | 4/4 | `mid360-imu-lidar-extrinsic-vs-li-init-v2` |
 | `imu-lidar` | targetless_imu_lidar | rotation, time_offset | supported | 4/4 | `mid360-imu-lidar-rotation-vs-li-init-v1` |
@@ -118,6 +134,7 @@ both commands evaluate claims with the same engine.
 calibrex sota leaderboard AUDIT... \
   --target-pair camera-lidar --target-pair lidar-lidar \
   --target-pair imu-lidar --target-pair camera-imu --target-pair camera \
+  --target-pair camera-camera \
   --target-pair gnss-imu --target-pair ins-lidar \
   --target-pair lidar-vehicle --target-pair imu-vehicle \
   --target-pair lidar-wheel_odometry \

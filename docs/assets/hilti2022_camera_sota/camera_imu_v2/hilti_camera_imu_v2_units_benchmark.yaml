@@ -1,0 +1,495 @@
+schema_version: slac.benchmark/v0.1
+benchmark_id: hilti-camera-imu-units
+title: Hilti camera-IMU rotation against Kalibr, per camera and recording
+protocol:
+  protocol_id: hilti-camera-imu-v2
+  dataset_id: hilti2022_recordings_200s_forward_cameras
+  dataset_source_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+  data_license: Hilti SLAM Challenge 2022 terms
+  split_policy: one split per gated camera and evaluation recording; not-usable units
+    dropped
+  splits:
+  - split_id: cam0-exp15
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 16e9dbb9703cd1b80ad22d0bc6c04ab34c6afc24ab5f3e0dd7245fca7520589a
+    holdout_ids_sha256: 63c8f2531e9d1a5060d35c12777aa4d8eeb64e311ad95a0f4c5f52ea263cc2ba
+  - split_id: cam0-exp16
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: f1d20aed8a1f4b137832fd56be3e34f8ca1014676581d9bb44a92df3c6568232
+    holdout_ids_sha256: 724012b653a6cab290004bd862dc26b933d7a7c0cbb20770b0f00da0f393398b
+  - split_id: cam0-exp23p0
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 7fc6bb51201b452e72fe7d8a3f1626c96f0d3f329d2117851317e0975534a17c
+    holdout_ids_sha256: 39c21ca6e5986faad99cee685b77ce86e00e39b080d6d0dff8de377f7d4d7d6f
+  - split_id: cam0-exp23p1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 0f1801974447223c704537a7a9d617f1837a6b685685356b4fab4f176c6af59d
+    holdout_ids_sha256: 0fd864923dc5727c97d8e4b9058115bf466658e4d1b2ca66d502ce4289dd8563
+  - split_id: cam0-exp23p2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: aafa5d97b1e5d640178236faf4b8778ef09b60ea273f0ef8133e11fe45ca315a
+    holdout_ids_sha256: a20243ed619b10df10d927b61861f0e17b33c3841aafd2ddc3b1aab1f3b9ed63
+  - split_id: cam1-exp15
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: e9d015f4ce33a01921d2d7597105761a7d28ad7ee01e2092b54522a72532b1f8
+    holdout_ids_sha256: c5fac23a22fea9b466d25d0de3a7dde7017926c75dbb0ed50d76a888f4e0fd30
+  - split_id: cam1-exp16
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 7e4d73845e10152ed769f2e607b2314486f9992e028e028734a55be86bc76e64
+    holdout_ids_sha256: 4401830e6f47519c13289c56ac42bb12a043e5bb1394a9caf1927660e1a6b579
+  - split_id: cam1-exp23p0
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 27d3cbaf3962ecc2a2c42b9bcd4af3cd019fa0e20d2acb1cdd853bcf685ab556
+    holdout_ids_sha256: 02fd783321e2877710f081b89ae304f0d263b09e7b9c4ddeec697724c4a0ab92
+  - split_id: cam1-exp23p1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 912159f41e7df895b5ce1029eb621a163948cddac91566704fd3364d2704471f
+    holdout_ids_sha256: e784c528e2aaf1b674d94c6a1b801ef1937d1d2c1afb701181e7d253cf91dbec
+  - split_id: cam1-exp23p2
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 2f1638e14a4910be3f5d632f620bc36ff72e6c36104366176101cb23a8560b1d
+    holdout_ids_sha256: 2a6c3c74ad166ed5652374467fa477ce0acd0fd2801b9947c6f78c3dae41a922
+  initial_estimate_policy: none; the estimator does not read Kalibr's T_cam_imu
+  tuning_policy: procedure and thresholds pre-registered before the evaluation runs
+  failure_policy: an estimator failure or policy fail on a usable unit fails the trial
+metrics:
+- name: rotation_error_deg
+  label: rotation angle error vs Kalibr
+  unit: deg
+  display_scale: 1.0
+  direction: lower
+  primary: true
+  interpretation: geodesic angle of R_est R_ref^T
+- name: time_error_ms_abs
+  label: absolute clock-offset difference to Kalibr
+  unit: ms
+  display_scale: 1.0
+  direction: lower
+  primary: false
+  interpretation: abs(dt_est - timeshift_cam_imu)
+- name: constrained_violation
+  label: not constrained by the data
+  unit: '1'
+  display_scale: 1.0
+  direction: lower
+  primary: false
+  interpretation: 1 unless all axes are estimated, std <= 0.3 deg, and >= 2 of 3 controls
+    hit
+methods:
+- method_id: kalibr_reference
+  label: Hilti Kalibr calibration (the reference; error against itself is 0)
+  implementation: calibrex_native
+  tool_name: kalibr
+- method_id: calibrex_native
+  label: Calibrex targetless camera-IMU rotation
+  implementation: calibrex_native
+  tool_name: calibrex
+trials:
+- method_id: kalibr_reference
+  split_id: cam0-exp15
+  status: success
+  metrics:
+    rotation_error_deg: 0.0
+    time_error_ms_abs: 0.0
+    constrained_violation: 0.0
+  provenance:
+    command: calibrex camera-imu rotation
+    config_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    input_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    notes: []
+- method_id: kalibr_reference
+  split_id: cam0-exp16
+  status: success
+  metrics:
+    rotation_error_deg: 0.0
+    time_error_ms_abs: 0.0
+    constrained_violation: 0.0
+  provenance:
+    command: calibrex camera-imu rotation
+    config_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    input_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    notes: []
+- method_id: kalibr_reference
+  split_id: cam0-exp23p0
+  status: success
+  metrics:
+    rotation_error_deg: 0.0
+    time_error_ms_abs: 0.0
+    constrained_violation: 0.0
+  provenance:
+    command: calibrex camera-imu rotation
+    config_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    input_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    notes: []
+- method_id: kalibr_reference
+  split_id: cam0-exp23p1
+  status: success
+  metrics:
+    rotation_error_deg: 0.0
+    time_error_ms_abs: 0.0
+    constrained_violation: 0.0
+  provenance:
+    command: calibrex camera-imu rotation
+    config_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    input_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    notes: []
+- method_id: kalibr_reference
+  split_id: cam0-exp23p2
+  status: success
+  metrics:
+    rotation_error_deg: 0.0
+    time_error_ms_abs: 0.0
+    constrained_violation: 0.0
+  provenance:
+    command: calibrex camera-imu rotation
+    config_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    input_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    notes: []
+- method_id: kalibr_reference
+  split_id: cam1-exp15
+  status: success
+  metrics:
+    rotation_error_deg: 0.0
+    time_error_ms_abs: 0.0
+    constrained_violation: 0.0
+  provenance:
+    command: calibrex camera-imu rotation
+    config_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    input_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    notes: []
+- method_id: kalibr_reference
+  split_id: cam1-exp16
+  status: success
+  metrics:
+    rotation_error_deg: 0.0
+    time_error_ms_abs: 0.0
+    constrained_violation: 0.0
+  provenance:
+    command: calibrex camera-imu rotation
+    config_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    input_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    notes: []
+- method_id: kalibr_reference
+  split_id: cam1-exp23p0
+  status: success
+  metrics:
+    rotation_error_deg: 0.0
+    time_error_ms_abs: 0.0
+    constrained_violation: 0.0
+  provenance:
+    command: calibrex camera-imu rotation
+    config_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    input_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    notes: []
+- method_id: kalibr_reference
+  split_id: cam1-exp23p1
+  status: success
+  metrics:
+    rotation_error_deg: 0.0
+    time_error_ms_abs: 0.0
+    constrained_violation: 0.0
+  provenance:
+    command: calibrex camera-imu rotation
+    config_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    input_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    notes: []
+- method_id: kalibr_reference
+  split_id: cam1-exp23p2
+  status: success
+  metrics:
+    rotation_error_deg: 0.0
+    time_error_ms_abs: 0.0
+    constrained_violation: 0.0
+  provenance:
+    command: calibrex camera-imu rotation
+    config_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    input_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    notes: []
+- method_id: calibrex_native
+  split_id: cam0-exp15
+  status: success
+  metrics:
+    rotation_error_deg: 0.9404384203075208
+    time_error_ms_abs: 0.0243590781505822
+    constrained_violation: 1.0
+  provenance:
+    command: calibrex camera-imu rotation
+    config_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    input_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    notes: []
+- method_id: calibrex_native
+  split_id: cam0-exp16
+  status: success
+  metrics:
+    rotation_error_deg: 0.5036084345985954
+    time_error_ms_abs: 0.3658500833082004
+    constrained_violation: 0.0
+  provenance:
+    command: calibrex camera-imu rotation
+    config_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    input_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    notes: []
+- method_id: calibrex_native
+  split_id: cam0-exp23p0
+  status: success
+  metrics:
+    rotation_error_deg: 0.5352624681753942
+    time_error_ms_abs: 0.18187803401788608
+    constrained_violation: 0.0
+  provenance:
+    command: calibrex camera-imu rotation
+    config_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    input_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    notes: []
+- method_id: calibrex_native
+  split_id: cam0-exp23p1
+  status: success
+  metrics:
+    rotation_error_deg: 0.6458461199892148
+    time_error_ms_abs: 0.17989965483091763
+    constrained_violation: 0.0
+  provenance:
+    command: calibrex camera-imu rotation
+    config_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    input_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    notes: []
+- method_id: calibrex_native
+  split_id: cam0-exp23p2
+  status: success
+  metrics:
+    rotation_error_deg: 0.6466429799363593
+    time_error_ms_abs: 0.4794243440320975
+    constrained_violation: 0.0
+  provenance:
+    command: calibrex camera-imu rotation
+    config_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    input_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    notes: []
+- method_id: calibrex_native
+  split_id: cam1-exp15
+  status: success
+  metrics:
+    rotation_error_deg: 0.5994810440177851
+    time_error_ms_abs: 0.10699586346149385
+    constrained_violation: 0.0
+  provenance:
+    command: calibrex camera-imu rotation
+    config_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    input_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    notes: []
+- method_id: calibrex_native
+  split_id: cam1-exp16
+  status: success
+  metrics:
+    rotation_error_deg: 0.2890300320218948
+    time_error_ms_abs: 0.0036311116440915746
+    constrained_violation: 0.0
+  provenance:
+    command: calibrex camera-imu rotation
+    config_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    input_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    notes: []
+- method_id: calibrex_native
+  split_id: cam1-exp23p0
+  status: success
+  metrics:
+    rotation_error_deg: 0.5014751137323601
+    time_error_ms_abs: 0.28163320526123586
+    constrained_violation: 0.0
+  provenance:
+    command: calibrex camera-imu rotation
+    config_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    input_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    notes: []
+- method_id: calibrex_native
+  split_id: cam1-exp23p1
+  status: success
+  metrics:
+    rotation_error_deg: 0.4059355883494022
+    time_error_ms_abs: 0.008715953504966458
+    constrained_violation: 1.0
+  provenance:
+    command: calibrex camera-imu rotation
+    config_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    input_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    notes: []
+- method_id: calibrex_native
+  split_id: cam1-exp23p2
+  status: success
+  metrics:
+    rotation_error_deg: 0.3215274905743685
+    time_error_ms_abs: 0.0012254893590772295
+    constrained_violation: 0.0
+  provenance:
+    command: calibrex camera-imu rotation
+    config_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    input_sha256: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+    notes: []
+method_summaries:
+  kalibr_reference:
+    method_id: kalibr_reference
+    trial_count: 10
+    success_count: 10
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      rotation_error_deg:
+        metric: rotation_error_deg
+        distribution:
+          count: 10
+          mean: 0.0
+          median: 0.0
+          standard_deviation: 0.0
+          minimum: 0.0
+          maximum: 0.0
+          p90: 0.0
+          p95: 0.0
+          mean_ci95_low: 0.0
+          mean_ci95_high: 0.0
+        rank: 1
+      time_error_ms_abs:
+        metric: time_error_ms_abs
+        distribution:
+          count: 10
+          mean: 0.0
+          median: 0.0
+          standard_deviation: 0.0
+          minimum: 0.0
+          maximum: 0.0
+          p90: 0.0
+          p95: 0.0
+          mean_ci95_low: 0.0
+          mean_ci95_high: 0.0
+        rank: 1
+      constrained_violation:
+        metric: constrained_violation
+        distribution:
+          count: 10
+          mean: 0.0
+          median: 0.0
+          standard_deviation: 0.0
+          minimum: 0.0
+          maximum: 0.0
+          p90: 0.0
+          p95: 0.0
+          mean_ci95_low: 0.0
+          mean_ci95_high: 0.0
+        rank: 1
+  calibrex_native:
+    method_id: calibrex_native
+    trial_count: 10
+    success_count: 10
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      rotation_error_deg:
+        metric: rotation_error_deg
+        distribution:
+          count: 10
+          mean: 0.5389247691702895
+          median: 0.5194354513869948
+          standard_deviation: 0.17831821945721305
+          minimum: 0.2890300320218948
+          maximum: 0.9404384203075208
+          p90: 0.6760225239734754
+          p95: 0.8082304721404978
+          mean_ci95_low: 0.4328295351649077
+          mean_ci95_high: 0.6592358553345333
+        rank: 2
+      time_error_ms_abs:
+        metric: time_error_ms_abs
+        distribution:
+          count: 10
+          mean: 0.1633612817570549
+          median: 0.14344775914620575
+          standard_deviation: 0.15928521677607627
+          minimum: 0.0012254893590772295
+          maximum: 0.4794243440320975
+          p90: 0.37720750938059006
+          p95: 0.42831592670634366
+          mean_ci95_low: 0.07230323551704143
+          mean_ci95_high: 0.25912274418161824
+        rank: 2
+      constrained_violation:
+        metric: constrained_violation
+        distribution:
+          count: 10
+          mean: 0.2
+          median: 0.0
+          standard_deviation: 0.4
+          minimum: 0.0
+          maximum: 1.0
+          p90: 1.0
+          p95: 1.0
+          mean_ci95_low: 0.0
+          mean_ci95_high: 0.5
+        rank: 2
+paired_comparisons:
+- reference_method_id: kalibr_reference
+  candidate_method_id: calibrex_native
+  metric: rotation_error_deg
+  direction: lower
+  paired_count: 10
+  raw_delta_mean: 0.5389247691702895
+  improvement_mean: -0.5389247691702895
+  improvement_ci95_low: -0.6592358553345333
+  improvement_ci95_high: -0.4328295351649077
+- reference_method_id: kalibr_reference
+  candidate_method_id: calibrex_native
+  metric: time_error_ms_abs
+  direction: lower
+  paired_count: 10
+  raw_delta_mean: 0.1633612817570549
+  improvement_mean: -0.1633612817570549
+  improvement_ci95_low: -0.25912274418161835
+  improvement_ci95_high: -0.07230323551704147
+- reference_method_id: kalibr_reference
+  candidate_method_id: calibrex_native
+  metric: constrained_violation
+  direction: lower
+  paired_count: 10
+  raw_delta_mean: 0.2
+  improvement_mean: -0.2
+  improvement_ci95_low: -0.5
+  improvement_ci95_high: 0.0
+reference_method_id: kalibr_reference
+bootstrap_samples: 2000
+bootstrap_seed: 0
+limitations:
+- The reference is Hilti's target-based Kalibr calibration, not ground truth.
+- cam0 and cam1 share a scene and a Kalibr run; their units are not independent.
+provenance:
+  generator: tools/build_hilti_camera_imu_v2_audit.py
+  generator_version: 0.5.1
+  generated_at: '2026-10-14T08:51:37.995313+00:00'
+  command: python tools/build_hilti_camera_imu_v2_audit.py SCORES.json PREREG OUT
+  source_artifacts: {}
+  data_verified: true

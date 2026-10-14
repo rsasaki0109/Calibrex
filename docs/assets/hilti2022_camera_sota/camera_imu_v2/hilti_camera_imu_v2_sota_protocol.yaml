@@ -1,0 +1,119 @@
+schema_version: slac.sota_audit_protocol/v0.1
+protocol_id: hilti-camera-imu-v2
+scope:
+  modalities:
+  - camera
+  - imu
+  quantities:
+  - rotation
+  - time_offset
+  category: targetless_camera_imu
+claim_text: On five Hilti 2022 recordings of at least 200 s not used to develop the
+  method, Calibrex's targetless camera-IMU rotation for the two forward cameras agrees
+  with Kalibr within 1.0 deg and 0.5 ms, is constrained on all three axes, reproduces
+  across recordings within 0.75 deg, and reproduces Kalibr's cam0-to-cam1 rotation
+  within 0.5 deg.
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: rotation-vs-kalibr
+  phase: audit
+  description: every scored unit has rotation error <= 1.0 deg
+  dataset_family: hilti2022
+  independent_rig: true
+  rig_id: hilti2022-alphasense
+  evidence_path: hilti_camera_imu_v2_units_benchmark.yaml
+  evidence_sha256: 3432ebe0ee80e965ea65fca41c32f0bab466226168d08c25a13f60d36a5e11f6
+  method_id: calibrex_native
+  metric: rotation_error_deg
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 1.0
+  required: true
+- requirement_id: time-offset-vs-kalibr
+  phase: audit
+  description: every scored unit has time error <= 0.5 ms
+  dataset_family: hilti2022
+  independent_rig: false
+  evidence_path: hilti_camera_imu_v2_units_benchmark.yaml
+  evidence_sha256: 3432ebe0ee80e965ea65fca41c32f0bab466226168d08c25a13f60d36a5e11f6
+  method_id: calibrex_native
+  metric: time_error_ms_abs
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.5
+  required: true
+- requirement_id: constrained
+  phase: audit
+  description: every scored unit is constrained
+  dataset_family: hilti2022
+  independent_rig: false
+  evidence_path: hilti_camera_imu_v2_units_benchmark.yaml
+  evidence_sha256: 3432ebe0ee80e965ea65fca41c32f0bab466226168d08c25a13f60d36a5e11f6
+  method_id: calibrex_native
+  metric: constrained_violation
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: no-failed-units
+  phase: audit
+  description: no usable unit fails
+  dataset_family: hilti2022
+  independent_rig: false
+  evidence_path: hilti_camera_imu_v2_units_benchmark.yaml
+  evidence_sha256: 3432ebe0ee80e965ea65fca41c32f0bab466226168d08c25a13f60d36a5e11f6
+  method_id: calibrex_native
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: cross-recording-consistency
+  phase: audit
+  description: per camera consistency <= 0.75 deg
+  dataset_family: hilti2022
+  independent_rig: false
+  evidence_path: hilti_camera_imu_v2_consistency_benchmark.yaml
+  evidence_sha256: afa8ccf2e3120d0b6f0192398e01e134701147c941ede52ccb7e8f16f9668160
+  method_id: calibrex_native
+  metric: consistency_deg
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.75
+  required: true
+- requirement_id: relative-cam0-cam1
+  phase: audit
+  description: every recording scored for both cameras has relative error <= 0.5 deg
+  dataset_family: hilti2022
+  independent_rig: false
+  evidence_path: hilti_camera_imu_v2_relative_benchmark.yaml
+  evidence_sha256: ffb47744069cb488fdf40b54129ad0b855f967162613c0d9d25744cd42f7aa15
+  method_id: calibrex_native
+  metric: relative_deg
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.5
+  required: true
+- requirement_id: scored-recordings-coverage
+  phase: audit
+  description: at least 3 of 5 recordings scored for both cameras
+  dataset_family: hilti2022
+  independent_rig: false
+  evidence_path: hilti_camera_imu_v2_relative_benchmark.yaml
+  evidence_sha256: ffb47744069cb488fdf40b54129ad0b855f967162613c0d9d25744cd42f7aa15
+  method_id: calibrex_native
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.25
+  required: true
+provenance:
+  generator: tools/build_hilti_camera_imu_v2_audit.py
+  generator_version: 0.5.1
+  command:
+  - python
+  - tools/build_hilti_camera_imu_v2_audit.py
+  - SCORES.json
+  source_sha256:
+    preregistration: ad14d5905a0b7da6b6ae9bc489aa704fd2c20b6726b00b07e6c65bc61f0ef440
+    scores: 3c725d41cbe553fe080f3c218e3b200edca736d1c1993571747db33beb80be99
+  created_at: '2026-10-14T08:51:38.068716+00:00'

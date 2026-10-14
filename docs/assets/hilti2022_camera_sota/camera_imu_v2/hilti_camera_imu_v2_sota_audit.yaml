@@ -1,0 +1,102 @@
+schema_version: slac.sota_audit_result/v0.1
+audit_id: hilti-camera-imu-v2-audit
+protocol_id: hilti-camera-imu-v2
+scope:
+  modalities:
+  - camera
+  - imu
+  quantities:
+  - rotation
+  - time_offset
+  category: targetless_camera_imu
+claim_text: On five Hilti 2022 recordings of at least 200 s not used to develop the
+  method, Calibrex's targetless camera-IMU rotation for the two forward cameras agrees
+  with Kalibr within 1.0 deg and 0.5 ms, is constrained on all three axes, reproduces
+  across recordings within 0.75 deg, and reproduces Kalibr's cam0-to-cam1 rotation
+  within 0.5 deg.
+verdict: refuted
+achieved_dataset_families:
+- hilti2022
+achieved_independent_rig_count: 1
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: rotation-vs-kalibr
+  required: true
+  status: achieved
+  observed_value: 0.9404384203075208
+  threshold: 1.0
+  reason: observed 0.940438420308 meets less_equal 1
+  evidence_path: docs/assets/hilti2022_camera_sota/camera_imu_v2/hilti_camera_imu_v2_units_benchmark.yaml
+  evidence_sha256: 3432ebe0ee80e965ea65fca41c32f0bab466226168d08c25a13f60d36a5e11f6
+- requirement_id: time-offset-vs-kalibr
+  required: true
+  status: achieved
+  observed_value: 0.4794243440320975
+  threshold: 0.5
+  reason: observed 0.479424344032 meets less_equal 0.5
+  evidence_path: docs/assets/hilti2022_camera_sota/camera_imu_v2/hilti_camera_imu_v2_units_benchmark.yaml
+  evidence_sha256: 3432ebe0ee80e965ea65fca41c32f0bab466226168d08c25a13f60d36a5e11f6
+- requirement_id: constrained
+  required: true
+  status: contradicted
+  observed_value: 1.0
+  threshold: 0.0
+  reason: observed 1 does not meet less_equal 0
+  evidence_path: docs/assets/hilti2022_camera_sota/camera_imu_v2/hilti_camera_imu_v2_units_benchmark.yaml
+  evidence_sha256: 3432ebe0ee80e965ea65fca41c32f0bab466226168d08c25a13f60d36a5e11f6
+- requirement_id: no-failed-units
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: docs/assets/hilti2022_camera_sota/camera_imu_v2/hilti_camera_imu_v2_units_benchmark.yaml
+  evidence_sha256: 3432ebe0ee80e965ea65fca41c32f0bab466226168d08c25a13f60d36a5e11f6
+- requirement_id: cross-recording-consistency
+  required: true
+  status: contradicted
+  observed_value: 0.8110653194454278
+  threshold: 0.75
+  reason: observed 0.811065319445 does not meet less_equal 0.75
+  evidence_path: docs/assets/hilti2022_camera_sota/camera_imu_v2/hilti_camera_imu_v2_consistency_benchmark.yaml
+  evidence_sha256: afa8ccf2e3120d0b6f0192398e01e134701147c941ede52ccb7e8f16f9668160
+- requirement_id: relative-cam0-cam1
+  required: true
+  status: achieved
+  observed_value: 0.46060337608521484
+  threshold: 0.5
+  reason: observed 0.460603376085 meets less_equal 0.5
+  evidence_path: docs/assets/hilti2022_camera_sota/camera_imu_v2/hilti_camera_imu_v2_relative_benchmark.yaml
+  evidence_sha256: ffb47744069cb488fdf40b54129ad0b855f967162613c0d9d25744cd42f7aa15
+- requirement_id: scored-recordings-coverage
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.25
+  reason: observed 0 meets less_equal 0.25
+  evidence_path: docs/assets/hilti2022_camera_sota/camera_imu_v2/hilti_camera_imu_v2_relative_benchmark.yaml
+  evidence_sha256: ffb47744069cb488fdf40b54129ad0b855f967162613c0d9d25744cd42f7aa15
+summary: At least one frozen required numerical or integrity gate is contradicted;
+  the declared SOTA claim is not supported.
+provenance:
+  generator: calibrex.evaluation.sota_audit
+  generator_version: 0.5.1
+  git_commit: 194dcef
+  command:
+  - calibrex
+  - sota
+  - audit
+  - docs/assets/hilti2022_camera_sota/camera_imu_v2/hilti_camera_imu_v2_sota_protocol.yaml
+  - --output
+  - docs/assets/hilti2022_camera_sota/camera_imu_v2/hilti_camera_imu_v2_sota_audit.yaml
+  source_sha256:
+    protocol: 3a7d7e651a3c0dc2ddd38a9b83aa78244c93524184091835f0dcd1745b3780ed
+    rotation-vs-kalibr: 3432ebe0ee80e965ea65fca41c32f0bab466226168d08c25a13f60d36a5e11f6
+    time-offset-vs-kalibr: 3432ebe0ee80e965ea65fca41c32f0bab466226168d08c25a13f60d36a5e11f6
+    constrained: 3432ebe0ee80e965ea65fca41c32f0bab466226168d08c25a13f60d36a5e11f6
+    no-failed-units: 3432ebe0ee80e965ea65fca41c32f0bab466226168d08c25a13f60d36a5e11f6
+    cross-recording-consistency: afa8ccf2e3120d0b6f0192398e01e134701147c941ede52ccb7e8f16f9668160
+    relative-cam0-cam1: ffb47744069cb488fdf40b54129ad0b855f967162613c0d9d25744cd42f7aa15
+    scored-recordings-coverage: ffb47744069cb488fdf40b54129ad0b855f967162613c0d9d25744cd42f7aa15
+  created_at: '2026-10-14T08:51:41.367428+00:00'
