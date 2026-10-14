@@ -76,6 +76,13 @@ class StereoRotationArtifact(StrictModel):
         "vertical component over its length, in the rectified frame)",
     )
     residual_std_px: float | None = Field(default=None, ge=0.0)
+    row_scale_ratio: float | None = Field(
+        default=None,
+        description="row offset per pixel of row (a nuisance term: the right rectified "
+        "image's vertical scale over the left's, minus one; a focal length or distortion "
+        "slightly off in either camera)",
+    )
+    row_scale_ratio_std: float | None = Field(default=None, ge=0.0)
     time_offset_s: float | None = Field(
         default=None,
         description="the right camera's clock minus the left one's: a pair stamped g apart "

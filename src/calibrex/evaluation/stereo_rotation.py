@@ -88,6 +88,11 @@ class StereoRotationOptions:
     recentre_deg: float = 0.2
     """An error beyond this re-centres the rectification on the estimate and measures again."""
     max_recentres: int = 3
+    fit_row_scale: bool = True
+    """Fit a row offset proportional to the row: the two rectified images' vertical scales
+    differ when one camera's focal length or distortion is slightly off. Where the matched
+    patches sit on one side of the image (cameras far apart), it cannot be told from a
+    turn about the vertical axis; fitting it moves that turn's std, not its estimate."""
 
     def __post_init__(self) -> None:
         if self.rows_px < 1 or self.coarse_rows_px < self.rows_px or self.max_recentres < 0:
@@ -139,6 +144,8 @@ class _Measurement:
     vertical_baseline_ratio: float
     residual_std_px: float
     rectification: FisheyeStereoRectification
+    row_scale_ratio: float | None = None
+    row_scale_ratio_std: float | None = None
 
 
 def stereo_camera(model: CameraModel, width: int, height: int) -> StereoCamera:
@@ -289,6 +296,8 @@ def estimate_stereo_rotation(
             ).tolist(),
             axes=list(axes),
             vertical_baseline_ratio=measured.vertical_baseline_ratio if axes and measured else None,
+            row_scale_ratio=measured.row_scale_ratio if axes and measured else None,
+            row_scale_ratio_std=measured.row_scale_ratio_std if axes and measured else None,
             residual_std_px=measured.residual_std_px if axes and measured else None,
             time_offset_s=measured.time_offset_s if axes and measured else None,
             time_offset_std_s=measured.time_offset_std_s if axes and measured else None,
@@ -436,6 +445,8 @@ def _measure(
     if timing is not None:
         rates = np.asarray(timing.rates_rad_s, dtype=np.float64)[pair]
         columns.append(-(rotation * rates).sum(axis=1)[:, None])  # per second of offset
+    if options.fit_row_scale:
+        columns.append((y / f)[:, None])  # px of offset at one focal length from the centre
     design = np.hstack(columns)
 
     def fit(rows: NDArray[np.bool_]) -> tuple[FloatArray, float]:
@@ -461,6 +472,8 @@ def _measure(
         vertical_baseline_ratio=float(coefficients[3]),
         residual_std_px=residual,
         rectification=rectification,
+        row_scale_ratio=float(coefficients[-1] / f) if options.fit_row_scale else None,
+        row_scale_ratio_std=float(std[-1] / f) if options.fit_row_scale else None,
     )
 
 

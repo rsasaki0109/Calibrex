@@ -268,6 +268,32 @@
       "default": null,
       "title": "Residual Std Px"
     },
+    "row_scale_ratio": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "row offset per pixel of row (a nuisance term: the right rectified image's vertical scale over the left's, minus one; a focal length or distortion slightly off in either camera)",
+      "title": "Row Scale Ratio"
+    },
+    "row_scale_ratio_std": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Row Scale Ratio Std"
+    },
     "schema_version": {
       "const": "slac.stereo_rotation/v0.1",
       "default": "slac.stereo_rotation/v0.1",
