@@ -89,82 +89,6 @@ extern "C" __global__ void query3(
     for(int j=0;j<k;j++){distance[row*k+j]=sqrt(best[j]);index[row*k+j]=chosen[j];}
 }
 
-template<int K> __device__ void fixed_query3(
-    const double* xyz, const double* reference, const long long* order,
-    const int* axis, const double* split, const int* child,
-    const long long* span, const double* boxes, const int n, const int m,
-    double* distance, long long* index) {
-    int row = blockDim.x * blockIdx.x + threadIdx.x;
-    if (row >= n) return;
-    double p[3] = {xyz[3*row], xyz[3*row+1], xyz[3*row+2]};
-    double best[K]; long long chosen[K];
-    #pragma unroll
-    for(int j=0;j<K;j++){best[j]=1.0/0.0;chosen[j]=m;}
-    // 63 Morton bits plus fewer than 30 point-index bits bound radix depth below 96.
-    int stack[96]; int top=1;
-    stack[0]=0;
-    while(top){
-        --top; int node=stack[top];
-        double d[3];
-        for(int a=0;a<3;a++)
-            d[a]=fmax(0.0,fmax(boxes[6*node+a]-p[a],p[a]-boxes[6*node+3+a]));
-        // Retain equal and roundoff-close boxes; candidate distance arithmetic is unchanged.
-        double lower=(d[0]*d[0]+d[1]*d[1]+d[2]*d[2])*(1.0-16.0*2.2204460492503131e-16);
-        if(lower > best[K-1]) continue;
-        if(axis[node]<0){
-            for(long long j=span[2*node];j<span[2*node+1];j++){
-                long long position=order[j];
-                double x=p[0]-reference[3*position];
-                double y=p[1]-reference[3*position+1];
-                double z=p[2]-reference[3*position+2];
-                double d=x*x+y*y+z*z;
-                if(d<best[K-1] || (d==best[K-1] && position<chosen[K-1])){
-                    #pragma unroll
-                    for(int slot=0;slot<K;slot++){
-                        if(d<best[slot] || (d==best[slot] && position<chosen[slot])){
-                            double next_distance=best[slot];
-                            long long next_index=chosen[slot];
-                            best[slot]=d;chosen[slot]=position;
-                            d=next_distance;position=next_index;
-                        }
-                    }
-                }
-            }
-        }else if(axis[node]==3){
-            int left=child[2*node],right=child[2*node+1];
-            double lower_child[2];
-            for(int side=0;side<2;side++){
-                int next=side==0?left:right;double v[3];
-                for(int a=0;a<3;a++)
-                    v[a]=fmax(0.0,fmax(boxes[6*next+a]-p[a],p[a]-boxes[6*next+3+a]));
-                lower_child[side]=(v[0]*v[0]+v[1]*v[1]+v[2]*v[2])
-                                 *(1.0-16.0*2.2204460492503131e-16);
-            }
-            int near=lower_child[0]<=lower_child[1]?0:1,far=1-near;
-            if(lower_child[far]<=best[K-1]) stack[top++]=far==0?left:right;
-            if(lower_child[near]<=best[K-1]) stack[top++]=near==0?left:right;
-        }else{
-            double delta=p[axis[node]]-split[node];
-            int side=delta<0?0:1;
-            int far=child[2*node+1-side], near=child[2*node+side];
-            if(delta*delta <= best[K-1]){
-                stack[top]=far;++top;
-            }
-            stack[top]=near;++top;
-        }
-    }
-    #pragma unroll
-    for(int j=0;j<K;j++){distance[row*K+j]=sqrt(best[j]);index[row*K+j]=chosen[j];}
-}
-
-extern "C" __global__ void query3_11(
-    const double* xyz, const double* reference, const long long* order,
-    const int* axis, const double* split, const int* child,
-    const long long* span, const double* boxes, const int n, const int m, const int k,
-    double* distance, long long* index) {
-    fixed_query3<11>(xyz,reference,order,axis,split,child,span,boxes,n,m,distance,index);
-}
-
 extern "C" __global__ void morton3(
     const double* points, const int n, const double lx, const double ly, const double lz,
     const double hx, const double hy, const double hz, unsigned long long* codes) {
@@ -394,25 +318,6 @@ def _map_ops(device_id: int) -> _MapOps:
         return _MapOps()
 
 
-class _SpatialOps:
-    """Compile construction and generic/default-normal queries together."""
-
-    def __init__(self) -> None:
-        self.module = cp.RawModule(code=_SOURCE, options=("--fmad=false",))
-        self.kernels: dict[str, Any] = {}
-
-    def kernel(self, name: str) -> Any:
-        if name not in self.kernels:
-            self.kernels[name] = self.module.get_function(name)
-        return self.kernels[name]
-
-
-@lru_cache(maxsize=8)
-def _spatial_ops(device_id: int) -> _SpatialOps:
-    with cp.cuda.Device(device_id):
-        return _SpatialOps()
-
-
 def _host(values: Any) -> FloatArray:
     return np.asarray(cp.asnumpy(values), dtype=np.float64)
 
@@ -447,10 +352,9 @@ class _CudaTree:
         codes = cp.empty(count, dtype=cp.uint64)
         parents = cp.full(nodes, -1, dtype=cp.int32)
         arrivals = cp.zeros(leaves - 1, dtype=cp.int32)
-        self.spatial_ops = _spatial_ops(cp.cuda.runtime.getDevice())
-        morton = self.spatial_ops.kernel("morton3")
-        leaf_kernel = self.spatial_ops.kernel("leaf_refit3")
-        topology_kernel = self.spatial_ops.kernel("radix_nodes3")
+        morton = cp.RawKernel(_SOURCE, "morton3", options=("--fmad=false",))
+        leaf_kernel = cp.RawKernel(_SOURCE, "leaf_refit3", options=("--fmad=false",))
+        topology_kernel = cp.RawKernel(_SOURCE, "radix_nodes3", options=("--fmad=false",))
         self.build_kernel_calls = 0
         if count:
             lows = [np.float64(self._host[:, a].min()) for a in range(3)]
@@ -484,12 +388,10 @@ class _CudaTree:
             np.int32(nodes), out_axis, out_split, out_child, out_span, out_boxes,
         )
         self.arrays = (order, out_axis, out_split, out_child, out_span, out_boxes)
-        self.kernel = self.spatial_ops.kernel("query3")
+        self.kernel = cp.RawKernel(_SOURCE, "query3", options=("--fmad=false",))
         self.bytes = int(self.data.nbytes + sum(array.nbytes for array in self.arrays))
         self.query_calls = 0
         self.query_rows = 0
-        self.register_query_calls = 0
-        self.register_query_rows = 0
 
     @property
     def cpu(self) -> cKDTree:
@@ -506,16 +408,12 @@ class _CudaTree:
         distances = cp.empty((len(points), k), dtype=cp.float64)
         indexes = cp.empty((len(points), k), dtype=cp.int64)
         if len(points):
-            kernel = self.spatial_ops.kernel("query3_11") if k == 11 else self.kernel
-            kernel(((len(points) + 127) // 128,), (128,), (
+            self.kernel(((len(points) + 127) // 128,), (128,), (
                 points, self.data, *self.arrays, np.int32(len(points)),
                 np.int32(len(self.data)), np.int32(k), distances, indexes,
             ))
             self.query_calls += 1
             self.query_rows += len(points)
-            if k == 11:
-                self.register_query_calls += 1
-                self.register_query_rows += len(points)
         return distances, indexes
 
 
@@ -691,12 +589,6 @@ class CudaMapRuntime:
             "prepared_samples": len(self.samples),
             "gpu_query_calls": sum(sample.tree.query_calls for sample in self.samples.values()),
             "gpu_query_rows": sum(sample.tree.query_rows for sample in self.samples.values()),
-            "gpu_register_query_calls": sum(
-                sample.tree.register_query_calls for sample in self.samples.values()
-            ),
-            "gpu_register_query_rows": sum(
-                sample.tree.register_query_rows for sample in self.samples.values()
-            ),
             "gpu_tree_builds": len(self.samples),
             "gpu_tree_build_kernel_calls": sum(
                 sample.tree.build_kernel_calls for sample in self.samples.values()
