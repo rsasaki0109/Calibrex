@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- **Attribution reads translation too.**
+  - **The change.** Pairs that estimate translation (`imu-lidar`, `lidar-lidar`,
+    `ins-lidar`, `gnss-lidar`) now add their `t_candidate - t_estimate` to the
+    attribution. Each frame's hypothesis is a turn and, where translation is observed, a
+    shift along its own axes.
+  - **The lever arm.** A parent's turn swings the child's origin: a pair reads
+    `t_parent_child × w` from its parent's turn `w`. A 1 deg turn of an IMU with a LiDAR
+    1.2 m away is named as the IMU turned, not as the LiDAR moved 2 cm.
+  - **Floors.** Translation axes count at least at the translation floor over `sigma_k`
+    (6.7 mm by default). Directions pinned down worse than the floors are not fitted.
+  - **Unchanged without translation.** Groups with rotation only give the same
+    hypotheses, statuses and summaries as before (59 random rigs: largest difference
+    6e-16).
+  - **Schema.** New optional fields: `translation_m` and `translation_std_m` per
+    hypothesis, `translation_observations` per group, `sigma_floor_m` on the report.
+
 - **`camera-camera` fits a vertical scale mismatch instead of reading it as a turn.**
   - **The problem.** A focal length or distortion slightly off in either camera makes
     one rectified image a little taller than the other. The rotation model read that

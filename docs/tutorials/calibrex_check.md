@@ -992,35 +992,49 @@ frames. One camera knocked out of place shows up in every pair it belongs to, an
 nowhere else.
 
 - **Model.** Suppose only frame `f`'s candidate is off, by a small rotation `w` about
-  `f`'s own axes. Then, to first order:
-  - each pair with `f` as child reads `R_parent_child w`;
-  - each pair with `f` as parent reads `-w`;
+  `f`'s own axes and, where pairs estimate translation, a shift `u` along them. Then,
+  to first order:
+  - each pair with `f` as child reads rotation `R_parent_child w` and translation
+    `R_parent_child u`;
+  - each pair with `f` as parent reads rotation `-w` and translation
+    `t_parent_child × w - u`: the parent's turn swings the child's origin on its lever
+    arm, the candidate's `t_parent_child`;
   - every other pair reads zero.
-- **Fit.** For every frame of each connected group of pairs, `w` is fitted by weighted
-  least squares on the observed rotation axes. Its chi-square is compared with the
-  hypothesis that nothing is off. The pairs are the same independent estimates as
-  closure: derived and inconclusive pairs and `camera-focal` are left out.
-- **Weights.** An axis's std counts at least as the rotation floor over `sigma_k`
-  (0.5 / 3 = 0.17 deg by default). A pair is judged against `max(sigma_k std, floor)`,
-  so attribution works at the verdicts' resolution. The floor also absorbs what the
-  std leaves out: on Hilti, other parts of one recording move a camera pair's reading
-  by about 1.5 times its std.
+- **Fit.** For every frame of each connected group of pairs, `w` (and `u` when the
+  group has translation) is fitted by weighted least squares on the observed axes. Its
+  chi-square is compared with the hypothesis that nothing is off. The pairs are the
+  same independent estimates as closure: derived and inconclusive pairs and
+  `camera-focal` are left out. A translation error is `t_candidate - t_estimate` along
+  the parent's axes, as the verdicts read it.
+- **Weights.** An axis's std counts at least as the floor over `sigma_k`: 0.5 / 3 =
+  0.17 deg for rotation and 0.02 / 3 = 6.7 mm for translation by default. A pair is
+  judged against `max(sigma_k std, floor)`, so attribution works at the verdicts'
+  resolution. The floor also absorbs what the std leaves out: on Hilti, other parts of
+  one recording move a camera pair's reading by about 1.5 times its std.
+- **Directions the pairs barely see.** A direction of a frame's turn and shift that
+  the pairs pin down worse than the floors (measured in floors, so degrees and metres
+  compare) is not fitted, and an own axis lying mostly along such directions is
+  reported as `null`. A frame no translation pair reaches has its shift `null` on
+  every axis; without any translation pair in the group the shift is absent.
 - **Status.** At significance 0.01:
   - `consistent`: nothing-off fits.
   - `attributed`: exactly one frame explains the errors. Its fit is acceptable, its
-    move is significant, and no other acceptable frame comes within the 3-dof critical
-    value (11.3) of its chi-square.
+    move is significant, and no other acceptable frame comes within the critical value
+    of one frame's move of its chi-square: 11.3 (3 dof) for a turn, 16.8 (6 dof) when
+    the group observes translation.
   - `ambiguous`: several frames do. A frame seen by a single pair cannot be told from
     its partner.
   - `unexplained`: no single frame does. More than one candidate is off, or the
     estimates disagree.
 - **What it cannot tell.** A bias shared by every pair through one frame reads as that
-  frame turned. When all `camera-imu` pairs carry a common error, "the IMU's candidate"
-  and "a bias of the camera-IMU estimator" look the same.
+  frame turned (or moved). When all `camera-imu` pairs carry a common error, "the IMU's
+  candidate" and "a bias of the camera-IMU estimator" look the same. A shift seen by a
+  single translation pair cannot be told from its partner's.
 - **Effect on verdicts.** None: the report is informational. It is the optional
   `rotation_attribution` field (`groups`, each with every frame's hypothesis: turn
-  about its own axes, std, chi-square, dof, p-value). The text and HTML reports show
-  each group's status and summary.
+  about and shift along its own axes, their stds, chi-square, dof, p-value; the field
+  keeps its name for schema stability). The text and HTML reports show each group's
+  status and summary, and the HTML table the best frame's turn and shift.
 
 **On Hilti 2022** (the all-camera run above: 10 `camera-camera` and 5 `camera-imu`
 pairs, six frames):
