@@ -28,31 +28,41 @@ def test_complete_public_pair_retains_quality_and_shared_gpu_observation() -> No
     assert result["gpu_observation_samples"] == 23
     assert result["foreign_gpu_samples"] == 13
     assert result["unknown_gpu_samples"] == 0
+    repeated = result["monitored_repeat"]
+    assert repeated["workers"] == 6 and repeated["quality_passed"]
+    assert repeated["gpu_observation_samples"] == 41
+    assert repeated["foreign_gpu_samples"] == repeated["unknown_gpu_samples"] == 0
+    assert repeated["whole_speedup"] == pytest.approx(0.9679230644167119)
+    assert repeated["registration_speedup"] == pytest.approx(1.015678368502008)
     for name in ("whole_speedup", "registration_speedup", "normal_speedup"):
         assert result[name] > 0
-    prior = json.loads((ROOT / "00-prior/measurement.json").read_bytes())
-    current = json.loads((ROOT / "00-current/measurement.json").read_bytes())
-    for left, right in zip(prior["rounds"], current["rounds"], strict=True):
-        assert {k: v for k, v in left.items() if k != "seconds"} == {
-            k: v for k, v in right.items() if k != "seconds"
-        }
-    old = json.loads((ROOT / "00-prior/result.json").read_bytes())
-    new = json.loads((ROOT / "00-current/result.json").read_bytes())
-    assert old["controls"] == new["controls"] and len(new["controls"]) == 32
-    assert old["holdout_whitened_rms"] == new["holdout_whitened_rms"]
+    for folder, repeats in ((ROOT, 1), (ROOT / "repeat-v2", 3)):
+        for repeat in range(repeats):
+            prior = json.loads((folder / f"{repeat:02}-prior/measurement.json").read_bytes())
+            current = json.loads((folder / f"{repeat:02}-current/measurement.json").read_bytes())
+            for left, right in zip(prior["rounds"], current["rounds"], strict=True):
+                assert {k: v for k, v in left.items() if k != "seconds"} == {
+                    k: v for k, v in right.items() if k != "seconds"
+                }
+            old = json.loads((folder / f"{repeat:02}-prior/result.json").read_bytes())
+            new = json.loads((folder / f"{repeat:02}-current/result.json").read_bytes())
+            assert old["controls"] == new["controls"] and len(new["controls"]) == 32
+            assert old["holdout_whitened_rms"] == new["holdout_whitened_rms"]
 
 
 @pytest.mark.parametrize("mutation", ["rows", "bytes", "missing", "zero_time",
                                       "missing_time"])
+@pytest.mark.parametrize("repeat_name", ["", "repeat-v2"])
 def test_packing_and_registration_evidence_cannot_be_rebound(
-    tmp_path: Path, mutation: str,
+    tmp_path: Path, mutation: str, repeat_name: str,
 ) -> None:
     root = tmp_path / "archive"
     shutil.copytree(ROOT, root)
-    measurement_path = root / "00-current/measurement.json"
+    folder = root / repeat_name
+    measurement_path = folder / "00-current/measurement.json"
     measurement = json.loads(measurement_path.read_bytes())
     if mutation in ("rows", "bytes", "missing"):
-        path = root / "00-current/result.json"
+        path = folder / "00-current/result.json"
         result = json.loads(path.read_bytes())
         counters = result["options"]["initial_odometry_execution"][0]["statistics"]
         if mutation == "missing":
@@ -66,17 +76,23 @@ def test_packing_and_registration_evidence_cannot_be_rebound(
     else:
         measurement.pop("registration_seconds")
     measurement_path.write_text(json.dumps(measurement), encoding="utf-8")
-    _rebind(root)
+    _rebind(folder)
+    if folder != root:
+        _rebind(root)
     with pytest.raises(ValueError, match=r"packed reference|registration"):
         audit(root)
 
 
 @pytest.mark.parametrize("mutation", ["observer", "schema", "launcher", "command",
                                       "offset", "negative", "exit"])
-def test_observer_scope_and_bindings_cannot_be_rebound(tmp_path: Path, mutation: str) -> None:
+@pytest.mark.parametrize("repeat_name", ["", "repeat-v2"])
+def test_observer_scope_and_bindings_cannot_be_rebound(
+    tmp_path: Path, mutation: str, repeat_name: str,
+) -> None:
     root = tmp_path / "archive"
     shutil.copytree(ROOT, root)
-    path = root / "observation.json"
+    folder = root / repeat_name
+    path = folder / "observation.json"
     record = json.loads(path.read_bytes())
     if mutation in ("observer", "schema", "launcher"):
         record["provenance"][mutation + "_sha256"] = "0" * 64
@@ -90,6 +106,8 @@ def test_observer_scope_and_bindings_cannot_be_rebound(tmp_path: Path, mutation:
     else:
         record["exit_code"] = -1
     path.write_text(json.dumps(record), encoding="utf-8")
-    _rebind(root)
+    _rebind(folder)
+    if folder != root:
+        _rebind(root)
     with pytest.raises((ValueError, ValidationError), match=r"GPU observation|unknown"):
         audit(root)

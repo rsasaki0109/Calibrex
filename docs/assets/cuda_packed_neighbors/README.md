@@ -32,3 +32,8 @@ actual packed rows/bytes, source and result bindings and registration timing.
 ```bash
 python -m tools.audit_bspline_lidar_imu_benchmark docs/assets/cuda_packed_neighbors
 ```
+
+The [three-pair monitored comparison](repeat-v2/README.md) detected no foreign
+or unknown GPU processes in 41 observations, but whole medians increased from
+62.250 s to 64.313 s (0.968x). The prototype is rejected; measured runtime sources
+remain archived and the active runtime is restored to the previous version.

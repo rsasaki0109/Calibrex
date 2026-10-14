@@ -385,6 +385,8 @@ def audit(root: Path) -> dict[str, object]:
     if (root / "previous_cuda").exists():
         audit(root / "previous_cuda")
     observation_summary = {}
+    if (root / "repeat-v2").exists():
+        observation_summary["monitored_repeat"] = audit(root / "repeat-v2")
     if (root / "observation.json").exists():
         observed = json.loads((root / "observation.json").read_bytes())
         observation_schema = root / "observation.schema.json"

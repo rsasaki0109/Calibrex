@@ -24,10 +24,7 @@ def require_cuda() -> None:
 
 @pytest.mark.parametrize("k", [1, 2, 11, 17])
 @pytest.mark.parametrize("scale", [1e-12, 1., 1e12])
-@pytest.mark.parametrize("sorted_output", [False, True])
-def test_heap_queries_keep_exhaustive_neighbors_and_sorted_output(
-    k: int, scale: float, sorted_output: bool,
-) -> None:
+def test_heap_queries_keep_exhaustive_neighbors_and_sorted_output(k: int, scale: float) -> None:
     rng = np.random.default_rng(214)
     reference = rng.normal(size=(257, 3)) * scale
     reference = np.concatenate((reference, reference[:23], [[-scale, 0, 0], [scale, 0, 0]]))
@@ -36,10 +33,9 @@ def test_heap_queries_keep_exhaustive_neighbors_and_sorted_output(
     tree = _CudaTree(reference)
     distances = cp.empty((len(points), k), dtype=cp.float64)
     indexes = cp.empty((len(points), k), dtype=cp.int64)
-    kernel = cp.RawKernel(_heap_source(_SOURCE, sorted_output=sorted_output), "query3",
-                         options=("--fmad=false",))
+    kernel = cp.RawKernel(_heap_source(_SOURCE), "query3", options=("--fmad=false",))
     kernel(((len(points) + 127) // 128,), (128,),
-           (cp.asarray(points), tree.data, tree.packed, *tree.arrays, np.int32(len(points)),
+           (cp.asarray(points), tree.data, *tree.arrays, np.int32(len(points)),
             np.int32(len(reference)), np.int32(k), distances, indexes))
     delta = points[:, None] - reference
     squared = delta[:, :, 0] ** 2 + delta[:, :, 1] ** 2 + delta[:, :, 2] ** 2
@@ -55,11 +51,3 @@ def test_heap_queries_keep_exhaustive_neighbors_and_sorted_output(
 def test_heap_source_rejects_an_unknown_query_shader() -> None:
     with pytest.raises(ValueError, match="requires review"):
         _heap_source("unrecognized query")
-
-
-def test_query_policy_generation_round_trips() -> None:
-    sorted_source = _heap_source(_SOURCE, sorted_output=True)
-    assert sorted_source != _SOURCE
-    assert _heap_source(sorted_source) == _SOURCE
-    assert _heap_source(_SOURCE) == _SOURCE
-    assert _heap_source(sorted_source, sorted_output=True) == sorted_source

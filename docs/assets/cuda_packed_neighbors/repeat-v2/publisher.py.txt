@@ -1,0 +1,92 @@
+from pathlib import Path
+import hashlib,json,shutil,statistics
+parent=Path('docs/assets/cuda_packed_neighbors')
+source=Path('outputs/packed-neighbor-formal-v2')
+observation=Path('outputs/packed-neighbor-observation-v2')
+root=parent/'repeat-v2';root.mkdir(exist_ok=False)
+protocol=json.loads((source/'protocol.json').read_bytes())
+summary=json.loads((source/'summary.json').read_bytes())
+attempts=json.loads((source/'attempts.json').read_bytes())
+observed=json.loads((observation/'observation.json').read_bytes())
+assert summary['quality_passed'] and len(attempts)==6
+assert observed['exit_code']==0 and not observed['provenance']['terminated_on_interference']
+assert all(row['foreign']==row['unknown']==0 for row in observed['samples'])
+for name in ('protocol.json','summary.json','attempts.json'):
+    shutil.copyfile(source/name,root/name)
+for attempt in attempts:
+    folder=root/attempt['worker'];folder.mkdir()
+    for name in ('measurement.json','result.json','worker.log'):
+        shutil.copyfile(source/attempt['worker']/name,folder/name)
+for repeat in range(3):
+    a=json.loads((root/f'{repeat:02}-prior/measurement.json').read_bytes())
+    b=json.loads((root/f'{repeat:02}-current/measurement.json').read_bytes())
+    assert len(a['rounds'])==len(b['rounds'])==4
+    for left,right in zip(a['rounds'],b['rounds'],strict=True):
+        assert {k:v for k,v in left.items() if k!='seconds'}=={k:v for k,v in right.items() if k!='seconds'}
+    a=json.loads((root/f'{repeat:02}-prior/result.json').read_bytes())
+    b=json.loads((root/f'{repeat:02}-current/result.json').read_bytes())
+    assert a['controls']==b['controls'] and len(b['controls'])==32
+    assert a['holdout_whitened_rms']==b['holdout_whitened_rms']
+for variant in ('prior','current'):
+    manifest=f'sources-{variant}-manifest.json'
+    assert (parent/manifest).read_bytes()==(source/f'sources-{variant}'/'manifest.json').read_bytes()
+    for name in (manifest,f'sources-{variant}.tar.gz'):
+        shutil.copyfile(parent/name,root/name)
+for name in ('benchmark.py.txt','comparison.schema.json','packed-tests.py.txt',
+             'candidate-tests.py.txt','odometry-tests.py.txt'):
+    shutil.copyfile(parent/name,root/name)
+for name in ('observation.json','observation.schema.json','observer.py.txt'):
+    shutil.copyfile(observation/name,root/name)
+shutil.copyfile(__file__,root/'publisher.py.txt')
+rows=['| Scope | Previous median | Prototype median | Observed ratio |',
+      '| --- | ---: | ---: | ---: |',
+      f"| Whole worker | {summary['whole_median_seconds']['prior']:.3f} s | {summary['whole_median_seconds']['current']:.3f} s | {summary['whole_speedup']:.3f}x |"]
+for scope,title in (('registration','Complete registration'),('normal_preparation','Nested normal preparation'),('spatial_build','Spatial tree construction'),('fit','Unchanged fit/covariance')):
+    medians={v:statistics.median(json.loads((root/f'{r:02}-{v}'/'measurement.json').read_bytes())[scope+'_seconds'] for r in range(3)) for v in ('prior','current')}
+    rows.append(f"| {title} | {medians['prior']:.3f} s | {medians['current']:.3f} s | {medians['prior']/medians['current']:.3f}x |")
+text='''# Rejected packed CUDA-neighbor prototype
+
+The prototype does not establish useful whole-pipeline acceleration. Whole
+medians increase by 3.3%; complete registration is nearly unchanged. The
+prototype is rejected and its runtime changes are restored to the previous
+version. The frozen measured sources and device tests remain in this archive.
+
+'''+ '\n'.join(rows)+f'''
+
+Three alternating previous/current pairs keep the same public six-second GLIM
+workload and four map rounds. All 12 full fitted trajectories/covariances/costs,
+holdout values and all 32 signed controls per pair are exactly equal.
+
+No foreign or unknown CUDA compute process was detected in {len(observed['samples'])}
+ten-second observations. The observer would terminate only the owned cohort on
+interference. Periodic sampling does not establish continuous GPU exclusivity,
+detect all graphics activity or reserve CPU resources. Whole timing includes
+fresh-process imports, decoding, compilation, all odometry, fits and validation;
+workers use separate initially empty compilation caches. Normal preparation is
+nested inside registration and component ratios must not be multiplied.
+
+Source manifests match the first validation pair and the bound archives are
+reused byte-for-byte. The measured current commit is
+`{protocol['current_commit']}`. All worker and observer/source bindings are
+CPU-auditable. Verdicts remain INCONCLUSIVE without independent extrinsic truth.
+No point, neighbor, iteration or validation budget is reduced.
+'''
+(root/'README.md').write_text(text,encoding='utf-8',newline='\n')
+def index(folder):
+    files={p.relative_to(folder).as_posix():hashlib.sha256(p.read_bytes()).hexdigest()
+           for p in sorted(folder.rglob('*')) if p.is_file() and p!=folder/'publication-index.json'}
+    (folder/'publication-index.json').write_text(json.dumps({
+        'schema_version':'slac.bspline_lidar_imu_publication/v0.1',
+        'provenance':{'input_protocol_sha256':hashlib.sha256((folder/'protocol.json').read_bytes()).hexdigest()},
+        'files':files},indent=2)+'\n',encoding='utf-8',newline='\n')
+index(root)
+path=parent/'README.md'
+path.write_text(path.read_text(encoding='utf-8')+'''
+The [three-pair monitored comparison](repeat-v2/README.md) detected no foreign
+or unknown GPU processes in 41 observations, but whole medians increased from
+62.250 s to 64.313 s (0.968x). The prototype is rejected; measured runtime sources
+remain archived and the active runtime is restored to the previous version.
+''',encoding='utf-8',newline='\n')
+index(parent)
+print({'repeat_files':len(json.loads((root/'publication-index.json').read_bytes())['files'])+1,
+       'parent_files':len(json.loads((parent/'publication-index.json').read_bytes())['files'])+1})
