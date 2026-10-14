@@ -484,6 +484,46 @@ def _observability(
     return tuple(dofs)
 
 
+@dataclass(frozen=True)
+class _GyroPointInputs:
+    queries: FloatArray
+    times: FloatArray
+    orientations: FloatArray
+    rates: FloatArray
+    projected: FloatArray
+    mounting: FloatArray
+    mounted: FloatArray
+    back: FloatArray
+    start_sum: FloatArray
+
+    def native_points(self, rows: NDArray[np.int64] | None = None) -> FloatArray:
+        """Evaluate selected rows with the original full-size final BLAS layout."""
+        selected = rows
+        if rows is not None and len(rows) == 1 and len(self.queries) > 1:
+            # SciPy uses another broadcast path for one quaternion. Keep the
+            # multi-point path of the captured batch when repairing one row.
+            rows = np.repeat(rows, 3)
+        queries = self.queries if rows is None else self.queries[rows]
+        mounted = self.mounted if rows is None else self.mounted[rows]
+        index = np.clip(np.searchsorted(self.times, queries, side="right") - 1,
+                        0, len(self.rates) - 1)
+        elapsed = queries - self.times[index]
+        fraction = elapsed / (self.times[index + 1] - self.times[index])
+        end_sum = self.projected[index] + fraction[:, None] * (
+            self.projected[index + 1] - self.projected[index]
+        )
+        partial = Rotation.from_rotvec(self.rates[index] * elapsed[:, None]).apply(mounted)
+        world = np.einsum("nij,nj->ni", self.orientations[index], partial)
+        corrected = Rotation.from_rotvec(-(end_sum - self.start_sum)).apply(world)
+        if rows is None:
+            return np.asarray(corrected @ self.back.T, dtype=np.float64)
+        # Preserve the complete batch shape: BLAS may otherwise choose another
+        # summation kernel for a tiny repaired subset near a coordinate grid.
+        full = np.zeros_like(self.mounted)
+        full[rows] = corrected
+        return np.asarray((full @ self.back.T)[selected], dtype=np.float64)
+
+
 class _GyroRotationModel(_PointRotationModel):
     """Keep the matrix callback and fuse native point rotation on ordinary inputs."""
 
@@ -509,6 +549,15 @@ class _GyroRotationModel(_PointRotationModel):
     def rotate_points(
         self, scan_time_s: float, offsets_s: FloatArray, points: FloatArray
     ) -> FloatArray:
+        inputs = self._point_inputs(scan_time_s, offsets_s, points)
+        if inputs is None:
+            xyz = np.asarray(points, dtype=np.float64)[:, :3]
+            return np.asarray(np.einsum("nij,nj->ni", self(scan_time_s, offsets_s), xyz))
+        return inputs.native_points()
+
+    def _point_inputs(
+        self, scan_time_s: float, offsets_s: FloatArray, points: FloatArray
+    ) -> _GyroPointInputs | None:
         xyz = np.asarray(points, dtype=np.float64)[:, :3]
         offsets = np.asarray(offsets_s, dtype=np.float64)
         start = scan_time_s + self.time_offset_s
@@ -525,7 +574,7 @@ class _GyroRotationModel(_PointRotationModel):
             or start < self.gyro.times_s[0] or start > self.gyro.times_s[-1]
             or queries.min() < self.gyro.times_s[0] or queries.max() > self.gyro.times_s[-1]
         ):
-            return np.asarray(np.einsum("nij,nj->ni", self(scan_time_s, offsets_s), xyz))
+            return None
         orientations: FloatArray = self.gyro._orientations  # type: ignore[attr-defined]
         rates: FloatArray = self.gyro._rates  # type: ignore[attr-defined]
         sums: FloatArray = self.gyro._bias_sum  # type: ignore[attr-defined]
@@ -539,34 +588,26 @@ class _GyroRotationModel(_PointRotationModel):
                 and np.all(np.linalg.det(orientations) > 0)
             )
         if not self._valid_prefixes:
-            return np.asarray(np.einsum("nij,nj->ni", self(scan_time_s, offsets_s), xyz))
+            return None
         if self._bias_capture is None or not np.array_equal(self._bias_capture, bias):
             self._projected_sums = sums @ bias
             self._bias_capture = bias.copy()
         assert self._projected_sums is not None
         projected = self._projected_sums
 
-        def gather(times: FloatArray) -> tuple[NDArray[np.int64], FloatArray, FloatArray]:
-            index = np.clip(np.searchsorted(self.gyro.times_s, times, side="right") - 1,
-                            0, len(rates) - 1)
-            elapsed = times - self.gyro.times_s[index]
-            fraction = elapsed / (self.gyro.times_s[index + 1] - self.gyro.times_s[index])
-            values = projected[index] + fraction[:, None] * (
-                projected[index + 1] - projected[index]
-            )
-            return index, elapsed, values
-
-        index, elapsed, end_sum = gather(queries)
-        start_index, start_elapsed, start_sum = gather(np.asarray([start]))
-        start_orientation = orientations[start_index[0]] @ Rotation.from_rotvec(
-            rates[start_index[0]] * start_elapsed[0]
+        index = int(np.clip(np.searchsorted(self.gyro.times_s, start, side="right") - 1,
+                            0, len(rates) - 1))
+        elapsed = start - self.gyro.times_s[index]
+        fraction = elapsed / (self.gyro.times_s[index + 1] - self.gyro.times_s[index])
+        start_sum = projected[index] + fraction * (projected[index + 1] - projected[index])
+        start_orientation = orientations[index] @ Rotation.from_rotvec(
+            rates[index] * elapsed
         ).as_matrix()
         # Q_end Exp(-Q_end.T ds) = Exp(-ds) Q_end. Project the fixed bias
         # into the prefix sums once, then apply the four rotations to vectors.
-        partial_points = Rotation.from_rotvec(rates[index] * elapsed[:, None]).apply(xyz @ mounting)
-        world_points = np.einsum("nij,nj->ni", orientations[index], partial_points)
-        corrected = Rotation.from_rotvec(-(end_sum - start_sum)).apply(world_points)
-        return np.asarray(corrected @ (mounting @ start_orientation.T).T, dtype=np.float64)
+        return _GyroPointInputs(queries, self.gyro.times_s, orientations, rates, projected,
+                                mounting, xyz @ mounting, mounting @ start_orientation.T,
+                                start_sum)
 
 
 def gyro_rotation_model(

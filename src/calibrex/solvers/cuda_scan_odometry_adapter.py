@@ -15,6 +15,7 @@ from calibrex.solvers.cuda_lidar_map_adapter import (
     _CudaTree,
     _host,
 )
+from calibrex.solvers.imu_lidar_rotation_solver import _GyroPointInputs, _GyroRotationModel
 from calibrex.solvers.scan_to_scan_odometry import (
     FloatArray,
     ScanOdometryOptions,
@@ -61,6 +62,58 @@ extern "C" __global__ void voxel_centers3(
         if(quantum>0) value=nearbyint(value/quantum)*quantum;
         output[3*row+a]=value;
     }
+}
+
+__device__ void gyro_matrix_vector3(const double* a,const double* x,double* y,bool transpose=false){
+    for(int i=0;i<3;i++) y[i]=(transpose?a[i]:a[3*i])*x[0]
+        +(transpose?a[3+i]:a[3*i+1])*x[1]+(transpose?a[6+i]:a[3*i+2])*x[2];
+}
+__device__ void gyro_rotvec_apply3(const double* v,const double* p,double* out){
+    double angle=sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);
+    double square=angle*angle;
+    double scale=angle<=1e-3?0.5-square/48.0+(square*square)/3840.0:sin(0.5*angle)/angle;
+    double x=v[0]*scale,y=v[1]*scale,z=v[2]*scale,w=cos(0.5*angle);
+    double matrix[9]={x*x-y*y-z*z+w*w,2*(x*y-z*w),2*(x*z+y*w),
+        2*(x*y+z*w),-x*x+y*y-z*z+w*w,2*(y*z-x*w),
+        2*(x*z-y*w),2*(y*z+x*w),-x*x-y*y+z*z+w*w};
+    gyro_matrix_vector3(matrix,p,out);
+}
+extern "C" __global__ void gyro_rotate3(
+    const double* points,const double* query,const double* times,
+    const double* orientations,const double* rates,const double* projected,
+    const double* mounting,const double* back,const double* start_sum,
+    const int n,const int m,double* output){
+    int row=blockDim.x*blockIdx.x+threadIdx.x;if(row>=n)return;
+    int low=0,high=m;
+    while(low<high){
+        int middle=low+(high-low)/2;
+        if(times[middle]<=query[row])low=middle+1;else high=middle;
+    }
+    int index=max(0,min(m-2,low-1));
+    double elapsed=query[row]-times[index],fraction=elapsed/(times[index+1]-times[index]);
+    double p[3],partial[3],world[3],corrected[3],v[3];
+    for(int a=0;a<3;a++)p[a]=points[3*row+a];
+    for(int a=0;a<3;a++)v[a]=rates[3*index+a]*elapsed;
+    gyro_rotvec_apply3(v,p,partial);gyro_matrix_vector3(orientations+9*index,partial,world);
+    for(int a=0;a<3;a++)v[a]=-(projected[3*index+a]
+        +fraction*(projected[3*(index+1)+a]-projected[3*index+a])-start_sum[a]);
+    gyro_rotvec_apply3(v,world,corrected);gyro_matrix_vector3(back,corrected,output+3*row);
+}
+
+extern "C" __global__ void gyro_translate3(
+    const double* rotated,const double* fraction,const double* translation,
+    const int n,const double quantum,const double scale,double* source,unsigned char* flags){
+    int row=blockDim.x*blockIdx.x+threadIdx.x;if(row>=n)return;
+    bool sensitive=false;
+    for(int a=0;a<3;a++){
+        double value=rotated[3*row+a]+fraction[row]*translation[a];
+        source[3*row+a]=value;
+        double bound=2048.0*2.2204460492503131e-16
+            *fmax(scale,fmax(fabs(rotated[3*row+a]),fabs(fraction[row]*translation[a])));
+        double units=value/quantum;
+        sensitive|=!isfinite(value) || fabs(units-nearbyint(units))>=0.5-bound/quantum;
+    }
+    flags[row]=sensitive?1:0;
 }
 """
 
@@ -292,6 +345,93 @@ class CudaScanPreprocessor:
         self.calls = self.input_rows = self.output_rows = self.kernel_calls = self.native_calls = 0
         self.crop = cp.RawKernel(_PREPROCESS_SOURCE, "crop_keys3", options=("--fmad=false",))
         self.centers = cp.RawKernel(_PREPROCESS_SOURCE, "voxel_centers3", options=("--fmad=false",))
+        self.gyro_kernel = cp.RawKernel(
+            _PREPROCESS_SOURCE, "gyro_rotate3", options=("--fmad=false",),
+        )
+        self.translate_kernel = cp.RawKernel(
+            _PREPROCESS_SOURCE, "gyro_translate3", options=("--fmad=false",),
+        )
+        self.gyro_calls = self.gyro_rows = self.translation_calls = self.repaired_points = 0
+        self._prefix_key: tuple[int, ...] | None = None
+        self._prefix_arrays: tuple[cp.ndarray, ...] | None = None
+        self._prefix_host: tuple[FloatArray, ...] | None = None
+        self.begin_scan()
+
+    def begin_scan(self) -> None:
+        """Reuse point rotations within this scan only; keep captured gyro prefixes."""
+        self._gyro_inputs: _GyroPointInputs | None = None
+        self._rotated: cp.ndarray | None = None
+        self._fractions: cp.ndarray | None = None
+        self._host_fractions: FloatArray | None = None
+
+    def gyro_deskew(
+        self, model: object, scan_time_s: float, offsets_s: FloatArray, points: FloatArray,
+        motion: FloatArray, gap_s: float, options: ScanOdometryOptions,
+    ) -> FloatArray | None:
+        """Prepare quantized native gyro sweeps; unsupported models use the caller's path."""
+        quantum = options.geometry_quantum_m
+        if (type(model) is not _GyroRotationModel or not np.isfinite(quantum)
+                or quantum <= 0 or quantum > 1e-3 or not np.isfinite(gap_s) or gap_s <= 0
+                or not np.isfinite(options.voxel_size_m) or options.voxel_size_m <= 0
+                or motion.shape != (4, 4) or not np.isfinite(motion).all()
+                or np.max(np.abs(motion[:3, 3]), initial=0.) >= 1e6):
+            return None
+        fractions = np.asarray(offsets_s, dtype=np.float64) / gap_s
+        if (not np.isfinite(fractions).all()
+                or np.max(np.abs(fractions), initial=0.)
+                * np.max(np.abs(motion[:3, 3]), initial=0.) >= 1e6):
+            return None
+        if self._gyro_inputs is None:
+            assert isinstance(model, _GyroRotationModel)
+            data = model._point_inputs(scan_time_s, offsets_s, points)
+            if data is None:
+                return None
+            magnitude = float(np.max(np.abs(data.mounted), initial=0.))
+            prefixes = (data.times, data.orientations, data.rates, data.projected)
+            if (len(points) < 3 or magnitude >= 1e6
+                    or np.max(np.abs(offsets_s), initial=0.) > .25
+                    or np.max(np.abs(data.rates), initial=0.)
+                    * np.max(np.diff(data.times), initial=0.) * math.sqrt(3) > .5
+                    or magnitude / options.voxel_size_m >= 2**61
+                    or points.nbytes * 18 + sum(p.nbytes for p in prefixes) > 1024**3):
+                return None
+            with cp.cuda.Device(self.device_id):
+                key = tuple(id(p) for p in prefixes)
+                if key != self._prefix_key:
+                    self._prefix_host = prefixes  # prevent identity reuse after release
+                    self._prefix_arrays = tuple(cp.asarray(p) for p in prefixes)
+                    self._prefix_key = key
+                assert self._prefix_arrays is not None
+                self._rotated = cp.empty(data.mounted.shape, dtype=cp.float64)
+                self.gyro_kernel(((len(points) + 127) // 128,), (128,), (
+                    cp.asarray(data.mounted), cp.asarray(data.queries), *self._prefix_arrays,
+                    cp.asarray(data.mounting), cp.asarray(data.back), cp.asarray(data.start_sum),
+                    np.int32(len(points)), np.int32(len(data.times)), self._rotated,
+                ))
+                self.gyro_calls += 1
+                self.gyro_rows += len(points)
+                self._host_fractions = fractions
+                self._fractions = cp.asarray(self._host_fractions)
+                self._gyro_inputs = data
+        assert self._rotated is not None and self._fractions is not None
+        assert self._host_fractions is not None and self._gyro_inputs is not None
+        with cp.cuda.Device(self.device_id):
+            source = cp.empty_like(self._rotated)
+            flags = cp.empty(len(source), dtype=cp.uint8)
+            scale = max(1., float(np.max(np.abs(self._gyro_inputs.mounted), initial=0.)))
+            self.translate_kernel(((len(source) + 127) // 128,), (128,), (
+                self._rotated, self._fractions, cp.asarray(motion[:3, 3]), np.int32(len(source)),
+                np.float64(quantum), np.float64(scale), source, flags,
+            ))
+            self.translation_calls += 1
+            repair = np.flatnonzero(cp.asnumpy(flags)).astype(np.int64, copy=False)
+            if len(repair):
+                native = self._gyro_inputs.native_points(repair) + np.outer(
+                    self._host_fractions[repair], motion[:3, 3],
+                )
+                source[cp.asarray(repair)] = cp.asarray(native)
+                self.repaired_points += len(repair)
+            return self._device(source, options)
 
     def __call__(self, points: FloatArray, options: ScanOdometryOptions) -> FloatArray:
         xyz = np.asarray(points, dtype=np.float64)[:, :3]
@@ -307,6 +447,11 @@ class CudaScanPreprocessor:
             return preprocess_scan(points, options)
         with cp.cuda.Device(self.device_id):
             source = cp.asarray(np.ascontiguousarray(xyz))
+            return self._device(source, options)
+
+    def _device(self, source: cp.ndarray, options: ScanOdometryOptions) -> FloatArray:
+        voxel, quantum = options.voxel_size_m, options.geometry_quantum_m
+        with cp.cuda.Device(self.device_id):
             data = cp.empty_like(source)
             keys = cp.empty(source.shape, dtype=cp.int64)
             valid = cp.empty(len(source), dtype=cp.uint8)
@@ -339,7 +484,11 @@ class CudaScanPreprocessor:
         return {"gpu_preprocess_calls": self.calls, "gpu_preprocess_input_rows": self.input_rows,
                 "gpu_preprocess_output_rows": self.output_rows,
                 "gpu_preprocess_kernel_calls": self.kernel_calls,
-                "native_preprocess_calls": self.native_calls}
+                "native_preprocess_calls": self.native_calls,
+                "gpu_gyro_rotation_calls": self.gyro_calls,
+                "gpu_gyro_rotation_rows": self.gyro_rows,
+                "gpu_gyro_translation_calls": self.translation_calls,
+                "native_gyro_point_repairs": self.repaired_points}
 
 
 class CudaOdometryTarget:

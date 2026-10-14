@@ -241,6 +241,13 @@ def audit(root: Path) -> dict[str, object]:
                                 or not 0 <= counters.get("native_tree_builds", -1)
                                 <= counters["gpu_tree_builds"])):
                         raise ValueError("GPU tree construction accounting is inconsistent")
+                    if ("gpu_packed_reference_rows" in adapter_constants
+                            and (counters.get("gpu_packed_reference_rows", 0) <= 0
+                                 or counters["gpu_packed_reference_rows"]
+                                 < counters.get("gpu_normal_rows", 0)
+                                 or counters.get("gpu_packed_reference_bytes", 0)
+                                 != 24 * counters["gpu_packed_reference_rows"])):
+                        raise ValueError("GPU packed reference accounting is inconsistent")
                     if ("gpu_preprocess_calls" in adapter_constants
                             and (counters.get("gpu_preprocess_calls", 0) <= 0
                                 or counters.get("gpu_preprocess_kernel_calls", 0)
@@ -249,6 +256,17 @@ def audit(root: Path) -> dict[str, object]:
                                 <= counters.get("gpu_preprocess_input_rows", 0)
                                 or counters.get("native_preprocess_calls", -1) < 0)):
                         raise ValueError("GPU preprocessing accounting is inconsistent")
+                    if "gpu_gyro_rotation_calls" in adapter_constants:
+                        calls = counters.get("gpu_gyro_rotation_calls", -1)
+                        rows = counters.get("gpu_gyro_rotation_rows", -1)
+                        translations = counters.get("gpu_gyro_translation_calls", -1)
+                        repairs = counters.get("native_gyro_point_repairs", -1)
+                        if (calls < 0 or rows < calls or bool(calls) != bool(rows)
+                                or not calls <= translations
+                                <= counters.get("gpu_preprocess_calls", -1)
+                                or not 0 <= repairs
+                                <= counters.get("gpu_preprocess_input_rows", -1)):
+                            raise ValueError("GPU gyro preprocessing accounting is inconsistent")
                     if ("calibrex/solvers/scipy_spatial_snapshot.py" in executed
                             and counters.get("serialized_tree_captures", 0)
                             + counters.get("public_node_tree_captures", 0)
@@ -290,6 +308,15 @@ def audit(root: Path) -> dict[str, object]:
                 and not (0 < record["controls_seconds"] <= record["pipeline_seconds"]
                          and record["controls_calls"] == 1)):
             raise ValueError("controls timing scope is inconsistent")
+        if (provenance.get("odometry_backend") == "cuda"
+                and hasattr(module, "_time_registration")
+                and not {"registration_seconds", "registration_calls"} <= record.keys()):
+            raise ValueError("registration observation is missing")
+        if ("registration_seconds" in record
+                and not (0 < record["registration_seconds"] <= record["pipeline_seconds"]
+                         and record["registration_calls"] > 0
+                         and provenance.get("odometry_backend") == "cuda")):
+            raise ValueError("registration timing scope is inconsistent")
         if len(record["rounds"]) != len(result["rounds"]):
             raise ValueError("worker did not retain every fit round")
         for fitted, reported in zip(record["rounds"], result["rounds"], strict=True):
@@ -368,6 +395,51 @@ def audit(root: Path) -> dict[str, object]:
     _audit_rejected_pair(root, module._compare)
     if (root / "previous_cuda").exists():
         audit(root / "previous_cuda")
+    observation_summary = {}
+    if (root / "repeat-v2").exists():
+        observation_summary["monitored_repeat"] = audit(root / "repeat-v2")
+    if (root / "observation.json").exists():
+        observed = json.loads((root / "observation.json").read_bytes())
+        observation_schema = root / "observation.schema.json"
+        jsonschema.validate(observed, json.loads(observation_schema.read_bytes()))
+        binding = observed["provenance"]
+        if (binding["observer_sha256"] != _sha((root / "observer.py.txt").read_bytes())
+                or binding["schema_sha256"] != _sha(observation_schema.read_bytes())
+                or binding["launcher_sha256"] != protocol["launcher_sha256"]
+                or observed["exit_code"] != 0
+                or binding.get("terminated_on_interference", False)):
+            raise ValueError("GPU observation source/schema/launcher binding differs")
+        command = binding["benchmark_command"]
+        command_values = [("--comparison", protocol["comparison"])]
+        # CPU/CUDA already requires equal effective revisions above. Its
+        # launcher resolves the requested baseline, then replaces it with HEAD.
+        if protocol["comparison"] != "cpu-cuda":
+            command_values.append(("--baseline-commit", protocol["baseline_commit"]))
+        for option, value in command_values:
+            if command[command.index(option) + 1] != value:
+                raise ValueError("GPU observation benchmark command differs")
+        for option, value in (("--max-seconds", protocol["max_seconds"]),
+                              ("--max-rounds", protocol["max_rounds"]),
+                              ("--repeats", protocol["repeats"])):
+            if float(command[command.index(option) + 1]) != value:
+                raise ValueError("GPU observation benchmark command differs")
+        for option, key in (("--odometry-voxel-size-m", "voxel_size_m"),
+                            ("--odometry-local-map-scans", "local_map_scans"),
+                            ("--odometry-geometry-quantum-m", "geometry_quantum_m"),
+                            ("--odometry-motion-translation-quantum-m",
+                             "motion_translation_quantum_m"),
+                            ("--odometry-motion-rotation-quantum-rad",
+                             "motion_rotation_quantum_rad")):
+            if float(command[command.index(option) + 1]) != protocol["odometry_options"][key]:
+                raise ValueError("GPU observation geometry command differs")
+        offsets = [row["offset_seconds"] for row in observed["samples"]]
+        if offsets != sorted(offsets) or binding["sampling_interval_seconds"] != 10:
+            raise ValueError("GPU observation sampling scope differs")
+        observation_summary.update({"gpu_observation_samples": len(offsets),
+                               "foreign_gpu_samples": sum(row["foreign"] > 0
+                                                          for row in observed["samples"]),
+                               "unknown_gpu_samples": sum(row["unknown"] > 0
+                                                          for row in observed["samples"])})
     normal_summary = {}
     if all("normal_preparation_seconds" in record for record in measurements.values()):
         normal_medians = {
@@ -380,7 +452,7 @@ def audit(root: Path) -> dict[str, object]:
         normal_summary = {"normal_median_seconds": normal_medians,
                           "normal_speedup": normal_medians["prior"] / normal_medians["current"]}
     front_summary = {}
-    for scope in ("spatial_build", "preprocessing", "controls"):
+    for scope in ("spatial_build", "preprocessing", "controls", "registration"):
         if all(scope + "_seconds" in record for record in measurements.values()):
             medians = {
                 variant: statistics.median(measurements[(r, variant)][scope + "_seconds"]
@@ -399,6 +471,7 @@ def audit(root: Path) -> dict[str, object]:
         "quality_passed": True,
         **normal_summary,
         **front_summary,
+        **observation_summary,
     }
 
 

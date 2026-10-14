@@ -466,6 +466,9 @@ class IncrementalScanOdometry:
         with the refined motion.
         """
 
+        begin_scan = getattr(self._preprocessor, "begin_scan", None)
+        if begin_scan is not None:
+            begin_scan()
         if not self.poses:
             self.poses.append(np.eye(4))
             self._recent.append(self._prepare(scan, self.options))
@@ -493,16 +496,23 @@ class IncrementalScanOdometry:
         measured: FloatArray | None = None  # the model does not depend on the motion estimate
         rotated: FloatArray | None = None
         for _ in range(rounds):
+            device_processed: FloatArray | None = None
             if deskew:
                 assert point_offsets_s is not None and gap is not None
                 if self.rotation_model is not None and time_s is not None:
                     if isinstance(self.rotation_model, _PointRotationModel):
-                        if rotated is None:
-                            rotated = self.rotation_model.rotate_points(
-                                time_s, point_offsets_s, scan
-                            )
-                        fractions = np.asarray(point_offsets_s, dtype=np.float64) / gap
-                        source = rotated + np.outer(fractions, motion[:3, 3])
+                        prepare = getattr(self._preprocessor, "gyro_deskew", None)
+                        if prepare is not None:
+                            device_processed = prepare(self.rotation_model, time_s,
+                                                       point_offsets_s, scan, motion,
+                                                       gap, self.options)
+                        if device_processed is None:
+                            if rotated is None:
+                                rotated = self.rotation_model.rotate_points(
+                                    time_s, point_offsets_s, scan
+                                )
+                            fractions = np.asarray(point_offsets_s, dtype=np.float64) / gap
+                            source = rotated + np.outer(fractions, motion[:3, 3])
                     else:
                         if measured is None:
                             measured = self.rotation_model(time_s, point_offsets_s)
@@ -511,7 +521,8 @@ class IncrementalScanOdometry:
                         )
                 else:
                     source = deskew_points(scan, point_offsets_s, motion, gap)
-            processed = self._prepare(source, self.options)
+            processed = (self._prepare(source, self.options)
+                         if device_processed is None else device_processed)
             if cuda_target is None:
                 registration = register_point_to_plane(
                     processed, target, motion, self.options,
