@@ -264,8 +264,9 @@ def test_fused_normals_keep_native_planes_and_directions_without_library_eigh(
     monkeypatch.setattr(cp.linalg, "eigh", forbidden)
     actual = cp.asnumpy(target.normals)
     np.testing.assert_array_equal(cp.asnumpy(target.planar), planar)
-    np.testing.assert_allclose(np.abs(np.sum(actual * expected, axis=1)), 1., atol=1e-12)
-    np.testing.assert_allclose(np.linalg.norm(actual, axis=1), 1., atol=1e-14)
+    signs = np.sign(np.sum(actual * expected, axis=1))
+    np.testing.assert_allclose(actual * signs[:, None], expected, rtol=0, atol=1e-9)
+    np.testing.assert_allclose(np.linalg.norm(actual, axis=1), 1., rtol=0, atol=1e-14)
     assert target.statistics()["gpu_normal_kernel_calls"] > 0
     assert target.statistics()["scalar_normal_repairs"] < len(points)
     first = target.statistics().copy()

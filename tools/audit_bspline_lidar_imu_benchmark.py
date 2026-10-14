@@ -209,6 +209,10 @@ def audit(root: Path) -> dict[str, object]:
                 if adapter not in executed:
                     raise ValueError("GPU worker did not bind its executed adapter")
                 query_hash, system_hash = _cuda_kernel_hashes(source_bytes[variant])
+                normal_counter_expected = any(
+                    isinstance(node, ast.Constant) and node.value == "gpu_normal_kernel_calls"
+                    for node in ast.walk(ast.parse(source_bytes[variant][adapter]))
+                )
                 identity = re.compile(
                     r"calibrex\.cuda_scan_odometry/v0\.1;fp64=true;query_fma=false;"
                     r"cupy=([^;]+);cuda=\d+;driver=\d+;cc=\d+\.\d+;"
@@ -221,6 +225,8 @@ def audit(root: Path) -> dict[str, object]:
                     if match is None or match[1] != provenance.get("cupy"):
                         raise ValueError("executed GPU identity differs from its bound kernels")
                     counters = report["statistics"]
+                    if normal_counter_expected and "gpu_normal_kernel_calls" not in counters:
+                        raise ValueError("GPU normal kernel accounting is missing")
                     if ("gpu_normal_kernel_calls" in counters
                             and counters.get("gpu_normal_rows", 0) > 0
                             and counters["gpu_normal_kernel_calls"] <= 0):
@@ -238,6 +244,11 @@ def audit(root: Path) -> dict[str, object]:
             attempt["whole_seconds"] >= record["pipeline_seconds"] >= record["fit_seconds"] > 0
         ):
             raise ValueError("timing scopes are inconsistent")
+        if (protocol.get("comparison") == "cuda-cuda"
+                and hasattr(module, "_time_normal_preparation")
+                and not {"normal_preparation_seconds", "normal_preparation_calls"}
+                <= record.keys()):
+            raise ValueError("normal preparation observation is missing")
         if ("normal_preparation_seconds" in record
                 and not (0 <= record["normal_preparation_seconds"] <= record["pipeline_seconds"]
                          and record["normal_preparation_calls"] > 0
@@ -321,12 +332,24 @@ def audit(root: Path) -> dict[str, object]:
     _audit_rejected_pair(root, module._compare)
     if (root / "previous_cuda").exists():
         audit(root / "previous_cuda")
+    normal_summary = {}
+    if all("normal_preparation_seconds" in record for record in measurements.values()):
+        normal_medians = {
+            variant: statistics.median(measurements[(r, variant)]["normal_preparation_seconds"]
+                                       for r in range(protocol["repeats"]))
+            for variant in sources
+        }
+        if any(value <= 0 for value in normal_medians.values()):
+            raise ValueError("normal preparation median is not positive")
+        normal_summary = {"normal_median_seconds": normal_medians,
+                          "normal_speedup": normal_medians["prior"] / normal_medians["current"]}
     return {
         "workers": len(attempts),
         "files": len(index["files"]),
         "whole_speedup": summary["whole_speedup"],
         "fit_speedup": summary["fit_speedup"],
         "quality_passed": True,
+        **normal_summary,
     }
 
 
