@@ -4,7 +4,9 @@
 An evaluation harness, not part of the Calibrex package. Range requests run in
 parallel (the network here is capped per connection); the chunks are written and
 hashed strictly in file order, so the SHA-256 is of exactly the bytes on disk and no
-second read of the file is needed. ``download.json`` records the URL, the byte range,
+second read of the file is needed. A head (``--bytes``) is cut after the last complete
+top-level record, so the bag reader reads it to its end; ``bytes`` records the kept
+range and ``requested_bytes`` the requested one. ``download.json`` records the URL, the byte range,
 the SHA-256 of the downloaded bytes and, for a full download, whether it equals the
 SHA-256 that the dataset's LFS pointer publishes.
 
@@ -19,14 +21,17 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import struct
 import subprocess
 import sys
 import time
 from collections import deque
 from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import Path
+from typing import Any
 
 REPOSITORY = "https://huggingface.co/datasets/Hilti-Research/hilti-slam-challenge-2022"
+BAG_MAGIC = b"#ROSBAG V2.0\n"
 
 
 def lfs_entry(name: str) -> dict[str, object]:
@@ -64,6 +69,28 @@ def fetch(url: str, start: int, end: int) -> bytes:
     raise RuntimeError(f"bytes {start}-{end} incomplete after retries")
 
 
+def last_record_end(path: Path, length: int) -> int:
+    """End offset of the last top-level ROS bag record that lies wholly in the first
+    ``length`` bytes (each record: header length, header, data length, data)."""
+
+    position = len(BAG_MAGIC)
+    with path.open("rb") as stream:
+        while True:
+            stream.seek(position)
+            prefix = stream.read(4)
+            if len(prefix) < 4:
+                return position
+            header_length = struct.unpack("<I", prefix)[0]
+            stream.seek(position + 4 + header_length)
+            data_prefix = stream.read(4)
+            if len(data_prefix) < 4:
+                return position
+            end = position + 8 + header_length + struct.unpack("<I", data_prefix)[0]
+            if end > length:
+                return position
+            position = end
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("name", help="file name under rosbags/")
@@ -80,6 +107,7 @@ def main(argv: list[str] | None = None) -> int:
     chunk = args.chunk_mb << 20
     starts = list(range(0, length, chunk))
     digest = hashlib.sha256()
+    snapshots: dict[int, Any] = {}  # the hash state at every chunk start, to end it anywhere
     started = time.monotonic()
     with ThreadPoolExecutor(args.connections) as pool, args.output.open("wb") as out:
         pending: deque[Future[bytes]] = deque()
@@ -91,14 +119,29 @@ def main(argv: list[str] | None = None) -> int:
                 pending.append(pool.submit(fetch, url, first, min(first + chunk, length) - 1))
                 queued += 1
             data = pending.popleft().result()
+            snapshots[starts[done]] = digest.copy()
             out.write(data)
             digest.update(data)
             done += 1
+    kept = length
+    if length < size:
+        # a head ends inside a record; the bag reader needs whole records, so the file is cut
+        # after the last complete top-level record (only record lengths are read to find it)
+        kept = last_record_end(args.output, length)
+        base = max(offset for offset in snapshots if offset <= kept)
+        tail_digest = snapshots[base].copy()
+        with args.output.open("rb") as stream:
+            stream.seek(base)
+            tail_digest.update(stream.read(kept - base))
+        with args.output.open("r+b") as stream:
+            stream.truncate(kept)
+        digest = tail_digest
     sha256 = digest.hexdigest()
     record = {
         "name": args.name,
         "url": url,
-        "bytes": [0, length],
+        "bytes": [0, kept],
+        "requested_bytes": length,
         "full_size": size,
         "full": length == size,
         "sha256": sha256,
