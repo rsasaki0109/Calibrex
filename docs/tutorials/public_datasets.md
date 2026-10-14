@@ -428,6 +428,8 @@ deskew and shared spline terms against the analytic-Jacobian implementation.
 The [CUDA joint-odometry comparison](../benchmarks/cuda_joint_lidar_imu.md)
 uses an explicit dense numerical policy on both CPU and GPU, measuring the
 complete six-second calibration and all its evidence rather than registration alone.
+The [spatial-pruning comparison](../benchmarks/cuda_spatial_pruning.md) repeats
+that complete dense workload after reducing CUDA traversal and tree-capture work.
 
 The ROS 1 PointCloud2 header carries the relative Livox clock (about 110 s),
 while bag records use epoch time. The reproducible conversion therefore

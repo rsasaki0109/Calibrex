@@ -1,0 +1,73 @@
+from pathlib import Path
+import hashlib
+import json
+import shutil
+import tarfile
+
+source = Path('outputs/glim-cuda-spatial-direct-v1')
+parent = Path('docs/assets/cuda_spatial_pruning')
+destination = parent / 'previous_cuda'
+summary = json.loads((source / 'summary.json').read_bytes())
+protocol = json.loads((source / 'protocol.json').read_bytes())
+attempts = json.loads((source / 'attempts.json').read_bytes())
+assert summary['quality_passed'] and len(attempts) == 2
+assert protocol['comparison'] == 'cuda-cuda'
+assert protocol['current_commit'] == json.loads((parent/'protocol.json').read_bytes())['current_commit']
+destination.mkdir(exist_ok=False)
+for name in ('protocol.json', 'attempts.json', 'summary.json'):
+    shutil.copyfile(source / name, destination / name)
+for attempt in attempts:
+    folder = destination / attempt['worker']
+    folder.mkdir()
+    for name in ('result.json', 'measurement.json', 'worker.log'):
+        shutil.copyfile(source / attempt['worker'] / name, folder / name)
+for variant in ('prior', 'current'):
+    root = source / f'sources-{variant}'
+    shutil.copyfile(root/'manifest.json', destination/f'sources-{variant}-manifest.json')
+    with tarfile.open(destination/f'sources-{variant}.tar.gz', 'w:gz') as bundle:
+        bundle.add('LICENSE', arcname='LICENSE', recursive=False)
+        for path in sorted((root/'src').rglob('*.py')):
+            bundle.add(path, arcname=path.relative_to(root).as_posix(), recursive=False)
+shutil.copyfile('tools/benchmark_bspline_lidar_imu.py', destination/'benchmark.py.txt')
+shutil.copyfile('tools/schemas/bspline_lidar_imu_comparison.schema.json', destination/'comparison.schema.json')
+shutil.copyfile(__file__, destination/'publisher.py.txt')
+whole = summary['whole_median_seconds']
+note = f'''A separate, source-bound previous/current CUDA pair ran the same complete
+six-second workload and numerical policy. Previous CUDA took {whole['prior']:.3f} s;
+current CUDA took {whole['current']:.3f} s ({summary['whole_speedup']:.3f}x).
+Both fresh workers started with isolated empty CuPy compilation caches.
+All result and full per-round quality checks pass. This single pair is a
+preliminary incremental observation, without repeated-trial stability claims;
+it is not pooled with the three CPU/CUDA pairs or multiplied by their ratio.
+Host background load was not reserved.
+'''
+(destination/'README.md').write_text(f'''# Direct previous-CUDA check
+
+{note}
+The baseline source is `{protocol['baseline_commit']}` and current source is
+`{protocol['current_commit']}`. Complete workers, sources, imports, kernel
+identities and the launcher are bound by the local publication index. The
+parent archive audit validates this pair as well.
+
+```bash
+python -m tools.audit_bspline_lidar_imu_benchmark docs/assets/cuda_spatial_pruning/previous_cuda
+```
+''', encoding='utf-8', newline='\n')
+files = {p.relative_to(destination).as_posix():hashlib.sha256(p.read_bytes()).hexdigest()
+         for p in sorted(destination.rglob('*')) if p.is_file()}
+(destination/'publication-index.json').write_text(json.dumps({
+    'schema_version':'slac.bspline_lidar_imu_publication/v0.1',
+    'provenance':{'input_protocol_sha256':hashlib.sha256((source/'protocol.json').read_bytes()).hexdigest()},
+    'files':files,
+}, indent=2)+'\n', encoding='utf-8', newline='\n')
+for path in (parent/'README.md', Path('docs/benchmarks/cuda_spatial_pruning.md')):
+    link = ('../assets/cuda_spatial_pruning/previous_cuda/README.md'
+            if path.parent.name == 'benchmarks' else 'previous_cuda/README.md')
+    path.write_text(path.read_text(encoding='utf-8')+'\n## Direct previous-CUDA check\n\n'+note+
+                    f'\n[Bound direct comparison]({link}).\n', encoding='utf-8', newline='\n')
+index_path = parent/'publication-index.json'
+index = json.loads(index_path.read_bytes())
+index['files'] = {p.relative_to(parent).as_posix():hashlib.sha256(p.read_bytes()).hexdigest()
+                  for p in sorted(parent.rglob('*')) if p.is_file() and p != index_path}
+index_path.write_text(json.dumps(index, indent=2)+'\n', encoding='utf-8', newline='\n')
+print({'direct_whole_speedup':summary['whole_speedup'], 'parent_files':len(index['files'])})

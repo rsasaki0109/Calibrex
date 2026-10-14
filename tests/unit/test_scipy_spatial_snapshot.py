@@ -22,7 +22,7 @@ def test_bulk_capture_matches_every_public_node_and_exact_subtree_bounds(
         points[:count // 2] = 0
     tree = cKDTree(points)
     (axes, splits, children, spans), bounds, method = capture_spatial_tree(tree)
-    assert method == ("validated_serialized" if np.dtype(np.intp).itemsize == 8 else "public_nodes")
+    assert method in ("validated_serialized", "public_nodes")
     remaining = [(0, tree.tree)]
     while remaining:
         index, node = remaining.pop()

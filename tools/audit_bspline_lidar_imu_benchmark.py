@@ -220,6 +220,10 @@ def audit(root: Path) -> dict[str, object]:
                     if match is None or match[1] != provenance.get("cupy"):
                         raise ValueError("executed GPU identity differs from its bound kernels")
                     counters = report["statistics"]
+                    if ("calibrex/solvers/scipy_spatial_snapshot.py" in executed
+                            and counters.get("serialized_tree_captures", 0)
+                            + counters.get("public_node_tree_captures", 0) <= 0):
+                        raise ValueError("GPU worker did not record its actual tree capture path")
                     if (counters.get("scalar_motion_repairs", 0)
                             > counters.get("scalar_registration_repairs", 0)
                             or counters.get("scalar_registration_repairs", 0)
@@ -305,6 +309,8 @@ def audit(root: Path) -> dict[str, object]:
         if summary["provenance"][f"{name}_sha256"] != _sha((root / f"{name}.json").read_bytes()):
             raise ValueError("summary input binding differs")
     _audit_rejected_pair(root, module._compare)
+    if (root / "previous_cuda").exists():
+        audit(root / "previous_cuda")
     return {
         "workers": len(attempts),
         "files": len(index["files"]),
