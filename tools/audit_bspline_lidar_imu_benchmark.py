@@ -9,6 +9,7 @@ import json
 import re
 import statistics
 import tarfile
+from collections.abc import Callable
 from pathlib import Path
 from types import ModuleType
 
@@ -38,6 +39,66 @@ def _cuda_kernel_hashes(sources: dict[str, bytes]) -> tuple[str, str]:
     return _sha(query.encode()), _sha(
         (system["_SYSTEM_SOURCE"] + system["_FUSED_SOURCE"] + system["_COVARIANCE_SOURCE"]).encode()
     )
+
+
+def _audit_rejected_pair(root: Path, compare: Callable[[dict, dict], dict]) -> None:
+    """Check the retained exploratory failure and its exact imported module bytes."""
+    folder = root / "rejected-no-motion-grid"
+    if not folder.exists():
+        return
+    schema = json.loads((folder / "measurement.schema.json").read_bytes())
+    results = {}
+    helper_hash = _sha((folder / "pilot.py.txt").read_bytes())
+    for backend in ("cpu", "cuda"):
+        raw = (folder / f"{backend}.result.json").read_bytes()
+        result = json.loads(raw)
+        LidarImuBagCalibrationArtifact.model_validate(result)
+        record = json.loads((folder / f"{backend}.measurement.json").read_bytes())
+        jsonschema.validate(record, schema)
+        provenance = record["provenance"]
+        if (provenance["helper_sha256"] != helper_hash
+                or provenance["result_sha256"] != _sha(raw)):
+            raise ValueError("rejected pilot helper/result binding differs")
+        expected = json.loads((folder / f"{backend}.sources-manifest.json").read_bytes())
+        archived = {}
+        with tarfile.open(folder / f"{backend}.sources.tar.gz") as bundle:
+            for member in bundle.getmembers():
+                if not member.isfile() or not member.name.endswith(".py"):
+                    continue
+                if not member.name.startswith("src/calibrex/") or ".." in Path(member.name).parts:
+                    raise ValueError("unexpected rejected source archive path")
+                stream = bundle.extractfile(member)
+                assert stream is not None
+                archived[member.name.removeprefix("src/")] = _sha(stream.read())
+        if archived != expected:
+            raise ValueError("rejected imported source bytes differ")
+        for name, digest in provenance["executed_sources"].items():
+            path = name.replace(".", "/")
+            key = path + ".py" if path + ".py" in expected else path + "/__init__.py"
+            if expected.get(key) != digest:
+                raise ValueError("rejected actual imports differ from archived sources")
+        for fitted, reported in zip(record["rounds"], result["rounds"], strict=True):
+            if (fitted["status"] != reported["fit_status"]
+                    or fitted["iterations"] != reported["iterations"]):
+                raise ValueError("rejected per-round record differs")
+        settings = result["options"]["odometry_options"]
+        if any(settings.get(key, 0) != 0 for key in
+               ("motion_translation_quantum_m", "motion_rotation_quantum_rad")):
+            raise ValueError("rejected pair did not retain uncanonicalized motion")
+        results[backend] = result
+    actual = compare(results["cpu"], results["cuda"])
+    declared = json.loads((folder / "comparison.json").read_bytes())
+    bindings = declared.pop("provenance")
+    for backend in results:
+        if bindings[f"{backend}_result_sha256"] != _sha(
+            (folder / f"{backend}.result.json").read_bytes()
+        ):
+            raise ValueError("rejected comparison result binding differs")
+    actual_rotation = actual["errors"].pop("rotation_deg")
+    declared_rotation = declared["errors"].pop("rotation_deg")
+    if (actual["passed"] or actual != declared
+            or not np.isclose(actual_rotation, declared_rotation, rtol=1e-12, atol=1e-12)):
+        raise ValueError("retained exploratory rejection changed")
 
 
 def audit(root: Path) -> dict[str, object]:
@@ -241,6 +302,7 @@ def audit(root: Path) -> dict[str, object]:
     for name in ("protocol", "attempts"):
         if summary["provenance"][f"{name}_sha256"] != _sha((root / f"{name}.json").read_bytes()):
             raise ValueError("summary input binding differs")
+    _audit_rejected_pair(root, module._compare)
     return {
         "workers": len(attempts),
         "files": len(index["files"]),

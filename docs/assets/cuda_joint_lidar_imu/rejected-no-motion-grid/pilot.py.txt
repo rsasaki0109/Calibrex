@@ -1,0 +1,28 @@
+from pathlib import Path
+from dataclasses import replace
+import argparse,json,time,hashlib,sys
+from calibrex.data.livox_ros2 import LivoxStreamProfile
+from calibrex.evaluation import lidar_imu_bag_calibration as runner
+from calibrex.evaluation import imu_lidar_rotation as rotation_runner
+parser=argparse.ArgumentParser();parser.add_argument('--backend',choices=['cpu','cuda'],required=True);parser.add_argument('--output',type=Path,required=True)
+args=parser.parse_args();args.output.mkdir(exist_ok=False)
+runner.emit_stage=lambda value: print(value,flush=True)
+rotation_runner.emit_stage=runner.emit_stage
+options=runner.LidarImuBagOptions(max_rounds=4)
+window=options.rotation.windowing
+options=replace(options,rotation=replace(options.rotation,windowing=replace(window,odometry_backend=args.backend,odometry=replace(window.odometry,voxel_size_m=.03,local_map_scans=3,geometry_quantum_m=1e-9))))
+rounds=[];original=runner.fit_bspline_lidar_imu
+
+def measured(problem,settings):
+ begin=time.perf_counter();fit=original(problem,settings)
+ rounds.append({'seconds':time.perf_counter()-begin,'status':fit.status,'iterations':fit.iterations,'calibration_covariance':fit.calibration_covariance.tolist(),'trajectory_rotations':fit.trajectory.rotations.tolist(),'trajectory_positions':fit.trajectory.positions.tolist(),'initial_cost':fit.initial_cost,'final_cost':fit.final_cost})
+ return fit
+runner.fit_bspline_lidar_imu=measured
+begin=time.perf_counter()
+result=runner.calibrate_lidar_imu_bag('data/public/glim_versatile/livox.bag',LivoxStreamProfile('glim','/livox/points','/livox/imu','t','offset_s','g'),options,dataset_family='glim_versatile',dataset_license='upstream AIST GLIM dataset terms',max_seconds=6,command=['python','.tmp-calibrex-dense-joint-pilot.py','--backend',args.backend])
+result.save(args.output/'result.json')
+elapsed=time.perf_counter()-begin
+imports={name:hashlib.sha256(Path(module.__file__).read_bytes()).hexdigest() for name,module in list(sys.modules.items()) if name.startswith('calibrex.') and getattr(module,'__file__',None) and Path(module.__file__).suffix=='.py'}
+record={'seconds':elapsed,'rounds':rounds,'provenance':{'helper_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'executed_sources':imports,'result_sha256':hashlib.sha256((args.output/'result.json').read_bytes()).hexdigest()}}
+(args.output/'measurement.json').write_text(json.dumps(record),encoding='utf-8')
+print(json.dumps({'backend':args.backend,'seconds':elapsed,'fit_seconds':sum(r['seconds'] for r in rounds),'round_iterations':[r['iterations'] for r in rounds],'policy_status':result.policy_status}),flush=True)

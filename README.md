@@ -819,6 +819,7 @@ Tests fail if the committed evidence card drifts from its validated source.
 - [The workflow: estimate, check, drift](docs/tutorials/workflow.md)
 - [SOTA leaderboard](docs/benchmarks/sota_leaderboard.md)
 - [LiDAR-IMU shared-rotation performance](docs/benchmarks/lidar_imu_shared_rotations.md)
+- [CUDA odometry in joint LiDAR-IMU calibration](docs/benchmarks/cuda_joint_lidar_imu.md)
 - Benchmark pages: [MID360 IMU-LiDAR](docs/benchmarks/mid360_imu_lidar.md) ·
   [KITTI LiDAR-vehicle](docs/benchmarks/kitti_lidar_vehicle.md) ·
   [NTU VIRAL LiDAR-LiDAR](docs/benchmarks/ntu_viral_lidar_lidar.md) ·

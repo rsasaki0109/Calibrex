@@ -987,6 +987,15 @@
   The complete source-bound evidence and limits are recorded in
   `docs/benchmarks/lidar_imu_shared_rotations.md`.
 
+- Connect optional CUDA odometry to joint LiDAR-IMU initialization, gyro
+  feedback passes and final trajectory construction. Record actual per-pass
+  execution and repairs, and expose explicit coordinate and returned-motion
+  grids with disabled defaults. On an identical dense public GLIM six-second
+  workload, three complete CPU/CUDA pairs measure 211.124 -> 108.970 s
+  (1.94x), with identical estimates and evidence. Preserve the earlier rejected
+  uncanonicalized comparison and all source-bound records in
+  `docs/benchmarks/cuda_joint_lidar_imu.md`.
+
 ## 0.5.1 - 2026-10-02
 
 Highlights:
