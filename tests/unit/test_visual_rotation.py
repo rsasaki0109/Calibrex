@@ -51,6 +51,54 @@ def test_pure_rotation_ransac_rejects_outliers() -> None:
     assert inliers[40:].all() and inliers[:40].sum() < 5
 
 
+def _loop_ransac(
+    previous: np.ndarray,
+    current: np.ndarray,
+    threshold_rad: float,
+    iterations: int,
+    rng: np.random.Generator,
+) -> tuple[np.ndarray, np.ndarray] | None:
+    """The one-hypothesis-at-a-time RANSAC that ``pure_rotation_ransac`` replaced."""
+
+    def kabsch(source: np.ndarray, target: np.ndarray) -> np.ndarray:
+        left, _, right = np.linalg.svd(target.T @ source)
+        return left @ np.diag([1.0, 1.0, np.sign(np.linalg.det(left @ right))]) @ right
+
+    best = None
+    for _ in range(iterations):
+        sample = rng.choice(len(previous), 2, replace=False)
+        rotation = kabsch(previous[sample], current[sample])
+        inliers = np.linalg.norm(np.cross(current, previous @ rotation.T), axis=1) < threshold_rad
+        if best is None or inliers.sum() > best.sum():
+            best = inliers
+    assert best is not None
+    if best.sum() < 3:
+        return None
+    rotation = kabsch(previous[best], current[best])
+    inliers = np.linalg.norm(np.cross(current, previous @ rotation.T), axis=1) < threshold_rad
+    return kabsch(previous[inliers], current[inliers]), inliers
+
+
+@pytest.mark.parametrize(
+    ("count", "outliers", "noise"), [(200, 40, 0.0), (60, 30, 1e-3), (5, 2, 0.0)]
+)
+def test_the_batched_ransac_gives_the_loop_s_fit(count: int, outliers: int, noise: float) -> None:
+    rng = np.random.default_rng(3)
+    truth = Rotation.from_euler("xyz", [0.4, 1.5, -0.7], degrees=True).as_matrix()
+    previous = _bearings(count, rng)
+    current = previous @ truth.T + rng.normal(0.0, noise, (count, 3))
+    current /= np.linalg.norm(current, axis=1, keepdims=True)
+    current[:outliers] = _bearings(outliers, rng)
+
+    fit = pure_rotation_ransac(previous, current, 0.002, 200, np.random.default_rng(7))
+    reference = _loop_ransac(previous, current, 0.002, 200, np.random.default_rng(7))
+
+    assert (fit is None) == (reference is None)
+    if fit is not None and reference is not None:
+        assert (fit[1] == reference[1]).all()
+        assert fit[0] == pytest.approx(reference[0], abs=1e-12)
+
+
 def test_kalibr_camera_models_parse() -> None:
     camera = CameraModel.from_kalibr(
         {

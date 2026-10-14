@@ -23,6 +23,27 @@
   - **Schema.** New optional fields: `translation_m` and `translation_std_m` per
     hypothesis, `translation_observations` per group, `sigma_floor_m` on the report.
 
+- **The all-camera check runs about twice as fast, with the same results.**
+  - **The stereo matcher.** `camera-camera` searched each patch's ZNCC match with a
+    Python loop. It now matches blocks of patches as array operations: box sums give
+    each window's mean and energy, and an einsum over sliding windows gives the
+    correlations. One pair's estimate on Hilti `exp01` went from 89 s to 27 s.
+  - **The camera's pure-rotation RANSAC.** It now fits and scores all 200 hypotheses
+    at once, from the same random draws. One `camera-imu` pair went from 76 s to 45 s
+    (both under the profiler).
+  - **The IMU read.** `load_ros2_imu` keeps its last two reads, keyed by the bag files'
+    names, sizes and modification times. A check that pairs one IMU with five cameras
+    reads it once instead of five times (14 s each on `exp01`). The returned arrays are
+    read-only.
+  - **Same results.** On Hilti `exp01` and `exp21` every pair's errors and stds match
+    the earlier runs to 1e-11 deg (camera-imu exactly), with the same verdicts, closures
+    and attribution.
+  - **Run time.** The pairs' run times sum to 530 and 481 s, against 1132 and 1026 s
+    before (568 and 543 s wall). Both were measured on a shared 4-core machine: the
+    earlier runs beside two other checks, these beside a test run.
+  - **Tests.** Both the matcher and the RANSAC are checked against the loops they
+    replaced.
+
 - **`camera-camera` fits a vertical scale mismatch instead of reading it as a turn.**
   - **The problem.** A focal length or distortion slightly off in either camera makes
     one rectified image a little taller than the other. The rotation model read that
