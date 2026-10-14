@@ -1,0 +1,1694 @@
+schema_version: slac.benchmark/v0.1
+benchmark_id: kitti-camera-lidar-check-v1-axes
+title: 'KITTI camera-lidar check: judged axes against KITTI''s calibration'
+protocol:
+  protocol_id: kitti-camera-lidar-check-v1
+  dataset_id: kitti_raw_2011_09_26_unused_drives_image_02_velodyne
+  dataset_source_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+  data_license: CC BY-NC-SA 3.0
+  split_policy: one split per judged rotation axis of a scored drive's baseline run
+  splits:
+  - split_id: 0011-roll
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: ab5881c5a0b04aee75c02a155b2e9bbcd0c0bcd9e822cc47aed8661c1e29bb6a
+    holdout_ids_sha256: 9f6725d9a1e3dd3627b46f714b1b57627142ba9691d7d5bc14878e9e7d77c847
+  - split_id: 0011-pitch
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 2221cc14cf995c1eb8e4bacb0f83cac87d0cef2840e92b9e0479ea01ff3d406e
+    holdout_ids_sha256: 231aa1ddf282366101acdf80afd48255a07e712fac8218053bdbc60b49ee59bb
+  - split_id: 0011-yaw
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: b26c3d8204fd2c72631118359e9709bcf6d0948a0a07cf81ccd4612b06d267f3
+    holdout_ids_sha256: 36a70bf09a1746ceb4a004db0fa0113f6f84b569fd7ea0e14a3be05e99e1be1b
+  - split_id: 0013-roll
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: c56c48ecb43b705a50be1369683cc48094afc726f0316392a52ef6620305465e
+    holdout_ids_sha256: 97d5b1823ca1149fe29eb2ba282db511d7b4788dfb976ce0346992b6d61f052f
+  - split_id: 0013-pitch
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 177dadbcafd48ef4b5eaeef16f56fd32c8e1c807d39cf9206620da2c07e25b24
+    holdout_ids_sha256: ac1dacfcafa4fe3cdffc6e8bb4f2e41d558159b3d8db2fb32bb49725d5e923bd
+  - split_id: 0013-yaw
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: af79769a98121fb7e269cfb00ab8d84625cff9ce5546800745135a6966eca0d4
+    holdout_ids_sha256: fc67550685ed8cf4ace89ef25fab0854592c4516fb784172174ec9313b12641f
+  - split_id: 0018-roll
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: a71df80edd96b9d35443d5277035755e7805675b705f9e31c18873fb166d0d38
+    holdout_ids_sha256: dde03075204717a36c7bfd74600540b697e6826f7b737071bed4dddd8ae080fe
+  - split_id: 0018-pitch
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 1456574543eb4c5345029c749a2fc8e943d7377b8d95cf60abdec06a73fb53a4
+    holdout_ids_sha256: a0bdc954f6d90820e463da64e34e225f32dd01805ba64c144e8049b00d361b20
+  - split_id: 0018-yaw
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: d2230fdd7da2d91df840eca5ee72ce76c3538a51404a35d47491417833401dd2
+    holdout_ids_sha256: c75724afe92750a6dc93917b2a3409b79ad3a45bfa9929afb6a590e9e97063d5
+  - split_id: 0019-pitch
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 4d81de4c14ea04a28733cccfe4e4d085aa942e0877e33608eb92f78d3e8c03a3
+    holdout_ids_sha256: 04feddc4706a38bcc5e18e9a5a3b86987f69d03d72b9ea4bf958ce597c6b3573
+  - split_id: 0019-yaw
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 39e531b97381dc1d042d33c5360ef15372650e12d5556511d1c404c323cdd7a0
+    holdout_ids_sha256: f4d543a765bf57fa9b9c648f6bb4f6bf97d1ede277a3b0e6251055335359ad21
+  - split_id: 0023-roll
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: b10154e8ab95cfff767f6f172c27203ee9b5defbeb646abe84ff6e20d996e484
+    holdout_ids_sha256: e4f0e30ccccda1a774ca6a0d531cb8dfa8310ed8a44d86836d4db1afe896e26a
+  - split_id: 0023-pitch
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 4d9d95de344a7f2727a24586d17c7d3abe88a8b822c1b9b0f8f74616be77f400
+    holdout_ids_sha256: a714d93199595d6daebce90bb3d96831778ed6b276d98f99acc600b837d6bbf5
+  - split_id: 0023-yaw
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 9e277d85a77b9fe9a19cd3d47c03085580a5c0b46dbbc7e70f1f3396a66f287c
+    holdout_ids_sha256: c3d0727ec4219e4f86dced1611e1cf46b9076c4a627003ee32a24bbbfff1d704
+  - split_id: 0029-pitch
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 88049647512aa3cf6f1debc6439d5684c8034090cce25fe6f372f0da3e96a3cc
+    holdout_ids_sha256: 0f6acca3d50fcb85cefcc8eacdb66565058568305a105f2f4e58ff74239e3535
+  - split_id: 0029-yaw
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: acd13e1fe261cd63280010501155069ff76742ff6024aa1c30da85f3a19bd0ee
+    holdout_ids_sha256: 0de036e4630576bfdf1b40255663fd7a8e4ed5e950fd48689a7ed8bae8d3f0d9
+  - split_id: 0032-pitch
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: af59646b199c9f5950801deb83722ef52602b3632f53c39cd63cc77328697f3b
+    holdout_ids_sha256: c149188377790ed0f702c40aab822b6335df72730ddd309385c9af2ae2b8bb60
+  - split_id: 0032-yaw
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 0e227da5af57be04f91e0f11b8837145be46a6f2f7ef1cfd95f8e3350046b27e
+    holdout_ids_sha256: f86cc1f8908174cdde639bdf978853085da1618306ba7a1adc690ab3f093e459
+  - split_id: 0036-pitch
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 733afc1baee96fe45076f8a5151c4dbd4c9224bfbea2753b143a78144265de98
+    holdout_ids_sha256: b90a11e3d9a2362da8bb2e49ff7e97c8670695a537c08e25fe970817c77396e9
+  - split_id: 0036-yaw
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: d10e0116473a87a7bfde208035d378f56502f946872d164542c8f3b04e27da6c
+    holdout_ids_sha256: 03c06df25063ab8ca64162a3101f1a916a451eaca9fea93351f0a38d84cbcd01
+  - split_id: 0056-roll
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 2e7093b41efd87a830c264b819f9e210643eb744d7067f39eb4d0ec76d9c2359
+    holdout_ids_sha256: 7b2deb308291449cf316ed01fe480686cd6735205c9233ec533b5d393e818e94
+  - split_id: 0056-pitch
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 3287eeb793f4ed79ebe5415011f9e75492c6a55fbfd186b4f39b07f11fd3fb2b
+    holdout_ids_sha256: b02ade7bae55236b842793d130244dd0f40021fa29e039339c38e1f14e52f290
+  - split_id: 0061-roll
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 8b6dbf981c0b1a546fe6f46b117a8611fcc11844a255032173940f28d6c92a92
+    holdout_ids_sha256: 2c9476dfd7733c739c9195861ead984800b9f5b104510158c05509003153a671
+  - split_id: 0061-pitch
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: f5ce162eb0b90ba2664351d791766a3cc92a8cf170079e2532e51cf655e0054b
+    holdout_ids_sha256: 5758cc23e86221a4a1376f9bce7191d7eab5dc799955ce63e2262ca261a6c9c1
+  - split_id: 0061-yaw
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 418ce1a2df2cc05f40c3c34adb018275b24d60b751222d124378c78c94235bc2
+    holdout_ids_sha256: f176dfe8a916b7e3a807635dfbeb550bb056dce0495118c5eb68b44a8b1f008c
+  - split_id: 0064-roll
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 975557856f940afedc1bf9053161e39f8f2892c305e9a5a2adfdc8fb8d10952d
+    holdout_ids_sha256: ac98c6b5fb8a48817eb52e47dc6f949218510e399f42365d1ee147e17e4f6e9b
+  - split_id: 0064-pitch
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: dae0ed1daad1baeb66d291c977efec53957706eee739846be7f9b6bfeef9dae3
+    holdout_ids_sha256: b7afd3f5e439dbbe5ba73707624ec7af3a88b9d8f601c7547c9dc82163772cbf
+  - split_id: 0064-yaw
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 62e1905d089c86ad27c0e5b2f047be750ce573ed26da07fcd037854a3e7ef917
+    holdout_ids_sha256: 9db7126f4608ce01654cb00b4aa1a8e137ffc34e64b13fa0ea6d92954f9ed051
+  - split_id: 0070-pitch
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: a6793a4fb31872b001539595b4770a2d8e04e16be3aed6a568da52c11a44ac49
+    holdout_ids_sha256: 860b7d503fd8416db55ff0e057a990d2c5ebde0f2299d72cd5ad7267dd39b735
+  - split_id: 0084-roll
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 39ccbf560ee2fcda2d91af0346c0d62aa5d6417c6eafe6b370fbe15128267edd
+    holdout_ids_sha256: 91bad49c4962b04f85a6198227b113192104f272e411dda8860a2cdb1a0c4d5f
+  - split_id: 0084-pitch
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: b8703b004a65433ff24eb34d948bb4591dad43e827d56fd19167d93f6c40d38c
+    holdout_ids_sha256: 1d3b447c6aeeb460d98d46b882ca200f2cd903820ba48990165cf2238bef27d1
+  - split_id: 0084-yaw
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: bd3796474b91fdeda0fbd4d76740d72eff3b224926d70e7a9885434c316e14f2
+    holdout_ids_sha256: 636a352bd9b862d1587c2c9b0d60df98f3a2cc9b09168b06404e856163ada584
+  - split_id: 0086-roll
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: f2e32cfcbf36ef5f7c3c68bcfe6c42149f210ca9b0d4d98de501a3e93f0b503d
+    holdout_ids_sha256: 8523d47c344cb745fce44875f0e56f459f42549a5b638eab9a3468a0b86181b8
+  - split_id: 0086-pitch
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 32ad4fde3c06bb54eae54db28637dcfe8ccf6e0f3f1f08dfad7ac0a563d18146
+    holdout_ids_sha256: 32653e34282f6b9b2954369db26792d4b972d5637eac35ca7a4bb074272d19f2
+  - split_id: 0086-yaw
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: be5b5cb0f5e975125d671ea6cdaa7aa765d6ad51d038cf3178779ce7d0f597f5
+    holdout_ids_sha256: f0a6257a2000e6bda13964dad79c645e2996f1ff84a400d2dc2a6721a065cb3e
+  - split_id: 0087-roll
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: a5ca8b0deae741715355c1146f73a23042f4ccf8b3871d92232b14da60b27ee2
+    holdout_ids_sha256: 1c3103db7d73d4ecf933af441b6b2a5e7ad105a743104b32d4a1107cc9deda97
+  - split_id: 0087-pitch
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: bbe01248d2102526a8d84bbbc03e427231110ce75cec23b57c4e0567d6068a68
+    holdout_ids_sha256: fbde62e26d2abc0a2dd67e54ce86b83d58203ce12d5e96a65b23ab367ae7088b
+  - split_id: 0087-yaw
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 921ff0f1e3d1406f505361d2518b94e190a26925f37013ffe57f1b34415b4edb
+    holdout_ids_sha256: f4e0a599f0511971462017be3dce4c983c1e55580fb17183325509b3f016afd3
+  - split_id: 0091-roll
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 428fd379e784ae423dc14b5f84f41196f77902bde8d706001082c9949f6becd4
+    holdout_ids_sha256: aace58e498614b90776af8fdfb101a7d665150f844417ae0769d42cf956832bb
+  - split_id: 0091-pitch
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: dab0ce078c7b25203b0a4418e2d514b7107084e9227d56e551db7fd925171a8d
+    holdout_ids_sha256: 04b33869e4a9f4bd7534ed22810d55a507f87f4a6e4b08ee0859e6dc506af8b2
+  - split_id: 0091-yaw
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: e4a27b7acd4cab4ec8290a6c47060d6c8e5f418e58252059b69bdfe32e7ad6c7
+    holdout_ids_sha256: 41bff35f212c3c86fc0f98353ba0af13140a845d0060468e0a390c408e21274b
+  - split_id: 0093-roll
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 1288f6ca363df05382c2be72becddab07d30437b30b4c2690b3d09fd62a411e9
+    holdout_ids_sha256: adc899473c16178b414e97282ba204190cac2268aed5a9c58d6adb99a759ca39
+  - split_id: 0093-pitch
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 16f6656cf19cce9750796499940a0d3c197021347c5a2feec24da83b72af271f
+    holdout_ids_sha256: 11d5119757c71671251ef789f50841dd5ac8ea98881ff16154d933325c92b18d
+  - split_id: 0093-yaw
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 38ccbf5398137afa91fbb0dd31367841420d34eb16b74eefd00f4d1f7b4a8551
+    holdout_ids_sha256: ee865478b86af7188fcfa661b21f4a7fc82ba3e9515179c4a2b7135cef64d123
+  - split_id: 0095-roll
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 1c1144a2c132b617d03624b8909e37534733282c2c0ac6222ebab198d33b789e
+    holdout_ids_sha256: 702869fa89b8b2954c3cf8a3996f013f6e3bad37158ddff1feaac7852310568e
+  - split_id: 0095-pitch
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: f272a93d28bc376faf8c605ca7eafe711f19e48e23d8b542c0eb93c8da35f49f
+    holdout_ids_sha256: 1aa317045b57a315539c64bf22f1a8897f1387846e29c634e957ec91f60301e5
+  - split_id: 0095-yaw
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 1a02edf5b18b8662a852155dbdd7beb79f1c73af9d57830046084a764b5d7171
+    holdout_ids_sha256: c787c0be01e09d452e87d6d1e5c0bd41d371a7a12697a25243f27bcd16285f15
+  - split_id: 0096-roll
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: cd2da499d8a029736e7a2aa6da3eb44ed128340fb8d82313b6568827789a851b
+    holdout_ids_sha256: 932af39453634d069409a9d5a69dc18427ce4e320ebec05ab1b9d26307bc4cfc
+  - split_id: 0096-pitch
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: e687d6933a7ea8027954bdab51721aa0cebef234b5dc534225b852a00302bcf7
+    holdout_ids_sha256: 7a0d53af3ca0e74ecb53f5f3b6fc1224823b85a6b16b16af82f1be31d4db7df0
+  - split_id: 0096-yaw
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: dc65fa85e9b5704f73f0eb16fcee5836860f28e346e8939c5273e6600a04be84
+    holdout_ids_sha256: 277c93f4a053f9cdf60c00403032d61e66ce7a98a535e75a955254cbb4b73751
+  - split_id: 0101-pitch
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 494ae7427d98ab8d2054953a342c163bf3c9090145b0d07dd866b43a3c1fa3a8
+    holdout_ids_sha256: 1d56c05733eb05c4e4393c927975504bee4179b5c77c3c09d04d9a75317ecda8
+  - split_id: 0101-yaw
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 4daaf172feb4bb8bd9773603b041cefeb0d65c960fe7d95d824f84446479894c
+    holdout_ids_sha256: 851591ff2958caa6338817b84c8dbfccf6160846fe283e8b517f8bc86a343348
+  - split_id: 0104-roll
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 9a8fc2d1f9a29f391ae6308406f372d0adc00ab173a5fa8c4f39173b2efd662d
+    holdout_ids_sha256: b175f72e3f0345671eef7321d3b11f18d0a96e4843fddb1dc6474fb13a2a2419
+  - split_id: 0104-pitch
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 99e72b5891b6771e1f94dcd421b70a74e45fc21f7d5f33ccfe1917cf227c93e9
+    holdout_ids_sha256: 22ee579a31c7c2000af9ecc5d45af1272e3441f94a78a3b73dfe03cbb4139ff3
+  - split_id: 0104-yaw
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 86c53afd3ba6a74b25971eee3ba0596f01f84b961917c3d4b8d1ff4f23e7adaf
+    holdout_ids_sha256: 0e13aa1fd659ec6d8c2fca952b4e8e71f60cc7bb0b0b161080ae3cefda644176
+  - split_id: 0106-roll
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 89755a3cdb0224413b455c9b82fc98f7e8d0e9a43b14fc91b9d0b83231c4b116
+    holdout_ids_sha256: 65290ddab82a6cd280141b2dcdbefe3e4ab8da0f9e8862f997969e4661c29cbe
+  - split_id: 0106-pitch
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: af5cf2a171a70cede6d45066dda2245236dac0de5372acc8dcfad6783bc18d07
+    holdout_ids_sha256: 78ed56d1028f6bee38a782c6e5825030903ce75fb74d87b05e9aa3c72c574ee9
+  - split_id: 0106-yaw
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 93b9a5e3af875813d6b32140a8687930c61e8a9c03eae03950f1a31745dd0b51
+    holdout_ids_sha256: 716a8a3ea03384441a9f77326c8cce9b9c9241c2ea125dec02d224fa4ad17c2f
+  - split_id: 0117-roll
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 1a865c0341528062210534c68581ae1e81c55c13230504cb553939ef3672d3f8
+    holdout_ids_sha256: 59c1bf80da51b6194d813b4037dea366b33b1def3b3f0326abb1d40ded64190d
+  - split_id: 0117-pitch
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 69414b85fb9d105279ec7eb93ed8d4a26c1c7beecf64bc3f577484c2f8006a0d
+    holdout_ids_sha256: cf0054eb51ac8a4aecac11ab3c9c59d7a4e8a770cb3c7241457be758c90942b1
+  - split_id: 0117-yaw
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 431edef597f9001b7c97f306b0dc973b7f24751d226152fab2ac053358af1ee9
+    holdout_ids_sha256: d6f9c187da178b1f33f870a1d125e574d4cdb2cc0fcc29d002cb5f7b1f729166
+  initial_estimate_policy: 'the check starts at the candidate: KITTI''s calibration,
+    or it turned by the pre-registered injection'
+  tuning_policy: procedure and thresholds pre-registered before the evaluation runs
+  failure_policy: a download, conversion or check failure fails the drive
+metrics:
+- name: axis_error_deg_abs
+  label: absolute judged-axis error vs KITTI
+  unit: deg
+  display_scale: 1.0
+  direction: lower
+  primary: true
+  interpretation: abs(component of rotvec(R_est R_ref^T)), camera optical axes
+methods:
+- method_id: kitti_reference
+  label: KITTI calib_velo_to_cam (the reference; error against itself is 0)
+  implementation: calibrex_native
+  tool_name: kitti
+- method_id: calibrex_check
+  label: calibrex check camera-lidar (targetless edge alignment from the candidate)
+  implementation: calibrex_native
+  tool_name: calibrex
+trials:
+- method_id: kitti_reference
+  split_id: 0011-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0011-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0011-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0013-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0013-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0013-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0018-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0018-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0018-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0019-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0019-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0023-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0023-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0023-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0029-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0029-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0032-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0032-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0036-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0036-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0056-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0056-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0061-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0061-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0061-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0064-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0064-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0064-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0070-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0084-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0084-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0084-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0086-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0086-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0086-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0087-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0087-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0087-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0091-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0091-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0091-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0093-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0093-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0093-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0095-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0095-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0095-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0096-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0096-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0096-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0101-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0101-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0104-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0104-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0104-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0106-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0106-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0106-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0117-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0117-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: kitti_reference
+  split_id: 0117-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0011-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.1999999999999979
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0011-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.10000000000000171
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0011-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 2.3914521098063104e-15
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0013-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.1
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0013-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.1000000000000079
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0013-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.19999999999999651
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0018-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.24999999999999906
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0018-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.09999999999999647
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0018-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.24999999999999872
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0019-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.1000000000000048
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0019-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 1.326047824150195e-14
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0023-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.1999999999999998
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0023-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.10000000000001061
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0023-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0500000000000029
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0029-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.1000000000000045
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0029-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 9.599999999999996
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0032-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.050000000000004534
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0032-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.799999999999997
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0036-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.15000000000000333
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0036-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.10000000000001132
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0056-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 2.74999999999999
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0056-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.1499999999999979
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0061-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.050000000000008586
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0061-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 4.3385714110974234e-15
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0061-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.049999999999994015
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0064-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.15000000000001087
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0064-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.050000000000005526
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0064-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.10000000000000037
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0070-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0499999999999984
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0084-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.14999999999999525
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0084-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.09999999999999863
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0084-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.05000000000000056
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0086-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.05000000000000033
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0086-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.2000000000000046
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0086-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.2999999999999972
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0087-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.09999999999999115
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0087-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.05000000000000147
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0087-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.050000000000001994
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0091-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.1999999999999945
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0091-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.15000000000000419
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0091-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.19999999999999463
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0093-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.09999999999999723
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0093-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.20000000000000398
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0093-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.45000000000000573
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0095-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.09999999999999619
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0095-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.09999999999999527
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0095-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.049999999999997706
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0096-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.09999999999999913
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0096-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.05000000000000056
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0096-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 7.352122448692199e-15
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0101-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.30000000000001364
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0101-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.3499999999999922
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0104-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.0499999999999881
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0104-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.09999999999999973
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0104-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.05000000000000533
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0106-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.10000000000000046
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0106-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.10000000000000485
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0106-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.10000000000000009
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0117-roll
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.15000000000001087
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0117-pitch
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.050000000000005526
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+- method_id: calibrex_check
+  split_id: 0117-yaw
+  status: success
+  metrics:
+    axis_error_deg_abs: 0.10000000000000037
+  provenance:
+    command: calibrex check --pairs camera-lidar
+    config_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    input_sha256: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+    notes: []
+method_summaries:
+  kitti_reference:
+    method_id: kitti_reference
+    trial_count: 61
+    success_count: 61
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      axis_error_deg_abs:
+        metric: axis_error_deg_abs
+        distribution:
+          count: 61
+          mean: 0.0
+          median: 0.0
+          standard_deviation: 0.0
+          minimum: 0.0
+          maximum: 0.0
+          p90: 0.0
+          p95: 0.0
+          mean_ci95_low: 0.0
+          mean_ci95_high: 0.0
+        rank: 1
+  calibrex_check:
+    method_id: calibrex_check
+    trial_count: 61
+    success_count: 61
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      axis_error_deg_abs:
+        metric: axis_error_deg_abs
+        distribution:
+          count: 61
+          mean: 0.3295081967213126
+          median: 0.10000000000000037
+          standard_deviation: 1.2480928746304512
+          minimum: 2.3914521098063104e-15
+          maximum: 9.599999999999996
+          p90: 0.2999999999999972
+          p95: 0.45000000000000573
+          mean_ci95_low: 0.11803278688524749
+          mean_ci95_high: 0.6803278688524602
+        rank: 2
+paired_comparisons:
+- reference_method_id: kitti_reference
+  candidate_method_id: calibrex_check
+  metric: axis_error_deg_abs
+  direction: lower
+  paired_count: 61
+  raw_delta_mean: 0.3295081967213126
+  improvement_mean: -0.3295081967213126
+  improvement_ci95_low: -0.6844262295081959
+  improvement_ci95_high: -0.12047131147541074
+reference_method_id: kitti_reference
+bootstrap_samples: 2000
+bootstrap_seed: 0
+limitations:
+- The reference is KITTI's target-based calibration, not ground truth.
+- Every drive is from one day and one rig; drives are not independent rigs.
+- Only the axes the check judges are gated; the others are counted by coverage.
+- Turned candidates are the reference turned about one camera axis at a time.
+provenance:
+  generator: tools/build_kitti_camera_lidar_audit.py
+  generator_version: 0.5.1
+  generated_at: '2026-10-14T15:29:06.332762+00:00'
+  command: python tools/build_kitti_camera_lidar_audit.py SCORES.json PREREG OUT
+  source_artifacts: {}
+  data_verified: true

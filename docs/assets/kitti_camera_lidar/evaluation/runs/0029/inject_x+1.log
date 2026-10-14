@@ -1,0 +1,86 @@
+check: 1 pair to run
+check: running camera-lidar (cam2_optical / velo_link) [pair 1/1]
+check:   camera-lidar: /camera/image_raw + /velodyne_points (intrinsics: CameraInfo /camera/camera_info) [0s elapsed]
+check:   camera-lidar: pairing /camera/image_raw with /velodyne_points [0s elapsed]
+check:   camera-lidar: preparing 48 frame(s) [34s elapsed]
+check:   camera-lidar: maximising the edge-alignment objective [49s elapsed]
+check:   camera-lidar: jackknife fit 1/6 [50s elapsed]
+check:   camera-lidar: jackknife fit 2/6 [52s elapsed]
+check:   camera-lidar: jackknife fit 3/6 [52s elapsed]
+check:   camera-lidar: jackknife fit 4/6 [54s elapsed]
+check:   camera-lidar: jackknife fit 5/6 [55s elapsed]
+check:   camera-lidar: jackknife fit 6/6 [56s elapsed]
+check:   camera-lidar: profiling the objective along each rotation axis [57s elapsed]
+check:   camera-lidar: searching from the profile maxima (-3.5, +0.0, +0.0 deg) [1m00s elapsed]
+check:   camera-lidar: jackknife fit 1/6 [1m03s elapsed]
+check:   camera-lidar: jackknife fit 2/6 [1m04s elapsed]
+check:   camera-lidar: jackknife fit 3/6 [1m05s elapsed]
+check:   camera-lidar: jackknife fit 4/6 [1m07s elapsed]
+check:   camera-lidar: jackknife fit 5/6 [1m08s elapsed]
+check:   camera-lidar: jackknife fit 6/6 [1m09s elapsed]
+check:   camera-lidar: searching from the profile maxima (+0.0, +0.0, +6.5 deg) [1m10s elapsed]
+check:   camera-lidar: jackknife fit 1/6 [1m12s elapsed]
+check:   camera-lidar: jackknife fit 2/6 [1m14s elapsed]
+check:   camera-lidar: jackknife fit 3/6 [1m15s elapsed]
+check:   camera-lidar: jackknife fit 4/6 [1m16s elapsed]
+check:   camera-lidar: jackknife fit 5/6 [1m17s elapsed]
+check:   camera-lidar: jackknife fit 6/6 [1m18s elapsed]
+check:   camera-lidar: searching from the profile maxima (-3.5, +0.0, +6.5 deg) [1m19s elapsed]
+check: camera-lidar (cam2_optical / velo_link) -> pass (82 s) [pair 1/1 done]
+calibrex check (run)
+bag: /home/user/kitti_cl/eval_work/bag_0029 (8 topics)
+
+candidate sources:
+  bag_tf_static: /home/user/kitti_cl/eval_work/bag_0029 (3 frames) sha256=c5e148f09e16
+    note: read 1 tf_static message(s) from 1 topic(s)
+  frames_yaml: /home/user/kitti_cl/eval/runs/0029/inject_x+1_frames.yaml (1 frames) sha256=dc8613ef574e
+    note: 1 frame(s) read
+frame tree: 4 frames, 1 root(s) [base_link]
+  override: /home/user/kitti_cl/eval/runs/0029/inject_x+1_frames.yaml overrides bag tf_static for frame 'cam2_optical' (parent 'imu_link' -> 'imu_link')
+
+topics:
+topic              role       header frame  tree frame
+-----------------  ---------  ------------  ---------------------
+/camera/image_raw  camera     cam2_optical  cam2_optical (header)
+/oxts/fix          gnss       imu_link      imu_link (header)
+/oxts/imu          imu        imu_link      imu_link (header)
+/oxts/odometry     odometry   imu_link      imu_link (header)
+/oxts/twist        twist      base_link     base_link (header)
+/tf_static         tf_static  -             -
+/velodyne_points   lidar      velo_link     velo_link (header)
+
+pairs (no --vehicle-frame: vehicle pairs are skipped):
+pair                  sensors                   verdict                          reason             |delta|/tolerance                       unchecked      detectable
+--------------------  ------------------------  -------------------------------  -----------------  --------------------------------------  -------------  -----------------------------
+lidar-lidar           velo_link                 skipped                          missing_topic
+camera-lidar          cam2_optical / velo_link  pass (partial: pitch, yaw only)                     pitch 0.15/0.5 deg; yaw 0.25/0.605 deg  roll, x, y, z  pitch 0.65 deg; yaw 0.855 deg
+camera-camera         cam2_optical              skipped                          missing_topic
+gnss-imu              imu_link / imu_link       skipped                          degenerate_frames
+lidar-vehicle         -                         skipped                          no_vehicle_frame
+imu-vehicle           -                         skipped                          no_vehicle_frame
+lidar-wheel_odometry  -                         skipped                          missing_topic
+  not selected: imu-lidar, camera-imu, camera-focal, gnss-lidar, ins-lidar
+  camera-lidar: unchecked roll: the estimator's known-bad control on this axis (2 deg) was not detected on held-out frames (t = 1.2), so the estimate is not trusted as a yardstick
+  camera-lidar: unchecked x: translation is not estimated: the edge objective sees it only through parallax, and on the recordings evaluated its estimate differed from the reference by up to 11 cm
+  camera-lidar: unchecked y: translation is not estimated: the edge objective sees it only through parallax, and on the recordings evaluated its estimate differed from the reference by up to 11 cm
+  camera-lidar: unchecked z: translation is not estimated: the edge objective sees it only through parallax, and on the recordings evaluated its estimate differed from the reference by up to 11 cm
+
+closure of the estimates (independent estimates against each other):
+  no loop: fewer than two independent estimates share a frame
+
+which frame's rotation the pair errors point to (informational):
+  cam2_optical, velo_link: consistent
+    the pair errors fit the candidate (chi2 2.3 on 2 axes, p 0.31): no frame's rotation is off beyond the verdicts' resolution
+
+overall verdict: pass
+WARNING: 1 pair(s) have partial coverage: unchecked axes were not judged, so a pass covers only the judged axes
+
+summary: 13 pair record(s), 1 runnable (pass=1, skipped=12)
+
+next steps:
+  - lidar-lidar: needs a second distinct lidar sensor (found one); expected another sensor_msgs/msg/PointCloud2 topic with its own frame_id
+  - camera-camera: needs a second distinct camera sensor (found one); expected another sensor_msgs/msg/Image (plus a CameraInfo or a Kalibr camchain for its intrinsics) topic with its own frame_id
+  - both sensors are stamped in one frame: point the topics at their sensor frames with --frame-map TOPIC=FRAME, or list the sensor frames in --tf
+  - vehicle pairs are opt-in for ground vehicles: add --vehicle-frame base_link (use your vehicle frame name)
+  - lidar-wheel_odometry: the bag lacks a topic for this pair; expected wheel: nav_msgs/msg/Odometry or TwistStamped classified as wheel (--topic-kind TOPIC=wheel)
+artifact: /home/user/kitti_cl/eval/runs/0029/inject_x+1.json

@@ -1,0 +1,150 @@
+schema_version: slac.sota_audit_protocol/v0.1
+protocol_id: kitti-camera-lidar-check-v1
+scope:
+  modalities:
+  - camera
+  - lidar
+  quantities:
+  - rotation
+  category: targetless_camera_lidar_check
+claim_text: 'On 23 KITTI raw 2011_09_26 drives that no Calibrex camera-LiDAR method
+  had read, calibrex check --pairs camera-lidar gives honest per-axis verdicts against
+  KITTI''s calibration (calib_velo_to_cam with the rectification of calib_cam_to_cam):
+  it never flags that calibration (no warn or fail); every rotation axis it judges
+  there (reported std at most 0.5 deg and its 2 deg known-bad control detected on
+  held-out frames) is within 0.75 deg of it, and it judges at least half of the axes;
+  started at that calibration with the camera turned 1 or 3 deg about one of its axes,
+  every axis it judges is within 1.5 deg of KITTI''s calibration; it flags a 3 deg
+  turn about an axis it judged on the drive in at least 90 percent of the trials and
+  never judges such a turned axis right; and it flags a 1 deg turn in at least 75
+  percent of the trials.'
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: no-failed-drives
+  phase: audit
+  description: no drive fails
+  dataset_family: kitti_raw
+  independent_rig: true
+  rig_id: kitti-2011-09-26
+  evidence_path: kitti_camera_lidar_drives_benchmark.yaml
+  evidence_sha256: 0a4a26831bb36369fdbcdcdf30053ad5d93873d25efd4e2b69f9c031312f34a7
+  method_id: calibrex_check
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: vendor-calibration-not-flagged
+  phase: audit
+  description: the check flags KITTI's calibration on no scored drive
+  dataset_family: kitti_raw
+  independent_rig: false
+  evidence_path: kitti_camera_lidar_baseline_benchmark.yaml
+  evidence_sha256: 7cf1773035e1a964db37d0ab8e7de7ba1426ddd3bddbb7d222332bde59d864e7
+  method_id: calibrex_check
+  metric: vendor_flagged
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: judged-axis-accuracy
+  phase: audit
+  description: every judged baseline axis is within 0.75 deg of KITTI's calibration
+  dataset_family: kitti_raw
+  independent_rig: false
+  evidence_path: kitti_camera_lidar_axes_benchmark.yaml
+  evidence_sha256: d2f3bad8a830bf88947002bd59e09a4849cf7cc140cf7bb5952f1939ed4d36e2
+  method_id: calibrex_check
+  metric: axis_error_deg_abs
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.75
+  required: true
+- requirement_id: judged-axis-coverage
+  phase: audit
+  description: at least half of the scored drives' baseline axes are judged
+  dataset_family: kitti_raw
+  independent_rig: false
+  evidence_path: kitti_camera_lidar_coverage_benchmark.yaml
+  evidence_sha256: 50b446b134599d148578212ebc78463a83e18d724585cf6752ef54b80a11deda
+  method_id: calibrex_check
+  metric: unjudged_axes
+  statistic: metric_mean
+  comparison: less_equal
+  threshold: 1.5
+  required: true
+- requirement_id: turned-judged-axis-accuracy
+  phase: audit
+  description: every axis judged in a turned run is within 1.5 deg of KITTI's calibration
+  dataset_family: kitti_raw
+  independent_rig: false
+  evidence_path: kitti_camera_lidar_turned_benchmark.yaml
+  evidence_sha256: 29000e0e10619dd09d61cab512123fc95b14ac717dd70b724990f56e766ad62b
+  method_id: calibrex_check
+  metric: axis_error_deg_abs
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 1.5
+  required: true
+- requirement_id: turn-3deg-flagged
+  phase: audit
+  description: a 3 deg turn about a judged axis is flagged in at least 90 percent
+    of the trials
+  dataset_family: kitti_raw
+  independent_rig: false
+  evidence_path: kitti_camera_lidar_turn3_benchmark.yaml
+  evidence_sha256: da5b88ff7be630f442177f0197802a9d65f6af2f69f8cf4a469223e6e733522d
+  method_id: calibrex_check
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.1
+  required: true
+- requirement_id: turn-3deg-never-judged-right
+  phase: audit
+  description: the check never judges an axis turned 3 deg to be right
+  dataset_family: kitti_raw
+  independent_rig: false
+  evidence_path: kitti_camera_lidar_turn3_judged_right_benchmark.yaml
+  evidence_sha256: ccfb62e35cea6c791ca33332669a2014f07d19bf7515804b404e89458ebca8f8
+  method_id: calibrex_check
+  metric: turn_judged_right
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: turn-1deg-flagged
+  phase: audit
+  description: a 1 deg turn about a judged axis is flagged in at least 75 percent
+    of the trials
+  dataset_family: kitti_raw
+  independent_rig: false
+  evidence_path: kitti_camera_lidar_turn1_benchmark.yaml
+  evidence_sha256: 66ef1aac7d1eab22c5f892434926beb465e139c338aaf9c0336d7c1fd2e3e992
+  method_id: calibrex_check
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.25
+  required: true
+- requirement_id: scored-drives-coverage
+  phase: audit
+  description: at least 15 of the evaluation drives are scored
+  dataset_family: kitti_raw
+  independent_rig: false
+  evidence_path: kitti_camera_lidar_evaluation_benchmark.yaml
+  evidence_sha256: 45f5c2ba0cacb3d27a02241b910c98554fff3b1a295a905d897e648f1f62706e
+  method_id: calibrex_check
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.34782608695652173
+  required: true
+provenance:
+  generator: tools/build_kitti_camera_lidar_audit.py
+  generator_version: 0.5.1
+  command:
+  - python
+  - tools/build_kitti_camera_lidar_audit.py
+  - SCORES.json
+  source_sha256:
+    preregistration: 5b90e5992381bcdee912a4073804ef37ce4c375e0dc41e78dd8a1623922b69a5
+    scores: c4562c0ed522526643633d4cfbebab3aab643a9e1ce3c6e71f852aac9037c09a
+  created_at: '2026-10-14T15:29:07.275038+00:00'

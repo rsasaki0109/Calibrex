@@ -321,15 +321,17 @@ audit marks `supported`. The claim, scoring, held-out data, and thresholds are
 committed **before** the held-out data is scored, each piece of evidence is a
 digest-pinned artifact, and refuted audits stay on the
 [SOTA leaderboard](docs/benchmarks/sota_leaderboard.md). Standings as of
-2026-10-02:
+2026-10-14:
 
 | Pair | Standing | Scope of the audited claim | Details |
 |---|:---:|---|---|
 | `imu-lidar` | supported 2, refuted 1 | Livox MID360 against LI-Init (GPL, run in a container): rotation and clock offset (4/4 gates), and the full extrinsic in a second round (4/4). The first full-extrinsic round was refuted (0/8) and stays listed. | [MID360 IMU-LiDAR](docs/benchmarks/mid360_imu_lidar.md) |
 | `lidar-vehicle` | supported 1 | Motion-only LiDAR-to-vehicle rotation against KITTI's `calib_imu_to_velo` on eight unseen drives (3/3 gates). Pitch and yaw only; roll stays unobservable. | [KITTI LiDAR-vehicle](docs/benchmarks/kitti_lidar_vehicle.md#pre-registered-audit-supported) |
 | `lidar-lidar` | refuted | NTU VIRAL (two Ouster OS1-16): refuted 2/4. Accuracy gates pass, but the method does not beat scan-to-scan and cross-recording consistency fails (1.143, bound 1.0). | [NTU VIRAL LiDAR-LiDAR](docs/benchmarks/ntu_viral_lidar_lidar.md#pre-registered-audit-refuted) |
-| `camera-imu` | refuted | Hilti 2022 forward cameras (cam0, cam1) against Kalibr on four unseen recordings: refuted 6/7. Rotation (max 0.70 deg), clock offset (0.33 ms), consistency (0.43 deg) and the cam0-cam1 relative rotation (0.41 deg) pass, but the shortest recording (exp04) leaves an axis unconstrained on both cameras. | [Hilti camera-IMU](docs/benchmarks/hilti_camera_imu.md#pre-registered-audit-refuted) |
-| the other six target pairs | no_claim | Native methods exist, but no audited claim yet. | [Leaderboard](docs/benchmarks/sota_leaderboard.md) |
+| `camera-imu` | supported 1, refuted 2 | Hilti 2022 forward cameras (cam0, cam1) against Kalibr, third round (7/7 gates): on five unseen recordings every axis the method judged was within 0.53 deg and every clock offset within 0.47 ms. The first two rounds (6/7, 5/7) required every axis constrained and stay listed. | [Hilti camera-IMU](docs/benchmarks/hilti_camera_imu.md#pre-registered-audit-v3-supported-7-of-7-gates) |
+| `camera-camera` | refuted | Hilti 2022 against Kalibr: refuted 4/6. Every scored pair was within 0.33 deg, but a 1 deg turn of a camera was flagged in only 70 percent of the trials. | [Hilti camera SOTA audits](docs/benchmarks/hilti_camera_sota.md#camera-camera-refuted-4-of-6-gates) |
+| `camera-lidar` | refuted | `calibrex check` on 23 unseen KITTI drives against KITTI's calibration: refuted 5/9. On 20 drives it passed KITTI's calibration, every judged axis within 0.45 deg; on three it flagged it, judging an axis up to 9.6 deg off. 57 of 61 3 deg turns were flagged. | [KITTI camera-LiDAR check audit](docs/benchmarks/kitti_camera_lidar_check.md#results-refuted-5-of-9-gates) |
+| the other five target pairs | no_claim | Native methods exist, but no audited claim yet. | [Leaderboard](docs/benchmarks/sota_leaderboard.md) |
 
 A `supported` standing is scoped to one dataset family and one comparison; it
 is not a general accuracy claim. Held-out data is reserved per pair, and a
@@ -351,7 +353,7 @@ standing on the [leaderboard](docs/benchmarks/sota_leaderboard.md).
 | camera (focal lengths) | `calibrex camera-imu focal` | Hilti 2022 | no_claim |
 | camera ↔ IMU | `calibrex camera-imu rotation` | Hilti 2022 (dev exp21, exp07; audits on exp01-exp04, exp15-exp23 and exp05-exp18) | **supported** (1) / refuted (2) |
 | camera ↔ camera (stereo) | `calibrex check --pairs camera-camera` (rectified row offsets, rotation only; [tutorial](docs/tutorials/calibrex_check.md#camera-camera-a-stereo-pairs-rotation)) | Hilti 2022 (dev exp01, exp21; audit on twelve recordings) | refuted |
-| camera ↔ LiDAR | `calibrex check` / `estimate` / `drift` (targetless edge alignment, rotation only; [results](docs/benchmarks/camera_lidar_check.md)), `calibrex camera-lidar ...`, `calibrex demo kitti-lidar-camera-evidence` | KITTI dev drives and Hilti 2022 (check), KITTI-shaped fixture, A2D2, ACFR | no_claim |
+| camera ↔ LiDAR | `calibrex check` / `estimate` / `drift` (targetless edge alignment, rotation only; [results](docs/benchmarks/camera_lidar_check.md)), `calibrex camera-lidar ...`, `calibrex demo kitti-lidar-camera-evidence` | KITTI raw (13 dev drives, audit on 23 drives) and Hilti 2022 (check), KITTI-shaped fixture, A2D2, ACFR | refuted |
 | GNSS ↔ IMU | `calibrex gnss-imu compose` (from `calibrex gnss-lidar rtk-slam` and IMU-LiDAR) | RTK-SLAM | no_claim |
 | IMU ↔ LiDAR | `calibrex imu-lidar livox`, `livox-translation`, `trajectory` | RTK-SLAM, Zenodo MID360 driving | **supported** (2) / refuted (1) |
 | IMU ↔ vehicle | `calibrex imu-vehicle kitti` | KITTI raw | no_claim |

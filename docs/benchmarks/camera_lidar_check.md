@@ -5,8 +5,9 @@ bag's images and point clouds, without a target. This page records how the metho
 what it did against the reference calibrations of two public datasets, and where it does not
 work. It is **development evidence, not a claim**: the pair stays `no_claim` on the
 [leaderboard](sota_leaderboard.md) and the thresholds below were set while looking at these
-recordings (no frozen audit, no held-out data scored). A claim built on them is
-pre-registered on unread KITTI drives: [KITTI camera-LiDAR check audit](kitti_camera_lidar_check.md).
+recordings (no frozen audit, no held-out data scored). A claim built on them was audited on
+23 unread KITTI drives and **refuted** (5 of 9 gates): KITTI's calibration was flagged on 3
+of them ([KITTI camera-LiDAR check audit](kitti_camera_lidar_check.md)).
 
 ## Which method, and why
 
@@ -567,9 +568,10 @@ Each check took 35 to 140 s, with a drive's seven checks running at once on 4 co
 scores are in
 [`docs/assets/kitti_camera_lidar/development/`](../assets/kitti_camera_lidar/development/scores.json),
 with those without the per-point time (`velodyne_time_none/`) and before the per-axis starts
-(`before_per_axis_starts/`, commit `6ea6110`). The claim built on them is pre-registered on
-23 KITTI drives the check has never read:
-[KITTI camera-LiDAR check audit](kitti_camera_lidar_check.md).
+(`before_per_axis_starts/`, commit `6ea6110`). The claim built on them was pre-registered
+and audited on 23 KITTI drives the check had never read, and refuted: on 20 drives the check
+behaved as here, on three it flagged KITTI's calibration
+([KITTI camera-LiDAR check audit](kitti_camera_lidar_check.md#results-refuted-5-of-9-gates)).
 
 ## Limitations
 
@@ -583,6 +585,9 @@ with those without the per-point time (`velodyne_time_none/`) and before the per
   scan is not covered.
 * A rig that stands still for most of a recording keeps few frames (KITTI 0057: 9 of 37) and
   judges little.
+* An axis can be judged at a wrong optimum: on 3 of 23 unseen KITTI drives the check flagged
+  KITTI's calibration, judging axes 0.8 to 9.6 deg off with held-out controls just over their
+  threshold (`t` 2.09 to 2.33), two of them from an alternative search start (audit above).
 * The jackknife std ignores systematic effects, so a std of 0.03 deg does not mean 0.03 deg
   accuracy (see exp07); the 0.5 deg floor is the resolution.
 * Intrinsics are not handled. Rig motion is compensated only with a velocity topic connected to

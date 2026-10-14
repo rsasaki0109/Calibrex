@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+- **The KITTI camera-LiDAR check audit is refuted: 5 of 9 gates.**
+  - **The runs.** All 23 pre-registered drives ran once from the frozen code. Every
+    archive matched its pinned size and ETag, and all 23 conversions and 161 checks
+    exited 0.
+  - **What held.**
+    - On 20 drives, KITTI's calibration passes, every judged axis within 0.45 deg of it.
+    - 61 of 69 axes are judged.
+    - 57 of 61 3 deg and 60 of 61 1 deg turns about judged axes are flagged (gates 90
+      and 75 percent).
+  - **What failed.** On three drives the check flagged KITTI's calibration (0029 and
+    0056 `fail`, 0032 `warn`). It judged axes 0.8 to 9.6 deg off, and on 0056 judged a
+    3 deg-turned roll right. Four gates are contradicted:
+    - KITTI's calibration not flagged;
+    - judged-axis accuracy (9.60 deg against 0.75);
+    - turned-run accuracy (9.66 against 1.5);
+    - no 3 deg turn judged right.
+  - **Post-hoc, not part of the verdict.**
+    - Every judged axis more than 0.75 deg off had a held-out control just over its
+      threshold (`t` 2.09 to 2.33).
+    - On 0029 and 0056 the estimate came from an alternative search start.
+  - **Leaderboard.** `camera-lidar` stands `refuted` (0 supported, 1 refuted). The page
+    is `docs/benchmarks/kitti_camera_lidar_check.md`; the runs, scores and audit are in
+    `docs/assets/kitti_camera_lidar/evaluation/`. README and the docs home now list every
+    audited pair's standing.
+
 - **The KITTI camera-LiDAR check audit is pre-registered: honest per-axis verdicts.**
   - **The claim.** On 23 KITTI 2011_09_26 drives no camera-LiDAR method has read,
     `calibrex check --pairs camera-lidar`:
