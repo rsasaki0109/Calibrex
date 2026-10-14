@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Complete frozen CUDA map query comparison",
+  "type": "object",
+  "required": ["schema_version", "record_type"],
+  "properties": {
+    "schema_version": {"const": "calibrex.cuda_fixed_neighbors/v0.1"},
+    "record_type": {"enum": ["protocol", "worker", "summary", "publication"]}
+  },
+  "$defs": {
+    "sha": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "digests": {"type": "object", "minProperties": 1, "additionalProperties": {"$ref": "#/$defs/sha"}},
+    "medians": {
+      "type": "object", "required": ["prior", "current"], "additionalProperties": false,
+      "properties": {"prior": {"type": "number", "exclusiveMinimum": 0}, "current": {"type": "number", "exclusiveMinimum": 0}}
+    }
+  },
+  "oneOf": [
+    {
+      "required": ["commits", "repeats", "launcher_sha256", "map_launcher_sha256", "input_sha256", "scope", "initially_empty_cupy_caches"],
+      "properties": {
+        "record_type": {"const": "protocol"},
+        "commits": {
+          "type": "object", "required": ["prior", "current"], "additionalProperties": false,
+          "properties": {"prior": {"type": "string", "pattern": "^[a-f0-9]{40}$"}, "current": {"type": "string", "pattern": "^[a-f0-9]{40}$"}}
+        },
+        "repeats": {"type": "integer", "minimum": 1},
+        "launcher_sha256": {"$ref": "#/$defs/sha"},
+        "map_launcher_sha256": {"$ref": "#/$defs/sha"},
+        "input_sha256": {"$ref": "#/$defs/digests", "minProperties": 3, "maxProperties": 3},
+        "scope": {"type": "string", "minLength": 1},
+        "initially_empty_cupy_caches": {"const": true}
+      }
+    },
+    {
+      "required": ["api_seconds", "evaluation", "artifact", "statistics", "result_sha256", "prepared_sha256", "partition_sha256", "provenance", "frozen_provenance", "map_points", "target_points"],
+      "properties": {
+        "record_type": {"const": "worker"},
+        "api_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "evaluation": {"type": "object", "required": ["result", "records", "jackknife_fits", "policy_status"]},
+        "artifact": {"type": "object"},
+        "statistics": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+        "result_sha256": {"$ref": "#/$defs/sha"},
+        "prepared_sha256": {"$ref": "#/$defs/sha"},
+        "partition_sha256": {"$ref": "#/$defs/digests", "minProperties": 2, "maxProperties": 2},
+        "frozen_provenance": {"type": "object", "required": ["source_commit", "source_manifest_sha256", "executed_sources", "launcher_sha256", "map_launcher_sha256", "cuda_cache_initially_empty", "threads"]}
+      }
+    },
+    {
+      "required": ["whole_median_seconds", "api_median_seconds", "whole_speedup", "api_speedup", "quality_exact", "quality_passed", "provenance"],
+      "properties": {
+        "record_type": {"const": "summary"},
+        "whole_median_seconds": {"$ref": "#/$defs/medians"},
+        "api_median_seconds": {"$ref": "#/$defs/medians"},
+        "whole_speedup": {"type": "number", "exclusiveMinimum": 0},
+        "api_speedup": {"type": "number", "exclusiveMinimum": 0},
+        "quality_exact": {"type": "array", "minItems": 1, "items": {"type": "boolean"}},
+        "quality_passed": {"type": "boolean"},
+        "provenance": {"type": "object", "required": ["protocol_sha256", "attempts_sha256"]}
+      }
+    },
+    {
+      "required": ["files", "provenance"],
+      "properties": {
+        "record_type": {"const": "publication"},
+        "files": {"$ref": "#/$defs/digests"},
+        "provenance": {"type": "object", "required": ["protocol_sha256"]}
+      }
+    }
+  ]
+}

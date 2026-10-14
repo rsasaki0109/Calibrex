@@ -24,10 +24,7 @@ from calibrex.solvers.lidar_lidar_map_solver import (
     MapSampleOptions,
 )
 
-_SOURCE = r'''#ifndef QUERY_K
-#define QUERY_K 0
-#endif
-
+_SOURCE = r'''
 extern "C" __global__ void query3(
     const double* xyz, const double* reference, const long long* order,
     const int* axis, const double* split, const int* child,
@@ -90,95 +87,6 @@ extern "C" __global__ void query3(
     }
     for(int j=0;j<k;j++){distance[row*k+j]=sqrt(best[j]);index[row*k+j]=chosen[j];}
 }
-
-
-#if QUERY_K
-extern "C" __global__ void fixed_query3(
-    const double* xyz, const double* reference, const long long* order,
-    const int* axis, const double* split, const int* child,
-    const long long* span, const double* boxes, const int n, const int m, const int k,
-    double* distance, long long* index) {
-    int row = blockDim.x * blockIdx.x + threadIdx.x;
-    if (row >= n) return;
-    double p[3] = {xyz[3*row], xyz[3*row+1], xyz[3*row+2]};
-#if QUERY_K
-    const int retained=QUERY_K;
-    double best[QUERY_K]; long long chosen[QUERY_K];
-    #pragma unroll
-#else
-    const int retained=k;
-    double best[17]; long long chosen[17];
-#endif
-    for(int j=0;j<retained;j++){best[j]=1.0/0.0;chosen[j]=m;}
-    // 63 Morton bits plus fewer than 30 point-index bits bound radix depth below 96.
-    int stack[96]; int top=1;
-    stack[0]=0;
-    while(top){
-        --top; int node=stack[top];
-        double d[3];
-        for(int a=0;a<3;a++)
-            d[a]=fmax(0.0,fmax(boxes[6*node+a]-p[a],p[a]-boxes[6*node+3+a]));
-        // Retain equal and roundoff-close boxes; candidate distance arithmetic is unchanged.
-        double lower=(d[0]*d[0]+d[1]*d[1]+d[2]*d[2])*(1.0-16.0*2.2204460492503131e-16);
-        if(lower > best[retained-1]) continue;
-        if(axis[node]<0){
-            for(long long j=span[2*node];j<span[2*node+1];j++){
-                long long position=order[j];
-                double x=p[0]-reference[3*position];
-                double y=p[1]-reference[3*position+1];
-                double z=p[2]-reference[3*position+2];
-                double d=x*x+y*y+z*z;
-                if(d<best[retained-1] || (d==best[retained-1] && position<chosen[retained-1])){
-#if QUERY_K
-                    // Constant slots let the compiler retain candidates in
-                    // registers instead of a dynamically indexed local array.
-                    #pragma unroll
-                    for(int slot=0;slot<QUERY_K;slot++){
-                        if(d<best[slot] || (d==best[slot] && position<chosen[slot])){
-                            double old=best[slot];long long old_id=chosen[slot];
-                            best[slot]=d;chosen[slot]=position;d=old;position=old_id;
-                        }
-                    }
-#else
-                    int slot=k-1;
-                    while(slot>0 && (d<best[slot-1] ||
-                         (d==best[slot-1] && position<chosen[slot-1]))){
-                        best[slot]=best[slot-1];chosen[slot]=chosen[slot-1];--slot;
-                    }
-                    best[slot]=d;chosen[slot]=position;
-#endif
-                }
-            }
-        }else if(axis[node]==3){
-            int left=child[2*node],right=child[2*node+1];
-            double lower_child[2];
-            for(int side=0;side<2;side++){
-                int next=side==0?left:right;double v[3];
-                for(int a=0;a<3;a++)
-                    v[a]=fmax(0.0,fmax(boxes[6*next+a]-p[a],p[a]-boxes[6*next+3+a]));
-                lower_child[side]=(v[0]*v[0]+v[1]*v[1]+v[2]*v[2])
-                                 *(1.0-16.0*2.2204460492503131e-16);
-            }
-            int near=lower_child[0]<=lower_child[1]?0:1,far=1-near;
-            if(lower_child[far]<=best[retained-1]) stack[top++]=far==0?left:right;
-            if(lower_child[near]<=best[retained-1]) stack[top++]=near==0?left:right;
-        }else{
-            double delta=p[axis[node]]-split[node];
-            int side=delta<0?0:1;
-            int far=child[2*node+1-side], near=child[2*node+side];
-            if(delta*delta <= best[retained-1]){
-                stack[top]=far;++top;
-            }
-            stack[top]=near;++top;
-        }
-    }
-#if QUERY_K
-    #pragma unroll
-#endif
-    for(int j=0;j<retained;j++){distance[row*k+j]=sqrt(best[j]);index[row*k+j]=chosen[j];}
-}
-
-#endif
 
 extern "C" __global__ void morton3(
     const double* points, const int n, const double lx, const double ly, const double lz,
@@ -347,12 +255,9 @@ class _CudaTree:
         self.arrays = (order, axes[selected], splits[selected], mapping[children[selected]],
                        spans[selected], boxes[selected])
         self.kernel = cp.RawKernel(_SOURCE, "query3", options=("--fmad=false",))
-        self._fixed_kernels: dict[int, cp.RawKernel] = {}
         self.bytes = int(self.data.nbytes + sum(array.nbytes for array in self.arrays))
         self.query_calls = 0
         self.query_rows = 0
-        self.fixed_query_calls = 0
-        self.fixed_query_rows = 0
 
     @property
     def cpu(self) -> cKDTree:
@@ -369,20 +274,12 @@ class _CudaTree:
         distances = cp.empty((len(points), k), dtype=cp.float64)
         indexes = cp.empty((len(points), k), dtype=cp.int64)
         if len(points):
-            kernel = self._fixed_kernels.get(k)
-            if kernel is None:
-                kernel = cp.RawKernel(
-                    _SOURCE, "fixed_query3", options=("--fmad=false", f"-DQUERY_K={k}"),
-                )
-                self._fixed_kernels[k] = kernel
-            kernel(((len(points) + 127) // 128,), (128,), (
+            self.kernel(((len(points) + 127) // 128,), (128,), (
                 points, self.data, *self.arrays, np.int32(len(points)),
                 np.int32(len(self.data)), np.int32(k), distances, indexes,
             ))
             self.query_calls += 1
             self.query_rows += len(points)
-            self.fixed_query_calls += 1
-            self.fixed_query_rows += len(points)
         return distances, indexes
 
 
@@ -531,12 +428,6 @@ class CudaMapRuntime:
             "prepared_samples": len(self.samples),
             "gpu_query_calls": sum(sample.tree.query_calls for sample in self.samples.values()),
             "gpu_query_rows": sum(sample.tree.query_rows for sample in self.samples.values()),
-            "gpu_fixed_query_calls": sum(
-                sample.tree.fixed_query_calls for sample in self.samples.values()
-            ),
-            "gpu_fixed_query_rows": sum(
-                sample.tree.fixed_query_rows for sample in self.samples.values()
-            ),
             "gpu_tree_builds": len(self.samples),
             "gpu_tree_build_kernel_calls": sum(
                 sample.tree.build_kernel_calls for sample in self.samples.values()

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Bound complete cold API compilation profile",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["compiled_programs", "nvrtc_seconds", "profile_total_seconds", "provenance"],
+  "properties": {
+    "compiled_programs": {"type": "integer", "minimum": 1},
+    "nvrtc_seconds": {"type": "number", "exclusiveMinimum": 0},
+    "profile_total_seconds": {"type": "number", "exclusiveMinimum": 0},
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["profile_sha256", "measurement_sha256", "helper_sha256", "scope"],
+      "properties": {
+        "profile_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "measurement_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "helper_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "scope": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

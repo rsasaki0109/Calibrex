@@ -1,0 +1,76 @@
+from pathlib import Path
+from argparse import Namespace
+import argparse,hashlib,json,subprocess,sys,time
+import cupy as cp
+import numpy as np
+from tools import benchmark_cuda_lidar_map as bench
+from calibrex.solvers import cuda_lidar_map_adapter as maps
+from calibrex.solvers.cuda_scan_odometry_adapter import _NORMAL_SOURCE
+
+parser=argparse.ArgumentParser();parser.add_argument('--mode',choices=['prior','fixed','fixed-pca'],required=True)
+args=parser.parse_args()
+root=Path('outputs/map-pca-cold-profile-v5')/args.mode;root.mkdir(parents=True,exist_ok=False)
+(root/'helper.py.txt').write_bytes(Path(__file__).read_bytes())
+normal_source=_NORMAL_SOURCE
+start=normal_source.index('extern "C" __global__ void normals3(')
+body=normal_source[normal_source.index('    double scale=',start):]
+body=body[:body.index('    bool tied=')]+'''
+    values[3*row]=low*unit;values[3*row+1]=mid*unit;values[3*row+2]=high*unit;
+    for(int j=0;j<9;j++) vectors[9*row+j]=0;
+    for(int u=0;u<3;u++) vectors[9*row+3*u]=v[u];
+    repair[row]=bad?1:0;
+}
+'''
+body=body.replace('double floor=1e-12/unit,spectral=', 'double floor=0,spectral=')
+shader='''extern "C" __global__ void pca3(const double* covariance,const int n,const double ratio,
+    double* values,double* vectors,unsigned char* repair) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;if(row>=n)return;
+    const double eps=2.2204460492503131e-16;
+    double c[9];for(int j=0;j<9;j++)c[j]=covariance[9*row+j];
+'''+body
+(root/'pca.cu.txt').write_text(shader,encoding='utf-8')
+kernel=cp.RawKernel(shader,'pca3',options=('--fmad=false',))
+original_eigh=cp.linalg.eigh
+counters={'calls':0,'rows':0,'repair_rows':0,'seconds':0.0}
+def closed_eigh(matrix):
+    begin=time.perf_counter();count=len(matrix)
+    values=cp.empty((count,3),dtype=cp.float64);vectors=cp.empty_like(matrix)
+    flags=cp.empty(count,dtype=cp.uint8)
+    kernel(((count+127)//128,),(128,),
+           (matrix,np.int32(count),np.float64(.2),values,vectors,flags))
+    rows=cp.flatnonzero(flags)
+    if len(rows):
+        native_values,native_vectors=original_eigh(matrix[rows])
+        values[rows]=native_values;vectors[rows]=native_vectors
+    counters['calls']+=1;counters['rows']+=count;counters['repair_rows']+=len(rows)
+    counters['seconds']+=time.perf_counter()-begin
+    return values,vectors
+native_query=maps._CudaTree.query
+def generic(tree,points,k):
+    distances=cp.empty((len(points),k),dtype=cp.float64);indexes=cp.empty((len(points),k),dtype=cp.int64)
+    if len(points):
+        tree.kernel(((len(points)+127)//128,),(128,),
+                    (points,tree.data,*tree.arrays,np.int32(len(points)),np.int32(len(tree.data)),np.int32(k),distances,indexes))
+        tree.query_calls+=1;tree.query_rows+=len(points)
+    return distances,indexes
+if args.mode=='prior':maps._CudaTree.query=generic
+if args.mode=='fixed-pca':cp.linalg.eigh=closed_eigh
+import cProfile
+profiler=cProfile.Profile();profiler.enable()
+begin=time.perf_counter()
+bench._worker(Namespace(sequence=Path('data/public/kitti_raw_icp/2011_09_30_drive_0018_sync'),
+                        output_dir=root/'worker',half_window=0,worker='cuda'))
+seconds=time.perf_counter()-begin
+profiler.disable();profiler.dump_stats(str(root/"profile.pstats"))
+cp.linalg.eigh=original_eigh;maps._CudaTree.query=native_query
+row=json.loads((root/'worker/measurement.json').read_bytes())
+imports={name:hashlib.sha256(Path(module.__file__).read_bytes()).hexdigest()
+         for name,module in list(sys.modules.items()) if name.startswith('calibrex.') and getattr(module,'__file__',None) and Path(module.__file__).suffix=='.py'}
+payload={'mode':args.mode,'complete_worker_call_seconds':seconds,'api_seconds':row['api_seconds'],
+         'pca':counters,'provenance':{'helper_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+             'pca_shader_sha256':hashlib.sha256(shader.encode()).hexdigest(),
+             'executed_sources':imports,'input_sha256':row['provenance']['input_sha256'],
+             'git_commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+             'scope':'exploratory complete public KITTI copied-sensor map evaluation; fixed sequential order and shared GPU; not isolated speed evidence'}}
+(root/'measurement.json').write_text(json.dumps(payload,indent=2),encoding='utf-8')
+print(json.dumps({key:payload[key] for key in ('mode','complete_worker_call_seconds','api_seconds','pca')}),flush=True)

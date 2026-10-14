@@ -1,0 +1,136 @@
+{
+  "samples": [
+    {
+      "offset_seconds": 1.099248499958776,
+      "own": 0,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 11.836310500046238,
+      "own": 0,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 21.91805470001418,
+      "own": 1,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 32.71372929995414,
+      "own": 0,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 42.79492360004224,
+      "own": 1,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 53.61886259994935,
+      "own": 0,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 63.69667980005033,
+      "own": 1,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 73.7744323000079,
+      "own": 1,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 83.84618929994758,
+      "own": 1,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 93.9164737999672,
+      "own": 1,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 103.98756140004843,
+      "own": 1,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 114.07969469996169,
+      "own": 1,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 124.23852659994736,
+      "own": 1,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 135.7242275000317,
+      "own": 1,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 145.80937399994582,
+      "own": 1,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 156.60539339995012,
+      "own": 0,
+      "foreign": 0,
+      "unknown": 0
+    },
+    {
+      "offset_seconds": 156.68638630001806,
+      "own": 0,
+      "foreign": 0,
+      "unknown": 0
+    }
+  ],
+  "exit_code": 0,
+  "provenance": {
+    "observer_sha256": "fc9de69d2463ea90f10e1adcb519750702b7eccd054528ea4749ec1324aaa414",
+    "launcher_sha256": "e6063ebbcd3516717ca4ec583f9d0346d2e4696436aff426db6c3df5fce4f717",
+    "schema_sha256": "b213b9f3acadb96a5424b19ae71532f57c9b789d7ceca590f42384b0932d06cf",
+    "benchmark_command": [
+      "<PYTHON>",
+      "-m",
+      "tools.benchmark_cuda_fixed_neighbors",
+      "--baseline-commit",
+      "efd6ce8bf6a1e5b4331a61d9cb436fd3bd2d7e29",
+      "--sequence",
+      "data/public/kitti_raw_icp/2011_09_30_drive_0018_sync",
+      "--repeats",
+      "3",
+      "--output",
+      "outputs/fixed-neighbor-map-formal-v1"
+    ],
+    "query_command": [
+      "nvidia-smi",
+      "--query-compute-apps=pid",
+      "--format=csv,noheader,nounits"
+    ],
+    "sampling_interval_seconds": 10,
+    "psutil": "7.2.2",
+    "termination_policy": "Terminate only the owned benchmark process tree on foreign or unknown CUDA process observations.",
+    "terminated_on_interference": false,
+    "started_at_utc": "2026-10-14T15:03:27.434294+00:00",
+    "limitation": "Periodic process observation, not continuous GPU isolation or CPU reservation."
+  }
+}

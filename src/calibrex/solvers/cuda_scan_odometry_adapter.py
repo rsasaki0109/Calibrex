@@ -656,8 +656,6 @@ class CudaOdometryTarget:
             "native_tree_builds": self.tree.native_tree_builds,
             "gpu_query_calls": self.tree.query_calls,
             "gpu_query_rows": self.tree.query_rows,
-            "gpu_fixed_query_calls": self.tree.fixed_query_calls,
-            "gpu_fixed_query_rows": self.tree.fixed_query_rows,
             "scalar_query_repairs": self.query_repairs,
             "scalar_normal_repairs": self.normal_repairs,
             "gpu_fused_system_calls": self.fused_calls,

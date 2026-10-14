@@ -1,0 +1,31 @@
+from pathlib import Path
+import hashlib,json,pstats,shutil,tarfile
+root=Path("docs/assets/cuda_fixed_neighbors");folder=root/"cold-profile";folder.mkdir(exist_ok=False)
+source=Path("outputs/map-pca-cold-profile-v5/prior")
+for name in ("profile.pstats","measurement.json","helper.py.txt","pca.cu.txt"):
+ shutil.copyfile(source/name,folder/name)
+shutil.copyfile("tools/schemas/cuda_fixed_neighbors_profile.schema.json",folder/"summary.schema.json")
+stats=pstats.Stats(str(folder/"profile.pstats"));key=next(key for key in stats.stats if "nvrtc.compileProgram" in key[2]);entry=stats.stats[key]
+report={"compiled_programs":entry[1],"nvrtc_seconds":entry[2],"profile_total_seconds":stats.total_tt,"provenance":{
+ "profile_sha256":hashlib.sha256((folder/"profile.pstats").read_bytes()).hexdigest(),
+ "measurement_sha256":hashlib.sha256((folder/"measurement.json").read_bytes()).hexdigest(),
+ "helper_sha256":hashlib.sha256((folder/"helper.py.txt").read_bytes()).hexdigest(),
+ "scope":"cold profiled complete copied-sensor API; generic query override; unreserved CPU; not a speed comparison"}}
+(folder/"summary.json").write_text(json.dumps(report,indent=2)+"\n",encoding="utf-8",newline="\n")
+raw={}
+with tarfile.open(root/"sources-current.tar.gz") as bundle:
+ for member in bundle.getmembers():
+  if member.isfile() and member.name.endswith(".py"):
+   stream=bundle.extractfile(member);raw[member.name.removeprefix("src/")]=stream.read()
+measurement=json.loads((folder/"measurement.json").read_bytes())
+for module,digest in measurement["provenance"]["executed_sources"].items():
+ name=module.replace(".","/")+".py"
+ if name not in raw:name=module.replace(".","/")+"/__init__.py"
+ data=raw[name]
+ if hashlib.sha256(data).hexdigest()!=digest:
+  normalized=data.replace(b"\r\n",b"\n")
+  data=next(value for value in (normalized,normalized.replace(b"\n",b"\r\n")) if hashlib.sha256(value).hexdigest()==digest)
+  path=folder/"sources"/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_bytes(data)
+shutil.copyfile(__file__,root/"profile-publisher.py.txt")
+p=root/"README.md";p.write_text(p.read_text(encoding="utf-8")+f"\nThe bound [cold profile](cold-profile/summary.json) records {entry[1]} NVRTC compilations, {entry[2]:.3f} s within {stats.total_tt:.3f} s of profiled complete API execution. It uses the generic query override; actual checkout EOLs and all imported source hashes are retained. This is initialization evidence, not a new speed comparison.\n",encoding="utf-8",newline="\n")
+p=root/"publication-index.json";v=json.loads(p.read_bytes());v["files"]={f.relative_to(root).as_posix():hashlib.sha256(f.read_bytes()).hexdigest() for f in root.rglob("*") if f.is_file() and f!=p};p.write_text(json.dumps(v,indent=2)+"\n",encoding="utf-8",newline="\n")
