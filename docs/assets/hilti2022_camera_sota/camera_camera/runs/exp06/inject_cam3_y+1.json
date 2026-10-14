@@ -1,0 +1,2315 @@
+{
+  "bag": {
+    "input_digest_scope": "metadata.yaml in full; each storage file by name, size and first 64 MiB",
+    "input_sha256": "6b1fee40603789d884455e276481758451ea4fc3fc47820035f2bbc5ec344785",
+    "path": "/home/user/sota_eval/work_cc/exp06_head.bag",
+    "storage_identifier": "rosbag1",
+    "topic_count": 8
+  },
+  "candidate_sources": [
+    {
+      "frame_count": 2,
+      "kind": "kalibr_camchain",
+      "notes": [
+        "Kalibr T_cam_imu inverted to T_imu_cam; the IMU frame is named 'imu' and camera frames take their rostopic as name"
+      ],
+      "path": "/home/user/sota_eval/runs_cc/exp06/inject_cam3_y+1_calibration/calib_3_cam0-1-camchain-imucam.yaml",
+      "sha256": "344ab530f12ea3eb8c658bdc005368275eccd70bca559a9fab8713a98cb1c60e"
+    },
+    {
+      "frame_count": 1,
+      "kind": "kalibr_camchain",
+      "notes": [
+        "Kalibr T_cam_imu inverted to T_imu_cam; the IMU frame is named 'imu' and camera frames take their rostopic as name"
+      ],
+      "path": "/home/user/sota_eval/runs_cc/exp06/inject_cam3_y+1_calibration/calib_3_cam2-camchain-imucam.yaml",
+      "sha256": "83b1dfdc45ee03a45c05fbff5f060c4e0e3db29e11294103426eadfffec8fdd6"
+    },
+    {
+      "frame_count": 1,
+      "kind": "kalibr_camchain",
+      "notes": [
+        "Kalibr T_cam_imu inverted to T_imu_cam; the IMU frame is named 'imu' and camera frames take their rostopic as name"
+      ],
+      "path": "/home/user/sota_eval/runs_cc/exp06/inject_cam3_y+1_calibration/calib_3_cam3-camchain-imucam.yaml",
+      "sha256": "b20007fd1fb516cad21515c3a364188c08cacdba82953266fe8ede8d12fd8053"
+    },
+    {
+      "frame_count": 1,
+      "kind": "kalibr_camchain",
+      "notes": [
+        "Kalibr T_cam_imu inverted to T_imu_cam; the IMU frame is named 'imu' and camera frames take their rostopic as name"
+      ],
+      "path": "/home/user/sota_eval/runs_cc/exp06/inject_cam3_y+1_calibration/calib_3_cam4-camchain-imucam.yaml",
+      "sha256": "90bf3344be9b6a6f91df5b61f62b15137d9bedd2034a92c719c171e3429720f9"
+    },
+    {
+      "frame_count": 3,
+      "kind": "hilti_sensors",
+      "notes": [
+        "extrinsics are read as T_parent_sensor with quaternion order x, y, z, w"
+      ],
+      "path": "/home/user/sota_eval/runs_cc/exp06/inject_cam3_y+1_calibration/lidar_calibration.yaml",
+      "sha256": "ea5127989317270d83d9a701318d7e284031a21bd9cbf466b8f9f169547db43c"
+    }
+  ],
+  "closures": {
+    "assumptions": [
+      "edges are this run's per-pair estimates, not the candidate; derived pairs are excluded",
+      "loops are a fundamental cycle basis of a spanning forest that takes the best-observed estimates first; loops that share a member are correlated",
+      "the std of a closure axis is propagated to first order assuming independent members; members that share an input (the LiDAR odometry of the vehicle pairs) make it optimistic",
+      "an axis is judged only if every member observes everything entering it; translation needs every member to estimate it"
+    ],
+    "edges": [
+      {
+        "child_frame": "alphasense/cam1/image_raw",
+        "pair": "camera-camera",
+        "parent_frame": "alphasense/cam0/image_raw",
+        "role": "independent"
+      },
+      {
+        "child_frame": "alphasense/cam2/image_raw",
+        "pair": "camera-camera",
+        "parent_frame": "alphasense/cam0/image_raw",
+        "reason": "the estimator did not produce an estimate: 626 of 1011 matched patches constrain rows; observable: none",
+        "role": "unusable"
+      },
+      {
+        "child_frame": "alphasense/cam3/image_raw",
+        "pair": "camera-camera",
+        "parent_frame": "alphasense/cam0/image_raw",
+        "role": "independent"
+      },
+      {
+        "child_frame": "alphasense/cam4/image_raw",
+        "pair": "camera-camera",
+        "parent_frame": "alphasense/cam0/image_raw",
+        "reason": "the estimator did not produce an estimate: 368 matched patches constrain rows, fewer than 500",
+        "role": "unusable"
+      },
+      {
+        "child_frame": "alphasense/cam2/image_raw",
+        "pair": "camera-camera",
+        "parent_frame": "alphasense/cam1/image_raw",
+        "reason": "the estimator did not produce an estimate: 510 of 1077 matched patches constrain rows; observable: none",
+        "role": "unusable"
+      },
+      {
+        "child_frame": "alphasense/cam3/image_raw",
+        "pair": "camera-camera",
+        "parent_frame": "alphasense/cam1/image_raw",
+        "role": "independent"
+      },
+      {
+        "child_frame": "alphasense/cam4/image_raw",
+        "pair": "camera-camera",
+        "parent_frame": "alphasense/cam1/image_raw",
+        "role": "independent"
+      },
+      {
+        "child_frame": "alphasense/cam3/image_raw",
+        "pair": "camera-camera",
+        "parent_frame": "alphasense/cam2/image_raw",
+        "reason": "the estimator did not produce an estimate: 19 matched patches constrain rows, fewer than 500",
+        "role": "unusable"
+      },
+      {
+        "child_frame": "alphasense/cam4/image_raw",
+        "pair": "camera-camera",
+        "parent_frame": "alphasense/cam2/image_raw",
+        "reason": "the estimator did not produce an estimate: 107 matched patches constrain rows, fewer than 500",
+        "role": "unusable"
+      }
+    ],
+    "loops": [
+      {
+        "axes": [
+          {
+            "candidate_error": 0.06837348429203642,
+            "detectable_error": 0.5683734842920364,
+            "detection_probe": 1.0,
+            "detects_perturbation": true,
+            "estimate_std": 0.07332606262307412,
+            "name": "yaw",
+            "ratio": 0.13674696858407284,
+            "status": "pass",
+            "tolerance": 0.5,
+            "tolerance_source": "floor",
+            "unit": "deg"
+          }
+        ],
+        "frames": [
+          "alphasense/cam0/image_raw",
+          "alphasense/cam3/image_raw",
+          "alphasense/cam1/image_raw"
+        ],
+        "kind": "cycle",
+        "members": [
+          {
+            "child_frame": "alphasense/cam3/image_raw",
+            "direction": "forward",
+            "estimator": "rectified_row_offsets/v0.1",
+            "pair": "camera-camera",
+            "parent_frame": "alphasense/cam0/image_raw"
+          },
+          {
+            "child_frame": "alphasense/cam3/image_raw",
+            "direction": "reverse",
+            "estimator": "rectified_row_offsets/v0.1",
+            "pair": "camera-camera",
+            "parent_frame": "alphasense/cam1/image_raw"
+          },
+          {
+            "child_frame": "alphasense/cam1/image_raw",
+            "direction": "reverse",
+            "estimator": "rectified_row_offsets/v0.1",
+            "pair": "camera-camera",
+            "parent_frame": "alphasense/cam0/image_raw"
+          }
+        ],
+        "notes": [
+          "translation not closed: camera-camera do(es) not estimate it"
+        ],
+        "unchecked_axes": [
+          {
+            "name": "roll",
+            "reason": "camera-camera does not observe its roll, which enters this axis with weight 1.00",
+            "reason_code": "unobservable",
+            "std": 0.07867075504173345,
+            "unit": "deg"
+          },
+          {
+            "name": "pitch",
+            "reason": "camera-camera does not observe its pitch, which enters this axis with weight 1.00",
+            "reason_code": "unobservable",
+            "std": 0.19072707325219246,
+            "unit": "deg"
+          }
+        ],
+        "verdict": "pass"
+      }
+    ],
+    "verdict": "pass"
+  },
+  "evidence_dir": "inject_cam3_y+1_evidence",
+  "frame_tree": {
+    "edges": [
+      {
+        "source": "hilti_sensors",
+        "transform": {
+          "child_frame": "PandarXT-32",
+          "parent_frame": "imu",
+          "rotation_quat_xyzw": [
+            0.7071067811865476,
+            -0.7071067811865476,
+            0.0,
+            0.0
+          ],
+          "translation_m": [
+            -0.001,
+            -0.00855,
+            0.055
+          ]
+        }
+      },
+      {
+        "source": "kalibr_camchain",
+        "transform": {
+          "child_frame": "alphasense/cam0/image_raw",
+          "parent_frame": "imu",
+          "rotation_quat_xyzw": [
+            0.4997435836574371,
+            0.5014331831777009,
+            0.49518759281950714,
+            0.503597419889263
+          ],
+          "translation_m": [
+            0.05126354968246811,
+            0.04539012201223676,
+            -0.013214912698709416
+          ]
+        }
+      },
+      {
+        "source": "kalibr_camchain",
+        "transform": {
+          "child_frame": "alphasense/cam1/image_raw",
+          "parent_frame": "imu",
+          "rotation_quat_xyzw": [
+            0.499296000112132,
+            0.5011651770743495,
+            0.49800166562422865,
+            0.5015289728376177
+          ],
+          "translation_m": [
+            0.05039201821992372,
+            -0.06278316699750071,
+            -0.013143268042685272
+          ]
+        }
+      },
+      {
+        "source": "kalibr_camchain",
+        "transform": {
+          "child_frame": "alphasense/cam2/image_raw",
+          "parent_frame": "imu",
+          "rotation_quat_xyzw": [
+            -0.9999964791041829,
+            -0.002118138050997062,
+            0.0007974142274280639,
+            -0.0013854244780300536
+          ],
+          "translation_m": [
+            0.0068411376086779585,
+            -0.007996774138029787,
+            -0.034113803743178954
+          ]
+        }
+      },
+      {
+        "source": "kalibr_camchain",
+        "transform": {
+          "child_frame": "alphasense/cam3/image_raw",
+          "parent_frame": "imu",
+          "rotation_quat_xyzw": [
+            -0.0009381485033013661,
+            -0.7062249015674729,
+            -0.707941300776444,
+            0.00803883936620191
+          ],
+          "translation_m": [
+            -0.0027416993947013664,
+            0.05723016534482256,
+            -0.011011483650644614
+          ]
+        }
+      },
+      {
+        "source": "kalibr_camchain",
+        "transform": {
+          "child_frame": "alphasense/cam4/image_raw",
+          "parent_frame": "imu",
+          "rotation_quat_xyzw": [
+            0.7078777565357081,
+            0.001361315978142371,
+            -0.002031426736090558,
+            0.7063307312627679
+          ],
+          "translation_m": [
+            -0.006567639042379318,
+            -0.07483754169686557,
+            -0.016833275372095922
+          ]
+        }
+      },
+      {
+        "source": "hilti_sensors",
+        "transform": {
+          "child_frame": "imu",
+          "parent_frame": "base_link",
+          "rotation_quat_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "translation_m": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      },
+      {
+        "source": "hilti_sensors",
+        "transform": {
+          "child_frame": "measurement_tip",
+          "parent_frame": "imu",
+          "rotation_quat_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "translation_m": [
+            0.059,
+            -0.00855,
+            0.1964
+          ]
+        }
+      }
+    ],
+    "frames": [
+      "PandarXT-32",
+      "alphasense/cam0/image_raw",
+      "alphasense/cam1/image_raw",
+      "alphasense/cam2/image_raw",
+      "alphasense/cam3/image_raw",
+      "alphasense/cam4/image_raw",
+      "base_link",
+      "imu",
+      "measurement_tip"
+    ],
+    "overrides": [],
+    "roots": [
+      "base_link"
+    ]
+  },
+  "options": {
+    "acceleration_unit": "mps2",
+    "camera_lidar_motion": "auto",
+    "detection_probe_deg": 1.0,
+    "focal_scale_floor": 0.005,
+    "gnss_lidar_deskew": "auto",
+    "imu_lidar_deskew": "auto",
+    "imu_lidar_translation": true,
+    "lidar_lidar_deskew": "auto",
+    "pairs": [
+      "camera-camera"
+    ],
+    "rigid_scan_rotation_floor_deg": 1.5,
+    "rotation_floor_deg": 0.5,
+    "sigma_k": 3.0,
+    "topic_kinds": {},
+    "translation_floor_m": 0.02
+  },
+  "overall_verdict": "fail",
+  "pairs": [
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "PandarXT-32",
+        "parent_frame": "imu",
+        "rotation_quat_xyzw": [
+          0.7071067811865476,
+          -0.7071067811865476,
+          0.0,
+          0.0
+        ],
+        "translation_m": [
+          -0.001,
+          -0.00855,
+          0.055
+        ]
+      },
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [
+        "imu",
+        "PandarXT-32"
+      ],
+      "notes": [],
+      "pair": "imu-lidar",
+      "reason": "imu-lidar was not selected by --pairs",
+      "reason_code": "not_selected",
+      "sensors": [
+        "imu",
+        "PandarXT-32"
+      ],
+      "status": "skipped",
+      "topics": [
+        "/alphasense/imu",
+        "/hesai/pandar"
+      ],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [
+        "PandarXT-32"
+      ],
+      "notes": [],
+      "pair": "lidar-lidar",
+      "reason": "needs two distinct lidar sensors, found one",
+      "reason_code": "missing_topic",
+      "sensors": [
+        "PandarXT-32"
+      ],
+      "status": "skipped",
+      "topics": [
+        "/hesai/pandar"
+      ],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "imu",
+        "parent_frame": "alphasense/cam0/image_raw",
+        "rotation_quat_xyzw": [
+          -0.4997435836574371,
+          -0.5014331831777009,
+          -0.49518759281950714,
+          0.503597419889263
+        ],
+        "translation_m": [
+          -0.045864225893546995,
+          0.012631813183337481,
+          -0.050987828928618695
+        ]
+      },
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [
+        "alphasense/cam0/image_raw",
+        "imu"
+      ],
+      "notes": [],
+      "pair": "camera-imu",
+      "reason": "camera-imu was not selected by --pairs",
+      "reason_code": "not_selected",
+      "sensors": [
+        "alphasense/cam0/image_raw",
+        "imu"
+      ],
+      "status": "skipped",
+      "topics": [
+        "/alphasense/cam0/image_raw",
+        "/alphasense/imu"
+      ],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "imu",
+        "parent_frame": "alphasense/cam1/image_raw",
+        "rotation_quat_xyzw": [
+          -0.499296000112132,
+          -0.5011651770743495,
+          -0.49800166562422865,
+          0.5015289728376177
+        ],
+        "translation_m": [
+          0.06262779955244473,
+          0.013434712529622146,
+          -0.05050835847481365
+        ]
+      },
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [
+        "alphasense/cam1/image_raw",
+        "imu"
+      ],
+      "notes": [],
+      "pair": "camera-imu",
+      "reason": "camera-imu was not selected by --pairs",
+      "reason_code": "not_selected",
+      "sensors": [
+        "alphasense/cam1/image_raw",
+        "imu"
+      ],
+      "status": "skipped",
+      "topics": [
+        "/alphasense/cam1/image_raw",
+        "/alphasense/imu"
+      ],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "imu",
+        "parent_frame": "alphasense/cam2/image_raw",
+        "rotation_quat_xyzw": [
+          0.9999964791041829,
+          0.002118138050997062,
+          -0.0007974142274280639,
+          -0.0013854244780300536
+        ],
+        "translation_m": [
+          -0.0068618144566339415,
+          -0.007931259020147335,
+          -0.034124943940492
+        ]
+      },
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [
+        "alphasense/cam2/image_raw",
+        "imu"
+      ],
+      "notes": [],
+      "pair": "camera-imu",
+      "reason": "camera-imu was not selected by --pairs",
+      "reason_code": "not_selected",
+      "sensors": [
+        "alphasense/cam2/image_raw",
+        "imu"
+      ],
+      "status": "skipped",
+      "topics": [
+        "/alphasense/cam2/image_raw",
+        "/alphasense/imu"
+      ],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "imu",
+        "parent_frame": "alphasense/cam3/image_raw",
+        "rotation_quat_xyzw": [
+          0.0009381485033013661,
+          0.7062249015674729,
+          0.707941300776444,
+          0.00803883936620191
+        ],
+        "translation_m": [
+          -0.002026122376334342,
+          0.011180668261220904,
+          -0.05722717010742096
+        ]
+      },
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [
+        "alphasense/cam3/image_raw",
+        "imu"
+      ],
+      "notes": [],
+      "pair": "camera-imu",
+      "reason": "camera-imu was not selected by --pairs",
+      "reason_code": "not_selected",
+      "sensors": [
+        "alphasense/cam3/image_raw",
+        "imu"
+      ],
+      "status": "skipped",
+      "topics": [
+        "/alphasense/cam3/image_raw",
+        "/alphasense/imu"
+      ],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "imu",
+        "parent_frame": "alphasense/cam4/image_raw",
+        "rotation_quat_xyzw": [
+          -0.7078777565357081,
+          -0.001361315978142371,
+          0.002031426736090558,
+          0.7063307312627679
+        ],
+        "translation_m": [
+          0.006416247252956556,
+          0.016700645409485747,
+          -0.07488037729385078
+        ]
+      },
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [
+        "alphasense/cam4/image_raw",
+        "imu"
+      ],
+      "notes": [],
+      "pair": "camera-imu",
+      "reason": "camera-imu was not selected by --pairs",
+      "reason_code": "not_selected",
+      "sensors": [
+        "alphasense/cam4/image_raw",
+        "imu"
+      ],
+      "status": "skipped",
+      "topics": [
+        "/alphasense/cam4/image_raw",
+        "/alphasense/imu"
+      ],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "imu",
+        "parent_frame": "alphasense/cam0/image_raw",
+        "rotation_quat_xyzw": [
+          -0.4997435836574371,
+          -0.5014331831777009,
+          -0.49518759281950714,
+          0.503597419889263
+        ],
+        "translation_m": [
+          -0.045864225893546995,
+          0.012631813183337481,
+          -0.050987828928618695
+        ]
+      },
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [
+        "alphasense/cam0/image_raw",
+        "imu"
+      ],
+      "notes": [],
+      "pair": "camera-focal",
+      "reason": "camera-focal was not selected by --pairs",
+      "reason_code": "not_selected",
+      "sensors": [
+        "alphasense/cam0/image_raw",
+        "imu"
+      ],
+      "status": "skipped",
+      "topics": [
+        "/alphasense/cam0/image_raw",
+        "/alphasense/imu"
+      ],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "imu",
+        "parent_frame": "alphasense/cam1/image_raw",
+        "rotation_quat_xyzw": [
+          -0.499296000112132,
+          -0.5011651770743495,
+          -0.49800166562422865,
+          0.5015289728376177
+        ],
+        "translation_m": [
+          0.06262779955244473,
+          0.013434712529622146,
+          -0.05050835847481365
+        ]
+      },
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [
+        "alphasense/cam1/image_raw",
+        "imu"
+      ],
+      "notes": [],
+      "pair": "camera-focal",
+      "reason": "camera-focal was not selected by --pairs",
+      "reason_code": "not_selected",
+      "sensors": [
+        "alphasense/cam1/image_raw",
+        "imu"
+      ],
+      "status": "skipped",
+      "topics": [
+        "/alphasense/cam1/image_raw",
+        "/alphasense/imu"
+      ],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "imu",
+        "parent_frame": "alphasense/cam2/image_raw",
+        "rotation_quat_xyzw": [
+          0.9999964791041829,
+          0.002118138050997062,
+          -0.0007974142274280639,
+          -0.0013854244780300536
+        ],
+        "translation_m": [
+          -0.0068618144566339415,
+          -0.007931259020147335,
+          -0.034124943940492
+        ]
+      },
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [
+        "alphasense/cam2/image_raw",
+        "imu"
+      ],
+      "notes": [],
+      "pair": "camera-focal",
+      "reason": "camera-focal was not selected by --pairs",
+      "reason_code": "not_selected",
+      "sensors": [
+        "alphasense/cam2/image_raw",
+        "imu"
+      ],
+      "status": "skipped",
+      "topics": [
+        "/alphasense/cam2/image_raw",
+        "/alphasense/imu"
+      ],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "imu",
+        "parent_frame": "alphasense/cam3/image_raw",
+        "rotation_quat_xyzw": [
+          0.0009381485033013661,
+          0.7062249015674729,
+          0.707941300776444,
+          0.00803883936620191
+        ],
+        "translation_m": [
+          -0.002026122376334342,
+          0.011180668261220904,
+          -0.05722717010742096
+        ]
+      },
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [
+        "alphasense/cam3/image_raw",
+        "imu"
+      ],
+      "notes": [],
+      "pair": "camera-focal",
+      "reason": "camera-focal was not selected by --pairs",
+      "reason_code": "not_selected",
+      "sensors": [
+        "alphasense/cam3/image_raw",
+        "imu"
+      ],
+      "status": "skipped",
+      "topics": [
+        "/alphasense/cam3/image_raw",
+        "/alphasense/imu"
+      ],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "imu",
+        "parent_frame": "alphasense/cam4/image_raw",
+        "rotation_quat_xyzw": [
+          -0.7078777565357081,
+          -0.001361315978142371,
+          0.002031426736090558,
+          0.7063307312627679
+        ],
+        "translation_m": [
+          0.006416247252956556,
+          0.016700645409485747,
+          -0.07488037729385078
+        ]
+      },
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [
+        "alphasense/cam4/image_raw",
+        "imu"
+      ],
+      "notes": [],
+      "pair": "camera-focal",
+      "reason": "camera-focal was not selected by --pairs",
+      "reason_code": "not_selected",
+      "sensors": [
+        "alphasense/cam4/image_raw",
+        "imu"
+      ],
+      "status": "skipped",
+      "topics": [
+        "/alphasense/cam4/image_raw",
+        "/alphasense/imu"
+      ],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "PandarXT-32",
+        "parent_frame": "alphasense/cam0/image_raw",
+        "rotation_quat_xyzw": [
+          0.005946645749630551,
+          -0.7062476554338634,
+          0.707938880995549,
+          -0.0011947272782680816
+        ],
+        "translation_m": [
+          -0.05497620466498122,
+          0.06754014553526592,
+          -0.05205992090186605
+        ]
+      },
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [
+        "alphasense/cam0/image_raw",
+        "PandarXT-32"
+      ],
+      "notes": [],
+      "pair": "camera-lidar",
+      "reason": "camera-lidar was not selected by --pairs",
+      "reason_code": "not_selected",
+      "sensors": [
+        "alphasense/cam0/image_raw",
+        "PandarXT-32"
+      ],
+      "status": "skipped",
+      "topics": [
+        "/alphasense/cam0/image_raw",
+        "/hesai/pandar"
+      ],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "PandarXT-32",
+        "parent_frame": "alphasense/cam1/image_raw",
+        "rotation_quat_xyzw": [
+          0.002494182849915594,
+          -0.706774892460091,
+          0.7074328827024372,
+          -0.0013217077052216641
+        ],
+        "translation_m": [
+          0.0537794323438728,
+          0.06838681969745619,
+          -0.05154509159242471
+        ]
+      },
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [
+        "alphasense/cam1/image_raw",
+        "PandarXT-32"
+      ],
+      "notes": [],
+      "pair": "camera-lidar",
+      "reason": "camera-lidar was not selected by --pairs",
+      "reason_code": "not_selected",
+      "sensors": [
+        "alphasense/cam1/image_raw",
+        "PandarXT-32"
+      ],
+      "status": "skipped",
+      "topics": [
+        "/alphasense/cam1/image_raw",
+        "/hesai/pandar"
+      ],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "PandarXT-32",
+        "parent_frame": "alphasense/cam2/image_raw",
+        "rotation_quat_xyzw": [
+          -0.0015435000508658998,
+          0.00041578603560786813,
+          -0.7086020413165887,
+          -0.7056065417578902
+        ],
+        "translation_m": [
+          -0.007986043407087254,
+          0.0007666033304289162,
+          -0.08909935434931213
+        ]
+      },
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [
+        "alphasense/cam2/image_raw",
+        "PandarXT-32"
+      ],
+      "notes": [],
+      "pair": "camera-lidar",
+      "reason": "camera-lidar was not selected by --pairs",
+      "reason_code": "not_selected",
+      "sensors": [
+        "alphasense/cam2/image_raw",
+        "PandarXT-32"
+      ],
+      "status": "skipped",
+      "topics": [
+        "/alphasense/cam2/image_raw",
+        "/hesai/pandar"
+      ],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "PandarXT-32",
+        "parent_frame": "alphasense/cam3/image_raw",
+        "rotation_quat_xyzw": [
+          0.5062744122897596,
+          0.4949057766323381,
+          -0.5000397881096066,
+          0.49871304577271774
+        ],
+        "translation_m": [
+          -0.00024271424332009605,
+          0.06618357503169381,
+          -0.0656296817694042
+        ]
+      },
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [
+        "alphasense/cam3/image_raw",
+        "PandarXT-32"
+      ],
+      "notes": [],
+      "pair": "camera-lidar",
+      "reason": "camera-lidar was not selected by --pairs",
+      "reason_code": "not_selected",
+      "sensors": [
+        "alphasense/cam3/image_raw",
+        "PandarXT-32"
+      ],
+      "status": "skipped",
+      "topics": [
+        "/alphasense/cam3/image_raw",
+        "/hesai/pandar"
+      ],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "PandarXT-32",
+        "parent_frame": "alphasense/cam4/image_raw",
+        "rotation_quat_xyzw": [
+          0.5008876854569294,
+          -0.49801481421578286,
+          0.5015077576570012,
+          0.49958256613803703
+        ],
+        "translation_m": [
+          0.005160367447034719,
+          0.0717138089488167,
+          -0.06644965352255411
+        ]
+      },
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [
+        "alphasense/cam4/image_raw",
+        "PandarXT-32"
+      ],
+      "notes": [],
+      "pair": "camera-lidar",
+      "reason": "camera-lidar was not selected by --pairs",
+      "reason_code": "not_selected",
+      "sensors": [
+        "alphasense/cam4/image_raw",
+        "PandarXT-32"
+      ],
+      "status": "skipped",
+      "topics": [
+        "/alphasense/cam4/image_raw",
+        "/hesai/pandar"
+      ],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [
+        {
+          "candidate_error": 0.054637300205899735,
+          "detectable_error": 0.5546373002058997,
+          "detection_probe": 1.0,
+          "detects_perturbation": true,
+          "estimate_std": 0.01040152043321419,
+          "name": "roll",
+          "ratio": 0.10927460041179947,
+          "status": "pass",
+          "tolerance": 0.5,
+          "tolerance_source": "floor",
+          "unit": "deg"
+        },
+        {
+          "candidate_error": 0.08257747518463751,
+          "detectable_error": 0.5825774751846375,
+          "detection_probe": 1.0,
+          "detects_perturbation": true,
+          "estimate_std": 0.0329608246418526,
+          "name": "pitch",
+          "ratio": 0.16515495036927502,
+          "status": "pass",
+          "tolerance": 0.5,
+          "tolerance_source": "floor",
+          "unit": "deg"
+        },
+        {
+          "candidate_error": 0.009403631518499024,
+          "detectable_error": 0.509403631518499,
+          "detection_probe": 1.0,
+          "detects_perturbation": true,
+          "estimate_std": 0.008112470857814916,
+          "name": "yaw",
+          "ratio": 0.018807263036998048,
+          "status": "pass",
+          "tolerance": 0.5,
+          "tolerance_source": "floor",
+          "unit": "deg"
+        }
+      ],
+      "candidate_transform": {
+        "child_frame": "alphasense/cam1/image_raw",
+        "parent_frame": "alphasense/cam0/image_raw",
+        "rotation_quat_xyzw": [
+          -0.000735491557750434,
+          0.0025301734536683773,
+          0.0023509302088877693,
+          0.9999937651813715
+        ],
+        "translation_m": [
+          -0.10817190000949184,
+          -0.001022071199349885,
+          -0.00014343650545677739
+        ]
+      },
+      "compared_transform": {
+        "child_frame": "alphasense/cam1/image_raw",
+        "parent_frame": "alphasense/cam0/image_raw",
+        "rotation_quat_xyzw": [
+          -0.000735491557750434,
+          0.0025301734536683773,
+          0.0023509302088877693,
+          0.9999937651813714
+        ],
+        "translation_m": [
+          -0.10817190000949184,
+          -0.001022071199349885,
+          -0.00014343650545677739
+        ]
+      },
+      "coverage": "full",
+      "estimator": "rectified_row_offsets/v0.1",
+      "estimator_policy_reasons": [
+        "2088 of 5498 matched patches constrain rows; observable: roll, pitch, yaw"
+      ],
+      "estimator_policy_status": "pass",
+      "evidence": [
+        {
+          "path": "inject_cam3_y+1_evidence/camera-camera_alphasense-cam0-image_raw_alphasense-cam1-image_raw.yaml",
+          "policy_status": "pass",
+          "role": "rotation",
+          "schema_version": "slac.stereo_rotation/v0.1",
+          "sha256": "af97b55814fd51eaa84301d8eef2874cbba0771dec8396a358a99b18498f16a6"
+        }
+      ],
+      "evidence_artifact": "inject_cam3_y+1_evidence/camera-camera_alphasense-cam0-image_raw_alphasense-cam1-image_raw.yaml",
+      "frames": [
+        "alphasense/cam0/image_raw",
+        "alphasense/cam1/image_raw"
+      ],
+      "notes": [
+        "intrinsics: calib_3_cam0-1-camchain-imucam.yaml cam0; calib_3_cam0-1-camchain-imucam.yaml cam1",
+        "rotation only: the translation between the cameras is not judged",
+        "timing: gyro /alphasense/imu, the cameras' clock offset fitted"
+      ],
+      "pair": "camera-camera",
+      "runtime_s": 40.501692301000276,
+      "sensors": [
+        "alphasense/cam0/image_raw",
+        "alphasense/cam1/image_raw"
+      ],
+      "status": "pass",
+      "time_offset": {
+        "estimate_s": -3.163619271540779e-05,
+        "note": "reported only; not judged",
+        "status": "estimated",
+        "std_s": 0.00014015262050922375
+      },
+      "topics": [
+        "/alphasense/cam0/image_raw",
+        "/alphasense/cam1/image_raw"
+      ],
+      "unchecked_axes": [],
+      "verdict": "pass"
+    },
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "alphasense/cam2/image_raw",
+        "parent_frame": "alphasense/cam0/image_raw",
+        "rotation_quat_xyzw": [
+          -0.5043520154187794,
+          0.49521236090787674,
+          -0.4992852710235926,
+          -0.5011067553784923
+        ],
+        "translation_m": [
+          -0.053469723701197465,
+          -0.02154425607046656,
+          -0.044012597055721914
+        ]
+      },
+      "compared_transform": {
+        "child_frame": "alphasense/cam2/image_raw",
+        "parent_frame": "alphasense/cam0/image_raw",
+        "rotation_quat_xyzw": [
+          0.5043520154187792,
+          -0.4952123609078767,
+          0.49928527102359244,
+          0.5011067553784921
+        ],
+        "translation_m": [
+          -0.053469723701197465,
+          -0.02154425607046656,
+          -0.044012597055721914
+        ]
+      },
+      "coverage": "partial",
+      "estimator": "rectified_row_offsets/v0.1",
+      "estimator_policy_reasons": [
+        "626 of 1011 matched patches constrain rows; observable: none"
+      ],
+      "estimator_policy_status": "inconclusive",
+      "evidence": [
+        {
+          "path": "inject_cam3_y+1_evidence/camera-camera_alphasense-cam0-image_raw_alphasense-cam2-image_raw.yaml",
+          "policy_status": "inconclusive",
+          "role": "rotation",
+          "schema_version": "slac.stereo_rotation/v0.1",
+          "sha256": "3844cac4578cd5e7cf599ad58376074b6979bbb55dd92e9695d3082b4336aef5"
+        }
+      ],
+      "evidence_artifact": "inject_cam3_y+1_evidence/camera-camera_alphasense-cam0-image_raw_alphasense-cam2-image_raw.yaml",
+      "frames": [
+        "alphasense/cam0/image_raw",
+        "alphasense/cam2/image_raw"
+      ],
+      "notes": [
+        "intrinsics: calib_3_cam0-1-camchain-imucam.yaml cam0; calib_3_cam2-camchain-imucam.yaml cam0",
+        "rotation only: the translation between the cameras is not judged",
+        "timing: gyro /alphasense/imu, the cameras' clock offset fitted"
+      ],
+      "pair": "camera-camera",
+      "reason": "the estimator did not produce an estimate: 626 of 1011 matched patches constrain rows; observable: none",
+      "reason_code": "estimator_failed",
+      "runtime_s": 37.647758217000046,
+      "sensors": [
+        "alphasense/cam0/image_raw",
+        "alphasense/cam2/image_raw"
+      ],
+      "status": "inconclusive",
+      "time_offset": {
+        "estimate_s": -0.00027029363282808427,
+        "note": "reported only; not judged",
+        "status": "estimated",
+        "std_s": 0.000541310480636859
+      },
+      "topics": [
+        "/alphasense/cam0/image_raw",
+        "/alphasense/cam2/image_raw"
+      ],
+      "unchecked_axes": [
+        {
+          "name": "roll",
+          "reason": "jackknife std 0.285 deg exceeds 0.1 deg",
+          "reason_code": "unobservable",
+          "std": 0.30715743762734454,
+          "unit": "deg"
+        },
+        {
+          "name": "pitch",
+          "reason": "jackknife std 0.211 deg exceeds 0.1 deg",
+          "reason_code": "unobservable",
+          "std": 0.24234315153633806,
+          "unit": "deg"
+        },
+        {
+          "name": "yaw",
+          "reason": "jackknife std 0.256 deg exceeds 0.1 deg",
+          "reason_code": "unobservable",
+          "std": 0.2561256054529112,
+          "unit": "deg"
+        }
+      ],
+      "verdict": "inconclusive"
+    },
+    {
+      "axes": [
+        {
+          "candidate_error": 1.1789369604245012,
+          "detectable_error": 1.742507504694957,
+          "detection_probe": 1.0,
+          "detects_perturbation": false,
+          "estimate_std": 0.1878568480901519,
+          "name": "pitch",
+          "ratio": 2.0919066342451234,
+          "status": "fail",
+          "tolerance": 0.5635705442704557,
+          "tolerance_source": "sigma",
+          "unit": "deg"
+        },
+        {
+          "candidate_error": -0.09693773231255,
+          "detectable_error": 0.59693773231255,
+          "detection_probe": 1.0,
+          "detects_perturbation": true,
+          "estimate_std": 0.04984189107503812,
+          "name": "yaw",
+          "ratio": 0.1938754646251,
+          "status": "pass",
+          "tolerance": 0.5,
+          "tolerance_source": "floor",
+          "unit": "deg"
+        }
+      ],
+      "candidate_transform": {
+        "child_frame": "alphasense/cam3/image_raw",
+        "parent_frame": "alphasense/cam0/image_raw",
+        "rotation_quat_xyzw": [
+          0.000781643395856457,
+          -0.7130085422734475,
+          -0.008037201631732228,
+          -0.7011088439526535
+        ],
+        "translation_m": [
+          0.011454633120960157,
+          0.002191793093548793,
+          -0.05408877958203306
+        ]
+      },
+      "compared_transform": {
+        "child_frame": "alphasense/cam3/image_raw",
+        "parent_frame": "alphasense/cam0/image_raw",
+        "rotation_quat_xyzw": [
+          -0.000781643395856457,
+          0.7130085422734473,
+          0.008037201631732226,
+          0.7011088439526534
+        ],
+        "translation_m": [
+          0.011454633120960157,
+          0.002191793093548793,
+          -0.05408877958203306
+        ]
+      },
+      "coverage": "partial",
+      "estimator": "rectified_row_offsets/v0.1",
+      "estimator_policy_reasons": [
+        "1487 of 2738 matched patches constrain rows; observable: pitch, yaw"
+      ],
+      "estimator_policy_status": "warn",
+      "evidence": [
+        {
+          "path": "inject_cam3_y+1_evidence/camera-camera_alphasense-cam0-image_raw_alphasense-cam3-image_raw.yaml",
+          "policy_status": "warn",
+          "role": "rotation",
+          "schema_version": "slac.stereo_rotation/v0.1",
+          "sha256": "f7ca7013752b8b423a0647b8fd4cfde143f960105c31255002edd58f0717f936"
+        }
+      ],
+      "evidence_artifact": "inject_cam3_y+1_evidence/camera-camera_alphasense-cam0-image_raw_alphasense-cam3-image_raw.yaml",
+      "frames": [
+        "alphasense/cam0/image_raw",
+        "alphasense/cam3/image_raw"
+      ],
+      "notes": [
+        "intrinsics: calib_3_cam0-1-camchain-imucam.yaml cam0; calib_3_cam3-camchain-imucam.yaml cam0",
+        "rotation only: the translation between the cameras is not judged",
+        "timing: gyro /alphasense/imu, the cameras' clock offset fitted"
+      ],
+      "pair": "camera-camera",
+      "runtime_s": 32.870849126000394,
+      "sensors": [
+        "alphasense/cam0/image_raw",
+        "alphasense/cam3/image_raw"
+      ],
+      "status": "fail",
+      "time_offset": {
+        "estimate_s": -0.0006468580693228107,
+        "note": "reported only; not judged",
+        "status": "estimated",
+        "std_s": 0.0007056225676142539
+      },
+      "topics": [
+        "/alphasense/cam0/image_raw",
+        "/alphasense/cam3/image_raw"
+      ],
+      "unchecked_axes": [
+        {
+          "name": "roll",
+          "reason": "jackknife std 0.104 deg exceeds 0.1 deg",
+          "reason_code": "unobservable",
+          "std": 0.10427846887241442,
+          "unit": "deg"
+        }
+      ],
+      "verdict": "fail"
+    },
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "alphasense/cam4/image_raw",
+        "parent_frame": "alphasense/cam0/image_raw",
+        "rotation_quat_xyzw": [
+          0.005193892456701897,
+          -0.7050395864854982,
+          0.0034838520235411785,
+          0.7091403723837645
+        ],
+        "translation_m": [
+          -0.12057017845057051,
+          -0.004971686687527748,
+          -0.057011792276622286
+        ]
+      },
+      "compared_transform": {
+        "child_frame": "alphasense/cam4/image_raw",
+        "parent_frame": "alphasense/cam0/image_raw",
+        "rotation_quat_xyzw": [
+          0.005193892456701897,
+          -0.7050395864854982,
+          0.0034838520235411785,
+          0.7091403723837644
+        ],
+        "translation_m": [
+          -0.12057017845057051,
+          -0.004971686687527748,
+          -0.057011792276622286
+        ]
+      },
+      "coverage": "partial",
+      "estimator": "rectified_row_offsets/v0.1",
+      "estimator_policy_reasons": [
+        "368 matched patches constrain rows, fewer than 500"
+      ],
+      "estimator_policy_status": "inconclusive",
+      "evidence": [
+        {
+          "path": "inject_cam3_y+1_evidence/camera-camera_alphasense-cam0-image_raw_alphasense-cam4-image_raw.yaml",
+          "policy_status": "inconclusive",
+          "role": "rotation",
+          "schema_version": "slac.stereo_rotation/v0.1",
+          "sha256": "092a6164f43de38d64d5f92bbcc13ecd8dcbbb1772cff67dc59dfb3a96701a00"
+        }
+      ],
+      "evidence_artifact": "inject_cam3_y+1_evidence/camera-camera_alphasense-cam0-image_raw_alphasense-cam4-image_raw.yaml",
+      "frames": [
+        "alphasense/cam0/image_raw",
+        "alphasense/cam4/image_raw"
+      ],
+      "notes": [
+        "intrinsics: calib_3_cam0-1-camchain-imucam.yaml cam0; calib_3_cam4-camchain-imucam.yaml cam0",
+        "rotation only: the translation between the cameras is not judged",
+        "timing: gyro /alphasense/imu, the cameras' clock offset fitted"
+      ],
+      "pair": "camera-camera",
+      "reason": "the estimator did not produce an estimate: 368 matched patches constrain rows, fewer than 500",
+      "reason_code": "estimator_failed",
+      "runtime_s": 24.174424349999754,
+      "sensors": [
+        "alphasense/cam0/image_raw",
+        "alphasense/cam4/image_raw"
+      ],
+      "status": "inconclusive",
+      "topics": [
+        "/alphasense/cam0/image_raw",
+        "/alphasense/cam4/image_raw"
+      ],
+      "unchecked_axes": [
+        {
+          "name": "roll",
+          "reason": "368 matched patches constrain rows, fewer than 500",
+          "reason_code": "no_estimate",
+          "std": 0.0,
+          "unit": "deg"
+        },
+        {
+          "name": "pitch",
+          "reason": "368 matched patches constrain rows, fewer than 500",
+          "reason_code": "no_estimate",
+          "std": 0.0,
+          "unit": "deg"
+        },
+        {
+          "name": "yaw",
+          "reason": "368 matched patches constrain rows, fewer than 500",
+          "reason_code": "no_estimate",
+          "std": 0.0,
+          "unit": "deg"
+        }
+      ],
+      "verdict": "inconclusive"
+    },
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "alphasense/cam2/image_raw",
+        "parent_frame": "alphasense/cam1/image_raw",
+        "rotation_quat_xyzw": [
+          -0.5022899426259264,
+          0.4980300768492448,
+          -0.4990159646313621,
+          -0.5006534960762884
+        ],
+        "translation_m": [
+          0.05482659928944754,
+          -0.020715331306393157,
+          -0.043622362056102246
+        ]
+      },
+      "compared_transform": {
+        "child_frame": "alphasense/cam2/image_raw",
+        "parent_frame": "alphasense/cam1/image_raw",
+        "rotation_quat_xyzw": [
+          0.5022899426259264,
+          -0.4980300768492448,
+          0.49901596463136205,
+          0.5006534960762884
+        ],
+        "translation_m": [
+          0.05482659928944754,
+          -0.020715331306393157,
+          -0.043622362056102246
+        ]
+      },
+      "coverage": "partial",
+      "estimator": "rectified_row_offsets/v0.1",
+      "estimator_policy_reasons": [
+        "510 of 1077 matched patches constrain rows; observable: none"
+      ],
+      "estimator_policy_status": "inconclusive",
+      "evidence": [
+        {
+          "path": "inject_cam3_y+1_evidence/camera-camera_alphasense-cam1-image_raw_alphasense-cam2-image_raw.yaml",
+          "policy_status": "inconclusive",
+          "role": "rotation",
+          "schema_version": "slac.stereo_rotation/v0.1",
+          "sha256": "d47b5e6e84e1590a2632b149bf61d4eb395332d8b3608a43a5e002f0bbc26b7f"
+        }
+      ],
+      "evidence_artifact": "inject_cam3_y+1_evidence/camera-camera_alphasense-cam1-image_raw_alphasense-cam2-image_raw.yaml",
+      "frames": [
+        "alphasense/cam1/image_raw",
+        "alphasense/cam2/image_raw"
+      ],
+      "notes": [
+        "intrinsics: calib_3_cam0-1-camchain-imucam.yaml cam1; calib_3_cam2-camchain-imucam.yaml cam0",
+        "rotation only: the translation between the cameras is not judged",
+        "timing: gyro /alphasense/imu, the cameras' clock offset fitted"
+      ],
+      "pair": "camera-camera",
+      "reason": "the estimator did not produce an estimate: 510 of 1077 matched patches constrain rows; observable: none",
+      "reason_code": "estimator_failed",
+      "runtime_s": 47.28311316500003,
+      "sensors": [
+        "alphasense/cam1/image_raw",
+        "alphasense/cam2/image_raw"
+      ],
+      "status": "inconclusive",
+      "time_offset": {
+        "estimate_s": 0.00011531333564732543,
+        "note": "reported only; not judged",
+        "status": "estimated",
+        "std_s": 0.0003404498422048779
+      },
+      "topics": [
+        "/alphasense/cam1/image_raw",
+        "/alphasense/cam2/image_raw"
+      ],
+      "unchecked_axes": [
+        {
+          "name": "roll",
+          "reason": "jackknife std 0.254 deg exceeds 0.1 deg",
+          "reason_code": "unobservable",
+          "std": 0.2719651868875148,
+          "unit": "deg"
+        },
+        {
+          "name": "pitch",
+          "reason": "jackknife std 0.238 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.334 deg (response 1.67, outside 0.5 to 1.5)",
+          "reason_code": "control_not_detected",
+          "std": 0.26235826105728377,
+          "unit": "deg"
+        },
+        {
+          "name": "yaw",
+          "reason": "jackknife std 0.169 deg exceeds 0.1 deg",
+          "reason_code": "unobservable",
+          "std": 0.16956828939200436,
+          "unit": "deg"
+        }
+      ],
+      "verdict": "inconclusive"
+    },
+    {
+      "axes": [
+        {
+          "candidate_error": -0.04835695913998874,
+          "detectable_error": 0.5483569591399887,
+          "detection_probe": 1.0,
+          "detects_perturbation": true,
+          "estimate_std": 0.07798292141983917,
+          "name": "roll",
+          "ratio": 0.09671391827997748,
+          "status": "pass",
+          "tolerance": 0.5,
+          "tolerance_source": "floor",
+          "unit": "deg"
+        },
+        {
+          "candidate_error": -0.03608843690875862,
+          "detectable_error": 0.5360884369087586,
+          "detection_probe": 1.0,
+          "detects_perturbation": true,
+          "estimate_std": 0.053164371008213654,
+          "name": "yaw",
+          "ratio": 0.07217687381751724,
+          "status": "pass",
+          "tolerance": 0.5,
+          "tolerance_source": "floor",
+          "unit": "deg"
+        }
+      ],
+      "candidate_transform": {
+        "child_frame": "alphasense/cam3/image_raw",
+        "parent_frame": "alphasense/cam1/image_raw",
+        "rotation_quat_xyzw": [
+          -0.0013899189203550044,
+          -0.7112260961045285,
+          -0.006911327630346773,
+          -0.7029279777443014
+        ],
+        "translation_m": [
+          0.11991194525046794,
+          0.0027296267374201117,
+          -0.053334893983929016
+        ]
+      },
+      "compared_transform": {
+        "child_frame": "alphasense/cam3/image_raw",
+        "parent_frame": "alphasense/cam1/image_raw",
+        "rotation_quat_xyzw": [
+          0.001389918920355004,
+          0.7112260961045284,
+          0.006911327630346772,
+          0.7029279777443013
+        ],
+        "translation_m": [
+          0.11991194525046794,
+          0.0027296267374201117,
+          -0.053334893983929016
+        ]
+      },
+      "coverage": "partial",
+      "estimator": "rectified_row_offsets/v0.1",
+      "estimator_policy_reasons": [
+        "805 of 1635 matched patches constrain rows; observable: roll, yaw"
+      ],
+      "estimator_policy_status": "warn",
+      "evidence": [
+        {
+          "path": "inject_cam3_y+1_evidence/camera-camera_alphasense-cam1-image_raw_alphasense-cam3-image_raw.yaml",
+          "policy_status": "warn",
+          "role": "rotation",
+          "schema_version": "slac.stereo_rotation/v0.1",
+          "sha256": "69ffa744c76dbc88d7721db780540b4f610fadb5755594a1b6ed130534d743bc"
+        }
+      ],
+      "evidence_artifact": "inject_cam3_y+1_evidence/camera-camera_alphasense-cam1-image_raw_alphasense-cam3-image_raw.yaml",
+      "frames": [
+        "alphasense/cam1/image_raw",
+        "alphasense/cam3/image_raw"
+      ],
+      "notes": [
+        "intrinsics: calib_3_cam0-1-camchain-imucam.yaml cam1; calib_3_cam3-camchain-imucam.yaml cam0",
+        "rotation only: the translation between the cameras is not judged",
+        "timing: gyro /alphasense/imu, the cameras' clock offset fitted"
+      ],
+      "pair": "camera-camera",
+      "runtime_s": 42.46985067500009,
+      "sensors": [
+        "alphasense/cam1/image_raw",
+        "alphasense/cam3/image_raw"
+      ],
+      "status": "pass",
+      "time_offset": {
+        "estimate_s": 9.143690279022934e-05,
+        "note": "reported only; not judged",
+        "status": "estimated",
+        "std_s": 0.000569119887870498
+      },
+      "topics": [
+        "/alphasense/cam1/image_raw",
+        "/alphasense/cam3/image_raw"
+      ],
+      "unchecked_axes": [
+        {
+          "name": "pitch",
+          "reason": "turning the candidate 0.2 deg moved the estimate by +0.058 deg (response 0.29, outside 0.5 to 1.5)",
+          "reason_code": "control_not_detected",
+          "std": 0.15272321247767728,
+          "unit": "deg"
+        }
+      ],
+      "verdict": "pass"
+    },
+    {
+      "axes": [
+        {
+          "candidate_error": 0.0009527244019505535,
+          "detectable_error": 0.5009527244019506,
+          "detection_probe": 1.0,
+          "detects_perturbation": true,
+          "estimate_std": 0.07012503984610055,
+          "name": "roll",
+          "ratio": 0.001905448803901107,
+          "status": "pass",
+          "tolerance": 0.5,
+          "tolerance_source": "floor",
+          "unit": "deg"
+        },
+        {
+          "candidate_error": 0.03359039564525563,
+          "detectable_error": 0.5335903956452557,
+          "detection_probe": 1.0,
+          "detects_perturbation": true,
+          "estimate_std": 0.04516826466325863,
+          "name": "yaw",
+          "ratio": 0.06718079129051126,
+          "status": "pass",
+          "tolerance": 0.5,
+          "tolerance_source": "floor",
+          "unit": "deg"
+        }
+      ],
+      "candidate_transform": {
+        "child_frame": "alphasense/cam4/image_raw",
+        "parent_frame": "alphasense/cam1/image_raw",
+        "rotation_quat_xyzw": [
+          0.004049113218635823,
+          -0.7068442116591104,
+          0.001311281563651956,
+          0.707356448805561
+        ],
+        "translation_m": [
+          -0.012128569901746475,
+          -0.0038082514675107162,
+          -0.056936119219889565
+        ]
+      },
+      "compared_transform": {
+        "child_frame": "alphasense/cam4/image_raw",
+        "parent_frame": "alphasense/cam1/image_raw",
+        "rotation_quat_xyzw": [
+          0.004049113218635823,
+          -0.7068442116591104,
+          0.0013112815636519561,
+          0.7073564488055609
+        ],
+        "translation_m": [
+          -0.012128569901746475,
+          -0.0038082514675107162,
+          -0.056936119219889565
+        ]
+      },
+      "coverage": "partial",
+      "estimator": "rectified_row_offsets/v0.1",
+      "estimator_policy_reasons": [
+        "1227 of 3187 matched patches constrain rows; observable: roll, yaw"
+      ],
+      "estimator_policy_status": "warn",
+      "evidence": [
+        {
+          "path": "inject_cam3_y+1_evidence/camera-camera_alphasense-cam1-image_raw_alphasense-cam4-image_raw.yaml",
+          "policy_status": "warn",
+          "role": "rotation",
+          "schema_version": "slac.stereo_rotation/v0.1",
+          "sha256": "b56b2433702f3348371e6aec9362c8c977dad8a38d2cd60ca9c6354b5bc65025"
+        }
+      ],
+      "evidence_artifact": "inject_cam3_y+1_evidence/camera-camera_alphasense-cam1-image_raw_alphasense-cam4-image_raw.yaml",
+      "frames": [
+        "alphasense/cam1/image_raw",
+        "alphasense/cam4/image_raw"
+      ],
+      "notes": [
+        "intrinsics: calib_3_cam0-1-camchain-imucam.yaml cam1; calib_3_cam4-camchain-imucam.yaml cam0",
+        "rotation only: the translation between the cameras is not judged",
+        "timing: gyro /alphasense/imu, the cameras' clock offset fitted"
+      ],
+      "pair": "camera-camera",
+      "runtime_s": 41.78491287099996,
+      "sensors": [
+        "alphasense/cam1/image_raw",
+        "alphasense/cam4/image_raw"
+      ],
+      "status": "pass",
+      "time_offset": {
+        "estimate_s": 0.00011661958715594943,
+        "note": "reported only; not judged",
+        "status": "estimated",
+        "std_s": 0.0005397820495123575
+      },
+      "topics": [
+        "/alphasense/cam1/image_raw",
+        "/alphasense/cam4/image_raw"
+      ],
+      "unchecked_axes": [
+        {
+          "name": "pitch",
+          "reason": "jackknife std 0.127 deg exceeds 0.1 deg",
+          "reason_code": "unobservable",
+          "std": 0.21203994419466943,
+          "unit": "deg"
+        }
+      ],
+      "verdict": "pass"
+    },
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "alphasense/cam3/image_raw",
+        "parent_frame": "alphasense/cam2/image_raw",
+        "rotation_quat_xyzw": [
+          0.005977439604865684,
+          0.7089350049190167,
+          -0.705246038972907,
+          0.0018583673664939893
+        ],
+        "translation_m": [
+          -0.009343544293549238,
+          -0.06520278560799607,
+          -0.023267929043709903
+        ]
+      },
+      "compared_transform": {
+        "child_frame": "alphasense/cam3/image_raw",
+        "parent_frame": "alphasense/cam2/image_raw",
+        "rotation_quat_xyzw": [
+          0.005977439604865684,
+          0.7089350049190167,
+          -0.705246038972907,
+          0.0018583673664939891
+        ],
+        "translation_m": [
+          -0.009343544293549238,
+          -0.06520278560799607,
+          -0.023267929043709903
+        ]
+      },
+      "coverage": "partial",
+      "estimator": "rectified_row_offsets/v0.1",
+      "estimator_policy_reasons": [
+        "19 matched patches constrain rows, fewer than 500"
+      ],
+      "estimator_policy_status": "inconclusive",
+      "evidence": [
+        {
+          "path": "inject_cam3_y+1_evidence/camera-camera_alphasense-cam2-image_raw_alphasense-cam3-image_raw.yaml",
+          "policy_status": "inconclusive",
+          "role": "rotation",
+          "schema_version": "slac.stereo_rotation/v0.1",
+          "sha256": "aeeb03ed895eea2f944a4d9fdfe279dbf0faec376e13bd3ddbe70cf88a2b35a6"
+        }
+      ],
+      "evidence_artifact": "inject_cam3_y+1_evidence/camera-camera_alphasense-cam2-image_raw_alphasense-cam3-image_raw.yaml",
+      "frames": [
+        "alphasense/cam2/image_raw",
+        "alphasense/cam3/image_raw"
+      ],
+      "notes": [
+        "intrinsics: calib_3_cam2-camchain-imucam.yaml cam0; calib_3_cam3-camchain-imucam.yaml cam0",
+        "rotation only: the translation between the cameras is not judged",
+        "timing: gyro /alphasense/imu, the cameras' clock offset fitted"
+      ],
+      "pair": "camera-camera",
+      "reason": "the estimator did not produce an estimate: 19 matched patches constrain rows, fewer than 500",
+      "reason_code": "estimator_failed",
+      "runtime_s": 23.009074859000066,
+      "sensors": [
+        "alphasense/cam2/image_raw",
+        "alphasense/cam3/image_raw"
+      ],
+      "status": "inconclusive",
+      "topics": [
+        "/alphasense/cam2/image_raw",
+        "/alphasense/cam3/image_raw"
+      ],
+      "unchecked_axes": [
+        {
+          "name": "roll",
+          "reason": "19 matched patches constrain rows, fewer than 500",
+          "reason_code": "no_estimate",
+          "std": 0.0,
+          "unit": "deg"
+        },
+        {
+          "name": "pitch",
+          "reason": "19 matched patches constrain rows, fewer than 500",
+          "reason_code": "no_estimate",
+          "std": 0.0,
+          "unit": "deg"
+        },
+        {
+          "name": "yaw",
+          "reason": "19 matched patches constrain rows, fewer than 500",
+          "reason_code": "no_estimate",
+          "std": 0.0,
+          "unit": "deg"
+        }
+      ],
+      "verdict": "inconclusive"
+    },
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "alphasense/cam4/image_raw",
+        "parent_frame": "alphasense/cam2/image_raw",
+        "rotation_quat_xyzw": [
+          0.7053443158649546,
+          0.0029611677873050235,
+          -0.0006984954125351742,
+          -0.7088583354003064
+        ],
+        "translation_m": [
+          -0.013719307346504055,
+          0.06683090169064212,
+          -0.017073703320133696
+        ]
+      },
+      "compared_transform": {
+        "child_frame": "alphasense/cam4/image_raw",
+        "parent_frame": "alphasense/cam2/image_raw",
+        "rotation_quat_xyzw": [
+          -0.7053443158649546,
+          -0.002961167787305023,
+          0.0006984954125351745,
+          0.7088583354003064
+        ],
+        "translation_m": [
+          -0.013719307346504055,
+          0.06683090169064212,
+          -0.017073703320133696
+        ]
+      },
+      "coverage": "partial",
+      "estimator": "rectified_row_offsets/v0.1",
+      "estimator_policy_reasons": [
+        "107 matched patches constrain rows, fewer than 500"
+      ],
+      "estimator_policy_status": "inconclusive",
+      "evidence": [
+        {
+          "path": "inject_cam3_y+1_evidence/camera-camera_alphasense-cam2-image_raw_alphasense-cam4-image_raw.yaml",
+          "policy_status": "inconclusive",
+          "role": "rotation",
+          "schema_version": "slac.stereo_rotation/v0.1",
+          "sha256": "d03ba30333585367afa4b151899a09a96fc78189f24fb46a8b865b36cce9e3f1"
+        }
+      ],
+      "evidence_artifact": "inject_cam3_y+1_evidence/camera-camera_alphasense-cam2-image_raw_alphasense-cam4-image_raw.yaml",
+      "frames": [
+        "alphasense/cam2/image_raw",
+        "alphasense/cam4/image_raw"
+      ],
+      "notes": [
+        "intrinsics: calib_3_cam2-camchain-imucam.yaml cam0; calib_3_cam4-camchain-imucam.yaml cam0",
+        "rotation only: the translation between the cameras is not judged",
+        "timing: gyro /alphasense/imu, the cameras' clock offset fitted"
+      ],
+      "pair": "camera-camera",
+      "reason": "the estimator did not produce an estimate: 107 matched patches constrain rows, fewer than 500",
+      "reason_code": "estimator_failed",
+      "runtime_s": 23.48461227000007,
+      "sensors": [
+        "alphasense/cam2/image_raw",
+        "alphasense/cam4/image_raw"
+      ],
+      "status": "inconclusive",
+      "topics": [
+        "/alphasense/cam2/image_raw",
+        "/alphasense/cam4/image_raw"
+      ],
+      "unchecked_axes": [
+        {
+          "name": "roll",
+          "reason": "107 matched patches constrain rows, fewer than 500",
+          "reason_code": "no_estimate",
+          "std": 0.0,
+          "unit": "deg"
+        },
+        {
+          "name": "pitch",
+          "reason": "107 matched patches constrain rows, fewer than 500",
+          "reason_code": "no_estimate",
+          "std": 0.0,
+          "unit": "deg"
+        },
+        {
+          "name": "yaw",
+          "reason": "107 matched patches constrain rows, fewer than 500",
+          "reason_code": "no_estimate",
+          "std": 0.0,
+          "unit": "deg"
+        }
+      ],
+      "verdict": "inconclusive"
+    },
+    {
+      "axes": [],
+      "candidate_transform": {
+        "child_frame": "alphasense/cam4/image_raw",
+        "parent_frame": "alphasense/cam3/image_raw",
+        "rotation_quat_xyzw": [
+          0.003954782742996911,
+          0.9999771000931564,
+          0.00010474454063863492,
+          0.005490720473533189
+        ],
+        "translation_m": [
+          0.005079802332630367,
+          -0.005557776054941597,
+          -0.13203680187686054
+        ]
+      },
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [
+        "alphasense/cam3/image_raw",
+        "alphasense/cam4/image_raw"
+      ],
+      "notes": [],
+      "pair": "camera-camera",
+      "reason": "under the candidate the cameras share 0% of the first one's view (at 10 m), less than 5%: not a stereo pair",
+      "reason_code": "no_shared_view",
+      "sensors": [
+        "alphasense/cam3/image_raw",
+        "alphasense/cam4/image_raw"
+      ],
+      "status": "skipped",
+      "topics": [
+        "/alphasense/cam3/image_raw",
+        "/alphasense/cam4/image_raw"
+      ],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "gnss-lidar",
+      "reason": "no topic for: gnss",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "gnss-imu",
+      "reason": "no topic for: gnss",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "lidar-vehicle",
+      "reason": "vehicle pairs assume ground-vehicle motion and are opt-in: pass --vehicle-frame <frame> to check them on a ground vehicle",
+      "reason_code": "no_vehicle_frame",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "imu-vehicle",
+      "reason": "vehicle pairs assume ground-vehicle motion and are opt-in: pass --vehicle-frame <frame> to check them on a ground vehicle",
+      "reason_code": "no_vehicle_frame",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "ins-lidar",
+      "reason": "no topic for: ins",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    },
+    {
+      "axes": [],
+      "estimator_policy_reasons": [],
+      "evidence": [],
+      "frames": [],
+      "notes": [],
+      "pair": "lidar-wheel_odometry",
+      "reason": "no topic for: wheel",
+      "reason_code": "missing_topic",
+      "sensors": [],
+      "status": "skipped",
+      "topics": [],
+      "unchecked_axes": []
+    }
+  ],
+  "plan_only": false,
+  "provenance": {
+    "command": [
+      "calibrex",
+      "check",
+      "/home/user/sota_eval/work_cc/exp06_head.bag",
+      "--pairs",
+      "camera-camera",
+      "--tf",
+      "/home/user/sota_eval/runs_cc/exp06/inject_cam3_y+1_calibration/calib_3_cam0-1-camchain-imucam.yaml",
+      "--tf",
+      "/home/user/sota_eval/runs_cc/exp06/inject_cam3_y+1_calibration/calib_3_cam2-camchain-imucam.yaml",
+      "--tf",
+      "/home/user/sota_eval/runs_cc/exp06/inject_cam3_y+1_calibration/calib_3_cam3-camchain-imucam.yaml",
+      "--tf",
+      "/home/user/sota_eval/runs_cc/exp06/inject_cam3_y+1_calibration/calib_3_cam4-camchain-imucam.yaml",
+      "--tf",
+      "/home/user/sota_eval/runs_cc/exp06/inject_cam3_y+1_calibration/lidar_calibration.yaml",
+      "--fail-on",
+      "never",
+      "--evidence-dir",
+      "/home/user/sota_eval/runs_cc/exp06/inject_cam3_y+1_evidence",
+      "--output",
+      "/home/user/sota_eval/runs_cc/exp06/inject_cam3_y+1.json",
+      "--no-cache"
+    ],
+    "created_at": "2026-10-14T05:52:00.187595+00:00",
+    "generator": "calibrex check",
+    "generator_version": "0.5.1",
+    "git_commit": "1c87031",
+    "input_digest_scope": "metadata.yaml in full; each storage file by name, size and first 64 MiB",
+    "input_sha256": "6b1fee40603789d884455e276481758451ea4fc3fc47820035f2bbc5ec344785",
+    "notes": [
+      "full run: each wired pair's native estimator was run and the candidate judged against it (tolerance = max(sigma_k * std, floor); pass within 1x, fail beyond 2x)",
+      "1 bag topic(s) without a sensor role are not listed"
+    ]
+  },
+  "rotation_attribution": {
+    "alpha": 0.01,
+    "assumptions": [
+      "first order: each pair reads R_parent_child w (rotation) and R_parent_child u (translation) for a child frame turned by w and moved by u, -w and t_parent_child x w - u for a parent frame",
+      "the pairs' errors are independent; pairs that share an input make the tests optimistic",
+      "a bias shared by every pair through one frame (one estimator type) reads as that frame turned or moved",
+      "an axis std is used at least at the verdicts' rotation or translation floor over sigma_k",
+      "a direction of a frame's turn and shift that the pairs constrain worse than the floors (std above them) is not fitted; an own axis mostly along such directions is undetermined",
+      "informational: no verdict changes"
+    ],
+    "groups": [
+      {
+        "candidates": [],
+        "frame": "alphasense/cam3/image_raw",
+        "frames": [
+          "alphasense/cam0/image_raw",
+          "alphasense/cam1/image_raw",
+          "alphasense/cam3/image_raw",
+          "alphasense/cam4/image_raw"
+        ],
+        "hypotheses": [
+          {
+            "chi2": 0.46024418625579516,
+            "dof": 6,
+            "frame": "alphasense/cam3/image_raw",
+            "p_value": 0.9982891778221614,
+            "pairs": [
+              "camera-camera:alphasense/cam0/image_raw>alphasense/cam3/image_raw",
+              "camera-camera:alphasense/cam1/image_raw>alphasense/cam3/image_raw"
+            ],
+            "rotation_deg": [
+              0.08012431042317002,
+              1.1788110198224975,
+              -0.03814360837047928
+            ],
+            "std_deg": [
+              0.11787993841037661,
+              0.18785706087231543,
+              0.16665020005960882
+            ]
+          },
+          {
+            "chi2": 19.434139631421967,
+            "dof": 6,
+            "frame": "alphasense/cam0/image_raw",
+            "p_value": 0.0034899337215409986,
+            "pairs": [
+              "camera-camera:alphasense/cam0/image_raw>alphasense/cam1/image_raw",
+              "camera-camera:alphasense/cam0/image_raw>alphasense/cam3/image_raw"
+            ],
+            "rotation_deg": [
+              -0.054637300205899735,
+              -0.5654601273999542,
+              0.04376705039702546
+            ],
+            "std_deg": [
+              0.16666666666666666,
+              0.12467269396335749,
+              0.11785113019775792
+            ]
+          },
+          {
+            "chi2": 39.879337709489526,
+            "dof": 6,
+            "frame": "alphasense/cam1/image_raw",
+            "p_value": 4.810728176284551e-07,
+            "pairs": [
+              "camera-camera:alphasense/cam0/image_raw>alphasense/cam1/image_raw",
+              "camera-camera:alphasense/cam1/image_raw>alphasense/cam3/image_raw",
+              "camera-camera:alphasense/cam1/image_raw>alphasense/cam4/image_raw"
+            ],
+            "rotation_deg": [
+              0.03412685719527786,
+              0.0823056537186948,
+              0.0041000956437487
+            ],
+            "std_deg": [
+              0.09622504486493763,
+              0.1666666666666667,
+              0.09622504486493763
+            ]
+          },
+          {
+            "chi2": 40.210154589195675,
+            "dof": 7,
+            "frame": "alphasense/cam4/image_raw",
+            "p_value": 1.1474119737373087e-06,
+            "pairs": [
+              "camera-camera:alphasense/cam1/image_raw>alphasense/cam4/image_raw"
+            ],
+            "rotation_deg": [
+              0.033590839188729904,
+              null,
+              -0.0009288566565687038
+            ],
+            "std_deg": [
+              0.1666654191690158,
+              null,
+              0.16666187594111173
+            ]
+          }
+        ],
+        "null_chi2": 40.25080659427774,
+        "null_p_value": 6.843261747110728e-06,
+        "observations": 9,
+        "pairs": [
+          "camera-camera:alphasense/cam0/image_raw>alphasense/cam1/image_raw",
+          "camera-camera:alphasense/cam0/image_raw>alphasense/cam3/image_raw",
+          "camera-camera:alphasense/cam1/image_raw>alphasense/cam3/image_raw",
+          "camera-camera:alphasense/cam1/image_raw>alphasense/cam4/image_raw"
+        ],
+        "status": "attributed",
+        "summary": "alphasense/cam3/image_raw alone explains the pair errors: its candidate is turned by roll +0.08 \u00b1 0.12, pitch +1.18 \u00b1 0.19, yaw -0.04 \u00b1 0.17 deg about its own axes (chi2 0.5 on 6 dof, p 1.00; nothing off: chi2 40.3 on 9 axes)",
+        "translation_observations": 0
+      }
+    ],
+    "sigma_floor_deg": 0.16666666666666666,
+    "sigma_floor_m": 0.006666666666666667
+  },
+  "schema_version": "slac.calibration_check/v0.1",
+  "summary": {
+    "pair_count": 33,
+    "partial_pairs": 8,
+    "runnable_count": 9,
+    "skipped_by_reason": {
+      "missing_topic": 5,
+      "no_shared_view": 1,
+      "no_vehicle_frame": 2,
+      "not_selected": 16
+    },
+    "status_counts": {
+      "fail": 1,
+      "inconclusive": 5,
+      "pass": 3,
+      "skipped": 24
+    }
+  },
+  "topics": [
+    {
+      "frame_source": "source_topic_hint",
+      "header_frame_id": "cam0_sensor_frame",
+      "mapped_frame": "alphasense/cam0/image_raw",
+      "message_count": 2429,
+      "message_type": "sensor_msgs/msg/Image",
+      "notes": [],
+      "role": "camera",
+      "topic": "/alphasense/cam0/image_raw"
+    },
+    {
+      "frame_source": "source_topic_hint",
+      "header_frame_id": "cam1_sensor_frame",
+      "mapped_frame": "alphasense/cam1/image_raw",
+      "message_count": 2428,
+      "message_type": "sensor_msgs/msg/Image",
+      "notes": [],
+      "role": "camera",
+      "topic": "/alphasense/cam1/image_raw"
+    },
+    {
+      "frame_source": "source_topic_hint",
+      "header_frame_id": "cam2_sensor_frame",
+      "mapped_frame": "alphasense/cam2/image_raw",
+      "message_count": 2430,
+      "message_type": "sensor_msgs/msg/Image",
+      "notes": [],
+      "role": "camera",
+      "topic": "/alphasense/cam2/image_raw"
+    },
+    {
+      "frame_source": "source_topic_hint",
+      "header_frame_id": "cam3_sensor_frame",
+      "mapped_frame": "alphasense/cam3/image_raw",
+      "message_count": 2430,
+      "message_type": "sensor_msgs/msg/Image",
+      "notes": [],
+      "role": "camera",
+      "topic": "/alphasense/cam3/image_raw"
+    },
+    {
+      "frame_source": "source_topic_hint",
+      "header_frame_id": "cam4_sensor_frame",
+      "mapped_frame": "alphasense/cam4/image_raw",
+      "message_count": 2430,
+      "message_type": "sensor_msgs/msg/Image",
+      "notes": [],
+      "role": "camera",
+      "topic": "/alphasense/cam4/image_raw"
+    },
+    {
+      "frame_source": "role_default",
+      "header_frame_id": "imu_sensor_frame",
+      "mapped_frame": "imu",
+      "message_count": 24229,
+      "message_type": "sensor_msgs/msg/Imu",
+      "notes": [],
+      "role": "imu",
+      "topic": "/alphasense/imu"
+    },
+    {
+      "frame_source": "header",
+      "header_frame_id": "PandarXT-32",
+      "mapped_frame": "PandarXT-32",
+      "message_count": 608,
+      "message_type": "sensor_msgs/msg/PointCloud2",
+      "notes": [],
+      "role": "lidar",
+      "topic": "/hesai/pandar"
+    }
+  ]
+}

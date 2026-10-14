@@ -1,0 +1,142 @@
+check: 10 pairs to run
+check: running camera-camera (alphasense/cam0/image_raw / alphasense/cam1/image_raw) [pair 1/10]
+check:   camera-camera: /alphasense/cam0/image_raw + /alphasense/cam1/image_raw [0s elapsed]
+check: camera-camera (alphasense/cam0/image_raw / alphasense/cam1/image_raw) -> pass (53 s) [pair 1/10 done]
+check: running camera-camera (alphasense/cam0/image_raw / alphasense/cam2/image_raw) [pair 2/10]
+check:   camera-camera: /alphasense/cam0/image_raw + /alphasense/cam2/image_raw [0s elapsed]
+check: camera-camera (alphasense/cam0/image_raw / alphasense/cam2/image_raw) -> inconclusive (55 s) [pair 2/10 done]
+check: running camera-camera (alphasense/cam0/image_raw / alphasense/cam3/image_raw) [pair 3/10]
+check:   camera-camera: /alphasense/cam0/image_raw + /alphasense/cam3/image_raw [0s elapsed]
+check: camera-camera (alphasense/cam0/image_raw / alphasense/cam3/image_raw) -> fail (42 s) [pair 3/10 done]
+check: running camera-camera (alphasense/cam0/image_raw / alphasense/cam4/image_raw) [pair 4/10]
+check:   camera-camera: /alphasense/cam0/image_raw + /alphasense/cam4/image_raw [0s elapsed]
+check: camera-camera (alphasense/cam0/image_raw / alphasense/cam4/image_raw) -> pass (41 s) [pair 4/10 done]
+check: running camera-camera (alphasense/cam1/image_raw / alphasense/cam2/image_raw) [pair 5/10]
+check:   camera-camera: /alphasense/cam1/image_raw + /alphasense/cam2/image_raw [0s elapsed]
+check: camera-camera (alphasense/cam1/image_raw / alphasense/cam2/image_raw) -> inconclusive (45 s) [pair 5/10 done]
+check: running camera-camera (alphasense/cam1/image_raw / alphasense/cam3/image_raw) [pair 6/10]
+check:   camera-camera: /alphasense/cam1/image_raw + /alphasense/cam3/image_raw [0s elapsed]
+check: camera-camera (alphasense/cam1/image_raw / alphasense/cam3/image_raw) -> pass (45 s) [pair 6/10 done]
+check: running camera-camera (alphasense/cam1/image_raw / alphasense/cam4/image_raw) [pair 7/10]
+check:   camera-camera: /alphasense/cam1/image_raw + /alphasense/cam4/image_raw [0s elapsed]
+check: camera-camera (alphasense/cam1/image_raw / alphasense/cam4/image_raw) -> pass (36 s) [pair 7/10 done]
+check: running camera-camera (alphasense/cam2/image_raw / alphasense/cam3/image_raw) [pair 8/10]
+check:   camera-camera: /alphasense/cam2/image_raw + /alphasense/cam3/image_raw [0s elapsed]
+check: camera-camera (alphasense/cam2/image_raw / alphasense/cam3/image_raw) -> inconclusive (23 s) [pair 8/10 done]
+check: running camera-camera (alphasense/cam2/image_raw / alphasense/cam4/image_raw) [pair 9/10]
+check:   camera-camera: /alphasense/cam2/image_raw + /alphasense/cam4/image_raw [0s elapsed]
+check: camera-camera (alphasense/cam2/image_raw / alphasense/cam4/image_raw) -> inconclusive (24 s) [pair 9/10 done]
+check: running camera-camera (alphasense/cam3/image_raw / alphasense/cam4/image_raw) [pair 10/10]
+check:   camera-camera: /alphasense/cam3/image_raw + /alphasense/cam4/image_raw [0s elapsed]
+check: camera-camera (alphasense/cam3/image_raw / alphasense/cam4/image_raw) skipped (no_shared_view): under the candidate the cameras share 0% of the first one's view (at 10 m), less than 5%: not a stereo pair
+calibrex check (run)
+bag: /home/user/sota_eval/work_cc/exp14_head.bag (8 topics)
+
+candidate sources:
+  kalibr_camchain: /home/user/sota_eval/runs_cc/exp14/inject_cam3_y+1_calibration/calib_3_cam0-1-camchain-imucam.yaml (2 frames) sha256=344ab530f12e
+    note: Kalibr T_cam_imu inverted to T_imu_cam; the IMU frame is named 'imu' and camera frames take their rostopic as name
+  kalibr_camchain: /home/user/sota_eval/runs_cc/exp14/inject_cam3_y+1_calibration/calib_3_cam2-camchain-imucam.yaml (1 frames) sha256=83b1dfdc45ee
+    note: Kalibr T_cam_imu inverted to T_imu_cam; the IMU frame is named 'imu' and camera frames take their rostopic as name
+  kalibr_camchain: /home/user/sota_eval/runs_cc/exp14/inject_cam3_y+1_calibration/calib_3_cam3-camchain-imucam.yaml (1 frames) sha256=b20007fd1fb5
+    note: Kalibr T_cam_imu inverted to T_imu_cam; the IMU frame is named 'imu' and camera frames take their rostopic as name
+  kalibr_camchain: /home/user/sota_eval/runs_cc/exp14/inject_cam3_y+1_calibration/calib_3_cam4-camchain-imucam.yaml (1 frames) sha256=90bf3344be9b
+    note: Kalibr T_cam_imu inverted to T_imu_cam; the IMU frame is named 'imu' and camera frames take their rostopic as name
+  hilti_sensors: /home/user/sota_eval/runs_cc/exp14/inject_cam3_y+1_calibration/lidar_calibration.yaml (3 frames) sha256=ea5127989317
+    note: extrinsics are read as T_parent_sensor with quaternion order x, y, z, w
+frame tree: 9 frames, 1 root(s) [base_link]
+
+topics:
+topic                       role    header frame       tree frame
+--------------------------  ------  -----------------  ---------------------------------------------
+/alphasense/cam0/image_raw  camera  cam0_sensor_frame  alphasense/cam0/image_raw (source_topic_hint)
+/alphasense/cam1/image_raw  camera  cam1_sensor_frame  alphasense/cam1/image_raw (source_topic_hint)
+/alphasense/cam2/image_raw  camera  cam2_sensor_frame  alphasense/cam2/image_raw (source_topic_hint)
+/alphasense/cam3/image_raw  camera  cam3_sensor_frame  alphasense/cam3/image_raw (source_topic_hint)
+/alphasense/cam4/image_raw  camera  cam4_sensor_frame  alphasense/cam4/image_raw (source_topic_hint)
+/alphasense/imu             imu     imu_sensor_frame   imu (role_default)
+/hesai/pandar               lidar   PandarXT-32        PandarXT-32 (header)
+
+pairs (no --vehicle-frame: vehicle pairs are skipped):
+pair                  sensors                                                verdict                           reason            |delta|/tolerance                                              unchecked         detectable
+--------------------  -----------------------------------------------------  --------------------------------  ----------------  -------------------------------------------------------------  ----------------  ----------------------------------------------
+lidar-lidar           PandarXT-32                                            skipped                           missing_topic
+camera-camera         alphasense/cam0/image_raw / alphasense/cam1/image_raw  pass                                                roll 0.121/0.5 deg; pitch 0.00316/0.5 deg; yaw 0.0277/0.5 deg  -                 roll 0.621 deg; pitch 0.503 deg; yaw 0.528 deg
+camera-camera         alphasense/cam0/image_raw / alphasense/cam2/image_raw  inconclusive                      estimator_failed  -                                                              roll, pitch, yaw  -
+camera-camera         alphasense/cam0/image_raw / alphasense/cam3/image_raw  fail (partial: roll, pitch only)                    roll 0.0383/0.5 deg; pitch 1.27/0.528 deg [fail]               yaw               roll 0.538 deg; pitch 1.79 deg
+camera-camera         alphasense/cam0/image_raw / alphasense/cam4/image_raw  pass (partial: roll only)                           roll 0.039/0.5 deg                                             pitch, yaw        roll 0.539 deg
+camera-camera         alphasense/cam1/image_raw / alphasense/cam2/image_raw  inconclusive                      estimator_failed  -                                                              roll, pitch, yaw  -
+camera-camera         alphasense/cam1/image_raw / alphasense/cam3/image_raw  pass (partial: roll, yaw only)                      roll 0.162/0.5 deg; yaw 0.139/0.5 deg                          pitch             roll 0.662 deg; yaw 0.639 deg
+camera-camera         alphasense/cam1/image_raw / alphasense/cam4/image_raw  pass (partial: pitch only)                          pitch 0.193/0.707 deg                                          roll, yaw         pitch 0.9 deg
+camera-camera         alphasense/cam2/image_raw / alphasense/cam3/image_raw  inconclusive                      estimator_failed  -                                                              roll, pitch, yaw  -
+camera-camera         alphasense/cam2/image_raw / alphasense/cam4/image_raw  inconclusive                      estimator_failed  -                                                              roll, pitch, yaw  -
+camera-camera         alphasense/cam3/image_raw / alphasense/cam4/image_raw  skipped                           no_shared_view
+gnss-lidar            -                                                      skipped                           missing_topic
+gnss-imu              -                                                      skipped                           missing_topic
+lidar-vehicle         -                                                      skipped                           no_vehicle_frame
+imu-vehicle           -                                                      skipped                           no_vehicle_frame
+ins-lidar             -                                                      skipped                           missing_topic
+lidar-wheel_odometry  -                                                      skipped                           missing_topic
+  not selected: imu-lidar, camera-imu, camera-focal, camera-lidar
+  camera-camera: time offset 0.19 ms (estimated; reported, not judged)
+  camera-camera: the estimator did not produce an estimate: 1618 of 2763 matched patches constrain rows; observable: none
+  camera-camera: time offset 0.42 ms (estimated; reported, not judged)
+  camera-camera: unchecked roll: jackknife std 0.249 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.032 deg (response 0.16, outside 0.5 to 1.5)
+  camera-camera: unchecked pitch: jackknife std 0.116 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.078 deg (response 0.39, outside 0.5 to 1.5)
+  camera-camera: unchecked yaw: jackknife std 0.191 deg exceeds 0.1 deg
+  camera-camera: time offset 0.19 ms (estimated; reported, not judged)
+  camera-camera: unchecked yaw: turning the candidate 0.2 deg moved the estimate by +0.081 deg (response 0.41, outside 0.5 to 1.5)
+  camera-camera: time offset -0.33 ms (estimated; reported, not judged)
+  camera-camera: unchecked pitch: jackknife std 0.249 deg exceeds 0.1 deg
+  camera-camera: unchecked yaw: jackknife std 0.145 deg exceeds 0.1 deg
+  camera-camera: the estimator did not produce an estimate: 1848 of 2732 matched patches constrain rows; observable: none
+  camera-camera: time offset 0.19 ms (estimated; reported, not judged)
+  camera-camera: unchecked roll: jackknife std 0.231 deg exceeds 0.1 deg
+  camera-camera: unchecked pitch: jackknife std 0.190 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by -0.295 deg (response -1.48, outside 0.5 to 1.5)
+  camera-camera: unchecked yaw: jackknife std 0.222 deg exceeds 0.1 deg
+  camera-camera: time offset 1.43 ms (estimated; reported, not judged)
+  camera-camera: unchecked pitch: jackknife std 0.248 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.352 deg (response 1.76, outside 0.5 to 1.5)
+  camera-camera: time offset 1.19 ms (estimated; reported, not judged)
+  camera-camera: unchecked roll: jackknife std 0.199 deg exceeds 0.1 deg
+  camera-camera: unchecked yaw: jackknife std 0.196 deg exceeds 0.1 deg
+  camera-camera: the estimator did not produce an estimate: 175 matched patches constrain rows, fewer than 500
+  camera-camera: unchecked roll: 175 matched patches constrain rows, fewer than 500
+  camera-camera: unchecked pitch: 175 matched patches constrain rows, fewer than 500
+  camera-camera: unchecked yaw: 175 matched patches constrain rows, fewer than 500
+  camera-camera: the estimator did not produce an estimate: 110 matched patches constrain rows, fewer than 500
+  camera-camera: unchecked roll: 110 matched patches constrain rows, fewer than 500
+  camera-camera: unchecked pitch: 110 matched patches constrain rows, fewer than 500
+  camera-camera: unchecked yaw: 110 matched patches constrain rows, fewer than 500
+
+closure of the estimates (independent estimates against each other):
+  camera-camera: unusable (the estimator did not produce an estimate: 1618 of 2763 matched patches constrain rows; observable: none); not in any loop
+  camera-camera: unusable (the estimator did not produce an estimate: 1848 of 2732 matched patches constrain rows; observable: none); not in any loop
+  camera-camera: unusable (the estimator did not produce an estimate: 175 matched patches constrain rows, fewer than 500); not in any loop
+  camera-camera: unusable (the estimator did not produce an estimate: 110 matched patches constrain rows, fewer than 500); not in any loop
+  cycle camera-camera + camera-camera^-1 + camera-camera^-1: pass (roll -0.0021/0.5 deg)
+    unchecked pitch: camera-camera does not observe its pitch, which enters this axis with weight 1.00
+    unchecked yaw: camera-camera does not observe its yaw, which enters this axis with weight 1.00
+    translation not closed: camera-camera do(es) not estimate it
+  cycle camera-camera + camera-camera^-1 + camera-camera: inconclusive
+    unchecked roll: camera-camera does not observe its roll, which enters this axis with weight 1.00
+    unchecked pitch: camera-camera does not observe its pitch, which enters this axis with weight 1.00
+    unchecked yaw: camera-camera does not observe its yaw, which enters this axis with weight 1.00
+    translation not closed: camera-camera do(es) not estimate it
+
+which frame's rotation the pair errors point to (informational):
+  alphasense/cam0/image_raw, alphasense/cam1/image_raw, alphasense/cam3/image_raw, alphasense/cam4/image_raw: attributed
+    alphasense/cam3/image_raw alone explains the pair errors: its candidate is turned by roll +0.15 ± 0.17, pitch +1.26 ± 0.18, yaw +0.11 ± 0.12 deg about its own axes (chi2 1.5 on 6 dof, p 0.96; nothing off: chi2 54.6 on 9 axes)
+
+overall verdict: fail
+WARNING: 8 pair(s) have partial coverage: unchecked axes were not judged, so a pass covers only the judged axes
+
+summary: 33 pair record(s), 9 runnable (fail=1, inconclusive=4, pass=4, skipped=24)
+
+next steps:
+  - lidar-lidar: needs a second distinct lidar sensor (found one); expected another sensor_msgs/msg/PointCloud2 topic with its own frame_id
+  - the two cameras do not look at the same scene under the candidate, so they are not a stereo pair: nothing to do unless the candidate's camera rotation is wrong
+  - gnss-lidar: the bag lacks a topic for this pair; expected gnss: sensor_msgs/msg/NavSatFix
+  - gnss-imu: the bag lacks a topic for this pair; expected gnss: sensor_msgs/msg/NavSatFix
+  - vehicle pairs are opt-in for ground vehicles: add --vehicle-frame base_link (use your vehicle frame name)
+  - ins-lidar: the bag lacks a topic for this pair; expected ins: nav_msgs/msg/Odometry classified as ins (--topic-kind TOPIC=ins)
+  - lidar-wheel_odometry: the bag lacks a topic for this pair; expected wheel: nav_msgs/msg/Odometry or TwistStamped classified as wheel (--topic-kind TOPIC=wheel)
+artifact: /home/user/sota_eval/runs_cc/exp14/inject_cam3_y+1.json

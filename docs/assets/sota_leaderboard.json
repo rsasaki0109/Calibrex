@@ -5,6 +5,34 @@
         "hilti2022"
       ],
       "achieved_independent_rig_count": 1,
+      "audit_id": "hilti-camera-camera-v1-audit",
+      "audit_path": "docs/assets/hilti2022_camera_sota/camera_camera/hilti_camera_camera_sota_audit.yaml",
+      "audit_schema_version": "slac.sota_audit_result/v0.1",
+      "audit_sha256": "c41449cc819de121d888861472acbc42a2842696d47a96aeb33225263896da13",
+      "claim_text": "On twelve Hilti 2022 recordings not used in development, Calibrex's targetless camera-camera check reproduces Kalibr's rotation of five camera pairs within 0.75 deg on every judged axis, scores at least 70 percent of them, flags a 1 deg turn of a forward or a side camera in at least 90 percent of evaluable trials, and names the turned camera in at least half.",
+      "pair_id": "camera-camera",
+      "protocol_id": "hilti-camera-camera-v1",
+      "requirement_counts": {
+        "achieved": 4,
+        "contradicted": 2
+      },
+      "scope": {
+        "category": "targetless_camera_camera",
+        "modalities": [
+          "camera",
+          "camera"
+        ],
+        "quantities": [
+          "rotation"
+        ]
+      },
+      "verdict": "refuted"
+    },
+    {
+      "achieved_dataset_families": [
+        "hilti2022"
+      ],
+      "achieved_independent_rig_count": 1,
       "audit_id": "hilti-camera-imu-v1",
       "audit_path": "docs/assets/hilti_camera_imu_sota_audit.yaml",
       "audit_schema_version": "slac.sota_audit_result/v0.1",
@@ -15,6 +43,35 @@
       "requirement_counts": {
         "achieved": 6,
         "contradicted": 1
+      },
+      "scope": {
+        "category": "targetless_camera_imu",
+        "modalities": [
+          "camera",
+          "imu"
+        ],
+        "quantities": [
+          "rotation",
+          "time_offset"
+        ]
+      },
+      "verdict": "refuted"
+    },
+    {
+      "achieved_dataset_families": [
+        "hilti2022"
+      ],
+      "achieved_independent_rig_count": 1,
+      "audit_id": "hilti-camera-imu-v2-audit",
+      "audit_path": "docs/assets/hilti2022_camera_sota/camera_imu_v2/hilti_camera_imu_v2_sota_audit.yaml",
+      "audit_schema_version": "slac.sota_audit_result/v0.1",
+      "audit_sha256": "02001c9272ec3fb616b4c51d75ade87515e043dc519d34183aa997637c461ab2",
+      "claim_text": "On five Hilti 2022 recordings of at least 200 s not used to develop the method, Calibrex's targetless camera-IMU rotation for the two forward cameras agrees with Kalibr within 1.0 deg and 0.5 ms, is constrained on all three axes, reproduces across recordings within 0.75 deg, and reproduces Kalibr's cam0-to-cam1 rotation within 0.5 deg.",
+      "pair_id": "camera-imu",
+      "protocol_id": "hilti-camera-imu-v2",
+      "requirement_counts": {
+        "achieved": 5,
+        "contradicted": 2
       },
       "scope": {
         "category": "targetless_camera_imu",
@@ -183,8 +240,16 @@
     },
     {
       "incomplete_claims": 0,
-      "pair_id": "camera-imu",
+      "pair_id": "camera-camera",
       "refuted_claims": 1,
+      "standing": "refuted",
+      "supported_claims": 0,
+      "target": true
+    },
+    {
+      "incomplete_claims": 0,
+      "pair_id": "camera-imu",
+      "refuted_claims": 2,
       "standing": "refuted",
       "supported_claims": 0,
       "target": true
@@ -259,12 +324,14 @@
       "calibrex",
       "sota",
       "leaderboard",
+      "docs/assets/hilti_camera_imu_sota_audit.yaml",
       "docs/assets/mid360_imu_lidar_extrinsic_sota_audit.yaml",
       "docs/assets/mid360_imu_lidar_extrinsic_v2_sota_audit.yaml",
       "docs/assets/mid360_imu_lidar_sota_audit.yaml",
-      "docs/assets/kitti_lidar_vehicle_sota_audit.yaml",
       "docs/assets/ntu_viral_lidar_lidar_sota_audit.yaml",
-      "docs/assets/hilti_camera_imu_sota_audit.yaml",
+      "docs/assets/kitti_lidar_vehicle_sota_audit.yaml",
+      "docs/assets/hilti2022_camera_sota/camera_camera/hilti_camera_camera_sota_audit.yaml",
+      "docs/assets/hilti2022_camera_sota/camera_imu_v2/hilti_camera_imu_v2_sota_audit.yaml",
       "--output",
       "docs/assets/sota_leaderboard.json",
       "--target-pair",
@@ -278,6 +345,8 @@
       "--target-pair",
       "camera",
       "--target-pair",
+      "camera-camera",
+      "--target-pair",
       "gnss-imu",
       "--target-pair",
       "ins-lidar",
@@ -288,10 +357,10 @@
       "--target-pair",
       "lidar-wheel_odometry"
     ],
-    "created_at": "2026-10-02T09:37:55.600093+00:00",
+    "created_at": "2026-10-14T08:52:04.869849+00:00",
     "generator": "calibrex.evaluation.sota_leaderboard",
-    "generator_version": "0.5.0",
-    "git_commit": "c4d51d2"
+    "generator_version": "0.5.1",
+    "git_commit": "194dcef"
   },
   "schema_version": "slac.sota_leaderboard/v0.1"
 }

@@ -2,6 +2,39 @@
 
 ## Unreleased
 
+- **Two pre-registered Hilti 2022 camera audits, both refuted.**
+  - **How they ran.** `docs/benchmarks/hilti_camera_sota_preregistration.yaml` fixed
+    both claims, their recordings and the recordings' SHA-256 before any estimator read
+    them. The recordings were chosen from bag headers and indexes only. The code was
+    frozen at `0482db6`. `tools/hilti_camera_sota_evaluate.py` downloaded, ran and
+    deleted one recording at a time.
+  - **`camera-camera`, a new target pair: refuted, 4 of 6 gates.** Twelve recordings,
+    the first 5 GB of each. Every scored unit is within 0.33 deg of Kalibr, and 47 of
+    60 units are scored. A 1 deg turn of cam3 or cam1 is detected in 16 of 23 trials
+    (gate 90 %) and named in 11 (gate 50 %).
+  - **Why it failed (post-hoc).**
+    - When the turned axis (pitch) was judged, it read `warn` or `fail`: 24 of 24.
+    - The misses are `unchecked` axes (28). In 27 of them the estimate still moved with
+      the turn.
+    - In 6, the turn itself raised the axis's jackknife std above the 0.1 deg bound.
+  - **`camera-imu` v2: refuted, 5 of 7 gates.** v1's claim, scorer and thresholds, on
+    five recordings of at least 200 s.
+    - Accuracy holds: 0.94 deg and 0.48 ms at worst.
+    - Yaw is not constrained on two units, of 260 and 321 s, so recording length does
+      not decide observability.
+    - cam0's estimates spread 0.81 deg across recordings (gate 0.75).
+  - **Leaderboard.** `camera-camera` is a new target pair, standing `refuted`.
+    `camera-imu` now has two refuted audits.
+  - **Tools.**
+    - Selection and download: `tools/hilti_bag_metadata.py`, `tools/hilti_download.py`.
+    - Runs: `tools/hilti_camera_sota_run.py`.
+    - Scoring and audits: `tools/score_hilti_camera_camera.py`,
+      `tools/build_hilti_camera_camera_audit.py`, `tools/build_hilti_camera_imu_v2_audit.py`.
+    - Post-hoc analysis: `tools/hilti_camera_camera_posthoc.py`.
+  - **Where.** Every run, manifest, score and audit is under
+    `docs/assets/hilti2022_camera_sota/`. The write-up is
+    `docs/benchmarks/hilti_camera_sota.md`.
+
 - **Hilti's common camera-IMU offset, split into a rig part and a motion part.**
   - **The question.** On `exp21`, attribution names the IMU: one 0.5 deg turn of its
     candidate explains every `camera-imu` error. Is that the rig, or the motion?

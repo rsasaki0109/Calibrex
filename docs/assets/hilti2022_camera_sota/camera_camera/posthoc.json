@@ -1,0 +1,3224 @@
+{
+  "pair_trials": [
+    {
+      "recording": "exp05",
+      "injection": "inject_cam3_y+1",
+      "pair": "cam0-cam3",
+      "turn_in_pair_deg": [
+        -0.012384543125788348,
+        0.9998695848470526,
+        0.010365152643484237
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "judged",
+        "status": "warn",
+        "candidate_error_deg": 1.339787863634289,
+        "tolerance_deg": 0.7596139107512783
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "turning the candidate 0.2 deg moved the estimate by +0.302 deg (response 1.51, outside 0.5 to 1.5)"
+      },
+      "injected_pair_verdict": "warn",
+      "injected_estimate": {
+        "candidate_error_deg": 1.339787863634289,
+        "jackknife_std_deg": 0.020975672635018386,
+        "jackknife_above_bound": false,
+        "control_response": 0.8185533304053441,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.164 deg",
+        "recentred_by_deg": 1.2430761924827183
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.24187343350430285,
+        "jackknife_std_deg": 0.015524366994815,
+        "jackknife_above_bound": false,
+        "control_response": 1.5114962066761124,
+        "control_failed": true,
+        "observable": false,
+        "reason": "turning the candidate 0.2 deg moved the estimate by +0.302 deg (response 1.51, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.24483065593116538
+      },
+      "estimate_shift_deg": 1.0979144301299861,
+      "shift_over_turn": 1.098057633484202
+    },
+    {
+      "recording": "exp05",
+      "injection": "inject_cam3_y+1",
+      "pair": "cam1-cam3",
+      "turn_in_pair_deg": [
+        -0.007739237894205916,
+        0.9999006033515682,
+        0.011785058930680381
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "judged",
+        "status": "fail",
+        "candidate_error_deg": 1.3928900317174748,
+        "tolerance_deg": 0.5
+      },
+      "baseline": {
+        "state": "judged",
+        "status": "pass",
+        "candidate_error_deg": 0.27242538304435016,
+        "tolerance_deg": 0.5
+      },
+      "injected_pair_verdict": "fail",
+      "injected_estimate": {
+        "candidate_error_deg": 1.3928900317174748,
+        "jackknife_std_deg": 0.04141648485963914,
+        "jackknife_above_bound": false,
+        "control_response": 0.5527213458170418,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.111 deg",
+        "recentred_by_deg": 1.3272504342394855
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.27242538304435016,
+        "jackknife_std_deg": 0.0654998192143957,
+        "jackknife_above_bound": false,
+        "control_response": 0.9627809242196669,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.193 deg",
+        "recentred_by_deg": 0.32469999678213907
+      },
+      "estimate_shift_deg": 1.1204646486731247,
+      "shift_over_turn": 1.120576030174837
+    },
+    {
+      "recording": "exp05",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam0-cam1",
+      "turn_in_pair_deg": [
+        -0.0047055529449624815,
+        0.9999878643586428,
+        -0.001459077421773395
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "judged",
+        "status": "fail",
+        "candidate_error_deg": 1.0126779551868217,
+        "tolerance_deg": 0.5
+      },
+      "baseline": {
+        "state": "judged",
+        "status": "pass",
+        "candidate_error_deg": 0.08732911229173977,
+        "tolerance_deg": 0.5
+      },
+      "injected_pair_verdict": "fail",
+      "injected_estimate": {
+        "candidate_error_deg": 1.0126779551868217,
+        "jackknife_std_deg": 0.004882095561242539,
+        "jackknife_above_bound": false,
+        "control_response": 0.8975657876868481,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.180 deg",
+        "recentred_by_deg": 1.018545604692239
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.08732911229173977,
+        "jackknife_std_deg": 0.024473884227555212,
+        "jackknife_above_bound": false,
+        "control_response": 1.0241675856968917,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.205 deg",
+        "recentred_by_deg": 0.0
+      },
+      "estimate_shift_deg": 0.9253488428950819,
+      "shift_over_turn": 0.9253600727330509
+    },
+    {
+      "recording": "exp05",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam1-cam3",
+      "turn_in_pair_deg": [
+        -3.1557466518371765e-15,
+        -1.0000000000000002,
+        -1.3169651381682706e-15
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.214 deg exceeds 0.1 deg"
+      },
+      "baseline": {
+        "state": "judged",
+        "status": "pass",
+        "candidate_error_deg": 0.27242538304435016,
+        "tolerance_deg": 0.5
+      },
+      "injected_pair_verdict": "pass",
+      "injected_estimate": {
+        "candidate_error_deg": -0.7678412699400609,
+        "jackknife_std_deg": 0.2135333989652173,
+        "jackknife_above_bound": true,
+        "control_response": 1.1501122984570633,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.214 deg exceeds 0.1 deg",
+        "recentred_by_deg": -0.7442018647347836
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.27242538304435016,
+        "jackknife_std_deg": 0.0654998192143957,
+        "jackknife_above_bound": false,
+        "control_response": 0.9627809242196669,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.193 deg",
+        "recentred_by_deg": 0.32469999678213907
+      },
+      "estimate_shift_deg": -1.040266652984411,
+      "shift_over_turn": 1.0402666529844107
+    },
+    {
+      "recording": "exp05",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam1-cam4",
+      "turn_in_pair_deg": [
+        -3.627866229671085e-15,
+        -0.9999999999999871,
+        -1.3915103346683613e-14
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "jackknife std 0.720 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.084 deg (response 0.42, outside 0.5 to 1.5)"
+      },
+      "baseline": {
+        "state": "judged",
+        "status": "pass",
+        "candidate_error_deg": -0.07544772709513142,
+        "tolerance_deg": 0.7048381225300802
+      },
+      "injected_pair_verdict": "inconclusive",
+      "injected_estimate": {
+        "candidate_error_deg": -0.10779488183702243,
+        "jackknife_std_deg": 0.7204486319187914,
+        "jackknife_above_bound": true,
+        "control_response": 0.4209666787422542,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.720 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.084 deg (response 0.42, outside 0.5 to 1.5)",
+        "recentred_by_deg": -0.4754756416283234
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": -0.07544772709513142,
+        "jackknife_std_deg": 0.01874980529223275,
+        "jackknife_above_bound": false,
+        "control_response": 0.5643705945404515,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.113 deg",
+        "recentred_by_deg": 0.0
+      },
+      "estimate_shift_deg": -0.03234715474189101,
+      "shift_over_turn": 0.032347154741891426
+    },
+    {
+      "recording": "exp06",
+      "injection": "inject_cam3_y+1",
+      "pair": "cam0-cam3",
+      "turn_in_pair_deg": [
+        -0.012384543125788348,
+        0.9998695848470526,
+        0.010365152643484237
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "judged",
+        "status": "fail",
+        "candidate_error_deg": 1.1789369604245012,
+        "tolerance_deg": 0.5635705442704557
+      },
+      "baseline": {
+        "state": "judged",
+        "status": "pass",
+        "candidate_error_deg": 0.21075304256471378,
+        "tolerance_deg": 0.5
+      },
+      "injected_pair_verdict": "fail",
+      "injected_estimate": {
+        "candidate_error_deg": 1.1789369604245012,
+        "jackknife_std_deg": 0.0853612258292394,
+        "jackknife_above_bound": false,
+        "control_response": 0.5344633738596674,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.107 deg",
+        "recentred_by_deg": 1.117572324526478
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.21075304256471378,
+        "jackknife_std_deg": 0.08596308578878277,
+        "jackknife_above_bound": false,
+        "control_response": 1.0161704770932014,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.203 deg",
+        "recentred_by_deg": 0.2798489642427122
+      },
+      "estimate_shift_deg": 0.9681839178597875,
+      "shift_over_turn": 0.9683102001826449
+    },
+    {
+      "recording": "exp06",
+      "injection": "inject_cam3_y+1",
+      "pair": "cam1-cam3",
+      "turn_in_pair_deg": [
+        -0.007739237894205916,
+        0.9999006033515682,
+        0.011785058930680381
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "turning the candidate 0.2 deg moved the estimate by +0.058 deg (response 0.29, outside 0.5 to 1.5)"
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.174 deg exceeds 0.1 deg"
+      },
+      "injected_pair_verdict": "pass",
+      "injected_estimate": {
+        "candidate_error_deg": 1.3814185043065732,
+        "jackknife_std_deg": 0.01692372656848712,
+        "jackknife_above_bound": false,
+        "control_response": 0.28817013478172376,
+        "control_failed": true,
+        "observable": false,
+        "reason": "turning the candidate 0.2 deg moved the estimate by +0.058 deg (response 0.29, outside 0.5 to 1.5)",
+        "recentred_by_deg": 1.527327955199419
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.3029420371183034,
+        "jackknife_std_deg": 0.17357689350294567,
+        "jackknife_above_bound": true,
+        "control_response": 1.0515577098666455,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.174 deg exceeds 0.1 deg",
+        "recentred_by_deg": 0.46594467065694206
+      },
+      "estimate_shift_deg": 1.0784764671882698,
+      "shift_over_turn": 1.0785836747905972
+    },
+    {
+      "recording": "exp06",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam0-cam1",
+      "turn_in_pair_deg": [
+        -0.0047055529449624815,
+        0.9999878643586428,
+        -0.001459077421773395
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "judged",
+        "status": "fail",
+        "candidate_error_deg": 1.0293864399984791,
+        "tolerance_deg": 0.5
+      },
+      "baseline": {
+        "state": "judged",
+        "status": "pass",
+        "candidate_error_deg": 0.08257747518463751,
+        "tolerance_deg": 0.5
+      },
+      "injected_pair_verdict": "fail",
+      "injected_estimate": {
+        "candidate_error_deg": 1.0293864399984791,
+        "jackknife_std_deg": 0.03302579039727868,
+        "jackknife_above_bound": false,
+        "control_response": 1.02777539872344,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.206 deg",
+        "recentred_by_deg": 1.0545864026741547
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.08257747518463751,
+        "jackknife_std_deg": 0.03295841553229565,
+        "jackknife_above_bound": false,
+        "control_response": 0.9615102392037759,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.192 deg",
+        "recentred_by_deg": 0.0
+      },
+      "estimate_shift_deg": 0.9468089648138416,
+      "shift_over_turn": 0.9468204550873142
+    },
+    {
+      "recording": "exp06",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam1-cam3",
+      "turn_in_pair_deg": [
+        -3.1557466518371765e-15,
+        -1.0000000000000002,
+        -1.3169651381682706e-15
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "jackknife std 0.104 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.058 deg (response 0.29, outside 0.5 to 1.5)"
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.174 deg exceeds 0.1 deg"
+      },
+      "injected_pair_verdict": "pass",
+      "injected_estimate": {
+        "candidate_error_deg": -0.72565072865529,
+        "jackknife_std_deg": 0.10397214614525077,
+        "jackknife_above_bound": true,
+        "control_response": 0.29085317049999426,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.104 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.058 deg (response 0.29, outside 0.5 to 1.5)",
+        "recentred_by_deg": -0.8154621111560338
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.3029420371183034,
+        "jackknife_std_deg": 0.17357689350294567,
+        "jackknife_above_bound": true,
+        "control_response": 1.0515577098666455,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.174 deg exceeds 0.1 deg",
+        "recentred_by_deg": 0.46594467065694206
+      },
+      "estimate_shift_deg": -1.0285927657735934,
+      "shift_over_turn": 1.0285927657735932
+    },
+    {
+      "recording": "exp06",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam1-cam4",
+      "turn_in_pair_deg": [
+        -3.627866229671085e-15,
+        -0.9999999999999871,
+        -1.3915103346683613e-14
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.303 deg exceeds 0.1 deg"
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.127 deg exceeds 0.1 deg"
+      },
+      "injected_pair_verdict": "pass",
+      "injected_estimate": {
+        "candidate_error_deg": -1.0144085284615603,
+        "jackknife_std_deg": 0.3026577467449703,
+        "jackknife_above_bound": true,
+        "control_response": 0.8538364249264476,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.303 deg exceeds 0.1 deg",
+        "recentred_by_deg": -0.9134767183074434
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": -0.19394532637758372,
+        "jackknife_std_deg": 0.12724350650243238,
+        "jackknife_above_bound": true,
+        "control_response": 1.3782041190645573,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.127 deg exceeds 0.1 deg",
+        "recentred_by_deg": -0.21582462965142815
+      },
+      "estimate_shift_deg": -0.8204632020839766,
+      "shift_over_turn": 0.8204632020839872
+    },
+    {
+      "recording": "exp09",
+      "injection": "inject_cam3_y+1",
+      "pair": "cam0-cam3",
+      "turn_in_pair_deg": [
+        -0.012384543125788348,
+        0.9998695848470526,
+        0.010365152643484237
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "jackknife std 0.121 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.070 deg (response 0.35, outside 0.5 to 1.5)"
+      },
+      "baseline": {
+        "state": "judged",
+        "status": "pass",
+        "candidate_error_deg": 0.2622199757841803,
+        "tolerance_deg": 0.7197444666865283
+      },
+      "injected_pair_verdict": "pass",
+      "injected_estimate": {
+        "candidate_error_deg": 1.3582054338585414,
+        "jackknife_std_deg": 0.12104871382537888,
+        "jackknife_above_bound": true,
+        "control_response": 0.35015725365512795,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.121 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.070 deg (response 0.35, outside 0.5 to 1.5)",
+        "recentred_by_deg": 1.2012868340294243
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.2622199757841803,
+        "jackknife_std_deg": 0.08012393668059842,
+        "jackknife_above_bound": false,
+        "control_response": 0.9385548555593043,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.188 deg",
+        "recentred_by_deg": 0.6468760707646862
+      },
+      "estimate_shift_deg": 1.095985458074361,
+      "shift_over_turn": 1.0961284098285788
+    },
+    {
+      "recording": "exp09",
+      "injection": "inject_cam3_y+1",
+      "pair": "cam1-cam3",
+      "turn_in_pair_deg": [
+        -0.007739237894205916,
+        0.9999006033515682,
+        0.011785058930680381
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "judged",
+        "status": "fail",
+        "candidate_error_deg": 1.1845571973401137,
+        "tolerance_deg": 0.5
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "jackknife std 0.221 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.392 deg (response 1.96, outside 0.5 to 1.5)"
+      },
+      "injected_pair_verdict": "fail",
+      "injected_estimate": {
+        "candidate_error_deg": 1.1845571973401137,
+        "jackknife_std_deg": 0.0996610237087907,
+        "jackknife_above_bound": false,
+        "control_response": 1.0589008527546264,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.212 deg",
+        "recentred_by_deg": 1.2901688091898489
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": -0.038784153036970005,
+        "jackknife_std_deg": 0.22077366469553028,
+        "jackknife_above_bound": true,
+        "control_response": 1.9615888415587057,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.221 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.392 deg (response 1.96, outside 0.5 to 1.5)",
+        "recentred_by_deg": -0.13065133121954126
+      },
+      "estimate_shift_deg": 1.2233413503770836,
+      "shift_over_turn": 1.2234629584946384
+    },
+    {
+      "recording": "exp09",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam0-cam1",
+      "turn_in_pair_deg": [
+        -0.0047055529449624815,
+        0.9999878643586428,
+        -0.001459077421773395
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "judged",
+        "status": "warn",
+        "candidate_error_deg": 0.9069686416038734,
+        "tolerance_deg": 0.5
+      },
+      "baseline": {
+        "state": "judged",
+        "status": "pass",
+        "candidate_error_deg": -0.05585736167714741,
+        "tolerance_deg": 0.5
+      },
+      "injected_pair_verdict": "warn",
+      "injected_estimate": {
+        "candidate_error_deg": 0.9069686416038734,
+        "jackknife_std_deg": 0.09623229426440326,
+        "jackknife_above_bound": false,
+        "control_response": 1.2593767307104011,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.252 deg",
+        "recentred_by_deg": 0.9341416031143654
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": -0.05585736167714741,
+        "jackknife_std_deg": 0.06674605893585898,
+        "jackknife_above_bound": false,
+        "control_response": 0.8213940575484742,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.164 deg",
+        "recentred_by_deg": 0.0
+      },
+      "estimate_shift_deg": 0.9628260032810207,
+      "shift_over_turn": 0.9628376879338867
+    },
+    {
+      "recording": "exp09",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam1-cam3",
+      "turn_in_pair_deg": [
+        -3.1557466518371765e-15,
+        -1.0000000000000002,
+        -1.3169651381682706e-15
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "jackknife std 0.285 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.413 deg (response 2.06, outside 0.5 to 1.5)"
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "jackknife std 0.221 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.392 deg (response 1.96, outside 0.5 to 1.5)"
+      },
+      "injected_pair_verdict": "pass",
+      "injected_estimate": {
+        "candidate_error_deg": -1.0584715049568574,
+        "jackknife_std_deg": 0.28539320409895,
+        "jackknife_above_bound": true,
+        "control_response": 2.0629319236348675,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.285 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.413 deg (response 2.06, outside 0.5 to 1.5)",
+        "recentred_by_deg": -1.0314538231256225
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": -0.038784153036970005,
+        "jackknife_std_deg": 0.22077366469553028,
+        "jackknife_above_bound": true,
+        "control_response": 1.9615888415587057,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.221 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.392 deg (response 1.96, outside 0.5 to 1.5)",
+        "recentred_by_deg": -0.13065133121954126
+      },
+      "estimate_shift_deg": -1.0196873519198875,
+      "shift_over_turn": 1.0196873519198872
+    },
+    {
+      "recording": "exp09",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam1-cam4",
+      "turn_in_pair_deg": [
+        -3.627866229671085e-15,
+        -0.9999999999999871,
+        -1.3915103346683613e-14
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "judged",
+        "status": "warn",
+        "candidate_error_deg": -0.9830443058822664,
+        "tolerance_deg": 0.5
+      },
+      "baseline": {
+        "state": "judged",
+        "status": "pass",
+        "candidate_error_deg": -0.04544161107270146,
+        "tolerance_deg": 0.5651733201667688
+      },
+      "injected_pair_verdict": "warn",
+      "injected_estimate": {
+        "candidate_error_deg": -0.9830443058822664,
+        "jackknife_std_deg": 0.06481903913940959,
+        "jackknife_above_bound": false,
+        "control_response": 0.8268122811000562,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.165 deg",
+        "recentred_by_deg": -0.9355955457503704
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": -0.04544161107270146,
+        "jackknife_std_deg": 0.07798693819826587,
+        "jackknife_above_bound": false,
+        "control_response": 0.9236421031566677,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.185 deg",
+        "recentred_by_deg": 0.0
+      },
+      "estimate_shift_deg": -0.9376026948095649,
+      "shift_over_turn": 0.937602694809577
+    },
+    {
+      "recording": "exp10",
+      "injection": "inject_cam3_y+1",
+      "pair": "cam0-cam3",
+      "turn_in_pair_deg": [
+        -0.012384543125788348,
+        0.9998695848470526,
+        0.010365152643484237
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.127 deg exceeds 0.1 deg"
+      },
+      "baseline": {
+        "state": "judged",
+        "status": "pass",
+        "candidate_error_deg": 0.2789108625758679,
+        "tolerance_deg": 0.5197377709011521
+      },
+      "injected_pair_verdict": "pass",
+      "injected_estimate": {
+        "candidate_error_deg": 1.3362474114952656,
+        "jackknife_std_deg": 0.12656934263592595,
+        "jackknife_above_bound": true,
+        "control_response": 0.9686621193913139,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.127 deg exceeds 0.1 deg",
+        "recentred_by_deg": 1.3724654259236027
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.2789108625758679,
+        "jackknife_std_deg": 0.04796687169872968,
+        "jackknife_above_bound": false,
+        "control_response": 0.7894080725497166,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.158 deg",
+        "recentred_by_deg": 0.19584422321935774
+      },
+      "estimate_shift_deg": 1.0573365489193978,
+      "shift_over_turn": 1.057474459612786
+    },
+    {
+      "recording": "exp10",
+      "injection": "inject_cam3_y+1",
+      "pair": "cam1-cam3",
+      "turn_in_pair_deg": [
+        -0.007739237894205916,
+        0.9999006033515682,
+        0.011785058930680381
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "turning the candidate 0.2 deg moved the estimate by +0.016 deg (response 0.08, outside 0.5 to 1.5)"
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "turning the candidate 0.2 deg moved the estimate by +0.078 deg (response 0.39, outside 0.5 to 1.5)"
+      },
+      "injected_pair_verdict": "pass",
+      "injected_estimate": {
+        "candidate_error_deg": 1.1368800116494373,
+        "jackknife_std_deg": 0.09704898148078603,
+        "jackknife_above_bound": false,
+        "control_response": 0.07987070940386316,
+        "control_failed": true,
+        "observable": false,
+        "reason": "turning the candidate 0.2 deg moved the estimate by +0.016 deg (response 0.08, outside 0.5 to 1.5)",
+        "recentred_by_deg": 1.04539103374819
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.24485791343967253,
+        "jackknife_std_deg": 0.06783741578299883,
+        "jackknife_above_bound": false,
+        "control_response": 0.3919436497491189,
+        "control_failed": true,
+        "observable": false,
+        "reason": "turning the candidate 0.2 deg moved the estimate by +0.078 deg (response 0.39, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.18839341369446821
+      },
+      "estimate_shift_deg": 0.8920220982097647,
+      "shift_over_turn": 0.8921107710304351
+    },
+    {
+      "recording": "exp10",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam0-cam1",
+      "turn_in_pair_deg": [
+        -0.0047055529449624815,
+        0.9999878643586428,
+        -0.001459077421773395
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "judged",
+        "status": "warn",
+        "candidate_error_deg": 0.9487376964790787,
+        "tolerance_deg": 0.5
+      },
+      "baseline": {
+        "state": "judged",
+        "status": "pass",
+        "candidate_error_deg": -0.003155963960749917,
+        "tolerance_deg": 0.5
+      },
+      "injected_pair_verdict": "warn",
+      "injected_estimate": {
+        "candidate_error_deg": 0.9487376964790787,
+        "jackknife_std_deg": 0.0091678092022516,
+        "jackknife_above_bound": false,
+        "control_response": 1.1907826567403992,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.238 deg",
+        "recentred_by_deg": 0.9296514582897781
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": -0.003155963960749917,
+        "jackknife_std_deg": 0.02872393962910535,
+        "jackknife_above_bound": false,
+        "control_response": 0.9220964242110742,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.184 deg",
+        "recentred_by_deg": 0.0
+      },
+      "estimate_shift_deg": 0.9518936604398286,
+      "shift_over_turn": 0.9519052124200925
+    },
+    {
+      "recording": "exp10",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam1-cam3",
+      "turn_in_pair_deg": [
+        -3.1557466518371765e-15,
+        -1.0000000000000002,
+        -1.3169651381682706e-15
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "jackknife std 0.108 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.089 deg (response 0.45, outside 0.5 to 1.5)"
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "turning the candidate 0.2 deg moved the estimate by +0.078 deg (response 0.39, outside 0.5 to 1.5)"
+      },
+      "injected_pair_verdict": "pass",
+      "injected_estimate": {
+        "candidate_error_deg": -0.8499520252780404,
+        "jackknife_std_deg": 0.10767807842461996,
+        "jackknife_above_bound": true,
+        "control_response": 0.44555195260085423,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.108 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.089 deg (response 0.45, outside 0.5 to 1.5)",
+        "recentred_by_deg": -0.7549114668136956
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.24485791343967253,
+        "jackknife_std_deg": 0.06783741578299883,
+        "jackknife_above_bound": false,
+        "control_response": 0.3919436497491189,
+        "control_failed": true,
+        "observable": false,
+        "reason": "turning the candidate 0.2 deg moved the estimate by +0.078 deg (response 0.39, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.18839341369446821
+      },
+      "estimate_shift_deg": -1.0948099387177128,
+      "shift_over_turn": 1.0948099387177126
+    },
+    {
+      "recording": "exp10",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam1-cam4",
+      "turn_in_pair_deg": [
+        -3.627866229671085e-15,
+        -0.9999999999999871,
+        -1.3915103346683613e-14
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.172 deg exceeds 0.1 deg"
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.137 deg exceeds 0.1 deg"
+      },
+      "injected_pair_verdict": "pass",
+      "injected_estimate": {
+        "candidate_error_deg": -0.9117571189556961,
+        "jackknife_std_deg": 0.17221806102435253,
+        "jackknife_above_bound": true,
+        "control_response": 0.7101759369765093,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.172 deg exceeds 0.1 deg",
+        "recentred_by_deg": -0.921777137400699
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": -0.05311186128144268,
+        "jackknife_std_deg": 0.13707128865624107,
+        "jackknife_above_bound": true,
+        "control_response": 0.9425630700704688,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.137 deg exceeds 0.1 deg",
+        "recentred_by_deg": -0.017998608966535063
+      },
+      "estimate_shift_deg": -0.8586452576742535,
+      "shift_over_turn": 0.8586452576742646
+    },
+    {
+      "recording": "exp11",
+      "injection": "inject_cam3_y+1",
+      "pair": "cam0-cam3",
+      "turn_in_pair_deg": [
+        -0.012384543125788348,
+        0.9998695848470526,
+        0.010365152643484237
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "turning the candidate 0.2 deg moved the estimate by +0.037 deg (response 0.19, outside 0.5 to 1.5)"
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "turning the candidate 0.2 deg moved the estimate by -0.015 deg (response -0.07, outside 0.5 to 1.5)"
+      },
+      "injected_pair_verdict": "pass",
+      "injected_estimate": {
+        "candidate_error_deg": 1.1033406077439465,
+        "jackknife_std_deg": 0.08442600470539885,
+        "jackknife_above_bound": false,
+        "control_response": 0.1864200010207428,
+        "control_failed": true,
+        "observable": false,
+        "reason": "turning the candidate 0.2 deg moved the estimate by +0.037 deg (response 0.19, outside 0.5 to 1.5)",
+        "recentred_by_deg": 1.122121443810708
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.27491423720269637,
+        "jackknife_std_deg": 0.044727349666857465,
+        "jackknife_above_bound": false,
+        "control_response": -0.07439893246973951,
+        "control_failed": true,
+        "observable": false,
+        "reason": "turning the candidate 0.2 deg moved the estimate by -0.015 deg (response -0.07, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.22195764753027322
+      },
+      "estimate_shift_deg": 0.8284263705412501,
+      "shift_over_turn": 0.8285344239848763
+    },
+    {
+      "recording": "exp11",
+      "injection": "inject_cam3_y+1",
+      "pair": "cam1-cam3",
+      "turn_in_pair_deg": [
+        -0.007739237894205916,
+        0.9999006033515682,
+        0.011785058930680381
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "jackknife std 0.132 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.085 deg (response 0.43, outside 0.5 to 1.5)"
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.126 deg exceeds 0.1 deg"
+      },
+      "injected_pair_verdict": "pass",
+      "injected_estimate": {
+        "candidate_error_deg": 1.219236352035448,
+        "jackknife_std_deg": 0.1323040734578725,
+        "jackknife_above_bound": true,
+        "control_response": 0.4262680043153949,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.132 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.085 deg (response 0.43, outside 0.5 to 1.5)",
+        "recentred_by_deg": 1.294207869095144
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.1161514342081921,
+        "jackknife_std_deg": 0.12554529155681363,
+        "jackknife_above_bound": true,
+        "control_response": 1.438799945623408,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.126 deg exceeds 0.1 deg",
+        "recentred_by_deg": 0.20530082945008257
+      },
+      "estimate_shift_deg": 1.1030849178272557,
+      "shift_over_turn": 1.103194571670248
+    },
+    {
+      "recording": "exp11",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam0-cam1",
+      "turn_in_pair_deg": [
+        -0.0047055529449624815,
+        0.9999878643586428,
+        -0.001459077421773395
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "judged",
+        "status": "fail",
+        "candidate_error_deg": 1.0218687080133315,
+        "tolerance_deg": 0.5
+      },
+      "baseline": {
+        "state": "judged",
+        "status": "pass",
+        "candidate_error_deg": 0.025046143898054363,
+        "tolerance_deg": 0.5
+      },
+      "injected_pair_verdict": "fail",
+      "injected_estimate": {
+        "candidate_error_deg": 1.0218687080133315,
+        "jackknife_std_deg": 0.0055272961934497815,
+        "jackknife_above_bound": false,
+        "control_response": 0.8624994876649201,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.172 deg",
+        "recentred_by_deg": 1.0164206879344726
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.025046143898054363,
+        "jackknife_std_deg": 0.006658740466637085,
+        "jackknife_above_bound": false,
+        "control_response": 0.7570418472815471,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.151 deg",
+        "recentred_by_deg": 0.0
+      },
+      "estimate_shift_deg": 0.9968225641152771,
+      "shift_over_turn": 0.9968346613432196
+    },
+    {
+      "recording": "exp11",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam1-cam3",
+      "turn_in_pair_deg": [
+        -3.1557466518371765e-15,
+        -1.0000000000000002,
+        -1.3169651381682706e-15
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.196 deg exceeds 0.1 deg"
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.126 deg exceeds 0.1 deg"
+      },
+      "injected_pair_verdict": "pass",
+      "injected_estimate": {
+        "candidate_error_deg": -0.7813437188634896,
+        "jackknife_std_deg": 0.196344230795682,
+        "jackknife_above_bound": true,
+        "control_response": 0.8710527114162916,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.196 deg exceeds 0.1 deg",
+        "recentred_by_deg": -0.6750408471791912
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.1161514342081921,
+        "jackknife_std_deg": 0.12554529155681363,
+        "jackknife_above_bound": true,
+        "control_response": 1.438799945623408,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.126 deg exceeds 0.1 deg",
+        "recentred_by_deg": 0.20530082945008257
+      },
+      "estimate_shift_deg": -0.8974951530716817,
+      "shift_over_turn": 0.8974951530716815
+    },
+    {
+      "recording": "exp14",
+      "injection": "inject_cam3_y+1",
+      "pair": "cam1-cam3",
+      "turn_in_pair_deg": [
+        -0.007739237894205916,
+        0.9999006033515682,
+        0.011785058930680381
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "jackknife std 0.248 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.352 deg (response 1.76, outside 0.5 to 1.5)"
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "jackknife std 0.126 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.071 deg (response 0.35, outside 0.5 to 1.5)"
+      },
+      "injected_pair_verdict": "pass",
+      "injected_estimate": {
+        "candidate_error_deg": 1.2533803016731593,
+        "jackknife_std_deg": 0.24780597970849388,
+        "jackknife_above_bound": true,
+        "control_response": 1.7604822836262213,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.248 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.352 deg (response 1.76, outside 0.5 to 1.5)",
+        "recentred_by_deg": 1.1254209032289288
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.2730566933202715,
+        "jackknife_std_deg": 0.1263534290458794,
+        "jackknife_above_bound": true,
+        "control_response": 0.35319622656948885,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.126 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.071 deg (response 0.35, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.22193402959013642
+      },
+      "estimate_shift_deg": 0.9803236083528878,
+      "shift_over_turn": 0.9804210589201965
+    },
+    {
+      "recording": "exp14",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam0-cam1",
+      "turn_in_pair_deg": [
+        -0.0047055529449624815,
+        0.9999878643586428,
+        -0.001459077421773395
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "judged",
+        "status": "warn",
+        "candidate_error_deg": 0.9295230954100366,
+        "tolerance_deg": 0.5
+      },
+      "baseline": {
+        "state": "judged",
+        "status": "pass",
+        "candidate_error_deg": 0.0031614556611099225,
+        "tolerance_deg": 0.5
+      },
+      "injected_pair_verdict": "warn",
+      "injected_estimate": {
+        "candidate_error_deg": 0.9295230954100366,
+        "jackknife_std_deg": 0.006523946619739693,
+        "jackknife_above_bound": false,
+        "control_response": 0.5027447272984233,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.101 deg",
+        "recentred_by_deg": 0.9234683762681041
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.0031614556611099225,
+        "jackknife_std_deg": 0.04933480211002864,
+        "jackknife_above_bound": false,
+        "control_response": 0.5527917118717032,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.111 deg",
+        "recentred_by_deg": 0.0
+      },
+      "estimate_shift_deg": 0.9263616397489267,
+      "shift_over_turn": 0.9263728818779842
+    },
+    {
+      "recording": "exp14",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam1-cam3",
+      "turn_in_pair_deg": [
+        -3.1557466518371765e-15,
+        -1.0000000000000002,
+        -1.3169651381682706e-15
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "judged",
+        "status": "warn",
+        "candidate_error_deg": -0.628152490306002,
+        "tolerance_deg": 0.5785004985781416
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "jackknife std 0.126 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.071 deg (response 0.35, outside 0.5 to 1.5)"
+      },
+      "injected_pair_verdict": "warn",
+      "injected_estimate": {
+        "candidate_error_deg": -0.628152490306002,
+        "jackknife_std_deg": 0.09672781356343209,
+        "jackknife_above_bound": false,
+        "control_response": 0.7447257321917918,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.149 deg",
+        "recentred_by_deg": -0.6438851500466919
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.2730566933202715,
+        "jackknife_std_deg": 0.1263534290458794,
+        "jackknife_above_bound": true,
+        "control_response": 0.35319622656948885,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.126 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.071 deg (response 0.35, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.22193402959013642
+      },
+      "estimate_shift_deg": -0.9012091836262734,
+      "shift_over_turn": 0.9012091836262732
+    },
+    {
+      "recording": "exp14",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam1-cam4",
+      "turn_in_pair_deg": [
+        -3.627866229671085e-15,
+        -0.9999999999999871,
+        -1.3915103346683613e-14
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "judged",
+        "status": "warn",
+        "candidate_error_deg": -1.143729998789319,
+        "tolerance_deg": 0.7206406157193401
+      },
+      "baseline": {
+        "state": "judged",
+        "status": "pass",
+        "candidate_error_deg": -0.19277900422167316,
+        "tolerance_deg": 0.7068789563853185
+      },
+      "injected_pair_verdict": "warn",
+      "injected_estimate": {
+        "candidate_error_deg": -1.143729998789319,
+        "jackknife_std_deg": 0.08595285534500638,
+        "jackknife_above_bound": false,
+        "control_response": 1.199386404125552,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.240 deg",
+        "recentred_by_deg": -1.1865789440482948
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": -0.19277900422167316,
+        "jackknife_std_deg": 0.07744115160191627,
+        "jackknife_above_bound": false,
+        "control_response": 1.205260961995473,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.241 deg",
+        "recentred_by_deg": 0.0
+      },
+      "estimate_shift_deg": -0.9509509945676459,
+      "shift_over_turn": 0.9509509945676581
+    },
+    {
+      "recording": "exp15",
+      "injection": "inject_cam3_y+1",
+      "pair": "cam0-cam3",
+      "turn_in_pair_deg": [
+        -0.012384543125788348,
+        0.9998695848470526,
+        0.010365152643484237
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.136 deg exceeds 0.1 deg"
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.130 deg exceeds 0.1 deg"
+      },
+      "injected_pair_verdict": "pass",
+      "injected_estimate": {
+        "candidate_error_deg": 1.252216496731757,
+        "jackknife_std_deg": 0.13622573243022218,
+        "jackknife_above_bound": true,
+        "control_response": 1.1304177982526598,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.136 deg exceeds 0.1 deg",
+        "recentred_by_deg": 1.2934028824484822
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.26998559420130164,
+        "jackknife_std_deg": 0.13030484522606986,
+        "jackknife_above_bound": true,
+        "control_response": 0.8587758247579381,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.130 deg exceeds 0.1 deg",
+        "recentred_by_deg": 0.20301500505233933
+      },
+      "estimate_shift_deg": 0.9822309025304554,
+      "shift_over_turn": 0.982359017031911
+    },
+    {
+      "recording": "exp15",
+      "injection": "inject_cam3_y+1",
+      "pair": "cam1-cam3",
+      "turn_in_pair_deg": [
+        -0.007739237894205916,
+        0.9999006033515682,
+        0.011785058930680381
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.318 deg exceeds 0.1 deg"
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "jackknife std 0.218 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.319 deg (response 1.59, outside 0.5 to 1.5)"
+      },
+      "injected_pair_verdict": "pass",
+      "injected_estimate": {
+        "candidate_error_deg": 1.3952305418537954,
+        "jackknife_std_deg": 0.31782577130187484,
+        "jackknife_above_bound": true,
+        "control_response": 0.9041711953876564,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.318 deg exceeds 0.1 deg",
+        "recentred_by_deg": 1.3140255352465489
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.18749357899352723,
+        "jackknife_std_deg": 0.21793587434635245,
+        "jackknife_above_bound": true,
+        "control_response": 1.5930093757737103,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.218 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.319 deg (response 1.59, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.3865723168669259
+      },
+      "estimate_shift_deg": 1.207736962860268,
+      "shift_over_turn": 1.207857019799821
+    },
+    {
+      "recording": "exp15",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam0-cam1",
+      "turn_in_pair_deg": [
+        -0.0047055529449624815,
+        0.9999878643586428,
+        -0.001459077421773395
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "judged",
+        "status": "warn",
+        "candidate_error_deg": 0.977129203372196,
+        "tolerance_deg": 0.5
+      },
+      "baseline": {
+        "state": "judged",
+        "status": "pass",
+        "candidate_error_deg": -0.02201017721447859,
+        "tolerance_deg": 0.5
+      },
+      "injected_pair_verdict": "warn",
+      "injected_estimate": {
+        "candidate_error_deg": 0.977129203372196,
+        "jackknife_std_deg": 0.010963402738080594,
+        "jackknife_above_bound": false,
+        "control_response": 0.8672009324248814,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.173 deg",
+        "recentred_by_deg": 0.9560651027964989
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": -0.02201017721447859,
+        "jackknife_std_deg": 0.01835235471787179,
+        "jackknife_above_bound": false,
+        "control_response": 0.9332916515382541,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.187 deg",
+        "recentred_by_deg": 0.0
+      },
+      "estimate_shift_deg": 0.9991393805866746,
+      "shift_over_turn": 0.9991515059310121
+    },
+    {
+      "recording": "exp15",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam1-cam3",
+      "turn_in_pair_deg": [
+        -3.1557466518371765e-15,
+        -1.0000000000000002,
+        -1.3169651381682706e-15
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "jackknife std 0.421 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.303 deg (response 1.52, outside 0.5 to 1.5)"
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "jackknife std 0.218 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.319 deg (response 1.59, outside 0.5 to 1.5)"
+      },
+      "injected_pair_verdict": "pass",
+      "injected_estimate": {
+        "candidate_error_deg": -0.44407397002085597,
+        "jackknife_std_deg": 0.4208047940529882,
+        "jackknife_above_bound": true,
+        "control_response": 1.516397444227157,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.421 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.303 deg (response 1.52, outside 0.5 to 1.5)",
+        "recentred_by_deg": -0.271461626577864
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.18749357899352723,
+        "jackknife_std_deg": 0.21793587434635245,
+        "jackknife_above_bound": true,
+        "control_response": 1.5930093757737103,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.218 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.319 deg (response 1.59, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.3865723168669259
+      },
+      "estimate_shift_deg": -0.6315675490143832,
+      "shift_over_turn": 0.6315675490143831
+    },
+    {
+      "recording": "exp15",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam1-cam4",
+      "turn_in_pair_deg": [
+        -3.627866229671085e-15,
+        -0.9999999999999871,
+        -1.3915103346683613e-14
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "jackknife std 0.332 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.031 deg (response 0.16, outside 0.5 to 1.5)"
+      },
+      "baseline": {
+        "state": "judged",
+        "status": "pass",
+        "candidate_error_deg": -0.3268331236939981,
+        "tolerance_deg": 0.7274563094478974
+      },
+      "injected_pair_verdict": "inconclusive",
+      "injected_estimate": {
+        "candidate_error_deg": -1.0973299970911528,
+        "jackknife_std_deg": 0.3319099523623184,
+        "jackknife_above_bound": true,
+        "control_response": 0.15520562209034353,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.332 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.031 deg (response 0.16, outside 0.5 to 1.5)",
+        "recentred_by_deg": -1.0379355561211379
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": -0.3268331236939981,
+        "jackknife_std_deg": 0.08053864091659987,
+        "jackknife_above_bound": false,
+        "control_response": 1.0272098538421353,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.205 deg",
+        "recentred_by_deg": -0.37096367984107426
+      },
+      "estimate_shift_deg": -0.7704968733971547,
+      "shift_over_turn": 0.7704968733971646
+    },
+    {
+      "recording": "exp16",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam0-cam1",
+      "turn_in_pair_deg": [
+        -0.0047055529449624815,
+        0.9999878643586428,
+        -0.001459077421773395
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.217 deg exceeds 0.1 deg"
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.281 deg exceeds 0.1 deg"
+      },
+      "injected_pair_verdict": "pass",
+      "injected_estimate": {
+        "candidate_error_deg": 1.2819667214500488,
+        "jackknife_std_deg": 0.2168422703558101,
+        "jackknife_above_bound": true,
+        "control_response": 1.1807178758845764,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.217 deg exceeds 0.1 deg",
+        "recentred_by_deg": 1.3662411919038069
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.34515004253063175,
+        "jackknife_std_deg": 0.2810281544440963,
+        "jackknife_above_bound": true,
+        "control_response": 0.514850259062764,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.281 deg exceeds 0.1 deg",
+        "recentred_by_deg": 0.2973167244258902
+      },
+      "estimate_shift_deg": 0.936816678919417,
+      "shift_over_turn": 0.93682804792862
+    },
+    {
+      "recording": "exp18",
+      "injection": "inject_cam3_y+1",
+      "pair": "cam0-cam3",
+      "turn_in_pair_deg": [
+        -0.012384543125788348,
+        0.9998695848470526,
+        0.010365152643484237
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.112 deg exceeds 0.1 deg"
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.123 deg exceeds 0.1 deg"
+      },
+      "injected_pair_verdict": "pass",
+      "injected_estimate": {
+        "candidate_error_deg": 1.1210826944126568,
+        "jackknife_std_deg": 0.11190420457019015,
+        "jackknife_above_bound": true,
+        "control_response": 0.5587891844728496,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.112 deg exceeds 0.1 deg",
+        "recentred_by_deg": 1.1125695744771773
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.20275243621011127,
+        "jackknife_std_deg": 0.12347913609970174,
+        "jackknife_above_bound": true,
+        "control_response": 0.7830889869698634,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.123 deg exceeds 0.1 deg",
+        "recentred_by_deg": 0.24024882081223226
+      },
+      "estimate_shift_deg": 0.9183302582025455,
+      "shift_over_turn": 0.9184500380047265
+    },
+    {
+      "recording": "exp18",
+      "injection": "inject_cam3_y+1",
+      "pair": "cam1-cam3",
+      "turn_in_pair_deg": [
+        -0.007739237894205916,
+        0.9999006033515682,
+        0.011785058930680381
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "judged",
+        "status": "fail",
+        "candidate_error_deg": 1.1778666138832914,
+        "tolerance_deg": 0.5
+      },
+      "baseline": {
+        "state": "judged",
+        "status": "pass",
+        "candidate_error_deg": 0.1470163641270325,
+        "tolerance_deg": 0.5
+      },
+      "injected_pair_verdict": "fail",
+      "injected_estimate": {
+        "candidate_error_deg": 1.1778666138832914,
+        "jackknife_std_deg": 0.08273102716956775,
+        "jackknife_above_bound": false,
+        "control_response": 0.6480009056641476,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.130 deg",
+        "recentred_by_deg": 1.152383247534012
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.1470163641270325,
+        "jackknife_std_deg": 0.015200332140027903,
+        "jackknife_above_bound": false,
+        "control_response": 1.477509064692043,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.296 deg",
+        "recentred_by_deg": 0.26929486236281786
+      },
+      "estimate_shift_deg": 1.0308502497562588,
+      "shift_over_turn": 1.0309527230016169
+    },
+    {
+      "recording": "exp18",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam0-cam1",
+      "turn_in_pair_deg": [
+        -0.0047055529449624815,
+        0.9999878643586428,
+        -0.001459077421773395
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.281 deg exceeds 0.1 deg"
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.447 deg exceeds 0.1 deg"
+      },
+      "injected_pair_verdict": "pass",
+      "injected_estimate": {
+        "candidate_error_deg": 0.8788544224596503,
+        "jackknife_std_deg": 0.2812644602208542,
+        "jackknife_above_bound": true,
+        "control_response": 0.6542267919683425,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.281 deg exceeds 0.1 deg",
+        "recentred_by_deg": 0.7944522029242245
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": -0.17493402284143234,
+        "jackknife_std_deg": 0.4469492914264469,
+        "jackknife_above_bound": true,
+        "control_response": 0.9652278240874187,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.447 deg exceeds 0.1 deg",
+        "recentred_by_deg": -0.34184269630673564
+      },
+      "estimate_shift_deg": 1.0537884453010826,
+      "shift_over_turn": 1.0538012338549183
+    },
+    {
+      "recording": "exp18",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam1-cam3",
+      "turn_in_pair_deg": [
+        -3.1557466518371765e-15,
+        -1.0000000000000002,
+        -1.3169651381682706e-15
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.121 deg exceeds 0.1 deg"
+      },
+      "baseline": {
+        "state": "judged",
+        "status": "pass",
+        "candidate_error_deg": 0.1470163641270325,
+        "tolerance_deg": 0.5
+      },
+      "injected_pair_verdict": "pass",
+      "injected_estimate": {
+        "candidate_error_deg": -0.6766490718410852,
+        "jackknife_std_deg": 0.12105151568851294,
+        "jackknife_above_bound": true,
+        "control_response": 1.444956021643116,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.121 deg exceeds 0.1 deg",
+        "recentred_by_deg": -0.8115790326199002
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.1470163641270325,
+        "jackknife_std_deg": 0.015200332140027903,
+        "jackknife_above_bound": false,
+        "control_response": 1.477509064692043,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.296 deg",
+        "recentred_by_deg": 0.26929486236281786
+      },
+      "estimate_shift_deg": -0.8236654359681177,
+      "shift_over_turn": 0.8236654359681175
+    },
+    {
+      "recording": "exp18",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam1-cam4",
+      "turn_in_pair_deg": [
+        -3.627866229671085e-15,
+        -0.9999999999999871,
+        -1.3915103346683613e-14
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "jackknife std 0.206 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.091 deg (response 0.46, outside 0.5 to 1.5)"
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.321 deg exceeds 0.1 deg"
+      },
+      "injected_pair_verdict": "inconclusive",
+      "injected_estimate": {
+        "candidate_error_deg": -1.4730926273762899,
+        "jackknife_std_deg": 0.2057663013289258,
+        "jackknife_above_bound": true,
+        "control_response": 0.4567216333890903,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.206 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.091 deg (response 0.46, outside 0.5 to 1.5)",
+        "recentred_by_deg": -1.442204273696469
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": -0.6597621109342684,
+        "jackknife_std_deg": 0.32059784558447996,
+        "jackknife_above_bound": true,
+        "control_response": 0.6517992778677248,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.321 deg exceeds 0.1 deg",
+        "recentred_by_deg": -0.6555407580107642
+      },
+      "estimate_shift_deg": -0.8133305164420215,
+      "shift_over_turn": 0.8133305164420319
+    },
+    {
+      "recording": "exp23p0",
+      "injection": "inject_cam3_y+1",
+      "pair": "cam0-cam3",
+      "turn_in_pair_deg": [
+        -0.012384543125788348,
+        0.9998695848470526,
+        0.010365152643484237
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "judged",
+        "status": "fail",
+        "candidate_error_deg": 1.2836085930490673,
+        "tolerance_deg": 0.5044312285773888
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "turning the candidate 0.2 deg moved the estimate by +0.048 deg (response 0.24, outside 0.5 to 1.5)"
+      },
+      "injected_pair_verdict": "fail",
+      "injected_estimate": {
+        "candidate_error_deg": 1.2836085930490673,
+        "jackknife_std_deg": 0.05737466328384863,
+        "jackknife_above_bound": false,
+        "control_response": 1.3863272543958096,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.277 deg",
+        "recentred_by_deg": 1.3401020065450986
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.4355612392026868,
+        "jackknife_std_deg": 0.08018209953203954,
+        "jackknife_above_bound": false,
+        "control_response": 0.23859133599121818,
+        "control_failed": true,
+        "observable": false,
+        "reason": "turning the candidate 0.2 deg moved the estimate by +0.048 deg (response 0.24, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.35699435775496746
+      },
+      "estimate_shift_deg": 0.8480473538463804,
+      "shift_over_turn": 0.8481579664973048
+    },
+    {
+      "recording": "exp23p0",
+      "injection": "inject_cam3_y+1",
+      "pair": "cam1-cam3",
+      "turn_in_pair_deg": [
+        -0.007739237894205916,
+        0.9999006033515682,
+        0.011785058930680381
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "judged",
+        "status": "fail",
+        "candidate_error_deg": 1.1364235013770339,
+        "tolerance_deg": 0.5
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "jackknife std 0.122 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by -0.028 deg (response -0.14, outside 0.5 to 1.5)"
+      },
+      "injected_pair_verdict": "fail",
+      "injected_estimate": {
+        "candidate_error_deg": 1.1364235013770339,
+        "jackknife_std_deg": 0.07770385583654832,
+        "jackknife_above_bound": false,
+        "control_response": 1.1527472319305139,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.231 deg",
+        "recentred_by_deg": 1.1993506413088575
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.05135651631590245,
+        "jackknife_std_deg": 0.12190221369248243,
+        "jackknife_above_bound": true,
+        "control_response": -0.14224596335272335,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.122 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by -0.028 deg (response -0.14, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.0
+      },
+      "estimate_shift_deg": 1.0850669850611314,
+      "shift_over_turn": 1.0851748478039656
+    },
+    {
+      "recording": "exp23p0",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam0-cam1",
+      "turn_in_pair_deg": [
+        -0.0047055529449624815,
+        0.9999878643586428,
+        -0.001459077421773395
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "judged",
+        "status": "fail",
+        "candidate_error_deg": 1.0464463825413854,
+        "tolerance_deg": 0.5
+      },
+      "baseline": {
+        "state": "judged",
+        "status": "pass",
+        "candidate_error_deg": 0.013259851686063485,
+        "tolerance_deg": 0.5
+      },
+      "injected_pair_verdict": "fail",
+      "injected_estimate": {
+        "candidate_error_deg": 1.0464463825413854,
+        "jackknife_std_deg": 0.015091083968389596,
+        "jackknife_above_bound": false,
+        "control_response": 0.8698756084097455,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.174 deg",
+        "recentred_by_deg": 1.0436254497720197
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.013259851686063485,
+        "jackknife_std_deg": 0.018002917229239426,
+        "jackknife_above_bound": false,
+        "control_response": 1.1253518276473655,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.225 deg",
+        "recentred_by_deg": 0.0
+      },
+      "estimate_shift_deg": 1.0331865308553219,
+      "shift_over_turn": 1.0331990693886786
+    },
+    {
+      "recording": "exp23p0",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam1-cam3",
+      "turn_in_pair_deg": [
+        -3.1557466518371765e-15,
+        -1.0000000000000002,
+        -1.3169651381682706e-15
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "judged",
+        "status": "warn",
+        "candidate_error_deg": -0.691434571774034,
+        "tolerance_deg": 0.6005200718755368
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "jackknife std 0.122 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by -0.028 deg (response -0.14, outside 0.5 to 1.5)"
+      },
+      "injected_pair_verdict": "warn",
+      "injected_estimate": {
+        "candidate_error_deg": -0.691434571774034,
+        "jackknife_std_deg": 0.08569475749008641,
+        "jackknife_above_bound": false,
+        "control_response": 0.9731871803901039,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.195 deg",
+        "recentred_by_deg": -0.6184935043935024
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.05135651631590245,
+        "jackknife_std_deg": 0.12190221369248243,
+        "jackknife_above_bound": true,
+        "control_response": -0.14224596335272335,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.122 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by -0.028 deg (response -0.14, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.0
+      },
+      "estimate_shift_deg": -0.7427910880899364,
+      "shift_over_turn": 0.7427910880899363
+    },
+    {
+      "recording": "exp23p0",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam1-cam4",
+      "turn_in_pair_deg": [
+        -3.627866229671085e-15,
+        -0.9999999999999871,
+        -1.3915103346683613e-14
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "judged",
+        "status": "fail",
+        "candidate_error_deg": -1.1889620582838807,
+        "tolerance_deg": 0.5066215357226216
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "jackknife std 0.144 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by -0.181 deg (response -0.91, outside 0.5 to 1.5)"
+      },
+      "injected_pair_verdict": "fail",
+      "injected_estimate": {
+        "candidate_error_deg": -1.1889620582838807,
+        "jackknife_std_deg": 0.037872547972865586,
+        "jackknife_above_bound": false,
+        "control_response": 1.172900249325975,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.235 deg",
+        "recentred_by_deg": -1.2216831668081714
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 1.514525120866984,
+        "jackknife_std_deg": 0.14443037027544972,
+        "jackknife_above_bound": true,
+        "control_response": -0.9054598683747835,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.144 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by -0.181 deg (response -0.91, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.9915760643201117
+      },
+      "estimate_shift_deg": -2.703487179150865,
+      "shift_over_turn": 2.7034871791508994
+    },
+    {
+      "recording": "exp23p1",
+      "injection": "inject_cam3_y+1",
+      "pair": "cam0-cam3",
+      "turn_in_pair_deg": [
+        -0.012384543125788348,
+        0.9998695848470526,
+        0.010365152643484237
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "judged",
+        "status": "fail",
+        "candidate_error_deg": 1.1571887179903801,
+        "tolerance_deg": 0.5168304582407545
+      },
+      "baseline": {
+        "state": "judged",
+        "status": "pass",
+        "candidate_error_deg": 0.05522850144440076,
+        "tolerance_deg": 0.5020857376984452
+      },
+      "injected_pair_verdict": "fail",
+      "injected_estimate": {
+        "candidate_error_deg": 1.1571887179903801,
+        "jackknife_std_deg": 0.09277878454850609,
+        "jackknife_above_bound": false,
+        "control_response": 0.5598725344978327,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.112 deg",
+        "recentred_by_deg": 1.1805839187381086
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.05522850144440076,
+        "jackknife_std_deg": 0.071478161162487,
+        "jackknife_above_bound": false,
+        "control_response": 1.3152867505554888,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.263 deg",
+        "recentred_by_deg": 0.04861026742460368
+      },
+      "estimate_shift_deg": 1.1019602165459794,
+      "shift_over_turn": 1.1021039476008698
+    },
+    {
+      "recording": "exp23p1",
+      "injection": "inject_cam3_y+1",
+      "pair": "cam1-cam3",
+      "turn_in_pair_deg": [
+        -0.007739237894205916,
+        0.9999006033515682,
+        0.011785058930680381
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.150 deg exceeds 0.1 deg"
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "jackknife std 0.155 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.043 deg (response 0.22, outside 0.5 to 1.5)"
+      },
+      "injected_pair_verdict": "pass",
+      "injected_estimate": {
+        "candidate_error_deg": 1.0831203947236254,
+        "jackknife_std_deg": 0.15015068658318506,
+        "jackknife_above_bound": true,
+        "control_response": 1.1179982842722713,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.150 deg exceeds 0.1 deg",
+        "recentred_by_deg": 1.121151895650548
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.35133235428091686,
+        "jackknife_std_deg": 0.15508078488108962,
+        "jackknife_above_bound": true,
+        "control_response": 0.21575941766242765,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.155 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.043 deg (response 0.22, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.43557331002132094
+      },
+      "estimate_shift_deg": 0.7317880404427086,
+      "shift_over_turn": 0.7318607849518515
+    },
+    {
+      "recording": "exp23p1",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam0-cam1",
+      "turn_in_pair_deg": [
+        -0.0047055529449624815,
+        0.9999878643586428,
+        -0.001459077421773395
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "judged",
+        "status": "warn",
+        "candidate_error_deg": 0.99628391797803,
+        "tolerance_deg": 0.5
+      },
+      "baseline": {
+        "state": "judged",
+        "status": "pass",
+        "candidate_error_deg": 0.006310314501982209,
+        "tolerance_deg": 0.5
+      },
+      "injected_pair_verdict": "warn",
+      "injected_estimate": {
+        "candidate_error_deg": 0.99628391797803,
+        "jackknife_std_deg": 0.006150702819556895,
+        "jackknife_above_bound": false,
+        "control_response": 0.8968006422053948,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.179 deg",
+        "recentred_by_deg": 0.9856710997878441
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.006310314501982209,
+        "jackknife_std_deg": 0.011971872553033936,
+        "jackknife_above_bound": false,
+        "control_response": 1.0770566324644388,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.215 deg",
+        "recentred_by_deg": 0.0
+      },
+      "estimate_shift_deg": 0.9899736034760478,
+      "shift_over_turn": 0.9899856175864515
+    },
+    {
+      "recording": "exp23p1",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam1-cam3",
+      "turn_in_pair_deg": [
+        -3.1557466518371765e-15,
+        -1.0000000000000002,
+        -1.3169651381682706e-15
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.156 deg exceeds 0.1 deg"
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "jackknife std 0.155 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.043 deg (response 0.22, outside 0.5 to 1.5)"
+      },
+      "injected_pair_verdict": "pass",
+      "injected_estimate": {
+        "candidate_error_deg": -0.9105741509510887,
+        "jackknife_std_deg": 0.15649549642607677,
+        "jackknife_above_bound": true,
+        "control_response": 1.4331099708050479,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.156 deg exceeds 0.1 deg",
+        "recentred_by_deg": -0.9068903380579943
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.35133235428091686,
+        "jackknife_std_deg": 0.15508078488108962,
+        "jackknife_above_bound": true,
+        "control_response": 0.21575941766242765,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.155 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.043 deg (response 0.22, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.43557331002132094
+      },
+      "estimate_shift_deg": -1.2619065052320055,
+      "shift_over_turn": 1.2619065052320053
+    },
+    {
+      "recording": "exp23p1",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam1-cam4",
+      "turn_in_pair_deg": [
+        -3.627866229671085e-15,
+        -0.9999999999999871,
+        -1.3915103346683613e-14
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "judged",
+        "status": "fail",
+        "candidate_error_deg": -1.0682673288479394,
+        "tolerance_deg": 0.5248965885528615
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "turning the candidate 0.2 deg moved the estimate by +0.358 deg (response 1.79, outside 0.5 to 1.5)"
+      },
+      "injected_pair_verdict": "fail",
+      "injected_estimate": {
+        "candidate_error_deg": -1.0682673288479394,
+        "jackknife_std_deg": 0.06825737022690405,
+        "jackknife_above_bound": false,
+        "control_response": 1.2130613302254363,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.243 deg",
+        "recentred_by_deg": -1.1458376386246198
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": -0.17970443010720935,
+        "jackknife_std_deg": 0.09090805237431793,
+        "jackknife_above_bound": false,
+        "control_response": 1.7890888196466677,
+        "control_failed": true,
+        "observable": false,
+        "reason": "turning the candidate 0.2 deg moved the estimate by +0.358 deg (response 1.79, outside 0.5 to 1.5)",
+        "recentred_by_deg": -0.2456919080120829
+      },
+      "estimate_shift_deg": -0.88856289874073,
+      "shift_over_turn": 0.8885628987407415
+    },
+    {
+      "recording": "exp23p2",
+      "injection": "inject_cam3_y+1",
+      "pair": "cam0-cam3",
+      "turn_in_pair_deg": [
+        -0.012384543125788348,
+        0.9998695848470526,
+        0.010365152643484237
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "judged",
+        "status": "fail",
+        "candidate_error_deg": 1.2613507349884419,
+        "tolerance_deg": 0.5
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "turning the candidate 0.2 deg moved the estimate by +0.015 deg (response 0.08, outside 0.5 to 1.5)"
+      },
+      "injected_pair_verdict": "fail",
+      "injected_estimate": {
+        "candidate_error_deg": 1.2613507349884419,
+        "jackknife_std_deg": 0.08998912761900081,
+        "jackknife_above_bound": false,
+        "control_response": 0.7918201848890414,
+        "control_failed": false,
+        "observable": true,
+        "reason": "the 0.2 deg control moved the estimate by +0.158 deg",
+        "recentred_by_deg": 1.3088772879202657
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.29106415451429984,
+        "jackknife_std_deg": 0.09895341657471503,
+        "jackknife_above_bound": false,
+        "control_response": 0.07522112883521954,
+        "control_failed": true,
+        "observable": false,
+        "reason": "turning the candidate 0.2 deg moved the estimate by +0.015 deg (response 0.08, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.2273127380387841
+      },
+      "estimate_shift_deg": 0.9702865804741421,
+      "shift_over_turn": 0.9704131370518329
+    },
+    {
+      "recording": "exp23p2",
+      "injection": "inject_cam3_y+1",
+      "pair": "cam1-cam3",
+      "turn_in_pair_deg": [
+        -0.007739237894205916,
+        0.9999006033515682,
+        0.011785058930680381
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.104 deg exceeds 0.1 deg"
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "jackknife std 0.126 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.002 deg (response 0.01, outside 0.5 to 1.5)"
+      },
+      "injected_pair_verdict": "pass",
+      "injected_estimate": {
+        "candidate_error_deg": 1.158399397905522,
+        "jackknife_std_deg": 0.10396919578761586,
+        "jackknife_above_bound": true,
+        "control_response": 1.1775337901332785,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.104 deg exceeds 0.1 deg",
+        "recentred_by_deg": 1.2203504062829118
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.289868604211221,
+        "jackknife_std_deg": 0.12563942481668833,
+        "jackknife_above_bound": true,
+        "control_response": 0.012272540658605849,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.126 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.002 deg (response 0.01, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.19485309829158906
+      },
+      "estimate_shift_deg": 0.868530793694301,
+      "shift_over_turn": 0.8686171313259252
+    },
+    {
+      "recording": "exp23p2",
+      "injection": "inject_cam1_y+1",
+      "pair": "cam1-cam3",
+      "turn_in_pair_deg": [
+        -3.1557466518371765e-15,
+        -1.0000000000000002,
+        -1.3169651381682706e-15
+      ],
+      "turned_axis": "pitch",
+      "injected": {
+        "state": "unchecked",
+        "reason_code": "unobservable",
+        "reason": "jackknife std 0.140 deg exceeds 0.1 deg"
+      },
+      "baseline": {
+        "state": "unchecked",
+        "reason_code": "control_not_detected",
+        "reason": "jackknife std 0.126 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.002 deg (response 0.01, outside 0.5 to 1.5)"
+      },
+      "injected_pair_verdict": "inconclusive",
+      "injected_estimate": {
+        "candidate_error_deg": -0.938224615579237,
+        "jackknife_std_deg": 0.13971315505399515,
+        "jackknife_above_bound": true,
+        "control_response": 1.4271834657762523,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.140 deg exceeds 0.1 deg",
+        "recentred_by_deg": -0.7729447218537772
+      },
+      "baseline_estimate": {
+        "candidate_error_deg": 0.289868604211221,
+        "jackknife_std_deg": 0.12563942481668833,
+        "jackknife_above_bound": true,
+        "control_response": 0.012272540658605849,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.126 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.002 deg (response 0.01, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.19485309829158906
+      },
+      "estimate_shift_deg": -1.228093219790458,
+      "shift_over_turn": 1.2280932197904577
+    }
+  ],
+  "trials": [
+    {
+      "recording": "exp05",
+      "injection": "inject_cam3_y+1",
+      "scored_pairs": [
+        "cam0-cam3",
+        "cam1-cam3"
+      ],
+      "flagging_pairs": [
+        "cam0-cam3",
+        "cam1-cam3"
+      ],
+      "attribution": {
+        "status": "attributed",
+        "frame": "alphasense/cam3/image_raw"
+      }
+    },
+    {
+      "recording": "exp05",
+      "injection": "inject_cam1_y+1",
+      "scored_pairs": [
+        "cam0-cam1",
+        "cam1-cam3",
+        "cam1-cam4"
+      ],
+      "flagging_pairs": [
+        "cam0-cam1"
+      ],
+      "attribution": {
+        "status": "ambiguous",
+        "frame": null
+      }
+    },
+    {
+      "recording": "exp06",
+      "injection": "inject_cam3_y+1",
+      "scored_pairs": [
+        "cam0-cam3",
+        "cam1-cam3"
+      ],
+      "flagging_pairs": [
+        "cam0-cam3"
+      ],
+      "attribution": {
+        "status": "attributed",
+        "frame": "alphasense/cam3/image_raw"
+      }
+    },
+    {
+      "recording": "exp06",
+      "injection": "inject_cam1_y+1",
+      "scored_pairs": [
+        "cam0-cam1",
+        "cam1-cam3",
+        "cam1-cam4"
+      ],
+      "flagging_pairs": [
+        "cam0-cam1"
+      ],
+      "attribution": {
+        "status": "ambiguous",
+        "frame": null
+      }
+    },
+    {
+      "recording": "exp09",
+      "injection": "inject_cam3_y+1",
+      "scored_pairs": [
+        "cam0-cam3",
+        "cam1-cam3"
+      ],
+      "flagging_pairs": [
+        "cam1-cam3"
+      ],
+      "attribution": {
+        "status": "attributed",
+        "frame": "alphasense/cam3/image_raw"
+      }
+    },
+    {
+      "recording": "exp09",
+      "injection": "inject_cam1_y+1",
+      "scored_pairs": [
+        "cam0-cam1",
+        "cam1-cam3",
+        "cam1-cam4"
+      ],
+      "flagging_pairs": [
+        "cam0-cam1",
+        "cam1-cam4"
+      ],
+      "attribution": {
+        "status": "attributed",
+        "frame": "alphasense/cam1/image_raw"
+      }
+    },
+    {
+      "recording": "exp10",
+      "injection": "inject_cam3_y+1",
+      "scored_pairs": [
+        "cam0-cam3",
+        "cam1-cam3"
+      ],
+      "flagging_pairs": [],
+      "attribution": {
+        "status": "consistent",
+        "frame": null
+      }
+    },
+    {
+      "recording": "exp10",
+      "injection": "inject_cam1_y+1",
+      "scored_pairs": [
+        "cam0-cam1",
+        "cam1-cam3",
+        "cam1-cam4"
+      ],
+      "flagging_pairs": [
+        "cam0-cam1"
+      ],
+      "attribution": {
+        "status": "ambiguous",
+        "frame": null
+      }
+    },
+    {
+      "recording": "exp11",
+      "injection": "inject_cam3_y+1",
+      "scored_pairs": [
+        "cam0-cam3",
+        "cam1-cam3"
+      ],
+      "flagging_pairs": [],
+      "attribution": {
+        "status": "consistent",
+        "frame": null
+      }
+    },
+    {
+      "recording": "exp11",
+      "injection": "inject_cam1_y+1",
+      "scored_pairs": [
+        "cam0-cam1",
+        "cam1-cam3"
+      ],
+      "flagging_pairs": [
+        "cam0-cam1"
+      ],
+      "attribution": {
+        "status": "attributed",
+        "frame": "alphasense/cam1/image_raw"
+      }
+    },
+    {
+      "recording": "exp14",
+      "injection": "inject_cam3_y+1",
+      "scored_pairs": [
+        "cam1-cam3"
+      ],
+      "flagging_pairs": [],
+      "attribution": {
+        "status": "attributed",
+        "frame": "alphasense/cam3/image_raw"
+      }
+    },
+    {
+      "recording": "exp14",
+      "injection": "inject_cam1_y+1",
+      "scored_pairs": [
+        "cam0-cam1",
+        "cam1-cam3",
+        "cam1-cam4"
+      ],
+      "flagging_pairs": [
+        "cam0-cam1",
+        "cam1-cam3",
+        "cam1-cam4"
+      ],
+      "attribution": {
+        "status": "attributed",
+        "frame": "alphasense/cam1/image_raw"
+      }
+    },
+    {
+      "recording": "exp15",
+      "injection": "inject_cam3_y+1",
+      "scored_pairs": [
+        "cam0-cam3",
+        "cam1-cam3"
+      ],
+      "flagging_pairs": [],
+      "attribution": {
+        "status": "consistent",
+        "frame": null
+      }
+    },
+    {
+      "recording": "exp15",
+      "injection": "inject_cam1_y+1",
+      "scored_pairs": [
+        "cam0-cam1",
+        "cam1-cam3",
+        "cam1-cam4"
+      ],
+      "flagging_pairs": [
+        "cam0-cam1"
+      ],
+      "attribution": {
+        "status": "ambiguous",
+        "frame": null
+      }
+    },
+    {
+      "recording": "exp16",
+      "injection": "inject_cam1_y+1",
+      "scored_pairs": [
+        "cam0-cam1"
+      ],
+      "flagging_pairs": [],
+      "attribution": {
+        "status": "consistent",
+        "frame": null
+      }
+    },
+    {
+      "recording": "exp18",
+      "injection": "inject_cam3_y+1",
+      "scored_pairs": [
+        "cam0-cam3",
+        "cam1-cam3"
+      ],
+      "flagging_pairs": [
+        "cam1-cam3"
+      ],
+      "attribution": {
+        "status": "unexplained",
+        "frame": null
+      }
+    },
+    {
+      "recording": "exp18",
+      "injection": "inject_cam1_y+1",
+      "scored_pairs": [
+        "cam0-cam1",
+        "cam1-cam3",
+        "cam1-cam4"
+      ],
+      "flagging_pairs": [],
+      "attribution": {
+        "status": "consistent",
+        "frame": null
+      }
+    },
+    {
+      "recording": "exp23p0",
+      "injection": "inject_cam3_y+1",
+      "scored_pairs": [
+        "cam0-cam3",
+        "cam1-cam3"
+      ],
+      "flagging_pairs": [
+        "cam0-cam3",
+        "cam1-cam3"
+      ],
+      "attribution": {
+        "status": "attributed",
+        "frame": "alphasense/cam3/image_raw"
+      }
+    },
+    {
+      "recording": "exp23p0",
+      "injection": "inject_cam1_y+1",
+      "scored_pairs": [
+        "cam0-cam1",
+        "cam1-cam3",
+        "cam1-cam4"
+      ],
+      "flagging_pairs": [
+        "cam0-cam1",
+        "cam1-cam3",
+        "cam1-cam4"
+      ],
+      "attribution": {
+        "status": "attributed",
+        "frame": "alphasense/cam1/image_raw"
+      }
+    },
+    {
+      "recording": "exp23p1",
+      "injection": "inject_cam3_y+1",
+      "scored_pairs": [
+        "cam0-cam3",
+        "cam1-cam3"
+      ],
+      "flagging_pairs": [
+        "cam0-cam3"
+      ],
+      "attribution": {
+        "status": "attributed",
+        "frame": "alphasense/cam3/image_raw"
+      }
+    },
+    {
+      "recording": "exp23p1",
+      "injection": "inject_cam1_y+1",
+      "scored_pairs": [
+        "cam0-cam1",
+        "cam1-cam3",
+        "cam1-cam4"
+      ],
+      "flagging_pairs": [
+        "cam0-cam1",
+        "cam1-cam4"
+      ],
+      "attribution": {
+        "status": "attributed",
+        "frame": "alphasense/cam1/image_raw"
+      }
+    },
+    {
+      "recording": "exp23p2",
+      "injection": "inject_cam3_y+1",
+      "scored_pairs": [
+        "cam0-cam3",
+        "cam1-cam3"
+      ],
+      "flagging_pairs": [
+        "cam0-cam3"
+      ],
+      "attribution": {
+        "status": "ambiguous",
+        "frame": null
+      }
+    },
+    {
+      "recording": "exp23p2",
+      "injection": "inject_cam1_y+1",
+      "scored_pairs": [
+        "cam1-cam3"
+      ],
+      "flagging_pairs": [],
+      "attribution": null
+    }
+  ],
+  "baseline_unchecked_turned_axis": [
+    {
+      "recording": "exp23p0",
+      "pair": "cam1-cam4",
+      "estimate": {
+        "candidate_error_deg": 1.514525120866984,
+        "jackknife_std_deg": 0.14443037027544972,
+        "jackknife_above_bound": true,
+        "control_response": -0.9054598683747835,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.144 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by -0.181 deg (response -0.91, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.9915760643201117
+      }
+    },
+    {
+      "recording": "exp09",
+      "pair": "cam0-cam4",
+      "estimate": {
+        "candidate_error_deg": 1.0704609905518978,
+        "jackknife_std_deg": 0.16894138202014192,
+        "jackknife_above_bound": true,
+        "control_response": -0.132959930067571,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.169 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by -0.027 deg (response -0.13, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.7238114161640045
+      }
+    },
+    {
+      "recording": "exp18",
+      "pair": "cam1-cam4",
+      "estimate": {
+        "candidate_error_deg": -0.6597621109342684,
+        "jackknife_std_deg": 0.32059784558447996,
+        "jackknife_above_bound": true,
+        "control_response": 0.6517992778677248,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.321 deg exceeds 0.1 deg",
+        "recentred_by_deg": -0.6555407580107642
+      }
+    },
+    {
+      "recording": "exp23p1",
+      "pair": "cam0-cam4",
+      "estimate": {
+        "candidate_error_deg": -0.45432817582565777,
+        "jackknife_std_deg": 0.27236552011382836,
+        "jackknife_above_bound": true,
+        "control_response": 0.9473476361262878,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.272 deg exceeds 0.1 deg",
+        "recentred_by_deg": -0.49119632885489717
+      }
+    },
+    {
+      "recording": "exp15",
+      "pair": "cam0-cam4",
+      "estimate": {
+        "candidate_error_deg": -0.4423424983544297,
+        "jackknife_std_deg": 0.15064644294902568,
+        "jackknife_above_bound": true,
+        "control_response": 0.8555253986236335,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.151 deg exceeds 0.1 deg",
+        "recentred_by_deg": -0.5457452563915052
+      }
+    },
+    {
+      "recording": "exp23p0",
+      "pair": "cam0-cam3",
+      "estimate": {
+        "candidate_error_deg": 0.4355612392026868,
+        "jackknife_std_deg": 0.08018209953203954,
+        "jackknife_above_bound": false,
+        "control_response": 0.23859133599121818,
+        "control_failed": true,
+        "observable": false,
+        "reason": "turning the candidate 0.2 deg moved the estimate by +0.048 deg (response 0.24, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.35699435775496746
+      }
+    },
+    {
+      "recording": "exp10",
+      "pair": "cam0-cam4",
+      "estimate": {
+        "candidate_error_deg": 0.4092420185242567,
+        "jackknife_std_deg": 0.2533255501684992,
+        "jackknife_above_bound": true,
+        "control_response": 0.6222809056858127,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.253 deg exceeds 0.1 deg",
+        "recentred_by_deg": 0.33570735969750115
+      }
+    },
+    {
+      "recording": "exp23p1",
+      "pair": "cam1-cam3",
+      "estimate": {
+        "candidate_error_deg": 0.35133235428091686,
+        "jackknife_std_deg": 0.15508078488108962,
+        "jackknife_above_bound": true,
+        "control_response": 0.21575941766242765,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.155 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.043 deg (response 0.22, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.43557331002132094
+      }
+    },
+    {
+      "recording": "exp16",
+      "pair": "cam0-cam1",
+      "estimate": {
+        "candidate_error_deg": 0.34515004253063175,
+        "jackknife_std_deg": 0.2810281544440963,
+        "jackknife_above_bound": true,
+        "control_response": 0.514850259062764,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.281 deg exceeds 0.1 deg",
+        "recentred_by_deg": 0.2973167244258902
+      }
+    },
+    {
+      "recording": "exp06",
+      "pair": "cam1-cam3",
+      "estimate": {
+        "candidate_error_deg": 0.3029420371183034,
+        "jackknife_std_deg": 0.17357689350294567,
+        "jackknife_above_bound": true,
+        "control_response": 1.0515577098666455,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.174 deg exceeds 0.1 deg",
+        "recentred_by_deg": 0.46594467065694206
+      }
+    },
+    {
+      "recording": "exp23p2",
+      "pair": "cam0-cam3",
+      "estimate": {
+        "candidate_error_deg": 0.29106415451429984,
+        "jackknife_std_deg": 0.09895341657471503,
+        "jackknife_above_bound": false,
+        "control_response": 0.07522112883521954,
+        "control_failed": true,
+        "observable": false,
+        "reason": "turning the candidate 0.2 deg moved the estimate by +0.015 deg (response 0.08, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.2273127380387841
+      }
+    },
+    {
+      "recording": "exp23p2",
+      "pair": "cam1-cam3",
+      "estimate": {
+        "candidate_error_deg": 0.289868604211221,
+        "jackknife_std_deg": 0.12563942481668833,
+        "jackknife_above_bound": true,
+        "control_response": 0.012272540658605849,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.126 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.002 deg (response 0.01, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.19485309829158906
+      }
+    },
+    {
+      "recording": "exp11",
+      "pair": "cam0-cam3",
+      "estimate": {
+        "candidate_error_deg": 0.27491423720269637,
+        "jackknife_std_deg": 0.044727349666857465,
+        "jackknife_above_bound": false,
+        "control_response": -0.07439893246973951,
+        "control_failed": true,
+        "observable": false,
+        "reason": "turning the candidate 0.2 deg moved the estimate by -0.015 deg (response -0.07, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.22195764753027322
+      }
+    },
+    {
+      "recording": "exp14",
+      "pair": "cam1-cam3",
+      "estimate": {
+        "candidate_error_deg": 0.2730566933202715,
+        "jackknife_std_deg": 0.1263534290458794,
+        "jackknife_above_bound": true,
+        "control_response": 0.35319622656948885,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.126 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.071 deg (response 0.35, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.22193402959013642
+      }
+    },
+    {
+      "recording": "exp15",
+      "pair": "cam0-cam3",
+      "estimate": {
+        "candidate_error_deg": 0.26998559420130164,
+        "jackknife_std_deg": 0.13030484522606986,
+        "jackknife_above_bound": true,
+        "control_response": 0.8587758247579381,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.130 deg exceeds 0.1 deg",
+        "recentred_by_deg": 0.20301500505233933
+      }
+    },
+    {
+      "recording": "exp14",
+      "pair": "cam0-cam4",
+      "estimate": {
+        "candidate_error_deg": -0.26085993414707126,
+        "jackknife_std_deg": 0.24877441902855296,
+        "jackknife_above_bound": true,
+        "control_response": 0.6982845905526116,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.249 deg exceeds 0.1 deg",
+        "recentred_by_deg": -0.19475386694748684
+      }
+    },
+    {
+      "recording": "exp10",
+      "pair": "cam1-cam3",
+      "estimate": {
+        "candidate_error_deg": 0.24485791343967253,
+        "jackknife_std_deg": 0.06783741578299883,
+        "jackknife_above_bound": false,
+        "control_response": 0.3919436497491189,
+        "control_failed": true,
+        "observable": false,
+        "reason": "turning the candidate 0.2 deg moved the estimate by +0.078 deg (response 0.39, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.18839341369446821
+      }
+    },
+    {
+      "recording": "exp05",
+      "pair": "cam0-cam3",
+      "estimate": {
+        "candidate_error_deg": 0.24187343350430285,
+        "jackknife_std_deg": 0.015524366994815,
+        "jackknife_above_bound": false,
+        "control_response": 1.5114962066761124,
+        "control_failed": true,
+        "observable": false,
+        "reason": "turning the candidate 0.2 deg moved the estimate by +0.302 deg (response 1.51, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.24483065593116538
+      }
+    },
+    {
+      "recording": "exp18",
+      "pair": "cam0-cam3",
+      "estimate": {
+        "candidate_error_deg": 0.20275243621011127,
+        "jackknife_std_deg": 0.12347913609970174,
+        "jackknife_above_bound": true,
+        "control_response": 0.7830889869698634,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.123 deg exceeds 0.1 deg",
+        "recentred_by_deg": 0.24024882081223226
+      }
+    },
+    {
+      "recording": "exp06",
+      "pair": "cam1-cam4",
+      "estimate": {
+        "candidate_error_deg": -0.19394532637758372,
+        "jackknife_std_deg": 0.12724350650243238,
+        "jackknife_above_bound": true,
+        "control_response": 1.3782041190645573,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.127 deg exceeds 0.1 deg",
+        "recentred_by_deg": -0.21582462965142815
+      }
+    },
+    {
+      "recording": "exp15",
+      "pair": "cam1-cam3",
+      "estimate": {
+        "candidate_error_deg": 0.18749357899352723,
+        "jackknife_std_deg": 0.21793587434635245,
+        "jackknife_above_bound": true,
+        "control_response": 1.5930093757737103,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.218 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.319 deg (response 1.59, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.3865723168669259
+      }
+    },
+    {
+      "recording": "exp23p1",
+      "pair": "cam1-cam4",
+      "estimate": {
+        "candidate_error_deg": -0.17970443010720935,
+        "jackknife_std_deg": 0.09090805237431793,
+        "jackknife_above_bound": false,
+        "control_response": 1.7890888196466677,
+        "control_failed": true,
+        "observable": false,
+        "reason": "turning the candidate 0.2 deg moved the estimate by +0.358 deg (response 1.79, outside 0.5 to 1.5)",
+        "recentred_by_deg": -0.2456919080120829
+      }
+    },
+    {
+      "recording": "exp18",
+      "pair": "cam0-cam1",
+      "estimate": {
+        "candidate_error_deg": -0.17493402284143234,
+        "jackknife_std_deg": 0.4469492914264469,
+        "jackknife_above_bound": true,
+        "control_response": 0.9652278240874187,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.447 deg exceeds 0.1 deg",
+        "recentred_by_deg": -0.34184269630673564
+      }
+    },
+    {
+      "recording": "exp11",
+      "pair": "cam1-cam3",
+      "estimate": {
+        "candidate_error_deg": 0.1161514342081921,
+        "jackknife_std_deg": 0.12554529155681363,
+        "jackknife_above_bound": true,
+        "control_response": 1.438799945623408,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.126 deg exceeds 0.1 deg",
+        "recentred_by_deg": 0.20530082945008257
+      }
+    },
+    {
+      "recording": "exp23p0",
+      "pair": "cam0-cam4",
+      "estimate": {
+        "candidate_error_deg": -0.06770800670375579,
+        "jackknife_std_deg": 0.26428783740860207,
+        "jackknife_above_bound": true,
+        "control_response": 0.7800962484462182,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.264 deg exceeds 0.1 deg",
+        "recentred_by_deg": 0.0
+      }
+    },
+    {
+      "recording": "exp10",
+      "pair": "cam1-cam4",
+      "estimate": {
+        "candidate_error_deg": -0.05311186128144268,
+        "jackknife_std_deg": 0.13707128865624107,
+        "jackknife_above_bound": true,
+        "control_response": 0.9425630700704688,
+        "control_failed": false,
+        "observable": false,
+        "reason": "jackknife std 0.137 deg exceeds 0.1 deg",
+        "recentred_by_deg": -0.017998608966535063
+      }
+    },
+    {
+      "recording": "exp23p0",
+      "pair": "cam1-cam3",
+      "estimate": {
+        "candidate_error_deg": 0.05135651631590245,
+        "jackknife_std_deg": 0.12190221369248243,
+        "jackknife_above_bound": true,
+        "control_response": -0.14224596335272335,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.122 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by -0.028 deg (response -0.14, outside 0.5 to 1.5)",
+        "recentred_by_deg": 0.0
+      }
+    },
+    {
+      "recording": "exp09",
+      "pair": "cam1-cam3",
+      "estimate": {
+        "candidate_error_deg": -0.038784153036970005,
+        "jackknife_std_deg": 0.22077366469553028,
+        "jackknife_above_bound": true,
+        "control_response": 1.9615888415587057,
+        "control_failed": true,
+        "observable": false,
+        "reason": "jackknife std 0.221 deg exceeds 0.1 deg; turning the candidate 0.2 deg moved the estimate by +0.392 deg (response 1.96, outside 0.5 to 1.5)",
+        "recentred_by_deg": -0.13065133121954126
+      }
+    }
+  ],
+  "summary": {
+    "pair_trials": 52,
+    "missing_injected_records": 0,
+    "turned_axis": {
+      "pitch": 52
+    },
+    "turned_axis_judged": 24,
+    "judged_verdicts": {
+      "warn": 10,
+      "fail": 14
+    },
+    "turned_axis_unchecked": 28,
+    "unchecked_reason_codes": {
+      "unobservable": 15,
+      "control_not_detected": 13
+    },
+    "unchecked_jackknife_above_bound": 25,
+    "unchecked_control_failed": 13,
+    "unchecked_pair_verdicts": {
+      "pass": 24,
+      "inconclusive": 4
+    },
+    "unchecked_estimate_moved_with_the_turn": 27,
+    "unchecked_moved_abs_shift_deg": [
+      0.632,
+      0.732,
+      0.77,
+      0.813,
+      0.82,
+      0.824,
+      0.828,
+      0.859,
+      0.869,
+      0.892,
+      0.897,
+      0.918,
+      0.937,
+      0.98,
+      0.982,
+      1.02,
+      1.029,
+      1.04,
+      1.054,
+      1.057,
+      1.078,
+      1.095,
+      1.096,
+      1.103,
+      1.208,
+      1.228,
+      1.262
+    ],
+    "judged_abs_shift_deg": [
+      0.743,
+      0.848,
+      0.889,
+      0.901,
+      0.925,
+      0.926,
+      0.938,
+      0.947,
+      0.951,
+      0.952,
+      0.963,
+      0.968,
+      0.97,
+      0.99,
+      0.997,
+      0.999,
+      1.031,
+      1.033,
+      1.085,
+      1.098,
+      1.102,
+      1.12,
+      1.223,
+      2.703
+    ],
+    "unchecked_but_judged_on_the_baseline": 6,
+    "hidden_reason_codes": {
+      "unobservable": 3,
+      "control_not_detected": 3
+    },
+    "hidden_jackknife_above_bound": 6,
+    "hidden_jackknife_std_deg": [
+      0.121,
+      0.121,
+      0.127,
+      0.214,
+      0.332,
+      0.72
+    ],
+    "hidden_recentred_by_deg": [
+      -1.038,
+      -0.812,
+      -0.744,
+      -0.475,
+      1.201,
+      1.372
+    ],
+    "hidden_control_failed": 3,
+    "hidden_moved_with_the_turn": 5,
+    "trials": 23,
+    "ambiguous_trials": 5,
+    "ambiguous_trials_flagged_only_by": {
+      "cam0-cam1": 4,
+      "cam0-cam3": 1
+    },
+    "baseline_scored_units_with_turned_axis_unchecked": 28,
+    "their_abs_error_deg_max": 1.515,
+    "their_abs_error_over_0.5_deg": 3
+  },
+  "provenance": {
+    "generator": "tools/hilti_camera_camera_posthoc.py",
+    "post_hoc": "an analysis of the committed runs; it does not change the audit verdict",
+    "calibrex_version": "0.5.1",
+    "git_commit": "194dcef",
+    "tool_sha256": "5519934f9a60144252c2a0177a5020b199c37932a51e72970954001b737f01d1",
+    "python": "3.12.3",
+    "analysed_at": "2026-10-14T09:05:01+00:00",
+    "recordings": [
+      "exp05",
+      "exp06",
+      "exp09",
+      "exp10",
+      "exp11",
+      "exp14",
+      "exp15",
+      "exp16",
+      "exp18",
+      "exp23p0",
+      "exp23p1",
+      "exp23p2"
+    ],
+    "manifests_sha256": {
+      "exp05": "0861d35ef415fae7104475e17112789225ff44277eb6ea35d6ae2d8e5f6a353a",
+      "exp06": "5a10d1c9abc24d1af5c46fc6aeb0e7ca479cca71c94c96a91fc065824e870732",
+      "exp09": "99368c3af56d011bcb88fa5a6fd59afc6ec97c30388dc00e2d0d1773b68798a4",
+      "exp10": "05477607cd8c2c3396783f36e5c52209477d3d441f7634bc345afca85cccd4cc",
+      "exp11": "c6d277ffc00b217c00e301f8d486dd4d4b95473c5d6cd8cc5586778d4251784d",
+      "exp14": "1a21c1dc2ca66581bbe12722c9bb3d169a8cece9e83ea64f5fe7d198b8c92608",
+      "exp15": "590afb7a676a9dfb8857acaa03405aad13bbff1ab3ca3be0169ff58ecab0bcbb",
+      "exp16": "735afa9a868fef3da34d6d8f27d58781cc6955b88df542817ca2245cc5c67c90",
+      "exp18": "fc5859bc881cec5a5e9785db5ae710aaa49bd38a819b4ade04d0e74126e82022",
+      "exp23p0": "b334e71560fd73d21f2e51dca16de87d020c52460671563189c031718f0d80bc",
+      "exp23p1": "5b1846272ae98f55bf2a7f3b7bcb776b3b59575cbfa719701d20d02ed0dcbf6d",
+      "exp23p2": "088cf4b02c5c9f2fa3d5d2ac9d4c6677ab7a52bbc9570db9b0ad9100ae8827e3"
+    }
+  }
+}

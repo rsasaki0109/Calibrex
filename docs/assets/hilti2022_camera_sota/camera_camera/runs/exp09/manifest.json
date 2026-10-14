@@ -1,0 +1,135 @@
+{
+  "recording": "exp09",
+  "bag": {
+    "name": "exp09_head.bag",
+    "size_bytes": 4999020396,
+    "sha256": "41b2fd03ff13c0ccbb2faeed8b3ecd35702a2f9de01cad63cf97f6b695f31e0c",
+    "sha256_source": "computed while downloading (tools/hilti_download.py)",
+    "download": {
+      "name": "exp09_cupola.bag",
+      "url": "https://huggingface.co/datasets/Hilti-Research/hilti-slam-challenge-2022/resolve/main/rosbags/exp09_cupola.bag",
+      "bytes": [
+        0,
+        4999020396
+      ],
+      "requested_bytes": 5000000000,
+      "full_size": 34069990788,
+      "full": false,
+      "sha256": "41b2fd03ff13c0ccbb2faeed8b3ecd35702a2f9de01cad63cf97f6b695f31e0c",
+      "lfs_sha256": "519b56325cd2e6ec0310ff98498ad7f0f49dc393423c697a737a1273f5dd813a",
+      "matches_lfs": null,
+      "wall_s": 35.2
+    },
+    "hash_wall_s": 0.0
+  },
+  "pairs": "camera-camera",
+  "calibration_sha256": {
+    "calib_3_cam0-1-camchain-imucam.yaml": "344ab530f12ea3eb8c658bdc005368275eccd70bca559a9fab8713a98cb1c60e",
+    "calib_3_cam2-camchain-imucam.yaml": "83b1dfdc45ee03a45c05fbff5f060c4e0e3db29e11294103426eadfffec8fdd6",
+    "calib_3_cam3-camchain-imucam.yaml": "c5cbd871f1dafc4f395c355720ba85a89ee2fd993fd328b00d0df9e75b8dd7ff",
+    "calib_3_cam4-camchain-imucam.yaml": "90bf3344be9b6a6f91df5b61f62b15137d9bedd2034a92c719c171e3429720f9",
+    "lidar_calibration.yaml": "ea5127989317270d83d9a701318d7e284031a21bd9cbf466b8f9f169547db43c"
+  },
+  "git_commit": "1c8703100d46e838ca520494082e20813f0c2118",
+  "tool_sha256": "6c75c9a4d594be5bf88447db0a3532bb89144809a6b685f723f4844a303ce823",
+  "environment": {
+    "python": "3.12.3",
+    "numpy": "2.5.3",
+    "platform": "Linux-6.18.44-fc-v114-x86_64-with-glibc2.39"
+  },
+  "runs": {
+    "baseline": {
+      "command": [
+        "/home/user/Calibrex/.venv/bin/calibrex",
+        "check",
+        "/home/user/sota_eval/work_cc/exp09_head.bag",
+        "--pairs",
+        "camera-camera",
+        "--tf",
+        "data/public/hilti_2022/calib_3_cam0-1-camchain-imucam.yaml",
+        "--tf",
+        "data/public/hilti_2022/calib_3_cam2-camchain-imucam.yaml",
+        "--tf",
+        "data/public/hilti_2022/calib_3_cam3-camchain-imucam.yaml",
+        "--tf",
+        "data/public/hilti_2022/calib_3_cam4-camchain-imucam.yaml",
+        "--tf",
+        "data/public/hilti_2022/lidar_calibration.yaml",
+        "--fail-on",
+        "never",
+        "--evidence-dir",
+        "/home/user/sota_eval/runs_cc/exp09/baseline_evidence",
+        "--output",
+        "/home/user/sota_eval/runs_cc/exp09/baseline.json",
+        "--no-cache"
+      ],
+      "exit_code": 0,
+      "wall_s": 446.2,
+      "artifact": "baseline.json"
+    },
+    "inject_cam3_y+1": {
+      "camera": "cam3",
+      "axis": "y",
+      "degrees": 1.0,
+      "command": [
+        "/home/user/Calibrex/.venv/bin/calibrex",
+        "check",
+        "/home/user/sota_eval/work_cc/exp09_head.bag",
+        "--pairs",
+        "camera-camera",
+        "--tf",
+        "/home/user/sota_eval/runs_cc/exp09/inject_cam3_y+1_calibration/calib_3_cam0-1-camchain-imucam.yaml",
+        "--tf",
+        "/home/user/sota_eval/runs_cc/exp09/inject_cam3_y+1_calibration/calib_3_cam2-camchain-imucam.yaml",
+        "--tf",
+        "/home/user/sota_eval/runs_cc/exp09/inject_cam3_y+1_calibration/calib_3_cam3-camchain-imucam.yaml",
+        "--tf",
+        "/home/user/sota_eval/runs_cc/exp09/inject_cam3_y+1_calibration/calib_3_cam4-camchain-imucam.yaml",
+        "--tf",
+        "/home/user/sota_eval/runs_cc/exp09/inject_cam3_y+1_calibration/lidar_calibration.yaml",
+        "--fail-on",
+        "never",
+        "--evidence-dir",
+        "/home/user/sota_eval/runs_cc/exp09/inject_cam3_y+1_evidence",
+        "--output",
+        "/home/user/sota_eval/runs_cc/exp09/inject_cam3_y+1.json",
+        "--no-cache"
+      ],
+      "exit_code": 0,
+      "wall_s": 446.0,
+      "artifact": "inject_cam3_y+1.json"
+    },
+    "inject_cam1_y+1": {
+      "camera": "cam1",
+      "axis": "y",
+      "degrees": 1.0,
+      "command": [
+        "/home/user/Calibrex/.venv/bin/calibrex",
+        "check",
+        "/home/user/sota_eval/work_cc/exp09_head.bag",
+        "--pairs",
+        "camera-camera",
+        "--tf",
+        "/home/user/sota_eval/runs_cc/exp09/inject_cam1_y+1_calibration/calib_3_cam0-1-camchain-imucam.yaml",
+        "--tf",
+        "/home/user/sota_eval/runs_cc/exp09/inject_cam1_y+1_calibration/calib_3_cam2-camchain-imucam.yaml",
+        "--tf",
+        "/home/user/sota_eval/runs_cc/exp09/inject_cam1_y+1_calibration/calib_3_cam3-camchain-imucam.yaml",
+        "--tf",
+        "/home/user/sota_eval/runs_cc/exp09/inject_cam1_y+1_calibration/calib_3_cam4-camchain-imucam.yaml",
+        "--tf",
+        "/home/user/sota_eval/runs_cc/exp09/inject_cam1_y+1_calibration/lidar_calibration.yaml",
+        "--fail-on",
+        "never",
+        "--evidence-dir",
+        "/home/user/sota_eval/runs_cc/exp09/inject_cam1_y+1_evidence",
+        "--output",
+        "/home/user/sota_eval/runs_cc/exp09/inject_cam1_y+1.json",
+        "--no-cache"
+      ],
+      "exit_code": 0,
+      "wall_s": 457.0,
+      "artifact": "inject_cam1_y+1.json"
+    }
+  }
+}

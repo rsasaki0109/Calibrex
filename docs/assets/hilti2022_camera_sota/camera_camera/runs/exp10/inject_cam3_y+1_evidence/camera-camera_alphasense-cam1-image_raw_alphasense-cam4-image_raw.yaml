@@ -1,0 +1,101 @@
+schema_version: slac.stereo_rotation/v0.1
+method: rectified_row_offsets/v0.1
+policy_status: warn
+policy_reasons:
+- '5259 of 7405 matched patches constrain rows; observable: yaw'
+frames: 48
+patches: 7405
+patches_constraining_rows: 5259
+baseline_m: 0.05833803783915625
+rectified_focal_px: 352.75381465027397
+rectified_from_left:
+- - -0.20790157418708782
+  - -0.06527904620327553
+  - -0.9759690474483919
+- - 0.06262978431562687
+  - -0.9966115931388844
+  - 0.05331831334309638
+- - -0.976142635871986
+  - -0.05003976966339044
+  - 0.21128553165071656
+axes:
+- name: roll
+  candidate_error_deg: 0.13862118087769412
+  std_deg: 0.12699836142969043
+  scale_std_deg: 0.07724812415966856
+  control_response: 1.0188918369450546
+  observable: false
+  reason: jackknife std 0.101 deg exceeds 0.1 deg
+- name: pitch
+  candidate_error_deg: -0.05311186128144268
+  std_deg: 0.24338839729072276
+  scale_std_deg: 0.2011202967426812
+  control_response: 0.9425630700704688
+  observable: false
+  reason: jackknife std 0.137 deg exceeds 0.1 deg
+- name: yaw
+  candidate_error_deg: -0.10708608627629826
+  std_deg: 0.11078692667963634
+  scale_std_deg: 0.050437988088288914
+  control_response: 0.8687358250679014
+  observable: true
+  reason: the 0.2 deg control moved the estimate by +0.174 deg
+vertical_baseline_ratio: 0.036975879532944976
+residual_std_px: 0.9059027710494335
+row_scale_ratio: 0.00014351103106692375
+row_scale_ratio_std: 0.002537117819355013
+time_offset_s: 0.00016455612337066647
+time_offset_std_s: 0.0011680520124761585
+time_offset_status: estimated
+timing_source: gyro /alphasense/imu
+max_stamp_gap_s: 0.0
+recentred_by_deg:
+- 0.12380167811045982
+- -0.017998608966535063
+- -0.09766139862752363
+options:
+  max_pairs: 48
+  spacing_s: 1.0
+  max_seconds: null
+  max_gap_s: 0.002
+  max_unsynchronised_gap_s: 0.03
+  max_time_std_s: 0.002
+  min_shared_view: 0.05
+  patches_per_pair: 300
+  max_disparity_px: 60
+  blocks: 6
+  min_patches: 500
+  control_deg: 0.2
+  min_response: 0.5
+  max_response: 1.5
+  max_std_deg: 0.1
+  rows_px: 4
+  coarse_rows_px: 12
+  coarse_patches_per_pair: 100
+  coarse_min_disparity_px: -30
+  recentre_deg: 0.2
+  max_recentres: 3
+  fit_row_scale: true
+  row_scale_prior: 0.003
+limitations:
+- 'rotation only: the translation between the cameras is not judged'
+- the images must share texture that varies across rows (blank walls do not)
+provenance:
+  generator: calibrex.check.estimators.run_camera_camera
+  generator_version: '0.1'
+  git_commit: 1c87031
+  command:
+  - calibrex
+  - check
+  - /home/user/sota_eval/work_cc/exp10_head.bag
+  - camera-camera
+  - /alphasense/cam1/image_raw
+  - /alphasense/cam4/image_raw
+  left_topic: /alphasense/cam1/image_raw
+  right_topic: /alphasense/cam4/image_raw
+  left_frame: alphasense/cam1/image_raw
+  right_frame: alphasense/cam4/image_raw
+  intrinsics_source: calib_3_cam0-1-camchain-imucam.yaml cam1; calib_3_cam4-camchain-imucam.yaml
+    cam0
+  bag_sha256: 028f8df4d22441959aff4867a78cb6ddca3fb7535252ede5983fd933527c5b00
+  created_at: '2026-10-14T06:04:54.393163+00:00'

@@ -1,0 +1,734 @@
+schema_version: slac.benchmark/v0.1
+benchmark_id: hilti-camera-camera-trial-coverage
+title: Hilti camera-camera injection trials that were evaluable
+protocol:
+  protocol_id: hilti-camera-camera-v1
+  dataset_id: hilti2022_unused_recordings_first_5gb
+  dataset_source_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+  data_license: Hilti SLAM Challenge 2022 terms (CC BY-NC-SA 3.0)
+  split_policy: one split per injection and recording; a trial that is not evaluable
+    fails
+  splits:
+  - split_id: exp05-inject_cam3_y+1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: c00e9df119c70e0e7a3e6fb89e9d15dfbfb6f648d94765865064dfbabbf0106e
+    holdout_ids_sha256: 7dbcd38f588d0045bcbc6300a02c0ceb5aaee98d0900fc0b3e1f2f88fcd1fed3
+  - split_id: exp05-inject_cam1_y+1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 5f7a6c9c5c583e3aa28438cbafcfa9511d1cadd5747571c077d8372364ff92cb
+    holdout_ids_sha256: f3d4521591fe3e22d367f561158e5a45daed84eb547244cb17ef2ace912bcaad
+  - split_id: exp06-inject_cam3_y+1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: f733074a34983d76e0b7d716ecf9bf9fa0b2a8f13cd0f952bcbc387104cbd784
+    holdout_ids_sha256: c3be18979b2df59015493ce81d543716045163f42a23ea4c7136bb64f2bc950a
+  - split_id: exp06-inject_cam1_y+1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: d474d22b7726028aa4e2b848b83aac4d5f4132a40e1460697f68350a3bcb0446
+    holdout_ids_sha256: 9e83003dc453e431c7b9ee235d52552abd1a6eb0439764449e495bded58fd6a3
+  - split_id: exp09-inject_cam3_y+1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 2daa2093fad5dcfb67b08b7cb6b70af60c0832c700cf735e86834582a0974bc0
+    holdout_ids_sha256: 8bfb51c2a4aa01298244879e142df2bfdbfcdde61ee1e824b483c4eefe3634aa
+  - split_id: exp09-inject_cam1_y+1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 01296a08a914ab05a06da50fcd777ab72319dc8a9669c2d7f7841db21b421045
+    holdout_ids_sha256: ebcfaaa354d5bbe3f9b0f1a41a26790b6d4e7bf5b3a0fd2317e99edcc39fb309
+  - split_id: exp10-inject_cam3_y+1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: ff3e41d07ebf12e609d6a6e7042b984b9e0a4b9dd86b6c5472c16e2aa231b109
+    holdout_ids_sha256: c03a343e51ce4088fab648254a1f7ae15c6e7b1b22bebf7c49df2c3a7d0edddb
+  - split_id: exp10-inject_cam1_y+1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 0347ad6ec70033ffc6ffe40c3019145263e319530bd300589c7e3810c658b3c5
+    holdout_ids_sha256: 76e28c2d277b2e692687a2163cd18cb583359dd2a8fce86f8300900395f33399
+  - split_id: exp11-inject_cam3_y+1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: e31f978ba71d1e99d8096e82eda0c58e268dc26251419c0aae608d70affea79a
+    holdout_ids_sha256: 1f8cbdb1df9f9cfc423ee73a65ffe90e2dd506e6425a3eb7e867b98277e718f6
+  - split_id: exp11-inject_cam1_y+1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 8503619f2a4035d104cdb497b546d2d5b01f86afb1987de770b97580afbb4f81
+    holdout_ids_sha256: 5adc968a87e5547784d9f342cbc6f9d06678d47447a2bd4dc6dd6923cc116d1b
+  - split_id: exp14-inject_cam3_y+1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 2b7bd7b1874bdd4ad15936ce6679d77de39034102ec6129172b5e89b209588ca
+    holdout_ids_sha256: 170078f106afa066513ed5f97c1bc73ff69977d887c6fb411a4e74b531355afb
+  - split_id: exp14-inject_cam1_y+1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: b4829c187deaa2bfd366af6ba57c40adc0ae42bb2d15a6468799f7b90bc03aa0
+    holdout_ids_sha256: 943b2838a144d3669242f6c5402e7615f25f2e0e982f38f55da3e17edcff20fc
+  - split_id: exp15-inject_cam3_y+1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 817c0cef5dc38f5b66415f2ae622db13bd8b2062d2cbfb013b5aa7462aec440c
+    holdout_ids_sha256: ded6a72debca1c8df07e8ccb4e6f351b70e2705440331f504148332e1e799aca
+  - split_id: exp15-inject_cam1_y+1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: dc583fb9f00aa014a8e388a7895cf0bca29bcf64784abd24fff2bc5df52272cc
+    holdout_ids_sha256: 737c38d492e89cee124a6774455fccd1c7938fdad79eaf9639488909dc6a6c0f
+  - split_id: exp16-inject_cam3_y+1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 27953bdf116601cc6c8f20e44fdfe8dc1b61d61156e101c358c882586be572ae
+    holdout_ids_sha256: 96b5ac8190d6b6b15f407015c60137d476f563063afaee08ff8238a771826816
+  - split_id: exp16-inject_cam1_y+1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 2867a963097fd54edf590afd63f22ea6d06b1d343bf692bad6371c5cc7607585
+    holdout_ids_sha256: 53f9cf59af0a54529d94762841ba0b921596678631539455178f90ae375bf7a5
+  - split_id: exp18-inject_cam3_y+1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: aa2b627f46547656a41132393b57c0ff2f34df758dde2fd0391b4caeff807790
+    holdout_ids_sha256: 15a048c2c46b8828eadfecc2e7783ca289bc29cd9e574a94234b28d683cd157a
+  - split_id: exp18-inject_cam1_y+1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 2f5d40f05c4c8f4fafd5ef9b228e248e9cad5bc9e4a5851994cc27d0a01054d4
+    holdout_ids_sha256: 5fb164ec93204d0fbaf1ac6f776caa52c7a15fae59cc89d026ab7cf70c39ff40
+  - split_id: exp23p0-inject_cam3_y+1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: a8bf50d708c000041b09f10cdf9ea192b0973f697e90db0edc871f9970b29299
+    holdout_ids_sha256: 581bc340b3274d171331b77cae124c6ac601d86d4f9bdea05d037c03ed68d66c
+  - split_id: exp23p0-inject_cam1_y+1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 7f82145a4a0037a8d6fa22141038ce7d2b515101551827154a14ee22e1adc722
+    holdout_ids_sha256: 6208515c4a9610879ae63bb5027c29a33e1e099e74825ed8b10932f555ab9f41
+  - split_id: exp23p1-inject_cam3_y+1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: e7e35530192d02360f5ca83f92cb14d7447437bddf7fa297b8a2b14df5e916e0
+    holdout_ids_sha256: 052035dec882a0284ef88660b627fc40f8adb511616f8e9d414351276b39772e
+  - split_id: exp23p1-inject_cam1_y+1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: f479a9adebc945f759efabc95de1d0a677fc3fb6cacc9ecff5b8ae330fcbe78b
+    holdout_ids_sha256: 3631b2ad2a3ec80437f050300fb7cac69e641b9062c17f837306b3c8c9e30ee9
+  - split_id: exp23p2-inject_cam3_y+1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: c8812d88004b1f65e818af5cf64209eca6ce02d4dd304a0c8cabb359251471bd
+    holdout_ids_sha256: b4ffdb64fdf2880f12554d34344bf2199fbb676fffecddf81d3e173fd9af9b02
+  - split_id: exp23p2-inject_cam1_y+1
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 618dca62130c2ef4178f36bd574e434cc923fd0cc078a4a5111e613909b1ae36
+    holdout_ids_sha256: cd9118f03149a51db06162f7be4042b80773214e8aa71ed54788003986957230
+  initial_estimate_policy: the candidate is Kalibr's calibration (or it turned by
+    the injection); the check re-centres its rectification on its own estimate
+  tuning_policy: procedure and thresholds pre-registered before the evaluation runs
+  failure_policy: a crashed run or a missing or skipped gated pair fails its units
+metrics:
+- name: evaluable
+  label: trial evaluable
+  unit: '1'
+  display_scale: 1.0
+  direction: lower
+  primary: true
+  interpretation: 1 for an evaluable trial
+methods:
+- method_id: kalibr_reference
+  label: Hilti Kalibr calibration (the reference; error against itself is 0)
+  implementation: calibrex_native
+  tool_name: kalibr
+- method_id: calibrex_check
+  label: Calibrex targetless camera-camera check
+  implementation: calibrex_native
+  tool_name: calibrex
+trials:
+- method_id: kalibr_reference
+  split_id: exp05-inject_cam3_y+1
+  status: success
+  metrics:
+    evaluable: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp05-inject_cam1_y+1
+  status: success
+  metrics:
+    evaluable: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp06-inject_cam3_y+1
+  status: success
+  metrics:
+    evaluable: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp06-inject_cam1_y+1
+  status: success
+  metrics:
+    evaluable: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp09-inject_cam3_y+1
+  status: success
+  metrics:
+    evaluable: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp09-inject_cam1_y+1
+  status: success
+  metrics:
+    evaluable: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp10-inject_cam3_y+1
+  status: success
+  metrics:
+    evaluable: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp10-inject_cam1_y+1
+  status: success
+  metrics:
+    evaluable: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp11-inject_cam3_y+1
+  status: success
+  metrics:
+    evaluable: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp11-inject_cam1_y+1
+  status: success
+  metrics:
+    evaluable: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp14-inject_cam3_y+1
+  status: success
+  metrics:
+    evaluable: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp14-inject_cam1_y+1
+  status: success
+  metrics:
+    evaluable: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp15-inject_cam3_y+1
+  status: success
+  metrics:
+    evaluable: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp15-inject_cam1_y+1
+  status: success
+  metrics:
+    evaluable: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp16-inject_cam3_y+1
+  status: success
+  metrics:
+    evaluable: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp16-inject_cam1_y+1
+  status: success
+  metrics:
+    evaluable: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp18-inject_cam3_y+1
+  status: success
+  metrics:
+    evaluable: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp18-inject_cam1_y+1
+  status: success
+  metrics:
+    evaluable: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp23p0-inject_cam3_y+1
+  status: success
+  metrics:
+    evaluable: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp23p0-inject_cam1_y+1
+  status: success
+  metrics:
+    evaluable: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp23p1-inject_cam3_y+1
+  status: success
+  metrics:
+    evaluable: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp23p1-inject_cam1_y+1
+  status: success
+  metrics:
+    evaluable: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp23p2-inject_cam3_y+1
+  status: success
+  metrics:
+    evaluable: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: kalibr_reference
+  split_id: exp23p2-inject_cam1_y+1
+  status: success
+  metrics:
+    evaluable: 0.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp05-inject_cam3_y+1
+  status: success
+  metrics:
+    evaluable: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp05-inject_cam1_y+1
+  status: success
+  metrics:
+    evaluable: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp06-inject_cam3_y+1
+  status: success
+  metrics:
+    evaluable: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp06-inject_cam1_y+1
+  status: success
+  metrics:
+    evaluable: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp09-inject_cam3_y+1
+  status: success
+  metrics:
+    evaluable: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp09-inject_cam1_y+1
+  status: success
+  metrics:
+    evaluable: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp10-inject_cam3_y+1
+  status: success
+  metrics:
+    evaluable: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp10-inject_cam1_y+1
+  status: success
+  metrics:
+    evaluable: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp11-inject_cam3_y+1
+  status: success
+  metrics:
+    evaluable: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp11-inject_cam1_y+1
+  status: success
+  metrics:
+    evaluable: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp14-inject_cam3_y+1
+  status: success
+  metrics:
+    evaluable: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp14-inject_cam1_y+1
+  status: success
+  metrics:
+    evaluable: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp15-inject_cam3_y+1
+  status: success
+  metrics:
+    evaluable: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp15-inject_cam1_y+1
+  status: success
+  metrics:
+    evaluable: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp16-inject_cam3_y+1
+  status: failed
+  metrics: {}
+  failure_reason: 'not evaluable: no gated pair with the camera was scored on the
+    baseline'
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp16-inject_cam1_y+1
+  status: success
+  metrics:
+    evaluable: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp18-inject_cam3_y+1
+  status: success
+  metrics:
+    evaluable: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp18-inject_cam1_y+1
+  status: success
+  metrics:
+    evaluable: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp23p0-inject_cam3_y+1
+  status: success
+  metrics:
+    evaluable: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp23p0-inject_cam1_y+1
+  status: success
+  metrics:
+    evaluable: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp23p1-inject_cam3_y+1
+  status: success
+  metrics:
+    evaluable: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp23p1-inject_cam1_y+1
+  status: success
+  metrics:
+    evaluable: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp23p2-inject_cam3_y+1
+  status: success
+  metrics:
+    evaluable: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+- method_id: calibrex_check
+  split_id: exp23p2-inject_cam1_y+1
+  status: success
+  metrics:
+    evaluable: 1.0
+  provenance:
+    command: calibrex check --pairs camera-camera
+    config_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    input_sha256: 457bda3544f779e5d1ea236241171050ee27e4704a2855a0429287c83fd3abcf
+    notes: []
+method_summaries:
+  kalibr_reference:
+    method_id: kalibr_reference
+    trial_count: 24
+    success_count: 24
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      evaluable:
+        metric: evaluable
+        distribution:
+          count: 24
+          mean: 0.0
+          median: 0.0
+          standard_deviation: 0.0
+          minimum: 0.0
+          maximum: 0.0
+          p90: 0.0
+          p95: 0.0
+          mean_ci95_low: 0.0
+          mean_ci95_high: 0.0
+        rank: 1
+  calibrex_check:
+    method_id: calibrex_check
+    trial_count: 24
+    success_count: 23
+    failure_count: 1
+    failure_rate: 0.041666666666666664
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      evaluable:
+        metric: evaluable
+        distribution:
+          count: 23
+          mean: 1.0
+          median: 1.0
+          standard_deviation: 0.0
+          minimum: 1.0
+          maximum: 1.0
+          p90: 1.0
+          p95: 1.0
+          mean_ci95_low: 1.0
+          mean_ci95_high: 1.0
+        rank: 2
+paired_comparisons:
+- reference_method_id: kalibr_reference
+  candidate_method_id: calibrex_check
+  metric: evaluable
+  direction: lower
+  paired_count: 23
+  raw_delta_mean: 1.0
+  improvement_mean: -1.0
+  improvement_ci95_low: -1.0
+  improvement_ci95_high: -1.0
+reference_method_id: kalibr_reference
+bootstrap_samples: 2000
+bootstrap_seed: 0
+limitations:
+- The reference is Hilti's target-based Kalibr calibration, not ground truth.
+- The pairs of one recording share cameras and a scene; they are not independent.
+- The three exp23 parts are consecutive parts of one session.
+provenance:
+  generator: tools/build_hilti_camera_camera_audit.py
+  generator_version: 0.5.1
+  generated_at: '2026-10-14T07:23:45.375840+00:00'
+  command: python tools/build_hilti_camera_camera_audit.py SCORES.json PREREGISTRATION
+    OUT
+  source_artifacts: {}
+  data_verified: true
