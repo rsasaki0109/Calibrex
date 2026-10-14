@@ -1,0 +1,108 @@
+from pathlib import Path
+import hashlib,json,shutil,statistics,tarfile
+
+source=Path('outputs/source-locality-formal-v1')
+root=Path('docs/assets/cuda_source_locality');root.mkdir(exist_ok=False)
+summary=json.loads((source/'summary.json').read_bytes())
+protocol=json.loads((source/'protocol.json').read_bytes())
+attempts=json.loads((source/'attempts.json').read_bytes())
+assert summary['quality_passed'] and len(attempts)==6
+for name in ('protocol.json','attempts.json','summary.json'):
+    shutil.copyfile(source/name,root/name)
+records={}
+for a in attempts:
+    folder=root/a['worker'];folder.mkdir()
+    for name in ('result.json','measurement.json','worker.log'):
+        shutil.copyfile(source/a['worker']/name,folder/name)
+    records[a['worker']]=json.loads((folder/'measurement.json').read_bytes())
+for variant in ('prior','current'):
+    folder=source/f'sources-{variant}'
+    shutil.copyfile(folder/'manifest.json',root/f'sources-{variant}-manifest.json')
+    with tarfile.open(root/f'sources-{variant}.tar.gz','w:gz') as bundle:
+        bundle.add('LICENSE',arcname='LICENSE',recursive=False)
+        for p in sorted((folder/'src').rglob('*.py')):
+            bundle.add(p,arcname=p.relative_to(folder).as_posix(),recursive=False)
+for path,name in [('tools/benchmark_bspline_lidar_imu.py','benchmark.py.txt'),
+                  ('tools/schemas/bspline_lidar_imu_comparison.schema.json','comparison.schema.json'),
+                  ('tests/unit/test_cuda_source_order.py','source-order-tests.py.txt'),
+                  ('tests/unit/test_cuda_scan_odometry_adapter.py','odometry-tests.py.txt'),
+                  (__file__,'publisher.py.txt')]:
+    shutil.copyfile(path,root/name)
+scopes={scope:{v:statistics.median(records[a['worker']][scope+'_seconds'] for a in attempts
+                                  if a['variant']==v) for v in ('prior','current')}
+        for scope in ('registration','normal_preparation')}
+whole=summary['whole_median_seconds'];fit=summary['fit_median_seconds']
+rows=['| Scope | Previous CUDA median | Spatial-scheduling median | Observed ratio |',
+      '| --- | ---: | ---: | ---: |',
+      f"| Complete worker | {whole['prior']:.3f} s | {whole['current']:.3f} s | {summary['whole_speedup']:.3f}x |"]
+for scope,title in [('registration','Complete registration'),('normal_preparation','Nested normal preparation')]:
+    r=scopes[scope];rows.append(f"| {title} | {r['prior']:.3f} s | {r['current']:.3f} s | {r['prior']/r['current']:.3f}x |")
+rows.append(f"| Unchanged fits/covariance | {fit['prior']:.3f} s | {fit['current']:.3f} s | {summary['fit_speedup']:.3f}x |")
+table='\n'.join(rows)
+attempt_table='\n'.join(['| Pair | Method | Whole seconds | Registration seconds |',
+                         '| --- | --- | ---: | ---: |']+
+                        [f"| {a['repeat']} | {a['variant']} | {a['whole_seconds']:.6f} | {records[a['worker']]['registration_seconds']:.6f} |" for a in attempts])
+result=json.loads((root/'00-current/result.json').read_bytes())
+reports=result['options']['initial_odometry_execution']+result['options']['segment_odometry_execution']
+stats={k:sum(r['statistics'].get(k,0) for r in reports) for k in reports[0]['statistics']}
+text=f'''# Public CUDA source-locality comparison
+
+Previous source: `{protocol['baseline_commit']}`. Measurement source:
+`{protocol['current_commit']}`. Original public GLIM Livox bag SHA-256:
+`{protocol['bag_sha256']}`. Raw data is not redistributed.
+
+{table}
+
+{attempt_table}
+
+All three comparisons retain zero complete calibration/holdout/decision
+difference. The audit checks full per-round covariance, fitted trajectories,
+costs, convergence and source identity. Final verdicts remain **INCONCLUSIVE**
+without independent extrinsic truth.
+
+The first spatial-scheduling worker records {stats['gpu_source_order_calls']:,}
+dense source orderings over {stats['gpu_source_order_rows']:,} source rows and
+{stats['gpu_source_order_kernel_calls']:,} Morton-code kernel calls. Those orders
+are reused across {stats['gpu_fused_system_calls']:,} fused iteration kernels.
+CuPy's internal sorting launches are excluded from custom-kernel counters.
+Every output and system term is written to its original row, retaining existing
+FP64 arithmetic, reduction ordering and uncertainty repairs.
+
+Registration wall time includes source ordering, normal preparation, iterative
+queries/systems, reductions, small solves and native repairs. Normal preparation
+is nested inside registration. Component ratios cannot be multiplied.
+Whole timing includes imports, decoding, compilation, all odometry, association,
+fits/covariance, noise updates, holdout, controls, hashes and saving.
+
+Three alternating fresh-process pairs use one BLAS thread and separate initially
+empty CuPy caches. Driver/runtime caches may persist. Host load is unreserved and
+unchanged fits also vary. This chat launched no heavy tests concurrently, but
+an independent CUDA sanitizer workload was observed on the shared host during
+the first pair. This contended cohort cannot establish an isolated performance
+effect. Its medians are retained observations, not a speedup claim or a general
+speed guarantee.
+
+All workers share the same six-second, four-round policy, 0.03 m voxels, three
+local-map scans, 1 nm coordinate grid and returned-motion grids of 1 micrometre
+translation and 0.1 microradian rotation-vector components. CPU remains the
+default and grids remain disabled by default. No work or validation budget is
+reduced. The index binds every worker, fitted array record, original log, exact
+source archive/manifest, launcher, schema, test snapshot and publisher.
+
+```bash
+python -m tools.audit_bspline_lidar_imu_benchmark docs/assets/cuda_source_locality
+```
+
+See [implementation and reproduction](../../benchmarks/cuda_source_locality.md).
+'''
+(root/'README.md').write_text(text,encoding='utf-8',newline='\n')
+doc=Path('docs/benchmarks/cuda_source_locality.md')
+doc.write_text(doc.read_text(encoding='utf-8').replace('<!-- results -->',table),encoding='utf-8',newline='\n')
+index={p.relative_to(root).as_posix():hashlib.sha256(p.read_bytes()).hexdigest()
+       for p in sorted(root.rglob('*')) if p.is_file()}
+(root/'publication-index.json').write_text(json.dumps({
+    'schema_version':'slac.bspline_lidar_imu_publication/v0.1',
+    'provenance':{'input_protocol_sha256':hashlib.sha256((source/'protocol.json').read_bytes()).hexdigest()},
+    'files':index,
+},indent=2)+'\n',encoding='utf-8',newline='\n')
+print({'bound_files':len(index),'registration':scopes['registration'],'whole':whole,'statistics':stats})

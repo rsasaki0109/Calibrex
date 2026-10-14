@@ -825,6 +825,7 @@ Tests fail if the committed evidence card drifts from its validated source.
 - [Exact GPU spatial-query candidate experiments](docs/benchmarks/cuda_spatial_candidates.md)
 - [GPU scan-front-end prototype and complete comparison](docs/benchmarks/cuda_scan_frontend.md)
 - [Selective B-spline holdout controls](docs/benchmarks/selective_bspline_controls.md)
+- [Spatial scheduling of CUDA registration queries](docs/benchmarks/cuda_source_locality.md)
 - Benchmark pages: [MID360 IMU-LiDAR](docs/benchmarks/mid360_imu_lidar.md) ·
   [KITTI LiDAR-vehicle](docs/benchmarks/kitti_lidar_vehicle.md) ·
   [NTU VIRAL LiDAR-LiDAR](docs/benchmarks/ntu_viral_lidar_lidar.md) ·

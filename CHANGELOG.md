@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Schedule dense CUDA odometry queries in spatial source order, reusing one
+  device permutation across registration iterations. Original output rows and
+  system reduction ordering remain intact. Public comparisons include sorting
+  setup, complete registration and full calibration evidence.
+
 - Evaluate only the requested B-spline residual families in signed IMU holdout
   controls, avoiding 34 unused LiDAR spline evaluations per bag calibration.
   All signed perturbations and thresholds remain intact; the public residual
