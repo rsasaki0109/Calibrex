@@ -190,15 +190,15 @@ def pure_rotation_ransac(
     count = len(previous)
     if count < 3:
         return None
-    best: NDArray[np.bool_] | None = None
-    for _ in range(max(iterations, 1)):
-        sample = rng.choice(count, 2, replace=False)
-        rotation = _kabsch(previous[sample], current[sample])
-        angles = np.linalg.norm(np.cross(current, previous @ rotation.T), axis=1)
-        inliers = angles < threshold_rad
-        if best is None or inliers.sum() > best.sum():
-            best = inliers
-    assert best is not None
+    # every hypothesis at once: the same draws as one fit per iteration, and the first
+    # with the most inliers wins as it would in a loop
+    samples = np.array([rng.choice(count, 2, replace=False) for _ in range(max(iterations, 1))])
+    left, _, right = np.linalg.svd(np.swapaxes(current[samples], 1, 2) @ previous[samples])
+    left[:, :, 2] *= np.sign(np.linalg.det(left @ right))[:, None]
+    rotations = left @ right
+    angles = np.linalg.norm(np.cross(current, previous @ np.swapaxes(rotations, 1, 2)), axis=2)
+    hits = angles < threshold_rad
+    best = hits[int(np.argmax(hits.sum(axis=1)))]
     if best.sum() < 3:
         return None
     rotation = _kabsch(previous[best], current[best])
