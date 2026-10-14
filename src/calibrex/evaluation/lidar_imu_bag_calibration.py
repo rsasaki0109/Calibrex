@@ -31,7 +31,7 @@ import math
 from collections.abc import Callable, Iterator
 from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
-from typing import TypeAlias
+from typing import Literal, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -161,6 +161,8 @@ class LidarImuBagOptions:
     imu_lowpass_hz: float | None = None
     holdout_every: int = 3
     fit_iterations: int = 30
+    fit_backend: Literal["numpy", "numba_cpu"] = "numpy"
+    fit_workers: int = 1
     control_delta_chi2: float = 9.0
     entangled_correlation: float = 0.9
     holdout_fail_whitened_rms: float = 2.0
@@ -316,7 +318,8 @@ def calibrate_lidar_imu_bag(
                 gravity_magnitude_m_s2=opts.gravity_magnitude_m_s2,
                 gravity_magnitude_sigma_m_s2=opts.gravity_magnitude_sigma_m_s2,
             ),
-            BSplineLidarImuFitOptions(max_iterations=opts.fit_iterations),
+            BSplineLidarImuFitOptions(max_iterations=opts.fit_iterations,
+                                    plane_backend=opts.fit_backend, plane_workers=opts.fit_workers),
         )
         trajectory, calibration = result.trajectory, result.calibration
         # Re-estimate each family's noise from its train residuals.
@@ -433,6 +436,9 @@ def calibrate_lidar_imu_bag(
             "gravity_magnitude_m_s2": opts.gravity_magnitude_m_s2,
             "gravity_magnitude_sigma_m_s2": opts.gravity_magnitude_sigma_m_s2,
             "seed": opts.seed,
+            "fit_backend": opts.fit_backend,
+            "fit_workers": opts.fit_workers,
+            "fit_execution": result.execution_backend,
             "max_seconds": max_seconds,
             "odometry_backend": opts.rotation.windowing.odometry_backend,
             "odometry_options": asdict(opts.rotation.windowing.odometry),

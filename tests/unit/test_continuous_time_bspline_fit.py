@@ -10,6 +10,7 @@ import pytest
 from calibrex.core.continuous_time_bspline import CubicBSplineTrajectory
 from calibrex.core.continuous_time_bspline_fit import (
     BSplineImuSamples,
+    BSplineLidarImuFitOptions,
     BSplineLidarImuFitResult,
     BSplineLidarImuProblem,
     BSplinePlaneReturns,
@@ -130,7 +131,10 @@ def test_selected_imu_residuals_do_not_evaluate_unrelated_plane_times() -> None:
                            families=("unknown",))  # type: ignore[arg-type]
 
 
-def test_fit_recovers_calibration_and_reports_marginal_std() -> None:
+@pytest.mark.parametrize("backend", ["numpy", "numba_cpu"])
+def test_fit_recovers_calibration_and_reports_marginal_std(backend: str) -> None:
+    if backend == "numba_cpu":
+        pytest.importorskip("numba")
     spline = _truth_spline()
     rng = np.random.default_rng(6)
     planes, gyro, accel = _measurements(spline, rng)
@@ -160,7 +164,8 @@ def test_fit_recovers_calibration_and_reports_marginal_std() -> None:
                 accel_bias_m_s2=zero,
                 gravity_world_m_s2=np.array([0.0, 0.0, -9.7]),
             ),
-        )
+        ),
+        BSplineLidarImuFitOptions(plane_backend=backend),  # type: ignore[arg-type]
     )
 
     assert result.status == "converged"
