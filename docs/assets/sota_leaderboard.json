@@ -87,6 +87,34 @@
       "verdict": "refuted"
     },
     {
+      "achieved_dataset_families": [
+        "hilti2022"
+      ],
+      "achieved_independent_rig_count": 1,
+      "audit_id": "hilti-camera-imu-v3-audit",
+      "audit_path": "docs/assets/hilti2022_camera_imu_v3/hilti_camera_imu_v3_sota_audit.yaml",
+      "audit_schema_version": "slac.sota_audit_result/v0.1",
+      "audit_sha256": "33725464fbb1320ca2e39bdb42039d9a9774cf06f3a78ae9a0f626d4242ce893",
+      "claim_text": "On five Hilti 2022 recordings on which no camera-IMU estimate had been made, Calibrex's targetless camera-IMU rotation for the two forward Alphasense cameras (cam0, cam1) gives honest per-axis verdicts against Hilti's Kalibr calibration: every rotation axis it judges (reported std at most 0.3 deg and its 1 deg known-bad control detected on held-out windows) is within 1.0 deg, every clock offset it judges within 0.75 ms; it judges at least half of the axes; an axis judged on several recordings spans at most 1.0 deg; and an axis judged for both cameras reproduces Kalibr's cam0-to-cam1 rotation within 0.75 deg.",
+      "pair_id": "camera-imu",
+      "protocol_id": "hilti-camera-imu-v3",
+      "requirement_counts": {
+        "achieved": 7
+      },
+      "scope": {
+        "category": "targetless_camera_imu",
+        "modalities": [
+          "camera",
+          "imu"
+        ],
+        "quantities": [
+          "rotation",
+          "time_offset"
+        ]
+      },
+      "verdict": "supported"
+    },
+    {
       "achieved_dataset_families": [],
       "achieved_independent_rig_count": 0,
       "audit_id": "mid360-imu-lidar-extrinsic-vs-li-init-v1",
@@ -250,8 +278,8 @@
       "incomplete_claims": 0,
       "pair_id": "camera-imu",
       "refuted_claims": 2,
-      "standing": "refuted",
-      "supported_claims": 0,
+      "standing": "supported",
+      "supported_claims": 1,
       "target": true
     },
     {
@@ -324,14 +352,15 @@
       "calibrex",
       "sota",
       "leaderboard",
+      "docs/assets/hilti2022_camera_sota/camera_camera/hilti_camera_camera_sota_audit.yaml",
       "docs/assets/hilti_camera_imu_sota_audit.yaml",
+      "docs/assets/hilti2022_camera_sota/camera_imu_v2/hilti_camera_imu_v2_sota_audit.yaml",
+      "docs/assets/hilti2022_camera_imu_v3/hilti_camera_imu_v3_sota_audit.yaml",
       "docs/assets/mid360_imu_lidar_extrinsic_sota_audit.yaml",
       "docs/assets/mid360_imu_lidar_extrinsic_v2_sota_audit.yaml",
       "docs/assets/mid360_imu_lidar_sota_audit.yaml",
       "docs/assets/ntu_viral_lidar_lidar_sota_audit.yaml",
       "docs/assets/kitti_lidar_vehicle_sota_audit.yaml",
-      "docs/assets/hilti2022_camera_sota/camera_camera/hilti_camera_camera_sota_audit.yaml",
-      "docs/assets/hilti2022_camera_sota/camera_imu_v2/hilti_camera_imu_v2_sota_audit.yaml",
       "--output",
       "docs/assets/sota_leaderboard.json",
       "--target-pair",
@@ -357,10 +386,10 @@
       "--target-pair",
       "lidar-wheel_odometry"
     ],
-    "created_at": "2026-10-14T08:52:04.869849+00:00",
+    "created_at": "2026-10-14T11:00:20.165470+00:00",
     "generator": "calibrex.evaluation.sota_leaderboard",
     "generator_version": "0.5.1",
-    "git_commit": "194dcef"
+    "git_commit": "adb2981"
   },
   "schema_version": "slac.sota_leaderboard/v0.1"
 }

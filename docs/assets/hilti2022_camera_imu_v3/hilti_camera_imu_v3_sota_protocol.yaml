@@ -1,0 +1,123 @@
+schema_version: slac.sota_audit_protocol/v0.1
+protocol_id: hilti-camera-imu-v3
+scope:
+  modalities:
+  - camera
+  - imu
+  quantities:
+  - rotation
+  - time_offset
+  category: targetless_camera_imu
+claim_text: 'On five Hilti 2022 recordings on which no camera-IMU estimate had been
+  made, Calibrex''s targetless camera-IMU rotation for the two forward Alphasense
+  cameras (cam0, cam1) gives honest per-axis verdicts against Hilti''s Kalibr calibration:
+  every rotation axis it judges (reported std at most 0.3 deg and its 1 deg known-bad
+  control detected on held-out windows) is within 1.0 deg, every clock offset it judges
+  within 0.75 ms; it judges at least half of the axes; an axis judged on several recordings
+  spans at most 1.0 deg; and an axis judged for both cameras reproduces Kalibr''s
+  cam0-to-cam1 rotation within 0.75 deg.'
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: judged-axis-accuracy
+  phase: audit
+  description: every judged axis is within 1.0 deg of Kalibr
+  dataset_family: hilti2022
+  independent_rig: true
+  rig_id: hilti2022-alphasense
+  evidence_path: hilti_camera_imu_v3_axes_benchmark.yaml
+  evidence_sha256: b273580594b0ba50f2b3c0f64986549523c230adc454264f214169643962c7cb
+  method_id: calibrex_native
+  metric: axis_error_deg_abs
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 1.0
+  required: true
+- requirement_id: judged-time-offset
+  phase: audit
+  description: every judged clock offset is within 0.75 ms of Kalibr
+  dataset_family: hilti2022
+  independent_rig: false
+  evidence_path: hilti_camera_imu_v3_time_benchmark.yaml
+  evidence_sha256: e0808840f955a603ae3ce11106bee273dc8679701dea4196a4690598ebd661a7
+  method_id: calibrex_native
+  metric: time_error_ms_abs
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.75
+  required: true
+- requirement_id: judged-axis-coverage
+  phase: audit
+  description: at least half of the scored units' axes are judged
+  dataset_family: hilti2022
+  independent_rig: false
+  evidence_path: hilti_camera_imu_v3_units_benchmark.yaml
+  evidence_sha256: 46e076ed984576dfa19e4d37fc3d656807eeda77b277cdd77aee404637396785
+  method_id: calibrex_native
+  metric: unjudged_axes
+  statistic: metric_mean
+  comparison: less_equal
+  threshold: 1.5
+  required: true
+- requirement_id: no-failed-units
+  phase: audit
+  description: no usable unit fails
+  dataset_family: hilti2022
+  independent_rig: false
+  evidence_path: hilti_camera_imu_v3_units_benchmark.yaml
+  evidence_sha256: 46e076ed984576dfa19e4d37fc3d656807eeda77b277cdd77aee404637396785
+  method_id: calibrex_native
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: judged-axis-consistency
+  phase: audit
+  description: an axis judged on several recordings spans at most 1.0 deg
+  dataset_family: hilti2022
+  independent_rig: false
+  evidence_path: hilti_camera_imu_v3_consistency_benchmark.yaml
+  evidence_sha256: cbb5db8447d034887e52a9cde4e5ed710c610db33a55ef9597a77303be11cbb1
+  method_id: calibrex_native
+  metric: range_deg
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 1.0
+  required: true
+- requirement_id: judged-axis-relative
+  phase: audit
+  description: an axis judged for both cameras reproduces Kalibr's cam0-cam1 rotation
+    within 0.75 deg
+  dataset_family: hilti2022
+  independent_rig: false
+  evidence_path: hilti_camera_imu_v3_relative_benchmark.yaml
+  evidence_sha256: 46ff334801b1f511b3d4e1b74585c401dd164da7312f7e8ed070136e0ac7ff94
+  method_id: calibrex_native
+  metric: relative_axis_deg_abs
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.75
+  required: true
+- requirement_id: scored-recordings-coverage
+  phase: audit
+  description: at least 3 of the evaluation recordings are scored for both cameras
+  dataset_family: hilti2022
+  independent_rig: false
+  evidence_path: hilti_camera_imu_v3_recordings_benchmark.yaml
+  evidence_sha256: 156e9f5b4cc35c65eacd2942c65d46df78359a26d97f83768a49b208808a50ea
+  method_id: calibrex_native
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.4
+  required: true
+provenance:
+  generator: tools/build_hilti_camera_imu_v3_audit.py
+  generator_version: 0.5.1
+  command:
+  - python
+  - tools/build_hilti_camera_imu_v3_audit.py
+  - SCORES.json
+  source_sha256:
+    preregistration: e32a24e0744b4410a889aac81055223651d615f98d398f5d1aa449d564eaeece
+    scores: c6b012859768fdbfbc73822c3903a10a2a98fbdc9ad51a0a26b38cbda33d44b4
+  created_at: '2026-10-14T10:59:44.124799+00:00'

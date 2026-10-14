@@ -1,0 +1,105 @@
+schema_version: slac.sota_audit_result/v0.1
+audit_id: hilti-camera-imu-v3-audit
+protocol_id: hilti-camera-imu-v3
+scope:
+  modalities:
+  - camera
+  - imu
+  quantities:
+  - rotation
+  - time_offset
+  category: targetless_camera_imu
+claim_text: 'On five Hilti 2022 recordings on which no camera-IMU estimate had been
+  made, Calibrex''s targetless camera-IMU rotation for the two forward Alphasense
+  cameras (cam0, cam1) gives honest per-axis verdicts against Hilti''s Kalibr calibration:
+  every rotation axis it judges (reported std at most 0.3 deg and its 1 deg known-bad
+  control detected on held-out windows) is within 1.0 deg, every clock offset it judges
+  within 0.75 ms; it judges at least half of the axes; an axis judged on several recordings
+  spans at most 1.0 deg; and an axis judged for both cameras reproduces Kalibr''s
+  cam0-to-cam1 rotation within 0.75 deg.'
+verdict: supported
+achieved_dataset_families:
+- hilti2022
+achieved_independent_rig_count: 1
+minimum_dataset_families: 1
+minimum_independent_rigs: 1
+requirements:
+- requirement_id: judged-axis-accuracy
+  required: true
+  status: achieved
+  observed_value: 0.5281886167189506
+  threshold: 1.0
+  reason: observed 0.528188616719 meets less_equal 1
+  evidence_path: docs/assets/hilti2022_camera_imu_v3/hilti_camera_imu_v3_axes_benchmark.yaml
+  evidence_sha256: b273580594b0ba50f2b3c0f64986549523c230adc454264f214169643962c7cb
+- requirement_id: judged-time-offset
+  required: true
+  status: achieved
+  observed_value: 0.46960065585831395
+  threshold: 0.75
+  reason: observed 0.469600655858 meets less_equal 0.75
+  evidence_path: docs/assets/hilti2022_camera_imu_v3/hilti_camera_imu_v3_time_benchmark.yaml
+  evidence_sha256: e0808840f955a603ae3ce11106bee273dc8679701dea4196a4690598ebd661a7
+- requirement_id: judged-axis-coverage
+  required: true
+  status: achieved
+  observed_value: 0.4
+  threshold: 1.5
+  reason: observed 0.4 meets less_equal 1.5
+  evidence_path: docs/assets/hilti2022_camera_imu_v3/hilti_camera_imu_v3_units_benchmark.yaml
+  evidence_sha256: 46e076ed984576dfa19e4d37fc3d656807eeda77b277cdd77aee404637396785
+- requirement_id: no-failed-units
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: docs/assets/hilti2022_camera_imu_v3/hilti_camera_imu_v3_units_benchmark.yaml
+  evidence_sha256: 46e076ed984576dfa19e4d37fc3d656807eeda77b277cdd77aee404637396785
+- requirement_id: judged-axis-consistency
+  required: true
+  status: achieved
+  observed_value: 0.407952749622118
+  threshold: 1.0
+  reason: observed 0.407952749622 meets less_equal 1
+  evidence_path: docs/assets/hilti2022_camera_imu_v3/hilti_camera_imu_v3_consistency_benchmark.yaml
+  evidence_sha256: cbb5db8447d034887e52a9cde4e5ed710c610db33a55ef9597a77303be11cbb1
+- requirement_id: judged-axis-relative
+  required: true
+  status: achieved
+  observed_value: 0.4438266835563216
+  threshold: 0.75
+  reason: observed 0.443826683556 meets less_equal 0.75
+  evidence_path: docs/assets/hilti2022_camera_imu_v3/hilti_camera_imu_v3_relative_benchmark.yaml
+  evidence_sha256: 46ff334801b1f511b3d4e1b74585c401dd164da7312f7e8ed070136e0ac7ff94
+- requirement_id: scored-recordings-coverage
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.4
+  reason: observed 0 meets less_equal 0.4
+  evidence_path: docs/assets/hilti2022_camera_imu_v3/hilti_camera_imu_v3_recordings_benchmark.yaml
+  evidence_sha256: 156e9f5b4cc35c65eacd2942c65d46df78359a26d97f83768a49b208808a50ea
+summary: Every frozen required gate and declared dataset/rig coverage criterion is
+  achieved.
+provenance:
+  generator: calibrex.evaluation.sota_audit
+  generator_version: 0.5.1
+  git_commit: adb2981
+  command:
+  - calibrex
+  - sota
+  - audit
+  - docs/assets/hilti2022_camera_imu_v3/hilti_camera_imu_v3_sota_protocol.yaml
+  - --output
+  - docs/assets/hilti2022_camera_imu_v3/hilti_camera_imu_v3_sota_audit.yaml
+  source_sha256:
+    protocol: 4f76b07af675bb7bc38c08dcafa3d3aefd3fff6a12a18c47cccc22aa59189384
+    judged-axis-accuracy: b273580594b0ba50f2b3c0f64986549523c230adc454264f214169643962c7cb
+    judged-time-offset: e0808840f955a603ae3ce11106bee273dc8679701dea4196a4690598ebd661a7
+    judged-axis-coverage: 46e076ed984576dfa19e4d37fc3d656807eeda77b277cdd77aee404637396785
+    no-failed-units: 46e076ed984576dfa19e4d37fc3d656807eeda77b277cdd77aee404637396785
+    judged-axis-consistency: cbb5db8447d034887e52a9cde4e5ed710c610db33a55ef9597a77303be11cbb1
+    judged-axis-relative: 46ff334801b1f511b3d4e1b74585c401dd164da7312f7e8ed070136e0ac7ff94
+    scored-recordings-coverage: 156e9f5b4cc35c65eacd2942c65d46df78359a26d97f83768a49b208808a50ea
+  created_at: '2026-10-14T11:00:05.325154+00:00'
