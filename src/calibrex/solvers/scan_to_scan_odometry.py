@@ -102,6 +102,11 @@ class _OdometryTarget(Protocol):
     def statistics(self) -> dict[str, int]: ...
 
 
+class _ScanPreprocessor(Protocol):
+    def __call__(self, points: FloatArray, options: ScanOdometryOptions) -> FloatArray: ...
+    def statistics(self) -> dict[str, int]: ...
+
+
 def _cuda_odometry() -> tuple[Callable[[FloatArray, ScanOdometryOptions], _OdometryTarget], str]:
     try:
         from calibrex.solvers.cuda_scan_odometry_adapter import (
@@ -431,8 +436,12 @@ class IncrementalScanOdometry:
             Callable[[FloatArray, ScanOdometryOptions], _OdometryTarget] | None
         ) = None
         self.execution_backend = "numpy_scipy"
+        self._preprocessor: _ScanPreprocessor | None = None
         if backend == "cuda":
             self._cuda_factory, self.execution_backend = _cuda_odometry()
+            factory = getattr(self._cuda_factory, "preprocessor", None)
+            if factory is not None:
+                self._preprocessor = factory()
         elif backend != "cpu":
             raise ValueError(f"unknown odometry backend: {backend}")
         self.execution_statistics: dict[str, int] = {}
@@ -459,7 +468,7 @@ class IncrementalScanOdometry:
 
         if not self.poses:
             self.poses.append(np.eye(4))
-            self._recent.append(preprocess_scan(scan, self.options))
+            self._recent.append(self._prepare(scan, self.options))
             self._previous_time = time_s
             return None
         initial = self._previous_motion
@@ -470,7 +479,7 @@ class IncrementalScanOdometry:
                 initial = scale_motion(self._previous_motion, gap / self._previous_gap)
             self._previous_gap = gap
         self._previous_time = time_s
-        target = _local_map(self._recent, self.poses[-1], self.options)
+        target = _local_map(self._recent, self.poses[-1], self.options, self._prepare)
         cuda_target = (None if self._cuda_factory is None else
                        self._cuda_factory(target, self.options))
         tree = cKDTree(target) if cuda_target is None else None
@@ -502,7 +511,7 @@ class IncrementalScanOdometry:
                         )
                 else:
                     source = deskew_points(scan, point_offsets_s, motion, gap)
-            processed = preprocess_scan(source, self.options)
+            processed = self._prepare(source, self.options)
             if cuda_target is None:
                 registration = register_point_to_plane(
                     processed, target, motion, self.options,
@@ -523,13 +532,19 @@ class IncrementalScanOdometry:
         self._recent.append(processed @ pose[:3, :3].T + pose[:3, 3])
         return registration
 
+    def _prepare(self, points: FloatArray, options: ScanOdometryOptions) -> FloatArray:
+        return (preprocess_scan(points, options) if self._preprocessor is None
+                else self._preprocessor(points, options))
+
     def result(self) -> ScanOdometryResult:
         """Return poses ``T_first_scan`` and registrations so far."""
 
         return ScanOdometryResult(
             poses=tuple(self.poses), registrations=tuple(self.registrations),
             execution_backend=self.execution_backend,
-            execution_statistics=dict(self.execution_statistics),
+            execution_statistics={**self.execution_statistics,
+                                  **({} if self._preprocessor is None
+                                     else self._preprocessor.statistics())},
         )
 
 
@@ -585,14 +600,15 @@ def scale_motion(motion: FloatArray, factor: float) -> FloatArray:
 
 
 def _local_map(
-    recent: deque[FloatArray], reference_pose: FloatArray, options: ScanOdometryOptions
+    recent: deque[FloatArray], reference_pose: FloatArray, options: ScanOdometryOptions,
+    prepare: Callable[[FloatArray, ScanOdometryOptions], FloatArray] = preprocess_scan,
 ) -> FloatArray:
     """Express the recent scans (stored in the first-scan frame) in ``reference_pose``."""
 
     if len(recent) == 1 and options.local_map_scans == 1:
         points = recent[0]
     else:
-        points = preprocess_scan(np.vstack(list(recent)), _unbounded(options))
+        points = prepare(np.vstack(list(recent)), _unbounded(options))
     inverse = np.linalg.inv(reference_pose)
     return _quantize_geometry(
         points @ inverse[:3, :3].T + inverse[:3, 3], options.geometry_quantum_m,

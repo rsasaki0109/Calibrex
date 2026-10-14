@@ -38,7 +38,7 @@ def _cuda_kernel_hashes(sources: dict[str, bytes]) -> tuple[str, str]:
     system = constants("calibrex/solvers/cuda_scan_odometry_adapter.py")
     return _sha(query.encode()), _sha(
         (system["_SYSTEM_SOURCE"] + system["_FUSED_SOURCE"] + system["_COVARIANCE_SOURCE"]
-         + system.get("_NORMAL_SOURCE", "")).encode()
+         + system.get("_NORMAL_SOURCE", "") + system.get("_PREPROCESS_SOURCE", "")).encode()
     )
 
 
@@ -213,6 +213,9 @@ def audit(root: Path) -> dict[str, object]:
                     isinstance(node, ast.Constant) and node.value == "gpu_normal_kernel_calls"
                     for node in ast.walk(ast.parse(source_bytes[variant][adapter]))
                 )
+                adapter_constants = {node.value for node in ast.walk(
+                    ast.parse(source_bytes[variant][adapter])) if isinstance(node, ast.Constant)
+                    and isinstance(node.value, str)}
                 identity = re.compile(
                     r"calibrex\.cuda_scan_odometry/v0\.1;fp64=true;query_fma=false;"
                     r"cupy=([^;]+);cuda=\d+;driver=\d+;cc=\d+\.\d+;"
@@ -231,9 +234,25 @@ def audit(root: Path) -> dict[str, object]:
                             and counters.get("gpu_normal_rows", 0) > 0
                             and counters["gpu_normal_kernel_calls"] <= 0):
                         raise ValueError("GPU normal rows have no recorded normal kernel work")
+                    if ("gpu_tree_builds" in adapter_constants
+                            and (counters.get("gpu_tree_builds", 0) <= 0
+                                or counters.get("gpu_tree_build_kernel_calls", 0)
+                                < counters["gpu_tree_builds"]
+                                or not 0 <= counters.get("native_tree_builds", -1)
+                                <= counters["gpu_tree_builds"])):
+                        raise ValueError("GPU tree construction accounting is inconsistent")
+                    if ("gpu_preprocess_calls" in adapter_constants
+                            and (counters.get("gpu_preprocess_calls", 0) <= 0
+                                or counters.get("gpu_preprocess_kernel_calls", 0)
+                                < counters["gpu_preprocess_calls"]
+                                or not 0 <= counters.get("gpu_preprocess_output_rows", -1)
+                                <= counters.get("gpu_preprocess_input_rows", 0)
+                                or counters.get("native_preprocess_calls", -1) < 0)):
+                        raise ValueError("GPU preprocessing accounting is inconsistent")
                     if ("calibrex/solvers/scipy_spatial_snapshot.py" in executed
                             and counters.get("serialized_tree_captures", 0)
-                            + counters.get("public_node_tree_captures", 0) <= 0):
+                            + counters.get("public_node_tree_captures", 0)
+                            + counters.get("gpu_tree_builds", 0) <= 0):
                         raise ValueError("GPU worker did not record its actual tree capture path")
                     if (counters.get("scalar_motion_repairs", 0)
                             > counters.get("scalar_registration_repairs", 0)

@@ -95,10 +95,20 @@ def _worker(args: argparse.Namespace) -> None:
     from calibrex.evaluation import lidar_imu_bag_calibration as runner
 
     normal_timing = None
+    spatial_timing = preprocessing_timing = None
     if backend == "cuda":
         from calibrex.solvers.cuda_scan_odometry_adapter import CudaOdometryTarget
 
         normal_timing = _time_normal_preparation(CudaOdometryTarget)
+        from calibrex.solvers import scan_to_scan_odometry as odometry
+        from calibrex.solvers.cuda_lidar_map_adapter import _CudaTree
+
+        spatial_timing = _time_method(_CudaTree, "__init__")
+        preprocessing_timing = (
+            _time_method(CudaOdometryTarget.preprocessor, "__call__")
+            if hasattr(CudaOdometryTarget, "preprocessor")
+            else _time_method(odometry, "preprocess_scan")
+        )
 
     rounds: list[dict[str, object]] = []
     original = runner.fit_bspline_lidar_imu
@@ -195,6 +205,12 @@ def _worker(args: argparse.Namespace) -> None:
             **({"normal_preparation_seconds": normal_timing["seconds"],
                 "normal_preparation_calls": normal_timing["calls"]}
                if normal_timing is not None else {}),
+            **({"spatial_build_seconds": spatial_timing["seconds"],
+                "spatial_build_calls": spatial_timing["calls"]}
+               if spatial_timing is not None else {}),
+            **({"preprocessing_seconds": preprocessing_timing["seconds"],
+                "preprocessing_calls": preprocessing_timing["calls"]}
+               if preprocessing_timing is not None else {}),
             "rounds": rounds,
             "provenance": {
                 "bag_sha256": _digest(Path(args.bag)),
@@ -334,6 +350,23 @@ def _validate_backend_execution(result: dict, backend: str) -> None:
             statistics.get(name, 0) <= 0 for name in ("gpu_query_rows", "gpu_fused_system_calls")
         ):
             raise ValueError("CUDA pass did not execute spatial queries and systems")
+
+
+def _time_method(holder: Any, name: str) -> dict[str, float | int]:
+    """Observe wall time without adding synchronization or changing arithmetic."""
+    original = getattr(holder, name)
+    totals: dict[str, float | int] = {"seconds": 0.0, "calls": 0}
+
+    def measured(*args: Any, **kwargs: Any) -> Any:
+        begin = time.perf_counter()
+        try:
+            return original(*args, **kwargs)
+        finally:
+            totals["seconds"] += time.perf_counter() - begin
+            totals["calls"] += 1
+
+    setattr(holder, name, measured)
+    return totals
 
 
 def _time_normal_preparation(holder: Any) -> dict[str, float | int]:

@@ -24,8 +24,45 @@ from calibrex.solvers.scan_to_scan_odometry import (
     _norm3,
     _normals_from_neighbours,
     _quantize_geometry,
+    preprocess_scan,
     register_point_to_plane,
 )
+
+_PREPROCESS_SOURCE = r"""
+extern "C" __global__ void crop_keys3(
+    const double* input, const int n, const double quantum, const double voxel,
+    const double minimum, const double maximum, double* points,
+    long long* keys, unsigned char* valid) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;
+    if(row>=n) return;
+    double p[3];
+    for(int a=0;a<3;a++){
+        p[a]=input[3*row+a];
+        if(quantum>0) p[a]=nearbyint(p[a]/quantum)*quantum;
+        points[3*row+a]=p[a];
+        keys[3*row+a]=(long long)floor(p[a]/voxel);
+    }
+    double range=sqrt(p[0]*p[0]+p[1]*p[1]+p[2]*p[2]);
+    valid[row]=(range>=minimum && range<=maximum)?1:0;
+}
+
+extern "C" __global__ void voxel_centers3(
+    const double* points, const long long* order, const long long* starts,
+    const int n, const int groups, const double quantum, double* output) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;
+    if(row>=groups) return;
+    long long begin=starts[row],end=row+1<groups?starts[row+1]:n;
+    double sum[3]={0,0,0};
+    // Each voxel retains original input order, matching native bincount/add.at.
+    for(long long j=begin;j<end;j++)
+        for(int a=0;a<3;a++) sum[a]+=points[3*order[j]+a];
+    for(int a=0;a<3;a++){
+        double value=sum[a]/(double)(end-begin);
+        if(quantum>0) value=nearbyint(value/quantum)*quantum;
+        output[3*row+a]=value;
+    }
+}
+"""
 
 _SYSTEM_SOURCE = r"""
 extern "C" __global__ void system3(
@@ -159,7 +196,7 @@ extern "C" __global__ void project_query_system3(
     for(int a=0;a<3;a++)
         p[a]=matrix[4*a]*s[0]+matrix[4*a+1]*s[1]+matrix[4*a+2]*s[2]+matrix[4*a+3];
     double best[2]={1.0/0.0,1.0/0.0};long long chosen[2]={m,m};
-    int stack[64];int top=1;stack[0]=0;
+    int stack[96];int top=1;stack[0]=0;
     while(top){
         --top;int node=stack[top];
         double d[3];
@@ -180,6 +217,19 @@ extern "C" __global__ void project_query_system3(
                     }else{best[1]=d;chosen[1]=position;}
                 }
             }
+        }else if(axis[node]==3){
+            int left=child[2*node],right=child[2*node+1];
+            double lower_child[2];
+            for(int side=0;side<2;side++){
+                int next=side==0?left:right;double v[3];
+                for(int a=0;a<3;a++)
+                    v[a]=fmax(0.0,fmax(boxes[6*next+a]-p[a],p[a]-boxes[6*next+3+a]));
+                lower_child[side]=(v[0]*v[0]+v[1]*v[1]+v[2]*v[2])
+                                 *(1.0-16.0*2.2204460492503131e-16);
+            }
+            int near=lower_child[0]<=lower_child[1]?0:1,far=1-near;
+            if(lower_child[far]<=best[1]) stack[top++]=far==0?left:right;
+            if(lower_child[near]<=best[1]) stack[top++]=near==0?left:right;
         }else{
             double delta=p[axis[node]]-split[node];int side=delta<0?0:1;
             if(delta*delta<=best[1]){
@@ -221,7 +271,8 @@ def execution_identity() -> str:
     """Identify arithmetic, query code and runtime without the device model."""
     properties = cp.cuda.runtime.getDeviceProperties(cp.cuda.runtime.getDevice())
     system_digest = hashlib.sha256(
-        (_SYSTEM_SOURCE + _FUSED_SOURCE + _COVARIANCE_SOURCE + _NORMAL_SOURCE).encode(),
+        (_SYSTEM_SOURCE + _FUSED_SOURCE + _COVARIANCE_SOURCE + _NORMAL_SOURCE
+         + _PREPROCESS_SOURCE).encode(),
     ).hexdigest()
     return (
         "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;"
@@ -233,6 +284,64 @@ def execution_identity() -> str:
     )
 
 
+class CudaScanPreprocessor:
+    """Exact source-ordered FP64 voxel means with native unsupported-input fallback."""
+
+    def __init__(self) -> None:
+        self.device_id = cp.cuda.runtime.getDevice()
+        self.calls = self.input_rows = self.output_rows = self.kernel_calls = self.native_calls = 0
+        self.crop = cp.RawKernel(_PREPROCESS_SOURCE, "crop_keys3", options=("--fmad=false",))
+        self.centers = cp.RawKernel(_PREPROCESS_SOURCE, "voxel_centers3", options=("--fmad=false",))
+
+    def __call__(self, points: FloatArray, options: ScanOdometryOptions) -> FloatArray:
+        xyz = np.asarray(points, dtype=np.float64)[:, :3]
+        magnitude = float(np.max(np.abs(xyz), initial=0.))
+        voxel, quantum = options.voxel_size_m, options.geometry_quantum_m
+        if (xyz.shape[1] != 3 or not len(xyz) or xyz.nbytes * 12 > 1024**3
+                or not np.isfinite(xyz).all()
+                or not np.isfinite(voxel) or voxel <= 0 or magnitude >= 1e50
+                or magnitude / voxel >= 2**61
+                or (quantum < 1 and quantum > 0
+                    and magnitude > np.finfo(np.float64).max * quantum)):
+            self.native_calls += 1
+            return preprocess_scan(points, options)
+        with cp.cuda.Device(self.device_id):
+            source = cp.asarray(np.ascontiguousarray(xyz))
+            data = cp.empty_like(source)
+            keys = cp.empty(source.shape, dtype=cp.int64)
+            valid = cp.empty(len(source), dtype=cp.uint8)
+            self.crop(((len(source) + 127) // 128,), (128,),
+                      (source, np.int32(len(source)), np.float64(quantum), np.float64(voxel),
+                       np.float64(options.min_range_m), np.float64(options.max_range_m),
+                       data, keys, valid))
+            self.calls += 1
+            self.input_rows += len(source)
+            self.kernel_calls += 1
+            rows = cp.flatnonzero(valid)
+            if not len(rows):
+                return np.empty((0, 3), dtype=np.float64)
+            selected = keys[rows]
+            sort_keys = cp.stack((rows, selected[:, 2], selected[:, 1], selected[:, 0]))
+            order = rows[cp.lexsort(sort_keys)]
+            sorted_keys = keys[order]
+            changes = cp.flatnonzero(cp.any(sorted_keys[1:] != sorted_keys[:-1], axis=1)) + 1
+            starts = cp.concatenate((cp.zeros(1, dtype=cp.int64), changes))
+            output = cp.empty((len(starts), 3), dtype=cp.float64)
+            self.centers(((len(starts) + 127) // 128,), (128,),
+                         (data, order, starts, np.int32(len(order)), np.int32(len(starts)),
+                          np.float64(quantum), output))
+            self.kernel_calls += 1
+            self.output_rows += len(output)
+            return _host(output)
+
+    def statistics(self) -> dict[str, int]:
+        """Report actual crop/mean work and native fallback calls."""
+        return {"gpu_preprocess_calls": self.calls, "gpu_preprocess_input_rows": self.input_rows,
+                "gpu_preprocess_output_rows": self.output_rows,
+                "gpu_preprocess_kernel_calls": self.kernel_calls,
+                "native_preprocess_calls": self.native_calls}
+
+
 class CudaOdometryTarget:
     """Capture one target and reuse its tree/normals across deskew rounds.
 
@@ -241,6 +350,8 @@ class CudaOdometryTarget:
     iteration. Native small solves, stopping policy and pose updates remain
     on CPU; roundoff-sensitive neighbour/planarity decisions use native repairs.
     """
+
+    preprocessor: type[CudaScanPreprocessor] = CudaScanPreprocessor
 
     def __init__(self, target: FloatArray, options: ScanOdometryOptions) -> None:
         if not 2 <= options.normal_neighbours <= 16:
@@ -315,7 +426,7 @@ class CudaOdometryTarget:
             self._ensure(cp.asarray(np.arange(len(self.host), dtype=np.int64)))
         else:
             self._compute_normals(
-                cp.asarray(np.arange(len(self.host), dtype=np.int64)), complete=True,
+                self.tree.arrays[0], complete=True,
             )
 
     def _compute_normals(self, missing: cp.ndarray, *, complete: bool = False) -> None:
@@ -323,7 +434,7 @@ class CudaOdometryTarget:
         for start in range(0, len(missing), 65536):
             rows = missing[start : start + 65536]
             self.normal_rows += len(rows)
-            queries = self.tree.data[start:start + len(rows)] if complete else self.tree.data[rows]
+            queries = self.tree.data[rows]
             distances, indexes = self.tree.query(queries, k + 1)
             flags = cp.empty(len(rows), dtype=cp.uint8)
             self.normal_kernel(
@@ -540,6 +651,9 @@ class CudaOdometryTarget:
         return {
             "serialized_tree_captures": int(self.tree.capture_method == "validated_serialized"),
             "public_node_tree_captures": int(self.tree.capture_method == "public_nodes"),
+            "gpu_tree_builds": int(self.tree.capture_method == "device_morton_bvh"),
+            "gpu_tree_build_kernel_calls": self.tree.build_kernel_calls,
+            "native_tree_builds": self.tree.native_tree_builds,
             "gpu_query_calls": self.tree.query_calls,
             "gpu_query_rows": self.tree.query_rows,
             "scalar_query_repairs": self.query_repairs,

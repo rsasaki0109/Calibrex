@@ -189,6 +189,11 @@ class CudaPointToPointIcpAdapter:
             "options": asdict(options or RobustPointToPointIcpOptions()),
             "gpu_query_calls": sum(value.calls for value in searches),
             "gpu_query_rows": sum(value.rows for value in searches),
+            "gpu_tree_builds": sum(value.gpu is not None for value in searches),
+            "gpu_tree_build_kernel_calls": sum(value.gpu.build_kernel_calls
+                                                for value in searches if value.gpu is not None),
+            "native_tree_builds": sum(value.gpu.native_tree_builds
+                                       for value in searches if value.gpu is not None),
             "target_query_repairs": sum(value.repairs for value in targets),
             "source_query_repairs": sum(value.repairs for value in sources),
             "static_source_snapshots": len(sources), "target_snapshots": len(targets),
