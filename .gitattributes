@@ -140,3 +140,10 @@ docs/assets/cuda_scan_frontend/*.json -text whitespace=blank-at-eol,blank-at-eof
 docs/assets/cuda_scan_frontend/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 docs/assets/cuda_scan_frontend/**/*.log -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 docs/assets/cuda_scan_frontend/*.md text eol=lf
+
+# Preserve measured source and timing bytes of selective B-spline controls.
+docs/assets/selective_bspline_controls/**/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/selective_bspline_controls/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/selective_bspline_controls/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/selective_bspline_controls/**/*.log -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/selective_bspline_controls/*.md text eol=lf

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Evaluate only the requested B-spline residual families in signed IMU holdout
+  controls, avoiding 34 unused LiDAR spline evaluations per bag calibration.
+  All signed perturbations and thresholds remain intact; the public residual
+  API evaluates all families by default. Source-bound public comparisons retain
+  complete calibration evidence and separate control-suite timing.
+
 - Prototype exact GPU scan cropping/voxel centroids and device spatial-tree
   construction for optional CUDA odometry. Source-bound public GLIM comparisons
   retain complete fitted evidence; the observed 1.30x whole-worker ratio remains

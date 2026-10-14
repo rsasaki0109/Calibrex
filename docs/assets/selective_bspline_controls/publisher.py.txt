@@ -1,0 +1,97 @@
+from pathlib import Path
+import hashlib,json,shutil,statistics,tarfile
+
+source=Path('outputs/selective-controls-formal-v1')
+root=Path('docs/assets/selective_bspline_controls');root.mkdir(exist_ok=False)
+summary=json.loads((source/'summary.json').read_bytes())
+protocol=json.loads((source/'protocol.json').read_bytes())
+attempts=json.loads((source/'attempts.json').read_bytes())
+assert summary['quality_passed'] and len(attempts)==6
+for name in ('protocol.json','attempts.json','summary.json'):
+    shutil.copyfile(source/name,root/name)
+records={}
+for a in attempts:
+    folder=root/a['worker'];folder.mkdir()
+    for name in ('result.json','measurement.json','worker.log'):
+        shutil.copyfile(source/a['worker']/name,folder/name)
+    records[a['worker']]=json.loads((folder/'measurement.json').read_bytes())
+for variant in ('prior','current'):
+    folder=source/f'sources-{variant}'
+    shutil.copyfile(folder/'manifest.json',root/f'sources-{variant}-manifest.json')
+    with tarfile.open(root/f'sources-{variant}.tar.gz','w:gz') as bundle:
+        bundle.add('LICENSE',arcname='LICENSE',recursive=False)
+        for p in sorted((folder/'src').rglob('*.py')):
+            bundle.add(p,arcname=p.relative_to(folder).as_posix(),recursive=False)
+for path,name in [('tools/benchmark_bspline_lidar_imu.py','benchmark.py.txt'),
+                  ('tools/schemas/bspline_lidar_imu_comparison.schema.json','comparison.schema.json'),
+                  ('tests/unit/test_continuous_time_bspline_fit.py','residual-tests.py.txt'),
+                  ('tests/unit/test_lidar_imu_bag_calibration.py','bag-tests.py.txt'),
+                  (__file__,'publisher.py.txt')]:
+    shutil.copyfile(path,root/name)
+controls={v:statistics.median(records[a['worker']]['controls_seconds'] for a in attempts
+                             if a['variant']==v) for v in ('prior','current')}
+whole=summary['whole_median_seconds'];fit=summary['fit_median_seconds']
+table='\n'.join(['| Scope | Previous median | Selective median | Observed ratio |',
+                 '| --- | ---: | ---: | ---: |',
+                 f"| Complete worker | {whole['prior']:.3f} s | {whole['current']:.3f} s | {summary['whole_speedup']:.3f}x |",
+                 f"| Signed control suite | {controls['prior']:.3f} s | {controls['current']:.3f} s | {controls['prior']/controls['current']:.3f}x |",
+                 f"| Unchanged fits/covariance | {fit['prior']:.3f} s | {fit['current']:.3f} s | {summary['fit_speedup']:.3f}x |"])
+attempt_table='\n'.join(['| Pair | Method | Whole seconds | Controls seconds |',
+                         '| --- | --- | ---: | ---: |']+
+                        [f"| {a['repeat']} | {a['variant']} | {a['whole_seconds']:.6f} | {records[a['worker']]['controls_seconds']:.6f} |" for a in attempts])
+text=f'''# Public selective B-spline control comparison
+
+Previous source: `{protocol['baseline_commit']}`. Selective measurement source:
+`{protocol['current_commit']}`. Original public GLIM Livox bag SHA-256:
+`{protocol['bag_sha256']}`. Raw data is not redistributed.
+
+{table}
+
+{attempt_table}
+
+All three comparisons retain zero complete calibration, holdout and decision
+difference. The audit checks full per-round covariance, fitted trajectories,
+costs, convergence and source identity. Each worker keeps all 32 signed
+perturbations and both IMU baseline scores. Final verdicts remain **INCONCLUSIVE**
+and this clip provides no independent extrinsic truth.
+
+The signed IMU controls previously recomputed plane, gyro and acceleration
+residuals for each score. The selective version requests only its one IMU family,
+skipping 34 unused LiDAR residual evaluations. The selected residuals keep
+identical arithmetic. This is CPU work reduction and adds no GPU kernels.
+
+Three alternating fresh-process pairs use one BLAS thread and separate initially
+empty CuPy compilation caches. Driver/runtime caches may persist. Background
+host load is unreserved; unchanged CPU fitting and whole-worker times also vary.
+The whole-worker ratio is an observation, not a precise causal estimate or a
+general guarantee. The control-suite ratio is not a whole-pipeline gain.
+This cohort does not establish meaningful complete-pipeline acceleration.
+
+All workers share the same six-second, four-round policy, 0.03 m voxels, three
+local-map scans, 1 nm coordinate grid and returned-motion grids of 1 micrometre
+translation and 0.1 microradian rotation-vector components. CPU remains the
+default and grids remain disabled by default. No work or validation budget is
+reduced. Whole timing includes imports, decoding, compilation, all odometry,
+association, fits/covariance, noise updates, holdout, controls, hashes and saving.
+The control observer adds no GPU synchronization and measures the suite once.
+
+The index binds every complete worker, fitted array record, original log, exact
+source archive/manifest, launcher, schema, test snapshot and publisher.
+
+```bash
+python -m tools.audit_bspline_lidar_imu_benchmark docs/assets/selective_bspline_controls
+```
+
+See [implementation and reproduction](../../benchmarks/selective_bspline_controls.md).
+'''
+(root/'README.md').write_text(text,encoding='utf-8',newline='\n')
+doc=Path('docs/benchmarks/selective_bspline_controls.md')
+doc.write_text(doc.read_text(encoding='utf-8').replace('<!-- results -->',table+'\n\nThe complete-worker median is effectively unchanged. This removes a clear\nwaste in validation but does not establish a meaningful whole-pipeline gain.\nDifferences in unchanged fit timings reflect run variation.'),encoding='utf-8',newline='\n')
+index={p.relative_to(root).as_posix():hashlib.sha256(p.read_bytes()).hexdigest()
+       for p in sorted(root.rglob('*')) if p.is_file()}
+(root/'publication-index.json').write_text(json.dumps({
+    'schema_version':'slac.bspline_lidar_imu_publication/v0.1',
+    'provenance':{'input_protocol_sha256':hashlib.sha256((source/'protocol.json').read_bytes()).hexdigest()},
+    'files':index,
+},indent=2)+'\n',encoding='utf-8',newline='\n')
+print({'bound_files':len(index),'controls':controls,'whole':whole})
