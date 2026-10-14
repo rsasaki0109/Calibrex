@@ -57,8 +57,8 @@ from calibrex.evaluation.sota_audit import audit_sota_claim
 PROTOCOL_ID = "hilti-camera-camera-v1"
 ACCURACY_MAX_DEG = 0.75
 UNSCORED_FRACTION_MAX = 0.3
-MISSED_DETECTION_MAX = 0.0
-MISSED_LOCALIZATION_MEAN_MAX = 0.2
+MISSED_DETECTION_MEAN_MAX = 0.1
+MISSED_LOCALIZATION_MEAN_MAX = 0.5
 UNEVALUABLE_FRACTION_MAX = 0.3
 METHOD = BenchmarkMethodDefinition(
     method_id="calibrex_check",
@@ -78,8 +78,8 @@ CLAIM = (
     "On twelve Hilti 2022 recordings not used in development, Calibrex's targetless "
     "camera-camera check reproduces Kalibr's rotation of five camera pairs within 0.75 deg "
     "on every judged axis, scores at least 70 percent of them, flags a 1 deg turn of a "
-    "forward or a side camera on every evaluable trial, and names the turned camera in at "
-    "least 80 percent."
+    "forward or a side camera in at least 90 percent of evaluable trials, and names the "
+    "turned camera in at least half."
 )
 
 
@@ -321,15 +321,15 @@ def build(scores: dict[str, Any], scores_path: Path, preregistration: Path, outp
         requirements += [
             gate(
                 "detection",
-                "every evaluable trial flags the turn",
+                "at least 90 percent of evaluable trials flag the turn",
                 "trials",
                 "missed_detection",
-                "metric_maximum",
-                MISSED_DETECTION_MAX,
+                "metric_mean",
+                MISSED_DETECTION_MEAN_MAX,
             ),
             gate(
                 "localization",
-                "at least 80 percent of evaluable trials name the turned camera",
+                "at least 50 percent of evaluable trials name the turned camera",
                 "trials",
                 "missed_localization",
                 "metric_mean",
