@@ -1,0 +1,80 @@
+from pathlib import Path
+import hashlib
+import json
+import shutil
+import subprocess
+
+def sha(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+destination = Path("docs/assets/icp_neighbor_experiments")
+assert not destination.exists()
+destination.mkdir(parents=True)
+(destination/"results").mkdir()
+cohorts = {
+    "host-ordering": "outputs/two-neighbor-formal-gpu-primary-v1",
+    "direct-gpu": "outputs/native-gpu-neighbor-formal-primary-v1",
+    "static-specialization": "outputs/native-gpu-neighbor-formal-primary-v2",
+    "gated-gpu": "outputs/gated-native-gpu-neighbor-primary-v1",
+    "cpu-primary": "outputs/gated-native-neighbor-controls-v1/cpu-primary",
+    "breadth-230": "outputs/gated-native-neighbor-controls-v1/breadth-230",
+    "breadth-345": "outputs/gated-native-neighbor-controls-v1/breadth-345",
+    "small-115": "outputs/gated-native-neighbor-controls-v1/small-115",
+}
+extras = {
+    "exploratory/overlapping-pilot": "outputs/two-neighbor-pilot-v1",
+    "exploratory/contended-pilot": "outputs/two-neighbor-serial-pilot-v1",
+    "exploratory/direct-gpu-pilot": "outputs/native-gpu-neighbor-pilot-v1",
+    "exploratory/native-tool-smoke": "outputs/two-neighbor-tool-native-smoke-v1",
+    "exploratory/initial-profile": "outputs/icp-current-phase-profile-v2",
+    "exploratory/rejected-pair-kernel": "outputs/pair-kernel-probe-v1",
+}
+
+def copy_folder(label, source):
+    base = Path(source)
+    assert base.exists(), source
+    for path in sorted(base.rglob("*")):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(base)
+        if any(part in {"cupy-cache", "cache", "import-cache", "__pycache__"}
+               for part in relative.parts):
+            continue
+        target = destination/label/relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if path.name == "result.json":
+            raw = path.read_bytes()
+            digest = sha(raw)
+            saved = destination/"results"/(digest+".json")
+            if saved.exists():
+                assert saved.read_bytes() == raw
+            else:
+                saved.write_bytes(raw)
+            binding = {"path":"results/"+saved.name, "sha256":digest}
+            target.with_name("result-reference.json").write_text(
+                json.dumps(binding,indent=2)+"\n",encoding="utf-8")
+        else:
+            if path.suffix == ".py" or "/sources/" in "/"+relative.as_posix():
+                target = target.with_name(target.name+".txt") if path.suffix != ".json" else target
+            target.write_bytes(path.read_bytes())
+
+for label, source in cohorts.items():
+    assert (Path(source)/"summary.json").exists(), label
+    copy_folder(label, source)
+for label, source in extras.items():
+    copy_folder(label, source)
+shutil.copyfile("outputs/two-neighbor-probe-v1.json", destination/"exploratory/host-probe.json")
+shutil.copyfile(".tmp-calibrex-two-neighbor-probe.py", destination/"exploratory/host-probe.py.txt")
+shutil.copyfile(".tmp-calibrex-profile-current-icp.py", destination/"exploratory/profile-launcher.py.txt")
+shutil.copyfile(".tmp-calibrex-run-two-neighbor-worker.py", destination/"exploratory/pilot-worker.py.txt")
+shutil.copyfile(".tmp-calibrex-run-neighbor-controls.py", destination/"controls-launcher.py.txt")
+shutil.copyfile("tools/schemas/icp_neighbor_order_comparison.schema.json", destination/"comparison.schema.json")
+index = {"provenance":{"generator":"icp_neighbor_experiment_publication/v1",
+    "measured_final_commit":subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip(),
+    "publisher_sha256":sha(Path(__file__).read_bytes())},
+    "formal_cohorts":list(cohorts),"files":{}}
+for path in sorted(destination.rglob("*")):
+    if path.is_file():
+        index["files"][path.relative_to(destination).as_posix()] = sha(path.read_bytes())
+(destination/"publication-index.json").write_text(json.dumps(index,indent=2)+"\n",encoding="utf-8")
+print(json.dumps({"files":len(index["files"]),"cohorts":len(cohorts)}))

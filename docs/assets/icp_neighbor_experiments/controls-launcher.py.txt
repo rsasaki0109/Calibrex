@@ -1,0 +1,27 @@
+from pathlib import Path
+import hashlib
+import json
+import subprocess
+import sys
+
+jobs = [
+    ("cpu-primary", "native", "outputs/kitti-icp-pairs-default-v1/0000000115-0000000116.json", 0, 3),
+    ("breadth-230", "cuda", "outputs/kitti-icp-pairs-v1/0000000230-0000000231.json", 0, 1),
+    ("breadth-345", "cuda", "outputs/kitti-icp-pairs-v1/0000000345-0000000346.json", 0, 1),
+    ("small-115", "cuda", "outputs/kitti-icp-pairs-v1/0000000115-0000000116.json", 768, 1),
+]
+root = Path("outputs/gated-native-neighbor-controls-v1")
+root.mkdir()
+record = {"provenance":{"generator":"icp_neighbor_controls/v1",
+    "commit":subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip(),
+    "launcher_sha256":hashlib.sha256(Path(__file__).read_bytes()).hexdigest()},"jobs":jobs,
+    "policy":"fixed controls, sequential workers, preserve all cold and slow observations"}
+(root/"protocol.json").write_text(json.dumps(record,indent=2)+"\n")
+for label, backend, fixture, budget, repeats in jobs:
+    command = [sys.executable,"-m","tools.benchmark_icp_neighbor_order",
+        "--baseline-commit","4ef988e","--backend",backend,"--repeats",str(repeats),
+        "--fixture",fixture,"--data-root","data/public/kitti_raw_icp/2011_09_30_drive_0018_sync",
+        "--point-budget",str(budget),"--output",str(root/label)]
+    print(json.dumps({"started":label}),flush=True)
+    subprocess.run(command,check=True)
+    print(json.dumps({"completed":label}),flush=True)

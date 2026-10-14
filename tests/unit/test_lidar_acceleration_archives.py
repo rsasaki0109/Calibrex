@@ -4,6 +4,7 @@ from pathlib import Path
 
 from tools.audit_actual_icp_archive import audit as audit_actual
 from tools.audit_cuda_point_icp_archive import audit as audit_icp
+from tools.audit_icp_neighbor_experiments import audit as audit_neighbor_experiments
 from tools.audit_initial_projection_archive import _aggregate_equal
 from tools.audit_initial_projection_archive import audit as audit_projection
 
@@ -35,3 +36,7 @@ def test_actual_frame_archive_preserves_all_full_results_and_evaluation():
     report = audit_actual(Path("docs/assets/cuda_point_to_point_icp/actual_frames"))
     assert report["complete_models"] == 14
     assert report["cohorts"] == 5
+def test_rejected_neighbor_experiments_preserve_complete_calibration_controls():
+    report = audit_neighbor_experiments(Path("docs/assets/icp_neighbor_experiments"))
+    assert report["complete_workers"] == 36
+    assert report["full_result_equal"] is True
