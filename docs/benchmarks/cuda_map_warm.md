@@ -26,6 +26,14 @@ starting. These observations do not guarantee continuous GPU exclusivity,
 detect all graphics activity or reserve CPU resources. Hardware models and
 process IDs are omitted from saved observations.
 
+Install the development dependencies for process-tree tracking. Windows virtual
+environment launchers can spawn the interpreter that owns the CUDA context;
+both the launcher and its descendants belong to the worker. The runner tracks
+their process identities, ignores exited processes in driver snapshots, waits
+for owned descendants to finish, and terminates only that captured worker tree
+when interrupted. It retains ownership across workers so teardown is not
+mistaken for unrelated work.
+
 First freeze and measure the source pair with the public KITTI copied-sensor
 execution control, as described in the [map fusion benchmark](cuda_map_fusion.md).
 Then use its local output directory:
@@ -58,3 +66,12 @@ and establish no accepted acceleration. The candidate is reverted; the
 [retained map fusion results](cuda_map_fusion.md) remain the supported evidence.
 The local frozen cohort keeps both source trees and full outputs for future
 qualification with the guarded warm runner.
+
+The corrected observer completed two independent warm process pairs before a
+later process observation stopped the cohort. Their eight complete evaluation
+pairs match exactly, with zero new compilations in every warm call. The
+descriptive ratio is approximately 1.08x. This incomplete cohort supplies no
+accepted acceleration and the candidate remains reverted. CPU pilots also
+found only about 1.3x from four-thread spline evaluation, while streaming and
+adjoint plane derivatives did not improve complete fixed-input fit time. Those
+pilots leave the core runtime unchanged.

@@ -16,9 +16,10 @@ from tools import benchmark_cuda_map_warm as bench
 @pytest.mark.parametrize(
     ("stdout", "code", "owned", "expected"),
     [
-        ("31\n", 0, 31, {"own": 1, "foreign": 0, "unknown": 0}),
-        ("31\n42\n", 0, 31, {"own": 1, "foreign": 1, "unknown": 0}),
+        ("31\n", 0, {31}, {"own": 1, "foreign": 0, "unknown": 0}),
+        ("31\n32\n42\n", 0, {31, 32}, {"own": 2, "foreign": 1, "unknown": 0}),
         ("N/A\n", 0, None, {"own": 0, "foreign": 0, "unknown": 1}),
+        ("0\n-1\n", 0, None, {"own": 0, "foreign": 0, "unknown": 2}),
         ("", 1, None, {"own": 0, "foreign": 0, "unknown": 1}),
     ],
 )
@@ -26,13 +27,16 @@ def test_gpu_observations_keep_foreign_and_unknown_work_visible(
     monkeypatch,
     stdout: str,
     code: int,
-    owned: int | None,
+    owned: set[int] | None,
     expected: dict[str, int],
 ) -> None:
     monkeypatch.setattr(
         bench.subprocess,
         "run",
         lambda *a, **k: SimpleNamespace(stdout=stdout, returncode=code),
+    )
+    monkeypatch.setattr(
+        bench.psutil, "Process", lambda pid: SimpleNamespace(is_running=lambda: True)
     )
     assert bench._observation(owned) == expected
 
@@ -43,7 +47,41 @@ def test_missing_or_unresponsive_query_is_unknown(monkeypatch, error: Exception)
         raise error
 
     monkeypatch.setattr(bench.subprocess, "run", failed_query)
-    assert bench._observation(31) == {"own": 0, "foreign": 0, "unknown": 1}
+    assert bench._observation({31}) == {"own": 0, "foreign": 0, "unknown": 1}
+
+
+def test_exited_process_in_driver_snapshot_does_not_interrupt_owned_work(monkeypatch) -> None:
+    monkeypatch.setattr(
+        bench.subprocess,
+        "run",
+        lambda *a, **k: SimpleNamespace(
+            stdout="42\n",
+            returncode=0,
+        ),
+    )
+
+    def exited(pid):
+        raise bench.psutil.NoSuchProcess(pid)
+
+    monkeypatch.setattr(bench.psutil, "Process", exited)
+    assert bench._observation({31}) == {"own": 0, "foreign": 0, "unknown": 0}
+
+
+def test_inaccessible_process_identity_remains_unknown(monkeypatch) -> None:
+    monkeypatch.setattr(
+        bench.subprocess,
+        "run",
+        lambda *a, **k: SimpleNamespace(
+            stdout="42\n",
+            returncode=0,
+        ),
+    )
+
+    def inaccessible(pid):
+        raise bench.psutil.AccessDenied(pid)
+
+    monkeypatch.setattr(bench.psutil, "Process", inaccessible)
+    assert bench._observation({31}) == {"own": 0, "foreign": 0, "unknown": 1}
 
 
 def test_foreign_observation_stops_only_the_launched_worker_and_retains_attempt(
@@ -100,6 +138,15 @@ def test_foreign_observation_stops_only_the_launched_worker_and_retains_attempt(
             raise subprocess.TimeoutExpired("owned worker", timeout)
 
     monkeypatch.setattr(bench.subprocess, "Popen", lambda *a, **k: OwnedWorker())
+    monkeypatch.setattr(
+        bench,
+        "_WorkerProcesses",
+        lambda process: SimpleNamespace(
+            capture=lambda: {process.pid},
+            stop=process.terminate,
+            finish=lambda: None,
+        ),
+    )
     output = tmp_path / "output"
     monkeypatch.setattr(
         sys,
@@ -113,3 +160,41 @@ def test_foreign_observation_stops_only_the_launched_worker_and_retains_attempt(
     assert attempt["interrupted"] and attempt["exit_code"] == -15
     assert json.loads((output / "observations.json").read_bytes())[-1]["foreign"] == 1
     assert (output / "protocol.json").is_file()
+
+
+def test_owned_launcher_descendants_are_observed_and_stopped_without_touching_siblings(
+    monkeypatch,
+) -> None:
+    foreign = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(20)"])
+    foreign_ownership = bench._WorkerProcesses(foreign)
+    code = (
+        "import subprocess,sys; "
+        "child=subprocess.Popen([sys.executable,'-c','import time; time.sleep(20)']); "
+        "print(child.pid,flush=True); child.wait()"
+    )
+    process = subprocess.Popen([sys.executable, "-c", code], stdout=subprocess.PIPE, text=True)
+    ownership = bench._WorkerProcesses(process)
+    try:
+        assert process.stdout is not None
+        child_pid = int(process.stdout.readline())
+        owned = ownership.capture()
+        assert process.pid in owned and child_pid in owned
+        assert foreign.pid not in owned
+        monkeypatch.setattr(
+            bench.subprocess,
+            "run",
+            lambda *a, **k: SimpleNamespace(
+                stdout=f"{child_pid}\n{foreign.pid}\n",
+                returncode=0,
+            ),
+        )
+        assert bench._observation(owned) == {"own": 1, "foreign": 1, "unknown": 0}
+        ownership.stop()
+        assert not any(member.is_running() for member in ownership.known.values())
+        assert foreign.poll() is None
+    finally:
+        if process.poll() is None:
+            ownership.stop()
+        foreign_ownership.capture()
+        foreign_ownership.stop()
+        foreign.wait(timeout=5)

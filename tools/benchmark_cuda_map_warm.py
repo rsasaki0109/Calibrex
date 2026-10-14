@@ -20,6 +20,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+import psutil
 from tools.benchmark_cuda_map_pipeline import _quality
 
 
@@ -38,7 +39,48 @@ def _write(path: Path, value: Any) -> None:
     path.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n", encoding="utf-8")
 
 
-def _observation(owned_pid: int | None) -> dict[str, int]:
+class _WorkerProcesses:
+    """Keep process identities for the worker and its launcher descendants."""
+
+    def __init__(self, process: subprocess.Popen[Any]) -> None:
+        self.process = process
+        self.root = psutil.Process(process.pid)
+        self.known = {self.root.pid: self.root}
+
+    def capture(self) -> set[int]:
+        try:
+            for child in self.root.children(recursive=True):
+                self.known[child.pid] = child
+        except psutil.NoSuchProcess:
+            pass
+        return {pid for pid, process in self.known.items() if process.is_running()}
+
+    def stop(self) -> None:
+        """Terminate only the process objects captured from this worker tree."""
+        children = [process for pid, process in self.known.items() if pid != self.root.pid]
+        for child in reversed(children):
+            with suppress(psutil.NoSuchProcess):
+                child.terminate()
+        if self.process.poll() is None:
+            self.process.terminate()
+        _, alive = psutil.wait_procs(children, timeout=5)
+        for child in alive:
+            with suppress(psutil.NoSuchProcess):
+                child.kill()
+        try:
+            self.process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            self.process.kill()
+
+    def finish(self) -> None:
+        """Wait for launcher descendants before starting the next measurement."""
+        _, alive = psutil.wait_procs(list(self.known.values()), timeout=10)
+        if alive:
+            self.stop()
+            raise RuntimeError("owned worker descendants did not finish")
+
+
+def _observation(owned_pids: set[int] | None) -> dict[str, int]:
     try:
         response = subprocess.run(
             ["nvidia-smi", "--query-compute-apps=pid", "--format=csv,noheader,nounits"],
@@ -57,7 +99,18 @@ def _observation(owned_pid: int | None) -> dict[str, int]:
         except ValueError:
             row["unknown"] += 1
         else:
-            row["own" if pid == owned_pid else "foreign"] += 1
+            if pid <= 0:
+                row["unknown"] += 1
+                continue
+            try:
+                if not psutil.Process(pid).is_running():
+                    continue
+            except psutil.NoSuchProcess:
+                continue
+            except psutil.AccessDenied:
+                row["unknown"] += 1
+                continue
+            row["own" if owned_pids is not None and pid in owned_pids else "foreign"] += 1
     return row
 
 
@@ -226,14 +279,20 @@ def main() -> None:
         },
     )
     attempts, observations, medians = [], [], {"prior": [], "current": []}
+    owners: list[_WorkerProcesses] = []
     started = time.perf_counter()
     for repeat in range(args.repeats):
         for variant in ("prior", "current") if repeat % 2 == 0 else ("current", "prior"):
-            initial = _observation(None)
+            previous_owned: set[int] = set()
+            for owner in owners:
+                previous_owned.update(owner.capture())
+            initial = _observation(previous_owned)
             observations.append({"offset_seconds": time.perf_counter() - started, **initial})
             if initial["foreign"] or initial["unknown"]:
                 _write(args.output / "observations.json", observations)
                 raise RuntimeError("foreign or unknown GPU process observed before worker")
+            if initial["own"]:
+                raise RuntimeError("previous owned GPU context remained after worker completion")
             folder = args.output / f"{repeat:02d}-{variant}"
             folder.mkdir()
             env = dict(os.environ)
@@ -260,22 +319,30 @@ def main() -> None:
             begin = time.perf_counter()
             with (folder / "worker.log").open("w", encoding="utf-8") as log:
                 process = subprocess.Popen(command, env=env, stdout=log, stderr=subprocess.STDOUT)
+                ownership = _WorkerProcesses(process)
+                owners.append(ownership)
                 interrupted = False
                 while process.poll() is None:
-                    row = _observation(process.pid)
+                    try:
+                        owned = ownership.capture()
+                    except psutil.AccessDenied:
+                        row = {"own": 0, "foreign": 0, "unknown": 1}
+                    else:
+                        row = _observation(owned)
                     observations.append({"offset_seconds": time.perf_counter() - started, **row})
                     _write(args.output / "observations.json", observations)
                     if row["foreign"] or row["unknown"]:
-                        process.terminate()
-                        try:
-                            process.wait(timeout=10)
-                        except subprocess.TimeoutExpired:
-                            process.kill()
+                        ownership.stop()
                         interrupted = True
                         break
                     with suppress(subprocess.TimeoutExpired):
                         process.wait(timeout=2)
                 code = process.wait()
+                try:
+                    ownership.finish()
+                except RuntimeError:
+                    code = -1
+                    interrupted = True
             attempts.append(
                 {
                     "repeat": repeat,
