@@ -1067,6 +1067,27 @@ pairs, six frames):
     unjudged and the turn went unseen again.
 
 
+**Translation on Hilti `exp21`.** The run uses the first 40 s, `imu-lidar` with the
+lever arm, and the two `camera-imu` pairs of the cam0–cam1 camchain. It took 495 s.
+
+* **The baseline is `consistent`.** `imu-lidar` compares `T_lidar_imu`, so its
+  translation is along the LiDAR's axes. Only y is observed (−16 ± 10 mm); x and z are
+  unchecked. With 6 rotation axes and that one translation axis, the group is
+  `consistent` (χ² 14.9 on 7 axes, p 0.04).
+* **A 5 cm shift is pinned to the pair, not to one frame.** The test moves the
+  LiDAR's candidate 5 cm along IMU x, which is the LiDAR's −y.
+  * `imu-lidar` then reads `warn` (y +34 ± 10 mm).
+  * Attribution is `ambiguous` between the IMU and the LiDAR, each moved 3.4 cm.
+  * The cameras are ruled out (χ² 14.3 and 22.9 on 4 and 5 dof).
+* **Why it stays ambiguous.** A shift seen by one translation pair cannot be told from
+  its partner's. A second translation pair through one of the two frames, such as
+  `lidar-lidar` or `gnss-lidar`, would separate them; this rig has none.
+* **Speed.** The shifted run re-used the cached estimates and took 31 s.
+* **Synthetic rigs.** Every case is covered: a LiDAR moved, an IMU turned with LiDARs
+  1.2 m away (named as the IMU turned, not the LiDARs moved), a frame turned and moved,
+  two frames moved, and a shift below the floor
+  (`tests/unit/test_check_attribution.py`).
+
 ### HTML report
 
 ```bash

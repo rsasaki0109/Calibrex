@@ -15,6 +15,11 @@
   - **Unchanged without translation.** Groups with rotation only give the same
     hypotheses, statuses and summaries as before (59 random rigs: largest difference
     6e-16).
+  - **On Hilti `exp21`** (first 40 s, `imu-lidar` with the lever arm, two
+    `camera-imu`). The baseline is `consistent`. With the LiDAR's candidate moved 5 cm,
+    `imu-lidar` reads `warn` and attribution is `ambiguous` between the IMU and the
+    LiDAR, each moved 3.4 cm. The cameras are ruled out. One translation pair cannot
+    tell its two frames apart.
   - **Schema.** New optional fields: `translation_m` and `translation_std_m` per
     hypothesis, `translation_observations` per group, `sigma_floor_m` on the report.
 
