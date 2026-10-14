@@ -148,8 +148,9 @@ def audit(root: Path) -> dict[str, object]:
             raise ValueError(f"frozen {variant} source tree differs")
         sources[variant] = expected
         source_bytes[variant] = raw_sources
-    gpu_comparison = protocol.get("comparison") == "cpu-cuda"
-    if gpu_comparison and protocol["baseline_commit"] != protocol["current_commit"]:
+    gpu_comparison = protocol.get("comparison") in ("cpu-cuda", "cuda-cuda")
+    if (protocol.get("comparison") == "cpu-cuda"
+            and protocol["baseline_commit"] != protocol["current_commit"]):
         raise ValueError("CPU/CUDA workers must use the same declared source revision")
     attempts = json.loads((root / "attempts.json").read_bytes())
     expected_workers = {(r, v) for r in range(protocol["repeats"]) for v in sources}
@@ -190,7 +191,8 @@ def audit(root: Path) -> dict[str, object]:
         if any(sources[variant].get(name) != digest for name, digest in executed.items()):
             raise ValueError("actual worker imports differ from frozen sources")
         if gpu_comparison:
-            backend = "cpu" if variant == "prior" else "cuda"
+            backend = ("cuda" if protocol["comparison"] == "cuda-cuda" or variant == "current"
+                       else "cpu")
             module._validate_backend_execution(result, backend)
             if (provenance.get("odometry_backend") != backend
                     or provenance.get("cuda_cache_initially_empty") is not True):

@@ -21,23 +21,29 @@ from calibrex.solvers.lidar_lidar_map_solver import (
     MapSample,
     MapSampleOptions,
 )
+from calibrex.solvers.scipy_spatial_snapshot import capture_spatial_tree
 
 _SOURCE = r'''
 extern "C" __global__ void query3(
     const double* xyz, const double* reference, const long long* order,
     const int* axis, const double* split, const int* child,
-    const long long* span, const int n, const int m, const int k,
+    const long long* span, const double* boxes, const int n, const int m, const int k,
     double* distance, long long* index) {
     int row = blockDim.x * blockIdx.x + threadIdx.x;
     if (row >= n) return;
     double p[3] = {xyz[3*row], xyz[3*row+1], xyz[3*row+2]};
     double best[17]; long long chosen[17];
     for(int j=0;j<k;j++){best[j]=1.0/0.0;chosen[j]=m;}
-    int stack[64]; double bound[64]; int top=1;
-    stack[0]=0;bound[0]=0;
+    int stack[64]; int top=1;
+    stack[0]=0;
     while(top){
         --top; int node=stack[top];
-        if(bound[top] > best[k-1]) continue;
+        double d[3];
+        for(int a=0;a<3;a++)
+            d[a]=fmax(0.0,fmax(boxes[6*node+a]-p[a],p[a]-boxes[6*node+3+a]));
+        // Retain equal and roundoff-close boxes; candidate distance arithmetic is unchanged.
+        double lower=(d[0]*d[0]+d[1]*d[1]+d[2]*d[2])*(1.0-16.0*2.2204460492503131e-16);
+        if(lower > best[k-1]) continue;
         if(axis[node]<0){
             for(long long j=span[2*node];j<span[2*node+1];j++){
                 long long position=order[j];
@@ -59,9 +65,9 @@ extern "C" __global__ void query3(
             int side=delta<0?0:1;
             int far=child[2*node+1-side], near=child[2*node+side];
             if(delta*delta <= best[k-1]){
-                stack[top]=far;bound[top]=delta*delta;++top;
+                stack[top]=far;++top;
             }
-            stack[top]=near;bound[top]=0;++top;
+            stack[top]=near;++top;
         }
     }
     for(int j=0;j<k;j++){distance[row*k+j]=sqrt(best[j]);index[row*k+j]=chosen[j];}
@@ -89,28 +95,12 @@ class _CudaTree:
     def __init__(self, points: FloatArray) -> None:
         self.cpu = cKDTree(points, copy_data=True)
         self.data = cp.asarray(points)
-        axes: list[int] = []
-        splits: list[float] = []
-        children: list[list[int]] = []
-        spans: list[list[int]] = []
-
-        def append(node: Any, depth: int = 0) -> int:
-            if depth >= 63:
-                raise ValueError("CUDA spatial tree exceeds the bounded traversal stack")
-            index = len(axes)
-            axes.append(node.split_dim)
-            splits.append(node.split)
-            children.append([0, 0])
-            spans.append([node.start_idx, node.end_idx])
-            if node.split_dim >= 0:
-                children[index] = [append(node.lesser, depth + 1), append(node.greater, depth + 1)]
-            return index
-
-        append(self.cpu.tree)
+        topology, bounds, self.capture_method = capture_spatial_tree(self.cpu)
+        axes, splits, children, spans = topology
         self.arrays = (
             cp.asarray(self.cpu.indices, dtype=cp.int64), cp.asarray(axes, dtype=cp.int32),
             cp.asarray(splits), cp.asarray(children, dtype=cp.int32),
-            cp.asarray(spans, dtype=cp.int64),
+            cp.asarray(spans, dtype=cp.int64), cp.asarray(bounds),
         )
         self.kernel = cp.RawKernel(_SOURCE, "query3", options=("--fmad=false",))
         self.bytes = int(self.data.nbytes + sum(array.nbytes for array in self.arrays))

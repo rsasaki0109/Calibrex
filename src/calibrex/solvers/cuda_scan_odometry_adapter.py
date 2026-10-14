@@ -78,7 +78,7 @@ _FUSED_SOURCE = r"""
 extern "C" __global__ void project_query_system3(
     const double* xyz, const double* matrix, const double* reference,
     const long long* order, const int* axis, const double* split,
-    const int* child, const long long* span, const double* normal,
+    const int* child, const long long* span, const double* boxes, const double* normal,
     const bool* planar, const bool* done, const int n, const int m, const double gate,
     const double huber, const double error, double* uncertain, double* terms,
     double* moved_out, double* distances_out, long long* indices_out,
@@ -90,10 +90,14 @@ extern "C" __global__ void project_query_system3(
     for(int a=0;a<3;a++)
         p[a]=matrix[4*a]*s[0]+matrix[4*a+1]*s[1]+matrix[4*a+2]*s[2]+matrix[4*a+3];
     double best[2]={1.0/0.0,1.0/0.0};long long chosen[2]={m,m};
-    int stack[64];double bound[64];int top=1;stack[0]=0;bound[0]=0;
+    int stack[64];int top=1;stack[0]=0;
     while(top){
         --top;int node=stack[top];
-        if(bound[top]>best[1]) continue;
+        double d[3];
+        for(int a=0;a<3;a++)
+            d[a]=fmax(0.0,fmax(boxes[6*node+a]-p[a],p[a]-boxes[6*node+3+a]));
+        double lower=(d[0]*d[0]+d[1]*d[1]+d[2]*d[2])*(1.0-16.0*2.2204460492503131e-16);
+        if(lower>best[1]) continue;
         if(axis[node]<0){
             for(long long v=span[2*node];v<span[2*node+1];v++){
                 long long position=order[v];
@@ -110,9 +114,9 @@ extern "C" __global__ void project_query_system3(
         }else{
             double delta=p[axis[node]]-split[node];int side=delta<0?0:1;
             if(delta*delta<=best[1]){
-                stack[top]=child[2*node+1-side];bound[top]=delta*delta;++top;
+                stack[top]=child[2*node+1-side];++top;
             }
-            stack[top]=child[2*node+side];bound[top]=0;++top;
+            stack[top]=child[2*node+side];++top;
         }
     }
     double distance=sqrt(best[0]);long long hit=chosen[0];
@@ -473,6 +477,8 @@ class CudaOdometryTarget:
     def statistics(self) -> dict[str, int]:
         """Report actual work, including the two kinds of native repairs."""
         return {
+            "serialized_tree_captures": int(self.tree.capture_method == "validated_serialized"),
+            "public_node_tree_captures": int(self.tree.capture_method == "public_nodes"),
             "gpu_query_calls": self.tree.query_calls,
             "gpu_query_rows": self.tree.query_rows,
             "scalar_query_repairs": self.query_repairs,
