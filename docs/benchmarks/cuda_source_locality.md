@@ -42,6 +42,12 @@ observed on the shared host during the first pair. This is a contended cohort:
 the timings cannot establish the isolated performance effect of this change.
 The prototype stays a draft pending measurements without competing GPU workloads.
 
+A [monitored repeat](../assets/cuda_source_locality/repeat-v2/README.md) started
+with no CUDA compute processes, then detected competing workloads in 32 of 52
+ten-second observations. All three quality comparisons remained exactly equal.
+That repeat also cannot establish an isolated performance effect. The observer
+and complete repeat are source-bound and checked by the parent archive audit.
+
 The [CPU-auditable archive](../assets/cuda_source_locality/README.md) retains all
 complete workers, full fitted evidence, exact sources and publication bindings.
 Real-data verdicts remain **INCONCLUSIVE** without independent extrinsic truth.

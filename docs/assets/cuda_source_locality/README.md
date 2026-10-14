@@ -59,3 +59,7 @@ python -m tools.audit_bspline_lidar_imu_benchmark docs/assets/cuda_source_locali
 ```
 
 See [implementation and reproduction](../../benchmarks/cuda_source_locality.md).
+
+A [monitored repeat](repeat-v2/README.md) retained all three exact quality
+comparisons, but detected foreign GPU workloads in 32 of 52 samples.
+It therefore also does not establish an isolated performance effect.

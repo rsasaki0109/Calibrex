@@ -391,6 +391,46 @@ def audit(root: Path) -> dict[str, object]:
     _audit_rejected_pair(root, module._compare)
     if (root / "previous_cuda").exists():
         audit(root / "previous_cuda")
+    repeat_summary = {}
+    if (root / "repeat-v2").exists():
+        repeat_summary["monitored_repeat"] = audit(root / "repeat-v2")
+    if (root / "observation.json").exists():
+        observed = json.loads((root / "observation.json").read_bytes())
+        observation_schema = root / "observation.schema.json"
+        jsonschema.validate(observed, json.loads(observation_schema.read_bytes()))
+        binding = observed["provenance"]
+        if (binding["observer_sha256"] != _sha((root / "observer.py.txt").read_bytes())
+                or binding["schema_sha256"] != _sha(observation_schema.read_bytes())
+                or binding["launcher_sha256"] != protocol["launcher_sha256"]
+                or observed["exit_code"] != 0):
+            raise ValueError("GPU observation source/schema/launcher binding differs")
+        command = binding["benchmark_command"]
+        for option, value in (("--comparison", protocol["comparison"]),
+                              ("--baseline-commit", protocol["baseline_commit"])):
+            if command[command.index(option) + 1] != value:
+                raise ValueError("GPU observation benchmark command differs")
+        for option, value in (("--max-seconds", protocol["max_seconds"]),
+                              ("--max-rounds", protocol["max_rounds"]),
+                              ("--repeats", protocol["repeats"])):
+            if float(command[command.index(option) + 1]) != value:
+                raise ValueError("GPU observation benchmark command differs")
+        for option, key in (("--odometry-voxel-size-m", "voxel_size_m"),
+                            ("--odometry-local-map-scans", "local_map_scans"),
+                            ("--odometry-geometry-quantum-m", "geometry_quantum_m"),
+                            ("--odometry-motion-translation-quantum-m",
+                             "motion_translation_quantum_m"),
+                            ("--odometry-motion-rotation-quantum-rad",
+                             "motion_rotation_quantum_rad")):
+            if float(command[command.index(option) + 1]) != protocol["odometry_options"][key]:
+                raise ValueError("GPU observation geometry command differs")
+        offsets = [row["offset_seconds"] for row in observed["samples"]]
+        if offsets != sorted(offsets) or binding["sampling_interval_seconds"] != 10:
+            raise ValueError("GPU observation sampling scope differs")
+        repeat_summary.update({"gpu_observation_samples": len(offsets),
+                               "foreign_gpu_samples": sum(row["foreign"] > 0
+                                                          for row in observed["samples"]),
+                               "unknown_gpu_samples": sum(row["unknown"] > 0
+                                                          for row in observed["samples"])})
     normal_summary = {}
     if all("normal_preparation_seconds" in record for record in measurements.values()):
         normal_medians = {
@@ -422,6 +462,7 @@ def audit(root: Path) -> dict[str, object]:
         "quality_passed": True,
         **normal_summary,
         **front_summary,
+        **repeat_summary,
     }
 
 

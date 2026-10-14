@@ -17,6 +17,48 @@ def test_complete_source_locality_archive_audits_registration_and_quality() -> N
     result = audit(ROOT)
     assert result["workers"] == 6 and result["quality_passed"]
     assert result["registration_speedup"] > 0 and result["whole_speedup"] > 0
+    repeated = result["monitored_repeat"]
+    assert repeated["quality_passed"] and repeated["workers"] == 6
+    assert repeated["gpu_observation_samples"] == 52
+    assert repeated["foreign_gpu_samples"] == 32
+    assert repeated["unknown_gpu_samples"] == 0
+
+
+@pytest.mark.parametrize("mutation", ["observer", "launcher", "schema", "interval",
+                                      "offset", "negative", "command", "geometry"])
+def test_monitored_repeat_rejects_rebound_false_observation(
+    tmp_path: Path, mutation: str,
+) -> None:
+    from jsonschema import ValidationError
+
+    root = tmp_path / "archive"
+    shutil.copytree(ROOT, root)
+    repeated = root / "repeat-v2"
+    path = repeated / "observation.json"
+    record = json.loads(path.read_bytes())
+    if mutation in ("observer", "launcher", "schema"):
+        record["provenance"][mutation + "_sha256"] = "0" * 64
+    elif mutation == "interval":
+        record["provenance"]["sampling_interval_seconds"] = 1
+    elif mutation == "offset":
+        record["samples"][-1]["offset_seconds"] = 0
+    elif mutation == "negative":
+        record["samples"][0]["foreign"] = -1
+    else:
+        command = record["provenance"]["benchmark_command"]
+        option = "--max-seconds" if mutation == "command" else "--odometry-voxel-size-m"
+        command[command.index(option) + 1] = "999"
+    path.write_text(json.dumps(record), encoding="utf-8")
+    for folder in (repeated, root):
+        index_path = folder / "publication-index.json"
+        index = json.loads(index_path.read_bytes())
+        index["files"] = {
+            p.relative_to(folder).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in folder.rglob("*") if p.is_file() and p != index_path
+        }
+        index_path.write_text(json.dumps(index), encoding="utf-8")
+    with pytest.raises((ValueError, ValidationError), match=r"GPU observation|foreign"):
+        audit(root)
 
 
 @pytest.mark.parametrize("mutation", ["calls", "rows", "kernel", "missing",
