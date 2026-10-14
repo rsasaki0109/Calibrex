@@ -329,6 +329,8 @@ yaw unjudged, and the Hilti yaw tolerance widens when the points are moved. The 
 other five blocks, scores the held-out block at that fit and at the fit turned 2 deg each way,
 and needs a one-sided t of at least 2 over the six blocks in both directions. Whether that rule
 or the data is the limit was studied on the emulated KITTI pairings; **the rule is unchanged**.
+(After the KITTI audit the bound was raised to 2.5:
+[a stricter control](#after-the-kitti-audit-a-stricter-control-and-far-optima-2026-10-14).)
 
 **Per-block drops** (objective at the fit minus objective at the fit turned by -2 deg, x 1e-3):
 
@@ -573,6 +575,45 @@ and audited on 23 KITTI drives the check had never read, and refuted: on 20 driv
 behaved as here, on three it flagged KITTI's calibration
 ([KITTI camera-LiDAR check audit](kitti_camera_lidar_check.md#results-refuted-5-of-9-gates)).
 
+## After the KITTI audit: a stricter control and far optima (2026-10-14)
+
+The pre-registered audit on 23 KITTI drives the check had not read was refuted
+([results](kitti_camera_lidar_check.md#results-refuted-5-of-9-gates)): on three drives it
+flagged KITTI's calibration. Reading those runs afterwards (post hoc, so those 23 drives are
+spent too) showed two rules letting wrong axes through:
+
+* **Controls just over the line.** Every axis judged more than 0.75 deg off KITTI's
+  calibration had its held-out control at `t` 2.09 to 2.33, against a bound of 2.
+* **Far optima.** 10 of those 12 axes came from the search started at the profile maxima.
+  Its optimum replaced the candidate's when it observed more rotation DoFs, or as many with
+  a higher objective. On 0029 an optimum that tied the candidate's count won on the
+  objective with yaw 9.6 deg off; on 0056 one with yaw at the -12 deg search bound replaced
+  a candidate optimum that observed nothing.
+
+Two rules changed (commit `3a05cf8`):
+
+* **`min_control_t` is 2.5.** A DoF is observed only when its held-out control reaches
+  `t` 2.5 in both directions.
+* **A far optimum replaces the current one only when** it observes strictly more rotation
+  DoFs, at least two (`start_scan_min_observed`), and none of its rotation DoFs is at the
+  search bound. A tie no longer goes to the higher objective.
+
+**How they were chosen.** The baseline estimator's inputs (the selected frames after
+pairing and motion compensation) were saved for all 36 spent 2011_09_26 drives and
+re-estimated in memory under candidate rules, with KITTI's calibration and the six turned
+candidates. The turned candidates reused the baseline's frames, whereas a real run pairs
+and moves the points with its own candidate, so these are approximations of runs. On the
+three failing drives each change was needed for one of them: the bound for 0056, the end
+of ties for 0029, and `t` 2.5 for 0032; "at least two" then removed a roll judged 6.6 deg
+off in a turned run of 0056 (`t` 2.63). With all four, no drive flagged KITTI's
+calibration, the worst judged axis was 0.45 deg off it (0.89 deg in turned runs), 86 of
+108 axes were judged, and 83 of 86 3 deg and 86 of 86 1 deg turns were flagged.
+
+**Real runs.** The 37-drive development run is in progress; its results follow here.
+
+The sections above this one (Hilti, AIST, the sensor_calib_tas bag, the thirteen KITTI
+drives) were run with `t >= 2` and the earlier start rule, and are not re-run.
+
 ## Limitations
 
 * Rotation only; translation is reported unchecked on every run.
@@ -588,6 +629,9 @@ behaved as here, on three it flagged KITTI's calibration
 * An axis can be judged at a wrong optimum: on 3 of 23 unseen KITTI drives the check flagged
   KITTI's calibration, judging axes 0.8 to 9.6 deg off with held-out controls just over their
   threshold (`t` 2.09 to 2.33), two of them from an alternative search start (audit above).
+  The control bound and the start rule were changed after that audit (above); a pre-registered
+  audit on KITTI's other four days tests the changed rules
+  ([v2](kitti_camera_lidar_v2_check.md)).
 * The jackknife std ignores systematic effects, so a std of 0.03 deg does not mean 0.03 deg
   accuracy (see exp07); the 0.5 deg floor is the resolution.
 * Intrinsics are not handled. Rig motion is compensated only with a velocity topic connected to
@@ -595,5 +639,5 @@ behaved as here, on three it flagged KITTI's calibration
   and one handheld Hilti recording), and an image in the camera body frame is only named, not
   corrected (above); a
   solid-state LiDAR is handled through angular-neighbour depth edges, evaluated only on the static
-  AIST Livox recordings above; the thresholds (2 deg control, 0.5 deg std bound, t >= 2) come from these dev
-  recordings only.
+  AIST Livox recordings above; the thresholds (2 deg control, 0.5 deg std bound, t >= 2.5) come
+  from these dev recordings only.
