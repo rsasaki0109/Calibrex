@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "records", "scope", "workload", "provenance"],
+  "properties": {
+    "schema_version": {"const": "slac.cuda_spatial_candidates/v0.1"},
+    "scope": {"const": "warmed GPU query kernels; not complete calibration"},
+    "records": {
+      "type": "array", "minItems": 18, "maxItems": 18,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["leafsize", "neighbors", "method", "query_rows", "batch_seconds_per_launch", "kernel_median_seconds", "exact_distance_and_index_parity"],
+        "properties": {
+          "leafsize": {"enum": [4, 8, 16]},
+          "neighbors": {"enum": [2, 11, 17]},
+          "method": {"enum": ["sorted", "heap"]},
+          "query_rows": {"type": "integer", "minimum": 1},
+          "batch_seconds_per_launch": {"type": "array", "minItems": 1, "items": {"type": "number", "exclusiveMinimum": 0}},
+          "kernel_median_seconds": {"type": "number", "exclusiveMinimum": 0},
+          "exact_distance_and_index_parity": {"const": true}
+        }
+      }
+    },
+    "workload": {
+      "type": "object", "additionalProperties": false,
+      "required": ["capture_registration", "max_seconds", "voxel_size_m", "local_map_scans", "geometry_quantum_m", "motion_translation_quantum_m", "motion_rotation_quantum_rad", "batches", "launches_per_batch"],
+      "properties": {
+        "capture_registration": {"const": 6}, "max_seconds": {"const": 6},
+        "voxel_size_m": {"const": 0.03}, "local_map_scans": {"const": 3},
+        "geometry_quantum_m": {"const": 1e-9},
+        "motion_translation_quantum_m": {"const": 1e-6},
+        "motion_rotation_quantum_rad": {"const": 1e-7},
+        "batches": {"type": "integer", "minimum": 1},
+        "launches_per_batch": {"type": "integer", "minimum": 1}
+      }
+    },
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["generator_sha256", "git_commit", "dataset_family", "dataset_license", "bag_sha256", "inputs_sha256", "executed_sources", "baseline_execution_identity", "shader_sha256"],
+      "properties": {
+        "generator_sha256": {"$ref": "#/$defs/hash"},
+        "git_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+        "dataset_family": {"const": "glim_versatile"},
+        "dataset_license": {"const": "upstream AIST GLIM dataset terms"},
+        "bag_sha256": {"$ref": "#/$defs/hash"}, "inputs_sha256": {"$ref": "#/$defs/hash"},
+        "executed_sources": {"type": "object", "minProperties": 1, "additionalProperties": {"$ref": "#/$defs/hash"}},
+        "baseline_execution_identity": {"type": "string", "minLength": 1},
+        "shader_sha256": {
+          "type": "object", "additionalProperties": false, "required": ["sorted", "heap"],
+          "properties": {"sorted": {"$ref": "#/$defs/hash"}, "heap": {"$ref": "#/$defs/hash"}}
+        }
+      }
+    }
+  },
+  "$defs": {"hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}
+}

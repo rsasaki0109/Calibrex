@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Add public-data diagnostics for exact GPU spatial-query candidates, with
+  source-bound shaders, complete timing samples, exhaustive-neighbor tests and
+  a CPU-only integrity audit. The observed 1.60x heap-query gain is an isolated
+  kernel measurement; runtime adapters and calibration policy are unchanged.
+
 - **Closure loops are built from the best-observed estimates first.**
   - **The problem.** The spanning forest took estimates in pair-type order. On a
     camera rig, every camera pair therefore closed through the IMU. Where
