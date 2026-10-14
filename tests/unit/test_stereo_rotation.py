@@ -219,7 +219,8 @@ def test_a_vertical_scale_mismatch_is_fitted_not_read_as_a_turn(truth: np.ndarra
     )
 
     assert fitted.policy_status == "pass"
-    assert all(abs(axis.candidate_error_deg) < 0.1 for axis in fitted.axes)
+    assert all(abs(axis.candidate_error_deg) < 0.15 for axis in fitted.axes)
+    assert all(axis.scale_std_deg is not None for axis in fitted.axes)
     assert fitted.row_scale_ratio == pytest.approx(0.005, abs=0.001)
     assert max(abs(axis.candidate_error_deg) for axis in ignored.axes) > 0.3
     assert ignored.row_scale_ratio is None

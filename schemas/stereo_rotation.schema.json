@@ -39,8 +39,22 @@
           "title": "Reason",
           "type": "string"
         },
+        "scale_std_deg": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the part of std_deg from the vertical scale mismatch the images leave to its prior (row_scale_ratio_std); the observability gate uses the rest",
+          "title": "Scale Std Deg"
+        },
         "std_deg": {
-          "description": "block-jackknife standard deviation",
+          "description": "standard deviation: the block jackknife over frames combined with scale_std_deg",
           "minimum": 0.0,
           "title": "Std Deg",
           "type": "number"

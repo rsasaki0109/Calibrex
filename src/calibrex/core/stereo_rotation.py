@@ -46,7 +46,17 @@ class StereoRotationAxis(StrictModel):
     candidate_error_deg: float = Field(
         description="rotvec(R_candidate R_estimate^T) about the left camera's axis"
     )
-    std_deg: float = Field(ge=0.0, description="block-jackknife standard deviation")
+    std_deg: float = Field(
+        ge=0.0,
+        description="standard deviation: the block jackknife over frames combined with "
+        "scale_std_deg",
+    )
+    scale_std_deg: float | None = Field(
+        default=None,
+        ge=0.0,
+        description="the part of std_deg from the vertical scale mismatch the images leave "
+        "to its prior (row_scale_ratio_std); the observability gate uses the rest",
+    )
     control_response: float | None = Field(
         default=None,
         description="change of the error when the candidate turns by control_deg about this "
