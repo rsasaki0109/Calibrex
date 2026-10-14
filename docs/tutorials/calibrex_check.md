@@ -1057,7 +1057,10 @@ pairs, six frames):
   worse.
   * The pairs cannot tell the IMU's candidate from a bias shared by the
     camera-IMU estimates.
-  * The IMU's yaw reads about +0.3 deg on `exp01` as well.
+  * Fitted with all five cameras and finer windows, the IMU's turn about its z axis
+    (vertical in use) is about 0.4 deg on both `exp01` and `exp21`. The other
+    components move with the motion
+    ([Hilti camera-IMU](../benchmarks/hilti_camera_imu.md#rig-and-motion-parts-on-exp01-and-exp21)).
 * **cam1's 0.18 deg turn between the recordings** (see the camera-camera section) is
   below the verdicts' resolution here, so it is not named.
   * With the std alone as weight (no floor), no single frame fits: the scene

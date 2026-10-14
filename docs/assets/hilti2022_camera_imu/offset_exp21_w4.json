@@ -1,0 +1,862 @@
+{
+  "convention": "offset_deg is w about the IMU axes with E = C exp(w): C Kalibr's R_cam_imu, E the estimate",
+  "cameras": {
+    "cam0": {
+      "windows": 20,
+      "moving_windows": 17,
+      "splits": {
+        "all": {
+          "windows": 17,
+          "intervals": 663,
+          "offset_deg": [
+            -0.2934,
+            -0.2422,
+            -0.4897
+          ],
+          "std_deg": [
+            0.1117,
+            0.1216,
+            0.0587
+          ],
+          "time_offset_ms": 1.867,
+          "rms_gyro_rate_dps": [
+            6.55,
+            9.6,
+            11.63
+          ]
+        },
+        "first": {
+          "windows": 8,
+          "intervals": 312,
+          "offset_deg": [
+            -0.1005,
+            -0.1199,
+            -0.3601
+          ],
+          "std_deg": [
+            0.1494,
+            0.2067,
+            0.1104
+          ],
+          "time_offset_ms": 1.682,
+          "rms_gyro_rate_dps": [
+            5.98,
+            7.84,
+            11.67
+          ]
+        },
+        "second": {
+          "windows": 9,
+          "intervals": 351,
+          "offset_deg": [
+            -0.3346,
+            -0.2919,
+            -0.5468
+          ],
+          "std_deg": [
+            0.1914,
+            0.2253,
+            0.1011
+          ],
+          "time_offset_ms": 1.944,
+          "rms_gyro_rate_dps": [
+            7.03,
+            10.93,
+            11.58
+          ]
+        },
+        "even": {
+          "windows": 9,
+          "intervals": 351,
+          "offset_deg": [
+            -0.2699,
+            -0.0367,
+            -0.4702
+          ],
+          "std_deg": [
+            0.2072,
+            0.1829,
+            0.0715
+          ],
+          "time_offset_ms": 1.719,
+          "rms_gyro_rate_dps": [
+            6.54,
+            9.35,
+            9.39
+          ]
+        },
+        "odd": {
+          "windows": 8,
+          "intervals": 312,
+          "offset_deg": [
+            -0.3045,
+            -0.4136,
+            -0.5144
+          ],
+          "std_deg": [
+            0.2906,
+            0.1975,
+            0.0975
+          ],
+          "time_offset_ms": 2.019,
+          "rms_gyro_rate_dps": [
+            6.57,
+            9.87,
+            13.71
+          ]
+        }
+      },
+      "linear_map": {
+        "polar_rotation_offset_deg": [
+          -0.0998,
+          -0.2684,
+          -0.4871
+        ],
+        "polar_rotation_std_deg": [
+          0.1062,
+          0.2329,
+          0.2264
+        ],
+        "rotation_only_offset_deg": [
+          -0.5081,
+          -0.5824,
+          -0.5227
+        ],
+        "rotation_only_std_deg": [
+          0.4323,
+          0.3011,
+          0.1468
+        ],
+        "symmetric_minus_identity_pct": [
+          0.661,
+          -0.176,
+          0.159,
+          -0.758,
+          -0.288,
+          -0.069
+        ],
+        "symmetric_std_pct": [
+          0.848,
+          0.608,
+          0.445,
+          0.613,
+          0.255,
+          0.554
+        ]
+      }
+    },
+    "cam1": {
+      "windows": 20,
+      "moving_windows": 17,
+      "splits": {
+        "all": {
+          "windows": 17,
+          "intervals": 663,
+          "offset_deg": [
+            -0.2444,
+            -0.2783,
+            -0.3489
+          ],
+          "std_deg": [
+            0.1887,
+            0.068,
+            0.1374
+          ],
+          "time_offset_ms": 1.973,
+          "rms_gyro_rate_dps": [
+            6.55,
+            9.6,
+            11.63
+          ]
+        },
+        "first": {
+          "windows": 8,
+          "intervals": 312,
+          "offset_deg": [
+            -0.1651,
+            -0.2761,
+            -0.2974
+          ],
+          "std_deg": [
+            0.161,
+            0.1862,
+            0.1964
+          ],
+          "time_offset_ms": 2.187,
+          "rms_gyro_rate_dps": [
+            5.97,
+            7.84,
+            11.67
+          ]
+        },
+        "second": {
+          "windows": 9,
+          "intervals": 351,
+          "offset_deg": [
+            -0.3148,
+            -0.2924,
+            -0.3708
+          ],
+          "std_deg": [
+            0.3156,
+            0.1357,
+            0.1248
+          ],
+          "time_offset_ms": 1.881,
+          "rms_gyro_rate_dps": [
+            7.03,
+            10.93,
+            11.58
+          ]
+        },
+        "even": {
+          "windows": 9,
+          "intervals": 351,
+          "offset_deg": [
+            -0.3151,
+            -0.2542,
+            -0.5038
+          ],
+          "std_deg": [
+            0.2197,
+            0.1403,
+            0.107
+          ],
+          "time_offset_ms": 1.989,
+          "rms_gyro_rate_dps": [
+            6.54,
+            9.35,
+            9.39
+          ]
+        },
+        "odd": {
+          "windows": 8,
+          "intervals": 312,
+          "offset_deg": [
+            -0.1933,
+            -0.2748,
+            -0.1765
+          ],
+          "std_deg": [
+            0.396,
+            0.096,
+            0.1994
+          ],
+          "time_offset_ms": 1.932,
+          "rms_gyro_rate_dps": [
+            6.57,
+            9.87,
+            13.71
+          ]
+        }
+      },
+      "linear_map": {
+        "polar_rotation_offset_deg": [
+          -0.3549,
+          -0.2463,
+          -0.3719
+        ],
+        "polar_rotation_std_deg": [
+          0.1902,
+          0.1358,
+          0.2448
+        ],
+        "rotation_only_offset_deg": [
+          -0.1769,
+          -0.3957,
+          -0.2805
+        ],
+        "rotation_only_std_deg": [
+          0.3578,
+          0.1078,
+          0.1253
+        ],
+        "symmetric_minus_identity_pct": [
+          0.114,
+          0.216,
+          0.296,
+          -1.227,
+          -0.167,
+          -0.339
+        ],
+        "symmetric_std_pct": [
+          0.314,
+          0.29,
+          0.181,
+          0.378,
+          0.417,
+          0.347
+        ]
+      }
+    },
+    "cam2": {
+      "windows": 20,
+      "moving_windows": 17,
+      "splits": {
+        "all": {
+          "windows": 17,
+          "intervals": 663,
+          "offset_deg": [
+            -0.3545,
+            -0.0038,
+            -0.2826
+          ],
+          "std_deg": [
+            0.3464,
+            0.1641,
+            0.0925
+          ],
+          "time_offset_ms": 1.641,
+          "rms_gyro_rate_dps": [
+            6.56,
+            9.6,
+            11.62
+          ]
+        },
+        "first": {
+          "windows": 8,
+          "intervals": 312,
+          "offset_deg": [
+            -0.2599,
+            0.2248,
+            -0.13
+          ],
+          "std_deg": [
+            0.4625,
+            0.2235,
+            0.4828
+          ],
+          "time_offset_ms": 1.722,
+          "rms_gyro_rate_dps": [
+            5.97,
+            7.84,
+            11.68
+          ]
+        },
+        "second": {
+          "windows": 9,
+          "intervals": 351,
+          "offset_deg": [
+            -0.3996,
+            -0.2069,
+            -0.3466
+          ],
+          "std_deg": [
+            0.4263,
+            0.2665,
+            0.1764
+          ],
+          "time_offset_ms": 1.629,
+          "rms_gyro_rate_dps": [
+            7.03,
+            10.93,
+            11.57
+          ]
+        },
+        "even": {
+          "windows": 9,
+          "intervals": 351,
+          "offset_deg": [
+            -0.0718,
+            -0.4475,
+            -0.1636
+          ],
+          "std_deg": [
+            0.1511,
+            0.1981,
+            0.2204
+          ],
+          "time_offset_ms": 1.734,
+          "rms_gyro_rate_dps": [
+            6.54,
+            9.35,
+            9.38
+          ]
+        },
+        "odd": {
+          "windows": 8,
+          "intervals": 312,
+          "offset_deg": [
+            -0.6381,
+            0.3291,
+            -0.426
+          ],
+          "std_deg": [
+            0.6698,
+            0.198,
+            0.2641
+          ],
+          "time_offset_ms": 1.531,
+          "rms_gyro_rate_dps": [
+            6.58,
+            9.87,
+            13.7
+          ]
+        }
+      },
+      "linear_map": {
+        "polar_rotation_offset_deg": [
+          -0.9185,
+          -0.0237,
+          -0.6195
+        ],
+        "polar_rotation_std_deg": [
+          0.7226,
+          0.1377,
+          0.1398
+        ],
+        "rotation_only_offset_deg": [
+          -0.5762,
+          0.0809,
+          -0.3686
+        ],
+        "rotation_only_std_deg": [
+          0.8833,
+          0.1601,
+          0.1606
+        ],
+        "symmetric_minus_identity_pct": [
+          -1.169,
+          -0.563,
+          0.31,
+          -0.917,
+          1.364,
+          -0.379
+        ],
+        "symmetric_std_pct": [
+          1.004,
+          0.46,
+          0.316,
+          0.474,
+          1.191,
+          0.506
+        ]
+      }
+    },
+    "cam3": {
+      "windows": 20,
+      "moving_windows": 17,
+      "splits": {
+        "all": {
+          "windows": 17,
+          "intervals": 663,
+          "offset_deg": [
+            0.3254,
+            -0.2549,
+            -0.3256
+          ],
+          "std_deg": [
+            0.3343,
+            0.5744,
+            0.2227
+          ],
+          "time_offset_ms": 1.583,
+          "rms_gyro_rate_dps": [
+            6.56,
+            9.6,
+            11.62
+          ]
+        },
+        "first": {
+          "windows": 8,
+          "intervals": 312,
+          "offset_deg": [
+            0.1407,
+            -0.211,
+            -0.1597
+          ],
+          "std_deg": [
+            0.6754,
+            1.0457,
+            0.4037
+          ],
+          "time_offset_ms": 1.96,
+          "rms_gyro_rate_dps": [
+            5.98,
+            7.84,
+            11.67
+          ]
+        },
+        "second": {
+          "windows": 9,
+          "intervals": 351,
+          "offset_deg": [
+            0.477,
+            -0.178,
+            -0.3788
+          ],
+          "std_deg": [
+            0.1696,
+            0.4108,
+            0.2401
+          ],
+          "time_offset_ms": 1.465,
+          "rms_gyro_rate_dps": [
+            7.04,
+            10.93,
+            11.57
+          ]
+        },
+        "even": {
+          "windows": 9,
+          "intervals": 351,
+          "offset_deg": [
+            0.5407,
+            -0.2334,
+            -0.1173
+          ],
+          "std_deg": [
+            0.282,
+            0.736,
+            0.1838
+          ],
+          "time_offset_ms": 1.335,
+          "rms_gyro_rate_dps": [
+            6.54,
+            9.35,
+            9.39
+          ]
+        },
+        "odd": {
+          "windows": 8,
+          "intervals": 312,
+          "offset_deg": [
+            0.191,
+            -0.276,
+            -0.5844
+          ],
+          "std_deg": [
+            0.238,
+            0.6708,
+            0.3495
+          ],
+          "time_offset_ms": 1.91,
+          "rms_gyro_rate_dps": [
+            6.57,
+            9.88,
+            13.71
+          ]
+        }
+      },
+      "linear_map": {
+        "polar_rotation_offset_deg": [
+          0.2774,
+          -0.3372,
+          -0.3259
+        ],
+        "polar_rotation_std_deg": [
+          0.3481,
+          0.4538,
+          0.1332
+        ],
+        "rotation_only_offset_deg": [
+          0.5556,
+          -0.7428,
+          -0.1483
+        ],
+        "rotation_only_std_deg": [
+          0.4139,
+          0.4808,
+          0.2741
+        ],
+        "symmetric_minus_identity_pct": [
+          0.727,
+          -0.256,
+          -0.451,
+          -0.174,
+          0.402,
+          -0.634
+        ],
+        "symmetric_std_pct": [
+          0.896,
+          0.399,
+          0.482,
+          0.279,
+          0.306,
+          0.275
+        ]
+      }
+    },
+    "cam4": {
+      "windows": 20,
+      "moving_windows": 17,
+      "splits": {
+        "all": {
+          "windows": 17,
+          "intervals": 663,
+          "offset_deg": [
+            -0.1699,
+            -0.0024,
+            -0.5107
+          ],
+          "std_deg": [
+            0.1668,
+            0.2951,
+            0.1622
+          ],
+          "time_offset_ms": 1.726,
+          "rms_gyro_rate_dps": [
+            6.55,
+            9.6,
+            11.62
+          ]
+        },
+        "first": {
+          "windows": 8,
+          "intervals": 312,
+          "offset_deg": [
+            -0.3287,
+            -0.462,
+            -0.6711
+          ],
+          "std_deg": [
+            0.2257,
+            0.478,
+            0.3426
+          ],
+          "time_offset_ms": 1.768,
+          "rms_gyro_rate_dps": [
+            5.98,
+            7.84,
+            11.67
+          ]
+        },
+        "second": {
+          "windows": 9,
+          "intervals": 351,
+          "offset_deg": [
+            -0.0424,
+            0.4628,
+            -0.4309
+          ],
+          "std_deg": [
+            0.2545,
+            0.3411,
+            0.1264
+          ],
+          "time_offset_ms": 1.687,
+          "rms_gyro_rate_dps": [
+            7.03,
+            10.93,
+            11.56
+          ]
+        },
+        "even": {
+          "windows": 9,
+          "intervals": 351,
+          "offset_deg": [
+            -0.1807,
+            0.4542,
+            -0.4844
+          ],
+          "std_deg": [
+            0.2829,
+            0.4981,
+            0.2482
+          ],
+          "time_offset_ms": 1.493,
+          "rms_gyro_rate_dps": [
+            6.54,
+            9.35,
+            9.39
+          ]
+        },
+        "odd": {
+          "windows": 8,
+          "intervals": 312,
+          "offset_deg": [
+            -0.1583,
+            -0.3409,
+            -0.6501
+          ],
+          "std_deg": [
+            0.1706,
+            0.2038,
+            0.4044
+          ],
+          "time_offset_ms": 1.999,
+          "rms_gyro_rate_dps": [
+            6.57,
+            9.87,
+            13.7
+          ]
+        }
+      },
+      "linear_map": {
+        "polar_rotation_offset_deg": [
+          -0.2432,
+          -0.3593,
+          -0.6269
+        ],
+        "polar_rotation_std_deg": [
+          0.3254,
+          0.2391,
+          0.1511
+        ],
+        "rotation_only_offset_deg": [
+          0.2214,
+          0.0471,
+          0.0006
+        ],
+        "rotation_only_std_deg": [
+          0.3518,
+          0.4203,
+          0.2861
+        ],
+        "symmetric_minus_identity_pct": [
+          1.567,
+          -0.143,
+          0.229,
+          -0.593,
+          -0.26,
+          -0.029
+        ],
+        "symmetric_std_pct": [
+          0.902,
+          0.485,
+          0.357,
+          0.103,
+          0.614,
+          0.773
+        ]
+      }
+    }
+  },
+  "rig": {
+    "all": {
+      "cameras": 5,
+      "offset_deg": [
+        -0.2262,
+        -0.231,
+        -0.4238
+      ],
+      "std_deg": [
+        0.0787,
+        0.0546,
+        0.0439
+      ],
+      "camera_chi2": [
+        3.34,
+        3.01,
+        4.37
+      ],
+      "camera_dof": 4
+    },
+    "first": {
+      "cameras": 5,
+      "offset_deg": [
+        -0.1659,
+        -0.1094,
+        -0.3507
+      ],
+      "std_deg": [
+        0.0954,
+        0.1135,
+        0.0888
+      ],
+      "camera_chi2": [
+        0.96,
+        3.59,
+        1.39
+      ],
+      "camera_dof": 4
+    },
+    "second": {
+      "cameras": 5,
+      "offset_deg": [
+        0.0154,
+        -0.2107,
+        -0.445
+      ],
+      "std_deg": [
+        0.1037,
+        0.0987,
+        0.0604
+      ],
+      "camera_chi2": [
+        12.85,
+        4.4,
+        1.77
+      ],
+      "camera_dof": 4
+    },
+    "even": {
+      "cameras": 5,
+      "offset_deg": [
+        -0.1012,
+        -0.2143,
+        -0.4313
+      ],
+      "std_deg": [
+        0.0941,
+        0.0945,
+        0.0535
+      ],
+      "camera_chi2": [
+        6.91,
+        4.21,
+        5.19
+      ],
+      "camera_dof": 4
+    },
+    "odd": {
+      "cameras": 5,
+      "offset_deg": [
+        -0.1149,
+        -0.2197,
+        -0.4618
+      ],
+      "std_deg": [
+        0.1175,
+        0.0733,
+        0.0793
+      ],
+      "camera_chi2": [
+        2.79,
+        9.34,
+        2.7
+      ],
+      "camera_dof": 4
+    }
+  },
+  "rig_differences": {
+    "first-second_deg": [
+      -0.1813,
+      0.1013,
+      0.0943
+    ],
+    "first-second_z": [
+      -1.29,
+      0.67,
+      0.88
+    ],
+    "even-odd_deg": [
+      0.0137,
+      0.0054,
+      0.0305
+    ],
+    "even-odd_z": [
+      0.09,
+      0.05,
+      0.32
+    ]
+  },
+  "provenance": {
+    "git_commit": "98d8ec9",
+    "tool_sha256": "c8091ab74cc10eeee6a4f39d31b51c33a6da5622a2640ef705f29f49d370a45a",
+    "bag": {
+      "name": "exp21_head.bag",
+      "size_bytes": 6441715099
+    },
+    "camchain_sha256": {
+      "calib_3_cam0-1-camchain-imucam.yaml": "344ab530f12ea3eb8c658bdc005368275eccd70bca559a9fab8713a98cb1c60e",
+      "calib_3_cam2-camchain-imucam.yaml": "83b1dfdc45ee03a45c05fbff5f060c4e0e3db29e11294103426eadfffec8fdd6",
+      "calib_3_cam3-camchain-imucam.yaml": "c5cbd871f1dafc4f395c355720ba85a89ee2fd993fd328b00d0df9e75b8dd7ff",
+      "calib_3_cam4-camchain-imucam.yaml": "90bf3344be9b6a6f91df5b61f62b15137d9bedd2034a92c719c171e3429720f9"
+    },
+    "imu_topic": "/alphasense/imu",
+    "window_s": 4.0,
+    "std_floor_deg": 0.05,
+    "elapsed_s": 207.5
+  }
+}

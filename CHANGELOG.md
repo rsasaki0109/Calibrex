@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+- **Hilti's common camera-IMU offset, split into a rig part and a motion part.**
+  - **The question.** On `exp21`, attribution names the IMU: one 0.5 deg turn of its
+    candidate explains every `camera-imu` error. Is that the rig, or the motion?
+  - **New tool.** `tools/hilti_camera_imu_offset.py` fits every camera on all windows,
+    on the two halves in time, and on interleaved windows, and pools the cameras into
+    one rig offset.
+  - **The rig part.** About IMU z (vertical in use), all five cameras read the same
+    turn on both recordings: −0.39 ± 0.07 deg on `exp01` and −0.42 ± 0.04 deg on
+    `exp21`. A full linear gyro fit keeps it, so it is not the gyro's scale or
+    non-orthogonality. It is a rotation between the gyro frame and Kalibr's IMU frame;
+    the data cannot tell which of the two is off.
+  - **The motion part.** The horizontal components differ between the recordings and
+    between `exp01`'s halves, by up to 0.3 deg, while interleaved windows agree.
+  - **Docs.** `docs/benchmarks/hilti_camera_imu.md` has the numbers. No verdict rule
+    changes.
+
 - **Attribution reads translation too.**
   - **The change.** Pairs that estimate translation (`imu-lidar`, `lidar-lidar`,
     `ins-lidar`, `gnss-lidar`) now add their `t_candidate - t_estimate` to the
