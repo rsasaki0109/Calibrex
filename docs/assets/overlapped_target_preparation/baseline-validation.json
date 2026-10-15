@@ -1,0 +1,14 @@
+{
+  "scope": "Reproduce the existing Windows cache-home assertion against frozen prior sources.",
+  "source_commit": "88e4a3a1db0e67dc538e3faf73c9a12b570ab3de",
+  "command": [
+    "C:\\Users\\rsasa\\Workspace\\Calibrex\\.venv\\Scripts\\python.exe",
+    "-c",
+    "import pathlib, pytest\nimport calibrex.check.cache as module\nassert pathlib.Path(module.__file__).is_relative_to(pathlib.Path(\"outputs/overlapped-target-cache-baseline-v1/sources-prior/src\").resolve())\nprint(\"Frozen module:\", module.__file__, flush=True)\nraise SystemExit(pytest.main([\"tests/unit/test_check_cache.py::test_default_cache_dir_respects_xdg\", \"--basetemp\", \"outputs/overlapped-target-cache-baseline-v1/tmp\", \"-p\", \"no:cacheprovider\", \"--override-ini\", \"addopts=--disable-plugin-autoload\", \"-q\"]))\n"
+  ],
+  "exit_code": 1,
+  "source_manifest_sha256": "e4ca3f80969a8e5f3d19007ee8bc7617235db9aabff95448ee926edaad5fdf50",
+  "log_sha256": "c108849ad4483bcfa9833b068f96de5ebe617f4ae95b1f6baeb0fa4e38fc4164",
+  "launcher_sha256": "613e4831309d1f8acb96b456cdf0d22931b2841a909aa10882b55ad2766e7c12",
+  "blas_threads": 1
+}

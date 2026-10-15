@@ -1,0 +1,38 @@
+"""Bind the overlap candidate's real device/unit run before deferring runtime adoption."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+
+source=Path('outputs/glim-overlapped-target-preparation-pairs-v1')
+out=source/'prototype-validation'
+out.mkdir(exist_ok=False)
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+manifest=json.loads((source/'sources-current/manifest.json').read_bytes())
+def verify():
+    bad=[name for name,digest in manifest.items() if sha(Path('src')/name)!=digest]
+    assert not bad,bad
+verify()
+tests=['tests/unit/test_cuda_scan_odometry_adapter.py','tests/unit/test_odometry_preparation_overlap.py',
+       'tests/unit/test_scan_odometry_backend.py','tests/unit/test_scan_odometry_geometry_quantum.py',
+       'tests/unit/test_odometry_query_workers.py','tests/unit/test_odometry_window_backend.py']
+for name in tests:shutil.copyfile(name,out/(Path(name).name+'.txt'))
+shutil.copyfile(__file__,out/'validator.py.txt')
+env=os.environ.copy()
+env['CUPY_CACHE_DIR']=str(out.resolve()/'cupy-cache')
+env['PYTHONDONTWRITEBYTECODE']='1'
+for name in ('OPENBLAS_NUM_THREADS','MKL_NUM_THREADS','OMP_NUM_THREADS'):env[name]='1'
+command=[sys.executable,'-m','pytest',*tests,'--basetemp',str(out/'tmp'),'-p','no:cacheprovider',
+         '--override-ini','addopts=--disable-plugin-autoload','-q']
+with (out/'pytest.log').open('wb') as log:
+    result=subprocess.run(command,env=env,stdout=log,stderr=subprocess.STDOUT)
+verify()
+files={p.name:sha(p) for p in out.iterdir() if p.is_file()}
+(out/'receipt.json').write_text(json.dumps({'command':command,'exit_code':result.returncode,
+    'provenance':{'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+                  'source_manifest_sha256':sha(source/'sources-current/manifest.json'),'files':files}},indent=2)+'\n',encoding='utf-8')
+print((out/'pytest.log').read_text(encoding='utf-8'),flush=True)
+raise SystemExit(result.returncode)

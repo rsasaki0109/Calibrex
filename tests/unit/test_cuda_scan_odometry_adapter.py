@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 
 import numpy as np
@@ -13,7 +12,7 @@ from scipy.spatial.transform import Rotation
 pytest.importorskip("cupy")
 import cupy as cp
 
-from calibrex.solvers.cuda_scan_odometry_adapter import CudaOdometryTarget, _target_preparer
+from calibrex.solvers.cuda_scan_odometry_adapter import CudaOdometryTarget
 from calibrex.solvers.scan_to_scan_odometry import (
     ScanOdometryOptions,
     ScanRegistration,
@@ -71,27 +70,6 @@ def test_cuda_registration_recovers_known_motion_with_native_quality() -> None:
     assert gpu.converged
     np.testing.assert_allclose(gpu.transform, truth, atol=1e-6)
     _same(cpu, gpu)
-
-
-def test_worker_preparation_publishes_ready_buffers_to_the_callers_stream() -> None:
-    points = _scene()
-    options = ScanOdometryOptions()
-    device = cp.cuda.runtime.getDevice()
-    caller = cp.cuda.Stream(non_blocking=True)
-    with caller:
-        factory = _target_preparer()
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            invalid = points.copy()
-            invalid[0, 0] = np.nan
-            with pytest.raises(ValueError, match="finite bounded"):
-                executor.submit(factory, invalid, options).result()
-            first = executor.submit(factory, points, options).result()
-            second = executor.submit(factory, points, options).result()
-        assert first.device_id == second.device_id == device
-        actual = second.register(points, np.eye(4))
-        assert cp.cuda.get_current_stream() is caller
-    expected = register_point_to_plane(points, points, np.eye(4), options)
-    _same(expected, actual)
 
 
 @pytest.mark.parametrize("window", [1, 3])

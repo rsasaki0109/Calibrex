@@ -168,3 +168,12 @@ docs/assets/holdout_evaluation_reuse/*.log -text whitespace=blank-at-eol,blank-a
 docs/assets/holdout_evaluation_reuse/*.md text eol=lf
 # The bound raw pytest failure log retains the runner's trailing whitespace.
 docs/assets/holdout_evaluation_reuse/baseline-validation.log -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+
+# Preserve original measurements and frozen sources for overlapped target preparation.
+docs/assets/overlapped_target_preparation/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/overlapped_target_preparation/**/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/overlapped_target_preparation/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/overlapped_target_preparation/**/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/overlapped_target_preparation/**/*.log -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/overlapped_target_preparation/*.log -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/overlapped_target_preparation/*.md text eol=lf

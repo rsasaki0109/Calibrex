@@ -1,0 +1,35 @@
+{
+  "command": [
+    "C:\\Users\\rsasa\\Workspace\\Calibrex\\.venv\\Scripts\\python.exe",
+    "-m",
+    "pytest",
+    "tests/unit/test_cuda_scan_odometry_adapter.py",
+    "tests/unit/test_odometry_preparation_overlap.py",
+    "tests/unit/test_scan_odometry_backend.py",
+    "tests/unit/test_scan_odometry_geometry_quantum.py",
+    "tests/unit/test_odometry_query_workers.py",
+    "tests/unit/test_odometry_window_backend.py",
+    "--basetemp",
+    "outputs\\glim-overlapped-target-preparation-pairs-v1\\prototype-validation\\tmp",
+    "-p",
+    "no:cacheprovider",
+    "--override-ini",
+    "addopts=--disable-plugin-autoload",
+    "-q"
+  ],
+  "exit_code": 0,
+  "provenance": {
+    "source_commit": "7fe26771f6fb2a8017be54b9053b112fcaf2efc0",
+    "source_manifest_sha256": "5377c5be8ffb84f7f89fcd05000c235b4f052cce9b5b565ddee63d82b8f8ce93",
+    "files": {
+      "pytest.log": "df9df6ef37fa851d2f2c63d240f6b3e84b3507e3f38dd1b8e4eafc75ef10258b",
+      "test_cuda_scan_odometry_adapter.py.txt": "2a675063be786165aac3d2202e6ee055de0f6023a20442f05e3e2c52a5e83dda",
+      "test_odometry_preparation_overlap.py.txt": "a60b029fd42ec5d05523cee0cf9e1368cffef2dfd89710c4f6e32cbc3c36edb8",
+      "test_odometry_query_workers.py.txt": "4ad0c58f6bf7792246e1a06c3b0377a4450805828598d7bf312fb0a8640f2fae",
+      "test_odometry_window_backend.py.txt": "76f3d2b94b231e3cf90b16af7466357eff074b36b8a882bdc349bc737fa8ae85",
+      "test_scan_odometry_backend.py.txt": "53dc92dc135fe4cd6f9e7749e141e8dcb947de4015f227eeddda447cc6001d9d",
+      "test_scan_odometry_geometry_quantum.py.txt": "5eeac141dfce1367aa48f84c4babb5c61d9cad5f12a74a9050fff7068587a208",
+      "validator.py.txt": "06fbddecb9fa3bce48deb5aa541b426003180af3343554e8c63b62fb5873bc5a"
+    }
+  }
+}

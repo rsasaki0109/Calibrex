@@ -1,0 +1,21 @@
+Frozen module: C:\Users\rsasa\Workspace\Calibrex\outputs\overlapped-target-cache-baseline-v1\sources-prior\src\calibrex\check\cache.py
+F                                                                        [100%]
+================================== FAILURES ===================================
+_____________________ test_default_cache_dir_respects_xdg _____________________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000002B04D41AF00>
+tmp_path = WindowsPath('C:/Users/rsasa/Workspace/Calibrex/outputs/overlapped-target-cache-baseline-v1/tmp/test_default_cache_dir_respect0')
+
+    def test_default_cache_dir_respects_xdg(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+        monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path / "xdg"))
+        assert default_cache_dir() == tmp_path / "xdg" / "calibrex" / "check"
+        monkeypatch.delenv("XDG_CACHE_HOME")
+        monkeypatch.setenv("HOME", str(tmp_path / "home"))
+>       assert default_cache_dir() == tmp_path / "home" / ".cache" / "calibrex" / "check"
+E       AssertionError: assert WindowsPath('C:/Users/rsasa/.cache/calibrex/check') == ((((WindowsPath('C:/Users/rsasa/Workspace/Calibrex/outputs/overlapped-target-cache-baseline-v1/tmp/test_default_cache_dir_respect0') / 'home') / '.cache') / 'calibrex') / 'check')
+E        +  where WindowsPath('C:/Users/rsasa/.cache/calibrex/check') = default_cache_dir()
+
+tests\unit\test_check_cache.py:78: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/unit/test_check_cache.py::test_default_cache_dir_respects_xdg - ...
+1 failed in 4.31s
