@@ -299,6 +299,22 @@ def fit_bspline_lidar_imu(
         evaluator.close()
 
 
+@dataclass
+class _Linearization:
+    rows: list[NDArray[np.int64]]
+    columns: list[NDArray[np.int64]]
+    values: list[FloatArray]
+    residuals: FloatArray
+    parameter_count: int
+
+    def jacobian(self) -> csc_matrix:
+        return coo_matrix(
+            (np.concatenate(self.values),
+             (np.concatenate(self.rows), np.concatenate(self.columns))),
+            shape=(len(self.residuals), self.parameter_count),
+        ).tocsc()
+
+
 class _PlaneEvaluator(Protocol):
     segment: NDArray[np.int64]
     identity: str
@@ -306,6 +322,10 @@ class _PlaneEvaluator(Protocol):
     def evaluate(
         self, trajectory: CubicBSplineTrajectory, *, derivatives: bool,
     ) -> tuple[FloatArray, FloatArray]: ...
+
+    def normal_system(
+        self, trajectory: CubicBSplineTrajectory, imu: _Linearization,
+    ) -> tuple[csc_matrix, FloatArray]: ...
 
 
 def _fit_bspline_lidar_imu(
@@ -338,21 +358,24 @@ def _fit_bspline_lidar_imu(
             return cost
         return cost + prior_residual(values) ** 2
 
+    def gravity_prior(values: LidarImuCalibration) -> csc_matrix:
+        gravity = np.asarray(values.gravity_world_m_s2, dtype=float)
+        derivative = gravity / max(float(np.linalg.norm(gravity)), 1.0e-12)
+        return coo_matrix(
+            (
+                derivative / problem.gravity_magnitude_sigma_m_s2,
+                (np.zeros(3, dtype=np.int64), gravity_column + np.arange(3)),
+            ),
+            shape=(1, parameter_count),
+        ).tocsc()
+
     def linearize(
         path: CubicBSplineTrajectory, values: LidarImuCalibration
     ) -> tuple[csc_matrix, FloatArray]:
         jacobian, residuals = _linearize(path, values, families, estimate, plane_evaluator)
         if prior_magnitude is None:
             return jacobian, residuals
-        gravity = np.asarray(values.gravity_world_m_s2, dtype=float)
-        derivative = gravity / max(float(np.linalg.norm(gravity)), 1.0e-12)
-        row = coo_matrix(
-            (
-                derivative / problem.gravity_magnitude_sigma_m_s2,
-                (np.zeros(3, dtype=np.int64), gravity_column + np.arange(3)),
-            ),
-            shape=(1, parameter_count),
-        )
+        row = gravity_prior(values)
         return (
             vstack([jacobian, row]).tocsc(),
             np.concatenate([residuals, [prior_residual(values)]]),
@@ -367,9 +390,20 @@ def _fit_bspline_lidar_imu(
     iterations = 0
     for iteration in range(settings.max_iterations):
         iterations = iteration + 1
-        jacobian, residuals = linearize(trajectory, calibration)
-        normal = (jacobian.T @ jacobian).tocsc()
-        gradient = jacobian.T @ residuals
+        if plane_evaluator is None:
+            jacobian, residuals = linearize(trajectory, calibration)
+            normal = (jacobian.T @ jacobian).tocsc()
+            gradient = jacobian.T @ residuals
+        else:
+            imu = _linearize_terms(
+                trajectory, calibration, {k: v for k, v in families.items() if k != "plane"},
+                estimate, plane_evaluator,
+            )
+            normal, gradient = plane_evaluator.normal_system(trajectory, imu)
+            if prior_magnitude is not None:
+                row = gravity_prior(calibration)
+                normal = (normal + row.T @ row).tocsc()
+                gradient += np.asarray(row.T @ np.array([prior_residual(calibration)]))
         scale = np.maximum(normal.diagonal(), 1.0e-12)
         accepted = False
         while damping < 1.0e12:
@@ -685,6 +719,39 @@ def _cost(
     return total
 
 
+class _SharedImuEvaluation:
+    """Share aligned IMU evaluations within one linearization, including clock probes."""
+
+    def __init__(self, trajectory: CubicBSplineTrajectory, times: FloatArray) -> None:
+        self.trajectory = trajectory
+        self.times = times
+        self._states: dict[tuple[float, bool], tuple[_Gathered, BSplineStates]] = {}
+        self._derivatives: dict[float, _RotationDerivatives] = {}
+
+    def evaluate(
+        self, calibration: LidarImuCalibration, *, derivatives: bool = False,
+    ) -> tuple[_Gathered, BSplineStates]:
+        key = (calibration.imu_clock_offset_sec, derivatives)
+        if key not in self._states:
+            gathered = _gather(
+                self.trajectory, self.times - calibration.imu_clock_offset_sec,
+                derivatives=derivatives,
+            )
+            self._states[key] = gathered, gathered.states(2)
+        return self._states[key]
+
+    def rotation_derivatives(self, calibration: LidarImuCalibration) -> _RotationDerivatives:
+        key = calibration.imu_clock_offset_sec
+        if key not in self._derivatives:
+            gathered, _ = self.evaluate(calibration, derivatives=True)
+            self._derivatives[key] = _rotation_control_derivatives(
+                gathered.rotations, gathered.fraction, gathered.spacing, order=2,
+                relatives=gathered.relatives, deltas=gathered.deltas, steps=gathered.steps,
+                log_jacobians=gathered.log_jacobians,
+            )
+        return self._derivatives[key]
+
+
 def _linearize(
     trajectory: CubicBSplineTrajectory,
     calibration: LidarImuCalibration,
@@ -692,6 +759,17 @@ def _linearize(
     estimate: tuple[CalibrationBlock, ...],
     plane_evaluator: _PlaneEvaluator | None = None,
 ) -> tuple[csc_matrix, FloatArray]:
+    terms = _linearize_terms(trajectory, calibration, families, estimate, plane_evaluator)
+    return terms.jacobian(), terms.residuals
+
+
+def _linearize_terms(
+    trajectory: CubicBSplineTrajectory,
+    calibration: LidarImuCalibration,
+    families: dict[str, _Family],
+    estimate: tuple[CalibrationBlock, ...],
+    plane_evaluator: _PlaneEvaluator | None = None,
+) -> _Linearization:
     control_columns = 6 * trajectory.control_point_count
     parameter_count = control_columns + sum(_BLOCK_WIDTH[block] for block in estimate)
     rows: list[NDArray[np.int64]] = []
@@ -699,6 +777,11 @@ def _linearize(
     values: list[FloatArray] = []
     residual_parts: list[FloatArray] = []
     row_offset = 0
+    shared = None
+    if (plane_evaluator is not None and "gyro" in families and "accel" in families
+        and families["gyro"].on_imu_clock and families["accel"].on_imu_clock
+        and np.array_equal(families["gyro"].times, families["accel"].times)):
+        shared = _SharedImuEvaluation(trajectory, families["gyro"].times)
     for name, family in families.items():
         if name == "plane" and plane_evaluator is not None:
             base, local = plane_evaluator.evaluate(trajectory, derivatives=True)
@@ -714,8 +797,13 @@ def _linearize(
                             local[:, 6 * slot + 3 + axis, None])
             row_offset += count
             continue
-        gathered = _gather(trajectory, family.body_times(calibration), derivatives=True)
-        states = gathered.states(family.derivative_order)
+        use_shared = shared is not None and name in ("gyro", "accel")
+        if use_shared:
+            assert shared is not None
+            gathered, states = shared.evaluate(calibration, derivatives=True)
+        else:
+            gathered = _gather(trajectory, family.body_times(calibration), derivatives=True)
+            states = gathered.states(family.derivative_order)
         base = family.state_residual(states, calibration)
         count, width = base.shape
         residual_parts.append(base.reshape(-1))
@@ -731,7 +819,8 @@ def _linearize(
         by_position, by_acceleration = family.position_sensitivity(states, calibration)
         rotation_derivative = family.rotation_sensitivity(
             states,
-            _rotation_control_derivatives(
+            shared.rotation_derivatives(calibration) if use_shared and shared is not None
+            else _rotation_control_derivatives(
                 gathered.rotations, gathered.fraction, gathered.spacing,
                 order=family.derivative_order, relatives=gathered.relatives,
                 deltas=gathered.deltas, steps=gathered.steps,
@@ -764,10 +853,17 @@ def _linearize(
                     step = np.array([_EPSILON])
                     plus = calibration.stepped(block, step)
                     minus = calibration.stepped(block, -step)
-                    derivative = (
-                        family.residual(_gather(trajectory, family.body_times(plus)), plus)
-                        - family.residual(_gather(trajectory, family.body_times(minus)), minus)
-                    ) / (2.0 * _EPSILON)
+                    if use_shared:
+                        assert shared is not None
+                        derivative = (
+                            family.state_residual(shared.evaluate(plus)[1], plus)
+                            - family.state_residual(shared.evaluate(minus)[1], minus)
+                        ) / (2.0 * _EPSILON)
+                    else:
+                        derivative = (
+                            family.residual(_gather(trajectory, family.body_times(plus)), plus)
+                            - family.residual(_gather(trajectory, family.body_times(minus)), minus)
+                        ) / (2.0 * _EPSILON)
                 else:
                     derivative = calibration_derivatives[block][:, :, axis]
                 if np.any(derivative):
@@ -781,11 +877,7 @@ def _linearize(
                     )
                 column += 1
         row_offset += count * width
-    jacobian = coo_matrix(
-        (np.concatenate(values), (np.concatenate(rows), np.concatenate(columns))),
-        shape=(row_offset, parameter_count),
-    ).tocsc()
-    return jacobian, np.concatenate(residual_parts)
+    return _Linearization(rows, columns, values, np.concatenate(residual_parts), parameter_count)
 
 
 def _append(

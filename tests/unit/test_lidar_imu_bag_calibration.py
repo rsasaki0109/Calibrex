@@ -114,7 +114,7 @@ def test_cli_joint_calibration_recovers_the_injected_calibration(
     assert artifact["provenance"]["command"][:3] == ["calibrex", "imu-lidar", "joint"]
     assert artifact["options"]["fit_backend"] == backend
     if backend == "numba_cpu":
-        assert "numba_bspline_planes/v0.2" in artifact["options"]["fit_execution"]
+        assert "numba_bspline_planes/v0.3" in artifact["options"]["fit_execution"]
     selected = [family for family in calls if len(family) == 1]
     assert len(selected) == len(artifact["controls"]) + 2
     assert set(selected) == {("gyro",), ("accel",)}

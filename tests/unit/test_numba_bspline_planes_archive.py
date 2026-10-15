@@ -20,7 +20,7 @@ def test_complete_fixed_input_fit_archive() -> None:
     assert result["source_files"] == 377
 
 
-@pytest.mark.parametrize("mutation", ["iteration", "speedup", "imports", "cohort"])
+@pytest.mark.parametrize("mutation", ["iteration", "speedup", "imports", "cohort", "backend"])
 def test_rebound_hashes_cannot_hide_inconsistent_evidence(tmp_path: Path, mutation: str) -> None:
     root = tmp_path / "archive"
     shutil.copytree(ARCHIVE, root)
@@ -29,6 +29,7 @@ def test_rebound_hashes_cannot_hide_inconsistent_evidence(tmp_path: Path, mutati
         "speedup": "summary.json",
         "imports": "00-numba_cpu/measurement.json",
         "cohort": "attempts.json",
+        "backend": "00-numba_cpu/measurement.json",
     }[mutation]
     record = json.loads((root / relative).read_bytes())
     if mutation == "iteration":
@@ -38,6 +39,10 @@ def test_rebound_hashes_cannot_hide_inconsistent_evidence(tmp_path: Path, mutati
     elif mutation == "imports":
         imports = record["provenance"]["executed_sources"]
         imports[next(iter(imports))] = "0" * 64
+    elif mutation == "backend":
+        record["runs"][0]["results"][0]["execution_backend"] = (
+            "calibrex.numba_bspline_planes/v0.99;numba=0.65.1"
+        )
     else:
         record["attempts"].pop()
     path = root / relative

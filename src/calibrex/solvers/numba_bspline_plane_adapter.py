@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, TypeAlias, cast
 import numpy as np
 from numba import njit
 from numpy.typing import NDArray
+from scipy.sparse import bmat, coo_matrix, csc_matrix
 
 from calibrex.core.continuous_time_bspline import (
     CubicBSplineTrajectory,
@@ -24,7 +25,7 @@ from calibrex.core.continuous_time_bspline import (
 from calibrex.core.continuous_time_bspline_derivatives import _right_jacobian
 
 if TYPE_CHECKING:
-    from calibrex.core.continuous_time_bspline_fit import BSplinePlaneReturns
+    from calibrex.core.continuous_time_bspline_fit import BSplinePlaneReturns, _Linearization
 
 FloatArray: TypeAlias = NDArray[np.float64]
 IntArray: TypeAlias = NDArray[np.int64]
@@ -209,6 +210,56 @@ def _plane_kernel(
     return residual, jacobian
 
 
+@njit(cache=True, nogil=True, fastmath=False)  # type: ignore[untyped-decorator]
+def _plane_normal(
+    segment: IntArray, local: FloatArray, residual: FloatArray, controls: int,
+) -> tuple[FloatArray, FloatArray]:
+    band = np.zeros((controls, 7, 6, 6))
+    gradient = np.zeros(6 * controls)
+    for row in range(len(segment)):
+        for a in range(24):
+            control = segment[row] + a // 6
+            axis = a % 6
+            value = local[row, a]
+            gradient[6 * control + axis] += value * residual[row]
+            for b in range(24):
+                offset = b // 6 - a // 6 + 3
+                band[control, offset, axis, b % 6] += value * local[row, b]
+    return band, gradient
+
+
+@njit(cache=True, nogil=True, fastmath=False)  # type: ignore[untyped-decorator]
+def _imu_normal(
+    columns: IntArray, values: FloatArray, residual: FloatArray, controls: int,
+    parameters: int, local_columns: int,
+) -> tuple[FloatArray, FloatArray, FloatArray, FloatArray]:
+    control_columns = 6 * controls
+    calibration_columns = parameters - control_columns
+    band = np.zeros((controls, 7, 6, 6))
+    coupling = np.zeros((control_columns, calibration_columns))
+    calibration = np.zeros((calibration_columns, calibration_columns))
+    gradient = np.zeros(parameters)
+    for row in range(len(values)):
+        for a in range(local_columns):
+            i = columns[row, a]
+            value = values[row, a]
+            gradient[i] += value * residual[row]
+            for b in range(local_columns):
+                j = columns[row, b]
+                band[i // 6, j // 6 - i // 6 + 3, i % 6, j % 6] += value * values[row, b]
+            for b in range(local_columns, values.shape[1]):
+                j = columns[row, b] - control_columns
+                coupling[i, j] += value * values[row, b]
+        for a in range(local_columns, values.shape[1]):
+            i = columns[row, a] - control_columns
+            value = values[row, a]
+            gradient[control_columns + i] += value * residual[row]
+            for b in range(local_columns, values.shape[1]):
+                j = columns[row, b] - control_columns
+                calibration[i, j] += value * values[row, b]
+    return band, coupling, calibration, gradient
+
+
 class _NumbaPlaneEvaluator:
     """Own one fit's timestamp schedule and optional reusable worker pool."""
 
@@ -233,16 +284,82 @@ class _NumbaPlaneEvaluator:
         bounds = np.linspace(0, len(self.segment), self._workers + 1, dtype=np.int64)
         self._bounds = list(zip(bounds[:-1].tolist(), bounds[1:].tolist(), strict=True))
         self._pool = ThreadPoolExecutor(max_workers=self._workers) if self._workers > 1 else None
+        controls = trajectory.control_point_count
+        index = np.arange(controls)[:, None] + np.arange(-3, 4)[None, :]
+        shape = (controls, 7, 6, 6)
+        self._band_valid = np.broadcast_to(
+            ((index >= 0) & (index < controls))[:, :, None, None], shape,
+        )
+        self._band_rows = np.broadcast_to(
+            6 * np.arange(controls)[:, None, None, None] + np.arange(6)[None, None, :, None],
+            shape,
+        )[self._band_valid]
+        self._band_columns = np.broadcast_to(
+            6 * index[:, :, None, None] + np.arange(6)[None, None, None, :], shape,
+        )[self._band_valid]
         self.identity = (
-            f"calibrex.numba_bspline_planes/v0.2;numba={version('numba')};"
+            f"calibrex.numba_bspline_planes/v0.3;numba={version('numba')};"
             f"workers={self._workers};fastmath=false;cache=true;parallel_pass=false;"
-            "imu=numpy;normal=scipy;covariance=numpy"
+            "imu=shared_numpy;normal=numba_banded;covariance=numpy"
         )
 
     def close(self) -> None:
         """Release only this evaluator's worker pool, including on failed fits."""
         if self._pool is not None:
             self._pool.shutdown(wait=True)
+
+    def normal_system(
+        self, trajectory: CubicBSplineTrajectory, imu: _Linearization,
+    ) -> tuple[csc_matrix, FloatArray]:
+        """Accumulate local plane/IMU products without assembling their large Jacobian."""
+        residual, local = self.evaluate(trajectory, derivatives=True)
+        controls = trajectory.control_point_count
+        control_columns = 6 * controls
+
+        def chunk(bounds: tuple[int, int]) -> tuple[FloatArray, FloatArray]:
+            lo, hi = bounds
+            return cast(tuple[FloatArray, FloatArray], _plane_normal(
+                self.segment[lo:hi], local[lo:hi], residual[lo:hi], controls,
+            ))
+
+        if self._pool is None:
+            band, plane_gradient = chunk(self._bounds[0])
+        else:
+            chunk((0, 0))
+            parts = list(self._pool.map(chunk, self._bounds))
+            band, plane_gradient = parts[0]
+            for other_band, other_gradient in parts[1:]:
+                band += other_band
+                plane_gradient += other_gradient
+        parameters = imu.parameter_count
+        coupling = np.zeros((control_columns, parameters - control_columns))
+        calibration = np.zeros((parameters - control_columns, parameters - control_columns))
+        gradient = np.zeros(parameters)
+        groups: dict[tuple[int, int], list[tuple[IntArray, FloatArray]]] = {}
+        for row, column, value in zip(imu.rows, imu.columns, imu.values, strict=True):
+            groups.setdefault((int(row[0]), len(row)), []).append((column, value))
+        for (offset, count), entries in groups.items():
+            columns = np.column_stack([entry[0] for entry in entries])
+            values = np.column_stack([entry[1] for entry in entries])
+            local_columns = int(np.count_nonzero(columns[0] < control_columns))
+            other_band, other_coupling, other_calibration, other_gradient = cast(
+                tuple[FloatArray, FloatArray, FloatArray, FloatArray],
+                _imu_normal(columns, values, imu.residuals[offset:offset + count],
+                            controls, parameters, local_columns),
+            )
+            band += other_band
+            coupling += other_coupling
+            calibration += other_calibration
+            gradient += other_gradient
+        gradient[:control_columns] += plane_gradient
+        control = coo_matrix(
+            (band[self._band_valid], (self._band_rows, self._band_columns)),
+            shape=(control_columns, control_columns),
+        ).tocsc()
+        return bmat(
+            [[control, csc_matrix(coupling)],
+             [csc_matrix(coupling.T), csc_matrix(calibration)]], format="csc",
+        ), gradient
 
     def evaluate(
         self,

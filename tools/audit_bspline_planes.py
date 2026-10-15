@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import statistics
 import tarfile
 from pathlib import Path
@@ -71,6 +72,13 @@ def audit(root: Path) -> dict:
     }
     if actual != manifest:
         raise ValueError("frozen source bytes differ")
+    prefixes = set(re.findall(
+        rb"calibrex\.numba_bspline_planes/v0\.\d+;",
+        source["src/calibrex/solvers/numba_bspline_plane_adapter.py"],
+    ))
+    if len(prefixes) != 1:
+        raise ValueError("frozen compiled backend identity is ambiguous")
+    compiled_prefix = prefixes.pop().decode("ascii")
     attempts = records["attempts.json"]
     if attempts["provenance"]["protocol_sha256"] != protocol_digest:
         raise ValueError("attempts refer to another protocol")
@@ -105,7 +113,7 @@ def audit(root: Path) -> dict:
                 identity = result["execution_backend"]
                 if (item["variant"] == "numpy" and identity != "numpy") or (
                     item["variant"] == "numba_cpu"
-                    and not identity.startswith("calibrex.numba_bspline_planes/v0.1;")
+                    and not identity.startswith(compiled_prefix)
                 ):
                     raise ValueError("requested CPU backend was not executed")
         measurements[item["worker"]] = worker

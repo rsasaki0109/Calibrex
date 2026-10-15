@@ -16,6 +16,7 @@ from calibrex.core.continuous_time_bspline_fit import (
     _apply_step,
     _families,
     _linearize,
+    _linearize_terms,
 )
 
 
@@ -160,3 +161,76 @@ def test_backend_settings_are_validated() -> None:
         BSplineLidarImuFitOptions(plane_backend="unknown")  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="positive"):
         BSplineLidarImuFitOptions(plane_workers=0)
+
+
+@pytest.mark.parametrize("workers", [1, 4])
+@pytest.mark.parametrize("angle", [0.0, 0.3])
+@pytest.mark.parametrize("estimate", [(), ("imu_rotation", "gyro_bias", "lever_arm",
+                                         "imu_clock_offset", "accel_bias", "gravity")])
+def test_direct_normal_matches_full_native_sparse_system(workers, angle, estimate) -> None:
+    pytest.importorskip("numba")
+    from calibrex.solvers.numba_bspline_plane_adapter import _NumbaPlaneEvaluator
+
+    trajectory, short = _problem(0.0, angle)
+    index = np.arange(17001 if workers == 4 else len(short.times_sec)) % len(short.times_sec)
+    planes = BSplinePlaneReturns(
+        short.times_sec[index], short.points_body_m[index], short.plane_points_world_m[index],
+        short.plane_normals_world[index], short.sigma_m,
+    )
+    times = np.array([0.1, 0.2, 0.400001, 0.399999, 0.91, 0.2])
+    imu = BSplineImuSamples(times, np.ones((len(times), 3)), 0.1)
+    families = _families(planes, imu, imu)
+    evaluator = _NumbaPlaneEvaluator(trajectory, planes, workers)
+    try:
+        for clock in (0.0, 0.01):
+            calibration = replace(_calibration(), imu_clock_offset_sec=clock)
+            jacobian, residual = _linearize(trajectory, calibration, families, estimate)
+            entries = _linearize_terms(
+                trajectory, calibration, {k: v for k, v in families.items() if k != "plane"},
+                estimate, evaluator,
+            )
+            normal, gradient = evaluator.normal_system(trajectory, entries)
+            np.testing.assert_allclose(normal.toarray(), (jacobian.T @ jacobian).toarray(),
+                                       rtol=1e-11, atol=1e-7)
+            np.testing.assert_allclose(gradient, jacobian.T @ residual, rtol=1e-11, atol=1e-7)
+            np.testing.assert_array_equal(normal.toarray(), normal.toarray().T)
+    finally:
+        evaluator.close()
+
+
+@pytest.mark.parametrize("aligned", [True, False])
+def test_imu_sharing_preserves_jacobian_and_is_scoped_to_each_linearization(
+    monkeypatch, aligned,
+) -> None:
+    pytest.importorskip("numba")
+    from calibrex.core import continuous_time_bspline_fit as fit
+    from calibrex.solvers.numba_bspline_plane_adapter import _NumbaPlaneEvaluator
+
+    trajectory, planes = _problem(0.0, 0.3)
+    times = np.array([0.1, 0.2, 0.400001, 0.399999, 0.91, 0.2])
+    gyro = BSplineImuSamples(times, np.zeros((len(times), 3)), 0.1)
+    accel = BSplineImuSamples(times + (0 if aligned else 2e-5), gyro.values, 0.1)
+    families = {k: v for k, v in _families(planes, gyro, accel).items() if k != "plane"}
+    estimate = ("imu_rotation", "gyro_bias", "lever_arm", "imu_clock_offset",
+                "accel_bias", "gravity")
+    evaluator = _NumbaPlaneEvaluator(trajectory, planes, 1)
+    calls = []
+    original = fit._gather
+
+    def gather(*args, **kwargs):
+        calls.append(kwargs.get("derivatives", False))
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(fit, "_gather", gather)
+    try:
+        for clock in (0.0, 0.01):
+            trajectory.positions[1] += [0.1, -0.2, 0.3]
+            calibration = replace(_calibration(), imu_clock_offset_sec=clock)
+            expected, base = _linearize(trajectory, calibration, families, estimate)
+            calls.clear()
+            actual, residual = _linearize(trajectory, calibration, families, estimate, evaluator)
+            assert len(calls) == (3 if aligned else 6)
+            np.testing.assert_array_equal(actual.toarray(), expected.toarray())
+            np.testing.assert_array_equal(residual, base)
+    finally:
+        evaluator.close()

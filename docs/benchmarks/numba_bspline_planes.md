@@ -3,11 +3,21 @@
 The joint cubic B-spline fitter has an optional `numba_cpu` plane evaluator.
 It combines pose evaluation, whitened plane residuals and their 24 local
 Jacobian columns in a compiled loop, reusing small workspaces within each row
-slice. Runtime v0.2 also uses scalar array access in its small matrix loops
-to avoid creating per-return views and reduce JIT startup overhead.
+slice. Scalar array access avoids creating per-return views and reduces JIT
+startup overhead.
 Independent slices can run in a persistent CPU thread pool. The kernel
 uses FP64 arithmetic with `fastmath=False` and disables Numba's automatic
 parallel pass. NumPy keeps the referenced-edge SO(3) logarithm and near-pi guard.
+
+Runtime v0.3 also accumulates the normal system directly. Plane contributions
+use the seven-block control band instead of assembling a large sparse Jacobian
+on every LM iteration. IMU control, calibration and cross products retain that
+local structure. Aligned gyro/acceleration timestamps share spline states,
+control derivatives and the two clock-offset probes within one linearization.
+Different timestamp arrays retain separate evaluations. Plane accumulation uses
+the existing worker pool; IMU products use a serial compiled kernel. The final
+covariance still uses the complete assembled Jacobian and original Schur method.
+The NumPy default retains its original sparse normal construction.
 
 Install the existing optional dependency and select it explicitly:
 

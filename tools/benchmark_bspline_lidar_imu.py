@@ -490,7 +490,8 @@ def _validate_fit_execution(result: dict, rounds: list[dict], requested: str) ->
     if (result["options"].get("fit_backend") != requested
         or result["options"].get("fit_execution") != identities[-1]
         or any(not identity.startswith(("calibrex.numba_bspline_planes/v0.1;",
-                                        "calibrex.numba_bspline_planes/v0.2;"))
+                                        "calibrex.numba_bspline_planes/v0.2;",
+                                        "calibrex.numba_bspline_planes/v0.3;"))
                for identity in identities)):
         raise ValueError("compiled plane comparison did not execute the requested backend")
 
