@@ -5,6 +5,13 @@
 # Windows core.autocrlf checkouts as well.
 *.json text eol=lf
 
+# Preserve exact worker/source bytes for the spline evaluation reuse comparison.
+docs/assets/spline_evaluation_reuse/**/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/spline_evaluation_reuse/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/spline_evaluation_reuse/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/spline_evaluation_reuse/**/*.log -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/spline_evaluation_reuse/*.md text eol=lf
+
 # Retain original measured source and result bytes in the CPU covariance archive.
 docs/assets/cpu_fused_scan_covariance/**/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 docs/assets/cpu_fused_scan_covariance/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

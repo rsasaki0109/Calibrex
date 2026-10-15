@@ -1,0 +1,105 @@
+"""Publish complete exact-output spline evaluation reuse comparisons without raw scans."""
+import hashlib
+import io
+import json
+from pathlib import Path
+import shutil
+import tarfile
+
+from tools.audit_bspline_lidar_imu_benchmark import audit
+from tools.benchmark_bspline_lidar_imu import _validate_exact_pair
+
+source=Path('outputs/glim-spline-evaluation-reuse-pairs-v1')
+destination=Path('docs/assets/spline_evaluation_reuse')
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+protocol=json.loads((source/'protocol.json').read_bytes())
+summary=json.loads((source/'summary.json').read_bytes())
+attempts=json.loads((source/'attempts.json').read_bytes())
+assert summary['quality_passed'] and len(attempts)==4
+assert protocol['exact_outputs_required'] is True
+assert sha(Path('tools/benchmark_bspline_lidar_imu.py'))==protocol['launcher_sha256']
+assert summary['fit_speedup']>1
+for repeat in range(protocol['repeats']):
+    values=[json.loads((source/f'{repeat:02d}-{v}/result.json').read_bytes()) for v in ('prior','current')]
+    records=[json.loads((source/f'{repeat:02d}-{v}/measurement.json').read_bytes()) for v in ('prior','current')]
+    _validate_exact_pair(values[0],values[1],records[0]['rounds'],records[1]['rounds'])
+destination.mkdir(exist_ok=False)
+for name in ('protocol.json','attempts.json','summary.json'):
+    shutil.copyfile(source/name,destination/name)
+for attempt in attempts:
+    folder=destination/attempt['worker']
+    folder.mkdir()
+    for name in ('result.json','measurement.json','worker.log'):
+        shutil.copyfile(source/attempt['worker']/name,folder/name)
+for variant in ('prior','current'):
+    root=source/f'sources-{variant}'
+    shutil.copyfile(root/'manifest.json',destination/f'sources-{variant}-manifest.json')
+    with tarfile.open(destination/f'sources-{variant}.tar.gz','w:gz') as bundle:
+        for name,raw in [('LICENSE',Path('LICENSE').read_bytes()),*(
+                (p.relative_to(root).as_posix(),p.read_bytes()) for p in sorted((root/'src').rglob('*.py')))]:
+            info=tarfile.TarInfo(name)
+            info.size,info.mtime,info.mode=len(raw),0,0o644
+            bundle.addfile(info,io.BytesIO(raw))
+for src,name in [('tools/benchmark_bspline_lidar_imu.py','benchmark.py.txt'),
+                 ('tools/schemas/bspline_lidar_imu_comparison.schema.json','comparison.schema.json'),
+                 (__file__,'publisher.py.txt')]:
+    shutil.copyfile(src,destination/name)
+whole,fit=summary['whole_median_seconds'],summary['fit_median_seconds']
+table='\n'.join([
+    '| Scope | Previous | Shared evaluations | Observed ratio |',
+    '| --- | ---: | ---: | ---: |',
+    f"| Complete worker | {whole['prior']:.3f} s | {whole['current']:.3f} s | {summary['whole_speedup']:.3f}x |",
+    f"| Four CPU fits, including covariance | {fit['prior']:.3f} s | {fit['current']:.3f} s | {summary['fit_speedup']:.3f}x |",
+])
+readme=f'''# Complete spline evaluation reuse comparison
+
+{table}
+
+Two alternating fresh-process pairs replay the original public GLIM Livox bag's
+first six seconds with four map rounds. This is a descriptive observation on an
+unreserved host. The CPU fitter now shares bounded evaluation work within each
+fit; both variants run the same adopted CUDA scan-odometry kernels. Whole and
+fit ratios have different scopes and are not multiplied.
+
+The previous revision is `{protocol['baseline_commit']}` and the current revision
+is `{protocol['current_commit']}`. The input bag SHA-256 is
+`{protocol['bag_sha256']}`. No raw scans or compiler caches are redistributed.
+
+Every worker uses one BLAS thread and a separate initially empty CuPy cache.
+First GPU initialization and compilation belong to whole time. The unchanged
+dense policy uses 0.03 m voxels, three local-map scans, a 1 nm coordinate grid
+and returned-motion grids of 1 micrometre translation and 0.1 microradian
+rotation-vector components. Those grids remain off by default.
+
+Every complete physical/evidence field and execution report is exactly equal in
+both pairs after excluding provenance timestamps, commands and source revisions.
+All four complete fit records in each pair match exactly after excluding wall
+time: calibration, covariance, trajectory, costs, status, iterations and dimensions.
+The protocol explicitly requires this stronger equality alongside the existing
+physical checks. Final verdicts remain **INCONCLUSIVE**; this clip supplies no
+independent extrinsic truth.
+
+Whole timing includes startup/imports, decoding, every initial/gyro/feedback/final
+odometry pass, association, fitting/covariance, noise updates, evidence, signed
+controls, hashing, saves and import/source verification. Fitting remains on CPU.
+The publication index binds all four full results, original measurements/logs,
+both source capsules/manifests, launcher, schema and publisher.
+
+Audit without a GPU or bag:
+
+```bash
+python -m tools.audit_bspline_lidar_imu_benchmark docs/assets/spline_evaluation_reuse
+```
+
+See [implementation and reproduction](../../benchmarks/spline_evaluation_reuse.md).
+'''
+(destination/'README.md').write_text(readme,encoding='utf-8',newline='\n')
+files={p.relative_to(destination).as_posix():sha(p) for p in sorted(destination.rglob('*'))
+       if p.is_file() and p.name!='publication-index.json'}
+(destination/'publication-index.json').write_text(json.dumps({
+    'schema_version':'slac.bspline_lidar_imu_publication/v0.1',
+    'provenance':{'input_protocol_sha256':sha(source/'protocol.json')},'files':files,
+},indent=2)+'\n',encoding='utf-8',newline='\n')
+doc=Path('docs/benchmarks/spline_evaluation_reuse.md')
+doc.write_text(doc.read_text(encoding='utf-8').replace('<!-- results -->',table),encoding='utf-8',newline='\n')
+print(json.dumps(audit(destination),indent=2))
