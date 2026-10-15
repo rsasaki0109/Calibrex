@@ -114,8 +114,11 @@ class _CudaIntervalTree(_CudaTree):
         super().__init__(points)
         # Limit temporary ownership and avoid intervals that erase a tiny cloud
         # translated far from the origin. Unsupported targets keep the native path.
-        scale = max(1.0, float(np.max(np.abs(points))))
-        extent = float(np.max(np.ptp(points, axis=0)))
+        # cKDTree has already computed these extrema. Rescanning every target
+        # here costs more than the pruning saves on a short calibration run.
+        scale = max(1.0, float(np.max(np.abs(self.cpu.mins))),
+                    float(np.max(np.abs(self.cpu.maxes))))
+        extent = float(np.max(self.cpu.maxes - self.cpu.mins))
         if (not 32 <= len(points) <= 65536 or scale > 1e6
                 or extent <= 256 * np.finfo(np.float32).eps * scale):
             return
