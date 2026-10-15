@@ -44,6 +44,12 @@ TOOL_SCHEMA_VERSIONS = {
     "slac.bspline_lidar_imu_publication/v0.1": (
         "tools/schemas/bspline_lidar_imu_publication.schema.json"
     ),
+    "slac.odometry_candidate_screen/v0.1": (
+        "tools/schemas/odometry_candidate_screen.schema.json"
+    ),
+    "slac.odometry_screen_publication/v0.1": (
+        "tools/schemas/odometry_screen_publication.schema.json"
+    ),
 }
 
 # Committed artifacts known to violate their declared schema.  Each entry must
