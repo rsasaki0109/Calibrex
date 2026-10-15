@@ -38,6 +38,7 @@ def test_normal_timing_counts_nested_cache_completion_once() -> None:
 @pytest.mark.parametrize("comparison,prior,current", [
     ("source", "cpu", "cpu"), ("cpu-cuda", "cpu", "cuda"), ("cuda-cuda", "cuda", "cuda"),
     ("cpu-cpu", "cpu", "cpu"),
+    ("cpu-source", "cpu", "cpu"),
 ])
 def test_comparison_selects_each_actual_worker_backend(
     comparison: str, prior: str, current: str,
@@ -57,11 +58,14 @@ def test_gpu_source_comparison_requires_the_same_explicit_workload(tmp_path: Pat
         _write(tmp_path / "protocol.json", protocol)
 
 
-def test_cpu_parallel_comparison_requires_both_worker_budgets(tmp_path: Path) -> None:
+@pytest.mark.parametrize("comparison", ["cpu-cpu", "cpu-source"])
+def test_cpu_parallel_comparison_requires_both_worker_budgets(
+    tmp_path: Path, comparison: str,
+) -> None:
     from jsonschema import ValidationError
 
     protocol = json.loads(Path("docs/assets/cuda_joint_lidar_imu/protocol.json").read_bytes())
-    protocol["comparison"] = "cpu-cpu"
+    protocol["comparison"] = comparison
     protocol.pop("isolated_cuda_caches")
     protocol["cpu_query_workers"] = {"prior": 1, "current": 8}
     _write(tmp_path / "protocol.json", protocol)

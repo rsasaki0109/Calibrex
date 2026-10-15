@@ -60,6 +60,7 @@
           "enum": [
             "source",
             "cpu-cpu",
+            "cpu-source",
             "cpu-cuda",
             "cuda-cuda"
           ]
@@ -283,7 +284,7 @@
       "if": {
         "properties": {
           "record_type": {"const": "protocol"},
-          "comparison": {"const": "cpu-cpu"}
+          "comparison": {"enum": ["cpu-cpu", "cpu-source"]}
         },
         "required": ["comparison"]
       },

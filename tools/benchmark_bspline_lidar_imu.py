@@ -138,7 +138,7 @@ def _worker(args: argparse.Namespace) -> None:
                 odometry=replace(windowing.odometry, **_odometry_options(args)),
             ),
         ))
-    if args.comparison == "cpu-cpu":
+    if args.comparison in ("cpu-cpu", "cpu-source"):
         settings = replace(settings, rotation=replace(
             settings.rotation, windowing=replace(
                 settings.rotation.windowing, odometry=replace(
@@ -188,7 +188,7 @@ def _worker(args: argparse.Namespace) -> None:
         raise RuntimeError("CPU comparison unexpectedly imported CuPy")
     if args.comparison != "source":
         _validate_backend_execution(result.model_dump(mode="json"), backend)
-    if args.comparison == "cpu-cpu":
+    if args.comparison in ("cpu-cpu", "cpu-source"):
         _validate_query_workers(result.model_dump(mode="json"), _query_workers(args)[args.variant])
     _verify_sources(root)
     if _digest(Path(__file__)) != launcher_digest:
@@ -223,7 +223,7 @@ def _worker(args: argparse.Namespace) -> None:
                 },
                 **({"odometry_backend": backend} if args.comparison != "source" else {}),
                 **({"cpu_query_workers": _query_workers(args)[args.variant]}
-                   if args.comparison == "cpu-cpu" else {}),
+                   if args.comparison in ("cpu-cpu", "cpu-source") else {}),
                 **({"cuda_cache_initially_empty": cuda_cache_empty,
                     "cupy": (sys.modules["cupy"].__version__ if backend == "cuda" else None)}
                    if args.comparison in ("cpu-cuda", "cuda-cuda") else {}),
@@ -397,7 +397,7 @@ def _validate_query_workers(result: dict, workers: int) -> None:
 
 
 def _worker_arguments(args: argparse.Namespace) -> list[str]:
-    if args.comparison != "cpu-cpu":
+    if args.comparison not in ("cpu-cpu", "cpu-source"):
         return []
     return ["--prior-query-workers", str(args.prior_query_workers),
             "--current-query-workers", str(args.current_query_workers)]
@@ -412,7 +412,8 @@ def main() -> None:
     parser.add_argument("--max-seconds", type=float, default=12.0)
     parser.add_argument("--max-rounds", type=int, default=4)
     parser.add_argument(
-        "--comparison", choices=("source", "cpu-cpu", "cpu-cuda", "cuda-cuda"), default="source",
+        "--comparison", choices=("source", "cpu-cpu", "cpu-source", "cpu-cuda", "cuda-cuda"),
+        default="source",
     )
     parser.add_argument("--prior-query-workers", type=int, default=1)
     parser.add_argument("--current-query-workers", type=int, default=8)
@@ -487,7 +488,7 @@ def main() -> None:
             **({"isolated_cuda_caches": True}
                if args.comparison in ("cpu-cuda", "cuda-cuda") else {}),
             **({"cpu_query_workers": _query_workers(args)}
-               if args.comparison == "cpu-cpu" else {}),
+               if args.comparison in ("cpu-cpu", "cpu-source") else {}),
         },
     )
     attempts: list[dict] = []

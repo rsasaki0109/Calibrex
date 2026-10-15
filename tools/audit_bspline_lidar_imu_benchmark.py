@@ -31,7 +31,8 @@ def _canonical_cpu_result(value: object) -> object:
             if name == "query_workers":
                 continue
             if name == "provenance":
-                item = {k: v for k, v in item.items() if k not in ("created_at", "command")}
+                item = {k: v for k, v in item.items()
+                        if k not in ("created_at", "command", "git_commit")}
             result[name] = _canonical_cpu_result(item)
         return result
     if isinstance(value, list):
@@ -209,7 +210,7 @@ def audit(root: Path) -> dict[str, object]:
             raise ValueError("worker did not bind the executed fitter")
         if any(sources[variant].get(name) != digest for name, digest in executed.items()):
             raise ValueError("actual worker imports differ from frozen sources")
-        if protocol.get("comparison") == "cpu-cpu":
+        if protocol.get("comparison") in ("cpu-cpu", "cpu-source"):
             module._validate_backend_execution(result, "cpu")
             workers = protocol["cpu_query_workers"][variant]
             module._validate_query_workers(result, workers)
@@ -329,7 +330,7 @@ def audit(root: Path) -> dict[str, object]:
         ):
             raise ValueError("complete quality comparison differs or failed")
     for repeat in range(protocol["repeats"]):
-        if protocol.get("comparison") == "cpu-cpu" and (
+        if protocol.get("comparison") in ("cpu-cpu", "cpu-source") and (
             _canonical_cpu_result(results[(repeat, "prior")])
             != _canonical_cpu_result(results[(repeat, "current")])
         ):
@@ -337,7 +338,7 @@ def audit(root: Path) -> dict[str, object]:
         left = measurements[(repeat, "prior")]["rounds"]
         right = measurements[(repeat, "current")]["rounds"]
         for prior_fit, current_fit in zip(left, right, strict=True):
-            if protocol.get("comparison") == "cpu-cpu" and (
+            if protocol.get("comparison") in ("cpu-cpu", "cpu-source") and (
                 {k: v for k, v in prior_fit.items() if k != "seconds"}
                 != {k: v for k, v in current_fit.items() if k != "seconds"}
             ):
