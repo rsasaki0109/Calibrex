@@ -422,6 +422,9 @@ The original PointCloud2 and IMU streams also provide the
 three alternating complete runs per implementation on the first 12 seconds,
 with full calibration, covariance and holdout evidence. That run retains an
 INCONCLUSIVE calibration verdict; it measures runtime and regression parity.
+The subsequent [shared-rotation comparison](../benchmarks/lidar_imu_shared_rotations.md)
+uses the same input and complete evaluation to measure direct gyro point
+deskew and shared spline terms against the analytic-Jacobian implementation.
 
 The ROS 1 PointCloud2 header carries the relative Livox clock (about 110 s),
 while bag records use epoch time. The reproducible conversion therefore

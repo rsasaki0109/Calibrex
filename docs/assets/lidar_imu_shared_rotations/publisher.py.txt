@@ -1,0 +1,122 @@
+from pathlib import Path
+import hashlib
+import json
+import shutil
+import tarfile
+
+source = Path('outputs/glim-joint-shared-rotations-formal-v1')
+destination = Path('docs/assets/lidar_imu_shared_rotations')
+destination.mkdir(exist_ok=False)
+summary = json.loads((source / 'summary.json').read_bytes())
+attempts = json.loads((source / 'attempts.json').read_bytes())
+protocol = json.loads((source / 'protocol.json').read_bytes())
+assert summary['quality_passed']
+for name in ('protocol.json', 'attempts.json', 'summary.json'):
+    shutil.copyfile(source / name, destination / name)
+for attempt in attempts:
+    root = destination / attempt['worker']
+    root.mkdir()
+    for name in ('measurement.json', 'result.json', 'worker.log'):
+        shutil.copyfile(source / attempt['worker'] / name, root / name)
+for variant in ('prior', 'current'):
+    root = source / f'sources-{variant}'
+    shutil.copyfile(root / 'manifest.json', destination / f'sources-{variant}-manifest.json')
+    with tarfile.open(destination / f'sources-{variant}.tar.gz', 'w:gz') as archive:
+        archive.add('LICENSE', arcname='LICENSE', recursive=False)
+        for path in sorted((root / 'src').rglob('*.py')):
+            archive.add(path, arcname=path.relative_to(root).as_posix(), recursive=False)
+shutil.copyfile('tools/benchmark_bspline_lidar_imu.py', destination / 'benchmark.py.txt')
+shutil.copyfile('tools/schemas/bspline_lidar_imu_comparison.schema.json', destination / 'comparison.schema.json')
+whole = summary['whole_median_seconds']
+fitting = summary['fit_median_seconds']
+table = '\n'.join([
+    '| Scope | Analytic-Jacobian baseline | Shared rotations | Speedup |',
+    '| --- | ---: | ---: | ---: |',
+    f"| Complete worker | {whole['prior']:.3f} s | {whole['current']:.3f} s | {summary['whole_speedup']:.3f}x |",
+    f"| Four fits, including covariance | {fitting['prior']:.3f} s | {fitting['current']:.3f} s | {summary['fit_speedup']:.3f}x |",
+])
+trials = '\n'.join([
+    '| Trial | Variant | Whole seconds | Fit seconds |',
+    '| --- | --- | ---: | ---: |',
+] + [f"| {a['repeat']} | {a['variant']} | {a['whole_seconds']:.6f} | {json.loads((source / a['worker'] / 'measurement.json').read_bytes())['fit_seconds']:.6f} |" for a in attempts])
+errors = {name: max(q['errors'][name] for q in summary['quality']) for name in summary['quality'][0]['errors']}
+holdout = max(q['max_holdout_whitened_rms_difference'] for q in summary['quality'])
+readme = f'''# Public GLIM LiDAR-IMU shared rotations
+
+Three alternating fresh-process pairs compare direct gyro point deskew and
+shared spline rotation terms with the preceding analytic-Jacobian baseline.
+They use one BLAS thread, the original public GLIM Livox recording's first
+12 seconds, four map rounds and the same 30-iteration fit caps. GPU is not
+required. These measured ratios compare this cohort's two implementations;
+ratios from separate cohorts should not be multiplied.
+
+{table}
+
+{trials}
+
+## Method and source binding
+
+- Prior: `{protocol['baseline_commit']}`.
+- Current measured source: `{protocol['current_commit']}`.
+- Original public `livox.bag` SHA-256: `{protocol['bag_sha256']}`.
+- PointCloud2 `/livox/points`, point-time `t`; IMU `/livox/imu`, acceleration in g.
+- The 12-second clip yields roughly 11.5 reliable seconds and 118 controls;
+  the full 61-second recording is not timed here. Supplied GT is not used.
+- Whole time includes process startup, reading, initial estimates and gyro
+  deskewed odometry, association, all fits and covariance, noise update,
+  holdout and signed controls, result saving, hashing and verified imports.
+  Fit time includes covariance. Parent source preparation is outside timing.
+
+Every worker retains a schema-valid complete `result.json` and full per-round
+calibration, trajectory and covariance in `measurement.json`. Both exact
+source trees and their raw-byte manifests are archived. The original worker
+logs, actual imported-module digests, executed comparison launcher, tool-only
+schema and publisher are included. The publication index binds every file
+except itself. Raw recording data is not redistributed.
+
+## Quality and limits
+
+All three result comparisons pass. Policy, block, control, separability and
+convergence decisions agree; estimates, std, last-round changes, noise,
+chi-square and correlations meet the fixed protocol tolerances. Across the
+three pairs, the maximum rotation difference is {errors['rotation_deg']:.3g}
+deg, lever-arm difference {errors['lever_arm_m']:.3g} m and clock-offset
+difference {errors['clock_offset_s']:.3g} s. The maximum whitened holdout RMS
+difference is {holdout:.3g}. The independent archive audit additionally
+checks full per-round covariance, trajectory and costs.
+
+All six final results remain **INCONCLUSIVE**. The capture's estimated plane
+map and its formal covariance provide no independent absolute extrinsic
+truth. This is a performance/regression comparison for one clip, not an
+accuracy or observability claim. Speed depends on point density, control
+count, convergence and initial odometry. Exploratory profiles experienced
+changing background load and their wall-time ratios are excluded. The
+single formal cohort above supplies all reported speed ratios.
+
+## Audit and reproduce
+
+```bash
+python -m tools.audit_bspline_lidar_imu_benchmark docs/assets/lidar_imu_shared_rotations
+python -m tools.benchmark_bspline_lidar_imu \\
+  --baseline-commit {protocol['baseline_commit']} \\
+  --bag data/public/glim_versatile/livox.bag \\
+  --max-seconds 12 --max-rounds 4 --repeats 3 \\
+  --output outputs/glim-shared-rotations-comparison
+```
+
+The output directory must be new and runtime changes committed. The archive
+audit uses CPU dependencies only. See the
+[implementation and evaluation](../../benchmarks/lidar_imu_shared_rotations.md).
+'''
+(destination / 'README.md').write_text(readme, encoding='utf-8', newline='\n')
+docs = Path('docs/benchmarks/lidar_imu_shared_rotations.md')
+docs.write_text(docs.read_text(encoding='utf-8').replace('<!-- shared_rotation_results -->', table), encoding='utf-8', newline='\n')
+shutil.copyfile(__file__, destination / 'publisher.py.txt')
+files = {p.relative_to(destination).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+         for p in sorted(destination.rglob('*')) if p.is_file()}
+(destination / 'publication-index.json').write_text(json.dumps({
+    'schema_version': 'slac.bspline_lidar_imu_publication/v0.1',
+    'provenance': {'input_protocol_sha256': hashlib.sha256((source / 'protocol.json').read_bytes()).hexdigest()},
+    'files': files,
+}, indent=2) + '\n', encoding='utf-8', newline='\n')
+print({'files': len(files), 'whole_speedup': summary['whole_speedup'], 'fit_speedup': summary['fit_speedup']})

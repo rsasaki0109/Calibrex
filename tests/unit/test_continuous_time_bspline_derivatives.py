@@ -33,7 +33,9 @@ def test_all_rotation_control_derivatives_match_central_differences(scale: float
     jacobian = _rotation_control_derivatives(rotations, fraction, spacing)
     pose_only = _rotation_control_derivatives(rotations, fraction, spacing, order=0)
     rate_only = _rotation_control_derivatives(rotations, fraction, spacing, order=1)
-    assert np.array_equal(pose_only.rotation_tangent, jacobian.rotation_tangent)
+    # The suffix implementation changes multiplication order only; compare at
+    # roundoff scale and independently check every column below.
+    assert np.allclose(pose_only.rotation_tangent, jacobian.rotation_tangent, rtol=0, atol=2e-14)
     assert np.array_equal(rate_only.angular_velocity, jacobian.angular_velocity)
     # The reference log uses acos(trace), which amplifies roundoff near pi.
     # This step keeps that cancellation below the central-difference error.
@@ -54,6 +56,7 @@ def test_all_rotation_control_derivatives_match_central_differences(scale: float
                 - so3_log_batch(r_t @ backward.rotation_world_body)
             ) / (2.0 * epsilon)
             assert np.allclose(jacobian.rotation_tangent[:, :, column], numeric_tangent, atol=2e-8)
+            assert np.allclose(pose_only.rotation_tangent[:, :, column], numeric_tangent, atol=2e-8)
             for field, derivative in (
                 ("angular_velocity_body_rad_s", jacobian.angular_velocity),
                 ("angular_acceleration_body_rad_s2", jacobian.angular_acceleration),

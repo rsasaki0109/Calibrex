@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import TypeAlias
+from typing import Literal, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -193,6 +193,25 @@ def evaluate_local_spline(
     for every timestamp at once.
     """
 
+    return _evaluate_local_spline(rotations, positions, fraction, knot_spacing_sec)
+
+
+def _evaluate_local_spline(
+    rotations: FloatArray,
+    positions: FloatArray,
+    fraction: FloatArray,
+    knot_spacing_sec: float,
+    *,
+    order: Literal[0, 1, 2] = 2,
+    deltas: FloatArray | None = None,
+    steps: FloatArray | None = None,
+) -> BSplineStates:
+    """Internal evaluator with shared rotation terms and family-specific order.
+
+    Omitted derivative fields are zero; callers must consume only the fields
+    required by their residual family. The public evaluator always uses order 2.
+    """
+
     basis, d_basis, dd_basis = cumulative_basis(fraction, knot_spacing_sec)
     count = basis.shape[0]
 
@@ -203,23 +222,31 @@ def evaluate_local_spline(
     velocity = np.zeros((count, 3), dtype=float)
     acceleration = np.zeros((count, 3), dtype=float)
     for j in range(1, 4):
-        relative = np.einsum("tji,tjk->tik", rotations[:, j - 1], rotations[:, j])
-        delta = so3_log_batch(relative)
-        step = so3_exp_batch(basis[:, j, None] * delta)
+        if deltas is None:
+            relative = np.einsum("tji,tjk->tik", rotations[:, j - 1], rotations[:, j])
+            delta = so3_log_batch(relative)
+        else:
+            delta = deltas[:, j - 1]
+        step = (so3_exp_batch(basis[:, j, None] * delta)
+                if steps is None else steps[:, j - 1])
         step_t = np.transpose(step, (0, 2, 1))
-        rate = d_basis[:, j, None] * delta
-        rotated_omega = np.einsum("tij,tj->ti", step_t, omega)
-        alpha = (
-            np.einsum("tij,tj->ti", step_t, alpha)
-            + dd_basis[:, j, None] * delta
-            + np.cross(rotated_omega, rate)
-        )
-        omega = rotated_omega + rate
+        if order > 0:
+            rate = d_basis[:, j, None] * delta
+            rotated_omega = np.einsum("tij,tj->ti", step_t, omega)
+            if order == 2:
+                alpha = (
+                    np.einsum("tij,tj->ti", step_t, alpha)
+                    + dd_basis[:, j, None] * delta
+                    + np.cross(rotated_omega, rate)
+                )
+            omega = rotated_omega + rate
         rotation = np.einsum("tij,tjk->tik", rotation, step)
         difference = positions[:, j] - positions[:, j - 1]
         position = position + basis[:, j, None] * difference
-        velocity = velocity + d_basis[:, j, None] * difference
-        acceleration = acceleration + dd_basis[:, j, None] * difference
+        if order > 0:
+            velocity = velocity + d_basis[:, j, None] * difference
+        if order == 2:
+            acceleration = acceleration + dd_basis[:, j, None] * difference
     return BSplineStates(
         rotation_world_body=rotation,
         position_world_m=position,

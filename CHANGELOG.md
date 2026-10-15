@@ -1253,6 +1253,13 @@
   the real-data calibration verdict remains INCONCLUSIVE. See
   `docs/benchmarks/bspline_lidar_imu_acceleration.md`.
 
+- Add a CPU shared-rotation candidate for native gyro deskew and joint
+  B-spline LiDAR-IMU fitting. The public GLIM 12-second comparison measures
+  a modest incremental 1.42x complete-run and 1.52x fit speedup over the
+  analytic-Jacobian baseline, with all three quality comparisons passing.
+  The complete source-bound evidence and limits are recorded in
+  `docs/benchmarks/lidar_imu_shared_rotations.md`.
+
 ## 0.5.1 - 2026-10-02
 
 Highlights:

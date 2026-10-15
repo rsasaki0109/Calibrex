@@ -11,6 +11,7 @@ import pytest
 from tools.audit_bspline_lidar_imu_benchmark import audit
 
 ROOT = Path(__file__).resolve().parents[2] / "docs/assets/bspline_lidar_imu_acceleration"
+SHARED_ROOT = Path(__file__).resolve().parents[2] / "docs/assets/lidar_imu_shared_rotations"
 
 
 def _rewrite(path: Path, value: object) -> None:
@@ -34,6 +35,12 @@ def test_complete_public_comparison_audits_without_bag_or_cuda() -> None:
     assert result["quality_passed"]
     assert result["whole_speedup"] > 2.0
     assert result["fit_speedup"] > 4.0
+
+
+def test_shared_rotation_comparison_audits_without_bag_or_cuda() -> None:
+    result = audit(SHARED_ROOT)
+    assert result["workers"] == 6
+    assert result["quality_passed"]
 
 
 def test_audit_allows_only_tiny_quaternion_recomputation_roundoff(tmp_path: Path) -> None:
