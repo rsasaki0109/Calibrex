@@ -62,13 +62,10 @@ class ScanOdometryOptions:
     motion_translation_quantum_m: float = 0.0
     motion_rotation_quantum_rad: float = 0.0
     query_workers: int = 1
-    normal_backend: Literal["numpy", "numba"] = "numpy"
 
     def __post_init__(self) -> None:
         if type(self.query_workers) is not int or self.query_workers < 1:
             raise ValueError("query_workers must be a positive integer")
-        if self.normal_backend not in ("numpy", "numba"):
-            raise ValueError(f"unknown normal backend: {self.normal_backend}")
         values = (self.motion_translation_quantum_m, self.motion_rotation_quantum_rad)
         if any(not np.isfinite(value) or value < 0 for value in values):
             raise ValueError("motion quanta must be finite and nonnegative")
@@ -106,24 +103,6 @@ class ScanOdometryResult:
 class _OdometryTarget(Protocol):
     def register(self, source: FloatArray, initial: FloatArray) -> ScanRegistration: ...
     def statistics(self) -> dict[str, int]: ...
-
-
-class _NormalPreparer(Protocol):
-    execution_backend: str
-
-    def prepare(
-        self, points: FloatArray, indices: NDArray[np.intp], k: int,
-        options: ScanOdometryOptions,
-    ) -> tuple[FloatArray, NDArray[np.bool_]]: ...
-    def statistics(self) -> dict[str, int]: ...
-
-
-def _numba_normals() -> _NormalPreparer:
-    try:
-        from calibrex.solvers.numba_scan_normal_adapter import NumbaNormalPreparer
-    except ImportError as exc:
-        raise ValueError("Numba normals require the optional calibrex[numba] dependency") from exc
-    return NumbaNormalPreparer()
 
 
 def _cuda_odometry() -> tuple[Callable[[FloatArray, ScanOdometryOptions], _OdometryTarget], str]:
@@ -216,8 +195,6 @@ def estimate_normals(
 
     k = min(options.normal_neighbours, len(points))
     _, indices = tree.query(points, k=k, workers=options.query_workers)
-    if options.normal_backend == "numba":
-        return _numba_normals().prepare(points, indices, k, options)
     return _normals_from_neighbours(points, indices, k, options)
 
 
@@ -252,9 +229,6 @@ class TargetNormals:
     for the whole cloud.
     """
 
-    execution_backend = "numpy_scipy"
-    _compiled: _NormalPreparer | None = None
-
     def __init__(self, points: FloatArray, tree: cKDTree, options: ScanOdometryOptions) -> None:
         self._points = points
         self._tree = tree
@@ -263,9 +237,6 @@ class TargetNormals:
         self.normals: FloatArray = np.zeros((len(points), 3))
         self.planar: NDArray[np.bool_] = np.zeros(len(points), dtype=bool)
         self._done: NDArray[np.bool_] = np.zeros(len(points), dtype=bool)
-        if options.normal_backend == "numba":
-            self._compiled = _numba_normals()
-            self.execution_backend = self._compiled.execution_backend
 
     @classmethod
     def precomputed(cls, normals: FloatArray, planar: NDArray[np.bool_]) -> TargetNormals:
@@ -287,15 +258,10 @@ class TargetNormals:
         _, neighbours = self._tree.query(
             self._points[missing], k=self._k, workers=self._options.query_workers,
         )
-        prepare = (_normals_from_neighbours if self._compiled is None else self._compiled.prepare)
-        normals, planar = prepare(self._points, neighbours, self._k, self._options)
+        normals, planar = _normals_from_neighbours(self._points, neighbours, self._k, self._options)
         self.normals[missing] = normals
         self.planar[missing] = planar
         self._done[missing] = True
-
-    def statistics(self) -> dict[str, int]:
-        """Report optional compiled covariance work across all lazy cache reads."""
-        return {} if self._compiled is None else self._compiled.statistics()
 
 
 def register_point_to_plane(
@@ -317,8 +283,6 @@ def register_point_to_plane(
         and not np.array_equal(target_tree.data, target)):
         raise ValueError("cached target tree does not match the captured odometry geometry")
     if backend == "cuda":
-        if opts.normal_backend != "numpy":
-            raise ValueError("normal_backend is a CPU option; CUDA prepares its own normals")
         if target_tree is not None or target_normals is not None:
             raise ValueError("CUDA odometry captures its own tree and lazy target normals")
         factory, _ = _cuda_odometry()
@@ -399,7 +363,6 @@ def register_point_to_plane(
         correspondences=count,
         rmse_m=rmse,
         hessian_min_eigenvalue=min_eigenvalue,
-        execution_backend=lazy.execution_backend,
     )
 
 
@@ -477,13 +440,9 @@ class IncrementalScanOdometry:
         ) = None
         self.execution_backend = "numpy_scipy"
         if backend == "cuda":
-            if self.options.normal_backend != "numpy":
-                raise ValueError("normal_backend is a CPU option; CUDA prepares its own normals")
             self._cuda_factory, self.execution_backend = _cuda_odometry()
         elif backend != "cpu":
             raise ValueError(f"unknown odometry backend: {backend}")
-        elif self.options.normal_backend == "numba":
-            self.execution_backend = _numba_normals().execution_backend
         self.execution_statistics: dict[str, int] = {}
         self.poses: list[FloatArray] = []
         self.registrations: list[ScanRegistration] = []
@@ -563,9 +522,6 @@ class IncrementalScanOdometry:
         assert registration is not None
         if cuda_target is not None:
             for name, value in cuda_target.statistics().items():
-                self.execution_statistics[name] = self.execution_statistics.get(name, 0) + value
-        elif normals is not None:
-            for name, value in normals.statistics().items():
                 self.execution_statistics[name] = self.execution_statistics.get(name, 0) + value
         self.registrations.append(registration)
         self._previous_motion = registration.transform

@@ -1,0 +1,130 @@
+"""Publish the complete, cold-cache CPU covariance comparison without raw point clouds."""
+import hashlib
+import io
+import json
+from pathlib import Path
+import shutil
+import statistics
+import tarfile
+
+from tools.audit_bspline_lidar_imu_benchmark import _canonical_cpu_result, audit
+
+source = Path('outputs/glim-cpu-normal-covariance-pairs-v1')
+destination = Path('docs/assets/cpu_fused_scan_covariance')
+sha = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
+protocol = json.loads((source/'protocol.json').read_bytes())
+summary = json.loads((source/'summary.json').read_bytes())
+attempts = json.loads((source/'attempts.json').read_bytes())
+assert summary['quality_passed'] and len(attempts) == 4
+assert summary['whole_speedup'] < 1
+assert protocol['cpu_query_workers'] == {'prior':8,'current':8}
+assert protocol['cpu_normal_backends'] == {'prior':'numpy','current':'numba'}
+assert protocol['launcher_sha256'] == sha(Path('tools/benchmark_bspline_lidar_imu.py'))
+for repeat in range(protocol['repeats']):
+    results = {v: json.loads((source/f'{repeat:02d}-{v}/result.json').read_bytes())
+               for v in ('prior','current')}
+    assert _canonical_cpu_result(results['prior']) == _canonical_cpu_result(results['current'])
+    records = {v: json.loads((source/f'{repeat:02d}-{v}/measurement.json').read_bytes())
+               for v in ('prior','current')}
+    for left,right in zip(records['prior']['rounds'],records['current']['rounds'],strict=True):
+        assert {k:v for k,v in left.items() if k!='seconds'} == {k:v for k,v in right.items() if k!='seconds'}
+destination.mkdir(exist_ok=False)
+for name in ('protocol.json','attempts.json','summary.json'):
+    shutil.copyfile(source/name,destination/name)
+for attempt in attempts:
+    folder = destination/attempt['worker']
+    folder.mkdir()
+    for name in ('result.json','measurement.json','worker.log'):
+        shutil.copyfile(source/attempt['worker']/name,folder/name)
+for variant in ('prior','current'):
+    root = source/f'sources-{variant}'
+    shutil.copyfile(root/'manifest.json',destination/f'sources-{variant}-manifest.json')
+assert (destination/'sources-prior-manifest.json').read_bytes() == (destination/'sources-current-manifest.json').read_bytes()
+root = source/'sources-prior'
+with tarfile.open(destination/'sources-prior.tar.gz','w:gz') as bundle:
+    for name,raw in [('LICENSE',Path('LICENSE').read_bytes()),*(
+            (p.relative_to(root).as_posix(),p.read_bytes()) for p in sorted((root/'src').rglob('*.py')))]:
+        info = tarfile.TarInfo(name)
+        info.size,info.mtime,info.mode = len(raw),0,0o644
+        bundle.addfile(info,io.BytesIO(raw))
+shutil.copyfile(destination/'sources-prior.tar.gz',destination/'sources-current.tar.gz')
+for src,name in [('tools/benchmark_bspline_lidar_imu.py','benchmark.py.txt'),
+                 ('tools/schemas/bspline_lidar_imu_comparison.schema.json','comparison.schema.json'),
+                 (__file__,'publisher.py.txt')]:
+    shutil.copyfile(src,destination/name)
+records = {(a['repeat'],a['variant']):json.loads((source/a['worker']/'measurement.json').read_bytes())
+           for a in attempts}
+normal = {v:statistics.median(records[(r,v)]['normal_preparation_seconds']
+                              for r in range(protocol['repeats'])) for v in ('prior','current')}
+whole,fit = summary['whole_median_seconds'],summary['fit_median_seconds']
+table = '\n'.join([
+    '| Scope | NumPy covariance | Fused Numba covariance | Observed ratio |',
+    '| --- | ---: | ---: | ---: |',
+    f"| Complete worker, including first compilation | {whole['prior']:.3f} s | {whole['current']:.3f} s | {summary['whole_speedup']:.3f}x |",
+    f"| Lazy normal preparation, including neighbourhood queries | {normal['prior']:.3f} s | {normal['current']:.3f} s | {normal['prior']/normal['current']:.3f}x |",
+    f"| Four unchanged fits, including covariance | {fit['prior']:.3f} s | {fit['current']:.3f} s | {summary['fit_speedup']:.3f}x |",
+])
+validation=source/'prototype-validation'
+retained=destination/'prototype-validation'
+retained.mkdir()
+for path in sorted(validation.iterdir()):
+    if path.is_file():
+        shutil.copyfile(path,retained/path.name)
+readme = f'''# Rejected fused CPU covariance experiment
+
+{table}
+
+The candidate did not demonstrate a complete-worker improvement and is not
+adopted. Runtime remains the native implementation from `d612581` (identical to
+`7b367723` under `src/calibrex`). The observed ratio is not a stable slowdown
+estimate: the unchanged fits also varied, and the host was unreserved.
+
+Two fresh-process pairs alternate NumPy/Numba then Numba/NumPy on an unreserved
+host. Both run eight CPU query workers and one BLAS thread, replaying the original
+public GLIM Livox bag's first six seconds with four map rounds. Imports and the
+first compilation belong to whole time; each compiled worker starts with a
+separate empty Numba cache. The CPU fitter is unchanged. These observations do
+not establish GPU gains or performance on default coarse scans.
+
+Both variants execute identical frozen source bytes based on
+`{protocol['current_commit']}`. Input bag SHA-256:
+`{protocol['bag_sha256']}`. Raw scans and compiler caches are not redistributed.
+The dense odometry settings are 0.03 m voxels, three local-map scans, a 1 nm
+coordinate grid and returned-motion grids of 1 micrometre translation and
+0.1 microradian rotation-vector components. Numerical grids remain off by default.
+
+Every complete physical/evidence field, including the initial estimate, is
+exactly equal after excluding timestamps, commands and independently validated
+execution metadata. All four full fit records in each pair are exactly equal
+after excluding wall time: covariance, trajectory, estimates, costs, dimensions,
+status and iteration counts. All final verdicts remain **INCONCLUSIVE**; this
+clip supplies no independent extrinsic truth.
+
+Compiled work counts, the optional adapter source digest/version, explicit
+backend choices and cold caches are validated independently before execution
+metadata is excluded from the physical comparison. Complete worker time includes
+startup, imports, bag decoding, all initial/gyro/feedback/final odometry passes,
+association, four fits/covariance, noise updates, holdout, controls, hashes, saves
+and source verification. Normal-preparation timing includes cache checks,
+deduplication, SciPy neighbourhood queries, covariance and native PCA.
+
+The publication index binds all full results, measurements/logs, source
+capsules/manifests, launcher, schema, publisher and the candidate's correctness
+run with bound test sources. Audit without a GPU, Numba compiler or bag:
+
+```bash
+python -m tools.audit_bspline_lidar_imu_benchmark docs/assets/cpu_fused_scan_covariance
+```
+
+See [usage and reproduction](../../benchmarks/compiled_scan_covariance.md).
+'''
+(destination/'README.md').write_text(readme,encoding='utf-8',newline='\n')
+files = {p.relative_to(destination).as_posix():sha(p) for p in sorted(destination.rglob('*'))
+         if p.is_file() and p.name != 'publication-index.json'}
+(destination/'publication-index.json').write_text(json.dumps({
+    'schema_version':'slac.bspline_lidar_imu_publication/v0.1',
+    'provenance':{'input_protocol_sha256':sha(source/'protocol.json')},'files':files,
+},indent=2)+'\n',encoding='utf-8',newline='\n')
+doc=Path('docs/benchmarks/compiled_scan_covariance.md')
+doc.write_text(doc.read_text(encoding='utf-8').replace('<!-- results -->',table),encoding='utf-8',newline='\n')
+print(json.dumps(audit(destination),indent=2))

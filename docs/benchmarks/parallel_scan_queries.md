@@ -64,3 +64,8 @@ capture the same working-tree bytes, including their original line endings.
 
 A later [worker-reuse and parallel-PCA pilot](cpu_worker_reuse_rejected.md)
 did not demonstrate an additional complete-worker improvement and was rejected.
+
+A later [fused CPU covariance experiment](compiled_scan_covariance.md) retained
+SciPy neighborhoods and native NumPy eigenspaces, with both query budgets fixed
+at eight workers and first compilation included. It also failed to demonstrate
+a complete-worker gain and was rejected.

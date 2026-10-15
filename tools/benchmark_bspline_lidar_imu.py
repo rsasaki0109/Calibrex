@@ -85,13 +85,6 @@ def _worker(args: argparse.Namespace) -> None:
     expected = _verify_sources(root)
     launcher_digest = _digest(Path(__file__))
     backend = _backend(args.comparison, args.variant)
-    normal_backend = _normal_backends(args)[args.variant]
-    numba_cache_empty = None
-    if backend == "cpu" and normal_backend == "numba":
-        cache = Path(os.environ["NUMBA_CACHE_DIR"])
-        numba_cache_empty = not cache.exists() or not any(cache.iterdir())
-        if not numba_cache_empty:
-            raise RuntimeError("worker Numba compilation cache was not empty")
     cuda_cache_empty = None
     if args.comparison in ("cpu-cuda", "cuda-cuda"):
         cache = Path(os.environ["CUPY_CACHE_DIR"])
@@ -106,10 +99,6 @@ def _worker(args: argparse.Namespace) -> None:
         from calibrex.solvers.cuda_scan_odometry_adapter import CudaOdometryTarget
 
         normal_timing = _time_normal_preparation(CudaOdometryTarget)
-    elif args.comparison in ("cpu-cpu", "cpu-source"):
-        from calibrex.solvers.scan_to_scan_odometry import TargetNormals
-
-        normal_timing = _time_normal_preparation(TargetNormals)
 
     rounds: list[dict[str, object]] = []
     original = runner.fit_bspline_lidar_imu
@@ -155,8 +144,6 @@ def _worker(args: argparse.Namespace) -> None:
                 settings.rotation.windowing, odometry=replace(
                     settings.rotation.windowing.odometry,
                     query_workers=_query_workers(args)[args.variant],
-                    **({"normal_backend": "numba"}
-                       if _normal_backends(args)[args.variant] == "numba" else {}),
                 ),
             ),
         ))
@@ -200,9 +187,7 @@ def _worker(args: argparse.Namespace) -> None:
     if backend == "cpu" and "cupy" in sys.modules:
         raise RuntimeError("CPU comparison unexpectedly imported CuPy")
     if args.comparison != "source":
-        _validate_backend_execution(
-            result.model_dump(mode="json"), backend, _normal_backends(args)[args.variant],
-        )
+        _validate_backend_execution(result.model_dump(mode="json"), backend)
     if args.comparison in ("cpu-cpu", "cpu-source"):
         _validate_query_workers(result.model_dump(mode="json"), _query_workers(args)[args.variant])
     _verify_sources(root)
@@ -239,11 +224,6 @@ def _worker(args: argparse.Namespace) -> None:
                 **({"odometry_backend": backend} if args.comparison != "source" else {}),
                 **({"cpu_query_workers": _query_workers(args)[args.variant]}
                    if args.comparison in ("cpu-cpu", "cpu-source") else {}),
-                **({"cpu_normal_backend": _normal_backends(args)[args.variant]}
-                   if args.comparison in ("cpu-cpu", "cpu-source") else {}),
-                **({"numba_cache_initially_empty": numba_cache_empty,
-                    "numba": sys.modules["numba"].__version__}
-                   if numba_cache_empty is not None else {}),
                 **({"cuda_cache_initially_empty": cuda_cache_empty,
                     "cupy": (sys.modules["cupy"].__version__ if backend == "cuda" else None)}
                    if args.comparison in ("cpu-cuda", "cuda-cuda") else {}),
@@ -347,39 +327,24 @@ def _odometry_arguments(args: argparse.Namespace) -> list[str]:
     return arguments
 
 
-def _validate_backend_execution(result: dict, backend: str, normal_backend: str = "numpy") -> None:
+def _validate_backend_execution(result: dict, backend: str) -> None:
     """Require real requested work in every initial and final odometry pass."""
     options = result["options"]
     groups = [options["initial_odometry_execution"], options["segment_odometry_execution"]]
     if options["odometry_backend"] != backend or any(not group for group in groups):
         raise ValueError("missing or incorrect requested odometry execution")
-    if options.get("odometry_options", {}).get("normal_backend", "numpy") != normal_backend:
-        raise ValueError("odometry did not request the declared normal backend")
     for report in [r for group in groups for r in group]:
         if report["requested_backend"] != backend:
             raise ValueError("odometry pass requested another backend")
         identities = report["executed_backends"]
-        prefix = "calibrex.numba_scan_covariance/v0.1;"
-        expected_cpu = (identities == ["numpy_scipy"] if normal_backend == "numpy"
-                        else len(identities) == 1 and identities[0].startswith(prefix))
         if len(identities) != 1 or (
-            not expected_cpu if backend == "cpu"
+            identities[0] != "numpy_scipy" if backend == "cpu"
             else not identities[0].startswith("calibrex.cuda_scan_odometry/v0.1;")
         ):
             raise ValueError("odometry pass executed another backend")
         statistics = report["statistics"]
         if any(type(value) is not int or value < 0 for value in statistics.values()):
             raise ValueError("invalid odometry execution counters")
-        if backend == "cpu":
-            if normal_backend == "numpy" and statistics:
-                raise ValueError("native CPU pass has unexpected execution counters")
-            if normal_backend == "numba" and (
-                set(statistics) != {"numba_normal_covariance_calls", "numba_normal_covariance_rows",
-                                    "native_normal_covariance_fallback_rows"}
-                or any(statistics.get(name, 0) <= 0 for name in
-                       ("numba_normal_covariance_calls", "numba_normal_covariance_rows"))
-            ):
-                raise ValueError("Numba pass did not execute compiled normal covariance")
         if backend == "cuda" and any(
             statistics.get(name, 0) <= 0 for name in ("gpu_query_rows", "gpu_fused_system_calls")
         ):
@@ -394,7 +359,7 @@ def _time_normal_preparation(holder: Any) -> dict[str, float | int]:
     """
     totals: dict[str, float | int] = {"calls": 0, "seconds": 0.0}
     depth = 0
-    for name in ("_ensure", "_ensure_all", "ensure"):
+    for name in ("_ensure", "_ensure_all"):
         if not hasattr(holder, name):
             continue
         original = getattr(holder, name)
@@ -426,10 +391,6 @@ def _query_workers(args: argparse.Namespace) -> dict[str, int]:
     return {"prior": args.prior_query_workers, "current": args.current_query_workers}
 
 
-def _normal_backends(args: argparse.Namespace) -> dict[str, str]:
-    return {v: getattr(args, f"{v}_normal_backend", "numpy") for v in ("prior", "current")}
-
-
 def _validate_query_workers(result: dict, workers: int) -> None:
     if result["options"]["odometry_options"].get("query_workers") != workers:
         raise ValueError("worker did not use the declared CPU query workers")
@@ -439,9 +400,7 @@ def _worker_arguments(args: argparse.Namespace) -> list[str]:
     if args.comparison not in ("cpu-cpu", "cpu-source"):
         return []
     return ["--prior-query-workers", str(args.prior_query_workers),
-            "--current-query-workers", str(args.current_query_workers),
-            "--prior-normal-backend", _normal_backends(args)["prior"],
-            "--current-normal-backend", _normal_backends(args)["current"]]
+            "--current-query-workers", str(args.current_query_workers)]
 
 
 def main() -> None:
@@ -458,8 +417,6 @@ def main() -> None:
     )
     parser.add_argument("--prior-query-workers", type=int, default=1)
     parser.add_argument("--current-query-workers", type=int, default=8)
-    parser.add_argument("--prior-normal-backend", choices=("numpy", "numba"), default="numpy")
-    parser.add_argument("--current-normal-backend", choices=("numpy", "numba"), default="numpy")
     parser.add_argument("--odometry-voxel-size-m", type=float)
     parser.add_argument("--odometry-local-map-scans", type=int)
     parser.add_argument("--odometry-geometry-quantum-m", type=float)
@@ -477,10 +434,6 @@ def main() -> None:
         parser.error("need positive repeats/seconds and at least two map rounds")
     if args.prior_query_workers < 1 or args.current_query_workers < 1:
         parser.error("query workers must be positive integers")
-    if args.comparison not in ("cpu-cpu", "cpu-source") and any(
-        value != "numpy" for value in _normal_backends(args).values()
-    ):
-        parser.error("CPU normal backends require a cpu-cpu or cpu-source comparison")
     if args.comparison != "source" and (
         any(value is None for value in _odometry_options(args).values())
         or args.odometry_voxel_size_m <= 0 or args.odometry_local_map_scans < 1
@@ -536,8 +489,6 @@ def main() -> None:
                if args.comparison in ("cpu-cuda", "cuda-cuda") else {}),
             **({"cpu_query_workers": _query_workers(args)}
                if args.comparison in ("cpu-cpu", "cpu-source") else {}),
-            **({"cpu_normal_backends": _normal_backends(args)}
-               if args.comparison in ("cpu-cpu", "cpu-source") else {}),
         },
     )
     attempts: list[dict] = []
@@ -554,8 +505,6 @@ def main() -> None:
             env["PYTHONDONTWRITEBYTECODE"] = "1"
             if args.comparison in ("cpu-cuda", "cuda-cuda"):
                 env["CUPY_CACHE_DIR"] = str(worker_out / "cupy-cache")
-            if args.comparison in ("cpu-cpu", "cpu-source"):
-                env["NUMBA_CACHE_DIR"] = str(worker_out / "numba-cache")
             command = [
                 sys.executable,
                 "-m",

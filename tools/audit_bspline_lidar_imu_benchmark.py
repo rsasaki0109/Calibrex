@@ -142,6 +142,18 @@ def audit(root: Path) -> dict[str, object]:
     summary = json.loads((root / "summary.json").read_bytes())
     for record in (protocol, summary):
         jsonschema.validate(record, schema)
+    validation = root / "prototype-validation"
+    if (validation / "receipt.json").exists():
+        receipt = json.loads((validation / "receipt.json").read_bytes())
+        bindings = receipt["provenance"]
+        files = {p.name: _sha(p.read_bytes()) for p in validation.iterdir()
+                 if p.is_file() and p.name != "receipt.json"}
+        if (type(receipt["exit_code"]) is not int or receipt["exit_code"] != 0
+                or bindings["source_commit"] != protocol["current_commit"]
+                or bindings["source_manifest_sha256"]
+                != _sha((root / "sources-current-manifest.json").read_bytes())
+                or bindings["files"] != files):
+            raise ValueError("prototype correctness run source/log binding differs")
     launcher = root / "benchmark.py.txt"
     if _sha(launcher.read_bytes()) != protocol["launcher_sha256"]:
         raise ValueError("frozen comparison launcher differs")

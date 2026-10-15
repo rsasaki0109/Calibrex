@@ -83,34 +83,6 @@ def test_cpu_parallel_measurement_rejects_another_query_budget() -> None:
         _validate_query_workers(result, 1)
 
 
-@pytest.mark.parametrize("mutation", ["request", "identity", "zero", "counter", "missing"])
-def test_compiled_cpu_normals_require_declared_execution_and_actual_work(mutation: str) -> None:
-    report = {
-        "requested_backend": "cpu",
-        "executed_backends": ["calibrex.numba_scan_covariance/v0.1;test"],
-        "statistics": {"numba_normal_covariance_calls": 3, "numba_normal_covariance_rows": 500,
-                       "native_normal_covariance_fallback_rows": 0},
-    }
-    result = {"options": {
-        "odometry_backend": "cpu", "odometry_options": {"normal_backend": "numba"},
-        "initial_odometry_execution": [report],
-        "segment_odometry_execution": [copy.deepcopy(report)],
-    }}
-    _validate_backend_execution(result, "cpu", "numba")
-    if mutation == "request":
-        result["options"]["odometry_options"]["normal_backend"] = "numpy"
-    elif mutation == "identity":
-        report["executed_backends"] = ["numpy_scipy"]
-    elif mutation == "zero":
-        report["statistics"]["numba_normal_covariance_rows"] = 0
-    elif mutation == "counter":
-        report["statistics"]["numba_normal_covariance_calls"] = True
-    else:
-        report["statistics"].pop("native_normal_covariance_fallback_rows")
-    with pytest.raises(ValueError):
-        _validate_backend_execution(result, "cpu", "numba")
-
-
 def _evidence() -> dict:
     return {
         "t_lidar_imu_rotation_quat_xyzw": [0, 0, 0, 1],
