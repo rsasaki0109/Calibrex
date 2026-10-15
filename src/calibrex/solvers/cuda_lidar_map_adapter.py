@@ -379,7 +379,7 @@ class _CudaSample:
         if extrinsic.shape != (4, 4) or not np.isfinite(extrinsic).all():
             raise ValueError("CUDA extrinsics require finite 4x4 matrices")
         transform = self.pose @ extrinsic
-        matrix = cp.asarray(transform, order="C")
+        matrix = cp.asarray(transform, dtype=cp.float64, order="C")
         n = len(self.points)
         world = cp.empty((n, 3), dtype=cp.float64)
         distances = cp.empty((n, 2), dtype=cp.float64)
@@ -522,7 +522,7 @@ class CudaMapRuntime:
             hessian = cp.zeros((6, 6), dtype=cp.float64)
             gradient = cp.zeros(6, dtype=cp.float64)
             parts = []
-            transform = cp.asarray(extrinsic, order="C")
+            transform = cp.asarray(extrinsic, dtype=cp.float64, order="C")
             for sample in samples:
                 prepared = self._sample(sample)
                 residual, normals, points = prepared.residuals(

@@ -246,14 +246,15 @@ def test_lazy_normal_completion_crosses_chunks_and_keeps_map_planarity_without_a
 
 
 @pytest.mark.parametrize("layout", ["c", "fortran", "strided"])
+@pytest.mark.parametrize("dtype", [np.float64, np.float32])
 def test_fused_projection_residual_and_weighted_jacobian_preserve_native_system(
-    monkeypatch: pytest.MonkeyPatch, layout: str,
+    monkeypatch: pytest.MonkeyPatch, layout: str, dtype: type,
 ) -> None:
     def arranged(matrix: np.ndarray) -> np.ndarray:
         if layout == "fortran":
             return np.asfortranarray(matrix)
         if layout == "strided":
-            result = np.empty((8, 8))[::2, ::2]
+            result = np.empty((8, 8), dtype=matrix.dtype)[::2, ::2]
             result[:] = matrix
             return result
         return matrix
@@ -270,7 +271,8 @@ def test_fused_projection_residual_and_weighted_jacobian_preserve_native_system(
     extrinsic = np.eye(4)
     extrinsic[:3, :3] = Rotation.from_rotvec([.01, -.02, .03]).as_matrix()
     extrinsic[:3, 3] = [.02, -.03, .04]
-    extrinsic = arranged(extrinsic)
+    extrinsic = arranged(extrinsic.astype(dtype))
+    assert extrinsic.dtype == dtype
     options = MapSampleOptions()
     hessian, gradient, residuals = np.zeros((6, 6)), np.zeros(6), []
     for sample in samples:
