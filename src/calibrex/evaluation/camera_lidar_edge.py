@@ -236,6 +236,11 @@ class EdgeAlignmentOptions:
     start_scan_deg: float | None = 8.0
     start_scan_step_deg: float = 0.5
     start_scan_min_observed: int = 2
+    # Optional extra margin for adopting a profile-start optimum. Every rotation axis
+    # it would report must meet this control t statistic, including axes already
+    # observed at the current optimum. Unobserved axes do not veto it. None retains
+    # the v2 adoption rule; 3.5 is a development proposal, not a validated default.
+    start_scan_min_control_t: float | None = None
     # Accept clouds without beam structure (solid-state, non-repetitive scanning): their
     # depth discontinuities are found among angular neighbours instead of along beams.
     unstructured_lidar: bool = True
@@ -253,6 +258,11 @@ class EdgeAlignmentOptions:
             raise ValueError("the start scan needs 0 < step <= range <= the rotation bound")
         if not 0 <= self.start_scan_min_observed <= 3:
             raise ValueError("start_scan_min_observed counts rotation DoFs: 0 to 3")
+        if self.start_scan_min_control_t is not None and not (
+            math.isfinite(self.start_scan_min_control_t)
+            and self.start_scan_min_control_t >= self.min_control_t
+        ):
+            raise ValueError("start_scan_min_control_t must be finite and at least min_control_t")
 
     @property
     def effective_spacing_s(self) -> float:
@@ -902,8 +912,8 @@ def estimate_from_frames(
         prepared, camera, candidate, theta, blocks, block_objectives, opts
     )
     start_reason: str | None = None
-    observed = _observed_rotations(theta, jackknife, controls, std_floor, opts)
-    candidate_observed = observed
+    observed = _observed_rotation_axes(theta, jackknife, controls, std_floor, opts)
+    candidate_observed = len(observed)
     tried = [theta[:3].copy()]
     for scan_start in _profile_starts(_profile_start(objective, opts)):
         emit_stage(
@@ -919,14 +929,14 @@ def estimate_from_frames(
         widened_evidence = _evidence(
             prepared, camera, candidate, widened, blocks, block_objectives, opts
         )
-        widened_observed = _observed_rotations(
+        widened_observed = _observed_rotation_axes(
             widened, widened_evidence[1], widened_evidence[2], std_floor, opts
         )
-        if _replaces_current(observed, widened_observed, widened, opts):
+        if _replaces_current(observed, widened_observed, widened, widened_evidence[2], opts):
             start_reason = (
                 "the estimate comes from the search started at the profile maxima "
                 f"({', '.join(f'{v:+.1f}' for v in scan_start[:3])} deg): it observes "
-                f"{widened_observed} rotation DoF(s) against {candidate_observed} from the "
+                f"{len(widened_observed)} rotation DoF(s) against {candidate_observed} from the "
                 "candidate"
             )
             theta, score, observed = widened, widened_score, widened_observed
@@ -1081,17 +1091,17 @@ def _evidence(
     return fit_array, jackknife, _controls(block_objectives, fit_array, options)
 
 
-def _observed_rotations(
+def _observed_rotation_axes(
     theta: FloatArray,
     jackknife: FloatArray,
     controls: Sequence[CameraLidarEdgeControl],
     std_floor: FloatArray,
     options: EdgeAlignmentOptions,
-) -> int:
+) -> tuple[int, ...]:
     """Rotation DoFs that would be reported as estimated (the rule of the DoF records)."""
 
-    return sum(
-        1
+    return tuple(
+        axis
         for axis in range(3)
         if controls[axis].detected
         and max(float(jackknife[axis]), float(std_floor[axis]))
@@ -1123,7 +1133,11 @@ def _profile_start(objective: EdgeObjective, options: EdgeAlignmentOptions) -> F
 
 
 def _replaces_current(
-    observed: int, widened_observed: int, widened: FloatArray, options: EdgeAlignmentOptions
+    observed: Sequence[int],
+    widened_observed: Sequence[int],
+    widened: FloatArray,
+    controls: Sequence[CameraLidarEdgeControl],
+    options: EdgeAlignmentOptions,
 ) -> bool:
     """Whether a far optimum (from a profile-maxima start) replaces the current one.
 
@@ -1136,11 +1150,25 @@ def _replaces_current(
     objective with yaw 9.6 deg off; on 0056 one with yaw at the search bound replaced a
     candidate optimum that observed nothing.  With those two excluded, one observing a
     single DoF still judged roll 6.6 deg off in a turned run of 0056.
+
+    An optional stricter control margin applies to every reported rotation axis of
+    the far optimum. This is an adoption gate, not a change to the ordinary DoF
+    observability rule: rejecting the far optimum retains the current fit and its
+    evidence. It must not remove axes from the rejected fit and report that fit.
     """
 
     if np.any(np.abs(widened[:3]) >= options.rotation_bound_deg - 1e-9):
         return False
-    return widened_observed > observed and widened_observed >= options.start_scan_min_observed
+    if not (
+        len(widened_observed) > len(observed)
+        and len(widened_observed) >= options.start_scan_min_observed
+    ):
+        return False
+    margin = options.start_scan_min_control_t
+    return margin is None or all(
+        (t := controls[axis].min_t_statistic) is not None and math.isfinite(t) and t >= margin
+        for axis in widened_observed
+    )
 
 
 def _profile_starts(scan_start: FloatArray | None) -> list[FloatArray]:
