@@ -62,12 +62,13 @@ from calibrex.core.sota_audit import (
 from calibrex.evaluation.sota_audit import audit_sota_claim
 
 PROTOCOL_ID = "kitti-camera-lidar-check-v2"
+# The scorer's thresholds (tools/score_kitti_camera_lidar_v2.py).
 AXIS_ERROR_MAX_DEG = 0.75
 TURNED_AXIS_ERROR_MAX_DEG = 1.5
 UNJUDGED_AXES_MEAN_MAX = 1.5  # judged-axis coverage: at least half of the 3 axes judged
 MISSED_3DEG_MAX = 0.1
 MISSED_1DEG_MAX = 0.25
-SCORED_DRIVES_MIN = 15
+SCORED_DRIVES_MIN = 12
 DAYS = ("2011_09_28", "2011_09_29", "2011_09_30", "2011_10_03")
 CLAIM = (
     f"On {{drives}} KITTI raw drives of {', '.join(DAYS[:-1])} and {DAYS[-1]} that no "

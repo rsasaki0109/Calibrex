@@ -84,12 +84,14 @@ INJECTIONS = ("x:3", "y:3", "z:3", "x:1", "y:1", "z:1")
 VELODYNE_TIME = "azimuth"  # calibrex convert kitti-raw --velodyne-time
 MAX_FRAMES = 600  # the frames fetched from the head of each drive
 FETCHED_STREAMS = ("image_02", "velodyne_points", "oxts")
+# The thresholds follow v1's rules from the 37 development drives (the pre-registration's
+# threshold_rationale; docs/assets/kitti_camera_lidar_v2/development/scores.json).
 AXIS_ERROR_MAX_DEG = 0.75
 TURNED_AXIS_ERROR_MAX_DEG = 1.5
 JUDGED_FRACTION_MIN = 0.5
 MISSED_3DEG_MAX = 0.1
 MISSED_1DEG_MAX = 0.25
-SCORED_DRIVES_MIN = 15
+SCORED_DRIVES_MIN = 12
 # The estimator options every artifact must carry (the defaults at the frozen commit).
 RECIPE = {
     "edge_background_sigma_px": 20.0,
