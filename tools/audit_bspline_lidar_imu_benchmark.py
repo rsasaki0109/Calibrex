@@ -129,6 +129,16 @@ def audit(root: Path) -> dict[str, object]:
     module = ModuleType("_frozen_bspline_comparison")
     module.__file__ = str(launcher)
     exec(compile(launcher.read_bytes(), str(launcher), "exec"), module.__dict__)
+    fit_compare = None
+    fit_options = protocol.get("fit_options")
+    if fit_options and fit_options["prior_backend"] != fit_options["current_backend"]:
+        fit_helper = root / "fit-quality.py.txt"
+        if _sha(fit_helper.read_bytes()) != fit_options["quality_helper_sha256"]:
+            raise ValueError("fitted-array comparison helper binding differs")
+        fit_module = ModuleType("_frozen_fit_quality")
+        fit_module.__file__ = str(fit_helper)
+        exec(compile(fit_helper.read_bytes(), str(fit_helper), "exec"), fit_module.__dict__)
+        fit_compare = fit_module._compare
     sources, source_bytes = {}, {}
     for variant in ("prior", "current"):
         expected = json.loads((root / f"sources-{variant}-manifest.json").read_bytes())
@@ -192,6 +202,16 @@ def audit(root: Path) -> dict[str, object]:
             raise ValueError("worker did not bind the executed fitter")
         if any(sources[variant].get(name) != digest for name, digest in executed.items()):
             raise ValueError("actual worker imports differ from frozen sources")
+        if fit_options:
+            requested = fit_options[variant + "_backend"]
+            module._validate_fit_execution(result, record["rounds"], requested)
+            if (provenance.get("fit_backend") != requested
+                or (requested == "numba_cpu" and (
+                    provenance.get("numba_cache_initially_empty") is not True
+                    or provenance.get("fit_workers") != fit_options["workers"]
+                    or not provenance.get("numba")
+                    or "calibrex/solvers/numba_bspline_plane_adapter.py" not in executed))):
+                raise ValueError("plane fitting backend/cache/import binding differs")
         if gpu_comparison:
             backend = ("cuda" if protocol["comparison"] == "cuda-cuda" or variant == "current"
                        else "cpu")
@@ -371,6 +391,15 @@ def audit(root: Path) -> dict[str, object]:
         module._compare(results[(r, "prior")], results[(r, "current")])
         for r in range(protocol["repeats"])
     ]
+    if fit_compare is not None:
+        for repeat, compared in enumerate(quality):
+            compared["fits"] = [fit_compare(left, right) for left, right in zip(
+                measurements[(repeat, "prior")]["rounds"],
+                measurements[(repeat, "current")]["rounds"], strict=True,
+            )]
+            compared["passed"] = compared["passed"] and all(
+                item["passed"] for item in compared["fits"]
+            )
     expected_quality = summary["quality"]
     if len(quality) != len(expected_quality) or not all(q["passed"] for q in quality):
         raise ValueError("complete quality comparison differs or failed")

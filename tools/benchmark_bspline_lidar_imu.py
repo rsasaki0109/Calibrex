@@ -482,7 +482,8 @@ def _validate_fit_execution(result: dict, rounds: list[dict], requested: str) ->
         return
     if (result["options"].get("fit_backend") != requested
         or result["options"].get("fit_execution") != identities[-1]
-        or any(not identity.startswith("calibrex.numba_bspline_planes/v0.1;")
+        or any(not identity.startswith(("calibrex.numba_bspline_planes/v0.1;",
+                                        "calibrex.numba_bspline_planes/v0.2;"))
                for identity in identities)):
         raise ValueError("compiled plane comparison did not execute the requested backend")
 
@@ -567,7 +568,9 @@ def main() -> None:
             },
             "fit_options": {"prior_backend": args.prior_fit_backend,
                             "current_backend": args.current_fit_backend,
-                            "workers": args.fit_workers, "numba_cache_policy": "empty_per_worker"},
+                            "workers": args.fit_workers, "numba_cache_policy": "empty_per_worker",
+                            "quality_helper_sha256": _digest(
+                                Path(__file__).with_name("benchmark_bspline_planes.py"))},
             **({"comparison": args.comparison, "odometry_options": _odometry_options(args),
                 "isolated_cuda_caches": True} if args.comparison != "source" else {}),
         },

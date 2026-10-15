@@ -1,6 +1,7 @@
 """Optional fused CPU plane residual/Jacobian evaluator for the joint spline fit.
 
-Small SO(3) temporaries are reused within a serial, nogil kernel. Independent
+Small SO(3) temporaries are reused within a serial, nogil kernel. Scalar array
+access avoids creating per-return views and reduces JIT compilation overhead. Independent
 row slices run in Python threads; Numba's automatic parallel pass is disabled.
 """
 
@@ -38,7 +39,7 @@ def _multiply(a: FloatArray, b: FloatArray, out: FloatArray) -> None:
 
 @njit(inline="always", fastmath=False)  # type: ignore[untyped-decorator]
 def _exponential(
-    v: FloatArray, step: FloatArray, jr: FloatArray, k: FloatArray, kk: FloatArray
+    v: FloatArray, step: FloatArray, jr: FloatArray, k: FloatArray, kk: FloatArray, slot: int
 ) -> None:
     squared = (v[0] * v[0] + v[1] * v[1]) + v[2] * v[2]
     angle = math.sqrt(squared)
@@ -67,8 +68,8 @@ def _exponential(
     for i in range(3):
         for j in range(3):
             identity = 1.0 if i == j else 0.0
-            step[i, j] = (identity + a * k[i, j]) + b * kk[i, j]
-            jr[i, j] = (identity - ja * k[i, j]) + jb * kk[i, j]
+            step[slot, i, j] = (identity + a * k[i, j]) + b * kk[i, j]
+            jr[slot, i, j] = (identity - ja * k[i, j]) + jb * kk[i, j]
 
 
 @njit(cache=True, nogil=True, fastmath=False)  # type: ignore[untyped-decorator]
@@ -105,14 +106,24 @@ def _plane_kernel(
     world_derivative = np.empty((3, 3))
     for row in range(n):
         s = segment[row]
-        rotation[:, :] = rotations[s]
-        position[:] = positions[s]
+        for a in range(3):
+            for b in range(3):
+                rotation[a, b] = rotations[s, a, b]
+        for a in range(3):
+            position[a] = positions[s, a]
         for slot in range(1, 4):
             for a in range(3):
                 v[a] = basis[row, slot] * delta[s + slot - 1, a]
-            _exponential(v, steps[slot - 1], jrs[slot - 1], k, kk)
-            _multiply(rotation, steps[slot - 1], scratch)
-            rotation[:, :] = scratch
+            _exponential(v, steps, jrs, k, kk, slot - 1)
+            for i in range(3):
+                for j in range(3):
+                    scratch[i, j] = (
+                        rotation[i, 0] * steps[slot - 1, 0, j]
+                        + rotation[i, 1] * steps[slot - 1, 1, j]
+                    ) + rotation[i, 2] * steps[slot - 1, 2, j]
+            for a in range(3):
+                for b in range(3):
+                    rotation[a, b] = scratch[a, b]
             for a in range(3):
                 position[a] += basis[row, slot] * (
                     positions[s + slot, a] - positions[s + slot - 1, a]
@@ -126,26 +137,50 @@ def _plane_kernel(
         residual[row] = r / sigma
         if not derivatives:
             continue
-        tangent[:, :] = 0.0
+        for a in range(3):
+            for b in range(12):
+                tangent[a, b] = 0.0
         for a in range(3):
             for b in range(3):
                 suffix[a, b] = 1.0 if a == b else 0.0
         for slot in range(3, 0, -1):
             edge = s + slot - 1
-            _multiply(suffix, jrs[slot - 1], scratch)
-            _multiply(scratch, log_jacobian[edge], scratch2)
+            for i in range(3):
+                for j in range(3):
+                    scratch[i, j] = (
+                        suffix[i, 0] * jrs[slot - 1, 0, j] + suffix[i, 1] * jrs[slot - 1, 1, j]
+                    ) + suffix[i, 2] * jrs[slot - 1, 2, j]
+            for i in range(3):
+                for j in range(3):
+                    scratch2[i, j] = (
+                        scratch[i, 0] * log_jacobian[edge, 0, j]
+                        + scratch[i, 1] * log_jacobian[edge, 1, j]
+                    ) + scratch[i, 2] * log_jacobian[edge, 2, j]
             for a in range(3):
                 for b in range(3):
                     block[a, b] = scratch2[a, b] * basis[row, slot]
-            _multiply(block, relative[edge].T, previous)
+            for i in range(3):
+                for j in range(3):
+                    previous[i, j] = (
+                        block[i, 0] * relative[edge, j, 0] + block[i, 1] * relative[edge, j, 1]
+                    ) + block[i, 2] * relative[edge, j, 2]
             for a in range(3):
                 for b in range(3):
                     tangent[a, 3 * slot + b] += block[a, b]
                     tangent[a, 3 * (slot - 1) + b] -= previous[a, b]
-            _multiply(suffix, steps[slot - 1].T, scratch)
-            suffix[:, :] = scratch
-        tangent[:, :3] += suffix
-        v[:] = points[row]
+            for i in range(3):
+                for j in range(3):
+                    scratch[i, j] = (
+                        suffix[i, 0] * steps[slot - 1, j, 0] + suffix[i, 1] * steps[slot - 1, j, 1]
+                    ) + suffix[i, 2] * steps[slot - 1, j, 2]
+            for a in range(3):
+                for b in range(3):
+                    suffix[a, b] = scratch[a, b]
+        for a in range(3):
+            for b in range(3):
+                tangent[a, b] += suffix[a, b]
+        for a in range(3):
+            v[a] = points[row, a]
         k[0, 0] = 0
         k[0, 1] = -v[2]
         k[0, 2] = v[1]
@@ -156,7 +191,9 @@ def _plane_kernel(
         k[2, 1] = v[0]
         k[2, 2] = 0
         _multiply(rotation, k, scratch)
-        world_derivative[:, :] = -scratch
+        for a in range(3):
+            for b in range(3):
+                world_derivative[a, b] = -scratch[a, b]
         for slot in range(4):
             weight = basis[row, slot] - (basis[row, slot + 1] if slot < 3 else 0.0)
             for axis in range(3):
@@ -197,7 +234,7 @@ class _NumbaPlaneEvaluator:
         self._bounds = list(zip(bounds[:-1].tolist(), bounds[1:].tolist(), strict=True))
         self._pool = ThreadPoolExecutor(max_workers=self._workers) if self._workers > 1 else None
         self.identity = (
-            f"calibrex.numba_bspline_planes/v0.1;numba={version('numba')};"
+            f"calibrex.numba_bspline_planes/v0.2;numba={version('numba')};"
             f"workers={self._workers};fastmath=false;cache=true;parallel_pass=false;"
             "imu=numpy;normal=scipy;covariance=numpy"
         )
