@@ -13,6 +13,7 @@ from tools.benchmark_bspline_lidar_imu import (
     _manifest,
     _time_normal_preparation,
     _validate_backend_execution,
+    _validate_query_workers,
     _verify_sources,
     _write,
 )
@@ -36,6 +37,7 @@ def test_normal_timing_counts_nested_cache_completion_once() -> None:
 
 @pytest.mark.parametrize("comparison,prior,current", [
     ("source", "cpu", "cpu"), ("cpu-cuda", "cpu", "cuda"), ("cuda-cuda", "cuda", "cuda"),
+    ("cpu-cpu", "cpu", "cpu"),
 ])
 def test_comparison_selects_each_actual_worker_backend(
     comparison: str, prior: str, current: str,
@@ -53,6 +55,28 @@ def test_gpu_source_comparison_requires_the_same_explicit_workload(tmp_path: Pat
     protocol.pop("odometry_options")
     with pytest.raises(ValidationError):
         _write(tmp_path / "protocol.json", protocol)
+
+
+def test_cpu_parallel_comparison_requires_both_worker_budgets(tmp_path: Path) -> None:
+    from jsonschema import ValidationError
+
+    protocol = json.loads(Path("docs/assets/cuda_joint_lidar_imu/protocol.json").read_bytes())
+    protocol["comparison"] = "cpu-cpu"
+    protocol.pop("isolated_cuda_caches")
+    protocol["cpu_query_workers"] = {"prior": 1, "current": 8}
+    _write(tmp_path / "protocol.json", protocol)
+    for budgets in ({"prior": 1}, {"prior": 1, "current": 0},
+                    {"prior": 1, "current": True}):
+        protocol["cpu_query_workers"] = budgets
+        with pytest.raises(ValidationError):
+            _write(tmp_path / "protocol.json", protocol)
+
+
+def test_cpu_parallel_measurement_rejects_another_query_budget() -> None:
+    result = {"options": {"odometry_options": {"query_workers": 8}}}
+    _validate_query_workers(result, 8)
+    with pytest.raises(ValueError, match="query workers"):
+        _validate_query_workers(result, 1)
 
 
 def _evidence() -> dict:

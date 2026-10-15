@@ -61,8 +61,11 @@ class ScanOdometryOptions:
     geometry_quantum_m: float = 0.0
     motion_translation_quantum_m: float = 0.0
     motion_rotation_quantum_rad: float = 0.0
+    query_workers: int = 1
 
     def __post_init__(self) -> None:
+        if type(self.query_workers) is not int or self.query_workers < 1:
+            raise ValueError("query_workers must be a positive integer")
         values = (self.motion_translation_quantum_m, self.motion_rotation_quantum_rad)
         if any(not np.isfinite(value) or value < 0 for value in values):
             raise ValueError("motion quanta must be finite and nonnegative")
@@ -191,7 +194,7 @@ def estimate_normals(
     """Return unit normals and a mask of locally planar points."""
 
     k = min(options.normal_neighbours, len(points))
-    _, indices = tree.query(points, k=k)
+    _, indices = tree.query(points, k=k, workers=options.query_workers)
     return _normals_from_neighbours(points, indices, k, options)
 
 
@@ -252,7 +255,9 @@ class TargetNormals:
         if missing.size == 0:
             return
         missing = np.unique(missing)
-        _, neighbours = self._tree.query(self._points[missing], k=self._k)
+        _, neighbours = self._tree.query(
+            self._points[missing], k=self._k, workers=self._options.query_workers,
+        )
         normals, planar = _normals_from_neighbours(self._points, neighbours, self._k, self._options)
         self.normals[missing] = normals
         self.planar[missing] = planar
@@ -300,7 +305,10 @@ def register_point_to_plane(
     iteration = 0
     for iteration in range(1, opts.max_iterations + 1):  # noqa: B007
         moved = source @ transform[:3, :3].T + transform[:3, 3]
-        distances, indices = tree.query(moved, k=1, distance_upper_bound=opts.max_correspondence_m)
+        distances, indices = tree.query(
+            moved, k=1, distance_upper_bound=opts.max_correspondence_m,
+            workers=opts.query_workers,
+        )
         valid = np.isfinite(distances)
         hit = indices[valid]
         lazy.ensure(hit)

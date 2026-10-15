@@ -97,6 +97,7 @@ def test_joint_cli_records_and_forwards_backend_and_geometry(
         "--dataset-family", "public", "--dataset-license", "upstream", "--output", "unused.json",
         "--odometry-backend", backend, "--odometry-voxel-size-m", "0.03",
         "--odometry-local-map-scans", "3", "--odometry-geometry-quantum-m", "1e-9",
+        "--odometry-query-workers", "8",
         "--odometry-motion-translation-quantum-m", "1e-6",
         "--odometry-motion-rotation-quantum-rad", "1e-7",
     ]) == 2
@@ -104,6 +105,7 @@ def test_joint_cli_records_and_forwards_backend_and_geometry(
     assert options.odometry_backend == backend
     assert options.odometry.voxel_size_m == 0.03
     assert options.odometry.local_map_scans == 3
+    assert options.odometry.query_workers == 8
     assert options.odometry.geometry_quantum_m == 1e-9
     assert options.odometry.motion_translation_quantum_m == 1e-6
     assert options.odometry.motion_rotation_quantum_rad == 1e-7
@@ -111,6 +113,7 @@ def test_joint_cli_records_and_forwards_backend_and_geometry(
     for flag, value in (
         ("--odometry-backend", backend), ("--odometry-voxel-size-m", "0.03"),
         ("--odometry-local-map-scans", "3"), ("--odometry-geometry-quantum-m", "1e-09"),
+        ("--odometry-query-workers", "8"),
         ("--odometry-motion-translation-quantum-m", "1e-06"),
         ("--odometry-motion-rotation-quantum-rad", "1e-07"),
     ):

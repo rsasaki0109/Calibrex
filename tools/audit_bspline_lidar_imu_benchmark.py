@@ -150,9 +150,11 @@ def audit(root: Path) -> dict[str, object]:
         sources[variant] = expected
         source_bytes[variant] = raw_sources
     gpu_comparison = protocol.get("comparison") in ("cpu-cuda", "cuda-cuda")
-    if (protocol.get("comparison") == "cpu-cuda"
+    if (protocol.get("comparison") in ("cpu-cpu", "cpu-cuda")
             and protocol["baseline_commit"] != protocol["current_commit"]):
         raise ValueError("CPU/CUDA workers must use the same declared source revision")
+    if protocol.get("comparison") == "cpu-cpu" and sources["prior"] != sources["current"]:
+        raise ValueError("CPU query workers must use identical frozen source trees")
     attempts = json.loads((root / "attempts.json").read_bytes())
     expected_workers = {(r, v) for r in range(protocol["repeats"]) for v in sources}
     if (
@@ -191,6 +193,18 @@ def audit(root: Path) -> dict[str, object]:
             raise ValueError("worker did not bind the executed fitter")
         if any(sources[variant].get(name) != digest for name, digest in executed.items()):
             raise ValueError("actual worker imports differ from frozen sources")
+        if protocol.get("comparison") == "cpu-cpu":
+            module._validate_backend_execution(result, "cpu")
+            workers = protocol["cpu_query_workers"][variant]
+            module._validate_query_workers(result, workers)
+            if (provenance.get("odometry_backend") != "cpu"
+                    or provenance.get("cpu_query_workers") != workers
+                    or "calibrex/solvers/cuda_scan_odometry_adapter.py" in executed
+                    or provenance.get("cupy") is not None):
+                raise ValueError("CPU query worker execution differs")
+            if any(result["options"]["odometry_options"].get(key) != value
+                   for key, value in protocol["odometry_options"].items()):
+                raise ValueError("CPU worker did not use the declared common geometry settings")
         if gpu_comparison:
             backend = ("cuda" if protocol["comparison"] == "cuda-cuda" or variant == "current"
                        else "cpu")

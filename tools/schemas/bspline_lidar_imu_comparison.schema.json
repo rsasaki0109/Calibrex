@@ -59,12 +59,22 @@
         "comparison": {
           "enum": [
             "source",
+            "cpu-cpu",
             "cpu-cuda",
             "cuda-cuda"
           ]
         },
         "isolated_cuda_caches": {
           "const": true
+        },
+        "cpu_query_workers": {
+          "type": "object",
+          "required": ["prior", "current"],
+          "properties": {
+            "prior": {"type": "integer", "minimum": 1},
+            "current": {"type": "integer", "minimum": 1}
+          },
+          "additionalProperties": false
         },
         "odometry_options": {
           "type": "object",
@@ -267,6 +277,18 @@
           "odometry_options",
           "isolated_cuda_caches"
         ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {"const": "protocol"},
+          "comparison": {"const": "cpu-cpu"}
+        },
+        "required": ["comparison"]
+      },
+      "then": {
+        "required": ["odometry_options", "cpu_query_workers"]
       }
     }
   ]
