@@ -165,9 +165,10 @@ def test_backend_settings_are_validated() -> None:
 
 @pytest.mark.parametrize("workers", [1, 4])
 @pytest.mark.parametrize("angle", [0.0, 0.3])
+@pytest.mark.parametrize("aligned", [True, False])
 @pytest.mark.parametrize("estimate", [(), ("imu_rotation", "gyro_bias", "lever_arm",
                                          "imu_clock_offset", "accel_bias", "gravity")])
-def test_direct_normal_matches_full_native_sparse_system(workers, angle, estimate) -> None:
+def test_direct_normal_matches_full_native_sparse_system(workers, angle, aligned, estimate) -> None:
     pytest.importorskip("numba")
     from calibrex.solvers.numba_bspline_plane_adapter import _NumbaPlaneEvaluator
 
@@ -179,7 +180,9 @@ def test_direct_normal_matches_full_native_sparse_system(workers, angle, estimat
     )
     times = np.array([0.1, 0.2, 0.400001, 0.399999, 0.91, 0.2])
     imu = BSplineImuSamples(times, np.ones((len(times), 3)), 0.1)
-    families = _families(planes, imu, imu)
+    accel_times = times if aligned else times[::2] + 2e-5
+    accel = BSplineImuSamples(accel_times, np.ones((len(accel_times), 3)), 0.1)
+    families = _families(planes, imu, accel)
     evaluator = _NumbaPlaneEvaluator(trajectory, planes, workers)
     try:
         for clock in (0.0, 0.01):
