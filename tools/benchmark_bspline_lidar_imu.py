@@ -9,6 +9,7 @@ enter the parent wall time; per-round fit times are reported separately.
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import io
 import json
@@ -21,6 +22,7 @@ import tarfile
 import time
 from dataclasses import replace
 from pathlib import Path
+from typing import Any
 
 
 def _digest(path: Path) -> str:
@@ -85,13 +87,20 @@ def _worker(args: argparse.Namespace) -> None:
     launcher_digest = _digest(Path(__file__))
     backend = _backend(args.comparison, args.variant)
     cuda_cache_empty = None
-    if args.comparison != "source":
+    if args.comparison in ("cpu-cuda", "cuda-cuda"):
         cache = Path(os.environ["CUPY_CACHE_DIR"])
         cuda_cache_empty = not cache.exists() or not any(cache.iterdir())
         if not cuda_cache_empty:
             raise RuntimeError("worker CUDA compilation cache was not empty")
     from calibrex.data.livox_ros2 import LivoxStreamProfile
     from calibrex.evaluation import lidar_imu_bag_calibration as runner
+
+    control_timing = _time_controls(runner)
+    normal_timing = None
+    if backend == "cuda":
+        from calibrex.solvers.cuda_scan_odometry_adapter import CudaOdometryTarget
+
+        normal_timing = _time_normal_preparation(CudaOdometryTarget)
 
     rounds: list[dict[str, object]] = []
     original = runner.fit_bspline_lidar_imu
@@ -118,17 +127,34 @@ def _worker(args: argparse.Namespace) -> None:
                 },
             }
         )
+        if _plane_comparison(args):
+            rounds[-1].update(
+                execution_backend=getattr(result, "execution_backend", "numpy"),
+                execution_statistics=getattr(result, "execution_statistics", {}),
+            )
         return result
 
     runner.fit_bspline_lidar_imu = measured_fit
     begin = time.perf_counter()
     settings = runner.LidarImuBagOptions(max_rounds=args.max_rounds)
+    fit_plane_backend = _plane_backends(args)[args.variant]
+    if fit_plane_backend != "numpy":
+        settings = replace(settings, fit_plane_backend=fit_plane_backend)
     if args.comparison != "source":
         windowing = settings.rotation.windowing
         settings = replace(settings, rotation=replace(
             settings.rotation, windowing=replace(
                 windowing, odometry_backend=backend,
                 odometry=replace(windowing.odometry, **_odometry_options(args)),
+            ),
+        ))
+    if args.comparison in ("cpu-cpu", "cpu-source"):
+        settings = replace(settings, rotation=replace(
+            settings.rotation, windowing=replace(
+                settings.rotation.windowing, odometry=replace(
+                    settings.rotation.windowing.odometry,
+                    query_workers=_query_workers(args)[args.variant],
+                ),
             ),
         ))
     result = runner.calibrate_lidar_imu_bag(
@@ -151,6 +177,7 @@ def _worker(args: argparse.Namespace) -> None:
             str(args.max_rounds),
             *(["--comparison", args.comparison,
                *_odometry_arguments(args)] if args.comparison != "source" else []),
+            *(_worker_arguments(args)),
         ],
     )
     result.provenance.git_commit = args.source_commit
@@ -171,6 +198,14 @@ def _worker(args: argparse.Namespace) -> None:
         raise RuntimeError("CPU comparison unexpectedly imported CuPy")
     if args.comparison != "source":
         _validate_backend_execution(result.model_dump(mode="json"), backend)
+    if args.comparison in ("cpu-cpu", "cpu-source"):
+        _validate_query_workers(result.model_dump(mode="json"), _query_workers(args)[args.variant])
+    if _plane_comparison(args):
+        plane_path = root / "src/calibrex/solvers/cuda_bspline_plane_adapter.py"
+        kernel_hash = (_plane_kernel_hash(plane_path.read_bytes())
+                       if fit_plane_backend == "cuda" else None)
+        _validate_plane_execution(result.model_dump(mode="json"), rounds,
+                                  fit_plane_backend, kernel_hash)
     _verify_sources(root)
     if _digest(Path(__file__)) != launcher_digest:
         raise RuntimeError("benchmark launcher changed during execution")
@@ -185,6 +220,12 @@ def _worker(args: argparse.Namespace) -> None:
             "variant": args.variant,
             "pipeline_seconds": pipeline_seconds,
             "fit_seconds": sum(float(r["seconds"]) for r in rounds),
+            "control_evaluation_seconds": control_timing["seconds"],
+            "control_evaluation_calls": control_timing["calls"],
+            "control_score_calls": control_timing["scores"],
+            **({"normal_preparation_seconds": normal_timing["seconds"],
+                "normal_preparation_calls": normal_timing["calls"]}
+               if normal_timing is not None else {}),
             "rounds": rounds,
             "provenance": {
                 "bag_sha256": _digest(Path(args.bag)),
@@ -199,9 +240,13 @@ def _worker(args: argparse.Namespace) -> None:
                     name: os.environ[name]
                     for name in ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS")
                 },
-                **({"odometry_backend": backend, "cuda_cache_initially_empty": cuda_cache_empty,
+                **({"odometry_backend": backend} if args.comparison != "source" else {}),
+                **({"cpu_query_workers": _query_workers(args)[args.variant]}
+                   if args.comparison in ("cpu-cpu", "cpu-source") else {}),
+                **({"fit_plane_backend": fit_plane_backend} if _plane_comparison(args) else {}),
+                **({"cuda_cache_initially_empty": cuda_cache_empty,
                     "cupy": (sys.modules["cupy"].__version__ if backend == "cuda" else None)}
-                   if args.comparison != "source" else {}),
+                   if args.comparison in ("cpu-cuda", "cuda-cuda") else {}),
             },
         },
     )
@@ -285,6 +330,127 @@ def _compare(prior: dict, current: dict) -> dict:
     }
 
 
+def _without_run_metadata(value: object) -> object:
+    if isinstance(value, dict):
+        result = {}
+        for name, item in value.items():
+            if name == "provenance":
+                item = {k: v for k, v in item.items()
+                        if k not in ("created_at", "command", "git_commit")}
+            result[name] = _without_run_metadata(item)
+        return result
+    if isinstance(value, list):
+        return [_without_run_metadata(item) for item in value]
+    return value
+
+
+def _validate_exact_pair(prior: dict, current: dict, left: list[dict], right: list[dict]) -> None:
+    """Require complete numeric/evidence equality in addition to physical tolerances."""
+    if _without_run_metadata(prior) != _without_run_metadata(current):
+        raise ValueError("complete calibration/evidence fields differ")
+    if len(left) != len(right) or any(
+        {k: v for k, v in a.items() if k != "seconds"}
+        != {k: v for k, v in b.items() if k != "seconds"}
+        for a, b in zip(left, right, strict=True)
+    ):
+        raise ValueError("complete fit fields differ")
+
+
+def _preparation_result(result: dict, *, asynchronous: bool) -> dict:
+    """Remove only the declared scheduling identity/counter from copied evidence."""
+    _validate_backend_execution(result, "cuda")
+    value = _without_run_metadata(result)
+    assert isinstance(value, dict)
+    suffix = ";normal_schedule=async-v1"
+    for name in ("initial_odometry_execution", "segment_odometry_execution"):
+        for report in value["options"][name]:
+            statistics = report["statistics"]
+            batches = statistics.pop("gpu_async_normal_batches", 0)
+            if (type(batches) is not int or
+                    (not 0 < batches <= statistics.get("gpu_normal_kernel_calls", 0)
+                     if asynchronous else batches != 0)):
+                raise ValueError("normal preparation did not execute the declared schedule")
+            identity = report["executed_backends"][0]
+            if identity.endswith(suffix) != asynchronous:
+                raise ValueError("normal preparation schedule identity differs")
+            if asynchronous:
+                report["executed_backends"][0] = identity.removesuffix(suffix)
+    return value
+
+
+def _validate_preparation_pair(
+    prior: dict, current: dict, left: list[dict], right: list[dict],
+) -> None:
+    """Require every result, old work counter and fit field to remain exact."""
+    _validate_exact_pair(
+        _preparation_result(prior, asynchronous=False),
+        _preparation_result(current, asynchronous=True), left, right,
+    )
+
+
+def _scan_spatial_hashes(root: Path) -> tuple[str, str]:
+    """Bind both available query paths to their literal frozen CUDA sources."""
+    def constants(name: str) -> dict[str, str]:
+        values = {}
+        for node in ast.parse((root / "src/calibrex/solvers" / name).read_bytes()).body:
+            if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and isinstance(node.value.value, str):
+                        values[target.id] = node.value.value
+        return values
+
+    query = constants("cuda_lidar_map_adapter.py")["_SOURCE"]
+    system = constants("cuda_scan_odometry_adapter.py")
+    if "_INTERVAL_FUSED_SOURCE" in system:
+        query += constants("cuda_spatial_interval_adapter.py")["_SOURCE"]
+    return hashlib.sha256(query.encode()).hexdigest(), hashlib.sha256((
+        system["_SYSTEM_SOURCE"] + system["_FUSED_SOURCE"] + system["_COVARIANCE_SOURCE"]
+        + system.get("_NORMAL_SOURCE", "") + system.get("_INTERVAL_FUSED_SOURCE", "")
+    ).encode()).hexdigest()
+
+
+def _spatial_result(
+    result: dict, hashes: tuple[str, str], prior_hashes: tuple[str, str], *, intervals: bool,
+) -> dict:
+    """Permit only source-bound pruning identity and actual-work metadata to differ."""
+    _validate_backend_execution(result, "cuda")
+    value = _without_run_metadata(result)
+    assert isinstance(value, dict)
+    suffix = ";spatial_pruning=fp32-intervals-v1"
+    for name in ("initial_odometry_execution", "segment_odometry_execution"):
+        for report in value["options"][name]:
+            statistics = report["statistics"]
+            for counter, total in (("gpu_interval_query_rows", "gpu_query_rows"),
+                                   ("gpu_interval_system_calls", "gpu_fused_system_calls")):
+                count = statistics.pop(counter, 0)
+                if (type(count) is not int or
+                        (not 0 < count <= statistics.get(total, 0) if intervals else count != 0)):
+                    raise ValueError("interval spatial work does not match the declared path")
+            identity = report["executed_backends"][0]
+            if identity.endswith(suffix) != intervals:
+                raise ValueError("interval spatial identity differs")
+            if intervals:
+                identity = identity.removesuffix(suffix)
+            for label, actual, prior in zip(("query", "system"), hashes, prior_hashes, strict=True):
+                token = label + "_sha256=" + actual
+                if token not in identity:
+                    raise ValueError("interval spatial kernel hash differs")
+                identity = identity.replace(token, label + "_sha256=" + prior)
+            report["executed_backends"][0] = identity
+    return value
+
+
+def _validate_spatial_pair(
+    prior: dict, current: dict, left: list[dict], right: list[dict],
+    prior_hashes: tuple[str, str], current_hashes: tuple[str, str],
+) -> None:
+    """Require exact calibration, complete fits and all previous work counters."""
+    _validate_exact_pair(
+        _spatial_result(prior, prior_hashes, prior_hashes, intervals=False),
+        _spatial_result(current, current_hashes, prior_hashes, intervals=True), left, right,
+    )
+
+
 def _odometry_options(args: argparse.Namespace) -> dict[str, float | int]:
     return {
         "voxel_size_m": args.odometry_voxel_size_m,
@@ -326,11 +492,164 @@ def _validate_backend_execution(result: dict, backend: str) -> None:
             raise ValueError("CUDA pass did not execute spatial queries and systems")
 
 
+def _time_controls(holder: Any) -> dict[str, float | int]:
+    """Observe signed-control scoring, including its original baseline calls.
+
+    This scope starts after holdout RMS evaluation; any states retained there
+    are already prepared. Complete-worker time includes all preparation.
+    """
+    totals: dict[str, float | int] = {"calls": 0, "scores": 0, "seconds": 0.0}
+    original = holder._controls
+
+    def measured(chi2: Any, calibration: Any, threshold: float) -> Any:
+        def score(*args: Any, **kwargs: Any) -> Any:
+            totals["scores"] += 1
+            return chi2(*args, **kwargs)
+
+        begin = time.perf_counter()
+        try:
+            return original(score, calibration, threshold)
+        finally:
+            totals["calls"] += 1
+            totals["seconds"] += time.perf_counter() - begin
+
+    holder._controls = measured
+    return totals
+
+
+def _time_normal_preparation(holder: Any) -> dict[str, float | int]:
+    """Time outermost preparation calls; nested cache completion is counted once.
+
+    Count host time in synchronous work or async submission/completion; CPU work
+    between those phases is excluded. This does not time overlapped device work.
+    No additional GPU synchronization is inserted by this observer.
+    """
+    totals: dict[str, float | int] = {"calls": 0, "seconds": 0.0}
+    depth = 0
+    for name in ("_ensure", "_ensure_all", "_prime_normals", "_finish_normal_preparation"):
+        if not hasattr(holder, name):
+            continue
+        original = getattr(holder, name)
+
+        def measured(*args: Any, _original: Any = original, **kwargs: Any) -> Any:
+            nonlocal depth
+            depth += 1
+            begin = time.perf_counter()
+            try:
+                return _original(*args, **kwargs)
+            finally:
+                depth -= 1
+                if depth == 0:
+                    totals["calls"] += 1
+                    totals["seconds"] += time.perf_counter() - begin
+
+        setattr(holder, name, measured)
+    return totals
+
+
 def _backend(comparison: str, variant: str) -> str:
     """Select actual execution for baseline/current source comparisons."""
     if comparison == "cuda-cuda" or (comparison == "cpu-cuda" and variant == "current"):
         return "cuda"
     return "cpu"
+
+
+def _query_workers(args: argparse.Namespace) -> dict[str, int]:
+    return {"prior": args.prior_query_workers, "current": args.current_query_workers}
+
+
+def _validate_query_workers(result: dict, workers: int) -> None:
+    if result["options"]["odometry_options"].get("query_workers") != workers:
+        raise ValueError("worker did not use the declared CPU query workers")
+
+
+def _worker_arguments(args: argparse.Namespace) -> list[str]:
+    arguments = []
+    if args.comparison in ("cpu-cpu", "cpu-source"):
+        arguments += ["--prior-query-workers", str(args.prior_query_workers),
+                      "--current-query-workers", str(args.current_query_workers)]
+    if _plane_comparison(args):
+        arguments += ["--prior-fit-plane-backend", args.prior_fit_plane_backend,
+                      "--current-fit-plane-backend", args.current_fit_plane_backend]
+    return arguments
+
+
+def _plane_backends(args: argparse.Namespace) -> dict[str, str]:
+    return {"prior": args.prior_fit_plane_backend, "current": args.current_fit_plane_backend}
+
+
+def _plane_comparison(args: argparse.Namespace) -> bool:
+    return "cuda" in _plane_backends(args).values()
+
+
+def _plane_kernel_hash(source: bytes) -> str:
+    for node in ast.parse(source).body:
+        if (isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant)
+                and any(isinstance(t, ast.Name) and t.id == "_SOURCE" for t in node.targets)):
+            return hashlib.sha256(node.value.value.encode()).hexdigest()
+    raise ValueError("CUDA plane kernel source is missing")
+
+
+def _validate_plane_execution(
+    result: dict, rounds: list[dict], backend: str, kernel_hash: str | None,
+) -> None:
+    options = result["options"]
+    if options.get("fit_plane_backend", "numpy") != backend:
+        raise ValueError("spline plane backend differs")
+    reports = options.get("fit_execution", [])
+    if backend == "cuda" and len(reports) != len(rounds):
+        raise ValueError("missing spline plane execution reports")
+    for index, record in enumerate(rounds):
+        identity, stats = record.get("execution_backend"), record.get("execution_statistics")
+        if backend == "numpy":
+            if identity != "numpy" or stats != {}:
+                raise ValueError("native spline planes executed another backend")
+            continue
+        expected = ("calibrex.cuda_bspline_planes/v0.1;fp64=true;fma=false;"
+                    "normal=deterministic_banded;imu=numpy;covariance=numpy;"
+                    f"sha256={kernel_hash}")
+        if (identity != expected
+                or reports[index] != {"executed_backend": identity, "statistics": stats}):
+            raise ValueError("CUDA spline plane identity differs")
+        names = {"gpu_plane_calls", "gpu_plane_rows", "gpu_plane_derivative_calls",
+                 "gpu_plane_derivative_rows", "gpu_plane_normal_calls"}
+        if not isinstance(stats, dict) or set(stats) != names or any(
+            type(v) is not int or v < 0 for v in stats.values()
+        ):
+            raise ValueError("invalid CUDA spline plane work")
+        if not (stats["gpu_plane_calls"] >= stats["gpu_plane_derivative_calls"] > 0
+                and stats["gpu_plane_rows"] >= stats["gpu_plane_derivative_rows"] > 0
+                and stats["gpu_plane_normal_calls"] == record["iterations"]
+                and stats["gpu_plane_derivative_calls"] >= stats["gpu_plane_normal_calls"]):
+            raise ValueError("CUDA spline plane work is inconsistent")
+        count = result["rounds"][index]["plane_returns"]
+        if (stats["gpu_plane_rows"] != count * stats["gpu_plane_calls"]
+                or stats["gpu_plane_derivative_rows"]
+                != count * stats["gpu_plane_derivative_calls"]):
+            raise ValueError("CUDA spline plane rows differ from the measured workload")
+
+
+def _validate_plane_fit_pair(left: list[dict], right: list[dict]) -> None:
+    """Require every complete fit field, with explicit roundoff tolerances."""
+    import numpy as np
+
+    if len(left) != len(right):
+        raise ValueError("spline fit round count differs")
+    for a, b in zip(left, right, strict=True):
+        for key in ("status", "iterations", "parameter_count", "residual_count"):
+            if a[key] != b[key]:
+                raise ValueError(f"spline fit {key} differs")
+        for key in ("trajectory_rotations", "trajectory_positions", "initial_cost",
+                    "final_cost", "residual_variance", "calibration_covariance"):
+            covariance = key == "calibration_covariance"
+            if not np.allclose(a[key], b[key], rtol=1e-5 if covariance else 1e-6,
+                               atol=1e-11 if covariance else 1e-9):
+                raise ValueError(f"spline fit {key} differs")
+        if a["calibration"].keys() != b["calibration"].keys() or any(
+            not np.allclose(a["calibration"][k], b["calibration"][k], rtol=1e-6, atol=1e-9)
+            for k in a["calibration"]
+        ):
+            raise ValueError("spline fit calibration differs")
 
 
 def main() -> None:
@@ -341,9 +660,20 @@ def main() -> None:
     parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--max-seconds", type=float, default=12.0)
     parser.add_argument("--max-rounds", type=int, default=4)
+    parser.add_argument("--require-exact-results", action="store_true",
+                        help="require every result/evidence and full fit field to match exactly")
+    parser.add_argument("--require-exact-preparation-results", action="store_true",
+                        help="require exact outputs/work, allowing only async scheduling metadata")
+    parser.add_argument("--require-exact-spatial-results", action="store_true",
+                        help="require exact outputs/work, allowing source-bound pruning metadata")
     parser.add_argument(
-        "--comparison", choices=("source", "cpu-cuda", "cuda-cuda"), default="source",
+        "--comparison", choices=("source", "cpu-cpu", "cpu-source", "cpu-cuda", "cuda-cuda"),
+        default="source",
     )
+    parser.add_argument("--prior-query-workers", type=int, default=1)
+    parser.add_argument("--current-query-workers", type=int, default=8)
+    parser.add_argument("--prior-fit-plane-backend", choices=("numpy", "cuda"), default="numpy")
+    parser.add_argument("--current-fit-plane-backend", choices=("numpy", "cuda"), default="numpy")
     parser.add_argument("--odometry-voxel-size-m", type=float)
     parser.add_argument("--odometry-local-map-scans", type=int)
     parser.add_argument("--odometry-geometry-quantum-m", type=float)
@@ -359,6 +689,21 @@ def main() -> None:
         return
     if args.repeats < 1 or args.max_rounds < 2 or args.max_seconds <= 0:
         parser.error("need positive repeats/seconds and at least two map rounds")
+    if args.prior_query_workers < 1 or args.current_query_workers < 1:
+        parser.error("query workers must be positive integers")
+    if _plane_comparison(args) and (args.comparison != "cuda-cuda" or args.require_exact_results):
+        parser.error("CUDA plane comparison requires cuda-cuda and numeric output comparison")
+    if args.require_exact_preparation_results and (
+        args.comparison != "cuda-cuda" or args.require_exact_results
+        or args.prior_fit_plane_backend != args.current_fit_plane_backend
+    ):
+        parser.error("exact preparation comparison requires cuda-cuda with the same plane backend")
+    if args.require_exact_spatial_results and (
+        args.comparison != "cuda-cuda" or args.require_exact_results
+        or args.require_exact_preparation_results
+        or args.prior_fit_plane_backend != args.current_fit_plane_backend
+    ):
+        parser.error("exact spatial comparison requires cuda-cuda with the same plane backend")
     if args.comparison != "source" and (
         any(value is None for value in _odometry_options(args).values())
         or args.odometry_voxel_size_m <= 0 or args.odometry_local_map_scans < 1
@@ -370,7 +715,7 @@ def main() -> None:
     out.mkdir(parents=True, exist_ok=False)
     commit = subprocess.check_output(["git", "rev-parse", args.baseline_commit], text=True).strip()
     current_commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
-    if args.comparison == "cpu-cuda":
+    if args.comparison in ("cpu-cpu", "cpu-cuda"):
         commit = current_commit
     subprocess.run(
         ["git", "diff", "--exit-code", "HEAD", "--", "src/calibrex"],
@@ -378,7 +723,7 @@ def main() -> None:
         stdout=subprocess.DEVNULL,
     )
     roots = {v: out / f"sources-{v}" for v in ("prior", "current")}
-    _freeze(roots["prior"], commit)
+    _freeze(roots["prior"], None if args.comparison == "cpu-cpu" else commit)
     _freeze(roots["current"], None)
     launcher_digest = _digest(Path(__file__))
     bag = Path(args.bag).resolve()
@@ -392,6 +737,11 @@ def main() -> None:
             "repeats": args.repeats,
             "max_seconds": args.max_seconds,
             "max_rounds": args.max_rounds,
+            **({"exact_outputs_required": True} if args.require_exact_results else {}),
+            **({"exact_preparation_outputs_required": True}
+               if args.require_exact_preparation_results else {}),
+            **({"exact_spatial_outputs_required": True}
+               if args.require_exact_spatial_results else {}),
             "bag_sha256": _digest(bag),
             "launcher_sha256": launcher_digest,
             "scope": (
@@ -408,8 +758,13 @@ def main() -> None:
                 "control_chi2_relative": 1e-5,
                 "control_chi2_absolute": 1e-5,
             },
-            **({"comparison": args.comparison, "odometry_options": _odometry_options(args),
-                "isolated_cuda_caches": True} if args.comparison != "source" else {}),
+            **({"comparison": args.comparison, "odometry_options": _odometry_options(args)}
+               if args.comparison != "source" else {}),
+            **({"isolated_cuda_caches": True}
+               if args.comparison in ("cpu-cuda", "cuda-cuda") else {}),
+            **({"cpu_query_workers": _query_workers(args)}
+               if args.comparison in ("cpu-cpu", "cpu-source") else {}),
+            **({"fit_plane_backends": _plane_backends(args)} if _plane_comparison(args) else {}),
         },
     )
     attempts: list[dict] = []
@@ -424,7 +779,7 @@ def main() -> None:
             )
             env["PYTHONPATH"] = str(roots[variant] / "src") + os.pathsep + str(Path.cwd())
             env["PYTHONDONTWRITEBYTECODE"] = "1"
-            if args.comparison != "source":
+            if args.comparison in ("cpu-cuda", "cuda-cuda"):
                 env["CUPY_CACHE_DIR"] = str(worker_out / "cupy-cache")
             command = [
                 sys.executable,
@@ -447,6 +802,7 @@ def main() -> None:
                 str(worker_out),
                 *(["--comparison", args.comparison, *_odometry_arguments(args)]
                   if args.comparison != "source" else []),
+                *_worker_arguments(args),
             ]
             begin = time.perf_counter()
             with (worker_out / "worker.log").open("wb") as log:
@@ -469,6 +825,25 @@ def main() -> None:
     for repeat in range(args.repeats):
         prior = json.loads((out / f"{repeat:02d}-prior/result.json").read_bytes())
         current = json.loads((out / f"{repeat:02d}-current/result.json").read_bytes())
+        if args.require_exact_results:
+            records = [json.loads((out / f"{repeat:02d}-{v}/measurement.json").read_bytes())
+                       for v in ("prior", "current")]
+            _validate_exact_pair(prior, current, records[0]["rounds"], records[1]["rounds"])
+        if args.require_exact_preparation_results:
+            records = [json.loads((out / f"{repeat:02d}-{v}/measurement.json").read_bytes())
+                       for v in ("prior", "current")]
+            _validate_preparation_pair(prior, current, records[0]["rounds"], records[1]["rounds"])
+        if args.require_exact_spatial_results:
+            records = [json.loads((out / f"{repeat:02d}-{v}/measurement.json").read_bytes())
+                       for v in ("prior", "current")]
+            _validate_spatial_pair(
+                prior, current, records[0]["rounds"], records[1]["rounds"],
+                _scan_spatial_hashes(roots["prior"]), _scan_spatial_hashes(roots["current"]),
+            )
+        if _plane_comparison(args):
+            records = [json.loads((out / f"{repeat:02d}-{v}/measurement.json").read_bytes())
+                       for v in ("prior", "current")]
+            _validate_plane_fit_pair(records[0]["rounds"], records[1]["rounds"])
         pairs.append(_compare(prior, current))
     medians = {
         v: statistics.median(a["whole_seconds"] for a in attempts if a["variant"] == v)

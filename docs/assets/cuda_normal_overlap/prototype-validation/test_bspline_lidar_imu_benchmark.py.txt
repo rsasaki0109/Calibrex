@@ -1,0 +1,346 @@
+"""Source integrity and quality guards for the complete public-data comparison."""
+
+from __future__ import annotations
+
+import copy
+import json
+from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
+from tools.benchmark_bspline_lidar_imu import (
+    _backend,
+    _compare,
+    _manifest,
+    _plane_kernel_hash,
+    _time_controls,
+    _time_normal_preparation,
+    _validate_backend_execution,
+    _validate_exact_pair,
+    _validate_plane_execution,
+    _validate_plane_fit_pair,
+    _validate_preparation_pair,
+    _validate_query_workers,
+    _verify_sources,
+    _write,
+)
+
+
+def _plane_round() -> dict:
+    return {"execution_backend": "calibrex.cuda_bspline_planes/v0.1;fp64=true;fma=false;"
+            "normal=deterministic_banded;imu=numpy;covariance=numpy;sha256=" + "a"*64,
+            "execution_statistics": {"gpu_plane_calls": 5, "gpu_plane_rows": 500,
+                "gpu_plane_derivative_calls": 3, "gpu_plane_derivative_rows": 300,
+                "gpu_plane_normal_calls": 2}, "iterations": 2}
+
+
+@pytest.mark.parametrize("corruption", ["identity", "calls", "rows", "normal", "report", "count"])
+def test_plane_execution_binds_kernel_identity_actual_work_and_bag_report(corruption: str) -> None:
+    record = _plane_round()
+    result = {"rounds": [{"plane_returns": 100}],
+              "options": {"fit_plane_backend": "cuda", "fit_execution": [
+        {"executed_backend": record["execution_backend"],
+         "statistics": copy.deepcopy(record["execution_statistics"])}]}}
+    _validate_plane_execution(result, [record], "cuda", "a"*64)
+    if corruption == "identity":
+        record["execution_backend"] += "x"
+    elif corruption == "calls":
+        record["execution_statistics"]["gpu_plane_calls"] = 0
+    elif corruption == "rows":
+        record["execution_statistics"]["gpu_plane_rows"] = 0
+    elif corruption == "normal":
+        record["execution_statistics"]["gpu_plane_normal_calls"] = 1
+    elif corruption == "count":
+        result["rounds"][0]["plane_returns"] = 101
+    else:
+        result["options"]["fit_execution"] = []
+    # Rebind the report too: numerical work must be checked independently.
+    if corruption in ("calls", "rows", "normal"):
+        result["options"]["fit_execution"][0]["statistics"] = record["execution_statistics"]
+    with pytest.raises(ValueError, match="plane"):
+        _validate_plane_execution(result, [record], "cuda", "a"*64)
+
+
+def test_native_plane_execution_rejects_silent_device_work() -> None:
+    result = {"options": {}}
+    _validate_plane_execution(result, [{"execution_backend": "numpy",
+                                       "execution_statistics": {}}], "numpy", None)
+    with pytest.raises(ValueError, match="another backend"):
+        _validate_plane_execution(result, [_plane_round()], "numpy", None)
+    assert _plane_kernel_hash(b'_SOURCE = "kernel"') == (
+        __import__("hashlib").sha256(b"kernel").hexdigest()
+    )
+
+
+@pytest.mark.parametrize("field", ["iterations", "calibration", "calibration_covariance",
+                                    "trajectory_rotations", "final_cost"])
+def test_complete_plane_fit_comparison_rejects_field_changes(field: str) -> None:
+    record = {"status": "converged", "iterations": 2, "parameter_count": 60,
+              "residual_count": 500, "initial_cost": 1., "final_cost": .1,
+              "residual_variance": .01, "calibration_covariance": [[.01]],
+              "trajectory_rotations": [[[1.]]], "trajectory_positions": [[.1]],
+              "calibration": {"imu_clock_offset": [.001]}}
+    _validate_plane_fit_pair([record], [copy.deepcopy(record)])
+    other = copy.deepcopy(record)
+    if field == "iterations":
+        other[field] += 1
+    elif field == "calibration":
+        other[field]["imu_clock_offset"][0] += 1e-5
+    elif field == "calibration_covariance":
+        other[field][0][0] += 1e-4
+    elif field == "trajectory_rotations":
+        other[field][0][0][0] += 1e-4
+    else:
+        other[field] += 1e-4
+    with pytest.raises(ValueError, match="spline fit"):
+        _validate_plane_fit_pair([record], [other])
+
+
+def test_exact_comparison_allows_only_run_metadata_and_wall_times() -> None:
+    left = {"initial": {"value": .3},
+            "provenance": {"created_at": "before", "git_commit": "a", "command": ["before"]}}
+    right = copy.deepcopy(left)
+    right["provenance"].update(created_at="after", git_commit="b", command=["after"])
+    a = [{"seconds": 1., "covariance": [[.1]]}]
+    b = [{"seconds": 2., "covariance": [[.1]]}]
+    _validate_exact_pair(left, right, a, b)
+    right["initial"]["value"] += 1e-12
+    with pytest.raises(ValueError, match="calibration/evidence"):
+        _validate_exact_pair(left, right, a, b)
+    right["initial"]["value"] = left["initial"]["value"]
+    b[0]["covariance"][0][0] += 1e-15
+    with pytest.raises(ValueError, match="fit fields"):
+        _validate_exact_pair(left, right, a, b)
+
+
+@pytest.mark.parametrize("mutation", [
+    "none", "physical", "work", "missing", "zero", "excess", "identity", "extra", "fits",
+])
+def test_async_preparation_allows_only_declared_scheduling_metadata(mutation: str) -> None:
+    report = {"requested_backend": "cuda", "executed_backends": [
+        "calibrex.cuda_scan_odometry/v0.1;system_sha256=" + "a" * 64],
+        "statistics": {"gpu_query_rows": 1000, "gpu_fused_system_calls": 10,
+                       "gpu_normal_kernel_calls": 5, "gpu_normal_rows": 100}}
+    prior = {"calibration": [.1], "options": {"odometry_backend": "cuda",
+        "initial_odometry_execution": [report],
+        "segment_odometry_execution": [copy.deepcopy(report)]}}
+    current = copy.deepcopy(prior)
+    for name in ("initial_odometry_execution", "segment_odometry_execution"):
+        changed = current["options"][name][0]
+        changed["executed_backends"][0] += ";normal_schedule=async-v1"
+        changed["statistics"]["gpu_async_normal_batches"] = 5
+    left = [{"seconds": 1., "covariance": [[.1]]}]
+    right = [{"seconds": 2., "covariance": [[.1]]}]
+    before = copy.deepcopy(current)
+    _validate_preparation_pair(prior, current, left, right)
+    assert current == before  # Auditing must not erase the original evidence.
+    changed = current["options"]["segment_odometry_execution"][0]
+    if mutation == "none":
+        return
+    if mutation == "physical":
+        current["calibration"][0] += 1e-15
+    elif mutation == "work":
+        changed["statistics"]["gpu_normal_rows"] += 1
+    elif mutation == "missing":
+        changed["statistics"].pop("gpu_async_normal_batches")
+    elif mutation in ("zero", "excess"):
+        changed["statistics"]["gpu_async_normal_batches"] = 0 if mutation == "zero" else 6
+    elif mutation == "identity":
+        changed["executed_backends"][0] = changed["executed_backends"][0].replace(
+            "a" * 64, "b" * 64,
+        )
+    elif mutation == "extra":
+        changed["extra"] = True
+    else:
+        right[0]["covariance"][0][0] += 1e-15
+    with pytest.raises(ValueError):
+        _validate_preparation_pair(prior, current, left, right)
+
+
+def test_normal_timing_counts_nested_cache_completion_once() -> None:
+    class Target:
+        def _ensure(self, value: int) -> int:
+            return value + 1
+
+        def _ensure_all(self) -> int:
+            return self._ensure(5)
+
+    timings = _time_normal_preparation(Target)
+    assert Target()._ensure_all() == 6
+    assert timings["calls"] == 1
+    assert Target()._ensure(7) == 8
+    assert timings["calls"] == 2
+    assert timings["seconds"] >= 0
+
+
+def test_control_timing_preserves_scores_arguments_and_return_value() -> None:
+    observed = []
+    calibration = object()
+    result = object()
+
+    def controls(score, values, threshold):
+        assert values is calibration and threshold == 9.
+        assert score("gyro", values) == 3.
+        assert score("accel", values) == 4.
+        return result
+
+    def chi2(family, values):
+        observed.append((family, values))
+        return 3. if family == "gyro" else 4.
+
+    holder = SimpleNamespace(_controls=controls)
+    timings = _time_controls(holder)
+    assert holder._controls(chi2, calibration, 9.) is result
+    assert observed == [("gyro", calibration), ("accel", calibration)]
+    assert timings["calls"] == 1 and timings["scores"] == 2 and timings["seconds"] > 0
+
+
+@pytest.mark.parametrize("comparison,prior,current", [
+    ("source", "cpu", "cpu"), ("cpu-cuda", "cpu", "cuda"), ("cuda-cuda", "cuda", "cuda"),
+    ("cpu-cpu", "cpu", "cpu"),
+    ("cpu-source", "cpu", "cpu"),
+])
+def test_comparison_selects_each_actual_worker_backend(
+    comparison: str, prior: str, current: str,
+) -> None:
+    assert _backend(comparison, "prior") == prior
+    assert _backend(comparison, "current") == current
+
+
+def test_gpu_source_comparison_requires_the_same_explicit_workload(tmp_path: Path) -> None:
+    from jsonschema import ValidationError
+
+    protocol = json.loads(Path("docs/assets/cuda_joint_lidar_imu/protocol.json").read_bytes())
+    protocol["comparison"] = "cuda-cuda"
+    _write(tmp_path / "protocol.json", protocol)
+    protocol.pop("odometry_options")
+    with pytest.raises(ValidationError):
+        _write(tmp_path / "protocol.json", protocol)
+
+
+@pytest.mark.parametrize("comparison", ["cpu-cpu", "cpu-source"])
+def test_cpu_parallel_comparison_requires_both_worker_budgets(
+    tmp_path: Path, comparison: str,
+) -> None:
+    from jsonschema import ValidationError
+
+    protocol = json.loads(Path("docs/assets/cuda_joint_lidar_imu/protocol.json").read_bytes())
+    protocol["comparison"] = comparison
+    protocol.pop("isolated_cuda_caches")
+    protocol["cpu_query_workers"] = {"prior": 1, "current": 8}
+    _write(tmp_path / "protocol.json", protocol)
+    for budgets in ({"prior": 1}, {"prior": 1, "current": 0},
+                    {"prior": 1, "current": True}):
+        protocol["cpu_query_workers"] = budgets
+        with pytest.raises(ValidationError):
+            _write(tmp_path / "protocol.json", protocol)
+
+
+def test_cpu_parallel_measurement_rejects_another_query_budget() -> None:
+    result = {"options": {"odometry_options": {"query_workers": 8}}}
+    _validate_query_workers(result, 8)
+    with pytest.raises(ValueError, match="query workers"):
+        _validate_query_workers(result, 1)
+
+
+def _evidence() -> dict:
+    return {
+        "t_lidar_imu_rotation_quat_xyzw": [0, 0, 0, 1],
+        "t_lidar_imu_translation_m": [0.01, 0.02, 0.03],
+        "imu_clock_offset_s": 0.007,
+        "policy_status": "inconclusive",
+        "controls": [
+            {"parameter": "imu_clock_offset", "sign": 1, "detected": False, "delta_chi2": 1.0}
+        ],
+        "blocks": [
+            {
+                "name": "imu_clock_offset",
+                "verdict": "weak",
+                "estimate": [0.007],
+                "formal_std": [0.1],
+                "last_round_change": [0.0001],
+            }
+        ],
+        "separability": [],
+        "converged": False,
+        "noise_sigmas": {"gyro": 0.03},
+        "holdout_whitened_rms": {"gyro": 1.0, "accel": 1.01, "plane": 0.99},
+    }
+
+
+def test_quality_accepts_numeric_roundoff_but_rejects_decision_or_physical_changes() -> None:
+    prior = _evidence()
+    assert _compare(prior, copy.deepcopy(prior))["passed"]
+    current = copy.deepcopy(prior)
+    current["imu_clock_offset_s"] += 1e-10
+    assert _compare(prior, current)["passed"]
+    for path, value in (
+        (("policy_status",), "pass"),
+        (("controls", 0, "detected"), True),
+        (("blocks", 0, "verdict"), "estimated"),
+        (("t_lidar_imu_translation_m", 0), 0.1),
+        (("imu_clock_offset_s",), 0.009),
+        (("holdout_whitened_rms", "gyro"), 1.001),
+        (("blocks", 0, "formal_std", 0), 0.2),
+        (("controls", 0, "delta_chi2"), 2.0),
+    ):
+        current = copy.deepcopy(prior)
+        parent = current
+        for key in path[:-1]:
+            parent = parent[key]
+        parent[path[-1]] = value
+        assert not _compare(prior, current)["passed"], path
+
+
+@pytest.mark.parametrize("mutation", ["change", "remove", "extra"])
+def test_source_manifest_rejects_changed_missing_or_extra_source(
+    tmp_path: Path, mutation: str
+) -> None:
+    source = tmp_path / "src/calibrex/core/frozen.py"
+    source.parent.mkdir(parents=True)
+    source.write_text("x = 1\n", encoding="utf-8")
+    _write(tmp_path / "manifest.json", _manifest(tmp_path / "src"))
+    assert _verify_sources(tmp_path)
+    if mutation == "change":
+        source.write_text("x = 2\n", encoding="utf-8")
+    elif mutation == "remove":
+        source.unlink()
+    else:
+        source.with_name("extra.py").write_text("x = 1\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="source tree changed"):
+        _verify_sources(tmp_path)
+
+
+def test_record_schema_rejects_incomplete_measurement(tmp_path: Path) -> None:
+    from jsonschema import ValidationError
+
+    with pytest.raises(ValidationError):
+        _write(
+            tmp_path / "measurement.json",
+            {"schema_version": "slac.bspline_lidar_imu_comparison/v0.1", "record_type": "worker"},
+        )
+
+
+@pytest.mark.parametrize("mutation", ["identity", "queries", "systems", "negative", "missing"])
+def test_gpu_comparison_requires_actual_work_in_every_odometry_pass(mutation: str) -> None:
+    report = {
+        "requested_backend": "cuda",
+        "executed_backends": ["calibrex.cuda_scan_odometry/v0.1;test"],
+        "statistics": {"gpu_query_rows": 1000, "gpu_fused_system_calls": 10},
+    }
+    result = {"options": {
+        "odometry_backend": "cuda", "initial_odometry_execution": [report],
+        "segment_odometry_execution": [copy.deepcopy(report)],
+    }}
+    _validate_backend_execution(result, "cuda")
+    if mutation == "identity":
+        report["executed_backends"] = ["numpy_scipy"]
+    elif mutation in ("queries", "systems"):
+        report["statistics"]["gpu_query_rows" if mutation == "queries"
+                              else "gpu_fused_system_calls"] = 0
+    elif mutation == "negative":
+        report["statistics"]["scalar_query_repairs"] = -1
+    else:
+        result["options"]["segment_odometry_execution"] = []
+    with pytest.raises(ValueError):
+        _validate_backend_execution(result, "cuda")

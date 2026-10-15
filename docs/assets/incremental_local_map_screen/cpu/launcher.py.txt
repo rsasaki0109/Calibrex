@@ -1,0 +1,118 @@
+"""Private public-scan capture and exact incremental local-map pilot."""
+from pathlib import Path
+import os
+for name in ('OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS', 'OMP_NUM_THREADS'):
+    os.environ[name] = '1'
+import hashlib
+import json
+import statistics
+import subprocess
+import time
+from collections import deque
+from dataclasses import asdict
+
+import numpy as np
+from calibrex.data.livox_ros2 import LivoxStreamProfile, iter_livox_points
+from calibrex.solvers import scan_to_scan_odometry as native
+
+ROOT = Path(__file__).resolve().parent
+out = ROOT / 'outputs/incremental-local-map-pilot-v1'
+out.mkdir(exist_ok=False)
+os.environ['CUPY_CACHE_DIR'] = str(ROOT / 'outputs/odometry-search-profile-v2/cupy-cache')
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+options = native.ScanOdometryOptions(**json.loads((ROOT / 'outputs/odometry-search-profile-v2/registration-00.json').read_bytes())['options'])
+bag = ROOT / 'data/public/glim_versatile/livox.bag'
+(out / 'protocol.json').write_text(json.dumps({
+    'scope': __doc__, 'source_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+    'launcher_sha256': sha(Path(__file__)), 'options': asdict(options),
+    'source_sha256': sha(Path(native.__file__)), 'bag_sha256': sha(bag),
+    'blas_threads': 1, 'cache_scope': 'per retained world-frame scan; build included',
+}, indent=2) + '\n', encoding='utf-8')
+
+observed = []
+original = native._local_map
+def capture(recent, pose, opts):
+    observed.append((tuple(recent), pose.copy()))
+    return original(recent, pose, opts)
+native._local_map = capture
+odom = native.IncrementalScanOdometry(options, backend='cuda')
+stream = iter_livox_points(bag, LivoxStreamProfile('public-glim', '/livox/points', '/livox/imu', 't', 'offset_s', 'g'), max_seconds=6.)
+start = time.perf_counter()
+for scan in stream:
+    odom.add(scan[1], scan[0], scan[2])
+native._local_map = original
+print(json.dumps({'captured_windows': len(observed), 'capture_seconds': time.perf_counter() - start}), flush=True)
+arrays = {}
+ids = {}
+windows = []
+for recent, pose in observed:
+    window = []
+    for points in recent:
+        key = id(points)
+        if key not in ids:
+            ids[key] = f'scan_{len(ids):03d}'
+            arrays[ids[key]] = points
+        window.append(ids[key])
+    pose_name = f'pose_{len(windows):03d}'
+    arrays[pose_name] = pose
+    windows.append({'scans': window, 'pose': pose_name})
+np.savez_compressed(out / 'inputs.npz', **arrays)
+(out / 'inputs.json').write_text(json.dumps({'windows': windows, 'npz_sha256': sha(out / 'inputs.npz')}, indent=2) + '\n', encoding='utf-8')
+
+class Cached:
+    def __init__(self, unique=False):
+        self.cache = {}
+        self.unique = unique
+    def local(self, recent, pose, opts):
+        live = set(map(id, recent))
+        self.cache = {k: v for k, v in self.cache.items() if k in live}
+        for points in recent:
+            if id(points) not in self.cache:
+                xyz = native._quantize_geometry(points, opts.geometry_quantum_m)
+                ranges = np.sqrt(xyz[:, 0] * xyz[:, 0] + xyz[:, 1] * xyz[:, 1] + xyz[:, 2] * xyz[:, 2])
+                xyz = xyz[(ranges >= 0.) & (ranges <= np.inf)]
+                keys = np.floor(xyz / opts.voxel_size_m).astype(np.int64)
+                assert np.all(keys >= -(2**20)) and np.all(keys < 2**20)
+                flat = ((keys[:, 0] + 2**20) * 2**21 + keys[:, 1] + 2**20) * 2**21 + keys[:, 2] + 2**20
+                if self.unique:
+                    group, inverse = np.unique(flat, return_inverse=True)
+                else:
+                    group, inverse = flat, None
+                self.cache[id(points)] = (xyz, group, inverse)
+        parts = [self.cache[id(p)] for p in recent]
+        xyz = np.vstack([p[0] for p in parts])
+        if self.unique:
+            groups = np.unique(np.concatenate([p[1] for p in parts]))
+            inverse = np.concatenate([np.searchsorted(groups, p[1])[p[2]] for p in parts])
+            counts = np.bincount(inverse, minlength=len(groups))
+        else:
+            groups, inverse, counts = np.unique(np.concatenate([p[1] for p in parts]), return_inverse=True, return_counts=True)
+        sums = np.empty((len(groups), 3))
+        for axis in range(3):
+            sums[:, axis] = np.bincount(inverse, weights=xyz[:, axis], minlength=len(groups))
+        points = native._quantize_geometry(sums / counts[:, None], opts.geometry_quantum_m)
+        inverse_pose = np.linalg.inv(pose)
+        return native._quantize_geometry(points @ inverse_pose[:3, :3].T + inverse_pose[:3, 3], opts.geometry_quantum_m)
+
+references = [original(deque(recent), pose, options) for recent, pose in observed]
+runs = []
+for repeat in range(7):
+    variants = ['prior', 'cached_keys', 'cached_unique']
+    variants = variants[repeat % 3:] + variants[:repeat % 3]
+    for variant in variants:
+        candidate = Cached(unique=variant == 'cached_unique')
+        begin = time.perf_counter()
+        for case, ((recent, pose), expected) in enumerate(zip(observed, references)):
+            start = time.perf_counter()
+            actual = (original(deque(recent), pose, options) if variant == 'prior'
+                      else candidate.local(recent, pose, options))
+            elapsed = time.perf_counter() - start
+            assert actual.shape == expected.shape
+            assert np.array_equal(actual.view(np.uint64), expected.view(np.uint64)), (variant, case, np.max(np.abs(actual - expected)))
+            runs.append({'repeat': repeat, 'variant': variant, 'case': case, 'seconds': elapsed, 'rows': len(actual), 'output_sha256': hashlib.sha256(actual.tobytes()).hexdigest()})
+        print(json.dumps({'repeat': repeat, 'variant': variant, 'seconds': time.perf_counter() - begin}), flush=True)
+(out / 'runs.json').write_text(json.dumps(runs, indent=2) + '\n', encoding='utf-8')
+medians = {v: statistics.median(sum(r['seconds'] for r in runs if r['variant'] == v and r['repeat'] == i) for i in range(7)) for v in ('prior', 'cached_keys', 'cached_unique')}
+summary = {'medians': medians, 'speedups': {v: medians['prior'] / medians[v] for v in medians if v != 'prior'}, 'exact': True, 'provenance': {'protocol_sha256': sha(out / 'protocol.json'), 'inputs_sha256': sha(out / 'inputs.json')}}
+(out / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n', encoding='utf-8')
+print(json.dumps(summary), flush=True)

@@ -1,0 +1,27 @@
+{
+  "command": [
+    "C:\\Users\\rsasa\\Workspace\\Calibrex\\.venv\\Scripts\\python.exe",
+    "-m",
+    "pytest",
+    "tests/unit/test_numba_scan_normal_adapter.py",
+    "tests/unit/test_bspline_lidar_imu_benchmark.py",
+    "--basetemp",
+    "outputs\\glim-cpu-normal-covariance-pairs-v1\\prototype-validation\\tmp",
+    "-p",
+    "no:cacheprovider",
+    "--override-ini",
+    "addopts=--disable-plugin-autoload",
+    "-q"
+  ],
+  "exit_code": 0,
+  "provenance": {
+    "source_commit": "2d6e5caef559b4383bf4da44739bc9dc0146e619",
+    "source_manifest_sha256": "37f11ad3bd78ebe2a4cd0b84307e2860f67d076c929bd2286e14cef7e538559c",
+    "files": {
+      "pytest.log": "9d4f7464170d6af5d2775a80d90c88f715fb4c02dbc3ff0a9fc0d1a6b5bff362",
+      "test_bspline_lidar_imu_benchmark.py.txt": "69ef596801b44c77e72ffe4dca90e1bbe54ae8fc3b577e600c72c582a5c61a9b",
+      "test_numba_scan_normal_adapter.py.txt": "cc1dd29234775e1613653b8f6bc5f74fb72de37262b6ba482efb0d9d108f23e5",
+      "validator.py.txt": "e9a6dcf2ec4d0633a456fb8a1b96bae6c7f379f8428c553861971e3dc4915705"
+    }
+  }
+}

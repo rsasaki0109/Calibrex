@@ -80,8 +80,9 @@ def test_invalid_windowing_backend_fails_before_reading() -> None:
 
 
 @pytest.mark.parametrize("backend", ["cpu", "cuda"])
+@pytest.mark.parametrize("plane_backend", ["numpy", "cuda"])
 def test_joint_cli_records_and_forwards_backend_and_geometry(
-    monkeypatch: pytest.MonkeyPatch, backend: str,
+    monkeypatch: pytest.MonkeyPatch, backend: str, plane_backend: str,
 ) -> None:
     seen: dict[str, Any] = {}
 
@@ -97,20 +98,29 @@ def test_joint_cli_records_and_forwards_backend_and_geometry(
         "--dataset-family", "public", "--dataset-license", "upstream", "--output", "unused.json",
         "--odometry-backend", backend, "--odometry-voxel-size-m", "0.03",
         "--odometry-local-map-scans", "3", "--odometry-geometry-quantum-m", "1e-9",
+        "--odometry-query-workers", "8",
         "--odometry-motion-translation-quantum-m", "1e-6",
         "--odometry-motion-rotation-quantum-rad", "1e-7",
+        "--fit-plane-backend", plane_backend,
     ]) == 2
+    assert seen["options"].fit_plane_backend == plane_backend
     options = seen["options"].rotation.windowing
     assert options.odometry_backend == backend
     assert options.odometry.voxel_size_m == 0.03
     assert options.odometry.local_map_scans == 3
+    assert options.odometry.query_workers == 8
     assert options.odometry.geometry_quantum_m == 1e-9
     assert options.odometry.motion_translation_quantum_m == 1e-6
     assert options.odometry.motion_rotation_quantum_rad == 1e-7
     command = seen["command"]
+    if plane_backend == "cuda":
+        assert command[command.index("--fit-plane-backend") + 1] == plane_backend
+    else:
+        assert "--fit-plane-backend" not in command
     for flag, value in (
         ("--odometry-backend", backend), ("--odometry-voxel-size-m", "0.03"),
         ("--odometry-local-map-scans", "3"), ("--odometry-geometry-quantum-m", "1e-09"),
+        ("--odometry-query-workers", "8"),
         ("--odometry-motion-translation-quantum-m", "1e-06"),
         ("--odometry-motion-rotation-quantum-rad", "1e-07"),
     ):

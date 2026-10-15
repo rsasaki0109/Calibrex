@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import hashlib
 import math
-from dataclasses import replace
+from dataclasses import dataclass, replace
+from typing import Any
 
 import cupy as cp
 import numpy as np
+from numpy.typing import NDArray
 
 from calibrex.solvers.cuda_lidar_map_adapter import (
     _SOURCE,
@@ -73,6 +75,75 @@ extern "C" __global__ void covariance3(
     for(int j=0;j<9;j++) covariance[9*row+j]=c[j]/k;
 }
 """
+
+_NORMAL_SOURCE = r"""
+// FP64 symmetric 3x3 PCA; uncertain memberships/eigenspaces retain native repairs.
+extern "C" __global__ void normals3(
+    const double* points, const long long* indices, const double* distances,
+    const long long* rows, const int n, const int k, const double ratio,
+    double* normal, bool* planar, bool* done, unsigned char* repair) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;
+    if(row>=n) return;
+    const double eps=2.2204460492503131e-16;
+    double mean[3]={0,0,0},c[9]={0,0,0,0,0,0,0,0,0};
+    for(int j=0;j<k;j++) for(int a=0;a<3;a++)
+        mean[a]+=points[3*indices[row*(k+1)+j]+a];
+    for(int a=0;a<3;a++) mean[a]/=k;
+    for(int j=0;j<k;j++) {
+        double d[3];
+        for(int a=0;a<3;a++) d[a]=points[3*indices[row*(k+1)+j]+a]-mean[a];
+        for(int a=0;a<3;a++) for(int b=0;b<3;b++) c[3*a+b]+=d[a]*d[b];
+    }
+    for(int a=0;a<9;a++) c[a]/=k;
+    double scale=fmax(fmax(fabs(c[0]),fabs(c[4])),fabs(c[8]));
+    bool bad=!(scale>0) || !isfinite(scale);
+    double unit=fmax(scale,2.2250738585072014e-308);
+    for(int a=0;a<9;a++) c[a]/=unit;
+    double trace=c[0]+c[4]+c[8],q=trace/3;
+    double x=c[0]-q,y=c[4]-q,z=c[8]-q;
+    double p=sqrt((x*x+y*y+z*z+2*(c[1]*c[1]+c[2]*c[2]+c[5]*c[5]))/6);
+    bad|=!(p>64*eps);
+    double inv=1/fmax(p,2.2250738585072014e-308);
+    double b0=x*inv,b1=y*inv,b2=z*inv;
+    double b3=c[1]*inv,b4=c[2]*inv,b5=c[5]*inv;
+    double determinant=b0*b1*b2+2*b3*b4*b5-b0*b5*b5-b1*b4*b4-b2*b3*b3;
+    double phi=acos(fmax(-1.0,fmin(1.0,determinant/2)))/3;
+    double low=q+2*p*cos(phi+2.0943951023931954923);
+    double high=q+2*p*cos(phi),mid=trace-low-high;
+    double a[9];for(int j=0;j<9;j++) a[j]=c[j];
+    a[0]-=low;a[4]-=low;a[8]-=low;
+    double best=-1,v[3]={0,0,0};
+    for(int i=0;i<3;i++) {
+        int j=(i+1)%3;
+        double w[3]={a[3*i+1]*a[3*j+2]-a[3*i+2]*a[3*j+1],
+                     a[3*i+2]*a[3*j]-a[3*i]*a[3*j+2],
+                     a[3*i]*a[3*j+1]-a[3*i+1]*a[3*j]};
+        double norm=w[0]*w[0]+w[1]*w[1]+w[2]*w[2];
+        if(norm>best) {best=norm;for(int u=0;u<3;u++) v[u]=w[u];}
+    }
+    bad|=!(best>0) || !isfinite(best);
+    double length=sqrt(fmax(best,2.2250738585072014e-308));
+    for(int u=0;u<3;u++) v[u]/=length;
+    double residual=0;
+    for(int i=0;i<3;i++) {
+        double r=c[3*i]*v[0]+c[3*i+1]*v[1]+c[3*i+2]*v[2]-low*v[i];
+        residual+=r*r;
+    }
+    double floor=1e-12/unit,spectral=fmax(fabs(high),2.2250738585072014e-308);
+    double threshold=ratio*fmax(mid,floor);
+    // Cover closed-form root error near repeated upper eigenvalues.
+    bad|=mid-low<=1e-4*spectral || fabs(low-threshold)<=2e-8*spectral;
+    bad|=!isfinite(residual) || sqrt(residual)>64*eps*spectral;
+    bool tied=distances[row*(k+1)+k]-distances[row*(k+1)+k-1]
+              <=64*eps*fmax(1.0,distances[row*(k+1)+k]);
+    long long target=rows[row];
+    for(int u=0;u<3;u++) normal[3*target+u]=v[u];
+    planar[target]=low<=threshold;
+    done[target]=true;
+    repair[row]=(bad||tied)?1:0;
+}
+"""
+
 
 _FUSED_SOURCE = r"""
 extern "C" __global__ void project_query_system3(
@@ -152,7 +223,7 @@ def execution_identity() -> str:
     """Identify arithmetic, query code and runtime without the device model."""
     properties = cp.cuda.runtime.getDeviceProperties(cp.cuda.runtime.getDevice())
     system_digest = hashlib.sha256(
-        (_SYSTEM_SOURCE + _FUSED_SOURCE + _COVARIANCE_SOURCE).encode(),
+        (_SYSTEM_SOURCE + _FUSED_SOURCE + _COVARIANCE_SOURCE + _NORMAL_SOURCE).encode(),
     ).hexdigest()
     return (
         "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;"
@@ -161,7 +232,20 @@ def execution_identity() -> str:
         f"cc={properties['major']}.{properties['minor']};"
         f"query_sha256={hashlib.sha256(_SOURCE.encode()).hexdigest()};"
         f"system_sha256={system_digest}"
+        ";normal_schedule=async-v1"
     )
+
+
+@dataclass
+class _PendingNormals:
+    rows: cp.ndarray
+    flags: cp.ndarray
+    distances: cp.ndarray
+    indexes: cp.ndarray
+    native_flags: NDArray[np.uint8]
+    pinned: Any  # Own the pinned allocation until its download event completes.
+    ready: cp.cuda.Event
+    k: int
 
 
 class CudaOdometryTarget:
@@ -174,6 +258,7 @@ class CudaOdometryTarget:
     """
 
     def __init__(self, target: FloatArray, options: ScanOdometryOptions) -> None:
+        self._pending_normals: _PendingNormals | None = None
         if not 2 <= options.normal_neighbours <= 16:
             raise ValueError("CUDA normal neighborhoods require 2 through 16 neighbors")
         if not np.isfinite(options.max_correspondence_m) or options.max_correspondence_m <= 0:
@@ -200,6 +285,10 @@ class CudaOdometryTarget:
         self.normal_rows = 0
         self.registration_repairs = 0
         self.motion_repairs = 0
+        self.normal_kernel_calls = 0
+        self.async_normal_batches = 0
+        self._prepared_normal_rows = 0
+        self._all_done = False
         self.identity = execution_identity()
         with cp.cuda.Device(self.device_id):
             self.system_kernel = cp.RawKernel(_SYSTEM_SOURCE, "system3", options=("--fmad=false",))
@@ -213,84 +302,140 @@ class CudaOdometryTarget:
                 "covariance3",
                 options=("--fmad=false",),
             )
+            self.normal_kernel = cp.RawKernel(
+                _NORMAL_SOURCE, "normals3", options=("--fmad=false",),
+            )
+
+    def __del__(self) -> None:
+        # A caller can abandon a target while preprocessing/validation fails.
+        # Drain the queued writes before any target or pinned buffers are freed.
+        pending = getattr(self, "_pending_normals", None)
+        if pending is not None:
+            try:
+                with cp.cuda.Device(self.device_id):
+                    pending.ready.synchronize()
+            except Exception:
+                pass  # CUDA may already be shutting down during finalization.
+
+    def _prime_normals(self, source_rows: int) -> None:
+        """Enqueue one bounded dense batch while the caller prepares its source."""
+        if (self._all_done or self.normal_rows or self._pending_normals is not None
+                or len(self.host) > 65536 or source_rows < len(self.host) / 10):
+            return
+        with cp.cuda.Device(self.device_id):
+            # Allocate host ownership before submitting any asynchronous writes.
+            pinned = cp.cuda.alloc_pinned_memory(len(self.host))
+            native_flags = np.frombuffer(pinned, dtype=np.uint8, count=len(self.host))
+            rows = cp.arange(len(self.host), dtype=cp.int64)
+            k = min(self.options.normal_neighbours, len(self.host))
+            try:
+                flags, distances, indexes = self._launch_normals(rows, self.tree.data, k)
+                cp.asnumpy(flags, out=native_flags, blocking=False)
+                ready = cp.cuda.Event()
+                ready.record()
+                self._pending_normals = _PendingNormals(
+                    rows, flags, distances, indexes, native_flags, pinned, ready, k,
+                )
+                self.async_normal_batches += 1
+            except Exception:
+                cp.cuda.get_current_stream().synchronize()
+                self.done[rows] = False
+                self._all_done = False
+                raise
+
+    def _finish_normal_preparation(self) -> None:
+        pending = self._pending_normals
+        if pending is None:
+            return
+        with cp.cuda.Device(self.device_id):
+            try:
+                pending.ready.synchronize()
+                self._repair_normals(pending.rows, pending.k, pending.native_flags)
+            except Exception:
+                self.done[pending.rows] = False
+                self._all_done = False
+                raise
+            else:
+                self._prepared_normal_rows += len(pending.rows)
+                self._all_done = self._prepared_normal_rows == len(self.host)
+            finally:
+                self._pending_normals = None
 
     @property
     def normals(self) -> cp.ndarray:
         """Return the complete normal array, materializing it for explicit readers."""
         with cp.cuda.Device(self.device_id):
-            self._ensure(cp.arange(len(self.host)))
+            self._ensure_all()
         return self._normals
 
     @property
     def planar(self) -> cp.ndarray:
         """Return all planarity decisions; registration requests only its hits."""
         with cp.cuda.Device(self.device_id):
-            self._ensure(cp.arange(len(self.host)))
+            self._ensure_all()
         return self._planar
 
     def _ensure(self, hit: cp.ndarray) -> None:
+        self._finish_normal_preparation()
+        if self._all_done:
+            return
         missing = cp.unique(hit[~self.done[hit]])
+        self._compute_normals(missing)
+
+    def _ensure_all(self) -> None:
+        self._finish_normal_preparation()
+        if self._all_done:
+            return
+        if self.normal_rows:
+            self._ensure(cp.asarray(np.arange(len(self.host), dtype=np.int64)))
+        else:
+            self._compute_normals(
+                cp.asarray(np.arange(len(self.host), dtype=np.int64)), complete=True,
+            )
+
+    def _compute_normals(self, missing: cp.ndarray, *, complete: bool = False) -> None:
         k = min(self.options.normal_neighbours, len(self.host))
-        margin = 64 * np.finfo(np.float64).eps
         for start in range(0, len(missing), 65536):
             rows = missing[start : start + 65536]
-            self.normal_rows += len(rows)
-            distances, indexes = self.tree.query(self.tree.data[rows], k + 1)
-            ambiguous = distances[:, k] - distances[:, k - 1] <= (
-                margin * cp.maximum(1.0, distances[:, k])
+            queries = self.tree.data[start:start + len(rows)] if complete else self.tree.data[rows]
+            flags, _distances, _indexes = self._launch_normals(rows, queries, k)
+            try:
+                self._repair_normals(rows, k, cp.asnumpy(flags))
+            except Exception:
+                self.done[rows] = False
+                self._all_done = False
+                raise
+            self._prepared_normal_rows += len(rows)
+        self._all_done = self._prepared_normal_rows == len(self.host)
+
+    def _launch_normals(
+        self, rows: cp.ndarray, queries: cp.ndarray, k: int,
+    ) -> tuple[cp.ndarray, cp.ndarray, cp.ndarray]:
+        self.normal_rows += len(rows)
+        distances, indexes = self.tree.query(queries, k + 1)
+        flags = cp.empty(len(rows), dtype=cp.uint8)
+        self.normal_kernel(
+            ((len(rows) + 127) // 128,), (128,),
+            (self.tree.data, indexes, distances, rows, np.int32(len(rows)), np.int32(k),
+             np.float64(self.options.max_planarity_ratio), self._normals, self._planar,
+             self.done, flags),
+        )
+        self.normal_kernel_calls += 1
+        return flags, distances, indexes
+
+    def _repair_normals(self, rows: cp.ndarray, k: int, flags: NDArray[np.uint8]) -> None:
+        repair = np.flatnonzero(flags)
+        if len(repair):
+            native_rows = cp.asnumpy(rows[cp.asarray(repair)])
+            _, native_indices = self.tree.cpu.query(self.host[native_rows], k=k)
+            self.query_repairs += len(repair)
+            normals, planar = _normals_from_neighbours(
+                self.host, native_indices, k, self.options,
             )
-            repair = (
-                cp.asnumpy(cp.flatnonzero(ambiguous))
-                if int(cp.count_nonzero(ambiguous))
-                else np.empty(0, dtype=np.intp)
-            )
-            if len(repair):
-                native_rows = cp.asnumpy(rows[cp.asarray(repair)])
-                _, native = self.tree.cpu.query(self.host[native_rows], k=k)
-                indexes[cp.asarray(repair), :k] = cp.asarray(native)
-                self.query_repairs += len(repair)
-            covariance = cp.empty((len(rows), 3, 3), dtype=cp.float64)
-            self.covariance_kernel(
-                ((len(rows) + 127) // 128,),
-                (128,),
-                (
-                    self.tree.data,
-                    indexes,
-                    np.int32(len(rows)),
-                    np.int32(k),
-                    covariance,
-                ),
-            )
-            values, vectors = cp.linalg.eigh(covariance)
-            ratio = self.options.max_planarity_ratio
-            self._normals[rows] = vectors[:, :, 0]
-            self._planar[rows] = values[:, 0] <= ratio * cp.maximum(values[:, 1], 1e-12)
-            scale = cp.maximum(cp.abs(values[:, 2]), np.finfo(np.float64).tiny)
-            # Thin scan-line neighbourhoods can amplify eigensolver roundoff
-            # in the normal direction even away from the planarity threshold.
-            uncertain = (values[:, 1] - values[:, 0] <= 1e-4 * scale) | (
-                cp.abs(values[:, 0] - ratio * cp.maximum(values[:, 1], 1e-12)) <= margin * scale
-            )
-            repair = (
-                cp.asnumpy(cp.flatnonzero(uncertain))
-                if int(cp.count_nonzero(uncertain))
-                else np.empty(0, dtype=np.intp)
-            )
-            if len(repair):
-                native_rows = cp.asnumpy(rows[cp.asarray(repair)])
-                _, native_indices = self.tree.cpu.query(self.host[native_rows], k=k)
-                self.query_repairs += len(repair)
-                normals, planar = _normals_from_neighbours(
-                    self.host,
-                    native_indices,
-                    k,
-                    self.options,
-                )
-                selected = rows[cp.asarray(repair)]
-                self._normals[selected] = cp.asarray(normals)
-                self._planar[selected] = cp.asarray(planar)
-                self.normal_repairs += len(repair)
-            self.done[rows] = True
+            selected = rows[cp.asarray(repair)]
+            self._normals[selected] = cp.asarray(normals)
+            self._planar[selected] = cp.asarray(planar)
+            self.normal_repairs += len(repair)
 
     def register(self, source: FloatArray, initial: FloatArray) -> ScanRegistration:
         """Run native odometry iteration/stopping semantics on this captured target."""
@@ -309,12 +454,13 @@ class CudaOdometryTarget:
         uncertain_stopping = False
         scale = max(self.scale, float(np.max(np.abs(host_source))) if len(host_source) else 1.0)
         with cp.cuda.Device(self.device_id):
+            self._finish_normal_preparation()
             points = cp.asarray(host_source)
             # Dense overlap amortizes one batched normal query/eigensolve.
             # Sparse sources request only their hits to avoid preparing a large,
             # mostly unused target. This changes work scheduling, not geometry.
             if len(points) >= len(self.host) / 10:
-                self._ensure(cp.arange(len(self.host)))
+                self._ensure_all()
             terms = cp.empty((31, len(points)), dtype=cp.float64)
             uncertain = cp.empty(len(points), dtype=cp.float64)
             moved = cp.empty_like(points)
@@ -486,6 +632,8 @@ class CudaOdometryTarget:
             "gpu_fused_system_calls": self.fused_calls,
             "gpu_system_refresh_calls": self.system_refresh_calls,
             "gpu_normal_rows": self.normal_rows,
+            "gpu_normal_kernel_calls": self.normal_kernel_calls,
+            "gpu_async_normal_batches": self.async_normal_batches,
             "scalar_registration_repairs": self.registration_repairs,
             "scalar_motion_repairs": self.motion_repairs,
         }

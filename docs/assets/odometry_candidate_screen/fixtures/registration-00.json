@@ -1,0 +1,24 @@
+{
+  "options": {
+    "voxel_size_m": 0.03,
+    "min_range_m": 1.0,
+    "max_range_m": 60.0,
+    "normal_neighbours": 10,
+    "max_planarity_ratio": 0.2,
+    "max_correspondence_m": 1.5,
+    "huber_delta_m": 0.1,
+    "max_iterations": 30,
+    "convergence_translation_m": 0.0001,
+    "convergence_rotation_rad": 1e-05,
+    "min_correspondences": 200,
+    "local_map_scans": 3,
+    "deskew_iterations": 1,
+    "geometry_quantum_m": 1e-09,
+    "motion_translation_quantum_m": 1e-06,
+    "motion_rotation_quantum_rad": 1e-07,
+    "query_workers": 1
+  },
+  "fixture_sha256": "38e44cc53225fccbb7f1a51b2dfe6ac465565f82ed33f5672ecfc064ca465d94",
+  "input_bag": "data/public/glim_versatile/livox.bag",
+  "source_manifest_sha256": "d9cfb176dc15319b3c32e0733a1fb35302632899ee00c9c6c68b9fd1c7a69fe6"
+}

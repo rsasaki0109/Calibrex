@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "B-spline LiDAR-IMU publication integrity index",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "provenance", "files"],
+  "properties": {
+    "schema_version": {"const": "slac.bspline_lidar_imu_publication/v0.1"},
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["input_protocol_sha256"],
+      "properties": {
+        "input_protocol_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      }
+    },
+    "files": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"type": "string", "minLength": 1},
+      "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+    }
+  }
+}

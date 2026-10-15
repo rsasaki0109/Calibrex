@@ -1,0 +1,95 @@
+"""Diagnostic stable GPU voxel reductions; fixed public raw and registration scans."""
+from pathlib import Path
+import os
+for name in ('OPENBLAS_NUM_THREADS','MKL_NUM_THREADS','OMP_NUM_THREADS'):os.environ[name]='1'
+root=Path(__file__).resolve().parent
+out=root/'outputs/cuda-voxel-preprocessing-pilot-v1';out.mkdir(exist_ok=False)
+os.environ['CUPY_CACHE_DIR']=str(out/'cupy-cache')
+import hashlib,json,statistics,time
+import cupy as cp
+import numpy as np
+from calibrex.data.livox_ros2 import LivoxStreamProfile,iter_livox_points
+from calibrex.solvers import scan_to_scan_odometry as native
+
+SOURCE=r'''
+extern "C" __global__ void crop_keys(const double* input,int n,double quantum,
+    double voxel,double low,double high,double* xyz,long long* keys,bool* valid) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;if(row>=n)return;
+    double p[3];
+    for(int a=0;a<3;++a) {
+        p[a]=input[3*row+a];if(quantum>0)p[a]=nearbyint(p[a]/quantum)*quantum;
+        xyz[3*row+a]=p[a];
+    }
+    double range=sqrt((p[0]*p[0]+p[1]*p[1])+p[2]*p[2]);
+    valid[row]=range>=low && range<=high;
+    for(int a=0;a<3;++a)keys[3*row+a]=valid[row]?(long long)floor(p[a]/voxel):0;
+}
+extern "C" __global__ void flatten(const long long* keys,int n,const long long x,
+    const long long y,const long long z,const long long dy,const long long dz,long long* flat) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;if(row>=n)return;
+    flat[row]=((keys[3*row]-x)*dy+(keys[3*row+1]-y))*dz+(keys[3*row+2]-z);
+}
+extern "C" __global__ void centroids(const double* xyz,const long long* order,
+    const long long* starts,int n,int groups,double quantum,double* output) {
+    int group=blockDim.x*blockIdx.x+threadIdx.x;if(group>=groups)return;
+    long long begin=starts[group],end=group+1<groups?starts[group+1]:n;
+    double sum[3]={0.,0.,0.};
+    for(long long i=begin;i<end;++i) for(int a=0;a<3;++a)sum[a]+=xyz[3*order[i]+a];
+    for(int a=0;a<3;++a) {
+        double v=sum[a]/(end-begin);if(quantum>0)v=nearbyint(v/quantum)*quantum;
+        output[3*group+a]=v;
+    }
+}
+'''
+module=cp.RawModule(code=SOURCE,options=('--fmad=false',))
+kernels={k:module.get_function(k) for k in ('crop_keys','flatten','centroids')}
+
+def candidate(points,options):
+    points=cp.asarray(np.ascontiguousarray(points[:,:3],dtype=np.float64));n=len(points)
+    xyz=cp.empty_like(points);keys=cp.empty((n,3),dtype=cp.int64);valid=cp.empty(n,dtype=cp.bool_)
+    kernels['crop_keys'](((n+127)//128,),(128,),(points,np.int32(n),np.float64(options.geometry_quantum_m),np.float64(options.voxel_size_m),np.float64(options.min_range_m),np.float64(options.max_range_m),xyz,keys,valid))
+    xyz=xyz[valid];keys=keys[valid];n=len(xyz)
+    if not n:return np.empty((0,3))
+    bounds=cp.asnumpy(cp.stack((cp.min(keys,axis=0),cp.max(keys,axis=0))))
+    low=bounds[0];dims=[int(h)-int(l)+1 for l,h in zip(low,bounds[1])]
+    assert np.prod(dims,dtype=object)<=np.iinfo(np.int64).max
+    flat=cp.empty(n,dtype=cp.int64)
+    kernels['flatten'](((n+127)//128,),(128,),(keys,np.int32(n),*(np.int64(x) for x in low),np.int64(dims[1]),np.int64(dims[2]),flat))
+    order=cp.argsort(flat,kind='stable');sorted_keys=flat[order]
+    first=cp.empty(n,dtype=cp.bool_);first[0]=True;first[1:]=sorted_keys[1:]!=sorted_keys[:-1]
+    starts=cp.flatnonzero(first).astype(cp.int64,copy=False)
+    result=cp.empty((len(starts),3),dtype=cp.float64)
+    kernels['centroids'](((len(starts)+127)//128,),(128,),(xyz,order,starts,np.int32(n),np.int32(len(starts)),np.float64(options.geometry_quantum_m),result))
+    return cp.asnumpy(result)
+
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+bag=root/'data/public/glim_versatile/livox.bag'
+stream=iter_livox_points(bag,LivoxStreamProfile('public-glim','/livox/points','/livox/imu','t','offset_s','g'))
+cases=[(f'raw-{i}',next(stream)[1],native.ScanOdometryOptions(voxel_size_m=.03,geometry_quantum_m=1e-9)) for i in range(8)]
+fixtures=root/'outputs/odometry-search-profile-v2'
+for i in range(8):
+    data=np.load(fixtures/f'registration-{i:02d}.npz')
+    meta=json.loads((fixtures/f'registration-{i:02d}.json').read_bytes())
+    cases.append((f'processed-{i}',data['source'],native.ScanOdometryOptions(**meta['options'])))
+protocol={'scope':__doc__,'launcher_sha256':sha(Path(__file__)),'source_sha256':sha(Path(native.__file__)),
+          'kernel_sha256':hashlib.sha256(SOURCE.encode()).hexdigest(),'bag_sha256':sha(bag),
+          'fixtures':{p.name:sha(p) for p in fixtures.glob('registration-*.*')},'blas_threads':1}
+(out/'protocol.json').write_text(json.dumps(protocol,indent=2)+'\n',encoding='utf-8')
+references={name:native.preprocess_scan(points,options) for name,points,options in cases}
+runs=[]
+for repeat in range(7):
+    for variant in (('prior','current') if repeat%2==0 else ('current','prior')):
+        for name,points,options in cases:
+            start=time.perf_counter();result=(native.preprocess_scan if variant=='prior' else candidate)(points,options);seconds=time.perf_counter()-start
+            expected=references[name]
+            exact=result.shape==expected.shape and np.array_equal(result.view(np.uint64),expected.view(np.uint64))
+            if not exact:
+                print('MISMATCH',variant,name,result.shape,expected.shape,flush=True)
+                if result.shape==expected.shape:print('maxerror',np.max(np.abs(result-expected)),'rows',np.count_nonzero(np.any(result.view(np.uint64)!=expected.view(np.uint64),axis=1)),flush=True)
+            assert exact,(variant,name)
+            runs.append({'repeat':repeat,'variant':variant,'case':name,'seconds':seconds,'input_rows':len(points),'output_rows':len(result)})
+        print(json.dumps({'repeat':repeat,'variant':variant,'seconds':sum(r['seconds'] for r in runs if r['repeat']==repeat and r['variant']==variant)}),flush=True)
+(out/'runs.json').write_text(json.dumps(runs,indent=2)+'\n',encoding='utf-8')
+medians={scope:{v:statistics.median(sum(r['seconds'] for r in runs if r['case'].startswith(scope) and r['variant']==v and r['repeat']==i) for i in range(1,7)) for v in ('prior','current')} for scope in ('raw','processed')}
+summary={'medians':medians,'speedups':{k:v['prior']/v['current'] for k,v in medians.items()},'exact':True,'provenance':{'protocol_sha256':sha(out/'protocol.json'),'scope':'exploratory retained-cache fit component, first round retained separately; no whole-bag claim'}}
+(out/'summary.json').write_text(json.dumps(summary,indent=2)+'\n',encoding='utf-8');print(json.dumps(summary),flush=True)

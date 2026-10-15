@@ -1,0 +1,94 @@
+"""Diagnostic guarded GPU iteration batches over all fixed public scan fixtures."""
+from pathlib import Path
+import os
+for name in ('OPENBLAS_NUM_THREADS','MKL_NUM_THREADS','OMP_NUM_THREADS'):os.environ[name]='1'
+root=Path(__file__).resolve().parent
+out=root/'outputs/batched-odometry-pilot-v2';out.mkdir(exist_ok=False)
+os.environ['CUPY_CACHE_DIR']=str(out/'cupy-cache')
+import hashlib,json,math,statistics,time
+import numpy as np
+import cupy as cp
+from calibrex.solvers import cuda_scan_odometry_adapter as adapter
+from calibrex.solvers.scan_to_scan_odometry import ScanOdometryOptions,ScanRegistration,_quantize_geometry,_canonicalize_motion
+
+namespace={};exec((root/'.tmp-calibrex-cuda-batched-odometry-kernels-v1.py').read_bytes(),namespace)
+source=adapter._FUSED_SOURCE.replace('const double* xyz, const double* matrix,','const double* xyz, const double* matrix, const int* state,')
+source=source.replace('const double huber, const double error, double* uncertain,','const double huber, const double* meta, double* uncertain,')
+source=source.replace('    int row=blockDim.x*blockIdx.x+threadIdx.x;','    if(state[0])return;\n    const double error=meta[0];\n    int row=blockDim.x*blockIdx.x+threadIdx.x;',1)
+source+=namespace['SOURCE']
+module=cp.RawModule(code=source,options=('--fmad=false',))
+query=module.get_function('project_query_system3');reduce=module.get_function('reduce_system');solve=module.get_function('solve_update')
+batch_size=4
+
+class Target(adapter.CudaOdometryTarget):
+    def register(self,source,initial):
+        host=adapter._coordinates(_quantize_geometry(source,self.options.geometry_quantum_m),'source')
+        transform=np.array(initial,dtype=np.float64,order='C',copy=True)
+        n=len(host);opts=self.options
+        if not n or n<len(self.host)/10:return super().register(source,initial)
+        self._ensure_all()
+        scale=max(self.scale,float(np.max(np.abs(host))))
+        with cp.cuda.Device(self.device_id):
+            points=cp.asarray(host);matrix=cp.asarray(transform)
+            state=cp.zeros(2,dtype=cp.int32)
+            meta=cp.asarray(np.array([128*np.finfo(float).eps*scale*max(1.,float(np.linalg.norm(transform,ord=1))),math.inf,0.,0.,0.]))
+            hessian=cp.zeros((6,6),dtype=cp.float64)
+            terms=cp.empty((31,n),dtype=cp.float64);uncertain=cp.empty(n,dtype=cp.float64)
+            moved=cp.empty_like(points);distances=cp.empty((n,2),dtype=cp.float64);indexes=cp.empty((n,2),dtype=cp.int64);pending=cp.empty(n,dtype=cp.int64)
+            blocks=(n+255)//256;partial=cp.empty((31,blocks),dtype=cp.float64)
+            progress=np.zeros(2,dtype=np.int32)
+            while progress[0]==0 and progress[1]<opts.max_iterations:
+                count=min(batch_size,opts.max_iterations-int(progress[1]))
+                for _ in range(count):
+                    query(((n+127)//128,),(128,),(points,matrix,state,self.tree.data,*self.tree.arrays,self._normals,self._planar,self.done,np.int32(n),np.int32(len(self.host)),np.float64(opts.max_correspondence_m),np.float64(opts.huber_delta_m),meta,uncertain,terms,moved,distances,indexes,pending))
+                    reduce((31*blocks,),(256,),(terms,np.int32(n),np.int32(blocks),state,partial))
+                    solve((1,),(1,),(partial,np.int32(blocks),np.int32(opts.min_correspondences),np.float64(opts.convergence_translation_m),np.float64(opts.convergence_rotation_rad),np.float64(scale),matrix,hessian,meta,state))
+                progress=cp.asnumpy(state)
+            calls=int(progress[1]);self.tree.query_calls+=calls;self.tree.query_rows+=calls*n;self.fused_calls+=calls
+            if progress[0]==2:
+                self.batch_fallbacks=getattr(self,'batch_fallbacks',0)+1
+                return super().register(source,initial)
+            transform=cp.asnumpy(matrix);values=cp.asnumpy(meta);normal=cp.asnumpy(hessian)
+        if self._near_motion_boundary(transform):
+            self.batch_fallbacks=getattr(self,'batch_fallbacks',0)+1
+            return super().register(source,initial)
+        eigenvalue=0. if not values[3] else float(np.linalg.eigvalsh(normal)[0])/values[3]
+        return ScanRegistration(_canonicalize_motion(transform,opts),bool(values[4] and values[2]>=opts.min_correspondences),calls,int(values[2]),float(values[1]),float(eigenvalue),execution_backend=self.identity)
+
+fixtures=root/'outputs/odometry-search-profile-v2'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+protocol={'scope':__doc__,'launcher_sha256':sha(Path(__file__)),'kernel_helper_sha256':sha(root/'.tmp-calibrex-cuda-batched-odometry-kernels-v1.py'),
+    'sources':{p.relative_to(root).as_posix():sha(p) for p in sorted((root/'src/calibrex').rglob('*.py'))},
+    'fixtures':{p.name:sha(p) for p in fixtures.glob('registration-*.*')},'kernel_sha256':hashlib.sha256(source.encode()).hexdigest(),
+    'timing_scope':'complete target construction and registration after explicit one-case warmup, with guarded full existing-GPU fallback included; not whole bag timing','blas_threads':1}
+(out/'protocol.json').write_text(json.dumps(protocol,indent=2)+'\n',encoding='utf-8')
+cases=[]
+for i in range(8):
+    data=np.load(fixtures/f'registration-{i:02d}.npz');meta=json.loads((fixtures/f'registration-{i:02d}.json').read_bytes())
+    cases.append((data,ScanOdometryOptions(**meta['options'])))
+variants=('prior','4','8');references={};runs=[]
+for variant in variants:
+    cls=adapter.CudaOdometryTarget if variant=='prior' else Target
+    if variant!='prior':batch_size=int(variant)
+    data,opts=cases[0];cls(data['target'],opts).register(data['source'],data['initial'])
+for repeat in range(5):
+    for variant in variants[repeat%3:]+variants[:repeat%3]:
+        cls=adapter.CudaOdometryTarget if variant=='prior' else Target
+        if variant!='prior':batch_size=int(variant)
+        for case,(data,opts) in enumerate(cases):
+            start=time.perf_counter();target=cls(data['target'],opts);init=time.perf_counter()
+            result=target.register(data['source'],data['initial']);seconds=time.perf_counter()-start
+            payload={k:v for k,v in vars(result).items() if k!='execution_backend'};payload['transform']=result.transform.tolist()
+            if case not in references:references[case]=payload
+            expected=references[case]
+            for k in ('converged','iterations','correspondences'):assert payload[k]==expected[k],(variant,case,k,payload[k],expected[k])
+            for k in ('transform','rmse_m','hessian_min_eigenvalue'):np.testing.assert_allclose(payload[k],expected[k],rtol=1e-6,atol=1e-9)
+            runs.append({'repeat':repeat,'variant':variant,'case':case,'seconds':seconds,'initialization_seconds':init-start,
+                         'result':payload,'work':target.statistics(),'fallbacks':getattr(target,'batch_fallbacks',0),
+                         'physical_exact':payload==expected})
+        print(json.dumps({'repeat':repeat,'variant':variant,'seconds':sum(r['seconds'] for r in runs if r['variant']==variant and r['repeat']==repeat),
+                          'fallbacks':sum(r['fallbacks'] for r in runs if r['variant']==variant and r['repeat']==repeat)}),flush=True)
+    (out/'runs.json').write_text(json.dumps(runs,indent=2)+'\n',encoding='utf-8')
+medians={v:statistics.median(sum(r['seconds'] for r in runs if r['variant']==v and r['repeat']==i) for i in range(5)) for v in variants}
+summary={'median_seconds':medians,'speedups':{v:medians['prior']/x for v,x in medians.items()},'quality_passed':True,'provenance':{'protocol_sha256':sha(out/'protocol.json')}}
+(out/'summary.json').write_text(json.dumps(summary,indent=2)+'\n',encoding='utf-8');print(json.dumps(summary),flush=True)

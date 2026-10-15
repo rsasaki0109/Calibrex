@@ -1,0 +1,136 @@
+"""Archive complete candidate screens; every candidate remains experimental."""
+from pathlib import Path
+import gzip,hashlib,io,json,shutil,tarfile
+from tools.audit_odometry_candidate_screen import audit
+
+root=Path('docs/assets/odometry_candidate_screen');root.mkdir(exist_ok=False)
+profile=Path('outputs/odometry-search-profile-v2')
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+write=lambda p,v:p.write_text(json.dumps(v,indent=2)+'\n',encoding='utf-8',newline='\n')
+cohorts=[
+    ('voxels','outputs/cuda-voxel-preprocessing-pilot-v1','.tmp-calibrex-pilot-cuda-voxels-v1.py',['prior','current']),
+    ('layout','outputs/query-layout-pilot-v2','.tmp-calibrex-pilot-query-layout-v2.py',['prior','fixed','network','packed']),
+    ('radix','outputs/radix-odometry-tree-pilot-v2','.tmp-calibrex-pilot-radix-tree-v1.py',['prior','radix']),
+    ('ordering','outputs/coherent-query-order-pilot-v1','.tmp-calibrex-pilot-query-order-v1.py',['prior','normal','morton','native_order']),
+    ('batching','outputs/batched-odometry-pilot-v2','.tmp-calibrex-pilot-batched-odometry-v1.py',['prior','4','8']),
+]
+source=profile/'sources'
+shutil.copyfile(source/'manifest.json',root/'source-manifest.json')
+with (root/'sources.tar.gz').open('wb') as raw:
+    with gzip.GzipFile(filename='',mode='wb',fileobj=raw,mtime=0) as compressed:
+        with tarfile.open(fileobj=compressed,mode='w') as bundle:
+            entries=[('LICENSE',Path('LICENSE').read_bytes()),*(
+                (p.relative_to(source).as_posix(),p.read_bytes()) for p in sorted((source/'src').rglob('*.py')))]
+            for name,data in entries:
+                info=tarfile.TarInfo(name);info.size=len(data);info.mtime=0;info.mode=0o644
+                bundle.addfile(info,io.BytesIO(data))
+(root/'profile').mkdir()
+for name in ('parent.json','measurement.json','result.json','profile.txt','launcher.py.txt','worker.log'):
+    shutil.copyfile(profile/name,root/'profile'/name)
+shutil.copyfile('tools/benchmark_bspline_lidar_imu.py',root/'profile/benchmark.py.txt')
+(root/'fixtures').mkdir()
+for path in sorted(profile.glob('registration-*.json')):
+    shutil.copyfile(path,root/'fixtures'/path.name)
+old=Path('outputs/fused-map-formal-v1/sources-current/src/calibrex/solvers')
+(root/'radix-inputs').mkdir()
+for name in ('cuda_lidar_map_adapter.py','cuda_scan_odometry_adapter.py'):
+    shutil.copyfile(old/name,root/'radix-inputs'/(name+'.txt'))
+specs=[];comparisons=[];observations=0
+for name,directory,launcher,variants in cohorts:
+    source=Path(directory);folder=root/name;folder.mkdir()
+    for item in ('protocol.json','runs.json','summary.json'):shutil.copyfile(source/item,folder/item)
+    protocol=json.loads((source/'protocol.json').read_bytes())
+    assert sha(Path(launcher))==protocol['launcher_sha256']
+    shutil.copyfile(launcher,folder/'launcher.py.txt')
+    if name=='ordering':shutil.copyfile(source/'candidate_adapter.py',folder/'candidate.py.txt')
+    if name=='batching':shutil.copyfile('.tmp-calibrex-cuda-batched-odometry-kernels-v1.py',folder/'kernels.py.txt')
+    voxel=name=='voxels'
+    cases=[f'{prefix}-{i}' for prefix in ('raw','processed') for i in range(8)] if voxel else list(range(8))
+    scopes=[{'name':p,'case_prefix':p,'first_repeat':1} for p in ('raw','processed')] if voxel else [{'name':'target_and_registration','first_repeat':0}]
+    specs.append({'name':name,'cases':cases,'variants':variants,'repeats':7 if voxel else 5,
+                  'scopes':scopes,'quality':'numeric' if name=='batching' else 'exact'})
+    runs=json.loads((folder/'runs.json').read_bytes());observations+=len(runs)
+    summary=json.loads((folder/'summary.json').read_bytes())
+    for scope in scopes:
+        prefix=scope.get('case_prefix')
+        medians=summary['medians'][prefix] if voxel else summary['median_seconds']
+        for variant in variants[1:]:
+            comparisons.append({'cohort':name,'scope':scope['name'],'variant':variant,
+                'prior_seconds':medians['prior'],'candidate_seconds':medians[variant],
+                'speedup':medians['prior']/medians[variant]})
+record=json.loads((profile/'result.json').read_bytes())
+measurement=json.loads((profile/'measurement.json').read_bytes())
+screen={'schema_version':'slac.odometry_candidate_screen/v0.1','decision':'no_candidate_adopted',
+        'source_commit':record['provenance']['git_commit'],'bag_sha256':measurement['provenance']['bag_sha256'],
+        'observations':observations,'cohorts':specs,'comparisons':comparisons,
+        'provenance':{'source_manifest_sha256':sha(root/'source-manifest.json'),
+                      'publisher_sha256':sha(Path(__file__)),
+                      'profile_parent_sha256':sha(root/'profile/parent.json')}}
+write(root/'screen.json',screen)
+shutil.copyfile('tools/schemas/odometry_candidate_screen.schema.json',root/'screen.schema.json')
+shutil.copyfile(__file__,root/'publisher.py.txt')
+shutil.copyfile('tools/audit_odometry_candidate_screen.py',root/'audit.py.txt')
+labels={('voxels','current','raw'):'Stable GPU voxel reduction, raw scans',
+        ('voxels','current','processed'):'Stable GPU voxel reduction, processed scans',
+        ('layout','fixed','target_and_registration'):'Fixed k=11 query',
+        ('layout','network','target_and_registration'):'Unrolled neighbor insertion',
+        ('layout','packed','target_and_registration'):'Leaf-packed reference coordinates',
+        ('radix','radix','target_and_registration'):'GPU radix tree with lazy native repairs',
+        ('ordering','normal','target_and_registration'):'Tree-ordered normal queries',
+        ('ordering','morton','target_and_registration'):'Morton-ordered source queries',
+        ('ordering','native_order','target_and_registration'):'CPU-tree-ordered source queries',
+        ('batching','4','target_and_registration'):'Guarded GPU batches of four iterations',
+        ('batching','8','target_and_registration'):'Guarded GPU batches of eight iterations'}
+table='\n'.join(['| Candidate / scope | Previous | Candidate | Observed ratio |',
+    '| --- | ---: | ---: | ---: |',*(
+    f"| {labels[(r['cohort'],r['variant'],r['scope'])]} | {r['prior_seconds']:.6f} s | {r['candidate_seconds']:.6f} s | {r['speedup']:.3f}x |" for r in comparisons)])
+readme=f'''# Odometry candidate screening
+
+All ten candidate strategies remain experimental. No runtime change is adopted.
+The best complete target-construction/registration screen is only 1.158x; no
+whole-bag improvement is inferred from these small fixed-input observations.
+
+{table}
+
+Five separate cohorts retain all 744 observations and their own baselines.
+They are not pooled. Four cohorts rotate the candidate order over five repeats
+of eight captured public GLIM registration inputs. One first-case compilation
+warmup per variant is outside their timing. Scope includes construction,
+normal preparation, native repairs and registration. The voxel cohort retains
+seven rounds over eight original raw scans and eight processed inputs; its
+six-round retained-cache medians exclude round zero explicitly, with round zero
+retained. Its first candidate round takes about 2.935 seconds, including
+on-demand operation compilation; module setup is outside this pilot's timing.
+There is no fresh-process/cold performance claim and no complete-bag candidate
+evaluation. One BLAS thread is used; host CPU/GPU activity is unreserved.
+
+All registration decisions, iterations and correspondence counts match. Layout,
+radix and ordering pilots retain exactly equal numeric registration fields;
+batched updates use abs 1e-9 / rel 1e-6 for transforms/RMSE/eigenvalues. All
+batched fixed-case runs report zero full-path fallbacks. This does not validate
+their unexercised fallback/boundary cases. The voxel launcher asserts coordinate
+bit equality and preserves point counts; coordinate payloads are not archived,
+so its CPU-only audit checks counts/timings/source bindings, not the coordinates.
+
+The CPU-only audit recomputes every timing aggregate and checks all observations,
+retained registration fields/work, source capsules, launcher/protocol hashes,
+scope and input identities. Raw scans and compiler caches are not redistributed.
+The launchers are diagnostic scripts with fixed repository-relative inputs and
+output directories; they are frozen as text and are not production APIs.
+
+The separately retained cProfile run diagnoses the current pipeline. Its
+instrumentation and eight fixture captures add overhead; its roughly 88 second
+worker profile is not compared with uninstrumented bag benchmarks. Runtime
+source is `{screen['source_commit']}` and bag SHA-256 is
+`{screen['bag_sha256']}`. This clip supplies no independent calibration truth.
+
+```bash
+python -m tools.audit_odometry_candidate_screen docs/assets/odometry_candidate_screen
+```
+'''
+(root/'README.md').write_text(readme,encoding='utf-8',newline='\n')
+write(root/'publication-index.json',{'schema_version':'slac.odometry_screen_publication/v0.1',
+    'provenance':{'screen_sha256':sha(root/'screen.json')},'files':{
+        p.relative_to(root).as_posix():sha(p) for p in sorted(root.rglob('*')) if p.is_file()}})
+print(json.dumps(audit(root),indent=2))
+print(table)

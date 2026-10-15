@@ -1,0 +1,84 @@
+"""Publish byte-exact cold and retained-cache public map comparisons."""
+import hashlib
+import gzip
+import io
+import json
+from pathlib import Path
+import shutil
+import tarfile
+
+from tools.audit_cuda_map_preparation import audit
+
+destination=Path('docs/assets/cuda_map_registration_fusion')
+sha=lambda path:hashlib.sha256(path.read_bytes()).hexdigest()
+if destination.exists():
+    for cohort in ('cold','retained'): audit(destination/cohort)
+destination.mkdir(exist_ok=True)
+for cohort in ('cold','retained'):
+    source=Path(f'outputs/map-registration-fusion-{cohort}-pairs-v3')
+    target=destination/cohort
+    target.mkdir(exist_ok=True)
+    protocol=json.loads((source/'protocol.json').read_bytes())
+    attempts=json.loads((source/'attempts.json').read_bytes())
+    summary=json.loads((source/'summary.json').read_bytes())
+    assert summary['quality_passed']
+    for name in ('protocol.json','attempts.json','summary.json'):
+        shutil.copyfile(source/name,target/name)
+    for attempt in attempts:
+        worker=attempt['worker']
+        (target/worker).mkdir(exist_ok=True)
+        for name in ('measurement.json','result.json','worker.log'):
+            shutil.copyfile(source/worker/name,target/worker/name)
+    for variant in ('prior','current'):
+        root=source/f'sources-{variant}'
+        shutil.copyfile(root/'manifest.json',target/f'sources-{variant}-manifest.json')
+        with (target/f'sources-{variant}.tar.gz').open('wb') as raw_archive, gzip.GzipFile(
+                fileobj=raw_archive, filename='', mode='wb', mtime=0) as compressed, tarfile.open(
+                fileobj=compressed, mode='w') as bundle:
+            for name,raw in [('LICENSE',Path('LICENSE').read_bytes()),*(
+                (p.relative_to(root).as_posix(),p.read_bytes()) for p in sorted((root/'src').rglob('*.py')))]:
+                info=tarfile.TarInfo(name)
+                info.size,info.mtime,info.mode=len(raw),0,0o644
+                bundle.addfile(info,io.BytesIO(raw))
+    (target/'launchers').mkdir(exist_ok=True)
+    for name,digest in protocol['launchers_sha256'].items():
+        assert sha(Path(name))==digest,name
+        shutil.copyfile(name,target/'launchers'/(Path(name).name+'.txt'))
+    shutil.copyfile('tools/schemas/cuda_map_preparation_comparison.schema.json',target/'comparison.schema.json')
+    shutil.copyfile(__file__,target/'publisher.py.txt')
+    medians=summary['median_seconds']
+    readme=f'''# Fused CUDA map registration: {cohort} compiler cache
+
+| Scope | Previous (s) | Fused registration (s) | Ratio |
+| --- | ---: | ---: | ---: |
+| Complete fresh process | {medians['wall_seconds']['prior']:.6f} | {medians['wall_seconds']['current']:.6f} | {summary['whole_speedup']:.3f}x |
+| Complete map evaluation API | {medians['api_seconds']['prior']:.6f} | {medians['api_seconds']['current']:.6f} | {summary['api_speedup']:.3f}x |
+
+All {len(attempts)} processes are retained, including first initialization and
+compilation. The {cohort} cohort has {protocol['repetitions']} alternating pairs.
+Cold mode starts each worker with a separate empty cache. Retained mode starts
+each method's cache empty and retains it across its subsequent fresh processes.
+No warmup, timing exclusions or discarded observations enter these medians.
+
+Every original byte is preserved, including operator input paths in provenance.
+The prior revision is `{protocol['baseline_commit']}`; the current revision is
+`{protocol['current_commit']}`. Both source trees, actual-import hashes, exact
+launchers/schema, complete observations/results, timings and cache-file hashes
+are bound by publication-index.json. Raw scans and compiler binaries are external.
+The measurements use an unreserved host and are descriptive, with no portable
+speed guarantee. This is the existing copied-sensor KITTI execution control,
+not independent two-LiDAR calibration accuracy or bag decoding/odometry timing.
+
+See [scope and reproduction](../../../benchmarks/cuda_map_registration_fusion.md).
+
+```bash
+python -m tools.audit_cuda_map_preparation docs/assets/cuda_map_registration_fusion/{cohort}
+```
+'''
+    (target/'README.md').write_text(readme,encoding='utf-8',newline='\n')
+    files={p.relative_to(target).as_posix():sha(p) for p in sorted(target.rglob('*')) if p.is_file() and p.name!='publication-index.json'}
+    (target/'publication-index.json').write_text(json.dumps({
+        'schema_version':'calibrex.cuda_map_preparation_publication/v0.1',
+        'files':files,'provenance':{'raw_protocol_sha256':sha(source/'protocol.json')}},indent=2)+'\n',
+        encoding='utf-8',newline='\n')
+    print(json.dumps({'cohort':cohort,'audit':audit(target)}),flush=True)

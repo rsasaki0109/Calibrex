@@ -1,0 +1,248 @@
+{
+  "schema_version": "slac.odometry_candidate_screen/v0.1",
+  "decision": "no_candidate_adopted",
+  "source_commit": "3b006a4be3babcf2b0e5c537993105b7d1c68b46",
+  "bag_sha256": "f57a2e85339316d4235ab693ab2876aac5e113625c7f8b0f7873b62f92e09643",
+  "observations": 744,
+  "cohorts": [
+    {
+      "name": "voxels",
+      "cases": [
+        "raw-0",
+        "raw-1",
+        "raw-2",
+        "raw-3",
+        "raw-4",
+        "raw-5",
+        "raw-6",
+        "raw-7",
+        "processed-0",
+        "processed-1",
+        "processed-2",
+        "processed-3",
+        "processed-4",
+        "processed-5",
+        "processed-6",
+        "processed-7"
+      ],
+      "variants": [
+        "prior",
+        "current"
+      ],
+      "repeats": 7,
+      "scopes": [
+        {
+          "name": "raw",
+          "case_prefix": "raw",
+          "first_repeat": 1
+        },
+        {
+          "name": "processed",
+          "case_prefix": "processed",
+          "first_repeat": 1
+        }
+      ],
+      "quality": "exact"
+    },
+    {
+      "name": "layout",
+      "cases": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "variants": [
+        "prior",
+        "fixed",
+        "network",
+        "packed"
+      ],
+      "repeats": 5,
+      "scopes": [
+        {
+          "name": "target_and_registration",
+          "first_repeat": 0
+        }
+      ],
+      "quality": "exact"
+    },
+    {
+      "name": "radix",
+      "cases": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "variants": [
+        "prior",
+        "radix"
+      ],
+      "repeats": 5,
+      "scopes": [
+        {
+          "name": "target_and_registration",
+          "first_repeat": 0
+        }
+      ],
+      "quality": "exact"
+    },
+    {
+      "name": "ordering",
+      "cases": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "variants": [
+        "prior",
+        "normal",
+        "morton",
+        "native_order"
+      ],
+      "repeats": 5,
+      "scopes": [
+        {
+          "name": "target_and_registration",
+          "first_repeat": 0
+        }
+      ],
+      "quality": "exact"
+    },
+    {
+      "name": "batching",
+      "cases": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "variants": [
+        "prior",
+        "4",
+        "8"
+      ],
+      "repeats": 5,
+      "scopes": [
+        {
+          "name": "target_and_registration",
+          "first_repeat": 0
+        }
+      ],
+      "quality": "numeric"
+    }
+  ],
+  "comparisons": [
+    {
+      "cohort": "voxels",
+      "scope": "raw",
+      "variant": "current",
+      "prior_seconds": 0.02289605006808415,
+      "candidate_seconds": 0.021742450073361397,
+      "speedup": 1.053057497698299
+    },
+    {
+      "cohort": "voxels",
+      "scope": "processed",
+      "variant": "current",
+      "prior_seconds": 0.016450499882921576,
+      "candidate_seconds": 0.02003365004202351,
+      "speedup": 0.8211434186188862
+    },
+    {
+      "cohort": "layout",
+      "scope": "target_and_registration",
+      "variant": "fixed",
+      "prior_seconds": 0.39265640033409,
+      "candidate_seconds": 0.38714399992022663,
+      "speedup": 1.0142386306258115
+    },
+    {
+      "cohort": "layout",
+      "scope": "target_and_registration",
+      "variant": "network",
+      "prior_seconds": 0.39265640033409,
+      "candidate_seconds": 0.3756191999418661,
+      "speedup": 1.0453576398513726
+    },
+    {
+      "cohort": "layout",
+      "scope": "target_and_registration",
+      "variant": "packed",
+      "prior_seconds": 0.39265640033409,
+      "candidate_seconds": 0.39473100006580353,
+      "speedup": 0.9947442695623914
+    },
+    {
+      "cohort": "radix",
+      "scope": "target_and_registration",
+      "variant": "radix",
+      "prior_seconds": 0.45712430006824434,
+      "candidate_seconds": 0.3946169000118971,
+      "speedup": 1.1584002105699547
+    },
+    {
+      "cohort": "ordering",
+      "scope": "target_and_registration",
+      "variant": "normal",
+      "prior_seconds": 0.37790530011989176,
+      "candidate_seconds": 0.3803404999198392,
+      "speedup": 0.9935973166137693
+    },
+    {
+      "cohort": "ordering",
+      "scope": "target_and_registration",
+      "variant": "morton",
+      "prior_seconds": 0.37790530011989176,
+      "candidate_seconds": 0.38576929981354624,
+      "speedup": 0.9796147601754329
+    },
+    {
+      "cohort": "ordering",
+      "scope": "target_and_registration",
+      "variant": "native_order",
+      "prior_seconds": 0.37790530011989176,
+      "candidate_seconds": 0.4004861001158133,
+      "speedup": 0.9436165200505297
+    },
+    {
+      "cohort": "batching",
+      "scope": "target_and_registration",
+      "variant": "4",
+      "prior_seconds": 0.3603785000741482,
+      "candidate_seconds": 0.37189709988888353,
+      "speedup": 0.9690274545884415
+    },
+    {
+      "cohort": "batching",
+      "scope": "target_and_registration",
+      "variant": "8",
+      "prior_seconds": 0.3603785000741482,
+      "candidate_seconds": 0.3537893001921475,
+      "speedup": 1.0186246443248057
+    }
+  ],
+  "provenance": {
+    "source_manifest_sha256": "d9cfb176dc15319b3c32e0733a1fb35302632899ee00c9c6c68b9fd1c7a69fe6",
+    "publisher_sha256": "23d63519709951ca522bbbe832e25575d4a31c98dc27c38e5a588423930395bf",
+    "profile_parent_sha256": "3959c3286ee55e0a40a66bfbb690976b9d3178d51dde06ea5fa9ef6e363b4e55"
+  }
+}

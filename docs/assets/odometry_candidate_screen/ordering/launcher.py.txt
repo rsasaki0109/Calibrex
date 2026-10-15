@@ -1,0 +1,105 @@
+"""Warm exact-output screen of coherent query scheduling on public scan fixtures."""
+from pathlib import Path
+import os
+for name in ('OPENBLAS_NUM_THREADS','MKL_NUM_THREADS','OMP_NUM_THREADS'):os.environ[name]='1'
+root=Path(__file__).resolve().parent
+out=root/'outputs/coherent-query-order-pilot-v1';out.mkdir(exist_ok=False)
+os.environ['CUPY_CACHE_DIR']=str(out/'cupy-cache')
+import ast,hashlib,importlib.util,json,statistics,sys,time
+import numpy as np
+import cupy as cp
+from scipy.spatial import cKDTree
+from calibrex.solvers import cuda_scan_odometry_adapter as prior
+from calibrex.solvers import cuda_lidar_map_adapter as maps
+from calibrex.solvers.scan_to_scan_odometry import ScanOdometryOptions
+
+old_path=root/'outputs/fused-map-formal-v1/sources-current/src/calibrex/solvers/cuda_lidar_map_adapter.py'
+spec=importlib.util.spec_from_file_location('_archive_radix_order',old_path)
+archived=importlib.util.module_from_spec(spec);sys.modules[spec.name]=archived;spec.loader.exec_module(archived)
+morton=archived._SOURCE[archived._SOURCE.index('extern "C" __global__ void morton3('):archived._SOURCE.index('// Independent binary-prefix')]
+morton_kernel=cp.RawKernel(morton,'morton3',options=('--fmad=false',))
+mode='normal'
+query=maps._SOURCE.replace('const int k,','const int k, const int reorder,')
+query=query.replace('    double p[3] =','    if(reorder) row=order[row];\n    double p[3] =',1)
+
+class Tree(maps._CudaTree):
+    def __init__(self,points):
+        super().__init__(points)
+        self.kernel=cp.RawKernel(query,'query3',options=('--fmad=false',))
+    def query(self,points,k):
+        distances=cp.empty((len(points),k),dtype=cp.float64)
+        indexes=cp.empty((len(points),k),dtype=cp.int64)
+        if len(points):
+            reorder=len(points)==len(self.data) and points.data.ptr==self.data.data.ptr
+            self.kernel(((len(points)+127)//128,),(128,),(
+                points,self.data,*self.arrays,np.int32(len(points)),np.int32(len(self.data)),
+                np.int32(k),np.int32(reorder),distances,indexes))
+            self.query_calls+=1;self.query_rows+=len(points)
+        return distances,indexes
+
+def source_order(points,host):
+    if mode=='normal':return points
+    if mode=='native_order':return cp.asarray(cKDTree(host,balanced_tree=False,compact_nodes=False).indices)
+    codes=cp.empty(len(points),dtype=cp.uint64)
+    low=host.min(axis=0);high=host.max(axis=0)
+    morton_kernel(((len(points)+127)//128,),(128,),(
+        points,np.int32(len(points)),*(np.float64(x) for x in (*low,*high)),codes))
+    return cp.argsort(codes,kind='stable')
+
+source=Path(prior.__file__).read_text(encoding='utf-8')
+source=source.replace('''            points = cp.asarray(host_source)''','''            points = cp.asarray(host_source)
+            query_order = _source_order(points, host_source)''')
+needle='''                            points,
+                            matrix,
+                            self.tree.data,'''
+assert source.count(needle)==1
+source=source.replace(needle,'''                            points,
+                            query_order, np.int32(_REG_SORT),
+                            matrix,
+                            self.tree.data,''')
+path=out/'candidate_adapter.py';path.write_text(source,encoding='utf-8')
+spec=importlib.util.spec_from_file_location('_coherent_query_adapter',path)
+candidate=importlib.util.module_from_spec(spec);sys.modules[spec.name]=candidate;spec.loader.exec_module(candidate)
+candidate._source_order=source_order
+candidate._CudaTree=Tree
+fused=prior._FUSED_SOURCE.replace('const double* xyz, const double* matrix,','const double* xyz, const long long* query_order, const int reorder, const double* matrix,')
+fused=fused.replace('    const double* s=xyz+3*row;','    if(reorder) row=query_order[row];\n    const double* s=xyz+3*row;',1)
+candidate._FUSED_SOURCE=fused
+fixtures=root/'outputs/odometry-search-profile-v2'
+variants=('prior','normal','morton','native_order')
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+protocol={'scope':__doc__,'launcher_sha256':sha(Path(__file__)),'candidate_sha256':sha(path),
+          'sources':{p.relative_to(root).as_posix():sha(p) for p in sorted((root/'src/calibrex').rglob('*.py'))},
+          'fixtures':{p.name:sha(p) for p in fixtures.glob('registration-*.*')},
+          'query_sha256':hashlib.sha256(query.encode()).hexdigest(),'fused_sha256':hashlib.sha256(fused.encode()).hexdigest(),
+          'morton_source_sha256':sha(old_path),'blas_threads':1,
+          'timing_scope':'complete target construction and registration after one explicit first-case compilation warmup per variant; original source-row output/reduction order; no whole-bag speed claim'}
+(out/'protocol.json').write_text(json.dumps(protocol,indent=2)+'\n',encoding='utf-8')
+cases=[]
+for i in range(8):
+    data=np.load(fixtures/f'registration-{i:02d}.npz');meta=json.loads((fixtures/f'registration-{i:02d}.json').read_bytes())
+    cases.append((data,ScanOdometryOptions(**meta['options'])))
+references={};runs=[]
+for mode in variants:
+    module=prior if mode=='prior' else candidate
+    candidate._REG_SORT=mode!='normal'
+    data,options=cases[0]
+    module.CudaOdometryTarget(data['target'],options).register(data['source'],data['initial'])
+for repeat in range(5):
+    order=variants[repeat%4:]+variants[:repeat%4]
+    for mode in order:
+        module=prior if mode=='prior' else candidate
+        candidate._REG_SORT=mode!='normal'
+        for case,(data,options) in enumerate(cases):
+            begin=time.perf_counter();target=module.CudaOdometryTarget(data['target'],options)
+            init=time.perf_counter();result=target.register(data['source'],data['initial']);seconds=time.perf_counter()-begin
+            payload={k:v for k,v in vars(result).items() if k!='execution_backend'};payload['transform']=result.transform.tolist()
+            if case not in references:references[case]=payload
+            assert payload==references[case],(mode,case)
+            runs.append({'repeat':repeat,'variant':mode,'case':case,'seconds':seconds,
+                         'initialization_seconds':init-begin,'result':payload,'work':target.statistics()})
+        print(json.dumps({'repeat':repeat,'variant':mode,'seconds':sum(r['seconds'] for r in runs if r['variant']==mode and r['repeat']==repeat)}),flush=True)
+    (out/'runs.json').write_text(json.dumps(runs,indent=2)+'\n',encoding='utf-8')
+medians={v:statistics.median(sum(r['seconds'] for r in runs if r['variant']==v and r['repeat']==i) for i in range(5)) for v in variants}
+summary={'median_seconds':medians,'speedups':{v:medians['prior']/x for v,x in medians.items()},'exact':True,'provenance':{'protocol_sha256':sha(out/'protocol.json')}}
+(out/'summary.json').write_text(json.dumps(summary,indent=2)+'\n',encoding='utf-8');print(json.dumps(summary),flush=True)

@@ -1,0 +1,143 @@
+"""Publish exact-output whole-bag comparisons of fixed-trajectory holdout work."""
+import hashlib
+import io
+import json
+from pathlib import Path
+import shutil
+import statistics
+import tarfile
+
+from tools.audit_bspline_lidar_imu_benchmark import audit
+from tools.benchmark_bspline_lidar_imu import _validate_exact_pair
+
+source = Path('outputs/glim-holdout-evaluation-reuse-pairs-v1')
+destination = Path('docs/assets/holdout_evaluation_reuse')
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+protocol = json.loads((source / 'protocol.json').read_bytes())
+summary = json.loads((source / 'summary.json').read_bytes())
+attempts = json.loads((source / 'attempts.json').read_bytes())
+assert summary['quality_passed'] and len(attempts) == 4
+assert protocol['exact_outputs_required'] is True
+assert sha(Path('tools/benchmark_bspline_lidar_imu.py')) == protocol['launcher_sha256']
+records = {}
+for repeat in range(protocol['repeats']):
+    values = [json.loads((source / f'{repeat:02d}-{v}/result.json').read_bytes()) for v in ('prior', 'current')]
+    fitted = [json.loads((source / f'{repeat:02d}-{v}/measurement.json').read_bytes()) for v in ('prior', 'current')]
+    _validate_exact_pair(values[0], values[1], fitted[0]['rounds'], fitted[1]['rounds'])
+    for variant, value in zip(('prior', 'current'), fitted, strict=True):
+        assert value['control_evaluation_calls'] == 1 and value['control_score_calls'] == 34
+        records[repeat, variant] = value
+control = {v: statistics.median(records[r, v]['control_evaluation_seconds'] for r in range(protocol['repeats'])) for v in ('prior', 'current')}
+ratio = control['prior'] / control['current']
+assert ratio > 1
+destination.mkdir(exist_ok=False)
+for name in ('protocol.json', 'attempts.json', 'summary.json'):
+    shutil.copyfile(source / name, destination / name)
+for attempt in attempts:
+    folder = destination / attempt['worker']
+    folder.mkdir()
+    for name in ('result.json', 'measurement.json', 'worker.log'):
+        shutil.copyfile(source / attempt['worker'] / name, folder / name)
+for variant in ('prior', 'current'):
+    root = source / f'sources-{variant}'
+    shutil.copyfile(root / 'manifest.json', destination / f'sources-{variant}-manifest.json')
+    with tarfile.open(destination / f'sources-{variant}.tar.gz', 'w:gz') as bundle:
+        for name, raw in [('LICENSE', Path('LICENSE').read_bytes()), *(
+                (p.relative_to(root).as_posix(), p.read_bytes()) for p in sorted((root / 'src').rglob('*.py')))]:
+            info = tarfile.TarInfo(name)
+            info.size, info.mtime, info.mode = len(raw), 0, 0o644
+            bundle.addfile(info, io.BytesIO(raw))
+for src, name in [('tools/benchmark_bspline_lidar_imu.py', 'benchmark.py.txt'),
+                  ('tools/schemas/bspline_lidar_imu_comparison.schema.json', 'comparison.schema.json'),
+                  (__file__, 'publisher.py.txt')]:
+    shutil.copyfile(src, destination / name)
+baseline_validation = Path('outputs/holdout-reuse-screw-baseline-v1')
+receipt = json.loads((baseline_validation / 'receipt.json').read_bytes())
+assert receipt['source_commit'] == protocol['baseline_commit'] and receipt['exit_code'] == 1
+assert receipt['source_manifest_sha256'] == sha(source / 'sources-prior/manifest.json')
+assert receipt['log_sha256'] == sha(baseline_validation / 'validation.log')
+assert receipt['launcher_sha256'] == sha(Path('.tmp-calibrex-check-screw-baseline.py'))
+for src, name in [(baseline_validation / 'receipt.json', 'baseline-validation.json'),
+                  (baseline_validation / 'validation.log', 'baseline-validation.log'),
+                  (Path('.tmp-calibrex-check-screw-baseline.py'), 'baseline-validation.py.txt')]:
+    shutil.copyfile(src, destination / name)
+whole, fit = summary['whole_median_seconds'], summary['fit_median_seconds']
+table = '\n'.join([
+    '| Scope | Previous | Reused holdout evaluations | Observed ratio |',
+    '| --- | ---: | ---: | ---: |',
+    f"| Complete worker | {whole['prior']:.3f} s | {whole['current']:.3f} s | {summary['whole_speedup']:.3f}x |",
+    f"| Signed controls after holdout RMS | {control['prior']:.6f} s | {control['current']:.6f} s | {ratio:.3f}x |",
+    f"| Unchanged four CPU fits, including covariance | {fit['prior']:.3f} s | {fit['current']:.3f} s | {summary['fit_speedup']:.3f}x |",
+])
+readme = f'''# Complete fixed-trajectory holdout evaluation comparison
+
+{table}
+
+The complete worker is **2.3% slower** in these observations, despite removing
+about 2.06 seconds from signed-control evaluation. Unchanged fit and GPU normal
+preparation timings also vary; these two pairs do not isolate the cause of the
+whole-worker difference. This implementation is retained for reduced CPU
+evidence work. These runs establish no full-calibration speed gain and are not
+counted as successful end-to-end acceleration.
+
+Two alternating fresh-process pairs replay the public GLIM Livox bag's first
+six seconds with four map rounds. This is a descriptive observation on an
+unreserved host. Both variants execute the same adopted CUDA scan-odometry
+kernels and CPU fitter. The new work removes repeated CPU evidence evaluation.
+Stage and whole ratios have different scopes and are not multiplied.
+
+The previous revision is `{protocol['baseline_commit']}` and the current revision
+is `{protocol['current_commit']}`. The input bag SHA-256 is
+`{protocol['bag_sha256']}`. Raw scans and compiler caches are not redistributed.
+
+Each worker uses one BLAS thread and a separate initially empty CuPy cache.
+First GPU initialization and compilation belong to whole time. The unchanged
+dense policy uses 0.03 m voxels, three local-map scans, an opt-in 1 nm coordinate
+grid and returned-motion grids of 1 micrometre translation and 0.1 microradian
+rotation-vector components. Grids remain disabled by default.
+
+The signed-control scope starts after holdout RMS, so the current implementation
+can reuse its prepared states. It includes both baseline chi-square calls and
+all 32 signed scores: 34 score calls in one control evaluation for every worker.
+The control timer does not represent cold initialization. Whole time includes
+startup/imports, decoding, every odometry pass, association, fits/covariance,
+noise updates, all train/holdout preparation, controls, hashes, saves and source
+verification. Unchanged fit timing is reported to expose host variation.
+
+All complete physical/evidence fields, stored initial estimates and execution
+reports are exactly equal, excluding only provenance timestamps, commands and
+source revisions. Every full fit record matches exactly after excluding wall
+time, including calibration, trajectory, covariance, costs, dimensions, status
+and iterations. All final verdicts remain **INCONCLUSIVE**; the clip supplies
+no independent extrinsic truth. Samples, control perturbations and thresholds
+are unchanged. Public APIs and result schemas are unchanged.
+
+The index binds all four complete results, original measurements/logs, source
+capsules/manifests and frozen launcher/schema/publisher. The CPU-only audit
+recomputes quality/equality, timing scopes, score counts and median ratios.
+
+Local validation also found an existing screw-linear synthetic recovery test
+that reports `max_iterations` rather than `converged`. It fails with both the
+current implementation and frozen baseline sources, including with one BLAS
+thread. This is a separate path from the B-spline bag pipeline. The bound
+`baseline-validation.json`, log and launcher retain the baseline reproduction
+and source-manifest identity. No test, tolerance or iteration limit was relaxed.
+
+```bash
+python -m tools.audit_bspline_lidar_imu_benchmark docs/assets/holdout_evaluation_reuse
+```
+
+See [implementation and reproduction](../../benchmarks/holdout_evaluation_reuse.md).
+'''
+(destination / 'README.md').write_text(readme, encoding='utf-8', newline='\n')
+files = {p.relative_to(destination).as_posix(): sha(p) for p in sorted(destination.rglob('*'))
+         if p.is_file() and p.name != 'publication-index.json'}
+(destination / 'publication-index.json').write_text(json.dumps({
+    'schema_version': 'slac.bspline_lidar_imu_publication/v0.1',
+    'provenance': {'input_protocol_sha256': sha(source / 'protocol.json')}, 'files': files,
+}, indent=2) + '\n', encoding='utf-8', newline='\n')
+doc = Path('docs/benchmarks/holdout_evaluation_reuse.md')
+doc.write_text(doc.read_text(encoding='utf-8').replace('<!-- results -->', table), encoding='utf-8', newline='\n')
+result = audit(destination)
+assert result['control_median_seconds'] == control and result['control_speedup'] == ratio
+print(json.dumps(result, indent=2))

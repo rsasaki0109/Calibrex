@@ -430,6 +430,8 @@ uses an explicit dense numerical policy on both CPU and GPU, measuring the
 complete six-second calibration and all its evidence rather than registration alone.
 The [spatial-pruning comparison](../benchmarks/cuda_spatial_pruning.md) repeats
 that complete dense workload after reducing CUDA traversal and tree-capture work.
+The [normal-preparation comparison](../benchmarks/cuda_normal_preparation.md)
+measures dedicated PCA and completed-target reuse against that CUDA baseline.
 
 The ROS 1 PointCloud2 header carries the relative Livox clock (about 110 s),
 while bag records use epoch time. The reproducible conversion therefore

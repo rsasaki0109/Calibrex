@@ -1,0 +1,77 @@
+"""Fixed-public-input screen of demand-driven CUDA odometry normals."""
+from pathlib import Path
+import os
+for name in ('OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS', 'OMP_NUM_THREADS'):
+    os.environ[name] = '1'
+root = Path(__file__).resolve().parent
+out = root / 'outputs/lazy-odometry-normals-pilot-v1'
+out.mkdir(exist_ok=False)
+os.environ['CUPY_CACHE_DIR'] = str(out / 'cupy-cache')
+import hashlib
+import json
+import shutil
+import statistics
+import subprocess
+import time
+import cupy as cp
+import numpy as np
+from calibrex.solvers import cuda_scan_odometry_adapter as adapter
+from calibrex.solvers.scan_to_scan_odometry import ScanOdometryOptions
+
+original = adapter.CudaOdometryTarget
+fixtures = root / 'outputs/odometry-search-profile-v2'
+variants = ('prior', 'lazy', 'prefetch')
+mode = 'prior'
+
+class Candidate(original):
+    def register(self, source, initial):
+        self.prefetch_source, self.prefetch_initial = source, initial
+        return super().register(source, initial)
+    def _ensure_all(self):
+        if mode == 'lazy':
+            return
+        source = cp.asarray(self.prefetch_source)
+        pose = cp.asarray(self.prefetch_initial)
+        moved = source @ pose[:3, :3].T + pose[:3, 3]
+        distances, indexes = self.tree.query(moved, 1)
+        self._ensure(indexes[:, 0][distances[:, 0] < self.options.max_correspondence_m])
+
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+shutil.copyfile(__file__,out/'launcher.py.txt')
+protocol={'scope':__doc__,'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+    'launcher_sha256':sha(Path(__file__)),'blas_threads':1,'host_unreserved':True,
+    'sources':{p.relative_to(root).as_posix():sha(p) for p in sorted((root/'src/calibrex').rglob('*.py'))},
+    'fixtures':{p.name:sha(p) for p in fixtures.glob('registration-*.*')},
+    'timing_scope':'target construction and registration, five rotated-order repeats, one untimed first-case warmup per variant; no cold/whole-bag claim'}
+(out/'protocol.json').write_text(json.dumps(protocol,indent=2)+'\n',encoding='utf-8')
+cases=[]
+for i in range(8):
+    data=np.load(fixtures/f'registration-{i:02d}.npz')
+    meta=json.loads((fixtures/f'registration-{i:02d}.json').read_bytes())
+    cases.append((data,ScanOdometryOptions(**meta['options'])))
+references={};runs=[]
+for mode in variants:
+    factory=original if mode=='prior' else Candidate
+    data,options=cases[0]
+    factory(data['target'],options).register(data['source'],data['initial'])
+for repeat in range(5):
+    order=variants[repeat%3:]+variants[:repeat%3]
+    for mode in order:
+        factory=original if mode=='prior' else Candidate
+        for case,(data,options) in enumerate(cases):
+            begin=time.perf_counter();target=factory(data['target'],options)
+            initialized=time.perf_counter();result=target.register(data['source'],data['initial'])
+            seconds=time.perf_counter()-begin
+            payload={**vars(result),'transform':result.transform.tolist()}
+            physical={k:v for k,v in payload.items() if k!='execution_backend'}
+            if case not in references:references[case]=physical
+            assert physical==references[case],(mode,case)
+            runs.append({'repeat':repeat,'variant':mode,'case':case,'seconds':seconds,
+                'initialization_seconds':initialized-begin,'work':target.statistics(),'result':payload})
+        print(json.dumps({'repeat':repeat,'variant':mode,'seconds':sum(r['seconds'] for r in runs if r['variant']==mode and r['repeat']==repeat),
+            'normal_rows':sum(r['work']['gpu_normal_rows'] for r in runs if r['variant']==mode and r['repeat']==repeat)}),flush=True)
+    (out/'runs.json').write_text(json.dumps(runs,indent=2)+'\n',encoding='utf-8')
+medians={v:statistics.median(sum(r['seconds'] for r in runs if r['variant']==v and r['repeat']==i) for i in range(5)) for v in variants}
+summary={'median_seconds':medians,'speedups':{v:medians['prior']/x for v,x in medians.items()},'exact':True,
+    'provenance':{'protocol_sha256':sha(out/'protocol.json')}}
+(out/'summary.json').write_text(json.dumps(summary,indent=2)+'\n',encoding='utf-8');print(json.dumps(summary),flush=True)

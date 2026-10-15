@@ -10,9 +10,55 @@ import pytest
 from calibrex.cli.main import main
 from calibrex.solvers.scan_to_scan_odometry import (
     IncrementalScanOdometry,
+    ScanOdometryOptions,
+    ScanRegistration,
     register_point_to_plane,
     run_scan_to_scan_odometry,
 )
+
+
+@pytest.mark.parametrize("supports_preparation", [False, True])
+def test_optional_target_preparation_precedes_source_preprocessing(
+    monkeypatch: pytest.MonkeyPatch, supports_preparation: bool,
+) -> None:
+    from calibrex.solvers import scan_to_scan_odometry as solver
+
+    calls: list[str] = []
+    hints: list[int] = []
+
+    class Target:
+        def register(self, source: np.ndarray, initial: np.ndarray) -> ScanRegistration:
+            calls.append("register")
+            return ScanRegistration(initial, False, 1, len(source), 0., 0.)
+
+        def statistics(self) -> dict[str, int]:
+            return {}
+
+    def factory(points: np.ndarray, options: ScanOdometryOptions) -> Target:
+        target = Target()
+        if supports_preparation:
+            def prime(rows: int) -> None:
+                calls.append("prime")
+                hints.append(rows)
+            target._prime_normals = prime
+        return target
+
+    original = solver.preprocess_scan
+
+    def preprocess(points: np.ndarray, options: ScanOdometryOptions) -> np.ndarray:
+        calls.append("preprocess")
+        return original(points, options)
+
+    monkeypatch.setattr(solver, "_cuda_odometry", lambda: (factory, "test_cuda"))
+    monkeypatch.setattr(solver, "preprocess_scan", preprocess)
+    points = np.arange(36.).reshape(-1, 3)
+    odometry = IncrementalScanOdometry(ScanOdometryOptions(min_range_m=0.), backend="cuda")
+    odometry.add(points)
+    calls.clear()
+    odometry.add(points)
+    assert calls == (["prime", "preprocess", "register"] if supports_preparation
+                     else ["preprocess", "register"])
+    assert hints == ([len(points)] if supports_preparation else [])
 
 
 def test_cpu_odometry_never_imports_optional_cuda(monkeypatch: pytest.MonkeyPatch) -> None:

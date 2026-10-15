@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CUDA odometry candidate screen publication index",
+  "type": "object",
+  "required": ["schema_version", "provenance", "files"],
+  "properties": {
+    "schema_version": {"const": "slac.odometry_screen_publication/v0.1"},
+    "provenance": {
+      "type": "object",
+      "required": ["screen_sha256"],
+      "properties": {
+        "screen_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+      },
+      "additionalProperties": false
+    },
+    "files": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {"pattern": "^[a-zA-Z0-9_-]+(?:/[a-zA-Z0-9_-]+)*\\.[a-zA-Z0-9.]+$"},
+      "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+    }
+  },
+  "additionalProperties": false
+}

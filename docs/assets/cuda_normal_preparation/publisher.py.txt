@@ -1,0 +1,108 @@
+from pathlib import Path
+import hashlib, json, shutil, statistics, tarfile
+
+source = Path('outputs/glim-normal-formal-v1')
+destination = Path('docs/assets/cuda_normal_preparation')
+summary = json.loads((source/'summary.json').read_bytes())
+protocol = json.loads((source/'protocol.json').read_bytes())
+attempts = json.loads((source/'attempts.json').read_bytes())
+assert summary['quality_passed'] and len(attempts) == 6
+destination.mkdir(exist_ok=False)
+for name in ('protocol.json','attempts.json','summary.json'):
+    shutil.copyfile(source/name,destination/name)
+records = {}
+for attempt in attempts:
+    folder = destination/attempt['worker']
+    folder.mkdir()
+    for name in ('result.json','measurement.json','worker.log'):
+        shutil.copyfile(source/attempt['worker']/name,folder/name)
+    records[attempt['worker']] = json.loads((folder/'measurement.json').read_bytes())
+for variant in ('prior','current'):
+    root = source/f'sources-{variant}'
+    shutil.copyfile(root/'manifest.json',destination/f'sources-{variant}-manifest.json')
+    with tarfile.open(destination/f'sources-{variant}.tar.gz','w:gz') as bundle:
+        bundle.add('LICENSE',arcname='LICENSE',recursive=False)
+        for path in sorted((root/'src').rglob('*.py')):
+            bundle.add(path,arcname=path.relative_to(root).as_posix(),recursive=False)
+for src,name in [('tools/benchmark_bspline_lidar_imu.py','benchmark.py.txt'),
+                 ('tools/schemas/bspline_lidar_imu_comparison.schema.json','comparison.schema.json'),
+                 (__file__,'publisher.py.txt')]:
+    shutil.copyfile(src,destination/name)
+normals = {v:statistics.median(records[a['worker']]['normal_preparation_seconds']
+                              for a in attempts if a['variant']==v) for v in ('prior','current')}
+whole = summary['whole_median_seconds']; fit = summary['fit_median_seconds']
+normal_ratio = normals['prior']/normals['current']
+table = '\n'.join([
+    '| Scope | Previous CUDA median | Fused-normal CUDA median | Speedup |',
+    '| --- | ---: | ---: | ---: |',
+    f"| Complete worker | {whole['prior']:.3f} s | {whole['current']:.3f} s | {summary['whole_speedup']:.3f}x |",
+    f"| Normal preparation within the worker | {normals['prior']:.3f} s | {normals['current']:.3f} s | {normal_ratio:.3f}x |",
+    f"| Four unchanged CPU fits, including covariance | {fit['prior']:.3f} s | {fit['current']:.3f} s | {summary['fit_speedup']:.3f}x |",
+])
+rows = '\n'.join(['| Pair | Method | Whole seconds | Normal seconds |',
+                  '| --- | --- | ---: | ---: |'] +
+                 [f"| {a['repeat']} | {a['variant']} | {a['whole_seconds']:.6f} | {records[a['worker']]['normal_preparation_seconds']:.6f} |" for a in attempts])
+result = json.loads((source/'00-current/result.json').read_bytes())
+reports = result['options']['initial_odometry_execution']+result['options']['segment_odometry_execution']
+stats = {k:sum(r['statistics'].get(k,0) for r in reports) for k in reports[0]['statistics']}
+quality = ('All three complete comparisons have zero rotation, lever-arm, clock, '
+           'holdout and decision difference. The existing audit also checks every '
+           'per-round covariance, trajectory, cost and convergence result.')
+text = f'''# Complete public CUDA normal-preparation comparison
+
+Previous source: `{protocol['baseline_commit']}`. Current source:
+`{protocol['current_commit']}`. The original public GLIM Livox bag SHA-256 is
+`{protocol['bag_sha256']}`. Raw data is not redistributed.
+
+{table}
+
+{rows}
+
+{quality}
+
+The first current worker records {stats['gpu_normal_rows']:,} normal rows,
+{stats['gpu_normal_kernel_calls']} dedicated normal-kernel calls and
+{stats['scalar_normal_repairs']} native normal repairs across {len(reports)}
+odometry passes. No spatial-return budget or quality tolerance was relaxed.
+
+Three alternating fresh-process pairs use one BLAS thread and separate initially
+empty CuPy compilation caches. Driver/runtime caches may persist and host load
+is not reserved. The six-second, four-round workload retains the same dense
+policy: 0.03 m voxels, three local-map scans, a 1 nm coordinate grid and returned
+motion grids of 1 micrometre translation and 0.1 microradian rotation-vector
+components. These grids remain disabled by default; CPU remains the default.
+
+Whole timing includes imports, reading, GPU setup/compilation, all odometry,
+association, fits/covariance, noise updates, holdout, signed controls, hashes,
+saves and verified imports. The bound launcher observes outermost normal
+preparation without inserting GPU synchronization. The preparation ratio is
+part of the whole-worker ratio and is not multiplied by it. CPU fitting is
+unchanged; its timing difference is not a GPU-fitting implementation.
+
+All final real-data results remain **INCONCLUSIVE** and no independent extrinsic
+truth is supplied. Component acceleration is substantial, while complete-run
+acceleration is smaller. These observations apply to this explicit dense workload.
+
+The publication index binds all complete results, original logs, full fitted
+covariance/trajectory arrays, input and imported-source hashes, both exact source
+archives/manifests, launcher, schema and publisher. Its CPU-only audit recomputes
+both whole and preparation ratios and requires actual normal-kernel work.
+
+```bash
+python -m tools.audit_bspline_lidar_imu_benchmark docs/assets/cuda_normal_preparation
+```
+
+See [implementation and reproduction](../../benchmarks/cuda_normal_preparation.md).
+'''
+(destination/'README.md').write_text(text,encoding='utf-8',newline='\n')
+doc = Path('docs/benchmarks/cuda_normal_preparation.md')
+doc.write_text(doc.read_text(encoding='utf-8').replace('<!-- normal_results -->',table+'\n\n'+quality),encoding='utf-8',newline='\n')
+files = {p.relative_to(destination).as_posix():hashlib.sha256(p.read_bytes()).hexdigest()
+         for p in sorted(destination.rglob('*')) if p.is_file()}
+(destination/'publication-index.json').write_text(json.dumps({
+    'schema_version':'slac.bspline_lidar_imu_publication/v0.1',
+    'provenance':{'input_protocol_sha256':hashlib.sha256((source/'protocol.json').read_bytes()).hexdigest()},
+    'files':files,
+},indent=2)+'\n',encoding='utf-8',newline='\n')
+print({'files':len(files),'whole_speedup':summary['whole_speedup'],
+       'normal_medians':normals,'normal_speedup':normal_ratio,'statistics':stats})

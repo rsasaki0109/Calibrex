@@ -1,0 +1,120 @@
+"""Retain both complete integrated cohorts, including the slower first version."""
+import gzip
+import hashlib
+import io
+import json
+from pathlib import Path
+import shutil
+import tarfile
+
+from tools.audit_bspline_lidar_imu_benchmark import audit
+
+root = Path('docs/assets/cuda_interval_pruning')
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def index(folder):
+    path = folder / 'publication-index.json'
+    value = {'schema_version':'slac.bspline_lidar_imu_publication/v0.1',
+        'provenance':{'input_protocol_sha256':sha(folder/'protocol.json')},
+        'files':{p.relative_to(folder).as_posix():sha(p) for p in sorted(folder.rglob('*'))
+                 if p.is_file() and p != path}}
+    path.write_text(json.dumps(value,indent=2)+'\n',encoding='utf-8',newline='\n')
+
+
+def publish(source, folder, final):
+    folder.mkdir(exist_ok=False,parents=True)
+    protocol=json.loads((source/'protocol.json').read_bytes())
+    summary=json.loads((source/'summary.json').read_bytes())
+    attempts=json.loads((source/'attempts.json').read_bytes())
+    assert protocol['exact_spatial_outputs_required'] and summary['quality_passed']
+    assert len(attempts)==4 and sha(Path('tools/benchmark_bspline_lidar_imu.py'))==protocol['launcher_sha256']
+    for name in ('protocol.json','summary.json','attempts.json'):
+        shutil.copyfile(source/name,folder/name)
+    for attempt in attempts:
+        worker=folder/attempt['worker'];worker.mkdir()
+        for name in ('result.json','measurement.json','worker.log'):
+            shutil.copyfile(source/attempt['worker']/name,worker/name)
+    for variant in ('prior','current'):
+        frozen=source/f'sources-{variant}'
+        shutil.copyfile(frozen/'manifest.json',folder/f'sources-{variant}-manifest.json')
+        with (folder/f'sources-{variant}.tar.gz').open('wb') as raw:
+            with gzip.GzipFile(filename='',mode='wb',fileobj=raw,mtime=0) as compressed:
+                with tarfile.open(fileobj=compressed,mode='w') as bundle:
+                    entries=[('LICENSE',Path('LICENSE').read_bytes()),*(
+                        (p.relative_to(frozen).as_posix(),p.read_bytes())
+                        for p in sorted((frozen/'src').rglob('*.py')))]
+                    for name,contents in entries:
+                        info=tarfile.TarInfo(name);info.size=len(contents);info.mtime=0;info.mode=0o644
+                        bundle.addfile(info,io.BytesIO(contents))
+    for path,name in [('tools/benchmark_bspline_lidar_imu.py','benchmark.py.txt'),
+        ('tools/schemas/bspline_lidar_imu_comparison.schema.json','comparison.schema.json'),
+        (__file__,'publisher.py.txt')]:
+        shutil.copyfile(path,folder/name)
+    if final:
+        validation=folder/'prototype-validation';validation.mkdir()
+        for path in (source/'prototype-validation').iterdir():
+            if path.is_file():shutil.copyfile(path,validation/path.name)
+        shutil.copyfile('outputs/interval-pruning-schema-exports-v2/receipt.json',
+                        folder/'schema-exports-receipt.json')
+        shutil.copyfile('.tmp-calibrex-check-interval-pruning-schemas-v2.py',
+                        folder/'schema-checker.py.txt')
+    whole=summary['whole_median_seconds']
+    table='\n'.join(['| Scope | Previous CUDA | Interval candidate | Ratio |',
+        '| --- | ---: | ---: | ---: |',
+        f"| Complete worker | {whole['prior']:.3f} s | {whole['current']:.3f} s | {summary['whole_speedup']:.3f}x |"])
+    workers='\n'.join(['| Repeat | Variant | Whole seconds |','| --- | --- | ---: |',
+        *(f"| {a['repeat']} | {a['variant']} | {a['whole_seconds']:.6f} |" for a in attempts)])
+    extra=('The revised source reuses cKDTree extrema instead of scanning all target coordinates. '
+           'Its source-bound regression run passes 136 tests, and all 130 public schema/ledger '
+           'exports are byte-identical. The [earlier integrated version](earlier-guard-v1/README.md) '
+           'retains its slower full cohort and is recursively audited.\n' if final else
+           'This first version performs repeated CPU target-extent reductions. It is retained '
+           'as measured, before reusing the existing cKDTree extrema.\n')
+    text=f'''# Rejected conservative spatial interval candidate
+
+**Not adopted.** Output equality does not establish a useful whole-worker gain.
+
+{table}
+
+{workers}
+
+{extra}
+Two alternating fresh-process pairs replay six seconds of the public GLIM Livox
+bag with four map rounds, one BLAS thread, CUDA scan odometry and CUDA fitter
+planes. Each worker has a separate initially empty CuPy compiler cache. Whole
+time includes imports, setup/compilation, every odometry pass, association,
+fits/covariance, noise updates, holdout/controls, hashes, saves and import checks.
+No warmup or worker is discarded. Host load is unreserved.
+
+Baseline `{protocol['baseline_commit']}`; candidate `{protocol['current_commit']}`.
+Bag SHA-256 `{protocol['bag_sha256']}`. The unchanged dense policy is 3 cm voxels,
+three local scans, a 1 nm coordinate grid and returned-motion grids of
+1 micrometre / 0.1 microradian. CPU and disabled grids remain the defaults.
+
+The candidate encloses boxes, split planes and points in outward FP32 intervals,
+using downward-rounded lower distance bounds to reject work. Actual candidate
+distances, tie ordering, normals, residuals/systems and native repairs stay FP64.
+Native arrays/kernels remain for bounded-path fallbacks; events order reads and
+drain abandoned writes. No extra CPU thread is introduced.
+
+Every calibration/evidence field, complete fit, trajectory, covariance,
+iteration and previous work counter matches exactly. The exact gate allows only
+declared source-bound kernel identities/pruning counters and run metadata to
+differ. Actual interval work is positive in every measured pass and bounded by
+total GPU work. The clip has no independent extrinsic truth and its verdict
+remains INCONCLUSIVE. Ratios are not multiplied across cohorts.
+
+All full results/fits/logs, deterministic source capsules/manifests, launcher,
+schema and publisher are SHA-256 bound. The audit runs without CUDA. Raw bag
+data and compiler caches are not redistributed. The retained runtime keeps the
+previous asynchronous-normal implementation; these interval kernels are experimental.
+'''
+    (folder/'README.md').write_text(text,encoding='utf-8',newline='\n')
+    index(folder)
+
+
+publish(Path('outputs/glim-interval-pruning-pairs-v2'),root,True)
+publish(Path('outputs/glim-interval-pruning-pairs-v1'),root/'earlier-guard-v1',False)
+index(root)
+print(json.dumps(audit(root),indent=2))

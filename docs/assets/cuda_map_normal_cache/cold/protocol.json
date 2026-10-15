@@ -1,0 +1,32 @@
+{
+  "schema_version": "calibrex.cuda_map_preparation_comparison/v0.1",
+  "baseline_commit": "3340116c2b0c1a7c0cd1aa3b29468a44d4fc330f",
+  "current_commit": "8d7a6477343d2a727ae02c86704fe8c76f894c5c",
+  "repetitions": 3,
+  "half_window": 1,
+  "compiler_cache": "cold",
+  "blas_threads": 1,
+  "input_sha256": {
+    "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\kitti_raw_icp\\2011_09_30_drive_0018_sync\\velodyne_points\\data\\0000000114.bin": "a27accd1d9f54683215819a0205636b1ac624b2238c426ccd62ac0cc312f24d5",
+    "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\kitti_raw_icp\\2011_09_30_drive_0018_sync\\velodyne_points\\data\\0000000115.bin": "213948bd8c54c925aca7eb9f3b3c36e95e586b52ee8d9d64056c4fc4aeb12b2d",
+    "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\kitti_raw_icp\\2011_09_30_drive_0018_sync\\velodyne_points\\data\\0000000116.bin": "3202767186804ef01c66b64d30e35cbb1e275da635c0fb0d12eb5bb1b5640fc7",
+    "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\kitti_raw_icp\\2011_09_30_drive_0018_sync\\velodyne_points\\data\\0000000229.bin": "68522eec4b4ddb401c8d3b369033562cf3a41e0975087e9c62b64f17557154b3",
+    "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\kitti_raw_icp\\2011_09_30_drive_0018_sync\\velodyne_points\\data\\0000000230.bin": "b9b6ac62ef2b7be4dcec2eab424c142012c6e948cb3f24bf774b6459efbae2ca",
+    "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\kitti_raw_icp\\2011_09_30_drive_0018_sync\\velodyne_points\\data\\0000000231.bin": "05399157c4a6aad5984d0d5795534ae4003e9747c6185b24a29fdd8f3cadcbc0",
+    "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\kitti_raw_icp\\2011_09_30_drive_0018_sync\\velodyne_points\\data\\0000000344.bin": "7c18c2449cefa884161164a25454d44b747b6500b72211978cfcc046671ad6d9",
+    "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\kitti_raw_icp\\2011_09_30_drive_0018_sync\\velodyne_points\\data\\0000000345.bin": "2a5f331a041437dcfbc3d066f896fb8ac4757b30b4f64fb7f05c50bc2691bdcf",
+    "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\kitti_raw_icp\\2011_09_30_drive_0018_sync\\velodyne_points\\data\\0000000346.bin": "57cbefea4f9364cb8e52e76222b7caf6eeafca783580af17d2632c9b2c52496a"
+  },
+  "launchers_sha256": {
+    "tools/benchmark_cuda_map_preparation.py": "7c6d07f3b7ddadd5679a8420e1beb2c60615d838d3c93e71e5caa576f7897c90",
+    "tools/benchmark_cuda_lidar_map.py": "2c7ca843ea94428c17057fead42abe00f22210a1843f0431382ca9868d18356c",
+    "tools/benchmark_bspline_lidar_imu.py": "7dc01b74541d896cc38c9b6c9982eae6a43a4fe0fd409d90e4622fe5080599af",
+    "tools/schemas/cuda_map_preparation_comparison.schema.json": "2e04253f112fea28eb0df209453a95d70117235e7ed573d3e6e512ba184640ec"
+  },
+  "source_manifest_sha256": {
+    "prior": "e4ca3f80969a8e5f3d19007ee8bc7617235db9aabff95448ee926edaad5fdf50",
+    "current": "0488738a1917ce76fea07f60d4d0d68e73300ee18a3d5cfc3b0ef21ae24f6f74"
+  },
+  "quality_policy": "Existing full map-evaluation tolerances; exact counts/status/policy; separately validate both execution identities against their frozen kernel bytes",
+  "scope": "Compare frozen CUDA map implementations on the complete public KITTI workload.\n\nEach fresh process reads every input point, fits and evaluates the full result,\nverifies actual imports and saves the schema-valid artifact. Compiler caches\nare independent and empty for every worker unless retained mode is explicit.\n"
+}

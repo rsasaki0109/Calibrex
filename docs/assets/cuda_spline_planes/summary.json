@@ -1,0 +1,43 @@
+{
+  "schema_version": "slac.bspline_lidar_imu_comparison/v0.1",
+  "record_type": "summary",
+  "whole_median_seconds": {
+    "prior": 65.88411199999973,
+    "current": 61.14582715003053
+  },
+  "whole_speedup": 1.077491548823816,
+  "fit_median_seconds": {
+    "prior": 10.239156299910974,
+    "current": 3.505827749904711
+  },
+  "fit_speedup": 2.9206102040207984,
+  "quality": [
+    {
+      "passed": true,
+      "decisions_equal": true,
+      "numeric_evidence_equal": true,
+      "errors": {
+        "rotation_deg": 4.711142882939167e-11,
+        "lever_arm_m": 8.156079978061115e-13,
+        "clock_offset_s": 3.0965768144097794e-13
+      },
+      "max_holdout_whitened_rms_difference": 5.619948950652542e-13
+    },
+    {
+      "passed": true,
+      "decisions_equal": true,
+      "numeric_evidence_equal": true,
+      "errors": {
+        "rotation_deg": 4.711142882939167e-11,
+        "lever_arm_m": 8.156079978061115e-13,
+        "clock_offset_s": 3.0965768144097794e-13
+      },
+      "max_holdout_whitened_rms_difference": 5.619948950652542e-13
+    }
+  ],
+  "quality_passed": true,
+  "provenance": {
+    "protocol_sha256": "9a07e15afa063760c0ffa632f587143c711b1933d40755f1ca8d869727d99405",
+    "attempts_sha256": "c4c5ae4fa2dc02c5a292924e85c45e981dc5bae5796d87e60fed288821dd9d5d"
+  }
+}

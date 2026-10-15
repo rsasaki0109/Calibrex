@@ -31,7 +31,7 @@ import math
 from collections.abc import Callable, Iterator
 from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
-from typing import TypeAlias
+from typing import Literal, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -50,6 +50,7 @@ from calibrex.core.continuous_time_bspline_fit import (
     BSplinePlaneReturns,
     CalibrationBlock,
     LidarImuCalibration,
+    _FixedTrajectoryResiduals,
     fit_bspline_lidar_imu,
     lidar_imu_residuals,
 )
@@ -161,6 +162,7 @@ class LidarImuBagOptions:
     imu_lowpass_hz: float | None = None
     holdout_every: int = 3
     fit_iterations: int = 30
+    fit_plane_backend: Literal["numpy", "cuda"] = "numpy"
     control_delta_chi2: float = 9.0
     entangled_correlation: float = 0.9
     holdout_fail_whitened_rms: float = 2.0
@@ -173,6 +175,10 @@ class LidarImuBagOptions:
     )
     seed: int = 20261011
     rotation: ImuLidarRunOptions = field(default_factory=ImuLidarRunOptions)
+
+    def __post_init__(self) -> None:
+        if self.fit_plane_backend not in ("numpy", "cuda"):
+            raise ValueError("spline plane backend must be numpy or cuda")
 
 
 @dataclass(frozen=True)
@@ -287,6 +293,7 @@ def calibrate_lidar_imu_bag(
         )
 
     rounds: list[LidarImuBagRound] = []
+    fit_execution: list[dict[str, object]] = []
     previous = calibration
     last_change = {block: np.zeros(_width(block)) for block in CALIBRATION_BLOCKS}
     result: BSplineLidarImuFitResult | None = None
@@ -316,8 +323,12 @@ def calibrate_lidar_imu_bag(
                 gravity_magnitude_m_s2=opts.gravity_magnitude_m_s2,
                 gravity_magnitude_sigma_m_s2=opts.gravity_magnitude_sigma_m_s2,
             ),
-            BSplineLidarImuFitOptions(max_iterations=opts.fit_iterations),
+            BSplineLidarImuFitOptions(
+                max_iterations=opts.fit_iterations, plane_backend=opts.fit_plane_backend,
+            ),
         )
+        fit_execution.append({"executed_backend": result.execution_backend,
+                              "statistics": result.execution_statistics})
         trajectory, calibration = result.trajectory, result.calibration
         # Re-estimate each family's noise from its train residuals.
         whitened = lidar_imu_residuals(trajectory, calibration, planes, gyro, accel)
@@ -345,12 +356,16 @@ def calibrate_lidar_imu_bag(
 
     train_gyro, train_accel = imu_samples(train_index)
     holdout_gyro, holdout_accel = imu_samples(holdout_index)
-    train_rms = _whitened_rms(trajectory, calibration, planes, train_gyro, train_accel)
-    holdout_rms = _whitened_rms(trajectory, calibration, planes, holdout_gyro, holdout_accel)
+    train_rms = _whitened_rms(
+        lidar_imu_residuals(trajectory, calibration, planes, train_gyro, train_accel)
+    )
+    # Measurements and trajectory stay fixed throughout evidence evaluation.
+    # Keep train and holdout sessions separate; controls only need one family.
+    holdout = _FixedTrajectoryResiduals(trajectory, planes, holdout_gyro, holdout_accel)
+    holdout_rms = _whitened_rms(holdout.residuals(calibration))
 
     def holdout_chi2(family: LidarImuBagFamily, values: LidarImuCalibration) -> float:
-        residuals = lidar_imu_residuals(trajectory, values, planes, holdout_gyro, holdout_accel)
-        return float(np.sum(residuals[family] ** 2))
+        return float(np.sum(holdout.residual(family, values) ** 2))
 
     controls = _controls(holdout_chi2, calibration, opts.control_delta_chi2)
     blocks = _block_records(result, calibration, controls, last_change)
@@ -436,6 +451,8 @@ def calibrate_lidar_imu_bag(
             "odometry_options": asdict(opts.rotation.windowing.odometry),
             "initial_odometry_execution": initial.options.get("odometry_execution", []),
             "segment_odometry_execution": segment_execution,
+            **({"fit_plane_backend": opts.fit_plane_backend, "fit_execution": fit_execution}
+               if opts.fit_plane_backend != "numpy" else {}),
         },
         limitations=list(LIMITATIONS),
         provenance=LidarImuBagProvenance(
@@ -624,14 +641,7 @@ def _block_difference(
     return np.asarray(right.vector(block) - left.vector(block), dtype=float)
 
 
-def _whitened_rms(
-    trajectory: CubicBSplineTrajectory,
-    calibration: LidarImuCalibration,
-    planes: BSplinePlaneReturns,
-    gyro: BSplineImuSamples,
-    accel: BSplineImuSamples,
-) -> dict[str, float]:
-    residuals = lidar_imu_residuals(trajectory, calibration, planes, gyro, accel)
+def _whitened_rms(residuals: dict[str, FloatArray]) -> dict[str, float]:
     return {
         family: float(np.sqrt(np.mean(values * values))) for family, values in residuals.items()
     }

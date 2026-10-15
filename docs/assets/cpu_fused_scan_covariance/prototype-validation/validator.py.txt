@@ -1,0 +1,29 @@
+"""Retain the candidate's real correctness run before retiring its runtime."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+
+out=Path('outputs/glim-cpu-normal-covariance-pairs-v1/prototype-validation')
+out.mkdir(exist_ok=False)
+tests=['tests/unit/test_numba_scan_normal_adapter.py','tests/unit/test_bspline_lidar_imu_benchmark.py']
+for name in tests:
+    shutil.copyfile(name,out/(Path(name).name+'.txt'))
+shutil.copyfile(__file__,out/'validator.py.txt')
+env=os.environ.copy()
+env['NUMBA_CACHE_DIR']=str(out.resolve()/'numba-cache')
+env['PYTHONDONTWRITEBYTECODE']='1'
+command=[sys.executable,'-m','pytest',*tests,'--basetemp',str(out/'tmp'),
+         '-p','no:cacheprovider','--override-ini','addopts=--disable-plugin-autoload','-q']
+with (out/'pytest.log').open('wb') as log:
+    result=subprocess.run(command,env=env,stdout=log,stderr=subprocess.STDOUT)
+files={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in out.iterdir() if p.is_file()}
+(out/'receipt.json').write_text(json.dumps({'command':command,'exit_code':result.returncode,
+    'provenance':{'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+                  'source_manifest_sha256':hashlib.sha256(Path('outputs/glim-cpu-normal-covariance-pairs-v1/sources-current/manifest.json').read_bytes()).hexdigest(),
+                  'files':files}},indent=2)+'\n',encoding='utf-8')
+print((out/'pytest.log').read_text(encoding='utf-8'))
+raise SystemExit(result.returncode)

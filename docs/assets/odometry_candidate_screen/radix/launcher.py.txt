@@ -1,0 +1,117 @@
+"""Warm fixed-public-scan screen of query layout and fixed-k neighbor insertion."""
+from pathlib import Path
+import os
+for name in ('OPENBLAS_NUM_THREADS','MKL_NUM_THREADS','OMP_NUM_THREADS'):os.environ[name]='1'
+root=Path(__file__).resolve().parent
+out=root/'outputs/radix-odometry-tree-pilot-v2';out.mkdir(exist_ok=False)
+os.environ['CUPY_CACHE_DIR']=str(out/'cupy-cache')
+import ast,hashlib,importlib.util,json,statistics,sys,time
+import numpy as np
+import cupy as cp
+from calibrex.solvers import cuda_lidar_map_adapter as maps
+from calibrex.solvers import cuda_scan_odometry_adapter as adapter
+from calibrex.solvers.scan_to_scan_odometry import ScanOdometryOptions
+
+original_tree=adapter._CudaTree
+original_fused=adapter._FUSED_SOURCE
+fixtures=root/'outputs/odometry-search-profile-v2'
+old_root=root/'outputs/fused-map-formal-v1/sources-current/src/calibrex/solvers'
+old_path=old_root/'cuda_lidar_map_adapter.py'
+spec=importlib.util.spec_from_file_location('_archived_radix_map',old_path)
+archived=importlib.util.module_from_spec(spec);sys.modules[spec.name]=archived;spec.loader.exec_module(archived)
+old_fused=next(n.value.value for n in ast.parse((old_root/'cuda_scan_odometry_adapter.py').read_bytes()).body
+               if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='_FUSED_SOURCE' for t in n.targets))
+variants=('prior','radix')
+mode='prior'
+
+def query_source(mode):
+    if mode=='radix':return archived._SOURCE
+    source=maps._SOURCE
+    if mode=='packed':
+        source=source.replace('const long long* order,','const double* packed, const long long* order,')
+        source=source.replace('reference[3*position','packed[3*j')
+    if mode in ('fixed','network'):
+        source=source.replace('const int k,','const int requested_k,')
+        source=source.replace('    int row =','    const int k=11;\n    int row =',1)
+        source=source.replace('double best[17]; long long chosen[17];','double best[11]; long long chosen[11];')
+    if mode=='network':
+        old='''                    int slot=k-1;
+                    while(slot>0 && (d<best[slot-1] ||
+                         (d==best[slot-1] && position<chosen[slot-1]))){
+                        best[slot]=best[slot-1];chosen[slot]=chosen[slot-1];--slot;
+                    }
+                    best[slot]=d;chosen[slot]=position;'''
+        assert old in source
+        source=source.replace(old,'''                    #pragma unroll
+                    for(int slot=0;slot<k;++slot) {
+                        if(d<best[slot] || (d==best[slot] && position<chosen[slot])) {
+                            double old_distance=best[slot];long long old_index=chosen[slot];
+                            best[slot]=d;chosen[slot]=position;
+                            d=old_distance;position=old_index;
+                        }
+                    }''')
+    return source
+
+def fused_source(mode):
+    if mode=='radix':return old_fused
+    source=original_fused
+    if mode=='packed':
+        source=source.replace('const long long* order,','const double* packed, const long long* order,')
+        source=source.replace('reference[3*position','packed[3*v')
+    return source
+
+class Tree(original_tree):
+    def __init__(self,points):
+        super().__init__(points)
+        if mode=='packed':
+            packed=cp.asarray(np.ascontiguousarray(points[self.cpu.indices]))
+            self.arrays=(packed,*self.arrays);self.bytes+=packed.nbytes
+        self.kernel=cp.RawKernel(query_source(mode),'query3',options=('--fmad=false',))
+    def query(self,points,k):
+        if mode in ('fixed','network'):assert k==11,k
+        return super().query(points,k)
+
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+protocol={'scope':__doc__,'launcher_sha256':sha(Path(__file__)),'blas_threads':1,
+    'sources':{p.relative_to(root).as_posix():sha(p) for p in sorted((root/'src/calibrex').rglob('*.py'))},
+    'fixtures':{p.name:sha(p) for p in fixtures.glob('registration-*.*')},
+    'archived_source_sha256':{p.name:sha(p) for p in (old_path,old_root/'cuda_scan_odometry_adapter.py')},
+    'kernels':{v:{'query':hashlib.sha256(query_source(v).encode()).hexdigest(),
+                  'system':hashlib.sha256(fused_source(v).encode()).hexdigest()} for v in variants},
+    'timing_scope':'complete target construction and registration, warm compiler cache; each variant receives one explicit untimed first-case warmup; no whole-bag claim'}
+(out/'protocol.json').write_text(json.dumps(protocol,indent=2)+'\n',encoding='utf-8')
+cases=[]
+for i in range(8):
+    data=np.load(fixtures/f'registration-{i:02d}.npz')
+    meta=json.loads((fixtures/f'registration-{i:02d}.json').read_bytes())
+    cases.append((data,ScanOdometryOptions(**meta['options'])))
+references={};runs=[]
+try:
+    for mode in variants:
+        adapter._CudaTree=original_tree if mode=='prior' else archived._CudaTree
+        adapter._FUSED_SOURCE=fused_source(mode)
+        data,options=cases[0]
+        adapter.CudaOdometryTarget(data['target'],options).register(data['source'],data['initial'])
+    for repeat in range(5):
+        order=variants[repeat%2:]+variants[:repeat%2]
+        for mode in order:
+            adapter._CudaTree=original_tree if mode=='prior' else archived._CudaTree
+            adapter._FUSED_SOURCE=fused_source(mode)
+            for case,(data,options) in enumerate(cases):
+                begin=time.perf_counter();target=adapter.CudaOdometryTarget(data['target'],options)
+                initialized=time.perf_counter();result=target.register(data['source'],data['initial'])
+                seconds=time.perf_counter()-begin
+                payload={**vars(result),'transform':result.transform.tolist()}
+                physical={k:v for k,v in payload.items() if k!='execution_backend'}
+                if case not in references:references[case]=physical
+                assert physical==references[case],(mode,case)
+                runs.append({'repeat':repeat,'variant':mode,'case':case,'seconds':seconds,
+                    'initialization_seconds':initialized-begin,'work':target.statistics(),'result':payload})
+            print(json.dumps({'repeat':repeat,'variant':mode,'seconds':sum(r['seconds'] for r in runs if r['variant']==mode and r['repeat']==repeat)}),flush=True)
+        (out/'runs.json').write_text(json.dumps(runs,indent=2)+'\n',encoding='utf-8')
+finally:
+    adapter._CudaTree=original_tree;adapter._FUSED_SOURCE=original_fused
+medians={v:statistics.median(sum(r['seconds'] for r in runs if r['variant']==v and r['repeat']==i) for i in range(5)) for v in variants}
+summary={'median_seconds':medians,'speedups':{v:medians['prior']/x for v,x in medians.items()},'exact':True,
+    'provenance':{'protocol_sha256':sha(out/'protocol.json')}}
+(out/'summary.json').write_text(json.dumps(summary,indent=2)+'\n',encoding='utf-8');print(json.dumps(summary),flush=True)

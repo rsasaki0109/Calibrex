@@ -1,0 +1,122 @@
+"""Retain every measured worker and bind source, correctness and schema evidence."""
+import gzip
+import hashlib
+import io
+import json
+from pathlib import Path
+import shutil
+import tarfile
+
+from tools.audit_bspline_lidar_imu_benchmark import audit
+
+source = Path('outputs/glim-async-normal-overlap-pairs-v1')
+destination = Path('docs/assets/cuda_normal_overlap')
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+protocol = json.loads((source / 'protocol.json').read_bytes())
+summary = json.loads((source / 'summary.json').read_bytes())
+attempts = json.loads((source / 'attempts.json').read_bytes())
+assert protocol['exact_preparation_outputs_required']
+assert summary['quality_passed'] and len(attempts) == 4
+assert protocol['fit_plane_backends'] == {'prior': 'cuda', 'current': 'cuda'}
+assert sha(Path('tools/benchmark_bspline_lidar_imu.py')) == protocol['launcher_sha256']
+assert json.loads((source / 'prototype-validation/receipt.json').read_bytes())['exit_code'] == 0
+destination.mkdir(exist_ok=False)
+for name in ('protocol.json', 'attempts.json', 'summary.json'):
+    shutil.copyfile(source / name, destination / name)
+for attempt in attempts:
+    folder = destination / attempt['worker']
+    folder.mkdir()
+    for name in ('result.json', 'measurement.json', 'worker.log'):
+        shutil.copyfile(source / attempt['worker'] / name, folder / name)
+for variant in ('prior', 'current'):
+    root = source / f'sources-{variant}'
+    shutil.copyfile(root / 'manifest.json', destination / f'sources-{variant}-manifest.json')
+    with (destination / f'sources-{variant}.tar.gz').open('wb') as raw:
+        with gzip.GzipFile(filename='', mode='wb', fileobj=raw, mtime=0) as compressed:
+            with tarfile.open(fileobj=compressed, mode='w') as bundle:
+                entries = [('LICENSE', Path('LICENSE').read_bytes()), *(
+                    (p.relative_to(root).as_posix(), p.read_bytes())
+                    for p in sorted((root / 'src').rglob('*.py')))]
+                for name, data in entries:
+                    info = tarfile.TarInfo(name)
+                    info.size, info.mtime, info.mode = len(data), 0, 0o644
+                    bundle.addfile(info, io.BytesIO(data))
+validation = destination / 'prototype-validation'
+validation.mkdir()
+for path in (source / 'prototype-validation').iterdir():
+    if path.is_file():
+        shutil.copyfile(path, validation / path.name)
+for src, name in [
+    ('tools/benchmark_bspline_lidar_imu.py', 'benchmark.py.txt'),
+    ('tools/schemas/bspline_lidar_imu_comparison.schema.json', 'comparison.schema.json'),
+    ('outputs/async-normal-schema-exports-v1/receipt.json', 'schema-exports-receipt.json'),
+    ('.tmp-calibrex-check-normal-overlap-schemas.py', 'schema-checker.py.txt'),
+    (__file__, 'publisher.py.txt'),
+]:
+    shutil.copyfile(src, destination / name)
+whole = summary['whole_median_seconds']
+table = '\n'.join([
+    '| Scope | Synchronous preparation | Asynchronous preparation | Observed ratio |',
+    '| --- | ---: | ---: | ---: |',
+    f"| Complete worker | {whole['prior']:.3f} s | {whole['current']:.3f} s | {summary['whole_speedup']:.3f}x |",
+])
+workers = '\n'.join([
+    '| Repeat | Variant | Complete seconds |', '| --- | --- | ---: |',
+    *(f"| {a['repeat']} | {a['variant']} | {a['whole_seconds']:.6f} |" for a in attempts),
+])
+readme = f'''# Asynchronous CUDA normal preparation
+
+{table}
+
+{workers}
+
+Two alternating fresh-process pairs replay six seconds of the original public
+GLIM Livox bag, four map rounds, one BLAS thread, CUDA odometry and CUDA fitter
+planes. Every worker has its own initially empty CuPy compiler cache. Whole time
+includes initialization/compilation, all initial/gyro/feedback/final odometry,
+association, fits/covariance, noise updates, holdout, controls, hashing, saves and
+frozen-import verification. No warmup or slow worker is discarded.
+
+Baseline `{protocol['baseline_commit']}`; candidate
+`{protocol['current_commit']}`; input bag SHA-256
+`{protocol['bag_sha256']}`. The unchanged dense policy uses 3 cm voxels, three
+local scans, a 1 nm coordinate grid and returned-motion grids of 1 micrometre /
+0.1 microradian. CPU remains the default and all grids remain disabled by default.
+
+One bounded dense normal batch is submitted before CPU source deskew/preprocess.
+The target retains GPU temporaries, pinned download buffer and completion event
+until the unchanged native repairs finish. There is no extra CPU thread. Larger
+targets and sparse source hints retain the existing demand-driven preparation.
+Tests cover cross-stream consumption, snapshots, sparse hints, the chunk boundary,
+abandoned targets, failed native repairs and retries, and empty sources.
+
+The exact gate permits only run metadata and the declared schedule suffix /
+`gpu_async_normal_batches` counter to differ. Every calibration/evidence field,
+old work counter and complete fit field including trajectory and covariance
+matches exactly. The original physical/evidence checks also pass. This checks
+preservation of previous outputs; the clip has no independent extrinsic truth.
+The final policy verdict remains INCONCLUSIVE. All 130 public schema/ledger
+exports are byte-identical between the two frozen runtime trees.
+
+Host load is unreserved; two pairs do not establish a universal speed ratio.
+Ratios are not multiplied across scopes or earlier cohorts. The retained
+normal-preparation timer records host time in submit/finish calls, including
+native repairs, excludes CPU work between calls and does not measure overlapped
+GPU work. Its ratio is not a normal-kernel arithmetic speedup.
+
+All four full results/fits/logs, deterministic source capsules/manifests,
+launcher/schema, publisher, schema checker/receipt and source-bound correctness
+run are indexed by SHA-256. The audit runs without CUDA. Raw bag data and compiler
+caches are not redistributed.
+'''
+(destination / 'README.md').write_text(readme, encoding='utf-8', newline='\n')
+files = {p.relative_to(destination).as_posix(): sha(p)
+         for p in sorted(destination.rglob('*')) if p.is_file()}
+(destination / 'publication-index.json').write_text(json.dumps({
+    'schema_version': 'slac.bspline_lidar_imu_publication/v0.1',
+    'provenance': {'input_protocol_sha256': sha(source / 'protocol.json')}, 'files': files,
+}, indent=2) + '\n', encoding='utf-8', newline='\n')
+doc = Path('docs/benchmarks/cuda_normal_overlap.md')
+doc.write_text(doc.read_text(encoding='utf-8').replace('<!-- results -->', table),
+               encoding='utf-8', newline='\n')
+print(json.dumps(audit(destination), indent=2))

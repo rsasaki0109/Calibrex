@@ -5,6 +5,21 @@
 # Windows core.autocrlf checkouts as well.
 *.json text eol=lf
 
+# Preserve exact worker/source bytes for the spline evaluation reuse comparison.
+docs/assets/spline_evaluation_reuse/**/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/spline_evaluation_reuse/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/spline_evaluation_reuse/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/spline_evaluation_reuse/**/*.log -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/spline_evaluation_reuse/*.md text eol=lf
+
+# Retain original measured source and result bytes in the CPU covariance archive.
+docs/assets/cpu_fused_scan_covariance/**/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cpu_fused_scan_covariance/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cpu_fused_scan_covariance/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cpu_fused_scan_covariance/**/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cpu_fused_scan_covariance/**/*.log -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cpu_fused_scan_covariance/*.md text eol=lf
+
 # Keep provenance-bound fixtures and their committed visualizations byte-stable
 # across Windows and Linux checkouts.
 examples/precomputed/*.yaml text eol=lf
@@ -121,3 +136,102 @@ docs/assets/cuda_spatial_pruning/**/*.txt -text whitespace=blank-at-eol,blank-at
 docs/assets/cuda_spatial_pruning/**/*.log -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 docs/assets/cuda_spatial_pruning/*.md text eol=lf
 docs/assets/cuda_spatial_pruning/**/*.md text eol=lf
+
+# Preserve measured worker/source bytes of fused GPU normal preparation.
+docs/assets/cuda_normal_preparation/**/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_normal_preparation/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_normal_preparation/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_normal_preparation/**/*.log -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_normal_preparation/*.md text eol=lf
+
+# Keep measured CPU thread-budget results and source bytes unchanged.
+docs/assets/cpu_parallel_scan_queries/**/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cpu_parallel_scan_queries/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cpu_parallel_scan_queries/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cpu_parallel_scan_queries/**/*.log -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cpu_parallel_scan_queries/*.md text eol=lf
+
+# Preserve the rejected worker-reuse pilot's actual execution and source bytes.
+docs/assets/cpu_worker_reuse_rejected/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cpu_worker_reuse_rejected/**/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cpu_worker_reuse_rejected/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cpu_worker_reuse_rejected/**/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cpu_worker_reuse_rejected/**/*.log -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cpu_worker_reuse_rejected/*.md text eol=lf
+
+# Preserve exact measured bytes of fixed-trajectory holdout evaluation reuse.
+docs/assets/holdout_evaluation_reuse/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/holdout_evaluation_reuse/**/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/holdout_evaluation_reuse/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/holdout_evaluation_reuse/**/*.log -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/holdout_evaluation_reuse/*.log -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/holdout_evaluation_reuse/*.md text eol=lf
+# The bound raw pytest failure log retains the runner's trailing whitespace.
+docs/assets/holdout_evaluation_reuse/baseline-validation.log -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+
+# Preserve original measurements and frozen sources for overlapped target preparation.
+docs/assets/overlapped_target_preparation/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/overlapped_target_preparation/**/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/overlapped_target_preparation/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/overlapped_target_preparation/**/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/overlapped_target_preparation/**/*.log -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/overlapped_target_preparation/*.log -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/overlapped_target_preparation/*.md text eol=lf
+
+# Preserve exact cold/retained CUDA map observations and launcher bytes.
+docs/assets/cuda_map_normal_cache/**/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_map_normal_cache/**/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_map_normal_cache/**/*.log -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_map_normal_cache/**/*.md text eol=lf
+
+# Retain the original fused registration observations and frozen launcher bytes.
+docs/assets/cuda_map_registration_fusion/**/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_map_registration_fusion/**/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_map_registration_fusion/**/*.log -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_map_registration_fusion/**/*.md text eol=lf
+
+# Bind CUDA spline fit observations and original correctness-run bytes.
+docs/assets/cuda_spline_planes/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_spline_planes/**/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_spline_planes/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_spline_planes/**/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_spline_planes/**/*.log -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_spline_planes/**/*.md text eol=lf
+docs/assets/cuda_spline_planes/*.md text eol=lf
+docs/benchmarks/cuda_spline_planes.md text eol=lf
+
+# Preserve original unsuccessful odometry screens and their source bindings.
+docs/assets/odometry_candidate_screen/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/odometry_candidate_screen/**/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/odometry_candidate_screen/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/odometry_candidate_screen/**/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/odometry_candidate_screen/**/*.log -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/odometry_candidate_screen/*.md text eol=lf
+docs/benchmarks/odometry_candidate_screening.md text eol=lf
+# The original profiler report includes its runner's final blank line.
+docs/assets/odometry_candidate_screen/profile/profile.txt -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+
+# Bind incremental local-map screening observations to their original bytes.
+docs/assets/incremental_local_map_screen/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/incremental_local_map_screen/**/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/incremental_local_map_screen/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/incremental_local_map_screen/**/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/incremental_local_map_screen/**/*.log -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/incremental_local_map_screen/*.md text eol=lf
+
+# Preserve scheduling pilot observations and generated kernel sources.
+docs/assets/odometry_scheduling_screen/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/odometry_scheduling_screen/**/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/odometry_scheduling_screen/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/odometry_scheduling_screen/**/*.txt -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/odometry_scheduling_screen/*.md text eol=lf
+
+# Preserve source-bound asynchronous preparation observations and test logs.
+docs/assets/cuda_normal_overlap/** -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_normal_overlap/*.md text eol=lf
+docs/benchmarks/cuda_normal_overlap.md text eol=lf
+
+# Keep exact interval-pruning workers, launchers and regression receipts.
+docs/assets/cuda_interval_pruning/** -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_interval_pruning/*.md text eol=lf
+docs/benchmarks/cuda_interval_pruning.md text eol=lf

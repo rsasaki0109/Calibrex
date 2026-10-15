@@ -68,6 +68,7 @@ def _rotation_control_derivatives(
     deltas: FloatArray | None = None,
     steps: FloatArray | None = None,
     log_jacobians: FloatArray | None = None,
+    basis_terms: tuple[FloatArray, FloatArray, FloatArray] | None = None,
 ) -> _RotationDerivatives:
     """Differentiate R, body omega and body alpha for four local controls.
 
@@ -78,7 +79,8 @@ def _rotation_control_derivatives(
     alpha_new = A.T alpha + l'' d + (A.T omega) cross (l' d).
     """
 
-    basis, d_basis, dd_basis = cumulative_basis(fraction, spacing)
+    basis, d_basis, dd_basis = (cumulative_basis(fraction, spacing)
+                              if basis_terms is None else basis_terms)
     count = fraction.size
     tangent = np.zeros((count, 3, 12))
     tangent[:, :, :3] = np.eye(3)

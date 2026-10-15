@@ -1,0 +1,6602 @@
+[
+  {
+    "repeat": 0,
+    "variant": "prior",
+    "case": 0,
+    "seconds": 0.027560099959373474,
+    "initialization_seconds": 0.009217999991960824,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 8,
+      "gpu_query_rows": 155127,
+      "scalar_query_repairs": 2,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 19201,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999806181021741,
+          0.006136544739195568,
+          0.0010517788064976646,
+          0.024197
+        ],
+        [
+          -0.006130510881213757,
+          0.9999652628763369,
+          -0.005647112270345411,
+          0.001815
+        ],
+        [
+          -0.001086396027821432,
+          0.005640554877174512,
+          0.999983501806079,
+          0.004604
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14678,
+      "rmse_m": 0.0357605828975481,
+      "hessian_min_eigenvalue": 0.037262199200802835,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 0,
+    "variant": "prior",
+    "case": 1,
+    "seconds": 0.03957030002493411,
+    "initialization_seconds": 0.01590769994072616,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 7,
+      "gpu_query_rows": 153537,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 6,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 33981,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998578233093448,
+          0.008248810434748398,
+          -0.014706811126494848,
+          0.040795
+        ],
+        [
+          -0.008187362862015943,
+          0.9999575213980234,
+          0.004233496059656731,
+          -0.005595
+        ],
+        [
+          0.014741107708191025,
+          -0.00411248415596132,
+          0.9998828867510446,
+          0.010825999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 6,
+      "correspondences": 14208,
+      "rmse_m": 0.025800849221215887,
+      "hessian_min_eigenvalue": 0.04260016585181889,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 0,
+    "variant": "prior",
+    "case": 2,
+    "seconds": 0.04900379991158843,
+    "initialization_seconds": 0.023701699916273355,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 8,
+      "gpu_query_rows": 186751,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 46520,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994604151597072,
+          -0.011786914672974757,
+          -0.0306585578799436,
+          0.043406
+        ],
+        [
+          0.012063469992968418,
+          0.9998880580719611,
+          0.008851215555568316,
+          -0.0035889999999999997
+        ],
+        [
+          0.030550797379358036,
+          -0.009216288166848753,
+          0.9994907247253028,
+          0.011113999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13779,
+      "rmse_m": 0.022576650744362096,
+      "hessian_min_eigenvalue": 0.04276061412594925,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 0,
+    "variant": "prior",
+    "case": 3,
+    "seconds": 0.047250299947336316,
+    "initialization_seconds": 0.022654299973510206,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 8,
+      "gpu_query_rows": 186489,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 46069,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997584780136051,
+          -0.01647545333489845,
+          -0.014544589280197385,
+          0.046897
+        ],
+        [
+          0.016465491847859726,
+          0.9998641110394888,
+          -0.0008043838766272167,
+          0.001094
+        ],
+        [
+          0.014555865420101751,
+          0.0005647057840119515,
+          0.999893898315841,
+          0.010856
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14076,
+      "rmse_m": 0.027348185704144094,
+      "hessian_min_eigenvalue": 0.03989344361953923,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 0,
+    "variant": "prior",
+    "case": 4,
+    "seconds": 0.049327700049616396,
+    "initialization_seconds": 0.02519780001603067,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 8,
+      "gpu_query_rows": 184920,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 47699,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999587295063345,
+          -0.007837266212099766,
+          -0.004595273919804865,
+          0.050459
+        ],
+        [
+          0.007874542889766361,
+          0.9999357761817025,
+          0.008150772121303876,
+          -0.011895
+        ],
+        [
+          0.004531099022818792,
+          -0.0081866214164864,
+          0.9999562232275113,
+          0.012495
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13125,
+      "rmse_m": 0.016861339620891355,
+      "hessian_min_eigenvalue": 0.035255526011936246,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 0,
+    "variant": "prior",
+    "case": 5,
+    "seconds": 0.05170379998162389,
+    "initialization_seconds": 0.023890099953860044,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 9,
+      "gpu_query_rows": 210196,
+      "scalar_query_repairs": 2,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 48148,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998700807973321,
+          -0.012318727839660775,
+          0.010395694817999061,
+          0.053021
+        ],
+        [
+          0.012250633741897358,
+          0.9999032509802176,
+          0.006588676051676518,
+          -0.006947999999999999
+        ],
+        [
+          -0.010475853151819755,
+          -0.0064604662064294,
+          0.999924256570035,
+          0.011831999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 12991,
+      "rmse_m": 0.031475419640715485,
+      "hessian_min_eigenvalue": 0.036196384417889645,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 0,
+    "variant": "prior",
+    "case": 6,
+    "seconds": 0.05152109998743981,
+    "initialization_seconds": 0.02425959997344762,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 10,
+      "gpu_query_rows": 225032,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 9,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 48659,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997133040175852,
+          -0.006646398873228912,
+          0.023002937905002813,
+          0.053582
+        ],
+        [
+          0.006695715708656796,
+          0.9999754459521887,
+          -0.0020675792295288993,
+          -0.007697
+        ],
+        [
+          -0.02298863113350424,
+          0.0022210075955462535,
+          0.9997332594066621,
+          0.011404
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 9,
+      "correspondences": 12503,
+      "rmse_m": 0.020977621249996442,
+      "hessian_min_eigenvalue": 0.03747569680897615,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 0,
+    "variant": "prior",
+    "case": 7,
+    "seconds": 0.04986490006558597,
+    "initialization_seconds": 0.02361829997971654,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 9,
+      "gpu_query_rows": 203457,
+      "scalar_query_repairs": 2,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 46833,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994393112527737,
+          0.03252576523154397,
+          0.007945924658824686,
+          0.051259
+        ],
+        [
+          -0.03253186659909662,
+          0.999470493975339,
+          0.0006397876759917209,
+          0.00551
+        ],
+        [
+          -0.007920907660098994,
+          -0.0008979247152485353,
+          0.9999682259717285,
+          0.00445
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 13471,
+      "rmse_m": 0.030590765543721414,
+      "hessian_min_eigenvalue": 0.03973153496049097,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 0,
+    "variant": "lazy",
+    "case": 0,
+    "seconds": 0.03644040005747229,
+    "initialization_seconds": 0.011436100001446903,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 13,
+      "gpu_query_rows": 148754,
+      "scalar_query_repairs": 2,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 6,
+      "gpu_normal_rows": 12828,
+      "gpu_normal_kernel_calls": 6,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999806181021741,
+          0.006136544739195568,
+          0.0010517788064976646,
+          0.024197
+        ],
+        [
+          -0.006130510881213757,
+          0.9999652628763369,
+          -0.005647112270345411,
+          0.001815
+        ],
+        [
+          -0.001086396027821432,
+          0.005640554877174512,
+          0.999983501806079,
+          0.004604
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14678,
+      "rmse_m": 0.0357605828975481,
+      "hessian_min_eigenvalue": 0.037262199200802835,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 0,
+    "variant": "lazy",
+    "case": 1,
+    "seconds": 0.04482119996100664,
+    "initialization_seconds": 0.015727499965578318,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 12,
+      "gpu_query_rows": 140194,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 6,
+      "gpu_system_refresh_calls": 6,
+      "gpu_normal_rows": 20638,
+      "gpu_normal_kernel_calls": 6,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998578233093448,
+          0.008248810434748398,
+          -0.014706811126494848,
+          0.040795
+        ],
+        [
+          -0.008187362862015943,
+          0.9999575213980234,
+          0.004233496059656731,
+          -0.005595
+        ],
+        [
+          0.014741107708191025,
+          -0.00411248415596132,
+          0.9998828867510446,
+          0.010825999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 6,
+      "correspondences": 14208,
+      "rmse_m": 0.025800849221215887,
+      "hessian_min_eigenvalue": 0.04260016585181889,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 0,
+    "variant": "lazy",
+    "case": 2,
+    "seconds": 0.05770829995162785,
+    "initialization_seconds": 0.02336629992350936,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 14,
+      "gpu_query_rows": 168011,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 27780,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994604151597072,
+          -0.011786914672974757,
+          -0.0306585578799436,
+          0.043406
+        ],
+        [
+          0.012063469992968418,
+          0.9998880580719611,
+          0.008851215555568316,
+          -0.0035889999999999997
+        ],
+        [
+          0.030550797379358036,
+          -0.009216288166848753,
+          0.9994907247253028,
+          0.011113999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13779,
+      "rmse_m": 0.022576650744362096,
+      "hessian_min_eigenvalue": 0.04276061412594925,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 0,
+    "variant": "lazy",
+    "case": 3,
+    "seconds": 0.060939199989661574,
+    "initialization_seconds": 0.02665979997254908,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 14,
+      "gpu_query_rows": 164401,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 23981,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997584780136051,
+          -0.01647545333489845,
+          -0.014544589280197385,
+          0.046897
+        ],
+        [
+          0.016465491847859726,
+          0.9998641110394888,
+          -0.0008043838766272167,
+          0.001094
+        ],
+        [
+          0.014555865420101751,
+          0.0005647057840119515,
+          0.999893898315841,
+          0.010856
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14076,
+      "rmse_m": 0.027348185704144094,
+      "hessian_min_eigenvalue": 0.03989344361953923,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 0,
+    "variant": "lazy",
+    "case": 4,
+    "seconds": 0.05460709996987134,
+    "initialization_seconds": 0.02382570004556328,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 14,
+      "gpu_query_rows": 161760,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 24539,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999587295063345,
+          -0.007837266212099766,
+          -0.004595273919804865,
+          0.050459
+        ],
+        [
+          0.007874542889766361,
+          0.9999357761817025,
+          0.008150772121303876,
+          -0.011895
+        ],
+        [
+          0.004531099022818792,
+          -0.0081866214164864,
+          0.9999562232275113,
+          0.012495
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13125,
+      "rmse_m": 0.016861339620891355,
+      "hessian_min_eigenvalue": 0.035255526011936246,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 0,
+    "variant": "lazy",
+    "case": 5,
+    "seconds": 0.060554100084118545,
+    "initialization_seconds": 0.02384660008829087,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 16,
+      "gpu_query_rows": 187922,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 8,
+      "gpu_normal_rows": 25874,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998700807973321,
+          -0.012318727839660775,
+          0.010395694817999061,
+          0.053021
+        ],
+        [
+          0.012250633741897358,
+          0.9999032509802176,
+          0.006588676051676518,
+          -0.006947999999999999
+        ],
+        [
+          -0.010475853151819755,
+          -0.0064604662064294,
+          0.999924256570035,
+          0.011831999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 12991,
+      "rmse_m": 0.031475419640715485,
+      "hessian_min_eigenvalue": 0.036196384417889645,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 0,
+    "variant": "lazy",
+    "case": 6,
+    "seconds": 0.061672499985434115,
+    "initialization_seconds": 0.025419399957172573,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 17,
+      "gpu_query_rows": 202310,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 9,
+      "gpu_system_refresh_calls": 8,
+      "gpu_normal_rows": 25937,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997133040175852,
+          -0.006646398873228912,
+          0.023002937905002813,
+          0.053582
+        ],
+        [
+          0.006695715708656796,
+          0.9999754459521887,
+          -0.0020675792295288993,
+          -0.007697
+        ],
+        [
+          -0.02298863113350424,
+          0.0022210075955462535,
+          0.9997332594066621,
+          0.011404
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 9,
+      "correspondences": 12503,
+      "rmse_m": 0.020977621249996442,
+      "hessian_min_eigenvalue": 0.03747569680897615,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 0,
+    "variant": "lazy",
+    "case": 7,
+    "seconds": 0.059082700056023896,
+    "initialization_seconds": 0.023226600023917854,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 16,
+      "gpu_query_rows": 184602,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 8,
+      "gpu_normal_rows": 27978,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994393112527737,
+          0.03252576523154397,
+          0.007945924658824686,
+          0.051259
+        ],
+        [
+          -0.03253186659909662,
+          0.999470493975339,
+          0.0006397876759917209,
+          0.00551
+        ],
+        [
+          -0.007920907660098994,
+          -0.0008979247152485353,
+          0.9999682259717285,
+          0.00445
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 13471,
+      "rmse_m": 0.030590765543721414,
+      "hessian_min_eigenvalue": 0.03973153496049097,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 0,
+    "variant": "prefetch",
+    "case": 0,
+    "seconds": 0.03558710007928312,
+    "initialization_seconds": 0.009176400024443865,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 14,
+      "gpu_query_rows": 168172,
+      "scalar_query_repairs": 2,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 5,
+      "gpu_normal_rows": 12828,
+      "gpu_normal_kernel_calls": 6,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999806181021741,
+          0.006136544739195568,
+          0.0010517788064976646,
+          0.024197
+        ],
+        [
+          -0.006130510881213757,
+          0.9999652628763369,
+          -0.005647112270345411,
+          0.001815
+        ],
+        [
+          -0.001086396027821432,
+          0.005640554877174512,
+          0.999983501806079,
+          0.004604
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14678,
+      "rmse_m": 0.0357605828975481,
+      "hessian_min_eigenvalue": 0.037262199200802835,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 0,
+    "variant": "prefetch",
+    "case": 1,
+    "seconds": 0.04835970001295209,
+    "initialization_seconds": 0.016256299917586148,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 13,
+      "gpu_query_rows": 160120,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 6,
+      "gpu_system_refresh_calls": 5,
+      "gpu_normal_rows": 20638,
+      "gpu_normal_kernel_calls": 6,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998578233093448,
+          0.008248810434748398,
+          -0.014706811126494848,
+          0.040795
+        ],
+        [
+          -0.008187362862015943,
+          0.9999575213980234,
+          0.004233496059656731,
+          -0.005595
+        ],
+        [
+          0.014741107708191025,
+          -0.00411248415596132,
+          0.9998828867510446,
+          0.010825999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 6,
+      "correspondences": 14208,
+      "rmse_m": 0.025800849221215887,
+      "hessian_min_eigenvalue": 0.04260016585181889,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 0,
+    "variant": "prefetch",
+    "case": 2,
+    "seconds": 0.058317799936048687,
+    "initialization_seconds": 0.022915299981832504,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 15,
+      "gpu_query_rows": 188044,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 6,
+      "gpu_normal_rows": 27780,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994604151597072,
+          -0.011786914672974757,
+          -0.0306585578799436,
+          0.043406
+        ],
+        [
+          0.012063469992968418,
+          0.9998880580719611,
+          0.008851215555568316,
+          -0.0035889999999999997
+        ],
+        [
+          0.030550797379358036,
+          -0.009216288166848753,
+          0.9994907247253028,
+          0.011113999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13779,
+      "rmse_m": 0.022576650744362096,
+      "hessian_min_eigenvalue": 0.04276061412594925,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 0,
+    "variant": "prefetch",
+    "case": 3,
+    "seconds": 0.05645660008303821,
+    "initialization_seconds": 0.022945199976675212,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 15,
+      "gpu_query_rows": 184461,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 6,
+      "gpu_normal_rows": 23981,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997584780136051,
+          -0.01647545333489845,
+          -0.014544589280197385,
+          0.046897
+        ],
+        [
+          0.016465491847859726,
+          0.9998641110394888,
+          -0.0008043838766272167,
+          0.001094
+        ],
+        [
+          0.014555865420101751,
+          0.0005647057840119515,
+          0.999893898315841,
+          0.010856
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14076,
+      "rmse_m": 0.027348185704144094,
+      "hessian_min_eigenvalue": 0.03989344361953923,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 0,
+    "variant": "prefetch",
+    "case": 4,
+    "seconds": 0.05745779990684241,
+    "initialization_seconds": 0.023606900009326637,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 15,
+      "gpu_query_rows": 181363,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 6,
+      "gpu_normal_rows": 24539,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999587295063345,
+          -0.007837266212099766,
+          -0.004595273919804865,
+          0.050459
+        ],
+        [
+          0.007874542889766361,
+          0.9999357761817025,
+          0.008150772121303876,
+          -0.011895
+        ],
+        [
+          0.004531099022818792,
+          -0.0081866214164864,
+          0.9999562232275113,
+          0.012495
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13125,
+      "rmse_m": 0.016861339620891355,
+      "hessian_min_eigenvalue": 0.035255526011936246,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 0,
+    "variant": "prefetch",
+    "case": 5,
+    "seconds": 0.06124169996473938,
+    "initialization_seconds": 0.02303289994597435,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 17,
+      "gpu_query_rows": 208178,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 25874,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998700807973321,
+          -0.012318727839660775,
+          0.010395694817999061,
+          0.053021
+        ],
+        [
+          0.012250633741897358,
+          0.9999032509802176,
+          0.006588676051676518,
+          -0.006947999999999999
+        ],
+        [
+          -0.010475853151819755,
+          -0.0064604662064294,
+          0.999924256570035,
+          0.011831999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 12991,
+      "rmse_m": 0.031475419640715485,
+      "hessian_min_eigenvalue": 0.036196384417889645,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 0,
+    "variant": "prefetch",
+    "case": 6,
+    "seconds": 0.061380399973131716,
+    "initialization_seconds": 0.024230699986219406,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 18,
+      "gpu_query_rows": 221907,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 9,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 25937,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997133040175852,
+          -0.006646398873228912,
+          0.023002937905002813,
+          0.053582
+        ],
+        [
+          0.006695715708656796,
+          0.9999754459521887,
+          -0.0020675792295288993,
+          -0.007697
+        ],
+        [
+          -0.02298863113350424,
+          0.0022210075955462535,
+          0.9997332594066621,
+          0.011404
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 9,
+      "correspondences": 12503,
+      "rmse_m": 0.020977621249996442,
+      "hessian_min_eigenvalue": 0.03747569680897615,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 0,
+    "variant": "prefetch",
+    "case": 7,
+    "seconds": 0.06335950002539903,
+    "initialization_seconds": 0.025985600077547133,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 17,
+      "gpu_query_rows": 204180,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 27978,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994393112527737,
+          0.03252576523154397,
+          0.007945924658824686,
+          0.051259
+        ],
+        [
+          -0.03253186659909662,
+          0.999470493975339,
+          0.0006397876759917209,
+          0.00551
+        ],
+        [
+          -0.007920907660098994,
+          -0.0008979247152485353,
+          0.9999682259717285,
+          0.00445
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 13471,
+      "rmse_m": 0.030590765543721414,
+      "hessian_min_eigenvalue": 0.03973153496049097,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 1,
+    "variant": "lazy",
+    "case": 0,
+    "seconds": 0.03497729997616261,
+    "initialization_seconds": 0.01054589997511357,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 13,
+      "gpu_query_rows": 148754,
+      "scalar_query_repairs": 2,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 6,
+      "gpu_normal_rows": 12828,
+      "gpu_normal_kernel_calls": 6,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999806181021741,
+          0.006136544739195568,
+          0.0010517788064976646,
+          0.024197
+        ],
+        [
+          -0.006130510881213757,
+          0.9999652628763369,
+          -0.005647112270345411,
+          0.001815
+        ],
+        [
+          -0.001086396027821432,
+          0.005640554877174512,
+          0.999983501806079,
+          0.004604
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14678,
+      "rmse_m": 0.0357605828975481,
+      "hessian_min_eigenvalue": 0.037262199200802835,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 1,
+    "variant": "lazy",
+    "case": 1,
+    "seconds": 0.04501390003133565,
+    "initialization_seconds": 0.01531529997009784,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 12,
+      "gpu_query_rows": 140194,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 6,
+      "gpu_system_refresh_calls": 6,
+      "gpu_normal_rows": 20638,
+      "gpu_normal_kernel_calls": 6,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998578233093448,
+          0.008248810434748398,
+          -0.014706811126494848,
+          0.040795
+        ],
+        [
+          -0.008187362862015943,
+          0.9999575213980234,
+          0.004233496059656731,
+          -0.005595
+        ],
+        [
+          0.014741107708191025,
+          -0.00411248415596132,
+          0.9998828867510446,
+          0.010825999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 6,
+      "correspondences": 14208,
+      "rmse_m": 0.025800849221215887,
+      "hessian_min_eigenvalue": 0.04260016585181889,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 1,
+    "variant": "lazy",
+    "case": 2,
+    "seconds": 0.055879599996842444,
+    "initialization_seconds": 0.024364599958062172,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 14,
+      "gpu_query_rows": 168011,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 27780,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994604151597072,
+          -0.011786914672974757,
+          -0.0306585578799436,
+          0.043406
+        ],
+        [
+          0.012063469992968418,
+          0.9998880580719611,
+          0.008851215555568316,
+          -0.0035889999999999997
+        ],
+        [
+          0.030550797379358036,
+          -0.009216288166848753,
+          0.9994907247253028,
+          0.011113999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13779,
+      "rmse_m": 0.022576650744362096,
+      "hessian_min_eigenvalue": 0.04276061412594925,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 1,
+    "variant": "lazy",
+    "case": 3,
+    "seconds": 0.06511349999345839,
+    "initialization_seconds": 0.02783179993275553,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 14,
+      "gpu_query_rows": 164401,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 23981,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997584780136051,
+          -0.01647545333489845,
+          -0.014544589280197385,
+          0.046897
+        ],
+        [
+          0.016465491847859726,
+          0.9998641110394888,
+          -0.0008043838766272167,
+          0.001094
+        ],
+        [
+          0.014555865420101751,
+          0.0005647057840119515,
+          0.999893898315841,
+          0.010856
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14076,
+      "rmse_m": 0.027348185704144094,
+      "hessian_min_eigenvalue": 0.03989344361953923,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 1,
+    "variant": "lazy",
+    "case": 4,
+    "seconds": 0.06424680002965033,
+    "initialization_seconds": 0.0323909999569878,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 14,
+      "gpu_query_rows": 161760,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 24539,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999587295063345,
+          -0.007837266212099766,
+          -0.004595273919804865,
+          0.050459
+        ],
+        [
+          0.007874542889766361,
+          0.9999357761817025,
+          0.008150772121303876,
+          -0.011895
+        ],
+        [
+          0.004531099022818792,
+          -0.0081866214164864,
+          0.9999562232275113,
+          0.012495
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13125,
+      "rmse_m": 0.016861339620891355,
+      "hessian_min_eigenvalue": 0.035255526011936246,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 1,
+    "variant": "lazy",
+    "case": 5,
+    "seconds": 0.06476729991845787,
+    "initialization_seconds": 0.027324800030328333,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 16,
+      "gpu_query_rows": 187922,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 8,
+      "gpu_normal_rows": 25874,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998700807973321,
+          -0.012318727839660775,
+          0.010395694817999061,
+          0.053021
+        ],
+        [
+          0.012250633741897358,
+          0.9999032509802176,
+          0.006588676051676518,
+          -0.006947999999999999
+        ],
+        [
+          -0.010475853151819755,
+          -0.0064604662064294,
+          0.999924256570035,
+          0.011831999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 12991,
+      "rmse_m": 0.031475419640715485,
+      "hessian_min_eigenvalue": 0.036196384417889645,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 1,
+    "variant": "lazy",
+    "case": 6,
+    "seconds": 0.062245599925518036,
+    "initialization_seconds": 0.025233399937860668,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 17,
+      "gpu_query_rows": 202310,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 9,
+      "gpu_system_refresh_calls": 8,
+      "gpu_normal_rows": 25937,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997133040175852,
+          -0.006646398873228912,
+          0.023002937905002813,
+          0.053582
+        ],
+        [
+          0.006695715708656796,
+          0.9999754459521887,
+          -0.0020675792295288993,
+          -0.007697
+        ],
+        [
+          -0.02298863113350424,
+          0.0022210075955462535,
+          0.9997332594066621,
+          0.011404
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 9,
+      "correspondences": 12503,
+      "rmse_m": 0.020977621249996442,
+      "hessian_min_eigenvalue": 0.03747569680897615,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 1,
+    "variant": "lazy",
+    "case": 7,
+    "seconds": 0.05991290009114891,
+    "initialization_seconds": 0.023349100025370717,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 16,
+      "gpu_query_rows": 184602,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 8,
+      "gpu_normal_rows": 27978,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994393112527737,
+          0.03252576523154397,
+          0.007945924658824686,
+          0.051259
+        ],
+        [
+          -0.03253186659909662,
+          0.999470493975339,
+          0.0006397876759917209,
+          0.00551
+        ],
+        [
+          -0.007920907660098994,
+          -0.0008979247152485353,
+          0.9999682259717285,
+          0.00445
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 13471,
+      "rmse_m": 0.030590765543721414,
+      "hessian_min_eigenvalue": 0.03973153496049097,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 1,
+    "variant": "prefetch",
+    "case": 0,
+    "seconds": 0.03652620001230389,
+    "initialization_seconds": 0.009449400007724762,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 14,
+      "gpu_query_rows": 168172,
+      "scalar_query_repairs": 2,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 5,
+      "gpu_normal_rows": 12828,
+      "gpu_normal_kernel_calls": 6,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999806181021741,
+          0.006136544739195568,
+          0.0010517788064976646,
+          0.024197
+        ],
+        [
+          -0.006130510881213757,
+          0.9999652628763369,
+          -0.005647112270345411,
+          0.001815
+        ],
+        [
+          -0.001086396027821432,
+          0.005640554877174512,
+          0.999983501806079,
+          0.004604
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14678,
+      "rmse_m": 0.0357605828975481,
+      "hessian_min_eigenvalue": 0.037262199200802835,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 1,
+    "variant": "prefetch",
+    "case": 1,
+    "seconds": 0.04507350001949817,
+    "initialization_seconds": 0.01492709992453456,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 13,
+      "gpu_query_rows": 160120,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 6,
+      "gpu_system_refresh_calls": 5,
+      "gpu_normal_rows": 20638,
+      "gpu_normal_kernel_calls": 6,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998578233093448,
+          0.008248810434748398,
+          -0.014706811126494848,
+          0.040795
+        ],
+        [
+          -0.008187362862015943,
+          0.9999575213980234,
+          0.004233496059656731,
+          -0.005595
+        ],
+        [
+          0.014741107708191025,
+          -0.00411248415596132,
+          0.9998828867510446,
+          0.010825999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 6,
+      "correspondences": 14208,
+      "rmse_m": 0.025800849221215887,
+      "hessian_min_eigenvalue": 0.04260016585181889,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 1,
+    "variant": "prefetch",
+    "case": 2,
+    "seconds": 0.05770279990974814,
+    "initialization_seconds": 0.022812900017015636,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 15,
+      "gpu_query_rows": 188044,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 6,
+      "gpu_normal_rows": 27780,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994604151597072,
+          -0.011786914672974757,
+          -0.0306585578799436,
+          0.043406
+        ],
+        [
+          0.012063469992968418,
+          0.9998880580719611,
+          0.008851215555568316,
+          -0.0035889999999999997
+        ],
+        [
+          0.030550797379358036,
+          -0.009216288166848753,
+          0.9994907247253028,
+          0.011113999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13779,
+      "rmse_m": 0.022576650744362096,
+      "hessian_min_eigenvalue": 0.04276061412594925,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 1,
+    "variant": "prefetch",
+    "case": 3,
+    "seconds": 0.05570959998294711,
+    "initialization_seconds": 0.02320789999794215,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 15,
+      "gpu_query_rows": 184461,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 6,
+      "gpu_normal_rows": 23981,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997584780136051,
+          -0.01647545333489845,
+          -0.014544589280197385,
+          0.046897
+        ],
+        [
+          0.016465491847859726,
+          0.9998641110394888,
+          -0.0008043838766272167,
+          0.001094
+        ],
+        [
+          0.014555865420101751,
+          0.0005647057840119515,
+          0.999893898315841,
+          0.010856
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14076,
+      "rmse_m": 0.027348185704144094,
+      "hessian_min_eigenvalue": 0.03989344361953923,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 1,
+    "variant": "prefetch",
+    "case": 4,
+    "seconds": 0.05821699998341501,
+    "initialization_seconds": 0.023925299989059567,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 15,
+      "gpu_query_rows": 181363,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 6,
+      "gpu_normal_rows": 24539,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999587295063345,
+          -0.007837266212099766,
+          -0.004595273919804865,
+          0.050459
+        ],
+        [
+          0.007874542889766361,
+          0.9999357761817025,
+          0.008150772121303876,
+          -0.011895
+        ],
+        [
+          0.004531099022818792,
+          -0.0081866214164864,
+          0.9999562232275113,
+          0.012495
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13125,
+      "rmse_m": 0.016861339620891355,
+      "hessian_min_eigenvalue": 0.035255526011936246,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 1,
+    "variant": "prefetch",
+    "case": 5,
+    "seconds": 0.06103039998561144,
+    "initialization_seconds": 0.023326999973505735,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 17,
+      "gpu_query_rows": 208178,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 25874,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998700807973321,
+          -0.012318727839660775,
+          0.010395694817999061,
+          0.053021
+        ],
+        [
+          0.012250633741897358,
+          0.9999032509802176,
+          0.006588676051676518,
+          -0.006947999999999999
+        ],
+        [
+          -0.010475853151819755,
+          -0.0064604662064294,
+          0.999924256570035,
+          0.011831999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 12991,
+      "rmse_m": 0.031475419640715485,
+      "hessian_min_eigenvalue": 0.036196384417889645,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 1,
+    "variant": "prefetch",
+    "case": 6,
+    "seconds": 0.06493640004191548,
+    "initialization_seconds": 0.025431400048546493,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 18,
+      "gpu_query_rows": 221907,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 9,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 25937,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997133040175852,
+          -0.006646398873228912,
+          0.023002937905002813,
+          0.053582
+        ],
+        [
+          0.006695715708656796,
+          0.9999754459521887,
+          -0.0020675792295288993,
+          -0.007697
+        ],
+        [
+          -0.02298863113350424,
+          0.0022210075955462535,
+          0.9997332594066621,
+          0.011404
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 9,
+      "correspondences": 12503,
+      "rmse_m": 0.020977621249996442,
+      "hessian_min_eigenvalue": 0.03747569680897615,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 1,
+    "variant": "prefetch",
+    "case": 7,
+    "seconds": 0.06285610003396869,
+    "initialization_seconds": 0.025042599998414516,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 17,
+      "gpu_query_rows": 204180,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 27978,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994393112527737,
+          0.03252576523154397,
+          0.007945924658824686,
+          0.051259
+        ],
+        [
+          -0.03253186659909662,
+          0.999470493975339,
+          0.0006397876759917209,
+          0.00551
+        ],
+        [
+          -0.007920907660098994,
+          -0.0008979247152485353,
+          0.9999682259717285,
+          0.00445
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 13471,
+      "rmse_m": 0.030590765543721414,
+      "hessian_min_eigenvalue": 0.03973153496049097,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 1,
+    "variant": "prior",
+    "case": 0,
+    "seconds": 0.029034300008788705,
+    "initialization_seconds": 0.010265200049616396,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 8,
+      "gpu_query_rows": 155127,
+      "scalar_query_repairs": 2,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 19201,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999806181021741,
+          0.006136544739195568,
+          0.0010517788064976646,
+          0.024197
+        ],
+        [
+          -0.006130510881213757,
+          0.9999652628763369,
+          -0.005647112270345411,
+          0.001815
+        ],
+        [
+          -0.001086396027821432,
+          0.005640554877174512,
+          0.999983501806079,
+          0.004604
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14678,
+      "rmse_m": 0.0357605828975481,
+      "hessian_min_eigenvalue": 0.037262199200802835,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 1,
+    "variant": "prior",
+    "case": 1,
+    "seconds": 0.04309639998245984,
+    "initialization_seconds": 0.019240700057707727,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 7,
+      "gpu_query_rows": 153537,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 6,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 33981,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998578233093448,
+          0.008248810434748398,
+          -0.014706811126494848,
+          0.040795
+        ],
+        [
+          -0.008187362862015943,
+          0.9999575213980234,
+          0.004233496059656731,
+          -0.005595
+        ],
+        [
+          0.014741107708191025,
+          -0.00411248415596132,
+          0.9998828867510446,
+          0.010825999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 6,
+      "correspondences": 14208,
+      "rmse_m": 0.025800849221215887,
+      "hessian_min_eigenvalue": 0.04260016585181889,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 1,
+    "variant": "prior",
+    "case": 2,
+    "seconds": 0.05296650005038828,
+    "initialization_seconds": 0.02792990009766072,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 8,
+      "gpu_query_rows": 186751,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 46520,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994604151597072,
+          -0.011786914672974757,
+          -0.0306585578799436,
+          0.043406
+        ],
+        [
+          0.012063469992968418,
+          0.9998880580719611,
+          0.008851215555568316,
+          -0.0035889999999999997
+        ],
+        [
+          0.030550797379358036,
+          -0.009216288166848753,
+          0.9994907247253028,
+          0.011113999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13779,
+      "rmse_m": 0.022576650744362096,
+      "hessian_min_eigenvalue": 0.04276061412594925,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 1,
+    "variant": "prior",
+    "case": 3,
+    "seconds": 0.04673040006309748,
+    "initialization_seconds": 0.0227679000236094,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 8,
+      "gpu_query_rows": 186489,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 46069,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997584780136051,
+          -0.01647545333489845,
+          -0.014544589280197385,
+          0.046897
+        ],
+        [
+          0.016465491847859726,
+          0.9998641110394888,
+          -0.0008043838766272167,
+          0.001094
+        ],
+        [
+          0.014555865420101751,
+          0.0005647057840119515,
+          0.999893898315841,
+          0.010856
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14076,
+      "rmse_m": 0.027348185704144094,
+      "hessian_min_eigenvalue": 0.03989344361953923,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 1,
+    "variant": "prior",
+    "case": 4,
+    "seconds": 0.05006909999065101,
+    "initialization_seconds": 0.025647199945524335,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 8,
+      "gpu_query_rows": 184920,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 47699,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999587295063345,
+          -0.007837266212099766,
+          -0.004595273919804865,
+          0.050459
+        ],
+        [
+          0.007874542889766361,
+          0.9999357761817025,
+          0.008150772121303876,
+          -0.011895
+        ],
+        [
+          0.004531099022818792,
+          -0.0081866214164864,
+          0.9999562232275113,
+          0.012495
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13125,
+      "rmse_m": 0.016861339620891355,
+      "hessian_min_eigenvalue": 0.035255526011936246,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 1,
+    "variant": "prior",
+    "case": 5,
+    "seconds": 0.05326189997140318,
+    "initialization_seconds": 0.024131900048814714,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 9,
+      "gpu_query_rows": 210196,
+      "scalar_query_repairs": 2,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 48148,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998700807973321,
+          -0.012318727839660775,
+          0.010395694817999061,
+          0.053021
+        ],
+        [
+          0.012250633741897358,
+          0.9999032509802176,
+          0.006588676051676518,
+          -0.006947999999999999
+        ],
+        [
+          -0.010475853151819755,
+          -0.0064604662064294,
+          0.999924256570035,
+          0.011831999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 12991,
+      "rmse_m": 0.031475419640715485,
+      "hessian_min_eigenvalue": 0.036196384417889645,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 1,
+    "variant": "prior",
+    "case": 6,
+    "seconds": 0.05312310007866472,
+    "initialization_seconds": 0.02453990001231432,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 10,
+      "gpu_query_rows": 225032,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 9,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 48659,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997133040175852,
+          -0.006646398873228912,
+          0.023002937905002813,
+          0.053582
+        ],
+        [
+          0.006695715708656796,
+          0.9999754459521887,
+          -0.0020675792295288993,
+          -0.007697
+        ],
+        [
+          -0.02298863113350424,
+          0.0022210075955462535,
+          0.9997332594066621,
+          0.011404
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 9,
+      "correspondences": 12503,
+      "rmse_m": 0.020977621249996442,
+      "hessian_min_eigenvalue": 0.03747569680897615,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 1,
+    "variant": "prior",
+    "case": 7,
+    "seconds": 0.05096709995996207,
+    "initialization_seconds": 0.023243599920533597,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 9,
+      "gpu_query_rows": 203457,
+      "scalar_query_repairs": 2,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 46833,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994393112527737,
+          0.03252576523154397,
+          0.007945924658824686,
+          0.051259
+        ],
+        [
+          -0.03253186659909662,
+          0.999470493975339,
+          0.0006397876759917209,
+          0.00551
+        ],
+        [
+          -0.007920907660098994,
+          -0.0008979247152485353,
+          0.9999682259717285,
+          0.00445
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 13471,
+      "rmse_m": 0.030590765543721414,
+      "hessian_min_eigenvalue": 0.03973153496049097,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 2,
+    "variant": "prefetch",
+    "case": 0,
+    "seconds": 0.03665889997500926,
+    "initialization_seconds": 0.010385000030510128,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 14,
+      "gpu_query_rows": 168172,
+      "scalar_query_repairs": 2,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 5,
+      "gpu_normal_rows": 12828,
+      "gpu_normal_kernel_calls": 6,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999806181021741,
+          0.006136544739195568,
+          0.0010517788064976646,
+          0.024197
+        ],
+        [
+          -0.006130510881213757,
+          0.9999652628763369,
+          -0.005647112270345411,
+          0.001815
+        ],
+        [
+          -0.001086396027821432,
+          0.005640554877174512,
+          0.999983501806079,
+          0.004604
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14678,
+      "rmse_m": 0.0357605828975481,
+      "hessian_min_eigenvalue": 0.037262199200802835,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 2,
+    "variant": "prefetch",
+    "case": 1,
+    "seconds": 0.046761700068600476,
+    "initialization_seconds": 0.01561480003874749,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 13,
+      "gpu_query_rows": 160120,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 6,
+      "gpu_system_refresh_calls": 5,
+      "gpu_normal_rows": 20638,
+      "gpu_normal_kernel_calls": 6,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998578233093448,
+          0.008248810434748398,
+          -0.014706811126494848,
+          0.040795
+        ],
+        [
+          -0.008187362862015943,
+          0.9999575213980234,
+          0.004233496059656731,
+          -0.005595
+        ],
+        [
+          0.014741107708191025,
+          -0.00411248415596132,
+          0.9998828867510446,
+          0.010825999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 6,
+      "correspondences": 14208,
+      "rmse_m": 0.025800849221215887,
+      "hessian_min_eigenvalue": 0.04260016585181889,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 2,
+    "variant": "prefetch",
+    "case": 2,
+    "seconds": 0.05806369998026639,
+    "initialization_seconds": 0.023171099950559437,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 15,
+      "gpu_query_rows": 188044,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 6,
+      "gpu_normal_rows": 27780,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994604151597072,
+          -0.011786914672974757,
+          -0.0306585578799436,
+          0.043406
+        ],
+        [
+          0.012063469992968418,
+          0.9998880580719611,
+          0.008851215555568316,
+          -0.0035889999999999997
+        ],
+        [
+          0.030550797379358036,
+          -0.009216288166848753,
+          0.9994907247253028,
+          0.011113999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13779,
+      "rmse_m": 0.022576650744362096,
+      "hessian_min_eigenvalue": 0.04276061412594925,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 2,
+    "variant": "prefetch",
+    "case": 3,
+    "seconds": 0.05929380003362894,
+    "initialization_seconds": 0.024761599954217672,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 15,
+      "gpu_query_rows": 184461,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 6,
+      "gpu_normal_rows": 23981,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997584780136051,
+          -0.01647545333489845,
+          -0.014544589280197385,
+          0.046897
+        ],
+        [
+          0.016465491847859726,
+          0.9998641110394888,
+          -0.0008043838766272167,
+          0.001094
+        ],
+        [
+          0.014555865420101751,
+          0.0005647057840119515,
+          0.999893898315841,
+          0.010856
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14076,
+      "rmse_m": 0.027348185704144094,
+      "hessian_min_eigenvalue": 0.03989344361953923,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 2,
+    "variant": "prefetch",
+    "case": 4,
+    "seconds": 0.058439499931409955,
+    "initialization_seconds": 0.022767000016756356,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 15,
+      "gpu_query_rows": 181363,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 6,
+      "gpu_normal_rows": 24539,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999587295063345,
+          -0.007837266212099766,
+          -0.004595273919804865,
+          0.050459
+        ],
+        [
+          0.007874542889766361,
+          0.9999357761817025,
+          0.008150772121303876,
+          -0.011895
+        ],
+        [
+          0.004531099022818792,
+          -0.0081866214164864,
+          0.9999562232275113,
+          0.012495
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13125,
+      "rmse_m": 0.016861339620891355,
+      "hessian_min_eigenvalue": 0.035255526011936246,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 2,
+    "variant": "prefetch",
+    "case": 5,
+    "seconds": 0.06690910004545003,
+    "initialization_seconds": 0.028206099988892674,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 17,
+      "gpu_query_rows": 208178,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 25874,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998700807973321,
+          -0.012318727839660775,
+          0.010395694817999061,
+          0.053021
+        ],
+        [
+          0.012250633741897358,
+          0.9999032509802176,
+          0.006588676051676518,
+          -0.006947999999999999
+        ],
+        [
+          -0.010475853151819755,
+          -0.0064604662064294,
+          0.999924256570035,
+          0.011831999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 12991,
+      "rmse_m": 0.031475419640715485,
+      "hessian_min_eigenvalue": 0.036196384417889645,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 2,
+    "variant": "prefetch",
+    "case": 6,
+    "seconds": 0.06321439996827394,
+    "initialization_seconds": 0.023416999960318208,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 18,
+      "gpu_query_rows": 221907,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 9,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 25937,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997133040175852,
+          -0.006646398873228912,
+          0.023002937905002813,
+          0.053582
+        ],
+        [
+          0.006695715708656796,
+          0.9999754459521887,
+          -0.0020675792295288993,
+          -0.007697
+        ],
+        [
+          -0.02298863113350424,
+          0.0022210075955462535,
+          0.9997332594066621,
+          0.011404
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 9,
+      "correspondences": 12503,
+      "rmse_m": 0.020977621249996442,
+      "hessian_min_eigenvalue": 0.03747569680897615,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 2,
+    "variant": "prefetch",
+    "case": 7,
+    "seconds": 0.06167170009575784,
+    "initialization_seconds": 0.02325530000962317,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 17,
+      "gpu_query_rows": 204180,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 27978,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994393112527737,
+          0.03252576523154397,
+          0.007945924658824686,
+          0.051259
+        ],
+        [
+          -0.03253186659909662,
+          0.999470493975339,
+          0.0006397876759917209,
+          0.00551
+        ],
+        [
+          -0.007920907660098994,
+          -0.0008979247152485353,
+          0.9999682259717285,
+          0.00445
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 13471,
+      "rmse_m": 0.030590765543721414,
+      "hessian_min_eigenvalue": 0.03973153496049097,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 2,
+    "variant": "prior",
+    "case": 0,
+    "seconds": 0.026684299926273525,
+    "initialization_seconds": 0.00924669997766614,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 8,
+      "gpu_query_rows": 155127,
+      "scalar_query_repairs": 2,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 19201,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999806181021741,
+          0.006136544739195568,
+          0.0010517788064976646,
+          0.024197
+        ],
+        [
+          -0.006130510881213757,
+          0.9999652628763369,
+          -0.005647112270345411,
+          0.001815
+        ],
+        [
+          -0.001086396027821432,
+          0.005640554877174512,
+          0.999983501806079,
+          0.004604
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14678,
+      "rmse_m": 0.0357605828975481,
+      "hessian_min_eigenvalue": 0.037262199200802835,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 2,
+    "variant": "prior",
+    "case": 1,
+    "seconds": 0.03888500004541129,
+    "initialization_seconds": 0.016233100090175867,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 7,
+      "gpu_query_rows": 153537,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 6,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 33981,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998578233093448,
+          0.008248810434748398,
+          -0.014706811126494848,
+          0.040795
+        ],
+        [
+          -0.008187362862015943,
+          0.9999575213980234,
+          0.004233496059656731,
+          -0.005595
+        ],
+        [
+          0.014741107708191025,
+          -0.00411248415596132,
+          0.9998828867510446,
+          0.010825999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 6,
+      "correspondences": 14208,
+      "rmse_m": 0.025800849221215887,
+      "hessian_min_eigenvalue": 0.04260016585181889,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 2,
+    "variant": "prior",
+    "case": 2,
+    "seconds": 0.04830909997690469,
+    "initialization_seconds": 0.02330750005785376,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 8,
+      "gpu_query_rows": 186751,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 46520,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994604151597072,
+          -0.011786914672974757,
+          -0.0306585578799436,
+          0.043406
+        ],
+        [
+          0.012063469992968418,
+          0.9998880580719611,
+          0.008851215555568316,
+          -0.0035889999999999997
+        ],
+        [
+          0.030550797379358036,
+          -0.009216288166848753,
+          0.9994907247253028,
+          0.011113999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13779,
+      "rmse_m": 0.022576650744362096,
+      "hessian_min_eigenvalue": 0.04276061412594925,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 2,
+    "variant": "prior",
+    "case": 3,
+    "seconds": 0.04991290008183569,
+    "initialization_seconds": 0.025892300065606833,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 8,
+      "gpu_query_rows": 186489,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 46069,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997584780136051,
+          -0.01647545333489845,
+          -0.014544589280197385,
+          0.046897
+        ],
+        [
+          0.016465491847859726,
+          0.9998641110394888,
+          -0.0008043838766272167,
+          0.001094
+        ],
+        [
+          0.014555865420101751,
+          0.0005647057840119515,
+          0.999893898315841,
+          0.010856
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14076,
+      "rmse_m": 0.027348185704144094,
+      "hessian_min_eigenvalue": 0.03989344361953923,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 2,
+    "variant": "prior",
+    "case": 4,
+    "seconds": 0.04775049991440028,
+    "initialization_seconds": 0.023795199929736555,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 8,
+      "gpu_query_rows": 184920,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 47699,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999587295063345,
+          -0.007837266212099766,
+          -0.004595273919804865,
+          0.050459
+        ],
+        [
+          0.007874542889766361,
+          0.9999357761817025,
+          0.008150772121303876,
+          -0.011895
+        ],
+        [
+          0.004531099022818792,
+          -0.0081866214164864,
+          0.9999562232275113,
+          0.012495
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13125,
+      "rmse_m": 0.016861339620891355,
+      "hessian_min_eigenvalue": 0.035255526011936246,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 2,
+    "variant": "prior",
+    "case": 5,
+    "seconds": 0.0512389000505209,
+    "initialization_seconds": 0.023914300021715462,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 9,
+      "gpu_query_rows": 210196,
+      "scalar_query_repairs": 2,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 48148,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998700807973321,
+          -0.012318727839660775,
+          0.010395694817999061,
+          0.053021
+        ],
+        [
+          0.012250633741897358,
+          0.9999032509802176,
+          0.006588676051676518,
+          -0.006947999999999999
+        ],
+        [
+          -0.010475853151819755,
+          -0.0064604662064294,
+          0.999924256570035,
+          0.011831999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 12991,
+      "rmse_m": 0.031475419640715485,
+      "hessian_min_eigenvalue": 0.036196384417889645,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 2,
+    "variant": "prior",
+    "case": 6,
+    "seconds": 0.05101769999600947,
+    "initialization_seconds": 0.02427309995982796,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 10,
+      "gpu_query_rows": 225032,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 9,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 48659,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997133040175852,
+          -0.006646398873228912,
+          0.023002937905002813,
+          0.053582
+        ],
+        [
+          0.006695715708656796,
+          0.9999754459521887,
+          -0.0020675792295288993,
+          -0.007697
+        ],
+        [
+          -0.02298863113350424,
+          0.0022210075955462535,
+          0.9997332594066621,
+          0.011404
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 9,
+      "correspondences": 12503,
+      "rmse_m": 0.020977621249996442,
+      "hessian_min_eigenvalue": 0.03747569680897615,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 2,
+    "variant": "prior",
+    "case": 7,
+    "seconds": 0.04902889998629689,
+    "initialization_seconds": 0.023216600064188242,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 9,
+      "gpu_query_rows": 203457,
+      "scalar_query_repairs": 2,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 46833,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994393112527737,
+          0.03252576523154397,
+          0.007945924658824686,
+          0.051259
+        ],
+        [
+          -0.03253186659909662,
+          0.999470493975339,
+          0.0006397876759917209,
+          0.00551
+        ],
+        [
+          -0.007920907660098994,
+          -0.0008979247152485353,
+          0.9999682259717285,
+          0.00445
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 13471,
+      "rmse_m": 0.030590765543721414,
+      "hessian_min_eigenvalue": 0.03973153496049097,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 2,
+    "variant": "lazy",
+    "case": 0,
+    "seconds": 0.03441039996687323,
+    "initialization_seconds": 0.009229999966919422,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 13,
+      "gpu_query_rows": 148754,
+      "scalar_query_repairs": 2,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 6,
+      "gpu_normal_rows": 12828,
+      "gpu_normal_kernel_calls": 6,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999806181021741,
+          0.006136544739195568,
+          0.0010517788064976646,
+          0.024197
+        ],
+        [
+          -0.006130510881213757,
+          0.9999652628763369,
+          -0.005647112270345411,
+          0.001815
+        ],
+        [
+          -0.001086396027821432,
+          0.005640554877174512,
+          0.999983501806079,
+          0.004604
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14678,
+      "rmse_m": 0.0357605828975481,
+      "hessian_min_eigenvalue": 0.037262199200802835,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 2,
+    "variant": "lazy",
+    "case": 1,
+    "seconds": 0.044006000040099025,
+    "initialization_seconds": 0.015431600040756166,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 12,
+      "gpu_query_rows": 140194,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 6,
+      "gpu_system_refresh_calls": 6,
+      "gpu_normal_rows": 20638,
+      "gpu_normal_kernel_calls": 6,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998578233093448,
+          0.008248810434748398,
+          -0.014706811126494848,
+          0.040795
+        ],
+        [
+          -0.008187362862015943,
+          0.9999575213980234,
+          0.004233496059656731,
+          -0.005595
+        ],
+        [
+          0.014741107708191025,
+          -0.00411248415596132,
+          0.9998828867510446,
+          0.010825999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 6,
+      "correspondences": 14208,
+      "rmse_m": 0.025800849221215887,
+      "hessian_min_eigenvalue": 0.04260016585181889,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 2,
+    "variant": "lazy",
+    "case": 2,
+    "seconds": 0.05510859994683415,
+    "initialization_seconds": 0.022799299913458526,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 14,
+      "gpu_query_rows": 168011,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 27780,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994604151597072,
+          -0.011786914672974757,
+          -0.0306585578799436,
+          0.043406
+        ],
+        [
+          0.012063469992968418,
+          0.9998880580719611,
+          0.008851215555568316,
+          -0.0035889999999999997
+        ],
+        [
+          0.030550797379358036,
+          -0.009216288166848753,
+          0.9994907247253028,
+          0.011113999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13779,
+      "rmse_m": 0.022576650744362096,
+      "hessian_min_eigenvalue": 0.04276061412594925,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 2,
+    "variant": "lazy",
+    "case": 3,
+    "seconds": 0.05432270001620054,
+    "initialization_seconds": 0.023191799991764128,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 14,
+      "gpu_query_rows": 164401,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 23981,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997584780136051,
+          -0.01647545333489845,
+          -0.014544589280197385,
+          0.046897
+        ],
+        [
+          0.016465491847859726,
+          0.9998641110394888,
+          -0.0008043838766272167,
+          0.001094
+        ],
+        [
+          0.014555865420101751,
+          0.0005647057840119515,
+          0.999893898315841,
+          0.010856
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14076,
+      "rmse_m": 0.027348185704144094,
+      "hessian_min_eigenvalue": 0.03989344361953923,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 2,
+    "variant": "lazy",
+    "case": 4,
+    "seconds": 0.0559837999753654,
+    "initialization_seconds": 0.02526460005901754,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 14,
+      "gpu_query_rows": 161760,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 24539,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999587295063345,
+          -0.007837266212099766,
+          -0.004595273919804865,
+          0.050459
+        ],
+        [
+          0.007874542889766361,
+          0.9999357761817025,
+          0.008150772121303876,
+          -0.011895
+        ],
+        [
+          0.004531099022818792,
+          -0.0081866214164864,
+          0.9999562232275113,
+          0.012495
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13125,
+      "rmse_m": 0.016861339620891355,
+      "hessian_min_eigenvalue": 0.035255526011936246,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 2,
+    "variant": "lazy",
+    "case": 5,
+    "seconds": 0.06094860006123781,
+    "initialization_seconds": 0.02461560000665486,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 16,
+      "gpu_query_rows": 187922,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 8,
+      "gpu_normal_rows": 25874,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998700807973321,
+          -0.012318727839660775,
+          0.010395694817999061,
+          0.053021
+        ],
+        [
+          0.012250633741897358,
+          0.9999032509802176,
+          0.006588676051676518,
+          -0.006947999999999999
+        ],
+        [
+          -0.010475853151819755,
+          -0.0064604662064294,
+          0.999924256570035,
+          0.011831999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 12991,
+      "rmse_m": 0.031475419640715485,
+      "hessian_min_eigenvalue": 0.036196384417889645,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 2,
+    "variant": "lazy",
+    "case": 6,
+    "seconds": 0.06066870002541691,
+    "initialization_seconds": 0.024075699970126152,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 17,
+      "gpu_query_rows": 202310,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 9,
+      "gpu_system_refresh_calls": 8,
+      "gpu_normal_rows": 25937,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997133040175852,
+          -0.006646398873228912,
+          0.023002937905002813,
+          0.053582
+        ],
+        [
+          0.006695715708656796,
+          0.9999754459521887,
+          -0.0020675792295288993,
+          -0.007697
+        ],
+        [
+          -0.02298863113350424,
+          0.0022210075955462535,
+          0.9997332594066621,
+          0.011404
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 9,
+      "correspondences": 12503,
+      "rmse_m": 0.020977621249996442,
+      "hessian_min_eigenvalue": 0.03747569680897615,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 2,
+    "variant": "lazy",
+    "case": 7,
+    "seconds": 0.057989099994301796,
+    "initialization_seconds": 0.023720799945294857,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 16,
+      "gpu_query_rows": 184602,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 8,
+      "gpu_normal_rows": 27978,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994393112527737,
+          0.03252576523154397,
+          0.007945924658824686,
+          0.051259
+        ],
+        [
+          -0.03253186659909662,
+          0.999470493975339,
+          0.0006397876759917209,
+          0.00551
+        ],
+        [
+          -0.007920907660098994,
+          -0.0008979247152485353,
+          0.9999682259717285,
+          0.00445
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 13471,
+      "rmse_m": 0.030590765543721414,
+      "hessian_min_eigenvalue": 0.03973153496049097,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 3,
+    "variant": "prior",
+    "case": 0,
+    "seconds": 0.025696099968627095,
+    "initialization_seconds": 0.008984699961729348,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 8,
+      "gpu_query_rows": 155127,
+      "scalar_query_repairs": 2,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 19201,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999806181021741,
+          0.006136544739195568,
+          0.0010517788064976646,
+          0.024197
+        ],
+        [
+          -0.006130510881213757,
+          0.9999652628763369,
+          -0.005647112270345411,
+          0.001815
+        ],
+        [
+          -0.001086396027821432,
+          0.005640554877174512,
+          0.999983501806079,
+          0.004604
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14678,
+      "rmse_m": 0.0357605828975481,
+      "hessian_min_eigenvalue": 0.037262199200802835,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 3,
+    "variant": "prior",
+    "case": 1,
+    "seconds": 0.0391556000104174,
+    "initialization_seconds": 0.015758000081405044,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 7,
+      "gpu_query_rows": 153537,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 6,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 33981,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998578233093448,
+          0.008248810434748398,
+          -0.014706811126494848,
+          0.040795
+        ],
+        [
+          -0.008187362862015943,
+          0.9999575213980234,
+          0.004233496059656731,
+          -0.005595
+        ],
+        [
+          0.014741107708191025,
+          -0.00411248415596132,
+          0.9998828867510446,
+          0.010825999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 6,
+      "correspondences": 14208,
+      "rmse_m": 0.025800849221215887,
+      "hessian_min_eigenvalue": 0.04260016585181889,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 3,
+    "variant": "prior",
+    "case": 2,
+    "seconds": 0.04894930007867515,
+    "initialization_seconds": 0.02465240005403757,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 8,
+      "gpu_query_rows": 186751,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 46520,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994604151597072,
+          -0.011786914672974757,
+          -0.0306585578799436,
+          0.043406
+        ],
+        [
+          0.012063469992968418,
+          0.9998880580719611,
+          0.008851215555568316,
+          -0.0035889999999999997
+        ],
+        [
+          0.030550797379358036,
+          -0.009216288166848753,
+          0.9994907247253028,
+          0.011113999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13779,
+      "rmse_m": 0.022576650744362096,
+      "hessian_min_eigenvalue": 0.04276061412594925,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 3,
+    "variant": "prior",
+    "case": 3,
+    "seconds": 0.046152499970048666,
+    "initialization_seconds": 0.02291449997574091,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 8,
+      "gpu_query_rows": 186489,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 46069,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997584780136051,
+          -0.01647545333489845,
+          -0.014544589280197385,
+          0.046897
+        ],
+        [
+          0.016465491847859726,
+          0.9998641110394888,
+          -0.0008043838766272167,
+          0.001094
+        ],
+        [
+          0.014555865420101751,
+          0.0005647057840119515,
+          0.999893898315841,
+          0.010856
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14076,
+      "rmse_m": 0.027348185704144094,
+      "hessian_min_eigenvalue": 0.03989344361953923,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 3,
+    "variant": "prior",
+    "case": 4,
+    "seconds": 0.04943030001595616,
+    "initialization_seconds": 0.025285799987614155,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 8,
+      "gpu_query_rows": 184920,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 47699,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999587295063345,
+          -0.007837266212099766,
+          -0.004595273919804865,
+          0.050459
+        ],
+        [
+          0.007874542889766361,
+          0.9999357761817025,
+          0.008150772121303876,
+          -0.011895
+        ],
+        [
+          0.004531099022818792,
+          -0.0081866214164864,
+          0.9999562232275113,
+          0.012495
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13125,
+      "rmse_m": 0.016861339620891355,
+      "hessian_min_eigenvalue": 0.035255526011936246,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 3,
+    "variant": "prior",
+    "case": 5,
+    "seconds": 0.050654000020585954,
+    "initialization_seconds": 0.023387699970044196,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 9,
+      "gpu_query_rows": 210196,
+      "scalar_query_repairs": 2,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 48148,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998700807973321,
+          -0.012318727839660775,
+          0.010395694817999061,
+          0.053021
+        ],
+        [
+          0.012250633741897358,
+          0.9999032509802176,
+          0.006588676051676518,
+          -0.006947999999999999
+        ],
+        [
+          -0.010475853151819755,
+          -0.0064604662064294,
+          0.999924256570035,
+          0.011831999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 12991,
+      "rmse_m": 0.031475419640715485,
+      "hessian_min_eigenvalue": 0.036196384417889645,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 3,
+    "variant": "prior",
+    "case": 6,
+    "seconds": 0.053106000064872205,
+    "initialization_seconds": 0.026243000058457255,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 10,
+      "gpu_query_rows": 225032,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 9,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 48659,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997133040175852,
+          -0.006646398873228912,
+          0.023002937905002813,
+          0.053582
+        ],
+        [
+          0.006695715708656796,
+          0.9999754459521887,
+          -0.0020675792295288993,
+          -0.007697
+        ],
+        [
+          -0.02298863113350424,
+          0.0022210075955462535,
+          0.9997332594066621,
+          0.011404
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 9,
+      "correspondences": 12503,
+      "rmse_m": 0.020977621249996442,
+      "hessian_min_eigenvalue": 0.03747569680897615,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 3,
+    "variant": "prior",
+    "case": 7,
+    "seconds": 0.04898610000964254,
+    "initialization_seconds": 0.022922899923287332,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 9,
+      "gpu_query_rows": 203457,
+      "scalar_query_repairs": 2,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 46833,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994393112527737,
+          0.03252576523154397,
+          0.007945924658824686,
+          0.051259
+        ],
+        [
+          -0.03253186659909662,
+          0.999470493975339,
+          0.0006397876759917209,
+          0.00551
+        ],
+        [
+          -0.007920907660098994,
+          -0.0008979247152485353,
+          0.9999682259717285,
+          0.00445
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 13471,
+      "rmse_m": 0.030590765543721414,
+      "hessian_min_eigenvalue": 0.03973153496049097,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 3,
+    "variant": "lazy",
+    "case": 0,
+    "seconds": 0.033852400025352836,
+    "initialization_seconds": 0.009316799929365516,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 13,
+      "gpu_query_rows": 148754,
+      "scalar_query_repairs": 2,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 6,
+      "gpu_normal_rows": 12828,
+      "gpu_normal_kernel_calls": 6,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999806181021741,
+          0.006136544739195568,
+          0.0010517788064976646,
+          0.024197
+        ],
+        [
+          -0.006130510881213757,
+          0.9999652628763369,
+          -0.005647112270345411,
+          0.001815
+        ],
+        [
+          -0.001086396027821432,
+          0.005640554877174512,
+          0.999983501806079,
+          0.004604
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14678,
+      "rmse_m": 0.0357605828975481,
+      "hessian_min_eigenvalue": 0.037262199200802835,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 3,
+    "variant": "lazy",
+    "case": 1,
+    "seconds": 0.04456919990479946,
+    "initialization_seconds": 0.015355699928477407,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 12,
+      "gpu_query_rows": 140194,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 6,
+      "gpu_system_refresh_calls": 6,
+      "gpu_normal_rows": 20638,
+      "gpu_normal_kernel_calls": 6,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998578233093448,
+          0.008248810434748398,
+          -0.014706811126494848,
+          0.040795
+        ],
+        [
+          -0.008187362862015943,
+          0.9999575213980234,
+          0.004233496059656731,
+          -0.005595
+        ],
+        [
+          0.014741107708191025,
+          -0.00411248415596132,
+          0.9998828867510446,
+          0.010825999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 6,
+      "correspondences": 14208,
+      "rmse_m": 0.025800849221215887,
+      "hessian_min_eigenvalue": 0.04260016585181889,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 3,
+    "variant": "lazy",
+    "case": 2,
+    "seconds": 0.05454629997257143,
+    "initialization_seconds": 0.023002199945040047,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 14,
+      "gpu_query_rows": 168011,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 27780,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994604151597072,
+          -0.011786914672974757,
+          -0.0306585578799436,
+          0.043406
+        ],
+        [
+          0.012063469992968418,
+          0.9998880580719611,
+          0.008851215555568316,
+          -0.0035889999999999997
+        ],
+        [
+          0.030550797379358036,
+          -0.009216288166848753,
+          0.9994907247253028,
+          0.011113999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13779,
+      "rmse_m": 0.022576650744362096,
+      "hessian_min_eigenvalue": 0.04276061412594925,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 3,
+    "variant": "lazy",
+    "case": 3,
+    "seconds": 0.053295499994419515,
+    "initialization_seconds": 0.022581700002774596,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 14,
+      "gpu_query_rows": 164401,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 23981,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997584780136051,
+          -0.01647545333489845,
+          -0.014544589280197385,
+          0.046897
+        ],
+        [
+          0.016465491847859726,
+          0.9998641110394888,
+          -0.0008043838766272167,
+          0.001094
+        ],
+        [
+          0.014555865420101751,
+          0.0005647057840119515,
+          0.999893898315841,
+          0.010856
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14076,
+      "rmse_m": 0.027348185704144094,
+      "hessian_min_eigenvalue": 0.03989344361953923,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 3,
+    "variant": "lazy",
+    "case": 4,
+    "seconds": 0.05669630004558712,
+    "initialization_seconds": 0.02357990003656596,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 14,
+      "gpu_query_rows": 161760,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 24539,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999587295063345,
+          -0.007837266212099766,
+          -0.004595273919804865,
+          0.050459
+        ],
+        [
+          0.007874542889766361,
+          0.9999357761817025,
+          0.008150772121303876,
+          -0.011895
+        ],
+        [
+          0.004531099022818792,
+          -0.0081866214164864,
+          0.9999562232275113,
+          0.012495
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13125,
+      "rmse_m": 0.016861339620891355,
+      "hessian_min_eigenvalue": 0.035255526011936246,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 3,
+    "variant": "lazy",
+    "case": 5,
+    "seconds": 0.05961799994111061,
+    "initialization_seconds": 0.024177499930374324,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 16,
+      "gpu_query_rows": 187922,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 8,
+      "gpu_normal_rows": 25874,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998700807973321,
+          -0.012318727839660775,
+          0.010395694817999061,
+          0.053021
+        ],
+        [
+          0.012250633741897358,
+          0.9999032509802176,
+          0.006588676051676518,
+          -0.006947999999999999
+        ],
+        [
+          -0.010475853151819755,
+          -0.0064604662064294,
+          0.999924256570035,
+          0.011831999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 12991,
+      "rmse_m": 0.031475419640715485,
+      "hessian_min_eigenvalue": 0.036196384417889645,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 3,
+    "variant": "lazy",
+    "case": 6,
+    "seconds": 0.061195500078611076,
+    "initialization_seconds": 0.024386900011450052,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 17,
+      "gpu_query_rows": 202310,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 9,
+      "gpu_system_refresh_calls": 8,
+      "gpu_normal_rows": 25937,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997133040175852,
+          -0.006646398873228912,
+          0.023002937905002813,
+          0.053582
+        ],
+        [
+          0.006695715708656796,
+          0.9999754459521887,
+          -0.0020675792295288993,
+          -0.007697
+        ],
+        [
+          -0.02298863113350424,
+          0.0022210075955462535,
+          0.9997332594066621,
+          0.011404
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 9,
+      "correspondences": 12503,
+      "rmse_m": 0.020977621249996442,
+      "hessian_min_eigenvalue": 0.03747569680897615,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 3,
+    "variant": "lazy",
+    "case": 7,
+    "seconds": 0.06060359999537468,
+    "initialization_seconds": 0.024689699988812208,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 16,
+      "gpu_query_rows": 184602,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 8,
+      "gpu_normal_rows": 27978,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994393112527737,
+          0.03252576523154397,
+          0.007945924658824686,
+          0.051259
+        ],
+        [
+          -0.03253186659909662,
+          0.999470493975339,
+          0.0006397876759917209,
+          0.00551
+        ],
+        [
+          -0.007920907660098994,
+          -0.0008979247152485353,
+          0.9999682259717285,
+          0.00445
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 13471,
+      "rmse_m": 0.030590765543721414,
+      "hessian_min_eigenvalue": 0.03973153496049097,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 3,
+    "variant": "prefetch",
+    "case": 0,
+    "seconds": 0.03477489994838834,
+    "initialization_seconds": 0.009370099985972047,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 14,
+      "gpu_query_rows": 168172,
+      "scalar_query_repairs": 2,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 5,
+      "gpu_normal_rows": 12828,
+      "gpu_normal_kernel_calls": 6,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999806181021741,
+          0.006136544739195568,
+          0.0010517788064976646,
+          0.024197
+        ],
+        [
+          -0.006130510881213757,
+          0.9999652628763369,
+          -0.005647112270345411,
+          0.001815
+        ],
+        [
+          -0.001086396027821432,
+          0.005640554877174512,
+          0.999983501806079,
+          0.004604
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14678,
+      "rmse_m": 0.0357605828975481,
+      "hessian_min_eigenvalue": 0.037262199200802835,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 3,
+    "variant": "prefetch",
+    "case": 1,
+    "seconds": 0.046542399912141263,
+    "initialization_seconds": 0.016919399960897863,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 13,
+      "gpu_query_rows": 160120,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 6,
+      "gpu_system_refresh_calls": 5,
+      "gpu_normal_rows": 20638,
+      "gpu_normal_kernel_calls": 6,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998578233093448,
+          0.008248810434748398,
+          -0.014706811126494848,
+          0.040795
+        ],
+        [
+          -0.008187362862015943,
+          0.9999575213980234,
+          0.004233496059656731,
+          -0.005595
+        ],
+        [
+          0.014741107708191025,
+          -0.00411248415596132,
+          0.9998828867510446,
+          0.010825999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 6,
+      "correspondences": 14208,
+      "rmse_m": 0.025800849221215887,
+      "hessian_min_eigenvalue": 0.04260016585181889,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 3,
+    "variant": "prefetch",
+    "case": 2,
+    "seconds": 0.059971800073981285,
+    "initialization_seconds": 0.022811100003309548,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 15,
+      "gpu_query_rows": 188044,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 6,
+      "gpu_normal_rows": 27780,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994604151597072,
+          -0.011786914672974757,
+          -0.0306585578799436,
+          0.043406
+        ],
+        [
+          0.012063469992968418,
+          0.9998880580719611,
+          0.008851215555568316,
+          -0.0035889999999999997
+        ],
+        [
+          0.030550797379358036,
+          -0.009216288166848753,
+          0.9994907247253028,
+          0.011113999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13779,
+      "rmse_m": 0.022576650744362096,
+      "hessian_min_eigenvalue": 0.04276061412594925,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 3,
+    "variant": "prefetch",
+    "case": 3,
+    "seconds": 0.05973370000720024,
+    "initialization_seconds": 0.027938300045207143,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 15,
+      "gpu_query_rows": 184461,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 6,
+      "gpu_normal_rows": 23981,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997584780136051,
+          -0.01647545333489845,
+          -0.014544589280197385,
+          0.046897
+        ],
+        [
+          0.016465491847859726,
+          0.9998641110394888,
+          -0.0008043838766272167,
+          0.001094
+        ],
+        [
+          0.014555865420101751,
+          0.0005647057840119515,
+          0.999893898315841,
+          0.010856
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14076,
+      "rmse_m": 0.027348185704144094,
+      "hessian_min_eigenvalue": 0.03989344361953923,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 3,
+    "variant": "prefetch",
+    "case": 4,
+    "seconds": 0.056701499968767166,
+    "initialization_seconds": 0.0234181999694556,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 15,
+      "gpu_query_rows": 181363,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 6,
+      "gpu_normal_rows": 24539,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999587295063345,
+          -0.007837266212099766,
+          -0.004595273919804865,
+          0.050459
+        ],
+        [
+          0.007874542889766361,
+          0.9999357761817025,
+          0.008150772121303876,
+          -0.011895
+        ],
+        [
+          0.004531099022818792,
+          -0.0081866214164864,
+          0.9999562232275113,
+          0.012495
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13125,
+      "rmse_m": 0.016861339620891355,
+      "hessian_min_eigenvalue": 0.035255526011936246,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 3,
+    "variant": "prefetch",
+    "case": 5,
+    "seconds": 0.060871200053952634,
+    "initialization_seconds": 0.023801300092600286,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 17,
+      "gpu_query_rows": 208178,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 25874,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998700807973321,
+          -0.012318727839660775,
+          0.010395694817999061,
+          0.053021
+        ],
+        [
+          0.012250633741897358,
+          0.9999032509802176,
+          0.006588676051676518,
+          -0.006947999999999999
+        ],
+        [
+          -0.010475853151819755,
+          -0.0064604662064294,
+          0.999924256570035,
+          0.011831999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 12991,
+      "rmse_m": 0.031475419640715485,
+      "hessian_min_eigenvalue": 0.036196384417889645,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 3,
+    "variant": "prefetch",
+    "case": 6,
+    "seconds": 0.060537399956956506,
+    "initialization_seconds": 0.023546700016595423,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 18,
+      "gpu_query_rows": 221907,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 9,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 25937,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997133040175852,
+          -0.006646398873228912,
+          0.023002937905002813,
+          0.053582
+        ],
+        [
+          0.006695715708656796,
+          0.9999754459521887,
+          -0.0020675792295288993,
+          -0.007697
+        ],
+        [
+          -0.02298863113350424,
+          0.0022210075955462535,
+          0.9997332594066621,
+          0.011404
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 9,
+      "correspondences": 12503,
+      "rmse_m": 0.020977621249996442,
+      "hessian_min_eigenvalue": 0.03747569680897615,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 3,
+    "variant": "prefetch",
+    "case": 7,
+    "seconds": 0.062063699937425554,
+    "initialization_seconds": 0.023030699929222465,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 17,
+      "gpu_query_rows": 204180,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 27978,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994393112527737,
+          0.03252576523154397,
+          0.007945924658824686,
+          0.051259
+        ],
+        [
+          -0.03253186659909662,
+          0.999470493975339,
+          0.0006397876759917209,
+          0.00551
+        ],
+        [
+          -0.007920907660098994,
+          -0.0008979247152485353,
+          0.9999682259717285,
+          0.00445
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 13471,
+      "rmse_m": 0.030590765543721414,
+      "hessian_min_eigenvalue": 0.03973153496049097,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 4,
+    "variant": "lazy",
+    "case": 0,
+    "seconds": 0.03497299994342029,
+    "initialization_seconds": 0.009364199941046536,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 13,
+      "gpu_query_rows": 148754,
+      "scalar_query_repairs": 2,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 6,
+      "gpu_normal_rows": 12828,
+      "gpu_normal_kernel_calls": 6,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999806181021741,
+          0.006136544739195568,
+          0.0010517788064976646,
+          0.024197
+        ],
+        [
+          -0.006130510881213757,
+          0.9999652628763369,
+          -0.005647112270345411,
+          0.001815
+        ],
+        [
+          -0.001086396027821432,
+          0.005640554877174512,
+          0.999983501806079,
+          0.004604
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14678,
+      "rmse_m": 0.0357605828975481,
+      "hessian_min_eigenvalue": 0.037262199200802835,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 4,
+    "variant": "lazy",
+    "case": 1,
+    "seconds": 0.04460090002976358,
+    "initialization_seconds": 0.015350300003774464,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 12,
+      "gpu_query_rows": 140194,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 6,
+      "gpu_system_refresh_calls": 6,
+      "gpu_normal_rows": 20638,
+      "gpu_normal_kernel_calls": 6,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998578233093448,
+          0.008248810434748398,
+          -0.014706811126494848,
+          0.040795
+        ],
+        [
+          -0.008187362862015943,
+          0.9999575213980234,
+          0.004233496059656731,
+          -0.005595
+        ],
+        [
+          0.014741107708191025,
+          -0.00411248415596132,
+          0.9998828867510446,
+          0.010825999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 6,
+      "correspondences": 14208,
+      "rmse_m": 0.025800849221215887,
+      "hessian_min_eigenvalue": 0.04260016585181889,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 4,
+    "variant": "lazy",
+    "case": 2,
+    "seconds": 0.05559399991761893,
+    "initialization_seconds": 0.0225855999160558,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 14,
+      "gpu_query_rows": 168011,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 27780,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994604151597072,
+          -0.011786914672974757,
+          -0.0306585578799436,
+          0.043406
+        ],
+        [
+          0.012063469992968418,
+          0.9998880580719611,
+          0.008851215555568316,
+          -0.0035889999999999997
+        ],
+        [
+          0.030550797379358036,
+          -0.009216288166848753,
+          0.9994907247253028,
+          0.011113999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13779,
+      "rmse_m": 0.022576650744362096,
+      "hessian_min_eigenvalue": 0.04276061412594925,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 4,
+    "variant": "lazy",
+    "case": 3,
+    "seconds": 0.05444679991342127,
+    "initialization_seconds": 0.02323900000192225,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 14,
+      "gpu_query_rows": 164401,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 23981,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997584780136051,
+          -0.01647545333489845,
+          -0.014544589280197385,
+          0.046897
+        ],
+        [
+          0.016465491847859726,
+          0.9998641110394888,
+          -0.0008043838766272167,
+          0.001094
+        ],
+        [
+          0.014555865420101751,
+          0.0005647057840119515,
+          0.999893898315841,
+          0.010856
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14076,
+      "rmse_m": 0.027348185704144094,
+      "hessian_min_eigenvalue": 0.03989344361953923,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 4,
+    "variant": "lazy",
+    "case": 4,
+    "seconds": 0.05490880005527288,
+    "initialization_seconds": 0.0230673000914976,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 14,
+      "gpu_query_rows": 161760,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 24539,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999587295063345,
+          -0.007837266212099766,
+          -0.004595273919804865,
+          0.050459
+        ],
+        [
+          0.007874542889766361,
+          0.9999357761817025,
+          0.008150772121303876,
+          -0.011895
+        ],
+        [
+          0.004531099022818792,
+          -0.0081866214164864,
+          0.9999562232275113,
+          0.012495
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13125,
+      "rmse_m": 0.016861339620891355,
+      "hessian_min_eigenvalue": 0.035255526011936246,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 4,
+    "variant": "lazy",
+    "case": 5,
+    "seconds": 0.06248209998011589,
+    "initialization_seconds": 0.025335900019854307,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 16,
+      "gpu_query_rows": 187922,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 8,
+      "gpu_normal_rows": 25874,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998700807973321,
+          -0.012318727839660775,
+          0.010395694817999061,
+          0.053021
+        ],
+        [
+          0.012250633741897358,
+          0.9999032509802176,
+          0.006588676051676518,
+          -0.006947999999999999
+        ],
+        [
+          -0.010475853151819755,
+          -0.0064604662064294,
+          0.999924256570035,
+          0.011831999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 12991,
+      "rmse_m": 0.031475419640715485,
+      "hessian_min_eigenvalue": 0.036196384417889645,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 4,
+    "variant": "lazy",
+    "case": 6,
+    "seconds": 0.06064340006560087,
+    "initialization_seconds": 0.023746300023049116,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 17,
+      "gpu_query_rows": 202310,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 9,
+      "gpu_system_refresh_calls": 8,
+      "gpu_normal_rows": 25937,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997133040175852,
+          -0.006646398873228912,
+          0.023002937905002813,
+          0.053582
+        ],
+        [
+          0.006695715708656796,
+          0.9999754459521887,
+          -0.0020675792295288993,
+          -0.007697
+        ],
+        [
+          -0.02298863113350424,
+          0.0022210075955462535,
+          0.9997332594066621,
+          0.011404
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 9,
+      "correspondences": 12503,
+      "rmse_m": 0.020977621249996442,
+      "hessian_min_eigenvalue": 0.03747569680897615,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 4,
+    "variant": "lazy",
+    "case": 7,
+    "seconds": 0.06072329997550696,
+    "initialization_seconds": 0.02334259997587651,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 16,
+      "gpu_query_rows": 184602,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 8,
+      "gpu_normal_rows": 27978,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994393112527737,
+          0.03252576523154397,
+          0.007945924658824686,
+          0.051259
+        ],
+        [
+          -0.03253186659909662,
+          0.999470493975339,
+          0.0006397876759917209,
+          0.00551
+        ],
+        [
+          -0.007920907660098994,
+          -0.0008979247152485353,
+          0.9999682259717285,
+          0.00445
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 13471,
+      "rmse_m": 0.030590765543721414,
+      "hessian_min_eigenvalue": 0.03973153496049097,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 4,
+    "variant": "prefetch",
+    "case": 0,
+    "seconds": 0.03805950004607439,
+    "initialization_seconds": 0.01172529999166727,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 14,
+      "gpu_query_rows": 168172,
+      "scalar_query_repairs": 2,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 5,
+      "gpu_normal_rows": 12828,
+      "gpu_normal_kernel_calls": 6,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999806181021741,
+          0.006136544739195568,
+          0.0010517788064976646,
+          0.024197
+        ],
+        [
+          -0.006130510881213757,
+          0.9999652628763369,
+          -0.005647112270345411,
+          0.001815
+        ],
+        [
+          -0.001086396027821432,
+          0.005640554877174512,
+          0.999983501806079,
+          0.004604
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14678,
+      "rmse_m": 0.0357605828975481,
+      "hessian_min_eigenvalue": 0.037262199200802835,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 4,
+    "variant": "prefetch",
+    "case": 1,
+    "seconds": 0.051567799993790686,
+    "initialization_seconds": 0.015835999976843596,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 13,
+      "gpu_query_rows": 160120,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 6,
+      "gpu_system_refresh_calls": 5,
+      "gpu_normal_rows": 20638,
+      "gpu_normal_kernel_calls": 6,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998578233093448,
+          0.008248810434748398,
+          -0.014706811126494848,
+          0.040795
+        ],
+        [
+          -0.008187362862015943,
+          0.9999575213980234,
+          0.004233496059656731,
+          -0.005595
+        ],
+        [
+          0.014741107708191025,
+          -0.00411248415596132,
+          0.9998828867510446,
+          0.010825999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 6,
+      "correspondences": 14208,
+      "rmse_m": 0.025800849221215887,
+      "hessian_min_eigenvalue": 0.04260016585181889,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 4,
+    "variant": "prefetch",
+    "case": 2,
+    "seconds": 0.06066109996754676,
+    "initialization_seconds": 0.023312199977226555,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 15,
+      "gpu_query_rows": 188044,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 6,
+      "gpu_normal_rows": 27780,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994604151597072,
+          -0.011786914672974757,
+          -0.0306585578799436,
+          0.043406
+        ],
+        [
+          0.012063469992968418,
+          0.9998880580719611,
+          0.008851215555568316,
+          -0.0035889999999999997
+        ],
+        [
+          0.030550797379358036,
+          -0.009216288166848753,
+          0.9994907247253028,
+          0.011113999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13779,
+      "rmse_m": 0.022576650744362096,
+      "hessian_min_eigenvalue": 0.04276061412594925,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 4,
+    "variant": "prefetch",
+    "case": 3,
+    "seconds": 0.05959910003002733,
+    "initialization_seconds": 0.02347780007403344,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 15,
+      "gpu_query_rows": 184461,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 6,
+      "gpu_normal_rows": 23981,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997584780136051,
+          -0.01647545333489845,
+          -0.014544589280197385,
+          0.046897
+        ],
+        [
+          0.016465491847859726,
+          0.9998641110394888,
+          -0.0008043838766272167,
+          0.001094
+        ],
+        [
+          0.014555865420101751,
+          0.0005647057840119515,
+          0.999893898315841,
+          0.010856
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14076,
+      "rmse_m": 0.027348185704144094,
+      "hessian_min_eigenvalue": 0.03989344361953923,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 4,
+    "variant": "prefetch",
+    "case": 4,
+    "seconds": 0.06075730000156909,
+    "initialization_seconds": 0.023921100073494017,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 15,
+      "gpu_query_rows": 181363,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 6,
+      "gpu_normal_rows": 24539,
+      "gpu_normal_kernel_calls": 7,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999587295063345,
+          -0.007837266212099766,
+          -0.004595273919804865,
+          0.050459
+        ],
+        [
+          0.007874542889766361,
+          0.9999357761817025,
+          0.008150772121303876,
+          -0.011895
+        ],
+        [
+          0.004531099022818792,
+          -0.0081866214164864,
+          0.9999562232275113,
+          0.012495
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13125,
+      "rmse_m": 0.016861339620891355,
+      "hessian_min_eigenvalue": 0.035255526011936246,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 4,
+    "variant": "prefetch",
+    "case": 5,
+    "seconds": 0.08347479999065399,
+    "initialization_seconds": 0.03399410005658865,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 17,
+      "gpu_query_rows": 208178,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 25874,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998700807973321,
+          -0.012318727839660775,
+          0.010395694817999061,
+          0.053021
+        ],
+        [
+          0.012250633741897358,
+          0.9999032509802176,
+          0.006588676051676518,
+          -0.006947999999999999
+        ],
+        [
+          -0.010475853151819755,
+          -0.0064604662064294,
+          0.999924256570035,
+          0.011831999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 12991,
+      "rmse_m": 0.031475419640715485,
+      "hessian_min_eigenvalue": 0.036196384417889645,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 4,
+    "variant": "prefetch",
+    "case": 6,
+    "seconds": 0.07844469998963177,
+    "initialization_seconds": 0.03458199999295175,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 18,
+      "gpu_query_rows": 221907,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 9,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 25937,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997133040175852,
+          -0.006646398873228912,
+          0.023002937905002813,
+          0.053582
+        ],
+        [
+          0.006695715708656796,
+          0.9999754459521887,
+          -0.0020675792295288993,
+          -0.007697
+        ],
+        [
+          -0.02298863113350424,
+          0.0022210075955462535,
+          0.9997332594066621,
+          0.011404
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 9,
+      "correspondences": 12503,
+      "rmse_m": 0.020977621249996442,
+      "hessian_min_eigenvalue": 0.03747569680897615,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 4,
+    "variant": "prefetch",
+    "case": 7,
+    "seconds": 0.07157919998280704,
+    "initialization_seconds": 0.02764370001386851,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 17,
+      "gpu_query_rows": 204180,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 7,
+      "gpu_normal_rows": 27978,
+      "gpu_normal_kernel_calls": 8,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994393112527737,
+          0.03252576523154397,
+          0.007945924658824686,
+          0.051259
+        ],
+        [
+          -0.03253186659909662,
+          0.999470493975339,
+          0.0006397876759917209,
+          0.00551
+        ],
+        [
+          -0.007920907660098994,
+          -0.0008979247152485353,
+          0.9999682259717285,
+          0.00445
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 13471,
+      "rmse_m": 0.030590765543721414,
+      "hessian_min_eigenvalue": 0.03973153496049097,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 4,
+    "variant": "prior",
+    "case": 0,
+    "seconds": 0.027761899982579052,
+    "initialization_seconds": 0.009623900055885315,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 8,
+      "gpu_query_rows": 155127,
+      "scalar_query_repairs": 2,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 19201,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999806181021741,
+          0.006136544739195568,
+          0.0010517788064976646,
+          0.024197
+        ],
+        [
+          -0.006130510881213757,
+          0.9999652628763369,
+          -0.005647112270345411,
+          0.001815
+        ],
+        [
+          -0.001086396027821432,
+          0.005640554877174512,
+          0.999983501806079,
+          0.004604
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14678,
+      "rmse_m": 0.0357605828975481,
+      "hessian_min_eigenvalue": 0.037262199200802835,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 4,
+    "variant": "prior",
+    "case": 1,
+    "seconds": 0.04010260000359267,
+    "initialization_seconds": 0.01576149999164045,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 7,
+      "gpu_query_rows": 153537,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 6,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 33981,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998578233093448,
+          0.008248810434748398,
+          -0.014706811126494848,
+          0.040795
+        ],
+        [
+          -0.008187362862015943,
+          0.9999575213980234,
+          0.004233496059656731,
+          -0.005595
+        ],
+        [
+          0.014741107708191025,
+          -0.00411248415596132,
+          0.9998828867510446,
+          0.010825999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 6,
+      "correspondences": 14208,
+      "rmse_m": 0.025800849221215887,
+      "hessian_min_eigenvalue": 0.04260016585181889,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 4,
+    "variant": "prior",
+    "case": 2,
+    "seconds": 0.05110909999348223,
+    "initialization_seconds": 0.02348169998731464,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 8,
+      "gpu_query_rows": 186751,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 46520,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994604151597072,
+          -0.011786914672974757,
+          -0.0306585578799436,
+          0.043406
+        ],
+        [
+          0.012063469992968418,
+          0.9998880580719611,
+          0.008851215555568316,
+          -0.0035889999999999997
+        ],
+        [
+          0.030550797379358036,
+          -0.009216288166848753,
+          0.9994907247253028,
+          0.011113999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13779,
+      "rmse_m": 0.022576650744362096,
+      "hessian_min_eigenvalue": 0.04276061412594925,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 4,
+    "variant": "prior",
+    "case": 3,
+    "seconds": 0.053064299980178475,
+    "initialization_seconds": 0.027924500056542456,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 8,
+      "gpu_query_rows": 186489,
+      "scalar_query_repairs": 1,
+      "scalar_normal_repairs": 1,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 46069,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997584780136051,
+          -0.01647545333489845,
+          -0.014544589280197385,
+          0.046897
+        ],
+        [
+          0.016465491847859726,
+          0.9998641110394888,
+          -0.0008043838766272167,
+          0.001094
+        ],
+        [
+          0.014555865420101751,
+          0.0005647057840119515,
+          0.999893898315841,
+          0.010856
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14076,
+      "rmse_m": 0.027348185704144094,
+      "hessian_min_eigenvalue": 0.03989344361953923,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 4,
+    "variant": "prior",
+    "case": 4,
+    "seconds": 0.04816990008112043,
+    "initialization_seconds": 0.022749199997633696,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 8,
+      "gpu_query_rows": 184920,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 47699,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9999587295063345,
+          -0.007837266212099766,
+          -0.004595273919804865,
+          0.050459
+        ],
+        [
+          0.007874542889766361,
+          0.9999357761817025,
+          0.008150772121303876,
+          -0.011895
+        ],
+        [
+          0.004531099022818792,
+          -0.0081866214164864,
+          0.9999562232275113,
+          0.012495
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 13125,
+      "rmse_m": 0.016861339620891355,
+      "hessian_min_eigenvalue": 0.035255526011936246,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 4,
+    "variant": "prior",
+    "case": 5,
+    "seconds": 0.05486489995382726,
+    "initialization_seconds": 0.023465099977329373,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 9,
+      "gpu_query_rows": 210196,
+      "scalar_query_repairs": 2,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 48148,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9998700807973321,
+          -0.012318727839660775,
+          0.010395694817999061,
+          0.053021
+        ],
+        [
+          0.012250633741897358,
+          0.9999032509802176,
+          0.006588676051676518,
+          -0.006947999999999999
+        ],
+        [
+          -0.010475853151819755,
+          -0.0064604662064294,
+          0.999924256570035,
+          0.011831999999999999
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 12991,
+      "rmse_m": 0.031475419640715485,
+      "hessian_min_eigenvalue": 0.036196384417889645,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 4,
+    "variant": "prior",
+    "case": 6,
+    "seconds": 0.05399140005465597,
+    "initialization_seconds": 0.02504830004181713,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 10,
+      "gpu_query_rows": 225032,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 0,
+      "gpu_fused_system_calls": 9,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 48659,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9997133040175852,
+          -0.006646398873228912,
+          0.023002937905002813,
+          0.053582
+        ],
+        [
+          0.006695715708656796,
+          0.9999754459521887,
+          -0.0020675792295288993,
+          -0.007697
+        ],
+        [
+          -0.02298863113350424,
+          0.0022210075955462535,
+          0.9997332594066621,
+          0.011404
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 9,
+      "correspondences": 12503,
+      "rmse_m": 0.020977621249996442,
+      "hessian_min_eigenvalue": 0.03747569680897615,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  },
+  {
+    "repeat": 4,
+    "variant": "prior",
+    "case": 7,
+    "seconds": 0.05245319998357445,
+    "initialization_seconds": 0.02406409999821335,
+    "work": {
+      "serialized_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 9,
+      "gpu_query_rows": 203457,
+      "scalar_query_repairs": 2,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 8,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 46833,
+      "gpu_normal_kernel_calls": 1,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0
+    },
+    "result": {
+      "transform": [
+        [
+          0.9994393112527737,
+          0.03252576523154397,
+          0.007945924658824686,
+          0.051259
+        ],
+        [
+          -0.03253186659909662,
+          0.999470493975339,
+          0.0006397876759917209,
+          0.00551
+        ],
+        [
+          -0.007920907660098994,
+          -0.0008979247152485353,
+          0.9999682259717285,
+          0.00445
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 8,
+      "correspondences": 13471,
+      "rmse_m": 0.030590765543721414,
+      "hessian_min_eigenvalue": 0.03973153496049097,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b"
+    }
+  }
+]

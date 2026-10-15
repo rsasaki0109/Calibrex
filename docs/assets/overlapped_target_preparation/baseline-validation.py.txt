@@ -1,0 +1,36 @@
+"""Reproduce the existing Windows cache-home assertion against frozen prior sources."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+from tools.benchmark_bspline_lidar_imu import _freeze
+
+root = Path(__file__).resolve().parent
+out = root / 'outputs/overlapped-target-cache-baseline-v1'
+out.mkdir(exist_ok=False)
+source = out / 'sources-prior'
+commit = '88e4a3a1db0e67dc538e3faf73c9a12b570ab3de'
+_freeze(source, commit)
+environment = os.environ.copy()
+environment['PYTHONPATH'] = str(source / 'src')
+for name in ('OPENBLAS_NUM_THREADS', 'OMP_NUM_THREADS', 'MKL_NUM_THREADS'):
+    environment[name] = '1'
+code = '''import pathlib, pytest
+import calibrex.check.cache as module
+assert pathlib.Path(module.__file__).is_relative_to(pathlib.Path("outputs/overlapped-target-cache-baseline-v1/sources-prior/src").resolve())
+print("Frozen module:", module.__file__, flush=True)
+raise SystemExit(pytest.main(["tests/unit/test_check_cache.py::test_default_cache_dir_respects_xdg", "--basetemp", "outputs/overlapped-target-cache-baseline-v1/tmp", "-p", "no:cacheprovider", "--override-ini", "addopts=--disable-plugin-autoload", "-q"]))
+'''
+command = [sys.executable, '-c', code]
+with (out / 'validation.log').open('w', encoding='utf-8') as log:
+    result = subprocess.run(command, env=environment, stdout=log, stderr=subprocess.STDOUT, text=True)
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+receipt = {'scope': __doc__, 'source_commit': commit, 'command': command, 'exit_code': result.returncode,
+           'source_manifest_sha256': sha(source / 'manifest.json'), 'log_sha256': sha(out / 'validation.log'),
+           'launcher_sha256': sha(Path(__file__)), 'blas_threads': 1}
+(out / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
+print((out / 'validation.log').read_text(encoding='utf-8'), flush=True)
+print(json.dumps(receipt), flush=True)

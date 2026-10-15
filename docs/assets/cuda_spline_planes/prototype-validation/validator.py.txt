@@ -1,0 +1,35 @@
+"""Bind the committed CUDA plane implementation to its actual correctness run."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+
+cohort=Path('outputs/glim-cuda-spline-planes-pairs-v1')
+out=cohort/'prototype-validation'
+out.mkdir(exist_ok=False)
+tests=['tests/unit/test_cuda_bspline_planes.py',
+       'tests/unit/test_continuous_time_bspline_fit.py',
+       'tests/unit/test_continuous_time_bspline_derivatives.py',
+       'tests/unit/test_bspline_evaluation_reuse.py',
+       'tests/unit/test_bspline_shared_terms.py',
+       'tests/unit/test_odometry_window_backend.py',
+       'tests/unit/test_bspline_lidar_imu_benchmark.py',
+       'tests/unit/test_bspline_lidar_imu_archive.py']
+for name in tests:shutil.copyfile(name,out/(Path(name).name+'.txt'))
+shutil.copyfile(__file__,out/'validator.py.txt')
+env=dict(os.environ,CUPY_CACHE_DIR=str(out.resolve()/'cupy-cache'),PYTHONDONTWRITEBYTECODE='1')
+command=[sys.executable,'-m','pytest',*tests,'--basetemp',str(out/'tmp'),'-p','no:cacheprovider',
+         '--override-ini','addopts=--disable-plugin-autoload','-q']
+with (out/'pytest.log').open('wb') as log:
+    run=subprocess.run(command,env=env,stdout=log,stderr=subprocess.STDOUT)
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+receipt={'command':command,'exit_code':run.returncode,'provenance':{
+    'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+    'source_manifest_sha256':sha(cohort/'sources-current/manifest.json'),
+    'files':{p.name:sha(p) for p in out.iterdir() if p.is_file()}}}
+(out/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n',encoding='utf-8')
+print((out/'pytest.log').read_text(encoding='utf-8'),flush=True)
+raise SystemExit(run.returncode)

@@ -1277,6 +1277,13 @@
   source-bound results and a CPU-only audit are documented in
   `docs/benchmarks/cuda_spatial_pruning.md`.
 
+- Fuse optional CUDA scan-odometry covariance, symmetric eigenspace and
+  planarity preparation; reuse completed targets across deskew rounds.
+  Preserve lazy sparse preparation and native repairs, with more conservative
+  guards near repeated roots. Complete previous/current public CUDA trials
+  record preparation time and actual work in
+  `docs/benchmarks/cuda_normal_preparation.md`.
+
 ## 0.5.1 - 2026-10-02
 
 Highlights:

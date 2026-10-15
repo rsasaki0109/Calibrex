@@ -44,6 +44,9 @@
           "type": "integer",
           "minimum": 2
         },
+        "exact_outputs_required": {"const": true},
+        "exact_preparation_outputs_required": {"const": true},
+        "exact_spatial_outputs_required": {"const": true},
         "bag_sha256": {
           "$ref": "#/$defs/sha"
         },
@@ -59,12 +62,41 @@
         "comparison": {
           "enum": [
             "source",
+            "cpu-cpu",
+            "cpu-source",
             "cpu-cuda",
             "cuda-cuda"
           ]
         },
         "isolated_cuda_caches": {
           "const": true
+        },
+        "cpu_query_workers": {
+          "type": "object",
+          "required": ["prior", "current"],
+          "properties": {
+            "prior": {"type": "integer", "minimum": 1},
+            "current": {"type": "integer", "minimum": 1}
+          },
+          "additionalProperties": false
+        },
+        "cpu_normal_backends": {
+          "type": "object",
+          "required": ["prior", "current"],
+          "properties": {
+            "prior": {"enum": ["numpy", "numba"]},
+            "current": {"enum": ["numpy", "numba"]}
+          },
+          "additionalProperties": false
+        },
+        "fit_plane_backends": {
+          "type": "object",
+          "required": ["prior", "current"],
+          "properties": {
+            "prior": {"enum": ["numpy", "cuda"]},
+            "current": {"enum": ["numpy", "cuda"]}
+          },
+          "additionalProperties": false
         },
         "odometry_options": {
           "type": "object",
@@ -131,6 +163,17 @@
           "type": "number",
           "exclusiveMinimum": 0
         },
+        "normal_preparation_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "normal_preparation_calls": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "control_evaluation_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "control_evaluation_calls": {"const": 1},
+        "control_score_calls": {"type": "integer", "minimum": 1},
         "rounds": {
           "type": "array",
           "minItems": 1,
@@ -259,6 +302,18 @@
           "odometry_options",
           "isolated_cuda_caches"
         ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_type": {"const": "protocol"},
+          "comparison": {"enum": ["cpu-cpu", "cpu-source"]}
+        },
+        "required": ["comparison"]
+      },
+      "then": {
+        "required": ["odometry_options", "cpu_query_workers"]
       }
     }
   ]

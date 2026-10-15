@@ -1,0 +1,136 @@
+"""Retain unsuccessful odometry scheduling/placement experiments without runtime changes."""
+from pathlib import Path
+import ast
+import hashlib
+import json
+import shutil
+import subprocess
+from tools.audit_odometry_scheduling_screen import audit
+
+root=Path('docs/assets/odometry_scheduling_screen');root.mkdir(exist_ok=False)
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+write=lambda p,v:p.write_text(json.dumps(v,indent=2)+'\n',encoding='utf-8',newline='\n')
+cohorts=[
+    ('traversal','outputs/stackless-query-pilot-v2','.tmp-calibrex-pilot-stackless-v2.py',['prior','parent','heap'],5,8,'target_and_registration'),
+    ('normals','outputs/lazy-odometry-normals-pilot-v1','.tmp-calibrex-pilot-lazy-odometry-normals-v1.py',['prior','lazy','prefetch'],5,8,'target_and_registration'),
+    ('bounds','outputs/spatial-bounds-layout-pilot-v1','.tmp-calibrex-pilot-spatial-bounds-layout-v1.py',['prior','soa','columns'],7,8,'bounds_capture'),
+    ('placement','outputs/pose-placement-pilot-v1','.tmp-calibrex-pilot-pose-placement-v1.py',['prior','pose','edges'],7,4,'placement'),
+]
+specs=[];comparisons=[];observations=0
+for name,directory,launcher,variants,repeats,cases,scope in cohorts:
+    source=Path(directory);folder=root/name;folder.mkdir()
+    for filename in ('protocol.json','runs.json','summary.json'):
+        shutil.copyfile(source/filename,folder/filename)
+    shutil.copyfile(launcher,folder/'launcher.py.txt')
+    if name=='traversal':
+        parsed=ast.parse(Path(launcher).read_bytes())
+        function=next(n for n in parsed.body if isinstance(n,ast.FunctionDef) and n.name=='transformed')
+        namespace={};exec(compile(ast.Module(body=[function],type_ignores=[]),launcher,'exec'),namespace)
+        def constant(path,key):
+            module=ast.parse(Path(path).read_bytes())
+            return next(ast.literal_eval(n.value) for n in module.body if isinstance(n,ast.Assign)
+                        and any(isinstance(t,ast.Name) and t.id==key for t in n.targets))
+        query=constant('src/calibrex/solvers/cuda_lidar_map_adapter.py','_SOURCE')
+        system=constant('src/calibrex/solvers/cuda_scan_odometry_adapter.py','_FUSED_SOURCE')
+        for variant in variants:
+            for kind,text in [('query',namespace['transformed'](query,variant)),
+                              ('system',namespace['transformed'](system,variant,True))]:
+                (folder/f'{kind}_{variant}.cu.txt').write_text(text,encoding='utf-8',newline='\n')
+        prep=constant(launcher,'PREP')
+        (folder/'prepare.cu.txt').write_text(prep,encoding='utf-8',newline='\n')
+    if name=='bounds':
+        for variant in variants[1:]:shutil.copyfile(source/(variant+'.py.txt'),folder/(variant+'.py.txt'))
+    fixtures=(Path('outputs/glim-joint-analytic-profile-v1') if name=='placement'
+              else Path('outputs/odometry-search-profile-v2'))
+    destination=root/'fixtures'/name;destination.mkdir(parents=True)
+    protocol=json.loads((folder/'protocol.json').read_bytes())
+    assert sha(Path(launcher))==protocol['launcher_sha256']
+    for filename in protocol['fixtures']:
+        if filename.endswith('.json'):shutil.copyfile(fixtures/filename,destination/filename)
+    runs=json.loads((folder/'runs.json').read_bytes());observations+=len(runs)
+    summary=json.loads((folder/'summary.json').read_bytes())
+    specs.append({'name':name,'variants':variants,'repeats':repeats,'cases':cases,'scope':scope})
+    comparisons.extend({'cohort':name,'variant':v,'speedup':summary['speedups'][v]} for v in variants[1:])
+for filename,source in (
+    ('screen.schema.json','tools/schemas/odometry_scheduling_screen.schema.json'),
+    ('publication.schema.json','tools/schemas/odometry_screen_publication.schema.json'),
+    ('audit.py.txt','tools/audit_odometry_scheduling_screen.py'),
+    ('publisher.py.txt',__file__),
+):shutil.copyfile(source,root/filename)
+capsule=Path('docs/assets/incremental_local_map_screen')
+screen={'schema_version':'slac.odometry_scheduling_screen/v0.1','decision':'no_candidate_adopted',
+        'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+        'observations':observations,'cohorts':specs,'comparisons':comparisons,
+        'provenance':{'source_manifest_sha256':sha(capsule/'source-manifest.json'),
+                      'source_capsule_sha256':sha(capsule/'sources.tar.gz'),
+                      'publisher_sha256':sha(Path(__file__)),
+                      'auditor_sha256':sha(root/'audit.py.txt')}}
+write(root/'screen.json',screen)
+labels=['Parent-linked stackless traversal','Heap-path stackless traversal',
+        'Normals only for hit target rows','Initial-query normal prefetch',
+        'Transposed contiguous bounds reductions','Separate coordinate bounds reductions',
+        'Pose-only point placement','Pose-only placement with referenced-edge reuse']
+table='\n'.join(['| Candidate | Ratio | Timed scope |','| --- | ---: | --- |',*(
+    f"| {label} | {row['speedup']:.3f}x | {next(c['scope'] for c in specs if c['name']==row['cohort'])} |"
+    for label,row in zip(labels,comparisons))])
+readme=f'''# Odometry scheduling and point placement screen
+
+No candidate is adopted. Eight strategies retain all {observations} observations in
+four distinct cohorts. Their scopes and baselines differ; ratios are not pooled
+or multiplied, and no whole-calibration improvement is established.
+
+{table}
+
+Traversal and normal scheduling use five rotated-order rounds over eight fixed
+public GLIM registration inputs, with one untimed first-case warmup per variant.
+Their timing includes tree capture, candidate setup, normal preparation, native
+repairs and registration. All physical registration fields match exactly,
+including transforms, decisions, iteration/correspondence counts, RMSE and
+the Hessian eigenvalue; execution identities may differ. Traversal work counters
+also match the original. All variant-specific counters repeat consistently.
+
+The stackless variants preserve the original descent order and deferred-branch
+decisions using a bit mask. Parent navigation or a bounded heap lookup replaces
+the local stack. Recorded compiled local storage falls from 560 to 296 bytes per
+thread for normal queries, and 288 to 24 bytes for fused registration. These are
+kernel local-frame attributes, not total GPU-memory measurements. Complete
+operation time does not improve. The experimental heap allocation is bounded
+and asserts capacity on these inputs; deep/unbalanced cases are not validated.
+
+Demand-driven normals reduce prepared target rows from 337,110 to 189,555 per
+eight-case round (43.8% fewer). Extra queries, compaction and system refreshes
+outweigh that reduction. Prefetching the initial correspondence set also loses.
+
+Bounds layouts use seven rounds over the same eight targets. Only complete
+bounds calculation and validation is timed; native tree construction and
+topology capture are excluded. Point placement uses seven rounds over four
+earlier public GLIM spline-fit captures. It times complete point placement,
+comparing full derivatives with pose-only evaluation and per-control-edge log
+reuse. All bound/placement outputs match reference hashes and dimensions, and
+the launchers assert bit equality with coordinates present. Those coordinate
+arrays are identified by NPZ hashes but not redistributed. CPU audit verifies
+saved identities, not geometric recomputation. Pose-only work is not evaluated
+in a complete calibration worker, and its modest component gain is not adopted.
+
+Every pilot uses one BLAS thread on an unreserved host. First-use allocation and
+imports outside the described warm scopes are not a cold-start measurement.
+There is no independent calibration truth in these screens. The first traversal
+launcher failed during warmup because its source transformer matched a nested
+branch; it produced no timed observations and remains in local outputs.
+
+The runtime capsule and manifest are shared by digest with the sibling
+[incremental-map archive](../incremental_local_map_screen/README.md). Keep that
+directory when copying this archive. The CPU-only auditor verifies the shared
+capsule, all launchers/input identities/observations, exact registration fields,
+output identities, work counters, sampling contracts and timing aggregates.
+Experimental source is retained as text and is not a supported runtime API.
+
+```bash
+python -m tools.audit_odometry_scheduling_screen docs/assets/odometry_scheduling_screen
+```
+'''
+(root/'README.md').write_text(readme,encoding='utf-8',newline='\n')
+write(root/'publication-index.json',{'schema_version':'slac.odometry_screen_publication/v0.1',
+    'provenance':{'screen_sha256':sha(root/'screen.json')},
+    'files':{p.relative_to(root).as_posix():sha(p) for p in sorted(root.rglob('*')) if p.is_file()}})
+print(json.dumps(audit(root),indent=2))

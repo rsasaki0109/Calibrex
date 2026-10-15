@@ -23,6 +23,31 @@ def _sha(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
+def _canonical_cpu_result(value: object, *, execution_metadata: bool = True) -> object:
+    """Keep complete physical/evidence fields; omit only declared run metadata."""
+    if isinstance(value, dict):
+        result = {}
+        for name, item in value.items():
+            if execution_metadata and name in ("query_workers", "normal_backend"):
+                continue
+            if execution_metadata and {
+                "requested_backend", "executed_backends", "statistics",
+            } <= value.keys():
+                if name == "executed_backends":
+                    item = ["validated_cpu_execution"]
+                elif name == "statistics":
+                    item = {}
+            if name == "provenance":
+                item = {k: v for k, v in item.items()
+                        if k not in ("created_at", "command", "git_commit")}
+            result[name] = _canonical_cpu_result(item, execution_metadata=execution_metadata)
+        return result
+    if isinstance(value, list):
+        return [_canonical_cpu_result(item, execution_metadata=execution_metadata)
+                for item in value]
+    return value
+
+
 def _cuda_kernel_hashes(sources: dict[str, bytes]) -> tuple[str, str]:
     """Read bound CUDA string constants without importing an optional GPU runtime."""
     def constants(name: str) -> dict[str, str]:
@@ -36,8 +61,11 @@ def _cuda_kernel_hashes(sources: dict[str, bytes]) -> tuple[str, str]:
 
     query = constants("calibrex/solvers/cuda_lidar_map_adapter.py")["_SOURCE"]
     system = constants("calibrex/solvers/cuda_scan_odometry_adapter.py")
+    if "_INTERVAL_FUSED_SOURCE" in system:
+        query += constants("calibrex/solvers/cuda_spatial_interval_adapter.py")["_SOURCE"]
     return _sha(query.encode()), _sha(
-        (system["_SYSTEM_SOURCE"] + system["_FUSED_SOURCE"] + system["_COVARIANCE_SOURCE"]).encode()
+        (system["_SYSTEM_SOURCE"] + system["_FUSED_SOURCE"] + system["_COVARIANCE_SOURCE"]
+         + system.get("_NORMAL_SOURCE", "") + system.get("_INTERVAL_FUSED_SOURCE", "")).encode()
     )
 
 
@@ -119,6 +147,18 @@ def audit(root: Path) -> dict[str, object]:
     summary = json.loads((root / "summary.json").read_bytes())
     for record in (protocol, summary):
         jsonschema.validate(record, schema)
+    validation = root / "prototype-validation"
+    if (validation / "receipt.json").exists():
+        receipt = json.loads((validation / "receipt.json").read_bytes())
+        bindings = receipt["provenance"]
+        files = {p.name: _sha(p.read_bytes()) for p in validation.iterdir()
+                 if p.is_file() and p.name != "receipt.json"}
+        if (type(receipt["exit_code"]) is not int or receipt["exit_code"] != 0
+                or bindings["source_commit"] != protocol["current_commit"]
+                or bindings["source_manifest_sha256"]
+                != _sha((root / "sources-current-manifest.json").read_bytes())
+                or bindings["files"] != files):
+            raise ValueError("prototype correctness run source/log binding differs")
     launcher = root / "benchmark.py.txt"
     if _sha(launcher.read_bytes()) != protocol["launcher_sha256"]:
         raise ValueError("frozen comparison launcher differs")
@@ -149,9 +189,11 @@ def audit(root: Path) -> dict[str, object]:
         sources[variant] = expected
         source_bytes[variant] = raw_sources
     gpu_comparison = protocol.get("comparison") in ("cpu-cuda", "cuda-cuda")
-    if (protocol.get("comparison") == "cpu-cuda"
+    if (protocol.get("comparison") in ("cpu-cpu", "cpu-cuda")
             and protocol["baseline_commit"] != protocol["current_commit"]):
         raise ValueError("CPU/CUDA workers must use the same declared source revision")
+    if protocol.get("comparison") == "cpu-cpu" and sources["prior"] != sources["current"]:
+        raise ValueError("CPU query workers must use identical frozen source trees")
     attempts = json.loads((root / "attempts.json").read_bytes())
     expected_workers = {(r, v) for r in range(protocol["repeats"]) for v in sources}
     if (
@@ -190,6 +232,59 @@ def audit(root: Path) -> dict[str, object]:
             raise ValueError("worker did not bind the executed fitter")
         if any(sources[variant].get(name) != digest for name, digest in executed.items()):
             raise ValueError("actual worker imports differ from frozen sources")
+        if "fit_plane_backends" in protocol:
+            plane_backend = protocol["fit_plane_backends"][variant]
+            plane_path = "calibrex/solvers/cuda_bspline_plane_adapter.py"
+            kernel_hash = None
+            if plane_backend == "cuda":
+                if plane_path not in executed:
+                    raise ValueError("CUDA plane adapter was not executed")
+                kernel_hash = module._plane_kernel_hash(source_bytes[variant][plane_path])
+            if provenance.get("fit_plane_backend") != plane_backend:
+                raise ValueError("declared spline plane execution differs")
+            module._validate_plane_execution(result, record["rounds"], plane_backend, kernel_hash)
+        if protocol.get("comparison") in ("cpu-cpu", "cpu-source"):
+            normal_backend = protocol.get("cpu_normal_backends", {}).get(variant, "numpy")
+            if "cpu_normal_backends" in protocol:
+                module._validate_backend_execution(result, "cpu", normal_backend)
+            else:
+                module._validate_backend_execution(result, "cpu")
+            workers = protocol["cpu_query_workers"][variant]
+            module._validate_query_workers(result, workers)
+            actual_workers = result["options"]["odometry_options"].get("query_workers")
+            if type(actual_workers) is not int or actual_workers != workers:
+                raise ValueError("CPU query worker budget differs")
+            if (provenance.get("odometry_backend") != "cpu"
+                    or type(provenance.get("cpu_query_workers")) is not int
+                    or provenance.get("cpu_query_workers") != workers
+                    or "calibrex/solvers/cuda_scan_odometry_adapter.py" in executed
+                    or provenance.get("cupy") is not None):
+                raise ValueError("CPU query worker execution differs")
+            adapter = "calibrex/solvers/numba_scan_normal_adapter.py"
+            if normal_backend == "numba":
+                if (adapter not in executed
+                        or provenance.get("cpu_normal_backend") != "numba"
+                        or provenance.get("numba_cache_initially_empty") is not True):
+                    raise ValueError("compiled covariance source/cache binding differs")
+                digest = sources[variant][adapter]
+                identity = (f"calibrex.numba_scan_covariance/v0.1;numba={provenance.get('numba')};"
+                            f"fastmath=false;parallel=false;eigh=numpy;source_sha256={digest}")
+                reports = (result["options"]["initial_odometry_execution"]
+                           + result["options"]["segment_odometry_execution"])
+                if any(report["executed_backends"] != [identity] for report in reports):
+                    raise ValueError("compiled covariance identity differs from frozen source")
+            else:
+                reports = (result["options"]["initial_odometry_execution"]
+                           + result["options"]["segment_odometry_execution"])
+                if (adapter in executed
+                        or result["options"]["odometry_options"].get("normal_backend", "numpy")
+                        != "numpy" or provenance.get("cpu_normal_backend", "numpy") != "numpy"
+                        or any(report["executed_backends"] != ["numpy_scipy"]
+                               or report["statistics"] for report in reports)):
+                    raise ValueError("native CPU pass imported or requested compiled covariance")
+            if any(result["options"]["odometry_options"].get(key) != value
+                   for key, value in protocol["odometry_options"].items()):
+                raise ValueError("CPU worker did not use the declared common geometry settings")
         if gpu_comparison:
             backend = ("cuda" if protocol["comparison"] == "cuda-cuda" or variant == "current"
                        else "cpu")
@@ -208,10 +303,27 @@ def audit(root: Path) -> dict[str, object]:
                 if adapter not in executed:
                     raise ValueError("GPU worker did not bind its executed adapter")
                 query_hash, system_hash = _cuda_kernel_hashes(source_bytes[variant])
+                normal_counter_expected = any(
+                    isinstance(node, ast.Constant) and node.value == "gpu_normal_kernel_calls"
+                    for node in ast.walk(ast.parse(source_bytes[variant][adapter]))
+                )
+                async_schedule = any(
+                    isinstance(node, ast.Constant) and node.value in (
+                        ";normal_schedule=async-v1",
+                        ";normal_schedule=async-v1;spatial_pruning=fp32-intervals-v1",
+                    )
+                    for function in ast.parse(source_bytes[variant][adapter]).body
+                    if (isinstance(function, ast.FunctionDef)
+                        and function.name == "execution_identity")
+                    for node in ast.walk(function)
+                )
+                interval_pruning = "calibrex/solvers/cuda_spatial_interval_adapter.py" in executed
                 identity = re.compile(
                     r"calibrex\.cuda_scan_odometry/v0\.1;fp64=true;query_fma=false;"
                     r"cupy=([^;]+);cuda=\d+;driver=\d+;cc=\d+\.\d+;"
                     rf"query_sha256={query_hash};system_sha256={system_hash}"
+                    + (r";normal_schedule=async-v1" if async_schedule else "")
+                    + (r";spatial_pruning=fp32-intervals-v1" if interval_pruning else "")
                 )
                 reports = (result["options"]["initial_odometry_execution"]
                            + result["options"]["segment_odometry_execution"])
@@ -220,6 +332,26 @@ def audit(root: Path) -> dict[str, object]:
                     if match is None or match[1] != provenance.get("cupy"):
                         raise ValueError("executed GPU identity differs from its bound kernels")
                     counters = report["statistics"]
+                    if interval_pruning and any(
+                        name not in counters or counters[name] > counters.get(total, 0)
+                        for name, total in (
+                            ("gpu_interval_query_rows", "gpu_query_rows"),
+                            ("gpu_interval_system_calls", "gpu_fused_system_calls"),
+                        )
+                    ):
+                        raise ValueError("GPU interval pruning work differs")
+                    if normal_counter_expected and "gpu_normal_kernel_calls" not in counters:
+                        raise ValueError("GPU normal kernel accounting is missing")
+                    if async_schedule and (
+                        "gpu_async_normal_batches" not in counters
+                        or counters["gpu_async_normal_batches"]
+                        > counters.get("gpu_normal_kernel_calls", 0)
+                    ):
+                        raise ValueError("GPU asynchronous normal accounting differs")
+                    if ("gpu_normal_kernel_calls" in counters
+                            and counters.get("gpu_normal_rows", 0) > 0
+                            and counters["gpu_normal_kernel_calls"] <= 0):
+                        raise ValueError("GPU normal rows have no recorded normal kernel work")
                     if ("calibrex/solvers/scipy_spatial_snapshot.py" in executed
                             and counters.get("serialized_tree_captures", 0)
                             + counters.get("public_node_tree_captures", 0) <= 0):
@@ -233,6 +365,24 @@ def audit(root: Path) -> dict[str, object]:
             attempt["whole_seconds"] >= record["pipeline_seconds"] >= record["fit_seconds"] > 0
         ):
             raise ValueError("timing scopes are inconsistent")
+        if (protocol.get("comparison") == "cuda-cuda"
+                and hasattr(module, "_time_normal_preparation")
+                and not {"normal_preparation_seconds", "normal_preparation_calls"}
+                <= record.keys()):
+            raise ValueError("normal preparation observation is missing")
+        if ("normal_preparation_seconds" in record
+                and not (0 <= record["normal_preparation_seconds"] <= record["pipeline_seconds"]
+                         and record["normal_preparation_calls"] > 0
+                         and provenance.get("odometry_backend") in ("cpu", "cuda"))):
+            raise ValueError("normal preparation timing scope is inconsistent")
+        if hasattr(module, "_time_controls"):
+            if not {"control_evaluation_seconds", "control_evaluation_calls",
+                    "control_score_calls"} <= record.keys():
+                raise ValueError("signed control observation is missing")
+            if not (0 < record["control_evaluation_seconds"] <= record["pipeline_seconds"]
+                    and record["control_evaluation_calls"] == 1
+                    and record["control_score_calls"] == len(result["controls"]) + 2):
+                raise ValueError("signed control timing or score count is inconsistent")
         if len(record["rounds"]) != len(result["rounds"]):
             raise ValueError("worker did not retain every fit round")
         for fitted, reported in zip(record["rounds"], result["rounds"], strict=True):
@@ -274,9 +424,67 @@ def audit(root: Path) -> dict[str, object]:
         ):
             raise ValueError("complete quality comparison differs or failed")
     for repeat in range(protocol["repeats"]):
+        if protocol.get("exact_outputs_required") and (
+            _canonical_cpu_result(results[(repeat, "prior")], execution_metadata=False)
+            != _canonical_cpu_result(results[(repeat, "current")], execution_metadata=False)
+        ):
+            raise ValueError("required exact calibration/evidence fields differ")
+        if protocol.get("comparison") in ("cpu-cpu", "cpu-source") and (
+            _canonical_cpu_result(results[(repeat, "prior")])
+            != _canonical_cpu_result(results[(repeat, "current")])
+        ):
+            raise ValueError("complete CPU calibration/evidence fields differ")
         left = measurements[(repeat, "prior")]["rounds"]
         right = measurements[(repeat, "current")]["rounds"]
+        if protocol.get("exact_spatial_outputs_required"):
+            backends = protocol.get("fit_plane_backends", {"prior": "numpy", "current": "numpy"})
+            if (protocol.get("comparison") != "cuda-cuda"
+                    or backends["prior"] != backends["current"]):
+                raise ValueError("exact spatial protocol changes another backend")
+            module._validate_spatial_pair(
+                results[(repeat, "prior")], results[(repeat, "current")], left, right,
+                _cuda_kernel_hashes(source_bytes["prior"]),
+                _cuda_kernel_hashes(source_bytes["current"]),
+            )
+        if protocol.get("exact_preparation_outputs_required"):
+            backends = protocol.get("fit_plane_backends", {"prior": "numpy", "current": "numpy"})
+            if (protocol.get("comparison") != "cuda-cuda"
+                    or backends["prior"] != backends["current"]):
+                raise ValueError("exact preparation protocol changes another backend")
+            module._validate_preparation_pair(
+                results[(repeat, "prior")], results[(repeat, "current")], left, right,
+            )
+        if "fit_plane_backends" in protocol:
+            module._validate_plane_fit_pair(left, right)
+            a, b = results[(repeat, "prior")], results[(repeat, "current")]
+            if protocol.get("exact_spatial_outputs_required"):
+                prior_hashes = _cuda_kernel_hashes(source_bytes["prior"])
+                a = module._spatial_result(a, prior_hashes, prior_hashes, intervals=False)
+                b = module._spatial_result(
+                    b, _cuda_kernel_hashes(source_bytes["current"]), prior_hashes, intervals=True,
+                )
+            if protocol.get("exact_preparation_outputs_required"):
+                a = module._preparation_result(a, asynchronous=False)
+                b = module._preparation_result(b, asynchronous=True)
+            for field in ("initial", "segment_start_s", "segment_duration_s", "limitations"):
+                if a[field] != b[field]:
+                    raise ValueError(f"unchanged spline comparison {field} differs")
+            options = [{k: v for k, v in value["options"].items()
+                        if k not in ("fit_plane_backend", "fit_execution")} for value in (a, b)]
+            if options[0] != options[1]:
+                raise ValueError("unchanged odometry/options execution differs")
+            for earlier, later in zip(a["rounds"], b["rounds"], strict=True):
+                if any(earlier[k] != later[k] for k in (
+                    "map_planes", "plane_returns", "fit_status", "iterations",
+                )):
+                    raise ValueError("spline comparison plane counts or fit decisions differ")
         for prior_fit, current_fit in zip(left, right, strict=True):
+            if (protocol.get("comparison") in ("cpu-cpu", "cpu-source")
+                or protocol.get("exact_outputs_required")) and (
+                {k: v for k, v in prior_fit.items() if k != "seconds"}
+                != {k: v for k, v in current_fit.items() if k != "seconds"}
+            ):
+                raise ValueError("complete CPU fit fields differ")
             if (
                 prior_fit["status"] != current_fit["status"]
                 or prior_fit["residual_count"] != current_fit["residual_count"]
@@ -311,12 +519,51 @@ def audit(root: Path) -> dict[str, object]:
     _audit_rejected_pair(root, module._compare)
     if (root / "previous_cuda").exists():
         audit(root / "previous_cuda")
+    earlier_guard = {}
+    if (root / "earlier-guard-v1").exists():
+        earlier_guard = {"earlier_guard": audit(root / "earlier-guard-v1")}
+    if (root / "baseline-validation.json").exists():
+        receipt = json.loads((root / "baseline-validation.json").read_bytes())
+        if (receipt["source_commit"] != protocol["baseline_commit"]
+                or receipt["exit_code"] != 1
+                or receipt["source_manifest_sha256"]
+                != _sha((root / "sources-prior-manifest.json").read_bytes())
+                or receipt["log_sha256"]
+                != _sha((root / "baseline-validation.log").read_bytes())
+                or receipt["launcher_sha256"]
+                != _sha((root / "baseline-validation.py.txt").read_bytes())):
+            raise ValueError("baseline validation receipt differs from its frozen sources or log")
+    normal_summary = {}
+    if all("normal_preparation_seconds" in record for record in measurements.values()):
+        normal_medians = {
+            variant: statistics.median(measurements[(r, variant)]["normal_preparation_seconds"]
+                                       for r in range(protocol["repeats"]))
+            for variant in sources
+        }
+        if any(value <= 0 for value in normal_medians.values()):
+            raise ValueError("normal preparation median is not positive")
+        normal_summary = {"normal_median_seconds": normal_medians,
+                          "normal_speedup": normal_medians["prior"] / normal_medians["current"]}
+    control_summary = {}
+    if all("control_evaluation_seconds" in record for record in measurements.values()):
+        control_medians = {
+            variant: statistics.median(measurements[(r, variant)]["control_evaluation_seconds"]
+                                       for r in range(protocol["repeats"]))
+            for variant in sources
+        }
+        control_summary = {
+            "control_median_seconds": control_medians,
+            "control_speedup": control_medians["prior"] / control_medians["current"],
+        }
     return {
         "workers": len(attempts),
         "files": len(index["files"]),
         "whole_speedup": summary["whole_speedup"],
         "fit_speedup": summary["fit_speedup"],
         "quality_passed": True,
+        **normal_summary,
+        **control_summary,
+        **earlier_guard,
     }
 
 

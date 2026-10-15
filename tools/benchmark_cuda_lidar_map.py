@@ -54,7 +54,9 @@ def _compare(left: Any, right: Any, path: str = "") -> list[str]:
         declared = re.fullmatch(
             r"calibrex\.cuda_lidar_map/v0\.1;fp64=true;query_fma=false;"
             r"cupy=[0-9.]+;cuda=[0-9]+;driver=[0-9]+;cc=[0-9.]+;"
-            r"query_sha256=[0-9a-f]{64}", right,
+            r"query_sha256=[0-9a-f]{64}"
+            r"(?:;normal_sha256=[0-9a-f]{64};normal_cache=lazy"
+            r"(?:;registration_sha256=[0-9a-f]{64})?)?", right,
         )
         if left != "numpy_scipy" or declared is None:
             return [path]
@@ -88,6 +90,7 @@ def _paths(sequence: Path, half_window: int) -> list[Path]:
 
 def _worker(args: argparse.Namespace) -> None:
     cpu_start = time.process_time()
+    source_root = getattr(args, "source_root", None)
     import numpy as np
     from scipy.spatial.transform import Rotation
 
@@ -189,7 +192,9 @@ def _worker(args: argparse.Namespace) -> None:
                      "form an identity execution control, not independent two-sensor accuracy."],
         provenance=LidarLidarProvenance(
             generator="tools.benchmark_cuda_lidar_map", generator_version=__version__,
-            git_commit=subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+            git_commit=getattr(args, "source_commit", None) or subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], text=True,
+            ).strip(),
             command=["<PYTHON>", "tools/benchmark_cuda_lidar_map.py", "--worker", args.worker],
             dataset_family="kitti_raw", sequence_ids=[args.sequence.name],
             reference_topic="public_scan_window", target_topic="public_scan_copy",
@@ -212,7 +217,11 @@ def _worker(args: argparse.Namespace) -> None:
         "map_points": [len(sample.map_points) for sample in samples],
         "target_points": [len(sample.target_points) for sample in samples],
         "provenance": {"input_sha256": inputs,
-                       "source_sha256": {path: _digest(Path(path)) for path in SOURCES}},
+                       "source_sha256": {
+                           path: _digest(Path(source_root) / path if source_root is not None
+                                         and path.startswith("src/") else Path(path))
+                           for path in SOURCES
+                       }},
     }
     (args.output_dir / "measurement.json").write_text(
         json.dumps(measurement, indent=2, allow_nan=False) + "\n", encoding="utf-8",

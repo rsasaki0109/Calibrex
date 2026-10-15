@@ -1461,12 +1461,20 @@ def _build_parser() -> argparse.ArgumentParser:
         help="backend for initial and gyro-deskewed scan odometry (CUDA is optional)",
     )
     imu_lidar_joint.add_argument(
+        "--fit-plane-backend", choices=("numpy", "cuda"), default="numpy",
+        help="backend for spline plane residuals and systems (CUDA is optional)",
+    )
+    imu_lidar_joint.add_argument(
         "--odometry-voxel-size-m", type=_positive_float,
         help="voxel size for scan odometry; smaller values retain denser geometry",
     )
     imu_lidar_joint.add_argument(
         "--odometry-local-map-scans", type=_positive_int,
         help="number of recent scans used by odometry",
+    )
+    imu_lidar_joint.add_argument(
+        "--odometry-query-workers", type=_positive_int,
+        help="CPU threads for scan-odometry nearest-neighbor queries (default: 1)",
     )
     imu_lidar_joint.add_argument(
         "--odometry-geometry-quantum-m", type=_positive_float,
@@ -7413,6 +7421,8 @@ def _cmd_imu_lidar_joint(args: argparse.Namespace) -> int:
     if args.max_seconds is not None:
         command += ["--max-seconds", str(args.max_seconds)]
     command += ["--max-rounds", str(args.max_rounds)]
+    if args.fit_plane_backend != "numpy":
+        command += ["--fit-plane-backend", args.fit_plane_backend]
     if args.imu_lowpass_hz is not None:
         command += ["--imu-lowpass-hz", str(args.imu_lowpass_hz)]
     command += ["--odometry-backend", args.odometry_backend]
@@ -7420,6 +7430,7 @@ def _cmd_imu_lidar_joint(args: argparse.Namespace) -> int:
     odometry_settings = {
         "voxel_size_m": args.odometry_voxel_size_m,
         "local_map_scans": args.odometry_local_map_scans,
+        "query_workers": args.odometry_query_workers,
         "geometry_quantum_m": args.odometry_geometry_quantum_m,
         "motion_translation_quantum_m": args.odometry_motion_translation_quantum_m,
         "motion_rotation_quantum_rad": args.odometry_motion_rotation_quantum_rad,
@@ -7450,6 +7461,7 @@ def _cmd_imu_lidar_joint(args: argparse.Namespace) -> int:
             profile,
             LidarImuBagOptions(
                 max_rounds=args.max_rounds, imu_lowpass_hz=args.imu_lowpass_hz,
+                fit_plane_backend=args.fit_plane_backend,
                 rotation=ImuLidarRunOptions(windowing=windowing),
             ),
             dataset_family=args.dataset_family,

@@ -1,0 +1,114 @@
+"""Retain the complete negative CPU worker-reuse observation and its sources."""
+import gzip
+import hashlib
+import io
+import json
+from pathlib import Path
+import shutil
+import subprocess
+import tarfile
+
+from tools.audit_bspline_lidar_imu_benchmark import _canonical_cpu_result
+
+source = Path('outputs/glim-cpu-pool-source-pair-v1')
+destination = Path('docs/assets/cpu_worker_reuse_rejected')
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+protocol = json.loads((source/'protocol.json').read_bytes())
+summary = json.loads((source/'summary.json').read_bytes())
+attempts = json.loads((source/'attempts.json').read_bytes())
+assert summary['quality_passed'] and summary['whole_speedup'] <= 1 and len(attempts) == 2
+subprocess.run(['git','diff','--exit-code',protocol['baseline_commit'],'--','src/calibrex'],check=True)
+assert sha(Path('tools/benchmark_bspline_lidar_imu.py')) == protocol['launcher_sha256']
+destination.mkdir(exist_ok=False)
+for name in ('protocol.json','summary.json','attempts.json'):
+    shutil.copyfile(source/name,destination/name)
+for attempt in attempts:
+    folder=destination/attempt['worker']
+    folder.mkdir()
+    for name in ('result.json','measurement.json','worker.log'):
+        shutil.copyfile(source/attempt['worker']/name,folder/name)
+for variant in ('prior','current'):
+    root=source/('sources-'+variant)
+    shutil.copyfile(root/'manifest.json',destination/('sources-'+variant+'-manifest.json'))
+    with (destination/('sources-'+variant+'.tar.gz')).open('wb') as raw:
+        with gzip.GzipFile(fileobj=raw,filename='',mode='wb',mtime=0) as compressed:
+            with tarfile.open(fileobj=compressed,mode='w') as archive:
+                for name,contents in [('LICENSE',Path('LICENSE').read_bytes()),*(
+                    (p.relative_to(root).as_posix(),p.read_bytes())
+                    for p in sorted((root/'src').rglob('*.py'))
+                )]:
+                    info=tarfile.TarInfo(name)
+                    info.size=len(contents)
+                    info.mtime=0
+                    info.mode=0o644
+                    archive.addfile(info,io.BytesIO(contents))
+for original,name in [
+    ('tools/benchmark_bspline_lidar_imu.py','benchmark.py.txt'),
+    ('tools/schemas/bspline_lidar_imu_comparison.schema.json','comparison.schema.json'),
+    (__file__,'publisher.py.txt'),
+]:
+    shutil.copyfile(original,destination/name)
+shutil.copytree(source/'prototype-validation',destination/'prototype-validation')
+shutil.copyfile('outputs/query-pool-rejection-validation-v1/tests.log',
+                destination/'prototype-validation/tests.log')
+results={v:json.loads((source/f'00-{v}/result.json').read_bytes()) for v in ('prior','current')}
+assert _canonical_cpu_result(results['prior']) == _canonical_cpu_result(results['current'])
+records={v:json.loads((source/f'00-{v}/measurement.json').read_bytes()) for v in ('prior','current')}
+for left,right in zip(records['prior']['rounds'],records['current']['rounds'],strict=True):
+    assert {k:v for k,v in left.items() if k!='seconds'} == {k:v for k,v in right.items() if k!='seconds'}
+whole=summary['whole_median_seconds']; fits=summary['fit_median_seconds']
+table='\n'.join([
+    '| Scope | Previous eight-worker runtime | Reusable-worker prototype | Observed ratio |',
+    '| --- | ---: | ---: | ---: |',
+    f"| Complete worker | {whole['prior']:.3f} s | {whole['current']:.3f} s | {summary['whole_speedup']:.3f}x |",
+    f"| Four unchanged fits, including covariance | {fits['prior']:.3f} s | {fits['current']:.3f} s | {summary['fit_speedup']:.3f}x |",
+])
+readme=f'''# Rejected reusable CPU worker pilot
+
+The prototype is **not adopted**. Complete-worker timing did not demonstrate
+an improvement; the production runtime keeps the previous implementation.
+
+{table}
+
+Previous source: `{protocol['baseline_commit']}`. Measured candidate:
+`{protocol['current_commit']}`. Both use eight CPU query workers, one BLAS thread,
+the original public GLIM Livox bag's first six seconds and four map rounds.
+This is one fixed-order fresh-process pair on an unreserved host, and does not
+establish a systematic slowdown. Unchanged fitter timing varied substantially.
+
+The bag SHA-256 is `{protocol['bag_sha256']}`. Raw data is not redistributed.
+Both use 0.03 m voxels, three local-map scans, a 1 nm coordinate grid and returned
+motion grids of 1 micrometre translation and 0.1 microradian rotation-vector
+components. These numerical grids remain disabled by default.
+
+Every complete calibration/evidence field and stored initial estimate agrees
+exactly after excluding the declared source revisions, command provenance and
+timestamps. Every complete fit field agrees exactly after excluding fit wall
+times, including all covariance/trajectory arrays, costs, status and iterations.
+Final verdicts remain INCONCLUSIVE: no independent extrinsic truth is supplied.
+
+Whole timing includes startup, imports, decoding, all initial/gyro/feedback/final
+odometry, association, fitting/covariance, evidence, hashes, saves and source
+verification. Both full results, original worker measurements/logs, exact source
+capsules/manifests, bound launcher/schema, publisher and prototype validation
+sources/log are retained. The prototype passed all 64 selected tests, including
+exact queries/PCA rows and worker cleanup after task failure.
+
+To repeat the experiment, use the measured candidate revision above and the
+command in [reproduction instructions](../../benchmarks/cpu_worker_reuse_rejected.md).
+The current runtime retains the earlier implementation.
+
+```bash
+python -m tools.audit_bspline_lidar_imu_benchmark docs/assets/cpu_worker_reuse_rejected
+```
+'''
+(destination/'README.md').write_text(readme,encoding='utf-8',newline='\n')
+doc=Path('docs/benchmarks/cpu_worker_reuse_rejected.md')
+doc.write_text(doc.read_text(encoding='utf-8').replace('<!-- results -->',table),encoding='utf-8',newline='\n')
+files={p.relative_to(destination).as_posix():sha(p) for p in sorted(destination.rglob('*')) if p.is_file()}
+(destination/'publication-index.json').write_text(json.dumps({
+    'schema_version':'slac.bspline_lidar_imu_publication/v0.1',
+    'provenance':{'input_protocol_sha256':sha(source/'protocol.json')},'files':files,
+},indent=2)+'\n',encoding='utf-8',newline='\n')
+print(json.dumps({'files':len(files),'whole_speedup':summary['whole_speedup'],
+                  'complete_results_exact':True,'adopted':False},indent=2))

@@ -1,0 +1,144 @@
+"""Publish exact-output complete public GLIM comparisons of target/source overlap."""
+import hashlib
+import io
+import json
+from pathlib import Path
+import shutil
+import statistics
+import tarfile
+
+from tools.audit_bspline_lidar_imu_benchmark import audit
+from tools.benchmark_bspline_lidar_imu import _validate_exact_pair
+
+source=Path('outputs/glim-overlapped-target-preparation-pairs-v1')
+destination=Path('docs/assets/overlapped_target_preparation')
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+protocol=json.loads((source/'protocol.json').read_bytes())
+summary=json.loads((source/'summary.json').read_bytes())
+attempts=json.loads((source/'attempts.json').read_bytes())
+assert summary['quality_passed'] and len(attempts)==4 and protocol['exact_outputs_required'] is True
+assert sha(Path('tools/benchmark_bspline_lidar_imu.py'))==protocol['launcher_sha256']
+records={}
+for repeat in range(protocol['repeats']):
+    values=[json.loads((source/f'{repeat:02d}-{v}/result.json').read_bytes()) for v in ('prior','current')]
+    fitted=[json.loads((source/f'{repeat:02d}-{v}/measurement.json').read_bytes()) for v in ('prior','current')]
+    _validate_exact_pair(values[0],values[1],fitted[0]['rounds'],fitted[1]['rounds'])
+    for variant,value in zip(('prior','current'),fitted,strict=True):records[repeat,variant]=value
+normal={v:statistics.median(records[r,v]['normal_preparation_seconds'] for r in range(protocol['repeats'])) for v in ('prior','current')}
+destination.mkdir(exist_ok=False)
+for name in ('protocol.json','attempts.json','summary.json'):shutil.copyfile(source/name,destination/name)
+for attempt in attempts:
+    folder=destination/attempt['worker'];folder.mkdir()
+    for name in ('result.json','measurement.json','worker.log'):shutil.copyfile(source/attempt['worker']/name,folder/name)
+for variant in ('prior','current'):
+    root=source/f'sources-{variant}'
+    shutil.copyfile(root/'manifest.json',destination/f'sources-{variant}-manifest.json')
+    with tarfile.open(destination/f'sources-{variant}.tar.gz','w:gz') as bundle:
+        for name,raw in [('LICENSE',Path('LICENSE').read_bytes()),*(
+                (p.relative_to(root).as_posix(),p.read_bytes()) for p in sorted((root/'src').rglob('*.py')))]:
+            info=tarfile.TarInfo(name);info.size,info.mtime,info.mode=len(raw),0,0o644
+            bundle.addfile(info,io.BytesIO(raw))
+for src,name in [('tools/benchmark_bspline_lidar_imu.py','benchmark.py.txt'),
+                 ('tools/schemas/bspline_lidar_imu_comparison.schema.json','comparison.schema.json'),
+                 (__file__,'publisher.py.txt')]:shutil.copyfile(src,destination/name)
+validation=Path('outputs/overlapped-target-cache-baseline-v1')
+receipt=json.loads((validation/'receipt.json').read_bytes())
+assert receipt['source_commit']==protocol['baseline_commit'] and receipt['exit_code']==1
+assert receipt['source_manifest_sha256']==sha(source/'sources-prior/manifest.json')
+assert receipt['log_sha256']==sha(validation/'validation.log')
+assert receipt['launcher_sha256']==sha(Path('.tmp-calibrex-check-overlap-baseline.py'))
+for src,name in [(validation/'receipt.json','baseline-validation.json'),
+                 (validation/'validation.log','baseline-validation.log'),
+                 (Path('.tmp-calibrex-check-overlap-baseline.py'),'baseline-validation.py.txt')]:shutil.copyfile(src,destination/name)
+correctness=destination/'prototype-validation';correctness.mkdir()
+for p in (source/'prototype-validation').iterdir():
+    if p.is_file():shutil.copyfile(p,correctness/p.name)
+whole,fit=summary['whole_median_seconds'],summary['fit_median_seconds']
+table='\n'.join([
+    '| Scope | Sequential preparation | Overlapped preparation | Observed ratio |',
+    '| --- | ---: | ---: | ---: |',
+    f"| Complete worker | {whole['prior']:.3f} s | {whole['current']:.3f} s | {summary['whole_speedup']:.3f}x |",
+    f"| Unchanged four CPU fits, including covariance | {fit['prior']:.3f} s | {fit['current']:.3f} s | {summary['fit_speedup']:.3f}x |",
+    f"| Unchanged CUDA normal preparation | {normal['prior']:.3f} s | {normal['current']:.3f} s | {normal['prior']/normal['current']:.3f}x |",
+])
+elapsed={(a['repeat'],a['variant']):a['whole_seconds'] for a in attempts}
+pair_table='\n'.join(['| Pair | Sequential complete worker | Overlapped complete worker | Observed ratio |',
+                     '| --- | ---: | ---: | ---: |',*(
+    f"| {r+1} ({'sequential first' if r%2==0 else 'overlap first'}) | {elapsed[r,'prior']:.3f} s | {elapsed[r,'current']:.3f} s | {elapsed[r,'prior']/elapsed[r,'current']:.3f}x |"
+    for r in range(protocol['repeats']))])
+readme=f'''# Complete comparison of overlapped CUDA target preparation
+
+**Not adopted.** Runtime sources are restored to the previous revision. The
+candidate and its 51 passing device/unit tests are retained for a controlled
+repeat, rather than enabled as a demonstrated whole-calibration improvement.
+
+{table}
+
+{pair_table}
+
+The paired comparisons change direction: one is slower and the other faster.
+Unchanged CPU fit and GPU normal times also vary substantially. The median
+ratio is descriptive; these runs establish no stable end-to-end speed gain.
+Adoption is deferred pending a repeat under less host contention.
+
+Two alternating fresh-process pairs replay the public GLIM Livox bag's first
+six seconds with four map rounds. This is a descriptive observation on an
+unreserved host. One worker prepares the local map, captured native tree and
+CUDA target while the caller deskews and downsamples the source. Registration
+waits for the same prepared target, with all original kernels and arithmetic.
+One preparation is outstanding at most, and result snapshots close the pool.
+The worker uses the caller's device and a reusable private stream, synchronized
+before publishing the target. Rotation callbacks remain on the caller thread.
+
+The previous revision is `{protocol['baseline_commit']}` and the current revision
+is `{protocol['current_commit']}`. The input bag SHA-256 is
+`{protocol['bag_sha256']}`. No raw scans or compiler caches are redistributed.
+
+Each worker uses one BLAS thread and a separate initially empty CuPy compilation
+cache. Whole timing includes startup/imports, decoding, every odometry pass,
+target/source work and worker shutdown, association, fits/covariance, noise
+updates, evidence, hashing, saves and source verification. It includes first
+GPU initialization and compilation. The unchanged dense policy uses 0.03 m
+voxels, three local-map scans, an opt-in 1 nm coordinate grid and motion grids
+of 1 micrometre translation and 0.1 microradian rotation-vector components.
+Those grids remain disabled by default. CPU odometry remains the default.
+
+All complete physical/evidence fields, initial estimates, execution identities
+and GPU work counters match exactly, excluding only provenance timestamps,
+commands and source revisions. Every full fit record matches exactly excluding
+wall time, including covariance, trajectory, calibration, costs, dimensions,
+status and iterations. Both pairs satisfy the stronger exact-output protocol.
+The final real-data verdict remains **INCONCLUSIVE**; there is no independent
+extrinsic truth. Return budgets, neighborhoods, convergence and controls are
+unchanged. No public option, dependency or result-schema change is introduced.
+
+Unchanged fit and normal timings expose host variation, and the complete-worker
+ratio is specific to these runs. Ratios from distinct scopes or cohorts are
+not multiplied. Overlap can increase simultaneous CPU working memory; the
+number of preparations is bounded, rather than process RSS.
+
+The index binds all four full results/measurements/logs, both source capsules,
+launcher, schema, publisher and an existing Windows test-failure reproduction.
+`prototype-validation` additionally binds the candidate's successful 51-test
+device/unit run, exact test files, validation launcher, source manifest and log.
+The archive audit checks these bindings without importing an accelerator.
+`test_default_cache_dir_respects_xdg` expects `HOME` to redirect `Path.home()`;
+it fails with both current and frozen baseline sources locally. The baseline
+receipt binds that source manifest, validation log and reproduction launcher.
+The test and production cache-path policy are unchanged.
+
+Audit without a GPU or bag:
+
+```bash
+python -m tools.audit_bspline_lidar_imu_benchmark docs/assets/overlapped_target_preparation
+```
+
+See [implementation and reproduction](../../benchmarks/overlapped_target_preparation.md).
+'''
+(destination/'README.md').write_text(readme,encoding='utf-8',newline='\n')
+files={p.relative_to(destination).as_posix():sha(p) for p in sorted(destination.rglob('*')) if p.is_file() and p.name!='publication-index.json'}
+(destination/'publication-index.json').write_text(json.dumps({'schema_version':'slac.bspline_lidar_imu_publication/v0.1',
+    'provenance':{'input_protocol_sha256':sha(source/'protocol.json')},'files':files},indent=2)+'\n',encoding='utf-8',newline='\n')
+doc=Path('docs/benchmarks/overlapped_target_preparation.md')
+doc.write_text(doc.read_text(encoding='utf-8').replace('<!-- results -->',table).replace('<!-- pair-results -->',pair_table),encoding='utf-8',newline='\n')
+print(json.dumps(audit(destination),indent=2))

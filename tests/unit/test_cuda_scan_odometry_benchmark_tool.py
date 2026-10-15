@@ -41,6 +41,24 @@ def test_comparison_rejects_hidden_backend_suffix_and_type_changes() -> None:
     assert benchmark._compare(cpu, gpu) == [".registrations[0].converged"]
 
 
+def test_comparison_accepts_only_the_declared_async_normal_schedule() -> None:
+    cpu, gpu = _pair()
+    for value in (gpu, gpu["registrations"][0]):
+        value["execution_backend"] += ";normal_schedule=async-v1"
+    assert benchmark._compare(cpu, gpu) == []
+    gpu["execution_backend"] = gpu["execution_backend"].replace("async-v1", "unknown")
+    assert benchmark._compare(cpu, gpu) == [".execution_backend"]
+
+
+def test_comparison_accepts_only_the_declared_interval_pruning() -> None:
+    cpu, gpu = _pair()
+    for value in (gpu, gpu["registrations"][0]):
+        value["execution_backend"] += ";normal_schedule=async-v1;spatial_pruning=fp32-intervals-v1"
+    assert benchmark._compare(cpu, gpu) == []
+    gpu["execution_backend"] = gpu["execution_backend"].replace("fp32-intervals-v1", "unknown")
+    assert benchmark._compare(cpu, gpu) == [".execution_backend"]
+
+
 def test_benchmark_does_not_overwrite_existing_output(tmp_path) -> None:
     existing = tmp_path / "result.json"
     existing.write_text("keep this")

@@ -1,0 +1,152 @@
+"""Exact stackless CUDA traversal screen on fixed public registration inputs."""
+from pathlib import Path
+import os
+for name in ('OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS', 'OMP_NUM_THREADS'):
+    os.environ[name] = '1'
+root = Path(__file__).resolve().parent
+out = root / 'outputs/stackless-query-pilot-v2'
+out.mkdir(exist_ok=False)
+os.environ['CUPY_CACHE_DIR'] = str(out / 'cupy-cache')
+import hashlib
+import json
+import shutil
+import statistics
+import subprocess
+import time
+import cupy as cp
+import numpy as np
+from calibrex.solvers import cuda_lidar_map_adapter as maps
+from calibrex.solvers import cuda_scan_odometry_adapter as adapter
+from calibrex.solvers.scan_to_scan_odometry import ScanOdometryOptions
+
+PREP = r'''
+extern "C" __global__ void parents3(const int* axis,const int* child,int n,int* parent,int* side){
+ int node=blockDim.x*blockIdx.x+threadIdx.x;if(node>=n)return;
+ if(node==0){parent[0]=-1;side[0]=0;}
+ if(axis[node]>=0){int l=child[2*node],r=child[2*node+1];parent[l]=node;parent[r]=node;side[l]=0;side[r]=1;}
+}
+extern "C" __global__ void heap3(const int* parent,const int* side,int n,int size,int* heap,int* bad){
+ int node=blockDim.x*blockIdx.x+threadIdx.x;if(node>=n)return;
+ int here=node;unsigned long long path=0,bit=1;
+ while(parent[here]>=0){if(side[here])path|=bit;bit<<=1;here=parent[here];}
+ path|=bit;
+ if(path>=(unsigned long long)size){atomicExch(bad,1);return;}
+ heap[path]=node;
+}
+'''
+original_tree = adapter._CudaTree
+original_fused = adapter._FUSED_SOURCE
+fixtures = root / 'outputs/odometry-search-profile-v2'
+variants = ('prior', 'parent', 'heap')
+mode = 'prior'
+
+def transformed(source, mode, fused=False):
+    if mode == 'prior':
+        return source
+    source = source.replace('const long long* order,', 'const int* navigation, const long long* order,', 1)
+    start = source.index('    int stack[64]')
+    end = source.index('    double distance=sqrt(best[0])' if fused else '    for(int j=0;j<k;j++){distance')
+    old = source[start:end]
+    bounds = old[old.index('        double d[3];'):old.index('        if(axis[node]<0){')]
+    threshold = 'best[1]' if fused else 'best[k-1]'
+    bounds = bounds.replace('if(lower>best[1]) continue;', 'if(lower>best[1]) goto next_node;')
+    bounds = bounds.replace('if(lower > best[k-1]) continue;', 'if(lower > best[k-1]) goto next_node;')
+    leaf = old[old.index('        if(axis[node]<0){'):old.index('\n        }else{')+1]
+    setup = '    int node=0,depth=0;unsigned long long deferred=0;\n'
+    if mode == 'heap':
+        setup += '    unsigned long long path=1;\n'
+        descend = '            path=2*path+side;\n'
+        resume = '''        int ancestor=63-__clzll(deferred);
+        deferred&=~(1ULL<<ancestor);
+        path=(path>>(depth-ancestor-1))^1ULL;
+        depth=ancestor+1;node=navigation[path];
+'''
+    else:
+        descend = ''
+        resume = '''        int ancestor=63-__clzll(deferred);
+        deferred&=~(1ULL<<ancestor);
+        while(depth>ancestor){node=navigation[node];--depth;}
+        double delta=p[axis[node]]-split[node];int side=delta<0?0:1;
+        node=child[2*node+1-side];++depth;
+'''
+    body = setup + '    while(true){\n' + bounds + leaf + '''        }else{
+            double delta=p[axis[node]]-split[node];int side=delta<0?0:1;
+            if(delta*delta<=''' + threshold + ''') deferred|=1ULL<<depth;
+''' + descend + '''            node=child[2*node+side];++depth;continue;
+        }
+        next_node:
+        if(!deferred)break;
+''' + resume + '    }\n'
+    return source[:start] + body + source[end:]
+
+prep_module = cp.RawModule(code=PREP, options=('--fmad=false',))
+prepare_parent = prep_module.get_function('parents3')
+prepare_heap = prep_module.get_function('heap3')
+
+class Tree(original_tree):
+    def __init__(self, points):
+        super().__init__(points)
+        n = len(self.arrays[1])
+        parent = cp.empty(n, dtype=cp.int32)
+        side = cp.empty(n, dtype=cp.int32)
+        prepare_parent(((n+127)//128,), (128,), (self.arrays[1], self.arrays[3], np.int32(n), parent, side))
+        if mode == 'heap':
+            size = 4 * (1 << (n-1).bit_length())
+            navigation = cp.full(size, -1, dtype=cp.int32)
+            bad = cp.zeros(1, dtype=cp.int32)
+            prepare_heap(((n+127)//128,), (128,), (parent, side, np.int32(n), np.int32(size), navigation, bad))
+            assert not int(bad.get()[0]), 'heap capacity exceeded'
+        else:
+            navigation = parent
+        self.arrays = (navigation, *self.arrays)
+        self.bytes += navigation.nbytes
+        self.kernel = cp.RawKernel(transformed(maps._SOURCE, mode), 'query3', options=('--fmad=false',))
+
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+shutil.copyfile(__file__, out / 'launcher.py.txt')
+protocol = {'scope': __doc__, 'source_commit': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+    'launcher_sha256': sha(Path(__file__)), 'blas_threads': 1, 'host_unreserved': True,
+    'sources': {p.relative_to(root).as_posix(): sha(p) for p in sorted((root/'src/calibrex').rglob('*.py'))},
+    'fixtures': {p.name: sha(p) for p in fixtures.glob('registration-*.*')},
+    'kernels': {v: {'query': hashlib.sha256(transformed(maps._SOURCE,v).encode()).hexdigest(),
+                    'system': hashlib.sha256(transformed(original_fused,v,True).encode()).hexdigest()} for v in variants},
+    'preparation_kernel_sha256': hashlib.sha256(PREP.encode()).hexdigest(),
+    'timing_scope': 'target construction and registration, five rotated-order repeats, one untimed first-case warmup per variant; no cold/whole-bag claim'}
+(out/'protocol.json').write_text(json.dumps(protocol,indent=2)+'\n',encoding='utf-8')
+cases=[]
+for i in range(8):
+    data=np.load(fixtures/f'registration-{i:02d}.npz')
+    meta=json.loads((fixtures/f'registration-{i:02d}.json').read_bytes())
+    cases.append((data,ScanOdometryOptions(**meta['options'])))
+references={};runs=[];attributes={}
+try:
+    for mode in variants:
+        adapter._CudaTree=original_tree if mode=='prior' else Tree
+        adapter._FUSED_SOURCE=transformed(original_fused,mode,True)
+        data,options=cases[0]
+        target=adapter.CudaOdometryTarget(data['target'],options)
+        target.register(data['source'],data['initial'])
+        attributes[mode]={'query':target.tree.kernel.attributes,'system':target.fused_kernel.attributes}
+    for repeat in range(5):
+        order=variants[repeat%3:]+variants[:repeat%3]
+        for mode in order:
+            adapter._CudaTree=original_tree if mode=='prior' else Tree
+            adapter._FUSED_SOURCE=transformed(original_fused,mode,True)
+            for case,(data,options) in enumerate(cases):
+                begin=time.perf_counter();target=adapter.CudaOdometryTarget(data['target'],options)
+                initialized=time.perf_counter();result=target.register(data['source'],data['initial'])
+                seconds=time.perf_counter()-begin
+                payload={**vars(result),'transform':result.transform.tolist()}
+                physical={k:v for k,v in payload.items() if k!='execution_backend'}
+                if case not in references:references[case]=physical
+                assert physical==references[case],(mode,case)
+                runs.append({'repeat':repeat,'variant':mode,'case':case,'seconds':seconds,
+                    'initialization_seconds':initialized-begin,'work':target.statistics(),'result':payload})
+            print(json.dumps({'repeat':repeat,'variant':mode,'seconds':sum(r['seconds'] for r in runs if r['variant']==mode and r['repeat']==repeat)}),flush=True)
+        (out/'runs.json').write_text(json.dumps(runs,indent=2)+'\n',encoding='utf-8')
+finally:
+    adapter._CudaTree=original_tree;adapter._FUSED_SOURCE=original_fused
+medians={v:statistics.median(sum(r['seconds'] for r in runs if r['variant']==v and r['repeat']==i) for i in range(5)) for v in variants}
+summary={'median_seconds':medians,'speedups':{v:medians['prior']/x for v,x in medians.items()},'exact':True,
+    'kernel_attributes':attributes,'provenance':{'protocol_sha256':sha(out/'protocol.json')}}
+(out/'summary.json').write_text(json.dumps(summary,indent=2)+'\n',encoding='utf-8');print(json.dumps(summary),flush=True)

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Rejected odometry scheduling and placement experiments",
+  "type": "object",
+  "required": ["schema_version", "decision", "source_commit", "observations", "cohorts", "comparisons", "provenance"],
+  "properties": {
+    "schema_version": {"const": "slac.odometry_scheduling_screen/v0.1"},
+    "decision": {"const": "no_candidate_adopted"},
+    "source_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "observations": {"const": 492},
+    "cohorts": {
+      "type": "array", "minItems": 4, "maxItems": 4,
+      "items": {
+        "type": "object", "required": ["name", "variants", "repeats", "cases", "scope"],
+        "properties": {
+          "name": {"enum": ["traversal", "normals", "bounds", "placement"]},
+          "variants": {"type": "array", "minItems": 3, "maxItems": 3, "uniqueItems": true, "items": {"type": "string"}},
+          "repeats": {"enum": [5, 7]},
+          "cases": {"enum": [4, 8]},
+          "scope": {"enum": ["target_and_registration", "bounds_capture", "placement"]}
+        },
+        "additionalProperties": false
+      }
+    },
+    "comparisons": {
+      "type": "array", "minItems": 8, "maxItems": 8,
+      "items": {
+        "type": "object", "required": ["cohort", "variant", "speedup"],
+        "properties": {
+          "cohort": {"enum": ["traversal", "normals", "bounds", "placement"]},
+          "variant": {"type": "string"},
+          "speedup": {"type": "number", "exclusiveMinimum": 0}
+        },
+        "additionalProperties": false
+      }
+    },
+    "provenance": {
+      "type": "object", "required": ["source_manifest_sha256", "source_capsule_sha256", "publisher_sha256", "auditor_sha256"],
+      "additionalProperties": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+    }
+  },
+  "additionalProperties": false
+}

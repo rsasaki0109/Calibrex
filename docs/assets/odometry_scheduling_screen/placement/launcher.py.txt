@@ -1,0 +1,57 @@
+"""Exact pose-only placement screen on four captured public spline fit inputs."""
+from pathlib import Path
+import os
+for name in ('OPENBLAS_NUM_THREADS','MKL_NUM_THREADS','OMP_NUM_THREADS'):os.environ[name]='1'
+import hashlib,json,shutil,statistics,time
+import numpy as np
+from calibrex.core.continuous_time_bspline import CubicBSplineTrajectory,_evaluate_local_spline,so3_log_batch
+from calibrex.evaluation.lidar_imu_bag_calibration import _place
+
+root=Path(__file__).resolve().parent
+out=root/'outputs/pose-placement-pilot-v1';out.mkdir(exist_ok=False)
+fixtures=root/'outputs/glim-joint-analytic-profile-v1'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+shutil.copyfile(__file__,out/'launcher.py.txt')
+
+def candidate(trajectory,times,points,edges=True):
+    index,fraction=trajectory.segments(times)
+    slots=index[:,None]+np.arange(4)[None,:]
+    deltas=None
+    if edges:
+        used=np.zeros(trajectory.control_point_count-1,dtype=np.bool_)
+        used[slots[:,:3]]=True
+        edge=np.flatnonzero(used)
+        relative=np.einsum('tji,tjk->tik',trajectory.rotations[edge],trajectory.rotations[edge+1])
+        delta=np.empty((trajectory.control_point_count-1,3))
+        delta[edge]=so3_log_batch(relative)
+        deltas=delta[slots[:,:3]]
+    states=_evaluate_local_spline(trajectory.rotations[slots],trajectory.positions[slots],fraction,
+        trajectory.knot_spacing_sec,order=0,deltas=deltas)
+    return np.asarray(np.einsum('tij,tj->ti',states.rotation_world_body,points)+states.position_world_m,dtype=float)
+
+cases=[]
+for i in range(4):
+    data=np.load(fixtures/f'problem-{i:02d}.npz')
+    meta=json.loads((fixtures/f'problem-{i:02d}.json').read_bytes())
+    trajectory=CubicBSplineTrajectory(meta['start_time_sec'],meta['knot_spacing_sec'],data['rotations'],data['positions'])
+    cases.append((trajectory,data['plane_times'],data['plane_points']))
+protocol={'scope':__doc__,'launcher_sha256':sha(Path(__file__)),'blas_threads':1,
+    'sources':{p.relative_to(root).as_posix():sha(p) for p in sorted((root/'src/calibrex').rglob('*.py'))},
+    'fixtures':{p.name:sha(p) for p in fixtures.glob('problem-*.*')},
+    'timing_scope':'complete placement, native full derivatives versus pose-only and referenced-edge reuse; seven rotated-order repeats over four fixed inputs'}
+(out/'protocol.json').write_text(json.dumps(protocol,indent=2)+'\n',encoding='utf-8')
+references=[_place(*c) for c in cases]
+runs=[];variants=('prior','pose','edges')
+for repeat in range(7):
+    for variant in variants[repeat%3:]+variants[:repeat%3]:
+        for case,(data,expected) in enumerate(zip(cases,references)):
+            start=time.perf_counter()
+            actual=_place(*data) if variant=='prior' else candidate(*data,edges=variant=='edges')
+            seconds=time.perf_counter()-start
+            assert np.array_equal(actual.view(np.uint64),expected.view(np.uint64)),(variant,case,np.max(np.abs(actual-expected)))
+            runs.append({'repeat':repeat,'variant':variant,'case':case,'seconds':seconds,'rows':len(actual),'output_sha256':hashlib.sha256(actual.tobytes()).hexdigest()})
+        print(json.dumps({'repeat':repeat,'variant':variant,'seconds':sum(r['seconds'] for r in runs if r['repeat']==repeat and r['variant']==variant)}),flush=True)
+(out/'runs.json').write_text(json.dumps(runs,indent=2)+'\n',encoding='utf-8')
+medians={v:statistics.median(sum(r['seconds'] for r in runs if r['repeat']==i and r['variant']==v) for i in range(7)) for v in variants}
+summary={'median_seconds':medians,'speedups':{v:medians['prior']/medians[v] for v in variants},'exact':True,'provenance':{'protocol_sha256':sha(out/'protocol.json')}}
+(out/'summary.json').write_text(json.dumps(summary,indent=2)+'\n',encoding='utf-8');print(json.dumps(summary),flush=True)

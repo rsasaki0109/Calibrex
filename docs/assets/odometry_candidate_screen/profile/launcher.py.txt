@@ -1,0 +1,81 @@
+"""Private source-bound diagnostic and public registration fixture capture."""
+import argparse
+import cProfile
+from dataclasses import asdict
+import hashlib
+import json
+import os
+from pathlib import Path
+import pstats
+import shutil
+import subprocess
+import sys
+import time
+
+ROOT = Path(__file__).resolve().parent
+os.chdir(ROOT)
+sys.path.insert(0, str(ROOT))
+from tools import benchmark_bspline_lidar_imu as bench
+
+out = ROOT / 'outputs' / 'odometry-search-profile-v2'
+if sys.argv[1:] != ['worker']:
+    out.mkdir(exist_ok=False)
+    bench._freeze(out / 'sources', None)
+    shutil.copyfile(__file__, out / 'launcher.py.txt')
+    env = os.environ.copy()
+    env.update(dict.fromkeys(('OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS', 'OMP_NUM_THREADS'), '1'))
+    env['CUPY_CACHE_DIR'] = str(out / 'cupy-cache')
+    env['PYTHONDONTWRITEBYTECODE'] = '1'
+    env['PYTHONPATH'] = str(out / 'sources' / 'src')
+    start = time.perf_counter()
+    with (out / 'worker.log').open('wb') as log:
+        result = subprocess.run([sys.executable, str(Path(__file__)), 'worker'],
+                                env=env, stdout=log, stderr=subprocess.STDOUT)
+    (out / 'parent.json').write_text(json.dumps({
+        'whole_seconds': time.perf_counter() - start, 'exit_code': result.returncode,
+        'diagnostic_only': True, 'profiling_overhead': True,
+        'source_manifest_sha256': bench._digest(out / 'sources' / 'manifest.json'),
+        'launcher_sha256': bench._digest(out / 'launcher.py.txt'),
+    }, indent=2) + '\n', encoding='utf-8')
+    print(json.dumps({'output': str(out), 'exit_code': result.returncode}), flush=True)
+    raise SystemExit(result.returncode)
+
+import numpy as np
+from calibrex.solvers.cuda_scan_odometry_adapter import CudaOdometryTarget
+
+original = CudaOdometryTarget.register
+captured = set()
+count = 0
+
+def observe(self, source, initial):
+    global count
+    if len(source) > 5000 and count < 8 and id(self) not in captured:
+        captured.add(id(self))
+        fixture = out / ('registration-%02d.npz' % count)
+        np.savez_compressed(fixture, target=self.host, source=source, initial=initial)
+        fixture.with_suffix('.json').write_text(json.dumps({
+            'options': asdict(self.options),
+            'fixture_sha256': bench._digest(fixture),
+            'input_bag': 'data/public/glim_versatile/livox.bag',
+            'source_manifest_sha256': bench._digest(out / 'sources' / 'manifest.json'),
+        }, indent=2) + '\n', encoding='utf-8')
+        count += 1
+    return original(self, source, initial)
+
+CudaOdometryTarget.register = observe
+args = argparse.Namespace(source_root=out / 'sources', comparison='cuda-cuda',
+                          variant='current', source_commit=subprocess.check_output(
+                              ['git', 'rev-parse', 'HEAD'], text=True).strip(),
+                          output=out, bag=ROOT / 'data/public/glim_versatile/livox.bag',
+                          max_seconds=6., max_rounds=4, odometry_voxel_size_m=.03,
+                          odometry_local_map_scans=3, odometry_geometry_quantum_m=1e-9,
+                          odometry_motion_translation_quantum_m=1e-6,
+                          odometry_motion_rotation_quantum_rad=1e-7,
+                          prior_fit_plane_backend='numpy', current_fit_plane_backend='cuda')
+profile = cProfile.Profile()
+try:
+    profile.runcall(bench._worker, args)
+finally:
+    profile.dump_stats(str(out / 'profile.pstats'))
+    with (out / 'profile.txt').open('w', encoding='utf-8') as text:
+        pstats.Stats(profile, stream=text).sort_stats('cumulative').print_stats(60)

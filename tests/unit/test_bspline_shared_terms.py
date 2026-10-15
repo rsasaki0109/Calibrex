@@ -44,6 +44,7 @@ def test_prepared_states_and_derivatives_match_reference(epoch: float) -> None:
             gathered.rotations, gathered.fraction, gathered.spacing, order=order,
             relatives=gathered.relatives, deltas=gathered.deltas,
             steps=gathered.steps, log_jacobians=gathered.log_jacobians,
+            basis_terms=(gathered.basis, gathered.d_basis, gathered.dd_basis),
         )
         for field in fields(reference):
             assert np.array_equal(getattr(reference, field.name), getattr(shared, field.name))

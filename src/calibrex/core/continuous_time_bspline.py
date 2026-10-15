@@ -205,6 +205,7 @@ def _evaluate_local_spline(
     order: Literal[0, 1, 2] = 2,
     deltas: FloatArray | None = None,
     steps: FloatArray | None = None,
+    basis_terms: tuple[FloatArray, FloatArray, FloatArray] | None = None,
 ) -> BSplineStates:
     """Internal evaluator with shared rotation terms and family-specific order.
 
@@ -212,7 +213,8 @@ def _evaluate_local_spline(
     required by their residual family. The public evaluator always uses order 2.
     """
 
-    basis, d_basis, dd_basis = cumulative_basis(fraction, knot_spacing_sec)
+    basis, d_basis, dd_basis = (cumulative_basis(fraction, knot_spacing_sec)
+                              if basis_terms is None else basis_terms)
     count = basis.shape[0]
 
     rotation = np.array(rotations[:, 0], dtype=float, copy=True)

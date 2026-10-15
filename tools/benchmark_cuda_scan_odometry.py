@@ -31,6 +31,8 @@ _IDENTITY = re.compile(
     r"calibrex\.cuda_scan_odometry/v0\.1;fp64=true;query_fma=false;"
     r"cupy=\d+\.\d+\.\d+;cuda=\d+;driver=\d+;cc=\d+\.\d+;"
     r"query_sha256=[0-9a-f]{64};system_sha256=[0-9a-f]{64}"
+    r"(?:;normal_schedule=async-v1)?"
+    r"(?:;spatial_pruning=fp32-intervals-v1)?"
 )
 
 
