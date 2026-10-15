@@ -14,7 +14,7 @@ from __future__ import annotations
 import hashlib
 import math
 from collections.abc import Iterator, Sequence
-from dataclasses import dataclass, field, replace
+from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
 from typing import Any, Literal, TypeAlias
 
@@ -243,6 +243,7 @@ def run_livox_imu_lidar_rotation(
     gyro_passes = 0 if rigid else opts.gyro_deskew_passes
     max_passes = 1 + gyro_passes + (1 if gyro_passes and opts.feedback_check_deg > 0.0 else 0)
     passes_started = 0
+    execution_reports: list[dict[str, object]] = []
 
     def covers(time_s: float) -> bool:
         return gyro.covers(time_s - margin, time_s + margin)
@@ -272,6 +273,7 @@ def run_livox_imu_lidar_rotation(
                 rotation_model=model,
             )
         assert segmenter is not None
+        execution_reports.append(segmenter.execution_report())
         return segmenter
 
     # Pass 0 deskews with the LiDAR's own constant-velocity motion.  Later
@@ -368,7 +370,12 @@ def run_livox_imu_lidar_rotation(
             ),
             *(RIGID_SCAN_LIMITATIONS if rigid else ()),
         ],
-        extra_options={"deskew": "none"} if rigid else None,
+        extra_options={
+            **({"deskew": "none"} if rigid else {}),
+            "odometry_backend": opts.windowing.odometry_backend,
+            "odometry_options": asdict(opts.windowing.odometry),
+            "odometry_execution": execution_reports,
+        },
     )
 
 
@@ -832,6 +839,7 @@ def collect_livox_windows(
     max_scans: int | None = None,
     max_seconds: float | None = None,
     scan_store: ScanStore | None = None,
+    execution_reports: list[dict[str, object]] | None = None,
 ) -> tuple[GyroSeries, list[OdometryWindow]]:
     """Load the gyro and the odometry windows of Livox bags (one rig)."""
 
@@ -852,4 +860,6 @@ def collect_livox_windows(
             rotation_model=rotation_model,
         )
     assert segmenter is not None
+    if execution_reports is not None:
+        execution_reports.append(segmenter.execution_report())
     return gyro, segmenter.windows

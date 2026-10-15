@@ -1,0 +1,764 @@
+{
+  "blocks": [
+    {
+      "controls": 6,
+      "controls_detected": 0,
+      "estimate": [
+        0.012627281923883465,
+        0.009213085995060644,
+        -0.008529705136276385
+      ],
+      "formal_std": [
+        0.009648198739063822,
+        0.011538353981434648,
+        0.01549482978044502
+      ],
+      "last_round_change": [
+        0.0045771346161090605,
+        -0.008091440137120577,
+        -0.0014547541492523407
+      ],
+      "name": "imu_rotation",
+      "reason": "6 of 6 signed controls not detected; formal std 0.0155 above 0.00872665",
+      "unit": "rad",
+      "verdict": "weak"
+    },
+    {
+      "controls": 6,
+      "controls_detected": 0,
+      "estimate": [
+        0.0013570108798726394,
+        0.00034454836979780075,
+        1.953166198179253e-06
+      ],
+      "formal_std": [
+        0.0018670368944132215,
+        0.001826990299911948,
+        0.0018040853736841457
+      ],
+      "last_round_change": [
+        -0.000644808681581954,
+        -0.0006733844070632917,
+        -8.451942754725034e-05
+      ],
+      "name": "gyro_bias",
+      "reason": "6 of 6 signed controls not detected",
+      "unit": "rad/s",
+      "verdict": "weak"
+    },
+    {
+      "controls": 6,
+      "controls_detected": 6,
+      "estimate": [
+        -0.015307656211142379,
+        -0.013526456686966233,
+        0.14433757784324816
+      ],
+      "formal_std": [
+        0.03452636739751241,
+        0.023815531983820633,
+        0.03507270180788266
+      ],
+      "last_round_change": [
+        0.024926797369978833,
+        0.00011473058666546312,
+        -0.08981723588599774
+      ],
+      "name": "lever_arm",
+      "reason": "all signed controls detected",
+      "unit": "m",
+      "verdict": "estimated"
+    },
+    {
+      "controls": 2,
+      "controls_detected": 2,
+      "estimate": [
+        0.004734077768305727
+      ],
+      "formal_std": [
+        0.0005181218980831194
+      ],
+      "last_round_change": [
+        -0.0006193885301886666
+      ],
+      "name": "imu_clock_offset",
+      "reason": "all signed controls detected",
+      "unit": "s",
+      "verdict": "estimated"
+    },
+    {
+      "controls": 6,
+      "controls_detected": 6,
+      "estimate": [
+        -0.11752368849742001,
+        0.19134204325053134,
+        -0.05013825089128086
+      ],
+      "formal_std": [
+        0.15899672626427078,
+        0.12837299853155013,
+        0.043684178354258155
+      ],
+      "last_round_change": [
+        -0.14845787438302302,
+        -0.049094753753552045,
+        -0.032199513117618
+      ],
+      "name": "accel_bias",
+      "reason": "all signed controls detected",
+      "unit": "m/s^2",
+      "verdict": "estimated"
+    },
+    {
+      "controls": 6,
+      "controls_detected": 6,
+      "estimate": [
+        2.0221696550412824,
+        1.4444841672411513,
+        -9.484660629400208
+      ],
+      "formal_std": [
+        0.11791128847545337,
+        0.10739977353286617,
+        0.04327328245979181
+      ],
+      "last_round_change": [
+        -0.06514720797401718,
+        -0.007015001809976162,
+        -0.016314373136038895
+      ],
+      "name": "gravity",
+      "reason": "all signed controls detected",
+      "unit": "m/s^2",
+      "verdict": "estimated"
+    }
+  ],
+  "control_delta_chi2_threshold": 9.0,
+  "control_points": 58,
+  "controls": [
+    {
+      "axis": 0,
+      "delta_chi2": 1.7168781494356153,
+      "detected": false,
+      "family": "gyro",
+      "magnitude": 0.017453292519943295,
+      "parameter": "imu_rotation",
+      "sign": -1,
+      "unit": "rad"
+    },
+    {
+      "axis": 0,
+      "delta_chi2": 2.085058730705441,
+      "detected": false,
+      "family": "gyro",
+      "magnitude": 0.017453292519943295,
+      "parameter": "imu_rotation",
+      "sign": 1,
+      "unit": "rad"
+    },
+    {
+      "axis": 1,
+      "delta_chi2": 1.8953793579830744,
+      "detected": false,
+      "family": "gyro",
+      "magnitude": 0.017453292519943295,
+      "parameter": "imu_rotation",
+      "sign": -1,
+      "unit": "rad"
+    },
+    {
+      "axis": 1,
+      "delta_chi2": 1.6150485834518804,
+      "detected": false,
+      "family": "gyro",
+      "magnitude": 0.017453292519943295,
+      "parameter": "imu_rotation",
+      "sign": 1,
+      "unit": "rad"
+    },
+    {
+      "axis": 2,
+      "delta_chi2": 1.140300729289038,
+      "detected": false,
+      "family": "gyro",
+      "magnitude": 0.017453292519943295,
+      "parameter": "imu_rotation",
+      "sign": -1,
+      "unit": "rad"
+    },
+    {
+      "axis": 2,
+      "delta_chi2": 0.9354702509147046,
+      "detected": false,
+      "family": "gyro",
+      "magnitude": 0.017453292519943295,
+      "parameter": "imu_rotation",
+      "sign": 1,
+      "unit": "rad"
+    },
+    {
+      "axis": 0,
+      "delta_chi2": 3.9525797602959756,
+      "detected": false,
+      "family": "gyro",
+      "magnitude": 0.005,
+      "parameter": "gyro_bias",
+      "sign": -1,
+      "unit": "rad/s"
+    },
+    {
+      "axis": 0,
+      "delta_chi2": 4.102029453036494,
+      "detected": false,
+      "family": "gyro",
+      "magnitude": 0.005,
+      "parameter": "gyro_bias",
+      "sign": 1,
+      "unit": "rad/s"
+    },
+    {
+      "axis": 1,
+      "delta_chi2": 5.239972879818652,
+      "detected": false,
+      "family": "gyro",
+      "magnitude": 0.005,
+      "parameter": "gyro_bias",
+      "sign": -1,
+      "unit": "rad/s"
+    },
+    {
+      "axis": 1,
+      "delta_chi2": 2.814636333514045,
+      "detected": false,
+      "family": "gyro",
+      "magnitude": 0.005,
+      "parameter": "gyro_bias",
+      "sign": 1,
+      "unit": "rad/s"
+    },
+    {
+      "axis": 2,
+      "delta_chi2": 4.365827593396261,
+      "detected": false,
+      "family": "gyro",
+      "magnitude": 0.005,
+      "parameter": "gyro_bias",
+      "sign": -1,
+      "unit": "rad/s"
+    },
+    {
+      "axis": 2,
+      "delta_chi2": 3.688781619936208,
+      "detected": false,
+      "family": "gyro",
+      "magnitude": 0.005,
+      "parameter": "gyro_bias",
+      "sign": 1,
+      "unit": "rad/s"
+    },
+    {
+      "delta_chi2": 58.78476473254432,
+      "detected": true,
+      "family": "gyro",
+      "magnitude": 0.005,
+      "parameter": "imu_clock_offset",
+      "sign": -1,
+      "unit": "s"
+    },
+    {
+      "delta_chi2": 12.848848583708332,
+      "detected": true,
+      "family": "gyro",
+      "magnitude": 0.005,
+      "parameter": "imu_clock_offset",
+      "sign": 1,
+      "unit": "s"
+    },
+    {
+      "axis": 0,
+      "delta_chi2": 118.96739491635867,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.05,
+      "parameter": "lever_arm",
+      "sign": -1,
+      "unit": "m"
+    },
+    {
+      "axis": 0,
+      "delta_chi2": 164.70312910364964,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.05,
+      "parameter": "lever_arm",
+      "sign": 1,
+      "unit": "m"
+    },
+    {
+      "axis": 1,
+      "delta_chi2": 125.96472626453237,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.05,
+      "parameter": "lever_arm",
+      "sign": -1,
+      "unit": "m"
+    },
+    {
+      "axis": 1,
+      "delta_chi2": 118.68104158530946,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.05,
+      "parameter": "lever_arm",
+      "sign": 1,
+      "unit": "m"
+    },
+    {
+      "axis": 2,
+      "delta_chi2": 157.33668040948965,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.05,
+      "parameter": "lever_arm",
+      "sign": -1,
+      "unit": "m"
+    },
+    {
+      "axis": 2,
+      "delta_chi2": 127.99480354597085,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.05,
+      "parameter": "lever_arm",
+      "sign": 1,
+      "unit": "m"
+    },
+    {
+      "axis": 0,
+      "delta_chi2": 364.88139289820833,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.2,
+      "parameter": "accel_bias",
+      "sign": -1,
+      "unit": "m/s^2"
+    },
+    {
+      "axis": 0,
+      "delta_chi2": 334.77092897018497,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.2,
+      "parameter": "accel_bias",
+      "sign": 1,
+      "unit": "m/s^2"
+    },
+    {
+      "axis": 1,
+      "delta_chi2": 339.591929306413,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.2,
+      "parameter": "accel_bias",
+      "sign": -1,
+      "unit": "m/s^2"
+    },
+    {
+      "axis": 1,
+      "delta_chi2": 360.06039256198005,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.2,
+      "parameter": "accel_bias",
+      "sign": 1,
+      "unit": "m/s^2"
+    },
+    {
+      "axis": 2,
+      "delta_chi2": 318.2659406358996,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.2,
+      "parameter": "accel_bias",
+      "sign": -1,
+      "unit": "m/s^2"
+    },
+    {
+      "axis": 2,
+      "delta_chi2": 381.38638123249484,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.2,
+      "parameter": "accel_bias",
+      "sign": 1,
+      "unit": "m/s^2"
+    },
+    {
+      "axis": 0,
+      "delta_chi2": 331.7970680232745,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.2,
+      "parameter": "gravity",
+      "sign": -1,
+      "unit": "m/s^2"
+    },
+    {
+      "axis": 0,
+      "delta_chi2": 367.85525384511925,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.2,
+      "parameter": "gravity",
+      "sign": 1,
+      "unit": "m/s^2"
+    },
+    {
+      "axis": 1,
+      "delta_chi2": 360.25124119067004,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.2,
+      "parameter": "gravity",
+      "sign": -1,
+      "unit": "m/s^2"
+    },
+    {
+      "axis": 1,
+      "delta_chi2": 339.4010806777221,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.2,
+      "parameter": "gravity",
+      "sign": 1,
+      "unit": "m/s^2"
+    },
+    {
+      "axis": 2,
+      "delta_chi2": 380.5245995800351,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.2,
+      "parameter": "gravity",
+      "sign": -1,
+      "unit": "m/s^2"
+    },
+    {
+      "axis": 2,
+      "delta_chi2": 319.1277222883532,
+      "detected": true,
+      "family": "accel",
+      "magnitude": 0.2,
+      "parameter": "gravity",
+      "sign": 1,
+      "unit": "m/s^2"
+    }
+  ],
+  "converged": false,
+  "entangled_correlation_threshold": 0.9,
+  "holdout_imu_samples": 366,
+  "holdout_whitened_rms": {
+    "accel": 0.9854428480824561,
+    "gyro": 1.0087837127708266,
+    "plane": 0.9929399499795065
+  },
+  "imu_clock_offset_s": 0.004734077768305727,
+  "initial": {
+    "clock_offset_s": 0.009071078414771266,
+    "gyro_bias_rad_s": [
+      0.0023945963456827044,
+      0.0005343904165801712,
+      0.000627557557869034
+    ],
+    "method": "angular_rate_alignment/v0.1",
+    "policy_status": "inconclusive",
+    "rotation_vector_rad": [
+      0.024121765932148608,
+      0.016020525424999342,
+      -0.000930552959579256
+    ]
+  },
+  "knot_spacing_s": 0.1,
+  "limitations": [
+    "The plane map is built from the trajectory being fitted, so the formal std (map held fixed) understates the uncertainty; read it with last_round_change and rotation_difference_from_initial_deg.",
+    "One segment (the longest reliable odometry window) is calibrated; other parts of the bag are not used.",
+    "Gravity carries a prior on its magnitude (gravity_magnitude_m_s2 with gravity_magnitude_sigma_m_s2): without tilt only g_z + b_a,z is observed, so the vertical accelerometer bias rests on that prior; see the separability records."
+  ],
+  "method": "cubic_bspline_joint/v0.1",
+  "noise_sigmas": {
+    "accel": 0.2045711546010099,
+    "gyro": 0.04766540721052241,
+    "plane": 0.023629759982507343
+  },
+  "options": {
+    "association_gate_m": 0.3,
+    "gravity_magnitude_m_s2": 9.80665,
+    "gravity_magnitude_sigma_m_s2": 0.03,
+    "holdout_every": 3,
+    "holdout_fail_whitened_rms": 2.0,
+    "imu_lowpass_hz": null,
+    "initial_odometry_execution": [
+      {
+        "executed_backends": [
+          "numpy_scipy"
+        ],
+        "requested_backend": "cpu",
+        "statistics": {}
+      },
+      {
+        "executed_backends": [
+          "numpy_scipy"
+        ],
+        "requested_backend": "cpu",
+        "statistics": {}
+      },
+      {
+        "executed_backends": [
+          "numpy_scipy"
+        ],
+        "requested_backend": "cpu",
+        "statistics": {}
+      },
+      {
+        "executed_backends": [
+          "numpy_scipy"
+        ],
+        "requested_backend": "cpu",
+        "statistics": {}
+      },
+      {
+        "executed_backends": [
+          "numpy_scipy"
+        ],
+        "requested_backend": "cpu",
+        "statistics": {}
+      },
+      {
+        "executed_backends": [
+          "numpy_scipy"
+        ],
+        "requested_backend": "cpu",
+        "statistics": {}
+      },
+      {
+        "executed_backends": [
+          "numpy_scipy"
+        ],
+        "requested_backend": "cpu",
+        "statistics": {}
+      }
+    ],
+    "knot_spacing_s": 0.1,
+    "map_max_planarity": 0.1,
+    "map_points_per_scan": 1500,
+    "map_voxel_m": 0.15,
+    "max_rounds": 4,
+    "max_seconds": 6,
+    "max_segment_s": 30.0,
+    "method_disagreement_deg": 1.0,
+    "odometry_backend": "cpu",
+    "odometry_options": {
+      "convergence_rotation_rad": 1e-05,
+      "convergence_translation_m": 0.0001,
+      "deskew_iterations": 1,
+      "geometry_quantum_m": 1e-09,
+      "huber_delta_m": 0.1,
+      "local_map_scans": 3,
+      "max_correspondence_m": 1.5,
+      "max_iterations": 30,
+      "max_planarity_ratio": 0.2,
+      "max_range_m": 60.0,
+      "min_correspondences": 200,
+      "min_range_m": 1.0,
+      "normal_neighbours": 10,
+      "voxel_size_m": 0.03
+    },
+    "plane_gate_m": 0.1,
+    "returns_per_scan": 300,
+    "rotation_convergence_deg": 0.005,
+    "seed": 20261011,
+    "segment_odometry_execution": [
+      {
+        "executed_backends": [
+          "numpy_scipy"
+        ],
+        "requested_backend": "cpu",
+        "statistics": {}
+      }
+    ],
+    "warmup_rounds": 1
+  },
+  "policy_reasons": [
+    "imu_rotation is weak: 6 of 6 signed controls not detected; formal std 0.0155 above 0.00872665"
+  ],
+  "policy_status": "inconclusive",
+  "provenance": {
+    "bag": "livox.bag",
+    "command": [
+      "python",
+      ".tmp-calibrex-dense-joint-pilot.py",
+      "--backend",
+      "cpu"
+    ],
+    "created_at": "2026-10-14T01:00:59.342950+00:00",
+    "dataset_family": "glim_versatile",
+    "dataset_license": "upstream AIST GLIM dataset terms",
+    "generator": "calibrex.evaluation.lidar_imu_bag_calibration",
+    "generator_version": "0.5.1",
+    "git_commit": "c6a0a19",
+    "imu_topic": "/livox/imu",
+    "input_digest_scope": "bag metadata.yaml in full; bag databases by size and first 64 MiB",
+    "input_sha256": "2d5ce57c440c22057e4c16abb1dc67a73e23ac5b19a0b79150afb02edfbdbd06",
+    "lidar_topic": "/livox/points",
+    "point_time_field": "t"
+  },
+  "rotation_difference_from_initial_deg": 0.8805803462603226,
+  "rounds": [
+    {
+      "fit_status": "converged",
+      "iterations": 6,
+      "map_planes": 4941,
+      "plane_returns": 13114,
+      "rotation_change_deg": 0.0,
+      "round": 0
+    },
+    {
+      "fit_status": "converged",
+      "iterations": 19,
+      "map_planes": 4931,
+      "plane_returns": 13595,
+      "rotation_change_deg": 0.42757251119855944,
+      "round": 1
+    },
+    {
+      "fit_status": "converged",
+      "iterations": 12,
+      "map_planes": 4919,
+      "plane_returns": 13423,
+      "rotation_change_deg": 0.5765543187424687,
+      "round": 2
+    },
+    {
+      "fit_status": "converged",
+      "iterations": 21,
+      "map_planes": 4926,
+      "plane_returns": 13503,
+      "rotation_change_deg": 0.5391221534744902,
+      "round": 3
+    }
+  ],
+  "scans": 55,
+  "schema_version": "slac.lidar_imu_bag_calibration/v0.1",
+  "segment_duration_s": 5.5,
+  "segment_start_s": 110.79992746,
+  "separability": [
+    {
+      "block_a": "imu_rotation",
+      "block_b": "gyro_bias",
+      "entangled": false,
+      "max_abs_correlation": 0.22202296869458768
+    },
+    {
+      "block_a": "imu_rotation",
+      "block_b": "lever_arm",
+      "entangled": false,
+      "max_abs_correlation": 0.25659677465080316
+    },
+    {
+      "block_a": "imu_rotation",
+      "block_b": "imu_clock_offset",
+      "entangled": false,
+      "max_abs_correlation": 0.14716404693213064
+    },
+    {
+      "block_a": "imu_rotation",
+      "block_b": "accel_bias",
+      "entangled": false,
+      "max_abs_correlation": 0.6449865647304893
+    },
+    {
+      "block_a": "imu_rotation",
+      "block_b": "gravity",
+      "entangled": false,
+      "max_abs_correlation": 0.4891550391668477
+    },
+    {
+      "block_a": "gyro_bias",
+      "block_b": "lever_arm",
+      "entangled": false,
+      "max_abs_correlation": 0.036559364285969974
+    },
+    {
+      "block_a": "gyro_bias",
+      "block_b": "imu_clock_offset",
+      "entangled": false,
+      "max_abs_correlation": 0.027534306262560624
+    },
+    {
+      "block_a": "gyro_bias",
+      "block_b": "accel_bias",
+      "entangled": false,
+      "max_abs_correlation": 0.16340824699727444
+    },
+    {
+      "block_a": "gyro_bias",
+      "block_b": "gravity",
+      "entangled": false,
+      "max_abs_correlation": 0.0478266299301062
+    },
+    {
+      "block_a": "lever_arm",
+      "block_b": "imu_clock_offset",
+      "entangled": false,
+      "max_abs_correlation": 0.029980162343771738
+    },
+    {
+      "block_a": "lever_arm",
+      "block_b": "accel_bias",
+      "entangled": false,
+      "max_abs_correlation": 0.3358017915260603
+    },
+    {
+      "block_a": "lever_arm",
+      "block_b": "gravity",
+      "entangled": false,
+      "max_abs_correlation": 0.3518076725080364
+    },
+    {
+      "block_a": "imu_clock_offset",
+      "block_b": "accel_bias",
+      "entangled": false,
+      "max_abs_correlation": 0.09106186684327881
+    },
+    {
+      "block_a": "imu_clock_offset",
+      "block_b": "gravity",
+      "entangled": false,
+      "max_abs_correlation": 0.02559126724053757
+    },
+    {
+      "block_a": "accel_bias",
+      "block_b": "gravity",
+      "entangled": false,
+      "max_abs_correlation": 0.8486024255081425
+    }
+  ],
+  "t_lidar_imu_rotation_quat_xyzw": [
+    0.006313557547218215,
+    0.004606482136687454,
+    -0.004264796221649699,
+    0.9999603646278238
+  ],
+  "t_lidar_imu_translation_m": [
+    -0.015307656211142379,
+    -0.013526456686966233,
+    0.14433757784324816
+  ],
+  "train_imu_samples": 733,
+  "train_whitened_rms": {
+    "accel": 0.9999999999999999,
+    "gyro": 1.0,
+    "plane": 0.9929399499795065
+  }
+}

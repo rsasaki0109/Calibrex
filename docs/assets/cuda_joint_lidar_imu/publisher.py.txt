@@ -1,0 +1,168 @@
+from pathlib import Path
+import hashlib
+import json
+import shutil
+import tarfile
+
+source = Path('outputs/glim-cuda-joint-formal-v1')
+destination = Path('docs/assets/cuda_joint_lidar_imu')
+destination.mkdir(exist_ok=False)
+summary = json.loads((source / 'summary.json').read_bytes())
+attempts = json.loads((source / 'attempts.json').read_bytes())
+protocol = json.loads((source / 'protocol.json').read_bytes())
+assert summary['quality_passed']
+for name in ('protocol.json', 'attempts.json', 'summary.json'):
+    shutil.copyfile(source / name, destination / name)
+for attempt in attempts:
+    root = destination / attempt['worker']
+    root.mkdir()
+    for name in ('measurement.json', 'result.json', 'worker.log'):
+        shutil.copyfile(source / attempt['worker'] / name, root / name)
+for variant in ('prior', 'current'):
+    root = source / f'sources-{variant}'
+    shutil.copyfile(root / 'manifest.json', destination / f'sources-{variant}-manifest.json')
+    with tarfile.open(destination / f'sources-{variant}.tar.gz', 'w:gz') as archive:
+        archive.add('LICENSE', arcname='LICENSE', recursive=False)
+        for path in sorted((root / 'src').rglob('*.py')):
+            archive.add(path, arcname=path.relative_to(root).as_posix(), recursive=False)
+shutil.copyfile('tools/benchmark_bspline_lidar_imu.py', destination / 'benchmark.py.txt')
+shutil.copyfile('tools/schemas/bspline_lidar_imu_comparison.schema.json', destination / 'comparison.schema.json')
+# Preserve the rejected uncanonicalized exploratory pair without pooling it.
+rejected = destination / 'rejected-no-motion-grid'
+rejected.mkdir()
+for backend in ('cpu', 'cuda'):
+    original = Path(f'outputs/glim-dense-joint-{backend}-pilot-v1')
+    for name in ('measurement.json', 'result.json'):
+        shutil.copyfile(original / name, rejected / f'{backend}.{name}')
+    frozen = Path('outputs/glim-cuda-joint-rejected-source-binding-v1') / backend
+    shutil.copyfile(frozen / 'manifest.json', rejected / f'{backend}.sources-manifest.json')
+    with tarfile.open(rejected / f'{backend}.sources.tar.gz', 'w:gz') as archive:
+        archive.add('LICENSE', arcname='LICENSE', recursive=False)
+        for path in sorted((frozen / 'src').rglob('*.py')):
+            archive.add(path, arcname=path.relative_to(frozen).as_posix(), recursive=False)
+shutil.copyfile('.tmp-calibrex-dense-joint-pilot.py', rejected / 'pilot.py.txt')
+rejection_schema = {
+    '$schema': 'https://json-schema.org/draft/2020-12/schema',
+    'type': 'object', 'required': ['seconds', 'rounds', 'provenance'],
+    'properties': {'seconds': {'type': 'number', 'exclusiveMinimum': 0},
+                   'rounds': {'type': 'array', 'minItems': 1},
+                   'provenance': {'type': 'object', 'required': [
+                       'helper_sha256', 'executed_sources', 'result_sha256']}},
+    'additionalProperties': False,
+}
+(rejected / 'measurement.schema.json').write_text(json.dumps(rejection_schema, indent=2)+'\n', encoding='utf-8', newline='\n')
+from tools.benchmark_bspline_lidar_imu import _compare
+failure = _compare(json.loads((rejected / 'cpu.result.json').read_bytes()), json.loads((rejected / 'cuda.result.json').read_bytes()))
+assert not failure['passed']
+(rejected / 'comparison.json').write_text(json.dumps({
+    **failure, 'provenance': {f'{mode}_result_sha256': hashlib.sha256((rejected / f'{mode}.result.json').read_bytes()).hexdigest() for mode in ('cpu','cuda')}
+}, indent=2)+'\n', encoding='utf-8', newline='\n')
+(rejected / 'README.md').write_text('''# Rejected exploratory joint comparison
+
+Both methods used 0.03 m voxels, three local-map scans and a 1 nm coordinate
+policy; returned scan motions retained floating arithmetic. The complete
+six-second joint comparison failed the fixed quality limits. These working-tree
+explorations are not formal speed comparisons and their timing is not pooled
+with the formal cohort. Source revision fields alone do not identify these
+uncommitted changes. The exact bytes of every actually imported Calibrex module
+were reconstructed from the recorded hashes and retained here, with their
+manifests and the original helper. Only imported modules are archived for this
+exploratory pair, rather than claiming a complete frozen working tree.
+
+The calibration artifacts validate with the ordinary joint-calibration schema.
+The private measurement records validate with the local measurement schema.
+The archive audit recomputes the rejection, helper/import/result bindings and
+per-round records. No quality tolerance was changed to accept this pair.
+''', encoding='utf-8', newline='\n')
+whole=summary['whole_median_seconds'];fitting=summary['fit_median_seconds']
+table='\n'.join([
+    '| Scope | CPU median | CUDA odometry median | Speedup |',
+    '| --- | ---: | ---: | ---: |',
+    f"| Complete worker | {whole['prior']:.3f} s | {whole['current']:.3f} s | {summary['whole_speedup']:.3f}x |",
+    f"| Four CPU fits, including covariance | {fitting['prior']:.3f} s | {fitting['current']:.3f} s | {summary['fit_speedup']:.3f}x |",
+])
+trials='\n'.join([
+    '| Pair | Method | Whole seconds | Fit seconds |',
+    '| --- | --- | ---: | ---: |',
+]+[f"| {a['repeat']} | {'CPU' if a['variant']=='prior' else 'CUDA odometry'} | {a['whole_seconds']:.6f} | {json.loads((source/a['worker']/'measurement.json').read_bytes())['fit_seconds']:.6f} |" for a in attempts])
+errors={name:max(q['errors'][name] for q in summary['quality']) for name in summary['quality'][0]['errors']}
+readme=f'''# Complete public GLIM CPU/CUDA joint calibration
+
+Three alternating fresh-process pairs use the same committed source revision,
+{protocol['current_commit']}, and the original public GLIM Livox recording.
+Initial, gyro-deskewed, feedback-check and final-segment odometry use CPU or CUDA;
+the same B-spline fitting, map association, covariance and evidence remain on CPU.
+
+{table}
+
+{trials}
+
+## Fixed workload and timing
+
+- First six seconds, four map rounds, default return sampling and 30 fit iterations.
+- PointCloud2 `/livox/points`, point-time `t`; IMU `/livox/imu`, acceleration in g.
+- Bag SHA-256: `{protocol['bag_sha256']}`. Raw data is not redistributed.
+- Both methods use 0.03 m odometry voxels, three local-map scans, a 1 nm point
+  coordinate grid, and motion grids of 1 micrometre translation and 0.1 microradian
+  rotation-vector components. The comparison is against the matching quantized
+  CPU reference. All grids default to disabled outside this declared workload.
+- Whole time includes imports, reading, first GPU setup/compilation, every
+  odometry pass, association, all fits/covariance, noise updates, holdout, signed
+  controls, hashes, saves and verified imports. Parent freezing is outside timing.
+- Each CUDA worker has an isolated empty CuPy compilation cache. Driver/runtime
+  caches may persist. No cold or slow trial is excluded.
+
+## Quality, actual work and limits
+
+All three complete comparisons pass. Maximum differences are
+{errors['rotation_deg']:.3g} deg rotation, {errors['lever_arm_m']:.3g} m lever arm
+and {errors['clock_offset_s']:.3g} s clock offset. The audit checks all per-round
+trajectories, covariance, costs, convergence and complete evidence decisions.
+Every odometry pass records actual queries/systems and native repair counts.
+Its runtime and kernel identities are bound to the exact archived source strings.
+The CPU-only audit checks these bindings without importing CuPy.
+
+All six final results remain **INCONCLUSIVE**. This estimated plane map and its
+formal covariance do not establish independent absolute extrinsic accuracy.
+This result applies to an explicit dense workload; coarse point clouds can be
+slower on CUDA. The B-spline fitter is still on CPU, so its ratio measures timing
+variation rather than a GPU fitting implementation. Ratios from separate cohorts
+are not multiplied.
+
+The initial uncanonicalized joint pair failed quality and is retained under
+[rejected-no-motion-grid](rejected-no-motion-grid/README.md). Its complete results,
+measurements, original helper and verified imported source bytes are preserved.
+Exploratory wall times are not pooled into the formal cohort.
+
+## Bindings and reproduction
+
+Every formal worker has its complete schema-valid result, all fitted calibration,
+trajectory and covariance arrays, original log, input hash and actual import
+hashes. Both complete source trees, raw manifests, executed benchmark launcher,
+comparison schema and publisher are retained. The publication index binds every
+file except itself.
+
+```bash
+python -m tools.audit_bspline_lidar_imu_benchmark docs/assets/cuda_joint_lidar_imu
+python -m tools.benchmark_bspline_lidar_imu --comparison cpu-cuda \\
+  --max-seconds 6 --max-rounds 4 --repeats 3 \\
+  --odometry-voxel-size-m .03 --odometry-local-map-scans 3 \\
+  --odometry-geometry-quantum-m 1e-9 \\
+  --odometry-motion-translation-quantum-m 1e-6 \\
+  --odometry-motion-rotation-quantum-rad 1e-7 \\
+  --output outputs/glim-cuda-joint-comparison
+```
+
+Use a new output directory and committed runtime sources. See the
+[implementation and CLI](../../benchmarks/cuda_joint_lidar_imu.md).
+'''
+(destination/'README.md').write_text(readme,encoding='utf-8',newline='\n')
+docs=Path('docs/benchmarks/cuda_joint_lidar_imu.md')
+docs.write_text(docs.read_text(encoding='utf-8').replace('<!-- cuda_joint_results -->',table),encoding='utf-8',newline='\n')
+shutil.copyfile(__file__,destination/'publisher.py.txt')
+files={p.relative_to(destination).as_posix():hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(destination.rglob('*')) if p.is_file()}
+(destination/'publication-index.json').write_text(json.dumps({
+ 'schema_version':'slac.bspline_lidar_imu_publication/v0.1',
+ 'provenance':{'input_protocol_sha256':hashlib.sha256((source/'protocol.json').read_bytes()).hexdigest()},'files':files,
+},indent=2)+'\n',encoding='utf-8',newline='\n')
+print({'files':len(files),'whole_speedup':summary['whole_speedup'],'fit_speedup':summary['fit_speedup']})

@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "seconds",
+    "rounds",
+    "provenance"
+  ],
+  "properties": {
+    "seconds": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "rounds": {
+      "type": "array",
+      "minItems": 1
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "helper_sha256",
+        "executed_sources",
+        "result_sha256"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

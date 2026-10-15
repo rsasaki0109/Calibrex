@@ -2,54 +2,263 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Complete B-spline LiDAR-IMU comparison evidence",
   "type": "object",
-  "required": ["schema_version", "record_type"],
+  "required": [
+    "schema_version",
+    "record_type"
+  ],
   "properties": {
-    "schema_version": {"const": "slac.bspline_lidar_imu_comparison/v0.1"},
-    "record_type": {"enum": ["protocol", "worker", "summary"]}
+    "schema_version": {
+      "const": "slac.bspline_lidar_imu_comparison/v0.1"
+    },
+    "record_type": {
+      "enum": [
+        "protocol",
+        "worker",
+        "summary"
+      ]
+    }
   },
   "oneOf": [
     {
       "properties": {
-        "record_type": {"const": "protocol"},
-        "baseline_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
-        "current_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
-        "repeats": {"type": "integer", "minimum": 1},
-        "max_seconds": {"type": "number", "exclusiveMinimum": 0},
-        "max_rounds": {"type": "integer", "minimum": 2},
-        "bag_sha256": {"$ref": "#/$defs/sha"},
-        "launcher_sha256": {"$ref": "#/$defs/sha"},
-        "quality_tolerances": {"type": "object"},
-        "scope": {"type": "string"}
+        "record_type": {
+          "const": "protocol"
+        },
+        "baseline_commit": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "current_commit": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{40}$"
+        },
+        "repeats": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "max_rounds": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "bag_sha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "launcher_sha256": {
+          "$ref": "#/$defs/sha"
+        },
+        "quality_tolerances": {
+          "type": "object"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "comparison": {
+          "enum": [
+            "source",
+            "cpu-cuda"
+          ]
+        },
+        "isolated_cuda_caches": {
+          "const": true
+        },
+        "odometry_options": {
+          "type": "object",
+          "required": [
+            "voxel_size_m",
+            "local_map_scans",
+            "geometry_quantum_m",
+            "motion_translation_quantum_m",
+            "motion_rotation_quantum_rad"
+          ],
+          "properties": {
+            "voxel_size_m": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "local_map_scans": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "geometry_quantum_m": {
+              "type": "number",
+              "minimum": 0
+            },
+            "motion_translation_quantum_m": {
+              "type": "number",
+              "minimum": 0
+            },
+            "motion_rotation_quantum_rad": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        }
       },
-      "required": ["baseline_commit", "current_commit", "repeats", "max_seconds", "max_rounds", "bag_sha256", "launcher_sha256", "quality_tolerances", "scope"]
+      "required": [
+        "baseline_commit",
+        "current_commit",
+        "repeats",
+        "max_seconds",
+        "max_rounds",
+        "bag_sha256",
+        "launcher_sha256",
+        "quality_tolerances",
+        "scope"
+      ]
     },
     {
       "properties": {
-        "record_type": {"const": "worker"},
-        "variant": {"enum": ["prior", "current"]},
-        "pipeline_seconds": {"type": "number", "exclusiveMinimum": 0},
-        "fit_seconds": {"type": "number", "exclusiveMinimum": 0},
-        "rounds": {"type": "array", "minItems": 1, "items": {"type": "object"}},
-        "provenance": {"type": "object", "required": ["bag_sha256", "source_manifest_sha256", "executed_sources", "launcher_sha256", "result_sha256", "python", "numpy", "scipy", "blas_threads"]}
+        "record_type": {
+          "const": "worker"
+        },
+        "variant": {
+          "enum": [
+            "prior",
+            "current"
+          ]
+        },
+        "pipeline_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "fit_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "rounds": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object"
+          }
+        },
+        "provenance": {
+          "type": "object",
+          "required": [
+            "bag_sha256",
+            "source_manifest_sha256",
+            "executed_sources",
+            "launcher_sha256",
+            "result_sha256",
+            "python",
+            "numpy",
+            "scipy",
+            "blas_threads"
+          ]
+        }
       },
-      "required": ["variant", "pipeline_seconds", "fit_seconds", "rounds", "provenance"]
+      "required": [
+        "variant",
+        "pipeline_seconds",
+        "fit_seconds",
+        "rounds",
+        "provenance"
+      ]
     },
     {
       "properties": {
-        "record_type": {"const": "summary"},
-        "whole_median_seconds": {"$ref": "#/$defs/medians"},
-        "fit_median_seconds": {"$ref": "#/$defs/medians"},
-        "whole_speedup": {"type": "number", "exclusiveMinimum": 0},
-        "fit_speedup": {"type": "number", "exclusiveMinimum": 0},
-        "quality": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["passed", "decisions_equal", "errors", "max_holdout_whitened_rms_difference"]}},
-        "quality_passed": {"type": "boolean"},
-        "provenance": {"type": "object", "required": ["protocol_sha256", "attempts_sha256"]}
+        "record_type": {
+          "const": "summary"
+        },
+        "whole_median_seconds": {
+          "$ref": "#/$defs/medians"
+        },
+        "fit_median_seconds": {
+          "$ref": "#/$defs/medians"
+        },
+        "whole_speedup": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "fit_speedup": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "quality": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "passed",
+              "decisions_equal",
+              "errors",
+              "max_holdout_whitened_rms_difference"
+            ]
+          }
+        },
+        "quality_passed": {
+          "type": "boolean"
+        },
+        "provenance": {
+          "type": "object",
+          "required": [
+            "protocol_sha256",
+            "attempts_sha256"
+          ]
+        }
       },
-      "required": ["whole_median_seconds", "fit_median_seconds", "whole_speedup", "fit_speedup", "quality", "quality_passed", "provenance"]
+      "required": [
+        "whole_median_seconds",
+        "fit_median_seconds",
+        "whole_speedup",
+        "fit_speedup",
+        "quality",
+        "quality_passed",
+        "provenance"
+      ]
     }
   ],
   "$defs": {
-    "sha": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-    "medians": {"type": "object", "required": ["prior", "current"], "properties": {"prior": {"type": "number", "exclusiveMinimum": 0}, "current": {"type": "number", "exclusiveMinimum": 0}}, "additionalProperties": false}
-  }
+    "sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "medians": {
+      "type": "object",
+      "required": [
+        "prior",
+        "current"
+      ],
+      "properties": {
+        "prior": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "current": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "record_type": {
+            "const": "protocol"
+          },
+          "comparison": {
+            "const": "cpu-cuda"
+          }
+        },
+        "required": [
+          "comparison"
+        ]
+      },
+      "then": {
+        "required": [
+          "odometry_options",
+          "isolated_cuda_caches"
+        ]
+      }
+    }
+  ]
 }

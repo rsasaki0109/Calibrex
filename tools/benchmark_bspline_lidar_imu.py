@@ -19,6 +19,7 @@ import subprocess
 import sys
 import tarfile
 import time
+from dataclasses import replace
 from pathlib import Path
 
 
@@ -82,6 +83,13 @@ def _worker(args: argparse.Namespace) -> None:
     root = Path(args.source_root).resolve()
     expected = _verify_sources(root)
     launcher_digest = _digest(Path(__file__))
+    backend = "cuda" if args.comparison == "cpu-cuda" and args.variant == "current" else "cpu"
+    cuda_cache_empty = None
+    if args.comparison == "cpu-cuda":
+        cache = Path(os.environ["CUPY_CACHE_DIR"])
+        cuda_cache_empty = not cache.exists() or not any(cache.iterdir())
+        if not cuda_cache_empty:
+            raise RuntimeError("worker CUDA compilation cache was not empty")
     from calibrex.data.livox_ros2 import LivoxStreamProfile
     from calibrex.evaluation import lidar_imu_bag_calibration as runner
 
@@ -114,10 +122,19 @@ def _worker(args: argparse.Namespace) -> None:
 
     runner.fit_bspline_lidar_imu = measured_fit
     begin = time.perf_counter()
+    settings = runner.LidarImuBagOptions(max_rounds=args.max_rounds)
+    if args.comparison == "cpu-cuda":
+        windowing = settings.rotation.windowing
+        settings = replace(settings, rotation=replace(
+            settings.rotation, windowing=replace(
+                windowing, odometry_backend=backend,
+                odometry=replace(windowing.odometry, **_odometry_options(args)),
+            ),
+        ))
     result = runner.calibrate_lidar_imu_bag(
         args.bag,
         LivoxStreamProfile("public-glim-avia", "/livox/points", "/livox/imu", "t", "offset_s", "g"),
-        runner.LidarImuBagOptions(max_rounds=args.max_rounds),
+        settings,
         dataset_family="glim_versatile",
         dataset_license="upstream AIST GLIM dataset terms",
         max_seconds=args.max_seconds,
@@ -132,6 +149,8 @@ def _worker(args: argparse.Namespace) -> None:
             str(args.max_seconds),
             "--max-rounds",
             str(args.max_rounds),
+            *(["--comparison", "cpu-cuda",
+               *_odometry_arguments(args)] if args.comparison == "cpu-cuda" else []),
         ],
     )
     result.provenance.git_commit = args.source_commit
@@ -148,8 +167,10 @@ def _worker(args: argparse.Namespace) -> None:
             if _digest(path) != expected[relative]:
                 raise RuntimeError(f"executed source digest differs: {name}")
             imports[relative] = expected[relative]
-    if "cupy" in sys.modules:
+    if backend == "cpu" and "cupy" in sys.modules:
         raise RuntimeError("CPU comparison unexpectedly imported CuPy")
+    if args.comparison == "cpu-cuda":
+        _validate_backend_execution(result.model_dump(mode="json"), backend)
     _verify_sources(root)
     if _digest(Path(__file__)) != launcher_digest:
         raise RuntimeError("benchmark launcher changed during execution")
@@ -178,6 +199,9 @@ def _worker(args: argparse.Namespace) -> None:
                     name: os.environ[name]
                     for name in ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS")
                 },
+                **({"odometry_backend": backend, "cuda_cache_initially_empty": cuda_cache_empty,
+                    "cupy": (sys.modules["cupy"].__version__ if backend == "cuda" else None)}
+                   if args.comparison == "cpu-cuda" else {}),
             },
         },
     )
@@ -261,6 +285,47 @@ def _compare(prior: dict, current: dict) -> dict:
     }
 
 
+def _odometry_options(args: argparse.Namespace) -> dict[str, float | int]:
+    return {
+        "voxel_size_m": args.odometry_voxel_size_m,
+        "local_map_scans": args.odometry_local_map_scans,
+        "geometry_quantum_m": args.odometry_geometry_quantum_m,
+        "motion_translation_quantum_m": args.odometry_motion_translation_quantum_m,
+        "motion_rotation_quantum_rad": args.odometry_motion_rotation_quantum_rad,
+    }
+
+
+def _odometry_arguments(args: argparse.Namespace) -> list[str]:
+    arguments = []
+    for name, value in _odometry_options(args).items():
+        arguments.extend(["--odometry-" + name.replace("_", "-"), str(value)])
+    return arguments
+
+
+def _validate_backend_execution(result: dict, backend: str) -> None:
+    """Require real requested work in every initial and final odometry pass."""
+    options = result["options"]
+    groups = [options["initial_odometry_execution"], options["segment_odometry_execution"]]
+    if options["odometry_backend"] != backend or any(not group for group in groups):
+        raise ValueError("missing or incorrect requested odometry execution")
+    for report in [r for group in groups for r in group]:
+        if report["requested_backend"] != backend:
+            raise ValueError("odometry pass requested another backend")
+        identities = report["executed_backends"]
+        if len(identities) != 1 or (
+            identities[0] != "numpy_scipy" if backend == "cpu"
+            else not identities[0].startswith("calibrex.cuda_scan_odometry/v0.1;")
+        ):
+            raise ValueError("odometry pass executed another backend")
+        statistics = report["statistics"]
+        if any(type(value) is not int or value < 0 for value in statistics.values()):
+            raise ValueError("invalid odometry execution counters")
+        if backend == "cuda" and any(
+            statistics.get(name, 0) <= 0 for name in ("gpu_query_rows", "gpu_fused_system_calls")
+        ):
+            raise ValueError("CUDA pass did not execute spatial queries and systems")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bag", default="data/public/glim_versatile/livox.bag")
@@ -269,6 +334,12 @@ def main() -> None:
     parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--max-seconds", type=float, default=12.0)
     parser.add_argument("--max-rounds", type=int, default=4)
+    parser.add_argument("--comparison", choices=("source", "cpu-cuda"), default="source")
+    parser.add_argument("--odometry-voxel-size-m", type=float)
+    parser.add_argument("--odometry-local-map-scans", type=int)
+    parser.add_argument("--odometry-geometry-quantum-m", type=float)
+    parser.add_argument("--odometry-motion-translation-quantum-m", type=float)
+    parser.add_argument("--odometry-motion-rotation-quantum-rad", type=float)
     parser.add_argument("--worker", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--variant", choices=("prior", "current"), help=argparse.SUPPRESS)
     parser.add_argument("--source-root", help=argparse.SUPPRESS)
@@ -279,10 +350,19 @@ def main() -> None:
         return
     if args.repeats < 1 or args.max_rounds < 2 or args.max_seconds <= 0:
         parser.error("need positive repeats/seconds and at least two map rounds")
+    if args.comparison == "cpu-cuda" and (
+        any(value is None for value in _odometry_options(args).values())
+        or args.odometry_voxel_size_m <= 0 or args.odometry_local_map_scans < 1
+        or any(value < 0 for key, value in _odometry_options(args).items()
+               if key not in ("voxel_size_m", "local_map_scans"))
+    ):
+        parser.error("CPU/CUDA comparisons require all five explicit valid odometry settings")
     out = Path(args.output).resolve()
     out.mkdir(parents=True, exist_ok=False)
     commit = subprocess.check_output(["git", "rev-parse", args.baseline_commit], text=True).strip()
     current_commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    if args.comparison == "cpu-cuda":
+        commit = current_commit
     subprocess.run(
         ["git", "diff", "--exit-code", "HEAD", "--", "src/calibrex"],
         check=True,
@@ -319,6 +399,8 @@ def main() -> None:
                 "control_chi2_relative": 1e-5,
                 "control_chi2_absolute": 1e-5,
             },
+            **({"comparison": "cpu-cuda", "odometry_options": _odometry_options(args),
+                "isolated_cuda_caches": True} if args.comparison == "cpu-cuda" else {}),
         },
     )
     attempts: list[dict] = []
@@ -333,6 +415,8 @@ def main() -> None:
             )
             env["PYTHONPATH"] = str(roots[variant] / "src") + os.pathsep + str(Path.cwd())
             env["PYTHONDONTWRITEBYTECODE"] = "1"
+            if args.comparison == "cpu-cuda":
+                env["CUPY_CACHE_DIR"] = str(worker_out / "cupy-cache")
             command = [
                 sys.executable,
                 "-m",
@@ -352,6 +436,8 @@ def main() -> None:
                 str(args.max_rounds),
                 "--output",
                 str(worker_out),
+                *(["--comparison", "cpu-cuda", *_odometry_arguments(args)]
+                  if args.comparison == "cpu-cuda" else []),
             ]
             begin = time.perf_counter()
             with (worker_out / "worker.log").open("wb") as log:

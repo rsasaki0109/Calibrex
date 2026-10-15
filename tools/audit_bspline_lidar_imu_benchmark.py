@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import json
+import re
 import statistics
 import tarfile
+from collections.abc import Callable
 from pathlib import Path
 from types import ModuleType
 
@@ -18,6 +21,84 @@ from calibrex.core.lidar_imu_bag_calibration import LidarImuBagCalibrationArtifa
 
 def _sha(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
+
+
+def _cuda_kernel_hashes(sources: dict[str, bytes]) -> tuple[str, str]:
+    """Read bound CUDA string constants without importing an optional GPU runtime."""
+    def constants(name: str) -> dict[str, str]:
+        result = {}
+        for node in ast.parse(sources[name]).body:
+            if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and isinstance(node.value.value, str):
+                        result[target.id] = node.value.value
+        return result
+
+    query = constants("calibrex/solvers/cuda_lidar_map_adapter.py")["_SOURCE"]
+    system = constants("calibrex/solvers/cuda_scan_odometry_adapter.py")
+    return _sha(query.encode()), _sha(
+        (system["_SYSTEM_SOURCE"] + system["_FUSED_SOURCE"] + system["_COVARIANCE_SOURCE"]).encode()
+    )
+
+
+def _audit_rejected_pair(root: Path, compare: Callable[[dict, dict], dict]) -> None:
+    """Check the retained exploratory failure and its exact imported module bytes."""
+    folder = root / "rejected-no-motion-grid"
+    if not folder.exists():
+        return
+    schema = json.loads((folder / "measurement.schema.json").read_bytes())
+    results = {}
+    helper_hash = _sha((folder / "pilot.py.txt").read_bytes())
+    for backend in ("cpu", "cuda"):
+        raw = (folder / f"{backend}.result.json").read_bytes()
+        result = json.loads(raw)
+        LidarImuBagCalibrationArtifact.model_validate(result)
+        record = json.loads((folder / f"{backend}.measurement.json").read_bytes())
+        jsonschema.validate(record, schema)
+        provenance = record["provenance"]
+        if (provenance["helper_sha256"] != helper_hash
+                or provenance["result_sha256"] != _sha(raw)):
+            raise ValueError("rejected pilot helper/result binding differs")
+        expected = json.loads((folder / f"{backend}.sources-manifest.json").read_bytes())
+        archived = {}
+        with tarfile.open(folder / f"{backend}.sources.tar.gz") as bundle:
+            for member in bundle.getmembers():
+                if not member.isfile() or not member.name.endswith(".py"):
+                    continue
+                if not member.name.startswith("src/calibrex/") or ".." in Path(member.name).parts:
+                    raise ValueError("unexpected rejected source archive path")
+                stream = bundle.extractfile(member)
+                assert stream is not None
+                archived[member.name.removeprefix("src/")] = _sha(stream.read())
+        if archived != expected:
+            raise ValueError("rejected imported source bytes differ")
+        for name, digest in provenance["executed_sources"].items():
+            path = name.replace(".", "/")
+            key = path + ".py" if path + ".py" in expected else path + "/__init__.py"
+            if expected.get(key) != digest:
+                raise ValueError("rejected actual imports differ from archived sources")
+        for fitted, reported in zip(record["rounds"], result["rounds"], strict=True):
+            if (fitted["status"] != reported["fit_status"]
+                    or fitted["iterations"] != reported["iterations"]):
+                raise ValueError("rejected per-round record differs")
+        settings = result["options"]["odometry_options"]
+        if any(settings.get(key, 0) != 0 for key in
+               ("motion_translation_quantum_m", "motion_rotation_quantum_rad")):
+            raise ValueError("rejected pair did not retain uncanonicalized motion")
+        results[backend] = result
+    actual = compare(results["cpu"], results["cuda"])
+    declared = json.loads((folder / "comparison.json").read_bytes())
+    bindings = declared.pop("provenance")
+    for backend in results:
+        if bindings[f"{backend}_result_sha256"] != _sha(
+            (folder / f"{backend}.result.json").read_bytes()
+        ):
+            raise ValueError("rejected comparison result binding differs")
+    actual_rotation = actual["errors"].pop("rotation_deg")
+    declared_rotation = declared["errors"].pop("rotation_deg")
+    if (actual["passed"] or actual != declared
+            or not np.isclose(actual_rotation, declared_rotation, rtol=1e-12, atol=1e-12)):
+        raise ValueError("retained exploratory rejection changed")
 
 
 def audit(root: Path) -> dict[str, object]:
@@ -46,11 +127,12 @@ def audit(root: Path) -> dict[str, object]:
     module = ModuleType("_frozen_bspline_comparison")
     module.__file__ = str(launcher)
     exec(compile(launcher.read_bytes(), str(launcher), "exec"), module.__dict__)
-    sources = {}
+    sources, source_bytes = {}, {}
     for variant in ("prior", "current"):
         expected = json.loads((root / f"sources-{variant}-manifest.json").read_bytes())
         with tarfile.open(root / f"sources-{variant}.tar.gz") as bundle:
             archived = {}
+            raw_sources = {}
             for member in bundle.getmembers():
                 if not member.isfile() or not member.name.endswith(".py"):
                     continue
@@ -58,10 +140,17 @@ def audit(root: Path) -> dict[str, object]:
                     raise ValueError("unexpected frozen source archive path")
                 stream = bundle.extractfile(member)
                 assert stream is not None
-                archived[member.name.removeprefix("src/")] = _sha(stream.read())
+                contents = stream.read()
+                name = member.name.removeprefix("src/")
+                archived[name] = _sha(contents)
+                raw_sources[name] = contents
         if archived != expected:
             raise ValueError(f"frozen {variant} source tree differs")
         sources[variant] = expected
+        source_bytes[variant] = raw_sources
+    gpu_comparison = protocol.get("comparison") == "cpu-cuda"
+    if gpu_comparison and protocol["baseline_commit"] != protocol["current_commit"]:
+        raise ValueError("CPU/CUDA workers must use the same declared source revision")
     attempts = json.loads((root / "attempts.json").read_bytes())
     expected_workers = {(r, v) for r in range(protocol["repeats"]) for v in sources}
     if (
@@ -100,6 +189,40 @@ def audit(root: Path) -> dict[str, object]:
             raise ValueError("worker did not bind the executed fitter")
         if any(sources[variant].get(name) != digest for name, digest in executed.items()):
             raise ValueError("actual worker imports differ from frozen sources")
+        if gpu_comparison:
+            backend = "cpu" if variant == "prior" else "cuda"
+            module._validate_backend_execution(result, backend)
+            if (provenance.get("odometry_backend") != backend
+                    or provenance.get("cuda_cache_initially_empty") is not True):
+                raise ValueError("worker backend or isolated cold compilation cache differs")
+            if any(result["options"]["odometry_options"].get(key) != value
+                   for key, value in protocol["odometry_options"].items()):
+                raise ValueError("worker did not use the declared common geometry settings")
+            adapter = "calibrex/solvers/cuda_scan_odometry_adapter.py"
+            if backend == "cpu":
+                if adapter in executed or provenance.get("cupy") is not None:
+                    raise ValueError("CPU worker imported the optional GPU runtime")
+            else:
+                if adapter not in executed:
+                    raise ValueError("GPU worker did not bind its executed adapter")
+                query_hash, system_hash = _cuda_kernel_hashes(source_bytes[variant])
+                identity = re.compile(
+                    r"calibrex\.cuda_scan_odometry/v0\.1;fp64=true;query_fma=false;"
+                    r"cupy=([^;]+);cuda=\d+;driver=\d+;cc=\d+\.\d+;"
+                    rf"query_sha256={query_hash};system_sha256={system_hash}"
+                )
+                reports = (result["options"]["initial_odometry_execution"]
+                           + result["options"]["segment_odometry_execution"])
+                for report in reports:
+                    match = identity.fullmatch(report["executed_backends"][0])
+                    if match is None or match[1] != provenance.get("cupy"):
+                        raise ValueError("executed GPU identity differs from its bound kernels")
+                    counters = report["statistics"]
+                    if (counters.get("scalar_motion_repairs", 0)
+                            > counters.get("scalar_registration_repairs", 0)
+                            or counters.get("scalar_registration_repairs", 0)
+                            > counters["gpu_fused_system_calls"]):
+                        raise ValueError("GPU repair accounting is inconsistent")
         if not (
             attempt["whole_seconds"] >= record["pipeline_seconds"] >= record["fit_seconds"] > 0
         ):
@@ -179,6 +302,7 @@ def audit(root: Path) -> dict[str, object]:
     for name in ("protocol", "attempts"):
         if summary["provenance"][f"{name}_sha256"] != _sha((root / f"{name}.json").read_bytes()):
             raise ValueError("summary input binding differs")
+    _audit_rejected_pair(root, module._compare)
     return {
         "workers": len(attempts),
         "files": len(index["files"]),

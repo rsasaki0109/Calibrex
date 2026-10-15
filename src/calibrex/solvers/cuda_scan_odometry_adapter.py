@@ -19,6 +19,7 @@ from calibrex.solvers.scan_to_scan_odometry import (
     FloatArray,
     ScanOdometryOptions,
     ScanRegistration,
+    _canonicalize_motion,
     _exp_se3,
     _norm3,
     _normals_from_neighbours,
@@ -78,8 +79,10 @@ extern "C" __global__ void project_query_system3(
     const double* xyz, const double* matrix, const double* reference,
     const long long* order, const int* axis, const double* split,
     const int* child, const long long* span, const double* normal,
-    const bool* planar, const int n, const int m, const double gate,
-    const double huber, const double error, double* uncertain, double* terms) {
+    const bool* planar, const bool* done, const int n, const int m, const double gate,
+    const double huber, const double error, double* uncertain, double* terms,
+    double* moved_out, double* distances_out, long long* indices_out,
+    long long* pending_out) {
     int row=blockDim.x*blockIdx.x+threadIdx.x;
     if(row>=n) return;
     const double* s=xyz+3*row;
@@ -113,10 +116,15 @@ extern "C" __global__ void project_query_system3(
         }
     }
     double distance=sqrt(best[0]);long long hit=chosen[0];
+    for(int a=0;a<3;a++) moved_out[3*row+a]=p[a];
+    distances_out[2*row]=distance;distances_out[2*row+1]=sqrt(best[1]);
+    indices_out[2*row]=hit;indices_out[2*row+1]=chosen[1];
     bool repair=sqrt(best[1])-distance<=error || fabs(distance-gate)<=error;
     uncertain[row]=repair?1.0:0.0;
     bool valid=distance<gate && hit<m;
-    if(valid) valid=planar[hit];
+    bool pending=valid && !done[hit];
+    pending_out[row]=pending?hit:-1;
+    if(valid) valid=done[hit] && planar[hit];
     double j[6]={0,0,0,0,0,0},r=0,w=1;
     if(valid){
         const double* q=reference+3*hit;const double* a=normal+3*hit;
@@ -131,6 +139,7 @@ extern "C" __global__ void project_query_system3(
     for(int a=0;a<6;a++) terms[(column++)*n+row]=(j[a]*w)*r;
     terms[27*n+row]=r*r;terms[28*n+row]=valid?1.0:0.0;
     terms[29*n+row]=repair?1.0:0.0;
+    terms[30*n+row]=pending?1.0:0.0;
 }
 """
 
@@ -176,14 +185,17 @@ class CudaOdometryTarget:
             raise ValueError("CUDA odometry target exceeds the 1 GiB payload budget")
         with cp.cuda.Device(self.device_id):
             self.tree = _CudaTree(self.host)
-            self.normals = cp.zeros_like(self.tree.data)
-            self.planar = cp.zeros(len(self.host), dtype=cp.bool_)
+            self._normals = cp.zeros_like(self.tree.data)
+            self._planar = cp.zeros(len(self.host), dtype=cp.bool_)
             self.done = cp.zeros(len(self.host), dtype=cp.bool_)
         self.scale = max(1.0, float(np.max(np.abs(self.host))))
         self.query_repairs = 0
         self.normal_repairs = 0
         self.fused_calls = 0
+        self.system_refresh_calls = 0
+        self.normal_rows = 0
         self.registration_repairs = 0
+        self.motion_repairs = 0
         self.identity = execution_identity()
         with cp.cuda.Device(self.device_id):
             self.system_kernel = cp.RawKernel(_SYSTEM_SOURCE, "system3", options=("--fmad=false",))
@@ -197,7 +209,20 @@ class CudaOdometryTarget:
                 "covariance3",
                 options=("--fmad=false",),
             )
+
+    @property
+    def normals(self) -> cp.ndarray:
+        """Return the complete normal array, materializing it for explicit readers."""
+        with cp.cuda.Device(self.device_id):
             self._ensure(cp.arange(len(self.host)))
+        return self._normals
+
+    @property
+    def planar(self) -> cp.ndarray:
+        """Return all planarity decisions; registration requests only its hits."""
+        with cp.cuda.Device(self.device_id):
+            self._ensure(cp.arange(len(self.host)))
+        return self._planar
 
     def _ensure(self, hit: cp.ndarray) -> None:
         missing = cp.unique(hit[~self.done[hit]])
@@ -205,6 +230,7 @@ class CudaOdometryTarget:
         margin = 64 * np.finfo(np.float64).eps
         for start in range(0, len(missing), 65536):
             rows = missing[start : start + 65536]
+            self.normal_rows += len(rows)
             distances, indexes = self.tree.query(self.tree.data[rows], k + 1)
             ambiguous = distances[:, k] - distances[:, k - 1] <= (
                 margin * cp.maximum(1.0, distances[:, k])
@@ -233,8 +259,8 @@ class CudaOdometryTarget:
             )
             values, vectors = cp.linalg.eigh(covariance)
             ratio = self.options.max_planarity_ratio
-            self.normals[rows] = vectors[:, :, 0]
-            self.planar[rows] = values[:, 0] <= ratio * cp.maximum(values[:, 1], 1e-12)
+            self._normals[rows] = vectors[:, :, 0]
+            self._planar[rows] = values[:, 0] <= ratio * cp.maximum(values[:, 1], 1e-12)
             scale = cp.maximum(cp.abs(values[:, 2]), np.finfo(np.float64).tiny)
             # Thin scan-line neighbourhoods can amplify eigensolver roundoff
             # in the normal direction even away from the planarity threshold.
@@ -257,8 +283,8 @@ class CudaOdometryTarget:
                     self.options,
                 )
                 selected = rows[cp.asarray(repair)]
-                self.normals[selected] = cp.asarray(normals)
-                self.planar[selected] = cp.asarray(planar)
+                self._normals[selected] = cp.asarray(normals)
+                self._planar[selected] = cp.asarray(planar)
                 self.normal_repairs += len(repair)
             self.done[rows] = True
 
@@ -280,8 +306,17 @@ class CudaOdometryTarget:
         scale = max(self.scale, float(np.max(np.abs(host_source))) if len(host_source) else 1.0)
         with cp.cuda.Device(self.device_id):
             points = cp.asarray(host_source)
-            terms = cp.empty((30, len(points)), dtype=cp.float64)
+            # Dense overlap amortizes one batched normal query/eigensolve.
+            # Sparse sources request only their hits to avoid preparing a large,
+            # mostly unused target. This changes work scheduling, not geometry.
+            if len(points) >= len(self.host) / 10:
+                self._ensure(cp.arange(len(self.host)))
+            terms = cp.empty((31, len(points)), dtype=cp.float64)
             uncertain = cp.empty(len(points), dtype=cp.float64)
+            moved = cp.empty_like(points)
+            distances = cp.empty((len(points), 2), dtype=cp.float64)
+            indexes = cp.empty((len(points), 2), dtype=cp.int64)
+            pending = cp.empty(len(points), dtype=cp.int64)
             for iteration in range(1, opts.max_iterations + 1):  # noqa: B007
                 matrix = cp.asarray(transform)
                 error = (
@@ -302,8 +337,9 @@ class CudaOdometryTarget:
                             matrix,
                             self.tree.data,
                             *self.tree.arrays,
-                            self.normals,
-                            self.planar,
+                            self._normals,
+                            self._planar,
+                            self.done,
                             np.int32(len(points)),
                             np.int32(len(self.host)),
                             np.float64(opts.max_correspondence_m),
@@ -311,12 +347,17 @@ class CudaOdometryTarget:
                             np.float64(error),
                             uncertain,
                             terms,
+                            moved,
+                            distances,
+                            indexes,
+                            pending,
                         ),
                     )
                     self.tree.query_calls += 1
                     self.tree.query_rows += len(points)
                     self.fused_calls += 1
                 totals = _host(cp.sum(terms, axis=1))
+                refresh = False
                 if totals[29]:
                     rows = cp.asnumpy(cp.flatnonzero(uncertain))
                     # Recompute after rare native gate/tie repairs. Ordinary
@@ -334,14 +375,27 @@ class CudaOdometryTarget:
                     indexes[positions, 0] = cp.asarray(index)
                     moved[positions] = cp.asarray(native_moved)
                     self.query_repairs += len(rows)
+                    valid_hits = indexes[:, 0][
+                        (distances[:, 0] < opts.max_correspondence_m)
+                        & (indexes[:, 0] < len(self.host))
+                    ]
+                    self._ensure(valid_hits)
+                    refresh = True
+                elif totals[30]:
+                    # The fused query has already captured the exact moved
+                    # coordinates and matches. Compute only newly hit normals,
+                    # then refresh the system without repeating spatial queries.
+                    self._ensure(pending[pending >= 0])
+                    refresh = True
+                if refresh:
                     self.system_kernel(
                         ((len(points) + 127) // 128,),
                         (128,),
                         (
                             moved,
                             self.tree.data,
-                            self.normals,
-                            self.planar,
+                            self._normals,
+                            self._planar,
                             distances,
                             indexes,
                             np.int32(len(points)),
@@ -352,6 +406,7 @@ class CudaOdometryTarget:
                         ),
                     )
                     totals = _host(cp.sum(terms[:29], axis=1))
+                    self.system_refresh_calls += 1
                 count = int(totals[28])
                 if count < opts.min_correspondences:
                     break
@@ -378,15 +433,19 @@ class CudaOdometryTarget:
                 ):
                     converged = True
                     break
-        if uncertain_stopping:
-            native = register_point_to_plane(host_source, self.host, initial, opts)
+        near_motion_boundary = self._near_motion_boundary(transform)
+        if uncertain_stopping or near_motion_boundary:
+            native = register_point_to_plane(
+                host_source, self.host, initial, opts, target_tree=self.tree.cpu,
+            )
             self.registration_repairs += 1
+            self.motion_repairs += int(near_motion_boundary)
             return replace(native, execution_backend=self.identity)
         eigenvalue = (
             0.0 if last_hessian is None else float(np.linalg.eigvalsh(last_hessian)[0]) / last_count
         )
         return ScanRegistration(
-            transform,
+            _canonicalize_motion(transform, opts),
             converged and count >= opts.min_correspondences,
             iteration,
             count,
@@ -394,6 +453,22 @@ class CudaOdometryTarget:
             eigenvalue,
             execution_backend=self.identity,
         )
+
+    def _near_motion_boundary(self, transform: FloatArray) -> bool:
+        """Use the native registration when the requested motion grid is ambiguous."""
+        if (self.options.motion_translation_quantum_m == 0
+                and self.options.motion_rotation_quantum_rad == 0):
+            return False
+        from scipy.spatial.transform import Rotation
+
+        for values, quantum in (
+            (transform[:3, 3], self.options.motion_translation_quantum_m),
+            (Rotation.from_matrix(transform[:3, :3]).as_rotvec(),
+             self.options.motion_rotation_quantum_rad),
+        ):
+            if quantum and np.any(np.abs(np.remainder(values / quantum, 1) - 0.5) <= 1e-3):
+                return True
+        return False
 
     def statistics(self) -> dict[str, int]:
         """Report actual work, including the two kinds of native repairs."""
@@ -403,5 +478,8 @@ class CudaOdometryTarget:
             "scalar_query_repairs": self.query_repairs,
             "scalar_normal_repairs": self.normal_repairs,
             "gpu_fused_system_calls": self.fused_calls,
+            "gpu_system_refresh_calls": self.system_refresh_calls,
+            "gpu_normal_rows": self.normal_rows,
             "scalar_registration_repairs": self.registration_repairs,
+            "scalar_motion_repairs": self.motion_repairs,
         }

@@ -59,6 +59,13 @@ class ScanOdometryOptions:
     local_map_scans: int = 1
     deskew_iterations: int = 1
     geometry_quantum_m: float = 0.0
+    motion_translation_quantum_m: float = 0.0
+    motion_rotation_quantum_rad: float = 0.0
+
+    def __post_init__(self) -> None:
+        values = (self.motion_translation_quantum_m, self.motion_rotation_quantum_rad)
+        if any(not np.isfinite(value) or value < 0 for value in values):
+            raise ValueError("motion quanta must be finite and nonnegative")
 
 
 @dataclass(frozen=True)
@@ -113,6 +120,25 @@ def _quantize_geometry(points: FloatArray, quantum_m: float) -> FloatArray:
     if quantum_m == 0:
         return points
     return np.asarray(np.rint(points / quantum_m) * quantum_m, dtype=np.float64)
+
+
+def _canonicalize_motion(motion: FloatArray, options: ScanOdometryOptions) -> FloatArray:
+    """Apply an explicitly requested grid to accepted translations and rotation vectors."""
+    translation = options.motion_translation_quantum_m
+    rotation = options.motion_rotation_quantum_rad
+    if any(not np.isfinite(value) or value < 0 for value in (translation, rotation)):
+        raise ValueError("motion quanta must be finite and nonnegative")
+    if translation == rotation == 0:
+        return motion
+    result = motion.copy()
+    if translation:
+        result[:3, 3] = np.rint(motion[:3, 3] / translation) * translation
+    if rotation:
+        from scipy.spatial.transform import Rotation
+
+        vector = Rotation.from_matrix(motion[:3, :3]).as_rotvec()
+        result[:3, :3] = Rotation.from_rotvec(np.rint(vector / rotation) * rotation).as_matrix()
+    return result
 
 
 def preprocess_scan(points: FloatArray, options: ScanOdometryOptions) -> FloatArray:
@@ -323,7 +349,7 @@ def register_point_to_plane(
         0.0 if last_hessian is None else float(np.linalg.eigvalsh(last_hessian)[0]) / last_count
     )
     return ScanRegistration(
-        transform=transform,
+        transform=_canonicalize_motion(transform, opts),
         converged=converged and count >= opts.min_correspondences,
         iterations=iteration,
         correspondences=count,
