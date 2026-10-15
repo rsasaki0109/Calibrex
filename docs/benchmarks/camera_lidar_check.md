@@ -673,9 +673,11 @@ drives) were run with `t >= 2` and the earlier start rule, and are not re-run.
 * An axis can be judged at a wrong optimum: on 3 of 23 unseen KITTI drives the check flagged
   KITTI's calibration, judging axes 0.8 to 9.6 deg off with held-out controls just over their
   threshold (`t` 2.09 to 2.33), two of them from an alternative search start (audit above).
-  The control bound and the start rule were changed after that audit (above); a pre-registered
-  audit on KITTI's other four days tests the changed rules
-  ([v2](kitti_camera_lidar_v2_check.md)).
+  The control bound and the start rule were changed after that audit (above). The
+  pre-registered audit of the changed rules on KITTI's other four days
+  ([v2](kitti_camera_lidar_v2_check.md#results-refuted-8-of-9-gates)) flagged no day's
+  calibration. In turned runs of one drive, though, it judged roll 1.45 to 1.50 deg off,
+  from a far optimum whose control was at `t` 2.58 to 2.65.
 * The jackknife std ignores systematic effects, so a std of 0.03 deg does not mean 0.03 deg
   accuracy (see exp07); the 0.5 deg floor is the resolution.
 * Intrinsics are not handled. Rig motion is compensated only with a velocity topic connected to

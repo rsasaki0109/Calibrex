@@ -1,0 +1,230 @@
+{
+  "recording": "2011_09_28_0039",
+  "drive": "2011_09_28_drive_0039_sync",
+  "calibration_sha256": {
+    "calib_cam_to_cam.txt": "e2ca2f12fbe7900e762b909f58438f7147e707eed120ad87511e752551a209ab",
+    "calib_imu_to_velo.txt": "07ca9ed33a2d968fc6358617d2c70e048b6f8e0f6ee5b73ae963afc1b19456ce",
+    "calib_velo_to_cam.txt": "2d02e9436d95d942f02190c38397752a667bd0d901580acdca5e015c002607fd"
+  },
+  "download": {
+    "ok": true,
+    "url": "https://s3.eu-central-1.amazonaws.com/avg-kitti/raw_data/2011_09_28_drive_0039/2011_09_28_drive_0039_sync.zip",
+    "size_bytes": 1476221896,
+    "etag": "06317f29d708d1863defe71d83bfdb7f-176",
+    "max_frames": 600,
+    "frames": {
+      "image_02": 352,
+      "velodyne_points": 352,
+      "oxts": 352
+    },
+    "archive_frames": {
+      "image_02": 352,
+      "velodyne_points": 352,
+      "oxts": 352
+    },
+    "ranges": [
+      [
+        101,
+        213302
+      ],
+      [
+        198420067,
+        492797298
+      ],
+      [
+        780604823,
+        1476221895
+      ]
+    ],
+    "fetched_bytes": 990207507,
+    "member_count": 1062,
+    "members_sha256": "cd892cf9ea87308301bd864c0d8257646739d445d7e63a75ae651ad5960835bb",
+    "crc_verified": true,
+    "wall_s": 37.8
+  },
+  "git_commit": "0dd7c1d4a750b6cdeb036e35a38ac63cb593c02a",
+  "tool_sha256": "3fac7878afd3453b20d3d4341b37ff40d70c9ad2b51504eb9ffed2dc84f8bb76",
+  "environment": {
+    "python": "3.12.3",
+    "numpy": "2.5.3",
+    "platform": "Linux-6.18.44-fc-v114-x86_64-with-glibc2.39"
+  },
+  "convert": {
+    "command": [
+      "/home/user/Calibrex/.venv/bin/calibrex",
+      "convert",
+      "kitti-raw",
+      "/home/user/kitti_cl/v2eval_work/2011_09_28_0039/2011_09_28/2011_09_28_drive_0039_sync",
+      "--calib-dir",
+      "/home/user/kitti_cl/v2eval_work/2011_09_28",
+      "--camera",
+      "image_02",
+      "--velodyne-time",
+      "azimuth",
+      "--output",
+      "/home/user/kitti_cl/v2eval_work/bag_2011_09_28_0039",
+      "--overwrite"
+    ],
+    "exit_code": 0,
+    "wall_s": 11.3
+  },
+  "runs": {
+    "baseline": {
+      "command": [
+        "/home/user/Calibrex/.venv/bin/calibrex",
+        "check",
+        "/home/user/kitti_cl/v2eval_work/bag_2011_09_28_0039",
+        "--pairs",
+        "camera-lidar",
+        "--no-cache",
+        "--fail-on",
+        "never",
+        "--evidence-dir",
+        "/home/user/kitti_cl/v2eval/runs/2011_09_28_0039/baseline_evidence",
+        "--output",
+        "/home/user/kitti_cl/v2eval/runs/2011_09_28_0039/baseline.json"
+      ],
+      "exit_code": 0,
+      "wall_s": 54.9,
+      "artifact": "baseline.json"
+    },
+    "inject_x+3": {
+      "axis": "x",
+      "degrees": 3.0,
+      "command": [
+        "/home/user/Calibrex/.venv/bin/calibrex",
+        "check",
+        "/home/user/kitti_cl/v2eval_work/bag_2011_09_28_0039",
+        "--pairs",
+        "camera-lidar",
+        "--no-cache",
+        "--tf",
+        "/home/user/kitti_cl/v2eval/runs/2011_09_28_0039/inject_x+3_frames.yaml",
+        "--fail-on",
+        "never",
+        "--evidence-dir",
+        "/home/user/kitti_cl/v2eval/runs/2011_09_28_0039/inject_x+3_evidence",
+        "--output",
+        "/home/user/kitti_cl/v2eval/runs/2011_09_28_0039/inject_x+3.json"
+      ],
+      "exit_code": 0,
+      "wall_s": 72.3,
+      "artifact": "inject_x+3.json"
+    },
+    "inject_y+3": {
+      "axis": "y",
+      "degrees": 3.0,
+      "command": [
+        "/home/user/Calibrex/.venv/bin/calibrex",
+        "check",
+        "/home/user/kitti_cl/v2eval_work/bag_2011_09_28_0039",
+        "--pairs",
+        "camera-lidar",
+        "--no-cache",
+        "--tf",
+        "/home/user/kitti_cl/v2eval/runs/2011_09_28_0039/inject_y+3_frames.yaml",
+        "--fail-on",
+        "never",
+        "--evidence-dir",
+        "/home/user/kitti_cl/v2eval/runs/2011_09_28_0039/inject_y+3_evidence",
+        "--output",
+        "/home/user/kitti_cl/v2eval/runs/2011_09_28_0039/inject_y+3.json"
+      ],
+      "exit_code": 0,
+      "wall_s": 72.1,
+      "artifact": "inject_y+3.json"
+    },
+    "inject_z+3": {
+      "axis": "z",
+      "degrees": 3.0,
+      "command": [
+        "/home/user/Calibrex/.venv/bin/calibrex",
+        "check",
+        "/home/user/kitti_cl/v2eval_work/bag_2011_09_28_0039",
+        "--pairs",
+        "camera-lidar",
+        "--no-cache",
+        "--tf",
+        "/home/user/kitti_cl/v2eval/runs/2011_09_28_0039/inject_z+3_frames.yaml",
+        "--fail-on",
+        "never",
+        "--evidence-dir",
+        "/home/user/kitti_cl/v2eval/runs/2011_09_28_0039/inject_z+3_evidence",
+        "--output",
+        "/home/user/kitti_cl/v2eval/runs/2011_09_28_0039/inject_z+3.json"
+      ],
+      "exit_code": 0,
+      "wall_s": 70.2,
+      "artifact": "inject_z+3.json"
+    },
+    "inject_x+1": {
+      "axis": "x",
+      "degrees": 1.0,
+      "command": [
+        "/home/user/Calibrex/.venv/bin/calibrex",
+        "check",
+        "/home/user/kitti_cl/v2eval_work/bag_2011_09_28_0039",
+        "--pairs",
+        "camera-lidar",
+        "--no-cache",
+        "--tf",
+        "/home/user/kitti_cl/v2eval/runs/2011_09_28_0039/inject_x+1_frames.yaml",
+        "--fail-on",
+        "never",
+        "--evidence-dir",
+        "/home/user/kitti_cl/v2eval/runs/2011_09_28_0039/inject_x+1_evidence",
+        "--output",
+        "/home/user/kitti_cl/v2eval/runs/2011_09_28_0039/inject_x+1.json"
+      ],
+      "exit_code": 0,
+      "wall_s": 66.0,
+      "artifact": "inject_x+1.json"
+    },
+    "inject_y+1": {
+      "axis": "y",
+      "degrees": 1.0,
+      "command": [
+        "/home/user/Calibrex/.venv/bin/calibrex",
+        "check",
+        "/home/user/kitti_cl/v2eval_work/bag_2011_09_28_0039",
+        "--pairs",
+        "camera-lidar",
+        "--no-cache",
+        "--tf",
+        "/home/user/kitti_cl/v2eval/runs/2011_09_28_0039/inject_y+1_frames.yaml",
+        "--fail-on",
+        "never",
+        "--evidence-dir",
+        "/home/user/kitti_cl/v2eval/runs/2011_09_28_0039/inject_y+1_evidence",
+        "--output",
+        "/home/user/kitti_cl/v2eval/runs/2011_09_28_0039/inject_y+1.json"
+      ],
+      "exit_code": 0,
+      "wall_s": 69.9,
+      "artifact": "inject_y+1.json"
+    },
+    "inject_z+1": {
+      "axis": "z",
+      "degrees": 1.0,
+      "command": [
+        "/home/user/Calibrex/.venv/bin/calibrex",
+        "check",
+        "/home/user/kitti_cl/v2eval_work/bag_2011_09_28_0039",
+        "--pairs",
+        "camera-lidar",
+        "--no-cache",
+        "--tf",
+        "/home/user/kitti_cl/v2eval/runs/2011_09_28_0039/inject_z+1_frames.yaml",
+        "--fail-on",
+        "never",
+        "--evidence-dir",
+        "/home/user/kitti_cl/v2eval/runs/2011_09_28_0039/inject_z+1_evidence",
+        "--output",
+        "/home/user/kitti_cl/v2eval/runs/2011_09_28_0039/inject_z+1.json"
+      ],
+      "exit_code": 0,
+      "wall_s": 68.1,
+      "artifact": "inject_z+1.json"
+    }
+  }
+}

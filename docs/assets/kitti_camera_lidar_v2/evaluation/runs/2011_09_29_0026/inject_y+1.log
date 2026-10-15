@@ -1,0 +1,63 @@
+check: 1 pair to run
+check: running camera-lidar (cam2_optical / velo_link) [pair 1/1]
+check:   camera-lidar: /camera/image_raw + /velodyne_points (intrinsics: CameraInfo /camera/camera_info) [0s elapsed]
+check:   camera-lidar: pairing /camera/image_raw with /velodyne_points [0s elapsed]
+check:   camera-lidar: preparing 16 frame(s) [12s elapsed]
+check: camera-lidar (cam2_optical / velo_link) -> inconclusive (16 s) [pair 1/1 done]
+calibrex check (run)
+bag: /home/user/kitti_cl/v2eval_work/bag_2011_09_29_0026 (8 topics)
+
+candidate sources:
+  bag_tf_static: /home/user/kitti_cl/v2eval_work/bag_2011_09_29_0026 (3 frames) sha256=0a750014267f
+    note: read 1 tf_static message(s) from 1 topic(s)
+  frames_yaml: /home/user/kitti_cl/v2eval/runs/2011_09_29_0026/inject_y+1_frames.yaml (1 frames) sha256=3fca5b289525
+    note: 1 frame(s) read
+frame tree: 4 frames, 1 root(s) [base_link]
+  override: /home/user/kitti_cl/v2eval/runs/2011_09_29_0026/inject_y+1_frames.yaml overrides bag tf_static for frame 'cam2_optical' (parent 'imu_link' -> 'imu_link')
+
+topics:
+topic              role       header frame  tree frame
+-----------------  ---------  ------------  ---------------------
+/camera/image_raw  camera     cam2_optical  cam2_optical (header)
+/oxts/fix          gnss       imu_link      imu_link (header)
+/oxts/imu          imu        imu_link      imu_link (header)
+/oxts/odometry     odometry   imu_link      imu_link (header)
+/oxts/twist        twist      base_link     base_link (header)
+/tf_static         tf_static  -             -
+/velodyne_points   lidar      velo_link     velo_link (header)
+
+pairs (no --vehicle-frame: vehicle pairs are skipped):
+pair                  sensors                   verdict       reason             |delta|/tolerance  unchecked                  detectable
+--------------------  ------------------------  ------------  -----------------  -----------------  -------------------------  ----------
+lidar-lidar           velo_link                 skipped       missing_topic
+camera-lidar          cam2_optical / velo_link  inconclusive  estimator_failed   -                  roll, pitch, yaw, x, y, z  -
+camera-camera         cam2_optical              skipped       missing_topic
+gnss-imu              imu_link / imu_link       skipped       degenerate_frames
+lidar-vehicle         -                         skipped       no_vehicle_frame
+imu-vehicle           -                         skipped       no_vehicle_frame
+lidar-wheel_odometry  -                         skipped       missing_topic
+  not selected: imu-lidar, camera-imu, camera-focal, gnss-lidar, ins-lidar
+  camera-lidar: the estimator did not produce an estimate: only 5 usable frame(s) of 16 synchronized; at least 8 are needed; t=1317301452.6s: repeats the last kept view (image change 0.013 < 0.05; a spinning LiDAR at a standing rig adds no view); t=1317301453.7s: repeats the last kept view (image change 0.019 < 0.05; a spinning LiDAR at a standing rig adds no view); t=1317301454.7s: repeats the last kept view (image change 0.011 < 0.05; a spinning LiDAR at a standing rig adds no view); t=1317301455.8s: repeats the last kept view (image change 0.021 < 0.05; a spinning LiDAR at a standing rig adds no view); t=1317301456.8s: repeats the last kept view (image change 0.020 < 0.05; a spinning LiDAR at a standing rig adds no view)
+  camera-lidar: unchecked roll: the estimator produced no estimate
+  camera-lidar: unchecked pitch: the estimator produced no estimate
+  camera-lidar: unchecked yaw: the estimator produced no estimate
+  camera-lidar: unchecked x: the estimator produced no estimate
+  camera-lidar: unchecked y: the estimator produced no estimate
+  camera-lidar: unchecked z: the estimator produced no estimate
+
+closure of the estimates (independent estimates against each other):
+  camera-lidar: unusable (the estimator did not produce an estimate: only 5 usable frame(s) of 16 synchronized; at least 8 are needed; t=1317301452.6s: repeats the last kept view (image change 0.013 < 0.05; a spinning LiDAR at a standing rig adds no view); t=1317301453.7s: repeats the last kept view (image change 0.019 < 0.05; a spinning LiDAR at a standing rig adds no view); t=1317301454.7s: repeats the last kept view (image change 0.011 < 0.05; a spinning LiDAR at a standing rig adds no view); t=1317301455.8s: repeats the last kept view (image change 0.021 < 0.05; a spinning LiDAR at a standing rig adds no view); t=1317301456.8s: repeats the last kept view (image change 0.020 < 0.05; a spinning LiDAR at a standing rig adds no view)); not in any loop
+  no loop: fewer than two independent estimates share a frame
+
+overall verdict: inconclusive
+WARNING: 1 pair(s) have partial coverage: unchecked axes were not judged, so a pass covers only the judged axes
+
+summary: 13 pair record(s), 1 runnable (inconclusive=1, skipped=12)
+
+next steps:
+  - lidar-lidar: needs a second distinct lidar sensor (found one); expected another sensor_msgs/msg/PointCloud2 topic with its own frame_id
+  - camera-camera: needs a second distinct camera sensor (found one); expected another sensor_msgs/msg/Image (plus a CameraInfo or a Kalibr camchain for its intrinsics) topic with its own frame_id
+  - both sensors are stamped in one frame: point the topics at their sensor frames with --frame-map TOPIC=FRAME, or list the sensor frames in --tf
+  - vehicle pairs are opt-in for ground vehicles: add --vehicle-frame base_link (use your vehicle frame name)
+  - lidar-wheel_odometry: the bag lacks a topic for this pair; expected wheel: nav_msgs/msg/Odometry or TwistStamped classified as wheel (--topic-kind TOPIC=wheel)
+artifact: /home/user/kitti_cl/v2eval/runs/2011_09_29_0026/inject_y+1.json

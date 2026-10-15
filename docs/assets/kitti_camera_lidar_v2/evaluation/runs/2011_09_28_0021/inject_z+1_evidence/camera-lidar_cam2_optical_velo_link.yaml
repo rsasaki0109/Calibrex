@@ -1,0 +1,199 @@
+schema_version: slac.camera_lidar_edge/v0.1
+method: edge_alignment/v0.1
+solver_status: insufficient_samples
+policy_status: inconclusive
+policy_reasons:
+- only 7 usable frame(s) of 21 synchronized; at least 8 are needed
+- 't=1317213565.7s: repeats the last kept view (image change 0.042 < 0.05; a spinning
+  LiDAR at a standing rig adds no view)'
+- 't=1317213566.7s: repeats the last kept view (image change 0.026 < 0.05; a spinning
+  LiDAR at a standing rig adds no view)'
+- 't=1317213567.7s: repeats the last kept view (image change 0.029 < 0.05; a spinning
+  LiDAR at a standing rig adds no view)'
+- 't=1317213568.8s: repeats the last kept view (image change 0.033 < 0.05; a spinning
+  LiDAR at a standing rig adds no view)'
+- 't=1317213569.8s: repeats the last kept view (image change 0.027 < 0.05; a spinning
+  LiDAR at a standing rig adds no view)'
+calibrated_dofs: []
+start_transform:
+  parent_frame: cam2_optical
+  child_frame: velo_link
+  translation_m:
+  - 0.039161405538376215
+  - -0.06076486150111193
+  - -0.3275680118298887
+  rotation_quat_xyzw:
+  - 0.5020933810393189
+  - -0.5005472934035571
+  - 0.5002043005963936
+  - 0.4971421340499627
+dofs:
+- name: roll
+  unit: deg
+  value: 69.65891810456813
+  delta_from_start: 0.0
+  std_jackknife: 0.0
+  std_reported: 0.0
+  status: unobservable
+  at_search_bound: false
+- name: pitch
+  unit: deg
+  value: -69.44441857904344
+  delta_from_start: 0.0
+  std_jackknife: 0.0
+  std_reported: 0.0
+  status: unobservable
+  at_search_bound: false
+- name: yaw
+  unit: deg
+  value: 69.3968327936758
+  delta_from_start: 0.0
+  std_jackknife: 0.0
+  std_reported: 0.0
+  status: unobservable
+  at_search_bound: false
+- name: x
+  unit: m
+  value: 0.039161405538376215
+  delta_from_start: 0.0
+  std_jackknife: 0.0
+  std_reported: 0.0
+  status: unobservable
+  at_search_bound: false
+- name: y
+  unit: m
+  value: -0.06076486150111193
+  delta_from_start: 0.0
+  std_jackknife: 0.0
+  std_reported: 0.0
+  status: unobservable
+  at_search_bound: false
+- name: z
+  unit: m
+  value: -0.3275680118298887
+  delta_from_start: 0.0
+  std_jackknife: 0.0
+  std_reported: 0.0
+  status: unobservable
+  at_search_bound: false
+samples:
+  frames: 7
+  edge_points: 10345
+  blocks: 6
+  median_abs_time_gap_s: 0.0016574859619140625
+  max_abs_time_gap_s: 0.0016870498657226562
+  first_frame_time_s: 1317213564.6293092
+  last_frame_time_s: 1317213583.285307
+  median_rings: 69
+motion_compensation:
+  source_topic: /oxts/odometry
+  kind: twist
+  per_point_time: true
+  frames_moved: 21
+  frames_without_motion: 0
+  median_rotation_deg: 6.110153522012939e-05
+  max_rotation_deg: 0.00013612147243093883
+  median_translation_m: 1.141847729802898e-05
+  max_translation_m: 2.0701015902733327e-05
+jackknife_fits: 0
+camera:
+  fx: 707.0493
+  fy: 707.0493
+  cx: 604.0814
+  cy: 180.5066
+  distortion_model: none
+  distortion:
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+options:
+  spacing_s: 1.0
+  max_frames: 48
+  max_seconds: null
+  short_recording_spacing_s: 0.25
+  short_recording_min_view_change: 0.05
+  max_gap_s: 0.06
+  min_frames: 8
+  blocks: 6
+  min_jump_m: 0.3
+  jump_exponent: 0.5
+  max_edge_points_per_frame: 4000
+  min_edge_points_per_frame: 150
+  image_max_width: 960
+  spill_gamma: 0.98
+  spill_radius_px: 40
+  edge_background_sigma_px: 20.0
+  repeated_view_change: 0.05
+  image_margin_px: 80.0
+  rotation_bound_deg: 12.0
+  translation_bound_m: 0.2
+  rotation_levels_deg:
+  - 1.0
+  - 0.5
+  - 0.25
+  - 0.1
+  - 0.05
+  translation_levels_m:
+  - 0.02
+  - 0.01
+  - 0.005
+  - 0.0025
+  - 0.001
+  jackknife_first_level: 1
+  max_moves_per_level: 12
+  rotation_control_deg: 2.0
+  translation_control_m: 0.05
+  min_control_t: 2.5
+  observable_rotation_std_deg: 0.5
+  observable_translation_std_m: 0.03
+  min_ring_fraction: 0.5
+  min_gain: 2.0e-05
+  estimate_translation: false
+  start_scan_deg: 8.0
+  start_scan_step_deg: 0.5
+  start_scan_min_observed: 2
+  unstructured_lidar: true
+reference: deployed candidate calibration (T_camera_lidar)
+limitations:
+- The camera frame is assumed to be the optical frame (x right, y down, z forward)
+  and the intrinsics are taken as correct; an intrinsics error reads as an extrinsic
+  error.
+- LiDAR points were moved to the image time with the rig motion from /oxts/odometry
+  (constant velocity between each point's and the image's time; each point by its
+  own measurement time).
+- 'Image edges and LiDAR depth discontinuities constrain rotation well and translation
+  weakly (translation is a parallax effect that scales with 1/depth): on the Hilti
+  2022 and KITTI recordings the translation estimate differed from the reference by
+  up to 11 cm with a reported std of 1-2 cm. Translation is therefore not estimated
+  by default; its held-out control is still recorded.'
+- The jackknife standard deviation does not include systematic effects (lens model,
+  timing, scene composition); the verdict floors cover those.
+- Edge alignment needs structured scenes with depth discontinuities and image edges;
+  textureless or very distant scenes yield an inconclusive result.
+- 'image and scan are paired at the time the camera''s visible points were measured
+  (per-point time field ''time''); the recording is short but its view hardly changes
+  (median view change 0.032), so scans stay 1 s apart: denser frames would repeat
+  it'
+provenance:
+  generator: calibrex.evaluation.camera_lidar_edge
+  generator_version: 0.5.1
+  git_commit: 0dd7c1d
+  command:
+  - calibrex
+  - check
+  - /home/user/kitti_cl/v2eval_work/bag_2011_09_28_0021
+  - camera-lidar
+  - /camera/image_raw
+  - /velodyne_points
+  dataset_family: calibrex-check
+  sequence_ids:
+  - bag_2011_09_28_0021
+  image_topic: /camera/image_raw
+  lidar_topic: /velodyne_points
+  input_sha256: 2bb82b5a12737864a9724ee959c2b74202849be30e741b413aa1418ac6b2d143
+  input_digest_scope: bag digest (metadata.yaml in full; storage files by name, size
+    and first 64 MiB)
+  dataset_license: user-provided
+  created_at: '2026-10-15T01:10:41.478891+00:00'
