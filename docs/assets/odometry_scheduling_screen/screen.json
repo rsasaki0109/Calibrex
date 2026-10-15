@@ -1,0 +1,100 @@
+{
+  "schema_version": "slac.odometry_scheduling_screen/v0.1",
+  "decision": "no_candidate_adopted",
+  "source_commit": "d3f0288cf6cf2d4a60140088d423f25524dfff55",
+  "observations": 492,
+  "cohorts": [
+    {
+      "name": "traversal",
+      "variants": [
+        "prior",
+        "parent",
+        "heap"
+      ],
+      "repeats": 5,
+      "cases": 8,
+      "scope": "target_and_registration"
+    },
+    {
+      "name": "normals",
+      "variants": [
+        "prior",
+        "lazy",
+        "prefetch"
+      ],
+      "repeats": 5,
+      "cases": 8,
+      "scope": "target_and_registration"
+    },
+    {
+      "name": "bounds",
+      "variants": [
+        "prior",
+        "soa",
+        "columns"
+      ],
+      "repeats": 7,
+      "cases": 8,
+      "scope": "bounds_capture"
+    },
+    {
+      "name": "placement",
+      "variants": [
+        "prior",
+        "pose",
+        "edges"
+      ],
+      "repeats": 7,
+      "cases": 4,
+      "scope": "placement"
+    }
+  ],
+  "comparisons": [
+    {
+      "cohort": "traversal",
+      "variant": "parent",
+      "speedup": 0.9997524369878918
+    },
+    {
+      "cohort": "traversal",
+      "variant": "heap",
+      "speedup": 0.9860737773766962
+    },
+    {
+      "cohort": "normals",
+      "variant": "lazy",
+      "speedup": 0.8539347666255619
+    },
+    {
+      "cohort": "normals",
+      "variant": "prefetch",
+      "speedup": 0.8273057344839355
+    },
+    {
+      "cohort": "bounds",
+      "variant": "soa",
+      "speedup": 0.9093397346208566
+    },
+    {
+      "cohort": "bounds",
+      "variant": "columns",
+      "speedup": 0.9733340622532481
+    },
+    {
+      "cohort": "placement",
+      "variant": "pose",
+      "speedup": 1.089729309905376
+    },
+    {
+      "cohort": "placement",
+      "variant": "edges",
+      "speedup": 1.4227130352170976
+    }
+  ],
+  "provenance": {
+    "source_manifest_sha256": "d9cfb176dc15319b3c32e0733a1fb35302632899ee00c9c6c68b9fd1c7a69fe6",
+    "source_capsule_sha256": "b720d2debbaa897673cae7b2a9ae006c759cc5385be6908830a063893d8ad52e",
+    "publisher_sha256": "ccf30ea4abb84828c21b76a522e3867f29a0bf98b83a6c88c986c509c3eca48f",
+    "auditor_sha256": "03e39c76b82291f7fba4c439ef991b5581a593aa4f5e72410834e3ef2bba008b"
+  }
+}

@@ -1,0 +1,40 @@
+def _subtree_bounds(tree: cKDTree, topology: Topology) -> NDArray[np.float64]:
+    """Validate the partition and compute tight boxes in batches, one level at a time."""
+    axes, splits, children, spans = topology
+    count = len(axes)
+    internal = np.flatnonzero(axes >= 0)
+    if (spans[0].tolist() != [0, tree.n] or not np.isfinite(splits).all()
+            or np.any(spans[:, 0] < 0) or np.any(spans[:, 1] > tree.n)
+            or np.any(spans[:, 0] >= spans[:, 1])
+            or not np.array_equal(np.sort(children[internal].ravel()), np.arange(1, count))):
+        raise ValueError("inconsistent SciPy tree partition")
+    left, right = children[internal].T
+    if (not np.array_equal(spans[left, 0], spans[internal, 0])
+            or not np.array_equal(spans[left, 1], spans[right, 0])
+            or not np.array_equal(spans[right, 1], spans[internal, 1])):
+        raise ValueError("inconsistent SciPy child spans")
+    levels: list[NDArray[np.int32]] = []
+    level = np.array([0], dtype=np.int32)
+    while len(level):
+        if len(levels) >= 63:
+            raise ValueError("CUDA spatial tree exceeds the bounded traversal stack")
+        parents = level[axes[level] >= 0]
+        levels.append(parents)
+        level = children[parents].ravel()
+    leaves = np.flatnonzero(axes < 0)
+    if (not np.array_equal(spans[leaves[:-1], 1], spans[leaves[1:], 0])
+            or spans[leaves[0], 0] != 0 or spans[leaves[-1], 1] != tree.n):
+        raise ValueError("inconsistent SciPy leaf partition")
+    ordered = np.ascontiguousarray(tree.data[tree.indices].T)
+    bounds = np.empty((count, 2, 3), dtype=np.float64)
+    bounds[leaves, 0] = np.minimum.reduceat(ordered, spans[leaves, 0], axis=1).T
+    bounds[leaves, 1] = np.maximum.reduceat(ordered, spans[leaves, 0], axis=1).T
+    for parents in reversed(levels):
+        left, right = children[parents].T
+        bounds[parents, 0] = np.minimum(bounds[left, 0], bounds[right, 0])
+        bounds[parents, 1] = np.maximum(bounds[left, 1], bounds[right, 1])
+        axis = axes[parents]
+        if (np.any(bounds[left, 1, axis] > splits[parents])
+                or np.any(bounds[right, 0, axis] < splits[parents])):
+            raise ValueError("inconsistent SciPy split geometry")
+    return bounds

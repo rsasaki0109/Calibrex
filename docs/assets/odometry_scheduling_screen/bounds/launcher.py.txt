@@ -1,0 +1,58 @@
+"""CPU spatial-bound layout pilot using public registration target geometry."""
+from pathlib import Path
+import os
+for name in ('OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS', 'OMP_NUM_THREADS'):
+    os.environ[name]='1'
+import hashlib
+import inspect
+import json
+import shutil
+import statistics
+import time
+import numpy as np
+from scipy.spatial import cKDTree
+from calibrex.solvers import scipy_spatial_snapshot as snapshot
+
+root=Path(__file__).resolve().parent
+out=root/'outputs/spatial-bounds-layout-pilot-v1';out.mkdir(exist_ok=False)
+fixtures=root/'outputs/odometry-search-profile-v2'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+shutil.copyfile(__file__,out/'launcher.py.txt')
+original=inspect.getsource(snapshot._subtree_bounds)
+soa=original.replace('ordered = tree.data[tree.indices]', 'ordered = np.ascontiguousarray(tree.data[tree.indices].T)')
+soa=soa.replace('np.minimum.reduceat(ordered, spans[leaves, 0], axis=0)', 'np.minimum.reduceat(ordered, spans[leaves, 0], axis=1).T')
+soa=soa.replace('np.maximum.reduceat(ordered, spans[leaves, 0], axis=0)', 'np.maximum.reduceat(ordered, spans[leaves, 0], axis=1).T')
+columns=original.replace('    bounds[leaves, 0] = np.minimum.reduceat(ordered, spans[leaves, 0], axis=0)\n    bounds[leaves, 1] = np.maximum.reduceat(ordered, spans[leaves, 0], axis=0)',
+    '    for coordinate in range(3):\n        column = np.ascontiguousarray(ordered[:, coordinate])\n        bounds[leaves, 0, coordinate] = np.minimum.reduceat(column, spans[leaves, 0])\n        bounds[leaves, 1, coordinate] = np.maximum.reduceat(column, spans[leaves, 0])')
+variants={'prior':snapshot._subtree_bounds}
+for name,source in [('soa',soa),('columns',columns)]:
+    namespace=dict(vars(snapshot));exec(compile(source,name,'exec'),namespace)
+    variants[name]=namespace['_subtree_bounds']
+    (out/(name+'.py.txt')).write_text(source,encoding='utf-8')
+cases=[]
+for i in range(8):
+    target=np.load(fixtures/f'registration-{i:02d}.npz')['target']
+    tree=cKDTree(target,copy_data=True)
+    topology=snapshot._serialized_topology(tree)
+    cases.append((tree,topology,snapshot._subtree_bounds(tree,topology)))
+protocol={'scope':__doc__,'launcher_sha256':sha(Path(__file__)),
+    'source_sha256':sha(Path(snapshot.__file__)),'blas_threads':1,
+    'fixtures':{p.name:sha(p) for p in fixtures.glob('registration-*.*')},
+    'candidates':{n:sha(out/(n+'.py.txt')) for n in ('soa','columns')},
+    'timing_scope':'complete bounds capture and validation only; cKDTree build and topology capture excluded; seven rotated-order repeats, eight fixed targets'}
+(out/'protocol.json').write_text(json.dumps(protocol,indent=2)+'\n',encoding='utf-8')
+runs=[]
+names=tuple(variants)
+for repeat in range(7):
+    for name in names[repeat%3:]+names[:repeat%3]:
+        for case,(tree,topology,expected) in enumerate(cases):
+            start=time.perf_counter();actual=variants[name](tree,topology);seconds=time.perf_counter()-start
+            assert np.array_equal(expected.view(np.uint64),actual.view(np.uint64)),(name,case)
+            runs.append({'repeat':repeat,'variant':name,'case':case,'seconds':seconds,
+                         'nodes':len(actual),'output_sha256':hashlib.sha256(actual.tobytes()).hexdigest()})
+        print(json.dumps({'repeat':repeat,'variant':name,'seconds':sum(r['seconds'] for r in runs if r['repeat']==repeat and r['variant']==name)}),flush=True)
+(out/'runs.json').write_text(json.dumps(runs,indent=2)+'\n',encoding='utf-8')
+medians={v:statistics.median(sum(r['seconds'] for r in runs if r['repeat']==i and r['variant']==v) for i in range(7)) for v in names}
+summary={'median_seconds':medians,'speedups':{v:medians['prior']/medians[v] for v in names},'exact':True,
+         'provenance':{'protocol_sha256':sha(out/'protocol.json')}}
+(out/'summary.json').write_text(json.dumps(summary,indent=2)+'\n',encoding='utf-8');print(json.dumps(summary),flush=True)

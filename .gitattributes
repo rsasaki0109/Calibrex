@@ -218,3 +218,10 @@ docs/assets/incremental_local_map_screen/*.txt -text whitespace=blank-at-eol,bla
 docs/assets/incremental_local_map_screen/**/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 docs/assets/incremental_local_map_screen/**/*.log -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
 docs/assets/incremental_local_map_screen/*.md text eol=lf
+
+# Preserve scheduling pilot observations and generated kernel sources.
+docs/assets/odometry_scheduling_screen/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/odometry_scheduling_screen/**/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/odometry_scheduling_screen/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/odometry_scheduling_screen/**/*.txt -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/odometry_scheduling_screen/*.md text eol=lf

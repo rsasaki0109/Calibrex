@@ -50,6 +50,9 @@ TOOL_SCHEMA_VERSIONS = {
     "slac.odometry_screen_publication/v0.1": (
         "tools/schemas/odometry_screen_publication.schema.json"
     ),
+    "slac.odometry_scheduling_screen/v0.1": (
+        "tools/schemas/odometry_scheduling_screen.schema.json"
+    ),
 }
 
 # Committed artifacts known to violate their declared schema.  Each entry must

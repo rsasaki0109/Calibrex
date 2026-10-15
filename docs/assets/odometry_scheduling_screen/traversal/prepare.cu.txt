@@ -1,0 +1,14 @@
+
+extern "C" __global__ void parents3(const int* axis,const int* child,int n,int* parent,int* side){
+ int node=blockDim.x*blockIdx.x+threadIdx.x;if(node>=n)return;
+ if(node==0){parent[0]=-1;side[0]=0;}
+ if(axis[node]>=0){int l=child[2*node],r=child[2*node+1];parent[l]=node;parent[r]=node;side[l]=0;side[r]=1;}
+}
+extern "C" __global__ void heap3(const int* parent,const int* side,int n,int size,int* heap,int* bad){
+ int node=blockDim.x*blockIdx.x+threadIdx.x;if(node>=n)return;
+ int here=node;unsigned long long path=0,bit=1;
+ while(parent[here]>=0){if(side[here])path|=bit;bit<<=1;here=parent[here];}
+ path|=bit;
+ if(path>=(unsigned long long)size){atomicExch(bad,1);return;}
+ heap[path]=node;
+}

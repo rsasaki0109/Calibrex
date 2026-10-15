@@ -99,5 +99,41 @@ python -m tools.audit_odometry_candidate_screen docs/assets/odometry_candidate_s
 
 The CPU-only audit checks source capsules, launchers, input/protocol bindings,
 all observations, registration fields/work, timing medians and declared scopes.
+
+## Traversal, scheduling and point placement
+
+Eight further strategies retain [492 observations in four separate cohorts](../assets/odometry_scheduling_screen/README.md).
+None is adopted, and these component screens do not establish a whole-worker
+speedup. The runtime remains unchanged.
+
+| Candidate | Ratio | Timed scope |
+| --- | ---: | --- |
+| Parent-linked stackless traversal | 1.000x | Target construction and registration |
+| Heap-path stackless traversal | 0.986x | Target construction and registration |
+| Demand-driven target normals | 0.854x | Target construction and registration |
+| Initial-query normal prefetch | 0.827x | Target construction and registration |
+| Transposed bounds reductions | 0.909x | Bounds calculation and validation |
+| Separate coordinate bounds reductions | 0.973x | Bounds calculation and validation |
+| Pose-only point placement | 1.090x | Point placement |
+| Pose-only placement with control-edge reuse | 1.423x | Point placement |
+
+Stackless traversal reduces recorded kernel local storage from 288 to 24 bytes
+per thread in fused registration, yet the complete operation does not improve.
+This is a compiled local-frame attribute, not total GPU-memory usage. Lazy
+normals prepare 43.8% fewer rows, but additional queries, compaction and system
+refreshes outweigh that saving. Both are examples of lower resource/work counts
+failing to establish a useful speedup.
+
+Registration outputs match exactly, and traversal retains the original work
+counts. Bounds/placement launchers assert output bit equality and save hashes
+and dimensions; coordinate payloads are not redistributed. The archive binds
+all protocols, launchers, generated traversal kernels and input identities to
+the shared source capsule. Its CPU-only auditor checks saved records without
+executing experimental code or importing optional runtimes. One BLAS thread is
+used on an unreserved host. No cold-start or whole-calibration claim is made.
+
+```bash
+python -m tools.audit_odometry_scheduling_screen docs/assets/odometry_scheduling_screen
+```
 Frozen diagnostic scripts have repository-relative input/output paths and are
 archived as text. They introduce no production API or optional dependency.
