@@ -225,3 +225,8 @@ docs/assets/odometry_scheduling_screen/**/*.json -text whitespace=blank-at-eol,b
 docs/assets/odometry_scheduling_screen/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 docs/assets/odometry_scheduling_screen/**/*.txt -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
 docs/assets/odometry_scheduling_screen/*.md text eol=lf
+
+# Preserve source-bound asynchronous preparation observations and test logs.
+docs/assets/cuda_normal_overlap/** -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_normal_overlap/*.md text eol=lf
+docs/benchmarks/cuda_normal_overlap.md text eol=lf

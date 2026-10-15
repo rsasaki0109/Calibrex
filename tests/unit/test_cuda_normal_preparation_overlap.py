@@ -116,6 +116,29 @@ def test_failed_native_repair_invalidates_rows_and_can_retry(
     assert target.statistics()["scalar_normal_repairs"] == len(points)
 
 
+def test_failed_async_submission_drains_writes_and_retains_retry_semantics(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    points = _scene()
+    target = CudaOdometryTarget(points, ScanOdometryOptions())
+    download = cp.asnumpy
+
+    def fail_after_download(*args: object, **kwargs: object) -> object:
+        download(*args, **kwargs)
+        raise RuntimeError("injected submission failure after queued download")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(cp, "asnumpy", fail_after_download)
+        with pytest.raises(RuntimeError, match="injected submission"):
+            target._prime_normals(len(points))
+    assert target._pending_normals is None and not target._all_done
+    assert not cp.asnumpy(target.done).any()
+    ordinary = CudaOdometryTarget(points, ScanOdometryOptions())
+    _exact(ordinary.register(points, np.eye(4)), target.register(points, np.eye(4)))
+    assert target._all_done
+    assert target.statistics()["gpu_normal_rows"] == 2 * len(points)
+
+
 def test_abandoned_target_waits_before_releasing_gpu_and_pinned_buffers() -> None:
     target = CudaOdometryTarget(_scene(), ScanOdometryOptions())
     target._prime_normals(len(target.host))

@@ -1,10 +1,14 @@
 # Deferred overlap of target preparation with CUDA source work
 
 **Not adopted.** The two complete-worker pairs change direction and do not
-establish a stable end-to-end speed gain. The runtime is restored to revision
-`88e4a3a1db0e67dc538e3faf73c9a12b570ab3de`. Candidate
+establish a stable end-to-end speed gain. This CPU-thread prototype was reverted
+to revision `88e4a3a1db0e67dc538e3faf73c9a12b570ab3de`. Candidate
 `7fe26771f6fb2a8017be54b9053b112fcaf2efc0` and its 51 passing device/unit
 tests remain archived for a controlled repeat.
+
+The later [asynchronous normal preparation](cuda_normal_overlap.md) submits GPU
+normal work before CPU source preprocessing without an additional CPU thread.
+Its separate exact-output comparison supports a smaller whole-worker improvement.
 
 Sequential CUDA odometry previously built its local map, captured the target
 tree and uploaded the target before starting source deskew and downsampling.

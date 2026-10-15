@@ -1,0 +1,50 @@
+"""Bind regression execution to the measured candidate tree and test sources."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+
+cohort = Path('outputs/glim-async-normal-overlap-pairs-v1').resolve()
+protocol = json.loads((cohort / 'protocol.json').read_bytes())
+source = cohort / 'sources-current'
+out = cohort / 'prototype-validation'
+out.mkdir(exist_ok=False)
+scratch = Path('outputs/async-normal-bound-validation-v1').resolve()
+scratch.mkdir(exist_ok=False)
+tests = [
+    'tests/unit/test_cuda_normal_preparation_overlap.py',
+    'tests/unit/test_cuda_scan_odometry_adapter.py',
+    'tests/unit/test_scan_odometry_backend.py',
+    'tests/unit/test_cuda_scan_odometry_benchmark_tool.py',
+    'tests/unit/test_bspline_lidar_imu_benchmark.py',
+    'tests/unit/test_cuda_spline_plane_archive.py',
+    'tests/unit/test_cuda_normal_preparation_archive.py',
+    'tests/unit/test_cuda_spatial_pruning_archive.py',
+]
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+before = {p: sha(Path(p)) for p in tests}
+for path in tests:
+    shutil.copyfile(path, out / (Path(path).name + '.txt'))
+shutil.copyfile(__file__, out / 'validation.py.txt')
+arguments = [*tests, '--basetemp', str(scratch / 'tmp'), '-p', 'no:cacheprovider',
+             '--override-ini', 'addopts=--disable-plugin-autoload', '-q']
+code = ('from pathlib import Path; import calibrex, pytest; '
+        'assert Path(calibrex.__file__).resolve().is_relative_to(Path('
+        + repr(str(source / 'src')) + ')); raise SystemExit(pytest.main(' + repr(arguments) + '))')
+env = dict(os.environ, PYTHONPATH=str(source / 'src') + os.pathsep + str(Path.cwd()),
+           CUPY_CACHE_DIR=str(scratch / 'cupy-cache'), PYTHONDONTWRITEBYTECODE='1')
+with (out / 'pytest.log').open('wb') as log:
+    process = subprocess.run([sys.executable, '-c', code], env=env,
+                             stdout=log, stderr=subprocess.STDOUT)
+assert before == {p: sha(Path(p)) for p in tests}
+receipt = {'exit_code': process.returncode, 'provenance': {
+    'source_commit': protocol['current_commit'],
+    'source_manifest_sha256': sha(source / 'manifest.json'),
+    'files': {p.name: sha(p) for p in out.iterdir() if p.is_file()},
+}}
+(out / 'receipt.json').write_text(json.dumps(receipt, indent=2) + '\n', encoding='utf-8')
+print((out / 'pytest.log').read_text(encoding='utf-8'))
+raise SystemExit(process.returncode)
