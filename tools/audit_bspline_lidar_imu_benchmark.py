@@ -23,6 +23,22 @@ def _sha(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
+def _canonical_cpu_result(value: object) -> object:
+    """Keep complete physical/evidence fields; omit only declared run metadata."""
+    if isinstance(value, dict):
+        result = {}
+        for name, item in value.items():
+            if name == "query_workers":
+                continue
+            if name == "provenance":
+                item = {k: v for k, v in item.items() if k not in ("created_at", "command")}
+            result[name] = _canonical_cpu_result(item)
+        return result
+    if isinstance(value, list):
+        return [_canonical_cpu_result(item) for item in value]
+    return value
+
+
 def _cuda_kernel_hashes(sources: dict[str, bytes]) -> tuple[str, str]:
     """Read bound CUDA string constants without importing an optional GPU runtime."""
     def constants(name: str) -> dict[str, str]:
@@ -197,7 +213,11 @@ def audit(root: Path) -> dict[str, object]:
             module._validate_backend_execution(result, "cpu")
             workers = protocol["cpu_query_workers"][variant]
             module._validate_query_workers(result, workers)
+            actual_workers = result["options"]["odometry_options"].get("query_workers")
+            if type(actual_workers) is not int or actual_workers != workers:
+                raise ValueError("CPU query worker budget differs")
             if (provenance.get("odometry_backend") != "cpu"
+                    or type(provenance.get("cpu_query_workers")) is not int
                     or provenance.get("cpu_query_workers") != workers
                     or "calibrex/solvers/cuda_scan_odometry_adapter.py" in executed
                     or provenance.get("cupy") is not None):
@@ -309,9 +329,19 @@ def audit(root: Path) -> dict[str, object]:
         ):
             raise ValueError("complete quality comparison differs or failed")
     for repeat in range(protocol["repeats"]):
+        if protocol.get("comparison") == "cpu-cpu" and (
+            _canonical_cpu_result(results[(repeat, "prior")])
+            != _canonical_cpu_result(results[(repeat, "current")])
+        ):
+            raise ValueError("complete CPU calibration/evidence fields differ")
         left = measurements[(repeat, "prior")]["rounds"]
         right = measurements[(repeat, "current")]["rounds"]
         for prior_fit, current_fit in zip(left, right, strict=True):
+            if protocol.get("comparison") == "cpu-cpu" and (
+                {k: v for k, v in prior_fit.items() if k != "seconds"}
+                != {k: v for k, v in current_fit.items() if k != "seconds"}
+            ):
+                raise ValueError("complete CPU fit fields differ")
             if (
                 prior_fit["status"] != current_fit["status"]
                 or prior_fit["residual_count"] != current_fit["residual_count"]

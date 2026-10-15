@@ -1,0 +1,119 @@
+"""Publish complete native CPU thread-budget comparison without raw bag data."""
+from pathlib import Path
+import hashlib
+import io
+import json
+import shutil
+import tarfile
+
+source = Path('outputs/glim-cpu-query-workers-pair-v1')
+destination = Path('docs/assets/cpu_parallel_scan_queries')
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+summary = json.loads((source/'summary.json').read_bytes())
+protocol = json.loads((source/'protocol.json').read_bytes())
+attempts = json.loads((source/'attempts.json').read_bytes())
+assert summary['quality_passed'] and len(attempts) == 2
+assert sha(Path('tools/benchmark_bspline_lidar_imu.py')) == protocol['launcher_sha256']
+destination.mkdir(exist_ok=True)
+for name in ('protocol.json', 'attempts.json', 'summary.json'):
+    shutil.copyfile(source/name, destination/name)
+for attempt in attempts:
+    folder = destination/attempt['worker']
+    folder.mkdir(exist_ok=True)
+    for name in ('result.json', 'measurement.json', 'worker.log'):
+        shutil.copyfile(source/attempt['worker']/name, folder/name)
+for variant in ('prior', 'current'):
+    root = source/f'sources-{variant}'
+    shutil.copyfile(root/'manifest.json', destination/f'sources-{variant}-manifest.json')
+    with tarfile.open(destination/f'sources-{variant}.tar.gz', 'w:gz') as bundle:
+        for name, raw in [('LICENSE', Path('LICENSE').read_bytes()), *(
+            (p.relative_to(root).as_posix(), p.read_bytes())
+            for p in sorted((root/'src').rglob('*.py'))
+        )]:
+            info = tarfile.TarInfo(name)
+            info.size = len(raw)
+            info.mtime = 0
+            info.mode = 0o644
+            bundle.addfile(info, io.BytesIO(raw))
+# Both workers execute exactly the same captured bytes; keep one Git blob.
+assert (destination/'sources-prior-manifest.json').read_bytes() == (destination/'sources-current-manifest.json').read_bytes()
+shutil.copyfile(destination/'sources-prior.tar.gz', destination/'sources-current.tar.gz')
+for src, name in [('tools/benchmark_bspline_lidar_imu.py', 'benchmark.py.txt'),
+                  ('tools/schemas/bspline_lidar_imu_comparison.schema.json', 'comparison.schema.json'),
+                  (__file__, 'publisher.py.txt')]:
+    shutil.copyfile(src, destination/name)
+
+def canonical(value):
+    if isinstance(value, dict):
+        output = {}
+        for key, item in value.items():
+            if key == 'query_workers':
+                continue
+            if key == 'provenance':
+                item = {k: v for k, v in item.items() if k not in ('created_at', 'command')}
+            output[key] = canonical(item)
+        return output
+    if isinstance(value, list):
+        return [canonical(item) for item in value]
+    return value
+
+results = {v: json.loads((source/f'00-{v}/result.json').read_bytes()) for v in ('prior', 'current')}
+assert canonical(results['prior']) == canonical(results['current'])
+measurements = {v: json.loads((source/f'00-{v}/measurement.json').read_bytes()) for v in ('prior', 'current')}
+for left, right in zip(measurements['prior']['rounds'], measurements['current']['rounds'], strict=True):
+    assert {k: v for k, v in left.items() if k != 'seconds'} == {k: v for k, v in right.items() if k != 'seconds'}
+whole = summary['whole_median_seconds']
+fit = summary['fit_median_seconds']
+table = '\n'.join([
+    '| Scope | One CPU query worker | Eight CPU query workers | Observed ratio |',
+    '| --- | ---: | ---: | ---: |',
+    f"| Complete worker | {whole['prior']:.3f} s | {whole['current']:.3f} s | {summary['whole_speedup']:.3f}x |",
+    f"| Four fits, including covariance | {fit['prior']:.3f} s | {fit['current']:.3f} s | {summary['fit_speedup']:.3f}x |",
+])
+readme = f'''# Complete CPU query-worker pilot
+
+{table}
+
+One fresh-process pair replays the original public GLIM Livox bag's first six
+seconds with four map rounds, one BLAS thread and CPU odometry throughout.
+This is a preliminary fixed-order observation on an unreserved host. It does
+not establish a stable speedup or compare CPU threading against GPU execution.
+The fitter is unchanged; its observed timing difference is included in whole time.
+
+Both workers execute identical frozen sources based on `{protocol['current_commit']}`.
+The input bag SHA-256 is `{protocol['bag_sha256']}`. Raw data is not redistributed.
+Both use 0.03 m voxels, three local-map scans, a 1 nm coordinate grid and returned
+motion grids of 1 micrometre translation and 0.1 microradian rotation-vector
+components. Defaults remain one CPU query worker with these numerical grids off.
+
+Every complete calibration field, including the stored initial estimate,
+matches exactly after excluding only provenance timestamps/commands and the
+declared query-worker counts. All four complete fit records, including full
+covariance/trajectory arrays, costs, status and iterations, match exactly after
+excluding fit wall times. Final judgments remain **INCONCLUSIVE**; this clip
+supplies no independent extrinsic truth.
+
+Whole timing includes process startup, imports, bag decoding, every initial,
+gyro and feedback odometry pass, final odometry, association, fits/covariance,
+noise updates, held-out evidence, signed controls, hashes, saves and source
+verification. All worker measurements, full results, source capsules/manifests,
+logs, launcher and schema are bound by the publication index.
+
+```bash
+python -m tools.audit_bspline_lidar_imu_benchmark docs/assets/cpu_parallel_scan_queries
+```
+
+See [usage and reproduction](../../benchmarks/parallel_scan_queries.md).
+'''
+(destination/'README.md').write_text(readme, encoding='utf-8', newline='\n')
+files = {p.relative_to(destination).as_posix(): sha(p) for p in sorted(destination.rglob('*'))
+         if p.is_file() and p.name != 'publication-index.json'}
+(destination/'publication-index.json').write_text(json.dumps({
+    'schema_version': 'slac.bspline_lidar_imu_publication/v0.1',
+    'provenance': {'input_protocol_sha256': sha(source/'protocol.json')},
+    'files': files,
+}, indent=2)+'\n', encoding='utf-8', newline='\n')
+doc = Path('docs/benchmarks/parallel_scan_queries.md')
+doc.write_text(doc.read_text(encoding='utf-8').replace('<!-- results -->', table), encoding='utf-8', newline='\n')
+print(json.dumps({'files': len(files), 'whole_speedup': summary['whole_speedup'],
+                  'complete_results_exact': True, 'all_fit_arrays_exact': True}, indent=2))

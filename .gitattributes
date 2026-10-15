@@ -128,3 +128,10 @@ docs/assets/cuda_normal_preparation/*.json -text whitespace=blank-at-eol,blank-a
 docs/assets/cuda_normal_preparation/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 docs/assets/cuda_normal_preparation/**/*.log -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 docs/assets/cuda_normal_preparation/*.md text eol=lf
+
+# Keep measured CPU thread-budget results and source bytes unchanged.
+docs/assets/cpu_parallel_scan_queries/**/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cpu_parallel_scan_queries/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cpu_parallel_scan_queries/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cpu_parallel_scan_queries/**/*.log -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cpu_parallel_scan_queries/*.md text eol=lf
