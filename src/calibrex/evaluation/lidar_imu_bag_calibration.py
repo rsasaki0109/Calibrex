@@ -50,6 +50,7 @@ from calibrex.core.continuous_time_bspline_fit import (
     BSplinePlaneReturns,
     CalibrationBlock,
     LidarImuCalibration,
+    _FixedTrajectoryResiduals,
     fit_bspline_lidar_imu,
     lidar_imu_residuals,
 )
@@ -345,12 +346,16 @@ def calibrate_lidar_imu_bag(
 
     train_gyro, train_accel = imu_samples(train_index)
     holdout_gyro, holdout_accel = imu_samples(holdout_index)
-    train_rms = _whitened_rms(trajectory, calibration, planes, train_gyro, train_accel)
-    holdout_rms = _whitened_rms(trajectory, calibration, planes, holdout_gyro, holdout_accel)
+    train_rms = _whitened_rms(
+        lidar_imu_residuals(trajectory, calibration, planes, train_gyro, train_accel)
+    )
+    # Measurements and trajectory stay fixed throughout evidence evaluation.
+    # Keep train and holdout sessions separate; controls only need one family.
+    holdout = _FixedTrajectoryResiduals(trajectory, planes, holdout_gyro, holdout_accel)
+    holdout_rms = _whitened_rms(holdout.residuals(calibration))
 
     def holdout_chi2(family: LidarImuBagFamily, values: LidarImuCalibration) -> float:
-        residuals = lidar_imu_residuals(trajectory, values, planes, holdout_gyro, holdout_accel)
-        return float(np.sum(residuals[family] ** 2))
+        return float(np.sum(holdout.residual(family, values) ** 2))
 
     controls = _controls(holdout_chi2, calibration, opts.control_delta_chi2)
     blocks = _block_records(result, calibration, controls, last_change)
@@ -624,14 +629,7 @@ def _block_difference(
     return np.asarray(right.vector(block) - left.vector(block), dtype=float)
 
 
-def _whitened_rms(
-    trajectory: CubicBSplineTrajectory,
-    calibration: LidarImuCalibration,
-    planes: BSplinePlaneReturns,
-    gyro: BSplineImuSamples,
-    accel: BSplineImuSamples,
-) -> dict[str, float]:
-    residuals = lidar_imu_residuals(trajectory, calibration, planes, gyro, accel)
+def _whitened_rms(residuals: dict[str, FloatArray]) -> dict[str, float]:
     return {
         family: float(np.sqrt(np.mean(values * values))) for family, values in residuals.items()
     }

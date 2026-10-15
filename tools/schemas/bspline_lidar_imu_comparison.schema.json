@@ -160,6 +160,9 @@
           "type": "integer",
           "minimum": 1
         },
+        "control_evaluation_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "control_evaluation_calls": {"const": 1},
+        "control_score_calls": {"type": "integer", "minimum": 1},
         "rounds": {
           "type": "array",
           "minItems": 1,

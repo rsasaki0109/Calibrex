@@ -206,3 +206,81 @@ def test_public_residual_calls_observe_measurement_mutations(
     second = fit.lidar_imu_residuals(path, calibration, problem.planes, problem.gyro, problem.accel)
     assert not np.array_equal(first["gyro"], second["gyro"])
     np.testing.assert_array_equal(first["accel"], second["accel"])
+
+
+@pytest.mark.parametrize("different_times", [False, True])
+def test_holdout_session_keeps_all_signed_controls_and_rms_exact_without_unused_work(
+    problem: fit.BSplineLidarImuProblem, different_times: bool,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from calibrex.evaluation.lidar_imu_bag_calibration import _controls, _whitened_rms
+
+    if different_times:
+        problem = replace(problem, accel=replace(problem.accel,
+                                                times_sec=problem.accel.times_sec + 1e-10))
+    path, calibration = problem.initial_trajectory, problem.initial_calibration
+    expected = fit.lidar_imu_residuals(path, calibration, problem.planes,
+                                     problem.gyro, problem.accel)
+
+    def reference(name: str, value: fit.LidarImuCalibration) -> float:
+        residual = fit.lidar_imu_residuals(path, value, problem.planes,
+                                         problem.gyro, problem.accel)[name]
+        return float(np.sum(residual ** 2))
+
+    controls = _controls(reference, calibration, 9.)
+    gathers: list[bool] = []
+    calls = {"plane": 0, "gyro": 0, "accel": 0}
+    original_gather, original_families = fit._gather, fit._families
+
+    def gather(*args: object, **kwargs: object) -> fit._Gathered:
+        gathers.append(kwargs["derivatives"])
+        return original_gather(*args, **kwargs)
+
+    def families(*args: object) -> dict[str, fit._Family]:
+        result = original_families(*args)
+        for name, family in result.items():
+            def counted(states: object, value: fit.LidarImuCalibration,
+                        name: str = name, family: fit._Family = family) -> np.ndarray:
+                calls[name] += 1
+                return family.state_residual(states, value)
+
+            result[name] = replace(family, state_residual=counted)
+        return result
+
+    monkeypatch.setattr(fit, "_gather", gather)
+    monkeypatch.setattr(fit, "_families", families)
+    session = fit._FixedTrajectoryResiduals(path, problem.planes, problem.gyro, problem.accel)
+    assert _whitened_rms(session.residuals(calibration)) == _whitened_rms(expected)
+
+    def actual(name: str, value: fit.LidarImuCalibration) -> float:
+        return float(np.sum(session.residual(name, value) ** 2))
+
+    assert _controls(actual, calibration, 9.) == controls
+    assert len(controls) == 32
+    assert gathers == [False] * (5 if different_times else 4)
+    assert calls == {"plane": 1, "gyro": 15, "accel": 19}
+
+
+def test_holdout_session_eviction_and_independent_measurements_remain_exact(
+    problem: fit.BSplineLidarImuProblem,
+) -> None:
+    from calibrex.evaluation.lidar_imu_bag_calibration import _controls
+
+    path, calibration = problem.initial_trajectory, problem.initial_calibration
+    gyro = replace(problem.gyro, values=problem.gyro.values + .02)
+    session = fit._FixedTrajectoryResiduals(path, problem.planes, gyro, problem.accel)
+    session.cache.max_bytes = 1
+
+    def actual(name: str, value: fit.LidarImuCalibration) -> float:
+        residual = session.residual(name, value)
+        assert not session.cache.batches
+        return float(np.sum(residual ** 2))
+
+    def reference(name: str, value: fit.LidarImuCalibration) -> float:
+        return float(np.sum(fit.lidar_imu_residuals(path, value, problem.planes,
+                                                  gyro, problem.accel)[name] ** 2))
+
+    train = fit._FixedTrajectoryResiduals(path, problem.planes, problem.gyro, problem.accel)
+    assert not np.array_equal(train.residual("gyro", calibration),
+                              session.residual("gyro", calibration))
+    assert _controls(actual, calibration, 9.) == _controls(reference, calibration, 9.)

@@ -94,6 +94,7 @@ def _worker(args: argparse.Namespace) -> None:
     from calibrex.data.livox_ros2 import LivoxStreamProfile
     from calibrex.evaluation import lidar_imu_bag_calibration as runner
 
+    control_timing = _time_controls(runner)
     normal_timing = None
     if backend == "cuda":
         from calibrex.solvers.cuda_scan_odometry_adapter import CudaOdometryTarget
@@ -204,6 +205,9 @@ def _worker(args: argparse.Namespace) -> None:
             "variant": args.variant,
             "pipeline_seconds": pipeline_seconds,
             "fit_seconds": sum(float(r["seconds"]) for r in rounds),
+            "control_evaluation_seconds": control_timing["seconds"],
+            "control_evaluation_calls": control_timing["calls"],
+            "control_score_calls": control_timing["scores"],
             **({"normal_preparation_seconds": normal_timing["seconds"],
                 "normal_preparation_calls": normal_timing["calls"]}
                if normal_timing is not None else {}),
@@ -375,6 +379,31 @@ def _validate_backend_execution(result: dict, backend: str) -> None:
             statistics.get(name, 0) <= 0 for name in ("gpu_query_rows", "gpu_fused_system_calls")
         ):
             raise ValueError("CUDA pass did not execute spatial queries and systems")
+
+
+def _time_controls(holder: Any) -> dict[str, float | int]:
+    """Observe signed-control scoring, including its original baseline calls.
+
+    This scope starts after holdout RMS evaluation; any states retained there
+    are already prepared. Complete-worker time includes all preparation.
+    """
+    totals: dict[str, float | int] = {"calls": 0, "scores": 0, "seconds": 0.0}
+    original = holder._controls
+
+    def measured(chi2: Any, calibration: Any, threshold: float) -> Any:
+        def score(*args: Any, **kwargs: Any) -> Any:
+            totals["scores"] += 1
+            return chi2(*args, **kwargs)
+
+        begin = time.perf_counter()
+        try:
+            return original(score, calibration, threshold)
+        finally:
+            totals["calls"] += 1
+            totals["seconds"] += time.perf_counter() - begin
+
+    holder._controls = measured
+    return totals
 
 
 def _time_normal_preparation(holder: Any) -> dict[str, float | int]:

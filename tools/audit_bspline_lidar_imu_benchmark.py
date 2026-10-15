@@ -335,6 +335,14 @@ def audit(root: Path) -> dict[str, object]:
                          and record["normal_preparation_calls"] > 0
                          and provenance.get("odometry_backend") in ("cpu", "cuda"))):
             raise ValueError("normal preparation timing scope is inconsistent")
+        if hasattr(module, "_time_controls"):
+            if not {"control_evaluation_seconds", "control_evaluation_calls",
+                    "control_score_calls"} <= record.keys():
+                raise ValueError("signed control observation is missing")
+            if not (0 < record["control_evaluation_seconds"] <= record["pipeline_seconds"]
+                    and record["control_evaluation_calls"] == 1
+                    and record["control_score_calls"] == len(result["controls"]) + 2):
+                raise ValueError("signed control timing or score count is inconsistent")
         if len(record["rounds"]) != len(result["rounds"]):
             raise ValueError("worker did not retain every fit round")
         for fitted, reported in zip(record["rounds"], result["rounds"], strict=True):
@@ -440,6 +448,17 @@ def audit(root: Path) -> dict[str, object]:
             raise ValueError("normal preparation median is not positive")
         normal_summary = {"normal_median_seconds": normal_medians,
                           "normal_speedup": normal_medians["prior"] / normal_medians["current"]}
+    control_summary = {}
+    if all("control_evaluation_seconds" in record for record in measurements.values()):
+        control_medians = {
+            variant: statistics.median(measurements[(r, variant)]["control_evaluation_seconds"]
+                                       for r in range(protocol["repeats"]))
+            for variant in sources
+        }
+        control_summary = {
+            "control_median_seconds": control_medians,
+            "control_speedup": control_medians["prior"] / control_medians["current"],
+        }
     return {
         "workers": len(attempts),
         "files": len(index["files"]),
@@ -447,6 +466,7 @@ def audit(root: Path) -> dict[str, object]:
         "fit_speedup": summary["fit_speedup"],
         "quality_passed": True,
         **normal_summary,
+        **control_summary,
     }
 
 

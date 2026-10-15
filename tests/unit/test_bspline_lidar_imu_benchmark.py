@@ -5,12 +5,14 @@ from __future__ import annotations
 import copy
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from tools.benchmark_bspline_lidar_imu import (
     _backend,
     _compare,
     _manifest,
+    _time_controls,
     _time_normal_preparation,
     _validate_backend_execution,
     _validate_exact_pair,
@@ -51,6 +53,28 @@ def test_normal_timing_counts_nested_cache_completion_once() -> None:
     assert Target()._ensure(7) == 8
     assert timings["calls"] == 2
     assert timings["seconds"] >= 0
+
+
+def test_control_timing_preserves_scores_arguments_and_return_value() -> None:
+    observed = []
+    calibration = object()
+    result = object()
+
+    def controls(score, values, threshold):
+        assert values is calibration and threshold == 9.
+        assert score("gyro", values) == 3.
+        assert score("accel", values) == 4.
+        return result
+
+    def chi2(family, values):
+        observed.append((family, values))
+        return 3. if family == "gyro" else 4.
+
+    holder = SimpleNamespace(_controls=controls)
+    timings = _time_controls(holder)
+    assert holder._controls(chi2, calibration, 9.) is result
+    assert observed == [("gyro", calibration), ("accel", calibration)]
+    assert timings["calls"] == 1 and timings["scores"] == 2 and timings["seconds"] > 0
 
 
 @pytest.mark.parametrize("comparison,prior,current", [

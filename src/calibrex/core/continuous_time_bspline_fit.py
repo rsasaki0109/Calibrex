@@ -253,12 +253,7 @@ def lidar_imu_residuals(
 ) -> dict[str, FloatArray]:
     """Return whitened residuals per family (``plane``, ``gyro``, ``accel``)."""
 
-    families = _families(planes, gyro, accel)
-    cache = _EvaluationCache(families, derivatives=False)
-    return {
-        name: cache.residual(trajectory, calibration, family)
-        for name, family in families.items()
-    }
+    return _FixedTrajectoryResiduals(trajectory, planes, gyro, accel).residuals(calibration)
 
 
 def fit_bspline_lidar_imu(
@@ -470,12 +465,12 @@ class _CachedEvaluation:
 
 
 class _EvaluationCache:
-    """One fit's bounded workspace for one immutable candidate trajectory.
+    """One numerical operation's bounded workspace for an immutable trajectory.
 
     Gyro/accel rows share work only for bit-identical clocks and timestamp arrays.
     Higher-order IMU evaluation has exactly the same rotation/rate prefix. Any
     trajectory change discards the workspace, including rejected LM candidates.
-    Nothing is retained between public calls or separate fits.
+    Nothing is retained between public calls, separate fits or evidence sessions.
     """
 
     def __init__(
@@ -534,6 +529,30 @@ class _EvaluationCache:
         result = self.get(trajectory, calibration, family).residual(family, calibration)
         self.trim()
         return result
+
+
+class _FixedTrajectoryResiduals:
+    """Private evidence session over fixed measurements and one fixed trajectory.
+
+    Calibration controls recompute only their requested residual family, reusing
+    spline states at each clock offset within the same bounded workspace as the
+    fitter. Inputs must remain immutable for the session's lifetime. Public
+    residual calls create a fresh session so edits between calls stay visible.
+    """
+
+    def __init__(
+        self, trajectory: CubicBSplineTrajectory, planes: BSplinePlaneReturns,
+        gyro: BSplineImuSamples, accel: BSplineImuSamples,
+    ) -> None:
+        self.trajectory = trajectory
+        self.families = _families(planes, gyro, accel)
+        self.cache = _EvaluationCache(self.families, derivatives=False)
+
+    def residual(self, name: str, calibration: LidarImuCalibration) -> FloatArray:
+        return self.cache.residual(self.trajectory, calibration, self.families[name])
+
+    def residuals(self, calibration: LidarImuCalibration) -> dict[str, FloatArray]:
+        return {name: self.residual(name, calibration) for name in self.families}
 
 
 def _families(
