@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Batch probabilistic Camera–LiDAR pose evaluation on CPU and retain invariant
+  distributions per solve. Preserve complete candidate traces, acceptance and
+  holdout exactly; a four-worker projected KITTI geometry control measured
+  29.920 s to 10.352 s for complete workers. Tiny inputs retain scalar evaluation.
+  Add source-bound measurements, reproduction tools and a CPU-only archive audit.
+
 - **The KITTI camera-LiDAR check audit v2 is refuted: 8 of 9 gates.**
   - **The runs.** All 18 pre-registered drives of 2011_09_28, 2011_09_29, 2011_09_30 and
     2011_10_03 ran once from the frozen code.

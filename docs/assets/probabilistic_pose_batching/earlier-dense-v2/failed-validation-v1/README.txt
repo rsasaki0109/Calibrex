@@ -1,0 +1,1 @@
+The first parent run stopped after saving its baseline result because the launcher requested a misspelled validation kind. No timing from this failed run enters the successful four-worker comparison. Its complete result/log/attempt/protocol/launcher are retained. Both source manifests match the capsules in the parent directory.

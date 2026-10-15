@@ -1,0 +1,29 @@
+"""Export the complete schema ledger from both measured frozen runtimes."""
+from pathlib import Path
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+
+root=Path(__file__).resolve().parent
+cohort=root/'outputs/probabilistic-refinement-pairs-v2'
+out=root/'outputs/probabilistic-batch-validation-v1/schema-parity'
+out.mkdir(exist_ok=False)
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+shutil.copyfile(__file__,out/'checker.py.txt')
+exports={}
+for variant in ('prior','current'):
+    destination=out/variant
+    env=os.environ.copy()
+    env['PYTHONPATH']=str(cohort/('sources-'+variant)/'src')
+    command=[sys.executable,'-c','from calibrex.cli.main import main; import sys; raise SystemExit(main(["schema","all","--output-dir",sys.argv[1]]))',str(destination)]
+    subprocess.run(command,env=env,check=True,stdout=subprocess.DEVNULL)
+    exports[variant]={p.name:sha(p) for p in sorted(destination.glob('*.json'))}
+assert exports['prior']==exports['current'] and len(exports['current'])==130
+receipt={'all_schema_exports_identical':True,'exports':exports['current'],
+    'provenance':{'checker_sha256':sha(out/'checker.py.txt'),
+                  'protocol_sha256':sha(cohort/'protocol.json')}}
+(out/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n',encoding='utf-8')
+print(json.dumps({'identical_exports':len(exports['current'])}))

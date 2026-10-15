@@ -826,6 +826,7 @@ Tests fail if the committed evidence card drifts from its validated source.
 - [Fused CUDA normal preparation](docs/benchmarks/cuda_normal_preparation.md)
 - [Asynchronous CUDA normal preparation](docs/benchmarks/cuda_normal_overlap.md)
 - [Rejected CUDA spatial interval experiment](docs/benchmarks/cuda_interval_pruning.md)
+- [Batched probabilistic Camera–LiDAR refinement](docs/benchmarks/probabilistic_pose_batching.md)
 - Benchmark pages: [MID360 IMU-LiDAR](docs/benchmarks/mid360_imu_lidar.md) ·
   [KITTI LiDAR-vehicle](docs/benchmarks/kitti_lidar_vehicle.md) ·
   [NTU VIRAL LiDAR-LiDAR](docs/benchmarks/ntu_viral_lidar_lidar.md) ·
