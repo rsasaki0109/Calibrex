@@ -488,7 +488,10 @@ class _PreparedPoseEvaluation:
         self.total = sum(len(frame.correspondences) for frame in frames)
         # Avoid an unbounded second copy of caller-owned distributions. The
         # scalar path keeps the previous behavior for unusually large inputs.
-        self.fallback = tuple(frames) if self.total * 128 > _POSE_CAPTURE_BUDGET_BYTES else ()
+        tiny = max((len(frame.correspondences) for frame in frames), default=0) < 64
+        self.fallback = (
+            tuple(frames) if tiny or self.total * 128 > _POSE_CAPTURE_BUDGET_BYTES else ()
+        )
         prepared = []
         if not self.fallback:
             for frame in frames:

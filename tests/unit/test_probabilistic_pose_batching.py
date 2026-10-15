@@ -140,3 +140,24 @@ def test_complete_solver_trace_selection_and_holdout_match_scalar(
     monkeypatch.setattr(refiner, "_PreparedPoseEvaluation", ScalarEvaluator)
     actual = refiner.ProbabilisticCameraLidarRefiner().solve(frames, SE3.identity(), settings)
     assert expected.as_dict() == actual.as_dict()
+
+
+def test_overflowed_covariance_retains_scalar_nan_clamping() -> None:
+    frame = _frame("pinhole", 0)
+    for item in frame.correspondences:
+        item.image_covariance_px2 = [1e300, 0.0, 0.0, 1e300]
+    settings = refiner.ProbabilisticCameraLidarRefinementOptions()
+    assert refiner.evaluate_probabilistic_camera_lidar_pose([frame], SE3.identity(), settings) == (
+        refiner._evaluate_scalar_pose([frame], SE3.identity(), settings)
+    )
+
+
+@pytest.mark.parametrize("count,scalar", [(63, True), (64, False)])
+def test_tiny_frames_retain_scalar_evaluation(count: int, scalar: bool) -> None:
+    frame = _frame("pinhole", 0, count=count)
+    settings = refiner.ProbabilisticCameraLidarRefinementOptions()
+    prepared = refiner._PreparedPoseEvaluation([frame], settings)
+    assert bool(prepared.fallback) == scalar
+    assert prepared.evaluate(SE3.identity()) == refiner._evaluate_scalar_pose(
+        [frame], SE3.identity(), settings
+    )
