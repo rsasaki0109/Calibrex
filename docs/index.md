@@ -1,6 +1,6 @@
 ---
-title: Calibrex
-description: Check whether the sensor calibration on your robot is still right, with one command and honest per-axis verdicts.
+title: Sensor calibration for robotics
+description: Sensor calibration with per-axis evidence for robotics. Estimate calibration, check deployed transforms, and track drift across recordings.
 hide:
   - navigation
   - toc
@@ -8,11 +8,11 @@ hide:
 
 <div class="cx-hero" markdown="1">
 
-<p class="cx-eyebrow">Calibration evidence framework for robotics</p>
+<p class="cx-eyebrow">Sensor calibration with per-axis evidence for robotics</p>
 
-# Estimate it, check it, watch it drift.
+# Estimate. Check. Track drift.
 
-<p class="cx-sub">Three commands for the sensor calibration of a robot, on ROS 2 and ROS 1 bags, with honest per-axis verdicts for LiDAR, IMU, camera, GNSS, and vehicle. Calibrex says plainly which axes it measured, which it could not judge, and what to record to fix that.</p>
+<p class="cx-sub">Calibrex estimates sensor calibration, checks deployed transforms, and tracks drift across recordings. For LiDAR, IMU, camera, GNSS, and vehicle calibration, see which axes the data measured, which it could not judge, and what to record next. Read ROS 2 and ROS 1 bags without a ROS installation.</p>
 
 <div class="cx-buttons" markdown="1">
 

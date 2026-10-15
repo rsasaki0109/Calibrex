@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Calibrex Bag Check</title>
-<meta name="description" content="Plan and run calibrex check on your own rosbag2 in the browser: which sensor pairs can be checked, then the pair estimators and verdicts on a short slice of the bag. Files are read in place and never uploaded.">
+<title>Bag check and estimate | Calibrex</title>
+<meta name="description" content="Estimate sensor calibration and check deployed transforms with Calibrex in your browser, with per-axis evidence. Plan a rosbag2 check, then run on a slice of the bag. Files are read in place and never uploaded.">
 <link rel="icon" type="image/svg+xml" href="../assets/brand/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,8 +26,9 @@
 </header>
 <main>
   <div class="intro">
-    <h1>See what <code>calibrex check</code> can check on your own bag.</h1>
-    <p>Drop a ROS 2 bag and, if you have one, the calibration file your robot runs. Calibrex reads the transforms, classifies the sensor topics, and lists every sensor pair it could check, or why it could not.
+    <p>Calibrex — Sensor calibration with per-axis evidence for robotics.</p>
+    <h1>Estimate or check sensor calibration from your bag.</h1>
+    <p>Drop a ROS 2 bag and, if you have one, the calibration file your robot runs. Calibrex lists which sensor pairs the data can support, then lets you estimate calibration or check deployed transforms on a slice of the bag.
       <a href="../tutorials/calibrex_check/">What the check does</a>.</p>
     <div class="pills">
       <span class="privacy">Runs locally via <a href="https://pyodide.org">Pyodide</a>: files are read in place and never leave this page.</span>

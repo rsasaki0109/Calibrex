@@ -16,7 +16,7 @@ from typing import NoReturn
 COMMAND_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
     (
         "Start here",
-        ("check", "estimate", "drift", "doctor", "demo", "inspect", "init", "calibrate", "render"),
+        ("estimate", "check", "drift", "doctor", "demo", "inspect", "init", "calibrate", "render"),
     ),
     (
         "Per-pair calibration",
@@ -84,10 +84,12 @@ COMMAND_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
 
 HELP_EPILOG = """\
 examples:
-  calibrex check bag/ --plan            list which sensor pairs a bag can check
-  calibrex check bag/ --html out.html   audit the deployed calibration against a bag
-  calibrex doctor                       verify the environment
-  calibrex <command> --help             options of one command
+  calibrex estimate bag/ --output est/        estimate calibration and export frames
+  calibrex check other/ --tf est/frames.yaml  check it on another recording
+  calibrex drift day1/ day2/ --output drift/  track changes across recordings
+  calibrex check bag/ --plan                  list which sensor pairs a bag can check
+  calibrex doctor                            verify the environment
+  calibrex <command> --help                  options of one command
 """
 
 

@@ -1,10 +1,14 @@
 <h1 align="center">Calibrex</h1>
 
 <p align="center">
-  <strong>Estimate it, check it, watch it drift.</strong><br>
-  The sensor calibration of your robot, from ROS 2 and ROS 1 bags, with honest per-axis verdicts for
-  LiDAR, IMU, camera, GNSS, and vehicle.
+  <strong>Sensor calibration with per-axis evidence for robotics.</strong><br>
+  Estimate. Check. Track drift.
 </p>
+
+Calibrex estimates sensor calibration, checks deployed transforms, and tracks drift across
+recordings. It reports uncertainty, observability, and provenance for LiDAR, IMU, camera,
+GNSS, and vehicle calibration, including which axes the data could not judge.
+Read ROS 2 and ROS 1 bags without a ROS installation.
 
 <p align="center">
   <a href="https://github.com/rsasaki0109/Calibrex/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/rsasaki0109/Calibrex/actions/workflows/ci.yml/badge.svg"></a>
@@ -12,6 +16,13 @@
   <img alt="Python" src="https://img.shields.io/badge/python-3.10%2B-3776ab">
   <img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-2f855a">
   <img alt="Status" src="https://img.shields.io/badge/status-alpha-f59e0b">
+</p>
+
+<p align="center">
+  <a href="docs/tutorials/workflow.md"><strong>Workflow</strong></a> ·
+  <a href="docs/getting_started.md"><strong>Install</strong></a> ·
+  <a href="https://rsasaki0109.github.io/Calibrex/app/check.html"><strong>Try in your browser</strong></a> ·
+  <a href="https://rsasaki0109.github.io/Calibrex/"><strong>Docs</strong></a>
 </p>
 
 <p align="center">

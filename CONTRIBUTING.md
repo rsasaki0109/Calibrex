@@ -2,6 +2,11 @@
 
 Calibrex is schema-first and evaluation-first.
 
+Use **Calibrex** for the product and `calibrex` for the CLI, distribution, and
+Python package. The [brand and naming guide](docs/reference/brand.md) defines
+the shared description, visual identity, and evidence claims. Existing `slac.*`
+artifact identifiers follow [ADR 0009](docs/adr/0009-restore-calibrex-name.md).
+
 Every PR that changes calibration behavior must include:
 
 - tests

@@ -448,7 +448,13 @@ def _overconfidence_scale(value: str) -> float:
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = CalibrexArgumentParser(
-        prog="calibrex", formatter_class=GroupedHelpFormatter, epilog=HELP_EPILOG
+        prog="calibrex",
+        description=(
+            "Calibrex: Sensor calibration with per-axis evidence for robotics.\n"
+            "Estimate. Check. Track drift."
+        ),
+        formatter_class=GroupedHelpFormatter,
+        epilog=HELP_EPILOG,
     )
     parser.add_argument("--version", action="version", version=f"Calibrex {__version__}")
     subcommands = parser.add_subparsers(dest="command", required=True, metavar="<command>")

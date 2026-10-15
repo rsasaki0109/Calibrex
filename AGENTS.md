@@ -1,6 +1,6 @@
-# slac Agent Notes
+# Calibrex Agent Notes
 
-slac is a long-term robotics calibration framework, not a collection of
+Calibrex is a long-term robotics calibration framework, not a collection of
 one-off calibration scripts.
 
 Non-negotiable project rules:

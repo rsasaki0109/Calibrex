@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Align the README, documentation, package description, CLI help, and browser
+  pages around Calibrex: sensor calibration with per-axis evidence for robotics.
+  Document naming, visual identity, and evidence claims in the brand guide.
+
 - **The KITTI camera-LiDAR check audit v2 is refuted: 8 of 9 gates.**
   - **The runs.** All 18 pre-registered drives of 2011_09_28, 2011_09_29, 2011_09_30 and
     2011_10_03 ran once from the frozen code.
