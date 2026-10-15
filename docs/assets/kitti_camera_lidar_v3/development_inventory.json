@@ -1,0 +1,660 @@
+{
+  "analysis": "post hoc",
+  "status": "development_incomplete",
+  "current_v2_metrics": {
+    "drives": 55,
+    "scored_drives": 52,
+    "failed_drives": [],
+    "inconclusive_drives": [
+      "2011_09_28_0016",
+      "2011_09_28_0021",
+      "2011_09_29_0026"
+    ],
+    "flagged_baselines": [],
+    "max_baseline_judged_error_deg": 0.45000000000000573,
+    "max_turned_judged_error_deg": 1.502977473509024,
+    "judged_axes": 125,
+    "scored_axes": 156,
+    "all_axes": 165,
+    "judged_fraction_scored": 0.8012820512820513,
+    "judged_fraction_all": 0.7575757575757576,
+    "trials": {
+      "3deg": {
+        "counted": 125,
+        "flagged": 122,
+        "flagged_fraction": 0.976,
+        "judged_right": 0
+      },
+      "1deg": {
+        "counted": 125,
+        "flagged": 125,
+        "flagged_fraction": 1.0,
+        "judged_right": 0
+      }
+    }
+  },
+  "proposed_rule": {
+    "option": "start_scan_min_control_t",
+    "value": 3.5,
+    "default_changed": false,
+    "scope": "all observed rotation axes of a profile-start optimum before adoption"
+  },
+  "proposed_rule_metrics": null,
+  "coverage_change_percentage_points": null,
+  "saved_fit_diagnostics": {
+    "expected_evidence_runs": 385,
+    "available_evidence_runs": 133,
+    "missing_evidence_runs": {
+      "2011_09_26_0009": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0011": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0013": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0014": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0015": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0018": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0019": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0022": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0023": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0027": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0028": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0029": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0032": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0035": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0036": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0039": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0046": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0051": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0056": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0057": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0059": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0061": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0064": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0070": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0084": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0086": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0087": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0091": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0093": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0095": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0096": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0101": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0104": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0106": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_26_0117": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ],
+      "2011_09_30_0018": [
+        "baseline",
+        "inject_x+3",
+        "inject_y+3",
+        "inject_z+3",
+        "inject_x+1",
+        "inject_y+1",
+        "inject_z+1"
+      ]
+    },
+    "selected_far_fits": [
+      {
+        "drive": "2011_09_28_0002",
+        "run": "inject_x+3",
+        "saved_judged_axis_control_t": {
+          "roll": 2.6451958428982265,
+          "pitch": 2.997144972471997
+        },
+        "axes_failing_proposed_margin": [
+          "roll",
+          "pitch"
+        ],
+        "saved_final_fit_clears_margin": false
+      },
+      {
+        "drive": "2011_09_28_0002",
+        "run": "inject_y+3",
+        "saved_judged_axis_control_t": {
+          "roll": 2.621130555837211,
+          "pitch": 2.9866770654054977
+        },
+        "axes_failing_proposed_margin": [
+          "roll",
+          "pitch"
+        ],
+        "saved_final_fit_clears_margin": false
+      },
+      {
+        "drive": "2011_09_28_0002",
+        "run": "inject_z+3",
+        "saved_judged_axis_control_t": {
+          "roll": 2.6493418318574165,
+          "pitch": 3.252264718453982
+        },
+        "axes_failing_proposed_margin": [
+          "roll",
+          "pitch"
+        ],
+        "saved_final_fit_clears_margin": false
+      },
+      {
+        "drive": "2011_09_28_0002",
+        "run": "inject_y+1",
+        "saved_judged_axis_control_t": {
+          "roll": 2.5832110299615993,
+          "pitch": 2.9125823244338247
+        },
+        "axes_failing_proposed_margin": [
+          "roll",
+          "pitch"
+        ],
+        "saved_final_fit_clears_margin": false
+      },
+      {
+        "drive": "2011_09_29_0004",
+        "run": "inject_y+3",
+        "saved_judged_axis_control_t": {
+          "roll": 5.807083674762171,
+          "pitch": 5.608352948931947
+        },
+        "axes_failing_proposed_margin": [],
+        "saved_final_fit_clears_margin": true
+      },
+      {
+        "drive": "2011_09_30_0020",
+        "run": "inject_x+3",
+        "saved_judged_axis_control_t": {
+          "roll": 3.5633363601465415,
+          "pitch": 5.204764814160757,
+          "yaw": 6.000893682563032
+        },
+        "axes_failing_proposed_margin": [],
+        "saved_final_fit_clears_margin": true
+      },
+      {
+        "drive": "2011_09_30_0034",
+        "run": "inject_x+3",
+        "saved_judged_axis_control_t": {
+          "roll": 2.8402831777931024,
+          "pitch": 6.618664602405823,
+          "yaw": 5.200758466111929
+        },
+        "axes_failing_proposed_margin": [
+          "roll"
+        ],
+        "saved_final_fit_clears_margin": false
+      },
+      {
+        "drive": "2011_09_30_0034",
+        "run": "inject_z+3",
+        "saved_judged_axis_control_t": {
+          "roll": 2.7521510201550727,
+          "pitch": 6.402480114021395,
+          "yaw": 4.900560526331702
+        },
+        "axes_failing_proposed_margin": [
+          "roll"
+        ],
+        "saved_final_fit_clears_margin": false
+      },
+      {
+        "drive": "2011_10_03_0034",
+        "run": "inject_z+3",
+        "saved_judged_axis_control_t": {
+          "pitch": 5.519927316816973,
+          "yaw": 4.883154089921258
+        },
+        "axes_failing_proposed_margin": [],
+        "saved_final_fit_clears_margin": true
+      },
+      {
+        "drive": "2011_10_03_0047",
+        "run": "inject_x+3",
+        "saved_judged_axis_control_t": {
+          "roll": 8.438431482060846,
+          "pitch": 9.09249543427989,
+          "yaw": 5.692100628154371
+        },
+        "axes_failing_proposed_margin": [],
+        "saved_final_fit_clears_margin": true
+      },
+      {
+        "drive": "2011_10_03_0047",
+        "run": "inject_y+3",
+        "saved_judged_axis_control_t": {
+          "roll": 8.681990306924149,
+          "pitch": 8.338634851888632,
+          "yaw": 6.511184471631844
+        },
+        "axes_failing_proposed_margin": [],
+        "saved_final_fit_clears_margin": true
+      }
+    ],
+    "selected_far_fits_failing_margin": 6
+  },
+  "limitations": [
+    "Only saved v2 final fits are screened. Rejected fits and estimator inputs are absent.",
+    "Rejecting a saved fit does not establish which fit a replay would select.",
+    "Passing the margin at a saved fit does not guarantee the same replay result: earlier adoptions can change.",
+    "New-rule errors, flags, coverage, detection rates and audit thresholds require development replays.",
+    "No evaluation data was fetched or read; no previous verdict is changed."
+  ],
+  "provenance": {
+    "generator": "tools/kitti_camera_lidar_v3_development.py",
+    "generator_version": "1",
+    "git_commit": "a921df695f66f1caff29d1bdba888658e38120e2",
+    "source_files_sha256": {
+      "docs/assets/kitti_camera_lidar_v2/development/scores.json": "3b93b6a830e4d94611d381bb24d0aac7ccc8b9a9ed49dc103ca4258f6dbe9f73",
+      "docs/assets/kitti_camera_lidar_v2/development/runs/2011_09_26_0005/baseline_evidence/camera-lidar_cam2_optical_velo_link.yaml": "3d80fed63b38b13e9a2eac4cc3bab4f3afa7c1fed88b5b01b93fd411fb6c634a",
+      "docs/assets/kitti_camera_lidar_v2/development/runs/2011_09_26_0005/inject_x+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "df30ce81824e65709c9f44ebb91e53d95ddbfa96e605f0e6aaa8731aa19c594d",
+      "docs/assets/kitti_camera_lidar_v2/development/runs/2011_09_26_0005/inject_y+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "db77af9ddc3504c57ad9e153f30d87d2305f0543067f441328ad32a86fb1ab55",
+      "docs/assets/kitti_camera_lidar_v2/development/runs/2011_09_26_0005/inject_z+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "2adc56fa2343feda80dc2927a83a9a2092f831a1a378b106c5911ea2eb5af7c5",
+      "docs/assets/kitti_camera_lidar_v2/development/runs/2011_09_26_0005/inject_x+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "857499f6f7734921653e18739810807ac65bd11271df07d1267f88499a7c5a05",
+      "docs/assets/kitti_camera_lidar_v2/development/runs/2011_09_26_0005/inject_y+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "a7245946c47ad2a41dea85a60f42890ee7bc8b2f69dc0b0c4e7b7eeb955fd8a6",
+      "docs/assets/kitti_camera_lidar_v2/development/runs/2011_09_26_0005/inject_z+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "ce9f6125579823649c35b3c14932f0de899c85a36ec454dabf8cc28eb1497838",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/scores.json": "18c545dbb943b5a312c3646243d59ca16227210b1dfd85f167c56a8f9a006baf",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0002/baseline_evidence/camera-lidar_cam2_optical_velo_link.yaml": "7984668510f68bd4c72becb441df4d317e7a1a3bea2e90967e891907782d4207",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0002/inject_x+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "838a4494b5beda5cb7035d1b0f0bb12b99b1051941b25d4e47615c203e6e96ce",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0002/inject_y+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "8bd57b1dc74c636d2ee222dd6343129b30e37cd896b69cc79151d7f5e4010cbd",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0002/inject_z+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "df82dbbccdea03204f3c9d5551aad431706edc5427045a89d24b893db4ab07a4",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0002/inject_x+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "4efc1ddd0e92a55c3f6d11d8e93849ab3aaa630c2c0cf3024c3278b8ba57d880",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0002/inject_y+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "be97dbfe11789008b00115d676fdb9724a8d9f6c5fdade6e9d1d00a98fae11bc",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0002/inject_z+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "296417d47ec8fc2a556aa4af02d1e4f22809039027ffced3c397d4009f665130",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0016/baseline_evidence/camera-lidar_cam2_optical_velo_link.yaml": "37ffcd438cf10aeb807a92812bbe8b578f2262359f575b1d50ac412738451c76",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0016/inject_x+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "c453370be67c1cda4c6a9ec9a9d9e5d920c6c81d42cc95e1c6c4162b319243c0",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0016/inject_y+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "707aff9f74af58ef8b76f9f390ea3733746d82500fe799f3e0070c08191b2638",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0016/inject_z+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "1d5ee4cad84dcacb91b9a7e7d4017605c195d1da271e9c079bee1569a7194c56",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0016/inject_x+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "05c951681c98c39976f11e5c7d5e91ff611138d0b9b9e1d2bd7c2e6b8d8cd8ca",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0016/inject_y+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "5501ff29579e3da1b8dc31e255e5f441975621289ed6ffe3a31b1387eeab1fe9",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0016/inject_z+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "2be5ab72d43570ff11a721471adf17ce7c34c49b74b82db5cb23ce14dededb81",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0021/baseline_evidence/camera-lidar_cam2_optical_velo_link.yaml": "1f6d1c3bd18dca2791eafa2d3f68cc9ab689594baca530fe58e3844365b14269",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0021/inject_x+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "4c2c6cfffdff48bcbbb333b9e822bdab89a8581fe59d566f1453ecf6ff221353",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0021/inject_y+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "691c8fb46d56895cd06e5f135aa0fc861f641c84054ca423894d42376d547a6b",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0021/inject_z+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "f2694b2ea4d377e3764f00e45423aaf9ee87257f925edc8483e2a1192c616328",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0021/inject_x+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "3f81133ed0998e5485d877c0668fa6814b3e7619c125789d66bf15bbceaa0fe8",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0021/inject_y+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "4c73397a8bf5dd1d7724b512cc6357b1775c77f3d9f3c527e9d0acb2c7bc6cee",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0021/inject_z+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "af9b66d64a8a0776ed148e637a529c605d4d1042d3aa373fc959f33e141ac81f",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0039/baseline_evidence/camera-lidar_cam2_optical_velo_link.yaml": "589f0d51df7df68bac9c5cfc6fe5ba8bee395bdfcb20b225ead04bd894bcbb86",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0039/inject_x+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "ffa8bdfc8d5250ac690bdfe7b6e87d8c8cdd903ac82f1ab3b3559481fd1b9a25",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0039/inject_y+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "738a7c06c55f1ab839bd373cf23c80a5d190d45b876570a76319d23f5f641e1b",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0039/inject_z+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "e251a482eb5835d908ba620c230ebeeb97b42aeedbc04815dc1da43bab721a02",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0039/inject_x+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "2072364c64619333d03503ff0038317432cb248d3b5839f07ccbfc3d33eb0530",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0039/inject_y+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "3ceb5f9e89d439e040617fd8ed58274214f494efcf83d15922d3d8d3632d1194",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0039/inject_z+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "e9b769916f23a85d561e24276851f49f156db0762967b3df127f0f5a8ff666ee",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0043/baseline_evidence/camera-lidar_cam2_optical_velo_link.yaml": "0a5bea055ec96d47d40035c9547da44bed49ac44e3df953399e9deb8833231d3",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0043/inject_x+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "86a31f1941335fbd1d5368cb022d620d5e0531bfc390c7483288409b0dcd42d3",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0043/inject_y+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "1121756fc4d82ca6897c81b36b708634fe1a1332daa138d78f7596a492c4336d",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0043/inject_z+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "b1c31944a2f8139d04e4c99318ed124f4bc420784d4de7a5445a6e8add793cac",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0043/inject_x+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "d7b4058e96c8e0a312b73108e35afb49c2d798cae8a3c469d80eba49997405c5",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0043/inject_y+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "eb526d44030ead40deec93f8a70672321f9236b40965cfa18c6ff92b7fe65172",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_28_0043/inject_z+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "f5c235e3652bf789eca9b679a61488f543897f413a22a2e0d505b5f73c44dce7",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_29_0004/baseline_evidence/camera-lidar_cam2_optical_velo_link.yaml": "371f81bd08deda1bcf410459c1840209be6723702348d3825c2e1d9e0e3e41c7",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_29_0004/inject_x+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "b7e4757483e0844ca02d95619b9a2b03c69e68f628e910b09ae00bb43854ed12",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_29_0004/inject_y+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "914f0396a8fe50ad5c6d2a0bf45735e8ada4cd587132aab47a93c7870c525b12",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_29_0004/inject_z+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "b987045ef5b52c8901272407e87f642433ab6aa887b5d0b51b063b907d48e747",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_29_0004/inject_x+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "40c485a697fc53eea2001f85aaae9a4e0b66778ab73195474ed5dd0eeb334849",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_29_0004/inject_y+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "6d93930519c74f89cffe7f18c8771c37907d4605b6e48e597a43377b4cd9b046",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_29_0004/inject_z+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "2b7afd0c4beef6ac9ea79b505fa4fec0e21c21aee02c8c404e5a2443fdb4c830",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_29_0026/baseline_evidence/camera-lidar_cam2_optical_velo_link.yaml": "8df79326c2df21ea65f66eff2969c2098a8b7ae8a285af3f1b07917db9855dba",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_29_0026/inject_x+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "b0c3454f27235bea60090823affd12aed024d2a5c21e8058d55c68440698288d",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_29_0026/inject_y+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "eaa4d9778dbce32549d5e928960d8a3fea2ef84168f95f155019fb9e3776914c",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_29_0026/inject_z+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "4b6395211ae2836150616ebd6b83c01af9249f94a643b4513448b4185c0f9c6d",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_29_0026/inject_x+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "64d2279a26466c2e61087baf297e5561d693dcb02ace4aa86518517d2bedd8d4",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_29_0026/inject_y+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "0df9b5133fbfbba7c67746eb87841198a11394adf9cf603164a82afc37dd71cf",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_29_0026/inject_z+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "969cdb90d8d025438b5b3281f815c6ccce239b5c128c00470bcb7d9a312ba49c",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_29_0071/baseline_evidence/camera-lidar_cam2_optical_velo_link.yaml": "e7fa6867c59bd38bb4a012d787d8141a24909728bc0e4f956fe52d2916f9c2ce",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_29_0071/inject_x+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "269be647c2e2b656fc8a1643fe0b11d8381f49bf22ba601ae6ac95b05435031b",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_29_0071/inject_y+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "eefc824d1103c668b92197c214df01f4570bdd4cd44f9fe2c629f51b08358d9f",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_29_0071/inject_z+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "3729a4c242e94a20416c270615b16a5239c220d42030cbbbb919d1e31921e330",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_29_0071/inject_x+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "f163d0b66bdceea420777c466495ca8735f337bbd8839175139bbe4f14381d54",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_29_0071/inject_y+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "034f0b1ab4f13df7cdc2a9b095b9f89a7b62b4b2b16c20c29bb3bd3a9164ac2f",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_29_0071/inject_z+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "4dcc3a78ee6cde315d20ce3dc588a9703cd4b1b6ead097e2ec575727b2853a63",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0016/baseline_evidence/camera-lidar_cam2_optical_velo_link.yaml": "f07c054219dcf8a96c6f2d52e27bb2793fc24208ec5fbe79ebbdf84da680d42c",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0016/inject_x+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "a3e79cfe1290cb675fcda46d8b76f9ed2325c79d907e6dc6a878143eb9cd7dd5",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0016/inject_y+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "1027e336ae0822eb13d5fbdbd206cd1d4982167f316a927f0475f6a6eafe9fd6",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0016/inject_z+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "4969e562563d4238bb2ea03094facce10bcb8e254b0e80322321220441ffd987",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0016/inject_x+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "3fdea21f9b66a52df281d5c467cf547f6c5414da61a163d21484b8ae851f9b69",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0016/inject_y+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "9d84bf5fabfe2e3c7b78ed5504191aa0954f350e6d27dd29871a9998077dd954",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0016/inject_z+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "8172133b02790dcfe00952659587107a7a512b73ea6c1e832beb1e17d8f4dc34",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0020/baseline_evidence/camera-lidar_cam2_optical_velo_link.yaml": "a8be87a0ed24fa3df4cd2a76fcb5d84740ed52f11f23f660fd593492ca40d3f5",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0020/inject_x+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "f0c496161b9840cf92c48780090fad6d043281650d33e368090d3163e2100df0",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0020/inject_y+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "724660b65f062d51713fab0ca98dad3b1dbba0cf739bf181392df757dda1c720",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0020/inject_z+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "b6b209d6a1990943101d1042a6dfbf151f31ef68deefa3f03bcdfc94ad218b29",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0020/inject_x+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "5e3edff99a35bb4b135b372df66b65d575c45d125eb042dd6eb1623cb3178f84",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0020/inject_y+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "09b266063ab3965e25bd310f95e566772904274644de1a163c92a63b55379066",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0020/inject_z+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "b7edcf10539beb411d0721670abd341d72c9897a04c8a961b013646666577661",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0027/baseline_evidence/camera-lidar_cam2_optical_velo_link.yaml": "1263680ebc308b0547e5c8807ec249093b422f9ac7d4d961dc5626bd7a47efc3",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0027/inject_x+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "16df451039081fa8895732a3b9917c2508154bcff3e2a3d4e2511099c6b78e68",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0027/inject_y+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "2106d2adec7e2e7c011efe525afd4b7263f6ed26cccbb1890e0472187237c46f",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0027/inject_z+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "52821d9fd3efda9dbd598aae77b64eee2f470c23f462a58b34a046db0baa2412",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0027/inject_x+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "78e4b8b462692dd4f67b82733690f54d02596159942a9bed4a5886b49994972a",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0027/inject_y+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "3ea9d81b6e1976f00ab062779aed10b76d0a482796e472fbac5d7c2658d98b65",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0027/inject_z+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "c0ae45cbaa80a0f7be82ac79da3433b19dbb1fcecfac255c3c0d51bc04b42120",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0028/baseline_evidence/camera-lidar_cam2_optical_velo_link.yaml": "dc7d903cd61ea5f7695e8185aeb97b3d1fd7afdd65cc9ef28c83977daffcac9f",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0028/inject_x+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "1400ff9312dfe9761c661c192100e8e9d70d221a436e8f60d975760f6879a84a",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0028/inject_y+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "4214c126a410b642e0e65579c24276042be80a90b6b736046902a1302d03121c",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0028/inject_z+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "4122401bcd4762e40cf81dc6b292d51e34845b6d7d7ec163dd6e3d561bb6d44e",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0028/inject_x+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "6d01c7b3c03dd2ef1a5bd287f859529571074ad7b5251211772c701c840b4562",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0028/inject_y+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "b05743962f46478f22a998416b6d472bbc60dda996dc6d8236209e04461b4c70",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0028/inject_z+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "b3074603e96d696c0439cd51837f79c71866c1af64a4c306b51f8a7309b2d957",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0033/baseline_evidence/camera-lidar_cam2_optical_velo_link.yaml": "8d732225ad20c11dd0fabd253d69ff64449c815bca767ca53a36f7ee6bbe8301",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0033/inject_x+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "06d27f64de121ff51d5226a784cd8215532685e303ba396045d57b7d3db7a9a1",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0033/inject_y+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "f5b95dccea74e21651a22f04a28d47483eb6082b561628a31c2db2ec77894dd6",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0033/inject_z+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "a5e79b49608a70f141cd3a91977ddaa4be2e2e133753bc9129c82bab1fb96c66",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0033/inject_x+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "5ffa3d1fa63f37d78fb6fc0eec5180b7e27af9d88613069df060a9648f6c4bd8",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0033/inject_y+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "d16aba6b3d1192cbdcd792a034c30249bdb5ebaacda0eb057a7472a6354d5186",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0033/inject_z+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "a23e69c8af6fa49f549fb3e04ee78ebc5460eb29cab210ffc07e4367873829dd",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0034/baseline_evidence/camera-lidar_cam2_optical_velo_link.yaml": "2d14a80e94ce329b9fccaf29023b5572d74038c45ee9384d74700ee7c46e1f6f",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0034/inject_x+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "8f8696afecc7eb2c0cb352ac4e6d9df449bdd9ac89df89a8b6d07226c021c132",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0034/inject_y+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "6f3474515a14866bef7d92955b71fb809818d456009fe0961889841f6c7dc3f3",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0034/inject_z+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "f66533c97e1c8c99d97089feabf933d9b66965da68cc88f9bc512b9b338ede2a",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0034/inject_x+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "5962ccea504ee9208445926441e58ed1d7d35f1a2d80d5746d4546a21f0ad2dc",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0034/inject_y+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "a9da6e66ce2e297f1c0bbbff639aebf225dbd9cb4e70cf332410e53f677344a4",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_09_30_0034/inject_z+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "e0a63a99e840d6d9e4ad5a31808d4ba9f7f217fb2b655da5b6baca40916d62a6",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0027/baseline_evidence/camera-lidar_cam2_optical_velo_link.yaml": "7da93b4aa408f7d23e9395775b99705797dbe8a2051e65659dfe1298b4c7c3ce",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0027/inject_x+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "bfae1e87a33f6da177182e4b634b1ba8a6da853c614a19507be5992875a3d518",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0027/inject_y+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "c09ed8dbce1866151cb1233b0f27c17ad89f60803803813a618e64ef9342609c",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0027/inject_z+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "768500f51625c05214a596ca5e1c4f85cf8a7aa076764de00ebcb5d2a13f834a",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0027/inject_x+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "7775faa095f47c422abd7d9989602ffbc882300bbc867418bc3d71cb61dece70",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0027/inject_y+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "00219b2196417c410cab40cfa60b07214e3ccfcd72ec65553ab7f10ff71f373c",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0027/inject_z+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "69fdcd5e12cf10fcd37a292d424e2811e5ce5603fe96171bda2044004677a02f",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0034/baseline_evidence/camera-lidar_cam2_optical_velo_link.yaml": "3f78a50b7fcb220d352bfb97d835afa8e44ff4d05022d530425616bf833404d0",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0034/inject_x+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "ae82eeb20d91dd6427994678b98f7d22a09efe5be968928c1c0568b651031931",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0034/inject_y+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "13f48e367aa43a8a520888a0725b7730aa644f96091fd60157ebe4cf8ffa4271",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0034/inject_z+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "a9be085ea1148bddf9b20db20ba628b5439cd8e8c1922cce4d29ca26e7c9b458",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0034/inject_x+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "5f4ae21be76591a1395e48c7fc332c8646a5f33e3efec49b17704ab29077a8b4",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0034/inject_y+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "5bb388a66d5ff5ffc32a7d55b2cce66d865d48f1d72e83cc54edf64dcf81bb74",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0034/inject_z+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "fe101e6b25aaf632f3e62b0705ce8b282ec9a62de8f7d507072e4fb9c2f3737a",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0042/baseline_evidence/camera-lidar_cam2_optical_velo_link.yaml": "8ddc8d3132e1f85dfb3ab46761dbed261ab65ca0f139b65eb1d46a529b6ddbbf",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0042/inject_x+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "e6f37aac235cfac8fef0e34576eb223fbebeebc5dfe4d6db1a034061b202f233",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0042/inject_y+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "2108824758f14c014a81490d7e468b1a37e00aee92aae87f0598f377dc0ecbd9",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0042/inject_z+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "c1d825f9c215996f8ef57e60cb22e24577ede10e9e62f00814e484a05b8298a4",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0042/inject_x+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "6cccc0322dbe091088516b5e1ef14c8ac10850ab6cf6ccb7b9396bd5e32461b5",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0042/inject_y+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "24386840015b5bf07bcfa252712bfc688045923e5087623080c34d552739f883",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0042/inject_z+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "c239c3146efbd9a8d72417a9274e9bbf9168ad092246c62715be5d1e73c22c5a",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0047/baseline_evidence/camera-lidar_cam2_optical_velo_link.yaml": "4a9bc21f8bf92c864862b724eb2eea60ee5108c18798cc2e984d632e83b6bbd3",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0047/inject_x+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "ef25cc0393bd6021ed7b99c83caacb559b15eda845bb22cf2c768ee216382cb9",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0047/inject_y+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "e2e533452a0c00434bc02595a1f60af506536b5b87f6915ab0b28de1fb7fb870",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0047/inject_z+3_evidence/camera-lidar_cam2_optical_velo_link.yaml": "c91280f01b7f41a2c40b61b7aa05b309b4c17583fcd584b1593bc9795e8d0fd5",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0047/inject_x+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "192f12754ae64c2186852eeaa14bcd62d1b6639074d152553acec85f58cef918",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0047/inject_y+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "bc0cf6c31a911af32603b2738fe927b853362da6adb504a4f729e10c89721e05",
+      "docs/assets/kitti_camera_lidar_v2/evaluation/runs/2011_10_03_0047/inject_z+1_evidence/camera-lidar_cam2_optical_velo_link.yaml": "66f21e858e31702dfa7b3f6e8ac39ce3e13870d5c302c04eadb2eef36160afa5"
+    },
+    "generator_sha256": "b8034781610605f8acdef7d93b9a70fdb724d6caa11e3412f1d4804f9152cb20",
+    "estimator_sha256": "732560794d343f818f236e00f4395e274f7a16b9d920d78b4e2e30714b166a47",
+    "reference": "each KITTI day's published calibration, not ground truth"
+  }
+}

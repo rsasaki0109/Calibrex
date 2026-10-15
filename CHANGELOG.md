@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add an opt-in `start_scan_min_control_t` margin for adopting camera-LiDAR
+  profile-start fits. A rejected fit retains the current transform and evidence;
+  defaults preserve v2 behavior pending spent-data replays. Publish a post hoc
+  inventory of the 55 spent KITTI raw drives with new-rule metrics explicitly
+  unknown. This work introduces no new SOTA claim or audit thresholds.
+
 - **The KITTI camera-LiDAR check audit v2 is refuted: 8 of 9 gates.**
   - **The runs.** All 18 pre-registered drives of 2011_09_28, 2011_09_29, 2011_09_30 and
     2011_10_03 ran once from the frozen code.
