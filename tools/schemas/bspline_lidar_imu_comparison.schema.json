@@ -98,6 +98,37 @@
             }
           },
           "additionalProperties": false
+        },
+        "fit_options": {
+          "type": "object",
+          "properties": {
+            "prior_backend": {
+              "enum": [
+                "numpy",
+                "numba_cpu"
+              ]
+            },
+            "current_backend": {
+              "enum": [
+                "numpy",
+                "numba_cpu"
+              ]
+            },
+            "workers": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "numba_cache_policy": {
+              "const": "empty_per_worker"
+            }
+          },
+          "required": [
+            "prior_backend",
+            "current_backend",
+            "workers",
+            "numba_cache_policy"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
@@ -139,19 +170,56 @@
           "type": "integer",
           "minimum": 1
         },
-        "spatial_build_seconds": {"type": "number", "minimum": 0},
-        "spatial_build_calls": {"type": "integer", "minimum": 1},
-        "preprocessing_seconds": {"type": "number", "minimum": 0},
-        "preprocessing_calls": {"type": "integer", "minimum": 1},
-        "controls_seconds": {"type": "number", "minimum": 0},
-        "controls_calls": {"const": 1},
-        "registration_seconds": {"type": "number", "minimum": 0},
-        "registration_calls": {"type": "integer", "minimum": 1},
-        "odometry_seconds": {"type": "number", "minimum": 0},
-        "odometry_calls": {"type": "integer", "minimum": 1},
-        "gyro_preprocessing_seconds": {"type": "number", "minimum": 0},
-        "gyro_preprocessing_calls": {"type": "integer", "minimum": 1},
-        "preprocessing_scope": {"type": "string"},
+        "spatial_build_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "spatial_build_calls": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "preprocessing_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "preprocessing_calls": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "controls_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "controls_calls": {
+          "const": 1
+        },
+        "registration_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "registration_calls": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "odometry_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "odometry_calls": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "gyro_preprocessing_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "gyro_preprocessing_calls": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "preprocessing_scope": {
+          "type": "string"
+        },
         "rounds": {
           "type": "array",
           "minItems": 1,
@@ -171,7 +239,31 @@
             "numpy",
             "scipy",
             "blas_threads"
-          ]
+          ],
+          "properties": {
+            "fit_backend": {
+              "enum": [
+                "numpy",
+                "numba_cpu"
+              ]
+            },
+            "fit_workers": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "numba_cache_initially_empty": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "numba": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
         }
       },
       "required": [
@@ -268,7 +360,10 @@
             "const": "protocol"
           },
           "comparison": {
-            "enum": ["cpu-cuda", "cuda-cuda"]
+            "enum": [
+              "cpu-cuda",
+              "cuda-cuda"
+            ]
           }
         },
         "required": [

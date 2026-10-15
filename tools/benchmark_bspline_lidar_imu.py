@@ -122,6 +122,13 @@ def _worker(args: argparse.Namespace) -> None:
 
     rounds: list[dict[str, object]] = []
     original = runner.fit_bspline_lidar_imu
+    fit_backend = _fit_backend(args, args.variant)
+    numba_cache_empty = None
+    if fit_backend == "numba_cpu":
+        cache = Path(os.environ["NUMBA_CACHE_DIR"])
+        numba_cache_empty = not cache.exists() or not any(cache.iterdir())
+        if not numba_cache_empty:
+            raise RuntimeError("worker Numba compilation cache was not empty")
 
     def measured_fit(problem, options):
         begin = time.perf_counter()
@@ -135,6 +142,8 @@ def _worker(args: argparse.Namespace) -> None:
                 "final_cost": result.final_cost,
                 "residual_count": result.residual_count,
                 "parameter_count": result.parameter_count,
+                "calibration_parameter_names": list(result.calibration_parameter_names),
+                "execution_backend": getattr(result, "execution_backend", "numpy"),
                 "calibration_covariance": result.calibration_covariance.tolist(),
                 "residual_variance": result.residual_variance,
                 "trajectory_rotations": result.trajectory.rotations.tolist(),
@@ -150,6 +159,8 @@ def _worker(args: argparse.Namespace) -> None:
     runner.fit_bspline_lidar_imu = measured_fit
     begin = time.perf_counter()
     settings = runner.LidarImuBagOptions(max_rounds=args.max_rounds)
+    if fit_backend != "numpy":
+        settings = replace(settings, fit_backend=fit_backend, fit_workers=args.fit_workers)
     if args.comparison != "source":
         windowing = settings.rotation.windowing
         settings = replace(settings, rotation=replace(
@@ -176,11 +187,13 @@ def _worker(args: argparse.Namespace) -> None:
             str(args.max_seconds),
             "--max-rounds",
             str(args.max_rounds),
+            *_fit_arguments(args),
             *(["--comparison", args.comparison,
                *_odometry_arguments(args)] if args.comparison != "source" else []),
         ],
     )
     result.provenance.git_commit = args.source_commit
+    _validate_fit_execution(result.model_dump(mode="json"), rounds, fit_backend)
     out = Path(args.output)
     result.save(out / "result.json")
     pipeline_seconds = time.perf_counter() - begin
@@ -245,6 +258,10 @@ def _worker(args: argparse.Namespace) -> None:
                 "python": sys.version,
                 "numpy": numpy.__version__,
                 "scipy": scipy.__version__,
+                "fit_backend": fit_backend,
+                "fit_workers": args.fit_workers if fit_backend == "numba_cpu" else 1,
+                "numba_cache_initially_empty": numba_cache_empty,
+                "numba": (sys.modules["numba"].__version__ if fit_backend == "numba_cpu" else None),
                 "blas_threads": {
                     name: os.environ[name]
                     for name in ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS")
@@ -444,6 +461,32 @@ def _backend(comparison: str, variant: str) -> str:
     return "cpu"
 
 
+def _fit_backend(args: argparse.Namespace, variant: str) -> str:
+    return str(args.prior_fit_backend if variant == "prior" else args.current_fit_backend)
+
+
+def _fit_arguments(args: argparse.Namespace) -> list[str]:
+    return [
+        "--prior-fit-backend", args.prior_fit_backend,
+        "--current-fit-backend", args.current_fit_backend, "--fit-workers", str(args.fit_workers),
+    ]
+
+
+def _validate_fit_execution(result: dict, rounds: list[dict], requested: str) -> None:
+    identities = [item["execution_backend"] for item in rounds]
+    if not identities:
+        raise ValueError("no complete spline fits were observed")
+    if requested == "numpy":
+        if any(identity != "numpy" for identity in identities):
+            raise ValueError("native comparison executed another fit backend")
+        return
+    if (result["options"].get("fit_backend") != requested
+        or result["options"].get("fit_execution") != identities[-1]
+        or any(not identity.startswith("calibrex.numba_bspline_planes/v0.1;")
+               for identity in identities)):
+        raise ValueError("compiled plane comparison did not execute the requested backend")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--bag", default="data/public/glim_versatile/livox.bag")
@@ -452,6 +495,9 @@ def main() -> None:
     parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--max-seconds", type=float, default=12.0)
     parser.add_argument("--max-rounds", type=int, default=4)
+    parser.add_argument("--prior-fit-backend", choices=("numpy", "numba_cpu"), default="numpy")
+    parser.add_argument("--current-fit-backend", choices=("numpy", "numba_cpu"), default="numpy")
+    parser.add_argument("--fit-workers", type=int, default=1)
     parser.add_argument(
         "--comparison", choices=("source", "cpu-cuda", "cuda-cuda"), default="source",
     )
@@ -468,7 +514,7 @@ def main() -> None:
     if args.worker:
         _worker(args)
         return
-    if args.repeats < 1 or args.max_rounds < 2 or args.max_seconds <= 0:
+    if args.repeats < 1 or args.max_rounds < 2 or args.max_seconds <= 0 or args.fit_workers < 1:
         parser.error("need positive repeats/seconds and at least two map rounds")
     if args.comparison != "source" and (
         any(value is None for value in _odometry_options(args).values())
@@ -519,6 +565,9 @@ def main() -> None:
                 "control_chi2_relative": 1e-5,
                 "control_chi2_absolute": 1e-5,
             },
+            "fit_options": {"prior_backend": args.prior_fit_backend,
+                            "current_backend": args.current_fit_backend,
+                            "workers": args.fit_workers, "numba_cache_policy": "empty_per_worker"},
             **({"comparison": args.comparison, "odometry_options": _odometry_options(args),
                 "isolated_cuda_caches": True} if args.comparison != "source" else {}),
         },
@@ -535,6 +584,7 @@ def main() -> None:
             )
             env["PYTHONPATH"] = str(roots[variant] / "src") + os.pathsep + str(Path.cwd())
             env["PYTHONDONTWRITEBYTECODE"] = "1"
+            env["NUMBA_CACHE_DIR"] = str(worker_out / "numba-cache")
             if args.comparison != "source":
                 env["CUPY_CACHE_DIR"] = str(worker_out / "cupy-cache")
             command = [
@@ -556,6 +606,7 @@ def main() -> None:
                 str(args.max_rounds),
                 "--output",
                 str(worker_out),
+                *_fit_arguments(args),
                 *(["--comparison", args.comparison, *_odometry_arguments(args)]
                   if args.comparison != "source" else []),
             ]
@@ -580,7 +631,18 @@ def main() -> None:
     for repeat in range(args.repeats):
         prior = json.loads((out / f"{repeat:02d}-prior/result.json").read_bytes())
         current = json.loads((out / f"{repeat:02d}-current/result.json").read_bytes())
-        pairs.append(_compare(prior, current))
+        compared = _compare(prior, current)
+        if args.prior_fit_backend != args.current_fit_backend:
+            from tools.benchmark_bspline_planes import _compare as compare_fit
+
+            records = [json.loads((out / f"{repeat:02d}-{variant}/measurement.json").read_bytes())
+                       for variant in ("prior", "current")]
+            compared["fits"] = [compare_fit(left, right) for left, right in
+                                zip(records[0]["rounds"], records[1]["rounds"], strict=True)]
+            compared["passed"] = compared["passed"] and all(
+                record["passed"] for record in compared["fits"]
+            )
+        pairs.append(compared)
     medians = {
         v: statistics.median(a["whole_seconds"] for a in attempts if a["variant"] == v)
         for v in roots

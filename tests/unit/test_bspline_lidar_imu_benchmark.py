@@ -11,10 +11,13 @@ import pytest
 from tools.benchmark_bspline_lidar_imu import (
     _backend,
     _compare,
+    _fit_arguments,
+    _fit_backend,
     _manifest,
     _time_controls,
     _time_normal_preparation,
     _validate_backend_execution,
+    _validate_fit_execution,
     _verify_sources,
     _write,
 )
@@ -32,6 +35,37 @@ def test_controls_observer_preserves_result_and_exception() -> None:
     with pytest.raises(ValueError, match="original error"):
         holder._controls(True)
     assert timings["calls"] == 2 and timings["seconds"] > 0
+
+
+def test_plane_backend_selection_is_explicit_for_each_worker() -> None:
+    args = SimpleNamespace(
+        prior_fit_backend="numpy", current_fit_backend="numba_cpu", fit_workers=4,
+    )
+    assert _fit_backend(args, "prior") == "numpy"
+    assert _fit_backend(args, "current") == "numba_cpu"
+    assert _fit_arguments(args) == ["--prior-fit-backend", "numpy", "--current-fit-backend",
+                                   "numba_cpu", "--fit-workers", "4"]
+
+
+@pytest.mark.parametrize("mutation", ["none", "native", "missing", "identity", "result"])
+def test_compiled_bag_comparison_requires_every_round_to_execute_it(mutation: str) -> None:
+    identity = "calibrex.numba_bspline_planes/v0.1;workers=4;test"
+    rounds = [{"execution_backend": identity}] * 4
+    result = {"options": {"fit_backend": "numba_cpu", "fit_execution": identity}}
+    if mutation == "none":
+        _validate_fit_execution(result, rounds, "numba_cpu")
+        _validate_fit_execution({}, [{"execution_backend": "numpy"}], "numpy")
+        return
+    if mutation == "native":
+        rounds[0] = {"execution_backend": "numpy"}
+    elif mutation == "missing":
+        rounds = []
+    elif mutation == "identity":
+        result["options"]["fit_execution"] += "different"
+    else:
+        result["options"]["fit_backend"] = "numpy"
+    with pytest.raises(ValueError):
+        _validate_fit_execution(result, rounds, "numba_cpu")
 
 
 def test_normal_timing_counts_nested_cache_completion_once() -> None:
