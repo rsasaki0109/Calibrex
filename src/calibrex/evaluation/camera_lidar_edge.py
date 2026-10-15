@@ -216,7 +216,10 @@ class EdgeAlignmentOptions:
     max_moves_per_level: int = 12
     rotation_control_deg: float = 2.0
     translation_control_m: float = 0.05
-    min_control_t: float = 2.0
+    # A DoF is observed only when its held-out control reaches this t statistic.  On the 23
+    # KITTI drives of the first camera-lidar audit, every axis judged more than 0.75 deg off
+    # KITTI's calibration had its control at t 2.09 to 2.33 (2.0 was the bound then).
+    min_control_t: float = 2.5
     observable_rotation_std_deg: float = 0.5
     observable_translation_std_m: float = 0.03
     min_ring_fraction: float = 0.5
@@ -224,13 +227,15 @@ class EdgeAlignmentOptions:
     estimate_translation: bool = False
     # Wide-basin start: the objective is profiled along each rotation axis over
     # +-``start_scan_deg`` (the other axes at the candidate) and the search also runs from
-    # each axis's maximum alone and from all of them together; an optimum replaces the
-    # candidate's when it observes more rotation DoFs, or as many with a higher objective.
-    # A candidate a few degrees off often sits next to a local maximum the coordinate
-    # search cannot leave (KITTI 0005 pitch +5 deg stops at +2).  ``None`` turns the scan
-    # off.
+    # each axis's maximum alone and from all of them together.  A candidate a few degrees
+    # off often sits next to a local maximum the coordinate search cannot leave (KITTI
+    # 0005 pitch +5 deg stops at +2).  Such a far optimum replaces the current one only
+    # when it observes more rotation DoFs, at least ``start_scan_min_observed`` of them,
+    # and has none at the search bound (see ``_replaces_current``).  ``None`` turns the
+    # scan off.
     start_scan_deg: float | None = 8.0
     start_scan_step_deg: float = 0.5
+    start_scan_min_observed: int = 2
     # Accept clouds without beam structure (solid-state, non-repetitive scanning): their
     # depth discontinuities are found among angular neighbours instead of along beams.
     unstructured_lidar: bool = True
@@ -246,6 +251,8 @@ class EdgeAlignmentOptions:
             0.0 < self.start_scan_step_deg <= self.start_scan_deg <= self.rotation_bound_deg
         ):
             raise ValueError("the start scan needs 0 < step <= range <= the rotation bound")
+        if not 0 <= self.start_scan_min_observed <= 3:
+            raise ValueError("start_scan_min_observed counts rotation DoFs: 0 to 3")
 
     @property
     def effective_spacing_s(self) -> float:
@@ -912,15 +919,10 @@ def estimate_from_frames(
         widened_evidence = _evidence(
             prepared, camera, candidate, widened, blocks, block_objectives, opts
         )
-        # A far optimum can be a ridge of the scene rather than the calibration (a
-        # corridor): keep it only when more rotation DoFs pass their held-out controls
-        # and std bound there, or as many with a higher objective.
         widened_observed = _observed_rotations(
             widened, widened_evidence[1], widened_evidence[2], std_floor, opts
         )
-        if widened_observed > observed or (
-            widened_observed == observed and widened_score > score + opts.min_gain
-        ):
+        if _replaces_current(observed, widened_observed, widened, opts):
             start_reason = (
                 "the estimate comes from the search started at the profile maxima "
                 f"({', '.join(f'{v:+.1f}' for v in scan_start[:3])} deg): it observes "
@@ -1118,6 +1120,27 @@ def _profile_start(objective: EdgeObjective, options: EdgeAlignmentOptions) -> F
             values.append(objective.score(theta))
         start[axis] = float(offsets[int(np.argmax(values))])
     return start
+
+
+def _replaces_current(
+    observed: int, widened_observed: int, widened: FloatArray, options: EdgeAlignmentOptions
+) -> bool:
+    """Whether a far optimum (from a profile-maxima start) replaces the current one.
+
+    A far optimum can be a ridge of the scene rather than the calibration (a corridor),
+    and the objective alone does not tell them apart.  It replaces the current optimum only
+    when more rotation DoFs pass their held-out controls and std bound there, at least
+    ``start_scan_min_observed`` of them, and none of its rotation DoFs is at the search
+    bound.  On KITTI the earlier rule (more DoFs observed, or as many with a higher
+    objective) let wrong optima in: on 0029 one that tied the candidate's count won on the
+    objective with yaw 9.6 deg off; on 0056 one with yaw at the search bound replaced a
+    candidate optimum that observed nothing.  With those two excluded, one observing a
+    single DoF still judged roll 6.6 deg off in a turned run of 0056.
+    """
+
+    if np.any(np.abs(widened[:3]) >= options.rotation_bound_deg - 1e-9):
+        return False
+    return widened_observed > observed and widened_observed >= options.start_scan_min_observed
 
 
 def _profile_starts(scan_start: FloatArray | None) -> list[FloatArray]:
