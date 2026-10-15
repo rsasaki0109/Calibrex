@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Complete probabilistic refinement performance comparison",
+  "$defs": {
+    "hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "pair": {
+      "type": "object", "additionalProperties": false, "required": ["prior", "current"],
+      "properties": {"prior": {"type": "number", "exclusiveMinimum": 0}, "current": {"type": "number", "exclusiveMinimum": 0}}
+    },
+    "hashPair": {
+      "type": "object", "additionalProperties": false, "required": ["prior", "current"],
+      "properties": {"prior": {"$ref": "#/$defs/hash"}, "current": {"$ref": "#/$defs/hash"}}
+    },
+    "protocol": {
+      "type": "object", "additionalProperties": false,
+      "required": ["scope", "commits", "repetitions", "max_evaluations", "fresh_workers", "host_unreserved", "source_manifests", "inputs", "launcher_sha256", "source_freezer_sha256"],
+      "properties": {
+        "scope": {"type": "string"},
+        "commits": {"type": "object", "additionalProperties": false, "required": ["prior", "current"], "properties": {"prior": {"type": "string", "pattern": "^[a-f0-9]{40}$"}, "current": {"type": "string", "pattern": "^[a-f0-9]{40}$"}}},
+        "repetitions": {"type": "integer", "minimum": 2}, "max_evaluations": {"type": "integer", "minimum": 13},
+        "fresh_workers": {"const": true}, "host_unreserved": {"const": true},
+        "source_manifests": {"$ref": "#/$defs/hashPair"},
+        "inputs": {"type": "object", "additionalProperties": false, "required": ["correspondence", "problem"], "properties": {"correspondence": {"$ref": "#/$defs/hash"}, "problem": {"$ref": "#/$defs/hash"}}},
+        "launcher_sha256": {"$ref": "#/$defs/hash"}, "source_freezer_sha256": {"$ref": "#/$defs/hash"}
+      }
+    },
+    "worker": {
+      "type": "object", "additionalProperties": false, "required": ["api_seconds", "trace_evaluations", "provenance"],
+      "properties": {
+        "api_seconds": {"type": "number", "exclusiveMinimum": 0}, "trace_evaluations": {"type": "integer", "minimum": 1},
+        "provenance": {
+          "type": "object", "additionalProperties": false,
+          "required": ["source_commit", "source_manifest_sha256", "launcher_sha256", "result_sha256", "python", "blas_threads"],
+          "properties": {
+            "source_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+            "source_manifest_sha256": {"$ref": "#/$defs/hash"}, "launcher_sha256": {"$ref": "#/$defs/hash"}, "result_sha256": {"$ref": "#/$defs/hash"},
+            "python": {"type": "string"}, "blas_threads": {"type": "object", "additionalProperties": false, "required": ["OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "OMP_NUM_THREADS"], "properties": {"OPENBLAS_NUM_THREADS": {"const": "1"}, "MKL_NUM_THREADS": {"const": "1"}, "OMP_NUM_THREADS": {"const": "1"}}}
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object", "additionalProperties": false,
+      "required": ["whole_median_seconds", "whole_speedup", "api_median_seconds", "api_speedup", "exact_complete_results", "workers", "provenance"],
+      "properties": {
+        "whole_median_seconds": {"$ref": "#/$defs/pair"}, "api_median_seconds": {"$ref": "#/$defs/pair"},
+        "whole_speedup": {"type": "number", "exclusiveMinimum": 0}, "api_speedup": {"type": "number", "exclusiveMinimum": 0},
+        "exact_complete_results": {"const": true}, "workers": {"type": "integer", "minimum": 4},
+        "provenance": {"type": "object", "additionalProperties": false, "required": ["protocol_sha256", "attempts_sha256"], "properties": {"protocol_sha256": {"$ref": "#/$defs/hash"}, "attempts_sha256": {"$ref": "#/$defs/hash"}}}
+      }
+    },
+    "attempts": {
+      "type": "array", "items": {
+        "type": "object", "additionalProperties": false, "required": ["repeat", "variant", "whole_seconds", "exit_code"],
+        "properties": {"repeat": {"type": "integer", "minimum": 0}, "variant": {"enum": ["prior", "current"]}, "whole_seconds": {"type": "number", "exclusiveMinimum": 0}, "exit_code": {"type": "integer"}}
+      }
+    }
+  },
+  "oneOf": [{"$ref": "#/$defs/protocol"}, {"$ref": "#/$defs/worker"}, {"$ref": "#/$defs/summary"}, {"$ref": "#/$defs/attempts"}]
+}

@@ -1,0 +1,149 @@
+"""Publish every successful worker and the earlier validation failure."""
+from pathlib import Path
+import ast
+import gzip
+import hashlib
+import io
+import json
+import shutil
+import subprocess
+import tarfile
+
+root=Path(__file__).resolve().parent
+source=root/'outputs/probabilistic-refinement-pairs-v2'
+target=root/'docs/assets/probabilistic_pose_batching'
+target.mkdir(parents=True,exist_ok=True)
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+write=lambda p,v:p.write_text(json.dumps(v,indent=2)+'\n',encoding='utf-8')
+protocol=json.loads((source/'protocol.json').read_bytes())
+summary=json.loads((source/'summary.json').read_bytes())
+for name in ('protocol.json','attempts.json','summary.json','benchmark.py.txt','source-freezer.py.txt'):
+    shutil.copyfile(source/name,target/name)
+for i in range(2):
+    for variant in ('prior','current'):
+        folder=f'{i:02d}-{variant}'
+        (target/folder).mkdir(exist_ok=True)
+        for name in ('measurement.json','result.json','worker.log'):
+            shutil.copyfile(source/folder/name,target/folder/name)
+for variant in ('prior','current'):
+    frozen=source/('sources-'+variant)
+    shutil.copyfile(frozen/'manifest.json',target/('sources-'+variant+'-manifest.json'))
+    with (target/('sources-'+variant+'.tar.gz')).open('wb') as output:
+        with gzip.GzipFile(filename='',fileobj=output,mode='wb',mtime=0) as compressed:
+            with tarfile.open(fileobj=compressed,mode='w') as archive:
+                for path in sorted((frozen/'src/calibrex').rglob('*.py')):
+                    data=path.read_bytes()
+                    info=tarfile.TarInfo(path.relative_to(frozen).as_posix())
+                    info.size,info.mtime,info.mode=len(data),0,0o644
+                    archive.addfile(info,io.BytesIO(data))
+fixture=root/'outputs/kitti-probabilistic-control-v2'
+shutil.copyfile(fixture/'fixture-protocol.json',target/'fixture-protocol.json')
+shutil.copyfile(fixture/'initializer.txt',target/'fixture-scope.txt')
+failed_source=root/'outputs/probabilistic-refinement-pairs-v1'
+failed=target/'failed-validation-v1'
+(failed/'00-prior').mkdir(parents=True,exist_ok=True)
+for name in ('protocol.json','attempts.json','benchmark.py.txt'):
+    shutil.copyfile(failed_source/name,failed/name)
+for name in ('result.json','worker.log'):
+    shutil.copyfile(failed_source/'00-prior'/name,failed/'00-prior'/name)
+(failed/'README.txt').write_text('The first parent run stopped after saving its baseline result because '
+    'the launcher requested a misspelled validation kind. No timing from this failed run enters '
+    'the successful four-worker comparison. Its complete result/log/attempt/protocol/launcher '
+    'are retained. Both source manifests match the capsules in the parent directory.\n',encoding='utf-8')
+for name,label in [('probabilistic_refinement_benchmark','comparison'),('probabilistic_refinement_publication','publication')]:
+    shutil.copyfile(root/'tools/schemas'/(name+'.schema.json'),target/(label+'.schema.json'))
+shutil.copyfile(__file__,target/'publisher.py.txt')
+tests=target/'validation'
+tests.mkdir(exist_ok=True)
+log=root/'outputs/probabilistic-batch-validation-v1/source-bound-pytest.log'
+shutil.copyfile(log,tests/'pytest.log')
+test_names=('test_probabilistic_pose_batching.py','test_probabilistic_camera_lidar_refiner.py','test_probabilistic_refinement_benchmark.py')
+for name in test_names:
+    shutil.copyfile(root/'tests/unit'/name,tests/(name+'.txt'))
+manifest=json.loads((source/'sources-current/manifest.json').read_bytes())
+actual={p.relative_to(root/'src').as_posix():hashlib.sha256(
+    p.read_bytes().replace(b'\r\n',b'\n')).hexdigest()
+    for p in sorted((root/'src/calibrex').rglob('*.py'))}
+frozen_root=source/'sources-current/src'
+canonical_frozen={p.relative_to(frozen_root).as_posix():hashlib.sha256(
+    p.read_bytes().replace(b'\r\n',b'\n')).hexdigest()
+    for p in sorted((frozen_root/'calibrex').rglob('*.py'))}
+assert actual==canonical_frozen
+assert '71 passed' in log.read_text()
+write(tests/'receipt.json',{'canonical_runtime_matches_measured_source_after_tests':True,
+    'canonicalization':'Both working and frozen source normalize CRLF to LF, matching Python universal-newline parsing',
+    'source_commit':protocol['commits']['current'],
+    'source_manifest_sha256':protocol['source_manifests']['current'],
+    'pytest_log_sha256':sha(tests/'pytest.log'),
+    'test_sources':{p.name:sha(p) for p in tests.glob('*.py.txt')},
+    'tests_passed':71, 'command':['python','-m','pytest',*[str(Path('tests/unit')/n) for n in test_names],
+        '--basetemp','outputs/probabilistic-batch-validation-v1/source-bound-tmp',
+        '-p','no:cacheprovider','--override-ini','addopts=--disable-plugin-autoload','-q']})
+baseline=ast.parse((source/'sources-prior/src/calibrex/solvers/probabilistic_camera_lidar_refiner.py').read_bytes())
+current=ast.parse((source/'sources-current/src/calibrex/solvers/probabilistic_camera_lidar_refiner.py').read_bytes())
+left=next(n for n in baseline.body if isinstance(n,ast.FunctionDef) and n.name=='evaluate_probabilistic_camera_lidar_pose')
+right=next(n for n in current.body if isinstance(n,ast.FunctionDef) and n.name=='_evaluate_scalar_pose')
+assert [ast.dump(n) for n in left.body[2:]]==[ast.dump(n) for n in right.body[1:]]
+write(tests/'scalar-body-receipt.json',{'scalar_fallback_body_matches_prior_after_settings':True,
+    'provenance':{'prior_manifest_sha256':protocol['source_manifests']['prior'],
+                  'current_manifest_sha256':protocol['source_manifests']['current']}})
+parity=root/'outputs/probabilistic-batch-validation-v1/schema-parity'
+shutil.copyfile(parity/'checker.py.txt',target/'schema-checker.py.txt')
+shutil.copyfile(parity/'receipt.json',target/'schema-parity-receipt.json')
+rows=[]
+for a in json.loads((source/'attempts.json').read_bytes()):
+    rows.append(f"| {a['repeat']} | {a['variant']} | {a['whole_seconds']:.6f} |")
+(target/'README.md').write_text(f'''# Batched probabilistic Camera–LiDAR pose evaluation
+
+| Scope | Previous (s) | Current (s) | Observed ratio |
+| --- | ---: | ---: | ---: |
+| Complete worker | {summary['whole_median_seconds']['prior']:.6f} | {summary['whole_median_seconds']['current']:.6f} | {summary['whole_speedup']:.3f}x |
+| Artifact-backed API, including schema validation | {summary['api_median_seconds']['prior']:.6f} | {summary['api_median_seconds']['current']:.6f} | {summary['api_speedup']:.3f}x |
+
+| Repeat | Variant | Complete seconds |
+| --- | --- | ---: |
+{chr(10).join(rows)}
+
+Two alternating fresh-process pairs, one BLAS thread, no discarded warmup. Whole
+time includes Python imports, artifact parsing, invariant capture, every pose
+candidate, disjoint holdout, acceptance, full trace, saving, schema validation
+and frozen-source verification. The unreserved host produced large variation in
+the scalar baseline; pair ratios are about 2.83x and 5.29x. This four-worker
+sample establishes no portable timing guarantee. Ratios apply to probabilistic
+refinement only, not raw-sensor feature extraction or the full calibration stack.
+
+Nine original KITTI raw clouds from `2011_09_30_drive_0018_sync` provide 1,024
+deterministically selected points per frame, 9,216 total. A declared generated
+camera pose projects them through pinhole, MEI and double-sphere models, with
+fixed 0.35 px noise and anisotropic covariance. These are generated execution
+controls, not independently measured image correspondences or calibration
+accuracy evidence. Seven frames (7,168 correspondences) train; two (2,048) hold
+out. Both implementations converge and accept the candidate after exactly 325
+evaluations. No frame, point, candidate, iteration or holdout is removed by the
+optimization. Raw KITTI coordinates and generated correspondence files remain
+local; the archived builder and raw input hashes reproduce the fixture.
+
+All complete result fields match exactly, including every trace objective,
+candidate/selected transforms, acceptance and holdout. Only creation timestamps
+and source commit provenance differ. The declared quaternion normalization and
+Hamilton arithmetic order, camera projection powers, reductions and confidence
+gates remain unchanged. Scalar fallback semantics are retained above the bounded
+capture budget. Captures belong to one call and never enter a shared cache.
+
+Prior runtime `{protocol['commits']['prior']}`; candidate runtime
+`{protocol['commits']['current']}`. Source capsules/manifests, complete outputs,
+launcher, source-freezer helper, input hashes, schemas, publisher and 71-test
+receipt are bound by SHA-256. The original scalar fallback body is also checked
+against the prior evaluator. The failed schema-kind validation attempt remains
+in `failed-validation-v1`, outside successful timing medians. Audit with:
+
+```bash
+python -m tools.audit_probabilistic_refinement_benchmark docs/assets/probabilistic_pose_batching
+```
+''',encoding='utf-8',newline='\n')
+index={'schema_version':'slac.probabilistic_refinement_publication/v0.1',
+       'provenance':{'input_protocol_sha256':sha(target/'protocol.json')},
+       'files':{p.relative_to(target).as_posix():sha(p) for p in sorted(target.rglob('*'))
+                if p.is_file() and p.name!='publication-index.json'}}
+write(target/'publication-index.json',index)
+print(json.dumps({'files':len(index['files']),'whole_speedup':summary['whole_speedup']}))

@@ -10,11 +10,16 @@ from typing import Literal, TypeAlias
 import numpy as np
 from numpy.typing import NDArray
 
-from calibrex.core.geometry import SE3
+from calibrex.core.geometry import (
+    SE3,
+    normalize_quaternion_xyzw,
+    quaternion_conjugate_xyzw,
+)
 from calibrex.core.probabilistic_correspondence import (
     ProbabilisticCorrespondenceFrame,
     ProbabilisticImageCorrespondence,
 )
+from calibrex.data.depth import DepthCameraIntrinsics
 from calibrex.evaluation.holdout import split_indices
 from calibrex.solvers.borer_six_dof_solver import apply_local_se3_delta
 
@@ -33,6 +38,7 @@ ProbabilisticRefinementSelectedSource = Literal[
 INITIALIZER_PRESERVING_ACCEPTANCE_POLICY_ID = (
     "initializer_preserving_fit_only/v0.1"
 )
+_POSE_CAPTURE_BUDGET_BYTES = 128 * 1024**2
 
 
 @dataclass(frozen=True)
@@ -267,12 +273,10 @@ class ProbabilisticCameraLidarRefiner:
         ]
         if len(identifiers) != len(set(identifiers)):
             raise ValueError("train and holdout frame IDs must be disjoint")
-        initial_train = evaluate_probabilistic_camera_lidar_pose(
-            train, initial_transform_camera_lidar, settings
-        )
-        initial_holdout = evaluate_probabilistic_camera_lidar_pose(
-            holdout, initial_transform_camera_lidar, settings
-        )
+        train_evaluator = _PreparedPoseEvaluation(train, settings)
+        holdout_evaluator = _PreparedPoseEvaluation(holdout, settings)
+        initial_train = train_evaluator.evaluate(initial_transform_camera_lidar)
+        initial_holdout = holdout_evaluator.evaluate(initial_transform_camera_lidar)
         if (
             initial_train.valid_correspondence_count
             < settings.minimum_train_correspondences
@@ -361,9 +365,7 @@ class ProbabilisticCameraLidarRefiner:
                         candidate[:3],
                         candidate[3:],
                     )
-                    result = evaluate_probabilistic_camera_lidar_pose(
-                        train, transform, settings
-                    )
+                    result = train_evaluator.evaluate(transform)
                     evaluations += 1
                     candidates.append(
                         (
@@ -403,9 +405,7 @@ class ProbabilisticCameraLidarRefiner:
         candidate_transform = apply_local_se3_delta(
             initial_transform_camera_lidar, delta[:3], delta[3:]
         )
-        candidate_holdout = evaluate_probabilistic_camera_lidar_pose(
-            holdout, candidate_transform, settings
-        )
+        candidate_holdout = holdout_evaluator.evaluate(candidate_transform)
         at_bound = bool(np.any(np.isclose(np.abs(delta), bounds, atol=1.0e-12)))
         converged = bool(np.all(steps < minimum_steps))
         status: ProbabilisticRefinementStatus = (
@@ -465,6 +465,146 @@ def evaluate_probabilistic_camera_lidar_pose(
     """Evaluate robust covariance-weighted multi-frame reprojection."""
 
     settings = options or ProbabilisticCameraLidarRefinementOptions()
+    return _PreparedPoseEvaluation(frames, settings).evaluate(transform_camera_lidar)
+
+
+@dataclass(frozen=True)
+class _PoseFrame:
+    intrinsics: DepthCameraIntrinsics
+    points: FloatArray
+    means: FloatArray
+    covariance: FloatArray
+    weights: FloatArray
+
+
+class _PreparedPoseEvaluation:
+    """Capture invariant distributions once; preserve scalar arithmetic order."""
+
+    def __init__(
+        self, frames: Sequence[ProbabilisticCorrespondenceFrame],
+        settings: ProbabilisticCameraLidarRefinementOptions,
+    ) -> None:
+        self.settings = settings
+        self.total = sum(len(frame.correspondences) for frame in frames)
+        # Avoid an unbounded second copy of caller-owned distributions. The
+        # scalar path keeps the previous behavior for unusually large inputs.
+        tiny = max((len(frame.correspondences) for frame in frames), default=0) < 64
+        self.fallback = (
+            tuple(frames) if tiny or self.total * 128 > _POSE_CAPTURE_BUDGET_BYTES else ()
+        )
+        prepared = []
+        if not self.fallback:
+            for frame in frames:
+                selected = []
+                for item in frame.correspondences:
+                    confidence = _confidence(item, settings)
+                    if confidence >= settings.minimum_confidence:
+                        selected.append((item, confidence))
+                if not selected:
+                    continue
+                prepared.append(_PoseFrame(
+                    frame.intrinsics.model_copy(deep=True),
+                    np.asarray([item.point_lidar_m for item, _ in selected], dtype=float),
+                    np.asarray([item.image_mean_px for item, _ in selected], dtype=float),
+                    np.asarray([item.image_covariance_px2 for item, _ in selected], dtype=float),
+                    np.asarray([weight for _, weight in selected], dtype=float),
+                ))
+        self.frames = tuple(prepared)
+
+    def evaluate(self, transform: SE3) -> ProbabilisticPoseEvaluation:
+        if self.fallback:
+            return _evaluate_scalar_pose(self.fallback, transform, self.settings)
+        # Match rotate_vector_xyzw's two normalizations, Hamilton products and
+        # translation additions, without a matrix multiply's different rounding.
+        lx, ly, lz, lw = normalize_quaternion_xyzw(transform.rotation_quat_xyzw)
+        rx, ry, rz, rw = quaternion_conjugate_xyzw((lx, ly, lz, lw))
+        pixels, errors, weights = [], [], []
+        with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+            for frame in self.frames:
+                x, y, z = frame.points.T
+                ax = lw*x + lx*0.0 + ly*z - lz*y
+                ay = lw*y - lx*z + ly*0.0 + lz*x
+                az = lw*z + lx*y - ly*x + lz*0.0
+                aw = lw*0.0 - lx*x - ly*y - lz*z
+                moved_x = aw*rx + ax*rw + ay*rz - az*ry + transform.translation_m[0]
+                moved_y = aw*ry - ax*rz + ay*rw + az*rx + transform.translation_m[1]
+                moved_z = aw*rz + ax*ry - ay*rx + az*rw + transform.translation_m[2]
+                rows = np.flatnonzero(moved_z > 1.0e-9)
+                if not len(rows):
+                    continue
+                x, y, z = moved_x[rows], moved_y[rows], moved_z[rows]
+                intrinsics = frame.intrinsics
+                if intrinsics.projection in {"mei", "double_sphere"}:
+                    if intrinsics.xi is None:
+                        raise ValueError(
+                            "MEI projection requires xi" if intrinsics.projection == "mei"
+                            else "double-sphere projection requires xi and alpha"
+                        )
+                    norm = np.sqrt(x*x + y*y + z*z)
+                    if intrinsics.projection == "mei":
+                        denominator = z + intrinsics.xi * norm
+                    else:
+                        if intrinsics.alpha is None:
+                            raise ValueError("double-sphere projection requires xi and alpha")
+                        zeta = intrinsics.xi * norm + z
+                        second_norm = np.sqrt(x*x + y*y + zeta*zeta)
+                        denominator = intrinsics.alpha * second_norm + (1.0-intrinsics.alpha)*zeta
+                    valid = denominator > 1.0e-12
+                    rows, x, y, denominator = rows[valid], x[valid], y[valid], denominator[valid]
+                    x, y = x/denominator, y/denominator
+                else:
+                    x, y = x/z, y/z
+                if intrinsics.distortion_model == "radial-tangential" and len(
+                    intrinsics.distortion
+                ) in {4, 5}:
+                    k1, k2, p1, p2 = intrinsics.distortion[:4]
+                    k3 = intrinsics.distortion[4] if len(intrinsics.distortion) == 5 else 0.0
+                    radius2 = x*x + y*y
+                    # Python float power is retained: vector pow may round
+                    # differently and perturb candidate selection near ties.
+                    squared = np.fromiter((float(r)**2 for r in radius2), dtype=float)
+                    cubed = np.fromiter((float(r)**3 for r in radius2), dtype=float)
+                    radial = 1.0 + k1*radius2 + k2*squared + k3*cubed
+                    dx = x*radial + 2.0*p1*x*y + p2*(radius2+2.0*x*x)
+                    dy = y*radial + p1*(radius2+2.0*y*y) + 2.0*p2*x*y
+                    x, y = dx, dy
+                u, v = intrinsics.fx*x+intrinsics.cx, intrinsics.fy*y+intrinsics.cy
+                valid = (u >= 0.0) & (u < intrinsics.width) & (v >= 0.0) & (v < intrinsics.height)
+                rows, u, v = rows[valid], u[valid], v[valid]
+                if not len(rows):
+                    continue
+                du, dv = u-frame.means[rows, 0], v-frame.means[rows, 1]
+                pixel = du*du + dv*dv
+                if self.settings.use_covariance:
+                    a, b, c, d = frame.covariance[rows].T
+                    squared_error = (d*du*du - (b+c)*du*dv + a*dv*dv)/(a*d-b*c)
+                else:
+                    squared_error = pixel
+                pixels.append(pixel)
+                errors.append(np.sqrt(np.where(squared_error > 0.0, squared_error, 0.0)))
+                weights.append(frame.weights[rows])
+        if not weights:
+            return ProbabilisticPoseEvaluation(math.inf, None, None, 0, self.total)
+        pixel_array = np.concatenate(pixels)
+        mahalanobis_array = np.concatenate(errors)
+        weight_array = np.concatenate(weights)
+        robust = np.log1p((mahalanobis_array/self.settings.cauchy_scale)**2)
+        return ProbabilisticPoseEvaluation(
+            objective=float(np.sum(weight_array*robust)/np.sum(weight_array)),
+            weighted_reprojection_rmse_px=math.sqrt(
+                float(np.sum(weight_array*pixel_array))/float(np.sum(weight_array))),
+            mean_mahalanobis_error=float(np.sum(weight_array*mahalanobis_array)/np.sum(weight_array)),
+            valid_correspondence_count=len(weight_array),
+            skipped_correspondence_count=self.total-len(weight_array),
+        )
+
+
+def _evaluate_scalar_pose(
+    frames: Sequence[ProbabilisticCorrespondenceFrame], transform_camera_lidar: SE3,
+    settings: ProbabilisticCameraLidarRefinementOptions,
+) -> ProbabilisticPoseEvaluation:
+    """Bounded-memory original evaluation for inputs above the capture budget."""
+
     pixel_squared: list[float] = []
     mahalanobis: list[float] = []
     weights: list[float] = []
