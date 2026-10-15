@@ -16,8 +16,9 @@ is ``J^T J`` and the cost is a chi-square.  An optional prior on the gravity
 magnitude, ``(|g| - g0) / sigma``, separates gravity from the accelerometer
 bias when the attitude barely varies (a level platform that only turns about
 the vertical sees ``g_z`` and ``b_a,z`` only through their sum).  Each residual touches the four
-control points of its segment; their Jacobian is taken by central differences
-of the vectorized spline, perturbing one local slot for every residual at once.
+control points of its segment; their Jacobian uses the analytic position basis
+and SO(3) rotation/rate recursion. Only the clock-offset column retains central
+differences, including the segment selection on each side of a knot.
 The marginal covariance of the calibration blocks marginalizes the control
 points by Schur complement.
 """
@@ -39,7 +40,12 @@ from calibrex.core.continuous_time_bspline import (
     CubicBSplineTrajectory,
     cumulative_basis,
     evaluate_local_spline,
+    skew_batch,
     so3_exp_batch,
+)
+from calibrex.core.continuous_time_bspline_derivatives import (
+    _rotation_control_derivatives,
+    _RotationDerivatives,
 )
 from calibrex.core.se3_manifold import (
     rotation_matrix_to_rotation_vector,
@@ -388,11 +394,20 @@ _Sensitivity = tuple[FloatArray | None, FloatArray | None]
 class _Family:
     times: FloatArray
     on_imu_clock: bool
-    residual: Callable[[_Gathered, LidarImuCalibration], FloatArray]
+    state_residual: Callable[[BSplineStates, LidarImuCalibration], FloatArray]
     # Residual derivatives by world position and world acceleration, each
     # ``(M, width, 3)`` or None; the position control points enter only there.
-    position_sensitivity: Callable[[_Gathered, LidarImuCalibration], _Sensitivity]
+    position_sensitivity: Callable[[BSplineStates, LidarImuCalibration], _Sensitivity]
+    rotation_sensitivity: Callable[
+        [BSplineStates, _RotationDerivatives, LidarImuCalibration], FloatArray
+    ]
+    calibration_sensitivity: Callable[
+        [BSplineStates, LidarImuCalibration], dict[CalibrationBlock, FloatArray]
+    ]
     depends_on: frozenset[CalibrationBlock]
+
+    def residual(self, gathered: _Gathered, calibration: LidarImuCalibration) -> FloatArray:
+        return self.state_residual(gathered.states(), calibration)
 
     def body_times(self, calibration: LidarImuCalibration) -> FloatArray:
         if self.on_imu_clock:
@@ -405,8 +420,7 @@ def _families(
     gyro: BSplineImuSamples,
     accel: BSplineImuSamples,
 ) -> dict[str, _Family]:
-    def plane_residual(gathered: _Gathered, _calibration: LidarImuCalibration) -> FloatArray:
-        states = gathered.states()
+    def plane_residual(states: BSplineStates, _calibration: LidarImuCalibration) -> FloatArray:
         world = (
             np.einsum("tij,tj->ti", states.rotation_world_body, planes.points_body_m)
             + states.position_world_m
@@ -415,14 +429,12 @@ def _families(
         distance = np.sum(planes.plane_normals_world * offset, axis=1)
         return np.asarray(distance[:, None] / planes.sigma_m, dtype=float)
 
-    def gyro_residual(gathered: _Gathered, calibration: LidarImuCalibration) -> FloatArray:
-        states = gathered.states()
+    def gyro_residual(states: BSplineStates, calibration: LidarImuCalibration) -> FloatArray:
         rotation = rotation_vector_to_matrix(np.asarray(calibration.imu_rotation_vector_rad))
         predicted = states.angular_velocity_body_rad_s @ rotation + calibration.gyro_bias_rad_s
         return np.asarray((predicted - gyro.values) / gyro.sigma, dtype=float)
 
-    def accel_residual(gathered: _Gathered, calibration: LidarImuCalibration) -> FloatArray:
-        states = gathered.states()
+    def accel_residual(states: BSplineStates, calibration: LidarImuCalibration) -> FloatArray:
         rotation = rotation_vector_to_matrix(np.asarray(calibration.imu_rotation_vector_rad))
         lever = np.broadcast_to(
             np.asarray(calibration.lever_arm_body_m), states.position_world_m.shape
@@ -441,19 +453,89 @@ def _families(
         return np.asarray((predicted - accel.values) / accel.sigma, dtype=float)
 
     def plane_sensitivity(
-        _gathered: _Gathered, _calibration: LidarImuCalibration
+        _states: BSplineStates, _calibration: LidarImuCalibration
     ) -> _Sensitivity:
         return (planes.plane_normals_world[:, None, :] / planes.sigma_m, None)
 
-    def gyro_sensitivity(_gathered: _Gathered, _calibration: LidarImuCalibration) -> _Sensitivity:
+    def gyro_sensitivity(_states: BSplineStates, _calibration: LidarImuCalibration) -> _Sensitivity:
         return (None, None)
 
-    def accel_sensitivity(gathered: _Gathered, calibration: LidarImuCalibration) -> _Sensitivity:
-        states = gathered.states()
+    def accel_sensitivity(states: BSplineStates, calibration: LidarImuCalibration) -> _Sensitivity:
         rotation = rotation_vector_to_matrix(np.asarray(calibration.imu_rotation_vector_rad))
         # predicted = R_bi^T R^T a_world + ..., so d/da = R_bi^T R^T.
         world_to_imu = np.einsum("ji,tkj->tik", rotation, states.rotation_world_body)
         return (None, np.asarray(world_to_imu / accel.sigma, dtype=float))
+
+    def plane_rotation(
+        states: BSplineStates, derivatives: _RotationDerivatives, _calibration: LidarImuCalibration
+    ) -> FloatArray:
+        # d(R p)/d epsilon = -R [p]x, epsilon the output right tangent.
+        world = -states.rotation_world_body @ skew_batch(planes.points_body_m)
+        return np.einsum(
+            "ti,tij->tj", planes.plane_normals_world, world @ derivatives.rotation_tangent
+        )[:, None, :] / planes.sigma_m
+
+    def gyro_rotation(
+        _states: BSplineStates, derivatives: _RotationDerivatives, calibration: LidarImuCalibration
+    ) -> FloatArray:
+        rotation = rotation_vector_to_matrix(np.asarray(calibration.imu_rotation_vector_rad))
+        return np.asarray(rotation.T @ derivatives.angular_velocity / gyro.sigma, dtype=float)
+
+    def accel_rotation(
+        states: BSplineStates, derivatives: _RotationDerivatives, calibration: LidarImuCalibration
+    ) -> FloatArray:
+        rotation = rotation_vector_to_matrix(np.asarray(calibration.imu_rotation_vector_rad))
+        lever = np.broadcast_to(calibration.lever_arm_body_m, states.position_world_m.shape)
+        omega = states.angular_velocity_body_rad_s
+        body_force = np.einsum(
+            "tji,tj->ti", states.rotation_world_body,
+            states.linear_acceleration_world_m_s2 - calibration.gravity_world_m_s2,
+        )
+        derivative = (
+            skew_batch(body_force) @ derivatives.rotation_tangent
+            - skew_batch(lever) @ derivatives.angular_acceleration
+            - (skew_batch(np.cross(omega, lever)) + skew_batch(omega) @ skew_batch(lever))
+            @ derivatives.angular_velocity
+        )
+        return np.asarray(rotation.T @ derivative / accel.sigma, dtype=float)
+
+    def plane_calibration(
+        _states: BSplineStates, _calibration: LidarImuCalibration
+    ) -> dict[CalibrationBlock, FloatArray]:
+        return {}
+
+    def gyro_calibration(
+        states: BSplineStates, calibration: LidarImuCalibration
+    ) -> dict[CalibrationBlock, FloatArray]:
+        rotation = rotation_vector_to_matrix(np.asarray(calibration.imu_rotation_vector_rad))
+        prediction = states.angular_velocity_body_rad_s @ rotation
+        return {
+            "imu_rotation": skew_batch(prediction) / gyro.sigma,
+            "gyro_bias": np.broadcast_to(np.eye(3) / gyro.sigma, (prediction.shape[0], 3, 3)),
+        }
+
+    def accel_calibration(
+        states: BSplineStates, calibration: LidarImuCalibration
+    ) -> dict[CalibrationBlock, FloatArray]:
+        rotation = rotation_vector_to_matrix(np.asarray(calibration.imu_rotation_vector_rad))
+        omega = states.angular_velocity_body_rad_s
+        alpha = states.angular_acceleration_body_rad_s2
+        lever = np.broadcast_to(calibration.lever_arm_body_m, omega.shape)
+        kinematic = (
+            np.einsum(
+                "tji,tj->ti", states.rotation_world_body,
+                states.linear_acceleration_world_m_s2 - calibration.gravity_world_m_s2,
+            )
+            + np.cross(alpha, lever) + np.cross(omega, np.cross(omega, lever))
+        )
+        omega_skew = skew_batch(omega)
+        return {
+            "imu_rotation": skew_batch(kinematic @ rotation) / accel.sigma,
+            "lever_arm": rotation.T @ (skew_batch(alpha) + omega_skew @ omega_skew) / accel.sigma,
+            "accel_bias": np.broadcast_to(np.eye(3) / accel.sigma, (omega.shape[0], 3, 3)),
+            "gravity": -rotation.T @ np.transpose(states.rotation_world_body, (0, 2, 1))
+            / accel.sigma,
+        }
 
     return {
         "plane": _Family(
@@ -461,6 +543,8 @@ def _families(
             False,
             plane_residual,
             plane_sensitivity,
+            plane_rotation,
+            plane_calibration,
             frozenset(),
         ),
         "gyro": _Family(
@@ -468,6 +552,8 @@ def _families(
             True,
             gyro_residual,
             gyro_sensitivity,
+            gyro_rotation,
+            gyro_calibration,
             frozenset({"imu_rotation", "gyro_bias", "imu_clock_offset"}),
         ),
         "accel": _Family(
@@ -475,6 +561,8 @@ def _families(
             True,
             accel_residual,
             accel_sensitivity,
+            accel_rotation,
+            accel_calibration,
             frozenset(
                 {"imu_rotation", "lever_arm", "imu_clock_offset", "accel_bias", "gravity"}
             ),
@@ -523,11 +611,10 @@ def _linearize(
     values: list[FloatArray] = []
     residual_parts: list[FloatArray] = []
     row_offset = 0
-    tangent_steps = so3_exp_batch(np.eye(3) * _EPSILON)
-    tangent_steps_back = so3_exp_batch(-np.eye(3) * _EPSILON)
-    for family in families.values():
+    for name, family in families.items():
         gathered = _gather(trajectory, family.body_times(calibration))
-        base = family.residual(gathered, calibration)
+        states = gathered.states()
+        base = family.state_residual(states, calibration)
         count, width = base.shape
         residual_parts.append(base.reshape(-1))
         row_index = row_offset + np.arange(count * width).reshape(count, width)
@@ -539,7 +626,15 @@ def _linearize(
         acceleration_weights = dd_padded - np.concatenate(
             [dd_padded[:, 1:], np.zeros((count, 1))], axis=1
         )
-        by_position, by_acceleration = family.position_sensitivity(gathered, calibration)
+        by_position, by_acceleration = family.position_sensitivity(states, calibration)
+        rotation_derivative = family.rotation_sensitivity(
+            states,
+            _rotation_control_derivatives(
+                gathered.rotations, gathered.fraction, gathered.spacing,
+                order=0 if name == "plane" else 1 if name == "gyro" else 2,
+            ),
+            calibration,
+        )
         for slot in range(4):
             control = gathered.segment + slot
             for axis in range(3):
@@ -552,29 +647,25 @@ def _linearize(
                             by_acceleration[:, :, axis] * acceleration_weights[:, slot, None]
                         )
                     _append(rows, columns, values, row_index, 6 * control + axis, derivative)
-                plus_rotations = np.array(gathered.rotations, copy=True)
-                minus_rotations = np.array(gathered.rotations, copy=True)
-                plus_rotations[:, slot] = gathered.rotations[:, slot] @ tangent_steps[axis]
-                minus_rotations[:, slot] = gathered.rotations[:, slot] @ tangent_steps_back[axis]
-                derivative = (
-                    family.residual(replace(gathered, rotations=plus_rotations), calibration)
-                    - family.residual(replace(gathered, rotations=minus_rotations), calibration)
-                ) / (2.0 * _EPSILON)
+                derivative = rotation_derivative[:, :, 3 * slot + axis]
                 _append(rows, columns, values, row_index, 6 * control + 3 + axis, derivative)
         column = control_columns
+        calibration_derivatives = family.calibration_sensitivity(states, calibration)
         for block in estimate:
             if block not in family.depends_on:
                 column += _BLOCK_WIDTH[block]
                 continue
             for axis in range(_BLOCK_WIDTH[block]):
-                step = np.zeros(_BLOCK_WIDTH[block], dtype=float)
-                step[axis] = _EPSILON
-                plus = calibration.stepped(block, step)
-                minus = calibration.stepped(block, -step)
-                derivative = (
-                    family.residual(_gather(trajectory, family.body_times(plus)), plus)
-                    - family.residual(_gather(trajectory, family.body_times(minus)), minus)
-                ) / (2.0 * _EPSILON)
+                if block == "imu_clock_offset":
+                    step = np.array([_EPSILON])
+                    plus = calibration.stepped(block, step)
+                    minus = calibration.stepped(block, -step)
+                    derivative = (
+                        family.residual(_gather(trajectory, family.body_times(plus)), plus)
+                        - family.residual(_gather(trajectory, family.body_times(minus)), minus)
+                    ) / (2.0 * _EPSILON)
+                else:
+                    derivative = calibration_derivatives[block][:, :, axis]
                 if np.any(derivative):
                     _append(
                         rows,

@@ -180,6 +180,16 @@ def test_linearized_jacobian_matches_finite_differences_of_every_parameter() -> 
                 - stacked(replace(spline, positions=spline.positions - step), calibration)
             ) / (2.0 * epsilon)
             assert np.allclose(dense[:, 6 * control + axis], numeric, atol=1.0e-4, rtol=1.0e-5)
+            plus, minus = spline.rotations.copy(), spline.rotations.copy()
+            tangent = np.zeros(3)
+            tangent[axis] = epsilon
+            plus[control] = plus[control] @ rotation_vector_to_matrix(tangent)
+            minus[control] = minus[control] @ rotation_vector_to_matrix(-tangent)
+            numeric = (
+                stacked(replace(spline, rotations=plus), calibration)
+                - stacked(replace(spline, rotations=minus), calibration)
+            ) / (2 * epsilon)
+            assert np.allclose(dense[:, 6 * control + 3 + axis], numeric, atol=1e-4, rtol=1e-5)
     column = 6 * spline.control_point_count
     for block in CALIBRATION_BLOCKS:
         width = 1 if block == "imu_clock_offset" else 3

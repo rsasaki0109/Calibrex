@@ -1242,6 +1242,17 @@
   calibration passes, the same calibration turned +3 deg about the camera y axis fails), rendered
   by `tools/camera_lidar_check_gif.py` and registered in `docs/assets/readme-data-gifs.json`.
 
+- Use analytic SO(3) spline-control and IMU calibration Jacobians in the
+  joint B-spline LiDAR-IMU fitter, sharing base states and computing only the
+  derivatives needed by each residual family. On a public GLIM 12-second clip,
+  three alternating CPU pairs measured 2.55x complete-worker acceleration
+  (325 to 127 s medians) and 6.32x across the four fits including covariance
+  (252 to 40 s), with matching calibration/evidence decisions. Public APIs
+  and all 130 exported schemas are unchanged. Complete source-bound trials,
+  per-round covariance/trajectory arrays and a CPU-only audit are archived;
+  the real-data calibration verdict remains INCONCLUSIVE. See
+  `docs/benchmarks/bspline_lidar_imu_acceleration.md`.
+
 ## 0.5.1 - 2026-10-02
 
 Highlights:

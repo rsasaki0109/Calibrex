@@ -8,6 +8,7 @@ from typing import Any
 
 import pytest
 import yaml
+from jsonschema import validate as validate_json_schema
 
 from calibrex.core.exceptions import CalibrexError
 from calibrex.core.schema_registry import (
@@ -32,6 +33,17 @@ UNREGISTERED_SCHEMA_VERSIONS = {
     "slac.public_datasets/v0.1": "public dataset catalog; no published schema",
     "slac.readme_gif_gallery/v0.3": "README gallery provenance asset",
     "slac.readme_time_offset_sweep/v0.1": "README time-sweep provenance asset",
+}
+
+# Benchmark records are validated by their explicit tool schemas and archive
+# audits, without adding benchmark-internal formats to the core public API.
+TOOL_SCHEMA_VERSIONS = {
+    "slac.bspline_lidar_imu_comparison/v0.1": (
+        "tools/schemas/bspline_lidar_imu_comparison.schema.json"
+    ),
+    "slac.bspline_lidar_imu_publication/v0.1": (
+        "tools/schemas/bspline_lidar_imu_publication.schema.json"
+    ),
 }
 
 # Committed artifacts known to violate their declared schema.  Each entry must
@@ -225,6 +237,12 @@ def test_every_committed_artifact_is_readable() -> None:
 
     unreadable: list[str] = []
     for name, version in artifacts:
+        if version in TOOL_SCHEMA_VERSIONS:
+            validate_json_schema(
+                json.loads((REPO_ROOT / name).read_bytes()),
+                json.loads((REPO_ROOT / TOOL_SCHEMA_VERSIONS[version]).read_bytes()),
+            )
+            continue
         if version in UNREGISTERED_SCHEMA_VERSIONS:
             continue
         try:
