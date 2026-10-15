@@ -305,10 +305,18 @@ def audit(root: Path) -> dict[str, object]:
                     isinstance(node, ast.Constant) and node.value == "gpu_normal_kernel_calls"
                     for node in ast.walk(ast.parse(source_bytes[variant][adapter]))
                 )
+                async_schedule = any(
+                    isinstance(node, ast.Constant) and node.value == ";normal_schedule=async-v1"
+                    for function in ast.parse(source_bytes[variant][adapter]).body
+                    if (isinstance(function, ast.FunctionDef)
+                        and function.name == "execution_identity")
+                    for node in ast.walk(function)
+                )
                 identity = re.compile(
                     r"calibrex\.cuda_scan_odometry/v0\.1;fp64=true;query_fma=false;"
                     r"cupy=([^;]+);cuda=\d+;driver=\d+;cc=\d+\.\d+;"
                     rf"query_sha256={query_hash};system_sha256={system_hash}"
+                    + (r";normal_schedule=async-v1" if async_schedule else "")
                 )
                 reports = (result["options"]["initial_odometry_execution"]
                            + result["options"]["segment_odometry_execution"])
@@ -319,6 +327,12 @@ def audit(root: Path) -> dict[str, object]:
                     counters = report["statistics"]
                     if normal_counter_expected and "gpu_normal_kernel_calls" not in counters:
                         raise ValueError("GPU normal kernel accounting is missing")
+                    if async_schedule and (
+                        "gpu_async_normal_batches" not in counters
+                        or counters["gpu_async_normal_batches"]
+                        > counters.get("gpu_normal_kernel_calls", 0)
+                    ):
+                        raise ValueError("GPU asynchronous normal accounting differs")
                     if ("gpu_normal_kernel_calls" in counters
                             and counters.get("gpu_normal_rows", 0) > 0
                             and counters["gpu_normal_kernel_calls"] <= 0):
@@ -407,9 +421,20 @@ def audit(root: Path) -> dict[str, object]:
             raise ValueError("complete CPU calibration/evidence fields differ")
         left = measurements[(repeat, "prior")]["rounds"]
         right = measurements[(repeat, "current")]["rounds"]
+        if protocol.get("exact_preparation_outputs_required"):
+            backends = protocol.get("fit_plane_backends", {"prior": "numpy", "current": "numpy"})
+            if (protocol.get("comparison") != "cuda-cuda"
+                    or backends["prior"] != backends["current"]):
+                raise ValueError("exact preparation protocol changes another backend")
+            module._validate_preparation_pair(
+                results[(repeat, "prior")], results[(repeat, "current")], left, right,
+            )
         if "fit_plane_backends" in protocol:
             module._validate_plane_fit_pair(left, right)
             a, b = results[(repeat, "prior")], results[(repeat, "current")]
+            if protocol.get("exact_preparation_outputs_required"):
+                a = module._preparation_result(a, asynchronous=False)
+                b = module._preparation_result(b, asynchronous=True)
             for field in ("initial", "segment_start_s", "segment_duration_s", "limitations"):
                 if a[field] != b[field]:
                     raise ValueError(f"unchanged spline comparison {field} differs")

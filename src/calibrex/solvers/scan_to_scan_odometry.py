@@ -481,6 +481,12 @@ class IncrementalScanOdometry:
         target = _local_map(self._recent, self.poses[-1], self.options)
         cuda_target = (None if self._cuda_factory is None else
                        self._cuda_factory(target, self.options))
+        if cuda_target is not None:
+            prime_normals = getattr(cuda_target, "_prime_normals", None)
+            if prime_normals is not None:
+                # A bounded dense batch can run while CPU deskew/voxel work
+                # prepares the source; sparse/large maps retain demand-driven work.
+                prime_normals(min(len(scan), len(self._recent[-1])))
         tree = cKDTree(target) if cuda_target is None else None
         normals = TargetNormals(target, tree, self.options) if tree is not None else None
         deskew = point_offsets_s is not None and gap is not None and gap > 0.0

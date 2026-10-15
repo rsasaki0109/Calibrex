@@ -19,6 +19,7 @@ from tools.benchmark_bspline_lidar_imu import (
     _validate_exact_pair,
     _validate_plane_execution,
     _validate_plane_fit_pair,
+    _validate_preparation_pair,
     _validate_query_workers,
     _verify_sources,
     _write,
@@ -110,6 +111,50 @@ def test_exact_comparison_allows_only_run_metadata_and_wall_times() -> None:
     b[0]["covariance"][0][0] += 1e-15
     with pytest.raises(ValueError, match="fit fields"):
         _validate_exact_pair(left, right, a, b)
+
+
+@pytest.mark.parametrize("mutation", [
+    "none", "physical", "work", "missing", "zero", "excess", "identity", "extra", "fits",
+])
+def test_async_preparation_allows_only_declared_scheduling_metadata(mutation: str) -> None:
+    report = {"requested_backend": "cuda", "executed_backends": [
+        "calibrex.cuda_scan_odometry/v0.1;system_sha256=" + "a" * 64],
+        "statistics": {"gpu_query_rows": 1000, "gpu_fused_system_calls": 10,
+                       "gpu_normal_kernel_calls": 5, "gpu_normal_rows": 100}}
+    prior = {"calibration": [.1], "options": {"odometry_backend": "cuda",
+        "initial_odometry_execution": [report],
+        "segment_odometry_execution": [copy.deepcopy(report)]}}
+    current = copy.deepcopy(prior)
+    for name in ("initial_odometry_execution", "segment_odometry_execution"):
+        changed = current["options"][name][0]
+        changed["executed_backends"][0] += ";normal_schedule=async-v1"
+        changed["statistics"]["gpu_async_normal_batches"] = 5
+    left = [{"seconds": 1., "covariance": [[.1]]}]
+    right = [{"seconds": 2., "covariance": [[.1]]}]
+    before = copy.deepcopy(current)
+    _validate_preparation_pair(prior, current, left, right)
+    assert current == before  # Auditing must not erase the original evidence.
+    changed = current["options"]["segment_odometry_execution"][0]
+    if mutation == "none":
+        return
+    if mutation == "physical":
+        current["calibration"][0] += 1e-15
+    elif mutation == "work":
+        changed["statistics"]["gpu_normal_rows"] += 1
+    elif mutation == "missing":
+        changed["statistics"].pop("gpu_async_normal_batches")
+    elif mutation in ("zero", "excess"):
+        changed["statistics"]["gpu_async_normal_batches"] = 0 if mutation == "zero" else 6
+    elif mutation == "identity":
+        changed["executed_backends"][0] = changed["executed_backends"][0].replace(
+            "a" * 64, "b" * 64,
+        )
+    elif mutation == "extra":
+        changed["extra"] = True
+    else:
+        right[0]["covariance"][0][0] += 1e-15
+    with pytest.raises(ValueError):
+        _validate_preparation_pair(prior, current, left, right)
 
 
 def test_normal_timing_counts_nested_cache_completion_once() -> None:

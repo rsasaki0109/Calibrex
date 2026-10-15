@@ -356,6 +356,38 @@ def _validate_exact_pair(prior: dict, current: dict, left: list[dict], right: li
         raise ValueError("complete fit fields differ")
 
 
+def _preparation_result(result: dict, *, asynchronous: bool) -> dict:
+    """Remove only the declared scheduling identity/counter from copied evidence."""
+    _validate_backend_execution(result, "cuda")
+    value = _without_run_metadata(result)
+    assert isinstance(value, dict)
+    suffix = ";normal_schedule=async-v1"
+    for name in ("initial_odometry_execution", "segment_odometry_execution"):
+        for report in value["options"][name]:
+            statistics = report["statistics"]
+            batches = statistics.pop("gpu_async_normal_batches", 0)
+            if (type(batches) is not int or
+                    (not 0 < batches <= statistics.get("gpu_normal_kernel_calls", 0)
+                     if asynchronous else batches != 0)):
+                raise ValueError("normal preparation did not execute the declared schedule")
+            identity = report["executed_backends"][0]
+            if identity.endswith(suffix) != asynchronous:
+                raise ValueError("normal preparation schedule identity differs")
+            if asynchronous:
+                report["executed_backends"][0] = identity.removesuffix(suffix)
+    return value
+
+
+def _validate_preparation_pair(
+    prior: dict, current: dict, left: list[dict], right: list[dict],
+) -> None:
+    """Require every result, old work counter and fit field to remain exact."""
+    _validate_exact_pair(
+        _preparation_result(prior, asynchronous=False),
+        _preparation_result(current, asynchronous=True), left, right,
+    )
+
+
 def _odometry_options(args: argparse.Namespace) -> dict[str, float | int]:
     return {
         "voxel_size_m": args.odometry_voxel_size_m,
@@ -425,12 +457,13 @@ def _time_controls(holder: Any) -> dict[str, float | int]:
 def _time_normal_preparation(holder: Any) -> dict[str, float | int]:
     """Time outermost preparation calls; nested cache completion is counted once.
 
-    Existing preparation synchronizes for its decision flags. No additional GPU
-    synchronization is inserted by this observer. The bound launcher identifies it.
+    Count host time in synchronous work or async submission/completion; CPU work
+    between those phases is excluded. This does not time overlapped device work.
+    No additional GPU synchronization is inserted by this observer.
     """
     totals: dict[str, float | int] = {"calls": 0, "seconds": 0.0}
     depth = 0
-    for name in ("_ensure", "_ensure_all"):
+    for name in ("_ensure", "_ensure_all", "_prime_normals", "_finish_normal_preparation"):
         if not hasattr(holder, name):
             continue
         original = getattr(holder, name)
@@ -566,6 +599,8 @@ def main() -> None:
     parser.add_argument("--max-rounds", type=int, default=4)
     parser.add_argument("--require-exact-results", action="store_true",
                         help="require every result/evidence and full fit field to match exactly")
+    parser.add_argument("--require-exact-preparation-results", action="store_true",
+                        help="require exact outputs/work, allowing only async scheduling metadata")
     parser.add_argument(
         "--comparison", choices=("source", "cpu-cpu", "cpu-source", "cpu-cuda", "cuda-cuda"),
         default="source",
@@ -593,6 +628,11 @@ def main() -> None:
         parser.error("query workers must be positive integers")
     if _plane_comparison(args) and (args.comparison != "cuda-cuda" or args.require_exact_results):
         parser.error("CUDA plane comparison requires cuda-cuda and numeric output comparison")
+    if args.require_exact_preparation_results and (
+        args.comparison != "cuda-cuda" or args.require_exact_results
+        or args.prior_fit_plane_backend != args.current_fit_plane_backend
+    ):
+        parser.error("exact preparation comparison requires cuda-cuda with the same plane backend")
     if args.comparison != "source" and (
         any(value is None for value in _odometry_options(args).values())
         or args.odometry_voxel_size_m <= 0 or args.odometry_local_map_scans < 1
@@ -627,6 +667,8 @@ def main() -> None:
             "max_seconds": args.max_seconds,
             "max_rounds": args.max_rounds,
             **({"exact_outputs_required": True} if args.require_exact_results else {}),
+            **({"exact_preparation_outputs_required": True}
+               if args.require_exact_preparation_results else {}),
             "bag_sha256": _digest(bag),
             "launcher_sha256": launcher_digest,
             "scope": (
@@ -714,6 +756,10 @@ def main() -> None:
             records = [json.loads((out / f"{repeat:02d}-{v}/measurement.json").read_bytes())
                        for v in ("prior", "current")]
             _validate_exact_pair(prior, current, records[0]["rounds"], records[1]["rounds"])
+        if args.require_exact_preparation_results:
+            records = [json.loads((out / f"{repeat:02d}-{v}/measurement.json").read_bytes())
+                       for v in ("prior", "current")]
+            _validate_preparation_pair(prior, current, records[0]["rounds"], records[1]["rounds"])
         if _plane_comparison(args):
             records = [json.loads((out / f"{repeat:02d}-{v}/measurement.json").read_bytes())
                        for v in ("prior", "current")]
