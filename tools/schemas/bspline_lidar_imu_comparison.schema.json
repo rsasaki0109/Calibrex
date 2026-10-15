@@ -77,6 +77,15 @@
           },
           "additionalProperties": false
         },
+        "cpu_normal_backends": {
+          "type": "object",
+          "required": ["prior", "current"],
+          "properties": {
+            "prior": {"enum": ["numpy", "numba"]},
+            "current": {"enum": ["numpy", "numba"]}
+          },
+          "additionalProperties": false
+        },
         "odometry_options": {
           "type": "object",
           "required": [

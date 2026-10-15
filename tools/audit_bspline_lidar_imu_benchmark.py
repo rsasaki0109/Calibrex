@@ -28,8 +28,13 @@ def _canonical_cpu_result(value: object) -> object:
     if isinstance(value, dict):
         result = {}
         for name, item in value.items():
-            if name == "query_workers":
+            if name in ("query_workers", "normal_backend"):
                 continue
+            if {"requested_backend", "executed_backends", "statistics"} <= value.keys():
+                if name == "executed_backends":
+                    item = ["validated_cpu_execution"]
+                elif name == "statistics":
+                    item = {}
             if name == "provenance":
                 item = {k: v for k, v in item.items()
                         if k not in ("created_at", "command", "git_commit")}
@@ -211,7 +216,11 @@ def audit(root: Path) -> dict[str, object]:
         if any(sources[variant].get(name) != digest for name, digest in executed.items()):
             raise ValueError("actual worker imports differ from frozen sources")
         if protocol.get("comparison") in ("cpu-cpu", "cpu-source"):
-            module._validate_backend_execution(result, "cpu")
+            normal_backend = protocol.get("cpu_normal_backends", {}).get(variant, "numpy")
+            if "cpu_normal_backends" in protocol:
+                module._validate_backend_execution(result, "cpu", normal_backend)
+            else:
+                module._validate_backend_execution(result, "cpu")
             workers = protocol["cpu_query_workers"][variant]
             module._validate_query_workers(result, workers)
             actual_workers = result["options"]["odometry_options"].get("query_workers")
@@ -223,6 +232,28 @@ def audit(root: Path) -> dict[str, object]:
                     or "calibrex/solvers/cuda_scan_odometry_adapter.py" in executed
                     or provenance.get("cupy") is not None):
                 raise ValueError("CPU query worker execution differs")
+            adapter = "calibrex/solvers/numba_scan_normal_adapter.py"
+            if normal_backend == "numba":
+                if (adapter not in executed
+                        or provenance.get("cpu_normal_backend") != "numba"
+                        or provenance.get("numba_cache_initially_empty") is not True):
+                    raise ValueError("compiled covariance source/cache binding differs")
+                digest = sources[variant][adapter]
+                identity = (f"calibrex.numba_scan_covariance/v0.1;numba={provenance.get('numba')};"
+                            f"fastmath=false;parallel=false;eigh=numpy;source_sha256={digest}")
+                reports = (result["options"]["initial_odometry_execution"]
+                           + result["options"]["segment_odometry_execution"])
+                if any(report["executed_backends"] != [identity] for report in reports):
+                    raise ValueError("compiled covariance identity differs from frozen source")
+            else:
+                reports = (result["options"]["initial_odometry_execution"]
+                           + result["options"]["segment_odometry_execution"])
+                if (adapter in executed
+                        or result["options"]["odometry_options"].get("normal_backend", "numpy")
+                        != "numpy" or provenance.get("cpu_normal_backend", "numpy") != "numpy"
+                        or any(report["executed_backends"] != ["numpy_scipy"]
+                               or report["statistics"] for report in reports)):
+                    raise ValueError("native CPU pass imported or requested compiled covariance")
             if any(result["options"]["odometry_options"].get(key) != value
                    for key, value in protocol["odometry_options"].items()):
                 raise ValueError("CPU worker did not use the declared common geometry settings")
@@ -287,7 +318,7 @@ def audit(root: Path) -> dict[str, object]:
         if ("normal_preparation_seconds" in record
                 and not (0 <= record["normal_preparation_seconds"] <= record["pipeline_seconds"]
                          and record["normal_preparation_calls"] > 0
-                         and provenance.get("odometry_backend") == "cuda")):
+                         and provenance.get("odometry_backend") in ("cpu", "cuda"))):
             raise ValueError("normal preparation timing scope is inconsistent")
         if len(record["rounds"]) != len(result["rounds"]):
             raise ValueError("worker did not retain every fit round")
