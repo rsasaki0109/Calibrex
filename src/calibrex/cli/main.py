@@ -362,6 +362,17 @@ def _positive_float(value: str) -> float:
     return number
 
 
+def _camera_lidar_far_control_t(value: str) -> float:
+    """Parse a finite adoption margin that cannot weaken the ordinary control."""
+
+    from calibrex.core.camera_lidar_edge import DEFAULT_MIN_CONTROL_T
+
+    number = _positive_float(value)
+    if number < DEFAULT_MIN_CONTROL_T:
+        raise argparse.ArgumentTypeError(f"must be at least {DEFAULT_MIN_CONTROL_T:g}")
+    return number
+
+
 def _positive_int(value: str) -> int:
     """Parse an argparse value as a positive (>= 1) integer."""
 
@@ -3258,6 +3269,15 @@ def _build_parser() -> argparse.ArgumentParser:
         "its own time when the cloud has a per-point time field); none keeps scans as recorded",
     )
     check.add_argument(
+        "--camera-lidar-far-control-t",
+        dest="camera_lidar_start_scan_min_control_t",
+        type=_camera_lidar_far_control_t,
+        default=None,
+        metavar="T",
+        help="experimental camera-lidar control margin for accepting a fit from a distant "
+        "start (finite T >= 2.5 on every observed rotation axis; default: no extra margin)",
+    )
+    check.add_argument(
         "--rigid-scan-rotation-floor-deg",
         type=_positive_float,
         default=None,
@@ -4636,6 +4656,7 @@ _ESTIMATE_SHARED_DESTS = frozenset(
         "lidar_lidar_deskew",
         "gnss_lidar_deskew",
         "camera_lidar_motion",
+        "camera_lidar_start_scan_min_control_t",
         "acceleration_unit",
         "cache_dir",
         "no_cache",
@@ -4676,6 +4697,7 @@ def _cmd_estimate(args: argparse.Namespace) -> int:
         lidar_lidar_deskew=args.lidar_lidar_deskew,
         gnss_lidar_deskew=args.gnss_lidar_deskew,
         camera_lidar_motion=args.camera_lidar_motion,
+        camera_lidar_start_scan_min_control_t=args.camera_lidar_start_scan_min_control_t,
         evidence_dir=output_dir / "evidence",
         base_dir=output_dir,
         cache_dir=None
@@ -4755,6 +4777,7 @@ def _cmd_drift(args: argparse.Namespace) -> int:
         lidar_lidar_deskew=args.lidar_lidar_deskew,
         gnss_lidar_deskew=args.gnss_lidar_deskew,
         camera_lidar_motion=args.camera_lidar_motion,
+        camera_lidar_start_scan_min_control_t=args.camera_lidar_start_scan_min_control_t,
         cache_dir=None
         if args.no_cache
         else (args.cache_dir if args.cache_dir is not None else default_cache_dir()),
@@ -4860,6 +4883,7 @@ def _cmd_check(args: argparse.Namespace) -> int:
             lidar_lidar_deskew=args.lidar_lidar_deskew,
             gnss_lidar_deskew=args.gnss_lidar_deskew,
             camera_lidar_motion=args.camera_lidar_motion,
+            camera_lidar_start_scan_min_control_t=args.camera_lidar_start_scan_min_control_t,
             rigid_scan_rotation_floor_deg=(
                 args.rigid_scan_rotation_floor_deg
                 if args.rigid_scan_rotation_floor_deg is not None

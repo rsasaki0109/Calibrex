@@ -26,6 +26,8 @@ from calibrex.core.result import StrictModel
 CAMERA_LIDAR_EDGE_SCHEMA_VERSION: Literal["slac.camera_lidar_edge/v0.1"] = (
     "slac.camera_lidar_edge/v0.1"
 )
+DEFAULT_MIN_CONTROL_T = 2.5
+"""Ordinary held-out control threshold for camera-LiDAR edge alignment."""
 CameraLidarEdgeDofName = Literal["roll", "pitch", "yaw", "x", "y", "z"]
 CameraLidarEdgePolicyStatus = Literal["pass", "warn", "fail", "inconclusive"]
 

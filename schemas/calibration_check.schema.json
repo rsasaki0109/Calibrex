@@ -1163,6 +1163,20 @@
           "description": "camera-lidar: auto moves LiDAR points to the image time with an odometry, twist or IMU topic of the bag when one is connected to the LiDAR in the frame tree; none keeps scans as recorded",
           "title": "Camera Lidar Motion"
         },
+        "camera_lidar_start_scan_min_control_t": {
+          "anyOf": [
+            {
+              "minimum": 2.5,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "extra held-out control t margin required on every observed rotation axis before adopting a camera-lidar fit from a distant start; absent keeps the ordinary adoption rule",
+          "title": "Camera Lidar Start Scan Min Control T"
+        },
         "detection_probe_deg": {
           "exclusiveMinimum": 0.0,
           "title": "Detection Probe Deg",

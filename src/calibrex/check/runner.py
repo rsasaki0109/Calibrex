@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import math
 import os
 import re
 import time
@@ -77,6 +78,7 @@ from calibrex.core.calibration_check import (
     OdometryKind,
     summarize_pairs,
 )
+from calibrex.core.camera_lidar_edge import DEFAULT_MIN_CONTROL_T
 from calibrex.core.exceptions import DatasetError
 from calibrex.core.progress import progress_sink
 from calibrex.core.provenance import git_commit
@@ -208,6 +210,16 @@ class CheckRunOptions:
     """Estimator cache directory; ``None`` disables the cache (the CLI defaults to the user dir)."""
     scan_memory_mb: int = 2048
     """Memory for reusing decoded LiDAR scans across passes; 0 re-reads the bag every pass."""
+    camera_lidar_start_scan_min_control_t: float | None = None
+    """Extra held-out control margin for adopting camera-LiDAR fits from distant starts."""
+
+    def __post_init__(self) -> None:
+        margin = self.camera_lidar_start_scan_min_control_t
+        if margin is not None and not (math.isfinite(margin) and margin >= DEFAULT_MIN_CONTROL_T):
+            raise ValueError(
+                "camera_lidar_start_scan_min_control_t must be finite and at least "
+                f"{DEFAULT_MIN_CONTROL_T:g}"
+            )
 
 
 def classify_bag_topics(
@@ -329,6 +341,7 @@ def build_calibration_check(
             lidar_lidar_deskew=run.lidar_lidar_deskew,
             gnss_lidar_deskew=run.gnss_lidar_deskew,
             camera_lidar_motion=run.camera_lidar_motion,
+            camera_lidar_start_scan_min_control_t=run.camera_lidar_start_scan_min_control_t,
             topic_kinds=dict(topic_kinds or {}),
         )
         evidence_dir_record = _relative(evidence_dir, base_dir)
@@ -444,6 +457,7 @@ def _run_pairs(
         lidar_lidar_deskew=run.lidar_lidar_deskew,
         gnss_lidar_deskew=run.gnss_lidar_deskew,
         camera_lidar_motion=run.camera_lidar_motion,
+        camera_lidar_start_scan_min_control_t=run.camera_lidar_start_scan_min_control_t,
         frame_tree=frame_tree,
         progress=progress,
         cache=EstimatorCache(run.cache_dir) if run.cache_dir is not None else None,
