@@ -23,14 +23,16 @@ def _sha(raw: bytes) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
-def _canonical_cpu_result(value: object) -> object:
+def _canonical_cpu_result(value: object, *, execution_metadata: bool = True) -> object:
     """Keep complete physical/evidence fields; omit only declared run metadata."""
     if isinstance(value, dict):
         result = {}
         for name, item in value.items():
-            if name in ("query_workers", "normal_backend"):
+            if execution_metadata and name in ("query_workers", "normal_backend"):
                 continue
-            if {"requested_backend", "executed_backends", "statistics"} <= value.keys():
+            if execution_metadata and {
+                "requested_backend", "executed_backends", "statistics",
+            } <= value.keys():
                 if name == "executed_backends":
                     item = ["validated_cpu_execution"]
                 elif name == "statistics":
@@ -38,10 +40,11 @@ def _canonical_cpu_result(value: object) -> object:
             if name == "provenance":
                 item = {k: v for k, v in item.items()
                         if k not in ("created_at", "command", "git_commit")}
-            result[name] = _canonical_cpu_result(item)
+            result[name] = _canonical_cpu_result(item, execution_metadata=execution_metadata)
         return result
     if isinstance(value, list):
-        return [_canonical_cpu_result(item) for item in value]
+        return [_canonical_cpu_result(item, execution_metadata=execution_metadata)
+                for item in value]
     return value
 
 
@@ -373,6 +376,11 @@ def audit(root: Path) -> dict[str, object]:
         ):
             raise ValueError("complete quality comparison differs or failed")
     for repeat in range(protocol["repeats"]):
+        if protocol.get("exact_outputs_required") and (
+            _canonical_cpu_result(results[(repeat, "prior")], execution_metadata=False)
+            != _canonical_cpu_result(results[(repeat, "current")], execution_metadata=False)
+        ):
+            raise ValueError("required exact calibration/evidence fields differ")
         if protocol.get("comparison") in ("cpu-cpu", "cpu-source") and (
             _canonical_cpu_result(results[(repeat, "prior")])
             != _canonical_cpu_result(results[(repeat, "current")])
@@ -381,7 +389,8 @@ def audit(root: Path) -> dict[str, object]:
         left = measurements[(repeat, "prior")]["rounds"]
         right = measurements[(repeat, "current")]["rounds"]
         for prior_fit, current_fit in zip(left, right, strict=True):
-            if protocol.get("comparison") in ("cpu-cpu", "cpu-source") and (
+            if (protocol.get("comparison") in ("cpu-cpu", "cpu-source")
+                or protocol.get("exact_outputs_required")) and (
                 {k: v for k, v in prior_fit.items() if k != "seconds"}
                 != {k: v for k, v in current_fit.items() if k != "seconds"}
             ):

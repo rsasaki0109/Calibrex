@@ -13,10 +13,28 @@ from tools.benchmark_bspline_lidar_imu import (
     _manifest,
     _time_normal_preparation,
     _validate_backend_execution,
+    _validate_exact_pair,
     _validate_query_workers,
     _verify_sources,
     _write,
 )
+
+
+def test_exact_comparison_allows_only_run_metadata_and_wall_times() -> None:
+    left = {"initial": {"value": .3},
+            "provenance": {"created_at": "before", "git_commit": "a", "command": ["before"]}}
+    right = copy.deepcopy(left)
+    right["provenance"].update(created_at="after", git_commit="b", command=["after"])
+    a = [{"seconds": 1., "covariance": [[.1]]}]
+    b = [{"seconds": 2., "covariance": [[.1]]}]
+    _validate_exact_pair(left, right, a, b)
+    right["initial"]["value"] += 1e-12
+    with pytest.raises(ValueError, match="calibration/evidence"):
+        _validate_exact_pair(left, right, a, b)
+    right["initial"]["value"] = left["initial"]["value"]
+    b[0]["covariance"][0][0] += 1e-15
+    with pytest.raises(ValueError, match="fit fields"):
+        _validate_exact_pair(left, right, a, b)
 
 
 def test_normal_timing_counts_nested_cache_completion_once() -> None:

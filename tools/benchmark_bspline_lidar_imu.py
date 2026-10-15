@@ -310,6 +310,32 @@ def _compare(prior: dict, current: dict) -> dict:
     }
 
 
+def _without_run_metadata(value: object) -> object:
+    if isinstance(value, dict):
+        result = {}
+        for name, item in value.items():
+            if name == "provenance":
+                item = {k: v for k, v in item.items()
+                        if k not in ("created_at", "command", "git_commit")}
+            result[name] = _without_run_metadata(item)
+        return result
+    if isinstance(value, list):
+        return [_without_run_metadata(item) for item in value]
+    return value
+
+
+def _validate_exact_pair(prior: dict, current: dict, left: list[dict], right: list[dict]) -> None:
+    """Require complete numeric/evidence equality in addition to physical tolerances."""
+    if _without_run_metadata(prior) != _without_run_metadata(current):
+        raise ValueError("complete calibration/evidence fields differ")
+    if len(left) != len(right) or any(
+        {k: v for k, v in a.items() if k != "seconds"}
+        != {k: v for k, v in b.items() if k != "seconds"}
+        for a, b in zip(left, right, strict=True)
+    ):
+        raise ValueError("complete fit fields differ")
+
+
 def _odometry_options(args: argparse.Namespace) -> dict[str, float | int]:
     return {
         "voxel_size_m": args.odometry_voxel_size_m,
@@ -411,6 +437,8 @@ def main() -> None:
     parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--max-seconds", type=float, default=12.0)
     parser.add_argument("--max-rounds", type=int, default=4)
+    parser.add_argument("--require-exact-results", action="store_true",
+                        help="require every result/evidence and full fit field to match exactly")
     parser.add_argument(
         "--comparison", choices=("source", "cpu-cpu", "cpu-source", "cpu-cuda", "cuda-cuda"),
         default="source",
@@ -467,6 +495,7 @@ def main() -> None:
             "repeats": args.repeats,
             "max_seconds": args.max_seconds,
             "max_rounds": args.max_rounds,
+            **({"exact_outputs_required": True} if args.require_exact_results else {}),
             "bag_sha256": _digest(bag),
             "launcher_sha256": launcher_digest,
             "scope": (
@@ -549,6 +578,10 @@ def main() -> None:
     for repeat in range(args.repeats):
         prior = json.loads((out / f"{repeat:02d}-prior/result.json").read_bytes())
         current = json.loads((out / f"{repeat:02d}-current/result.json").read_bytes())
+        if args.require_exact_results:
+            records = [json.loads((out / f"{repeat:02d}-{v}/measurement.json").read_bytes())
+                       for v in ("prior", "current")]
+            _validate_exact_pair(prior, current, records[0]["rounds"], records[1]["rounds"])
         pairs.append(_compare(prior, current))
     medians = {
         v: statistics.median(a["whole_seconds"] for a in attempts if a["variant"] == v)
