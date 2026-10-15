@@ -9,6 +9,7 @@ enter the parent wall time; per-round fit times are reported separately.
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import io
 import json
@@ -126,11 +127,19 @@ def _worker(args: argparse.Namespace) -> None:
                 },
             }
         )
+        if _plane_comparison(args):
+            rounds[-1].update(
+                execution_backend=getattr(result, "execution_backend", "numpy"),
+                execution_statistics=getattr(result, "execution_statistics", {}),
+            )
         return result
 
     runner.fit_bspline_lidar_imu = measured_fit
     begin = time.perf_counter()
     settings = runner.LidarImuBagOptions(max_rounds=args.max_rounds)
+    fit_plane_backend = _plane_backends(args)[args.variant]
+    if fit_plane_backend != "numpy":
+        settings = replace(settings, fit_plane_backend=fit_plane_backend)
     if args.comparison != "source":
         windowing = settings.rotation.windowing
         settings = replace(settings, rotation=replace(
@@ -191,6 +200,12 @@ def _worker(args: argparse.Namespace) -> None:
         _validate_backend_execution(result.model_dump(mode="json"), backend)
     if args.comparison in ("cpu-cpu", "cpu-source"):
         _validate_query_workers(result.model_dump(mode="json"), _query_workers(args)[args.variant])
+    if _plane_comparison(args):
+        plane_path = root / "src/calibrex/solvers/cuda_bspline_plane_adapter.py"
+        kernel_hash = (_plane_kernel_hash(plane_path.read_bytes())
+                       if fit_plane_backend == "cuda" else None)
+        _validate_plane_execution(result.model_dump(mode="json"), rounds,
+                                  fit_plane_backend, kernel_hash)
     _verify_sources(root)
     if _digest(Path(__file__)) != launcher_digest:
         raise RuntimeError("benchmark launcher changed during execution")
@@ -228,6 +243,7 @@ def _worker(args: argparse.Namespace) -> None:
                 **({"odometry_backend": backend} if args.comparison != "source" else {}),
                 **({"cpu_query_workers": _query_workers(args)[args.variant]}
                    if args.comparison in ("cpu-cpu", "cpu-source") else {}),
+                **({"fit_plane_backend": fit_plane_backend} if _plane_comparison(args) else {}),
                 **({"cuda_cache_initially_empty": cuda_cache_empty,
                     "cupy": (sys.modules["cupy"].__version__ if backend == "cuda" else None)}
                    if args.comparison in ("cpu-cuda", "cuda-cuda") else {}),
@@ -452,10 +468,92 @@ def _validate_query_workers(result: dict, workers: int) -> None:
 
 
 def _worker_arguments(args: argparse.Namespace) -> list[str]:
-    if args.comparison not in ("cpu-cpu", "cpu-source"):
-        return []
-    return ["--prior-query-workers", str(args.prior_query_workers),
-            "--current-query-workers", str(args.current_query_workers)]
+    arguments = []
+    if args.comparison in ("cpu-cpu", "cpu-source"):
+        arguments += ["--prior-query-workers", str(args.prior_query_workers),
+                      "--current-query-workers", str(args.current_query_workers)]
+    if _plane_comparison(args):
+        arguments += ["--prior-fit-plane-backend", args.prior_fit_plane_backend,
+                      "--current-fit-plane-backend", args.current_fit_plane_backend]
+    return arguments
+
+
+def _plane_backends(args: argparse.Namespace) -> dict[str, str]:
+    return {"prior": args.prior_fit_plane_backend, "current": args.current_fit_plane_backend}
+
+
+def _plane_comparison(args: argparse.Namespace) -> bool:
+    return "cuda" in _plane_backends(args).values()
+
+
+def _plane_kernel_hash(source: bytes) -> str:
+    for node in ast.parse(source).body:
+        if (isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant)
+                and any(isinstance(t, ast.Name) and t.id == "_SOURCE" for t in node.targets)):
+            return hashlib.sha256(node.value.value.encode()).hexdigest()
+    raise ValueError("CUDA plane kernel source is missing")
+
+
+def _validate_plane_execution(
+    result: dict, rounds: list[dict], backend: str, kernel_hash: str | None,
+) -> None:
+    options = result["options"]
+    if options.get("fit_plane_backend", "numpy") != backend:
+        raise ValueError("spline plane backend differs")
+    reports = options.get("fit_execution", [])
+    if backend == "cuda" and len(reports) != len(rounds):
+        raise ValueError("missing spline plane execution reports")
+    for index, record in enumerate(rounds):
+        identity, stats = record.get("execution_backend"), record.get("execution_statistics")
+        if backend == "numpy":
+            if identity != "numpy" or stats != {}:
+                raise ValueError("native spline planes executed another backend")
+            continue
+        expected = ("calibrex.cuda_bspline_planes/v0.1;fp64=true;fma=false;"
+                    "normal=deterministic_banded;imu=numpy;covariance=numpy;"
+                    f"sha256={kernel_hash}")
+        if (identity != expected
+                or reports[index] != {"executed_backend": identity, "statistics": stats}):
+            raise ValueError("CUDA spline plane identity differs")
+        names = {"gpu_plane_calls", "gpu_plane_rows", "gpu_plane_derivative_calls",
+                 "gpu_plane_derivative_rows", "gpu_plane_normal_calls"}
+        if not isinstance(stats, dict) or set(stats) != names or any(
+            type(v) is not int or v < 0 for v in stats.values()
+        ):
+            raise ValueError("invalid CUDA spline plane work")
+        if not (stats["gpu_plane_calls"] >= stats["gpu_plane_derivative_calls"] > 0
+                and stats["gpu_plane_rows"] >= stats["gpu_plane_derivative_rows"] > 0
+                and stats["gpu_plane_normal_calls"] == record["iterations"]
+                and stats["gpu_plane_derivative_calls"] >= stats["gpu_plane_normal_calls"]):
+            raise ValueError("CUDA spline plane work is inconsistent")
+        count = result["rounds"][index]["plane_returns"]
+        if (stats["gpu_plane_rows"] != count * stats["gpu_plane_calls"]
+                or stats["gpu_plane_derivative_rows"]
+                != count * stats["gpu_plane_derivative_calls"]):
+            raise ValueError("CUDA spline plane rows differ from the measured workload")
+
+
+def _validate_plane_fit_pair(left: list[dict], right: list[dict]) -> None:
+    """Require every complete fit field, with explicit roundoff tolerances."""
+    import numpy as np
+
+    if len(left) != len(right):
+        raise ValueError("spline fit round count differs")
+    for a, b in zip(left, right, strict=True):
+        for key in ("status", "iterations", "parameter_count", "residual_count"):
+            if a[key] != b[key]:
+                raise ValueError(f"spline fit {key} differs")
+        for key in ("trajectory_rotations", "trajectory_positions", "initial_cost",
+                    "final_cost", "residual_variance", "calibration_covariance"):
+            covariance = key == "calibration_covariance"
+            if not np.allclose(a[key], b[key], rtol=1e-5 if covariance else 1e-6,
+                               atol=1e-11 if covariance else 1e-9):
+                raise ValueError(f"spline fit {key} differs")
+        if a["calibration"].keys() != b["calibration"].keys() or any(
+            not np.allclose(a["calibration"][k], b["calibration"][k], rtol=1e-6, atol=1e-9)
+            for k in a["calibration"]
+        ):
+            raise ValueError("spline fit calibration differs")
 
 
 def main() -> None:
@@ -474,6 +572,8 @@ def main() -> None:
     )
     parser.add_argument("--prior-query-workers", type=int, default=1)
     parser.add_argument("--current-query-workers", type=int, default=8)
+    parser.add_argument("--prior-fit-plane-backend", choices=("numpy", "cuda"), default="numpy")
+    parser.add_argument("--current-fit-plane-backend", choices=("numpy", "cuda"), default="numpy")
     parser.add_argument("--odometry-voxel-size-m", type=float)
     parser.add_argument("--odometry-local-map-scans", type=int)
     parser.add_argument("--odometry-geometry-quantum-m", type=float)
@@ -491,6 +591,8 @@ def main() -> None:
         parser.error("need positive repeats/seconds and at least two map rounds")
     if args.prior_query_workers < 1 or args.current_query_workers < 1:
         parser.error("query workers must be positive integers")
+    if _plane_comparison(args) and (args.comparison != "cuda-cuda" or args.require_exact_results):
+        parser.error("CUDA plane comparison requires cuda-cuda and numeric output comparison")
     if args.comparison != "source" and (
         any(value is None for value in _odometry_options(args).values())
         or args.odometry_voxel_size_m <= 0 or args.odometry_local_map_scans < 1
@@ -547,6 +649,7 @@ def main() -> None:
                if args.comparison in ("cpu-cuda", "cuda-cuda") else {}),
             **({"cpu_query_workers": _query_workers(args)}
                if args.comparison in ("cpu-cpu", "cpu-source") else {}),
+            **({"fit_plane_backends": _plane_backends(args)} if _plane_comparison(args) else {}),
         },
     )
     attempts: list[dict] = []
@@ -611,6 +714,10 @@ def main() -> None:
             records = [json.loads((out / f"{repeat:02d}-{v}/measurement.json").read_bytes())
                        for v in ("prior", "current")]
             _validate_exact_pair(prior, current, records[0]["rounds"], records[1]["rounds"])
+        if _plane_comparison(args):
+            records = [json.loads((out / f"{repeat:02d}-{v}/measurement.json").read_bytes())
+                       for v in ("prior", "current")]
+            _validate_plane_fit_pair(records[0]["rounds"], records[1]["rounds"])
         pairs.append(_compare(prior, current))
     medians = {
         v: statistics.median(a["whole_seconds"] for a in attempts if a["variant"] == v)

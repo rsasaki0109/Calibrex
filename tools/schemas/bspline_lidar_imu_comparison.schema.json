@@ -87,6 +87,15 @@
           },
           "additionalProperties": false
         },
+        "fit_plane_backends": {
+          "type": "object",
+          "required": ["prior", "current"],
+          "properties": {
+            "prior": {"enum": ["numpy", "cuda"]},
+            "current": {"enum": ["numpy", "cuda"]}
+          },
+          "additionalProperties": false
+        },
         "odometry_options": {
           "type": "object",
           "required": [

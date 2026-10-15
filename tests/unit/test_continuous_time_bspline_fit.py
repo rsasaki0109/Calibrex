@@ -10,6 +10,7 @@ import pytest
 from calibrex.core.continuous_time_bspline import CubicBSplineTrajectory
 from calibrex.core.continuous_time_bspline_fit import (
     BSplineImuSamples,
+    BSplineLidarImuFitOptions,
     BSplineLidarImuFitResult,
     BSplineLidarImuProblem,
     BSplinePlaneReturns,
@@ -30,6 +31,32 @@ TRUTH = LidarImuCalibration(
     accel_bias_m_s2=np.array([0.06, -0.05, 0.04]),
     gravity_world_m_s2=np.array([0.0, 0.0, -9.81]),
 )
+
+
+def test_native_fit_does_not_import_an_optional_device_runtime(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import builtins
+
+    original = builtins.__import__
+
+    def guarded(name: str, *args: object, **kwargs: object) -> object:
+        assert not name.startswith("cupy")
+        return original(name, *args, **kwargs)
+
+    path = _truth_spline()
+    planes, gyro, accel = _measurements(path, np.random.default_rng(5))
+    monkeypatch.setattr(builtins, "__import__", guarded)
+    result = fit_bspline_lidar_imu(
+        BSplineLidarImuProblem(path, planes, gyro, accel, TRUTH),
+        BSplineLidarImuFitOptions(max_iterations=0),
+    )
+    assert result.execution_backend == "numpy" and result.execution_statistics == {}
+
+
+def test_unknown_plane_backend_is_rejected_before_fitting() -> None:
+    with pytest.raises(ValueError, match="plane backend"):
+        BSplineLidarImuFitOptions(plane_backend="unknown")
 
 
 def _truth_spline() -> CubicBSplineTrajectory:

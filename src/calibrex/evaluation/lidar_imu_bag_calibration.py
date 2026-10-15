@@ -31,7 +31,7 @@ import math
 from collections.abc import Callable, Iterator
 from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
-from typing import TypeAlias
+from typing import Literal, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -162,6 +162,7 @@ class LidarImuBagOptions:
     imu_lowpass_hz: float | None = None
     holdout_every: int = 3
     fit_iterations: int = 30
+    fit_plane_backend: Literal["numpy", "cuda"] = "numpy"
     control_delta_chi2: float = 9.0
     entangled_correlation: float = 0.9
     holdout_fail_whitened_rms: float = 2.0
@@ -174,6 +175,10 @@ class LidarImuBagOptions:
     )
     seed: int = 20261011
     rotation: ImuLidarRunOptions = field(default_factory=ImuLidarRunOptions)
+
+    def __post_init__(self) -> None:
+        if self.fit_plane_backend not in ("numpy", "cuda"):
+            raise ValueError("spline plane backend must be numpy or cuda")
 
 
 @dataclass(frozen=True)
@@ -288,6 +293,7 @@ def calibrate_lidar_imu_bag(
         )
 
     rounds: list[LidarImuBagRound] = []
+    fit_execution: list[dict[str, object]] = []
     previous = calibration
     last_change = {block: np.zeros(_width(block)) for block in CALIBRATION_BLOCKS}
     result: BSplineLidarImuFitResult | None = None
@@ -317,8 +323,12 @@ def calibrate_lidar_imu_bag(
                 gravity_magnitude_m_s2=opts.gravity_magnitude_m_s2,
                 gravity_magnitude_sigma_m_s2=opts.gravity_magnitude_sigma_m_s2,
             ),
-            BSplineLidarImuFitOptions(max_iterations=opts.fit_iterations),
+            BSplineLidarImuFitOptions(
+                max_iterations=opts.fit_iterations, plane_backend=opts.fit_plane_backend,
+            ),
         )
+        fit_execution.append({"executed_backend": result.execution_backend,
+                              "statistics": result.execution_statistics})
         trajectory, calibration = result.trajectory, result.calibration
         # Re-estimate each family's noise from its train residuals.
         whitened = lidar_imu_residuals(trajectory, calibration, planes, gyro, accel)
@@ -441,6 +451,8 @@ def calibrate_lidar_imu_bag(
             "odometry_options": asdict(opts.rotation.windowing.odometry),
             "initial_odometry_execution": initial.options.get("odometry_execution", []),
             "segment_odometry_execution": segment_execution,
+            **({"fit_plane_backend": opts.fit_plane_backend, "fit_execution": fit_execution}
+               if opts.fit_plane_backend != "numpy" else {}),
         },
         limitations=list(LIMITATIONS),
         provenance=LidarImuBagProvenance(

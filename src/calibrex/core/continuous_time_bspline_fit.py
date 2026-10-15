@@ -30,7 +30,7 @@ from collections import OrderedDict
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from struct import pack
-from typing import Literal, TypeAlias
+from typing import Literal, Protocol, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -194,6 +194,11 @@ class BSplineLidarImuFitOptions:
     initial_damping: float = 1.0e-4
     relative_cost_tolerance: float = 1.0e-10
     step_tolerance: float = 1.0e-10
+    plane_backend: Literal["numpy", "cuda"] = "numpy"
+
+    def __post_init__(self) -> None:
+        if self.plane_backend not in ("numpy", "cuda"):
+            raise ValueError("spline plane backend must be numpy or cuda")
 
 
 @dataclass(frozen=True)
@@ -211,6 +216,8 @@ class BSplineLidarImuFitResult:
     calibration_parameter_names: tuple[str, ...]
     calibration_covariance: FloatArray
     residual_variance: float
+    execution_backend: str = "numpy"
+    execution_statistics: dict[str, int] = field(default_factory=dict)
 
     def block_std(self, block: CalibrationBlock) -> FloatArray:
         """Return the marginal standard deviation of one estimated block."""
@@ -263,6 +270,34 @@ def fit_bspline_lidar_imu(
     """Jointly fit the spline control points and the selected calibration blocks."""
 
     settings = options or BSplineLidarImuFitOptions()
+    evaluator: _PlaneEvaluator | None = None
+    if settings.plane_backend == "cuda":
+        from calibrex.solvers.cuda_bspline_plane_adapter import _CudaPlaneEvaluator
+
+        evaluator = _CudaPlaneEvaluator(problem.initial_trajectory, problem.planes)
+    return _fit_bspline_lidar_imu(problem, settings, evaluator)
+
+
+class _PlaneEvaluator(Protocol):
+    segment: NDArray[np.int64]
+    identity: str
+
+    def evaluate(
+        self, trajectory: CubicBSplineTrajectory, *, derivatives: bool,
+    ) -> tuple[FloatArray, FloatArray]: ...
+
+    def normal_system(
+        self, trajectory: CubicBSplineTrajectory, imu_normal: csc_matrix,
+        imu_gradient: FloatArray,
+    ) -> tuple[csc_matrix, FloatArray]: ...
+
+    def statistics(self) -> dict[str, int]: ...
+
+
+def _fit_bspline_lidar_imu(
+    problem: BSplineLidarImuProblem, settings: BSplineLidarImuFitOptions,
+    plane_evaluator: _PlaneEvaluator | None,
+) -> BSplineLidarImuFitResult:
     estimate = tuple(block for block in CALIBRATION_BLOCKS if block in problem.estimate)
     families = _families(problem.planes, problem.gyro, problem.accel)
     cache = _EvaluationCache(families)
@@ -285,15 +320,18 @@ def fit_bspline_lidar_imu(
         return (magnitude - prior_magnitude) / problem.gravity_magnitude_sigma_m_s2
 
     def total_cost(path: CubicBSplineTrajectory, values: LidarImuCalibration) -> float:
-        cost = _cost(path, values, families, cache=cache)
+        cost = _cost(path, values, families, cache=cache, plane_evaluator=plane_evaluator)
         if prior_magnitude is None:
             return cost
         return cost + prior_residual(values) ** 2
 
     def linearize(
-        path: CubicBSplineTrajectory, values: LidarImuCalibration
+        path: CubicBSplineTrajectory, values: LidarImuCalibration, *, imu_only: bool = False,
     ) -> tuple[csc_matrix, FloatArray]:
-        jacobian, residuals = _linearize(path, values, families, estimate, cache=cache)
+        selected = {k: v for k, v in families.items() if k != "plane"} if imu_only else families
+        jacobian, residuals = _linearize(
+            path, values, selected, estimate, cache=cache, plane_evaluator=plane_evaluator,
+        )
         if prior_magnitude is None:
             return jacobian, residuals
         gravity = np.asarray(values.gravity_world_m_s2, dtype=float)
@@ -319,9 +357,13 @@ def fit_bspline_lidar_imu(
     iterations = 0
     for iteration in range(settings.max_iterations):
         iterations = iteration + 1
-        jacobian, residuals = linearize(trajectory, calibration)
+        jacobian, residuals = linearize(
+            trajectory, calibration, imu_only=plane_evaluator is not None,
+        )
         normal = (jacobian.T @ jacobian).tocsc()
         gradient = jacobian.T @ residuals
+        if plane_evaluator is not None:
+            normal, gradient = plane_evaluator.normal_system(trajectory, normal, gradient)
         scale = np.maximum(normal.diagonal(), 1.0e-12)
         accepted = False
         while damping < 1.0e12:
@@ -373,6 +415,8 @@ def fit_bspline_lidar_imu(
         calibration_parameter_names=names,
         calibration_covariance=covariance,
         residual_variance=variance,
+        execution_backend="numpy" if plane_evaluator is None else plane_evaluator.identity,
+        execution_statistics={} if plane_evaluator is None else plane_evaluator.statistics(),
     )
 
 
@@ -752,9 +796,14 @@ def _cost(
     calibration: LidarImuCalibration,
     families: dict[str, _Family],
     *, cache: _EvaluationCache | None = None,
+    plane_evaluator: _PlaneEvaluator | None = None,
 ) -> float:
     total = 0.0
-    for family in families.values():
+    for name, family in families.items():
+        if name == "plane" and plane_evaluator is not None:
+            residual, _local = plane_evaluator.evaluate(trajectory, derivatives=False)
+            total += float(np.sum(residual * residual))
+            continue
         try:
             prepared = None if cache is None else cache.get(trajectory, calibration, family)
             gathered = (_gather(trajectory, family.body_times(calibration))
@@ -775,6 +824,7 @@ def _linearize(
     families: dict[str, _Family],
     estimate: tuple[CalibrationBlock, ...],
     *, cache: _EvaluationCache | None = None,
+    plane_evaluator: _PlaneEvaluator | None = None,
 ) -> tuple[csc_matrix, FloatArray]:
     control_columns = 6 * trajectory.control_point_count
     parameter_count = control_columns + sum(_BLOCK_WIDTH[block] for block in estimate)
@@ -783,7 +833,21 @@ def _linearize(
     values: list[FloatArray] = []
     residual_parts: list[FloatArray] = []
     row_offset = 0
-    for family in families.values():
+    for name, family in families.items():
+        if name == "plane" and plane_evaluator is not None:
+            base, local = plane_evaluator.evaluate(trajectory, derivatives=True)
+            count = len(base)
+            residual_parts.append(base)
+            row_index = (row_offset + np.arange(count)).reshape(count, 1)
+            for slot in range(4):
+                control = plane_evaluator.segment + slot
+                for axis in range(3):
+                    _append(rows, columns, values, row_index, 6 * control + axis,
+                            local[:, 6 * slot + axis, None])
+                    _append(rows, columns, values, row_index, 6 * control + 3 + axis,
+                            local[:, 6 * slot + 3 + axis, None])
+            row_offset += count
+            continue
         prepared = None if cache is None else cache.get(trajectory, calibration, family)
         gathered = (_gather(trajectory, family.body_times(calibration), derivatives=True)
                     if prepared is None else prepared.gathered)

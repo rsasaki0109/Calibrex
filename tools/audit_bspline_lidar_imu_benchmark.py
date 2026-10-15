@@ -230,6 +230,17 @@ def audit(root: Path) -> dict[str, object]:
             raise ValueError("worker did not bind the executed fitter")
         if any(sources[variant].get(name) != digest for name, digest in executed.items()):
             raise ValueError("actual worker imports differ from frozen sources")
+        if "fit_plane_backends" in protocol:
+            plane_backend = protocol["fit_plane_backends"][variant]
+            plane_path = "calibrex/solvers/cuda_bspline_plane_adapter.py"
+            kernel_hash = None
+            if plane_backend == "cuda":
+                if plane_path not in executed:
+                    raise ValueError("CUDA plane adapter was not executed")
+                kernel_hash = module._plane_kernel_hash(source_bytes[variant][plane_path])
+            if provenance.get("fit_plane_backend") != plane_backend:
+                raise ValueError("declared spline plane execution differs")
+            module._validate_plane_execution(result, record["rounds"], plane_backend, kernel_hash)
         if protocol.get("comparison") in ("cpu-cpu", "cpu-source"):
             normal_backend = protocol.get("cpu_normal_backends", {}).get(variant, "numpy")
             if "cpu_normal_backends" in protocol:
@@ -396,6 +407,8 @@ def audit(root: Path) -> dict[str, object]:
             raise ValueError("complete CPU calibration/evidence fields differ")
         left = measurements[(repeat, "prior")]["rounds"]
         right = measurements[(repeat, "current")]["rounds"]
+        if "fit_plane_backends" in protocol:
+            module._validate_plane_fit_pair(left, right)
         for prior_fit, current_fit in zip(left, right, strict=True):
             if (protocol.get("comparison") in ("cpu-cpu", "cpu-source")
                 or protocol.get("exact_outputs_required")) and (

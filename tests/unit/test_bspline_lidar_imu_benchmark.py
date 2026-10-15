@@ -12,14 +12,87 @@ from tools.benchmark_bspline_lidar_imu import (
     _backend,
     _compare,
     _manifest,
+    _plane_kernel_hash,
     _time_controls,
     _time_normal_preparation,
     _validate_backend_execution,
     _validate_exact_pair,
+    _validate_plane_execution,
+    _validate_plane_fit_pair,
     _validate_query_workers,
     _verify_sources,
     _write,
 )
+
+
+def _plane_round() -> dict:
+    return {"execution_backend": "calibrex.cuda_bspline_planes/v0.1;fp64=true;fma=false;"
+            "normal=deterministic_banded;imu=numpy;covariance=numpy;sha256=" + "a"*64,
+            "execution_statistics": {"gpu_plane_calls": 5, "gpu_plane_rows": 500,
+                "gpu_plane_derivative_calls": 3, "gpu_plane_derivative_rows": 300,
+                "gpu_plane_normal_calls": 2}, "iterations": 2}
+
+
+@pytest.mark.parametrize("corruption", ["identity", "calls", "rows", "normal", "report", "count"])
+def test_plane_execution_binds_kernel_identity_actual_work_and_bag_report(corruption: str) -> None:
+    record = _plane_round()
+    result = {"rounds": [{"plane_returns": 100}],
+              "options": {"fit_plane_backend": "cuda", "fit_execution": [
+        {"executed_backend": record["execution_backend"],
+         "statistics": copy.deepcopy(record["execution_statistics"])}]}}
+    _validate_plane_execution(result, [record], "cuda", "a"*64)
+    if corruption == "identity":
+        record["execution_backend"] += "x"
+    elif corruption == "calls":
+        record["execution_statistics"]["gpu_plane_calls"] = 0
+    elif corruption == "rows":
+        record["execution_statistics"]["gpu_plane_rows"] = 0
+    elif corruption == "normal":
+        record["execution_statistics"]["gpu_plane_normal_calls"] = 1
+    elif corruption == "count":
+        result["rounds"][0]["plane_returns"] = 101
+    else:
+        result["options"]["fit_execution"] = []
+    # Rebind the report too: numerical work must be checked independently.
+    if corruption in ("calls", "rows", "normal"):
+        result["options"]["fit_execution"][0]["statistics"] = record["execution_statistics"]
+    with pytest.raises(ValueError, match="plane"):
+        _validate_plane_execution(result, [record], "cuda", "a"*64)
+
+
+def test_native_plane_execution_rejects_silent_device_work() -> None:
+    result = {"options": {}}
+    _validate_plane_execution(result, [{"execution_backend": "numpy",
+                                       "execution_statistics": {}}], "numpy", None)
+    with pytest.raises(ValueError, match="another backend"):
+        _validate_plane_execution(result, [_plane_round()], "numpy", None)
+    assert _plane_kernel_hash(b'_SOURCE = "kernel"') == (
+        __import__("hashlib").sha256(b"kernel").hexdigest()
+    )
+
+
+@pytest.mark.parametrize("field", ["iterations", "calibration", "calibration_covariance",
+                                    "trajectory_rotations", "final_cost"])
+def test_complete_plane_fit_comparison_rejects_field_changes(field: str) -> None:
+    record = {"status": "converged", "iterations": 2, "parameter_count": 60,
+              "residual_count": 500, "initial_cost": 1., "final_cost": .1,
+              "residual_variance": .01, "calibration_covariance": [[.01]],
+              "trajectory_rotations": [[[1.]]], "trajectory_positions": [[.1]],
+              "calibration": {"imu_clock_offset": [.001]}}
+    _validate_plane_fit_pair([record], [copy.deepcopy(record)])
+    other = copy.deepcopy(record)
+    if field == "iterations":
+        other[field] += 1
+    elif field == "calibration":
+        other[field]["imu_clock_offset"][0] += 1e-5
+    elif field == "calibration_covariance":
+        other[field][0][0] += 1e-4
+    elif field == "trajectory_rotations":
+        other[field][0][0][0] += 1e-4
+    else:
+        other[field] += 1e-4
+    with pytest.raises(ValueError, match="spline fit"):
+        _validate_plane_fit_pair([record], [other])
 
 
 def test_exact_comparison_allows_only_run_metadata_and_wall_times() -> None:

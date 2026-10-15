@@ -1453,6 +1453,10 @@ def _build_parser() -> argparse.ArgumentParser:
         help="backend for initial and gyro-deskewed scan odometry (CUDA is optional)",
     )
     imu_lidar_joint.add_argument(
+        "--fit-plane-backend", choices=("numpy", "cuda"), default="numpy",
+        help="backend for spline plane residuals and systems (CUDA is optional)",
+    )
+    imu_lidar_joint.add_argument(
         "--odometry-voxel-size-m", type=_positive_float,
         help="voxel size for scan odometry; smaller values retain denser geometry",
     )
@@ -7408,6 +7412,8 @@ def _cmd_imu_lidar_joint(args: argparse.Namespace) -> int:
     if args.max_seconds is not None:
         command += ["--max-seconds", str(args.max_seconds)]
     command += ["--max-rounds", str(args.max_rounds)]
+    if args.fit_plane_backend != "numpy":
+        command += ["--fit-plane-backend", args.fit_plane_backend]
     if args.imu_lowpass_hz is not None:
         command += ["--imu-lowpass-hz", str(args.imu_lowpass_hz)]
     command += ["--odometry-backend", args.odometry_backend]
@@ -7446,6 +7452,7 @@ def _cmd_imu_lidar_joint(args: argparse.Namespace) -> int:
             profile,
             LidarImuBagOptions(
                 max_rounds=args.max_rounds, imu_lowpass_hz=args.imu_lowpass_hz,
+                fit_plane_backend=args.fit_plane_backend,
                 rotation=ImuLidarRunOptions(windowing=windowing),
             ),
             dataset_family=args.dataset_family,
