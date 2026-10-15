@@ -1,0 +1,27 @@
+Frozen module: C:\Users\rsasa\Workspace\Calibrex\outputs\holdout-reuse-screw-baseline-v1\sources-prior\src\calibrex\evaluation\continuous_time_lidar_imu_joint.py
+F                                                                        [100%]
+================================== FAILURES ===================================
+__ test_joint_recovery_passes_with_provenance_and_valid_schema[screw_linear] __
+
+artifact = ContinuousTimeLidarImuJointArtifact(schema_version='slac.continuous_time_lidar_imu_joint/v0.1', recovery_id='ct-lidar-...erator_version='0.1', git_commit='e59600c1', command=[], seed=20261010, created_at='2026-10-15T10:03:34.553333+00:00'))
+tmp_path = WindowsPath('C:/Users/rsasa/Workspace/Calibrex/outputs/holdout-reuse-screw-baseline-v1/tmp/test_joint_recovery_passes_wit0')
+
+    def test_joint_recovery_passes_with_provenance_and_valid_schema(
+        artifact: ContinuousTimeLidarImuJointArtifact, tmp_path: Path
+    ) -> None:
+        output = tmp_path / "joint.yaml"
+        artifact.save(output)
+    
+        assert validate_file(output, kind="continuous-time-lidar-imu-joint").valid
+        assert artifact.policy_status == "pass", artifact.policy_reason
+        assert artifact.data_source == "synthetic"
+>       assert artifact.fit_status == "converged"
+E       AssertionError: assert 'max_iterations' == 'converged'
+E         
+E         - converged
+E         + max_iterations
+
+tests\unit\test_continuous_time_lidar_imu_joint.py:36: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/unit/test_continuous_time_lidar_imu_joint.py::test_joint_recovery_passes_with_provenance_and_valid_schema[screw_linear]
+1 failed in 66.23s (0:01:06)

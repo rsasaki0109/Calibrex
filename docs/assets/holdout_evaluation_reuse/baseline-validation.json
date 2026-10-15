@@ -1,0 +1,14 @@
+{
+  "scope": "Reproduce an unrelated screw-linear assertion against frozen prior sources.",
+  "source_commit": "e59600c1354dc14f0b5afd06f92d90bf61d56f41",
+  "command": [
+    "C:\\Users\\rsasa\\Workspace\\Calibrex\\.venv\\Scripts\\python.exe",
+    "-c",
+    "import pathlib, pytest\nimport calibrex.evaluation.continuous_time_lidar_imu_joint as module\nassert pathlib.Path(module.__file__).is_relative_to(pathlib.Path(\"outputs/holdout-reuse-screw-baseline-v1/sources-prior/src\").resolve())\nprint(\"Frozen module:\", module.__file__, flush=True)\nraise SystemExit(pytest.main([\"tests/unit/test_continuous_time_lidar_imu_joint.py::test_joint_recovery_passes_with_provenance_and_valid_schema[screw_linear]\", \"--basetemp\", \"outputs/holdout-reuse-screw-baseline-v1/tmp\", \"-p\", \"no:cacheprovider\", \"--override-ini\", \"addopts=--disable-plugin-autoload\", \"-q\"]))\n"
+  ],
+  "exit_code": 1,
+  "source_manifest_sha256": "58c2091aee9eed1dc0dd25425dba9833620edec0c065e2f28c71713e42d5e6af",
+  "log_sha256": "d9df7d142b833876162152f5cd870e09b6eddd07486a82ee8fb50f8565daebe3",
+  "launcher_sha256": "35021b45d76b52884f8b1beecdf52e1d1d29d981ec58c4f114b100aac569bddc",
+  "blas_threads": 1
+}

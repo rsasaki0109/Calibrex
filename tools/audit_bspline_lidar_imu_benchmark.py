@@ -437,6 +437,17 @@ def audit(root: Path) -> dict[str, object]:
     _audit_rejected_pair(root, module._compare)
     if (root / "previous_cuda").exists():
         audit(root / "previous_cuda")
+    if (root / "baseline-validation.json").exists():
+        receipt = json.loads((root / "baseline-validation.json").read_bytes())
+        if (receipt["source_commit"] != protocol["baseline_commit"]
+                or receipt["exit_code"] != 1
+                or receipt["source_manifest_sha256"]
+                != _sha((root / "sources-prior-manifest.json").read_bytes())
+                or receipt["log_sha256"]
+                != _sha((root / "baseline-validation.log").read_bytes())
+                or receipt["launcher_sha256"]
+                != _sha((root / "baseline-validation.py.txt").read_bytes())):
+            raise ValueError("baseline validation receipt differs from its frozen sources or log")
     normal_summary = {}
     if all("normal_preparation_seconds" in record for record in measurements.values()):
         normal_medians = {

@@ -158,3 +158,13 @@ docs/assets/cpu_worker_reuse_rejected/*.txt -text whitespace=blank-at-eol,blank-
 docs/assets/cpu_worker_reuse_rejected/**/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 docs/assets/cpu_worker_reuse_rejected/**/*.log -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 docs/assets/cpu_worker_reuse_rejected/*.md text eol=lf
+
+# Preserve exact measured bytes of fixed-trajectory holdout evaluation reuse.
+docs/assets/holdout_evaluation_reuse/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/holdout_evaluation_reuse/**/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/holdout_evaluation_reuse/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/holdout_evaluation_reuse/**/*.log -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/holdout_evaluation_reuse/*.log -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/holdout_evaluation_reuse/*.md text eol=lf
+# The bound raw pytest failure log retains the runner's trailing whitespace.
+docs/assets/holdout_evaluation_reuse/baseline-validation.log -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
