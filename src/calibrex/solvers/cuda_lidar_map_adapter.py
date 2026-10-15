@@ -74,6 +74,77 @@ extern "C" __global__ void query3(
 }
 '''
 
+_NORMAL_SOURCE = r'''
+
+// Map PCA uses ratio*mid with no eigenvalue floor. Native repairs retain
+// ambiguous neighborhoods, eigenspaces and planarity boundaries.
+extern "C" __global__ void map_normals3(
+    const double* points, const long long* indices, const double* distances,
+    const long long* rows, const int n, const int k, const double ratio,
+    double* normal, bool* planar, bool* done, unsigned char* repair) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;
+    if(row>=n) return;
+    const double eps=2.2204460492503131e-16;
+    double mean[3]={0,0,0},c[9]={0,0,0,0,0,0,0,0,0};
+    for(int j=0;j<k;j++) for(int a=0;a<3;a++)
+        mean[a]+=points[3*indices[row*(k+1)+j]+a];
+    for(int a=0;a<3;a++) mean[a]/=k;
+    for(int j=0;j<k;j++) {
+        double d[3];
+        for(int a=0;a<3;a++) d[a]=points[3*indices[row*(k+1)+j]+a]-mean[a];
+        for(int a=0;a<3;a++) for(int b=0;b<3;b++) c[3*a+b]+=d[a]*d[b];
+    }
+    for(int a=0;a<9;a++) c[a]/=k;
+    double scale=fmax(fmax(fabs(c[0]),fabs(c[4])),fabs(c[8]));
+    bool bad=!(scale>0) || !isfinite(scale);
+    double unit=fmax(scale,2.2250738585072014e-308);
+    for(int a=0;a<9;a++) c[a]/=unit;
+    double trace=c[0]+c[4]+c[8],q=trace/3;
+    double x=c[0]-q,y=c[4]-q,z=c[8]-q;
+    double p=sqrt((x*x+y*y+z*z+2*(c[1]*c[1]+c[2]*c[2]+c[5]*c[5]))/6);
+    bad|=!(p>64*eps);
+    double inv=1/fmax(p,2.2250738585072014e-308);
+    double b0=x*inv,b1=y*inv,b2=z*inv;
+    double b3=c[1]*inv,b4=c[2]*inv,b5=c[5]*inv;
+    double determinant=b0*b1*b2+2*b3*b4*b5-b0*b5*b5-b1*b4*b4-b2*b3*b3;
+    double phi=acos(fmax(-1.0,fmin(1.0,determinant/2)))/3;
+    double low=q+2*p*cos(phi+2.0943951023931954923);
+    double high=q+2*p*cos(phi),mid=trace-low-high;
+    double a[9];for(int j=0;j<9;j++) a[j]=c[j];
+    a[0]-=low;a[4]-=low;a[8]-=low;
+    double best=-1,v[3]={0,0,0};
+    for(int i=0;i<3;i++) {
+        int j=(i+1)%3;
+        double w[3]={a[3*i+1]*a[3*j+2]-a[3*i+2]*a[3*j+1],
+                     a[3*i+2]*a[3*j]-a[3*i]*a[3*j+2],
+                     a[3*i]*a[3*j+1]-a[3*i+1]*a[3*j]};
+        double norm=w[0]*w[0]+w[1]*w[1]+w[2]*w[2];
+        if(norm>best) {best=norm;for(int u=0;u<3;u++) v[u]=w[u];}
+    }
+    bad|=!(best>0) || !isfinite(best);
+    double length=sqrt(fmax(best,2.2250738585072014e-308));
+    for(int u=0;u<3;u++) v[u]/=length;
+    double residual=0;
+    for(int i=0;i<3;i++) {
+        double r=c[3*i]*v[0]+c[3*i+1]*v[1]+c[3*i+2]*v[2]-low*v[i];
+        residual+=r*r;
+    }
+    double spectral=fmax(fabs(high),2.2250738585072014e-308);
+    double threshold=ratio*mid;
+    // Cover closed-form root error near repeated upper eigenvalues.
+    bad|=fabs(mid)<=64*eps*spectral;
+    bad|=mid-low<=1e-4*spectral || fabs(low-threshold)<=2e-8*spectral;
+    bad|=!isfinite(residual) || sqrt(residual)>64*eps*spectral;
+    bool tied=distances[row*(k+1)+k]-distances[row*(k+1)+k-1]
+              <=64*eps*fmax(1.0,distances[row*(k+1)+k]);
+    long long target=rows[row];
+    for(int u=0;u<3;u++) normal[3*target+u]=v[u];
+    planar[target]=low<=threshold;
+    done[target]=true;
+    repair[row]=(bad?1:0)|(tied?2:0);
+}
+'''
+
 _CHUNK = 65536
 _MAX_RETAINED_BYTES = 1024 * 1024 * 1024
 
@@ -144,53 +215,58 @@ class _CudaSample:
         self.normals = cp.empty_like(self.maps)
         self.planar = cp.empty(len(self.maps), dtype=cp.bool_)
         self.repaired_queries = 0
+        self.normal_rows = 0
+        self.normal_kernel_calls = 0
+        self.normal_repairs = 0
+        self.normal_neighbours = min(options.normal_neighbours, len(self.maps))
+        self.max_planarity_ratio = options.max_planarity_ratio
+        self.normal_kernel = cp.RawKernel(_NORMAL_SOURCE, "map_normals3", options=("--fmad=false",))
         # A pre-existing native preparation may encode its caller's captured
         # neighborhood policy; retain those normals exactly when present.
         if sample._normals is not None and sample._planar is not None:
             self.normals[:] = cp.asarray(sample._normals)
             self.planar[:] = cp.asarray(sample._planar)
+            self.done = cp.ones(len(self.maps), dtype=cp.bool_)
         else:
-            k = min(options.normal_neighbours, len(self.maps))
-            for start in range(0, len(self.maps), _CHUNK):
-                stop = min(start + _CHUNK, len(self.maps))
-                distances, indexes = self.tree.query(self.maps[start:stop], k + 1)
-                # Equal/roundoff-close boundary neighbors retain SciPy's exact
-                # membership/order. Only the uncertain rows cross back to CPU.
-                margin = 64 * np.finfo(np.float64).eps
-                ambiguous = distances[:, k] - distances[:, k - 1] <= (
-                    margin * cp.maximum(1.0, distances[:, k])
-                )
-                rows = cp.asnumpy(cp.flatnonzero(ambiguous))
-                if len(rows):
-                    _, native = self.tree.cpu.query(self.maps_host[start + rows], k=k)
-                    indexes[cp.asarray(rows), :k] = cp.asarray(native)
-                    self.repaired_queries += len(rows)
-                neighbors = self.maps[indexes[:, :k]]
-                centered = neighbors - neighbors.mean(axis=1, keepdims=True)
-                covariance = cp.einsum("nki,nkj->nij", centered, centered) / max(k, 1)
-                values, vectors = cp.linalg.eigh(covariance)
-                self.normals[start:stop] = vectors[:, :, 0]
-                self.planar[start:stop] = values[:, 0] <= options.max_planarity_ratio * values[:, 1]
-                # Repair ill-conditioned neighborhoods and planarity boundaries
-                # with the original native covariance/eigensolve.
-                scale = cp.maximum(cp.abs(values[:, 2]), np.finfo(np.float64).tiny)
-                uncertain = (cp.abs(values[:, 1]) <= margin * scale) | (
-                    cp.abs(values[:, 0] - options.max_planarity_ratio * values[:, 1])
-                    <= margin * scale
-                )
-                rows = cp.asnumpy(cp.flatnonzero(uncertain))
-                if len(rows):
-                    native_indices = cp.asnumpy(indexes[cp.asarray(rows), :k])
-                    native = self.maps_host[native_indices]
-                    centered_host = native - native.mean(axis=1, keepdims=True)
-                    matrix = np.einsum("nki,nkj->nij", centered_host, centered_host) / max(k, 1)
-                    eigenvalues, eigenvectors = np.linalg.eigh(matrix)
-                    self.normals[start + cp.asarray(rows)] = cp.asarray(eigenvectors[:, :, 0])
-                    self.planar[start + cp.asarray(rows)] = cp.asarray(
-                        eigenvalues[:, 0] <= options.max_planarity_ratio * eigenvalues[:, 1]
-                    )
+            self.done = cp.zeros(len(self.maps), dtype=cp.bool_)
         self.bytes = int(self.tree.bytes + self.points.nbytes + self.pose_device.nbytes
-                         + self.normals.nbytes + self.planar.nbytes)
+                         + self.normals.nbytes + self.planar.nbytes + self.done.nbytes)
+
+    def _ensure(self, requested: Any) -> None:
+        """Compute each requested normal once within the captured map snapshot."""
+        rows = cp.unique(requested[~self.done[requested]])
+        k = self.normal_neighbours
+        for start in range(0, len(rows), _CHUNK):
+            selected = rows[start:start + _CHUNK]
+            distances, indexes = self.tree.query(self.maps[selected], k + 1)
+            flags = cp.empty(len(selected), dtype=cp.uint8)
+            self.normal_kernel(((len(selected) + 127) // 128,), (128,), (
+                self.maps, indexes, distances, selected, np.int32(len(selected)), np.int32(k),
+                np.float64(self.max_planarity_ratio), self.normals, self.planar, self.done, flags,
+            ))
+            self.normal_kernel_calls += 1
+            native_flags = cp.asnumpy(flags)
+            repair = np.flatnonzero(native_flags)
+            try:
+                if len(repair):
+                    # Re-query the original tree, retaining native membership/order
+                    # at ties as well as its covariance and degenerate eigenspaces.
+                    host_rows = cp.asnumpy(selected[cp.asarray(repair)])
+                    _, positions = self.tree.cpu.query(self.maps_host[host_rows], k=k)
+                    neighbors = self.maps_host[positions]
+                    centered = neighbors - neighbors.mean(axis=1, keepdims=True)
+                    matrix = np.einsum("nki,nkj->nij", centered, centered) / k
+                    values, vectors = np.linalg.eigh(matrix)
+                    self.normals[cp.asarray(host_rows)] = cp.asarray(vectors[:, :, 0])
+                    self.planar[cp.asarray(host_rows)] = cp.asarray(
+                        values[:, 0] <= self.max_planarity_ratio * values[:, 1],
+                    )
+            except Exception:
+                self.done[selected] = False
+                raise
+            self.normal_rows += len(selected)
+            self.normal_repairs += len(repair)
+            self.repaired_queries += int(np.count_nonzero(native_flags & 2))
 
     def residuals(self, extrinsic: FloatArray, gate: float) -> tuple[Any, Any, Any]:
         if extrinsic.shape != (4, 4) or not np.isfinite(extrinsic).all():
@@ -214,6 +290,7 @@ class _CudaSample:
             world[cp.asarray(rows)] = cp.asarray(moving)
             self.repaired_queries += len(rows)
         valid = (distances[:, 0] < gate) & (indexes[:, 0] < len(self.maps))
+        self._ensure(indexes[valid, 0])
         valid[valid] &= self.planar[indexes[valid, 0]]
         selected = indexes[valid, 0]
         normals = self.normals[selected]
@@ -257,7 +334,8 @@ class CudaMapRuntime:
             "calibrex.cuda_lidar_map/v0.1;fp64=true;query_fma=false;"
             f"cupy={cp.__version__};cuda={cp.cuda.runtime.runtimeGetVersion()};"
             f"driver={cp.cuda.runtime.driverGetVersion()};cc={capability};"
-            f"query_sha256={hashlib.sha256(_SOURCE.encode()).hexdigest()}"
+            f"query_sha256={hashlib.sha256(_SOURCE.encode()).hexdigest()};"
+            f"normal_sha256={hashlib.sha256(_NORMAL_SOURCE.encode()).hexdigest()};normal_cache=lazy"
         )
 
     def statistics(self) -> dict[str, int]:
@@ -265,6 +343,11 @@ class CudaMapRuntime:
         return {
             "retained_input_bytes": self.retained_bytes,
             "prepared_samples": len(self.samples),
+            "gpu_normal_rows": sum(sample.normal_rows for sample in self.samples.values()),
+            "gpu_normal_kernel_calls": sum(
+                sample.normal_kernel_calls for sample in self.samples.values()
+            ),
+            "scalar_normal_repairs": sum(sample.normal_repairs for sample in self.samples.values()),
             "gpu_query_calls": sum(sample.tree.query_calls for sample in self.samples.values()),
             "gpu_query_rows": sum(sample.tree.query_rows for sample in self.samples.values()),
             "scalar_query_repairs": sum(
