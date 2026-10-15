@@ -17,6 +17,7 @@ from __future__ import annotations
 import math
 from collections import deque
 from collections.abc import Callable, Sequence
+from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, field, replace
 from typing import Literal, Protocol, TypeAlias
 
@@ -108,12 +109,12 @@ class _OdometryTarget(Protocol):
 def _cuda_odometry() -> tuple[Callable[[FloatArray, ScanOdometryOptions], _OdometryTarget], str]:
     try:
         from calibrex.solvers.cuda_scan_odometry_adapter import (
-            CudaOdometryTarget,
+            _target_preparer,
             execution_identity,
         )
     except ImportError as exc:
         raise ValueError("CUDA odometry requires the optional calibrex[cuda] dependency") from exc
-    return CudaOdometryTarget, execution_identity()
+    return _target_preparer(), execution_identity()
 
 
 def _quantize_geometry(points: FloatArray, quantum_m: float) -> FloatArray:
@@ -450,6 +451,7 @@ class IncrementalScanOdometry:
         self._previous_motion = np.eye(4)
         self._previous_time: float | None = None
         self._previous_gap: float | None = None
+        self._preparation_executor: ThreadPoolExecutor | None = None
 
     def add(
         self,
@@ -478,11 +480,26 @@ class IncrementalScanOdometry:
                 initial = scale_motion(self._previous_motion, gap / self._previous_gap)
             self._previous_gap = gap
         self._previous_time = time_s
-        target = _local_map(self._recent, self.poses[-1], self.options)
-        cuda_target = (None if self._cuda_factory is None else
-                       self._cuda_factory(target, self.options))
-        tree = cKDTree(target) if cuda_target is None else None
-        normals = TargetNormals(target, tree, self.options) if tree is not None else None
+        target: FloatArray | None = None
+        cuda_target: _OdometryTarget | None = None
+        prepared: Future[_OdometryTarget] | None = None
+        if self._cuda_factory is not None:
+            if self._preparation_executor is None:
+                self._preparation_executor = ThreadPoolExecutor(max_workers=1)
+            # One immutable target snapshot can prepare while the caller deskews
+            # and downsamples its source. No later scan is queued or prefetched.
+            factory = self._cuda_factory
+            recent, reference = self._recent.copy(), self.poses[-1].copy()
+            options = self.options
+
+            def prepare() -> _OdometryTarget:
+                return factory(_local_map(recent, reference, options), options)
+
+            prepared = self._preparation_executor.submit(prepare)
+        else:
+            target = _local_map(self._recent, self.poses[-1], self.options)
+        tree = cKDTree(target) if target is not None else None
+        normals = TargetNormals(target, tree, self.options) if target is not None else None
         deskew = point_offsets_s is not None and gap is not None and gap > 0.0
         rounds = 1 + (self.options.deskew_iterations if deskew else 0)
         motion = initial
@@ -511,7 +528,11 @@ class IncrementalScanOdometry:
                 else:
                     source = deskew_points(scan, point_offsets_s, motion, gap)
             processed = preprocess_scan(source, self.options)
+            if prepared is not None:
+                cuda_target = prepared.result()
+                prepared = None
             if cuda_target is None:
+                assert target is not None
                 registration = register_point_to_plane(
                     processed, target, motion, self.options,
                     target_tree=tree, target_normals=normals,
@@ -534,6 +555,9 @@ class IncrementalScanOdometry:
     def result(self) -> ScanOdometryResult:
         """Return poses ``T_first_scan`` and registrations so far."""
 
+        if self._preparation_executor is not None:
+            self._preparation_executor.shutdown(wait=True)
+            self._preparation_executor = None
         return ScanOdometryResult(
             poses=tuple(self.poses), registrations=tuple(self.registrations),
             execution_backend=self.execution_backend,

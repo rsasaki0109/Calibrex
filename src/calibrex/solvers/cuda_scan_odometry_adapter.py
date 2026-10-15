@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import math
+from collections.abc import Callable
 from dataclasses import replace
 
 import cupy as cp
@@ -231,6 +232,27 @@ def execution_identity() -> str:
         f"query_sha256={hashlib.sha256(_SOURCE.encode()).hexdigest()};"
         f"system_sha256={system_digest}"
     )
+
+
+def _target_preparer() -> Callable[[FloatArray, ScanOdometryOptions], CudaOdometryTarget]:
+    """Capture the caller's device for preparation on a worker thread.
+
+    Publish a target only after its private stream completes, so registration
+    can safely consume it on the caller's stream. Reuse one private stream for
+    this factory so the device memory pool can reuse its freed target buffers.
+    The caller's current device and stream are restored after preparation.
+    """
+    device_id = cp.cuda.runtime.getDevice()
+    stream = cp.cuda.Stream(non_blocking=True)
+
+    def prepare(target: FloatArray, options: ScanOdometryOptions) -> CudaOdometryTarget:
+        with cp.cuda.Device(device_id), stream:
+            try:
+                return CudaOdometryTarget(target, options)
+            finally:
+                stream.synchronize()
+
+    return prepare
 
 
 class CudaOdometryTarget:
