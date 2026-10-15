@@ -166,3 +166,11 @@ input pairs in its documented loader format. It hashes the inputs, verifies
 actual frozen imports, saves complete fitted results and rejects numerical or
 decision drift. It can also accept repeated `--problem` arguments to measure
 several complete fits in each first-use/warm batch.
+
+New fixed-input worker records retain both elapsed `seconds` and
+`cpu_seconds` for each first-use/warm batch, including all fits, covariance
+and result packing. CPU time uses `time.process_time`, summed over the worker's
+threads and excluding child processes. The summary keeps the original wall-time
+medians and speedups and adds separate `cpu_medians`. These optional fields keep
+older measurement records readable. CPU time can exceed wall time with parallel
+work; it does not establish CPU exclusivity or control frequency and temperature.

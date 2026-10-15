@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import json
 from copy import deepcopy
+from pathlib import Path
 
 import pytest
+from jsonschema import ValidationError, validate
 from tools.benchmark_bspline_planes import EXACT_FIELDS, NUMERIC_FIELDS, _compare
 
 
@@ -81,3 +84,41 @@ def test_tiny_arithmetic_changes_and_empty_covariance_are_supported() -> None:
     current["calibration"]["gyro_bias"][0] = 1e-12
     prior["calibration_covariance"] = current["calibration_covariance"] = []
     assert _compare(prior, current)["passed"]
+
+
+@pytest.mark.parametrize("seconds", [None, 0.0, 120.0, -0.1, "1.0"])
+def test_worker_cpu_time_is_optional_and_nonnegative(seconds: float | str | None) -> None:
+    root = Path(__file__).resolve().parents[2]
+    record = json.loads(
+        (root / "docs/assets/numba_bspline_banded/00-numba_cpu/measurement.json").read_bytes()
+    )
+    schema = json.loads(
+        (root / "tools/schemas/bspline_plane_fit_benchmark.schema.json").read_bytes()
+    )
+    if seconds is not None:
+        for run in record["runs"]:
+            run["cpu_seconds"] = seconds
+    if isinstance(seconds, str) or (seconds is not None and seconds < 0):
+        with pytest.raises(ValidationError):
+            validate(record, schema)
+    else:
+        # Multithreaded process CPU time can legitimately exceed wall time.
+        validate(record, schema)
+
+
+@pytest.mark.parametrize("seconds", [None, 0.0, 120.0, -0.1])
+def test_summary_cpu_times_preserve_legacy_records(seconds: float | None) -> None:
+    root = Path(__file__).resolve().parents[2]
+    record = json.loads((root / "docs/assets/numba_bspline_banded/summary.json").read_bytes())
+    schema = json.loads(
+        (root / "tools/schemas/bspline_plane_fit_benchmark.schema.json").read_bytes()
+    )
+    if seconds is not None:
+        record["cpu_medians"] = {
+            phase: dict.fromkeys(("numpy", "numba_cpu"), seconds) for phase in ("first_use", "warm")
+        }
+    if seconds is not None and seconds < 0:
+        with pytest.raises(ValidationError):
+            validate(record, schema)
+    else:
+        validate(record, schema)

@@ -35,6 +35,7 @@ EXACT_FIELDS = (
     "calibration_parameter_names",
 )
 TOLERANCES = {"rtol": 1e-8, "atol": 1e-9}
+CPU_TIME_POLICY = "time.process_time: all in-process worker threads; excludes children"
 
 
 def _write(path: Path, record: dict) -> None:
@@ -146,6 +147,7 @@ def _worker(args: argparse.Namespace) -> None:
     for phase in ("first_use", "warm"):
         results = []
         start = time.perf_counter()
+        cpu_start = time.process_time()
         for problem, iterations in problems:
             result = fit_bspline_lidar_imu(
                 problem,
@@ -156,7 +158,14 @@ def _worker(args: argparse.Namespace) -> None:
                 ),
             )
             results.append(_payload(result))
-        runs.append({"phase": phase, "seconds": time.perf_counter() - start, "results": results})
+        runs.append(
+            {
+                "phase": phase,
+                "seconds": time.perf_counter() - start,
+                "cpu_seconds": time.process_time() - cpu_start,
+                "results": results,
+            }
+        )
     imports = {}
     for name, module in list(sys.modules.items()):
         if name == "calibrex" or name.startswith("calibrex."):
@@ -189,6 +198,7 @@ def _worker(args: argparse.Namespace) -> None:
                     for key in ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS")
                 },
                 "numba": sys.modules["numba"].__version__ if args.variant == "numba_cpu" else None,
+                "cpu_time_policy": CPU_TIME_POLICY,
             },
         },
     )
@@ -243,6 +253,7 @@ def main() -> None:
             "source_commit": subprocess.check_output(
                 ["git", "rev-parse", "HEAD"], text=True
             ).strip(),
+            "cpu_time_policy": CPU_TIME_POLICY,
             "source_manifest_sha256": _digest(source / "manifest.json"),
             "launcher_sha256": _digest(Path(__file__)),
             "input_origin": args.input_origin,
@@ -318,23 +329,28 @@ def main() -> None:
             quality.extend(
                 _compare(p, c) for p, c in zip(left["results"], right["results"], strict=True)
             )
-    medians = {
-        phase: {
-            variant: statistics.median(
-                json.loads((out / item["worker"] / "measurement.json").read_bytes())["runs"][index][
-                    "seconds"
-                ]
-                for item in attempts
-                if item["variant"] == variant
-            )
-            for variant in ("numpy", "numba_cpu")
+    timing_medians = {
+        metric: {
+            phase: {
+                variant: statistics.median(
+                    json.loads((out / item["worker"] / "measurement.json").read_bytes())["runs"][
+                        index
+                    ][metric]
+                    for item in attempts
+                    if item["variant"] == variant
+                )
+                for variant in ("numpy", "numba_cpu")
+            }
+            for index, phase in enumerate(("first_use", "warm"))
         }
-        for index, phase in enumerate(("first_use", "warm"))
+        for metric in ("seconds", "cpu_seconds")
     }
+    medians = timing_medians["seconds"]
     summary = {
         "schema_version": VERSION,
         "record_type": "summary",
         "medians": medians,
+        "cpu_medians": timing_medians["cpu_seconds"],
         "speedups": {
             phase: values["numpy"] / values["numba_cpu"] for phase, values in medians.items()
         },

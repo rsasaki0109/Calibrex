@@ -272,6 +272,11 @@
                     "calibration"
                   ]
                 }
+              },
+              "cpu_seconds": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Process CPU seconds over all in-process worker threads; may exceed elapsed seconds."
               }
             },
             "required": [
@@ -381,6 +386,52 @@
             ],
             "additionalProperties": false
           }
+        },
+        "cpu_medians": {
+          "type": "object",
+          "properties": {
+            "first_use": {
+              "type": "object",
+              "properties": {
+                "numpy": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "numba_cpu": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "numpy",
+                "numba_cpu"
+              ],
+              "additionalProperties": false
+            },
+            "warm": {
+              "type": "object",
+              "properties": {
+                "numpy": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "numba_cpu": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "numpy",
+                "numba_cpu"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "first_use",
+            "warm"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [

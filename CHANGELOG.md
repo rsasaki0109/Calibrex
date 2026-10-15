@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Record in-process CPU time separately from elapsed time in complete fixed-input
+  spline benchmarks, with first-use/warm CPU medians and backward-compatible
+  optional measurement fields. Runtime algorithms and historical evidence stay intact.
+
 - Validate archived spline-fit benchmark records with their explicit tool
   schemas. Stop benchmark descendants from the leaves upward and reap forced
   exits, preserving parent cleanup and unrelated processes in container-based CI.
