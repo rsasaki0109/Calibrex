@@ -171,7 +171,7 @@ pre-registered audit marks `supported`. Refuted audits are listed too.
 | `camera-imu` | <span class="cx-pill supported">supported</span> | Hilti 2022 forward cameras against Kalibr: every judged axis within 1 deg, five unseen recordings (third round; the first two were refuted) |
 | `lidar-lidar` | <span class="cx-pill refuted">refuted</span> | NTU VIRAL, 2/4 gates |
 | `camera-camera` | <span class="cx-pill refuted">refuted</span> | Hilti 2022 against Kalibr, 4/6 gates |
-| `camera-lidar` | <span class="cx-pill refuted">refuted</span> | KITTI check verdicts on 23 unseen drives, 5/9 gates: KITTI's calibration flagged on 3 of them |
+| `camera-lidar` | <span class="cx-pill refuted">refuted</span> | KITTI check verdicts: v2 8/9 gates on 18 unseen drives of four days (no calibration flagged; one turned-run axis 1.503 deg off, gate 1.5), v1 5/9 |
 | `camera`, `gnss-imu`, `imu-vehicle`, `ins-lidar`, `lidar-wheel_odometry` | <span class="cx-pill no_claim">no_claim</span> | Native method, no audited claim yet |
 
 [Full leaderboard and protocols :material-arrow-right:](benchmarks/sota_leaderboard.md){ .md-button }

@@ -6,7 +6,7 @@ standing per sensor pair, and the target pairs that have no audited claim yet.
 
 ## Current standings
 
-As of 2026-10-14, **three pairs have supported SOTA claims**:
+As of 2026-10-15, **three pairs have supported SOTA claims**:
 
 - **`imu-lidar`** (Livox MID360, against LI-Init):
   - rotation and clock offset;
@@ -39,13 +39,18 @@ Three pairs have only refuted audits:
   - Accuracy against Kalibr held: every scored pair was within 0.33 deg.
   - A 1 deg turn of a camera was flagged in only 70 percent of the trials and named
     in 48 percent.
-- **`camera-lidar`**: 5 of 9 gates
-  ([KITTI camera-LiDAR check audit](kitti_camera_lidar_check.md#results-refuted-5-of-9-gates)).
-  - On 20 of 23 unseen KITTI drives the check passed KITTI's calibration, every judged
-    axis within 0.45 deg. Over all 23 it flagged 57 of 61 3 deg and 60 of 61 1 deg
-    turns about judged axes.
-  - On the other three it flagged KITTI's calibration, judging an axis up to 9.6 deg off,
-    and once judged a 3 deg-turned axis right.
+- **`camera-lidar`**: two refuted audits of `calibrex check`'s per-axis verdicts.
+  - **v2: 8 of 9 gates**
+    ([KITTI camera-LiDAR check audit v2](kitti_camera_lidar_v2_check.md#results-refuted-8-of-9-gates)).
+    - On 15 scored drives of KITTI's other four days, each checked against its own day's
+      calibration, the check never flagged it. Every judged axis was within 0.45 deg,
+      and all 36 3 deg and 36 1 deg turns about judged axes were flagged.
+    - On one drive, in a turned run, it judged an axis 1.503 deg off against a 1.5 deg
+      gate.
+  - **v1: 5 of 9 gates**
+    ([KITTI camera-LiDAR check audit](kitti_camera_lidar_check.md#results-refuted-5-of-9-gates)).
+    - On 3 of 23 unseen 2011_09_26 drives the check flagged KITTI's calibration, judging
+      an axis up to 9.6 deg off.
 
 Every other target pair has a native method but no audited claim yet.
 
@@ -54,7 +59,7 @@ Every other target pair has a native method but no audited claim yet.
 | `camera` | no_claim | 0 | 0 | 0 | yes |
 | `camera-camera` | refuted | 0 | 1 | 0 | yes |
 | `camera-imu` | supported | 1 | 2 | 0 | yes |
-| `camera-lidar` | refuted | 0 | 1 | 0 | yes |
+| `camera-lidar` | refuted | 0 | 2 | 0 | yes |
 | `gnss-imu` | no_claim | 0 | 0 | 0 | yes |
 | `imu-lidar` | supported | 2 | 1 | 0 | yes |
 | `imu-vehicle` | no_claim | 0 | 0 | 0 | yes |
@@ -70,6 +75,7 @@ Every other target pair has a native method but no audited claim yet.
 | `camera-imu` | targetless_camera_imu | rotation, time_offset | refuted | 5/7 | `hilti-camera-imu-v2` |
 | `camera-imu` | targetless_camera_imu | rotation, time_offset | supported | 7/7 | `hilti-camera-imu-v3` |
 | `camera-lidar` | targetless_camera_lidar_check | rotation | refuted | 5/9 | `kitti-camera-lidar-check-v1` |
+| `camera-lidar` | targetless_camera_lidar_check | rotation | refuted | 8/9 | `kitti-camera-lidar-check-v2` |
 | `imu-lidar` | targetless_imu_lidar | rotation, translation, time_offset | refuted | 0/8 | `mid360-imu-lidar-extrinsic-vs-li-init-v1` |
 | `imu-lidar` | targetless_imu_lidar | rotation, translation, time_offset | supported | 4/4 | `mid360-imu-lidar-extrinsic-vs-li-init-v2` |
 | `imu-lidar` | targetless_imu_lidar | rotation, time_offset | supported | 4/4 | `mid360-imu-lidar-rotation-vs-li-init-v1` |

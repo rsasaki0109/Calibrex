@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+- **The KITTI camera-LiDAR check audit v2 is refuted: 8 of 9 gates.**
+  - **The runs.** All 18 pre-registered drives of 2011_09_28, 2011_09_29, 2011_09_30 and
+    2011_10_03 ran once from the frozen code.
+    - Every archive matched its pinned size and ETag, and every calibration its SHA-256.
+    - One fetch (2011_10_03_0027) dropped its connection and was retried under the
+      rerun policy; both attempts are recorded.
+    - All 18 conversions and 126 checks exited 0. Three drives were not usable: the rig
+      stood too long, leaving too few distinct views.
+  - **What held.**
+    - On all 15 scored drives the check passed that day's calibration (v1 flagged
+      KITTI's on 3 of 23).
+    - Every judged axis was within 0.45 deg of it, and 36 of 45 axes were judged.
+    - All 36 3 deg and 36 1 deg turns about judged axes were flagged, and none was
+      judged right.
+  - **What failed.** On 2011_09_28_0002, four turned runs took a far optimum that judged
+    roll 1.45 to 1.50 deg off the day's calibration. Its held-out control was at `t` 2.58
+    to 2.65 (post hoc). The 3 deg yaw run's 1.503 deg contradicts the 1.5 deg
+    turned-accuracy gate.
+  - **Leaderboard.** `camera-lidar` stays `refuted` (2 refuted audits). The page is
+    `docs/benchmarks/kitti_camera_lidar_v2_check.md`; the runs, scores and audit are in
+    `docs/assets/kitti_camera_lidar_v2/evaluation/`.
+
 - **camera-lidar v2 is pre-registered: KITTI's other four days, each with its own
   calibration.**
   - **What changed in the check, after the refuted v1 audit.**

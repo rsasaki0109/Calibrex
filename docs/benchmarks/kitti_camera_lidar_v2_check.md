@@ -15,8 +15,8 @@ target-based calibration, itself a calibration with error, not ground truth.
 
 ## Pre-registration
 
-**Status: pre-registered; the evaluation has not run.** The claim, drives, runs, scoring and
-thresholds are in
+**Status: refuted, 8 of 9 gates** ([results](#results-refuted-8-of-9-gates)). The claim,
+drives, runs, scoring and thresholds are in
 [`kitti_camera_lidar_v2_preregistration.yaml`](kitti_camera_lidar_v2_preregistration.yaml),
 frozen at code commit `f0afa94`.
 
@@ -98,3 +98,86 @@ drive (2011_09_30_0018) comes from an evaluation day. The stricter control judge
 (86 of 108 on the 2011_09_26 drives, against 97 under v1's rules), and a drive that stands
 for most of its first 48 s, or runs fast on a highway (2011_10_03_0042), may judge little;
 the coverage gates allow that.
+
+## Results: refuted, 8 of 9 gates
+
+**The runs.** All 18 drives ran once from the merged pre-registration (`0dd7c1d`, whose
+`src/` and `tools/` equal the frozen `f0afa94`). Every archive matched its pinned size and
+ETag, and every day's calibration archive its SHA-256.
+
+* **One fetch was retried.** The fetch of 2011_10_03_0027 failed on a dropped connection
+  (curl exit 18) before any check ran. By the rerun policy the driver ran again with the
+  same command and fetched it, and both attempts are in the record.
+* **Everything else exited 0:** all 18 conversions and 126 checks.
+
+The frozen scorer and builder scored the runs, and `calibrex sota audit` records the same
+verdict
+([protocol](../assets/kitti_camera_lidar_v2/evaluation/kitti_camera_lidar_v2_sota_protocol.yaml),
+[audit](../assets/kitti_camera_lidar_v2/evaluation/kitti_camera_lidar_v2_sota_audit.yaml),
+[scores](../assets/kitti_camera_lidar_v2/evaluation/scores.json); every artifact and log is
+under [`evaluation/runs/`](../assets/kitti_camera_lidar_v2/evaluation/runs/evaluate_record.json)).
+
+| Requirement | Observed | Threshold | Gate |
+| --- | --- | --- | --- |
+| `no-failed-drives` | 0 failed | 0 | achieved |
+| `vendor-calibration-not-flagged` | 0 of 15 flagged | 0 | achieved |
+| `judged-axis-accuracy` | 0.45 deg (2011_09_28_0043 yaw) | 0.75 deg | achieved |
+| `judged-axis-coverage` | 36 of 45 axes judged (0.80) | at least 0.5 | achieved |
+| `turned-judged-axis-accuracy` | 1.503 deg (2011_09_28_0002 roll, 3 deg yaw run) | 1.5 deg | **contradicted** |
+| `turn-3deg-flagged` | 0 of 36 not flagged | at most 0.1 | achieved |
+| `turn-3deg-never-judged-right` | 0 | 0 | achieved |
+| `turn-1deg-flagged` | 0 of 36 not flagged | at most 0.25 | achieved |
+| `scored-drives-coverage` | 15 of 18 scored | at least 12 | achieved |
+
+Estimate minus the day's calibration for the baseline (deg; "-" not judged), then the
+check's verdict on the turned axis and its reading (deg; `*` the axis is not judged on the
+drive's baseline, so its turns are not counted):
+
+| Drive | Baseline | roll | pitch | yaw | roll +3 / +1 | pitch +3 / +1 | yaw +3 / +1 |
+| --- | --- | ---: | ---: | ---: | --- | --- | --- |
+| 2011_09_28_0002 | pass | - | +0.05 | - | fail 4.45 / unjudged * | fail 3.05 / fail 1.10 | unjudged / unjudged * |
+| 2011_09_28_0016 | not usable | | | | | | |
+| 2011_09_28_0021 | not usable | | | | | | |
+| 2011_09_28_0039 | pass | +0.00 | -0.10 | -0.05 | fail 2.90 / warn 0.95 | fail 3.00 / fail 1.10 | fail 3.05 / fail 1.05 |
+| 2011_09_28_0043 | pass | +0.35 | -0.00 | +0.45 | fail 2.50 / warn 0.65 | fail 2.90 / warn 1.00 | fail 2.55 / warn 0.55 |
+| 2011_09_29_0004 | pass | +0.35 | +0.05 | - | fail 2.55 / warn 0.50 | fail 2.90 / warn 0.95 | unjudged / unjudged * |
+| 2011_09_29_0026 | not usable | | | | | | |
+| 2011_09_29_0071 | pass | +0.20 | -0.05 | +0.00 | fail 2.75 / warn 0.80 | fail 2.95 / warn 1.00 | fail 3.00 / fail 1.00 |
+| 2011_09_30_0016 | pass | +0.00 | +0.00 | - | fail 2.90 / warn 0.95 | fail 2.90 / warn 1.00 | unjudged / unjudged * |
+| 2011_09_30_0020 | pass | +0.25 | -0.10 | -0.05 | fail 2.75 / warn 0.80 | fail 3.05 / fail 1.10 | fail 3.05 / fail 1.10 |
+| 2011_09_30_0027 | pass | +0.15 | +0.00 | -0.10 | fail 2.75 / warn 0.85 | fail 2.90 / warn 0.95 | fail 3.10 / fail 1.10 |
+| 2011_09_30_0028 | pass | +0.20 | -0.00 | -0.05 | fail 2.70 / warn 0.75 | fail 2.95 / warn 1.00 | fail 3.15 / fail 1.10 |
+| 2011_09_30_0033 | pass | - | +0.00 | - | unjudged / unjudged * | fail 3.00 / warn 1.00 | unjudged / unjudged * |
+| 2011_09_30_0034 | pass | +0.15 | +0.00 | +0.05 | fail 2.75 / warn 0.80 | fail 2.95 / warn 1.00 | fail 2.95 / warn 0.95 |
+| 2011_10_03_0027 | pass | +0.15 | +0.00 | -0.05 | fail 2.80 / warn 0.85 | fail 2.95 / warn 1.00 | fail 3.05 / fail 1.05 |
+| 2011_10_03_0034 | pass | - | -0.05 | +0.00 | unjudged / unjudged * | fail 3.00 / fail 1.05 | fail 2.95 / warn 1.00 |
+| 2011_10_03_0042 | pass | - | -0.10 | - | unjudged / unjudged * | fail 3.00 / fail 1.10 | unjudged / unjudged * |
+| 2011_10_03_0047 | pass | +0.20 | +0.00 | -0.35 | fail 2.75 / warn 0.80 | fail 2.95 / warn 0.95 | fail 3.35 / fail 1.35 |
+
+**Every day's calibration passes.** On all 15 scored drives, over the four days, the check
+passes that day's calibration (v1 flagged KITTI's on 3 of 23). Every judged axis is within
+0.45 deg of it, and every turn about a judged axis is flagged, 36 of 36 at 3 deg and 36 of
+36 at 1 deg; none is judged right.
+
+**Three drives are not usable.** On 2011_09_28_0016, 2011_09_28_0021 and 2011_09_29_0026
+the rig stands or creeps through most of the first 48 s. The repeated-view guard keeps 1, 7
+and 5 frames where 8 are needed, so the baseline estimator refuses (`inconclusive`). The
+rules count them against coverage only.
+
+**One drive refutes the claim: 2011_09_28_0002.** Its baseline judges pitch only: roll's
+held-out control is at `t` -0.29, yaw's at 0.46.
+
+* In four of its six turned runs (roll +3, pitch +3, yaw +3 and pitch +1) the search
+  started at the profile maxima reaches an optimum with roll 1.45 to 1.50 deg off the
+  day's calibration.
+* That optimum observes roll and pitch against the candidate optimum's pitch alone, so by
+  the v2 rule it replaces it.
+* Roll's control there is at `t` 2.58 to 2.65, just above the new 2.5 bound.
+* Three of these axes fall within the 1.5 deg gate (1.45, 1.48 and 1.49 deg). In the 3 deg
+  yaw run, roll is 1.503 deg off and the gate is contradicted.
+
+That account is post hoc: it explains the verdict and does not change it. It is v1's
+failure mode one step later: a far optimum judged with a control just above its bound.
+v2's rules removed the false alarms on KITTI's calibration (0 of 15). They did not keep such
+an optimum out of the turned runs.
+
