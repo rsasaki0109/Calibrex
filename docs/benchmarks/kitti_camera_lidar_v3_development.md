@@ -99,6 +99,70 @@ new final fit because earlier adoption decisions can change. Consequently this
 screen cannot supply new-rule flags, errors, coverage, detection rates or audit
 thresholds.
 
+## Capture and paired replay on spent data
+
+`tools/kitti_camera_lidar_v3_replay.py` rebuilds the development workflow without
+reading any fresh evaluation recording. `capture` accepts only the fixed 55 spent
+raw drive IDs from the committed v2 scores. Before opening sensor streams it
+requires a KITTI raw conversion sidecar for that same single drive, `image_02`
+and azimuth point times. Each actual candidate must match the sidecar's published
+reference transform, or that reference with the declared 1 or 3 deg turn.
+
+Capture runs the real `calibrex check` seven times with the current defaults and
+cache disabled. It saves a **separate input for every run**, after synchronization
+and motion correction but before edge preparation. A rotated candidate can change
+visible-point timing and therefore pairing and corrected points; the baseline's
+frames are not reused for its six injections. Images, points and per-point times
+are stored losslessly in NPZ with a versioned JSON manifest, full payload SHA-256,
+all option values, camera model, motion summary and original provenance. Loading
+uses `allow_pickle=False`, verifies array types/shapes and refuses implicit option
+schema migrations.
+
+For one already converted spent bag:
+
+```bash
+PYTHONPATH="$PWD/src" .venv/bin/python tools/kitti_camera_lidar_v3_replay.py capture BAG \
+  --drive 2011_09_26_0005 --output /tmp/kitti-v3-inputs/2011_09_26_0005
+```
+
+The capture directory retains check outputs, evidence, logs, commands, elapsed
+times, conversion provenance and a digest manifest. A solver exception is a
+capture failure even when `--fail-on never` returns 0: the estimator must also
+produce its evidence. Failed inputs/attempts are retained, and existing output
+directories are never overwritten. A failed or interrupted capture stays
+incomplete. These are development reruns; this tool is not the once-only v3
+evaluation driver.
+
+After captures exist for all 55 spent drives:
+
+```bash
+PYTHONPATH="$PWD/src" .venv/bin/python tools/kitti_camera_lidar_v3_replay.py compare \
+  /tmp/kitti-v3-inputs --output /tmp/kitti-v3-comparison-3p5 --min-far-control-t 3.5
+```
+
+Replay does not open the bag or use the network. Both rules receive identical
+read-only input arrays and explicit captured settings; only the far-start margin
+differs. It requires the default check recipe, checks every manifest digest and
+calibration/injection identity, and verifies that the current-rule replay matches
+the captured numerical evidence (absolute tolerance `1e-9`) and the real check's
+axis verdicts. A parity failure, missing capture or corrupt input remains a failed
+drive in **both** rule summaries. It is never silently dropped.
+
+`comparison.json` reports both rules' flags, maximum errors, judged-axis rates,
+1/3 deg detection rates and coverage change in percentage points. It reuses v2's
+per-drive metric definitions and the native check's verdict rule, without invoking
+v2's audit gates. `audit_thresholds` stays `null`. A `--drive DATE_ID` subset is
+allowed for development but is always incomplete; exit 0 requires all 55 drives
+with no failed captures, parity checks or drive scores. It never means
+`supported`. A completed development comparison still needs real-driver
+confirmation before v3 thresholds can be selected.
+
+Tests use synthetic data only. They exercise real seven-check capture on a tiny
+converted raw fixture, replay after deleting its bag, a converged synthetic scene
+with all six actual injections, exact image/point/time round trips, corruption,
+recipe migration, parity mismatches and preservation of solver/missing-input
+failures. No synthetic metrics are used as the 55-drive development measurements.
+
 ## Work still required before pre-registration
 
 The official S3 host is still blocked by this environment (HTTP 403 on a

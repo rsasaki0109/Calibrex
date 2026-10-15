@@ -33,6 +33,54 @@ RUNS = (
 ROTATION_AXES = ("roll", "pitch", "yaw")
 
 
+def summarize_scores(scores: dict[str, Any]) -> dict[str, Any]:
+    """Descriptive metrics only; no audit thresholds, requirements or verdict."""
+
+    scored = {drive: item for drive, item in scores.items() if item["state"] == "scored"}
+    judged_errors = [
+        abs(axis["error_deg"])
+        for item in scored.values()
+        for axis in item["axes"].values()
+        if axis["judged"]
+    ]
+    turned_errors = [
+        abs(error)
+        for item in scored.values()
+        for trial in item["trials"].values()
+        for error in trial["judged_errors_deg"].values()
+    ]
+    trials: dict[str, Any] = {}
+    for angle in (3, 1):
+        counted = [
+            trial
+            for item in scored.values()
+            for name, trial in item["trials"].items()
+            if name.endswith(f":{angle}") and trial["counted"]
+        ]
+        flagged = sum(trial["flagged"] for trial in counted)
+        trials[f"{angle}deg"] = {
+            "counted": len(counted),
+            "flagged": flagged,
+            "flagged_fraction": flagged / len(counted) if counted else None,
+            "judged_right": sum(trial["judged_right"] for trial in counted),
+        }
+    return {
+        "drives": len(scores),
+        "scored_drives": len(scored),
+        "failed_drives": [d for d, s in scores.items() if s["state"] == "failed"],
+        "inconclusive_drives": [d for d, s in scores.items() if s["state"] == "inconclusive"],
+        "flagged_baselines": [d for d, s in scored.items() if s["verdict"] in ("warn", "fail")],
+        "max_baseline_judged_error_deg": max(judged_errors, default=None),
+        "max_turned_judged_error_deg": max(turned_errors, default=None),
+        "judged_axes": len(judged_errors),
+        "scored_axes": 3 * len(scored),
+        "all_axes": 3 * len(scores),
+        "judged_fraction_scored": len(judged_errors) / (3 * len(scored)) if scored else None,
+        "judged_fraction_all": len(judged_errors) / (3 * len(scores)) if scores else None,
+        "trials": trials,
+    }
+
+
 def development_report(root: Path, *, min_far_control_t: float = 3.5) -> dict[str, Any]:
     """Aggregate old scores and screen saved final far fits; never infer new metrics."""
 
@@ -98,49 +146,7 @@ def development_report(root: Path, *, min_far_control_t: float = 3.5) -> dict[st
                     }
                 )
 
-    scored = {drive: item for drive, item in scores.items() if item["state"] == "scored"}
-    judged_errors = [
-        abs(axis["error_deg"])
-        for item in scored.values()
-        for axis in item["axes"].values()
-        if axis["judged"]
-    ]
-    turned_errors = [
-        abs(error)
-        for item in scored.values()
-        for trial in item["trials"].values()
-        for error in trial["judged_errors_deg"].values()
-    ]
-    trials: dict[str, Any] = {}
-    for angle in (3, 1):
-        counted = [
-            trial
-            for item in scored.values()
-            for name, trial in item["trials"].items()
-            if name.endswith(f":{angle}") and trial["counted"]
-        ]
-        flagged = sum(trial["flagged"] for trial in counted)
-        trials[f"{angle}deg"] = {
-            "counted": len(counted),
-            "flagged": flagged,
-            "flagged_fraction": flagged / len(counted) if counted else None,
-            "judged_right": sum(trial["judged_right"] for trial in counted),
-        }
-    metrics = {
-        "drives": len(scores),
-        "scored_drives": len(scored),
-        "failed_drives": [d for d, s in scores.items() if s["state"] == "failed"],
-        "inconclusive_drives": [d for d, s in scores.items() if s["state"] == "inconclusive"],
-        "flagged_baselines": [d for d, s in scored.items() if s["verdict"] in ("warn", "fail")],
-        "max_baseline_judged_error_deg": max(judged_errors, default=None),
-        "max_turned_judged_error_deg": max(turned_errors, default=None),
-        "judged_axes": len(judged_errors),
-        "scored_axes": 3 * len(scored),
-        "all_axes": 3 * len(scores),
-        "judged_fraction_scored": len(judged_errors) / (3 * len(scored)) if scored else None,
-        "judged_fraction_all": len(judged_errors) / (3 * len(scores)) if scores else None,
-        "trials": trials,
-    }
+    metrics = summarize_scores(scores)
     commit = subprocess.run(
         ["git", "-C", str(root), "rev-parse", "HEAD"],
         capture_output=True,
