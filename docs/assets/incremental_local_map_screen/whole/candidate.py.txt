@@ -1,0 +1,43 @@
+from collections import deque
+import cupy as cp
+import numpy as np
+from calibrex.solvers import scan_to_scan_odometry as native
+SOURCE = '\nextern "C" __global__ void prepare(const double* input, int n, double q, double voxel,\n    double* xyz, unsigned long long* keys, int* invalid) {\n    int row=blockDim.x*blockIdx.x+threadIdx.x; if(row>=n)return;\n    long long k[3];\n    #pragma unroll 1\n    for(int a=0;a<3;++a) {\n        double v=input[3*row+a];if(q>0)v=nearbyint(v/q)*q;\n        xyz[3*row+a]=v;\n        double f=floor(v/voxel);\n        if(!isfinite(v)||f< -1048576.||f>=1048576.) {atomicExch(invalid,1);f=0.;}\n        k[a]=(long long)f+1048576;\n    }\n    keys[row]=(((unsigned long long)k[0]<<21)|(unsigned long long)k[1])<<21|(unsigned long long)k[2];\n}\nextern "C" __global__ void insert(const unsigned long long* keys,int n,int mask,\n    unsigned long long* table,int* heads,int* next) {\n    int row=blockDim.x*blockIdx.x+threadIdx.x;if(row>=n)return;\n    unsigned long long key=keys[row];\n    unsigned long long h=key;h^=h>>30;h*=0xbf58476d1ce4e5b9ULL;h^=h>>27;h*=0x94d049bb133111ebULL;h^=h>>31;\n    int slot=(int)h&mask;\n    while(true) {\n        unsigned long long old=atomicCAS(table+slot,~0ULL,key);\n        if(old==~0ULL||old==key)break;\n        slot=(slot+1)&mask;\n    }\n    next[row]=atomicExch(heads+slot,row);\n}\nextern "C" __global__ void centroids(const double* xyz,const int* heads,const int* next,\n    const long long* occupied,const long long* order,int groups,double q,double* result,int* invalid) {\n    int group=blockDim.x*blockIdx.x+threadIdx.x;if(group>=groups)return;\n    int slot=(int)occupied[order[group]];int rows[32];int count=0;\n    #pragma unroll 1\n    for(int row=heads[slot];row>=0;row=next[row]) {\n        if(count==32){atomicExch(invalid,1);return;}\n        int j=count;while(j>0&&rows[j-1]>row){rows[j]=rows[j-1];--j;}\n        rows[j]=row;++count;\n    }\n    #pragma unroll 1\n    for(int a=0;a<3;++a) {\n        double sum=0.;for(int i=0;i<count;++i)sum+=xyz[3*rows[i]+a];\n        double v=sum/(double)count;if(q>0)v=nearbyint(v/q)*q;\n        result[3*group+a]=v;\n    }\n}\n'
+module = cp.RawModule(code=SOURCE, options=("--fmad=false",))
+kernels = None
+class Hashed:
+
+    def __init__(self, cache=True):
+        self.cache = {}
+        self.reuse = cache
+        self.fallbacks = 0
+
+    def local(self, recent, pose, opts):
+        live = set(map(id, recent)) if self.reuse else set()
+        self.cache = {k: v for k, v in self.cache.items() if k in live}
+        invalid = cp.zeros(1, dtype=cp.int32)
+        for points in recent:
+            if id(points) not in self.cache:
+                gpu = cp.asarray(np.ascontiguousarray(points, dtype=np.float64))
+                xyz = cp.empty_like(gpu)
+                keys = cp.empty(len(points), dtype=cp.uint64)
+                kernels['prepare'](((len(points) + 127) // 128,), (128,), (gpu, np.int32(len(points)), np.float64(opts.geometry_quantum_m), np.float64(opts.voxel_size_m), xyz, keys, invalid))
+                self.cache[id(points)] = (xyz, keys)
+        xyz = cp.concatenate([self.cache[id(p)][0] for p in recent])
+        keys = cp.concatenate([self.cache[id(p)][1] for p in recent])
+        n = len(xyz)
+        size = 1 << (2 * n - 1).bit_length()
+        table = cp.full(size, cp.uint64(2 ** 64 - 1), dtype=cp.uint64)
+        heads = cp.full(size, -1, dtype=cp.int32)
+        next_rows = cp.empty(n, dtype=cp.int32)
+        kernels['insert'](((n + 127) // 128,), (128,), (keys, np.int32(n), np.int32(size - 1), table, heads, next_rows))
+        occupied = cp.flatnonzero(heads >= 0)
+        order = cp.argsort(table[occupied])
+        result = cp.empty((len(occupied), 3), dtype=cp.float64)
+        kernels['centroids'](((len(occupied) + 127) // 128,), (128,), (xyz, heads, next_rows, occupied, order, np.int32(len(occupied)), np.float64(opts.geometry_quantum_m), result, invalid))
+        points = cp.asnumpy(result)
+        if int(invalid.get()[0]):
+            self.fallbacks += 1
+            return native._local_map(deque(recent), pose, opts)
+        inverse = np.linalg.inv(pose)
+        return native._quantize_geometry(points @ inverse[:3, :3].T + inverse[:3, 3], opts.geometry_quantum_m)

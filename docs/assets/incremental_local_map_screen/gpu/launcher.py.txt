@@ -1,0 +1,138 @@
+"""Private deterministic CUDA hash voxel pilot on captured public local maps."""
+from pathlib import Path
+import os
+for name in ('OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS', 'OMP_NUM_THREADS'):
+    os.environ[name] = '1'
+import hashlib
+import json
+import statistics
+import time
+from collections import deque
+import faulthandler
+faulthandler.dump_traceback_later(30, repeat=True)
+import numpy as np
+from calibrex.solvers import scan_to_scan_odometry as native
+
+ROOT = Path(__file__).resolve().parent
+out = ROOT / 'outputs/hash-voxel-local-map-pilot-v3'
+out.mkdir(exist_ok=False)
+os.environ['CUPY_CACHE_DIR'] = str(out / 'cupy-cache')
+import cupy as cp
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+inputs = ROOT / 'outputs/incremental-local-map-pilot-v1'
+meta = json.loads((inputs / 'inputs.json').read_bytes())
+options = native.ScanOdometryOptions(**json.loads((inputs / 'protocol.json').read_bytes())['options'])
+loaded = np.load(inputs / 'inputs.npz')
+arrays = {k: loaded[k] for k in loaded.files}
+windows = [(tuple(arrays[k] for k in w['scans']), arrays[w['pose']]) for w in meta['windows']]
+
+SOURCE = r'''
+extern "C" __global__ void prepare(const double* input, int n, double q, double voxel,
+    double* xyz, unsigned long long* keys, int* invalid) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x; if(row>=n)return;
+    long long k[3];
+    #pragma unroll 1
+    for(int a=0;a<3;++a) {
+        double v=input[3*row+a];if(q>0)v=nearbyint(v/q)*q;
+        xyz[3*row+a]=v;
+        double f=floor(v/voxel);
+        if(!isfinite(v)||f< -1048576.||f>=1048576.) {atomicExch(invalid,1);f=0.;}
+        k[a]=(long long)f+1048576;
+    }
+    keys[row]=(((unsigned long long)k[0]<<21)|(unsigned long long)k[1])<<21|(unsigned long long)k[2];
+}
+extern "C" __global__ void insert(const unsigned long long* keys,int n,int mask,
+    unsigned long long* table,int* heads,int* next) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;if(row>=n)return;
+    unsigned long long key=keys[row];
+    unsigned long long h=key;h^=h>>30;h*=0xbf58476d1ce4e5b9ULL;h^=h>>27;h*=0x94d049bb133111ebULL;h^=h>>31;
+    int slot=(int)h&mask;
+    while(true) {
+        unsigned long long old=atomicCAS(table+slot,~0ULL,key);
+        if(old==~0ULL||old==key)break;
+        slot=(slot+1)&mask;
+    }
+    next[row]=atomicExch(heads+slot,row);
+}
+extern "C" __global__ void centroids(const double* xyz,const int* heads,const int* next,
+    const long long* occupied,const long long* order,int groups,double q,double* result,int* invalid) {
+    int group=blockDim.x*blockIdx.x+threadIdx.x;if(group>=groups)return;
+    int slot=(int)occupied[order[group]];int rows[32];int count=0;
+    #pragma unroll 1
+    for(int row=heads[slot];row>=0;row=next[row]) {
+        if(count==32){atomicExch(invalid,1);return;}
+        int j=count;while(j>0&&rows[j-1]>row){rows[j]=rows[j-1];--j;}
+        rows[j]=row;++count;
+    }
+    #pragma unroll 1
+    for(int a=0;a<3;++a) {
+        double sum=0.;for(int i=0;i<count;++i)sum+=xyz[3*rows[i]+a];
+        double v=sum/(double)count;if(q>0)v=nearbyint(v/q)*q;
+        result[3*group+a]=v;
+    }
+}
+'''
+print('compile start', flush=True)
+module = cp.RawModule(code=SOURCE, options=('--fmad=false',))
+kernels = {k: module.get_function(k) for k in ('prepare', 'insert', 'centroids')}
+
+print('compile complete', flush=True)
+faulthandler.cancel_dump_traceback_later()
+
+class Hashed:
+    def __init__(self, cache=True):
+        self.cache = {}
+        self.reuse = cache
+        self.fallbacks = 0
+    def local(self, recent, pose, opts):
+        live = set(map(id, recent)) if self.reuse else set()
+        self.cache = {k: v for k, v in self.cache.items() if k in live}
+        invalid = cp.zeros(1, dtype=cp.int32)
+        for points in recent:
+            if id(points) not in self.cache:
+                gpu = cp.asarray(np.ascontiguousarray(points, dtype=np.float64))
+                xyz = cp.empty_like(gpu)
+                keys = cp.empty(len(points), dtype=cp.uint64)
+                kernels['prepare'](((len(points)+127)//128,), (128,), (gpu, np.int32(len(points)), np.float64(opts.geometry_quantum_m), np.float64(opts.voxel_size_m), xyz, keys, invalid))
+                self.cache[id(points)] = (xyz, keys)
+        xyz = cp.concatenate([self.cache[id(p)][0] for p in recent])
+        keys = cp.concatenate([self.cache[id(p)][1] for p in recent])
+        n = len(xyz)
+        size = 1 << (2*n-1).bit_length()
+        table = cp.full(size, cp.uint64(2**64-1), dtype=cp.uint64)
+        heads = cp.full(size, -1, dtype=cp.int32)
+        next_rows = cp.empty(n, dtype=cp.int32)
+        kernels['insert'](((n+127)//128,), (128,), (keys, np.int32(n), np.int32(size-1), table, heads, next_rows))
+        occupied = cp.flatnonzero(heads >= 0)
+        order = cp.argsort(table[occupied])
+        result = cp.empty((len(occupied), 3), dtype=cp.float64)
+        kernels['centroids'](((len(occupied)+127)//128,), (128,), (xyz, heads, next_rows, occupied, order, np.int32(len(occupied)), np.float64(opts.geometry_quantum_m), result, invalid))
+        points = cp.asnumpy(result)
+        if int(invalid.get()[0]):
+            self.fallbacks += 1
+            return native._local_map(deque(recent), pose, opts)
+        inverse = np.linalg.inv(pose)
+        return native._quantize_geometry(points @ inverse[:3, :3].T + inverse[:3, 3], opts.geometry_quantum_m)
+
+(out / 'protocol.json').write_text(json.dumps({'scope': __doc__, 'launcher_sha256': sha(Path(__file__)), 'source_sha256': sha(Path(native.__file__)), 'inputs_sha256': sha(inputs / 'inputs.json'), 'inputs_npz_sha256': sha(inputs / 'inputs.npz'), 'kernel_sha256': hashlib.sha256(SOURCE.encode()).hexdigest(), 'blas_threads': 1, 'cold_compilation_seconds': None}, indent=2) + '\n', encoding='utf-8')
+references = [native._local_map(deque(recent), pose, options) for recent, pose in windows]
+runs = []
+for repeat in range(7):
+    variants = ['prior', 'hash', 'hash_cached']
+    variants = variants[repeat % 3:] + variants[:repeat % 3]
+    for variant in variants:
+        candidate = Hashed(cache=variant == 'hash_cached')
+        begin = time.perf_counter()
+        for case, ((recent, pose), expected) in enumerate(zip(windows, references)):
+            start = time.perf_counter()
+            actual = (native._local_map(deque(recent), pose, options) if variant == 'prior' else candidate.local(recent, pose, options))
+            seconds = time.perf_counter() - start
+            assert actual.shape == expected.shape
+            assert np.array_equal(actual.view(np.uint64), expected.view(np.uint64)), (variant, case, np.max(np.abs(actual - expected)))
+            runs.append({'repeat': repeat, 'variant': variant, 'case': case, 'seconds': seconds, 'rows': len(actual), 'output_sha256': hashlib.sha256(actual.tobytes()).hexdigest(), 'fallbacks': candidate.fallbacks})
+        print(json.dumps({'repeat': repeat, 'variant': variant, 'seconds': time.perf_counter() - begin, 'fallbacks': candidate.fallbacks}), flush=True)
+(out / 'runs.json').write_text(json.dumps(runs, indent=2) + '\n', encoding='utf-8')
+medians = {v: statistics.median(sum(r['seconds'] for r in runs if r['variant'] == v and r['repeat'] == i) for i in range(1,7)) for v in ('prior', 'hash', 'hash_cached')}
+summary = {'warm_medians': medians, 'speedups': {v: medians['prior'] / medians[v] for v in medians if v != 'prior'}, 'exact': True, 'provenance': {'protocol_sha256': sha(out / 'protocol.json')}}
+(out / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n', encoding='utf-8')
+print(json.dumps(summary), flush=True)

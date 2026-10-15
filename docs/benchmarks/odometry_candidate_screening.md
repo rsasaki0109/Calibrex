@@ -57,6 +57,42 @@ preparation and registration cost. Existing complete-bag physical/evidence
 checks remain the acceptance gate; small component ratios do not establish
 that benefit.
 
+## Incremental local-map experiments
+
+A subsequent screen reuses world-coordinate preparation across consecutive
+local maps and tries deterministic GPU hash aggregation. The strongest warm
+local-map preparation pilot improves by 2.737x, while complete fresh-worker
+calibration improves only 1.010x. No candidate is adopted.
+
+| Candidate | Observed ratio | Scope |
+| --- | ---: | --- |
+| CPU retained coordinates and voxel keys | 1.483x | Local-map preparation |
+| CPU retained unique groups and remapping | 0.776x | Local-map preparation |
+| Deterministic GPU voxel hash | 2.266x | Warm local-map preparation |
+| GPU hash with retained scan cache | 2.737x | Warm local-map preparation |
+| GPU hash/cache, complete calibration | 1.010x | Fresh process, all startup and output work |
+
+The [incremental-map archive](../assets/incremental_local_map_screen/README.md)
+retains 2,478 micro observations over 59 consecutive public-data map windows,
+four complete worker results and fits, source capsules, launchers and input
+identities. The micro launchers assert coordinate bit equality and retain each
+output hash and point count. Coordinate arrays are identified but not included,
+so the CPU audit checks their saved identities rather than recomputing geometry.
+GPU micro medians exclude round zero; module setup is outside that timed scope.
+
+Two alternating fresh-process pairs include separate empty CuPy caches and all
+candidate compilation. Whole times are 74.201 versus 76.410 seconds in the first
+pair, and 75.067 versus 71.348 seconds in the second. The median is 74.634 versus
+73.879 seconds. Complete calibration/evidence and fit fields match exactly,
+allowing only run metadata and fit duration. Each candidate worker executes 448
+map calls over 25,427,273 input rows with zero native repairs. One BLAS thread is
+used and host CPU/GPU activity is unreserved. Neither a robust whole-worker gain
+nor unexercised boundary/fallback correctness is established by this screen.
+
+```bash
+python -m tools.audit_incremental_local_map_screen docs/assets/incremental_local_map_screen
+```
+
 ```bash
 python -m tools.audit_odometry_candidate_screen docs/assets/odometry_candidate_screen
 ```

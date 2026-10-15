@@ -1,0 +1,119 @@
+"""Source-bound exploratory whole-worker comparison of hash local-map preparation."""
+import argparse
+import ast
+from collections import deque
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import statistics
+import subprocess
+import sys
+import time
+
+ROOT = Path(__file__).resolve().parent
+out = ROOT / 'outputs/hash-local-map-whole-screen-v2'
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+
+if len(sys.argv) == 1:
+    from tools import benchmark_bspline_lidar_imu as bench
+    out.mkdir(exist_ok=False)
+    bench._freeze(out / 'sources', None)
+    shutil.copyfile(__file__, out / 'launcher.py.txt')
+    pilot = ROOT / '.tmp-calibrex-pilot-hash-voxels-v3.py'
+    tree = ast.parse(pilot.read_bytes())
+    source = ast.literal_eval(next(n.value for n in tree.body if isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'SOURCE' for t in n.targets)))
+    cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == 'Hashed')
+    helper = ('from collections import deque\nimport cupy as cp\nimport numpy as np\n'
+              'from calibrex.solvers import scan_to_scan_odometry as native\n'
+              + 'SOURCE = ' + repr(source) + '\n'
+              + 'module = cp.RawModule(code=SOURCE, options=("--fmad=false",))\n'
+              + 'kernels = None\n'
+              + ast.unparse(cls) + '\n')
+    (out / 'candidate.py.txt').write_text(helper, encoding='utf-8')
+    commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+    protocol = {'scope': __doc__, 'source_commit': commit,
+                'source_manifest_sha256': sha(out / 'sources/manifest.json'),
+                'launcher_sha256': sha(out / 'launcher.py.txt'),
+                'candidate_sha256': sha(out / 'candidate.py.txt'),
+                'bag_sha256': sha(ROOT / 'data/public/glim_versatile/livox.bag'),
+                'repeats': 2, 'blas_threads': 1, 'fresh_workers': True,
+                'empty_separate_cuda_caches': True, 'host_unreserved': True,
+                'max_seconds': 6., 'max_rounds': 4, 'fit_plane_backend': 'cuda',
+                'experimental_monkeypatch': 'candidate local-map only; complete runtime frozen unchanged'}
+    (out / 'protocol.json').write_text(json.dumps(protocol, indent=2) + '\n', encoding='utf-8')
+    attempts = []
+    for repeat in range(2):
+        for variant in (('prior', 'current') if repeat % 2 == 0 else ('current', 'prior')):
+            directory = out / f'{repeat:02d}-{variant}'
+            directory.mkdir()
+            env = os.environ.copy()
+            env.update(dict.fromkeys(('OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS', 'OMP_NUM_THREADS'), '1'))
+            env['CUPY_CACHE_DIR'] = str(directory / 'cupy-cache')
+            env['PYTHONPATH'] = str(out / 'sources/src') + os.pathsep + str(ROOT)
+            env['PYTHONDONTWRITEBYTECODE'] = '1'
+            start = time.perf_counter()
+            with (directory / 'worker.log').open('wb') as log:
+                result = subprocess.run([sys.executable, str(Path(__file__)), variant, str(directory)], env=env, stdout=log, stderr=subprocess.STDOUT)
+            attempts.append({'repeat': repeat, 'variant': variant, 'exit_code': result.returncode, 'whole_seconds': time.perf_counter() - start})
+            (out / 'attempts.json').write_text(json.dumps(attempts, indent=2) + '\n', encoding='utf-8')
+            print(json.dumps(attempts[-1]), flush=True)
+            assert result.returncode == 0
+    pairs = []
+    for repeat in range(2):
+        directories = [out / f'{repeat:02d}-{v}' for v in ('prior', 'current')]
+        results = [json.loads((d / 'result.json').read_bytes()) for d in directories]
+        records = [json.loads((d / 'measurement.json').read_bytes()) for d in directories]
+        bench._validate_exact_pair(*results, *[r['rounds'] for r in records])
+        pairs.append(bench._compare(*results))
+    medians = {v: statistics.median(a['whole_seconds'] for a in attempts if a['variant'] == v) for v in ('prior', 'current')}
+    summary = {'whole_median_seconds': medians, 'whole_speedup': medians['prior'] / medians['current'], 'exact_full_results_and_fits': True, 'quality': pairs, 'provenance': {'protocol_sha256': sha(out / 'protocol.json'), 'attempts_sha256': sha(out / 'attempts.json')}}
+    (out / 'summary.json').write_text(json.dumps(summary, indent=2) + '\n', encoding='utf-8')
+    print(json.dumps(summary), flush=True)
+    raise SystemExit(0)
+
+from tools import benchmark_bspline_lidar_imu as bench
+variant = sys.argv[1]
+directory = Path(sys.argv[2])
+protocol = json.loads((out / 'protocol.json').read_bytes())
+assert sha(out / 'launcher.py.txt') == protocol['launcher_sha256'] == sha(Path(__file__))
+assert sha(out / 'candidate.py.txt') == protocol['candidate_sha256']
+stats = {'calls': 0, 'seconds': 0., 'fallbacks': 0, 'input_rows': 0}
+if variant == 'current':
+    from calibrex.solvers import scan_to_scan_odometry as native
+    namespace = {}
+    exec(compile((out / 'candidate.py.txt').read_bytes(), str(out / 'candidate.py.txt'), 'exec'), namespace)
+    recent_holder = [None, None]
+    original = native._local_map
+    def local(recent, pose, opts):
+        if namespace['kernels'] is None:
+            namespace['kernels'] = {k: namespace['module'].get_function(k) for k in ('prepare', 'insert', 'centroids')}
+        if recent_holder[0] is not recent:
+            recent_holder[:] = [recent, namespace['Hashed']()]
+        candidate = recent_holder[1]
+        before = candidate.fallbacks
+        start = time.perf_counter()
+        result = candidate.local(recent, pose, opts)
+        stats['seconds'] += time.perf_counter() - start
+        stats['calls'] += 1
+        stats['input_rows'] += sum(map(len, recent))
+        stats['fallbacks'] += candidate.fallbacks - before
+        return result
+    # Bind the native repair before replacing the callback, avoiding recursion.
+    namespace['native'] = type('Native', (), {
+        '_local_map': staticmethod(original),
+        '_quantize_geometry': staticmethod(native._quantize_geometry),
+    })
+    native._local_map = local
+
+args = argparse.Namespace(source_root=out / 'sources', comparison='cuda-cuda',
+                          variant=variant, source_commit=protocol['source_commit'], output=directory,
+                          bag=ROOT / 'data/public/glim_versatile/livox.bag', max_seconds=6., max_rounds=4,
+                          odometry_voxel_size_m=.03, odometry_local_map_scans=3,
+                          odometry_geometry_quantum_m=1e-9,
+                          odometry_motion_translation_quantum_m=1e-6,
+                          odometry_motion_rotation_quantum_rad=1e-7,
+                          prior_fit_plane_backend='cuda', current_fit_plane_backend='cuda')
+bench._worker(args)
+(directory / 'candidate-work.json').write_text(json.dumps({'variant': variant, 'work': stats, 'provenance': {'protocol_sha256': sha(out / 'protocol.json'), 'candidate_sha256': protocol['candidate_sha256']}}, indent=2) + '\n', encoding='utf-8')

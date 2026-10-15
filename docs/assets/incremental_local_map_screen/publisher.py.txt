@@ -1,0 +1,123 @@
+"""Publish rejected exact local-map pilots and their whole-worker acceptance screen."""
+from pathlib import Path
+import gzip
+import hashlib
+import io
+import json
+import shutil
+import tarfile
+
+from tools.audit_incremental_local_map_screen import audit
+
+root = Path('docs/assets/incremental_local_map_screen')
+root.mkdir(exist_ok=False)
+whole = Path('outputs/hash-local-map-whole-screen-v2')
+source = whole / 'sources'
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+write = lambda p, v: p.write_text(json.dumps(v, indent=2) + '\n', encoding='utf-8', newline='\n')
+shutil.copyfile(source / 'manifest.json', root / 'source-manifest.json')
+with (root / 'sources.tar.gz').open('wb') as raw:
+    with gzip.GzipFile(filename='', mode='wb', fileobj=raw, mtime=0) as compressed:
+        with tarfile.open(fileobj=compressed, mode='w') as bundle:
+            entries = [('LICENSE', Path('LICENSE').read_bytes()), *(
+                (p.relative_to(source).as_posix(), p.read_bytes())
+                for p in sorted((source / 'src').rglob('*.py')))]
+            for name, data in entries:
+                member = tarfile.TarInfo(name)
+                member.size = len(data)
+                member.mode = 0o644
+                member.mtime = 0
+                bundle.addfile(member, io.BytesIO(data))
+for cohort, directory, launcher in (
+    ('cpu', 'outputs/incremental-local-map-pilot-v1', '.tmp-calibrex-pilot-incremental-map-v1.py'),
+    ('gpu', 'outputs/hash-voxel-local-map-pilot-v3', '.tmp-calibrex-pilot-hash-voxels-v3.py'),
+):
+    folder = root / cohort
+    folder.mkdir()
+    for name in ('protocol.json', 'runs.json', 'summary.json'):
+        shutil.copyfile(Path(directory) / name, folder / name)
+    shutil.copyfile(launcher, folder / 'launcher.py.txt')
+shutil.copyfile('outputs/incremental-local-map-pilot-v1/inputs.json', root / 'inputs.json')
+(root / 'whole').mkdir()
+for name in ('protocol.json', 'attempts.json', 'summary.json', 'launcher.py.txt', 'candidate.py.txt'):
+    shutil.copyfile(whole / name, root / 'whole' / name)
+for worker in sorted(whole.glob('[0-9][0-9]-*')):
+    folder = root / 'whole' / worker.name
+    folder.mkdir()
+    for name in ('result.json', 'measurement.json', 'candidate-work.json', 'worker.log'):
+        shutil.copyfile(worker / name, folder / name)
+for name, path in (
+    ('benchmark.py.txt', 'tools/benchmark_bspline_lidar_imu.py'),
+    ('audit.py.txt', 'tools/audit_incremental_local_map_screen.py'),
+    ('publication.schema.json', 'tools/schemas/bspline_lidar_imu_publication.schema.json'),
+    ('comparison.schema.json', 'tools/schemas/bspline_lidar_imu_comparison.schema.json'),
+    ('publisher.py.txt', __file__),
+):
+    shutil.copyfile(path, root / name)
+summary = json.loads((root / 'whole/summary.json').read_bytes())
+cpu = json.loads((root / 'cpu/summary.json').read_bytes())
+gpu = json.loads((root / 'gpu/summary.json').read_bytes())
+text = f'''# Incremental local-map screening
+
+No candidate is adopted. The warm GPU hash pilot improves local-map preparation
+by {gpu['speedups']['hash_cached']:.3f}x, but the complete fresh-worker median improves only
+{summary['whole_speedup']:.3f}x. The two whole-worker pairs disagree on the sign of the gain.
+
+| Scope / candidate | Observed ratio |
+| --- | ---: |
+| CPU retained world-coordinate/key cache | {cpu['speedups']['cached_keys']:.3f}x |
+| CPU retained unique groups and remapping | {cpu['speedups']['cached_unique']:.3f}x |
+| GPU deterministic hash, no retained scan cache | {gpu['speedups']['hash']:.3f}x |
+| GPU deterministic hash and retained scan cache | {gpu['speedups']['hash_cached']:.3f}x |
+| Complete fresh-worker calibration with GPU hash/cache | {summary['whole_speedup']:.3f}x |
+
+Each micro cohort has seven rotated-order rounds over 59 consecutive local-map
+windows captured from six seconds of the public GLIM Livox bag. Together they
+retain all 2,478 observations. Every variant includes per-scan cache preparation
+and matches every reference output hash and point count. The launcher asserts
+bit equality while the arrays are present. Captured coordinate payloads are
+identified by NPZ SHA-256 but are not redistributed; CPU audit checks the saved
+identities, not the actual coordinates. Micro ratios have separate baselines.
+
+CPU medians include rounds zero through six. GPU warm medians use rounds one
+through six; round zero is retained. The first uncached GPU sequence takes
+approximately 3.538 timed seconds including on-demand operation compilation; module
+compilation is outside the micro timing. These are not cold or whole-bag ratios.
+
+The whole-worker cohort runs prior/current then current/prior in four fresh
+processes with separate empty CuPy caches. It includes all imports, compilation,
+preparation, four map/fit rounds, final covariance, evidence serialization and
+source verification. Both sides use the adopted CUDA odometry and spline fitter.
+The exploratory candidate is injected by a source-bound launcher into otherwise
+identical frozen runtime. All complete calibration/evidence and fit fields match
+exactly, allowing only run metadata and fit duration. Each candidate worker
+executes 448 local-map calls over 25,427,273 input rows, with zero native fallbacks.
+One BLAS thread is used and host CPU/GPU activity is unreserved. This short public
+clip provides no independent extrinsic ground truth.
+
+The hash preserves point addition order using a per-voxel sorted list of at most
+32 indices, then sorts occupied voxel keys to retain the original output order.
+Out-of-domain coordinates and longer lists request native repair. Those guards,
+device ownership and cache invalidation are not hardened or boundary-validated
+by this screen. This archive contains an experiment, not an optional runtime API.
+
+Two initial micro launches were interrupted after the CuPy cache location was
+set too late; no observations were produced. A first whole-worker attempt was
+rejected by the empty-cache guard because candidate setup compiled too early.
+These incomplete attempts remain in local outputs, outside the published cohorts.
+The successful launcher performs candidate compilation inside the worker timing.
+
+All files, source capsules and source/launcher/input identities are bound by the
+publication index. Raw bags, coordinate arrays and compiler caches are excluded.
+
+```bash
+python -m tools.audit_incremental_local_map_screen docs/assets/incremental_local_map_screen
+```
+'''
+(root / 'README.md').write_text(text, encoding='utf-8', newline='\n')
+write(root / 'publication-index.json', {
+    'schema_version': 'slac.bspline_lidar_imu_publication/v0.1',
+    'provenance': {'input_protocol_sha256': sha(root / 'whole/protocol.json')},
+    'files': {p.relative_to(root).as_posix(): sha(p) for p in sorted(root.rglob('*')) if p.is_file()},
+})
+print(json.dumps(audit(root), indent=2))
