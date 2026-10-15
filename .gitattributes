@@ -199,3 +199,12 @@ docs/assets/cuda_spline_planes/**/*.log -text whitespace=-blank-at-eol,-blank-at
 docs/assets/cuda_spline_planes/**/*.md text eol=lf
 docs/assets/cuda_spline_planes/*.md text eol=lf
 docs/benchmarks/cuda_spline_planes.md text eol=lf
+
+# Preserve original unsuccessful odometry screens and their source bindings.
+docs/assets/odometry_candidate_screen/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/odometry_candidate_screen/**/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/odometry_candidate_screen/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/odometry_candidate_screen/**/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/odometry_candidate_screen/**/*.log -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/odometry_candidate_screen/*.md text eol=lf
+docs/benchmarks/odometry_candidate_screening.md text eol=lf

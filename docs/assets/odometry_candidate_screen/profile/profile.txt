@@ -1,0 +1,68 @@
+         8316066 function calls (7864830 primitive calls) in 87.576 seconds
+
+   Ordered by: cumulative time
+   List reduced from 3584 to 60 due to restriction <60>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.026    0.026   87.661   87.661 C:\Users\rsasa\Workspace\Calibrex\tools\benchmark_bspline_lidar_imu.py:84(_worker)
+        1    0.003    0.003   78.897   78.897 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\evaluation\lidar_imu_bag_calibration.py:191(calibrate_lidar_imu_bag)
+        8    0.007    0.001   62.549    7.819 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\evaluation\odometry_windows.py:145(collect_odometry_windows)
+      480    0.294    0.001   62.224    0.130 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\evaluation\odometry_windows.py:71(add)
+      456    0.417    0.001   61.848    0.136 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\solvers\scan_to_scan_odometry.py:454(add)
+        1    0.001    0.001   61.110   61.110 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\evaluation\imu_lidar_rotation.py:206(run_livox_imu_lidar_rotation)
+        7    0.004    0.001   55.712    7.959 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\evaluation\imu_lidar_rotation.py:251(collect)
+      896    0.035    0.000   28.130    0.031 C:\Users\rsasa\Workspace\Calibrex\.tmp-calibrex-profile-odometry-v2.py:50(observe)
+      896    0.844    0.001   27.082    0.030 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\solvers\cuda_scan_odometry_adapter.py:356(register)
+     5707    0.016    0.000   14.362    0.003 C:\Users\rsasa\Workspace\Calibrex\.venv\Lib\site-packages\cupy\__init__.py:826(asnumpy)
+     5707   14.314    0.003   14.343    0.003 {method 'get' of 'cupy._core.core._ndarray_base' objects}
+      448    0.298    0.001   13.094    0.029 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\solvers\cuda_scan_odometry_adapter.py:245(__init__)
+      448    5.044    0.011   11.681    0.026 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\solvers\cuda_lidar_map_adapter.py:263(__init__)
+     1356    4.366    0.003   11.134    0.008 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\solvers\scan_to_scan_odometry.py:147(preprocess_scan)
+      896    0.008    0.000    9.257    0.010 C:\Users\rsasa\Workspace\Calibrex\tools\benchmark_bspline_lidar_imu.py:438(measured)
+      896    0.013    0.000    9.248    0.010 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\solvers\cuda_scan_odometry_adapter.py:311(_ensure_all)
+      448    0.188    0.000    9.134    0.020 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\solvers\cuda_scan_odometry_adapter.py:321(_compute_normals)
+      448    0.915    0.002    8.592    0.019 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\solvers\scan_to_scan_odometry.py:595(_local_map)
+     4777    0.020    0.000    7.058    0.001 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\solvers\cuda_lidar_map_adapter.py:249(_host)
+        1    0.000    0.000    6.845    6.845 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\evaluation\imu_lidar_rotation.py:833(collect_livox_windows)
+      392    1.461    0.004    5.970    0.015 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\solvers\imu_lidar_rotation_solver.py:509(rotate_points)
+        4    0.001    0.000    5.628    1.407 C:\Users\rsasa\Workspace\Calibrex\tools\benchmark_bspline_lidar_imu.py:108(measured_fit)
+        4    0.009    0.002    5.626    1.407 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\core\continuous_time_bspline_fit.py:266(fit_bspline_lidar_imu)
+       14    2.745    0.196    5.180    0.370 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\solvers\scan_to_scan_odometry.py:267(register_point_to_plane)
+        4    0.016    0.004    4.847    1.212 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\core\continuous_time_bspline_fit.py:297(_fit_bspline_lidar_imu)
+      916    0.061    0.000    4.772    0.005 C:\Users\rsasa\Workspace\Calibrex\tools\benchmark_bspline_lidar_imu.py:28(_digest)
+    13201    0.021    0.000    4.289    0.000 C:\Users\rsasa\Workspace\Calibrex\.venv\Lib\site-packages\numpy\_core\einsumfunc.py:1057(einsum)
+        4    0.199    0.050    4.288    1.072 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\evaluation\lidar_imu_bag_calibration.py:520(_associate)
+    13201    4.268    0.000    4.268    0.000 {built-in method numpy._core._multiarray_umath.c_einsum}
+      448    0.063    0.000    4.126    0.009 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\solvers\scipy_spatial_snapshot.py:104(capture_spatial_tree)
+      600    0.419    0.001    4.077    0.007 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\core\continuous_time_bspline.py:199(_evaluate_local_spline)
+      440    0.007    0.000    3.671    0.008 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\evaluation\lidar_imu_bag_calibration.py:512(_place)
+      441    0.106    0.000    3.654    0.008 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\core\continuous_time_bspline.py:117(evaluate)
+      441    0.003    0.000    3.490    0.008 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\core\continuous_time_bspline.py:183(evaluate_local_spline)
+    465/4    0.007    0.000    3.374    0.843 <frozen importlib._bootstrap>:1349(_find_and_load)
+    434/4    0.004    0.000    3.373    0.843 <frozen importlib._bootstrap>:1304(_find_and_load_unlocked)
+     1708    0.019    0.000    3.371    0.002 C:\Users\rsasa\Workspace\Calibrex\.venv\Lib\site-packages\numpy\lib\_arraysetops_impl.py:145(unique)
+    416/4    0.003    0.000    3.368    0.842 <frozen importlib._bootstrap>:911(_load_unlocked)
+    357/4    0.002    0.000    3.367    0.842 <frozen importlib._bootstrap_external>:993(exec_module)
+   1044/9    0.004    0.000    3.365    0.374 <frozen importlib._bootstrap>:480(_call_with_frames_removed)
+     1708    0.790    0.000    3.349    0.002 C:\Users\rsasa\Workspace\Calibrex\.venv\Lib\site-packages\numpy\lib\_arraysetops_impl.py:348(_unique1d)
+    811/4    0.088    0.000    3.346    0.836 {built-in method builtins.exec}
+      448    2.268    0.005    3.250    0.007 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\solvers\scipy_spatial_snapshot.py:62(_subtree_bounds)
+   134/15    0.001    0.000    3.203    0.214 {built-in method builtins.__import__}
+2819/2371    0.007    0.000    3.180    0.001 <frozen importlib._bootstrap>:1390(_handle_fromlist)
+        1    0.000    0.000    3.081    3.081 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\evaluation\lidar_imu_bag_calibration.py:1(<module>)
+        1    0.000    0.000    2.858    2.858 C:\Users\rsasa\AppData\Local\Programs\Python\Python312\Lib\site-packages\scipy\signal\__init__.py:1(<module>)
+    78855    2.854    0.000    2.854    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+        1    0.002    0.002    2.819    2.819 C:\Users\rsasa\AppData\Local\Programs\Python\Python312\Lib\site-packages\scipy\signal\_support_alternative_backends.py:1(<module>)
+     4532    2.733    0.001    2.744    0.001 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\solvers\scan_to_scan_odometry.py:119(_quantize_geometry)
+    10033    2.672    0.000    2.672    0.000 {method 'read' of '_io.BufferedReader' objects}
+        7    0.000    0.000    2.659    0.380 C:\Users\rsasa\Workspace\Calibrex\.venv\Lib\site-packages\cupy\cuda\compiler.py:624(_compile_module_with_cache)
+        7    0.001    0.000    2.659    0.380 C:\Users\rsasa\Workspace\Calibrex\.venv\Lib\site-packages\cupy\cuda\compiler.py:655(_compile_with_cache_cuda)
+        3    0.004    0.001    2.637    0.879 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\data\livox_ros2.py:201(imu)
+        2    0.000    0.000    2.637    1.318 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\evaluation\imu_lidar_rotation.py:818(_load_imu)
+        1    0.052    0.052    2.633    2.633 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\data\livox_ros2.py:221(load_livox_imu)
+        9    0.000    0.000    2.615    0.291 C:\Users\rsasa\Workspace\Calibrex\.venv\Lib\site-packages\cupy\cuda\compiler.py:855(compile)
+        9    2.615    0.291    2.615    0.291 {built-in method cupy_backends.cuda.libs.nvrtc.compileProgram}
+       53    0.010    0.000    2.588    0.049 C:\Users\rsasa\Workspace\Calibrex\outputs\odometry-search-profile-v2\sources\src\calibrex\core\continuous_time_bspline_fit.py:328(linearize)
+     1070    2.531    0.002    2.531    0.002 {method 'update' of '_hashlib.HASH' objects}
+
+
