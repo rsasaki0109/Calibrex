@@ -148,8 +148,9 @@ def audit(root: Path) -> dict[str, object]:
             raise ValueError(f"frozen {variant} source tree differs")
         sources[variant] = expected
         source_bytes[variant] = raw_sources
-    gpu_comparison = protocol.get("comparison") == "cpu-cuda"
-    if gpu_comparison and protocol["baseline_commit"] != protocol["current_commit"]:
+    gpu_comparison = protocol.get("comparison") in ("cpu-cuda", "cuda-cuda")
+    if (protocol.get("comparison") == "cpu-cuda"
+            and protocol["baseline_commit"] != protocol["current_commit"]):
         raise ValueError("CPU/CUDA workers must use the same declared source revision")
     attempts = json.loads((root / "attempts.json").read_bytes())
     expected_workers = {(r, v) for r in range(protocol["repeats"]) for v in sources}
@@ -190,7 +191,8 @@ def audit(root: Path) -> dict[str, object]:
         if any(sources[variant].get(name) != digest for name, digest in executed.items()):
             raise ValueError("actual worker imports differ from frozen sources")
         if gpu_comparison:
-            backend = "cpu" if variant == "prior" else "cuda"
+            backend = ("cuda" if protocol["comparison"] == "cuda-cuda" or variant == "current"
+                       else "cpu")
             module._validate_backend_execution(result, backend)
             if (provenance.get("odometry_backend") != backend
                     or provenance.get("cuda_cache_initially_empty") is not True):
@@ -218,6 +220,10 @@ def audit(root: Path) -> dict[str, object]:
                     if match is None or match[1] != provenance.get("cupy"):
                         raise ValueError("executed GPU identity differs from its bound kernels")
                     counters = report["statistics"]
+                    if ("calibrex/solvers/scipy_spatial_snapshot.py" in executed
+                            and counters.get("serialized_tree_captures", 0)
+                            + counters.get("public_node_tree_captures", 0) <= 0):
+                        raise ValueError("GPU worker did not record its actual tree capture path")
                     if (counters.get("scalar_motion_repairs", 0)
                             > counters.get("scalar_registration_repairs", 0)
                             or counters.get("scalar_registration_repairs", 0)
@@ -303,6 +309,8 @@ def audit(root: Path) -> dict[str, object]:
         if summary["provenance"][f"{name}_sha256"] != _sha((root / f"{name}.json").read_bytes()):
             raise ValueError("summary input binding differs")
     _audit_rejected_pair(root, module._compare)
+    if (root / "previous_cuda").exists():
+        audit(root / "previous_cuda")
     return {
         "workers": len(attempts),
         "files": len(index["files"]),

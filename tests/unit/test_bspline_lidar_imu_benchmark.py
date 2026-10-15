@@ -3,16 +3,39 @@
 from __future__ import annotations
 
 import copy
+import json
 from pathlib import Path
 
 import pytest
 from tools.benchmark_bspline_lidar_imu import (
+    _backend,
     _compare,
     _manifest,
     _validate_backend_execution,
     _verify_sources,
     _write,
 )
+
+
+@pytest.mark.parametrize("comparison,prior,current", [
+    ("source", "cpu", "cpu"), ("cpu-cuda", "cpu", "cuda"), ("cuda-cuda", "cuda", "cuda"),
+])
+def test_comparison_selects_each_actual_worker_backend(
+    comparison: str, prior: str, current: str,
+) -> None:
+    assert _backend(comparison, "prior") == prior
+    assert _backend(comparison, "current") == current
+
+
+def test_gpu_source_comparison_requires_the_same_explicit_workload(tmp_path: Path) -> None:
+    from jsonschema import ValidationError
+
+    protocol = json.loads(Path("docs/assets/cuda_joint_lidar_imu/protocol.json").read_bytes())
+    protocol["comparison"] = "cuda-cuda"
+    _write(tmp_path / "protocol.json", protocol)
+    protocol.pop("odometry_options")
+    with pytest.raises(ValidationError):
+        _write(tmp_path / "protocol.json", protocol)
 
 
 def _evidence() -> dict:

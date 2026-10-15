@@ -1,0 +1,105 @@
+from pathlib import Path
+import hashlib
+import json
+import shutil
+import tarfile
+
+source = Path('outputs/glim-cuda-spatial-formal-v1')
+destination = Path('docs/assets/cuda_spatial_pruning')
+summary = json.loads((source / 'summary.json').read_bytes())
+protocol = json.loads((source / 'protocol.json').read_bytes())
+attempts = json.loads((source / 'attempts.json').read_bytes())
+assert summary['quality_passed'] and len(attempts) == 6
+destination.mkdir(exist_ok=False)
+for name in ('protocol.json', 'attempts.json', 'summary.json'):
+    shutil.copyfile(source / name, destination / name)
+for attempt in attempts:
+    folder = destination / attempt['worker']
+    folder.mkdir()
+    for name in ('result.json', 'measurement.json', 'worker.log'):
+        shutil.copyfile(source / attempt['worker'] / name, folder / name)
+for variant in ('prior', 'current'):
+    root = source / f'sources-{variant}'
+    shutil.copyfile(root / 'manifest.json', destination / f'sources-{variant}-manifest.json')
+    with tarfile.open(destination / f'sources-{variant}.tar.gz', 'w:gz') as bundle:
+        bundle.add('LICENSE', arcname='LICENSE', recursive=False)
+        for path in sorted((root / 'src').rglob('*.py')):
+            bundle.add(path, arcname=path.relative_to(root).as_posix(), recursive=False)
+shutil.copyfile('tools/benchmark_bspline_lidar_imu.py', destination / 'benchmark.py.txt')
+shutil.copyfile('tools/schemas/bspline_lidar_imu_comparison.schema.json', destination / 'comparison.schema.json')
+shutil.copyfile(__file__, destination / 'publisher.py.txt')
+whole = summary['whole_median_seconds']
+fit = summary['fit_median_seconds']
+table = '\n'.join([
+    '| Scope | CPU median | CUDA median | Speedup |',
+    '| --- | ---: | ---: | ---: |',
+    f"| Complete worker | {whole['prior']:.3f} s | {whole['current']:.3f} s | {summary['whole_speedup']:.3f}x |",
+    f"| Four CPU fits, including covariance | {fit['prior']:.3f} s | {fit['current']:.3f} s | {summary['fit_speedup']:.3f}x |",
+])
+rows = '\n'.join([
+    '| Pair | Method | Whole seconds | Fit seconds |',
+    '| --- | --- | ---: | ---: |',
+] + [f"| {a['repeat']} | {'CPU' if a['variant'] == 'prior' else 'CUDA'} | {a['whole_seconds']:.6f} | {json.loads((source / a['worker'] / 'measurement.json').read_bytes())['fit_seconds']:.6f} |" for a in attempts])
+gpu = json.loads((source / '00-current/result.json').read_bytes())
+reports = gpu['options']['initial_odometry_execution'] + gpu['options']['segment_odometry_execution']
+stats = {key: sum(r['statistics'].get(key, 0) for r in reports)
+         for key in reports[0]['statistics']}
+errors = {key: max(q['errors'][key] for q in summary['quality'])
+          for key in summary['quality'][0]['errors']}
+quality = (f"All three comparisons pass: maximum rotation difference {errors['rotation_deg']:.3g} deg, "
+           f"lever-arm difference {errors['lever_arm_m']:.3g} m and clock difference "
+           f"{errors['clock_offset_s']:.3g} s. Per-round covariance, trajectories, costs and all "
+           "evidence decisions also pass the existing unchanged audit tolerances.")
+(destination / 'README.md').write_text(f'''# Complete public GLIM spatial-pruning comparison
+
+Three alternating CPU/CUDA pairs run the same committed source revision
+`{protocol['current_commit']}`. The original public Livox bag SHA-256 is
+`{protocol['bag_sha256']}`. Raw data is not redistributed.
+
+{table}
+
+{rows}
+
+{quality}
+
+The first CUDA worker records {len(reports)} odometry passes,
+{stats['gpu_query_rows']:,} GPU query rows, {stats['gpu_fused_system_calls']:,}
+fused systems, {stats['serialized_tree_captures']} validated bulk captures and
+{stats['public_node_tree_captures']} public-node fallbacks. Native spatial,
+normal, stopping and motion-grid repairs are retained and counted.
+
+The first six seconds feed four map rounds and the full evaluation pipeline.
+Both methods use one BLAS thread and the same explicit dense policy: 0.03 m
+voxels, three local-map scans, a 1 nm coordinate grid and motion grids of
+1 micrometre translation and 0.1 microradian rotation-vector components.
+Whole timing includes imports, decoding, GPU setup and compilation, every
+odometry pass, association, fits/covariance, evidence, hashes, saves and
+verified imports. Each GPU worker starts with an isolated empty CuPy
+compilation cache; driver/runtime caches may persist. No slow trial is excluded.
+
+All six results remain **INCONCLUSIVE**. This clip has no supplied independent
+extrinsic truth. The CPU fitter is unchanged; its timing ratio is not a GPU
+fitting speedup. The whole-worker ratio applies to this declared dense workload.
+CPU remains the default. Earlier cohort ratios are not multiplied.
+
+The publication index binds every file except itself. Complete results and
+all fit arrays, exact source archives/manifests, original logs, executed import
+and kernel hashes, launcher, schema and publisher are retained. The audit uses
+ordinary CPU dependencies without requiring a bag or GPU.
+
+```bash
+python -m tools.audit_bspline_lidar_imu_benchmark docs/assets/cuda_spatial_pruning
+```
+
+See [implementation and reproduction](../../benchmarks/cuda_spatial_pruning.md).
+''', encoding='utf-8', newline='\n')
+document = Path('docs/benchmarks/cuda_spatial_pruning.md')
+document.write_text(document.read_text(encoding='utf-8').replace('<!-- spatial_results -->', table + '\n\n' + quality), encoding='utf-8', newline='\n')
+files = {p.relative_to(destination).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+         for p in sorted(destination.rglob('*')) if p.is_file()}
+(destination / 'publication-index.json').write_text(json.dumps({
+    'schema_version': 'slac.bspline_lidar_imu_publication/v0.1',
+    'provenance': {'input_protocol_sha256': hashlib.sha256((source / 'protocol.json').read_bytes()).hexdigest()},
+    'files': files,
+}, indent=2) + '\n', encoding='utf-8', newline='\n')
+print({'files': len(files), 'whole_speedup': summary['whole_speedup'], 'statistics': stats})

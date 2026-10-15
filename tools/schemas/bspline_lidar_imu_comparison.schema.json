@@ -59,7 +59,8 @@
         "comparison": {
           "enum": [
             "source",
-            "cpu-cuda"
+            "cpu-cuda",
+            "cuda-cuda"
           ]
         },
         "isolated_cuda_caches": {
@@ -246,7 +247,7 @@
             "const": "protocol"
           },
           "comparison": {
-            "const": "cpu-cuda"
+            "enum": ["cpu-cuda", "cuda-cuda"]
           }
         },
         "required": [

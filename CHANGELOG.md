@@ -1269,6 +1269,14 @@
   uncanonicalized comparison and all source-bound records in
   `docs/benchmarks/cuda_joint_lidar_imu.md`.
 
+- Prune shared CUDA spatial queries with tight subtree boxes and capture
+  validated SciPy tree metadata in bulk. Unknown layouts retain public-node
+  traversal; exact candidate arithmetic, ties and native repairs are preserved.
+  The same query implementation serves LiDAR maps, point-to-point ICP and
+  temporal scan odometry. Complete public dense joint-calibration comparisons,
+  source-bound results and a CPU-only audit are documented in
+  `docs/benchmarks/cuda_spatial_pruning.md`.
+
 ## 0.5.1 - 2026-10-02
 
 Highlights:
