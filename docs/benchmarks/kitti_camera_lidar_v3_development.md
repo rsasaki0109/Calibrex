@@ -20,17 +20,30 @@ at the candidate keep the ordinary `t >= 2.5` rule. The extra margin is recorded
 in the artifact's `options` and thus participates in cache keys.
 
 The new option defaults to `None`, which preserves v2 behavior. **3.5 is a
-proposal to compare on spent data, not a validated default.** It is currently
-available through the native Python estimator API; `calibrex check` continues
-to construct the default options. For example, a development replay can pass
-`options=EdgeAlignmentOptions(start_scan_min_control_t=3.5)` to
-`estimate_from_frames` or `run_ros2_camera_lidar_edge`. The v2 frozen driver,
-scorer and pre-registration are unchanged.
+proposal to compare on spent data, not a validated default.** The native Python
+API accepts `options=EdgeAlignmentOptions(start_scan_min_control_t=3.5)` in
+`estimate_from_frames` or `run_ros2_camera_lidar_edge`. The same opt-in is
+available in `calibrex check`, `estimate` and `drift`:
+
+```bash
+calibrex check BAG --pairs camera-lidar --camera-lidar-far-control-t 3.5 \
+  --no-cache --fail-on never --output confirm/check.json
+```
+
+All three commands record `camera_lidar_start_scan_min_control_t` in their
+result options and `start_scan_min_control_t` in estimator evidence. Cache keys
+distinguish the new rule from the default. The CLI and result models reject
+nonfinite values or values below the ordinary control threshold of 2.5. The
+committed check, estimate and drift schemas include the optional field; older
+artifacts remain valid without it. The v2 frozen driver, scorer and
+pre-registration are unchanged.
 
 Synthetic regressions cover the original count and bound gates, all reported
 axes including an already observed weak axis, the inclusive 3.5 boundary,
 unobserved axes, missing/nonfinite controls, invalid margins and retention of
-the current transform and evidence. These establish the selection behavior;
+the current transform and evidence. CLI regressions also cover all three result
+schemas, early rejection of invalid values and cache separation, including
+switching back to the default rule. These establish the selection behavior;
 they do not measure real-data accuracy or coverage.
 
 ## Current rule on all 55 spent KITTI raw drives (post hoc)

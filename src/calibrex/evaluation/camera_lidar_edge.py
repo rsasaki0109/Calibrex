@@ -39,6 +39,7 @@ from scipy.spatial.transform import Rotation
 
 from calibrex import __version__
 from calibrex.core.camera_lidar_edge import (
+    DEFAULT_MIN_CONTROL_T,
     CameraLidarEdgeArtifact,
     CameraLidarEdgeControl,
     CameraLidarEdgeDofName,
@@ -219,7 +220,7 @@ class EdgeAlignmentOptions:
     # A DoF is observed only when its held-out control reaches this t statistic.  On the 23
     # KITTI drives of the first camera-lidar audit, every axis judged more than 0.75 deg off
     # KITTI's calibration had its control at t 2.09 to 2.33 (2.0 was the bound then).
-    min_control_t: float = 2.5
+    min_control_t: float = DEFAULT_MIN_CONTROL_T
     observable_rotation_std_deg: float = 0.5
     observable_translation_std_m: float = 0.03
     min_ring_fraction: float = 0.5
@@ -236,14 +237,14 @@ class EdgeAlignmentOptions:
     start_scan_deg: float | None = 8.0
     start_scan_step_deg: float = 0.5
     start_scan_min_observed: int = 2
+    # Accept clouds without beam structure (solid-state, non-repetitive scanning): their
+    # depth discontinuities are found among angular neighbours instead of along beams.
+    unstructured_lidar: bool = True
     # Optional extra margin for adopting a profile-start optimum. Every rotation axis
     # it would report must meet this control t statistic, including axes already
     # observed at the current optimum. Unobserved axes do not veto it. None retains
     # the v2 adoption rule; 3.5 is a development proposal, not a validated default.
     start_scan_min_control_t: float | None = None
-    # Accept clouds without beam structure (solid-state, non-repetitive scanning): their
-    # depth discontinuities are found among angular neighbours instead of along beams.
-    unstructured_lidar: bool = True
 
     def __post_init__(self) -> None:
         if len(self.rotation_levels_deg) != len(self.translation_levels_m):

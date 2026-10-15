@@ -1027,6 +1027,7 @@ def build_bag_estimate(
             lidar_lidar_deskew=run.lidar_lidar_deskew,
             gnss_lidar_deskew=run.gnss_lidar_deskew,
             camera_lidar_motion=run.camera_lidar_motion,
+            camera_lidar_start_scan_min_control_t=run.camera_lidar_start_scan_min_control_t,
             topic_kinds=dict(topic_kinds or {}),
             frame_map=overrides,
         ),
