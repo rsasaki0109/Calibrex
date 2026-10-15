@@ -1,0 +1,145 @@
+from pathlib import Path
+import hashlib
+import json
+import shutil
+import tarfile
+import subprocess
+import argparse
+
+parser=argparse.ArgumentParser()
+parser.add_argument('--source',default='outputs/numba-scalar-public-bag-formal-v2')
+parser.add_argument('--output',default='docs/assets/numba_bspline_public_bag')
+args=parser.parse_args()
+source=Path(args.source); target=Path(args.output)
+summary = json.loads((source / 'summary.json').read_bytes())
+protocol = json.loads((source / 'protocol.json').read_bytes())
+attempts = json.loads((source / 'attempts.json').read_bytes())
+assert summary['quality_passed'] and len(attempts) == 6
+assert all(len(pair['fits']) == 4 for pair in summary['quality'])
+target.mkdir(parents=True, exist_ok=True)
+for name in ('protocol.json', 'attempts.json', 'summary.json'):
+    shutil.copyfile(source / name, target / name)
+for attempt in attempts:
+    folder = target / attempt['worker']
+    folder.mkdir(exist_ok=True)
+    for name in ('result.json', 'measurement.json', 'worker.log'):
+        shutil.copyfile(source / attempt['worker'] / name, folder / name)
+for variant in ('prior', 'current'):
+    root = source / f'sources-{variant}'
+    shutil.copyfile(root / 'manifest.json', target / f'sources-{variant}-manifest.json')
+    with tarfile.open(target / f'sources-{variant}.tar.gz', 'w:gz') as archive:
+        archive.add('LICENSE', arcname='LICENSE', recursive=False)
+        for path in sorted((root / 'src').rglob('*.py')):
+            archive.add(path, arcname=path.relative_to(root).as_posix(), recursive=False)
+for origin, name in (
+    ('tools/benchmark_bspline_lidar_imu.py', 'benchmark.py.txt'),
+    ('tools/benchmark_bspline_planes.py', 'fit-quality.py.txt'),
+    ('tools/audit_bspline_lidar_imu_benchmark.py', 'audit.py.txt'),
+    ('tools/schemas/bspline_lidar_imu_comparison.schema.json', 'comparison.schema.json'),
+    (__file__, 'publisher.py.txt'),
+):
+    if name == 'benchmark.py.txt':
+        expected=protocol['launcher_sha256']
+    elif name == 'fit-quality.py.txt':
+        expected=protocol['fit_options']['quality_helper_sha256']
+    else:
+        expected=None
+    raw=Path(origin).read_bytes()
+    if expected and hashlib.sha256(raw).hexdigest()!=expected:
+        git_raw=subprocess.check_output(['git','show',protocol['current_commit']+':'+origin])
+        variants=(git_raw,git_raw.replace(b'\n',b'\r\n'))
+        raw=next(value for value in variants if hashlib.sha256(value).hexdigest()==expected)
+    (target/name).write_bytes(raw)
+
+whole = summary['whole_median_seconds']
+fit = summary['fit_median_seconds']
+table = '\n'.join([
+    '| Scope | NumPy median | Compiled median | Observed ratio |',
+    '| --- | ---: | ---: | ---: |',
+    f"| Complete fresh worker | {whole['prior']:.3f} s | "
+    f"{whole['current']:.3f} s | {summary['whole_speedup']:.3f}x |",
+    f"| Four fits, including covariance and first-use JIT | {fit['prior']:.3f} s | "
+    f"{fit['current']:.3f} s | {summary['fit_speedup']:.3f}x |",
+])
+rows = ['| Pair | Variant | Complete worker seconds | Fit seconds |',
+        '| --- | --- | ---: | ---: |']
+for attempt in attempts:
+    record = json.loads((source / attempt['worker'] / 'measurement.json').read_bytes())
+    rows.append(f"| {attempt['repeat']} | {attempt['variant']} | "
+                f"{attempt['whole_seconds']:.6f} | {record['fit_seconds']:.6f} |")
+benchmark_link = ('../../../benchmarks/numba_bspline_planes.md'
+                  if target.name == 'variable-load-v1' else '../../benchmarks/numba_bspline_planes.md')
+timing_note = (
+    'This variable-load cohort does not establish reliable whole-pipeline acceleration.'
+    if 'cpu_time_policy' not in protocol else
+    'An earlier complete cohort gave the opposite whole-worker ratio (0.745x). '
+    'These outcomes do not establish reliable whole-pipeline acceleration.'
+)
+readme = f'''# Complete public GLIM bag comparison with compiled CPU planes
+
+Three alternating fresh-process pairs compare NumPy and `numba_cpu` fitting
+on the first six seconds of the original public AIST GLIM Livox recording.
+Both variants use the same frozen runtime revision and the native CPU
+odometry path. The compiled plane evaluator uses up to four independent CPU
+row slices. Every compiled worker starts with an empty private Numba cache;
+the first-use module import/JIT cost remains inside the measurement.
+
+{table}
+
+{chr(10).join(rows)}
+
+The complete worker includes imports, raw bag decoding, initial angular-rate
+calibration and odometry, gyro-deskewed odometry, four map construction and
+association rounds, all fits/covariances, noise updates, held-out evaluation,
+32 signed controls, input hashes, result saving and verified frozen imports.
+Source freezing in the parent is outside the worker scope. These are
+observational timings under variable host conditions. {timing_note} CPU execution time is also reported
+when the protocol declares it; it can still vary with CPU frequency. Sampling,
+iteration budgets and held-out checks are unchanged; geometry and returned
+motions are not implicitly quantized. BLAS/OMP/MKL use one thread. Host CPU
+resources are unreserved, and ratios describe this six-second workload.
+
+All three complete evidence comparisons pass. Policy, block/control,
+separability and convergence decisions agree. All twelve paired full fit
+records preserve status, iterations, dimensions and calibration parameter
+order and pass the fixed `rtol=1e-8`, `atol=1e-9` checks for trajectories,
+all six calibration blocks, covariance, costs and residual variance. These
+are numerical-agreement checks, rather than independent accuracy evidence.
+
+Both methods retain an **INCONCLUSIVE** verdict on this capture. The map is
+estimated from the trajectory being fitted, and formal covariance holds it
+fixed. The supplied GT is not consumed. These results do not establish
+absolute extrinsic accuracy or a general speedup on other recordings.
+
+Measured source: `{protocol['current_commit']}`. Original bag SHA-256:
+`{protocol['bag_sha256']}`. `/livox/points` uses the per-return `t` offset;
+`/livox/imu` reports acceleration in g. The raw recording is external and
+is not redistributed. Each worker retains the complete schema-valid
+calibration result and every per-round fitted array. Source manifests and
+tar archives bind the actual imported bytes; frozen comparison helpers and
+the publication index bind all reported decisions and ratios.
+
+```bash
+python -m tools.audit_bspline_lidar_imu_benchmark docs/assets/numba_bspline_public_bag
+python -m tools.benchmark_bspline_lidar_imu \\
+  --baseline-commit {protocol['current_commit']} \\
+  --current-fit-backend numba_cpu --fit-workers 4 \\
+  --max-seconds 6 --max-rounds 4 --repeats 3 \\
+  --output outputs/compiled-plane-public-bag
+```
+
+The archive audit runs with CPU dependencies and does not require the
+recording, Numba or CUDA. It replays the frozen physical and per-fit quality
+checks and recomputes all medians from the six complete workers. See
+[implementation and scope]({benchmark_link}).
+'''
+(target / 'README.md').write_text(readme, encoding='utf-8', newline='\n')
+files = {p.relative_to(target).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+         for p in sorted(target.rglob('*')) if p.is_file() and p != target / 'publication-index.json'}
+(target / 'publication-index.json').write_text(json.dumps({
+    'schema_version': 'slac.bspline_lidar_imu_publication/v0.1',
+    'provenance': {'input_protocol_sha256': files['protocol.json']},
+    'files': files,
+}, indent=2) + '\n', encoding='utf-8', newline='\n')
+print(json.dumps({'files': len(files), 'whole_speedup': summary['whole_speedup'],
+                  'fit_speedup': summary['fit_speedup']}))
