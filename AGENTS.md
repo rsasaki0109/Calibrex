@@ -15,3 +15,6 @@ Non-negotiable project rules:
 
 When in doubt, preserve schema stability and evaluation quality over short-term
 algorithmic convenience.
+
+For SOTA audit work (pre-registered claims, the leaderboard, spent data), read
+`docs/sota_handoff.md` first.
