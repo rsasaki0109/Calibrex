@@ -308,7 +308,10 @@ def audit(root: Path) -> dict[str, object]:
                     for node in ast.walk(ast.parse(source_bytes[variant][adapter]))
                 )
                 async_schedule = any(
-                    isinstance(node, ast.Constant) and node.value == ";normal_schedule=async-v1"
+                    isinstance(node, ast.Constant) and node.value in (
+                        ";normal_schedule=async-v1",
+                        ";normal_schedule=async-v1;spatial_pruning=fp32-intervals-v1",
+                    )
                     for function in ast.parse(source_bytes[variant][adapter]).body
                     if (isinstance(function, ast.FunctionDef)
                         and function.name == "execution_identity")
@@ -516,6 +519,9 @@ def audit(root: Path) -> dict[str, object]:
     _audit_rejected_pair(root, module._compare)
     if (root / "previous_cuda").exists():
         audit(root / "previous_cuda")
+    earlier_guard = {}
+    if (root / "earlier-guard-v1").exists():
+        earlier_guard = {"earlier_guard": audit(root / "earlier-guard-v1")}
     if (root / "baseline-validation.json").exists():
         receipt = json.loads((root / "baseline-validation.json").read_bytes())
         if (receipt["source_commit"] != protocol["baseline_commit"]
@@ -557,6 +563,7 @@ def audit(root: Path) -> dict[str, object]:
         "quality_passed": True,
         **normal_summary,
         **control_summary,
+        **earlier_guard,
     }
 
 
