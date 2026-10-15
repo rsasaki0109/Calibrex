@@ -293,7 +293,7 @@ class _CudaTree:
 class _CudaSample:
     def __init__(self, sample: MapSample, options: MapSampleOptions) -> None:
         self.source = sample
-        self.pose = np.array(sample.reference_pose, dtype=np.float64, copy=True)
+        self.pose = np.array(sample.reference_pose, dtype=np.float64, order="C", copy=True)
         if self.pose.shape != (4, 4) or not np.isfinite(self.pose).all():
             raise ValueError("CUDA reference poses require finite 4x4 matrices")
         self.pose.flags.writeable = False
@@ -379,7 +379,7 @@ class _CudaSample:
         if extrinsic.shape != (4, 4) or not np.isfinite(extrinsic).all():
             raise ValueError("CUDA extrinsics require finite 4x4 matrices")
         transform = self.pose @ extrinsic
-        matrix = cp.asarray(transform)
+        matrix = cp.asarray(transform, order="C")
         n = len(self.points)
         world = cp.empty((n, 3), dtype=cp.float64)
         distances = cp.empty((n, 2), dtype=cp.float64)
@@ -522,7 +522,7 @@ class CudaMapRuntime:
             hessian = cp.zeros((6, 6), dtype=cp.float64)
             gradient = cp.zeros(6, dtype=cp.float64)
             parts = []
-            transform = cp.asarray(extrinsic)
+            transform = cp.asarray(extrinsic, order="C")
             for sample in samples:
                 prepared = self._sample(sample)
                 residual, normals, points = prepared.residuals(

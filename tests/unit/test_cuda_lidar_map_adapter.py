@@ -245,20 +245,32 @@ def test_lazy_normal_completion_crosses_chunks_and_keeps_map_planarity_without_a
     assert cp.asnumpy(prepared.planar).all()
 
 
+@pytest.mark.parametrize("layout", ["c", "fortran", "strided"])
 def test_fused_projection_residual_and_weighted_jacobian_preserve_native_system(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, layout: str,
 ) -> None:
+    def arranged(matrix: np.ndarray) -> np.ndarray:
+        if layout == "fortran":
+            return np.asfortranarray(matrix)
+        if layout == "strided":
+            result = np.empty((8, 8))[::2, ::2]
+            result[:] = matrix
+            return result
+        return matrix
+
     samples = _samples()
     rng = np.random.default_rng(79)
     for index, sample in enumerate(samples):
         pose = sample.reference_pose
         pose[:3, :3] = Rotation.from_rotvec([.02 * index, -.03 * index, .04 * index]).as_matrix()
         pose[:3, 3] = [.1 * index, -.2 * index, .05 * index]
+        sample.reference_pose = arranged(pose)
         sample.target_points = (sample.map_points - pose[:3, 3]) @ pose[:3, :3]
         sample.target_points += rng.normal(0., .01, sample.target_points.shape)
     extrinsic = np.eye(4)
     extrinsic[:3, :3] = Rotation.from_rotvec([.01, -.02, .03]).as_matrix()
     extrinsic[:3, 3] = [.02, -.03, .04]
+    extrinsic = arranged(extrinsic)
     options = MapSampleOptions()
     hessian, gradient, residuals = np.zeros((6, 6)), np.zeros(6), []
     for sample in samples:
