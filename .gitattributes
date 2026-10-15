@@ -135,3 +135,11 @@ docs/assets/cpu_parallel_scan_queries/*.json -text whitespace=blank-at-eol,blank
 docs/assets/cpu_parallel_scan_queries/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 docs/assets/cpu_parallel_scan_queries/**/*.log -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 docs/assets/cpu_parallel_scan_queries/*.md text eol=lf
+
+# Preserve the rejected worker-reuse pilot's actual execution and source bytes.
+docs/assets/cpu_worker_reuse_rejected/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cpu_worker_reuse_rejected/**/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cpu_worker_reuse_rejected/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cpu_worker_reuse_rejected/**/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cpu_worker_reuse_rejected/**/*.log -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cpu_worker_reuse_rejected/*.md text eol=lf

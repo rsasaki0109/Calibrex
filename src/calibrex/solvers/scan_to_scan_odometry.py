@@ -17,10 +17,7 @@ from __future__ import annotations
 import math
 from collections import deque
 from collections.abc import Callable, Sequence
-from concurrent.futures import ThreadPoolExecutor
-from contextlib import nullcontext
 from dataclasses import dataclass, field, replace
-from types import TracebackType
 from typing import Literal, Protocol, TypeAlias
 
 import numpy as np
@@ -197,9 +194,8 @@ def estimate_normals(
     """Return unit normals and a mask of locally planar points."""
 
     k = min(options.normal_neighbours, len(points))
-    with _CpuQueries(options.query_workers) as queries:
-        _, indices = queries.query(tree, points, k=k)
-        return queries.normals(points, indices, k, options)
+    _, indices = tree.query(points, k=k, workers=options.query_workers)
+    return _normals_from_neighbours(points, indices, k, options)
 
 
 def _normals_from_neighbours(
@@ -220,78 +216,6 @@ def _normals_from_neighbours(
     normals = eigenvectors[:, :, 0]
     planar = eigenvalues[:, 0] <= options.max_planarity_ratio * np.maximum(eigenvalues[:, 1], 1e-12)
     return normals, planar
-
-
-class _CpuQueries:
-    """Bound one registration's worker lifetime and preserve independent row math."""
-
-    def __init__(self, workers: int) -> None:
-        self.workers = workers
-        self._executor: ThreadPoolExecutor | None = None
-        self._closed = False
-
-    def __enter__(self) -> _CpuQueries:
-        if self._closed:
-            raise RuntimeError("CPU query workers are closed")
-        return self
-
-    def __exit__(
-        self, exc_type: type[BaseException] | None, exc: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-        self._closed = True
-        if self._executor is not None:
-            self._executor.shutdown(wait=True, cancel_futures=True)
-
-    def _pool(self) -> ThreadPoolExecutor:
-        if self._closed:
-            raise RuntimeError("CPU query workers are closed")
-        if self._executor is None:
-            self._executor = ThreadPoolExecutor(
-                max_workers=self.workers, thread_name_prefix="calibrex-scan",
-            )
-        return self._executor
-
-    def query(
-        self, tree: cKDTree, points: FloatArray, *, k: int,
-        distance_upper_bound: float = math.inf,
-    ) -> tuple[FloatArray, NDArray[np.intp]]:
-        if self._closed:
-            raise RuntimeError("CPU query workers are closed")
-        # Small batches finish on the caller; longer native queries share the
-        # same pool as PCA. Each SciPy task processes its original rows serially.
-        chunks = min(self.workers, len(points) // (2048 if k == 1 else 256))
-        if chunks < 2 or type(tree) is not cKDTree:
-            distances, indices = tree.query(
-                points, k=k, distance_upper_bound=distance_upper_bound,
-                workers=1 if type(tree) is cKDTree else self.workers,
-            )
-            return distances, indices
-
-        def query_rows(rows: FloatArray) -> tuple[FloatArray, NDArray[np.intp]]:
-            distances, indices = tree.query(
-                rows, k=k, distance_upper_bound=distance_upper_bound, workers=1,
-            )
-            return distances, indices
-
-        values = list(self._pool().map(query_rows, np.array_split(points, chunks)))
-        return np.concatenate([v[0] for v in values]), np.concatenate([v[1] for v in values])
-
-    def normals(
-        self, points: FloatArray, indices: NDArray[np.intp], k: int,
-        options: ScanOdometryOptions,
-    ) -> tuple[FloatArray, NDArray[np.bool_]]:
-        if self._closed:
-            raise RuntimeError("CPU query workers are closed")
-        chunks = min(self.workers, len(indices) // 4096)
-        if chunks < 2:
-            return _normals_from_neighbours(points, indices, k, options)
-
-        def normal_rows(rows: NDArray[np.intp]) -> tuple[FloatArray, NDArray[np.bool_]]:
-            return _normals_from_neighbours(points, rows, k, options)
-
-        values = list(self._pool().map(normal_rows, np.array_split(indices, chunks)))
-        return np.concatenate([v[0] for v in values]), np.concatenate([v[1] for v in values])
 
 
 class TargetNormals:
@@ -324,17 +248,17 @@ class TargetNormals:
         holder._done = np.ones(len(planar), dtype=bool)
         return holder
 
-    def ensure(self, indices: NDArray[np.intp], *, queries: _CpuQueries | None = None) -> None:
+    def ensure(self, indices: NDArray[np.intp]) -> None:
         """Compute the normals of the target points ``indices`` that are still missing."""
 
         missing = indices[~self._done[indices]]
         if missing.size == 0:
             return
         missing = np.unique(missing)
-        with (_CpuQueries(self._options.query_workers) if queries is None
-              else nullcontext(queries)) as context:
-            _, neighbours = context.query(self._tree, self._points[missing], k=self._k)
-            normals, planar = context.normals(self._points, neighbours, self._k, self._options)
+        _, neighbours = self._tree.query(
+            self._points[missing], k=self._k, workers=self._options.query_workers,
+        )
+        normals, planar = _normals_from_neighbours(self._points, neighbours, self._k, self._options)
         self.normals[missing] = normals
         self.planar[missing] = planar
         self._done[missing] = True
@@ -372,14 +296,6 @@ def register_point_to_plane(
         lazy = target_normals
     else:
         lazy = TargetNormals.precomputed(*target_normals)
-    with _CpuQueries(opts.query_workers) as queries:
-        return _register_cpu(source, target, initial, opts, tree, lazy, queries)
-
-
-def _register_cpu(
-    source: FloatArray, target: FloatArray, initial: FloatArray, opts: ScanOdometryOptions,
-    tree: cKDTree, lazy: TargetNormals, queries: _CpuQueries,
-) -> ScanRegistration:
     transform = np.array(initial, dtype=np.float64)
     converged = False
     count = 0
@@ -389,16 +305,13 @@ def _register_cpu(
     iteration = 0
     for iteration in range(1, opts.max_iterations + 1):  # noqa: B007
         moved = source @ transform[:3, :3].T + transform[:3, 3]
-        distances, indices = queries.query(
-            tree,
+        distances, indices = tree.query(
             moved, k=1, distance_upper_bound=opts.max_correspondence_m,
+            workers=opts.query_workers,
         )
         valid = np.isfinite(distances)
         hit = indices[valid]
-        if type(lazy) is TargetNormals:
-            lazy.ensure(hit, queries=queries)
-        else:
-            lazy.ensure(hit)
+        lazy.ensure(hit)
         valid[valid] &= lazy.planar[hit]
         count = int(valid.sum())
         if count < opts.min_correspondences:

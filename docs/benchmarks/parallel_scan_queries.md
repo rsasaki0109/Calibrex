@@ -61,3 +61,6 @@ python -m tools.audit_bspline_lidar_imu_benchmark docs/assets/cpu_parallel_scan_
 
 Use a new output directory and committed runtime sources. Both worker variants
 capture the same working-tree bytes, including their original line endings.
+
+A later [worker-reuse and parallel-PCA pilot](cpu_worker_reuse_rejected.md)
+did not demonstrate an additional complete-worker improvement and was rejected.

@@ -1462,7 +1462,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     imu_lidar_joint.add_argument(
         "--odometry-query-workers", type=_positive_int,
-        help="CPU worker budget for scan correspondences and target normals (default: 1)",
+        help="CPU threads for scan-odometry nearest-neighbor queries (default: 1)",
     )
     imu_lidar_joint.add_argument(
         "--odometry-geometry-quantum-m", type=_positive_float,
