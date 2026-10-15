@@ -309,6 +309,11 @@ def audit(root: Path) -> dict[str, object]:
             attempt["whole_seconds"] >= record["pipeline_seconds"] >= record["fit_seconds"] > 0
         ):
             raise ValueError("timing scopes are inconsistent")
+        if "cpu_time_policy" in protocol:
+            if not (record["pipeline_cpu_seconds"] >= record["fit_cpu_seconds"] > 0):
+                raise ValueError("in-process CPU timing scopes are inconsistent")
+            if record["fit_cpu_seconds"] != sum(r["cpu_seconds"] for r in record["rounds"]):
+                raise ValueError("per-round CPU timing sum differs")
         if (protocol.get("comparison") == "cuda-cuda"
                 and hasattr(module, "_time_normal_preparation")
                 and not {"normal_preparation_seconds", "normal_preparation_calls"}

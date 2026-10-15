@@ -132,10 +132,13 @@ def _worker(args: argparse.Namespace) -> None:
 
     def measured_fit(problem, options):
         begin = time.perf_counter()
+        cpu_begin = time.process_time()
         result = original(problem, options)
+        cpu_seconds = time.process_time() - cpu_begin
         rounds.append(
             {
                 "seconds": time.perf_counter() - begin,
+                "cpu_seconds": cpu_seconds,
                 "status": result.status,
                 "iterations": result.iterations,
                 "initial_cost": result.initial_cost,
@@ -158,6 +161,7 @@ def _worker(args: argparse.Namespace) -> None:
 
     runner.fit_bspline_lidar_imu = measured_fit
     begin = time.perf_counter()
+    cpu_begin = time.process_time()
     settings = runner.LidarImuBagOptions(max_rounds=args.max_rounds)
     if fit_backend != "numpy":
         settings = replace(settings, fit_backend=fit_backend, fit_workers=args.fit_workers)
@@ -197,6 +201,7 @@ def _worker(args: argparse.Namespace) -> None:
     out = Path(args.output)
     result.save(out / "result.json")
     pipeline_seconds = time.perf_counter() - begin
+    pipeline_cpu_seconds = time.process_time() - cpu_begin
     imports = {}
     for name, module in list(sys.modules.items()):
         if name == "calibrex" or name.startswith("calibrex."):
@@ -224,7 +229,9 @@ def _worker(args: argparse.Namespace) -> None:
             "record_type": "worker",
             "variant": args.variant,
             "pipeline_seconds": pipeline_seconds,
+            "pipeline_cpu_seconds": pipeline_cpu_seconds,
             "fit_seconds": sum(float(r["seconds"]) for r in rounds),
+            "fit_cpu_seconds": sum(float(r["cpu_seconds"]) for r in rounds),
             "odometry_seconds": odometry_timing["seconds"],
             "odometry_calls": odometry_timing["calls"],
             "controls_seconds": controls_timing["seconds"],
@@ -540,6 +547,10 @@ def main() -> None:
     _freeze(roots["current"], None)
     launcher_digest = _digest(Path(__file__))
     bag = Path(args.bag).resolve()
+    shutil.copyfile(Path(__file__), out / "benchmark.py.txt")
+    shutil.copyfile(
+        Path(__file__).with_name("benchmark_bspline_planes.py"), out / "fit-quality.py.txt",
+    )
     _write(
         out / "protocol.json",
         {
@@ -555,6 +566,9 @@ def main() -> None:
             "scope": (
                 "fresh process through complete bag calibration, saved evidence "
                 "and import verification"
+            ),
+            "cpu_time_policy": (
+                "time.process_time: all in-process worker threads; excludes children"
             ),
             "quality_tolerances": {
                 "rotation_deg": 0.001,

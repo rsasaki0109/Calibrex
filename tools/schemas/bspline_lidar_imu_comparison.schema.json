@@ -132,6 +132,9 @@
             "numba_cache_policy"
           ],
           "additionalProperties": false
+        },
+        "cpu_time_policy": {
+          "type": "string"
         }
       },
       "required": [
@@ -267,6 +270,14 @@
               ]
             }
           }
+        },
+        "pipeline_cpu_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "fit_cpu_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
         }
       },
       "required": [
