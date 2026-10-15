@@ -1,0 +1,24 @@
+{
+  "schema_version": "slac.bspline_plane_fit_benchmark/v0.1",
+  "record_type": "protocol",
+  "repeats": 3,
+  "workers": 4,
+  "quality_tolerances": {
+    "rtol": 1e-08,
+    "atol": 1e-09
+  },
+  "inputs": [
+    {
+      "name": "problem-01",
+      "npz_sha256": "e93c9dd6176658fe89c0bc20fe9660058aaad35a6e6c66388486499922e8901a",
+      "metadata_sha256": "052f057aad1973b806e5e5fa492b1082f923ef6de9a735030d5ad2b3b9e5321c"
+    }
+  ],
+  "provenance": {
+    "source_commit": "8801fa74f52560d80b077041e4de92d7a9dd7f6b",
+    "source_manifest_sha256": "aeeb00e2c55a6a1a02b8ea540e2394990c2b925b12fe12e82a9d690e4d9db830",
+    "launcher_sha256": "2a35a4e42d774fc1bdf6051a4c556526b4ee4c1c3b52ff476a6dda85c01290d4",
+    "input_origin": "Captured public GLIM Livox fit; 28563 planes, 1550 samples per IMU family; original bag SHA256 f57a2e85339316d4235ab693ab2876aac5e113625c7f8b0f7873b62f92e09643; extraction unversioned",
+    "scope": "complete fixed-input fits including covariance; first-use and warm separately; excludes bag decoding/front end"
+  }
+}

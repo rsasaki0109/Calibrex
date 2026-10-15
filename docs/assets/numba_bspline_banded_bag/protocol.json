@@ -1,0 +1,30 @@
+{
+  "schema_version": "slac.bspline_lidar_imu_comparison/v0.1",
+  "record_type": "protocol",
+  "baseline_commit": "fb162b33ffcc24f0400813e5f1e4d7a87c0e8717",
+  "current_commit": "8801fa74f52560d80b077041e4de92d7a9dd7f6b",
+  "repeats": 1,
+  "max_seconds": 6.0,
+  "max_rounds": 4,
+  "bag_sha256": "f57a2e85339316d4235ab693ab2876aac5e113625c7f8b0f7873b62f92e09643",
+  "launcher_sha256": "ab0bf15f82a2a5c3b5af006424b87dbc54fc3e5752234ebaa4948192d551ac8c",
+  "scope": "fresh process through complete bag calibration, saved evidence and import verification",
+  "cpu_time_policy": "time.process_time: all in-process worker threads; excludes children",
+  "quality_tolerances": {
+    "rotation_deg": 0.001,
+    "lever_arm_m": 1e-05,
+    "clock_offset_s": 1e-07,
+    "holdout_whitened_rms": 1e-05,
+    "block_evidence_relative": 0.0001,
+    "block_evidence_absolute": 1e-08,
+    "control_chi2_relative": 1e-05,
+    "control_chi2_absolute": 1e-05
+  },
+  "fit_options": {
+    "prior_backend": "numba_cpu",
+    "current_backend": "numba_cpu",
+    "workers": 4,
+    "numba_cache_policy": "empty_per_worker",
+    "quality_helper_sha256": "2a35a4e42d774fc1bdf6051a4c556526b4ee4c1c3b52ff476a6dda85c01290d4"
+  }
+}

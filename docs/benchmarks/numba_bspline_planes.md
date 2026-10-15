@@ -36,9 +36,58 @@ default and imports neither Numba nor CuPy. Bag artifacts retain the selected
 backend, requested workers and actual runtime/version/arithmetic identity in
 their existing schema-valid `options` field.
 
-## Complete public bag validation
+## Runtime v0.3 complete fixed-input fits
 
-Two cohorts decode the original public GLIM bag's first six seconds, including
+Three alternating fresh-process pairs compare NumPy with the structured
+compiled backend on the same frozen source and public GLIM-derived problem.
+Each worker performs a complete first fit, then a complete warm fit.
+
+| Scope | NumPy median | Structured compiled median | Observed ratio |
+| --- | ---: | ---: | ---: |
+| First use, empty private JIT cache | 18.550 s | 20.963 s | 0.885x |
+| Full fit after that worker's own first fit | 33.047 s | 3.180 s | 10.391x |
+
+Host resources were unreserved and worker times varied substantially. These
+descriptive medians establish neither a stable tenfold gain nor the incremental
+gain over earlier compiled versions. The first-use regression is retained;
+compilation must be amortized. Every fit includes LM, sparse solves and final
+covariance, but excludes bag decoding, odometry, mapping and evidence controls.
+Individual warm pair ratios range from 3.553x to 11.504x.
+
+All six full comparisons pass `rtol=1e-8`, `atol=1e-9`; status and 22 iterations
+agree exactly. Trajectories, six calibration blocks, covariance, costs and
+residual variance are retained in the
+[v0.3 evidence archive](../assets/numba_bspline_banded/README.md).
+The problem has 28,563 plane rows and 1,550 rows per IMU family. Its original
+extraction helper was unversioned; NPZ/metadata hashes bind the consumed inputs.
+No independent extrinsic accuracy or whole-bag acceleration is claimed.
+
+```bash
+python -m tools.audit_bspline_planes docs/assets/numba_bspline_banded
+```
+
+## Runtime v0.3 complete bag regression and negative timing
+
+A fixed-order v0.2/v0.3 pair processes the original public bag's first six
+seconds, four map rounds, covariance, holdout and 32 signed controls with CPU
+odometry. Both workers start with empty private JIT caches. All four paired
+full fits pass `rtol=1e-8`, `atol=1e-9`, including exact status/iterations;
+complete calibration and evaluation decisions agree. GT remains unused and
+the result remains INCONCLUSIVE.
+
+The whole worker takes 54.809 s versus 67.962 s (0.806x). All four fits take
+13.826 s versus 12.719 s (1.087x); the first fit regresses from 5.884 s to
+8.963 s, while the subsequent three together take 7.942 s versus 3.756 s.
+Unchanged odometry also varies from 24.242 s to 36.494 s. This unreserved
+single pair does not establish whole-pipeline acceleration. The
+[complete regression archive](../assets/numba_bspline_banded_bag/README.md)
+retains this negative timing, full results, source snapshots and a separate
+strict full-fit audit. NumPy remains the default; the compiled path requires
+amortizing startup on repeated fitting.
+
+## Earlier v0.2 complete public bag validation
+
+Two earlier v0.2 cohorts decode the original public GLIM bag's first six seconds, including
 initial estimates, CPU odometry, four map rounds, fits/covariance, noise updates,
 holdout, 32 signed controls, input hashing, saving and frozen-import checks.
 Every compiled worker starts with an empty Numba cache. Both methods use the

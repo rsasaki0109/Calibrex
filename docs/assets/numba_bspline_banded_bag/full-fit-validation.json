@@ -1,0 +1,105 @@
+{
+  "all_four_fits_passed": true,
+  "full_fit_checks": [
+    {
+      "passed": true,
+      "exact_decisions": true,
+      "max_absolute_errors": {
+        "initial_cost": 0.0,
+        "final_cost": 0.0,
+        "residual_variance": 0.0,
+        "trajectory_rotations": 2.220446049250313e-16,
+        "trajectory_positions": 8.881784197001252e-16,
+        "calibration_covariance": 6.602655705165161e-16,
+        "imu_rotation": 0.0,
+        "gyro_bias": 1.0950441942103595e-17,
+        "lever_arm": 3.83026943495679e-15,
+        "imu_clock_offset": 0.0,
+        "accel_bias": 3.469446951953614e-15,
+        "gravity": 3.1086244689504383e-15
+      }
+    },
+    {
+      "passed": true,
+      "exact_decisions": true,
+      "max_absolute_errors": {
+        "initial_cost": 3.637978807091713e-12,
+        "final_cost": 1.4551915228366852e-11,
+        "residual_variance": 1.1102230246251565e-15,
+        "trajectory_rotations": 6.620069076257451e-13,
+        "trajectory_positions": 2.6334490144108713e-13,
+        "calibration_covariance": 2.2839369284710642e-14,
+        "imu_rotation": 6.95818402896009e-13,
+        "gyro_bias": 2.5740640088173228e-14,
+        "lever_arm": 7.666645096549018e-13,
+        "imu_clock_offset": 2.5944090625840133e-13,
+        "accel_bias": 5.678998937774793e-12,
+        "gravity": 1.5516476992161188e-12
+      }
+    },
+    {
+      "passed": true,
+      "exact_decisions": true,
+      "max_absolute_errors": {
+        "initial_cost": 6.912159733474255e-11,
+        "final_cost": 2.0736479200422764e-10,
+        "residual_variance": 1.2656542480726785e-14,
+        "trajectory_rotations": 4.0015907254442595e-13,
+        "trajectory_positions": 1.925681836212334e-13,
+        "calibration_covariance": 1.1924836118559767e-13,
+        "imu_rotation": 7.058676559923427e-13,
+        "gyro_bias": 2.4939577313032313e-14,
+        "lever_arm": 7.750744490664374e-13,
+        "imu_clock_offset": 2.525245637596818e-13,
+        "accel_bias": 5.891342969022162e-12,
+        "gravity": 1.0040857034709916e-12
+      }
+    },
+    {
+      "passed": true,
+      "exact_decisions": true,
+      "max_absolute_errors": {
+        "initial_cost": 6.111804395914078e-10,
+        "final_cost": 9.204086381942034e-10,
+        "residual_variance": 5.306866057708248e-14,
+        "trajectory_rotations": 1.9671590745229395e-13,
+        "trajectory_positions": 1.1007861289158427e-13,
+        "calibration_covariance": 1.9453189059603915e-14,
+        "imu_rotation": 4.231268113663589e-13,
+        "gyro_bias": 1.3427810024915082e-14,
+        "lever_arm": 5.762612609316875e-13,
+        "imu_clock_offset": 1.438606178627566e-13,
+        "accel_bias": 3.700817430285497e-12,
+        "gravity": 5.193623309196482e-13
+      }
+    }
+  ],
+  "timing_qualified": false,
+  "per_round_seconds": {
+    "prior": [
+      5.883893299964257,
+      3.6277416999218985,
+      1.763029999914579,
+      2.551384299993515
+    ],
+    "current": [
+      8.962706899968907,
+      1.6272775999968871,
+      0.9218084999592975,
+      1.2068341000704095
+    ]
+  },
+  "odometry_seconds": {
+    "prior": 24.242464600829408,
+    "current": 36.49374430172611
+  },
+  "provenance": {
+    "scope": "One complete public GLIM six-second four-map-round CPU regression pair, comparing compiled runtime v0.2 and v0.3; exact status/iterations and full arrays at rtol=1e-8 atol=1e-9; unreserved fixed-order timing is exploratory",
+    "protocol_sha256": "4a4157b2bb93a207467f5ff21cf1cd4fd0318beae7d8ded66ce18689f5e19b30",
+    "measurements_sha256": {
+      "prior": "f0c47ba256f2c681f6cef2267691b646bf9538b28ee66daee2a6e6730927d6dc",
+      "current": "92d0ebbf7bf610dcb9ba1901285ad9054128a889e4fd8be5ba35f51c95df7c5c"
+    },
+    "validation_helper_sha256": "d2ac4b224e60c694e7d243772f16c84ad6353eabc7f53c8f9d1c396a9e59b085"
+  }
+}

@@ -11,19 +11,24 @@ import pytest
 from tools.audit_bspline_planes import audit
 
 ARCHIVE = Path(__file__).resolve().parents[2] / "docs/assets/numba_bspline_planes"
+BANDED = Path(__file__).resolve().parents[2] / "docs/assets/numba_bspline_banded"
 
 
-def test_complete_fixed_input_fit_archive() -> None:
-    result = audit(ARCHIVE)
+@pytest.mark.parametrize("archive", [ARCHIVE, BANDED])
+def test_complete_fixed_input_fit_archive(archive: Path) -> None:
+    result = audit(archive)
     assert result["verified_pairs"] == 3
     assert result["verified_full_fit_comparisons"] == 6
     assert result["source_files"] == 377
 
 
 @pytest.mark.parametrize("mutation", ["iteration", "speedup", "imports", "cohort", "backend"])
-def test_rebound_hashes_cannot_hide_inconsistent_evidence(tmp_path: Path, mutation: str) -> None:
+@pytest.mark.parametrize("archive", [ARCHIVE, BANDED])
+def test_rebound_hashes_cannot_hide_inconsistent_evidence(
+    tmp_path: Path, mutation: str, archive: Path,
+) -> None:
     root = tmp_path / "archive"
-    shutil.copytree(ARCHIVE, root)
+    shutil.copytree(archive, root)
     relative = {
         "iteration": "00-numba_cpu/measurement.json",
         "speedup": "summary.json",
