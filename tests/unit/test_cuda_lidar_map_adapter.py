@@ -17,6 +17,7 @@ from calibrex.solvers.cuda_lidar_map_adapter import CudaMapRuntime, _CudaSample,
 from calibrex.solvers.lidar_lidar_map_solver import (
     MapSample,
     MapSampleOptions,
+    _jacobian,
     chi_square,
     solve_map_extrinsic,
 )
@@ -242,3 +243,91 @@ def test_lazy_normal_completion_crosses_chunks_and_keeps_map_planarity_without_a
     assert prepared.normal_kernel_calls == 2
     np.testing.assert_allclose(np.abs(cp.asnumpy(prepared.normals)[:, 0]), 1., atol=1e-12)
     assert cp.asnumpy(prepared.planar).all()
+
+
+def test_fused_projection_residual_and_weighted_jacobian_preserve_native_system(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    samples = _samples()
+    rng = np.random.default_rng(79)
+    for index, sample in enumerate(samples):
+        pose = sample.reference_pose
+        pose[:3, :3] = Rotation.from_rotvec([.02 * index, -.03 * index, .04 * index]).as_matrix()
+        pose[:3, 3] = [.1 * index, -.2 * index, .05 * index]
+        sample.target_points = (sample.map_points - pose[:3, 3]) @ pose[:3, :3]
+        sample.target_points += rng.normal(0., .01, sample.target_points.shape)
+    extrinsic = np.eye(4)
+    extrinsic[:3, :3] = Rotation.from_rotvec([.01, -.02, .03]).as_matrix()
+    extrinsic[:3, 3] = [.02, -.03, .04]
+    options = MapSampleOptions()
+    hessian, gradient, residuals = np.zeros((6, 6)), np.zeros(6), []
+    for sample in samples:
+        residual, normals, points = sample.residuals(extrinsic, options)
+        jacobian = _jacobian(sample.reference_pose, extrinsic, normals, points)
+        weight = np.minimum(1., options.huber_m / np.maximum(np.abs(residual), 1e-12))
+        hessian += jacobian.T @ (jacobian * weight[:, None])
+        gradient += jacobian.T @ (weight * residual)
+        residuals.append(residual)
+        sample._tree = sample._normals = sample._planar = None
+    original = _CudaTree.query
+
+    def query(tree: _CudaTree, points: object, k: int) -> object:
+        assert k != 2, "registration used a separate query dispatch"
+        return original(tree, points, k)
+
+    def forbidden(*args: object, **kwargs: object) -> None:
+        pytest.fail("registration used the unfused Jacobian assembly")
+
+    monkeypatch.setattr(_CudaTree, "query", query)
+    monkeypatch.setattr(cp, "cross", forbidden)
+    monkeypatch.setattr(cp, "column_stack", forbidden)
+    runtime = CudaMapRuntime(samples, options)
+    actual_hessian, actual_gradient, actual_residuals = runtime.normal_equations(samples, extrinsic)
+    np.testing.assert_allclose(actual_hessian, hessian, rtol=1e-11, atol=1e-8)
+    np.testing.assert_allclose(actual_gradient, gradient, rtol=1e-10, atol=1e-9)
+    np.testing.assert_allclose(np.abs(actual_residuals), np.abs(np.concatenate(residuals)),
+                               rtol=1e-9, atol=1e-10)
+    statistics = runtime.statistics()
+    assert statistics["gpu_projection_query_calls"] == 3
+    assert statistics["gpu_residual_kernel_calls"] == 3
+    assert statistics["gpu_jacobian_kernel_calls"] == 3
+    assert statistics["gpu_projection_query_rows"] + statistics["gpu_normal_rows"] == (
+        statistics["gpu_query_rows"]
+    )
+
+
+@pytest.mark.parametrize("empty", [False, True])
+def test_fused_registration_handles_empty_and_completely_gated_targets(empty: bool) -> None:
+    sample = _samples()[0]
+    sample.target_points = np.empty((0, 3)) if empty else sample.target_points + 100.
+    runtime = CudaMapRuntime([sample], MapSampleOptions())
+    assert runtime.residuals(sample, np.eye(4)).shape == (0,)
+    hessian, gradient, residual = runtime.normal_equations([sample], np.eye(4))
+    np.testing.assert_array_equal(hessian, np.zeros((6, 6)))
+    np.testing.assert_array_equal(gradient, np.zeros(6))
+    assert residual.shape == (0,)
+    assert runtime.statistics()["gpu_normal_rows"] == 0
+    assert runtime.statistics()["gpu_residual_kernel_calls"] == 0
+    assert runtime.statistics()["gpu_jacobian_kernel_calls"] == 0
+
+
+@pytest.mark.parametrize("gate", [.6, math.nextafter(.6, 0.), math.nextafter(.6, math.inf)])
+def test_fused_native_tie_repairs_keep_selected_normals_gate_and_source_order(gate: float) -> None:
+    world = np.asarray([[float(x), float(y), 0.] for x in range(-4, 5) for y in range(-4, 5)])
+    points = np.asarray([[.5, 0., .125], [3., 3., .25], [20., 20., 0.],
+                         [.5, 0., -.125], [0., 0., .6]])
+    sample = MapSample(0., 0, np.eye(4), points, world)
+    options = MapSampleOptions(max_correspondence_m=gate)
+    sample.prepare(options)
+    # Distinct caller-captured normals expose a wrong member at an exact tie;
+    # coplanar normals would conceal it in the residual comparison.
+    sample._normals[:] = 0.
+    for i, point in enumerate(world):
+        sample._normals[i, int(point[0]) % 3] = 1.
+    sample._planar[:] = True
+    expected, _, _ = sample.residuals(np.eye(4), options)
+    runtime = CudaMapRuntime([sample], options)
+    actual = runtime.residuals(sample, np.eye(4))
+    np.testing.assert_array_equal(actual, expected)
+    assert runtime.statistics()["scalar_query_repairs"] >= 2
+    assert runtime.statistics()["gpu_normal_rows"] == 0

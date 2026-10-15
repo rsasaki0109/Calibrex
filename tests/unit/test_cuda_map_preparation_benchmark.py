@@ -22,6 +22,8 @@ def test_comparator_retains_both_identities_and_full_quality(mutation: str) -> N
     prior, current = _evaluation(), _evaluation()
     current["result"]["execution_backend"] += ";normal_sha256=" + "1" * 64 + ";normal_cache=lazy"
     assert not benchmark.compare(prior, current)
+    current["result"]["execution_backend"] += ";registration_sha256=" + "2" * 64
+    assert not benchmark.compare(prior, current)
     if mutation == "identity":
         prior["result"]["execution_backend"] = "untracked"
     elif mutation == "hidden":

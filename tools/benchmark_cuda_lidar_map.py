@@ -55,7 +55,8 @@ def _compare(left: Any, right: Any, path: str = "") -> list[str]:
             r"calibrex\.cuda_lidar_map/v0\.1;fp64=true;query_fma=false;"
             r"cupy=[0-9.]+;cuda=[0-9]+;driver=[0-9]+;cc=[0-9.]+;"
             r"query_sha256=[0-9a-f]{64}"
-            r"(?:;normal_sha256=[0-9a-f]{64};normal_cache=lazy)?", right,
+            r"(?:;normal_sha256=[0-9a-f]{64};normal_cache=lazy"
+            r"(?:;registration_sha256=[0-9a-f]{64})?)?", right,
         )
         if left != "numpy_scipy" or declared is None:
             return [path]

@@ -45,7 +45,8 @@ def _identity(value: str, constants: dict[str, str]) -> str:
     match = re.fullmatch(
         r"(calibrex\.cuda_lidar_map/v0\.1;fp64=true;query_fma=false;"
         r"cupy=[0-9.]+;cuda=[0-9]+;driver=[0-9]+;cc=[0-9.]+;)"
-        r"query_sha256=([0-9a-f]{64})(?:;normal_sha256=([0-9a-f]{64});normal_cache=lazy)?", value,
+        r"query_sha256=([0-9a-f]{64})(?:;normal_sha256=([0-9a-f]{64});normal_cache=lazy"
+        r"(?:;registration_sha256=([0-9a-f]{64}))?)?", value,
     )
     _require(match is not None, "invalid CUDA execution identity")
     assert match is not None
@@ -53,6 +54,9 @@ def _identity(value: str, constants: dict[str, str]) -> str:
     normal = constants.get("_NORMAL_SOURCE")
     _require(match[3] == (None if normal is None else _sha(normal.encode())),
              "normal kernel identity mismatch")
+    registration = constants.get("_REGISTRATION_SOURCE")
+    _require(match[4] == (None if registration is None else _sha(registration.encode())),
+             "registration kernel identity mismatch")
     return match[1]
 
 
@@ -154,6 +158,15 @@ def audit(root: Path) -> dict[str, Any]:
                      and 0 < calls <= normal_rows <= calls * 65536
                      and 0 <= stats["scalar_normal_repairs"] <= normal_rows,
                      "invalid lazy normal kernel work")
+        if "_REGISTRATION_SOURCE" in constants[variant]:
+            _require(stats["gpu_projection_query_calls"] + stats["gpu_normal_kernel_calls"]
+                     == stats["gpu_query_calls"]
+                     and stats["gpu_projection_query_rows"] + stats["gpu_normal_rows"]
+                     == stats["gpu_query_rows"], "fused query work mismatch")
+            _require(0 < stats["gpu_jacobian_kernel_calls"] <= stats["gpu_residual_kernel_calls"]
+                     <= stats["gpu_projection_query_calls"]
+                     and 0 < stats["gpu_jacobian_kernel_rows"] <= stats["gpu_residual_kernel_rows"]
+                     <= stats["gpu_projection_query_rows"], "fused registration work missing")
         measurements[worker] = row
     for repeat in range(protocol["repetitions"]):
         prior, current = (measurements[f"{repeat:02d}-{v}"] for v in ("prior", "current"))
@@ -178,6 +191,11 @@ def audit(root: Path) -> dict[str, Any]:
             _require(prior["statistics"]["gpu_query_rows"]
                      - current["statistics"]["gpu_query_rows"] == saved,
                      "normal query reduction disagrees with unchanged registration work")
+        if ("_REGISTRATION_SOURCE" in constants["current"]
+            and "_REGISTRATION_SOURCE" not in constants["prior"]):
+            counters = {k: v for k, v in current["statistics"].items()
+                        if k in prior["statistics"]}
+            _require(counters == prior["statistics"], "fusion changed retained registration work")
     expected = summarize(attempts)
     expected["provenance"] = summary["provenance"]
     _require(summary == expected, "summary differs from complete observations")
