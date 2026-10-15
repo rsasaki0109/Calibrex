@@ -208,3 +208,5 @@ docs/assets/odometry_candidate_screen/**/*.txt -text whitespace=blank-at-eol,bla
 docs/assets/odometry_candidate_screen/**/*.log -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
 docs/assets/odometry_candidate_screen/*.md text eol=lf
 docs/benchmarks/odometry_candidate_screening.md text eol=lf
+# The original profiler report includes its runner's final blank line.
+docs/assets/odometry_candidate_screen/profile/profile.txt -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
