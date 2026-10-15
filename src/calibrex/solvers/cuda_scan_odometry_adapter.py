@@ -14,9 +14,10 @@ from numpy.typing import NDArray
 from calibrex.solvers.cuda_lidar_map_adapter import (
     _SOURCE,
     _coordinates,
-    _CudaTree,
     _host,
 )
+from calibrex.solvers.cuda_spatial_interval_adapter import _SOURCE as _INTERVAL_QUERY_SOURCE
+from calibrex.solvers.cuda_spatial_interval_adapter import _CudaIntervalTree as _CudaTree
 from calibrex.solvers.scan_to_scan_odometry import (
     FloatArray,
     ScanOdometryOptions,
@@ -219,20 +220,115 @@ extern "C" __global__ void project_query_system3(
 """
 
 
+_INTERVAL_FUSED_SOURCE = r"""
+extern "C" __global__ void project_query_system3(
+    const double* xyz, const double* matrix, const double* reference,
+    const long long* order, const int* axis, const float* split,
+    const int* child, const long long* span, const float* boxes, const float* intervals,
+    const double* normal,
+    const bool* planar, const bool* done, const int n, const int m, const double gate,
+    const double huber, const double error, double* uncertain, double* terms,
+    double* moved_out, double* distances_out, long long* indices_out,
+    long long* pending_out) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;
+    if(row>=n) return;
+    const double* s=xyz+3*row;
+    double p[3];
+    for(int a=0;a<3;a++)
+        p[a]=matrix[4*a]*s[0]+matrix[4*a+1]*s[1]+matrix[4*a+2]*s[2]+matrix[4*a+3];
+    double best[2]={1.0/0.0,1.0/0.0};long long chosen[2]={m,m};
+    float pl[3],ph[3];
+    for(int a=0;a<3;a++){pl[a]=__double2float_rd(p[a]);ph[a]=__double2float_ru(p[a]);}
+    int stack[64];int top=1;stack[0]=0;
+    while(top){
+        --top;int node=stack[top];
+        float d[3];
+        for(int a=0;a<3;a++)
+            d[a]=fmaxf(0.0f,fmaxf(__fsub_rd(boxes[6*node+a],ph[a]),__fsub_rd(pl[a],boxes[6*node+3+a])));
+        float lower=__fmul_rd(__fadd_rd(__fadd_rd(__fmul_rd(d[0],d[0]),
+                          __fmul_rd(d[1],d[1])),__fmul_rd(d[2],d[2])),0.9999998807907104f);
+        if(!isfinite(lower))lower=0.0f;
+        if((double)lower>best[1]) continue;
+        if(axis[node]<0){
+            for(long long v=span[2*node];v<span[2*node+1];v++){
+                long long position=order[v];
+                float lower_point[3];
+                for(int a=0;a<3;a++) lower_point[a]=fmaxf(0.0f,fmaxf(
+                    __fsub_rd(intervals[6*position+a],ph[a]),
+                    __fsub_rd(pl[a],intervals[6*position+3+a])));
+                float candidate=__fmul_rd(__fadd_rd(__fadd_rd(
+                    __fmul_rd(lower_point[0],lower_point[0]),
+                    __fmul_rd(lower_point[1],lower_point[1])),
+                    __fmul_rd(lower_point[2],lower_point[2])),0.9999998807907104f);
+                if(isfinite(candidate) && (double)candidate>best[1])continue;
+                double x=p[0]-reference[3*position];
+                double y=p[1]-reference[3*position+1];
+                double z=p[2]-reference[3*position+2];
+                double d=x*x+y*y+z*z;
+                if(d<best[1] || (d==best[1] && position<chosen[1])){
+                    if(d<best[0] || (d==best[0] && position<chosen[0])){
+                        best[1]=best[0];chosen[1]=chosen[0];best[0]=d;chosen[0]=position;
+                    }else{best[1]=d;chosen[1]=position;}
+                }
+            }
+        }else{
+            int coordinate=axis[node];
+            float delta=fmaxf(0.0f,fmaxf(__fsub_rd(split[2*node],ph[coordinate]),
+                                       __fsub_rd(pl[coordinate],split[2*node+1])));
+            float separation=__fmul_rd(__fmul_rd(delta,delta),0.9999998807907104f);
+            if(!isfinite(separation))separation=0.0f;
+            int side=pl[coordinate]<split[2*node]?0:1;
+            if((double)separation<=best[1]){
+                stack[top]=child[2*node+1-side];++top;
+            }
+            stack[top]=child[2*node+side];++top;
+        }
+    }
+    double distance=sqrt(best[0]);long long hit=chosen[0];
+    for(int a=0;a<3;a++) moved_out[3*row+a]=p[a];
+    distances_out[2*row]=distance;distances_out[2*row+1]=sqrt(best[1]);
+    indices_out[2*row]=hit;indices_out[2*row+1]=chosen[1];
+    bool repair=sqrt(best[1])-distance<=error || fabs(distance-gate)<=error;
+    uncertain[row]=repair?1.0:0.0;
+    bool valid=distance<gate && hit<m;
+    bool pending=valid && !done[hit];
+    pending_out[row]=pending?hit:-1;
+    if(valid) valid=done[hit] && planar[hit];
+    double j[6]={0,0,0,0,0,0},r=0,w=1;
+    if(valid){
+        const double* q=reference+3*hit;const double* a=normal+3*hit;
+        r=(p[0]-q[0])*a[0]+(p[1]-q[1])*a[1]+(p[2]-q[2])*a[2];
+        j[0]=p[1]*a[2]-p[2]*a[1];j[1]=p[2]*a[0]-p[0]*a[2];
+        j[2]=p[0]*a[1]-p[1]*a[0];j[3]=a[0];j[4]=a[1];j[5]=a[2];
+        w=fabs(r)<=huber?1.0:huber/fmax(fabs(r),1e-12);
+    }
+    int column=0;
+    for(int a=0;a<6;a++) for(int b=a;b<6;b++)
+        terms[(column++)*n+row]=(j[a]*w)*j[b];
+    for(int a=0;a<6;a++) terms[(column++)*n+row]=(j[a]*w)*r;
+    terms[27*n+row]=r*r;terms[28*n+row]=valid?1.0:0.0;
+    terms[29*n+row]=repair?1.0:0.0;
+    terms[30*n+row]=pending?1.0:0.0;
+}
+"""
+
+
 def execution_identity() -> str:
     """Identify arithmetic, query code and runtime without the device model."""
     properties = cp.cuda.runtime.getDeviceProperties(cp.cuda.runtime.getDevice())
     system_digest = hashlib.sha256(
-        (_SYSTEM_SOURCE + _FUSED_SOURCE + _COVARIANCE_SOURCE + _NORMAL_SOURCE).encode(),
+        (_SYSTEM_SOURCE + _FUSED_SOURCE + _COVARIANCE_SOURCE + _NORMAL_SOURCE
+         + _INTERVAL_FUSED_SOURCE).encode(),
     ).hexdigest()
     return (
         "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;"
         f"cupy={cp.__version__};cuda={cp.cuda.runtime.runtimeGetVersion()};"
         f"driver={cp.cuda.runtime.driverGetVersion()};"
         f"cc={properties['major']}.{properties['minor']};"
-        f"query_sha256={hashlib.sha256(_SOURCE.encode()).hexdigest()};"
+        f"query_sha256={hashlib.sha256((_SOURCE + _INTERVAL_QUERY_SOURCE).encode()).hexdigest()};"
         f"system_sha256={system_digest}"
         ";normal_schedule=async-v1"
+        ";spatial_pruning=fp32-intervals-v1"
     )
 
 
@@ -259,6 +355,7 @@ class CudaOdometryTarget:
 
     def __init__(self, target: FloatArray, options: ScanOdometryOptions) -> None:
         self._pending_normals: _PendingNormals | None = None
+        self._capture_ready: cp.cuda.Event | None = None
         if not 2 <= options.normal_neighbours <= 16:
             raise ValueError("CUDA normal neighborhoods require 2 through 16 neighbors")
         if not np.isfinite(options.max_correspondence_m) or options.max_correspondence_m <= 0:
@@ -286,6 +383,7 @@ class CudaOdometryTarget:
         self.registration_repairs = 0
         self.motion_repairs = 0
         self.normal_kernel_calls = 0
+        self.interval_system_calls = 0
         self.async_normal_batches = 0
         self._prepared_normal_rows = 0
         self._all_done = False
@@ -305,17 +403,40 @@ class CudaOdometryTarget:
             self.normal_kernel = cp.RawKernel(
                 _NORMAL_SOURCE, "normals3", options=("--fmad=false",),
             )
+            self.interval_fused_kernel = cp.RawKernel(
+                _INTERVAL_FUSED_SOURCE, "project_query_system3", options=("--fmad=false",),
+            )
+            self._capture_stream = cp.cuda.get_current_stream().ptr
+            try:
+                ready = cp.cuda.Event()
+                ready.record()
+                self._capture_ready = ready
+            except Exception:
+                cp.cuda.get_current_stream().synchronize()
+                raise
 
     def __del__(self) -> None:
         # A caller can abandon a target while preprocessing/validation fails.
         # Drain the queued writes before any target or pinned buffers are freed.
         pending = getattr(self, "_pending_normals", None)
+        ready = getattr(self, "_capture_ready", None)
         if pending is not None:
             try:
                 with cp.cuda.Device(self.device_id):
                     pending.ready.synchronize()
             except Exception:
                 pass  # CUDA may already be shutting down during finalization.
+        elif ready is not None:
+            try:
+                with cp.cuda.Device(self.device_id):
+                    ready.synchronize()
+            except Exception:
+                pass
+
+    def _wait_capture(self) -> None:
+        stream = cp.cuda.get_current_stream()
+        if stream.ptr != self._capture_stream:
+            stream.wait_event(self._capture_ready)
 
     def _prime_normals(self, source_rows: int) -> None:
         """Enqueue one bounded dense batch while the caller prepares its source."""
@@ -324,6 +445,7 @@ class CudaOdometryTarget:
             return
         with cp.cuda.Device(self.device_id):
             # Allocate host ownership before submitting any asynchronous writes.
+            self._wait_capture()
             pinned = cp.cuda.alloc_pinned_memory(len(self.host))
             native_flags = np.frombuffer(pinned, dtype=np.uint8, count=len(self.host))
             rows = cp.arange(len(self.host), dtype=cp.int64)
@@ -376,6 +498,7 @@ class CudaOdometryTarget:
         return self._planar
 
     def _ensure(self, hit: cp.ndarray) -> None:
+        self._wait_capture()
         self._finish_normal_preparation()
         if self._all_done:
             return
@@ -383,6 +506,7 @@ class CudaOdometryTarget:
         self._compute_normals(missing)
 
     def _ensure_all(self) -> None:
+        self._wait_capture()
         self._finish_normal_preparation()
         if self._all_done:
             return
@@ -454,6 +578,7 @@ class CudaOdometryTarget:
         uncertain_stopping = False
         scale = max(self.scale, float(np.max(np.abs(host_source))) if len(host_source) else 1.0)
         with cp.cuda.Device(self.device_id):
+            self._wait_capture()
             self._finish_normal_preparation()
             points = cp.asarray(host_source)
             # Dense overlap amortizes one batched normal query/eigensolve.
@@ -468,6 +593,12 @@ class CudaOdometryTarget:
             indexes = cp.empty((len(points), 2), dtype=cp.int64)
             pending = cp.empty(len(points), dtype=cp.int64)
             for iteration in range(1, opts.max_iterations + 1):  # noqa: B007
+                intervals = self.tree.select_intervals(
+                    scale <= 1e6 and float(np.max(np.abs(transform))) <= 16.0,
+                )
+                arrays = self.tree.interval_arrays if intervals else self.tree.arrays
+                assert arrays is not None
+                kernel = self.interval_fused_kernel if intervals else self.fused_kernel
                 matrix = cp.asarray(transform)
                 error = (
                     128
@@ -479,14 +610,14 @@ class CudaOdometryTarget:
                     )
                 )
                 if len(points):
-                    self.fused_kernel(
+                    kernel(
                         ((len(points) + 127) // 128,),
                         (128,),
                         (
                             points,
                             matrix,
                             self.tree.data,
-                            *self.tree.arrays,
+                            *arrays,
                             self._normals,
                             self._planar,
                             self.done,
@@ -506,6 +637,7 @@ class CudaOdometryTarget:
                     self.tree.query_calls += 1
                     self.tree.query_rows += len(points)
                     self.fused_calls += 1
+                    self.interval_system_calls += int(intervals)
                 totals = _host(cp.sum(terms, axis=1))
                 refresh = False
                 if totals[29]:
@@ -634,6 +766,8 @@ class CudaOdometryTarget:
             "gpu_normal_rows": self.normal_rows,
             "gpu_normal_kernel_calls": self.normal_kernel_calls,
             "gpu_async_normal_batches": self.async_normal_batches,
+            "gpu_interval_query_rows": self.tree.interval_query_rows,
+            "gpu_interval_system_calls": self.interval_system_calls,
             "scalar_registration_repairs": self.registration_repairs,
             "scalar_motion_repairs": self.motion_repairs,
         }

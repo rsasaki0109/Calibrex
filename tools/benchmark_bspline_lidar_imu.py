@@ -388,6 +388,69 @@ def _validate_preparation_pair(
     )
 
 
+def _scan_spatial_hashes(root: Path) -> tuple[str, str]:
+    """Bind both available query paths to their literal frozen CUDA sources."""
+    def constants(name: str) -> dict[str, str]:
+        values = {}
+        for node in ast.parse((root / "src/calibrex/solvers" / name).read_bytes()).body:
+            if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and isinstance(node.value.value, str):
+                        values[target.id] = node.value.value
+        return values
+
+    query = constants("cuda_lidar_map_adapter.py")["_SOURCE"]
+    system = constants("cuda_scan_odometry_adapter.py")
+    if "_INTERVAL_FUSED_SOURCE" in system:
+        query += constants("cuda_spatial_interval_adapter.py")["_SOURCE"]
+    return hashlib.sha256(query.encode()).hexdigest(), hashlib.sha256((
+        system["_SYSTEM_SOURCE"] + system["_FUSED_SOURCE"] + system["_COVARIANCE_SOURCE"]
+        + system.get("_NORMAL_SOURCE", "") + system.get("_INTERVAL_FUSED_SOURCE", "")
+    ).encode()).hexdigest()
+
+
+def _spatial_result(
+    result: dict, hashes: tuple[str, str], prior_hashes: tuple[str, str], *, intervals: bool,
+) -> dict:
+    """Permit only source-bound pruning identity and actual-work metadata to differ."""
+    _validate_backend_execution(result, "cuda")
+    value = _without_run_metadata(result)
+    assert isinstance(value, dict)
+    suffix = ";spatial_pruning=fp32-intervals-v1"
+    for name in ("initial_odometry_execution", "segment_odometry_execution"):
+        for report in value["options"][name]:
+            statistics = report["statistics"]
+            for counter, total in (("gpu_interval_query_rows", "gpu_query_rows"),
+                                   ("gpu_interval_system_calls", "gpu_fused_system_calls")):
+                count = statistics.pop(counter, 0)
+                if (type(count) is not int or
+                        (not 0 < count <= statistics.get(total, 0) if intervals else count != 0)):
+                    raise ValueError("interval spatial work does not match the declared path")
+            identity = report["executed_backends"][0]
+            if identity.endswith(suffix) != intervals:
+                raise ValueError("interval spatial identity differs")
+            if intervals:
+                identity = identity.removesuffix(suffix)
+            for label, actual, prior in zip(("query", "system"), hashes, prior_hashes, strict=True):
+                token = label + "_sha256=" + actual
+                if token not in identity:
+                    raise ValueError("interval spatial kernel hash differs")
+                identity = identity.replace(token, label + "_sha256=" + prior)
+            report["executed_backends"][0] = identity
+    return value
+
+
+def _validate_spatial_pair(
+    prior: dict, current: dict, left: list[dict], right: list[dict],
+    prior_hashes: tuple[str, str], current_hashes: tuple[str, str],
+) -> None:
+    """Require exact calibration, complete fits and all previous work counters."""
+    _validate_exact_pair(
+        _spatial_result(prior, prior_hashes, prior_hashes, intervals=False),
+        _spatial_result(current, current_hashes, prior_hashes, intervals=True), left, right,
+    )
+
+
 def _odometry_options(args: argparse.Namespace) -> dict[str, float | int]:
     return {
         "voxel_size_m": args.odometry_voxel_size_m,
@@ -601,6 +664,8 @@ def main() -> None:
                         help="require every result/evidence and full fit field to match exactly")
     parser.add_argument("--require-exact-preparation-results", action="store_true",
                         help="require exact outputs/work, allowing only async scheduling metadata")
+    parser.add_argument("--require-exact-spatial-results", action="store_true",
+                        help="require exact outputs/work, allowing source-bound pruning metadata")
     parser.add_argument(
         "--comparison", choices=("source", "cpu-cpu", "cpu-source", "cpu-cuda", "cuda-cuda"),
         default="source",
@@ -633,6 +698,12 @@ def main() -> None:
         or args.prior_fit_plane_backend != args.current_fit_plane_backend
     ):
         parser.error("exact preparation comparison requires cuda-cuda with the same plane backend")
+    if args.require_exact_spatial_results and (
+        args.comparison != "cuda-cuda" or args.require_exact_results
+        or args.require_exact_preparation_results
+        or args.prior_fit_plane_backend != args.current_fit_plane_backend
+    ):
+        parser.error("exact spatial comparison requires cuda-cuda with the same plane backend")
     if args.comparison != "source" and (
         any(value is None for value in _odometry_options(args).values())
         or args.odometry_voxel_size_m <= 0 or args.odometry_local_map_scans < 1
@@ -669,6 +740,8 @@ def main() -> None:
             **({"exact_outputs_required": True} if args.require_exact_results else {}),
             **({"exact_preparation_outputs_required": True}
                if args.require_exact_preparation_results else {}),
+            **({"exact_spatial_outputs_required": True}
+               if args.require_exact_spatial_results else {}),
             "bag_sha256": _digest(bag),
             "launcher_sha256": launcher_digest,
             "scope": (
@@ -760,6 +833,13 @@ def main() -> None:
             records = [json.loads((out / f"{repeat:02d}-{v}/measurement.json").read_bytes())
                        for v in ("prior", "current")]
             _validate_preparation_pair(prior, current, records[0]["rounds"], records[1]["rounds"])
+        if args.require_exact_spatial_results:
+            records = [json.loads((out / f"{repeat:02d}-{v}/measurement.json").read_bytes())
+                       for v in ("prior", "current")]
+            _validate_spatial_pair(
+                prior, current, records[0]["rounds"], records[1]["rounds"],
+                _scan_spatial_hashes(roots["prior"]), _scan_spatial_hashes(roots["current"]),
+            )
         if _plane_comparison(args):
             records = [json.loads((out / f"{repeat:02d}-{v}/measurement.json").read_bytes())
                        for v in ("prior", "current")]

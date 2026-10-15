@@ -61,9 +61,11 @@ def _cuda_kernel_hashes(sources: dict[str, bytes]) -> tuple[str, str]:
 
     query = constants("calibrex/solvers/cuda_lidar_map_adapter.py")["_SOURCE"]
     system = constants("calibrex/solvers/cuda_scan_odometry_adapter.py")
+    if "_INTERVAL_FUSED_SOURCE" in system:
+        query += constants("calibrex/solvers/cuda_spatial_interval_adapter.py")["_SOURCE"]
     return _sha(query.encode()), _sha(
         (system["_SYSTEM_SOURCE"] + system["_FUSED_SOURCE"] + system["_COVARIANCE_SOURCE"]
-         + system.get("_NORMAL_SOURCE", "")).encode()
+         + system.get("_NORMAL_SOURCE", "") + system.get("_INTERVAL_FUSED_SOURCE", "")).encode()
     )
 
 
@@ -312,11 +314,13 @@ def audit(root: Path) -> dict[str, object]:
                         and function.name == "execution_identity")
                     for node in ast.walk(function)
                 )
+                interval_pruning = "calibrex/solvers/cuda_spatial_interval_adapter.py" in executed
                 identity = re.compile(
                     r"calibrex\.cuda_scan_odometry/v0\.1;fp64=true;query_fma=false;"
                     r"cupy=([^;]+);cuda=\d+;driver=\d+;cc=\d+\.\d+;"
                     rf"query_sha256={query_hash};system_sha256={system_hash}"
                     + (r";normal_schedule=async-v1" if async_schedule else "")
+                    + (r";spatial_pruning=fp32-intervals-v1" if interval_pruning else "")
                 )
                 reports = (result["options"]["initial_odometry_execution"]
                            + result["options"]["segment_odometry_execution"])
@@ -325,6 +329,14 @@ def audit(root: Path) -> dict[str, object]:
                     if match is None or match[1] != provenance.get("cupy"):
                         raise ValueError("executed GPU identity differs from its bound kernels")
                     counters = report["statistics"]
+                    if interval_pruning and any(
+                        name not in counters or counters[name] > counters.get(total, 0)
+                        for name, total in (
+                            ("gpu_interval_query_rows", "gpu_query_rows"),
+                            ("gpu_interval_system_calls", "gpu_fused_system_calls"),
+                        )
+                    ):
+                        raise ValueError("GPU interval pruning work differs")
                     if normal_counter_expected and "gpu_normal_kernel_calls" not in counters:
                         raise ValueError("GPU normal kernel accounting is missing")
                     if async_schedule and (
@@ -421,6 +433,16 @@ def audit(root: Path) -> dict[str, object]:
             raise ValueError("complete CPU calibration/evidence fields differ")
         left = measurements[(repeat, "prior")]["rounds"]
         right = measurements[(repeat, "current")]["rounds"]
+        if protocol.get("exact_spatial_outputs_required"):
+            backends = protocol.get("fit_plane_backends", {"prior": "numpy", "current": "numpy"})
+            if (protocol.get("comparison") != "cuda-cuda"
+                    or backends["prior"] != backends["current"]):
+                raise ValueError("exact spatial protocol changes another backend")
+            module._validate_spatial_pair(
+                results[(repeat, "prior")], results[(repeat, "current")], left, right,
+                _cuda_kernel_hashes(source_bytes["prior"]),
+                _cuda_kernel_hashes(source_bytes["current"]),
+            )
         if protocol.get("exact_preparation_outputs_required"):
             backends = protocol.get("fit_plane_backends", {"prior": "numpy", "current": "numpy"})
             if (protocol.get("comparison") != "cuda-cuda"
@@ -432,6 +454,12 @@ def audit(root: Path) -> dict[str, object]:
         if "fit_plane_backends" in protocol:
             module._validate_plane_fit_pair(left, right)
             a, b = results[(repeat, "prior")], results[(repeat, "current")]
+            if protocol.get("exact_spatial_outputs_required"):
+                prior_hashes = _cuda_kernel_hashes(source_bytes["prior"])
+                a = module._spatial_result(a, prior_hashes, prior_hashes, intervals=False)
+                b = module._spatial_result(
+                    b, _cuda_kernel_hashes(source_bytes["current"]), prior_hashes, intervals=True,
+                )
             if protocol.get("exact_preparation_outputs_required"):
                 a = module._preparation_result(a, asynchronous=False)
                 b = module._preparation_result(b, asynchronous=True)

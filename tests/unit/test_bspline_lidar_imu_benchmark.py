@@ -21,6 +21,7 @@ from tools.benchmark_bspline_lidar_imu import (
     _validate_plane_fit_pair,
     _validate_preparation_pair,
     _validate_query_workers,
+    _validate_spatial_pair,
     _verify_sources,
     _write,
 )
@@ -171,6 +172,47 @@ def test_normal_timing_counts_nested_cache_completion_once() -> None:
     assert Target()._ensure(7) == 8
     assert timings["calls"] == 2
     assert timings["seconds"] >= 0
+
+
+@pytest.mark.parametrize("mutation", ["none", "physical", "work", "missing", "zero", "hash", "fit"])
+def test_spatial_comparison_retains_physical_fit_and_previous_work_fields(mutation: str) -> None:
+    prior_hashes, current_hashes = ("a" * 64, "b" * 64), ("c" * 64, "d" * 64)
+    report = {"requested_backend": "cuda", "executed_backends": [
+        "calibrex.cuda_scan_odometry/v0.1;query_sha256=" + prior_hashes[0]
+        + ";system_sha256=" + prior_hashes[1] + ";normal_schedule=async-v1"],
+        "statistics": {"gpu_query_rows": 1000, "gpu_fused_system_calls": 5,
+                       "gpu_normal_rows": 100, "gpu_async_normal_batches": 1}}
+    prior = {"calibration": [.1], "options": {"odometry_backend": "cuda",
+        "initial_odometry_execution": [report],
+        "segment_odometry_execution": [copy.deepcopy(report)]}}
+    current = copy.deepcopy(prior)
+    for name in ("initial_odometry_execution", "segment_odometry_execution"):
+        changed = current["options"][name][0]
+        changed["executed_backends"][0] = changed["executed_backends"][0].replace(
+            prior_hashes[0], current_hashes[0],
+        ).replace(prior_hashes[1], current_hashes[1]) + ";spatial_pruning=fp32-intervals-v1"
+        changed["statistics"].update(gpu_interval_query_rows=100, gpu_interval_system_calls=5)
+    left, right = [{"seconds": 1., "covariance": [[.1]]}], [{"seconds": 2., "covariance": [[.1]]}]
+    _validate_spatial_pair(prior, current, left, right, prior_hashes, current_hashes)
+    changed = current["options"]["segment_odometry_execution"][0]
+    if mutation == "none":
+        return
+    if mutation == "physical":
+        current["calibration"][0] += 1e-15
+    elif mutation == "work":
+        changed["statistics"]["gpu_normal_rows"] += 1
+    elif mutation == "missing":
+        changed["statistics"].pop("gpu_interval_query_rows")
+    elif mutation == "zero":
+        changed["statistics"]["gpu_interval_system_calls"] = 0
+    elif mutation == "hash":
+        changed["executed_backends"][0] = changed["executed_backends"][0].replace(
+            "d" * 64, "e" * 64,
+        )
+    else:
+        right[0]["covariance"][0][0] += 1e-15
+    with pytest.raises(ValueError):
+        _validate_spatial_pair(prior, current, left, right, prior_hashes, current_hashes)
 
 
 def test_control_timing_preserves_scores_arguments_and_return_value() -> None:
