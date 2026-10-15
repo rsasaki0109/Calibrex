@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Validate archived spline-fit benchmark records with their explicit tool
+  schemas. Stop benchmark descendants from the leaves upward and reap forced
+  exits, preserving parent cleanup and unrelated processes in container-based CI.
+  Preserve the digest-bound historical publisher outside live-source linting.
+
 - Evaluate only the requested B-spline residual families in signed IMU holdout
   controls, avoiding 34 unused LiDAR spline evaluations per bag calibration.
   All signed perturbations and thresholds remain intact; the public residual

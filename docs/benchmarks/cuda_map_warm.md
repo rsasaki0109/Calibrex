@@ -34,6 +34,12 @@ for owned descendants to finish, and terminates only that captured worker tree
 when interrupted. It retains ownership across workers so teardown is not
 mistaken for unrelated work.
 
+On interruption, descendants are stopped from the leaves toward the launcher.
+Parents remain alive while their children exit so they can reap them on POSIX;
+forced termination is also followed by a wait. This avoids leaving orphaned
+zombies in container-based CI. The runner still signals only the captured
+worker process identities. Historical frozen launchers retain their original bytes.
+
 First freeze and measure the source pair with the public KITTI copied-sensor
 execution control, as described in the [map fusion benchmark](cuda_map_fusion.md).
 Then use its local output directory:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import signal
 import subprocess
 import sys
 from pathlib import Path
@@ -162,23 +163,30 @@ def test_foreign_observation_stops_only_the_launched_worker_and_retains_attempt(
     assert (output / "protocol.json").is_file()
 
 
+@pytest.mark.parametrize("depth", [1, 2, 3])
 def test_owned_launcher_descendants_are_observed_and_stopped_without_touching_siblings(
     monkeypatch,
+    depth: int,
 ) -> None:
-    foreign = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(20)"])
+    foreign = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
     foreign_ownership = bench._WorkerProcesses(foreign)
-    code = (
-        "import subprocess,sys; "
-        "child=subprocess.Popen([sys.executable,'-c','import time; time.sleep(20)']); "
-        "print(child.pid,flush=True); child.wait()"
-    )
+    code = "import time; print('ready',flush=True); time.sleep(60)"
+    for level in range(depth):
+        announce = "print('child',child.pid,flush=True); " if level == depth - 1 else ""
+        code = (
+            f"import subprocess,sys; child=subprocess.Popen([sys.executable,'-c',{code!r}]); "
+            f"{announce}child.wait()"
+        )
     process = subprocess.Popen([sys.executable, "-c", code], stdout=subprocess.PIPE, text=True)
     ownership = bench._WorkerProcesses(process)
     try:
         assert process.stdout is not None
-        child_pid = int(process.stdout.readline())
+        messages = [process.stdout.readline().strip() for _ in range(2)]
+        assert "ready" in messages
+        child_pid = next(int(line.split()[1]) for line in messages if line.startswith("child "))
         owned = ownership.capture()
         assert process.pid in owned and child_pid in owned
+        assert len(owned) >= depth + 1
         assert foreign.pid not in owned
         monkeypatch.setattr(
             bench.subprocess,
@@ -191,6 +199,7 @@ def test_owned_launcher_descendants_are_observed_and_stopped_without_touching_si
         assert bench._observation(owned) == {"own": 1, "foreign": 1, "unknown": 0}
         ownership.stop()
         assert not any(member.is_running() for member in ownership.known.values())
+        ownership.stop()
         assert foreign.poll() is None
     finally:
         if process.poll() is None:
@@ -198,3 +207,27 @@ def test_owned_launcher_descendants_are_observed_and_stopped_without_touching_si
         foreign_ownership.capture()
         foreign_ownership.stop()
         foreign.wait(timeout=5)
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="Windows termination cannot be ignored")
+@pytest.mark.parametrize("role", ["root", "descendant"])
+def test_stop_kills_unresponsive_owned_process_and_waits_for_it(role: str) -> None:
+    code = (
+        "import signal,time; signal.signal(signal.SIGTERM,signal.SIG_IGN); "
+        "print('ready',flush=True); time.sleep(60)"
+    )
+    if role == "descendant":
+        code = f"import subprocess,sys; subprocess.Popen([sys.executable,'-c',{code!r}]).wait()"
+    process = subprocess.Popen([sys.executable, "-c", code], stdout=subprocess.PIPE, text=True)
+    ownership = bench._WorkerProcesses(process)
+    try:
+        assert process.stdout is not None
+        assert process.stdout.readline().strip() == "ready"
+        ownership.capture()
+        ownership.stop(timeout=1.0)
+        assert process.returncode is not None
+        if role == "root":
+            assert process.returncode == -signal.SIGKILL
+        assert not any(member.is_running() for member in ownership.known.values())
+    finally:
+        ownership.stop()

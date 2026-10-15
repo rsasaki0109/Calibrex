@@ -38,6 +38,12 @@ UNREGISTERED_SCHEMA_VERSIONS = {
 # Benchmark records are validated by their explicit tool schemas and archive
 # audits, without adding benchmark-internal formats to the core public API.
 TOOL_SCHEMA_VERSIONS = {
+    "slac.bspline_plane_fit_benchmark/v0.1": (
+        "tools/schemas/bspline_plane_fit_benchmark.schema.json"
+    ),
+    "slac.bspline_plane_fit_publication/v0.1": (
+        "tools/schemas/bspline_plane_fit_publication.schema.json"
+    ),
     "slac.bspline_lidar_imu_comparison/v0.1": (
         "tools/schemas/bspline_lidar_imu_comparison.schema.json"
     ),

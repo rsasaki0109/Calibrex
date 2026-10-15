@@ -46,31 +46,49 @@ class _WorkerProcesses:
         self.process = process
         self.root = psutil.Process(process.pid)
         self.known = {self.root.pid: self.root}
+        self._parent_pids: dict[int, int] = {}
 
     def capture(self) -> set[int]:
         try:
             for child in self.root.children(recursive=True):
-                self.known[child.pid] = child
+                with suppress(psutil.NoSuchProcess):
+                    self._parent_pids[child.pid] = child.ppid()
+                    self.known[child.pid] = child
         except psutil.NoSuchProcess:
             pass
         return {pid for pid, process in self.known.items() if process.is_running()}
 
-    def stop(self) -> None:
-        """Terminate only the process objects captured from this worker tree."""
+    def stop(self, timeout: float = 5.0) -> None:
+        """Stop captured descendants from the leaves up, then reap the launcher."""
+        with suppress(psutil.NoSuchProcess, psutil.AccessDenied):
+            self.capture()
         children = [process for pid, process in self.known.items() if pid != self.root.pid]
-        for child in reversed(children):
-            with suppress(psutil.NoSuchProcess):
-                child.terminate()
+        layers: dict[int, list[psutil.Process]] = {}
+        for child in children:
+            depth, pid, seen = 0, child.pid, set()
+            while pid in self._parent_pids and pid not in seen:
+                seen.add(pid)
+                depth += 1
+                pid = self._parent_pids[pid]
+            layers.setdefault(depth, []).append(child)
+        # Parents must remain alive long enough to wait() for their children;
+        # killing the whole tree at once can orphan zombies in Linux containers.
+        for depth in sorted(layers, reverse=True):
+            for child in layers[depth]:
+                with suppress(psutil.NoSuchProcess):
+                    child.terminate()
+            _, alive = psutil.wait_procs(layers[depth], timeout=timeout)
+            for child in alive:
+                with suppress(psutil.NoSuchProcess):
+                    child.kill()
+            psutil.wait_procs(alive, timeout=timeout)
         if self.process.poll() is None:
             self.process.terminate()
-        _, alive = psutil.wait_procs(children, timeout=5)
-        for child in alive:
-            with suppress(psutil.NoSuchProcess):
-                child.kill()
         try:
-            self.process.wait(timeout=5)
+            self.process.wait(timeout=timeout)
         except subprocess.TimeoutExpired:
             self.process.kill()
+            self.process.wait(timeout=timeout)
 
     def finish(self) -> None:
         """Wait for launcher descendants before starting the next measurement."""
