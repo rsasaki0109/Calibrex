@@ -1,0 +1,100 @@
+"""Publish all full-pipeline observations, bound source and correctness evidence."""
+import gzip
+import hashlib
+import io
+import json
+from pathlib import Path
+import shutil
+import tarfile
+from tools.audit_bspline_lidar_imu_benchmark import audit
+
+source=Path('outputs/glim-cuda-spline-planes-pairs-v1')
+destination=Path('docs/assets/cuda_spline_planes')
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+protocol=json.loads((source/'protocol.json').read_bytes())
+summary=json.loads((source/'summary.json').read_bytes())
+attempts=json.loads((source/'attempts.json').read_bytes())
+assert summary['quality_passed'] and len(attempts)==4
+assert protocol['fit_plane_backends']=={'prior':'numpy','current':'cuda'}
+assert sha(Path('tools/benchmark_bspline_lidar_imu.py'))==protocol['launcher_sha256']
+assert json.loads((source/'prototype-validation/receipt.json').read_bytes())['exit_code']==0
+destination.mkdir(exist_ok=False)
+for name in ('protocol.json','attempts.json','summary.json'):
+    shutil.copyfile(source/name,destination/name)
+for attempt in attempts:
+    folder=destination/attempt['worker'];folder.mkdir()
+    for name in ('result.json','measurement.json','worker.log'):
+        shutil.copyfile(source/attempt['worker']/name,folder/name)
+for variant in ('prior','current'):
+    root=source/f'sources-{variant}'
+    shutil.copyfile(root/'manifest.json',destination/f'sources-{variant}-manifest.json')
+    with (destination/f'sources-{variant}.tar.gz').open('wb') as raw:
+        with gzip.GzipFile(filename='',mode='wb',fileobj=raw,mtime=0) as compressed:
+            with tarfile.open(fileobj=compressed,mode='w') as bundle:
+                entries=[('LICENSE',Path('LICENSE').read_bytes()),*(
+                    (p.relative_to(root).as_posix(),p.read_bytes())
+                    for p in sorted((root/'src').rglob('*.py')))]
+                for name,data in entries:
+                    info=tarfile.TarInfo(name);info.size=len(data);info.mtime=0;info.mode=0o644
+                    bundle.addfile(info,io.BytesIO(data))
+validation=destination/'prototype-validation';validation.mkdir()
+for path in (source/'prototype-validation').iterdir():
+    if path.is_file():shutil.copyfile(path,validation/path.name)
+for src,name in [('tools/benchmark_bspline_lidar_imu.py','benchmark.py.txt'),
+                 ('tools/schemas/bspline_lidar_imu_comparison.schema.json','comparison.schema.json'),
+                 ('outputs/cuda-spline-schema-exports-v1/receipt.json','schema-exports-receipt.json'),
+                 ('.tmp-calibrex-check-cuda-spline-schemas.py','schema-checker.py.txt'),
+                 (__file__,'publisher.py.txt')]:shutil.copyfile(src,destination/name)
+whole,fit=summary['whole_median_seconds'],summary['fit_median_seconds']
+table='\n'.join(['| Scope | NumPy planes | CUDA planes | Observed ratio |',
+                '| --- | ---: | ---: | ---: |',
+    f"| Complete worker | {whole['prior']:.3f} s | {whole['current']:.3f} s | {summary['whole_speedup']:.3f}x |",
+    f"| Four fits, including covariance | {fit['prior']:.3f} s | {fit['current']:.3f} s | {summary['fit_speedup']:.3f}x |"])
+readme=f'''# CUDA spline plane fit comparison
+
+{table}
+
+Two alternating fresh-process pairs replay the original public GLIM Livox bag's
+first six seconds, four map rounds, one BLAS thread and unchanged CUDA scan
+odometry. Every worker starts with a separate empty CuPy compiler cache.
+Initialization, compilation, all odometry passes, association, noise updates,
+all fits/covariance, holdout/controls, input hashing, saves and frozen-import
+verification remain inside whole time. Fit time includes evaluator construction,
+first plane kernel compilation and covariance. No warmup is discarded.
+
+Baseline `{protocol['baseline_commit']}`, measured candidate
+`{protocol['current_commit']}`. Bag SHA-256:
+`{protocol['bag_sha256']}`. The dense odometry policy is 0.03 m voxels, three
+local-map scans, 1 nm coordinate quantization, 1 micrometre translation and
+0.1 microradian rotation-component quantization. These grids remain off by
+default. Plane/IMU data, return budgets, convergence checks and evidence gates
+are unchanged. NumPy is still the default fitter plane backend.
+
+The GPU computes FP64 spline plane residuals, analytic local derivatives and
+the seven-block control normal band. Each band entry has one owner and a fixed
+reduction order; there are no floating-point atomic reductions. The core keeps
+IMU residuals/derivatives, clock finite differences, LM acceptance/stopping,
+the solve, marginal covariance and all evidence evaluation on CPU.
+
+The bound audit checks every result, all full per-round fits and real kernel
+identity/work against the frozen source and reported plane counts. Fit status,
+iterations and dimensions must match exactly. Trajectories/calibration/costs
+use abs 1e-9 / rel 1e-6, covariance abs 1e-11 / rel 1e-5, alongside the existing
+whole-result physical/evidence tolerances. This GPU path permits roundoff;
+it does not claim bit equality. The final verdict stays INCONCLUSIVE; the clip
+has no independent extrinsic truth. Host load is unreserved. Ratios describe
+this workload and these pairs, and are not multiplied across stages/cohorts.
+
+All four full results, measurements/logs, deterministic source capsules,
+manifests, launcher/schema, publisher and source-bound correctness run are
+retained. Raw bag data and compiler caches are not redistributed.
+'''
+(destination/'README.md').write_text(readme,encoding='utf-8',newline='\n')
+files={p.relative_to(destination).as_posix():sha(p) for p in sorted(destination.rglob('*')) if p.is_file()}
+(destination/'publication-index.json').write_text(json.dumps({
+    'schema_version':'slac.bspline_lidar_imu_publication/v0.1',
+    'provenance':{'input_protocol_sha256':sha(source/'protocol.json')},'files':files,
+},indent=2)+'\n',encoding='utf-8',newline='\n')
+doc=Path('docs/benchmarks/cuda_spline_planes.md')
+doc.write_text(doc.read_text(encoding='utf-8').replace('<!-- results -->',table),encoding='utf-8',newline='\n')
+print(json.dumps(audit(destination),indent=2))

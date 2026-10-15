@@ -1,0 +1,39 @@
+{
+  "command": [
+    "C:\\Users\\rsasa\\Workspace\\Calibrex\\.venv\\Scripts\\python.exe",
+    "-m",
+    "pytest",
+    "tests/unit/test_cuda_bspline_planes.py",
+    "tests/unit/test_continuous_time_bspline_fit.py",
+    "tests/unit/test_continuous_time_bspline_derivatives.py",
+    "tests/unit/test_bspline_evaluation_reuse.py",
+    "tests/unit/test_bspline_shared_terms.py",
+    "tests/unit/test_odometry_window_backend.py",
+    "tests/unit/test_bspline_lidar_imu_benchmark.py",
+    "tests/unit/test_bspline_lidar_imu_archive.py",
+    "--basetemp",
+    "outputs\\glim-cuda-spline-planes-pairs-v1\\prototype-validation\\tmp",
+    "-p",
+    "no:cacheprovider",
+    "--override-ini",
+    "addopts=--disable-plugin-autoload",
+    "-q"
+  ],
+  "exit_code": 0,
+  "provenance": {
+    "source_commit": "f4c8e5662a43f5e5ce24bb4181924c6ca5b3bb68",
+    "source_manifest_sha256": "d9cfb176dc15319b3c32e0733a1fb35302632899ee00c9c6c68b9fd1c7a69fe6",
+    "files": {
+      "pytest.log": "35e6864bc67591bc7795c01a1a34b9ddd44b9da8b89453f461d36b52c7c49f71",
+      "test_bspline_evaluation_reuse.py.txt": "9e199fa627a86afbe306272cc6f6cb37903cae26593a8c719612edc667366217",
+      "test_bspline_lidar_imu_archive.py.txt": "33a4bdb211af6a6bc34f16829fe192ae3bf7df34d1cb9864d051e40573f3dedf",
+      "test_bspline_lidar_imu_benchmark.py.txt": "14c3469317a1dc1cc17c98f8e1002c773a319142c8f99dc82dd7869513b8f580",
+      "test_bspline_shared_terms.py.txt": "611d25dd17746f336dad21c0548f2f2b90a682cd4c2cdb1183cb7e0cc31bf1bf",
+      "test_continuous_time_bspline_derivatives.py.txt": "9785561b5330f64aaacc4ca8da9aa463840e9670df555e97f35681633fcb857e",
+      "test_continuous_time_bspline_fit.py.txt": "145afcd6cfa711c2ff9b31b98af1e54871e8374d793161c411c30d0711359a68",
+      "test_cuda_bspline_planes.py.txt": "e265a5a305a0e0091f025f3c8b7e4f3e62b94d4cd8a36ce738bc2ebb785f20bb",
+      "test_odometry_window_backend.py.txt": "23deb2dcce62f2cbf432d7fe09eadd63b1b09ef80f0d6c36da09b23af895d926",
+      "validator.py.txt": "b3c41eb67adcfae09539c831e9aa35b86b95ecb60cd0884f511b77b8e6ce4492"
+    }
+  }
+}

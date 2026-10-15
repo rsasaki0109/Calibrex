@@ -409,6 +409,19 @@ def audit(root: Path) -> dict[str, object]:
         right = measurements[(repeat, "current")]["rounds"]
         if "fit_plane_backends" in protocol:
             module._validate_plane_fit_pair(left, right)
+            a, b = results[(repeat, "prior")], results[(repeat, "current")]
+            for field in ("initial", "segment_start_s", "segment_duration_s", "limitations"):
+                if a[field] != b[field]:
+                    raise ValueError(f"unchanged spline comparison {field} differs")
+            options = [{k: v for k, v in value["options"].items()
+                        if k not in ("fit_plane_backend", "fit_execution")} for value in (a, b)]
+            if options[0] != options[1]:
+                raise ValueError("unchanged odometry/options execution differs")
+            for earlier, later in zip(a["rounds"], b["rounds"], strict=True):
+                if any(earlier[k] != later[k] for k in (
+                    "map_planes", "plane_returns", "fit_status", "iterations",
+                )):
+                    raise ValueError("spline comparison plane counts or fit decisions differ")
         for prior_fit, current_fit in zip(left, right, strict=True):
             if (protocol.get("comparison") in ("cpu-cpu", "cpu-source")
                 or protocol.get("exact_outputs_required")) and (

@@ -1,0 +1,28 @@
+"""Check every schema/ledger export against both measured frozen source trees."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+out=Path('outputs/cuda-spline-schema-exports-v1').resolve();out.mkdir(exist_ok=False)
+cohort=Path('outputs/glim-cuda-spline-planes-pairs-v1').resolve()
+protocol=json.loads((cohort/'protocol.json').read_bytes())
+for variant in ('prior','current'):
+    source=cohort/f'sources-{variant}'/'src'
+    code=('from pathlib import Path; import calibrex; from calibrex.cli.main import main; '
+          'assert Path(calibrex.__file__).resolve().is_relative_to(Path('+repr(str(source))+')); '
+          'raise SystemExit(main(["schema","all","--output-dir",'+repr(str(out/variant))+']))')
+    subprocess.run([sys.executable,'-c',code],
+                   env=dict(os.environ,PYTHONPATH=str(source),PYTHONDONTWRITEBYTECODE='1'),
+                   check=True,stdout=subprocess.DEVNULL)
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+manifest=lambda d:{p.relative_to(d).as_posix():sha(p) for p in d.rglob('*') if p.is_file()}
+prior,current=manifest(out/'prior'),manifest(out/'current')
+assert prior==current and len(current)==130,(len(prior),len(current))
+(out/'receipt.json').write_text(json.dumps({'schema_files':len(current),'identical':True,
+    'provenance':{'baseline_commit':protocol['baseline_commit'],'current_commit':protocol['current_commit'],
+        'source_manifest_sha256':{v:sha(cohort/f'sources-{v}/manifest.json') for v in ('prior','current')},
+        'launcher_sha256':sha(Path(__file__))},'files':current},indent=2)+'\n',encoding='utf-8')
+print('All 130 schema/ledger files are byte-identical.')
