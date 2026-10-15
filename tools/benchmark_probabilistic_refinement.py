@@ -250,7 +250,7 @@ def worker(args: argparse.Namespace) -> None:
     )
     result.provenance.git_commit = args.source_commit
     result.save(Path(args.output_dir) / "result.json")
-    if not validate_file(Path(args.output_dir) / "result.json", "probabilistic-refinement").valid:
+    if not validate_file(Path(args.output_dir) / "result.json").valid:
         raise ValueError("refinement result failed schema validation")
     api_seconds = time.perf_counter() - begin
     for name, module in list(sys.modules.items()):
