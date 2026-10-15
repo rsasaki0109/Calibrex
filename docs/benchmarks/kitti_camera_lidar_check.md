@@ -17,7 +17,8 @@ calibration, itself a calibration with error, not ground truth.
 **Status: refuted, 5 of 9 gates** ([results](#results-refuted-5-of-9-gates)). The claim,
 drives, runs, scoring and thresholds are in
 [`kitti_camera_lidar_preregistration.yaml`](kitti_camera_lidar_preregistration.yaml), frozen
-at code commit `71a115b`.
+at code commit `71a115b`. Its successor, with two estimator rules changed and drives of
+KITTI's other four days, is [v2](kitti_camera_lidar_v2_check.md).
 
 **Development.** The method was changed on 13 KITTI 2011_09_26 drives until KITTI's
 calibration passed on all of them; those drives are spent. The account is in

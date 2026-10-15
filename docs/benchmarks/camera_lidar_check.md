@@ -605,11 +605,55 @@ candidates. The turned candidates reused the baseline's frames, whereas a real r
 and moves the points with its own candidate, so these are approximations of runs. On the
 three failing drives each change was needed for one of them: the bound for 0056, the end
 of ties for 0029, and `t` 2.5 for 0032; "at least two" then removed a roll judged 6.6 deg
-off in a turned run of 0056 (`t` 2.63). With all four, no drive flagged KITTI's
-calibration, the worst judged axis was 0.45 deg off it (0.89 deg in turned runs), 86 of
-108 axes were judged, and 83 of 86 3 deg and 86 of 86 1 deg turns were flagged.
+off in a turned run of 0056 (`t` 2.63). With all four parts in place, no drive flagged
+KITTI's calibration, the worst judged axis was 0.45 deg off it (0.89 deg in turned runs),
+86 of 108 axes were judged, and 83 of 86 3 deg and 86 of 86 1 deg turns were flagged.
 
-**Real runs.** The 37-drive development run is in progress; its results follow here.
+**Real runs.** With both changes, the check ran again on all 36 2011_09_26 drives and on
+2011_09_30_0018, through the v2 audit's harness (`tools/kitti_camera_lidar_v2_evaluate.py`:
+each drive's first 600 frames, `--velodyne-time azimuth`, the six turns). 2011_09_30_0018 is
+from another day, with a calibration of its own that differs from 2011_09_26's by 0.97 deg
+(mostly roll); earlier camera-LiDAR research read it. Every conversion and check exited 0.
+The v1 rows are the runs of the thirteen-drive section and of the audit:
+
+| Rule | Drives flagging KITTI | Worst judged axis, baseline / turned (deg) | Axes judged | 3 deg turns flagged | 3 deg judged right | 1 deg turns flagged |
+| --- | --- | --- | --- | --- | --- | --- |
+| v1 (`t >= 2`), 36 drives of 2011_09_26 | 3 (0029, 0032, 0056) | 9.60 / 9.66 | 97 of 108 | 93 of 97 | 1 | 96 of 97 |
+| v2, the same 36 drives | 0 | 0.45 / 0.89 | 86 of 108 | 83 of 86 | 0 | 86 of 86 |
+| v2, 2011_09_30_0018 | 0 | 0.25 / 0.35 | 3 of 3 | 3 of 3 | 0 | 3 of 3 |
+
+Every drive whose result changed (estimate minus KITTI on the judged axes, deg):
+
+| Drive | v1 baseline | v2 baseline | v2 turns flagged, 3 deg and 1 deg |
+| --- | --- | --- | --- |
+| 0013 | pass: roll +0.10, pitch -0.10, yaw -0.20 | pass: pitch -0.10 | 1 of 1 and 1 of 1 |
+| 0015 | pass: roll +0.10, pitch -0.05, yaw -0.05 | pass: pitch -0.05, yaw -0.05 | 2 of 2 and 2 of 2 |
+| 0029 | **fail**: pitch -0.10, yaw +9.60 | pass: pitch -0.15, yaw -0.15 | 1 of 2 and 2 of 2 |
+| 0032 | **warn**: pitch -0.05, yaw -0.80 | pass: pitch -0.05 | 1 of 1 and 1 of 1 |
+| 0046 | pass: roll -0.10, pitch -0.20, yaw -0.00 | pass: roll -0.10, pitch -0.20 | 2 of 2 and 2 of 2 |
+| 0051 | pass: roll +0.20, pitch -0.05, yaw -0.05 | pass: roll +0.20, yaw -0.05 | 2 of 2 and 2 of 2 |
+| 0056 | **fail**: roll +2.75, pitch +0.15 | inconclusive: none judged | none counted |
+| 0057 | pass: pitch +0.35 | pass: pitch +0.10 | 1 of 1 and 1 of 1 |
+| 0070 | pass: pitch -0.05 | pass: pitch -0.05 | 0 of 1 and 1 of 1 |
+| 0091 | pass: roll +0.20, pitch -0.15, yaw -0.20 | pass: pitch -0.15 | 0 of 1 and 1 of 1 |
+| 0096 | pass: roll +0.10, pitch -0.05, yaw +0.00 | pass: pitch -0.05, yaw +0.00 | 2 of 2 and 2 of 2 |
+| 2011_09_30_0018 | not run | pass: roll +0.25, pitch +0.05, yaw -0.10 | 3 of 3 and 3 of 3 |
+
+* **The three false alarms are gone.** On 0029 the candidate's own optimum stands (pitch and
+  yaw within 0.15 deg of KITTI). On 0032 yaw's control is at `t` 2.30, so yaw is not judged.
+  On 0056 the far optimum is no longer taken; at the candidate's own optimum no control is
+  detected, and the check returns `inconclusive` (its unjudged estimate is 4.6 deg off in
+  roll).
+* **The cost is coverage:** 86 of 108 axes are judged, against 97. Every axis lost
+  apart from 0056's had its control at `t` 2.02 to 2.49, the same in both versions.
+* **Three 3 deg turns are missed:** 0029 yaw and 0070 and 0091 pitch, which their turned
+  runs leave unjudged. None is judged right.
+* **On 2011_09_30_0018** the check passes that day's calibration and flags all six turns.
+
+The scores, with the driver's record, are in
+[`docs/assets/kitti_camera_lidar_v2/development/`](../assets/kitti_camera_lidar_v2/development/scores.json);
+the runs are reproducible from commit `3a05cf8`, whose `src/` and run tools the v2 audit
+freezes.
 
 The sections above this one (Hilti, AIST, the sensor_calib_tas bag, the thirteen KITTI
 drives) were run with `t >= 2` and the earlier start rule, and are not re-run.

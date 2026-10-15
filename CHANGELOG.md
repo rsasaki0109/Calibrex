@@ -2,6 +2,41 @@
 
 ## Unreleased
 
+- **camera-lidar v2 is pre-registered: KITTI's other four days, each with its own
+  calibration.**
+  - **What changed in the check, after the refuted v1 audit.**
+    - A held-out control now needs `t` 2.5 (was 2). In v1's runs, every axis judged more
+      than 0.75 deg off KITTI's calibration had its control at `t` 2.09 to 2.33.
+    - An optimum found from the profile maxima replaces the candidate's only when it
+      observes more rotation axes, at least two, and none at the search bound. In v1, a tie
+      went to the higher objective (0029: yaw 9.6 deg off), and a yaw at the search bound
+      was accepted (0056).
+  - **Development.** All 36 2011_09_26 drives and 2011_09_30_0018 ran through the v2
+    harness.
+    - KITTI's calibration passes on all 37; v1's rules flagged 3 of the 36.
+    - Every judged axis is within 0.45 deg of it (0.89 deg in turned runs).
+    - 86 of 89 3 deg turns and 89 of 89 1 deg turns are flagged; none is judged right.
+    - The cost is coverage: 86 of 108 axes are judged on the 2011_09_26 drives, against 97.
+    - 2011_09_30_0018 comes from another day, with its own calibration. There the check
+      passes that day's calibration and flags all six turns.
+  - **The claim.** It covers 18 drives of 2011_09_28, 2011_09_29, 2011_09_30 and 2011_10_03
+    that no camera-LiDAR method has read, each checked against its own day's calibration.
+    - The gates and thresholds are v1's: no flags on KITTI's calibration; judged axes
+      within 0.75 deg (1.5 deg in turned runs); at least half of the axes judged.
+    - At least 90 percent of 3 deg turns and 75 percent of 1 deg turns must be flagged, and
+      no 3 deg turn may be judged right.
+    - At least 12 drives must be scored. The code is frozen at `f0afa94`.
+  - **New tools.**
+    - `tools/kitti_drive_fetch.py` fetches only a drive's first 600 frames (all the check
+      reads) by HTTP range. Every range carries `If-Match` on the archive's pinned ETag,
+      and every member's CRC-32 is checked.
+    - `tools/kitti_camera_lidar_v2_evaluate.py` is the driver.
+      `tools/score_kitti_camera_lidar_v2.py` and `tools/build_kitti_camera_lidar_v2_audit.py`
+      score the runs and build the audit.
+  - **Docs.** The page is `docs/benchmarks/kitti_camera_lidar_v2_check.md`. The check's
+    earlier tables (Hilti, AIST, KITTI's thirteen drives) were run with `t >= 2` and are
+    not re-run.
+
 - **The KITTI camera-LiDAR check audit is refuted: 5 of 9 gates.**
   - **The runs.** All 23 pre-registered drives ran once from the frozen code. Every
     archive matched its pinned size and ETag, and all 23 conversions and 161 checks
