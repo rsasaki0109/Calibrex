@@ -177,3 +177,9 @@ docs/assets/overlapped_target_preparation/**/*.txt -text whitespace=blank-at-eol
 docs/assets/overlapped_target_preparation/**/*.log -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
 docs/assets/overlapped_target_preparation/*.log -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
 docs/assets/overlapped_target_preparation/*.md text eol=lf
+
+# Preserve exact cold/retained CUDA map observations and launcher bytes.
+docs/assets/cuda_map_normal_cache/**/*.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_map_normal_cache/**/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_map_normal_cache/**/*.log -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/cuda_map_normal_cache/**/*.md text eol=lf
