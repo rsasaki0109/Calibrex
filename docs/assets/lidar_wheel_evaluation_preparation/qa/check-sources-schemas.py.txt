@@ -1,0 +1,38 @@
+import hashlib
+import json
+from pathlib import Path
+import subprocess
+import tarfile
+
+root = Path(__file__).resolve().parent
+out = root / 'outputs/wheel-preparation-validation-v1'
+archive = root / 'docs/assets/lidar_wheel_evaluation_preparation'
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+protocol = json.loads((archive / 'protocol.json').read_bytes())
+canonical = lambda b: b.replace(b'\r\n', b'\n')
+modules=0
+with tarfile.open(archive / 'sources-current.tar.gz') as capsule:
+    for item in capsule.getmembers():
+        stream = capsule.extractfile(item)
+        assert stream is not None
+        assert canonical(stream.read()) == canonical((root / item.name).read_bytes()), item.name
+        modules += 1
+assert modules == 378
+assert (root / 'tools/benchmark_lidar_wheel_preparation.py').read_bytes() == (archive / 'launcher.py.txt').read_bytes()
+assert (root / 'tools/prepare_lidar_wheel_control.py').read_bytes() == (archive / 'control-generator.py.txt').read_bytes()
+target = out / 'schemas'
+target.mkdir(exist_ok=False)
+command = [str(root / '.venv/Scripts/calibrex.exe'),'schema','all','--output-dir',str(target)]
+run = subprocess.run(command,cwd=root,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+(out / 'schemas.log').write_bytes(run.stdout)
+assert run.returncode == 0, run.stdout
+expected = {p.name:json.loads(p.read_bytes()) for p in (root / 'schemas').glob('*.json')}
+actual = {p.name:json.loads(p.read_bytes()) for p in target.glob('*.json')}
+assert len(expected) == len(actual) == 130 and expected == actual
+receipt = dict(public_schemas=129,ledger=1,all_exported_json_equal=True,
+    measured_core_modules_unchanged=modules, measured_generator_and_launcher_unchanged=True,
+    provenance=dict(generator_sha256=sha(Path(__file__)),runtime_commit=protocol['commits']['current'],
+        command=command, exit_code=run.returncode,
+        files={p.name:sha(p) for p in sorted(target.glob('*.json'))}))
+(out / 'schema-verification.json').write_bytes((json.dumps(receipt,indent=2)+'\n').encode())
+print('378 measured core sources unchanged; 129 schemas and ledger identical')

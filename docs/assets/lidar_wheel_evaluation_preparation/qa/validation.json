@@ -1,0 +1,64 @@
+{
+  "scope": "Selected relative-time full public OXTS proxy/generated-motion control; same measured core and launcher.",
+  "windows_distinct_cases": 59,
+  "windows_case_groups": {
+    "existing_solver_cli": 3,
+    "preparation": 5,
+    "benchmark": 20,
+    "archive": 16,
+    "registry": 15
+  },
+  "linux_repeated_cases": 44,
+  "linux_groups": {
+    "existing_solver_cli": 3,
+    "preparation": 5,
+    "benchmark": 20,
+    "archive": 16
+  },
+  "linux_versions": {
+    "python": "3.10.12",
+    "numpy": "2.2.6",
+    "scipy": "1.15.3",
+    "pydantic": "2.14.1"
+  },
+  "strict_mypy_core_modules": 378,
+  "ruff_all": true,
+  "mkdocs_strict": true,
+  "public_schema_exports_identical": 129,
+  "public_schema_ledger_identical": true,
+  "measured_core_modules_unchanged": 378,
+  "measured_generator_and_launcher_unchanged": true,
+  "initial_windows_launch": {
+    "passed": 16,
+    "setup_errors": 15,
+    "reason": "Missing parent of explicit pytest basetemp; directory created before corrected run. No test assertion or runtime change.",
+    "corrected_run_passed": 31,
+    "failed_log": "archive-registry-tests.log",
+    "corrected_log": "archive-registry-v2-tests.log"
+  },
+  "provenance": {
+    "runtime_commit": "479d15b79bf4258bfc8f94175ed63b77d6eccd0a",
+    "publication_parent": "479d15b79bf4258bfc8f94175ed63b77d6eccd0a",
+    "protocol_sha256": "f91f3d62a845fe6bb1a0a9de779c6adfb9a08feaaeff3da83f7dafbf25457a15",
+    "generator_sha256": "d656992585e4b88fa2def0e758352eb88cf1dd342b81efc03f2ca2e9d332c7ac",
+    "typecheck_requirements_sha256": "d1c5d9a3b48585000fa2cd32ac17e19d7046c9b7df56d196a94bea4718680c89",
+    "files": {
+      "archive-registry-tests.log": "dcd3cdec2d9b805cea199443c56acf9a8dc308aacb11a235e6f0e71669bb5d86",
+      "archive-registry-v2-tests.log": "97d69e0dc34dc36495ba3305f1354db37988e9db84619c94a3d189c1aaf90e99",
+      "benchmark-v2-tests.log": "b5467385ad6de061556c81f90956b72c81a7fb9db2bb98fb31fde924a774ae66",
+      "check-sources-schemas.py.txt": "8d53cd2f343b5ed2f350671f76dc7269a471fbb70bda1965410d0faf3ff22a56",
+      "cohort-selection.json": "78d0d369b2c52b53f9ec59c51b547a8f3a73d38f525a26e5281520778290b086",
+      "docs.log": "2e1a155b6feb20086f069495300d1f1f38bcf5429130e455f9b004df8ef82505",
+      "formal-v2.log": "03de7f8ab51a965b9c2e2482e08a45fed0c5dec0f31341e04579afdfd9581db0",
+      "linux-tests.log": "54f84701bb7bb6df6534d9469f3a32cd998a8b388f4f19ebd27edab15a218747",
+      "mypy.log": "62f3e1e86defa2594d454d9fa6336de0e5b0be9af3bba225a9b1d7d3c7464f7a",
+      "publication-final.py.txt": "d656992585e4b88fa2def0e758352eb88cf1dd342b81efc03f2ca2e9d332c7ac",
+      "publication.py.txt": "4ab1f0a96416b45aee35e704a2d35ab5e367feb5a43af98b02ead4e41264ce83",
+      "ruff-all.log": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0",
+      "schema-proof.log": "4e062345e5fc64037424080b0a4ad2bdc788f70d49fad7c633181a214b54e489",
+      "schema-verification.json": "37b231436cc0fb76cd792a617a35571e576c4b8696db3127358626e622b9dea1",
+      "schemas.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tests.log": "b3f363fc61420f83576b0b639aab5a098ce98c454c3e4a81afd953f4bc98ad23"
+    }
+  }
+}
