@@ -1,0 +1,190 @@
+"""Publish the complete measured ordered-point comparison, preserving all raw files."""
+import json
+from pathlib import Path
+import shutil
+
+from tools import benchmark_joint_point_batches as bench
+
+ROOT=Path(__file__).resolve().parent
+SOURCE=ROOT/'outputs/joint-point-batches-pairs-v1'
+VALIDATION=ROOT/'outputs/joint-point-batches-validation-v1'
+TARGET=ROOT/'docs/assets/joint_lidar_point_batches'
+report=bench.audit(SOURCE)
+value=report['payload']
+protocol=json.loads((SOURCE/'protocol.json').read_bytes())
+attempts=json.loads((SOURCE/'attempts.json').read_bytes())['payload']['attempts']
+TARGET.mkdir(exist_ok=False)
+for name in sorted(bench.PINNED | {'protocol.json','attempts.json','summary.json'}):
+    shutil.copyfile(SOURCE/name,TARGET/name)
+for attempt in attempts:
+    folder=TARGET/attempt['folder'];folder.mkdir()
+    for name in ('result.json.gz','history.json','measurement.json','stdout.txt','stderr.txt'):
+        shutil.copyfile(SOURCE/attempt['folder']/name,folder/name)
+for source,name in (
+    (ROOT/'tools/benchmark_joint_point_batches.py','auditor.py.txt'),
+    (ROOT/'tests/unit/test_joint_point_batches.py','test_joint_point_batches.py.txt'),
+    (ROOT/'tests/unit/test_joint_point_batches_archive.py','test_joint_point_batches_archive.py.txt'),
+    (Path(__file__),'publisher.py.txt'),
+): shutil.copyfile(source,TARGET/name)
+for name in ('core-windows.log','core-linux.log','mypy.log','ruff.log','schema-parity.json','schema-parity.py.txt'):
+    if (VALIDATION/name).exists():shutil.copyfile(VALIDATION/name,TARGET/name)
+(TARGET/'.gitattributes').write_bytes(b'* -text whitespace=cr-at-eol\n*.log -whitespace\n')
+commits=protocol['payload']['commits']
+whole=value['whole_seconds_median'];api=value['api_seconds_median']
+rows=[]
+for index in range(2):
+    pair=attempts[2*index:2*index+2];times={x['variant']:x['seconds'] for x in pair}
+    order=', '.join(x['variant'] for x in pair)
+    rows.append(f"| {index+1} ({order}) | {times['prior']:.6f} | {times['current']:.6f} | {times['prior']/times['current']:.3f}x |")
+document=f'''# Ordered point batches for joint LiDAR calibration
+
+Compared with [scoped transform reuse](joint_lidar_transform_reuse.md), the
+complete public Livox joint pipeline improves from **{whole['prior']:.6f} to
+{whole['current']:.6f} seconds ({value['whole_speedup']:.6f}x)**. Complete
+`run_calibration` calls improve from **{api['prior']:.6f} to {api['current']:.6f}
+seconds ({value['api_speedup']:.6f}x)**. This additional CPU acceleration is
+automatic for eligible built-in point-to-plane joint graphs.
+
+## Change and eligibility
+
+The previous version reused composed transforms but still rotated each point
+and formed every numerical-Jacobian entry through individual Python calls.
+This version prepares immutable point/plane/normal/weight arrays per evaluation
+pass and groups points sharing the same two tangent blocks and initial frames.
+It evaluates their geometry and central differences together, retaining the
+two ordered Hamilton products, both scalar quaternion normalizations, zero
+terms, scalar dot-product addition order and Python `math.sqrt` weights.
+It uses no rotation-matrix substitution, reassociated reduction or analytic
+Jacobian. The dense normal solve, damping, robust loss and convergence policy
+retain their existing code.
+
+Factory-owned point and prior callbacks are identified by their function,
+code and closure identities. Wrapped or arbitrary callbacks, factor subclasses,
+modified residual methods, unusual/non-finite/extreme numeric objects and point
+whitening use the previous scalar path. Priors retain their scalar residual and
+whitening evaluation. All original factor IDs, ordering, grouped holdout and
+diagnostics are preserved. Public signatures, schemas and options are unchanged;
+NumPy is already required.
+
+The prepared path accepts 64 through 65,536 point factors and up to 128 initial
+frame/block groups. Linearization also requires at most 64 total parameter
+dimensions and ordinary finite positive finite-difference steps. Geometry
+temporaries cover at most 4,096 rows; prepared arrays are read-only and local to
+one pass. These bounds do not describe total process memory or replace the
+existing dense Jacobian allocation. Graphs outside these bounds evaluate every
+point through the previous path. No input point or optimizer iteration is
+removed to meet a bound.
+
+## Complete public workload
+
+The [official public Livox Horizon pair](https://github.com/Livox-SDK/Livox_automatic_calibration)
+contains 23,921 source and 23,666 target points according to its raw PCD headers.
+Both reader caps are disabled. The comparison retains the full-point
+configuration's 1 m voxel, 1.5 m gate, 40-iteration ceiling and convergence
+tolerance, using `native_joint_slac` and resolved data/output paths.
+
+Every run retains **16,884 point-plane observations**, **40 joint iterations**,
+**41 complete 13,605 x 12 Jacobians**, **65 residual passes**, and **24 known-bad
+probes**. There are 13,599 training point factors plus the six-residual train-only
+pose prior, and 3,285 holdout factors. Inspection, map/plane preparation, the
+fixed-baseline solve and report saving also remain in the complete pipeline.
+
+The existing development capture remains **degenerate with rank 9** in both
+versions. Status, full diagnostics and final outputs are preserved. This
+execution comparison does not establish independent calibration accuracy.
+No SOTA cohort or leaderboard claim is opened.
+'''
+document+=f'''
+
+## Complete measurements
+
+Two alternating pairs run in fresh processes with frozen 381-module baseline
+and 382-module current source trees and actual Git identities. One BLAS thread
+is used on an unreserved host. Whole-worker time includes cold startup, data
+loading, the complete pipeline, array-hash capture, compression and saving. API
+time covers the complete `run_calibration` call, including its own report/artifact
+saving and array-hash capture. Downloads, source freezing and external audit
+are outside the timed workers. All four runs are retained.
+
+| Pair (order) | Previous whole s | Batches whole s | Paired ratio |
+| --- | ---: | ---: | ---: |
+{chr(10).join(rows)}
+
+Reported ratios divide the two-run medians. The result describes this existing
+capture and host; other geometry, graph sizes and host load can change the gain.
+The comparison is against the previous optimized version, not a fresh timing
+of earlier unoptimized revisions.
+
+## Parity and validation
+
+All four full schema-valid calibration results match exactly after removing
+only run ID, wall-clock dates and the three independently verified source
+identity fields. Every complete residual and Jacobian has the same SHA-256 of
+its little-endian float64 array bytes. All 106 evaluation events, parameter
+states, ordered factor IDs, final values and probe states are checked. Full
+optimizer histories and diagnostic values are retained inside each result.
+
+Tests compare actual residual/Jacobian bytes with the previous scalar path at
+the eligibility threshold and across 4,096-row chunk boundaries. They cover
+distinct initial frames, signed zeros, outliers, unequal weights, fixed blocks,
+dense/Schur solvers, extra prior blocks, modified callbacks/methods, whitening
+fallback, changed values/weights and conservative input bounds. Observable
+synthetic graphs still recover the original extrinsic. Windows/Python 3.12 and
+Linux/Python 3.10 pass the same tests. Archive mutation tests reject rehashed
+work reductions, missing evaluations, changed array hashes, factor/probe state
+changes, false timings and incorrect source identities. All 129 public schema
+exports and their ledger remain byte-identical across the measured runtimes.
+
+The [complete archive](../assets/joint_lidar_point_batches/README.md) retains all
+four full results, traces, measurements and logs, both source capsules, the
+exact launcher/config/schemas, input identities and validation/publication code.
+Raw PCDs are obtained separately from their official source; the archive does
+not redistribute them or infer a data license from the code license.
+
+Baseline: `{commits['prior']}`.
+Measured runtime: `{commits['current']}`.
+Only the two existing graph modules and new private batching module differ
+across the runtime source manifests. The measured launcher and public auditor
+have identical bytes.
+
+```bash
+python -m tools.benchmark_joint_point_batches \\
+  --baseline-commit {commits['prior']} \\
+  --output outputs/joint-point-batches-reproduction --repetitions 2
+python -m tools.benchmark_joint_point_batches \\
+  --audit-only docs/assets/joint_lidar_point_batches
+```
+
+Use committed runtime sources and a new output directory. Offline archive audit
+requires no PCD download, ROS installation or GPU.
+'''
+(ROOT/'docs/benchmarks/joint_lidar_point_batches.md').write_bytes(document.encode())
+(TARGET/'README.md').write_bytes(f'''# Complete ordered point-plane batch comparison
+
+Whole-worker median: {whole['prior']:.6f} -> {whole['current']:.6f} seconds
+({value['whole_speedup']:.6f}x). See [workload, eligibility and limitations](../../benchmarks/joint_lidar_point_batches.md).
+
+`protocol.json` binds both source revisions, the full-point configuration,
+input hashes/counts, exact launcher, schemas and source capsules.
+`attempts.json` retains every alternating worker. Each worker folder contains
+its complete calibration result, full event/parameter trace and array digests,
+measurement and both logs. `summary.json` is recomputed by the public auditor;
+`index.json` binds every published file. Source capsules and all measured files
+preserve their original bytes. The measured launcher equals the public auditor.
+
+Raw PCDs are external public inputs. The archived upstream manifest is a
+verbatim historical snapshot; actual header counts are pinned in the protocol.
+This development capture remains degenerate with rank 9 and is used only for
+execution timing/parity. No independent accuracy claim is made.
+
+Baseline: `{commits['prior']}`.
+Measured runtime: `{commits['current']}`.
+Protocol SHA-256: `{bench.sha(SOURCE/'protocol.json')}`.
+
+```bash
+python -m tools.benchmark_joint_point_batches --audit-only docs/assets/joint_lidar_point_batches
+```
+'''.encode())
+bench.write(TARGET/'index.json',{'files':{p.relative_to(TARGET).as_posix():{'sha256':bench.sha(p),'size_bytes':p.stat().st_size} for p in sorted(TARGET.rglob('*')) if p.is_file() and p.name!='index.json'},'provenance':{'protocol_sha256':bench.sha(TARGET/'protocol.json')}})
+assert bench.audit(TARGET)==report
+print(json.dumps({'published_files':sum(p.is_file() for p in TARGET.rglob('*')),'report':value},indent=2))

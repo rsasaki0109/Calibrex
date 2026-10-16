@@ -3,6 +3,7 @@
 import functools
 import json
 import math
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 
 import numpy as np
@@ -75,7 +76,8 @@ def problem(count=96, outliers=False, extra=False):
 
 
 @pytest.mark.parametrize("rotation", [(0.0, -0.0, 0.0, 1.0), (-0.3, 0.6, 0.2, -0.4)])
-def test_ordered_rotation_matches_scalar_point_bytes(rotation) -> None:
+@pytest.mark.parametrize("translation", [(0.01, -0.02, 0.03), (-0.0, 0.0, -0.0)])
+def test_ordered_rotation_matches_scalar_point_bytes(rotation, translation) -> None:
     rng = np.random.default_rng(17)
     points = np.concatenate(
         (
@@ -89,7 +91,7 @@ def test_ordered_rotation_matches_scalar_point_bytes(rotation) -> None:
             ),
         )
     )
-    transform = SE3((0.01, -0.02, 0.03), rotation)
+    transform = SE3(translation, rotation)
     expected = np.asarray([transform.transform_point(point) for point in points])
     # The public scalar geometry does not expose NumPy underflow handling.
     with np.errstate(all="raise"), np.errstate(under="ignore"):
@@ -218,3 +220,15 @@ def test_changed_values_and_weights_are_observed_on_the_next_pass(monkeypatch):
     assert first.tobytes() != changed.tobytes()
     monkeypatch.setattr(batches, "_prepare_point_plane_plan", lambda *_: None)
     assert changed.tobytes() == graph._factor_residuals(point_factors, values).tobytes()
+
+
+def test_concurrent_passes_use_separate_prepared_arrays(monkeypatch):
+    blocks, point_factors, _ = problem(128)
+    initial = {block.name: block.initial_values for block in blocks}
+    inputs = [initial, {**initial, "ext": (0.1,) * 6}]
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        actual = list(executor.map(lambda v: graph._factor_residuals(point_factors, v), inputs))
+    assert actual[0].tobytes() != actual[1].tobytes()
+    monkeypatch.setattr(batches, "_prepare_point_plane_plan", lambda *_: None)
+    expected = [graph._factor_residuals(point_factors, v) for v in inputs]
+    assert [v.tobytes() for v in actual] == [v.tobytes() for v in expected]
