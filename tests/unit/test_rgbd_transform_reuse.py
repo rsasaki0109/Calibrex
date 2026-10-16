@@ -36,7 +36,8 @@ def measurement(kind, index=0):
     ray = (0.3 * math.sin(index), 0.3 * math.cos(index), 1.0)
     depth = 1.0 + index * 0.01
     point = tuple(value * depth for value in ray)
-    weights = (0.125,) * 8
+    raw_weights = tuple(0.1 + math.sin((index + j) * 0.71) ** 2 for j in range(8))
+    weights = tuple(weight / sum(raw_weights) for weight in raw_weights)
     common = {
         "measurement_id": f"rgbd-{index}",
         "observation_group": f"frame-{index % 8}",
@@ -217,7 +218,9 @@ def test_custom_numeric_inputs_retain_scalar_path(kind, numeric):
     def evaluate():
         assert factor.residuals(supplied) == expected
         # Pair's ordinary target pose may still use its independent key.
-        assert len(_EVALUATION_CACHE.get()) == (1 if kind == "pair" else 0)
+        keys = _EVALUATION_CACHE.get()
+        transforms = [key for key in keys if key.startswith(b"joint_rgbd_transform/v1\0")]
+        assert len(transforms) == (1 if kind == "pair" else 0)
 
     evaluate()
 
@@ -315,4 +318,80 @@ def test_complete_lm_derivatives_probes_whitening_and_diagnostics_match_scalar(
     assert len(fast_traces) >= 2
     assert len(accelerated.probes) == 2 * sum(block.dimension for block in blocks)
     assert accelerated.train_factor_family_diagnostics
+    assert _EVALUATION_CACHE.get() is None
+
+
+@pytest.mark.parametrize("kind", ["xyz", "pair"])
+def test_calibrated_points_reused_only_for_the_same_immutable_lattice(kind, monkeypatch):
+    items = [factory(kind, measurement(kind, index)) for index in range(12)]
+    supplied = inputs()
+    changed_pose = {**supplied, "pose": (-0.03,) * 6, "ext": (0.02,) * 6}
+    changed_field = {**supplied, "xyz": (-0.01,) * 24}
+    variants = [supplied, changed_pose, changed_field]
+    expected = [byte_values(f.residuals(v)) for v in variants for f in items]
+    calls = []
+    original = factors._calibrated_xyz_lattice_point
+
+    def calibrate(*args):
+        calls.append(args)
+        return original(*args)
+
+    monkeypatch.setattr(factors, "_calibrated_xyz_lattice_point", calibrate)
+
+    @_with_evaluation_cache
+    def evaluate():
+        return [byte_values(f.residuals(v)) for v in variants for f in items]
+
+    assert evaluate() == expected
+    count = 48 if kind == "pair" else 24
+    assert len(calls) == count
+    assert evaluate() == expected
+    assert len(calls) == 2 * count
+    assert _EVALUATION_CACHE.get() is None
+
+
+def test_point_scratch_is_bounded_and_eviction_preserves_exact_bytes(monkeypatch):
+    monkeypatch.setattr(factors, "_RGBD_POINT_STATES", 2)
+    monkeypatch.setattr(factors, "_RGBD_POINTS_PER_STATE", 3)
+    items = [factory("xyz", measurement("xyz", i)) for i in range(6)]
+    supplied = [{**inputs(), "xyz": (value,) * 24} for value in (0.0, -0.0, 0.01, -0.01)]
+    expected = [byte_values(f.residuals(v)) for v in supplied for f in items]
+
+    @_with_evaluation_cache
+    def evaluate():
+        actual = []
+        for values in supplied:
+            for factor in items:
+                actual.append(byte_values(factor.residuals(values)))
+                states = _EVALUATION_CACHE.get()[factors._RGBD_POINT_CACHE_KEY]
+                assert len(states) <= 2
+                assert all(len(state.points) <= 3 for state in states.values())
+        return actual
+
+    assert evaluate() == expected
+    assert _EVALUATION_CACHE.get() is None
+
+
+@pytest.mark.parametrize("kind", ["xyz", "pair"])
+def test_changed_point_and_mutable_field_use_current_geometry(kind):
+    item = measurement(kind)
+    factor = factory(kind, item)
+    supplied = inputs()
+    name = "source_point_sensor_m" if kind == "pair" else "point_sensor_m"
+
+    @_with_evaluation_cache
+    def evaluate():
+        before = factor.residuals(supplied)
+        object.__setattr__(item, name, (0.4, -0.2, 1.3))
+        after = factor.residuals(supplied)
+        assert after != before
+        assert after == factory(kind, item).residuals(supplied)
+        mutable = list(supplied["xyz"])
+        values = {**supplied, "xyz": mutable}
+        first = factor.residuals(values)
+        mutable[0] += 0.1
+        assert factor.residuals(values) != first
+        return factor.residuals(values)
+
+    evaluate()
     assert _EVALUATION_CACHE.get() is None

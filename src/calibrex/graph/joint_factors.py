@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import struct
+from collections import OrderedDict
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import TypeAlias, cast
@@ -349,11 +350,12 @@ def make_joint_trilinear_xyz_point_to_plane_factor(
     transform_key = _rgbd_transform_signature(
         measurement.transform_world_body_initial, measurement.transform_body_sensor_initial
     )
+    point_key = _rgbd_point_signature(measurement.point_sensor_m, weights)
 
     def evaluator(values: ParameterValues) -> tuple[float]:
         offsets = values[xyz_lattice_block]
-        calibrated_point = _calibrated_xyz_lattice_point(
-            measurement.point_sensor_m, weights, offsets
+        calibrated_point = _rgbd_calibrated_xyz_point(
+            measurement.point_sensor_m, weights, offsets, point_key
         )
         transform_world_sensor = _rgbd_transform(
             values, pose_block, measurement.transform_world_body_initial,
@@ -392,14 +394,16 @@ def make_joint_trilinear_xyz_pair_factor(
         raise ValueError("joint trilinear XYZ pair requires distinct pose blocks")
     source_key = _rgbd_transform_signature(measurement.transform_world_source_initial)
     target_key = _rgbd_transform_signature(measurement.transform_world_target_initial)
+    source_point_key = _rgbd_point_signature(measurement.source_point_sensor_m, source_weights)
+    target_point_key = _rgbd_point_signature(measurement.target_point_sensor_m, target_weights)
 
     def evaluator(values: ParameterValues) -> tuple[float]:
         offsets = values[xyz_lattice_block]
-        source_calibrated = _calibrated_xyz_lattice_point(
-            measurement.source_point_sensor_m, source_weights, offsets
+        source_calibrated = _rgbd_calibrated_xyz_point(
+            measurement.source_point_sensor_m, source_weights, offsets, source_point_key
         )
-        target_calibrated = _calibrated_xyz_lattice_point(
-            measurement.target_point_sensor_m, target_weights, offsets
+        target_calibrated = _rgbd_calibrated_xyz_point(
+            measurement.target_point_sensor_m, target_weights, offsets, target_point_key
         )
         source_world = _rgbd_transform(
             values, source_pose_block, measurement.transform_world_source_initial, source_key
@@ -802,6 +806,77 @@ def se3_from_tangent(values: Sequence[float]) -> SE3:
 
 
 _SE3_FROM_TANGENT_IMPLEMENTATION = se3_from_tangent
+
+
+_RGBD_POINT_STATES = 4
+_RGBD_POINTS_PER_STATE = 8192
+_RGBD_POINT_CACHE_KEY = b"joint_rgbd_calibrated_points/v1"
+
+
+@dataclass(frozen=True, eq=False)
+class _RGBDPointSignature:
+    point: Vector3
+    weights: tuple[float, ...]
+
+
+def _rgbd_point_signature(
+    point: Vector3, weights: tuple[float, ...]
+) -> _RGBDPointSignature | None:
+    if (
+        type(point) is tuple and len(point) == 3 and type(weights) is tuple
+        and all(type(value) is float and math.isfinite(value) for value in (*point, *weights))
+    ):
+        return _RGBDPointSignature(point, weights)
+    return None
+
+
+@dataclass
+class _RGBDPointState:
+    offsets: tuple[float, ...]
+    points: OrderedDict[_RGBDPointSignature, Vector3]
+
+
+def _rgbd_calibrated_xyz_point(
+    point: Vector3,
+    weights: tuple[float, ...],
+    offsets: Sequence[float],
+    signature: _RGBDPointSignature | None,
+) -> Vector3:
+    cache = _EVALUATION_CACHE.get()
+    if (cache is None or signature is None or signature.point is not point
+            or signature.weights is not weights or type(offsets) is not tuple
+            or len(offsets) != 3 * len(weights)):
+        return _calibrated_xyz_lattice_point(point, weights, offsets)
+    states = cast(OrderedDict[int, _RGBDPointState] | None, cache.get(_RGBD_POINT_CACHE_KEY))
+    state = states.get(id(offsets)) if states is not None else None
+    if state is None:
+        if not all(type(value) is float and math.isfinite(value) for value in offsets):
+            return _calibrated_xyz_lattice_point(point, weights, offsets)
+        state = _RGBDPointState(offsets, OrderedDict())
+        if states is None:
+            states = OrderedDict()
+            cache[_RGBD_POINT_CACHE_KEY] = states
+            if len(cache) > _EVALUATION_CACHE_LIMIT:
+                cache.popitem(last=False)
+        states[id(offsets)] = state
+        if len(states) > _RGBD_POINT_STATES:
+            states.popitem(last=False)
+    else:
+        # Holding the immutable tuple prevents identity reuse and preserves
+        # distinctions such as signed zero without hashing every float per point.
+        assert state.offsets is offsets
+        assert states is not None
+        states.move_to_end(id(offsets))
+    cache.move_to_end(_RGBD_POINT_CACHE_KEY)
+    calibrated = state.points.get(signature)
+    if calibrated is None:
+        calibrated = _calibrated_xyz_lattice_point(point, weights, offsets)
+        state.points[signature] = calibrated
+        if len(state.points) > _RGBD_POINTS_PER_STATE:
+            state.points.popitem(last=False)
+    else:
+        state.points.move_to_end(signature)
+    return calibrated
 
 
 @dataclass(frozen=True)
