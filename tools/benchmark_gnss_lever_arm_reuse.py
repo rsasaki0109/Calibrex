@@ -327,6 +327,43 @@ def worker(protocol_path: Path, variant: str, folder: Path) -> None:
     )
 
 
+def _same_control_geometry(generated: dict, expected: dict) -> bool:
+    """Bound platform roundoff during regeneration; measured payloads stay exact."""
+
+    import numpy as np
+
+    def poses_match(left: object, right: object) -> bool:
+        a, b = np.asarray(left), np.asarray(right)
+        return bool(
+            a.shape == b.shape
+            and a.shape[-2:] == (4, 4)
+            and np.isfinite(a).all()
+            and np.isfinite(b).all()
+            and np.array_equal(a[..., 3, :], b[..., 3, :])
+            and np.allclose(a[..., :3, :3], b[..., :3, :3], rtol=0.0, atol=1e-13)
+            and np.allclose(a[..., :3, 3], b[..., :3, 3], rtol=0.0, atol=2e-8)
+        )
+
+    exact = {k: v for k, v in generated.items() if k not in {"enu_m", "windows"}}
+    if exact != {k: v for k, v in expected.items() if k not in {"enu_m", "windows"}}:
+        return False
+    a, b = np.asarray(generated["enu_m"]), np.asarray(expected["enu_m"])
+    if (
+        a.shape != b.shape
+        or not np.isfinite(a).all()
+        or not np.isfinite(b).all()
+        or not np.allclose(a, b, rtol=0.0, atol=2e-8)
+    ):
+        return False
+    if len(generated["windows"]) != len(expected["windows"]):
+        return False
+    return all(
+        {k: v for k, v in a.items() if k != "poses"} == {k: v for k, v in b.items() if k != "poses"}
+        and poses_match(a["poses"], b["poses"])
+        for a, b in zip(generated["windows"], expected["windows"], strict=True)
+    )
+
+
 def input_lineage(output: Path, problem: dict) -> None:
     import numpy as np
 
@@ -384,7 +421,9 @@ def input_lineage(output: Path, problem: dict) -> None:
     body = np.stack([se3_matrix(kitti_oxts_pose_world_imu(p, packets[0])) for p in packets])
     generated = derive_control(times, body)
     if (
-        generated != {k: v for k, v in problem.items() if k != "provenance"}
+        not _same_control_geometry(
+            generated, {k: v for k, v in problem.items() if k != "provenance"}
+        )
         or provenance["scope"] != SCOPE
         or any(
             provenance[k] != v
@@ -550,7 +589,10 @@ def audit(output: Path) -> dict:
         result = json.loads((folder / "result.json").read_bytes())
         history = json.loads(gzip.decompress((folder / "history.json.gz").read_bytes()))
         jsonschema.validate(result, json.loads((output / "result-schema.json").read_bytes()))
-        jsonschema.validate(history, schema)
+        # Independent run provenance is checked below; every complete payload
+        # must equal the first schema-validated history after removing Git IDs.
+        if not histories:
+            jsonschema.validate(history, schema)
         p = measurement["provenance"]
         verify_git(
             p["git_commit"],

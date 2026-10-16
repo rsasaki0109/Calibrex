@@ -3,10 +3,12 @@ from __future__ import annotations
 import copy
 import json
 
+import numpy as np
 import pytest
 from jsonschema import validate
 from tools.benchmark_gnss_lever_arm_reuse import (
     SCHEMA,
+    _same_control_geometry,
     comparable,
     default_options,
     replay_work,
@@ -124,3 +126,28 @@ def test_full_default_options_are_json_canonical_and_schema_valid() -> None:
     assert value["jackknife_groups"] == 8
     assert value["solver"]["irls_iterations"] == 4
     validate(value, json.loads(SCHEMA.read_bytes())["$defs"]["protocol"]["properties"]["options"])
+
+
+@pytest.mark.parametrize("part", ["roundoff", "position", "rotation", "timestamp", "window_id"])
+def test_regenerated_geometry_bounds_only_platform_roundoff(part: str) -> None:
+    original = {
+        "times_s": [0.0],
+        "options": {},
+        "enu_m": [[0.0, 1.0, 2.0]],
+        "windows": [
+            {"window_id": "w0", "block": 0, "times_s": [0.0], "poses": [np.eye(4).tolist()]}
+        ],
+    }
+    changed = copy.deepcopy(original)
+    if part == "roundoff":
+        changed["enu_m"][0][0] += 9.313225746154785e-10
+        changed["windows"][0]["poses"][0][0][3] += 9.313225746154785e-10
+    elif part == "position":
+        changed["enu_m"][0][0] += 1e-6
+    elif part == "rotation":
+        changed["windows"][0]["poses"][0][0][0] += 1e-9
+    elif part == "timestamp":
+        changed["times_s"][0] += 1e-9
+    else:
+        changed["windows"][0]["window_id"] = "different"
+    assert _same_control_geometry(original, changed) == (part == "roundoff")
