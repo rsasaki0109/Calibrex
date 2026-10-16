@@ -1,0 +1,716 @@
+schema_version: slac.result/v0.1
+run:
+  id: 2026-10-16T01-53-38Z_a2d2_pandey_mutual_information
+  slac_version: 0.5.1
+  git_commit: 183fb3d1221d118a20006b615d594bbf4fdc9875
+  config_sha256: 641501d6f865ced04ff0733b5c835c0bd10b7c06fc431878cec55dd676119891
+  dataset_sha256: cba0953944e2cb1fa1a1e1b235b37f2e73b2cf9b6e8a8eb0406de9c8301e1a48
+  status: failed
+  domain: autonomous_driving
+  created_at: '2026-10-16T01:53:38.688048+00:00'
+  provenance:
+    provenance_version: slac.result.provenance/v0.1
+    producer: calibrex
+    tool_name: calibrex
+    tool_version: 0.5.1
+    generated_at: '2026-10-16T01:53:38.688048+00:00'
+    git_commit: 183fb3d1221d118a20006b615d594bbf4fdc9875
+    git_commit_unavailable_reason: null
+    command:
+    - calibrex
+    - calibrate
+    - C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\pandey.yaml
+    config_sha256: 641501d6f865ced04ff0733b5c835c0bd10b7c06fc431878cec55dd676119891
+    input_sha256: cba0953944e2cb1fa1a1e1b235b37f2e73b2cf9b6e8a8eb0406de9c8301e1a48
+    config_digest_unavailable_reason: null
+    input_digest_unavailable_reason: null
+    pipeline: multi_sensor_slac
+    solver_backend: native_pandey_mutual_information
+    max_iterations: 12
+    seed: 11
+    dataset_type: a2d2_lidar
+    dataset_path: C:\Users\rsasa\Workspace\Calibrex\data\public\a2d2_pandey_mutual_information
+    dry_run: false
+    problem_summary:
+      name: a2d2_pandey_mutual_information
+      pipeline: multi_sensor_slac
+      variables: 4
+      estimated_variables: 2
+      factors: 1
+      priors: 2
+      gauges: 1
+    problem_observability:
+      estimated_dimension: 12
+      fixed_dimension: 10
+      factor_count: 1
+      prior_count: 2
+      gauge_count: 1
+      weak_directions: []
+      grade: pass
+    dataset_inspection:
+      dataset_type: a2d2_lidar
+      path: C:\Users\rsasa\Workspace\Calibrex\data\public\a2d2_pandey_mutual_information
+      exists: true
+      manifest: null
+      streams:
+      - name: a2d2_lidar_npz
+        kind: pointcloud
+        message_count: 2
+        topic: null
+        sensor: a2d2_multi_lidar
+      - name: a2d2_camera_png
+        kind: camera
+        message_count: 2
+        topic: null
+        sensor: a2d2_camera
+      warnings: []
+      diagnostics:
+        a2d2_lidar:
+          status: scored
+          sample_count: 2
+          sampled_file_count: 2
+          total_point_count: 95202
+          total_valid_count: 95202
+          physical_lidar_ids:
+          - 0
+          - 1
+          - 2
+          - 3
+          - 4
+          samples:
+          - path: C:\Users\rsasa\Workspace\Calibrex\data\public\a2d2_pandey_mutual_information\20180810150607_lidar_frontleft_000000060.npz
+            point_count: 47846
+            valid_count: 47846
+            physical_lidars:
+            - lidar_id: 0
+              point_count: 14258
+              valid_count: 14258
+              bounds_min_m:
+              - 2.9234239852011408
+              - -18.56574225918829
+              - -4.138466309281914
+              bounds_max_m:
+              - 116.68156315642774
+              - 20.768175224788603
+              - 5.82903719928244
+            - lidar_id: 1
+              point_count: 11032
+              valid_count: 11032
+              bounds_min_m:
+              - 2.712447440189962
+              - -19.670335929448523
+              - -3.734510757894097
+              bounds_max_m:
+              - 81.09907832894164
+              - 15.293865264244426
+              - 14.351522266232902
+            - lidar_id: 2
+              point_count: 9751
+              valid_count: 9751
+              bounds_min_m:
+              - 2.59144712836101
+              - -18.130421123408667
+              - -3.746953804463644
+              bounds_max_m:
+              - 94.93289184787047
+              - 17.299564002198043
+              - 16.154860058108813
+            - lidar_id: 3
+              point_count: 6363
+              valid_count: 6363
+              bounds_min_m:
+              - 5.486026887175742
+              - -16.122740894124178
+              - -2.503988528424624
+              bounds_max_m:
+              - 88.21849659040357
+              - 34.42278979184359
+              - 29.64478220493494
+            - lidar_id: 4
+              point_count: 6442
+              valid_count: 6442
+              bounds_min_m:
+              - 7.351290057128731
+              - -15.887593482874694
+              - -1.9431187906655634
+              bounds_max_m:
+              - 81.38105070447713
+              - 17.37571069065182
+              - 16.022386690824302
+          - path: C:\Users\rsasa\Workspace\Calibrex\data\public\a2d2_pandey_mutual_information\20180810150607_lidar_frontleft_000000061.npz
+            point_count: 47356
+            valid_count: 47356
+            physical_lidars:
+            - lidar_id: 0
+              point_count: 13925
+              valid_count: 13925
+              bounds_min_m:
+              - 3.062179507943566
+              - -18.683530291710614
+              - -4.174821374579675
+              bounds_max_m:
+              - 116.57023111109817
+              - 20.704444285398537
+              - 5.805615158395999
+            - lidar_id: 1
+              point_count: 10805
+              valid_count: 10805
+              bounds_min_m:
+              - 2.718133312573956
+              - -19.79299406368751
+              - -3.7560195028264114
+              bounds_max_m:
+              - 80.99248248471183
+              - 15.197433381040739
+              - 14.330153204766837
+            - lidar_id: 2
+              point_count: 9731
+              valid_count: 9731
+              bounds_min_m:
+              - 2.596824860086789
+              - -18.492227883997334
+              - -4.028665408235097
+              bounds_max_m:
+              - 94.84831501576325
+              - 17.309600662194047
+              - 16.154497988902587
+            - lidar_id: 3
+              point_count: 6529
+              valid_count: 6529
+              bounds_min_m:
+              - 5.380410451856139
+              - -16.20820542085573
+              - -2.55017266129385
+              bounds_max_m:
+              - 81.17163219666737
+              - 34.37837663445614
+              - 16.02896830258762
+            - lidar_id: 4
+              point_count: 6366
+              valid_count: 6366
+              bounds_min_m:
+              - 7.444859737250411
+              - -15.90719175499602
+              - -1.9518630862871968
+              bounds_max_m:
+              - 81.27611882029467
+              - 17.27016133632765
+              - 16.021986090183464
+          malformed_files: []
+          reason: null
+    pandey_mutual_information:
+      status: converged
+      reason: no improving step remained after monotonic backtracking
+      transform_camera_lidar:
+        translation_m:
+        - 0.01915666925128628
+        - -0.016544281899918484
+        - 0.00948664741692126
+        rotation_quat_xyzw:
+        - -0.004585732718802632
+        - 0.0032544573833307496
+        - 0.0032281519255115344
+        - 0.9999789790779192
+      train_frame_ids:
+      - '000000061'
+      holdout_frame_ids:
+      - '000000060'
+      train_evaluation:
+        raw_mutual_information: 0.10253380033
+        normalized_mutual_information: 0.037145770663
+        projected_point_count: 3947
+        observation_count: 1
+      holdout_evaluation:
+        raw_mutual_information: 0.100991276252
+        normalized_mutual_information: 0.0368643411
+        projected_point_count: 3988
+        observation_count: 1
+      iterations:
+      - iteration: 1
+        raw_mutual_information: 0.099341113045
+        gradient_norm: 1.6791114095958122
+        step_size: 0.01
+        parameter_delta_norm: 0.01
+        backtrack_count: 0
+      - iteration: 2
+        raw_mutual_information: 0.101831191173
+        gradient_norm: 1.1651868886824568
+        step_size: 0.010423558979825187
+        parameter_delta_norm: 0.010423558979825187
+        backtrack_count: 0
+      - iteration: 3
+        raw_mutual_information: 0.101905875257
+        gradient_norm: 0.9154325702811019
+        step_size: 0.0017538445578358843
+        parameter_delta_norm: 0.0017538445578358839
+        backtrack_count: 2
+      - iteration: 4
+        raw_mutual_information: 0.101956148214
+        gradient_norm: 0.9365418956373474
+        step_size: 0.0009853309869976576
+        parameter_delta_norm: 0.000985330986997658
+        backtrack_count: 0
+      - iteration: 5
+        raw_mutual_information: 0.102343114474
+        gradient_norm: 0.3742523980423639
+        step_size: 0.001222612879444652
+        parameter_delta_norm: 0.0012226128794446522
+        backtrack_count: 0
+      - iteration: 6
+        raw_mutual_information: 0.102516833564
+        gradient_norm: 1.0249572790484691
+        step_size: 0.0005643710410884796
+        parameter_delta_norm: 0.0005643710410884801
+        backtrack_count: 1
+      - iteration: 7
+        raw_mutual_information: 0.10253380033
+        gradient_norm: 0.22404519531428968
+        step_size: 7.467696689234007e-05
+        parameter_delta_norm: 7.467696689234007e-05
+        backtrack_count: 3
+      known_bad_probes:
+      - dof: x
+        amount: -0.05
+        unit: m
+        normalized_mutual_information: 0.036568796007
+        score_drop: 0.00029554509300000475
+        detectable: true
+      - dof: x
+        amount: 0.05
+        unit: m
+        normalized_mutual_information: 0.037300115428
+        score_drop: -0.0004357743279999951
+        detectable: false
+      - dof: y
+        amount: -0.05
+        unit: m
+        normalized_mutual_information: 0.036043598414
+        score_drop: 0.0008207426860000061
+        detectable: true
+      - dof: y
+        amount: 0.05
+        unit: m
+        normalized_mutual_information: 0.037332672725
+        score_drop: -0.0004683316249999986
+        detectable: false
+      - dof: z
+        amount: -0.05
+        unit: m
+        normalized_mutual_information: 0.036269686108
+        score_drop: 0.000594654992000003
+        detectable: true
+      - dof: z
+        amount: 0.05
+        unit: m
+        normalized_mutual_information: 0.036551789423
+        score_drop: 0.00031255167700000586
+        detectable: true
+      - dof: roll
+        amount: -5.0
+        unit: deg
+        normalized_mutual_information: 0.03246789525
+        score_drop: 0.00439644585
+        detectable: true
+      - dof: roll
+        amount: 5.0
+        unit: deg
+        normalized_mutual_information: 0.023420585659
+        score_drop: 0.013443755441000002
+        detectable: true
+      - dof: pitch
+        amount: -5.0
+        unit: deg
+        normalized_mutual_information: 0.028972424607
+        score_drop: 0.007891916493000004
+        detectable: true
+      - dof: pitch
+        amount: 5.0
+        unit: deg
+        normalized_mutual_information: 0.018749907114
+        score_drop: 0.018114433986000003
+        detectable: true
+      - dof: yaw
+        amount: -5.0
+        unit: deg
+        normalized_mutual_information: 0.035670003007
+        score_drop: 0.0011943380930000067
+        detectable: true
+      - dof: yaw
+        amount: 5.0
+        unit: deg
+        normalized_mutual_information: 0.027632982655
+        score_drop: 0.009231358445000004
+        detectable: true
+      curvature:
+        parameter_dimension: 6
+        objective_at_center: -0.100991276252
+        finite_difference_steps:
+        - 0.01
+        - 0.01
+        - 0.01
+        - 0.004363323129985824
+        - 0.004363323129985824
+        - 0.004363323129985824
+        hessian:
+        - - 4.017275719999796
+          - 4.7519464325000005
+          - -0.6410522525000101
+          - -2.097190794125236
+          - 3.443379547516727
+          - -4.372971541775808
+        - - 4.7519464325000005
+          - 17.947528119999916
+          - 4.057978597499997
+          - -28.82333403426139
+          - -10.105051364862605
+          - 6.059393170609787
+        - - -0.6410522525000101
+          - 4.057978597499997
+          - 2.925346349999941
+          - 15.36892478559522
+          - -9.461902962509685
+          - 6.474759565902677
+        - - -2.097190794125236
+          - -28.82333403426139
+          - 15.36892478559522
+          - 393.94241987875904
+          - -55.44406596256272
+          - -42.79885328005409
+        - - 3.443379547516727
+          - -10.105051364862605
+          - -9.461902962509685
+          - -55.44406596256272
+          - 166.34978925197612
+          - -55.754276600110174
+        - - -4.372971541775808
+          - 6.059393170609787
+          - 6.474759565902677
+          - -42.79885328005409
+          - -55.754276600110174
+          - -306.04228525498036
+        eigenvalues:
+        - -316.1287061482557
+        - -0.5273772245976766
+        - 3.5895036382678294
+        - 17.341165872537783
+        - 164.47334031063934
+        - 410.3921476171629
+        rank: 6
+        positive_eigenvalue_count: 4
+        negative_eigenvalue_count: 2
+        near_zero_eigenvalue_count: 0
+        positive_condition_number: 114.33116914605051
+        evaluation_count: 73
+        rank_tolerance: 1.0e-06
+        diagnostic_kind: central_difference_objective_hessian_not_covariance
+      coarse_search: null
+      method: pandey_mutual_information_bb_ascent/v0.1
+      paper_doi: 10.1609/aaai.v26i1.8379
+      paper_url: https://robots.engin.umich.edu/publications/gpandey-2012a.pdf
+      frame_convention: p_camera = R_camera_lidar p_lidar + t_camera_lidar
+      objective: raw mutual information; equations 1--8
+      optimizer: optional deterministic coarse-to-fine coordinate search followed
+        by numerical gradient and Barzilai--Borwein ascent; equations 9--11
+      kde_specialization: finite 2D histogram convolved with covariance-derived Gaussian
+        kernel
+      numerical_safeguards: step clipping and monotonic backtracking
+      curvature_claim: central-difference objective Hessian; not covariance or CRLB
+    paper_doi: 10.1609/aaai.v26i1.8379
+    primary_paper_pdf: https://robots.engin.umich.edu/publications/gpandey-2012a.pdf
+    a2d2_official_tutorial: https://aev-autonomous-driving-dataset.s3.eu-central-1.amazonaws.com/tutorial.ipynb
+    a2d2_preregistered_camera_view: true
+    public_evidence_claim: inconclusive_independent_accuracy
+    metrics_origin: recomputed
+    data_verified: true
+    raw_input_files:
+    - path: C:\Users\rsasa\Workspace\Calibrex\data\public\a2d2_pandey_mutual_information\cams_lidars.json
+      size_bytes: 10971
+      sha256: ffec04167050b9c0397121720b8f0bad2cacee83d03c1b7e864619394629c8d2
+      expected_sha256: ffec04167050b9c0397121720b8f0bad2cacee83d03c1b7e864619394629c8d2
+      digest_matches_pinned_sample: true
+      source: A2D2 public sequence 20180810_150607
+      license: CC BY-ND 4.0
+    - path: C:\Users\rsasa\Workspace\Calibrex\data\public\a2d2_pandey_mutual_information\20180810150607_camera_frontleft_000000060.png
+      size_bytes: 3008998
+      sha256: b07c5bc0c985a0fa9604c81b03649033855dde6f7587a4dc33e0d6216e958aca
+      expected_sha256: b07c5bc0c985a0fa9604c81b03649033855dde6f7587a4dc33e0d6216e958aca
+      digest_matches_pinned_sample: true
+      source: A2D2 public sequence 20180810_150607
+      license: CC BY-ND 4.0
+    - path: C:\Users\rsasa\Workspace\Calibrex\data\public\a2d2_pandey_mutual_information\20180810150607_lidar_frontleft_000000060.npz
+      size_bytes: 2977425
+      sha256: 1605ad835324e73d31998c94493c646307716404662d3e446a15d3f3f0616c63
+      expected_sha256: 1605ad835324e73d31998c94493c646307716404662d3e446a15d3f3f0616c63
+      digest_matches_pinned_sample: true
+      source: A2D2 public sequence 20180810_150607
+      license: CC BY-ND 4.0
+    - path: C:\Users\rsasa\Workspace\Calibrex\data\public\a2d2_pandey_mutual_information\20180810150607_camera_frontleft_000000061.png
+      size_bytes: 3010263
+      sha256: a1389f0ed253dc0fe84d175034edfe6159e3f220813776c601a7455e01f00616
+      expected_sha256: a1389f0ed253dc0fe84d175034edfe6159e3f220813776c601a7455e01f00616
+      digest_matches_pinned_sample: true
+      source: A2D2 public sequence 20180810_150607
+      license: CC BY-ND 4.0
+    - path: C:\Users\rsasa\Workspace\Calibrex\data\public\a2d2_pandey_mutual_information\20180810150607_lidar_frontleft_000000061.npz
+      size_bytes: 2946473
+      sha256: fee0b3ef3f347e422ee38c01fe41b2722b1148a076062b9c4a0df9a42dd24f91
+      expected_sha256: fee0b3ef3f347e422ee38c01fe41b2722b1148a076062b9c4a0df9a42dd24f91
+      digest_matches_pinned_sample: true
+      source: A2D2 public sequence 20180810_150607
+      license: CC BY-ND 4.0
+    implementation_origin: independent equations-based implementation; no external
+      code
+    license_boundary: Calibrex Apache-2.0 core; A2D2 inputs CC BY-ND 4.0
+    solver_adapter: native_pandey_mutual_information
+    solver_adapter_status: inconclusive
+    solver_adapter_applied_transforms:
+    - T_base_link_lidar0
+frame_graph:
+  root: base_link
+  convention: T_parent_child
+  frames:
+    base_link: null
+    camera0: base_link
+    lidar0: base_link
+candidate_extrinsics:
+  T_base_link_camera0:
+    convention: T_parent_child
+    parent: base_link
+    child: camera0
+    translation_m:
+    - 0.0
+    - 0.0
+    - 0.0
+    rotation_quat_xyzw:
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    quality:
+      grade: pass
+      std_translation_m:
+      - 0.0
+      - 0.0
+      - 0.0
+      std_rotation_deg:
+      - 0.0
+      - 0.0
+      - 0.0
+    estimate_id: T_base_link_camera0
+    provenance:
+      producer: human
+      execution_mode: manual
+      role_in_comparison: candidate
+      evidence_level: imported_without_documented_derivation
+      source: config.frame_graph
+      notes: []
+  T_base_link_lidar0:
+    convention: T_parent_child
+    parent: base_link
+    child: lidar0
+    translation_m:
+    - 0.0
+    - 0.0
+    - 0.0
+    rotation_quat_xyzw:
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    quality:
+      grade: warn
+      std_translation_m:
+      - 0.1
+      - 0.1
+      - 0.1
+      std_rotation_deg:
+      - 5.0
+      - 5.0
+      - 5.0
+    estimate_id: T_base_link_lidar0
+    provenance:
+      producer: human
+      execution_mode: manual
+      role_in_comparison: candidate
+      evidence_level: imported_without_documented_derivation
+      source: config.frame_graph
+      notes: []
+reference_extrinsics: {}
+transforms:
+  T_base_link_camera0:
+    convention: T_parent_child
+    parent: base_link
+    child: camera0
+    translation_m:
+    - 0.0
+    - 0.0
+    - 0.0
+    rotation_quat_xyzw:
+    - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+    quality:
+      grade: pass
+      std_translation_m:
+      - 0.0
+      - 0.0
+      - 0.0
+      std_rotation_deg:
+      - 0.0
+      - 0.0
+      - 0.0
+    estimate_id: T_base_link_camera0
+    provenance:
+      producer: slac_native
+      execution_mode: offline_batch
+      role_in_comparison: output
+      evidence_level: unknown
+      source: config.frame_graph
+      notes:
+      - alpha output initialized from frame graph before native refinement
+  T_base_link_lidar0:
+    convention: T_parent_child
+    parent: base_link
+    child: lidar0
+    translation_m:
+    - 0.01915666925128628
+    - -0.016544281899918484
+    - 0.00948664741692126
+    rotation_quat_xyzw:
+    - -0.004585732718802632
+    - 0.0032544573833307496
+    - 0.0032281519255115344
+    - 0.9999789790779192
+    quality:
+      grade: warn
+      std_translation_m:
+      - 0.1
+      - 0.1
+      - 0.1
+      std_rotation_deg:
+      - 5.0
+      - 5.0
+      - 5.0
+    estimate_id: T_base_link_lidar0
+    provenance:
+      producer: slac_native
+      execution_mode: offline_batch
+      role_in_comparison: output
+      evidence_level: algorithmically_refined
+      source: native_pandey_mutual_information_solver
+      tool_name: native_pandey_mutual_information
+      notes:
+      - relative adapter output composed into rig-frame estimate
+time_offsets: {}
+metrics:
+  schema_validation:
+    value: 1.0
+    grade: pass
+    reason: schema_validation=1; pass >= 1, warn >= 0.5
+  dataset_exists:
+    value: 1.0
+    grade: pass
+    reason: dataset_exists=1; pass >= 1, warn >= 0.5
+  prototype_solver:
+    value: 1.0
+    grade: pass
+    reason: native solver native_pandey_mutual_information produced an output transform
+  autonomous_driving_dynamic_holdout:
+    grade: warn
+    reason: dynamic-object holdout and radar-camera-lidar timing checks are required
+      before deployment
+  lidar_camera_mutual_information_score:
+    train: 0.037145770663
+    holdout: 0.0368643411
+    grade: fail
+    reason: lidar_camera_mutual_information_score=0.0368643; pass >= 0.5, warn >=
+      0.1
+  pandey_mutual_information_raw:
+    train: 0.10253380033
+    holdout: 0.100991276252
+    grade: warn
+    unit: nats
+    reason: objective magnitude has no universal accuracy threshold
+  pandey_projected_point_count:
+    train: 3947.0
+    holdout: 3988.0
+    grade: pass
+    unit: points
+  pandey_known_bad_detectable_fraction:
+    value: 0.8333333333333334
+    grade: pass
+    unit: fraction
+    reason: 10/12 signed held-out controls lowered MI
+  pandey_objective_curvature_rank:
+    value: 6.0
+    grade: pass
+    unit: rank
+    reason: negative-MI numerical Hessian rank; not covariance or CRLB
+  pandey_public_accuracy_independent:
+    value: 0.0
+    grade: warn
+    unit: bool
+    reason: A2D2 distributes LiDAR points already mapped into the camera view
+  pandey_preregistered_reference_translation_error_m:
+    value: 0.027031235998380216
+    grade: warn
+    unit: m
+    reason: error to A2D2's distributed camera-view registration; not independent
+      metrology
+  pandey_preregistered_reference_rotation_error_deg:
+    value: 0.7430093310775634
+    grade: warn
+    unit: deg
+    reason: error to A2D2's distributed camera-view registration; not independent
+      metrology
+  lidar_camera_transform_pairs:
+    value: 1.0
+    grade: pass
+    unit: pairs
+    reason: lidar_camera_transform_pairs=1 pairs; pass >= 1 pairs, warn >= 0 pairs
+  lidar_camera_overlay_readiness:
+    value: 1.0
+    grade: pass
+    reason: lidar_camera_overlay_readiness=1; pass >= 1, warn >= 0
+  lidar_camera_overlay_score:
+    grade: warn
+    reason: overlay score proxy needs LiDAR point coverage and camera-LiDAR timestamp
+      alignment diagnostics
+observability:
+  rank: 6
+  condition_number: 114.33116914605051
+  weak_directions: []
+  grade: pass
+degeneracy:
+  grade: warn
+  reason: native SLAC observability and degeneracy analysis are not implemented in
+    this alpha; A2D2 point clouds are pre-registered into each camera view; this run
+    is execution and perturbation evidence, not an independent extrinsic accuracy
+    test
+quality:
+  grade: fail
+  blocking_failures:
+  - lidar_camera_mutual_information_score=0.0368643; pass >= 0.5, warn >= 0.1
+  warnings:
+  - dynamic-object holdout and radar-camera-lidar timing checks are required before
+    deployment
+  - overlay score proxy needs LiDAR point coverage and camera-LiDAR timestamp alignment
+    diagnostics
+  - objective magnitude has no universal accuracy threshold
+  - error to A2D2's distributed camera-view registration; not independent metrology
+  - A2D2 distributes LiDAR points already mapped into the camera view
+  - 'T_base_link_lidar0: transform uncertainty is provisional'
+  - native SLAC observability and degeneracy analysis are not implemented in this
+    alpha; A2D2 point clouds are pre-registered into each camera view; this run is
+    execution and perturbation evidence, not an independent extrinsic accuracy test
+  recommendation:
+  - verify camera-LiDAR calibration files and collect logs with clear shared field
+    of view
+  - preserve image exposure and LiDAR intensity fields for mutual-information checks
+  - validate camera-lidar-radar timing on driving logs with dynamic objects held out
+artifacts:
+  html_report: C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\pandey-00-current\artifacts\report.html
+  rig_3d_viewer: C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\pandey-00-current\artifacts\artifacts\rig_3d.html
+  camera_lidar_overlay: C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\pandey-00-current\artifacts\artifacts\camera_lidar_overlay.html
+export: {}

@@ -1,0 +1,710 @@
+{
+  "artifact_count": 10,
+  "checked_artifacts": [
+    "report.html",
+    "summary.json",
+    "metrics.json",
+    "observability.json",
+    "degeneracy.json",
+    "evidence.json",
+    "assessment.json",
+    "protocol.json",
+    "policy.json",
+    "transforms.json"
+  ],
+  "checked_input_file_count": 5,
+  "checked_input_files": [
+    "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\cams_lidars.json",
+    "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\20180810150607_camera_frontleft_000000060.png",
+    "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\20180810150607_lidar_frontleft_000000060.npz",
+    "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\20180810150607_camera_frontleft_000000061.png",
+    "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\20180810150607_lidar_frontleft_000000061.npz"
+  ],
+  "input_file_count": 5,
+  "issue_count": 0,
+  "issues": [],
+  "path": "verification.json",
+  "primary_evidence_materialization": {
+    "computed_at": null,
+    "data_verified": true,
+    "metrics_origin": "recomputed",
+    "report_generated_at": "2026-10-16T01:53:38.688048+00:00"
+  },
+  "raw_recomputed_required": false,
+  "schema_version": "slac.evidence_bundle.verification/v0.1",
+  "source_bundle": {
+    "path": "bundle.json",
+    "run_id": "2026-10-16T01-53-38Z_a2d2_pandey_mutual_information",
+    "schema_version": "slac.evidence_bundle/v0.1",
+    "sha256": "e5549ce59a61e764bc0979ed3a5309754e1933b344c1eace651f1ad91061d788",
+    "size_bytes": 2555
+  },
+  "valid": true,
+  "verification_claims": [
+    {
+      "expected": {
+        "primary_evidence_path": "evidence.json"
+      },
+      "issues": [],
+      "method": "primary_evidence_membership",
+      "observed": {
+        "artifact_count": 10
+      },
+      "scope": "bundle_manifest",
+      "status": "ok",
+      "subject": "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\png-luminance-formal-v1\\pandey-00-current\\artifacts\\bundle.json"
+    },
+    {
+      "expected": {
+        "sha256": "81674a359ddcedcfbb446e6047d4e117998539778ed669bed27baed3bc0e3709",
+        "size_bytes": 16287
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "81674a359ddcedcfbb446e6047d4e117998539778ed669bed27baed3bc0e3709",
+        "size_bytes": 16287
+      },
+      "scope": "artifact_digest",
+      "status": "ok",
+      "subject": "report.html"
+    },
+    {
+      "expected": {
+        "run_id": "2026-10-16T01-53-38Z_a2d2_pandey_mutual_information"
+      },
+      "issues": [],
+      "method": "run_id_field",
+      "observed": {
+        "reason": "html artifacts do not expose structured run metadata"
+      },
+      "scope": "run_consistency",
+      "status": "skipped",
+      "subject": "report.html"
+    },
+    {
+      "expected": {
+        "sha256": "8e3d3cb1bb22360e26ef2e6b3cacff9144b85270c2e6d7c9e56e934013a14b89",
+        "size_bytes": 2914
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "8e3d3cb1bb22360e26ef2e6b3cacff9144b85270c2e6d7c9e56e934013a14b89",
+        "size_bytes": 2914
+      },
+      "scope": "artifact_digest",
+      "status": "ok",
+      "subject": "summary.json"
+    },
+    {
+      "expected": {
+        "schema_version": "slac.report.summary/v0.1"
+      },
+      "issues": [],
+      "method": "schema_version_field",
+      "observed": {
+        "schema_version": "slac.report.summary/v0.1"
+      },
+      "scope": "artifact_schema",
+      "status": "ok",
+      "subject": "summary.json"
+    },
+    {
+      "expected": {
+        "run_id": "2026-10-16T01-53-38Z_a2d2_pandey_mutual_information"
+      },
+      "issues": [],
+      "method": "run_id_field",
+      "observed": {
+        "run_id": "2026-10-16T01-53-38Z_a2d2_pandey_mutual_information"
+      },
+      "scope": "run_consistency",
+      "status": "ok",
+      "subject": "summary.json"
+    },
+    {
+      "expected": {
+        "path": "evidence.json",
+        "sha256": "347a2942868bbcace9ae278db1d6f9c8bc412c2dfd82ed41ae2534cfb65c401a"
+      },
+      "issues": [],
+      "method": "source_evidence_pointer",
+      "observed": {
+        "path": "evidence.json",
+        "sha256": "347a2942868bbcace9ae278db1d6f9c8bc412c2dfd82ed41ae2534cfb65c401a"
+      },
+      "scope": "source_evidence_link",
+      "status": "ok",
+      "subject": "summary.json"
+    },
+    {
+      "expected": {
+        "sha256": "f60be81fef9255fb907f185e755355c2695e3fda65beb20804bc0e23d839bb23",
+        "size_bytes": 5793
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "f60be81fef9255fb907f185e755355c2695e3fda65beb20804bc0e23d839bb23",
+        "size_bytes": 5793
+      },
+      "scope": "artifact_digest",
+      "status": "ok",
+      "subject": "metrics.json"
+    },
+    {
+      "expected": {
+        "schema_version": "slac.report.metrics/v0.1"
+      },
+      "issues": [],
+      "method": "schema_version_field",
+      "observed": {
+        "schema_version": "slac.report.metrics/v0.1"
+      },
+      "scope": "artifact_schema",
+      "status": "ok",
+      "subject": "metrics.json"
+    },
+    {
+      "expected": {
+        "run_id": "2026-10-16T01-53-38Z_a2d2_pandey_mutual_information"
+      },
+      "issues": [],
+      "method": "run_id_field",
+      "observed": {
+        "run_id": "2026-10-16T01-53-38Z_a2d2_pandey_mutual_information"
+      },
+      "scope": "run_consistency",
+      "status": "ok",
+      "subject": "metrics.json"
+    },
+    {
+      "expected": {
+        "path": "evidence.json",
+        "sha256": "347a2942868bbcace9ae278db1d6f9c8bc412c2dfd82ed41ae2534cfb65c401a"
+      },
+      "issues": [],
+      "method": "source_evidence_pointer",
+      "observed": {
+        "path": "evidence.json",
+        "sha256": "347a2942868bbcace9ae278db1d6f9c8bc412c2dfd82ed41ae2534cfb65c401a"
+      },
+      "scope": "source_evidence_link",
+      "status": "ok",
+      "subject": "metrics.json"
+    },
+    {
+      "expected": {
+        "sha256": "30304bfdf34a9dbc242a7a79e992b5dbd57bf27d7f80edbe3b5a927c1ed48cdf",
+        "size_bytes": 915
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "30304bfdf34a9dbc242a7a79e992b5dbd57bf27d7f80edbe3b5a927c1ed48cdf",
+        "size_bytes": 915
+      },
+      "scope": "artifact_digest",
+      "status": "ok",
+      "subject": "observability.json"
+    },
+    {
+      "expected": {
+        "schema_version": "slac.report.observability/v0.1"
+      },
+      "issues": [],
+      "method": "schema_version_field",
+      "observed": {
+        "schema_version": "slac.report.observability/v0.1"
+      },
+      "scope": "artifact_schema",
+      "status": "ok",
+      "subject": "observability.json"
+    },
+    {
+      "expected": {
+        "run_id": "2026-10-16T01-53-38Z_a2d2_pandey_mutual_information"
+      },
+      "issues": [],
+      "method": "run_id_field",
+      "observed": {
+        "run_id": "2026-10-16T01-53-38Z_a2d2_pandey_mutual_information"
+      },
+      "scope": "run_consistency",
+      "status": "ok",
+      "subject": "observability.json"
+    },
+    {
+      "expected": {
+        "path": "evidence.json",
+        "sha256": "347a2942868bbcace9ae278db1d6f9c8bc412c2dfd82ed41ae2534cfb65c401a"
+      },
+      "issues": [],
+      "method": "source_evidence_pointer",
+      "observed": {
+        "path": "evidence.json",
+        "sha256": "347a2942868bbcace9ae278db1d6f9c8bc412c2dfd82ed41ae2534cfb65c401a"
+      },
+      "scope": "source_evidence_link",
+      "status": "ok",
+      "subject": "observability.json"
+    },
+    {
+      "expected": {
+        "sha256": "6b0d3ab44b2fdc42cc1402dedb1605978c9839ba0d8732cb89e3a17b75f14908",
+        "size_bytes": 2109
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "6b0d3ab44b2fdc42cc1402dedb1605978c9839ba0d8732cb89e3a17b75f14908",
+        "size_bytes": 2109
+      },
+      "scope": "artifact_digest",
+      "status": "ok",
+      "subject": "degeneracy.json"
+    },
+    {
+      "expected": {
+        "schema_version": "slac.report.degeneracy/v0.1"
+      },
+      "issues": [],
+      "method": "schema_version_field",
+      "observed": {
+        "schema_version": "slac.report.degeneracy/v0.1"
+      },
+      "scope": "artifact_schema",
+      "status": "ok",
+      "subject": "degeneracy.json"
+    },
+    {
+      "expected": {
+        "run_id": "2026-10-16T01-53-38Z_a2d2_pandey_mutual_information"
+      },
+      "issues": [],
+      "method": "run_id_field",
+      "observed": {
+        "run_id": "2026-10-16T01-53-38Z_a2d2_pandey_mutual_information"
+      },
+      "scope": "run_consistency",
+      "status": "ok",
+      "subject": "degeneracy.json"
+    },
+    {
+      "expected": {
+        "path": "evidence.json",
+        "sha256": "347a2942868bbcace9ae278db1d6f9c8bc412c2dfd82ed41ae2534cfb65c401a"
+      },
+      "issues": [],
+      "method": "source_evidence_pointer",
+      "observed": {
+        "path": "evidence.json",
+        "sha256": "347a2942868bbcace9ae278db1d6f9c8bc412c2dfd82ed41ae2534cfb65c401a"
+      },
+      "scope": "source_evidence_link",
+      "status": "ok",
+      "subject": "degeneracy.json"
+    },
+    {
+      "expected": {
+        "sha256": "347a2942868bbcace9ae278db1d6f9c8bc412c2dfd82ed41ae2534cfb65c401a",
+        "size_bytes": 2039
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "347a2942868bbcace9ae278db1d6f9c8bc412c2dfd82ed41ae2534cfb65c401a",
+        "size_bytes": 2039
+      },
+      "scope": "artifact_digest",
+      "status": "ok",
+      "subject": "evidence.json"
+    },
+    {
+      "expected": {
+        "schema_version": "slac.report.evidence/v0.1"
+      },
+      "issues": [],
+      "method": "schema_version_field",
+      "observed": {
+        "schema_version": "slac.report.evidence/v0.1"
+      },
+      "scope": "artifact_schema",
+      "status": "ok",
+      "subject": "evidence.json"
+    },
+    {
+      "expected": {
+        "run_id": "2026-10-16T01-53-38Z_a2d2_pandey_mutual_information"
+      },
+      "issues": [],
+      "method": "run_id_field",
+      "observed": {
+        "run_id": "2026-10-16T01-53-38Z_a2d2_pandey_mutual_information"
+      },
+      "scope": "run_consistency",
+      "status": "ok",
+      "subject": "evidence.json"
+    },
+    {
+      "expected": {
+        "sha256": "959a69e6f915273c91f75d2ab39b011718011af34bb425886fb7d4fade1aaea5",
+        "size_bytes": 1925
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "959a69e6f915273c91f75d2ab39b011718011af34bb425886fb7d4fade1aaea5",
+        "size_bytes": 1925
+      },
+      "scope": "artifact_digest",
+      "status": "ok",
+      "subject": "assessment.json"
+    },
+    {
+      "expected": {
+        "schema_version": "slac.assessment/v0.1"
+      },
+      "issues": [],
+      "method": "schema_version_field",
+      "observed": {
+        "schema_version": "slac.assessment/v0.1"
+      },
+      "scope": "artifact_schema",
+      "status": "ok",
+      "subject": "assessment.json"
+    },
+    {
+      "expected": {
+        "run_id": "2026-10-16T01-53-38Z_a2d2_pandey_mutual_information"
+      },
+      "issues": [],
+      "method": "run_id_field",
+      "observed": {
+        "reason": "artifact has no run object"
+      },
+      "scope": "run_consistency",
+      "status": "skipped",
+      "subject": "assessment.json"
+    },
+    {
+      "expected": {
+        "path": "evidence.json",
+        "sha256": "347a2942868bbcace9ae278db1d6f9c8bc412c2dfd82ed41ae2534cfb65c401a"
+      },
+      "issues": [],
+      "method": "source_evidence_pointer",
+      "observed": {
+        "path": "evidence.json",
+        "sha256": "347a2942868bbcace9ae278db1d6f9c8bc412c2dfd82ed41ae2534cfb65c401a"
+      },
+      "scope": "assessment_source",
+      "status": "ok",
+      "subject": "assessment.json"
+    },
+    {
+      "expected": {
+        "policy_sha256": "ee1ccd4392ac5a4731dbe49daf51b49dc722bb8943cc6d49810eaa99fe4ae900",
+        "reason": "1 falsification policy gate(s) were inconclusive; 0 failed",
+        "rule_ids": [
+          "raw_recomputation",
+          "protocol_declared"
+        ],
+        "rules_sha256": "74b453b3150da6453f57534615bd67a22897f1e1b4bcebcc9d5bf55d1f8cc1af",
+        "source_evidence_sha256": "347a2942868bbcace9ae278db1d6f9c8bc412c2dfd82ed41ae2534cfb65c401a",
+        "status": "inconclusive"
+      },
+      "issues": [],
+      "method": "assessment_recompute_match",
+      "observed": {
+        "policy_sha256": "ee1ccd4392ac5a4731dbe49daf51b49dc722bb8943cc6d49810eaa99fe4ae900",
+        "reason": "1 falsification policy gate(s) were inconclusive; 0 failed",
+        "rule_ids": [
+          "raw_recomputation",
+          "protocol_declared"
+        ],
+        "rules_sha256": "74b453b3150da6453f57534615bd67a22897f1e1b4bcebcc9d5bf55d1f8cc1af",
+        "source_evidence_sha256": "347a2942868bbcace9ae278db1d6f9c8bc412c2dfd82ed41ae2534cfb65c401a",
+        "status": "inconclusive"
+      },
+      "scope": "assessment_source",
+      "status": "ok",
+      "subject": "assessment.json"
+    },
+    {
+      "expected": {
+        "sha256": "6d3f556b2ace8c0a6fdda5f2f2ad597ec1131d0cb8be92e95ce2aea7d34043ff",
+        "size_bytes": 490
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "6d3f556b2ace8c0a6fdda5f2f2ad597ec1131d0cb8be92e95ce2aea7d34043ff",
+        "size_bytes": 490
+      },
+      "scope": "artifact_digest",
+      "status": "ok",
+      "subject": "protocol.json"
+    },
+    {
+      "expected": {
+        "schema_version": "slac.protocol/v0.1"
+      },
+      "issues": [],
+      "method": "schema_version_field",
+      "observed": {
+        "schema_version": "slac.protocol/v0.1"
+      },
+      "scope": "artifact_schema",
+      "status": "ok",
+      "subject": "protocol.json"
+    },
+    {
+      "expected": {
+        "run_id": "2026-10-16T01-53-38Z_a2d2_pandey_mutual_information"
+      },
+      "issues": [],
+      "method": "run_id_field",
+      "observed": {
+        "run_id": "2026-10-16T01-53-38Z_a2d2_pandey_mutual_information"
+      },
+      "scope": "run_consistency",
+      "status": "ok",
+      "subject": "protocol.json"
+    },
+    {
+      "expected": {
+        "primary_evidence_path": "evidence.json",
+        "protocol_count": 0,
+        "protocols_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "issues": [],
+      "method": "protocols_match_primary_evidence",
+      "observed": {
+        "protocol_count": 0,
+        "protocols_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "scope": "protocol_evidence_link",
+      "status": "ok",
+      "subject": "protocol.json"
+    },
+    {
+      "expected": {
+        "sha256": "d7062f64af54793fde41d52f4dce4afb1c0e73088f0cc875e5f5870f5b263ea5",
+        "size_bytes": 1773
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "d7062f64af54793fde41d52f4dce4afb1c0e73088f0cc875e5f5870f5b263ea5",
+        "size_bytes": 1773
+      },
+      "scope": "artifact_digest",
+      "status": "ok",
+      "subject": "policy.json"
+    },
+    {
+      "expected": {
+        "schema_version": "slac.policy/v0.1"
+      },
+      "issues": [],
+      "method": "schema_version_field",
+      "observed": {
+        "schema_version": "slac.policy/v0.1"
+      },
+      "scope": "artifact_schema",
+      "status": "ok",
+      "subject": "policy.json"
+    },
+    {
+      "expected": {
+        "run_id": "2026-10-16T01-53-38Z_a2d2_pandey_mutual_information"
+      },
+      "issues": [],
+      "method": "run_id_field",
+      "observed": {
+        "run_id": "2026-10-16T01-53-38Z_a2d2_pandey_mutual_information"
+      },
+      "scope": "run_consistency",
+      "status": "ok",
+      "subject": "policy.json"
+    },
+    {
+      "expected": {
+        "gate_rule_ids": [
+          "raw_recomputation",
+          "protocol_declared"
+        ],
+        "gates_sha256": "ace0c3baccdea45e4da60c17b9274dffde6c4f6c441c24068f82edccbebb156b",
+        "policy_sha256": "ee1ccd4392ac5a4731dbe49daf51b49dc722bb8943cc6d49810eaa99fe4ae900"
+      },
+      "issues": [],
+      "method": "policy_matches_assessment",
+      "observed": {
+        "gate_rule_ids": [
+          "raw_recomputation",
+          "protocol_declared"
+        ],
+        "gates_sha256": "ace0c3baccdea45e4da60c17b9274dffde6c4f6c441c24068f82edccbebb156b",
+        "policy_sha256": "ee1ccd4392ac5a4731dbe49daf51b49dc722bb8943cc6d49810eaa99fe4ae900"
+      },
+      "scope": "policy_assessment_link",
+      "status": "ok",
+      "subject": "policy.json"
+    },
+    {
+      "expected": {
+        "sha256": "afe357b1b336f63723f74d1b1c944901a2273598d655120ee18dc7961c33b681",
+        "size_bytes": 4967
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "afe357b1b336f63723f74d1b1c944901a2273598d655120ee18dc7961c33b681",
+        "size_bytes": 4967
+      },
+      "scope": "artifact_digest",
+      "status": "ok",
+      "subject": "transforms.json"
+    },
+    {
+      "expected": {
+        "schema_version": "slac.transforms/v0.1"
+      },
+      "issues": [],
+      "method": "schema_version_field",
+      "observed": {
+        "schema_version": "slac.transforms/v0.1"
+      },
+      "scope": "artifact_schema",
+      "status": "ok",
+      "subject": "transforms.json"
+    },
+    {
+      "expected": {
+        "run_id": "2026-10-16T01-53-38Z_a2d2_pandey_mutual_information"
+      },
+      "issues": [],
+      "method": "run_id_field",
+      "observed": {
+        "run_id": "2026-10-16T01-53-38Z_a2d2_pandey_mutual_information"
+      },
+      "scope": "run_consistency",
+      "status": "ok",
+      "subject": "transforms.json"
+    },
+    {
+      "expected": {
+        "path": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\cams_lidars.json",
+        "sha256": "ffec04167050b9c0397121720b8f0bad2cacee83d03c1b7e864619394629c8d2",
+        "size_bytes": 10971
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "ffec04167050b9c0397121720b8f0bad2cacee83d03c1b7e864619394629c8d2",
+        "size_bytes": 10971
+      },
+      "scope": "input_file_digest",
+      "status": "ok",
+      "subject": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\cams_lidars.json"
+    },
+    {
+      "expected": {
+        "path": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\20180810150607_camera_frontleft_000000060.png",
+        "sha256": "b07c5bc0c985a0fa9604c81b03649033855dde6f7587a4dc33e0d6216e958aca",
+        "size_bytes": 3008998
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "b07c5bc0c985a0fa9604c81b03649033855dde6f7587a4dc33e0d6216e958aca",
+        "size_bytes": 3008998
+      },
+      "scope": "input_file_digest",
+      "status": "ok",
+      "subject": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\20180810150607_camera_frontleft_000000060.png"
+    },
+    {
+      "expected": {
+        "path": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\20180810150607_lidar_frontleft_000000060.npz",
+        "sha256": "1605ad835324e73d31998c94493c646307716404662d3e446a15d3f3f0616c63",
+        "size_bytes": 2977425
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "1605ad835324e73d31998c94493c646307716404662d3e446a15d3f3f0616c63",
+        "size_bytes": 2977425
+      },
+      "scope": "input_file_digest",
+      "status": "ok",
+      "subject": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\20180810150607_lidar_frontleft_000000060.npz"
+    },
+    {
+      "expected": {
+        "path": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\20180810150607_camera_frontleft_000000061.png",
+        "sha256": "a1389f0ed253dc0fe84d175034edfe6159e3f220813776c601a7455e01f00616",
+        "size_bytes": 3010263
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "a1389f0ed253dc0fe84d175034edfe6159e3f220813776c601a7455e01f00616",
+        "size_bytes": 3010263
+      },
+      "scope": "input_file_digest",
+      "status": "ok",
+      "subject": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\20180810150607_camera_frontleft_000000061.png"
+    },
+    {
+      "expected": {
+        "path": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\20180810150607_lidar_frontleft_000000061.npz",
+        "sha256": "fee0b3ef3f347e422ee38c01fe41b2722b1148a076062b9c4a0df9a42dd24f91",
+        "size_bytes": 2946473
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "fee0b3ef3f347e422ee38c01fe41b2722b1148a076062b9c4a0df9a42dd24f91",
+        "size_bytes": 2946473
+      },
+      "scope": "input_file_digest",
+      "status": "ok",
+      "subject": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\20180810150607_lidar_frontleft_000000061.npz"
+    }
+  ],
+  "verification_summary": {
+    "by_scope": {
+      "artifact_digest": 10,
+      "artifact_schema": 9,
+      "assessment_source": 2,
+      "bundle_manifest": 1,
+      "input_file_digest": 5,
+      "policy_assessment_link": 1,
+      "protocol_evidence_link": 1,
+      "run_consistency": 10,
+      "source_evidence_link": 4
+    },
+    "failed": 0,
+    "ok": 41,
+    "skipped": 2,
+    "total": 43
+  }
+}

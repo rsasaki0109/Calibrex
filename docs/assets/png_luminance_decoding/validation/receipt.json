@@ -1,0 +1,55 @@
+{
+  "tests_passed": 129,
+  "runtime_sources": 378,
+  "schemas_unchanged": 130,
+  "runtime_matches_measured_candidate": true,
+  "newline_normalization": "CRLF to LF in both operands",
+  "command": [
+    "python",
+    "-m",
+    "pytest",
+    "tests/unit/test_png_luminance.py",
+    "tests/unit/test_png_luminance_benchmark.py",
+    "tests/unit/test_dataset.py",
+    "tests/unit/test_public_datasets.py",
+    "tests/unit/test_public_camera_lidar_demo.py",
+    "tests/unit/test_levinson_thrun_online_solver.py",
+    "tests/unit/test_pandey_mutual_information_solver.py",
+    "tests/unit/test_result_provenance.py",
+    "tests/unit/test_report.py",
+    "tests/integration/test_a2d2_levinson_thrun_online.py",
+    "tests/integration/test_a2d2_pandey_mutual_information.py",
+    "--basetemp",
+    "outputs/png-luminance-final-checks-v1/tmp-final",
+    "-p",
+    "no:cacheprovider",
+    "--override-ini",
+    "addopts=--disable-plugin-autoload",
+    "-q"
+  ],
+  "provenance": {
+    "source_manifest_sha256": "7e417a8c8a8f61202f35d7a11c6288f6ed5cfaecfba44b81518cf875e3d806c1",
+    "protocol_sha256": "119aa902a5bcc10a620856e72a76b6505a0ccab8d377107adc36414c385e3555",
+    "binder_sha256": "9966fdf68771956275b8ebf5328cfb056749b2a2c58a65149a0f74192c59a186",
+    "test_sources": {
+      "tests/unit/test_png_luminance.py": "3a2486b79e652a1e5d9576060c226813a76575f50c8ec76c48d5ab835cd7d572",
+      "tests/unit/test_png_luminance_benchmark.py": "0a98d3d359bf02e219f1b9cdb67240c77ac15a1faed0d157e2ae27439de42628",
+      "tests/unit/test_dataset.py": "0017b3c6744eab07334fd58cb9986dccd3e6bf1069e9cb42b1c805aa470b383e",
+      "tests/unit/test_public_datasets.py": "da2d7d2d1d849db1e9d53833539673bdcfe6d15ae851ddd9f7e7fc679561df69",
+      "tests/unit/test_public_camera_lidar_demo.py": "75e3c4df32d7192e527c692b9a3a9b44fad91ad85e55abb28ad06b7bbf3e1d65",
+      "tests/unit/test_levinson_thrun_online_solver.py": "c2be841b68c3c0826d5777fef95071762b52cd09a3a4c1ee90a794819ce17451",
+      "tests/unit/test_pandey_mutual_information_solver.py": "93ca9f3179951df9a9a77a48be3d3315a89593f930c966c319e23b41129fd71d",
+      "tests/unit/test_result_provenance.py": "3913dbb9cc78c584c4cf26e52b54b6c83bdf2aa7719374f84c0f838efc433247",
+      "tests/unit/test_report.py": "1f6c63d6ec326b8597f093b6dc0dcb7cd6684745055f28dfb5aab7d9b30070be",
+      "tests/integration/test_a2d2_levinson_thrun_online.py": "0cf514758a92ab3d2ba630d40405d0da9f1a54980bf29d9729e55d95a76f10ff",
+      "tests/integration/test_a2d2_pandey_mutual_information.py": "03926cc2c77da877f66e46b90f9842ba1900a41135ab633396f9dbe2ff829cc7"
+    },
+    "logs": {
+      "tests.log": "2b5d154df638fe3e9011cf2c5cba3de9010d9d9484cb0c1cc6759e64a7f9304e",
+      "ruff.log": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0",
+      "mypy.log": "62f3e1e86defa2594d454d9fa6336de0e5b0be9af3bba225a9b1d7d3c7464f7a",
+      "docs.log": "c26b4f87a7c75cf511ee5eb204e652a28e81bfadf2dd79e0a269b7270bdb5e65"
+    },
+    "schema_parity_sha256": "1a740801db15db31c50bd4a0df85721a3d13403938714ff7fc3d84759e025f7e"
+  }
+}

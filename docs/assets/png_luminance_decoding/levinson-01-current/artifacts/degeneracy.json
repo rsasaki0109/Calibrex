@@ -1,0 +1,41 @@
+{
+  "degeneracy": {
+    "grade": "warn",
+    "reason": "native SLAC observability and degeneracy analysis are not implemented in this alpha; A2D2 clouds are pre-registered into the camera view; monitoring is not independent extrinsic accuracy evidence; A2D2 boundary flags replace Eq.2 near-side beam-neighbor extraction because the view-filtered NPZ does not preserve organized beam neighborhoods; the two-frame public sample uses w=1; the paper's robust w=9 window is not available and no deployment claim is allowed"
+  },
+  "metrics": {},
+  "quality_warnings": [
+    "dynamic-object holdout and radar-camera-lidar timing checks are required before deployment",
+    "Eq.4 monitor on a pre-registered single-frame public window",
+    "paper reports robust monitoring with w=9; public sample contains two frames",
+    "support-normalized companion to the paper's raw Eq.3 objective",
+    "A2D2 boundary flags replace unavailable organized-beam Eq.2 extraction",
+    "6/12 signed shadow-holdout controls detected",
+    "A2D2 clouds are distributed already mapped into the camera view",
+    "fraction of 728 non-center grid candidates below the center objective",
+    "alpha pipeline emitted initial values; production solver is not yet enabled",
+    "T_base_link_lidar0: transform uncertainty is provisional",
+    "native SLAC observability and degeneracy analysis are not implemented in this alpha; A2D2 clouds are pre-registered into the camera view; monitoring is not independent extrinsic accuracy evidence; A2D2 boundary flags replace Eq.2 near-side beam-neighbor extraction because the view-filtered NPZ does not preserve organized beam neighborhoods; the two-frame public sample uses w=1; the paper's robust w=9 window is not available and no deployment claim is allowed"
+  ],
+  "recommendations": [
+    "collect motion with richer yaw, pitch, roll, and translation excitation",
+    "validate camera-lidar-radar timing on driving logs with dynamic objects held out"
+  ],
+  "run": {
+    "created_at": "2026-10-16T01:52:22.789300+00:00",
+    "dataset_path": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information",
+    "dataset_type": "a2d2_lidar",
+    "domain": "autonomous_driving",
+    "git_commit": "183fb3d1221d118a20006b615d594bbf4fdc9875",
+    "id": "2026-10-16T01-52-22Z_a2d2_levinson_thrun_online_monitor",
+    "slac_version": "0.5.1",
+    "status": "warning"
+  },
+  "schema_version": "slac.report.degeneracy/v0.1",
+  "source_evidence": {
+    "path": "evidence.json",
+    "run_id": "2026-10-16T01-52-22Z_a2d2_levinson_thrun_online_monitor",
+    "schema_version": "slac.report.evidence/v0.1",
+    "sha256": "5da8df61642d114173fc7994778f49065f67cdd86aa9e679c519c3d0d95edc15"
+  }
+}

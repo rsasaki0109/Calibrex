@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Calibrex Report - 2026-10-16T01-52-15Z_a2d2_levinson_thrun_online_monitor</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; color: #182026; }
+    main { max-width: 1100px; margin: 0 auto; }
+    .grade {
+      display: inline-block;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+    .pass { background: #d9f0e3; color: #125c35; }
+    .warn { background: #fff0c2; color: #6a4a00; }
+    .fail { background: #ffd9d9; color: #7a1616; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0 2rem; }
+    th, td { border: 1px solid #d6dce1; padding: 0.5rem; text-align: left; vertical-align: top; }
+    th { background: #eef2f4; }
+    .metric-warn { background: #fffaf0; }
+    .metric-fail { background: #fff1f1; }
+    .banner {
+      border: 1px solid #f0c36d;
+      border-radius: 6px;
+      background: #fff8e6;
+      color: #5d4100;
+      padding: 0.75rem;
+      margin: 1rem 0 1.5rem;
+    }
+    .scoreboard {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0.75rem;
+      margin: 1rem 0 2rem;
+    }
+    .scorecard {
+      border: 1px solid #d6dce1;
+      border-radius: 6px;
+      padding: 0.75rem;
+      background: #f8fafb;
+    }
+    .scorecard .label {
+      color: #53616c;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .scorecard .value {
+      display: block;
+      margin-top: 0.35rem;
+      font-size: 1.35rem;
+      font-weight: 800;
+    }
+    .scorecard .detail {
+      color: #53616c;
+      display: block;
+      margin-top: 0.25rem;
+      font-size: 0.85rem;
+    }
+    code { background: #eef2f4; padding: 0.1rem 0.25rem; border-radius: 3px; }
+    .gate-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2px;
+      margin: 0.75rem 0 1.25rem;
+    }
+    .gate-cell {
+      width: 14px;
+      height: 28px;
+      border-radius: 2px;
+      border: 1px solid rgba(24, 32, 38, 0.12);
+      cursor: default;
+    }
+    .gate-pass { background: #d9f0e3; }
+    .gate-fail { background: #ffd9d9; }
+    .gate-inconclusive { background: #fff0c2; }
+    .online-chart {
+      display: block;
+      width: 100%;
+      max-width: 900px;
+      height: auto;
+      margin: 0.75rem 0 1.5rem;
+      border: 1px solid #d6dce1;
+      border-radius: 6px;
+      background: #fcfdfe;
+    }
+    .chart-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin: 0.25rem 0 1rem;
+      font-size: 0.85rem;
+      color: #53616c;
+    }
+    .legend-swatch {
+      display: inline-block;
+      width: 1rem;
+      height: 0.2rem;
+      margin-right: 0.35rem;
+      vertical-align: middle;
+      border-radius: 1px;
+    }
+    .rank-lifted { background: #e8f4fc; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Calibrex Calibration Report</h1>
+  <p>Run <code>2026-10-16T01-52-15Z_a2d2_levinson_thrun_online_monitor</code> finished with
+    <span class="grade warn">
+      WARN
+    </span>.
+  </p>
+  
+  
+  <h2>Calibration Scoreboard</h2>
+  <section class="scoreboard" aria-label="Calibration scoreboard">
+    <div class="scorecard"><span class="label">Overall</span><span class="value grade warn">WARN</span><span class="detail">11 warnings, 0 blocking failures</span></div>
+    <div class="scorecard"><span class="label">Metric Grades</span><span class="value">PASS 4 / WARN 9 / FAIL 0</span><span class="detail">13 total</span></div>
+    <div class="scorecard"><span class="label">Transform Grades</span><span class="value">PASS 1 / WARN 1 / FAIL 0</span><span class="detail">2 optimized</span></div>
+    <div class="scorecard"><span class="label">Candidate Matches</span><span class="value">0 / 2</span><span class="detail">candidate-reference edges</span></div>
+    <div class="scorecard"><span class="label">Weak DoF</span><span class="value grade pass">0</span><span class="detail">no weak directions reported</span></div>
+    <div class="scorecard"><span class="label">Degeneracy</span><span class="value grade warn">WARN</span><span class="detail">native SLAC observability and degeneracy analysis are not implemented in this alpha; A2D2 clouds are pre-registered into the camera view; monitoring is not independent extrinsic accuracy evidence; A2D2 boundary flags replace Eq.2 near-side beam-neighbor extraction because the view-filtered NPZ does not preserve organized beam neighborhoods; the two-frame public sample uses w=1; the paper&#x27;s robust w=9 window is not available and no deployment claim is allowed</span></div>
+    <div class="scorecard"><span class="label">Artifacts</span><span class="value">2</span><span class="detail">linked report outputs</span></div>
+  </section>
+
+  <h2>Provenance</h2>
+  <table>
+    <tr><th>Legacy Wire Producer Version</th><td>0.5.1</td></tr>
+    <tr><th>Domain</th><td>autonomous_driving</td></tr>
+    <tr><th>Git Commit</th><td>183fb3d1221d118a20006b615d594bbf4fdc9875</td></tr>
+    <tr><th>Config SHA256</th><td>e3255d3e749c654ae277737ed9c6d96398ad5b6cd8e5cb2b18f1d48d0d250e53</td></tr>
+    <tr><th>Dataset SHA256</th><td>cba0953944e2cb1fa1a1e1b235b37f2e73b2cf9b6e8a8eb0406de9c8301e1a48</td></tr>
+  </table>
+  <h2>Quality</h2>
+  <h3>Failures</h3>
+  <ul><li>None</li></ul>
+  <h3>Warnings</h3>
+  <ul><li>dynamic-object holdout and radar-camera-lidar timing checks are required before deployment</li><li>Eq.4 monitor on a pre-registered single-frame public window</li><li>paper reports robust monitoring with w=9; public sample contains two frames</li><li>support-normalized companion to the paper&#x27;s raw Eq.3 objective</li><li>A2D2 boundary flags replace unavailable organized-beam Eq.2 extraction</li><li>6/12 signed shadow-holdout controls detected</li><li>A2D2 clouds are distributed already mapped into the camera view</li><li>fraction of 728 non-center grid candidates below the center objective</li><li>alpha pipeline emitted initial values; production solver is not yet enabled</li><li>T_base_link_lidar0: transform uncertainty is provisional</li><li>native SLAC observability and degeneracy analysis are not implemented in this alpha; A2D2 clouds are pre-registered into the camera view; monitoring is not independent extrinsic accuracy evidence; A2D2 boundary flags replace Eq.2 near-side beam-neighbor extraction because the view-filtered NPZ does not preserve organized beam neighborhoods; the two-frame public sample uses w=1; the paper&#x27;s robust w=9 window is not available and no deployment claim is allowed</li></ul>
+  <h3>Recommendations</h3>
+  <ul><li>collect motion with richer yaw, pitch, roll, and translation excitation</li><li>validate camera-lidar-radar timing on driving logs with dynamic objects held out</li></ul>
+  <h2>Observability</h2>
+  <table>
+    <tr><th>Field</th><th>Value</th></tr>
+    <tr><td>Grade</td><td>PASS</td></tr>
+<tr><td>Rank</td><td>6</td></tr>
+<tr><td>Condition Number</td><td>58.5318</td></tr>
+<tr><td>Weak Directions</td><td>None</td></tr>
+<tr><td>Degeneracy Grade</td><td>WARN</td></tr>
+<tr><td>Degeneracy Reason</td><td>native SLAC observability and degeneracy analysis are not implemented in this alpha; A2D2 clouds are pre-registered into the camera view; monitoring is not independent extrinsic accuracy evidence; A2D2 boundary flags replace Eq.2 near-side beam-neighbor extraction because the view-filtered NPZ does not preserve organized beam neighborhoods; the two-frame public sample uses w=1; the paper&#x27;s robust w=9 window is not available and no deployment claim is allowed</td></tr>
+  </table>
+  
+  <h2>Falsification Assessment</h2>
+  <p>
+    Status:
+    <span class="grade warn">
+      INCONCLUSIVE
+    </span>
+    1 falsification policy gate(s) were inconclusive; 0 failed
+  </p>
+  <table>
+    <tr><th>Rule</th><th>Status</th><th>Reason</th><th>Observed</th><th>Thresholds</th></tr>
+    <tr class="pass"><td>raw_recomputation</td><td>PASS</td><td>evidence was materialized from recomputed metrics with verified raw inputs</td><td>data_verified=true, input_digest_count=5, input_file_count=5, metrics_origin=recomputed</td><td></td></tr>
+<tr class="warn"><td>protocol_declared</td><td>INCONCLUSIVE</td><td>no supported evidence protocol is declared</td><td></td><td></td></tr>
+  </table>
+
+  
+  
+  
+  
+  <h2>Artifacts</h2>
+  <table>
+    <tr><th>Name</th><th>Path</th></tr>
+    <tr><td>html_report</td><td><a href="C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\report.html"><code>C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\report.html</code></a></td></tr>
+<tr><td>rig_3d_viewer</td><td><a href="C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\artifacts\rig_3d.html"><code>C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\artifacts\rig_3d.html</code></a></td></tr>
+<tr><td>summary</td><td><a href="C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\summary.json"><code>C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\summary.json</code></a></td></tr>
+<tr><td>metrics</td><td><a href="C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\metrics.json"><code>C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\metrics.json</code></a></td></tr>
+<tr><td>observability</td><td><a href="C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\observability.json"><code>C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\observability.json</code></a></td></tr>
+<tr><td>degeneracy</td><td><a href="C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\degeneracy.json"><code>C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\degeneracy.json</code></a></td></tr>
+<tr><td>evidence</td><td><a href="C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\evidence.json"><code>C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\evidence.json</code></a></td></tr>
+<tr><td>assessment</td><td><a href="C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\assessment.json"><code>C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\assessment.json</code></a></td></tr>
+<tr><td>protocol</td><td><a href="C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\protocol.json"><code>C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\protocol.json</code></a></td></tr>
+<tr><td>policy</td><td><a href="C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\policy.json"><code>C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\policy.json</code></a></td></tr>
+<tr><td>transforms</td><td><a href="C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\transforms.json"><code>C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\transforms.json</code></a></td></tr>
+<tr><td>bundle</td><td><a href="C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\bundle.json"><code>C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\bundle.json</code></a></td></tr>
+<tr><td>verification</td><td><a href="C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\verification.json"><code>C:\Users\rsasa\Workspace\Calibrex\outputs\png-luminance-formal-v1\levinson-00-current\artifacts\verification.json</code></a></td></tr>
+  </table>
+  <h2>Metrics</h2>
+  <table>
+    <tr><th>Name</th><th>Grade</th><th>Train</th><th>Holdout</th><th>Value</th><th>Unit</th><th>Reason</th></tr>
+    <tr><td>autonomous_driving_dynamic_holdout</td><td>WARN</td><td></td><td></td><td></td><td></td><td>dynamic-object holdout and radar-camera-lidar timing checks are required before deployment</td></tr>
+<tr><td>dataset_exists</td><td>PASS</td><td></td><td></td><td>1</td><td></td><td>dataset_exists=1; pass &gt;= 1, warn &gt;= 0.5</td></tr>
+<tr><td>levinson_calibrated_probability</td><td>WARN</td><td></td><td></td><td>1.55361e-243</td><td>probability</td><td>Eq.4 monitor on a pre-registered single-frame public window</td></tr>
+<tr><td>levinson_default_window_complete</td><td>WARN</td><td></td><td></td><td>0</td><td>bool</td><td>paper reports robust monitoring with w=9; public sample contains two frames</td></tr>
+<tr><td>levinson_edge_objective</td><td>WARN</td><td>39.826</td><td>39.1303</td><td></td><td></td><td>support-normalized companion to the paper&#x27;s raw Eq.3 objective</td></tr>
+<tr><td>levinson_equation_2_recomputed</td><td>WARN</td><td></td><td></td><td>0</td><td>bool</td><td>A2D2 boundary flags replace unavailable organized-beam Eq.2 extraction</td></tr>
+<tr><td>levinson_known_bad_detectable_fraction</td><td>WARN</td><td></td><td></td><td>0.5</td><td>fraction</td><td>6/12 signed shadow-holdout controls detected</td></tr>
+<tr><td>levinson_objective_curvature_rank</td><td>PASS</td><td></td><td></td><td>6</td><td>rank</td><td>negative held-out objective Hessian; not covariance</td></tr>
+<tr><td>levinson_projected_boundary_point_count</td><td>PASS</td><td>1827</td><td>1842</td><td></td><td>points</td><td></td></tr>
+<tr><td>levinson_public_accuracy_independent</td><td>WARN</td><td></td><td></td><td>0</td><td>bool</td><td>A2D2 clouds are distributed already mapped into the camera view</td></tr>
+<tr><td>levinson_worsening_fraction</td><td>WARN</td><td></td><td></td><td>0.528846</td><td>fraction</td><td>fraction of 728 non-center grid candidates below the center objective</td></tr>
+<tr><td>prototype_solver</td><td>WARN</td><td></td><td></td><td>0</td><td></td><td>alpha pipeline emitted initial values; production solver is not yet enabled</td></tr>
+<tr><td>schema_validation</td><td>PASS</td><td></td><td></td><td>1</td><td></td><td>schema_validation=1; pass &gt;= 1, warn &gt;= 0.5</td></tr>
+  </table>
+  <h2>Transforms</h2>
+  <table>
+    <tr>
+      <th>Name</th><th>Parent</th><th>Child</th>
+      <th>Translation m</th><th>Quaternion xyzw</th><th>Grade</th>
+    </tr>
+    <tr><td>T_base_link_camera0</td><td>base_link</td><td>camera0</td><td>[0.0, 0.0, 0.0]</td><td>[0.0, 0.0, 0.0, 1.0]</td><td>PASS</td></tr>
+<tr><td>T_base_link_lidar0</td><td>base_link</td><td>lidar0</td><td>[0.0, 0.0, 0.0]</td><td>[0.0, 0.0, 0.0, 1.0]</td><td>WARN</td></tr>
+  </table>
+  <h2>Candidate vs Reference Extrinsics</h2>
+  <table>
+    <tr>
+      <th>Candidate</th><th>Reference</th><th>Edge</th>
+      <th>Translation Delta m</th><th>Rotation Delta deg</th><th>Grade</th>
+    </tr>
+    <tr><td colspan="6">None</td></tr>
+  </table>
+  <h2>Candidate Extrinsics</h2>
+  <table>
+    <tr>
+      <th>Name</th><th>Parent</th><th>Child</th>
+      <th>Translation m</th><th>Quaternion xyzw</th><th>Grade</th>
+    </tr>
+    <tr><td>T_base_link_camera0</td><td>base_link</td><td>camera0</td><td>[0.0, 0.0, 0.0]</td><td>[0.0, 0.0, 0.0, 1.0]</td><td>PASS</td></tr>
+<tr><td>T_base_link_lidar0</td><td>base_link</td><td>lidar0</td><td>[0.0, 0.0, 0.0]</td><td>[0.0, 0.0, 0.0, 1.0]</td><td>WARN</td></tr>
+  </table>
+  <h2>Reference Extrinsics</h2>
+  <table>
+    <tr>
+      <th>Name</th><th>Parent</th><th>Child</th>
+      <th>Translation m</th><th>Quaternion xyzw</th><th>Grade</th>
+    </tr>
+    <tr><td colspan="6">None</td></tr>
+  </table>
+</main>
+</body>
+</html>

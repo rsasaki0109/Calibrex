@@ -1,0 +1,187 @@
+{
+  "metric_families": {
+    "autonomous_driving": {
+      "family": "autonomous_driving",
+      "grade_counts": {
+        "fail": 0,
+        "pass": 0,
+        "warn": 1
+      },
+      "holdout_metric_count": 0,
+      "metric_count": 1,
+      "metrics": [
+        "autonomous_driving_dynamic_holdout"
+      ],
+      "warn_or_fail_metrics": [
+        "autonomous_driving_dynamic_holdout"
+      ],
+      "worst_grade": "warn"
+    },
+    "common": {
+      "family": "common",
+      "grade_counts": {
+        "fail": 0,
+        "pass": 5,
+        "warn": 4
+      },
+      "holdout_metric_count": 2,
+      "metric_count": 9,
+      "metrics": [
+        "pandey_known_bad_detectable_fraction",
+        "pandey_mutual_information_raw",
+        "pandey_objective_curvature_rank",
+        "pandey_preregistered_reference_rotation_error_deg",
+        "pandey_preregistered_reference_translation_error_m",
+        "pandey_projected_point_count",
+        "pandey_public_accuracy_independent",
+        "prototype_solver",
+        "schema_validation"
+      ],
+      "warn_or_fail_metrics": [
+        "pandey_mutual_information_raw",
+        "pandey_preregistered_reference_rotation_error_deg",
+        "pandey_preregistered_reference_translation_error_m",
+        "pandey_public_accuracy_independent"
+      ],
+      "worst_grade": "warn"
+    },
+    "data": {
+      "family": "data",
+      "grade_counts": {
+        "fail": 0,
+        "pass": 1,
+        "warn": 0
+      },
+      "holdout_metric_count": 0,
+      "metric_count": 1,
+      "metrics": [
+        "dataset_exists"
+      ],
+      "warn_or_fail_metrics": [],
+      "worst_grade": "pass"
+    },
+    "lidar_camera": {
+      "family": "lidar_camera",
+      "grade_counts": {
+        "fail": 1,
+        "pass": 2,
+        "warn": 1
+      },
+      "holdout_metric_count": 1,
+      "metric_count": 4,
+      "metrics": [
+        "lidar_camera_mutual_information_score",
+        "lidar_camera_overlay_readiness",
+        "lidar_camera_overlay_score",
+        "lidar_camera_transform_pairs"
+      ],
+      "warn_or_fail_metrics": [
+        "lidar_camera_mutual_information_score",
+        "lidar_camera_overlay_score"
+      ],
+      "worst_grade": "fail"
+    }
+  },
+  "metrics": {
+    "autonomous_driving_dynamic_holdout": {
+      "grade": "warn",
+      "reason": "dynamic-object holdout and radar-camera-lidar timing checks are required before deployment"
+    },
+    "dataset_exists": {
+      "grade": "pass",
+      "reason": "dataset_exists=1; pass >= 1, warn >= 0.5",
+      "value": 1.0
+    },
+    "lidar_camera_mutual_information_score": {
+      "grade": "fail",
+      "holdout": 0.0368643411,
+      "reason": "lidar_camera_mutual_information_score=0.0368643; pass >= 0.5, warn >= 0.1",
+      "train": 0.037145770663
+    },
+    "lidar_camera_overlay_readiness": {
+      "grade": "pass",
+      "reason": "lidar_camera_overlay_readiness=1; pass >= 1, warn >= 0",
+      "value": 1.0
+    },
+    "lidar_camera_overlay_score": {
+      "grade": "warn",
+      "reason": "overlay score proxy needs LiDAR point coverage and camera-LiDAR timestamp alignment diagnostics"
+    },
+    "lidar_camera_transform_pairs": {
+      "grade": "pass",
+      "reason": "lidar_camera_transform_pairs=1 pairs; pass >= 1 pairs, warn >= 0 pairs",
+      "unit": "pairs",
+      "value": 1.0
+    },
+    "pandey_known_bad_detectable_fraction": {
+      "grade": "pass",
+      "reason": "10/12 signed held-out controls lowered MI",
+      "unit": "fraction",
+      "value": 0.8333333333333334
+    },
+    "pandey_mutual_information_raw": {
+      "grade": "warn",
+      "holdout": 0.100991276252,
+      "reason": "objective magnitude has no universal accuracy threshold",
+      "train": 0.10253380033,
+      "unit": "nats"
+    },
+    "pandey_objective_curvature_rank": {
+      "grade": "pass",
+      "reason": "negative-MI numerical Hessian rank; not covariance or CRLB",
+      "unit": "rank",
+      "value": 6.0
+    },
+    "pandey_preregistered_reference_rotation_error_deg": {
+      "grade": "warn",
+      "reason": "error to A2D2's distributed camera-view registration; not independent metrology",
+      "unit": "deg",
+      "value": 0.7430093310775634
+    },
+    "pandey_preregistered_reference_translation_error_m": {
+      "grade": "warn",
+      "reason": "error to A2D2's distributed camera-view registration; not independent metrology",
+      "unit": "m",
+      "value": 0.027031235998380216
+    },
+    "pandey_projected_point_count": {
+      "grade": "pass",
+      "holdout": 3988.0,
+      "train": 3947.0,
+      "unit": "points"
+    },
+    "pandey_public_accuracy_independent": {
+      "grade": "warn",
+      "reason": "A2D2 distributes LiDAR points already mapped into the camera view",
+      "unit": "bool",
+      "value": 0.0
+    },
+    "prototype_solver": {
+      "grade": "pass",
+      "reason": "native solver native_pandey_mutual_information produced an output transform",
+      "value": 1.0
+    },
+    "schema_validation": {
+      "grade": "pass",
+      "reason": "schema_validation=1; pass >= 1, warn >= 0.5",
+      "value": 1.0
+    }
+  },
+  "run": {
+    "created_at": "2026-10-16T01:53:19.291935+00:00",
+    "dataset_path": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information",
+    "dataset_type": "a2d2_lidar",
+    "domain": "autonomous_driving",
+    "git_commit": "5478ec42493fb9495cbabba39452c70bff8890be",
+    "id": "2026-10-16T01-53-19Z_a2d2_pandey_mutual_information",
+    "slac_version": "0.5.1",
+    "status": "failed"
+  },
+  "schema_version": "slac.report.metrics/v0.1",
+  "source_evidence": {
+    "path": "evidence.json",
+    "run_id": "2026-10-16T01-53-19Z_a2d2_pandey_mutual_information",
+    "schema_version": "slac.report.evidence/v0.1",
+    "sha256": "88850109289a29e2ed5a7c8fc743e564bc463cb5c21cbbf8d180161066e4d156"
+  }
+}

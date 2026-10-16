@@ -1,0 +1,162 @@
+{
+  "metric_families": {
+    "autonomous_driving": {
+      "family": "autonomous_driving",
+      "grade_counts": {
+        "fail": 0,
+        "pass": 0,
+        "warn": 1
+      },
+      "holdout_metric_count": 0,
+      "metric_count": 1,
+      "metrics": [
+        "autonomous_driving_dynamic_holdout"
+      ],
+      "warn_or_fail_metrics": [
+        "autonomous_driving_dynamic_holdout"
+      ],
+      "worst_grade": "warn"
+    },
+    "common": {
+      "family": "common",
+      "grade_counts": {
+        "fail": 0,
+        "pass": 3,
+        "warn": 8
+      },
+      "holdout_metric_count": 2,
+      "metric_count": 11,
+      "metrics": [
+        "levinson_calibrated_probability",
+        "levinson_default_window_complete",
+        "levinson_edge_objective",
+        "levinson_equation_2_recomputed",
+        "levinson_known_bad_detectable_fraction",
+        "levinson_objective_curvature_rank",
+        "levinson_projected_boundary_point_count",
+        "levinson_public_accuracy_independent",
+        "levinson_worsening_fraction",
+        "prototype_solver",
+        "schema_validation"
+      ],
+      "warn_or_fail_metrics": [
+        "levinson_calibrated_probability",
+        "levinson_default_window_complete",
+        "levinson_edge_objective",
+        "levinson_equation_2_recomputed",
+        "levinson_known_bad_detectable_fraction",
+        "levinson_public_accuracy_independent",
+        "levinson_worsening_fraction",
+        "prototype_solver"
+      ],
+      "worst_grade": "warn"
+    },
+    "data": {
+      "family": "data",
+      "grade_counts": {
+        "fail": 0,
+        "pass": 1,
+        "warn": 0
+      },
+      "holdout_metric_count": 0,
+      "metric_count": 1,
+      "metrics": [
+        "dataset_exists"
+      ],
+      "warn_or_fail_metrics": [],
+      "worst_grade": "pass"
+    }
+  },
+  "metrics": {
+    "autonomous_driving_dynamic_holdout": {
+      "grade": "warn",
+      "reason": "dynamic-object holdout and radar-camera-lidar timing checks are required before deployment"
+    },
+    "dataset_exists": {
+      "grade": "pass",
+      "reason": "dataset_exists=1; pass >= 1, warn >= 0.5",
+      "value": 1.0
+    },
+    "levinson_calibrated_probability": {
+      "grade": "warn",
+      "reason": "Eq.4 monitor on a pre-registered single-frame public window",
+      "unit": "probability",
+      "value": 1.5536119344712312e-243
+    },
+    "levinson_default_window_complete": {
+      "grade": "warn",
+      "reason": "paper reports robust monitoring with w=9; public sample contains two frames",
+      "unit": "bool",
+      "value": 0.0
+    },
+    "levinson_edge_objective": {
+      "grade": "warn",
+      "holdout": 39.13026146608269,
+      "reason": "support-normalized companion to the paper's raw Eq.3 objective",
+      "train": 39.82595059584574
+    },
+    "levinson_equation_2_recomputed": {
+      "grade": "warn",
+      "reason": "A2D2 boundary flags replace unavailable organized-beam Eq.2 extraction",
+      "unit": "bool",
+      "value": 0.0
+    },
+    "levinson_known_bad_detectable_fraction": {
+      "grade": "warn",
+      "reason": "6/12 signed shadow-holdout controls detected",
+      "unit": "fraction",
+      "value": 0.5
+    },
+    "levinson_objective_curvature_rank": {
+      "grade": "pass",
+      "reason": "negative held-out objective Hessian; not covariance",
+      "unit": "rank",
+      "value": 6.0
+    },
+    "levinson_projected_boundary_point_count": {
+      "grade": "pass",
+      "holdout": 1842.0,
+      "train": 1827.0,
+      "unit": "points"
+    },
+    "levinson_public_accuracy_independent": {
+      "grade": "warn",
+      "reason": "A2D2 clouds are distributed already mapped into the camera view",
+      "unit": "bool",
+      "value": 0.0
+    },
+    "levinson_worsening_fraction": {
+      "grade": "warn",
+      "reason": "fraction of 728 non-center grid candidates below the center objective",
+      "unit": "fraction",
+      "value": 0.5288461538461539
+    },
+    "prototype_solver": {
+      "grade": "warn",
+      "reason": "alpha pipeline emitted initial values; production solver is not yet enabled",
+      "value": 0.0
+    },
+    "schema_validation": {
+      "grade": "pass",
+      "reason": "schema_validation=1; pass >= 1, warn >= 0.5",
+      "value": 1.0
+    }
+  },
+  "run": {
+    "created_at": "2026-10-16T01:52:15.666793+00:00",
+    "dataset_path": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information",
+    "dataset_type": "a2d2_lidar",
+    "domain": "autonomous_driving",
+    "git_commit": "183fb3d1221d118a20006b615d594bbf4fdc9875",
+    "id": "2026-10-16T01-52-15Z_a2d2_levinson_thrun_online_monitor",
+    "slac_version": "0.5.1",
+    "status": "warning"
+  },
+  "schema_version": "slac.report.metrics/v0.1",
+  "source_evidence": {
+    "path": "evidence.json",
+    "run_id": "2026-10-16T01-52-15Z_a2d2_levinson_thrun_online_monitor",
+    "schema_version": "slac.report.evidence/v0.1",
+    "sha256": "b297590bc6c2463b2ace73688fb5bb59f4ce6af38e3ad7c5670233032ad60803"
+  }
+}

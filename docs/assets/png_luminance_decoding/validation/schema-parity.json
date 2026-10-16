@@ -1,0 +1,532 @@
+{
+  "exports": {
+    "assessment.schema.json": {
+      "prior": "a050ff86472c1f225b0262b9f76002bbc9bab1ee85696684ed6ca7a38976b629",
+      "current": "a050ff86472c1f225b0262b9f76002bbc9bab1ee85696684ed6ca7a38976b629"
+    },
+    "autoware_export.schema.json": {
+      "prior": "a759d70045699513fe89854868b8e2617ef355bb963d35e80262a04e03b310a7",
+      "current": "a759d70045699513fe89854868b8e2617ef355bb963d35e80262a04e03b310a7"
+    },
+    "autoware_promotion.schema.json": {
+      "prior": "82d736be6219652c6073f775a940c7d1f1a47fad44c0bafd3dc7e2bc699e71b4",
+      "current": "82d736be6219652c6073f775a940c7d1f1a47fad44c0bafd3dc7e2bc699e71b4"
+    },
+    "autoware_smoke.schema.json": {
+      "prior": "eeb471561032c122199882697f307a80265b9e488ef606706c5f9579b1c193c2",
+      "current": "eeb471561032c122199882697f307a80265b9e488ef606706c5f9579b1c193c2"
+    },
+    "bag_estimate.schema.json": {
+      "prior": "c3415a442d7d9092dda53e298f686a1fbe3285e13853eeff47d67de669b69ada",
+      "current": "c3415a442d7d9092dda53e298f686a1fbe3285e13853eeff47d67de669b69ada"
+    },
+    "benchmark.schema.json": {
+      "prior": "26561f1f898b9ce5c891192effa708b4ad5bc4d259fbb6ce3828ff8cba35713b",
+      "current": "26561f1f898b9ce5c891192effa708b4ad5bc4d259fbb6ce3828ff8cba35713b"
+    },
+    "benchmark_definition.schema.json": {
+      "prior": "f57f7b4c7d635dee604598d46fbe689e2eab2700646672c467e86b57c3e9bad9",
+      "current": "f57f7b4c7d635dee604598d46fbe689e2eab2700646672c467e86b57c3e9bad9"
+    },
+    "bullseye_plot.schema.json": {
+      "prior": "0ce83bcf17a860df96d7d7119af4f569d17e463fbb98d8224eccf4bc5a1bde7e",
+      "current": "0ce83bcf17a860df96d7d7119af4f569d17e463fbb98d8224eccf4bc5a1bde7e"
+    },
+    "calibration_candidate_trace.schema.json": {
+      "prior": "2249eecee31236af0276de03bbf6bf7a66deeb96b006bbfc15efaa1a2bec11b7",
+      "current": "2249eecee31236af0276de03bbf6bf7a66deeb96b006bbfc15efaa1a2bec11b7"
+    },
+    "calibration_check.schema.json": {
+      "prior": "26128486bb5ce6f6cc74c62a8ef4b91046b4eb2ee1a65dff69ae3badb731cd29",
+      "current": "26128486bb5ce6f6cc74c62a8ef4b91046b4eb2ee1a65dff69ae3badb731cd29"
+    },
+    "calibration_ci.schema.json": {
+      "prior": "df6c46363a09578cdf83dadd63762e15e4313fea4b6a26a8a101190e244405f5",
+      "current": "df6c46363a09578cdf83dadd63762e15e4313fea4b6a26a8a101190e244405f5"
+    },
+    "calibration_ci_lifecycle.schema.json": {
+      "prior": "2e543497ce56936bf3eb8144b3b65315cdd7379a4b82e3c50f4bca1ad7dcdb04",
+      "current": "2e543497ce56936bf3eb8144b3b65315cdd7379a4b82e3c50f4bca1ad7dcdb04"
+    },
+    "calibration_drift.schema.json": {
+      "prior": "42b107091d755b462625237c22c17ba0294ecf8099e3928990c28efb904af2fe",
+      "current": "42b107091d755b462625237c22c17ba0294ecf8099e3928990c28efb904af2fe"
+    },
+    "calibration_lifecycle.schema.json": {
+      "prior": "2f1a9a1145aed3efb5c7da5b66d7441a57b36a9b467f7ca091c61dd96532ed3b",
+      "current": "2f1a9a1145aed3efb5c7da5b66d7441a57b36a9b467f7ca091c61dd96532ed3b"
+    },
+    "camera_focal_scale.schema.json": {
+      "prior": "72b5ca3413e146f12d37a6180728d79547aa1d045e194c16839b50b88ba5cc41",
+      "current": "72b5ca3413e146f12d37a6180728d79547aa1d045e194c16839b50b88ba5cc41"
+    },
+    "camera_imu_motion_recording.schema.json": {
+      "prior": "23a6286d142ccc3e5f7b31ae9917e56340a87ec1cd397ad8b6d3711a61cc6cf1",
+      "current": "23a6286d142ccc3e5f7b31ae9917e56340a87ec1cd397ad8b6d3711a61cc6cf1"
+    },
+    "camera_imu_service_evaluation.schema.json": {
+      "prior": "25b81c70493dad4fb4580476da9d466d335fe537fb5e72c47abbe53aa09292d2",
+      "current": "25b81c70493dad4fb4580476da9d466d335fe537fb5e72c47abbe53aa09292d2"
+    },
+    "camera_imu_service_plan.schema.json": {
+      "prior": "6005a3af9c08e5a563bec11379b139b4377c9872a5b803e19c8f7a5175ff6b29",
+      "current": "6005a3af9c08e5a563bec11379b139b4377c9872a5b803e19c8f7a5175ff6b29"
+    },
+    "camera_lidar_benchmark_protocol.schema.json": {
+      "prior": "face799ff18b0e3d1a6c2c9d3dd492bf8942cb51de8b7e8dd19f2838a478ce2f",
+      "current": "face799ff18b0e3d1a6c2c9d3dd492bf8942cb51de8b7e8dd19f2838a478ce2f"
+    },
+    "camera_lidar_confidence_calibration.schema.json": {
+      "prior": "f73224ca0bb872631195716075a59dc3450a4b13d8283df81a9cc42bcdbab520",
+      "current": "f73224ca0bb872631195716075a59dc3450a4b13d8283df81a9cc42bcdbab520"
+    },
+    "camera_lidar_correspondence_export.schema.json": {
+      "prior": "1c862db437eddabf2c6aa4af9b3ee72da5ca062222409175ec40834fb7283ced",
+      "current": "1c862db437eddabf2c6aa4af9b3ee72da5ca062222409175ec40834fb7283ced"
+    },
+    "camera_lidar_correspondence_quality.schema.json": {
+      "prior": "22ab05d81eb5d6a32f9a329b5a4f24aceddbcab7ef211b4761dce0de566c4872",
+      "current": "22ab05d81eb5d6a32f9a329b5a4f24aceddbcab7ef211b4761dce0de566c4872"
+    },
+    "camera_lidar_edge.schema.json": {
+      "prior": "da0cbb0a48c9ad42e2453673fa9f042b01bab504ea6d30fa2bd8036bc8f5c597",
+      "current": "da0cbb0a48c9ad42e2453673fa9f042b01bab504ea6d30fa2bd8036bc8f5c597"
+    },
+    "camera_lidar_failure_analysis.schema.json": {
+      "prior": "cc1f7568bff31f5c0c4b90ab6f9c5cddc0624b0234088575d2ee2a2ef3bae2a9",
+      "current": "cc1f7568bff31f5c0c4b90ab6f9c5cddc0624b0234088575d2ee2a2ef3bae2a9"
+    },
+    "camera_lidar_initializer_calibration.schema.json": {
+      "prior": "bf17affe77062b486c5d2e7c104762bb329c79cdeeb1560da6b2182bf55efb8b",
+      "current": "bf17affe77062b486c5d2e7c104762bb329c79cdeeb1560da6b2182bf55efb8b"
+    },
+    "camera_lidar_pose_initializer_failure_analysis.schema.json": {
+      "prior": "0ce1e34d99d7b4eb16f952f25c3645b9558e671ab928b03a57a012aae691d2ab",
+      "current": "0ce1e34d99d7b4eb16f952f25c3645b9558e671ab928b03a57a012aae691d2ab"
+    },
+    "camera_lidar_pose_initializer_protocol.schema.json": {
+      "prior": "3c9d2c90ca2a354e7e9d9b7d0cb2dc001af9e4814fe3604808ada845b57b2d88",
+      "current": "3c9d2c90ca2a354e7e9d9b7d0cb2dc001af9e4814fe3604808ada845b57b2d88"
+    },
+    "camera_lidar_problem.schema.json": {
+      "prior": "af973eee008b369c26580bf6adebeb6479523235bf76e4f6ef36c0fb8e728bed",
+      "current": "af973eee008b369c26580bf6adebeb6479523235bf76e4f6ef36c0fb8e728bed"
+    },
+    "camera_lidar_provider_support_comparison.schema.json": {
+      "prior": "57ed4949efecf9f7a50849cbfa2ab561d958e184ec28d42130b3f68fd7173246",
+      "current": "57ed4949efecf9f7a50849cbfa2ab561d958e184ec28d42130b3f68fd7173246"
+    },
+    "camera_lidar_sota_audit_protocol.schema.json": {
+      "prior": "b9f51c656df1c8cd8735e04d1e1a0d2f61bd1b8085ee044653ce131c03fd3432",
+      "current": "b9f51c656df1c8cd8735e04d1e1a0d2f61bd1b8085ee044653ce131c03fd3432"
+    },
+    "camera_lidar_sota_audit_result.schema.json": {
+      "prior": "6738b1e6eb2315304968a3ceb4f048b839c4e5c24cb46787bb395b808fbfbe21",
+      "current": "6738b1e6eb2315304968a3ceb4f048b839c4e5c24cb46787bb395b808fbfbe21"
+    },
+    "capture_manifest.schema.json": {
+      "prior": "d9f2ee239dd962c096d2730e910478eec97fbd32d8b5812ba89047a30c60cdbb",
+      "current": "d9f2ee239dd962c096d2730e910478eec97fbd32d8b5812ba89047a30c60cdbb"
+    },
+    "capture_manifest_verification.schema.json": {
+      "prior": "c88159027808e11aa5812b5b72a70d8994d93408f6b4fdf3a056fe4d8edcf048",
+      "current": "c88159027808e11aa5812b5b72a70d8994d93408f6b4fdf3a056fe4d8edcf048"
+    },
+    "capture_readiness.schema.json": {
+      "prior": "be9951fbb15068c25e1d2b0de934119b75c320bf406a0fb7def12f8b63897508",
+      "current": "be9951fbb15068c25e1d2b0de934119b75c320bf406a0fb7def12f8b63897508"
+    },
+    "check_frames.schema.json": {
+      "prior": "f755be6a05df3c554fd605cb4a1b43071fe37642c47be1c9716a7538c6050c5f",
+      "current": "f755be6a05df3c554fd605cb4a1b43071fe37642c47be1c9716a7538c6050c5f"
+    },
+    "comparison.schema.json": {
+      "prior": "a4c229aa04f980def35d86cc22474972924fe730009ffcda5addbf827e825770",
+      "current": "a4c229aa04f980def35d86cc22474972924fe730009ffcda5addbf827e825770"
+    },
+    "config.schema.json": {
+      "prior": "b60b2576b32519bf1166e7b7e83cefc7466ec109d6bf53d92c1f5454ce382ee5",
+      "current": "b60b2576b32519bf1166e7b7e83cefc7466ec109d6bf53d92c1f5454ce382ee5"
+    },
+    "continuous_time_camera_lidar_problem.schema.json": {
+      "prior": "0535d27f231c3dbe4db95593186a687a3334ab8458cbc0d9474f2c681f3a0ba6",
+      "current": "0535d27f231c3dbe4db95593186a687a3334ab8458cbc0d9474f2c681f3a0ba6"
+    },
+    "continuous_time_camera_lidar_result.schema.json": {
+      "prior": "0ba259cd2d20cb5711d8c41302f41b88e278033ba378f862644df8ed1a8b53a0",
+      "current": "0ba259cd2d20cb5711d8c41302f41b88e278033ba378f862644df8ed1a8b53a0"
+    },
+    "continuous_time_imu_accel_bias.schema.json": {
+      "prior": "32ec00248d6e0a25c2a5bd0eae0c44f6b56d67ef9b45c0b7c0b548409eb5997c",
+      "current": "32ec00248d6e0a25c2a5bd0eae0c44f6b56d67ef9b45c0b7c0b548409eb5997c"
+    },
+    "continuous_time_imu_clock_offset.schema.json": {
+      "prior": "e1ea2deae6d0ae755e89b6e7d12544241935a0ca5eba5b7473b1655ae2d08c71",
+      "current": "e1ea2deae6d0ae755e89b6e7d12544241935a0ca5eba5b7473b1655ae2d08c71"
+    },
+    "continuous_time_imu_intrinsics.schema.json": {
+      "prior": "9d0dc9ab020efe41034290d9843c20337fc5ec39ff6ff929cd725f76f21a6a3b",
+      "current": "9d0dc9ab020efe41034290d9843c20337fc5ec39ff6ff929cd725f76f21a6a3b"
+    },
+    "continuous_time_imu_lever_arm.schema.json": {
+      "prior": "76410509ca53e04222cae13eac61adecc20c93f5afbd1463896da3ad1f9ec140",
+      "current": "76410509ca53e04222cae13eac61adecc20c93f5afbd1463896da3ad1f9ec140"
+    },
+    "continuous_time_imu_preintegration.schema.json": {
+      "prior": "487d0639e41ff87fb56ce51aedaac7f9ff7b58160386674e3b6736d9116d8173",
+      "current": "487d0639e41ff87fb56ce51aedaac7f9ff7b58160386674e3b6736d9116d8173"
+    },
+    "continuous_time_lidar_ablation.schema.json": {
+      "prior": "a51f742a8f2641227c4e5af91e5129ecebdbf3163e6d05fd369b85ad127edcdc",
+      "current": "a51f742a8f2641227c4e5af91e5129ecebdbf3163e6d05fd369b85ad127edcdc"
+    },
+    "continuous_time_lidar_imu_joint.schema.json": {
+      "prior": "c12354d88307d152808fc7c90b3b1ee21eda26ea47fe4ba5d6087d748d9485ca",
+      "current": "c12354d88307d152808fc7c90b3b1ee21eda26ea47fe4ba5d6087d748d9485ca"
+    },
+    "continuous_time_lidar_pair_result.schema.json": {
+      "prior": "33c9f241d505da0a3be5a483e1e7d9e7fdec8bf3f895305c16c57c5a9949408a",
+      "current": "33c9f241d505da0a3be5a483e1e7d9e7fdec8bf3f895305c16c57c5a9949408a"
+    },
+    "continuous_time_lidar_point_to_plane.schema.json": {
+      "prior": "e5ba11a78e40bb0d9269ece80541d6c4a6f346e69431215ca389f1c39fc69441",
+      "current": "e5ba11a78e40bb0d9269ece80541d6c4a6f346e69431215ca389f1c39fc69441"
+    },
+    "continuous_time_lidar_train_diagnostics.schema.json": {
+      "prior": "ea3eaad1e61d728977d535aff6aa313add7b9374b1c43550ca8672e863735cda",
+      "current": "ea3eaad1e61d728977d535aff6aa313add7b9374b1c43550ca8672e863735cda"
+    },
+    "continuous_time_sliding_window.schema.json": {
+      "prior": "6fa09a7626950911f0578241aeca41f117a5a44ab3bbc4337076739c9c2b66bf",
+      "current": "6fa09a7626950911f0578241aeca41f117a5a44ab3bbc4337076739c9c2b66bf"
+    },
+    "continuous_time_trajectory.schema.json": {
+      "prior": "ad21ab6140fb392c1486f4cbd00d58aa70bbd3efc3d88984f6b180b77b15a2fa",
+      "current": "ad21ab6140fb392c1486f4cbd00d58aa70bbd3efc3d88984f6b180b77b15a2fa"
+    },
+    "continuous_time_trajectory_fit.schema.json": {
+      "prior": "b01a7b32b09b5b71c0b94fd7a7a3d2cbd71cbff4b25e9d80dd390c6b1f93c3cf",
+      "current": "b01a7b32b09b5b71c0b94fd7a7a3d2cbd71cbff4b25e9d80dd390c6b1f93c3cf"
+    },
+    "continuous_time_trajectory_measurements.schema.json": {
+      "prior": "2ed6c0c0238a90d988b2ebf4aef8bfbcd2c0921f29f943d9f6e5574ab09afdeb",
+      "current": "2ed6c0c0238a90d988b2ebf4aef8bfbcd2c0921f29f943d9f6e5574ab09afdeb"
+    },
+    "dataset_manifest.schema.json": {
+      "prior": "94da3a2ea949db513475c6a6900bca133fa003686ea1ffd232ea99894805358c",
+      "current": "94da3a2ea949db513475c6a6900bca133fa003686ea1ffd232ea99894805358c"
+    },
+    "depth_provider.schema.json": {
+      "prior": "c847bab7b2e72f8fffd02b6d0916ca20dd8e5ecb1f9ae3ba0330d88188f74990",
+      "current": "c847bab7b2e72f8fffd02b6d0916ca20dd8e5ecb1f9ae3ba0330d88188f74990"
+    },
+    "doctor.schema.json": {
+      "prior": "f2cf60abb9033801e8f8270066c9b7ead08a4a989a95082fe72aa3424fdba166",
+      "current": "f2cf60abb9033801e8f8270066c9b7ead08a4a989a95082fe72aa3424fdba166"
+    },
+    "dynamic_window_consistency.schema.json": {
+      "prior": "81f7ee383a88665f278166b8d54d30f6612877be9b12d041b8c28954dd11f3ea",
+      "current": "81f7ee383a88665f278166b8d54d30f6612877be9b12d041b8c28954dd11f3ea"
+    },
+    "empirical_se3_uncertainty.schema.json": {
+      "prior": "eec27b35394ee4e48e75736948538dbfcef720e9f8a1919fa4c500f742aab484",
+      "current": "eec27b35394ee4e48e75736948538dbfcef720e9f8a1919fa4c500f742aab484"
+    },
+    "environment_readiness.schema.json": {
+      "prior": "f2cf60abb9033801e8f8270066c9b7ead08a4a989a95082fe72aa3424fdba166",
+      "current": "f2cf60abb9033801e8f8270066c9b7ead08a4a989a95082fe72aa3424fdba166"
+    },
+    "evidence_bundle.schema.json": {
+      "prior": "7b43744adac44c6fc08a4fe17ab5792a591d64d731f15a8a6475f24a57aeedea",
+      "current": "7b43744adac44c6fc08a4fe17ab5792a591d64d731f15a8a6475f24a57aeedea"
+    },
+    "evidence_bundle_verification.schema.json": {
+      "prior": "9a6f00dae11c5456cfea6e58a2e3998872c4a1e11e9d8fca2d1bb21d9087a634",
+      "current": "9a6f00dae11c5456cfea6e58a2e3998872c4a1e11e9d8fca2d1bb21d9087a634"
+    },
+    "external_camera_imu_evidence.schema.json": {
+      "prior": "ee5c10a895f71aafbf38d075dc9c470ae39426e32cdf87355abd9cf494c757d8",
+      "current": "ee5c10a895f71aafbf38d075dc9c470ae39426e32cdf87355abd9cf494c757d8"
+    },
+    "external_run.schema.json": {
+      "prior": "cf08c5c3b0b1566ffec7144f2c0ae8d2ce97d7682cba3bf9876b567e78bbac5f",
+      "current": "cf08c5c3b0b1566ffec7144f2c0ae8d2ce97d7682cba3bf9876b567e78bbac5f"
+    },
+    "field_replacement_pilot.schema.json": {
+      "prior": "b066725c32115557876088a41990c78b6506861eacb98bdec2e6858f05a24f85",
+      "current": "b066725c32115557876088a41990c78b6506861eacb98bdec2e6858f05a24f85"
+    },
+    "gnss_imu_lever_arm.schema.json": {
+      "prior": "b540d078eef5f6b01c9e72ba5c209a828954ccf3c6efddeb72bb0eb5dae16be7",
+      "current": "b540d078eef5f6b01c9e72ba5c209a828954ccf3c6efddeb72bb0eb5dae16be7"
+    },
+    "gnss_lidar_lever_arm.schema.json": {
+      "prior": "44793834eac17bfeb8c8b4c9fd42de29743a67fee83310d178af92be3c3e50b4",
+      "current": "44793834eac17bfeb8c8b4c9fd42de29743a67fee83310d178af92be3c3e50b4"
+    },
+    "imu_lidar_rotation.schema.json": {
+      "prior": "56cee49c47fd0fb88d0e98eb8d806261bc46702f27abbe074bcf9475161bfcc0",
+      "current": "56cee49c47fd0fb88d0e98eb8d806261bc46702f27abbe074bcf9475161bfcc0"
+    },
+    "imu_lidar_translation.schema.json": {
+      "prior": "2fb37794c105298cb7622b9f3cc4132565c158ffdd7613eb5f50b237f26547b4",
+      "current": "2fb37794c105298cb7622b9f3cc4132565c158ffdd7613eb5f50b237f26547b4"
+    },
+    "ins_lidar_hand_eye.schema.json": {
+      "prior": "034c5b853e9d03113ca9fbaf93b9b0e61aa96d2563d42ff35d4bda0f49859d8e",
+      "current": "034c5b853e9d03113ca9fbaf93b9b0e61aa96d2563d42ff35d4bda0f49859d8e"
+    },
+    "kitti360_lidar_window_integration.schema.json": {
+      "prior": "5b45a0c26084505caee76e2cb19f7b41df0adbc3e8a9cf6ec637f8118eb3670e",
+      "current": "5b45a0c26084505caee76e2cb19f7b41df0adbc3e8a9cf6ec637f8118eb3670e"
+    },
+    "kitti_benchmark_input.schema.json": {
+      "prior": "dae1bbb5ea6dfbc6945ff6a3a8bb7c874c3aab54ca02c10762ff740449f2db1c",
+      "current": "dae1bbb5ea6dfbc6945ff6a3a8bb7c874c3aab54ca02c10762ff740449f2db1c"
+    },
+    "kitti_falsification.schema.json": {
+      "prior": "93a3cb404aadcc6635fe347dacbbca0c566f40907b56357155bf28e7e05c1d28",
+      "current": "93a3cb404aadcc6635fe347dacbbca0c566f40907b56357155bf28e7e05c1d28"
+    },
+    "kitti_raw_lidar_window_integration.schema.json": {
+      "prior": "6763d43b766b2ef02f160c2b55b809df5d8984894fa5b255b0d7e58d17ce7475",
+      "current": "6763d43b766b2ef02f160c2b55b809df5d8984894fa5b255b0d7e58d17ce7475"
+    },
+    "koide_execution_lock.schema.json": {
+      "prior": "ab94f7ac07b40de131e165fe10fc4a2320b7730471f7541c299e2024cf743053",
+      "current": "ab94f7ac07b40de131e165fe10fc4a2320b7730471f7541c299e2024cf743053"
+    },
+    "koide_pilot.schema.json": {
+      "prior": "64fbd822d9377278d552ac1a54e045e814c622e5e70e0ebabcced435ed15ac74",
+      "current": "64fbd822d9377278d552ac1a54e045e814c622e5e70e0ebabcced435ed15ac74"
+    },
+    "koide_readiness.schema.json": {
+      "prior": "63c836136f084fdd854a2ecbf427026947ecac5d0139053988404293d12ee9e7",
+      "current": "63c836136f084fdd854a2ecbf427026947ecac5d0139053988404293d12ee9e7"
+    },
+    "koide_real_pilot_finalization.schema.json": {
+      "prior": "c36bfd1a6de94604558f1a6ccc809ae53ee55e4166631e02bfe82974b352b773",
+      "current": "c36bfd1a6de94604558f1a6ccc809ae53ee55e4166631e02bfe82974b352b773"
+    },
+    "koide_real_pilot_request.schema.json": {
+      "prior": "501475601e251a30ab5dae7d541eb81227d31e6f78c5ddb2cdfb340a80e7b79f",
+      "current": "501475601e251a30ab5dae7d541eb81227d31e6f78c5ddb2cdfb340a80e7b79f"
+    },
+    "koide_real_pilot_verification.schema.json": {
+      "prior": "33a562c89c26d44d9c7195ce9d5597173c66c77e93336ffc78ff84b1504d1ddb",
+      "current": "33a562c89c26d44d9c7195ce9d5597173c66c77e93336ffc78ff84b1504d1ddb"
+    },
+    "koide_runner_config.schema.json": {
+      "prior": "73c369929d2ebda1e51b51245fc5679f808fff61b813ff12ff83bc614ccd8a15",
+      "current": "73c369929d2ebda1e51b51245fc5679f808fff61b813ff12ff83bc614ccd8a15"
+    },
+    "lidar_imu_bag_calibration.schema.json": {
+      "prior": "2c391b7e5e407f68b5a27a428e5ab4ccc7670fc822ce4e0e0a2eadd89b57af03",
+      "current": "2c391b7e5e407f68b5a27a428e5ab4ccc7670fc822ce4e0e0a2eadd89b57af03"
+    },
+    "lidar_lidar_extrinsic.schema.json": {
+      "prior": "b2883be595037c360677a4d091cf7afb568808039d6e61d62afd383fa5fb669d",
+      "current": "b2883be595037c360677a4d091cf7afb568808039d6e61d62afd383fa5fb669d"
+    },
+    "lidar_wheel_odometry.schema.json": {
+      "prior": "d9abcbcfcdfbd2da3695f004e41d845c223b34414cc581621c2cb653b2d2e96c",
+      "current": "d9abcbcfcdfbd2da3695f004e41d845c223b34414cc581621c2cb653b2d2e96c"
+    },
+    "lifecycle_evaluation.schema.json": {
+      "prior": "fb1c8e623292f1079f90965e681150e7d9de49dfd36fd99c42a86c6de8e128e2",
+      "current": "fb1c8e623292f1079f90965e681150e7d9de49dfd36fd99c42a86c6de8e128e2"
+    },
+    "lifecycle_event.schema.json": {
+      "prior": "2f3e4a5ccf0e76264a3deece00bf7513d0019900f0eba52d79a9a6d60d82214c",
+      "current": "2f3e4a5ccf0e76264a3deece00bf7513d0019900f0eba52d79a9a6d60d82214c"
+    },
+    "lifecycle_head.schema.json": {
+      "prior": "24ef72dfda778b880bf21fb22b33b9d6057a9794ee6817e0da8726f69835878d",
+      "current": "24ef72dfda778b880bf21fb22b33b9d6057a9794ee6817e0da8726f69835878d"
+    },
+    "lifecycle_registry.schema.json": {
+      "prior": "af53d7f71d745e755f06a0b4362b6a5a63508576e82778db9fcb0a18628ad85b",
+      "current": "af53d7f71d745e755f06a0b4362b6a5a63508576e82778db9fcb0a18628ad85b"
+    },
+    "lifecycle_registry_state.schema.json": {
+      "prior": "f5590c58cf0470295de4e5a3892b2c831daf24d99c778ceb1ac18df5e7f8abfd",
+      "current": "f5590c58cf0470295de4e5a3892b2c831daf24d99c778ceb1ac18df5e7f8abfd"
+    },
+    "lifecycle_status.schema.json": {
+      "prior": "8287ae6ea5c9d9360847e4f6d4ab48c451116059b02ed285ed36c90554e5d9c9",
+      "current": "8287ae6ea5c9d9360847e4f6d4ab48c451116059b02ed285ed36c90554e5d9c9"
+    },
+    "lifecycle_verification.schema.json": {
+      "prior": "a404053dba681385a8842af9a216a8dcd08d704ef3e5ec82289319f48a802bb3",
+      "current": "a404053dba681385a8842af9a216a8dcd08d704ef3e5ec82289319f48a802bb3"
+    },
+    "livox_time_ablation.schema.json": {
+      "prior": "3a0394005dc3c0ba8bdc8208a54418bef16140656596686475c3718b2c19d6a2",
+      "current": "3a0394005dc3c0ba8bdc8208a54418bef16140656596686475c3718b2c19d6a2"
+    },
+    "mcap_integrity.schema.json": {
+      "prior": "c64ed9426f31cfb300997fb72786c37945ea7ab08b638c6e7bfe90cf8901a18e",
+      "current": "c64ed9426f31cfb300997fb72786c37945ea7ab08b638c6e7bfe90cf8901a18e"
+    },
+    "multi_lidar_service_evaluation.schema.json": {
+      "prior": "5b574b893345ac3e5e2db3de0cfeb900d57a0a152380cf083810f410848599df",
+      "current": "5b574b893345ac3e5e2db3de0cfeb900d57a0a152380cf083810f410848599df"
+    },
+    "multi_lidar_service_plan.schema.json": {
+      "prior": "300ba62b87363f2030bde1a36f6f5c20fa28e7bce083ac323a74722985bf0ca5",
+      "current": "300ba62b87363f2030bde1a36f6f5c20fa28e7bce083ac323a74722985bf0ca5"
+    },
+    "online_timeline.schema.json": {
+      "prior": "a8fd8e4365d41bfd92e42ce7cfa763f33741ed02dd28dac62956264ad860ddde",
+      "current": "a8fd8e4365d41bfd92e42ce7cfa763f33741ed02dd28dac62956264ad860ddde"
+    },
+    "policy.schema.json": {
+      "prior": "bf0917f8419ea6fe2434489f3cb2731f473e17f191f4c8a1dde5d86f3f686b59",
+      "current": "bf0917f8419ea6fe2434489f3cb2731f473e17f191f4c8a1dde5d86f3f686b59"
+    },
+    "probabilistic_correspondence.schema.json": {
+      "prior": "6675c3304dfe37b23af8b31ed8628642be174269c2b74c8e37ce4d6ead53acbe",
+      "current": "6675c3304dfe37b23af8b31ed8628642be174269c2b74c8e37ce4d6ead53acbe"
+    },
+    "probabilistic_pnp_result.schema.json": {
+      "prior": "af060424f4c41a49998b311a24d220dffa3f65a175c55d9d1dcaeb646e39779e",
+      "current": "af060424f4c41a49998b311a24d220dffa3f65a175c55d9d1dcaeb646e39779e"
+    },
+    "probabilistic_refinement_result.schema.json": {
+      "prior": "2aea90a7e3dc7a213f689a62229f73a8a59810fc874730624f7fc5e6a60d6293",
+      "current": "2aea90a7e3dc7a213f689a62229f73a8a59810fc874730624f7fc5e6a60d6293"
+    },
+    "protocol.schema.json": {
+      "prior": "4949af080766d194a0af9b6a65f751ff6542b00ce8f0bde3fba93e3fd1d339cd",
+      "current": "4949af080766d194a0af9b6a65f751ff6542b00ce8f0bde3fba93e3fd1d339cd"
+    },
+    "radar_service_evaluation.schema.json": {
+      "prior": "226dcee89f8b793a1cf3578909047231f8b45e8b06f9dbd3067a71f7f3011a29",
+      "current": "226dcee89f8b793a1cf3578909047231f8b45e8b06f9dbd3067a71f7f3011a29"
+    },
+    "radar_service_plan.schema.json": {
+      "prior": "ea00f8130e57fcd6e834f1524616a910e12be768e878416909207ee2b47cf626",
+      "current": "ea00f8130e57fcd6e834f1524616a910e12be768e878416909207ee2b47cf626"
+    },
+    "raw_replay_comparison.schema.json": {
+      "prior": "2750a629c76b61f1ed9acf0d437bc41a9cb852f6e7ddfc81a89863fdcfa41c99",
+      "current": "2750a629c76b61f1ed9acf0d437bc41a9cb852f6e7ddfc81a89863fdcfa41c99"
+    },
+    "raw_replay_definition.schema.json": {
+      "prior": "26a95b047773170270f7817b25855c9b9bcdaf33fea5f969ec2055325d4621ba",
+      "current": "26a95b047773170270f7817b25855c9b9bcdaf33fea5f969ec2055325d4621ba"
+    },
+    "raw_replay_plan.schema.json": {
+      "prior": "d57dc584ad2c2098805f96b6ee4ff45671dfe50cf981fd2dd81c8e81a4ad7845",
+      "current": "d57dc584ad2c2098805f96b6ee4ff45671dfe50cf981fd2dd81c8e81a4ad7845"
+    },
+    "raw_replay_result.schema.json": {
+      "prior": "bc013ff7747781dd46895850e5fb0d5dbd321ed0f834f2c2229e3db607b96b1b",
+      "current": "bc013ff7747781dd46895850e5fb0d5dbd321ed0f834f2c2229e3db607b96b1b"
+    },
+    "raw_replay_stage.schema.json": {
+      "prior": "9a32951a9ba8cfac5481cdefb951a089279511a8a88eb32fea4da7f6d9eb1e23",
+      "current": "9a32951a9ba8cfac5481cdefb951a089279511a8a88eb32fea4da7f6d9eb1e23"
+    },
+    "remote_archive_selection.schema.json": {
+      "prior": "5aaf194168c2ee6c72866c8b652bc16db1a9212457bb112be55709ea097ce264",
+      "current": "5aaf194168c2ee6c72866c8b652bc16db1a9212457bb112be55709ea097ce264"
+    },
+    "report_comparison.schema.json": {
+      "prior": "ee82c8f253a6272e8d0f4d0168d09fcdf1a8a5e7cbe0af793268d3af99361dc3",
+      "current": "ee82c8f253a6272e8d0f4d0168d09fcdf1a8a5e7cbe0af793268d3af99361dc3"
+    },
+    "report_degeneracy.schema.json": {
+      "prior": "24d939e83800fae06e66ace09054fbc440b9fc50020ac87692b08c7286e9c6f9",
+      "current": "24d939e83800fae06e66ace09054fbc440b9fc50020ac87692b08c7286e9c6f9"
+    },
+    "report_evidence.schema.json": {
+      "prior": "268f3b23d8eefe75b3e8bd6302bf39afdf95800250696633ace68a27de8903e3",
+      "current": "268f3b23d8eefe75b3e8bd6302bf39afdf95800250696633ace68a27de8903e3"
+    },
+    "report_metrics.schema.json": {
+      "prior": "3521db91e65fe8ee24e3effa42c97f6abcf27cce305354118c6b46054d12a868",
+      "current": "3521db91e65fe8ee24e3effa42c97f6abcf27cce305354118c6b46054d12a868"
+    },
+    "report_observability.schema.json": {
+      "prior": "0b4a49b465278df9f33ebca231ca3357a6e18444e8de1df4dafe9883dbc69da3",
+      "current": "0b4a49b465278df9f33ebca231ca3357a6e18444e8de1df4dafe9883dbc69da3"
+    },
+    "report_summary.schema.json": {
+      "prior": "fce6ac74154e55fc406a56edeb433b07052592dd3e3a8ebb7f259b1afceae50e",
+      "current": "fce6ac74154e55fc406a56edeb433b07052592dd3e3a8ebb7f259b1afceae50e"
+    },
+    "result.schema.json": {
+      "prior": "a9c1c17177c45c01a98e7cdd49a1f4761b246bec8c9ce115e2fd2239d1e61c5e",
+      "current": "a9c1c17177c45c01a98e7cdd49a1f4761b246bec8c9ce115e2fd2239d1e61c5e"
+    },
+    "schema_ledger.json": {
+      "prior": "45c145386b23f7108531594f73ebfc04e3a5edf33986953c5480d2a3fd497016",
+      "current": "45c145386b23f7108531594f73ebfc04e3a5edf33986953c5480d2a3fd497016"
+    },
+    "solid_state_context.schema.json": {
+      "prior": "9d0d85e430958d90884f580448bfd8fcfa28185f72a196a627c61f21e6d569fc",
+      "current": "9d0d85e430958d90884f580448bfd8fcfa28185f72a196a627c61f21e6d569fc"
+    },
+    "solid_state_cross_dataset_benchmark.schema.json": {
+      "prior": "f2f21d7fa8d9d47705a36ba9978d574e131ba1a16168291f23d2dabe9c35df77",
+      "current": "f2f21d7fa8d9d47705a36ba9978d574e131ba1a16168291f23d2dabe9c35df77"
+    },
+    "solid_state_cross_dataset_benchmark_config.schema.json": {
+      "prior": "89fb1d0e05dda135df48a86bdc4942cafbd16d312fd6fef8b777c28306c9b867",
+      "current": "89fb1d0e05dda135df48a86bdc4942cafbd16d312fd6fef8b777c28306c9b867"
+    },
+    "solid_state_failure_analysis.schema.json": {
+      "prior": "144381fec8622af8340a87d54d51f3db271521cd1581fe00ffeda1d31108e858",
+      "current": "144381fec8622af8340a87d54d51f3db271521cd1581fe00ffeda1d31108e858"
+    },
+    "solid_state_metrology_evaluation.schema.json": {
+      "prior": "8363ade405fdc3e28ec978c7cff74a1e788cf3b7e1f82bf1296c861b8a3bf8b8",
+      "current": "8363ade405fdc3e28ec978c7cff74a1e788cf3b7e1f82bf1296c861b8a3bf8b8"
+    },
+    "solid_state_synthetic_benchmark.schema.json": {
+      "prior": "1f6cec8f8fd5d7c9b7c8f2734fa3cb11ffddac2da40c4aae6159c426868d963b",
+      "current": "1f6cec8f8fd5d7c9b7c8f2734fa3cb11ffddac2da40c4aae6159c426868d963b"
+    },
+    "sota_audit_protocol.schema.json": {
+      "prior": "550e33bb885a5231f8ac80b854016c646532afb66a656f7b6c92c81146c50ac4",
+      "current": "550e33bb885a5231f8ac80b854016c646532afb66a656f7b6c92c81146c50ac4"
+    },
+    "sota_audit_result.schema.json": {
+      "prior": "5564a0d7afabc5a1cd900385cc9bea8ab4ed195fc1baf6020f83706c61c6a4a2",
+      "current": "5564a0d7afabc5a1cd900385cc9bea8ab4ed195fc1baf6020f83706c61c6a4a2"
+    },
+    "sota_leaderboard.schema.json": {
+      "prior": "e85855c3206578b7cdeb692f857da415804ae30f61d1b693311ce8106204774d",
+      "current": "e85855c3206578b7cdeb692f857da415804ae30f61d1b693311ce8106204774d"
+    },
+    "stereo_rotation.schema.json": {
+      "prior": "8021fe71b218bc7c28621b30360b4e76ecbd96614ef62a3141e1f483f6f48cd9",
+      "current": "8021fe71b218bc7c28621b30360b4e76ecbd96614ef62a3141e1f483f6f48cd9"
+    },
+    "trajectory.schema.json": {
+      "prior": "29dbe68dd26503825823b5a56cdede231b81aabb0b68429ab26def9b6a765419",
+      "current": "29dbe68dd26503825823b5a56cdede231b81aabb0b68429ab26def9b6a765419"
+    },
+    "trajectory_window_drift.schema.json": {
+      "prior": "0a4b17b159a78a6ba74851838842d80b2894728f5a1deb706c9b3982572db159",
+      "current": "0a4b17b159a78a6ba74851838842d80b2894728f5a1deb706c9b3982572db159"
+    },
+    "transforms.schema.json": {
+      "prior": "e37151b79ae91ac8688ad126841a1e5f39158375bc3dea63f03b8deb89b97cb8",
+      "current": "e37151b79ae91ac8688ad126841a1e5f39158375bc3dea63f03b8deb89b97cb8"
+    },
+    "vehicle_frame_rotation.schema.json": {
+      "prior": "b2c05abb90ec1e025f7517373a7e1d47bac912374b443c4a4e83100e92fd6f9f",
+      "current": "b2c05abb90ec1e025f7517373a7e1d47bac912374b443c4a4e83100e92fd6f9f"
+    }
+  },
+  "provenance": {
+    "source_manifests": {
+      "prior": "eb6d28baf8a22d3d6c0fec07c3d9a67f84c4df1b33e86f2a843b44b3e7a05298",
+      "current": "7e417a8c8a8f61202f35d7a11c6288f6ed5cfaecfba44b81518cf875e3d806c1"
+    },
+    "checker_sha256": "139ebe0bed5138db3cc01015f4d57bec51cfdb0aa18e27d78e6a4dc852dd11a8",
+    "protocol_sha256": "119aa902a5bcc10a620856e72a76b6505a0ccab8d377107adc36414c385e3555"
+  }
+}
