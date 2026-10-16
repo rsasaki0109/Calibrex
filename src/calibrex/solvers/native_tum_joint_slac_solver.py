@@ -152,6 +152,7 @@ class TUMJointSlacOptions:
     xyz_lattice_local_rotation_updates: int = 1
     xyz_pair_max_correspondences_per_pair: int = 120
     xyz_pair_stride: int = 1
+    window_workers: int = 1
 
     def as_dict(self) -> dict[str, float | int | list[int]]:
         values: dict[str, float | int | list[int]] = {}
@@ -383,6 +384,38 @@ class _TUMRematchEvaluation:
     multistart_evaluation: MultiStartEvaluation | None
 
 
+@dataclass(frozen=True)
+class _TUMWindowProducts:
+    baseline: tuple[_TUMWindowRun, ...]
+    spatial: tuple[_TUMSpatialWindowRun, ...]
+    xyz: tuple[_TUMXYZWindowRun, ...]
+    pair: tuple[_TUMXYZPairWindowRun, ...]
+    pair_reassociation: tuple[_TUMXYZPairReassociationRun, ...]
+    reassociation: tuple[_TUMIterativeReassociationRun, ...]
+    rematching: tuple[_TUMRematchEvaluation, ...]
+
+
+def _evaluate_window_runs(
+    root: Path,
+    intrinsics: TUMDepthIntrinsics,
+    config: CalibrationConfig,
+    options: TUMJointSlacOptions,
+    runs: tuple[_TUMWindowRun, ...],
+) -> _TUMWindowProducts:
+    spatial = _spatial_ablation_runs(config, runs, options)
+    xyz = _xyz_ablation_runs(config, runs, options)
+    pair = _xyz_pair_ablation_runs(root, intrinsics, config, runs, options)
+    return _TUMWindowProducts(
+        runs,
+        spatial,
+        xyz,
+        pair,
+        _xyz_pair_reassociation_runs(config, pair, options),
+        _iterative_reassociation_runs(root, intrinsics, config, spatial, options),
+        _rematch_spatial_holdouts(root, intrinsics, spatial, options),
+    )
+
+
 class NativeTUMJointSlacSolver(SolverAdapter):
     """Jointly refine per-frame TUM poses and a shared camera mounting transform."""
 
@@ -434,23 +467,22 @@ class NativeTUMJointSlacSolver(SolverAdapter):
                 f"({len(problem.measurements)} < {_MIN_TOTAL_CORRESPONDENCES})"
             )
 
-        result = _optimize_problem(config, problem, options)
-        primary_run = _TUMWindowRun(options.frame_start_index, problem, result)
-        replication_runs = _replicate_windows(
-            root, paired, intrinsics, config, options, primary_run
+        from calibrex.solvers._tum_window_processes import _evaluate_windows
+
+        result, products, execution = _evaluate_windows(
+            root, paired, intrinsics, config, options, problem
         )
+        replication_runs = products.baseline
+        spatial_runs = products.spatial
+        xyz_runs = products.xyz
+        xyz_pair_runs = products.pair
+        xyz_pair_reassociation_runs = products.pair_reassociation
+        reassociation_runs = products.reassociation
+        rematching = products.rematching
         transfers = _cross_window_transfers(replication_runs)
-        spatial_runs = _spatial_ablation_runs(config, replication_runs, options)
         spatial_transfers = _spatial_cross_window_transfers(spatial_runs)
-        xyz_runs = _xyz_ablation_runs(config, replication_runs, options)
         xyz_transfers = _xyz_cross_window_transfers(xyz_runs)
-        xyz_pair_runs = _xyz_pair_ablation_runs(root, intrinsics, config, replication_runs, options)
         xyz_pair_transfers = _xyz_pair_cross_window_transfers(xyz_pair_runs)
-        xyz_pair_reassociation_runs = _xyz_pair_reassociation_runs(config, xyz_pair_runs, options)
-        reassociation_runs = _iterative_reassociation_runs(
-            root, intrinsics, config, spatial_runs, options
-        )
-        rematching = _rematch_spatial_holdouts(root, intrinsics, spatial_runs, options)
         extrinsic = se3_from_tangent(result.optimized_values[_EXTRINSIC_BLOCK])
         variable = f"T_{camera_node.parent}_{camera}"
         extrinsic_observability = _data_only_shared_observability(
@@ -528,7 +560,7 @@ class NativeTUMJointSlacSolver(SolverAdapter):
                 xyz_pair_reassociation_runs=xyz_pair_reassociation_runs,
                 reassociation_runs=reassociation_runs,
                 rematching=rematching,
-            ),
+            ) | {"native_tum_joint_slac_window_execution": execution},
             warnings=warnings,
             observability=ObservabilityResult(
                 rank=result.information_rank,
@@ -3829,6 +3861,7 @@ def _options(config: CalibrationConfig) -> TUMJointSlacOptions:
             "xyz_pair_stride",
             defaults.xyz_pair_stride,
         ),
+        window_workers=_integer(values, "window_workers", defaults.window_workers),
     )
 
 
