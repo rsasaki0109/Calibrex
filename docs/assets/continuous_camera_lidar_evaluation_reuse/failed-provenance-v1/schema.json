@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Complete timed Camera-LiDAR evaluation reuse comparison",
+  "allOf": [{
+    "type": "object", "required": ["schema_version", "record_type", "provenance"],
+    "properties": {"schema_version": {"const": "slac.continuous_camera_lidar_reuse_benchmark/v0.1"}}
+  }],
+  "oneOf": [
+    {"$ref": "#/$defs/protocol"}, {"$ref": "#/$defs/measurement"},
+    {"$ref": "#/$defs/attempts"}, {"$ref": "#/$defs/audit"}
+  ],
+  "$defs": {
+    "sha": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "seconds": {"type": "number", "exclusiveMinimum": 0},
+    "timing_pair": {
+      "type": "object", "additionalProperties": false, "required": ["prior", "current"],
+      "properties": {"prior": {"$ref": "#/$defs/seconds"}, "current": {"$ref": "#/$defs/seconds"}}
+    },
+    "protocol": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "record_type", "commits", "source_roots", "repetitions", "fresh_workers", "blas_threads", "host_unreserved", "options", "provenance"],
+      "properties": {
+        "schema_version": {"type": "string"}, "record_type": {"const": "protocol"},
+        "commits": {
+          "type": "object", "additionalProperties": false, "required": ["prior", "current"],
+          "properties": {"prior": {"$ref": "#/$defs/commit"}, "current": {"$ref": "#/$defs/commit"}}
+        },
+        "source_roots": {
+          "type": "object", "additionalProperties": false, "required": ["prior", "current"],
+          "properties": {"prior": {"type": "string"}, "current": {"type": "string"}}
+        },
+        "repetitions": {"type": "integer", "minimum": 2}, "fresh_workers": {"const": true},
+        "blas_threads": {"const": 1}, "host_unreserved": {"const": true},
+        "options": {"type": "object", "minProperties": 20, "additionalProperties": {"type": ["number", "boolean"]}},
+        "provenance": {
+          "type": "object", "additionalProperties": false, "required": ["files", "python", "versions"],
+          "properties": {
+            "files": {"type": "object", "minProperties": 15, "additionalProperties": {"$ref": "#/$defs/sha"}},
+            "python": {"type": "string"}, "versions": {"type": "object", "minProperties": 5, "additionalProperties": {"type": "string"}}
+          }
+        }
+      }
+    },
+    "measurement": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "record_type", "api_seconds", "deskew_computations", "imports", "result_sha256", "provenance"],
+      "properties": {
+        "schema_version": {"type": "string"}, "record_type": {"const": "measurement"},
+        "api_seconds": {"$ref": "#/$defs/seconds"}, "deskew_computations": {"type": "integer", "minimum": 1},
+        "imports": {"type": "object", "minProperties": 1, "additionalProperties": {
+          "type": "object", "additionalProperties": false, "required": ["path", "sha256"],
+          "properties": {"path": {"type": "string"}, "sha256": {"$ref": "#/$defs/sha"}}
+        }},
+        "result_sha256": {"$ref": "#/$defs/sha"},
+        "provenance": {
+          "type": "object", "additionalProperties": false, "required": ["protocol_sha256", "git_commit", "problem_sha256"],
+          "properties": {
+            "protocol_sha256": {"$ref": "#/$defs/sha"}, "git_commit": {"$ref": "#/$defs/commit"}, "problem_sha256": {"$ref": "#/$defs/sha"}
+          }
+        }
+      }
+    },
+    "attempts": {
+      "type": "object", "additionalProperties": false, "required": ["schema_version", "record_type", "runs", "provenance"],
+      "properties": {
+        "schema_version": {"type": "string"}, "record_type": {"const": "attempts"},
+        "runs": {"type": "array", "minItems": 1, "items": {
+          "type": "object", "additionalProperties": false, "required": ["repeat", "variant", "seconds", "exit_code"],
+          "properties": {"repeat": {"type": "integer", "minimum": 0}, "variant": {"enum": ["prior", "current"]}, "seconds": {"type": "number"}, "exit_code": {"type": "integer"}}
+        }},
+        "provenance": {"type": "object", "additionalProperties": false, "required": ["protocol_sha256"], "properties": {"protocol_sha256": {"$ref": "#/$defs/sha"}}}
+      }
+    },
+    "audit": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "record_type", "verified_runs", "complete_results_exact", "capture_count", "correspondence_count", "objective_evaluations_per_run", "projection_requests_per_run", "deskew_computations_per_run", "whole_seconds_median", "api_seconds_median", "whole_speedup", "api_speedup", "runtime_source_changes", "provenance"],
+      "properties": {
+        "schema_version": {"type": "string"}, "record_type": {"const": "audit"},
+        "verified_runs": {"type": "integer", "minimum": 4}, "complete_results_exact": {"const": true},
+        "capture_count": {"type": "integer", "minimum": 2}, "correspondence_count": {"type": "integer", "minimum": 8},
+        "objective_evaluations_per_run": {"type": "integer", "minimum": 1}, "projection_requests_per_run": {"type": "integer", "minimum": 1},
+        "deskew_computations_per_run": {"type": "object", "additionalProperties": false, "required": ["prior", "current"], "properties": {"prior": {"type": "integer", "minimum": 1}, "current": {"type": "integer", "minimum": 1}}},
+        "whole_seconds_median": {"$ref": "#/$defs/timing_pair"}, "api_seconds_median": {"$ref": "#/$defs/timing_pair"},
+        "whole_speedup": {"$ref": "#/$defs/seconds"}, "api_speedup": {"$ref": "#/$defs/seconds"},
+        "runtime_source_changes": {"const": ["calibrex/solvers/continuous_time_camera_lidar_solver.py"]},
+        "provenance": {"type": "object", "additionalProperties": false, "required": ["protocol_sha256", "attempts_sha256", "problem_sha256"], "properties": {"protocol_sha256": {"$ref": "#/$defs/sha"}, "attempts_sha256": {"$ref": "#/$defs/sha"}, "problem_sha256": {"$ref": "#/$defs/sha"}}}
+      }
+    }
+  }
+}

@@ -1,0 +1,44 @@
+starting 00-prior
+{"repeat": 0, "variant": "prior", "seconds": 136.5238542999141, "exit_code": 0}
+starting 00-current
+{"repeat": 0, "variant": "current", "seconds": 35.1340178999817, "exit_code": 0}
+starting 01-current
+{"repeat": 1, "variant": "current", "seconds": 33.20355490001384, "exit_code": 0}
+starting 01-prior
+{"repeat": 1, "variant": "prior", "seconds": 147.51061509991996, "exit_code": 0}
+starting 02-prior
+{"repeat": 2, "variant": "prior", "seconds": 121.1570073000621, "exit_code": 0}
+starting 02-current
+{"repeat": 2, "variant": "current", "seconds": 26.90922989998944, "exit_code": 0}
+{
+  "schema_version": "slac.continuous_camera_lidar_reuse_benchmark/v0.1",
+  "record_type": "audit",
+  "verified_runs": 6,
+  "complete_results_exact": true,
+  "capture_count": 9,
+  "correspondence_count": 9216,
+  "objective_evaluations_per_run": 341,
+  "projection_requests_per_run": 2462720,
+  "deskew_computations_per_run": {
+    "prior": 2462720,
+    "current": 556032
+  },
+  "whole_seconds_median": {
+    "prior": 136.5238542999141,
+    "current": 33.20355490001384
+  },
+  "api_seconds_median": {
+    "prior": 134.1207097999286,
+    "current": 30.92306489998009
+  },
+  "whole_speedup": 4.111724022052144,
+  "api_speedup": 4.3372385704243355,
+  "runtime_source_changes": [
+    "calibrex/solvers/continuous_time_camera_lidar_solver.py"
+  ],
+  "provenance": {
+    "protocol_sha256": "b7e109a225416c2f000d3465cc4eb50eee5a6a89f32d6ba15c5690ded88a3376",
+    "attempts_sha256": "b4f8b5a5b2f56111eda0081eb797fdc9794842dc5c7876047d504a37abdf7c38",
+    "problem_sha256": "32cb6f4f1b36a6e64cc0061f904b67b7490eb2d5a3af49d464d316a4d835fc9b"
+  }
+}

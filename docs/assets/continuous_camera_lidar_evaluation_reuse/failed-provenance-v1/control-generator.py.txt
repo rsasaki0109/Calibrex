@@ -1,0 +1,84 @@
+"""Build a declared timed projection control from previously selected public KITTI points."""
+import hashlib
+import json
+import math
+from pathlib import Path
+import subprocess
+
+from calibrex.core.capture_time import ConstantBodyTwist, LidarCaptureTimePolicy
+from calibrex.core.continuous_time_camera_lidar_artifacts import (
+    ContinuousTimeArtifactProvenance, ContinuousTimeBodyTwist,
+    ContinuousTimeCameraLidarProblemArtifact, ContinuousTimeCaptureArtifact,
+    ContinuousTimeCapturePolicyArtifact, ContinuousTimeImageCorrespondence,
+)
+from calibrex.core.geometry import SE3
+from calibrex.core.result import TransformResult
+from calibrex.data.depth import DepthCameraIntrinsics
+from calibrex.solvers import continuous_time_camera_lidar_solver as solver
+from calibrex.solvers.borer_six_dof_solver import apply_local_se3_delta
+
+ROOT = Path(__file__).resolve().parent
+SOURCE = ROOT / 'outputs/kitti-probabilistic-control-v2/correspondence.json'
+MOTION = ROOT / 'docs/assets/joint_radar_reference_indexing/control.json'
+OUT = ROOT / 'outputs/continuous-camera-lidar-control-v1'
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+write = lambda p, v: p.write_bytes((json.dumps(v, indent=2, allow_nan=False) + '\n').encode())
+source = json.loads(SOURCE.read_bytes())
+motion = json.loads(MOTION.read_bytes())
+OUT.mkdir(exist_ok=False)
+truth = SE3((0.10, -0.05, 0.02), (0.5, -0.5, 0.5, 0.5))
+initial = apply_local_se3_delta(truth, (0.2, -0.15, 0.1), (0.02, -0.015, 0.01))
+body_lidar = SE3((0.42, -0.18, 0.27), (0.01, -0.02, 0.03, 0.999))
+camera = DepthCameraIntrinsics(width=1280, height=720, fx=600.0, fy=600.0, cx=640.0, cy=360.0)
+policy = LidarCaptureTimePolicy('seconds', 'scan_end', 0.02)
+settings = solver.ContinuousTimeCameraLidarOptions()
+transform = lambda pose, parent, child: TransformResult(parent=parent, child=child, **pose.as_dict())
+captures = []
+for frame in source['frames']:
+    sample = motion['reference'][int(frame['frame_id'])]
+    twist = ConstantBodyTwist(tuple(sample['linear_velocity_body_mps']), tuple(sample['angular_velocity_body_radps']))
+    template = solver.ContinuousTimeCameraLidarCapture(frame['frame_id'], sample['timestamp_sec'],
+        sample['timestamp_sec'], (), twist, body_lidar, camera)
+    correspondences = []
+    for index, item in enumerate(frame['correspondences']):
+        offset = -0.1 + 0.1 * index / (len(frame['correspondences']) - 1)
+        provisional = solver.TimedProbabilisticImageCorrespondence(item['correspondence_id'],
+            tuple(item['point_lidar_m']), offset, (0.0, 0.0), tuple(item['image_covariance_px2']),
+            item['outlier_probability'], item['reliability'])
+        point = solver._deskew_correspondence(template, provisional, policy, settings)
+        projected = truth.transform_point(point.position_lidar_at_reference_m)
+        uv = [camera.fx * projected[0] / projected[2] + camera.cx,
+              camera.fy * projected[1] / projected[2] + camera.cy]
+        correspondences.append(ContinuousTimeImageCorrespondence(
+            correspondence_id=item['correspondence_id'], point_lidar_m=item['point_lidar_m'],
+            capture_offset_sec=offset, image_mean_px=[value + 0.05 * math.sin((index + 1) * (axis + 1) * 0.173)
+                                                     for axis, value in enumerate(uv)],
+            image_covariance_px2=item['image_covariance_px2'],
+            outlier_probability=item['outlier_probability'], reliability=item['reliability']))
+    captures.append(ContinuousTimeCaptureArtifact(capture_id=frame['frame_id'],
+        lidar_message_stamp_sec=template.lidar_message_stamp_sec,
+        camera_exposure_time_sec=template.camera_exposure_time_sec,
+        camera_frame='camera', lidar_frame='lidar', body_frame='body', camera=camera,
+        transform_body_lidar=transform(body_lidar, 'body', 'lidar'),
+        twist=ContinuousTimeBodyTwist(**twist.as_dict()), correspondences=correspondences))
+inputs = {'selected_points_sha256': sha(SOURCE), 'public_kinematics_control_sha256': sha(MOTION),
+          'generator_sha256': sha(Path(__file__))}
+lineage = hashlib.sha256(json.dumps(inputs, sort_keys=True).encode()).hexdigest()
+problem = ContinuousTimeCameraLidarProblemArtifact(problem_id='public-kitti-timed-projection-control',
+    dataset_id='kitti_raw_2011_09_30_drive_0018_sync', dataset_license_spdx='CC-BY-NC-SA-3.0',
+    split_id='generated-execution-control', initial_transform_camera_lidar=transform(initial, 'camera', 'lidar'),
+    reference_transform_camera_lidar=transform(truth, 'camera', 'lidar'), reference_time_offset_sec=0.02,
+    capture_time_policy=ContinuousTimeCapturePolicyArtifact(point_offset_unit='seconds',
+        stamp_reference='scan_end', sensor_time_offset_sec=0.0), captures=captures,
+    split_policy='deterministic_disjoint_holdout', options={},
+    provenance=ContinuousTimeArtifactProvenance(generator=Path(__file__).name, generator_version='1',
+        git_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+        command=['build-timed-projection-control'], source_sha256=lineage))
+problem.save(OUT / 'problem.json')
+write(OUT / 'input-provenance.json', {'scope': __doc__, 'capture_count': len(captures),
+    'correspondences': sum(len(c.correspondences) for c in captures),
+    'generated': ['image means and fixed noise', 'uniform signed point offsets', 'declared extrinsic transforms'],
+    'motion': 'Original KITTI OXTS linear and angular velocities for the nine selected scans',
+    'provenance': {**inputs, 'source_inputs': source['provenance'],
+                   'problem_sha256': sha(OUT / 'problem.json'), 'lineage_sha256': lineage}})
+print('built', len(captures), 'captures;', sum(len(c.correspondences) for c in captures), 'timed correspondences')
