@@ -9,6 +9,7 @@ import importlib.metadata
 import json
 import math
 import os
+import re
 import shutil
 import statistics
 import subprocess
@@ -64,15 +65,39 @@ def comparable(value: dict) -> dict:
     return value
 
 
+def _verify_git_provenance(
+    full: str,
+    short: str,
+    expected: str,
+    recorded: str | None,
+) -> None:
+    if (
+        full != expected
+        or recorded != short
+        or re.fullmatch(r"[a-f0-9]{4,40}", short) is None
+        or not full.startswith(short)
+    ):
+        raise ValueError("worker Git provenance differs from its source pin")
+
+
 def worker(protocol_path: Path, variant: str, folder: Path) -> None:
     from calibrex.core import capture_time
     from calibrex.core.continuous_trajectory import PiecewiseSE3Trajectory
+    from calibrex.core.provenance import git_commit
     from calibrex.evaluation.continuous_time_camera_lidar_run import (
         run_continuous_time_camera_lidar_problem,
     )
     from calibrex.solvers import continuous_time_camera_lidar_solver as solver
 
     protocol = json.loads(protocol_path.read_bytes())
+    # Check the existing core's real (abbreviated) provenance contract before
+    # spending time on calibration; retain both actual Git forms in the receipt.
+    _verify_git_provenance(
+        subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+        subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], text=True).strip(),
+        protocol["commits"][variant],
+        git_commit(),
+    )
     computations = 0
     original_twist = capture_time._static_point_at_later_body_frame
     original_trajectory = PiecewiseSE3Trajectory.transform_static_point_between_body_frames
@@ -99,11 +124,15 @@ def worker(protocol_path: Path, variant: str, folder: Path) -> None:
     )
     api_seconds = time.perf_counter() - start
     observed_commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
-    if (
-        observed_commit != protocol["commits"][variant]
-        or result.provenance.git_commit != observed_commit
-    ):
-        raise ValueError("worker Git provenance differs from its source pin")
+    observed_short = subprocess.check_output(
+        ["git", "rev-parse", "--short", "HEAD"], text=True
+    ).strip()
+    _verify_git_provenance(
+        observed_commit,
+        observed_short,
+        protocol["commits"][variant],
+        result.provenance.git_commit,
+    )
     result.save(folder / "result.json")
     source = Path(protocol["source_roots"][variant]) / "src"
     imports = {}
@@ -123,6 +152,7 @@ def worker(protocol_path: Path, variant: str, folder: Path) -> None:
             "provenance": {
                 "protocol_sha256": sha(protocol_path),
                 "git_commit": observed_commit,
+                "git_commit_short": observed_short,
                 "problem_sha256": sha(protocol_path.parent / "problem.json"),
             },
         },
@@ -260,11 +290,17 @@ def audit(output: Path) -> dict:
         provenance = {
             "protocol_sha256": sha(output / "protocol.json"),
             "git_commit": protocol["commits"][variant],
+            "git_commit_short": measured["provenance"]["git_commit_short"],
             "problem_sha256": sha(output / "problem.json"),
         }
+        _verify_git_provenance(
+            measured["provenance"]["git_commit"],
+            measured["provenance"]["git_commit_short"],
+            protocol["commits"][variant],
+            result["provenance"]["git_commit"],
+        )
         if (
             measured["provenance"] != provenance
-            or result["provenance"]["git_commit"] != provenance["git_commit"]
             or result["provenance"]["source_sha256"] != provenance["problem_sha256"]
         ):
             raise ValueError("run provenance differs")

@@ -54,9 +54,9 @@
         }},
         "result_sha256": {"$ref": "#/$defs/sha"},
         "provenance": {
-          "type": "object", "additionalProperties": false, "required": ["protocol_sha256", "git_commit", "problem_sha256"],
+          "type": "object", "additionalProperties": false, "required": ["protocol_sha256", "git_commit", "git_commit_short", "problem_sha256"],
           "properties": {
-            "protocol_sha256": {"$ref": "#/$defs/sha"}, "git_commit": {"$ref": "#/$defs/commit"}, "problem_sha256": {"$ref": "#/$defs/sha"}
+            "protocol_sha256": {"$ref": "#/$defs/sha"}, "git_commit": {"$ref": "#/$defs/commit"}, "git_commit_short": {"type": "string", "pattern": "^[a-f0-9]{4,40}$"}, "problem_sha256": {"$ref": "#/$defs/sha"}
           }
         }
       }
