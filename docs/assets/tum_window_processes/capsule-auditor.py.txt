@@ -1,0 +1,491 @@
+"""Compare complete scan-wise Doppler estimation with frozen fresh workers.
+
+The public KITTI velocity control supplies generated Doppler observations,
+not measured Radar or independent calibration accuracy evidence.
+"""
+
+from __future__ import annotations
+
+import argparse
+import gzip
+import hashlib
+import importlib.metadata
+import json
+import math
+import os
+import shutil
+import statistics
+import struct
+import subprocess
+import sys
+import tarfile
+import time
+from dataclasses import asdict
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from tools.benchmark_bspline_lidar_imu import _freeze, _verify_sources  # noqa: E402
+from tools.benchmark_lazy_runtime_loading import _git_identity  # noqa: E402
+
+VERSION = "slac.radar_doppler_batches_benchmark/v0.1"
+SCHEMA = ROOT / "tools/schemas/radar_doppler_batches_benchmark.schema.json"
+CONTROL = ROOT / "docs/assets/radar_reference_indexing/control.json"
+CONTROL_SHA256 = "f4cf16efba310c97b1e803347612d47f55aa4a85476fb81bec870a5fc4b7cc06"
+RUNTIME = "calibrex/solvers/radar_ego_velocity_solver.py"
+SCOPE = (
+    "Generated 256-return Doppler scans for all 2758 public KITTI-derived Radar velocities; "
+    "no measured Radar, raw LiDAR registration or independent accuracy claim."
+)
+PINNED = {
+    "control.json",
+    "launcher.py.txt",
+    "freezer.py.txt",
+    "identity.py.txt",
+    "schema.json",
+    "sources-prior-manifest.json",
+    "sources-current-manifest.json",
+    "sources-prior.tar.gz",
+    "sources-current.tar.gz",
+}
+
+
+def sha(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def record(kind: str, payload: dict, provenance: dict) -> dict:
+    return {
+        "schema_version": VERSION,
+        "record_type": kind,
+        "payload": payload,
+        "provenance": provenance,
+    }
+
+
+def write(path: Path, value: dict) -> None:
+    path.write_bytes((json.dumps(value, indent=2, allow_nan=False) + "\n").encode())
+
+
+def directions() -> list[tuple[float, float, float]]:
+    """Declared synthetic field of view: 256 fixed, noncoplanar directions."""
+    return [
+        (math.cos(yaw) * math.cos(pitch), math.sin(yaw) * math.cos(pitch), math.sin(pitch))
+        for j in range(256)
+        for yaw, pitch in [(-1.2 + 2.4 * j / 255, -0.25 + 0.5 * ((37 * j) % 256) / 255)]
+    ]
+
+
+def observations(index: int, velocity: list[float], grid: list[tuple]) -> list:
+    """Generate identical unequal-weight returns with deterministic noise/outliers."""
+    from calibrex.solvers.radar_ego_velocity_solver import RadarDopplerObservation
+
+    result = []
+    for j, (x, y, z) in enumerate(grid):
+        norm = math.sqrt(x * x + y * y + z * z)
+        ux, uy, uz = x / norm, y / norm, z / norm
+        doppler = -(ux * velocity[0] + uy * velocity[1] + uz * velocity[2])
+        doppler += 0.015 * math.sin(index + 1.7 * j)
+        if j % 17 == 0:
+            doppler += 4.0 * math.cos(0.2 * index + j)
+        result.append(RadarDopplerObservation((x, y, z), doppler, 1.0 + (j % 5) / 10))
+    return result
+
+
+def worker(protocol_path: Path, variant: str, folder: Path) -> None:
+    from calibrex.core.provenance import git_commit
+    from calibrex.solvers import radar_ego_velocity_solver as solver
+
+    protocol = json.loads(protocol_path.read_bytes())
+    source = protocol_path.parent / ("sources-" + variant)
+    full = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    short = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], text=True).strip()
+    if full != protocol["payload"]["commits"][variant] or git_commit() != short:
+        raise ValueError("actual Git identity differs from frozen sources")
+    provenance = {
+        "protocol_sha256": sha(protocol_path),
+        "git_commit": full,
+        "git_commit_short": short,
+    }
+    original_solve, original_eigen = solver._solve_3x3, solver._symmetric_eigenvalues_3x3
+    trace = bytearray()
+
+    def solve(matrix, rhs):
+        value = original_solve(matrix, rhs)
+        if value is None:
+            raise ValueError("control unexpectedly produced a singular IRLS system")
+        trace.extend(b"I" + struct.pack("<15d", *[v for row in matrix for v in row], *rhs, *value))
+        return value
+
+    def eigen(matrix):
+        trace.extend(b"B" + struct.pack("<9d", *[v for row in matrix for v in row]))
+        return original_eigen(matrix)
+
+    solver._solve_3x3, solver._symmetric_eigenvalues_3x3 = solve, eigen
+    control = json.loads((protocol_path.parent / "control.json").read_bytes())
+    grid = directions()
+    options = solver.RadarEgoVelocitySolverOptions()
+    results, api_seconds = [], 0.0
+    for index, measurement in enumerate(control["measurements"]):
+        returns = observations(index, measurement["velocity_radar_mps"], grid)
+        begin = time.perf_counter()
+        result = solver.RadarEgoVelocitySolver().solve(returns, options)
+        api_seconds += time.perf_counter() - begin
+        results.append(
+            {"measurement_id": measurement["measurement_id"], "result": result.as_dict()}
+        )
+    value = record("result", {"options": asdict(options), "scans": results}, provenance)
+    result_bytes = (json.dumps(value, indent=2, allow_nan=False) + "\n").encode()
+    (folder / "result.json.gz").write_bytes(gzip.compress(result_bytes, mtime=0))
+    (folder / "history.bin.gz").write_bytes(gzip.compress(bytes(trace), mtime=0))
+    imports = {}
+    for name, module in sys.modules.copy().items():
+        if name == "calibrex" or name.startswith("calibrex."):
+            path = Path(module.__file__).resolve()
+            imports[name] = {
+                "path": path.relative_to(source / "src").as_posix(),
+                "sha256": sha(path),
+            }
+    write(
+        folder / "measurement.json",
+        record(
+            "measurement",
+            {
+                "api_seconds": api_seconds,
+                "imports": imports,
+                "scans": len(results),
+                "returns": 256 * len(results),
+                "irls_iterations": sum(r["result"]["iterations"] for r in results),
+                "result_sha256": sha(folder / "result.json.gz"),
+                "history_sha256": sha(folder / "history.bin.gz"),
+                "history_raw_sha256": hashlib.sha256(trace).hexdigest(),
+            },
+            provenance,
+        ),
+    )
+
+
+def sources(output: Path, variant: str) -> dict:
+    manifest = json.loads((output / f"sources-{variant}-manifest.json").read_bytes())
+    actual = {}
+    with tarfile.open(output / f"sources-{variant}.tar.gz") as bundle:
+        for member in bundle.getmembers():
+            if not member.isfile():
+                continue
+            name = Path(member.name)
+            if name.is_absolute() or ".." in name.parts or name.parts[0] != "src":
+                raise ValueError("unsafe source member")
+            key = name.relative_to("src").as_posix()
+            if key in actual:
+                raise ValueError("duplicate source member")
+            stream = bundle.extractfile(member)
+            assert stream is not None
+            actual[key] = hashlib.sha256(stream.read()).hexdigest()
+    if actual != manifest:
+        raise ValueError("source capsule differs from its manifest")
+    return manifest
+
+
+def validate_trace(raw: bytes, scans: list[dict]) -> int:
+    cursor, iterations = 0, 0
+    for scan in scans:
+        result = scan["result"]
+        if raw[cursor : cursor + 1] != b"B":
+            raise ValueError("initial normal system missing")
+        if len(raw[cursor + 1 : cursor + 73]) != 72:
+            raise ValueError("truncated initial normal system")
+        cursor += 73
+        final = None
+        for _ in range(result["iterations"]):
+            if raw[cursor : cursor + 1] != b"I" or len(raw[cursor + 1 : cursor + 121]) != 120:
+                raise ValueError("IRLS normal system missing")
+            values = struct.unpack("<15d", raw[cursor + 1 : cursor + 121])
+            if not all(math.isfinite(v) for v in values):
+                raise ValueError("non-finite IRLS history")
+            final = values[-3:]
+            cursor += 121
+            iterations += 1
+        if final is None or struct.pack("<3d", *final) != struct.pack(
+            "<3d",
+            *result["velocity_radar_mps"],
+        ):
+            raise ValueError("final velocity differs from the IRLS trace")
+    if cursor != len(raw):
+        raise ValueError("unexpected IRLS trace suffix")
+    return iterations
+
+
+def audit(output: Path) -> dict:
+    """Recompute full result/trace parity, bindings, work and timing medians."""
+    import jsonschema
+
+    protocol_path = output / "protocol.json"
+    protocol = json.loads(protocol_path.read_bytes())
+    schema = json.loads((output / "schema.json").read_bytes())
+    if schema != json.loads(SCHEMA.read_bytes()):
+        raise ValueError("archive schema differs from the declared tool schema")
+    index_path = output / "index.json"
+    if index_path.exists():
+        index = json.loads(index_path.read_bytes())
+        files = index["files"]
+        actual = {p.relative_to(output).as_posix() for p in output.rglob("*") if p.is_file()}
+        if set(files) != actual - {"index.json"} or index["provenance"]["protocol_sha256"] != sha(
+            protocol_path
+        ):
+            raise ValueError("published file inventory or protocol binding differs")
+        for name, expected in files.items():
+            path = (output / name).resolve()
+            if not path.is_relative_to(output.resolve()) or expected != {
+                "sha256": sha(path),
+                "size_bytes": path.stat().st_size,
+            }:
+                raise ValueError("published file bytes changed")
+    jsonschema.Draft202012Validator.check_schema(schema)
+    validate = jsonschema.Draft202012Validator(schema).validate
+    validate(protocol)
+    payload = protocol["payload"]
+    pins = protocol["provenance"]["files"]
+    if set(pins) != PINNED or any(sha(output / name) != digest for name, digest in pins.items()):
+        raise ValueError("pinned input, tool or source capsule changed")
+    if pins["control.json"] != CONTROL_SHA256 or payload["scope"] != SCOPE:
+        raise ValueError("public input or benchmark scope differs")
+    manifests = {v: sources(output, v) for v in ("prior", "current")}
+    if set(manifests["prior"]) != set(manifests["current"]):
+        raise ValueError("runtime source inventory differs")
+    changed = [k for k in manifests["prior"] if manifests["prior"][k] != manifests["current"][k]]
+    if changed != [RUNTIME]:
+        raise ValueError("unexpected runtime source changes")
+    control = json.loads((output / "control.json").read_bytes())
+    if len(control["reference"]) != 2762 or len(control["measurements"]) != 2758:
+        raise ValueError("full public velocity control was reduced")
+    from calibrex.solvers.radar_ego_velocity_solver import RadarEgoVelocitySolverOptions
+
+    expected_options = asdict(RadarEgoVelocitySolverOptions())
+    if payload["options"] != expected_options or payload["returns_per_scan"] != 256:
+        raise ValueError("Doppler recipe or default options differ")
+    attempts_record = json.loads((output / "attempts.json").read_bytes())
+    validate(attempts_record)
+    if attempts_record["provenance"] != {"protocol_sha256": sha(protocol_path)}:
+        raise ValueError("attempt protocol binding differs")
+    attempts = attempts_record["payload"]["attempts"]
+    repetitions = payload["repetitions"]
+    expected_order = [
+        v
+        for i in range(repetitions)
+        for v in (("prior", "current") if i % 2 == 0 else ("current", "prior"))
+    ]
+    if repetitions < 2 or [r["variant"] for r in attempts] != expected_order:
+        raise ValueError("alternating complete run inventory differs")
+    seen, outputs, histories = set(), [], []
+    api = {v: [] for v in manifests}
+    whole = {v: [] for v in manifests}
+    for index, attempt in enumerate(attempts):
+        variant = attempt["variant"]
+        name = f"{index // 2 + 1:02d}-{variant}"
+        if attempt["folder"] != name or name in seen or attempt["exit_code"] != 0:
+            raise ValueError("worker identity or exit status differs")
+        seen.add(name)
+        folder = output / name
+        measured = json.loads((folder / "measurement.json").read_bytes())
+        validate(measured)
+        info, lineage = measured["payload"], measured["provenance"]
+        if (
+            lineage["protocol_sha256"] != sha(protocol_path)
+            or lineage["git_commit"] != payload["commits"][variant]
+            or not lineage["git_commit"].startswith(lineage["git_commit_short"])
+        ):
+            raise ValueError("actual source revision or protocol binding differs")
+        for field, file in (
+            ("result_sha256", "result.json.gz"),
+            ("history_sha256", "history.bin.gz"),
+        ):
+            if sha(folder / file) != info[field]:
+                raise ValueError("worker result or history changed")
+        result = json.loads(gzip.decompress((folder / "result.json.gz").read_bytes()))
+        validate(result)
+        if result["provenance"] != lineage or result["payload"]["options"] != expected_options:
+            raise ValueError("result lineage or solver defaults differ")
+        scans = result["payload"]["scans"]
+        if [r["measurement_id"] for r in scans] != [
+            r["measurement_id"] for r in control["measurements"]
+        ]:
+            raise ValueError("scan inventory or order differs")
+        if any(
+            r["result"]["return_count"] != 256 or r["result"]["status"] != "converged"
+            for r in scans
+        ):
+            raise ValueError("Doppler returns or convergence differ")
+        raw = gzip.decompress((folder / "history.bin.gz").read_bytes())
+        if hashlib.sha256(raw).hexdigest() != info["history_raw_sha256"]:
+            raise ValueError("uncompressed IRLS history differs")
+        iterations = validate_trace(raw, scans)
+        if (info["scans"], info["returns"], info["irls_iterations"]) != (2758, 706048, iterations):
+            raise ValueError("work counts differ")
+        imports = info["imports"]
+        if RUNTIME not in {v["path"] for v in imports.values()} or any(
+            not k.startswith("calibrex") or manifests[variant].get(v["path"]) != v["sha256"]
+            for k, v in imports.items()
+        ):
+            raise ValueError("worker used an unfrozen module")
+        if (folder / "stdout.txt").read_bytes() or (folder / "stderr.txt").read_bytes():
+            raise ValueError("unexpected worker logs")
+        if not 0 < info["api_seconds"] <= attempt["seconds"] < math.inf:
+            raise ValueError("invalid timing scope")
+        api[variant].append(info["api_seconds"])
+        whole[variant].append(attempt["seconds"])
+        outputs.append(json.dumps(result["payload"], allow_nan=False))
+        histories.append(info["history_raw_sha256"])
+    if len(set(outputs)) != 1 or len(set(histories)) != 1:
+        raise ValueError("complete results or every IRLS system differ")
+    medians = {v: statistics.median(values) for v, values in whole.items()}
+    api_medians = {v: statistics.median(values) for v, values in api.items()}
+    report = record(
+        "report",
+        {
+            "whole_seconds_median": medians,
+            "api_seconds_median": api_medians,
+            "whole_speedup": medians["prior"] / medians["current"],
+            "api_speedup": api_medians["prior"] / api_medians["current"],
+            "scans": 2758,
+            "returns": 706048,
+            "irls_iterations": iterations,
+            "verified_runs": len(attempts),
+            "complete_results_exact": True,
+            "all_irls_systems_exact": True,
+            "runtime_source_changes": changed,
+        },
+        {"protocol_sha256": sha(protocol_path), "attempts_sha256": sha(output / "attempts.json")},
+    )
+    if (output / "summary.json").exists() and json.loads(
+        (output / "summary.json").read_bytes()
+    ) != report:
+        raise ValueError("saved summary differs from recomputed evidence")
+    return report
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--baseline-commit")
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--repetitions", type=int, default=3)
+    parser.add_argument("--audit-only", type=Path)
+    parser.add_argument("--worker-protocol", type=Path)
+    parser.add_argument("--variant", choices=("prior", "current"))
+    args = parser.parse_args()
+    if args.audit_only:
+        print(json.dumps(audit(args.audit_only), indent=2))
+        return
+    if args.worker_protocol:
+        worker(args.worker_protocol, args.variant, args.output)
+        return
+    if not args.baseline_commit or args.output is None or args.repetitions < 2:
+        parser.error("baseline commit, output and at least two repetitions are required")
+    if sha(CONTROL) != CONTROL_SHA256:
+        raise ValueError("original public velocity control changed")
+    if subprocess.check_output(["git", "status", "--porcelain", "--", "src"], cwd=ROOT):
+        raise ValueError("commit runtime changes before measuring")
+    output = args.output.resolve()
+    output.mkdir(parents=True, exist_ok=False)
+    commits = {
+        v: subprocess.check_output(["git", "rev-parse", ref], cwd=ROOT, text=True).strip()
+        for v, ref in (("prior", args.baseline_commit), ("current", "HEAD"))
+    }
+    for path, name in (
+        (CONTROL, "control.json"),
+        (Path(__file__), "launcher.py.txt"),
+        (SCHEMA, "schema.json"),
+        (ROOT / "tools/benchmark_bspline_lidar_imu.py", "freezer.py.txt"),
+        (ROOT / "tools/benchmark_lazy_runtime_loading.py", "identity.py.txt"),
+    ):
+        shutil.copyfile(path, output / name)
+    for variant, commit in commits.items():
+        source = output / ("sources-" + variant)
+        _freeze(source, commit)
+        _git_identity(source, commit)
+        shutil.copyfile(source / "manifest.json", output / f"sources-{variant}-manifest.json")
+        with tarfile.open(output / f"sources-{variant}.tar.gz", "w:gz") as bundle:
+            bundle.add(source / "src", arcname="src")
+    from calibrex.solvers.radar_ego_velocity_solver import RadarEgoVelocitySolverOptions
+
+    protocol = record(
+        "protocol",
+        {
+            "scope": SCOPE,
+            "commits": commits,
+            "options": asdict(RadarEgoVelocitySolverOptions()),
+            "returns_per_scan": 256,
+            "repetitions": args.repetitions,
+            "blas_threads": 1,
+            "environment": {
+                "python": sys.version,
+                "packages": {
+                    name: importlib.metadata.version(name)
+                    for name in ("numpy", "scipy", "pydantic")
+                },
+            },
+        },
+        {"files": {name: sha(output / name) for name in sorted(PINNED)}},
+    )
+    protocol_path = output / "protocol.json"
+    write(protocol_path, protocol)
+    attempts = []
+    for repeat in range(args.repetitions):
+        for variant in ("prior", "current") if repeat % 2 == 0 else ("current", "prior"):
+            folder = output / f"{repeat + 1:02d}-{variant}"
+            folder.mkdir()
+            source = output / ("sources-" + variant)
+            _verify_sources(source)
+            env = os.environ.copy()
+            env.update(
+                dict.fromkeys(("OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "OMP_NUM_THREADS"), "1")
+            )
+            env.update(
+                PYTHONPATH=str(source / "src"), PYTHONNOUSERSITE="1", PYTHONDONTWRITEBYTECODE="1"
+            )
+            with (
+                (folder / "stdout.txt").open("w") as stdout,
+                (folder / "stderr.txt").open("w") as stderr,
+            ):
+                begin = time.perf_counter()
+                done = subprocess.run(
+                    [
+                        sys.executable,
+                        str(Path(__file__).resolve()),
+                        "--worker-protocol",
+                        str(protocol_path),
+                        "--variant",
+                        variant,
+                        "--output",
+                        str(folder),
+                    ],
+                    cwd=source,
+                    env=env,
+                    stdout=stdout,
+                    stderr=stderr,
+                )
+                seconds = time.perf_counter() - begin
+            attempts.append(
+                {
+                    "folder": folder.name,
+                    "variant": variant,
+                    "seconds": seconds,
+                    "exit_code": done.returncode,
+                }
+            )
+            write(
+                output / "attempts.json",
+                record("attempts", {"attempts": attempts}, {"protocol_sha256": sha(protocol_path)}),
+            )
+            print(json.dumps(attempts[-1]), flush=True)
+            if done.returncode:
+                raise RuntimeError(f"worker failed; see {folder / 'stderr.txt'}")
+            _verify_sources(source)
+            if sha(Path(__file__)) != protocol["provenance"]["files"]["launcher.py.txt"]:
+                raise ValueError("benchmark launcher changed during measurement")
+    report = audit(output)
+    write(output / "summary.json", report)
+    print(json.dumps(report, indent=2))
+
+
+if __name__ == "__main__":
+    main()

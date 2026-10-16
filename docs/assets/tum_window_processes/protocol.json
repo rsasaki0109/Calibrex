@@ -1,0 +1,40 @@
+{
+  "schema_version": "slac.tum_window_processes_benchmark/v0.1",
+  "record_type": "protocol",
+  "payload": {
+    "scope": "Complete native_tum_joint_slac pipeline on the public development TUM fr1/xyz sequence: unchanged primary and replication windows, scalar and full-XYZ lattice ablations, two-sided pairs, reassociation, curvature, multistart, holdout, probes and saved reports. Three bounded native window processes preserve every depth pixel, sampled point, original evaluation population and per-window evaluation order. Whole-worker time includes child startup, imports, native factor transport, reconstruction and aggregation; optimizer, diagnostic and frontend totals are summed process time and may overlap; no accuracy or SOTA claim.",
+    "commits": {
+      "prior": "6c10b0542d279c6571bc80bf7bc5b3d502361e21",
+      "current": "04fcb5d9b4fbb20e3f404d742e77af505b349736"
+    },
+    "inputs_sha256": "f1ec8837db3c70ddb173869a4362dd54a5a9da3dc8e6f9cc7ac59a7b14e2a108",
+    "repetitions": 2,
+    "blas_threads": 1,
+    "environment": {
+      "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+      "packages": {
+        "numpy": "2.3.4",
+        "scipy": "1.17.1",
+        "pydantic": "2.12.5",
+        "PyYAML": "6.0.3"
+      }
+    }
+  },
+  "provenance": {
+    "files": {
+      "capsule-auditor.py.txt": "c1cf1f16d9ce3e84a8fd39e255ee91ed25eb192c49abf91f458781261c9045e9",
+      "config.yaml": "ce537da4decc44ff39579925016f8db2c8d4405254ad71197959d9b1e2da28ab",
+      "freezer.py.txt": "2c72248f7ee1e7ea502abed49870859000034c55f2599b6eb66f63f3852033cb",
+      "identity.py.txt": "5dcbf54c1b5e3721fb019ad80d0074120d49fbb02a4fd7abebed6f7eccb67d41",
+      "inputs.json": "f1ec8837db3c70ddb173869a4362dd54a5a9da3dc8e6f9cc7ac59a7b14e2a108",
+      "launcher.py.txt": "4490f2ae517b3ef0cdf646dfafededd7089dcd27412fefc5d4f233666dcb37ec",
+      "result-schema.json": "a9c1c17177c45c01a98e7cdd49a1f4761b246bec8c9ce115e2fd2239d1e61c5e",
+      "schema.json": "3438e91aa85cbc7f1db9b7d492e571fa92146ed52cb5fc673a599eb26b14d1e6",
+      "sources-current-manifest.json": "1ec12e5df656c069a9783d58bbf614c0d01d1790bf570795edbdc61ceb4d2484",
+      "sources-current.tar.gz": "e0059cdf433af44ba923050aed2d3b3706fecb0ddd18eb3ed7d1b133c0a38f87",
+      "sources-prior-manifest.json": "2ae76054a625c1c8c69a0cf42419fa08231b1386c0c98b6c2a7163aab5cbd7bf",
+      "sources-prior.tar.gz": "81c1503d1d9b8b79b080f42d351cb0b86dca8b6473d281439f8c42d0e8da21f2",
+      "upstream-manifest.yaml": "6e6861a752a92999cfce613465fc69da12ca40205b920fefe18c5e4fc265f02d"
+    }
+  }
+}
