@@ -486,7 +486,7 @@ class _VoxelPlanaritySummary:
 
 @dataclass(frozen=True)
 class LuminanceImage:
-    """Decoded 8-bit PNG luminance image without optional image dependencies."""
+    """Decoded 8-bit PNG luminance rows, independent of the decoding backend."""
 
     width: int
     height: int
@@ -1467,9 +1467,10 @@ def _png_size(path: Path) -> tuple[int, int] | None:
 def read_png_luminance(path: str | Path) -> LuminanceImage | None:
     """Decode a non-interlaced 8-bit PNG into luminance rows.
 
-    Grayscale, grayscale-alpha, RGB, and RGBA images are supported using only
-    the Python standard library.  ``None`` denotes an unreadable or unsupported
-    PNG encoding.
+    Grayscale, grayscale-alpha, RGB, and RGBA images have a standard-library
+    decoder. Installing the optional ``images`` extra accelerates larger PNGs
+    with Pillow while preserving the same floating-point luminance values.
+    ``None`` denotes an unreadable or unsupported PNG encoding.
     """
 
     image_path = Path(path)
@@ -1520,10 +1521,17 @@ def _decode_png_luminance(data: bytes) -> LuminanceImage | None:
     ):
         return None
     channels = _png_channels(color_type)
+    compressed = b"".join(idat_chunks)
     try:
-        raw = zlib.decompress(b"".join(idat_chunks))
+        raw = zlib.decompress(compressed)
     except zlib.error:
         return None
+    if width * height >= 65536:
+        from calibrex.data.pillow_png_adapter import _decode_luminance_rows
+
+        rows = _decode_luminance_rows(compressed, raw, width, height, channels)
+        if rows is not None:
+            return LuminanceImage(width=width, height=height, rows=rows)
     return _unfilter_png_luminance(raw, width, height, channels)
 
 

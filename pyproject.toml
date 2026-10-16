@@ -34,6 +34,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+images = [
+  "pillow>=10",
+]
 # Lint and type-check tools are pinned exactly: a new ruff or mypy release can
 # add rules and turn CI red without any code change.  The strict mypy gate runs
 # from tools/typecheck-requirements.txt (see that file for why).
@@ -143,6 +146,10 @@ no_implicit_optional = true
 
 [[tool.mypy.overrides]]
 module = ["yaml", "jsonschema"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["PIL", "PIL.*"]
 ignore_missing_imports = true
 
 # numba is an optional accelerator without type metadata; it may be absent.
