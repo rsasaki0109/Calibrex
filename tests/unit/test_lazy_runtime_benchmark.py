@@ -3,7 +3,6 @@ from __future__ import annotations
 from copy import deepcopy
 
 import pytest
-
 from tools.benchmark_lazy_runtime_loading import comparable_result
 
 
