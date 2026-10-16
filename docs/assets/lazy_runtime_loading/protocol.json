@@ -1,0 +1,43 @@
+{
+  "schema_version": "slac.lazy_runtime_benchmark/v0.1",
+  "commits": {
+    "prior": "e7b89520f5391005c62016fd2549d39de0693c09",
+    "current": "c0402f431902c18cb6f5c61b8aaa6d505ca2823a"
+  },
+  "repetitions": 3,
+  "fresh_workers": true,
+  "host_unreserved": true,
+  "blas_threads": 1,
+  "commands": {
+    "help": [
+      "--help"
+    ],
+    "validate": [
+      "validate",
+      "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\lazy-runtime-cli-pairs-v1\\correspondence.json",
+      "--json"
+    ],
+    "refine": [
+      "camera-lidar",
+      "refine-probabilistic-multiframe",
+      "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\lazy-runtime-cli-pairs-v1\\correspondence.json",
+      "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\lazy-runtime-cli-pairs-v1\\problem.json",
+      "--output",
+      "<OUTPUT>",
+      "--json"
+    ]
+  },
+  "provenance": {
+    "inputs": {
+      "correspondence": "bd93e232497678d490c85835c68ebb7dce8e927197e2fff220dea316f05b0ac5",
+      "problem": "58a3992d348c24c2a7cf36889ed9f0ba989b95518565a7422f7761c470f9f332"
+    },
+    "source_manifests": {
+      "prior": "d8aa7ca5da549cb6a81d9e5668f511585a182fa35d4478313294d53b2debbe2c",
+      "current": "eb6d28baf8a22d3d6c0fec07c3d9a67f84c4df1b33e86f2a843b44b3e7a05298"
+    },
+    "launcher_sha256": "ea3400d2e3efc9214984ff8f0cd3208d428553d8ca5db2d8d54c8d8ec5f8d52b",
+    "freezer_sha256": "2c72248f7ee1e7ea502abed49870859000034c55f2599b6eb66f63f3852033cb",
+    "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]"
+  }
+}
