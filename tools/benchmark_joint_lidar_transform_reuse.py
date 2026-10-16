@@ -88,6 +88,8 @@ def comparable(value: dict) -> dict:
     value = json.loads(json.dumps(value, allow_nan=False))
     value["run"].pop("id")
     value["run"].pop("created_at")
+    value["run"].pop("git_commit")
+    value["solid_state"]["provenance"].pop("git_commit")
     value["run"]["provenance"].pop("generated_at")
     value["run"]["provenance"].pop("git_commit")
     return value
@@ -278,7 +280,14 @@ def audit(output: Path) -> dict:
         result = json.loads(gzip.decompress((folder / "result.json.gz").read_bytes()))
         jsonschema.validate(result, result_schema)
         p = result["run"]["provenance"]
-        if p["git_commit"] != lineage["git_commit_short"]:
+        if any(
+            identity != lineage["git_commit_short"]
+            for identity in (
+                p["git_commit"],
+                result["run"]["git_commit"],
+                result["solid_state"]["provenance"]["git_commit"],
+            )
+        ):
             raise ValueError("pipeline Git identity differs")
         joint = p["native_joint_slac_solver"]
         if (

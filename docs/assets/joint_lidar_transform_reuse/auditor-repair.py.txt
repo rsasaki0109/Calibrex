@@ -1,0 +1,43 @@
+"""After every worker exits, verify and normalize duplicate source identities."""
+import hashlib
+import json
+from pathlib import Path
+import subprocess
+import sys
+
+ROOT=Path(__file__).resolve().parent
+OUT=ROOT/'outputs/joint-lidar-transform-pairs-v1'
+TOOL=ROOT/'tools/benchmark_joint_lidar_transform_reuse.py'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+attempts=json.loads((OUT/'attempts.json').read_bytes())['payload']['attempts']
+assert len(attempts)==4 and all(x['exit_code']==0 for x in attempts)
+protocol=json.loads((OUT/'protocol.json').read_bytes())
+before=sha(TOOL)
+assert before==protocol['provenance']['files']['launcher.py.txt']
+raw_files=[OUT/name for name in ('protocol.json','attempts.json')]
+raw_files += [OUT/attempt['folder']/name for attempt in attempts for name in ('result.json.gz','history.json','measurement.json','stdout.txt','stderr.txt')]
+raw_before={p.relative_to(OUT).as_posix():sha(p) for p in raw_files}
+source=TOOL.read_text(encoding='utf-8')
+old='    value["run"].pop("created_at")\n'
+assert source.count(old)==1
+source=source.replace(old,old+'    value["run"].pop("git_commit")\n    value["solid_state"]["provenance"].pop("git_commit")\n')
+old='        if p["git_commit"] != lineage["git_commit_short"]:\n'
+assert source.count(old)==1
+source=source.replace(old,'''        if any(identity != lineage["git_commit_short"] for identity in (
+            p["git_commit"], result["run"]["git_commit"],
+            result["solid_state"]["provenance"]["git_commit"],
+        )):
+''')
+TOOL.write_text(source,encoding='utf-8',newline='')
+subprocess.run([sys.executable,'-m','ruff','format',str(TOOL)],check=True)
+from tools import benchmark_joint_lidar_transform_reuse as bench
+report=bench.audit(OUT)
+bench.write(OUT/'summary.json',report)
+assert raw_before=={p.relative_to(OUT).as_posix():sha(p) for p in raw_files}
+bench.write(ROOT/'outputs/joint-transform-validation-v1/auditor-normalization-fix.json',dict(
+    scope='Post-measurement auditor verifies all three actual source identities before excluding their labels; no calibration value or measured file changed.',
+    measured_files_byte_unchanged=True, measured_file_sha256=raw_before,
+    verified_source_identity_paths=['run.git_commit','run.provenance.git_commit','solid_state.provenance.git_commit'],
+    provenance=dict(protocol_sha256=sha(OUT/'protocol.json'),measured_launcher_sha256=before,auditor_sha256=sha(TOOL),repair_script_sha256=sha(Path(__file__))),
+))
+print(json.dumps(report,indent=2))

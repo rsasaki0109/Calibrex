@@ -1,0 +1,32 @@
+{
+  "schema_version": "slac.joint_lidar_transform_reuse_benchmark/v0.1",
+  "record_type": "report",
+  "payload": {
+    "whole_seconds_median": {
+      "prior": 800.2533100499422,
+      "current": 231.25315305002732
+    },
+    "api_seconds_median": {
+      "prior": 796.8916548999841,
+      "current": 228.92161684995517
+    },
+    "whole_speedup": 3.4605076709022096,
+    "api_speedup": 3.481067737793851,
+    "verified_runs": 4,
+    "observations": 16884,
+    "joint_iterations": 40,
+    "jacobian_calls": 41,
+    "residual_calls": 65,
+    "complete_results_exact": true,
+    "all_array_digests_exact": true,
+    "runtime_source_changes": [
+      "calibrex/graph/_evaluation_scope.py",
+      "calibrex/graph/joint_factors.py",
+      "calibrex/graph/joint_optimization.py"
+    ]
+  },
+  "provenance": {
+    "protocol_sha256": "21e880b4a0080c4e8b7b583ce496a753c24dc967df3fe492e25aef531f240fa7",
+    "attempts_sha256": "ef3ec8b1422fd0a9b0df6e7ff9be8d714eb1ea9b0579e986f288c968f7f29be6"
+  }
+}
