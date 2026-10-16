@@ -360,15 +360,16 @@ def main() -> None:
             ],
             check=True,
         )
-        objects = (
-            Path(
-                subprocess.check_output(
-                    ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],
-                    text=True,
-                ).strip()
-            )
-            / "objects"
+        common = Path(
+            subprocess.check_output(
+                ["git", "rev-parse", "--git-common-dir"],
+                cwd=ROOT,
+                text=True,
+            ).strip()
         )
+        objects = (ROOT / common).resolve() / "objects"
+        if not objects.is_dir():
+            raise ValueError("local Git object store is unavailable")
         (source / ".git/objects/info/alternates").write_bytes((objects.as_posix() + "\n").encode())
         subprocess.run(["git", "-C", str(source), "update-ref", "HEAD", commit], check=True)
         sources[variant] = str(source)
