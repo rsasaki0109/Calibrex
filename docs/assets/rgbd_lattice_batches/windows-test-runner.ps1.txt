@@ -1,0 +1,15 @@
+$ErrorActionPreference = 'Stop'
+$env:OPENBLAS_NUM_THREADS='1'
+$env:MKL_NUM_THREADS='1'
+$env:OMP_NUM_THREADS='1'
+Set-Location -LiteralPath 'C:\Users\rsasa\Workspace\Calibrex'
+$validationDir = 'outputs/rgbd-lattice-validation-v1'
+& .venv\Scripts\python.exe .tmp-calibrex-lattice-frozen-tests.py core *> "$validationDir/core-windows.log"
+if ($LASTEXITCODE -ne 0) { Get-Content "$validationDir/core-windows.log"; exit $LASTEXITCODE }
+Get-Content "$validationDir/core-windows.log" -Tail 2
+& .venv\Scripts\python.exe .tmp-calibrex-lattice-frozen-tests.py archive *> "$validationDir/archive-windows.log"
+if ($LASTEXITCODE -ne 0) { Get-Content "$validationDir/archive-windows.log"; exit $LASTEXITCODE }
+Get-Content "$validationDir/archive-windows.log" -Tail 2
+& .venv\Scripts\python.exe .tmp-calibrex-lattice-frozen-tests.py registry *> "$validationDir/registry.log"
+if ($LASTEXITCODE -ne 0) { Get-Content "$validationDir/registry.log"; exit $LASTEXITCODE }
+Get-Content "$validationDir/registry.log" -Tail 2
