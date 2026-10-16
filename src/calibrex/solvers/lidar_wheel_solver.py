@@ -17,8 +17,10 @@ speed and yaw rate tie the LiDAR to the wheel sensors in scale and time.
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+import struct
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Literal, TypeAlias
 
 import numpy as np
@@ -30,6 +32,9 @@ from calibrex.solvers.vehicle_frame_solver import VehicleMotion, initial_vehicle
 
 FloatArray: TypeAlias = NDArray[np.float64]
 WHEEL_PARAMETERS: tuple[str, ...] = ("roll", "pitch", "yaw", "lever", "speed_scale", "time_offset")
+_ResidualEvaluator: TypeAlias = Callable[[FloatArray], FloatArray]
+_PREPARATION_MAX_BYTES = 64 * 1024 * 1024
+_PREPARATION_BYTES_PER_MOTION = 1024
 
 
 @dataclass(frozen=True)
@@ -99,6 +104,18 @@ def lidar_wheel_residuals(
     middle = np.array([0.5 * (item.start_s + item.end_s) for item in moving])
     speed, yaw_rate = wheel.at(middle + params[5])
     sigma = opts.velocity_sigma_mps + opts.velocity_sigma_fraction * np.abs(speed)
+    return _residual_rows(velocity, rates, speed, yaw_rate, sigma, params, opts)
+
+
+def _residual_rows(
+    velocity: FloatArray,
+    rates: FloatArray,
+    speed: FloatArray,
+    yaw_rate: FloatArray,
+    sigma: FloatArray,
+    params: FloatArray,
+    opts: LidarWheelOptions,
+) -> FloatArray:
     return np.concatenate(
         [
             (velocity[:, 0] - params[4] * speed) / sigma,
@@ -108,6 +125,45 @@ def lidar_wheel_residuals(
             rates[:, :2].ravel() / opts.rate_sigma_rps,
         ]
     )
+
+
+def _make_residual_evaluator(
+    moving: Sequence[VehicleMotion], wheel: WheelOdometry, base: FloatArray, opts: LidarWheelOptions
+) -> _ResidualEvaluator:
+    # moving is the solve's already gated, fixed residual set. Bound prepared
+    # arrays, eight interpolation states and working memory conservatively.
+    if not moving or len(moving) * _PREPARATION_BYTES_PER_MOTION > _PREPARATION_MAX_BYTES:
+        return lambda params: lidar_wheel_residuals(moving, wheel, params, base, opts)
+    velocity = np.array([item.velocity_mps for item in moving])
+    rates = np.array([item.angular_rate_rps for item in moving])
+    middle = np.array([0.5 * (item.start_s + item.end_s) for item in moving])
+
+    def interpolate(offset: float) -> tuple[FloatArray, FloatArray, FloatArray]:
+        speed, yaw_rate = wheel.at(middle + offset)
+        sigma = opts.velocity_sigma_mps + opts.velocity_sigma_fraction * np.abs(speed)
+        return speed, yaw_rate, sigma
+
+    @lru_cache(maxsize=8)
+    def clock_state(bits: bytes) -> tuple[FloatArray, FloatArray, FloatArray]:
+        values = interpolate(struct.unpack("d", bits)[0])
+        for value in values:
+            value.setflags(write=False)
+        return values
+
+    def evaluate(params: FloatArray) -> FloatArray:
+        # Preserve every finite-difference step and signed zero. Derived wheel
+        # implementations retain their per-request interpolation callback.
+        rotation = Rotation.from_rotvec(params[:3]).as_matrix() @ base
+        rotated_velocity = velocity @ rotation.T
+        rotated_rates = rates @ rotation.T
+        values = (
+            clock_state(struct.pack("d", float(params[5])))
+            if type(wheel) is WheelOdometry
+            else interpolate(float(params[5]))
+        )
+        return _residual_rows(rotated_velocity, rotated_rates, *values, params, opts)
+
+    return evaluate
 
 
 def solve_lidar_wheel(
@@ -130,8 +186,9 @@ def solve_lidar_wheel(
     lower = np.array([-np.inf] * 4 + [0.5, -bound])
     upper = np.array([np.inf] * 4 + [1.5, bound])
     start_offset = _yaw_rate_offset_scan(moving, wheel, base, opts)
+    evaluate = _make_residual_evaluator(moving, wheel, base, opts)
     fit = least_squares(
-        lambda params: lidar_wheel_residuals(moving, wheel, params, base, opts),
+        evaluate,
         np.array([0.0, 0.0, 0.0, 0.0, 1.0, start_offset]),
         bounds=(lower, upper),
         loss="huber",
@@ -144,7 +201,7 @@ def solve_lidar_wheel(
         gtol=1e-12,
         max_nfev=200,
     )
-    raw = lidar_wheel_residuals(moving, wheel, fit.x, base, opts)
+    raw = evaluate(fit.x)
     spread = max(1.4826 * float(np.median(np.abs(raw))), 1e-6)
     covariance = np.linalg.pinv(fit.jac.T @ fit.jac) * spread**2
     rotation = Rotation.from_rotvec(fit.x[:3]).as_matrix() @ base
