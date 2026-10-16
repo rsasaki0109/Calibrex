@@ -38,6 +38,9 @@ UNREGISTERED_SCHEMA_VERSIONS = {
 # Benchmark records are validated by their explicit tool schemas and archive
 # audits, without adding benchmark-internal formats to the core public API.
 TOOL_SCHEMA_VERSIONS = {
+    "slac.trajectory_hand_eye_reuse_benchmark/v0.1": (
+        "tools/schemas/trajectory_hand_eye_reuse_benchmark.schema.json"
+    ),
     "slac.continuous_camera_lidar_reuse_benchmark/v0.2": (
         "tools/schemas/continuous_camera_lidar_batch_benchmark.schema.json"
     ),
