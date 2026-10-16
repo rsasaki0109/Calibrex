@@ -243,7 +243,9 @@ def test_cli_parses_priors_and_reports_the_policy(
         captured["priors"] = options.solver.priors
         return _artifact(_planar_evaluation())
 
-    monkeypatch.setattr("calibrex.cli.main.run_kitti_ins_lidar_hand_eye", fake_run)
+    monkeypatch.setattr(
+        "calibrex.evaluation.ins_lidar_hand_eye.run_kitti_ins_lidar_hand_eye", fake_run
+    )
     output = tmp_path / "out.yaml"
 
     exit_code = main(

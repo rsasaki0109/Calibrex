@@ -10,12 +10,9 @@ import shutil
 import sys
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Literal, NoReturn, cast
+from typing import TYPE_CHECKING, Any, Literal, NoReturn, cast
 
 from calibrex import __version__
-from calibrex.calibration_ci import (
-    run_calibration_ci,
-)
 from calibrex.cli.help import (
     CHECK_ADVANCED_TITLE,
     CHECK_ARGUMENT_GROUPS,
@@ -24,314 +21,18 @@ from calibrex.cli.help import (
     GroupedHelpFormatter,
     group_arguments,
 )
-from calibrex.core.assessment import (
-    AssessmentArtifact,
-    assess_evidence_file,
-)
-from calibrex.core.benchmark import (
-    aggregate_benchmark_definition,
-    load_benchmark_definition,
-    render_benchmark_markdown,
-    update_benchmark_table_in_markdown,
-)
-from calibrex.core.calibration_check import CHECK_PAIR_NAMES
-from calibrex.core.camera_imu_service import (
-    build_camera_imu_service_plan,
-    evaluate_camera_imu_service,
-    verify_camera_imu_service,
-)
-from calibrex.core.camera_lidar_artifacts import (
-    load_camera_lidar_problem,
-)
-from calibrex.core.camera_lidar_confidence_calibration import (
-    load_camera_lidar_confidence_calibration,
-)
-from calibrex.core.camera_lidar_correspondence_export import (
-    build_probabilistic_correspondence_artifact,
-)
-from calibrex.core.camera_lidar_initializer_calibration import (
-    CameraLidarInitializerRecoveryGate,
-    load_camera_lidar_initializer_calibration,
-)
-from calibrex.core.capture_manifest import (
-    SensorIdentity,
-    SensorType,
-    inspect_capture,
-    verify_capture_manifest_inputs,
-)
-from calibrex.core.config import (
-    CalibrationConfig,
-    DatasetConfig,
-    DatasetType,
-    load_config,
-)
-from calibrex.core.continuous_time_lidar_artifacts import (
-    ContinuousTimeLidarPairArtifact,
-)
-from calibrex.core.dynamic_window import (
-    DynamicWindowConsistencyThresholds,
-)
-from calibrex.core.evidence_bundle import (
-    EvidenceBundleVerification,
-    verify_evidence_bundle,
-    verify_evidence_bundle_verification,
-    write_evidence_bundle_verification,
-)
-from calibrex.core.evidence_contract import (
-    PolicyArtifact,
-)
 from calibrex.core.exceptions import BenchmarkError, CalibrexError
-from calibrex.core.frames import FrameGraph
-from calibrex.core.imu_lidar_rotation import load_imu_lidar_rotation
-from calibrex.core.io import read_mapping, write_mapping, write_text
-from calibrex.core.koide_handoff import (
-    load_koide_execution_lock,
-)
-from calibrex.core.koide_readiness import (
-    evaluate_koide_readiness_from_config,
-)
-from calibrex.core.koide_real_pilot import (
-    build_koide_real_pilot_request,
-    finalize_koide_real_pilot,
-    verify_koide_real_pilot_request,
-)
-from calibrex.core.lifecycle_registry import (
-    evaluate_lifecycle,
-    init_registry,
-    load_registry,
-    promote_lifecycle,
-    record_capture,
-    register_calibration_edge,
-    register_sensor,
-    rollback_lifecycle,
-    verify_registry,
-)
-from calibrex.core.multi_lidar_service import (
-    build_multi_lidar_service_plan,
-    evaluate_multi_lidar_service,
-    verify_multi_lidar_service,
-)
-from calibrex.core.probabilistic_correspondence import (
-    load_probabilistic_correspondence,
-)
-from calibrex.core.provenance import sha256_path
-from calibrex.core.radar_service import (
-    build_radar_service_plan,
-    evaluate_radar_service,
-    verify_radar_service,
-)
-from calibrex.core.raw_replay import (
-    compare_raw_replays,
-    plan_raw_replay,
-    run_field_replacement_pilot,
-    run_raw_replay,
-    verify_raw_replay,
-)
-from calibrex.core.result import CalibrationResult, load_result
-from calibrex.core.schema_registry import (
-    SCHEMA_LEDGER_FILENAME,
-    SchemaRegistryError,
-    schema_entries,
-    schema_entry,
-    schema_ledger,
-)
-from calibrex.core.validation import (
-    ValidationKind,
-    validate_file,
-    validation_kind_choices,
-)
-from calibrex.data.a2d2_camera_lidar_problem import (
-    build_a2d2_camera_lidar_problem,
-)
-from calibrex.data.downloads import (
-    LIVOX_BASE_PCD_NAME,
-    LIVOX_TARGET_PCD_NAME,
-    download_livox_horizon_horizon_pcd_sample,
-    livox_horizon_horizon_pcd_sample_path,
-)
-from calibrex.data.inspect import DatasetInspection, inspect_dataset
-from calibrex.data.kitti import read_kitti_initial_transforms
-from calibrex.data.kitti360_camera_lidar_problem import (
-    build_kitti360_camera_lidar_problem,
-)
-from calibrex.data.kitti_benchmark import (
-    build_kitti_raw_0005_benchmark_input,
-)
-from calibrex.data.kitti_camera_lidar_problem import (
-    build_kitti_raw_camera_lidar_problem,
-)
-from calibrex.data.livox_ros2 import LIVOX_PROFILES, MID360_T_LIDAR_IMU
-from calibrex.data.public_datasets import load_public_dataset_catalog
-from calibrex.diagnostics import (
-    build_doctor_artifact,
-)
-from calibrex.evaluation.borer_rotation_benchmark import (
-    build_borer_rotation_protocol,
-    build_borer_six_dof_protocol,
-    run_borer_rotation_benchmark,
-)
-from calibrex.evaluation.borer_six_dof_benchmark import (
-    ProjectionBackend,
-    run_borer_six_dof_benchmark,
-)
-from calibrex.evaluation.camera_lidar_confidence_calibration import (
-    DEFAULT_CONFIDENCE_THRESHOLDS,
-    calibrate_camera_lidar_confidence,
-    refinement_options_from_camera_lidar_confidence_calibration,
-)
-from calibrex.evaluation.camera_lidar_correspondence_quality import (
-    analyze_camera_lidar_correspondence_quality,
-)
-from calibrex.evaluation.camera_lidar_external_baseline_audit import (
-    materialize_camera_lidar_external_baseline_audit,
-)
-from calibrex.evaluation.camera_lidar_initializer_calibration import (
-    DEFAULT_INITIALIZER_CONFIDENCE_THRESHOLDS,
-    DEFAULT_INITIALIZER_RANDOM_SEEDS,
-    DEFAULT_INITIALIZER_RANSAC_THRESHOLDS_PX,
-    calibrate_camera_lidar_initializer,
-    initializer_options_from_camera_lidar_calibration,
-)
-from calibrex.evaluation.camera_lidar_provider_support_comparison import (
-    compare_camera_lidar_provider_support,
-)
-from calibrex.evaluation.camera_lidar_sota_audit import (
-    audit_camera_lidar_sota_claim,
-)
-from calibrex.evaluation.compare import (
-    ComparisonSide,
-    ResultComparison,
-    compare_results,
-)
-from calibrex.evaluation.continuous_time_camera_lidar_ablation import (
-    run_continuous_time_camera_lidar_ablation,
-)
-from calibrex.evaluation.continuous_time_camera_lidar_run import (
-    run_continuous_time_camera_lidar_problem,
-)
-from calibrex.evaluation.continuous_time_trajectory_adapter import (
-    attach_recorded_body_trajectory,
-)
-from calibrex.evaluation.continuous_time_trajectory_fit import (
-    run_continuous_time_trajectory_fit,
-)
-from calibrex.evaluation.degeneracy import degeneracy_from_inspection
-from calibrex.evaluation.dynamic_window import evaluate_dynamic_window_consistency
-from calibrex.evaluation.empirical_se3_uncertainty import (
-    run_empirical_se3_uncertainty,
-)
-from calibrex.evaluation.evidence_summary import evidence_cases_from_result
-from calibrex.evaluation.external_camera_imu import (
-    evaluate_external_camera_imu,
-    write_synthetic_camera_imu_fixture,
-)
-from calibrex.evaluation.gnss_lidar_lever_arm import run_rtk_slam_lever_arm
-from calibrex.evaluation.imu_lidar_rotation import run_livox_imu_lidar_rotation
-from calibrex.evaluation.imu_lidar_translation import run_livox_imu_lidar_translation
-from calibrex.evaluation.ins_lidar_hand_eye import (
-    InsLidarRunOptions,
-    run_kitti_ins_lidar_hand_eye,
-)
-from calibrex.evaluation.kitti_falsification_benchmark import (
-    run_kitti_falsification_benchmark,
-)
-from calibrex.evaluation.koide_pilot import (
-    export_koide_pilot_autoware,
-    run_koide_pilot,
-)
-from calibrex.evaluation.lidar import lidar_metrics_from_inspection
-from calibrex.evaluation.metrics import evaluate_quality
-from calibrex.evaluation.motion import motion_metrics_from_inspection
-from calibrex.evaluation.pandey_recovery_benchmark import (
-    load_kitti_i2i_benchmark_data,
-    run_kitti_i2i_recovery_benchmark,
-)
-from calibrex.evaluation.probabilistic_camera_lidar_falsification import (
-    run_probabilistic_camera_lidar_falsification,
-)
-from calibrex.evaluation.probabilistic_camera_lidar_run import (
-    run_probabilistic_camera_lidar_refinement,
-)
-from calibrex.evaluation.probabilistic_refinement_ablation import (
-    run_probabilistic_refinement_ablation,
-)
-from calibrex.evaluation.recommendations import build_inspection_recommendations
-from calibrex.evaluation.registry import list_metric_definitions
-from calibrex.evaluation.report_compare import (
-    ReportComparison,
-    compare_reports,
-)
-from calibrex.evaluation.sota_audit import audit_sota_claim
-from calibrex.evaluation.sota_leaderboard import (
-    build_sota_leaderboard,
-    render_sota_leaderboard_markdown,
-)
-from calibrex.evaluation.thresholds import ThresholdProfile, apply_metric_thresholds
-from calibrex.evaluation.timing import timing_metrics_from_inspection
-from calibrex.export.autoware import (
-    AutowareExportConfig,
-    build_autoware_export,
-    write_autoware_export,
-)
-from calibrex.export.autoware_promotion import (
-    AutowarePromotionPolicy,
-    AutowarePromotionRoots,
-    apply_autoware_promotion,
-    build_autoware_promotion_plan,
-    load_autoware_promotion,
-    rollback_autoware_promotion,
-    verify_autoware_promotion,
-)
-from calibrex.export.autoware_smoke import (
-    AutowareSmokeCommand,
-    AutowareSmokeConfig,
-    AutowareSmokePolicy,
-    import_autoware_smoke,
-    run_autoware_smoke,
-    verify_autoware_smoke,
-)
-from calibrex.export.ros_tf import export_ros_tf_transforms, export_ros_tf_yaml
-from calibrex.graph.problem import build_problem
-from calibrex.importers.kalibr import import_kalibr_camchain
-from calibrex.importers.koide import import_koide_result
-from calibrex.importers.sensor_calib_tas import sensor_calib_tas_frames
-from calibrex.init_templates import (
-    list_sensor_template_names,
-    template_summary,
-    write_sensor_template,
-)
-from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
-from calibrex.pipelines.camera_lidar_six_dof import run_camera_lidar_six_dof_estimate
-from calibrex.pipelines.online import (
-    OnlineCalibrationRunOptions,
-    evaluate_continuous_time_lidar_pair,
-    evaluate_rosbag2_capture_readiness,
-    evaluate_rosbag2_trajectory_window_drift,
-    run_online_calibration,
-)
-from calibrex.solvers.borer_depth_to_depth_solver import DepthToDepthOptions
-from calibrex.solvers.borer_six_dof_solver import BorerSixDofOptions
-from calibrex.solvers.koide_lidar_camera_solver import KoideLidarCameraSolver
-from calibrex.solvers.opencv_probabilistic_pnp_adapter import (
-    OpenCvProbabilisticPnpAdapter,
-    OpenCvProbabilisticPnpOptions,
-)
-from calibrex.solvers.probabilistic_camera_lidar_refiner import (
-    ProbabilisticCameraLidarRefinementOptions,
-)
-from calibrex.solvers.trajectory_hand_eye_solver import DofPrior, TrajectoryHandEyeOptions
-from calibrex.visualization.bullseye import write_bullseye_plot
-from calibrex.visualization.comparison_table import write_comparison_table
-from calibrex.visualization.evidence_card import write_evidence_card
-from calibrex.visualization.overlays import write_camera_lidar_overlay_artifact
-from calibrex.visualization.report import (
-    evidence_artifact_from_result,
-    report_artifact_paths,
-    write_evidence_artifact,
-    write_evidence_contract_artifacts,
-    write_report_artifacts,
-)
-from calibrex.visualization.rig3d import write_rig_3d_artifact
+
+if TYPE_CHECKING:
+    from calibrex.core.capture_manifest import SensorIdentity
+    from calibrex.core.config import CalibrationConfig
+    from calibrex.core.evidence_bundle import EvidenceBundleVerification
+    from calibrex.core.result import CalibrationResult
+    from calibrex.data.inspect import DatasetInspection
+    from calibrex.evaluation.compare import ComparisonSide, ResultComparison
+    from calibrex.evaluation.report_compare import ReportComparison
+    from calibrex.export.autoware_promotion import AutowarePromotionPolicy
+    from calibrex.export.autoware_smoke import AutowareSmokeCommand
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -447,6 +148,18 @@ def _overconfidence_scale(value: str) -> float:
 
 
 def _build_parser() -> argparse.ArgumentParser:
+    from calibrex.core.schema_registry import schema_kinds
+    from calibrex.core.validation import validation_kind_choices
+    from calibrex.data.livox_ros2 import LIVOX_PROFILES
+    from calibrex.evaluation.camera_lidar_confidence_calibration import (
+        DEFAULT_CONFIDENCE_THRESHOLDS,
+    )
+    from calibrex.evaluation.camera_lidar_initializer_calibration import (
+        DEFAULT_INITIALIZER_CONFIDENCE_THRESHOLDS,
+        DEFAULT_INITIALIZER_RANDOM_SEEDS,
+        DEFAULT_INITIALIZER_RANSAC_THRESHOLDS_PX,
+    )
+
     parser = CalibrexArgumentParser(
         prog="calibrex", formatter_class=GroupedHelpFormatter, epilog=HELP_EPILOG
     )
@@ -498,7 +211,7 @@ def _build_parser() -> argparse.ArgumentParser:
     schema = subcommands.add_parser("schema", help="print JSON schema")
     schema.add_argument(
         "kind",
-        choices=[*(entry.kind for entry in schema_entries()), "ledger", "all"],
+        choices=[*schema_kinds(), "ledger", "all"],
         help="artifact kind, 'ledger' for the schema version ledger, or 'all'",
     )
     schema.add_argument("--output", type=Path, help="write schema to a file")
@@ -3612,6 +3325,11 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _cmd_doctor(args: argparse.Namespace) -> int:
+    from calibrex.core.config import DatasetType
+    from calibrex.core.io import write_mapping
+    from calibrex.core.koide_readiness import evaluate_koide_readiness_from_config
+    from calibrex.diagnostics import build_doctor_artifact
+
     if args.workflow == "koide":
         if args.config is None:
             _die("doctor --workflow koide requires --config CONFIG")
@@ -3708,6 +3426,15 @@ def _doctor_command(args: argparse.Namespace) -> list[str]:
 
 
 def _cmd_schema(args: argparse.Namespace) -> int:
+    from calibrex.core.io import write_mapping
+    from calibrex.core.schema_registry import (
+        SCHEMA_LEDGER_FILENAME,
+        SchemaRegistryError,
+        schema_entries,
+        schema_entry,
+        schema_ledger,
+    )
+
     if args.kind == "all":
         if args.output is not None:
             _die("schema all does not support --output; use --output-dir")
@@ -3735,6 +3462,8 @@ def _cmd_schema(args: argparse.Namespace) -> int:
 
 
 def _cmd_validate(args: argparse.Namespace) -> int:
+    from calibrex.core.validation import ValidationKind, validate_file
+
     try:
         report = validate_file(
             args.path,
@@ -3764,6 +3493,14 @@ def _cmd_validate(args: argparse.Namespace) -> int:
 
 
 def _cmd_benchmark(args: argparse.Namespace) -> int:
+    from calibrex.core.benchmark import (
+        aggregate_benchmark_definition,
+        load_benchmark_definition,
+        render_benchmark_markdown,
+        update_benchmark_table_in_markdown,
+    )
+    from calibrex.core.io import write_text
+
     definition = load_benchmark_definition(args.definition)
     try:
         benchmark = aggregate_benchmark_definition(definition)
@@ -3791,6 +3528,8 @@ def _cmd_benchmark(args: argparse.Namespace) -> int:
 
 
 def _cmd_calibration_ci(args: argparse.Namespace) -> int:
+    from calibrex.calibration_ci import run_calibration_ci
+
     command = ["calibrex", "ci", str(args.candidate)]
     if args.baseline is not None:
         command.extend(["--baseline", str(args.baseline)])
@@ -3819,6 +3558,8 @@ def _cmd_calibration_ci(args: argparse.Namespace) -> int:
 
 
 def _cmd_replay_plan(args: argparse.Namespace) -> int:
+    from calibrex.core.raw_replay import plan_raw_replay
+
     plan = plan_raw_replay(
         args.definition,
         output=args.output,
@@ -3829,6 +3570,8 @@ def _cmd_replay_plan(args: argparse.Namespace) -> int:
 
 
 def _cmd_replay_run(args: argparse.Namespace) -> int:
+    from calibrex.core.raw_replay import run_field_replacement_pilot, run_raw_replay
+
     result = run_raw_replay(
         args.definition,
         output_directory=args.output_dir,
@@ -3857,6 +3600,8 @@ def _cmd_replay_run(args: argparse.Namespace) -> int:
 
 
 def _cmd_replay_verify(args: argparse.Namespace) -> int:
+    from calibrex.core.raw_replay import verify_raw_replay
+
     result = verify_raw_replay(args.result, definition=args.definition)
     _emit(
         {
@@ -3872,6 +3617,8 @@ def _cmd_replay_verify(args: argparse.Namespace) -> int:
 
 
 def _cmd_replay_compare(args: argparse.Namespace) -> int:
+    from calibrex.core.raw_replay import compare_raw_replays
+
     comparison = compare_raw_replays(args.left, args.right, output=args.output)
     _emit(
         {
@@ -3884,6 +3631,8 @@ def _cmd_replay_compare(args: argparse.Namespace) -> int:
 
 
 def _cmd_replay_field_replacement(args: argparse.Namespace) -> int:
+    from calibrex.core.raw_replay import run_field_replacement_pilot
+
     pilot = run_field_replacement_pilot(
         args.definition,
         output_directory=args.output_dir,
@@ -3900,6 +3649,8 @@ def _cmd_replay_field_replacement(args: argparse.Namespace) -> int:
 
 
 def _cmd_multi_lidar_service_plan(args: argparse.Namespace) -> int:
+    from calibrex.core.multi_lidar_service import build_multi_lidar_service_plan
+
     command = [
         "calibrex",
         "multi-lidar-service",
@@ -3920,6 +3671,8 @@ def _cmd_multi_lidar_service_plan(args: argparse.Namespace) -> int:
 
 
 def _cmd_multi_lidar_service_evaluate(args: argparse.Namespace) -> int:
+    from calibrex.core.multi_lidar_service import evaluate_multi_lidar_service
+
     command = [
         "calibrex",
         "multi-lidar-service",
@@ -3948,12 +3701,16 @@ def _cmd_multi_lidar_service_evaluate(args: argparse.Namespace) -> int:
 
 
 def _cmd_multi_lidar_service_verify(args: argparse.Namespace) -> int:
+    from calibrex.core.multi_lidar_service import verify_multi_lidar_service
+
     verification = verify_multi_lidar_service(args.artifact, plan=args.plan)
     _emit(verification.model_dump(mode="json", exclude_none=False), args.json)
     return 0 if verification.valid else 1
 
 
 def _cmd_camera_imu_service_plan(args: argparse.Namespace) -> int:
+    from calibrex.core.camera_imu_service import build_camera_imu_service_plan
+
     command = [
         "calibrex",
         "camera-imu-service",
@@ -3974,6 +3731,8 @@ def _cmd_camera_imu_service_plan(args: argparse.Namespace) -> int:
 
 
 def _cmd_camera_imu_service_evaluate(args: argparse.Namespace) -> int:
+    from calibrex.core.camera_imu_service import evaluate_camera_imu_service
+
     command = [
         "calibrex",
         "camera-imu-service",
@@ -4002,12 +3761,16 @@ def _cmd_camera_imu_service_evaluate(args: argparse.Namespace) -> int:
 
 
 def _cmd_camera_imu_service_verify(args: argparse.Namespace) -> int:
+    from calibrex.core.camera_imu_service import verify_camera_imu_service
+
     verification = verify_camera_imu_service(args.artifact, plan=args.plan)
     _emit(verification.model_dump(mode="json", exclude_none=False), args.json)
     return 0 if verification.valid else 1
 
 
 def _cmd_radar_service_plan(args: argparse.Namespace) -> int:
+    from calibrex.core.radar_service import build_radar_service_plan
+
     command = [
         "calibrex",
         "radar-service",
@@ -4028,6 +3791,8 @@ def _cmd_radar_service_plan(args: argparse.Namespace) -> int:
 
 
 def _cmd_radar_service_evaluate(args: argparse.Namespace) -> int:
+    from calibrex.core.radar_service import evaluate_radar_service
+
     command = [
         "calibrex",
         "radar-service",
@@ -4056,12 +3821,21 @@ def _cmd_radar_service_evaluate(args: argparse.Namespace) -> int:
 
 
 def _cmd_radar_service_verify(args: argparse.Namespace) -> int:
+    from calibrex.core.radar_service import verify_radar_service
+
     verification = verify_radar_service(args.artifact, plan=args.plan)
     _emit(verification.model_dump(mode="json", exclude_none=False), args.json)
     return 0 if verification.valid else 1
 
 
 def _cmd_verify(args: argparse.Namespace) -> int:
+    from calibrex.core.evidence_bundle import (
+        verify_evidence_bundle,
+        verify_evidence_bundle_verification,
+        write_evidence_bundle_verification,
+    )
+    from calibrex.core.io import read_mapping
+
     artifact = Path(args.artifact)
     artifact_payload = read_mapping(artifact)
     schema_version = artifact_payload.get("schema_version")
@@ -4107,6 +3881,10 @@ def _resolve_related_artifact_path(base_dir: Path, path: str) -> Path:
 
 
 def _cmd_assess(args: argparse.Namespace) -> int:
+    from calibrex.core.assessment import assess_evidence_file
+    from calibrex.core.evidence_contract import PolicyArtifact
+    from calibrex.core.io import read_mapping, write_mapping
+
     policy = None
     if args.policy is not None:
         policy_artifact = PolicyArtifact.model_validate(read_mapping(args.policy))
@@ -4125,6 +3903,13 @@ def _cmd_assess(args: argparse.Namespace) -> int:
 
 
 def _cmd_evidence(args: argparse.Namespace) -> int:
+    from calibrex.core.result import load_result
+    from calibrex.visualization.report import (
+        evidence_artifact_from_result,
+        write_evidence_artifact,
+        write_evidence_contract_artifacts,
+    )
+
     result = load_result(args.result)
     if args.sidecars_dir is None:
         evidence = write_evidence_artifact(result, args.output)
@@ -4156,6 +3941,13 @@ def _cmd_evidence(args: argparse.Namespace) -> int:
 
 
 def _cmd_init(args: argparse.Namespace) -> int:
+    from calibrex.core.io import write_mapping
+    from calibrex.init_templates import (
+        list_sensor_template_names,
+        template_summary,
+        write_sensor_template,
+    )
+
     if args.list_templates:
         payload = {
             "templates": template_summary(),
@@ -4195,6 +3987,11 @@ def _cmd_init(args: argparse.Namespace) -> int:
 
 
 def _cmd_calibrate(args: argparse.Namespace) -> int:
+    from calibrex.core.config import load_config
+    from calibrex.data.inspect import inspect_dataset
+    from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
+    from calibrex.visualization.report import report_artifact_paths
+
     if args.online and args.candidate_extrinsics:
         _die(
             "--candidate-extrinsics is not supported with --online; "
@@ -4239,6 +4036,10 @@ def _cmd_calibrate(args: argparse.Namespace) -> int:
 
 
 def _cmd_calibrate_online(args: argparse.Namespace, config: CalibrationConfig) -> int:
+    from calibrex.data.inspect import inspect_dataset
+    from calibrex.pipelines.online import OnlineCalibrationRunOptions, run_online_calibration
+    from calibrex.visualization.report import report_artifact_paths
+
     result = run_online_calibration(
         args.config,
         OnlineCalibrationRunOptions(
@@ -4285,6 +4086,12 @@ def _cmd_calibrate_online(args: argparse.Namespace, config: CalibrationConfig) -
 
 
 def _cmd_compile(args: argparse.Namespace) -> int:
+    from calibrex.core.config import load_config
+    from calibrex.core.frames import FrameGraph
+    from calibrex.core.io import write_mapping
+    from calibrex.data.inspect import inspect_dataset
+    from calibrex.graph.problem import build_problem
+
     config = load_config(args.config)
     inspection = inspect_dataset(config.dataset)
     problem = build_problem(config, FrameGraph.from_config(config), inspection)
@@ -4299,6 +4106,14 @@ def _cmd_compile(args: argparse.Namespace) -> int:
 
 
 def _cmd_evaluate(args: argparse.Namespace) -> int:
+    from calibrex.core.result import load_result
+    from calibrex.evaluation.evidence_summary import evidence_cases_from_result
+    from calibrex.evaluation.metrics import evaluate_quality
+    from calibrex.evaluation.thresholds import ThresholdProfile
+    from calibrex.visualization.overlays import write_camera_lidar_overlay_artifact
+    from calibrex.visualization.report import write_report_artifacts
+    from calibrex.visualization.rig3d import write_rig_3d_artifact
+
     profile = cast(ThresholdProfile | None, args.threshold_profile)
     result = evaluate_quality(
         load_result(args.result),
@@ -4341,11 +4156,11 @@ def _cmd_evaluate(args: argparse.Namespace) -> int:
 
 def _render_check_artifact(args: argparse.Namespace) -> int | None:
     """Render a ``slac.calibration_check`` artifact; ``None`` when ``result`` is another kind."""
-
     from calibrex.core.calibration_check import (
         CALIBRATION_CHECK_SCHEMA_VERSION,
         CalibrationCheckArtifact,
     )
+    from calibrex.core.io import read_mapping
     from calibrex.visualization.check_report import write_check_html
 
     try:
@@ -4380,8 +4195,8 @@ def _render_check_artifact(args: argparse.Namespace) -> int | None:
 
 def _render_estimate_artifact(args: argparse.Namespace) -> int | None:
     """Render a ``slac.bag_estimate`` artifact; ``None`` when ``result`` is another kind."""
-
     from calibrex.core.bag_estimate import BAG_ESTIMATE_SCHEMA_VERSION, BagEstimateArtifact
+    from calibrex.core.io import read_mapping
     from calibrex.visualization.estimate_report import write_estimate_html
 
     try:
@@ -4415,6 +4230,9 @@ def _render_estimate_artifact(args: argparse.Namespace) -> int | None:
 
 
 def _cmd_render(args: argparse.Namespace) -> int:
+    from calibrex.core.result import load_result
+    from calibrex.visualization.evidence_card import write_evidence_card
+
     rendered = _render_check_artifact(args)
     if rendered is None:
         rendered = _render_estimate_artifact(args)
@@ -4455,6 +4273,10 @@ def _render_result_report(
     command: str,
     deprecated_alias: str | None,
 ) -> int:
+    from calibrex.core.result import load_result
+    from calibrex.evaluation.evidence_summary import evidence_cases_from_result
+    from calibrex.visualization.report import write_report_artifacts
+
     result = load_result(args.result)
     output_dir = args.output_dir or _report_output_dir(args.result, args.html)
     html_filename = _report_html_filename(args.html)
@@ -4528,6 +4350,11 @@ def _evidence_card_output_path(
 
 
 def _cmd_compare(args: argparse.Namespace) -> int:
+    from calibrex.core.io import write_mapping
+    from calibrex.core.result import load_result
+    from calibrex.evaluation.compare import compare_results
+    from calibrex.visualization.comparison_table import write_comparison_table
+
     left_result = load_result(args.left_result)
     right_result = load_result(args.right_result)
     comparison = compare_results(
@@ -4579,6 +4406,10 @@ def _cmd_compare(args: argparse.Namespace) -> int:
 
 
 def _cmd_report_compare(args: argparse.Namespace) -> int:
+    from calibrex.core.io import write_mapping
+    from calibrex.core.result import load_result
+    from calibrex.evaluation.report_compare import compare_reports
+
     labeled_paths = _parse_labeled_results(args.entries)
     labeled_results = [(label, load_result(path)) for label, path in labeled_paths]
     paths = {label: cast(Path | str | None, path) for label, path in labeled_paths}
@@ -4603,6 +4434,11 @@ def _cmd_report_compare(args: argparse.Namespace) -> int:
 
 
 def _cmd_window_consistency(args: argparse.Namespace) -> int:
+    from calibrex.core.dynamic_window import DynamicWindowConsistencyThresholds
+    from calibrex.core.io import write_mapping
+    from calibrex.core.result import load_result
+    from calibrex.evaluation.dynamic_window import evaluate_dynamic_window_consistency
+
     labeled_paths = _parse_labeled_results(args.entries)
     labeled_results = [(label, load_result(path)) for label, path in labeled_paths]
     try:
@@ -4635,6 +4471,9 @@ def _cmd_window_consistency(args: argparse.Namespace) -> int:
 
 
 def _cmd_trajectory_window_drift(args: argparse.Namespace) -> int:
+    from calibrex.core.io import write_mapping
+    from calibrex.pipelines.online import evaluate_rosbag2_trajectory_window_drift
+
     artifact = evaluate_rosbag2_trajectory_window_drift(
         args.config,
         reference_result_path=args.reference_result,
@@ -4686,6 +4525,7 @@ def _cmd_estimate(args: argparse.Namespace) -> int:
     )
     from calibrex.check.roles import parse_topic_kinds
     from calibrex.check.runner import CheckRunOptions, parse_frame_map
+    from calibrex.core.io import write_mapping
 
     pairs = None
     if args.pairs is not None:
@@ -4763,6 +4603,7 @@ def _cmd_drift(args: argparse.Namespace) -> int:
     from calibrex.check.progress import make_progress
     from calibrex.check.roles import parse_topic_kinds
     from calibrex.check.runner import CheckRunOptions, parse_frame_map
+    from calibrex.core.io import write_mapping
 
     if len(args.bags) < 2:
         raise CalibrexError("calibrex drift needs at least two bags of the same rig")
@@ -4854,6 +4695,8 @@ def _cmd_check(args: argparse.Namespace) -> int:
         VERDICT_ORDER,
         VerdictOptions,
     )
+    from calibrex.core.calibration_check import CHECK_PAIR_NAMES
+    from calibrex.core.io import write_mapping
 
     run_options = None
     if not args.plan:
@@ -4963,6 +4806,9 @@ def _cmd_check(args: argparse.Namespace) -> int:
 
 
 def _cmd_capture_readiness(args: argparse.Namespace) -> int:
+    from calibrex.core.io import write_mapping
+    from calibrex.pipelines.online import evaluate_rosbag2_capture_readiness
+
     artifact = evaluate_rosbag2_capture_readiness(args.config)
     payload = artifact.model_dump(mode="json", exclude_none=True)
     if args.output:
@@ -4982,6 +4828,9 @@ def _cmd_capture_readiness(args: argparse.Namespace) -> int:
 
 
 def _cmd_continuous_time_lidar_pair(args: argparse.Namespace) -> int:
+    from calibrex.core.io import write_mapping
+    from calibrex.pipelines.online import evaluate_continuous_time_lidar_pair
+
     artifact = evaluate_continuous_time_lidar_pair(args.config)
     payload = artifact.model_dump(mode="json", exclude_none=True)
     if args.output:
@@ -5038,6 +4887,8 @@ def _parse_labeled_results(entries: list[str]) -> list[tuple[str, Path]]:
 
 
 def _cmd_metrics(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.registry import list_metric_definitions
+
     definitions = [
         {
             "name": definition.name,
@@ -5057,6 +4908,8 @@ def _cmd_metrics(args: argparse.Namespace) -> int:
 
 
 def _cmd_public_datasets_list(args: argparse.Namespace) -> int:
+    from calibrex.data.public_datasets import load_public_dataset_catalog
+
     catalog = load_public_dataset_catalog()
     payload = {
         "datasets": [
@@ -5083,6 +4936,8 @@ def _cmd_public_datasets_list(args: argparse.Namespace) -> int:
 
 
 def _cmd_public_datasets_show(args: argparse.Namespace) -> int:
+    from calibrex.data.public_datasets import load_public_dataset_catalog
+
     catalog = load_public_dataset_catalog()
     try:
         entry = catalog.datasets[args.dataset]
@@ -5100,6 +4955,18 @@ def _cmd_public_datasets_show(args: argparse.Namespace) -> int:
 
 
 def _cmd_demo_livox_evidence(args: argparse.Namespace) -> int:
+    from calibrex.core.assessment import AssessmentArtifact
+    from calibrex.core.evidence_bundle import (
+        verify_evidence_bundle,
+        write_evidence_bundle_verification,
+    )
+    from calibrex.core.io import read_mapping
+    from calibrex.data.downloads import (
+        download_livox_horizon_horizon_pcd_sample,
+        livox_horizon_horizon_pcd_sample_path,
+    )
+    from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
+
     dataset_path = livox_horizon_horizon_pcd_sample_path(args.data_dir)
     if args.no_download:
         _require_livox_demo_files(dataset_path)
@@ -5158,6 +5025,8 @@ def _cmd_demo_livox_evidence(args: argparse.Namespace) -> int:
 
 
 def _require_livox_demo_files(dataset_path: Path) -> None:
+    from calibrex.data.downloads import LIVOX_BASE_PCD_NAME, LIVOX_TARGET_PCD_NAME
+
     missing = [
         name
         for name in (LIVOX_BASE_PCD_NAME, LIVOX_TARGET_PCD_NAME)
@@ -5177,6 +5046,8 @@ def _write_demo_config(
     dataset_path: Path,
     output_dir: Path,
 ) -> None:
+    from calibrex.core.io import read_mapping, write_mapping
+
     config_payload = read_mapping(source_config)
     dataset = config_payload.get("dataset")
     if not isinstance(dataset, dict):
@@ -5189,6 +5060,14 @@ def _write_demo_config(
 
 
 def _cmd_demo_kitti_lidar_camera_evidence(args: argparse.Namespace) -> int:
+    from calibrex.core.assessment import AssessmentArtifact
+    from calibrex.core.evidence_bundle import (
+        verify_evidence_bundle,
+        write_evidence_bundle_verification,
+    )
+    from calibrex.core.io import read_mapping
+    from calibrex.pipelines.calibrate import CalibrationRunOptions, run_calibration
+
     config_payload = read_mapping(args.config)
     dataset_section = config_payload.get("dataset")
     if not isinstance(dataset_section, dict) or "path" not in dataset_section:
@@ -5304,6 +5183,9 @@ def _cmd_convert_kitti_raw(args: argparse.Namespace) -> int:
 
 
 def _cmd_kitti_import_calib(args: argparse.Namespace) -> int:
+    from calibrex.core.io import write_mapping
+    from calibrex.data.kitti import read_kitti_initial_transforms
+
     transforms = {
         name: {
             "convention": "T_parent_child",
@@ -5322,6 +5204,8 @@ def _cmd_kitti_import_calib(args: argparse.Namespace) -> int:
 
 
 def _cmd_demo_kitti_falsification_benchmark(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.kitti_falsification_benchmark import run_kitti_falsification_benchmark
+
     try:
         benchmark = run_kitti_falsification_benchmark(
             args.dataset_path,
@@ -5355,6 +5239,9 @@ def _cmd_demo_kitti_falsification_benchmark(args: argparse.Namespace) -> int:
 
 
 def _cmd_external_run_import_sensor_calib_tas(args: argparse.Namespace) -> int:
+    from calibrex.core.io import write_mapping
+    from calibrex.importers.sensor_calib_tas import sensor_calib_tas_frames
+
     if args.source.resolve() == args.output.resolve():
         _die("the output must not overwrite the sensor_calib_tas source")
     try:
@@ -5376,6 +5263,8 @@ def _cmd_external_run_import_sensor_calib_tas(args: argparse.Namespace) -> int:
 
 
 def _cmd_external_run_import_kalibr(args: argparse.Namespace) -> int:
+    from calibrex.importers.kalibr import import_kalibr_camchain
+
     if args.source.resolve() == args.output.resolve():
         _die("external-run output must not overwrite the Kalibr source artifact")
     license_spdx = (
@@ -5411,6 +5300,8 @@ def _cmd_external_run_import_kalibr(args: argparse.Namespace) -> int:
 
 
 def _cmd_external_run_evaluate_camera_imu(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.external_camera_imu import evaluate_external_camera_imu
+
     if args.output.resolve() in {args.external_run.resolve(), args.recording.resolve()}:
         _die("evidence output must not overwrite its inputs")
     command = [
@@ -5454,6 +5345,8 @@ def _cmd_external_run_evaluate_camera_imu(args: argparse.Namespace) -> int:
 
 
 def _cmd_external_run_synthesize_camera_imu_fixture(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.external_camera_imu import write_synthetic_camera_imu_fixture
+
     fixture = write_synthetic_camera_imu_fixture(
         args.output_dir,
         seed=args.seed,
@@ -5477,6 +5370,8 @@ def _cmd_external_run_synthesize_camera_imu_fixture(args: argparse.Namespace) ->
 
 def _cmd_external_run_import_koide(args: argparse.Namespace) -> int:
     """Import one Koide native result through the typed external-run boundary."""
+    from calibrex.importers.koide import import_koide_result
+
 
     if args.source.resolve() == args.output.resolve():
         _die("external-run output must not overwrite the Koide source artifact")
@@ -5516,6 +5411,11 @@ def _cmd_external_run_import_koide(args: argparse.Namespace) -> int:
 
 def _cmd_external_run_koide(args: argparse.Namespace) -> int:
     """Run the typed Koide workflow declared by a Calibrex config."""
+    from calibrex.core.config import load_config
+    from calibrex.core.frames import FrameGraph
+    from calibrex.data.inspect import inspect_dataset
+    from calibrex.solvers.koide_lidar_camera_solver import KoideLidarCameraSolver
+
 
     if args.config.resolve() == args.output.resolve():
         _die("Koide external-run output must not overwrite the config")
@@ -5572,6 +5472,8 @@ def _cmd_external_run_koide(args: argparse.Namespace) -> int:
 
 
 def _cmd_kitti_lock_benchmark_input(args: argparse.Namespace) -> int:
+    from calibrex.data.kitti_benchmark import build_kitti_raw_0005_benchmark_input
+
     command = f"calibrex kitti lock-benchmark-input {args.path} --output {args.output}"
     manifest = build_kitti_raw_0005_benchmark_input(args.path, command=command)
     manifest.save(args.output)
@@ -5589,6 +5491,11 @@ def _cmd_kitti_lock_benchmark_input(args: argparse.Namespace) -> int:
 
 
 def _cmd_kitti_benchmark_i2i(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.pandey_recovery_benchmark import (
+        load_kitti_i2i_benchmark_data,
+        run_kitti_i2i_recovery_benchmark,
+    )
+
     if args.max_iterations < 0:
         _die("--max-iterations must be non-negative")
     command = (
@@ -5660,6 +5567,8 @@ def _cmd_kitti_benchmark_i2i(args: argparse.Namespace) -> int:
 
 
 def _cmd_camera_lidar_freeze_rotation_protocol(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.borer_rotation_benchmark import build_borer_rotation_protocol
+
     command = [
         "calibrex",
         "camera-lidar",
@@ -5716,6 +5625,8 @@ def _cmd_camera_lidar_freeze_rotation_protocol(args: argparse.Namespace) -> int:
 
 
 def _cmd_camera_lidar_freeze_six_dof_protocol(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.borer_rotation_benchmark import build_borer_six_dof_protocol
+
     command = [
         "calibrex",
         "camera-lidar",
@@ -5785,7 +5696,7 @@ def _cmd_camera_lidar_freeze_six_dof_protocol(args: argparse.Namespace) -> int:
 
 
 def _cmd_camera_lidar_benchmark_koide_pilot(args: argparse.Namespace) -> int:
-    from calibrex.evaluation.koide_pilot import KoidePilotThresholds
+    from calibrex.evaluation.koide_pilot import KoidePilotThresholds, run_koide_pilot
 
     try:
         thresholds = KoidePilotThresholds(
@@ -5838,6 +5749,8 @@ def _cmd_camera_lidar_benchmark_koide_pilot(args: argparse.Namespace) -> int:
 
 def _cmd_camera_lidar_koide_handoff(args: argparse.Namespace) -> int:
     """Validate the immutable Koide lock and print operator next actions."""
+    from calibrex.core.koide_handoff import load_koide_execution_lock
+
 
     try:
         lock = load_koide_execution_lock(args.lock)
@@ -5876,6 +5789,8 @@ def _cmd_camera_lidar_koide_handoff(args: argparse.Namespace) -> int:
 
 def _cmd_camera_lidar_koide_real_plan(args: argparse.Namespace) -> int:
     """Materialize the non-executing real Koide plan."""
+    from calibrex.core.koide_real_pilot import build_koide_real_pilot_request
+
 
     try:
         request = build_koide_real_pilot_request(
@@ -5904,6 +5819,8 @@ def _cmd_camera_lidar_koide_real_plan(args: argparse.Namespace) -> int:
 
 def _cmd_camera_lidar_koide_real_verify(args: argparse.Namespace) -> int:
     """Verify a real Koide handoff's supplied evidence without running Koide."""
+    from calibrex.core.koide_real_pilot import verify_koide_real_pilot_request
+
 
     try:
         verification = verify_koide_real_pilot_request(
@@ -5939,6 +5856,8 @@ def _cmd_camera_lidar_koide_real_verify(args: argparse.Namespace) -> int:
 
 def _cmd_camera_lidar_koide_real_finalize(args: argparse.Namespace) -> int:
     """Finalize a verified Koide pilot; never execute the external provider."""
+    from calibrex.core.koide_real_pilot import finalize_koide_real_pilot
+
 
     try:
         finalization = finalize_koide_real_pilot(
@@ -5966,6 +5885,8 @@ def _cmd_camera_lidar_koide_real_finalize(args: argparse.Namespace) -> int:
 
 
 def _cmd_camera_lidar_export_koide_pilot(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.koide_pilot import export_koide_pilot_autoware
+
     try:
         paths = export_koide_pilot_autoware(
             args.pilot,
@@ -5984,6 +5905,8 @@ def _cmd_camera_lidar_export_koide_pilot(args: argparse.Namespace) -> int:
 
 
 def _cmd_camera_lidar_build_kitti_problem(args: argparse.Namespace) -> int:
+    from calibrex.data.kitti_camera_lidar_problem import build_kitti_raw_camera_lidar_problem
+
     command = [
         "calibrex",
         "camera-lidar",
@@ -6039,6 +5962,8 @@ def _cmd_camera_lidar_build_kitti_problem(args: argparse.Namespace) -> int:
 
 
 def _cmd_camera_lidar_build_kitti360_problem(args: argparse.Namespace) -> int:
+    from calibrex.data.kitti360_camera_lidar_problem import build_kitti360_camera_lidar_problem
+
     command = [
         "calibrex",
         "camera-lidar",
@@ -6102,6 +6027,10 @@ def _cmd_camera_lidar_build_kitti360_problem(args: argparse.Namespace) -> int:
 def _cmd_camera_lidar_build_probabilistic_correspondence(
     args: argparse.Namespace,
 ) -> int:
+    from calibrex.core.camera_lidar_correspondence_export import (
+        build_probabilistic_correspondence_artifact,
+    )
+
     command = [
         "calibrex",
         "camera-lidar",
@@ -6136,6 +6065,8 @@ def _cmd_camera_lidar_build_probabilistic_correspondence(
 def _cmd_camera_lidar_build_a2d2_problem(
     args: argparse.Namespace,
 ) -> int:
+    from calibrex.data.a2d2_camera_lidar_problem import build_a2d2_camera_lidar_problem
+
     command = [
         "calibrex",
         "camera-lidar",
@@ -6179,6 +6110,9 @@ def _cmd_camera_lidar_build_a2d2_problem(
 
 
 def _cmd_camera_lidar_benchmark_rotation(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.borer_rotation_benchmark import run_borer_rotation_benchmark
+    from calibrex.visualization.bullseye import write_bullseye_plot
+
     if args.required_hit_rate is not None and not 0.0 <= args.required_hit_rate <= 1.0:
         _die("--required-hit-rate must be in [0, 1]")
     command = (
@@ -6251,7 +6185,9 @@ def _cmd_camera_lidar_benchmark_rotation(args: argparse.Namespace) -> int:
 
 
 def _cmd_demo_kitti_six_dof(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.borer_six_dof_benchmark import ProjectionBackend
     from calibrex.pipelines.public_camera_lidar_demo import run_public_camera_lidar_six_dof_demo
+    from calibrex.solvers.borer_six_dof_solver import BorerSixDofOptions
 
     try:
         demo = run_public_camera_lidar_six_dof_demo(
@@ -6289,7 +6225,9 @@ def _cmd_demo_kitti_six_dof(args: argparse.Namespace) -> int:
 
 
 def _cmd_demo_kitti_six_dof_sweep(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.borer_six_dof_benchmark import ProjectionBackend
     from calibrex.evaluation.public_six_dof_sweep import run_public_six_dof_sweep
+    from calibrex.solvers.borer_six_dof_solver import BorerSixDofOptions
 
     try:
         sweep = run_public_six_dof_sweep(
@@ -6326,6 +6264,11 @@ def _cmd_demo_kitti_six_dof_sweep(args: argparse.Namespace) -> int:
 
 
 def _cmd_camera_lidar_estimate_six_dof(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.borer_six_dof_benchmark import ProjectionBackend
+    from calibrex.pipelines.camera_lidar_six_dof import run_camera_lidar_six_dof_estimate
+    from calibrex.solvers.borer_depth_to_depth_solver import DepthToDepthOptions
+    from calibrex.solvers.borer_six_dof_solver import BorerSixDofOptions
+
     try:
         options = BorerSixDofOptions(
             rotation_bound_deg=args.rotation_bound_deg,
@@ -6383,6 +6326,11 @@ def _cmd_camera_lidar_estimate_six_dof(args: argparse.Namespace) -> int:
 
 
 def _cmd_camera_lidar_benchmark_six_dof(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.borer_six_dof_benchmark import (
+        ProjectionBackend,
+        run_borer_six_dof_benchmark,
+    )
+
     if args.required_hit_rate is not None and not 0.0 <= args.required_hit_rate <= 1.0:
         _die("--required-hit-rate must be in [0, 1]")
     command = (
@@ -6452,6 +6400,13 @@ def _cmd_camera_lidar_benchmark_six_dof(args: argparse.Namespace) -> int:
 def _cmd_camera_lidar_refine_probabilistic_pnp(
     args: argparse.Namespace,
 ) -> int:
+    from calibrex.core.camera_lidar_artifacts import load_camera_lidar_problem
+    from calibrex.core.provenance import sha256_path
+    from calibrex.solvers.opencv_probabilistic_pnp_adapter import (
+        OpenCvProbabilisticPnpAdapter,
+        OpenCvProbabilisticPnpOptions,
+    )
+
     options = OpenCvProbabilisticPnpOptions(
         minimum_confidence=args.minimum_confidence,
         minimum_correspondences=args.minimum_correspondences,
@@ -6518,6 +6473,20 @@ def _cmd_camera_lidar_refine_probabilistic_pnp(
 def _cmd_camera_lidar_refine_probabilistic_pnp_aggregate(
     args: argparse.Namespace,
 ) -> int:
+    from calibrex.core.camera_lidar_artifacts import load_camera_lidar_problem
+    from calibrex.core.camera_lidar_initializer_calibration import (
+        load_camera_lidar_initializer_calibration,
+    )
+    from calibrex.core.probabilistic_correspondence import load_probabilistic_correspondence
+    from calibrex.core.provenance import sha256_path
+    from calibrex.evaluation.camera_lidar_initializer_calibration import (
+        initializer_options_from_camera_lidar_calibration,
+    )
+    from calibrex.solvers.opencv_probabilistic_pnp_adapter import (
+        OpenCvProbabilisticPnpAdapter,
+        OpenCvProbabilisticPnpOptions,
+    )
+
     initializer_calibration_id = None
     initializer_calibration_digest = None
     try:
@@ -6671,6 +6640,19 @@ def _cmd_camera_lidar_refine_probabilistic_pnp_aggregate(
 def _cmd_camera_lidar_refine_probabilistic_multiframe(
     args: argparse.Namespace,
 ) -> int:
+    from calibrex.core.camera_lidar_confidence_calibration import (
+        load_camera_lidar_confidence_calibration,
+    )
+    from calibrex.evaluation.camera_lidar_confidence_calibration import (
+        refinement_options_from_camera_lidar_confidence_calibration,
+    )
+    from calibrex.evaluation.probabilistic_camera_lidar_run import (
+        run_probabilistic_camera_lidar_refinement,
+    )
+    from calibrex.solvers.probabilistic_camera_lidar_refiner import (
+        ProbabilisticCameraLidarRefinementOptions,
+    )
+
     try:
         if args.confidence_calibration is not None:
             custom_option_flags = (
@@ -6784,6 +6766,10 @@ def _cmd_camera_lidar_refine_probabilistic_multiframe(
 def _cmd_camera_lidar_diagnose_probabilistic_correspondence(
     args: argparse.Namespace,
 ) -> int:
+    from calibrex.evaluation.camera_lidar_correspondence_quality import (
+        analyze_camera_lidar_correspondence_quality,
+    )
+
     command = [
         "calibrex",
         "camera-lidar",
@@ -6830,6 +6816,10 @@ def _cmd_camera_lidar_diagnose_probabilistic_correspondence(
 def _cmd_camera_lidar_calibrate_probabilistic_confidence(
     args: argparse.Namespace,
 ) -> int:
+    from calibrex.evaluation.camera_lidar_confidence_calibration import (
+        calibrate_camera_lidar_confidence,
+    )
+
     try:
         thresholds = tuple(
             float(value.strip()) for value in args.thresholds.split(",") if value.strip()
@@ -6929,6 +6919,10 @@ def _cmd_camera_lidar_calibrate_probabilistic_confidence(
 def _cmd_camera_lidar_compare_probabilistic_provider_support(
     args: argparse.Namespace,
 ) -> int:
+    from calibrex.evaluation.camera_lidar_provider_support_comparison import (
+        compare_camera_lidar_provider_support,
+    )
+
     command = [
         "calibrex",
         "camera-lidar",
@@ -6978,6 +6972,13 @@ def _cmd_camera_lidar_compare_probabilistic_provider_support(
 def _cmd_camera_lidar_calibrate_probabilistic_pnp_initializer(
     args: argparse.Namespace,
 ) -> int:
+    from calibrex.core.camera_lidar_initializer_calibration import (
+        CameraLidarInitializerRecoveryGate,
+    )
+    from calibrex.evaluation.camera_lidar_initializer_calibration import (
+        calibrate_camera_lidar_initializer,
+    )
+
     try:
         confidence_thresholds = tuple(
             float(value.strip()) for value in args.confidence_thresholds.split(",") if value.strip()
@@ -7100,6 +7101,10 @@ def _cmd_camera_lidar_calibrate_probabilistic_pnp_initializer(
 def _cmd_camera_lidar_benchmark_probabilistic_ablation(
     args: argparse.Namespace,
 ) -> int:
+    from calibrex.evaluation.probabilistic_refinement_ablation import (
+        run_probabilistic_refinement_ablation,
+    )
+
     try:
         seeds = tuple(int(value.strip()) for value in args.split_seeds.split(",") if value.strip())
     except ValueError as exc:
@@ -7145,6 +7150,10 @@ def _cmd_camera_lidar_benchmark_probabilistic_ablation(
 def _cmd_camera_lidar_benchmark_probabilistic_falsification(
     args: argparse.Namespace,
 ) -> int:
+    from calibrex.evaluation.probabilistic_camera_lidar_falsification import (
+        run_probabilistic_camera_lidar_falsification,
+    )
+
     try:
         seeds = tuple(int(value.strip()) for value in args.split_seeds.split(",") if value.strip())
     except ValueError as exc:
@@ -7210,6 +7219,10 @@ def _cmd_camera_lidar_benchmark_probabilistic_falsification(
 def _cmd_camera_lidar_refine_continuous_time(
     args: argparse.Namespace,
 ) -> int:
+    from calibrex.evaluation.continuous_time_camera_lidar_run import (
+        run_continuous_time_camera_lidar_problem,
+    )
+
     command = [
         "calibrex",
         "camera-lidar",
@@ -7258,6 +7271,10 @@ def _cmd_camera_lidar_refine_continuous_time(
 def _cmd_camera_lidar_attach_continuous_trajectory(
     args: argparse.Namespace,
 ) -> int:
+    from calibrex.evaluation.continuous_time_trajectory_adapter import (
+        attach_recorded_body_trajectory,
+    )
+
     command = [
         "calibrex",
         "camera-lidar",
@@ -7299,6 +7316,10 @@ def _cmd_camera_lidar_attach_continuous_trajectory(
 def _cmd_camera_lidar_benchmark_continuous_time_ablation(
     args: argparse.Namespace,
 ) -> int:
+    from calibrex.evaluation.continuous_time_camera_lidar_ablation import (
+        run_continuous_time_camera_lidar_ablation,
+    )
+
     try:
         seeds = tuple(int(value.strip()) for value in args.split_seeds.split(",") if value.strip())
     except ValueError as exc:
@@ -7337,6 +7358,8 @@ def _cmd_camera_lidar_benchmark_continuous_time_ablation(
 
 
 def _cmd_gnss_lidar_rtk_slam(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.gnss_lidar_lever_arm import run_rtk_slam_lever_arm
+
     if len(args.bag) != len(args.rtk):
         _die("give exactly one --rtk per --bag")
     command = ["calibrex", "gnss-lidar", "rtk-slam"]
@@ -7372,6 +7395,9 @@ def _cmd_gnss_lidar_rtk_slam(args: argparse.Namespace) -> int:
 
 
 def _cmd_imu_lidar_livox(args: argparse.Namespace) -> int:
+    from calibrex.data.livox_ros2 import MID360_T_LIDAR_IMU
+    from calibrex.evaluation.imu_lidar_rotation import run_livox_imu_lidar_rotation
+
     command = ["calibrex", "imu-lidar", "livox", *(str(path) for path in args.bags)]
     command += ["--profile", args.profile, "--dataset-family", args.dataset_family]
     command += ["--dataset-license", args.dataset_license, "--output", str(args.output)]
@@ -7488,6 +7514,11 @@ def _cmd_imu_lidar_joint(args: argparse.Namespace) -> int:
 
 
 def _cmd_imu_lidar_livox_translation(args: argparse.Namespace) -> int:
+    from calibrex.core.imu_lidar_rotation import load_imu_lidar_rotation
+    from calibrex.core.provenance import sha256_path
+    from calibrex.data.livox_ros2 import MID360_T_LIDAR_IMU
+    from calibrex.evaluation.imu_lidar_translation import run_livox_imu_lidar_translation
+
     command = ["calibrex", "imu-lidar", "livox-translation", *(str(path) for path in args.bags)]
     command += ["--profile", args.profile, "--rotation", str(args.rotation)]
     command += ["--dataset-family", args.dataset_family]
@@ -7569,6 +7600,7 @@ def _cmd_imu_lidar_trajectory(args: argparse.Namespace) -> int:
 def _cmd_camera_imu_rotation(args: argparse.Namespace) -> int:
     import numpy
 
+    from calibrex.core.io import read_mapping
     from calibrex.evaluation.camera_imu_rotation import (
         CameraImuRunOptions,
         default_camera_evaluation_options,
@@ -7862,6 +7894,7 @@ def _cmd_lidar_wheel_kitti(args: argparse.Namespace) -> int:
 
 
 def _cmd_camera_imu_focal(args: argparse.Namespace) -> int:
+    from calibrex.core.io import read_mapping
     from calibrex.evaluation.camera_focal import run_ros2_camera_focal_check
 
     try:
@@ -7904,6 +7937,12 @@ def _cmd_camera_imu_focal(args: argparse.Namespace) -> int:
 
 
 def _cmd_ins_lidar_kitti(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.ins_lidar_hand_eye import (
+        InsLidarRunOptions,
+        run_kitti_ins_lidar_hand_eye,
+    )
+    from calibrex.solvers.trajectory_hand_eye_solver import DofPrior, TrajectoryHandEyeOptions
+
     command = ["calibrex", "ins-lidar", "kitti", *(str(path) for path in args.drives)]
     command += ["--output", str(args.output), "--block-duration", str(args.block_duration)]
     if args.max_frames is not None:
@@ -7941,6 +7980,8 @@ def _cmd_ins_lidar_kitti(args: argparse.Namespace) -> int:
 
 
 def _cmd_sota_audit(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.sota_audit import audit_sota_claim
+
     command = ["calibrex", "sota", "audit", str(args.protocol), "--output", str(args.output)]
     try:
         audit = audit_sota_claim(args.protocol, audit_id=args.audit_id, command=command)
@@ -7963,6 +8004,11 @@ def _cmd_sota_audit(args: argparse.Namespace) -> int:
 
 
 def _cmd_sota_leaderboard(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.sota_leaderboard import (
+        build_sota_leaderboard,
+        render_sota_leaderboard_markdown,
+    )
+
     command = ["calibrex", "sota", "leaderboard", *(str(path) for path in args.audits)]
     command += ["--output", str(args.output)]
     for pair in args.target_pair:
@@ -7993,6 +8039,8 @@ def _cmd_sota_leaderboard(args: argparse.Namespace) -> int:
 
 
 def _cmd_camera_lidar_audit_sota(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.camera_lidar_sota_audit import audit_camera_lidar_sota_claim
+
     command = [
         "calibrex",
         "camera-lidar",
@@ -8027,6 +8075,8 @@ def _cmd_camera_lidar_audit_sota(args: argparse.Namespace) -> int:
 def _cmd_camera_lidar_empirical_uncertainty(
     args: argparse.Namespace,
 ) -> int:
+    from calibrex.evaluation.empirical_se3_uncertainty import run_empirical_se3_uncertainty
+
     command = [
         "calibrex",
         "camera-lidar",
@@ -8082,6 +8132,7 @@ def _cmd_trajectory_build_contract(args: argparse.Namespace) -> int:
         ContinuousTimeTrajectoryContract,
         ContinuousTimeTrajectoryProvenance,
     )
+    from calibrex.core.io import read_mapping
     from calibrex.core.provenance import git_commit, sha256_path
     from calibrex.core.result import TransformResult
 
@@ -8145,6 +8196,10 @@ def _cmd_trajectory_build_contract(args: argparse.Namespace) -> int:
 
 
 def _cmd_trajectory_fit(args: argparse.Namespace) -> int:
+    from calibrex.evaluation.continuous_time_trajectory_fit import (
+        run_continuous_time_trajectory_fit,
+    )
+
     command = [
         "calibrex",
         "trajectory",
@@ -8520,6 +8575,8 @@ def _cmd_lifecycle_simulate(args: argparse.Namespace) -> int:
 
 
 def _cmd_lifecycle_init(args: argparse.Namespace) -> int:
+    from calibrex.core.lifecycle_registry import init_registry
+
     try:
         registry = init_registry(
             args.registry_root,
@@ -8544,6 +8601,8 @@ def _cmd_lifecycle_init(args: argparse.Namespace) -> int:
 
 
 def _cmd_lifecycle_register_sensor(args: argparse.Namespace) -> int:
+    from calibrex.core.lifecycle_registry import register_sensor
+
     try:
         event = register_sensor(
             args.registry_root,
@@ -8568,6 +8627,8 @@ def _cmd_lifecycle_register_sensor(args: argparse.Namespace) -> int:
 
 
 def _cmd_lifecycle_capture(args: argparse.Namespace) -> int:
+    from calibrex.core.lifecycle_registry import record_capture
+
     try:
         event = record_capture(
             args.registry_root,
@@ -8584,6 +8645,8 @@ def _cmd_lifecycle_capture(args: argparse.Namespace) -> int:
 
 
 def _cmd_lifecycle_register_edge(args: argparse.Namespace) -> int:
+    from calibrex.core.lifecycle_registry import register_calibration_edge
+
     try:
         event = register_calibration_edge(
             args.registry_root,
@@ -8606,6 +8669,8 @@ def _cmd_lifecycle_register_edge(args: argparse.Namespace) -> int:
 
 
 def _cmd_lifecycle_evaluate(args: argparse.Namespace) -> int:
+    from calibrex.core.lifecycle_registry import evaluate_lifecycle
+
     try:
         artifact = evaluate_lifecycle(
             args.registry_root,
@@ -8642,6 +8707,8 @@ def _cmd_lifecycle_evaluate(args: argparse.Namespace) -> int:
 
 
 def _cmd_lifecycle_promote(args: argparse.Namespace) -> int:
+    from calibrex.core.lifecycle_registry import promote_lifecycle
+
     try:
         event = promote_lifecycle(
             args.registry_root,
@@ -8661,6 +8728,8 @@ def _cmd_lifecycle_promote(args: argparse.Namespace) -> int:
 
 
 def _cmd_lifecycle_rollback(args: argparse.Namespace) -> int:
+    from calibrex.core.lifecycle_registry import rollback_lifecycle
+
     try:
         event = rollback_lifecycle(
             args.registry_root,
@@ -8715,6 +8784,8 @@ def _cmd_lifecycle_record_ci(args: argparse.Namespace) -> int:
 
 
 def _cmd_lifecycle_verify(args: argparse.Namespace) -> int:
+    from calibrex.core.lifecycle_registry import verify_registry
+
     try:
         report = verify_registry(
             args.registry_root,
@@ -8727,6 +8798,8 @@ def _cmd_lifecycle_verify(args: argparse.Namespace) -> int:
 
 
 def _cmd_lifecycle_status(args: argparse.Namespace) -> int:
+    from calibrex.core.lifecycle_registry import load_registry
+
     try:
         status = load_registry(args.registry_root).status()
     except (OSError, ValueError, CalibrexError) as exc:
@@ -8791,6 +8864,10 @@ def _cmd_trajectory_recover_sliding_window(args: argparse.Namespace) -> int:
 def _cmd_camera_lidar_audit_external_baselines(
     args: argparse.Namespace,
 ) -> int:
+    from calibrex.evaluation.camera_lidar_external_baseline_audit import (
+        materialize_camera_lidar_external_baseline_audit,
+    )
+
     command = [
         "calibrex",
         "camera-lidar",
@@ -8831,6 +8908,11 @@ def _cmd_camera_lidar_audit_external_baselines(
 
 
 def _cmd_visualize(args: argparse.Namespace) -> int:
+    from calibrex.core.result import load_result
+    from calibrex.visualization.overlays import write_camera_lidar_overlay_artifact
+    from calibrex.visualization.report import write_report_artifacts
+    from calibrex.visualization.rig3d import write_rig_3d_artifact
+
     result = load_result(args.result)
     if args.reference_result:
         _merge_reference_result(result, load_result(args.reference_result))
@@ -8855,6 +8937,8 @@ def _cmd_visualize(args: argparse.Namespace) -> int:
 
 
 def _cmd_capture_inspect(args: argparse.Namespace) -> int:
+    from calibrex.core.capture_manifest import inspect_capture
+
     sensors: list[SensorIdentity] = []
     for specification in args.sensor:
         try:
@@ -8931,6 +9015,8 @@ def _cmd_capture_inspect(args: argparse.Namespace) -> int:
 
 def _cmd_capture_verify(args: argparse.Namespace) -> int:
     """Verify a capture manifest and its declared external inputs."""
+    from calibrex.core.capture_manifest import verify_capture_manifest_inputs
+
 
     try:
         report = verify_capture_manifest_inputs(args.manifest)
@@ -8950,6 +9036,8 @@ def _cmd_capture_verify(args: argparse.Namespace) -> int:
 
 
 def _parse_capture_sensor(specification: str) -> SensorIdentity:
+    from calibrex.core.capture_manifest import SensorIdentity, SensorType
+
     fields = specification.split(":")
     if len(fields) < 2 or not fields[0] or not fields[1]:
         raise ValueError("--sensor must be ID:TYPE[:SERIAL[:MODEL[:FIRMWARE[:MOUNT[:FRAME]]]]]")
@@ -8971,6 +9059,9 @@ def _parse_capture_sensor(specification: str) -> SensorIdentity:
 
 
 def _cmd_inspect(args: argparse.Namespace) -> int:
+    from calibrex.core.config import DatasetConfig, DatasetType
+    from calibrex.data.inspect import inspect_dataset
+
     dataset_type = cast(DatasetType, str(args.type).replace("-", "_"))
     inspection = inspect_dataset(
         DatasetConfig(
@@ -8987,6 +9078,8 @@ def _cmd_inspect(args: argparse.Namespace) -> int:
 
 
 def _promotion_policy_from_args(args: argparse.Namespace) -> AutowarePromotionPolicy:
+    from calibrex.export.autoware_promotion import AutowarePromotionPolicy
+
     return AutowarePromotionPolicy(
         base_frame=args.base_frame,
         sensor_kit_base_frame=args.sensor_kit_base_frame,
@@ -9001,6 +9094,11 @@ def _promotion_policy_from_args(args: argparse.Namespace) -> AutowarePromotionPo
 
 
 def _cmd_autoware_promotion_plan(args: argparse.Namespace) -> int:
+    from calibrex.export.autoware_promotion import (
+        AutowarePromotionRoots,
+        build_autoware_promotion_plan,
+    )
+
     roots = AutowarePromotionRoots(
         workspace_root=args.workspace_root,
         package_root=args.package_root,
@@ -9030,6 +9128,8 @@ def _cmd_autoware_promotion_plan(args: argparse.Namespace) -> int:
 
 
 def _cmd_autoware_promotion_verify(args: argparse.Namespace) -> int:
+    from calibrex.export.autoware_promotion import verify_autoware_promotion
+
     artifact = verify_autoware_promotion(
         args.plan, command=["calibrex", "autoware", "promotion", "verify", str(args.plan)]
     )
@@ -9051,6 +9151,8 @@ def _cmd_autoware_promotion_verify(args: argparse.Namespace) -> int:
 
 
 def _cmd_autoware_promotion_apply(args: argparse.Namespace) -> int:
+    from calibrex.export.autoware_promotion import apply_autoware_promotion
+
     artifact = apply_autoware_promotion(
         args.plan,
         smoke_artifact=args.smoke_artifact,
@@ -9070,6 +9172,8 @@ def _cmd_autoware_promotion_apply(args: argparse.Namespace) -> int:
 
 
 def _cmd_autoware_promotion_rollback(args: argparse.Namespace) -> int:
+    from calibrex.export.autoware_promotion import rollback_autoware_promotion
+
     artifact = rollback_autoware_promotion(args.plan, output_path=args.output)
     destination = args.output or args.plan
     payload = artifact.model_dump(mode="json", exclude_none=False)
@@ -9085,6 +9189,13 @@ def _cmd_autoware_promotion_rollback(args: argparse.Namespace) -> int:
 
 
 def _cmd_autoware_smoke_run(args: argparse.Namespace) -> int:
+    from calibrex.export.autoware_smoke import (
+        AutowareSmokeCommand,
+        AutowareSmokeConfig,
+        AutowareSmokePolicy,
+        run_autoware_smoke,
+    )
+
     commands: list[AutowareSmokeCommand] = []
     for specification in args.stage_command:
         if "=" not in specification:
@@ -9131,6 +9242,9 @@ def _cmd_autoware_smoke_run(args: argparse.Namespace) -> int:
 
 
 def _cmd_autoware_smoke_import(args: argparse.Namespace) -> int:
+    from calibrex.export.autoware_promotion import load_autoware_promotion
+    from calibrex.export.autoware_smoke import import_autoware_smoke
+
     try:
         artifact = import_autoware_smoke(
             args.artifact,
@@ -9152,6 +9266,9 @@ def _cmd_autoware_smoke_import(args: argparse.Namespace) -> int:
 
 
 def _cmd_autoware_smoke_verify(args: argparse.Namespace) -> int:
+    from calibrex.export.autoware_promotion import load_autoware_promotion
+    from calibrex.export.autoware_smoke import verify_autoware_smoke
+
     try:
         artifact = verify_autoware_smoke(
             args.artifact,
@@ -9172,6 +9289,16 @@ def _cmd_autoware_smoke_verify(args: argparse.Namespace) -> int:
 
 
 def _cmd_export(args: argparse.Namespace) -> int:
+    from calibrex.core.continuous_time_lidar_artifacts import ContinuousTimeLidarPairArtifact
+    from calibrex.core.io import read_mapping
+    from calibrex.core.result import load_result
+    from calibrex.export.autoware import (
+        AutowareExportConfig,
+        build_autoware_export,
+        write_autoware_export,
+    )
+    from calibrex.export.ros_tf import export_ros_tf_transforms, export_ros_tf_yaml
+
     if args.format == "autoware":
         try:
             config = AutowareExportConfig(
@@ -9470,6 +9597,13 @@ def _emit_diagnostics(inspection: DatasetInspection) -> None:
 
 
 def _emit_lidar_quality_hint(inspection: DatasetInspection) -> None:
+    from calibrex.evaluation.degeneracy import degeneracy_from_inspection
+    from calibrex.evaluation.lidar import lidar_metrics_from_inspection
+    from calibrex.evaluation.motion import motion_metrics_from_inspection
+    from calibrex.evaluation.recommendations import build_inspection_recommendations
+    from calibrex.evaluation.thresholds import apply_metric_thresholds
+    from calibrex.evaluation.timing import timing_metrics_from_inspection
+
     domain = "autonomous_driving" if inspection.dataset_type == "kitti_raw" else "robotics"
     metrics = lidar_metrics_from_inspection(inspection)
     metrics.update(motion_metrics_from_inspection(inspection))

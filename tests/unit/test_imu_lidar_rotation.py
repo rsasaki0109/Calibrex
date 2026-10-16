@@ -257,7 +257,9 @@ def test_cli_forwards_profile_and_reference_choice(
         captured.update(kwargs, bags=bags, profile=profile)
         return _artifact(_evaluation())
 
-    monkeypatch.setattr("calibrex.cli.main.run_livox_imu_lidar_rotation", fake_run)
+    monkeypatch.setattr(
+        "calibrex.evaluation.imu_lidar_rotation.run_livox_imu_lidar_rotation", fake_run
+    )
     output = tmp_path / "out.yaml"
 
     exit_code = main(

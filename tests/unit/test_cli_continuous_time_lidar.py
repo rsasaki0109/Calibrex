@@ -33,7 +33,9 @@ def test_continuous_time_lidar_cli_dispatches_ros1_and_ros2_to_generic_pipeline(
         calls.append(config)
         return FakeArtifact()
 
-    monkeypatch.setattr(cli, "evaluate_continuous_time_lidar_pair", _fake_evaluate)
+    monkeypatch.setattr(
+        "calibrex.pipelines.online.evaluate_continuous_time_lidar_pair", _fake_evaluate
+    )
 
     assert (
         cli.main(

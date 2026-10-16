@@ -201,7 +201,9 @@ def test_cli_passes_the_rotation_artifact_and_its_digest(
         captured.update(kwargs, bags=bags, profile=profile, rotation=rotation)
         return _artifact(_evaluation(planar=False))
 
-    monkeypatch.setattr("calibrex.cli.main.run_livox_imu_lidar_translation", fake_run)
+    monkeypatch.setattr(
+        "calibrex.evaluation.imu_lidar_translation.run_livox_imu_lidar_translation", fake_run
+    )
     output = tmp_path / "out.yaml"
     exit_code = main(
         [
