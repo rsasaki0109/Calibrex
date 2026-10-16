@@ -249,3 +249,24 @@ def test_combined_lookup_preserves_exact_endpoints_on_both_sides_of_a_gap() -> N
     actual = lookup(0.0)
     for index in range(3):
         assert actual[index].tobytes() == np.concatenate([p[index] for p in expected]).tobytes()
+
+
+@pytest.mark.parametrize("offset", [-0.2001, 0.2001])
+def test_combined_lookup_never_interpolates_across_a_window_boundary(offset: float) -> None:
+    track_times = np.arange(201, dtype=np.float64) * 0.1
+    track = solver.GnssTrackModel(track_times, np.zeros((201, 3)), np.ones(201))
+    first = np.r_[0.01 + np.arange(99) * 0.1, 9.9]
+    second = np.r_[10.0 + np.arange(100) * 0.1, 19.91]
+    windows = [
+        solver.OdometryWindow(name, i, t, np.tile(np.eye(4), (len(t), 1, 1)))
+        for i, (name, t) in enumerate([("a", first), ("b", second)])
+    ]
+    pairs = solver.build_pairs(track, windows, solver.LeverArmOptions(pair_steps=(1,)))
+    assert len(pairs) == 2
+    lookup = solver._make_pose_lookup(pairs, windows)
+    assert lookup is not None
+    with pytest.raises(ValueError):
+        for p in pairs:
+            p.lidar_poses(p.epoch_times_s - offset)
+    with pytest.raises(ValueError):
+        lookup(offset)

@@ -342,7 +342,20 @@ def _make_pose_lookup(
     def lookup(offset: float) -> tuple[FloatArray, FloatArray, FloatArray]:
         # build_pairs keeps each query in its original window over the entire
         # solver clock bound. The intervals across gaps are never evaluated.
-        query = np.concatenate([p.epoch_times_s - offset for p in pairs])
+        queries = [p.epoch_times_s - offset for p in pairs]
+        if any(
+            q[0] < p.odometry_times_s[0] or q[-1] > p.odometry_times_s[-1]
+            for p, q in zip(pairs, queries, strict=True)
+        ):
+            # Observability differences can step just beyond an optimizer
+            # bound. Retain each original window's domain/error behavior.
+            states = [p.lidar_poses(q) for p, q in zip(pairs, queries, strict=True)]
+            return (
+                np.concatenate([s[0] for s in states]),
+                np.concatenate([s[1] for s in states]),
+                np.concatenate([s[2] for s in states]),
+            )
+        query = np.concatenate(queries)
         rotation = slerp(query).as_matrix()
         translation = np.column_stack(
             [np.interp(query, times, translations[:, axis]) for axis in range(3)]
