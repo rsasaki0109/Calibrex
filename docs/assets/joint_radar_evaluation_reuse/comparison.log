@@ -1,0 +1,50 @@
+starting 00-prior
+{"repeat": 0, "variant": "prior", "seconds": 8.115166299976408, "exit_code": 0}
+starting 00-current
+{"repeat": 0, "variant": "current", "seconds": 3.8458554999670014, "exit_code": 0}
+starting 01-current
+{"repeat": 1, "variant": "current", "seconds": 4.094905200065114, "exit_code": 0}
+starting 01-prior
+{"repeat": 1, "variant": "prior", "seconds": 9.230905400007032, "exit_code": 0}
+starting 02-prior
+{"repeat": 2, "variant": "prior", "seconds": 9.298377400031313, "exit_code": 0}
+starting 02-current
+{"repeat": 2, "variant": "current", "seconds": 4.508277999935672, "exit_code": 0}
+{
+  "whole_seconds_median": {
+    "prior": 9.230905400007032,
+    "current": 4.094905200065114
+  },
+  "api_seconds_median": {
+    "prior": 7.305832699988969,
+    "current": 2.174878600053489
+  },
+  "whole_speedup": 2.2542415389397172,
+  "api_speedup": 3.359191037058017,
+  "verified_runs": 6,
+  "complete_results_exact": true,
+  "reference_count": 2762,
+  "measurement_count": 2758,
+  "runtime_source_changes": [
+    "calibrex/solvers/radar_joint_spatiotemporal_solver.py"
+  ],
+  "provenance": {
+    "protocol_sha256": "9734d553b9207f61f5b1d93e1806e49e41aa92ae069b9504e6e6d66bad5d415f",
+    "attempts_sha256": "fd2e98f86a938ec245cc860aab3003e403b6686f280d9afb95a0131463ea113c",
+    "control_sha256": "f4cf16efba310c97b1e803347612d47f55aa4a85476fb81bec870a5fc4b7cc06"
+  },
+  "solver": "joint",
+  "optimizer_iterations_per_run": 5,
+  "rejected_measurements": 659,
+  "eligible_measurements": 2099,
+  "signed_probes": 14,
+  "interpolation_calls_per_run": {
+    "prior": 171502,
+    "current": 41799
+  },
+  "factor_evaluations_per_run": 162024,
+  "transform_decodes_per_run": {
+    "prior": 162037,
+    "current": 91
+  }
+}
