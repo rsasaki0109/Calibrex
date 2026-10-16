@@ -1,0 +1,182 @@
+{
+  "convention": "T_parent_child",
+  "estimate_sets": {
+    "candidate_extrinsics": {
+      "role": "candidate",
+      "transforms": {
+        "T_base_link_camera0": {
+          "child": "camera0",
+          "convention": "T_parent_child",
+          "estimate_id": "T_base_link_camera0",
+          "parent": "base_link",
+          "provenance": {
+            "evidence_level": "imported_without_documented_derivation",
+            "execution_mode": "manual",
+            "notes": [],
+            "producer": "human",
+            "role_in_comparison": "candidate",
+            "source": "config.frame_graph"
+          },
+          "quality": {
+            "grade": "pass",
+            "std_rotation_deg": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "std_translation_m": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "rotation_quat_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "translation_m": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "T_base_link_lidar0": {
+          "child": "lidar0",
+          "convention": "T_parent_child",
+          "estimate_id": "T_base_link_lidar0",
+          "parent": "base_link",
+          "provenance": {
+            "evidence_level": "imported_without_documented_derivation",
+            "execution_mode": "manual",
+            "notes": [],
+            "producer": "human",
+            "role_in_comparison": "candidate",
+            "source": "config.frame_graph"
+          },
+          "quality": {
+            "grade": "warn",
+            "std_rotation_deg": [
+              5.0,
+              5.0,
+              5.0
+            ],
+            "std_translation_m": [
+              0.1,
+              0.1,
+              0.1
+            ]
+          },
+          "rotation_quat_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "translation_m": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    "output_transforms": {
+      "role": "output",
+      "transforms": {
+        "T_base_link_camera0": {
+          "child": "camera0",
+          "convention": "T_parent_child",
+          "estimate_id": "T_base_link_camera0",
+          "parent": "base_link",
+          "provenance": {
+            "evidence_level": "unknown",
+            "execution_mode": "offline_batch",
+            "notes": [
+              "alpha output initialized from frame graph before native refinement"
+            ],
+            "producer": "slac_native",
+            "role_in_comparison": "output",
+            "source": "config.frame_graph"
+          },
+          "quality": {
+            "grade": "pass",
+            "std_rotation_deg": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "std_translation_m": [
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          "rotation_quat_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "translation_m": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "T_base_link_lidar0": {
+          "child": "lidar0",
+          "convention": "T_parent_child",
+          "estimate_id": "T_base_link_lidar0",
+          "parent": "base_link",
+          "provenance": {
+            "evidence_level": "unknown",
+            "execution_mode": "offline_batch",
+            "notes": [
+              "alpha output initialized from frame graph before native refinement"
+            ],
+            "producer": "slac_native",
+            "role_in_comparison": "output",
+            "source": "config.frame_graph"
+          },
+          "quality": {
+            "grade": "warn",
+            "std_rotation_deg": [
+              5.0,
+              5.0,
+              5.0
+            ],
+            "std_translation_m": [
+              0.1,
+              0.1,
+              0.1
+            ]
+          },
+          "rotation_quat_xyzw": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "translation_m": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    }
+  },
+  "run": {
+    "created_at": "2026-10-16T01:53:11.314114+00:00",
+    "dataset_path": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information",
+    "dataset_type": "a2d2_lidar",
+    "domain": "autonomous_driving",
+    "git_commit": "183fb3d1221d118a20006b615d594bbf4fdc9875",
+    "id": "2026-10-16T01-53-11Z_a2d2_levinson_thrun_online_monitor",
+    "slac_version": "0.5.1",
+    "status": "warning"
+  },
+  "schema_version": "slac.transforms/v0.1"
+}

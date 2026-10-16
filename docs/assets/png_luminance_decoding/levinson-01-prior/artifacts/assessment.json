@@ -1,0 +1,57 @@
+{
+  "policy": {
+    "parameters": {
+      "max_unmatched_fraction": 0.9,
+      "min_accepted_correspondence_count": 500,
+      "min_eligible_point_count": 500,
+      "min_known_bad_case_count": 1,
+      "min_known_bad_pass_fraction": 0.5,
+      "min_mandatory_known_bad_case_count": 12,
+      "min_mandatory_supported_detection_count": 8,
+      "min_map_voxel_count": 20,
+      "min_matched_point_count": 500,
+      "min_support_ratio": 0.1,
+      "min_supported_known_bad_pass_fraction": 0.5
+    },
+    "policy_id": "slac.falsification.lidar_pair/v0.1",
+    "status_semantics": "pass means all required gates passed; fail means at least one gate rejected the candidate; inconclusive means the evidence cannot support or reject the candidate under this policy"
+  },
+  "reason": "1 falsification policy gate(s) were inconclusive; 0 failed",
+  "rules": [
+    {
+      "evidence_refs": [],
+      "metric_ids": [],
+      "observed": {
+        "data_verified": true,
+        "input_digest_count": 5,
+        "input_file_count": 5,
+        "metrics_origin": "recomputed"
+      },
+      "reason": "evidence was materialized from recomputed metrics with verified raw inputs",
+      "rule_id": "raw_recomputation",
+      "status": "pass",
+      "thresholds": {}
+    },
+    {
+      "evidence_refs": [
+        "protocols"
+      ],
+      "metric_ids": [],
+      "observed": {},
+      "reason": "no supported evidence protocol is declared",
+      "rule_id": "protocol_declared",
+      "status": "inconclusive",
+      "thresholds": {}
+    }
+  ],
+  "schema_version": "slac.assessment/v0.1",
+  "source_evidence": {
+    "data_verified": true,
+    "metrics_origin": "recomputed",
+    "path": "evidence.json",
+    "run_id": "2026-10-16T01-52-29Z_a2d2_levinson_thrun_online_monitor",
+    "schema_version": "slac.report.evidence/v0.1",
+    "sha256": "b89ad89f213ddc21e7896f3888bd5bf41da4214eaf3549e483baac1b80b81ffa"
+  },
+  "status": "inconclusive"
+}

@@ -1,0 +1,60 @@
+"""Bind final regression sources/logs and unchanged runtime to the measured PNG archive."""
+import hashlib
+import json
+from pathlib import Path
+import shutil
+import tarfile
+
+root=Path(__file__).resolve().parent
+archive=root/'docs/assets/png_luminance_decoding'
+checks=root/'outputs/png-luminance-final-checks-v1'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+write=lambda p,v:p.write_text(json.dumps(v,indent=2,allow_nan=False)+'\n',encoding='utf-8')
+tests=['tests/unit/'+name for name in ('test_png_luminance.py','test_png_luminance_benchmark.py',
+    'test_dataset.py','test_public_datasets.py','test_public_camera_lidar_demo.py',
+    'test_levinson_thrun_online_solver.py','test_pandey_mutual_information_solver.py',
+    'test_result_provenance.py','test_report.py')]+['tests/integration/'+name for name in
+    ('test_a2d2_levinson_thrun_online.py','test_a2d2_pandey_mutual_information.py')]
+validation=archive/'validation'
+validation.mkdir(exist_ok=True)
+for name in ('tests.log','ruff.log','mypy.log','docs.log','schema-check.log'):
+    shutil.copyfile(checks/name,validation/name)
+for name in tests:
+    target=validation/(name+'.txt')
+    target.parent.mkdir(parents=True,exist_ok=True)
+    shutil.copyfile(root/name,target)
+frozen={}
+with tarfile.open(archive/'sources-current.tar.gz') as bundle:
+    for member in bundle.getmembers():
+        if member.isfile():
+            content=bundle.extractfile(member).read()
+            frozen[member.name]=hashlib.sha256(content.replace(b'\r\n',b'\n')).hexdigest()
+live={p.relative_to(root).as_posix():hashlib.sha256(p.read_bytes().replace(b'\r\n',b'\n')).hexdigest()
+      for p in (root/'src/calibrex').rglob('*.py')}
+assert live==frozen
+assert '129 passed' in (validation/'tests.log').read_text(encoding='utf-8-sig')
+assert 'All checks passed!' in (validation/'ruff.log').read_text(encoding='utf-8-sig')
+assert 'Success: no issues found in 378 source files' in (validation/'mypy.log').read_text(encoding='utf-8-sig')
+assert 'Documentation built' in (validation/'docs.log').read_text(encoding='utf-8-sig')
+protocol=json.loads((archive/'protocol.json').read_bytes())
+for name in ('schema-parity.json','schema-prior-stdout.txt','schema-prior-stderr.txt',
+             'schema-current-stdout.txt','schema-current-stderr.txt'):
+    shutil.copyfile(root/'outputs/png-luminance-formal-v1'/name,validation/name)
+shutil.copyfile(root/'.tmp-calibrex-check-png-schemas-v1.py',validation/'schema-checker.py.txt')
+receipt={'tests_passed':129,'runtime_sources':len(live),'schemas_unchanged':130,
+    'runtime_matches_measured_candidate':True,'newline_normalization':'CRLF to LF in both operands',
+    'command':['python','-m','pytest',*tests,'--basetemp','outputs/png-luminance-final-checks-v1/tmp-final',
+        '-p','no:cacheprovider','--override-ini','addopts=--disable-plugin-autoload','-q'],
+    'provenance':{'source_manifest_sha256':protocol['provenance']['manifests']['current'],
+        'protocol_sha256':sha(archive/'protocol.json'),'binder_sha256':sha(Path(__file__)),
+        'test_sources':{name:sha(root/name) for name in tests},
+        'logs':{name:sha(validation/name) for name in ('tests.log','ruff.log','mypy.log','docs.log')},
+        'schema_parity_sha256':sha(validation/'schema-parity.json')}}
+write(validation/'receipt.json',receipt)
+shutil.copyfile(__file__,validation/'binder.py.txt')
+index=json.loads((archive/'index.json').read_bytes())
+index['files']={p.relative_to(archive).as_posix():sha(p) for p in sorted(archive.rglob('*'))
+                if p.is_file() and p!=archive/'index.json'}
+write(archive/'index.json',index)
+from tools.benchmark_png_luminance import audit
+print(json.dumps(audit(archive),indent=2))

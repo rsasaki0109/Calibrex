@@ -1,0 +1,30 @@
+"""Export every schema through the two frozen PNG runtime revisions, untimed."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+root=Path(__file__).resolve().parent
+run=root/'outputs/png-luminance-formal-v1'
+protocol=json.loads((run/'protocol.json').read_bytes())
+for variant in ('prior','current'):
+    source=run/('sources-'+variant)
+    target=run/('schemas-'+variant)
+    env=os.environ.copy()
+    env.update(PYTHONPATH=str(source/'src'),PYTHONDONTWRITEBYTECODE='1')
+    code="from calibrex.cli.main import main; import sys; raise SystemExit(main(['schema','all','--output-dir',sys.argv[1]]))"
+    completed=subprocess.run([sys.executable,'-c',code,str(target)],env=env,cwd=source,capture_output=True,check=True)
+    (run/('schema-'+variant+'-stdout.txt')).write_bytes(completed.stdout)
+    (run/('schema-'+variant+'-stderr.txt')).write_bytes(completed.stderr)
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+names={p.name for p in (run/'schemas-prior').glob('*.json')}
+assert names=={p.name for p in (run/'schemas-current').glob('*.json')}
+exports={name:{v:sha(run/('schemas-'+v)/name) for v in ('prior','current')} for name in sorted(names)}
+assert len(exports)==130
+assert all(v['prior']==v['current'] for v in exports.values())
+receipt={'exports':exports,'provenance':{'source_manifests':protocol['provenance']['manifests'],
+    'checker_sha256':sha(Path(__file__)),'protocol_sha256':sha(run/'protocol.json')}}
+(run/'schema-parity.json').write_text(json.dumps(receipt,indent=2)+'\n',encoding='utf-8')
+print('All 130 frozen schema and ledger exports are byte-identical.')
