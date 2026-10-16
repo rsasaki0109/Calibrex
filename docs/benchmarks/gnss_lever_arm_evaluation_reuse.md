@@ -105,6 +105,11 @@ Raw packet and source bytes are hash-exact. Only offline geometry regeneration
 allows platform math differences: `rtol=0`, `2e-8` m translation and `1e-13`
 rotation-matrix elements. Epoch timestamps, window IDs and all recorded
 result/residual/Jacobian comparisons remain exact.
+The saved generator's original bytes remain hash-pinned. Its installed Python
+source is compared after normalizing CRLF/LF line endings on both sides, so an
+LF-only Git checkout can audit a control generated on Windows. All other source
+differences are rejected. Six additional regressions cover this checkout case
+and accepted/rejected newline/source combinations.
 
 KITTI data and its generated control retain **CC BY-NC-SA 3.0** attribution to
 Andreas Geiger, Philip Lenz, Christoph Stiller and Raquel Urtasun; see the

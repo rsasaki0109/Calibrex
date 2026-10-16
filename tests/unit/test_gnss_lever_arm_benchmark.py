@@ -9,6 +9,7 @@ from jsonschema import validate
 from tools.benchmark_gnss_lever_arm_reuse import (
     SCHEMA,
     _same_control_geometry,
+    _same_generator_source,
     comparable,
     default_options,
     replay_work,
@@ -139,6 +140,22 @@ def test_full_default_options_are_json_canonical_and_schema_valid() -> None:
     assert value["jackknife_groups"] == 8
     assert value["solver"]["irls_iterations"] == 4
     validate(value, json.loads(SCHEMA.read_bytes())["$defs"]["protocol"]["properties"]["options"])
+
+
+@pytest.mark.parametrize(
+    "current,pinned,expected",
+    [
+        (b"x = 1\n", b"x = 1\n", True),
+        (b"x = 1\r\n", b"x = 1\n", True),
+        (b"x = 1\n", b"x = 1\r\n", True),
+        (b"x = 2\n", b"x = 1\r\n", False),
+        (b"x = 1\r", b"x = 1\r\n", False),
+    ],
+)
+def test_generator_check_allows_only_lf_crlf_encoding(
+    current: bytes, pinned: bytes, expected: bool
+) -> None:
+    assert _same_generator_source(current, pinned) is expected
 
 
 @pytest.mark.parametrize("part", ["roundoff", "position", "rotation", "timestamp", "window_id"])

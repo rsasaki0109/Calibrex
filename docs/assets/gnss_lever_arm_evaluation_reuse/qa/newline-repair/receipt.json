@@ -1,0 +1,19 @@
+{
+  "scope": "Checkout LF/CRLF compatibility only; pinned generator, measured runtime and recorded evidence remain byte-identical.",
+  "targeted_cases_passed": 36,
+  "new_regression_cases": 6,
+  "distinct_windows_case_union": 82,
+  "source_check": "Normalize CRLF to LF only for installed generator source comparison; archived generator retains strict raw hash validation.",
+  "pinned_generator_sha256": "51b3f134f2744bf0376b028139b697835fb57bc9486f2d45e6fb49a1c8df4faf",
+  "canonical_generator_sha256": "01c4f3aa1ff6dd075a870acebe5402fa5d8018953d561652772b8400c901ac47",
+  "provenance": {
+    "parent_commit": "38ed150074fa230ce0fa25a084b0dfa920d8d5f4",
+    "runtime_commit": "1c91f5a5bec5f6324be5ca10f652bf863bc04b02",
+    "generator_sha256": "c4ff2dd9e395b9e94f188cb6a6280d7d730cf3fb00b59573fc5db0c4d673886e",
+    "files": {
+      "publication.py.txt": "c4ff2dd9e395b9e94f188cb6a6280d7d730cf3fb00b59573fc5db0c4d673886e",
+      "repair.patch": "b419a6db486934a500efa362bc011224a5827d05960546b8fe501ae0ccb65a06",
+      "tests.log": "369c47fbf4e04af873402a8568be38208bebabff8b6f81e2c7207438907bd4e4"
+    }
+  }
+}

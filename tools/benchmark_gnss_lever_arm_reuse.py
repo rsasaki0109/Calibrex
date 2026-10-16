@@ -49,6 +49,12 @@ def sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _same_generator_source(current: bytes, pinned: bytes) -> bool:
+    """Compare checked-out Python source allowing only universal newline encoding."""
+
+    return current.replace(b"\r\n", b"\n") == pinned.replace(b"\r\n", b"\n")
+
+
 def write(path: Path, value: dict) -> None:
     import jsonschema
 
@@ -423,9 +429,11 @@ def input_lineage(output: Path, problem: dict) -> None:
     for name, digest in provenance["source_files"].items():
         if hashlib.sha256(raw[name]).hexdigest() != digest or members[name]["sha256"] != digest:
             raise ValueError("original OXTS input differs")
-    if (
-        sha(output / "control-generator.py.txt") != provenance["generator_sha256"]
-        or sha(ROOT / "tools/prepare_gnss_lever_arm_control.py") != provenance["generator_sha256"]
+    if sha(output / "control-generator.py.txt") != provenance[
+        "generator_sha256"
+    ] or not _same_generator_source(
+        (ROOT / "tools/prepare_gnss_lever_arm_control.py").read_bytes(),
+        (output / "control-generator.py.txt").read_bytes(),
     ):
         raise ValueError("control generator differs")
     if provenance["reference_pose_indices"] != [0, 2761]:

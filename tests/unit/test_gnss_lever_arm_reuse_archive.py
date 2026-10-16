@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 from jsonschema import ValidationError
+from tools import benchmark_gnss_lever_arm_reuse as benchmark
 from tools.benchmark_gnss_lever_arm_reuse import audit
 
 ARCHIVE = Path(__file__).resolve().parents[2] / "docs/assets/gnss_lever_arm_evaluation_reuse"
@@ -62,6 +63,19 @@ def test_every_gnss_archive_byte_is_indexed() -> None:
         for p in ARCHIVE.rglob("*")
         if p.is_file() and p.name != "index.json"
     }
+
+
+def test_complete_archive_audits_from_an_lf_only_generator_checkout(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    target = tmp_path / "tools/prepare_gnss_lever_arm_control.py"
+    target.parent.mkdir()
+    pinned = (ARCHIVE / "control-generator.py.txt").read_bytes()
+    assert b"\r\n" in pinned
+    target.write_bytes(pinned.replace(b"\r\n", b"\n"))
+    assert target.read_bytes() != pinned
+    monkeypatch.setattr(benchmark, "ROOT", tmp_path)
+    assert audit(ARCHIVE) == json.loads((ARCHIVE / "audit.json").read_bytes())
 
 
 def test_observed_work_must_match_full_history_replay(archive_copy: Path) -> None:

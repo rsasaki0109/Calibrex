@@ -1,0 +1,99 @@
+diff --git a/tests/unit/test_gnss_lever_arm_benchmark.py b/tests/unit/test_gnss_lever_arm_benchmark.py
+index 5093e15d..a220a680 100644
+--- a/tests/unit/test_gnss_lever_arm_benchmark.py
++++ b/tests/unit/test_gnss_lever_arm_benchmark.py
+@@ -9,6 +9,7 @@ from jsonschema import validate
+ from tools.benchmark_gnss_lever_arm_reuse import (
+     SCHEMA,
+     _same_control_geometry,
++    _same_generator_source,
+     comparable,
+     default_options,
+     replay_work,
+@@ -141,6 +142,22 @@ def test_full_default_options_are_json_canonical_and_schema_valid() -> None:
+     validate(value, json.loads(SCHEMA.read_bytes())["$defs"]["protocol"]["properties"]["options"])
+ 
+ 
++@pytest.mark.parametrize(
++    "current,pinned,expected",
++    [
++        (b"x = 1\n", b"x = 1\n", True),
++        (b"x = 1\r\n", b"x = 1\n", True),
++        (b"x = 1\n", b"x = 1\r\n", True),
++        (b"x = 2\n", b"x = 1\r\n", False),
++        (b"x = 1\r", b"x = 1\r\n", False),
++    ],
++)
++def test_generator_check_allows_only_lf_crlf_encoding(
++    current: bytes, pinned: bytes, expected: bool
++) -> None:
++    assert _same_generator_source(current, pinned) is expected
++
++
+ @pytest.mark.parametrize("part", ["roundoff", "position", "rotation", "timestamp", "window_id"])
+ def test_regenerated_geometry_bounds_only_platform_roundoff(part: str) -> None:
+     original = {
+diff --git a/tests/unit/test_gnss_lever_arm_reuse_archive.py b/tests/unit/test_gnss_lever_arm_reuse_archive.py
+index f3c0d90c..fbc82969 100644
+--- a/tests/unit/test_gnss_lever_arm_reuse_archive.py
++++ b/tests/unit/test_gnss_lever_arm_reuse_archive.py
+@@ -9,6 +9,7 @@ from pathlib import Path
+ 
+ import pytest
+ from jsonschema import ValidationError
++from tools import benchmark_gnss_lever_arm_reuse as benchmark
+ from tools.benchmark_gnss_lever_arm_reuse import audit
+ 
+ ARCHIVE = Path(__file__).resolve().parents[2] / "docs/assets/gnss_lever_arm_evaluation_reuse"
+@@ -64,6 +65,19 @@ def test_every_gnss_archive_byte_is_indexed() -> None:
+     }
+ 
+ 
++def test_complete_archive_audits_from_an_lf_only_generator_checkout(
++    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
++) -> None:
++    target = tmp_path / "tools/prepare_gnss_lever_arm_control.py"
++    target.parent.mkdir()
++    pinned = (ARCHIVE / "control-generator.py.txt").read_bytes()
++    assert b"\r\n" in pinned
++    target.write_bytes(pinned.replace(b"\r\n", b"\n"))
++    assert target.read_bytes() != pinned
++    monkeypatch.setattr(benchmark, "ROOT", tmp_path)
++    assert audit(ARCHIVE) == json.loads((ARCHIVE / "audit.json").read_bytes())
++
++
+ def test_observed_work_must_match_full_history_replay(archive_copy: Path) -> None:
+     path = archive_copy / "00-current/measurement.json"
+     value = json.loads(path.read_bytes())
+diff --git a/tools/benchmark_gnss_lever_arm_reuse.py b/tools/benchmark_gnss_lever_arm_reuse.py
+index b0332480..151d1e76 100644
+--- a/tools/benchmark_gnss_lever_arm_reuse.py
++++ b/tools/benchmark_gnss_lever_arm_reuse.py
+@@ -49,6 +49,12 @@ def sha(path: Path) -> str:
+     return hashlib.sha256(path.read_bytes()).hexdigest()
+ 
+ 
++def _same_generator_source(current: bytes, pinned: bytes) -> bool:
++    """Compare checked-out Python source allowing only universal newline encoding."""
++
++    return current.replace(b"\r\n", b"\n") == pinned.replace(b"\r\n", b"\n")
++
++
+ def write(path: Path, value: dict) -> None:
+     import jsonschema
+ 
+@@ -423,9 +429,11 @@ def input_lineage(output: Path, problem: dict) -> None:
+     for name, digest in provenance["source_files"].items():
+         if hashlib.sha256(raw[name]).hexdigest() != digest or members[name]["sha256"] != digest:
+             raise ValueError("original OXTS input differs")
+-    if (
+-        sha(output / "control-generator.py.txt") != provenance["generator_sha256"]
+-        or sha(ROOT / "tools/prepare_gnss_lever_arm_control.py") != provenance["generator_sha256"]
++    if sha(output / "control-generator.py.txt") != provenance[
++        "generator_sha256"
++    ] or not _same_generator_source(
++        (ROOT / "tools/prepare_gnss_lever_arm_control.py").read_bytes(),
++        (output / "control-generator.py.txt").read_bytes(),
+     ):
+         raise ValueError("control generator differs")
+     if provenance["reference_pose_indices"] != [0, 2761]:

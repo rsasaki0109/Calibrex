@@ -1,0 +1,35 @@
+import hashlib
+import json
+import shutil
+import subprocess
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+ARCHIVE = ROOT / 'docs/assets/gnss_lever_arm_evaluation_reuse'
+QA = ARCHIVE / 'qa/newline-repair'
+QA.mkdir(exist_ok=True)
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+write = lambda p, v: p.write_bytes((json.dumps(v, indent=2, allow_nan=False) + '\n').encode())
+shutil.copyfile(ROOT / 'outputs/gnss-source-newline-repair-v1/tests.log', QA / 'tests.log')
+shutil.copyfile(Path(__file__), QA / 'publication.py.txt')
+code = ['tools/benchmark_gnss_lever_arm_reuse.py', 'tests/unit/test_gnss_lever_arm_benchmark.py', 'tests/unit/test_gnss_lever_arm_reuse_archive.py']
+(QA / 'repair.patch').write_bytes(subprocess.check_output(['git', 'diff', '--', *code]))
+pinned = ARCHIVE / 'control-generator.py.txt'
+installed = ROOT / 'tools/prepare_gnss_lever_arm_control.py'
+canonical = lambda p: hashlib.sha256(p.read_bytes().replace(b'\r\n', b'\n')).hexdigest()
+assert canonical(pinned) == canonical(installed)
+write(QA / 'receipt.json', dict(
+    scope='Checkout LF/CRLF compatibility only; pinned generator, measured runtime and recorded evidence remain byte-identical.',
+    targeted_cases_passed=36, new_regression_cases=6, distinct_windows_case_union=82,
+    source_check='Normalize CRLF to LF only for installed generator source comparison; archived generator retains strict raw hash validation.',
+    pinned_generator_sha256=sha(pinned), canonical_generator_sha256=canonical(pinned),
+    provenance=dict(parent_commit=subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip(),
+        runtime_commit=json.loads((ARCHIVE / 'protocol.json').read_bytes())['commits']['current'],
+        generator_sha256=sha(Path(__file__)), files={p.name:sha(p) for p in sorted(QA.iterdir()) if p.is_file() and p.name!='receipt.json'})))
+write(ARCHIVE / 'index.json', dict(files={p.relative_to(ARCHIVE).as_posix():sha(p) for p in sorted(ARCHIVE.rglob('*')) if p.is_file() and p.name!='index.json'},
+    provenance=dict(generator_sha256=sha(Path(__file__)), protocol_sha256=sha(ARCHIVE / 'protocol.json'))))
+body = ROOT / '.tmp-calibrex-gnss-reuse-pr-body-v1.md'
+text = body.read_text(encoding='utf-8').replace('76 distinct targeted Windows cases', '82 distinct targeted Windows cases')
+text += '\nThe follow-up audit fix accepts CRLF/LF encoding differences only in the installed generator source. It keeps the archived raw generator hash exact and adds six regressions, including a complete audit against an LF-only checkout. All 36 affected benchmark/archive cases pass.\n'
+(ROOT / '.tmp-calibrex-gnss-reuse-pr-body-v2.md').write_text(text, encoding='utf-8', newline='\n')
+print(json.dumps(dict(archive_files=len(json.loads((ARCHIVE / 'index.json').read_bytes())['files'])+1)))
