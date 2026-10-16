@@ -60,6 +60,9 @@ def comparable(value: dict) -> dict:
     value = json.loads(json.dumps(value, allow_nan=False))
     for name in ("created_at", "git_commit"):
         value["provenance"].pop(name, None)
+    if value.get("record_type") == "history":
+        # Histories retain both independently verified actual Git forms.
+        value["provenance"].pop("git_commit_short")
     return value
 
 
@@ -404,7 +407,7 @@ def replay_work(history: dict, result: dict, current: bool) -> dict:
             clock[offset] = None
             if len(clock) > 16:
                 clock.popitem(last=False)
-    controls = sum(dof["known_bad_control"] is not None for dof in result["dofs"])
+    controls = sum(dof.get("known_bad_control") is not None for dof in result["dofs"])
     fits, requests = len(history["fits"]), len(history["normalized"])
     # One final motion summary per solve, one held-out summary, and two
     # held-out chi-square evaluations for every reported control.
