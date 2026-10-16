@@ -1,0 +1,70 @@
+{
+  "tests_passed": 128,
+  "regression_tests_passed": 113,
+  "schema_registry_tests_passed": 15,
+  "runtime_sources": 378,
+  "schemas_unchanged": 130,
+  "runtime_matches_measured_candidate": true,
+  "newline_normalization": "CRLF to LF in both operands",
+  "notes": [
+    "The initial regression run passed 112 tests and rejected a tampered interval at schema validation before the expected full-result comparison.",
+    "The test fixture was corrected to alter a schema-valid interval; the final 113-test run verifies numerical rejection as intended. Runtime sources were unchanged.",
+    "The initial log and test source are retained separately from final passing checks."
+  ],
+  "commands": [
+    [
+      "python",
+      "-m",
+      "pytest",
+      "tests/unit/test_empirical_se3_uncertainty.py",
+      "tests/unit/test_probabilistic_pose_batching.py",
+      "tests/unit/test_probabilistic_camera_lidar_refiner.py",
+      "tests/unit/test_empirical_refit_benchmark.py",
+      "tests/unit/test_lazy_runtime_loading.py",
+      "--basetemp",
+      "outputs/empirical-refits-final-checks-v1/tmp-final",
+      "-p",
+      "no:cacheprovider",
+      "--override-ini",
+      "addopts=--disable-plugin-autoload",
+      "-q"
+    ],
+    [
+      "python",
+      "-m",
+      "pytest",
+      "tests/unit/test_schema_registry.py",
+      "--basetemp",
+      "outputs/empirical-refits-final-checks-v1/tmp-schema-registry",
+      "-p",
+      "no:cacheprovider",
+      "--override-ini",
+      "addopts=--disable-plugin-autoload",
+      "-q"
+    ]
+  ],
+  "provenance": {
+    "source_manifest_sha256": "5687d8289f19db108470d1612575334b31ba4ba1bd6adf363f260f7d74b3042e",
+    "protocol_sha256": "b44db037bbe6bcbfa5356f6c99055146412d9566ed1fdc665ca08ccfee14a86b",
+    "auditor_sha256": "84b818e8c867037cc43794e39673d2dd61902844b060f3c383a9db1596d68f94",
+    "binder_sha256": "9c3b1fffbb8c754bf28fe13a0ed5571cc831cc68aa98e04e17eacfb066e4643f",
+    "test_sources": {
+      "tests/unit/test_empirical_se3_uncertainty.py": "55f1f1097d0c8fba69a398fae28b608908e1b070afd75ba23ef0b86827e6d26f",
+      "tests/unit/test_probabilistic_pose_batching.py": "279a2ce34dddc5132ca47e6f506b4ca2df76352fdd8162638a66e70a033748b8",
+      "tests/unit/test_probabilistic_camera_lidar_refiner.py": "994128ac26dd64bcf2103d23261db8369057513aaf9897ce24507d5e2236d8c3",
+      "tests/unit/test_empirical_refit_benchmark.py": "f92c24b3e38456cecdb443f41d6838b402a98989e42199f18af2e637f23aea13",
+      "tests/unit/test_lazy_runtime_loading.py": "788a8afc85eaf8cd821dac652eae2984585bf122b4d1e618363fe28d6ec8829b",
+      "tests/unit/test_schema_registry.py": "6c3628fbb442128735c72ee9eb858d9ddc475aebface68b29d8929197de5673e"
+    },
+    "logs": {
+      "tests-final.log": "0ee7563d8dc36532a64e58c6264fee7bf837cc767528c7d040bc4c4b48ac614d",
+      "tests.log": "77cc30559955f374d581198f1074f504dd63b0e3b1449aeaa6e29d6053dda3ed",
+      "schema-registry.log": "0d9c77191774b01e56bca2a962ddb24273e4302893df61b38938a3de5a845f1f",
+      "ruff.log": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0",
+      "mypy.log": "62f3e1e86defa2594d454d9fa6336de0e5b0be9af3bba225a9b1d7d3c7464f7a",
+      "docs.log": "f66395a9f0d6bc0cb3c0913ac084f4336bea49b1a0d5526500f64d112a13671c",
+      "schemas.log": "2f426d20407eb4c3d826a22e295ef016db7215d91f1a29a33402dec4d8262851"
+    },
+    "schema_parity_sha256": "e5c2677e1eafeaf3abb752491fdd739afbf0f88738b00073a20352004d6dcd83"
+  }
+}

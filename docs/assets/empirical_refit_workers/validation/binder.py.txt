@@ -1,0 +1,91 @@
+"""Bind final regression checks to the unchanged measured runtime and archive."""
+from pathlib import Path
+import hashlib
+import json
+import re
+import shutil
+
+ROOT = Path(__file__).resolve().parent
+ARCHIVE = ROOT / 'docs/assets/empirical_refit_workers'
+CHECKS = ROOT / 'outputs/empirical-refits-final-checks-v1'
+RUN = ROOT / 'outputs/empirical-refits-formal-v2'
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+write = lambda p,v: p.write_bytes((json.dumps(v, indent=2, allow_nan=False) + '\n').encode())
+primary = int(re.search(r'(\d+) passed', (CHECKS / 'tests-final.log').read_text(encoding='utf-8')).group(1))
+registry = int(re.search(r'(\d+) passed', (CHECKS / 'schema-registry.log').read_text(encoding='utf-8')).group(1))
+assert primary == 113 and registry == 15
+assert 'All checks passed!' in (CHECKS / 'ruff.log').read_text(encoding='utf-8')
+assert 'Success: no issues found in 378 source files' in (CHECKS / 'mypy.log').read_text(encoding='utf-8')
+assert 'Documentation built in' in (CHECKS / 'docs.log').read_text(encoding='utf-8')
+schema = json.loads((RUN / 'schema-parity.json').read_bytes())
+assert len(schema['exports']) == 130 and schema['runtime_matches_measured_candidate']
+source = RUN / 'sources-current/src'
+live = ROOT / 'src'
+paths = {p.relative_to(source).as_posix(): p for p in source.rglob('*.py')}
+live_paths = {p.relative_to(live).as_posix(): p for p in live.rglob('*.py')}
+norm = lambda p: hashlib.sha256(p.read_bytes().replace(b'\r\n', b'\n')).hexdigest()
+assert paths.keys() == live_paths.keys() and len(paths) == 378
+assert all(norm(paths[n]) == norm(live_paths[n]) for n in paths)
+dest = ARCHIVE / 'validation'
+dest.mkdir(exist_ok=False)
+(ARCHIVE / '.gitattributes').write_bytes(
+    b'* -text linguist-generated=true\n.gitattributes text eol=lf\nREADME.md text eol=lf linguist-generated=false\n'
+)
+tests = [
+    'tests/unit/test_empirical_se3_uncertainty.py',
+    'tests/unit/test_probabilistic_pose_batching.py',
+    'tests/unit/test_probabilistic_camera_lidar_refiner.py',
+    'tests/unit/test_empirical_refit_benchmark.py',
+    'tests/unit/test_lazy_runtime_loading.py',
+    'tests/unit/test_schema_registry.py',
+]
+logs = ['tests-final.log', 'tests.log', 'schema-registry.log', 'ruff.log', 'mypy.log', 'docs.log', 'schemas.log']
+for name in logs:
+    shutil.copyfile(CHECKS / name, dest / name)
+for name in tests:
+    shutil.copyfile(ROOT / name, dest / (Path(name).name + '.txt'))
+shutil.copyfile(CHECKS / 'test_empirical_refit_benchmark-initial.py.txt',
+                dest / 'test_empirical_refit_benchmark-initial.py.txt')
+shutil.copyfile(Path(__file__), dest / 'binder.py.txt')
+shutil.copyfile(ROOT / '.tmp-calibrex-check-empirical-refit-schemas-v1.py', dest / 'schema-checker.py.txt')
+shutil.copyfile(RUN / 'schema-parity.json', dest / 'schema-parity.json')
+for variant in ('prior', 'current'):
+    for stream in ('stdout', 'stderr'):
+        name = f'schema-{variant}-{stream}.txt'
+        shutil.copyfile(RUN / name, dest / name)
+write(dest / 'receipt.json', {
+    'tests_passed': primary + registry,
+    'regression_tests_passed': primary,
+    'schema_registry_tests_passed': registry,
+    'runtime_sources': len(paths),
+    'schemas_unchanged': len(schema['exports']),
+    'runtime_matches_measured_candidate': True,
+    'newline_normalization': 'CRLF to LF in both operands',
+    'notes': [
+        'The initial regression run passed 112 tests and rejected a tampered interval at schema validation before the expected full-result comparison.',
+        'The test fixture was corrected to alter a schema-valid interval; the final 113-test run verifies numerical rejection as intended. Runtime sources were unchanged.',
+        'The initial log and test source are retained separately from final passing checks.',
+    ],
+    'commands': [
+        ['python', '-m', 'pytest', *tests[:-1], '--basetemp', 'outputs/empirical-refits-final-checks-v1/tmp-final',
+         '-p', 'no:cacheprovider', '--override-ini', 'addopts=--disable-plugin-autoload', '-q'],
+        ['python', '-m', 'pytest', tests[-1], '--basetemp',
+         'outputs/empirical-refits-final-checks-v1/tmp-schema-registry',
+         '-p', 'no:cacheprovider', '--override-ini', 'addopts=--disable-plugin-autoload', '-q'],
+    ],
+    'provenance': {
+        'source_manifest_sha256': sha(ARCHIVE / 'sources-current-manifest.json'),
+        'protocol_sha256': sha(ARCHIVE / 'protocol.json'),
+        'auditor_sha256': sha(ARCHIVE / 'auditor.py.txt'),
+        'binder_sha256': sha(Path(__file__)),
+        'test_sources': {name: sha(ROOT / name) for name in tests},
+        'logs': {name: sha(dest / name) for name in logs},
+        'schema_parity_sha256': sha(dest / 'schema-parity.json'),
+    },
+})
+index = json.loads((ARCHIVE / 'index.json').read_bytes())
+index['provenance']['validation_binder_sha256'] = sha(Path(__file__))
+index['files'] = {p.relative_to(ARCHIVE).as_posix(): sha(p)
+                  for p in sorted(ARCHIVE.rglob('*')) if p.is_file() and p != ARCHIVE / 'index.json'}
+write(ARCHIVE / 'index.json', index)
+print(primary + registry, 'passing tests bound;', len(index['files']), 'archive files indexed.')

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Complete frozen-source empirical uncertainty CLI comparison",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "commits", "repetitions", "fresh_workers", "host_unreserved", "blas_threads", "sources", "workers", "provenance"],
+  "properties": {
+    "schema_version": {"const": "slac.empirical_refit_benchmark/v0.1"},
+    "commits": {"type": "object", "additionalProperties": false, "required": ["prior", "current"], "properties": {"prior": {"$ref": "#/$defs/commit"}, "current": {"$ref": "#/$defs/commit"}}},
+    "repetitions": {"type": "integer", "minimum": 2},
+    "fresh_workers": {"const": true}, "host_unreserved": {"const": true}, "blas_threads": {"const": 1},
+    "sources": {"type": "object", "additionalProperties": false, "required": ["prior", "current"], "properties": {"prior": {"type": "string", "minLength": 1}, "current": {"type": "string", "minLength": 1}}},
+    "workers": {"type": "object", "additionalProperties": false, "required": ["prior", "current"], "properties": {"prior": {"const": 1}, "current": {"type": "integer", "minimum": 2, "maximum": 20}}},
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["inputs", "manifests", "launcher_sha256", "freezer_sha256", "schema_sha256", "python", "versions"],
+      "properties": {
+        "inputs": {"type": "object", "additionalProperties": false, "required": ["correspondence.json", "problem.json", "fixture-protocol.json"], "properties": {"correspondence.json": {"$ref": "#/$defs/sha"}, "problem.json": {"$ref": "#/$defs/sha"}, "fixture-protocol.json": {"$ref": "#/$defs/sha"}}},
+        "manifests": {"type": "object", "additionalProperties": false, "required": ["prior", "current"], "properties": {"prior": {"$ref": "#/$defs/sha"}, "current": {"$ref": "#/$defs/sha"}}},
+        "launcher_sha256": {"$ref": "#/$defs/sha"}, "freezer_sha256": {"$ref": "#/$defs/sha"}, "schema_sha256": {"$ref": "#/$defs/sha"},
+        "python": {"type": "string", "minLength": 1},
+        "versions": {"type": "object", "additionalProperties": false, "required": ["numpy", "scipy", "pydantic", "PyYAML"], "properties": {"numpy": {"type": "string"}, "scipy": {"type": "string"}, "pydantic": {"type": "string"}, "PyYAML": {"type": "string"}}}
+      }
+    }
+  },
+  "$defs": {"sha": {"type": "string", "pattern": "^[a-f0-9]{64}$"}, "commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"}}
+}

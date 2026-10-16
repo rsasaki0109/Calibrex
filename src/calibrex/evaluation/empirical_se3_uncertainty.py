@@ -17,9 +17,14 @@ from __future__ import annotations
 
 import hashlib
 import math
+import multiprocessing
 import random
-from collections.abc import Sequence
-from dataclasses import asdict
+from collections import deque
+from collections.abc import Generator, Iterator, Sequence
+from concurrent.futures import Future, ProcessPoolExecutor
+from contextlib import contextmanager
+from dataclasses import asdict, dataclass
+from itertools import islice
 from pathlib import Path
 from typing import Any, Literal, cast
 
@@ -35,6 +40,7 @@ from calibrex.core.empirical_uncertainty import (
 )
 from calibrex.core.geometry import SE3, normalize_quaternion_xyzw
 from calibrex.core.probabilistic_correspondence import (
+    CorrespondenceProviderIdentity,
     ProbabilisticCorrespondenceFrame,
     ProbabilisticRefinementAcceptanceArtifact,
     ProbabilisticRefinementEvaluationArtifact,
@@ -62,6 +68,124 @@ _AXIS_INDEX = {"x": 0, "y": 1, "z": 2}
 LiteralPolicyStatus = Literal["pass", "warn", "fail", "inconclusive"]
 
 
+@dataclass(frozen=True)
+class _RefitContext:
+    by_id: dict[str, ProbabilisticCorrespondenceFrame]
+    blocks: list[EmpiricalBlock]
+    seed: int
+    initial_transform: SE3
+    settings: ProbabilisticCameraLidarRefinementOptions
+    output_root: Path
+    correspondence_id: str
+    problem_id: str
+    provider: CorrespondenceProviderIdentity
+    camera_frame: str
+    lidar_frame: str
+    reference: TransformResult | None
+    correspondence_digest: str
+    problem_digest: str
+    command: list[str]
+    source_commit: str | None
+
+
+@dataclass(frozen=True)
+class _RefitOutcome:
+    iteration: EmpiricalResampleIteration
+    estimate: SE3 | None
+
+
+_WORKER_CONTEXT: _RefitContext | None = None
+
+
+def _initialize_refits(context: _RefitContext) -> None:
+    """Receive the immutable run snapshot once in each isolated process."""
+    global _WORKER_CONTEXT
+    _WORKER_CONTEXT = context
+
+
+def _worker_refit(task: tuple[int, tuple[list[int], list[int]]]) -> _RefitOutcome:
+    if _WORKER_CONTEXT is None:
+        raise RuntimeError("refit worker has not been initialized")
+    index, (fit, holdout) = task
+    return _fit_resample(_WORKER_CONTEXT, index, fit, holdout)
+
+
+def _bounded_refits(
+    executor: ProcessPoolExecutor, splits: list[tuple[list[int], list[int]]], workers: int,
+) -> Generator[_RefitOutcome, None, None]:
+    """Bound queued work and retain input order even when tasks finish out of order."""
+    tasks = iter(enumerate(splits))
+    pending: deque[Future[_RefitOutcome]] = deque()
+    try:
+        for task in islice(tasks, 2 * workers):
+            pending.append(executor.submit(_worker_refit, task))
+        while pending:
+            yield pending.popleft().result()
+            next_task = next(tasks, None)
+            if next_task is not None:
+                pending.append(executor.submit(_worker_refit, next_task))
+    finally:
+        for future in pending:
+            future.cancel()
+
+
+@contextmanager
+def _refit_results(
+    context: _RefitContext, splits: list[tuple[list[int], list[int]]], workers: int,
+) -> Iterator[Iterator[_RefitOutcome]]:
+    if workers == 1:
+        yield (_fit_resample(context, i, fit, holdout)
+               for i, (fit, holdout) in enumerate(splits))
+        return
+    count = min(workers, len(splits))
+    with ProcessPoolExecutor(
+        max_workers=count, mp_context=multiprocessing.get_context("spawn"),
+        initializer=_initialize_refits, initargs=(context,),
+    ) as executor:
+        results = _bounded_refits(executor, splits, count)
+        try:
+            yield results
+        finally:
+            results.close()
+
+
+def _fit_resample(
+    context: _RefitContext, index: int, fit: Sequence[int], holdout: Sequence[int],
+) -> _RefitOutcome:
+    iteration_id = f"resample-{index:04d}"
+    train = _bootstrap_train_frames(
+        _frames_for_blocks(context.by_id, context.blocks, fit),
+        random.Random(context.seed + index + 1_000_000),
+    )
+    validation = _frames_for_blocks(context.by_id, context.blocks, holdout)
+    result = ProbabilisticCameraLidarRefiner().solve_partitioned(
+        train, validation, context.initial_transform, context.settings,
+    )
+    # Keep candidate variability when fit-only acceptance retains the initializer.
+    # Each saved artifact continues to expose candidate and selected transforms.
+    succeeded = result.status in {"converged", "at_bound"}
+    output = context.output_root / f"{iteration_id}.yaml"
+    _iteration_artifact(
+        iteration_id, context.correspondence_id, context.problem_id, context.provider,
+        context.camera_frame, context.lidar_frame, result,
+        reference=context.reference, correspondence_sha256=context.correspondence_digest,
+        problem_sha256=context.problem_digest, command=context.command,
+        source_commit=context.source_commit,
+    ).save(output)
+    iteration = EmpiricalResampleIteration(
+        iteration_id=iteration_id, status="success" if succeeded else "failed",
+        solver_status=result.status,
+        train_block_ids=[context.blocks[i].block_id for i in fit],
+        holdout_block_ids=[context.blocks[i].block_id for i in holdout],
+        transform_camera_lidar=(
+            _transform(context.camera_frame, context.lidar_frame, result.transform_camera_lidar)
+            if succeeded else None
+        ),
+        output_sha256=_required_digest(output), reason=None if succeeded else result.reason,
+    )
+    return _RefitOutcome(iteration, result.candidate_transform_camera_lidar if succeeded else None)
+
+
 def run_empirical_se3_uncertainty(
     correspondence_path: str | Path,
     initialization_problem_path: str | Path,
@@ -71,6 +195,7 @@ def run_empirical_se3_uncertainty(
     block_length: int = 5,
     target_coverage: float = 0.9,
     resample_count: int = 20,
+    workers: int = 1,
     seed: int = 0,
     fit_block_ratio: float = 0.6,
     overconfidence_scale: float = 0.1,
@@ -91,6 +216,8 @@ def run_empirical_se3_uncertainty(
         raise ValueError("target_coverage must be in (0, 1)")
     if resample_count < 2:
         raise ValueError("resample_count must be at least two")
+    if workers < 1:
+        raise ValueError("workers must be at least one")
     if not 0.0 < fit_block_ratio < 1.0:
         raise ValueError("fit_block_ratio must be in (0, 1)")
     if not 0.0 < overconfidence_scale < 1.0:
@@ -143,60 +270,22 @@ def run_empirical_se3_uncertainty(
     iterations: list[EmpiricalResampleIteration] = []
     resample_output_digests: dict[str, str] = {}
     estimates: list[SE3] = []
-    for iteration_index, (fit_indices, holdout_indices) in enumerate(splits):
-        iteration_id = f"resample-{iteration_index:04d}"
-        bootstrap_rng = random.Random(seed + iteration_index + 1_000_000)
-        train = _bootstrap_train_frames(
-            _frames_for_blocks(by_id, blocks, fit_indices),
-            bootstrap_rng,
-        )
-        holdout = _frames_for_blocks(by_id, blocks, holdout_indices)
-        result = ProbabilisticCameraLidarRefiner().solve_partitioned(
-            train,
-            holdout,
-            initial_transform,
-            settings,
-        )
-        # Keep the solver's candidate spread as uncertainty evidence even when
-        # the fit-only acceptance policy rolls back the selected output.  The
-        # per-resample artifact retains both candidate and selected transforms,
-        # so callers can distinguish estimator variability from deployment
-        # eligibility without hiding a rejected candidate.
-        succeeded = result.status in {"converged", "at_bound"}
-        output = output_root / f"{iteration_id}.yaml"
-        _iteration_artifact(
-            iteration_id,
-            correspondence.artifact_id,
-            problem.problem_id,
-            correspondence.provider,
-            camera_frame,
-            lidar_frame,
-            result,
-            reference=reference,
-            correspondence_sha256=correspondence_digest,
-            problem_sha256=problem_digest,
-            command=command.split(),
-        ).save(output)
-        output_digest = _required_digest(output)
-        resample_output_digests[iteration_id] = output_digest
-        iterations.append(
-            EmpiricalResampleIteration(
-                iteration_id=iteration_id,
-                status="success" if succeeded else "failed",
-                solver_status=result.status,
-                train_block_ids=[blocks[i].block_id for i in fit_indices],
-                holdout_block_ids=[blocks[i].block_id for i in holdout_indices],
-                transform_camera_lidar=(
-                    _transform(camera_frame, lidar_frame, result.transform_camera_lidar)
-                    if succeeded
-                    else None
-                ),
-                output_sha256=output_digest,
-                reason=None if succeeded else result.reason,
-            )
-        )
-        if succeeded:
-            estimates.append(result.candidate_transform_camera_lidar)
+    source_commit = git_commit()
+    context = _RefitContext(
+        by_id, blocks, seed, initial_transform, settings, output_root,
+        correspondence.artifact_id, problem.problem_id, correspondence.provider,
+        camera_frame, lidar_frame, reference, correspondence_digest, problem_digest,
+        command.split(), source_commit,
+    )
+    with _refit_results(context, splits, workers) as refits:
+        for outcome in refits:
+            item = outcome.iteration
+            iterations.append(item)
+            if item.output_sha256 is None:
+                raise RuntimeError("refit result is missing its output digest")
+            resample_output_digests[item.iteration_id] = item.output_sha256
+            if outcome.estimate is not None:
+                estimates.append(outcome.estimate)
 
     if len(estimates) < 2:
         raise ValueError(
@@ -306,7 +395,7 @@ def run_empirical_se3_uncertainty(
         provenance=EmpiricalUncertaintyProvenance(
             generator=__name__,
             generator_version=UNCERTAINTY_RUN_VERSION,
-            git_commit=git_commit(),
+            git_commit=source_commit,
             command=command.split(),
             source_sha256={
                 str(correspondence_file): correspondence_digest,
@@ -720,6 +809,7 @@ def _iteration_artifact(
     correspondence_sha256: str,
     problem_sha256: str,
     command: list[str],
+    source_commit: str | None,
 ) -> ProbabilisticRefinementResultArtifact:
     initial_transform = _transform(
         camera_frame, lidar_frame, result.initial_transform_camera_lidar
@@ -799,7 +889,7 @@ def _iteration_artifact(
         provenance=ProbabilisticRefinementProvenance(
             generator=__name__,
             generator_version=UNCERTAINTY_RUN_VERSION,
-            git_commit=git_commit(),
+            git_commit=source_commit,
             command=command,
             correspondence_artifact_sha256=correspondence_sha256,
             initialization_problem_sha256=problem_sha256,
