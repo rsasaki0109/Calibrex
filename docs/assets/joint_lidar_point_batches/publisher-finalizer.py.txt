@@ -1,0 +1,17 @@
+"""Bind final post-measurement validation and auditor bytes to the archive."""
+from pathlib import Path
+import shutil
+from tools import benchmark_joint_point_batches as bench
+
+root=Path(__file__).resolve().parent
+archive=root/'docs/assets/joint_lidar_point_batches'
+validation=root/'outputs/joint-point-batches-validation-v1'
+for name in ('archive-windows.log','archive-linux.log','schema-registry-final.log','ruff-final.log','mkdocs.log'):
+    if (validation/name).exists(): shutil.copyfile(validation/name,archive/name)
+for source,name in (
+    (root/'tools/benchmark_joint_point_batches.py','auditor.py.txt'),
+    (root/'tests/unit/test_joint_point_batches_archive.py','test_joint_point_batches_archive.py.txt'),
+    (Path(__file__),'publisher-finalizer.py.txt'),
+): shutil.copyfile(source,archive/name)
+bench.write(archive/'index.json',{'files':{p.relative_to(archive).as_posix():{'sha256':bench.sha(p),'size_bytes':p.stat().st_size} for p in sorted(archive.rglob('*')) if p.is_file() and p.name!='index.json'},'provenance':{'protocol_sha256':bench.sha(archive/'protocol.json')}})
+print(bench.audit(archive)['payload'])
