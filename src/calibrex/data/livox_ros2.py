@@ -26,6 +26,7 @@ from numpy.typing import NDArray
 
 from calibrex.core.progress import emit_stage, emit_tick
 from calibrex.data import ros_cdr
+from calibrex.data.livox_profile_fields import LIVOX_PROFILE_FIELDS
 from calibrex.data.rosbag2 import iter_messages
 
 FloatArray: TypeAlias = NDArray[np.float64]
@@ -54,22 +55,7 @@ class LivoxStreamProfile:
 
 
 LIVOX_PROFILES: dict[str, LivoxStreamProfile] = {
-    "rtk-slam": LivoxStreamProfile(
-        name="rtk-slam",
-        point_topic="/livox/points",
-        imu_topic="/livox/imu",
-        point_time_field="offset_time",
-        point_time_encoding="offset_s",
-        acceleration_unit="mps2",
-    ),
-    "livox-ros-driver2": LivoxStreamProfile(
-        name="livox-ros-driver2",
-        point_topic="/livox/lidar",
-        imu_topic="/livox/imu",
-        point_time_field="timestamp",
-        point_time_encoding="absolute_ns",
-        acceleration_unit="g",
-    ),
+    name: LivoxStreamProfile(name, *fields) for name, fields in LIVOX_PROFILE_FIELDS.items()
 }
 
 

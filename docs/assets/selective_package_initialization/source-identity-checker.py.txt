@@ -1,0 +1,23 @@
+"""Record actual full/short Git identities independently of result comparison."""
+import hashlib
+import json
+from pathlib import Path
+import subprocess
+
+ROOT=Path(__file__).resolve().parent
+RUN=ROOT/'outputs/package-initialization-cli-v3'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+protocol=json.loads((RUN/'protocol.json').read_bytes())
+variants={}
+for variant,expected in protocol['commits'].items():
+    source=RUN/('sources-'+variant)
+    full=subprocess.check_output(['git','rev-parse','HEAD'],cwd=source,text=True).strip()
+    short=subprocess.check_output(['git','rev-parse','--short','HEAD'],cwd=source,text=True).strip()
+    assert full==expected and full.startswith(short)
+    for path in RUN.glob('refine-??-'+variant+'/result.json'):
+        assert json.loads(path.read_bytes())['provenance']['git_commit']==short
+    variants[variant]=dict(git_commit=full,git_commit_short=short,
+        manifest_sha256=sha(RUN/('sources-'+variant+'-manifest.json')))
+value=dict(variants=variants,provenance=dict(protocol_sha256=sha(RUN/'protocol.json'),generator_sha256=sha(Path(__file__))))
+(RUN/'source-identities.json').write_bytes((json.dumps(value,indent=2)+'\n').encode())
+print('all actual full/short source identities and result commits match')

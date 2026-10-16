@@ -1,0 +1,95 @@
+"""Check complete parser definitions and schema exports outside measurement."""
+import argparse
+import gzip
+import hashlib
+import json
+import math
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+ROOT = Path(__file__).resolve().parent
+RUN = ROOT / 'outputs/package-initialization-cli-v3'
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+write = lambda p,v: p.write_bytes((json.dumps(v,indent=2,allow_nan=False)+'\n').encode())
+
+
+def snapshot(source, target):
+    from calibrex.cli.main import _build_parser
+    base=str(source.resolve())
+    def text(value):
+        return value.replace(base,'<SOURCE>').replace(base.replace('\\','/'),'<SOURCE>')
+    def canonical(value):
+        if isinstance(value,Path):
+            return {'path':text(str(value))}
+        if isinstance(value,str):
+            return text(value)
+        if value is None or isinstance(value,(bool,int)):
+            return value
+        if isinstance(value,float):
+            return value if math.isfinite(value) else {'float':repr(value)}
+        if isinstance(value,(list,tuple)):
+            return [canonical(v) for v in value]
+        if isinstance(value,dict):
+            return {k:canonical(v) for k,v in value.items()}
+        if callable(value):
+            return {'callable':value.__module__+'.'+value.__qualname__}
+        raise TypeError(type(value))
+    rows=[]
+    def visit(parser,route):
+        actions=[]
+        for action in parser._actions:
+            actions.append(dict(action=type(action).__module__+'.'+type(action).__qualname__,
+                **{k:canonical(getattr(action,k)) for k in ['option_strings','dest','nargs','const','default','required','help','metavar','type']},
+                choices=None if action.choices is None else canonical(list(action.choices))))
+            if isinstance(action,argparse._SubParsersAction):
+                for name,child in action.choices.items():
+                    visit(child,[*route,name])
+        rows.append(dict(route=route,help=text(parser.format_help()),actions=actions,
+            defaults=canonical(parser._defaults)))
+    visit(_build_parser(),['calibrex'])
+    raw=(json.dumps(rows,sort_keys=True,allow_nan=False)+'\n').encode()
+    target.write_bytes(gzip.compress(raw,mtime=0))
+    print(json.dumps(dict(parsers=len(rows),actions=sum(len(r['actions']) for r in rows))))
+
+
+def main():
+    if len(sys.argv)>1:
+        return snapshot(Path(sys.argv[1]),Path(sys.argv[2]))
+    protocol=json.loads((RUN/'protocol.json').read_bytes())
+    counts={}
+    for variant in ['prior','current']:
+        source=RUN/('sources-'+variant)
+        env=os.environ.copy()
+        env.update(PYTHONPATH=str(source/'src'),PYTHONDONTWRITEBYTECODE='1')
+        target=RUN/('parser-'+variant+'.json.gz')
+        done=subprocess.run([sys.executable,str(Path(__file__).resolve()),str(source),str(target)],
+            cwd=source,env=env,capture_output=True,check=False)
+        (RUN/('parser-'+variant+'-stdout.txt')).write_bytes(done.stdout)
+        (RUN/('parser-'+variant+'-stderr.txt')).write_bytes(done.stderr)
+        assert done.returncode==0 and not done.stderr,done.stderr
+        counts[variant]=json.loads(done.stdout)
+        code="from calibrex.cli.main import main; import sys; raise SystemExit(main(['schema','all','--output-dir',sys.argv[1]]))"
+        done=subprocess.run([sys.executable,'-c',code,str(RUN/('schemas-'+variant))],cwd=source,
+            env=env,capture_output=True,check=False)
+        (RUN/('schema-'+variant+'-stdout.txt')).write_bytes(done.stdout)
+        (RUN/('schema-'+variant+'-stderr.txt')).write_bytes(done.stderr)
+        assert done.returncode==0 and not done.stderr,done.stderr
+    assert counts['prior']==counts['current']
+    assert (RUN/'parser-prior.json.gz').read_bytes()==(RUN/'parser-current.json.gz').read_bytes()
+    names={p.name for p in (RUN/'schemas-prior').glob('*.json')}
+    assert len(names)==130 and names=={p.name for p in (RUN/'schemas-current').glob('*.json')}
+    exports={n:{v:sha(RUN/('schemas-'+v)/n) for v in ['prior','current']} for n in sorted(names)}
+    assert all(v['prior']==v['current'] for v in exports.values())
+    assert all(json.loads((RUN/'schemas-current'/n).read_bytes())==json.loads((ROOT/'schemas'/n).read_bytes()) for n in names)
+    write(RUN/'schema-parity.json',dict(exports=exports,provenance=dict(
+        source_manifests=protocol['provenance']['source_manifests'],checker_sha256=sha(Path(__file__)))))
+    write(RUN/'parser-parity.json',dict(**counts['current'],complete_help_actions_defaults_and_choices_exact=True,
+        files={n:sha(RUN/n) for n in ['parser-prior.json.gz','parser-current.json.gz']},
+        provenance=dict(protocol_sha256=sha(RUN/'protocol.json'),generator_sha256=sha(Path(__file__)))))
+    print(json.dumps(dict(parsers=counts['current'],schemas_and_ledger=130,all_exact=True)))
+
+
+if __name__=='__main__':
+    main()
