@@ -350,3 +350,8 @@ also retains every reassociation state, curvature evaluation and multistart
 candidate. It batches correspondence geometry and reuses unchanged factors
 within each diagnostic window, with the complete result and evaluation
 histories included in the comparison.
+
+The [ordered lattice and owned graph comparison](../benchmarks/rgbd_lattice_batches.md)
+batches lattice products while preserving Python's ordered sums and reuses
+private train/holdout preparation during each solve. It records the full
+pipeline time as well as optimizer time, with complete numeric-history parity.

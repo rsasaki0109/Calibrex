@@ -52,7 +52,7 @@ from calibrex.evaluation.numerical_curvature import (
     NumericalCurvatureEvaluation,
     evaluate_numerical_curvature,
 )
-from calibrex.graph._point_plane_batches import _transform_points
+from calibrex.graph._point_plane_batches import _OwnedPointFactors, _transform_points
 from calibrex.graph.joint_factors import (
     JointDepthPointToPlaneMeasurement,
     JointTrilinearDepthPointToPlaneMeasurement,
@@ -565,7 +565,7 @@ def _optimize_joint(
 ) -> JointOptimizerResult:
     return BackendNeutralJointOptimizer().solve(
         parameter_blocks,
-        factors,
+        _OwnedPointFactors(factors),
         _joint_optimizer_options(config, options),
     )
 
@@ -1179,7 +1179,7 @@ def _xyz_pair_reassociation_state(
                     _xyz_pair_target_id(target_index, target_point_index),
                 )
             )
-    return JointReassociationState(tuple(factors), tuple(assignments))
+    return JointReassociationState(_OwnedPointFactors(factors), tuple(assignments))
 
 
 def _xyz_pair_initial_reassociation_state(
@@ -1214,25 +1214,27 @@ def _xyz_pair_train_only_factors(
         for index, frame in enumerate(problem.query_frames)
         if index > 0
     )
-    return (
-        *priors,
-        make_joint_xyz_lattice_shape_factor(
-            factor_id="xyz-pair-lattice-shape",
-            observation_group="tum-xyz-pair-regularization",
-            block=_XYZ_LATTICE_BLOCK,
-            control_points_m=controls,
-            local_rotations_xyzw=rotations,
-            shape=_SPATIAL_LATTICE_SHAPE,
-            sigma_m=options.xyz_lattice_shape_sigma_m,
-        ),
-        make_joint_xyz_lattice_rigid_gauge_factor(
-            factor_id="xyz-pair-lattice-rigid-gauge",
-            observation_group="tum-xyz-pair-regularization",
-            block=_XYZ_LATTICE_BLOCK,
-            control_points_m=controls,
-            translation_sigma_m=options.xyz_lattice_translation_gauge_sigma_m,
-            rotation_sigma_rad=options.xyz_lattice_rotation_gauge_sigma_rad,
-        ),
+    return _OwnedPointFactors(
+        (
+            *priors,
+            make_joint_xyz_lattice_shape_factor(
+                factor_id="xyz-pair-lattice-shape",
+                observation_group="tum-xyz-pair-regularization",
+                block=_XYZ_LATTICE_BLOCK,
+                control_points_m=controls,
+                local_rotations_xyzw=rotations,
+                shape=_SPATIAL_LATTICE_SHAPE,
+                sigma_m=options.xyz_lattice_shape_sigma_m,
+            ),
+            make_joint_xyz_lattice_rigid_gauge_factor(
+                factor_id="xyz-pair-lattice-rigid-gauge",
+                observation_group="tum-xyz-pair-regularization",
+                block=_XYZ_LATTICE_BLOCK,
+                control_points_m=controls,
+                translation_sigma_m=options.xyz_lattice_translation_gauge_sigma_m,
+                rotation_sigma_rad=options.xyz_lattice_rotation_gauge_sigma_rad,
+            ),
+        )
     )
 
 
@@ -1441,7 +1443,7 @@ def _spatial_train_only_factors(
         size=math.prod(_SPATIAL_LATTICE_SHAPE),
         sigma_m=options.spatial_lattice_zero_mean_sigma_m,
     )
-    return (*priors, smoothness, zero_mean)
+    return _OwnedPointFactors((*priors, smoothness, zero_mean))
 
 
 def _spatial_cross_window_transfers(
@@ -1634,7 +1636,7 @@ def _reassociated_spatial_state(
             factor_cache.move_to_end(key)
         factors.append(factor)
         assignments.append(CorrespondenceAssignment(measurement.measurement_id, match.target_id))
-    return JointReassociationState(tuple(factors), tuple(assignments))
+    return JointReassociationState(_OwnedPointFactors(factors), tuple(assignments))
 
 
 def _spatial_point_batch(
