@@ -1,0 +1,60 @@
+"""Bind completed validation logs and exact tested runtime sources to the archive."""
+import hashlib
+import io
+import json
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import tarfile
+
+from tools import benchmark_rgbd_transform_reuse as bench
+
+ROOT = Path(__file__).resolve().parent
+TARGET = ROOT / 'docs/assets/rgbd_evaluation_reuse'
+VALIDATION = ROOT / 'outputs/rgbd-array-validation-final'
+protocol = json.loads((TARGET / 'protocol.json').read_bytes())
+manifest = json.loads((TARGET / 'sources-current-manifest.json').read_bytes())
+environment = json.loads((VALIDATION / 'linux-environment.json').read_bytes())
+tested = environment['provenance']['git_commit']
+
+def source_manifest(commit):
+    raw = subprocess.check_output(['git', 'archive', commit, 'src/calibrex'], cwd=ROOT)
+    with tarfile.open(fileobj=io.BytesIO(raw)) as bundle:
+        return {m.name.removeprefix('src/'): hashlib.sha256(bundle.extractfile(m).read()).hexdigest()
+                for m in bundle.getmembers() if m.isfile() and m.name.endswith('.py')}
+
+assert source_manifest(tested) == manifest
+assert source_manifest('HEAD') == manifest
+logs = {}
+for name in ('core-windows.log', 'core-linux.log', 'archive-windows.log', 'archive-linux.log',
+             'registry.log', 'mypy.log', 'ruff.log', 'mkdocs.log'):
+    path = VALIDATION / name
+    logs[name] = bench.sha(path)
+    shutil.copyfile(path, TARGET / name)
+expected = {'core-windows.log':248, 'core-linux.log':211,
+            'archive-windows.log':22, 'archive-linux.log':22}
+for name, count in expected.items():
+    assert int(re.findall(r'(\d+) passed', (VALIDATION / name).read_text())[-1]) == count
+assert 'Success: no issues found in 383 source files' in (VALIDATION / 'mypy.log').read_text()
+assert (VALIDATION / 'ruff.log').read_text().strip() == 'All checks passed!'
+assert 'Documentation built in ' in (VALIDATION / 'mkdocs.log').read_text(errors='replace')
+shutil.copyfile(Path(__file__), TARGET / 'archive-finalizer.py.txt')
+bench.write(TARGET / 'validation.json', {
+    'core_windows_passed':248, 'core_linux_passed':211,
+    'archive_windows_passed':22, 'archive_linux_passed':22,
+    'schema_registry_passed':True, 'strict_mkdocs_passed':True, 'ruff_passed':True,
+    'mypy_source_files':383, 'public_schema_exports_and_ledger_byte_identical':130,
+    'tested_runtime_source_inventory_matches_measurement':True,
+    'log_sha256':logs,
+    'provenance':{'protocol_sha256':bench.sha(TARGET / 'protocol.json'),
+                  'tested_runtime_commit':tested,
+                  'measured_runtime_commit':protocol['payload']['commits']['current'],
+                  'generator_sha256':bench.sha(Path(__file__))},
+})
+files = {p.relative_to(TARGET).as_posix():{'sha256':bench.sha(p),'size_bytes':p.stat().st_size}
+         for p in sorted(TARGET.rglob('*')) if p.is_file() and p.name != 'index.json'}
+bench.write(TARGET / 'index.json', {'files':files,'provenance':{'protocol_sha256':bench.sha(TARGET/'protocol.json')}})
+report = bench.audit(TARGET)
+assert report == json.loads((TARGET / 'summary.json').read_bytes())
+print('Final archive verified:',len(files)+1,'files;',len(manifest),'exact tested runtime modules')

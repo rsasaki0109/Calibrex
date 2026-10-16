@@ -1,0 +1,48 @@
+{
+  "schema_version": "slac.rgbd_transform_reuse_benchmark/v0.1",
+  "record_type": "report",
+  "payload": {
+    "seconds_median": {
+      "whole": {
+        "prior": 806.3380369999795,
+        "current": 242.36450695001986
+      },
+      "api": {
+        "prior": 803.6571147500072,
+        "current": 239.5254719000077
+      },
+      "optimizer": {
+        "prior": 613.3763525498216,
+        "current": 62.428831999888644
+      }
+    },
+    "speedup": {
+      "whole": 3.326964195983786,
+      "api": 3.3552052246263893,
+      "optimizer": 9.825209488957213
+    },
+    "verified_runs": 4,
+    "solve_count": 24,
+    "jacobian_calls": 168,
+    "residual_calls": 1624,
+    "complete_results_exact": true,
+    "all_array_digests_exact": true,
+    "runtime_source_changes": [
+      "calibrex/graph/_rgbd_batches.py",
+      "calibrex/graph/joint_factors.py",
+      "calibrex/graph/joint_optimization.py"
+    ],
+    "array_plan_requests_per_run": {
+      "current": 1792,
+      "prior": 0
+    },
+    "array_plan_accepts_per_run": {
+      "current": 1792,
+      "prior": 0
+    }
+  },
+  "provenance": {
+    "protocol_sha256": "0f9dd2fd3bc543863df883f5c16699aa79f2f22a14cda2ac53363a02770c368a",
+    "attempts_sha256": "473f6c97ba14529dd70cc10f790e26a0d1652f9f4e7cd8b227eff064dad613cd"
+  }
+}
