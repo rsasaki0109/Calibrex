@@ -20,7 +20,7 @@ import subprocess
 import sys
 import tarfile
 import time
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -149,6 +149,7 @@ def worker(protocol_path: Path, variant: str, folder: Path) -> None:
     kind = protocol.get("solver", "profiled")
     trace = []
     calls = 0
+    work = {"factor_evaluations": 0, "transform_decodes": 0}
     if kind == "profiled":
         options = solver.RadarSpatiotemporalLeverArmOptions(**control["options"])
         original = solver._profile_candidate
@@ -182,6 +183,25 @@ def worker(protocol_path: Path, variant: str, folder: Path) -> None:
             return interpolate(*args)
 
         joint._interpolate = counted
+        if protocol.get("joint_work_counters"):
+            original_factor = joint._make_factor
+            original_transform = joint.se3_from_tangent
+
+            def counted_factor(*args, **kwargs):
+                factor = original_factor(*args, **kwargs)
+
+                def evaluate(values):
+                    work["factor_evaluations"] += 1
+                    return factor.evaluator(values)
+
+                return replace(factor, evaluator=evaluate)
+
+            def counted_transform(*args):
+                work["transform_decodes"] += 1
+                return original_transform(*args)
+
+            joint._make_factor = counted_factor
+            joint.se3_from_tangent = counted_transform
         options = joint.RadarJointSpatiotemporalOptions(**protocol["solver_options"])
         initial = SE3.from_lists(**protocol["initial_transform"])
         start = time.perf_counter()
@@ -219,6 +239,7 @@ def worker(protocol_path: Path, variant: str, folder: Path) -> None:
         {
             "api_seconds": api_seconds,
             "interpolation_calls": calls if kind == "joint" else None,
+            **({"work_counters": work} if protocol.get("joint_work_counters") else {}),
             "imports": imports,
             "result_sha256": sha(folder / "result.json"),
             "provenance": provenance,
@@ -290,6 +311,7 @@ def audit(output: Path) -> dict:
         raise ValueError("missing, duplicate or reordered runs")
     outputs = []
     interpolation_calls = []
+    work_counts = {variant: [] for variant in ("prior", "current")}
     api = {variant: [] for variant in ("prior", "current")}
     for record in attempts:
         if (
@@ -338,6 +360,15 @@ def audit(output: Path) -> dict:
             if not isinstance(calls, int) or calls <= 0:
                 raise ValueError("missing interpolation call count")
             interpolation_calls.append(calls)
+            if protocol.get("joint_work_counters"):
+                counts = measured.get("work_counters", {})
+                if set(counts) != {"factor_evaluations", "transform_decodes"} or any(
+                    type(counts[name]) is not int or counts[name] <= 0 for name in counts
+                ):
+                    raise ValueError("missing or invalid joint work counters")
+                if type(calls) is not int:
+                    raise ValueError("invalid interpolation call count")
+                work_counts[variant].append({**counts, "interpolation_calls": calls})
         if (
             sorted(assigned) != sorted(item["measurement_id"] for item in control["measurements"])
             or len(set(assigned)) != len(assigned)
@@ -400,7 +431,7 @@ def audit(output: Path) -> dict:
         },
     }
     if kind == "joint":
-        if len(set(interpolation_calls)) != 1:
+        if not protocol.get("joint_work_counters") and len(set(interpolation_calls)) != 1:
             raise ValueError("joint interpolation call counts differ")
         report.update(
             solver="joint",
@@ -410,6 +441,22 @@ def audit(output: Path) -> dict:
             signed_probes=14,
             interpolation_calls_per_run=interpolation_calls[0],
         )
+        if protocol.get("joint_work_counters"):
+            stable = {}
+            for variant, counters in work_counts.items():
+                if any(counts != counters[0] for counts in counters):
+                    raise ValueError("joint work counters differ between repeated runs")
+                stable[variant] = counters[0]
+            if stable["prior"]["factor_evaluations"] != stable["current"]["factor_evaluations"]:
+                raise ValueError("joint factor evaluation counts differ")
+            for name in ("interpolation_calls", "transform_decodes"):
+                if stable["current"][name] >= stable["prior"][name]:
+                    raise ValueError(f"joint reuse did not reduce {name}")
+            report.update(
+                interpolation_calls_per_run={v: stable[v]["interpolation_calls"] for v in stable},
+                factor_evaluations_per_run=stable["prior"]["factor_evaluations"],
+                transform_decodes_per_run={v: stable[v]["transform_decodes"] for v in stable},
+            )
     else:
         report["profile_candidates_per_run"] = count
     return report
@@ -421,6 +468,7 @@ def main() -> None:
     parser.add_argument("--control", type=Path)
     parser.add_argument("--control-generator", type=Path)
     parser.add_argument("--solver", choices=("profiled", "joint"), default="profiled")
+    parser.add_argument("--joint-work-counters", action="store_true")
     parser.add_argument("--baseline-commit")
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--repetitions", type=int, default=3)
@@ -441,6 +489,8 @@ def main() -> None:
         parser.error(
             "baseline commit, control, output directory and at least two repetitions required"
         )
+    if args.joint_work_counters and args.solver != "joint":
+        parser.error("joint work counters require --solver joint")
     output = args.output_dir.resolve()
     output.mkdir(parents=True, exist_ok=False)
     control = json.loads(args.control.read_bytes())
@@ -504,6 +554,8 @@ def main() -> None:
 
         protocol["solver_options"] = asdict(RadarJointSpatiotemporalOptions())
         protocol["initial_transform"] = SE3.identity().as_dict()
+        if args.joint_work_counters:
+            protocol["joint_work_counters"] = True
     validate(protocol, json.loads(SCHEMA.read_bytes()))
     validate(json.loads((output / "control.json").read_bytes()), json.loads(SCHEMA.read_bytes()))
     write(output / "protocol.json", protocol)

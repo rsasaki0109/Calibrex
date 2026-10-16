@@ -3,14 +3,24 @@
 from __future__ import annotations
 
 import math
+import struct
 from bisect import bisect_left
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass
+from functools import lru_cache
 from itertools import pairwise
 from operator import attrgetter
 from typing import Literal
 
-from calibrex.core.geometry import SE3, Vector3, rotate_vector_xyzw
+from calibrex.core.geometry import (
+    SE3,
+    QuaternionXYZW,
+    Vector3,
+    _quaternion_multiply_raw_xyzw,
+    normalize_quaternion_xyzw,
+    quaternion_conjugate_xyzw,
+    rotate_vector_xyzw,
+)
 from calibrex.graph.joint_factors import se3_from_tangent
 from calibrex.graph.joint_optimization import (
     BackendNeutralJointOptimizer,
@@ -206,9 +216,8 @@ class RadarJointSpatiotemporalSolver:
             ),
             JointParameterBlock(_TIME_BLOCK, (initial_latent,), finite_difference_steps=(1.0e-5,)),
         )
-        factors = tuple(
-            _make_factor(item, reference, initial_transform_body_radar, opts) for item in eligible
-        )
+        transform_for = _transform_decoder(initial_transform_body_radar)
+        factors = tuple(_make_factor(item, reference, opts, transform_for) for item in eligible)
         optimizer = BackendNeutralJointOptimizer().solve(
             blocks,
             factors,
@@ -329,20 +338,59 @@ def _weighted_radar_joint_spatiotemporal_rmse(
     return math.sqrt(squared_norm / (3 * len(measurements)))
 
 
+@dataclass(frozen=True)
+class _FactorTransform:
+    transform: SE3
+    rotation: QuaternionXYZW
+    conjugate: QuaternionXYZW
+
+    def rotate(self, velocity: Vector3) -> Vector3:
+        # Keep the two Hamilton products and both quaternion normalizations from
+        # rotate_vector_xyzw; only the point-independent work moves to the decoder.
+        px, py, pz = velocity
+        rotated = _quaternion_multiply_raw_xyzw(
+            _quaternion_multiply_raw_xyzw(self.rotation, (px, py, pz, 0.0)), self.conjugate
+        )
+        return (rotated[0], rotated[1], rotated[2])
+
+
+def _transform_decoder(initial: SE3) -> Callable[[tuple[float, ...]], _FactorTransform]:
+    """Share a bounded set of decoded states across this solve's factors."""
+
+    @lru_cache(maxsize=32)
+    def decoded(encoded: bytes) -> _FactorTransform:
+        transform = se3_from_tangent(struct.unpack("6d", encoded)).compose(initial)
+        rotation = normalize_quaternion_xyzw(transform.rotation_quat_xyzw)
+        return _FactorTransform(transform, rotation, quaternion_conjugate_xyzw(rotation))
+
+    def transform_for(tangent: tuple[float, ...]) -> _FactorTransform:
+        # Byte keys distinguish signed zeros while retaining every parameter bit.
+        return decoded(struct.pack("6d", *tangent))
+
+    return transform_for
+
+
 def _make_factor(
     measurement: RadarVelocityMeasurement,
     reference: Sequence[ReferenceKinematicSample],
-    initial: SE3,
     options: RadarJointSpatiotemporalOptions,
+    transform_for: Callable[[tuple[float, ...]], _FactorTransform],
 ) -> JointResidualBlock:
+    @lru_cache(maxsize=2)
+    def kinematic_for(encoded: bytes) -> tuple[Vector3, Vector3] | None:
+        # Extrinsic finite differences leave the reference query unchanged.
+        # Two entries retain the interleaved +/- clock probes without growing
+        # with optimizer iterations or sharing data between measurements/solves.
+        offset = _decode_time(struct.unpack("d", encoded)[0], options)
+        return _interpolate(reference, measurement.timestamp_sec + offset)
+
     def evaluator(values: ParameterValues) -> tuple[float, float, float]:
-        transform = se3_from_tangent(values[_EXTRINSIC_BLOCK]).compose(initial)
-        offset = _decode_time(values[_TIME_BLOCK][0], options)
-        kinematic = _interpolate(reference, measurement.timestamp_sec + offset)
+        state = transform_for(values[_EXTRINSIC_BLOCK])
+        kinematic = kinematic_for(struct.pack("d", values[_TIME_BLOCK][0]))
         if kinematic is None:
             raise ValueError("bounded Radar time offset lost interpolation support")
-        predicted = rotate_vector_xyzw(transform.rotation_quat_xyzw, measurement.velocity_radar_mps)
-        expected = _add(kinematic[0], _cross(kinematic[1], transform.translation_m))
+        predicted = state.rotate(measurement.velocity_radar_mps)
+        expected = _add(kinematic[0], _cross(kinematic[1], state.transform.translation_m))
         return (
             predicted[0] - expected[0],
             predicted[1] - expected[1],
