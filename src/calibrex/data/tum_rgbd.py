@@ -230,7 +230,7 @@ def associate_depth_groundtruth(
 
 
 def read_tum_depth_png(path: str | Path) -> TUMDepthImage:
-    """Decode a non-interlaced 16-bit grayscale TUM depth PNG using the stdlib."""
+    """Decode a non-interlaced 16-bit grayscale TUM depth PNG without rescaling."""
 
     data = Path(path).read_bytes()
     if not data.startswith(b"\x89PNG\r\n\x1a\n"):
@@ -267,6 +267,47 @@ def read_tum_depth_png(path: str | Path) -> TUMDepthImage:
     raw = zlib.decompress(bytes(compressed))
     if len(raw) != height * (stride + 1):
         raise ValueError("TUM depth PNG decompressed size does not match IHDR")
+    decoded = _unfilter_depth_rows(raw, width, height)
+    values: tuple[int, ...] = struct.unpack(f">{width * height}H", decoded)
+    return TUMDepthImage(width, height, values)
+
+
+def _unfilter_depth_rows(raw: bytes, width: int, height: int) -> bytes:
+    stride = width * 2
+    filters = raw[:: stride + 1]
+    if (
+        len(raw) >= 65536
+        and _unfilter_png_scanline is _DEPTH_UNFILTER_IMPLEMENTATION
+        and all(kind in (0, 1, 2) for kind in filters)
+    ):
+        import numpy as np
+
+        rows = np.frombuffer(raw, dtype=np.uint8).reshape(height, stride + 1)[:, 1:]
+        decoded_rows = np.empty((height, stride), dtype=np.uint8)
+        start = 0
+        while start < height:
+            kind = filters[start]
+            stop = start + 1
+            while stop < height and filters[stop] == kind:
+                stop += 1
+            source, target = rows[start:stop], decoded_rows[start:stop]
+            if kind == 0:
+                target[:] = source
+            elif kind == 1:
+                # Each byte lane is independent. uint8 prefix sums preserve
+                # PNG's modulo-256 recurrence, without floating-point work.
+                np.cumsum(
+                    source.reshape(stop - start, width, 2),
+                    axis=1,
+                    dtype=np.uint8,
+                    out=target.reshape(stop - start, width, 2),
+                )
+            else:
+                np.cumsum(source, axis=0, dtype=np.uint8, out=target)
+                if start:
+                    np.add(target, decoded_rows[start - 1], out=target)
+            start = stop
+        return bytes(decoded_rows.tobytes())
     previous = bytearray(stride)
     decoded = bytearray()
     offset = 0
@@ -277,11 +318,7 @@ def read_tum_depth_png(path: str | Path) -> TUMDepthImage:
         decoded.extend(scanline)
         previous = scanline
         offset += stride + 1
-    values = tuple(
-        struct.unpack(">H", decoded[index : index + 2])[0]
-        for index in range(0, len(decoded), 2)
-    )
-    return TUMDepthImage(width, height, values)
+    return bytes(decoded)
 
 
 def sample_tum_depth_points(
@@ -344,6 +381,9 @@ def _unfilter_png_scanline(
         else:
             predictor = 0
         scanline[index] = (scanline[index] + predictor) & 0xFF
+
+
+_DEPTH_UNFILTER_IMPLEMENTATION = _unfilter_png_scanline
 
 
 def _paeth(left: int, above: int, upper_left: int) -> int:
