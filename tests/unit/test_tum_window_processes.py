@@ -1,10 +1,13 @@
 """Native process transport, failure ownership and complete synthetic TUM parity."""
 
 import io
+import json
+import os
 import pickle
 import struct
 import subprocess
 import sys
+import time
 import zlib
 from dataclasses import asdict, replace
 from pathlib import Path
@@ -214,10 +217,27 @@ def test_child_failure_reports_window_and_stderr(tiny_tum, tmp_path, monkeypatch
 
 def test_close_terminates_only_owned_children(tmp_path):
     children = p._WindowChildren(tmp_path)
-    process = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"],
-                               creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32"
-                               else 0)
+    identity = tmp_path / "identity.json"
+    env = dict(os.environ)
+    code = (
+        "import os,sys,json,time; from pathlib import Path; "
+        "Path(sys.argv[1]).write_text(json.dumps([os.getpid(),os.getppid(),sys.prefix])); "
+        "time.sleep(30)"
+    )
+    command = p._direct_python_command([sys.executable, "-c", code, str(identity)], env)
+    process = subprocess.Popen(
+        command, env=env,
+        creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
+    )
     children.processes.add(process)
-    children.close()
-    assert process.poll() is not None
-    assert children.closed
+    try:
+        deadline = time.monotonic() + 8
+        while not identity.exists() and process.poll() is None and time.monotonic() < deadline:
+            time.sleep(0.02)
+        pid, parent, prefix = json.loads(identity.read_text())
+        assert pid == process.pid
+        assert parent == os.getpid()
+        assert Path(prefix).resolve() == Path(sys.prefix).resolve()
+    finally:
+        children.close()
+    assert process.poll() is not None and children.closed

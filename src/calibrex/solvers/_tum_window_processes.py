@@ -30,10 +30,32 @@ class _WindowRequest:
     start_index: int
 
 
+@dataclass(frozen=True)
+class _WindowResponse:
+    products: a._TUMWindowProducts
+    pid: int
+    parent_pid: int
+
+
 def _worker_command(request: Path, response: Path) -> list[str]:
     return [
         sys.executable, "-m", "calibrex.solvers._tum_window_worker", str(request), str(response)
     ]
+
+
+def _direct_python_command(command: list[str], env: dict[str, str]) -> list[str]:
+    # Match CPython's Windows multiprocessing launcher: a venv redirector is
+    # another process, so terminating its PID need not terminate the interpreter.
+    # __PYVENV_LAUNCHER__ keeps this interpreter's venv and installed dependencies.
+    base = str(getattr(sys, "_base_executable", sys.executable))
+    if (
+        os.name == "nt"
+        and os.path.normcase(base) != os.path.normcase(sys.executable)
+        and os.path.normcase(command[0]) == os.path.normcase(sys.executable)
+    ):
+        env["__PYVENV_LAUNCHER__"] = sys.executable
+        return [base, *command[1:]]
+    return command
 
 
 def _execute_request(request: Path, response: Path) -> None:
@@ -62,7 +84,7 @@ def _execute_request(request: Path, response: Path) -> None:
             products = a._evaluate_window_runs(
                 job.root, job.intrinsics, job.config, job.options, (run,)
             )
-    _write_native(response, products)
+    _write_native(response, _WindowResponse(products, os.getpid(), os.getppid()))
 
 
 class _WindowChildren:
@@ -89,8 +111,9 @@ class _WindowChildren:
             with self.lock:
                 if self.closed:
                     raise RuntimeError("native TUM window execution was cancelled")
+                command = _direct_python_command(_worker_command(request, response), env)
                 process = subprocess.Popen(
-                    _worker_command(request, response), env=env, stdout=out, stderr=err,
+                    command, env=env, stdout=out, stderr=err,
                     creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
                 )
                 self.processes.add(process)
@@ -103,7 +126,14 @@ class _WindowChildren:
             detail = stderr.read_text(encoding="utf-8", errors="replace")[-8192:]
             raise RuntimeError(f"TUM window {job.start_index} worker exited {code}: {detail}")
         with response.open("rb") as stream:
-            products = pickle.load(stream)
+            reply = pickle.load(stream)
+        if (
+            type(reply) is not _WindowResponse
+            or reply.pid != process.pid
+            or reply.parent_pid != os.getpid()
+        ):
+            raise ValueError(f"TUM window {job.start_index} worker process identity differs")
+        products = reply.products
         if type(products) is not a._TUMWindowProducts or any(
             run.start_index != job.start_index
             for field in fields(products) for run in getattr(products, field.name)
