@@ -1,0 +1,95 @@
+{
+  "schema_version": "slac.tum_depth_frontend_benchmark/v0.1",
+  "record_type": "report",
+  "payload": {
+    "seconds_median": {
+      "whole": {
+        "prior": 104.61353440000676,
+        "current": 78.32330575003289
+      },
+      "api": {
+        "prior": 100.80309249996208,
+        "current": 75.03244405001169
+      },
+      "optimizer": {
+        "prior": 22.165013599791564,
+        "current": 23.55909029999748
+      },
+      "_xyz_pair_reassociation_runs": {
+        "prior": 22.41738004994113,
+        "current": 21.244209650030825
+      },
+      "_iterative_reassociation_runs": {
+        "prior": 13.280462449998595,
+        "current": 12.103921750036534
+      },
+      "_rematch_spatial_holdouts": {
+        "prior": 7.1392218000255525,
+        "current": 3.3488362000207417
+      },
+      "read_tum_depth_png": {
+        "prior": 24.5040393001982,
+        "current": 0.7383600501925685
+      },
+      "sample_tum_depth_points": {
+        "prior": 0.2153906494495459,
+        "current": 0.19576694985153154
+      }
+    },
+    "speedup": {
+      "whole": 1.3356629089926126,
+      "api": 1.3434600695237031,
+      "optimizer": 0.940826378164268,
+      "_xyz_pair_reassociation_runs": 1.0552230663901683,
+      "_iterative_reassociation_runs": 1.09720326388912,
+      "_rematch_spatial_holdouts": 2.131851596677477,
+      "read_tum_depth_png": 33.187114191521346,
+      "sample_tum_depth_points": 1.100240104945686
+    },
+    "verified_runs": 4,
+    "solve_count": 24,
+    "jacobian_calls": 168,
+    "residual_calls": 1624,
+    "complete_results_exact": true,
+    "all_array_digests_exact": true,
+    "runtime_source_changes": [
+      "calibrex/data/tum_rgbd.py",
+      "calibrex/solvers/native_tum_joint_slac_solver.py"
+    ],
+    "array_plan_requests_per_run": {
+      "current": 1792,
+      "prior": 1792
+    },
+    "array_plan_accepts_per_run": {
+      "current": 1792,
+      "prior": 1792
+    },
+    "array_plan_builds_per_run": {
+      "current": 62,
+      "prior": 62
+    },
+    "diagnostic_evaluations_per_run": {
+      "_xyz_pair_reassociation_state": 405,
+      "_reassociated_spatial_state": 102,
+      "_shared_holdout_objective": 991
+    },
+    "frontend_evaluations_per_run": {
+      "read_tum_depth_png": 75,
+      "sample_tum_depth_points": 75
+    },
+    "factory_calls_per_run": {
+      "current": {
+        "_spatial_factor": 23769,
+        "make_joint_trilinear_xyz_pair_factor": 69951
+      },
+      "prior": {
+        "_spatial_factor": 23769,
+        "make_joint_trilinear_xyz_pair_factor": 69951
+      }
+    }
+  },
+  "provenance": {
+    "protocol_sha256": "bedc1e713dd3d3c8749fe0c0ff95c25248b2d27c328f053db80d2831073b3128",
+    "attempts_sha256": "90251031a51d24dc5b148fb1135be3fe7fd64213b8cd256dc7e64492b7779ffd"
+  }
+}

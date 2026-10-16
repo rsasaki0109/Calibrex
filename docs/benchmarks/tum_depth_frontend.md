@@ -1,0 +1,127 @@
+# TUM depth reconstruction and paired target preparation
+
+The complete existing public TUM fr1/xyz pipeline changes from
+**104.613534 to 78.323306 seconds
+(1.336x)**. Its 75 depth PNG reads change from
+**24.504039 to 0.738360
+seconds (33.187x)**. The comparison starts from
+[ordered lattice batches and owned graph preparation](rgbd_lattice_batches.md).
+
+## Implementation
+
+Source-frozen profiling found substantial time in depth PNG reconstruction and
+repeated paired-target geometry. The reader previously reconstructed each byte
+in a Python loop, then unpacked each 16-bit pixel separately.
+
+Large images whose rows use PNG filters None, Sub and Up now use bounded array
+operations. Sub accumulates the two independent byte lanes across each row; Up
+accumulates consecutive rows, adding the preceding reconstructed row once.
+All operations use unsigned 8-bit arithmetic, including modulo-256 overflow.
+The reconstructed bytes are unpacked together as big-endian 16-bit integers.
+There is no depth rescaling, color conversion, gamma adjustment or floating-point
+reduction. Small images, Average/Paeth filters and replaced scanline functions
+retain the original scanline evaluation. NumPy is an existing dependency and is
+imported only when the large-image path runs. Header, zlib, decompressed-size and
+invalid-filter handling retain the existing behavior.
+
+Two-sided reassociation captures each frame's fixed initial transform once per
+pair. Within one pair/state, a native captured target map prepares the selected
+raw target point, world normal and target ID once per matched voxel. Factor-cache
+hits avoid constructing unused measurement records. The local lookup is discarded
+for the next pair/state, so field deformation, target pose, voxel membership and
+normal changes are evaluated afresh. Replaced queries, rotation or lineage
+functions retain per-correspondence evaluation. The existing bounded factor
+cache, original raw-point tie order and scalar residual arithmetic are unchanged.
+
+Only `data/tum_rgbd.py` and the native TUM adapter change at runtime. Public APIs,
+image value types, dependencies, configs and result schemas remain unchanged.
+The core remains independent of ROS. These are CPU measurements.
+
+## Full workload and exactness
+
+The unchanged [public configuration](https://github.com/rsasaki0109/Calibrex/blob/257e96440a54d21952e5e4bccf42db1b4f2a8778/examples/public_datasets/tum_rgbd_freiburg1_xyz/native_joint_slac_config.yaml)
+uses windows starting at 60, 180 and 300, with three map frames and eight query
+frames each. The primary solve retains 2,466 data factors, eight pose priors,
+56 dimensions and nine LM iterations. Every ablation, local-rotation update,
+two-sided pair, transfer, reassociation, probe, curvature candidate, multistart
+search and saved report remains included.
+
+All four runs execute 75 depth reads and 75 sampling calls. Their records hash
+every reconstructed pixel and every ordered sample point; all 150 frontend
+events match exactly. Every read retains all 307,200 pixels, including holes and
+values outside the sampling depth limits. No pixels or samples are truncated
+beyond the original configuration's sampling policy.
+
+The 24 optimizer calls, 168 full Jacobian passes, 1,624 residual passes, 405
+two-sided reassociation states, 102 ray-depth states and 991 shared-objective
+candidates also match. Raw array byte hashes, all optimizer-result hashes,
+factor order, complete diagnostic histories and schema-valid full results are
+exact across all runs. Both versions still build 62 graph plans and accept all
+1,792 array evaluations. Correspondence factory counts are identical. Only run
+IDs, wall-clock dates and independently verified source identities are excluded
+from complete-result comparison.
+
+The 802-file inventory pins 798 public depth PNGs and four text files. Pixels
+are downloaded separately. This capture is existing development data. Reference
+failures, rank limitations and known-bad verdicts remain recorded; this comparison
+makes no accuracy or SOTA claim.
+
+## Timings
+
+Two alternating pairs use fresh processes, frozen source capsules with actual
+Git identities and one BLAS thread on an unreserved host. Worker time includes
+imports, pipeline execution, trace hashing, serialization, compression and saving.
+API time includes the full calibration call and reports. Depth-read time covers
+file I/O, decompression, unfiltering and integer construction; trace hashing is
+outside that sub-timer. Diagnostic stage times include their inner solves and
+depth reads. These overlapping scopes must not be added together. Downloading,
+source freezing, input inventory hashing and offline audits are outside the
+timed workers. Ratios divide two-run medians. Host load varies, and four runs
+do not establish a confidence interval. Previous speedups are not multiplied
+into these measurements.
+
+| Scope | Previous s | Current s | Speedup |
+| --- | ---: | ---: | ---: |
+| Complete worker | 104.613534 | 78.323306 | 1.336x |
+| Complete calibration API | 100.803092 | 75.032444 | 1.343x |
+| All 24 optimizer calls | 22.165014 | 23.559090 | 0.941x |
+| All 75 depth PNG reads | 24.504039 | 0.738360 | 33.187x |
+| Two-sided reassociation and signed probes | 22.417380 | 21.244210 | 1.055x |
+| Ray-depth reassociation and signed probes | 13.280462 | 12.103922 | 1.097x |
+| Holdout rematching, curvature and multistart | 7.139222 | 3.348836 | 2.132x |
+
+| Pair (order) | Previous whole s | Current whole s | Paired ratio |
+| --- | ---: | ---: | ---: |
+| 1 (current, prior) | 120.419225 | 88.930796 | 1.354x |
+| 2 (prior, current) | 88.807844 | 67.715816 | 1.311x |
+
+The decoder ratio applies to the depth-read scope. The complete-worker ratio
+remains 1.336x. The optimizer implementation is unchanged and is
+slower in this sample; paired reassociation improves only
+1.055x. These measurements do not establish
+a speedup for every stage. Independent windows and remaining geometry work
+are candidates for further profiling and parallel execution.
+
+## Reproduce and verify
+
+```console
+python tools/download_public_dataset.py tum_rgbd_freiburg1_xyz
+python tools/benchmark_tum_depth_frontend.py --baseline-commit 257e96440a54d21952e5e4bccf42db1b4f2a8778 --output outputs/tum-depth-frontend-replay --repetitions 2
+python tools/benchmark_tum_depth_frontend.py --audit-only docs/assets/tum_depth_frontend
+```
+
+The offline auditor checks the complete config, public input fingerprints,
+384 Python modules per source capsule, imported-module hashes, full results,
+all frontend and numeric histories, work counts, timings, medians and published
+bytes. Regression tests cover all five PNG filters, byte overflow and independent
+lanes, mixed row filters, small/lazy reads, malformed streams, original scalar
+pair associations, pose/field changes and custom query/geometry functions.
+Cross-platform test logs and exact tested-source inventories are included.
+
+- [Audited summary](../assets/tum_depth_frontend/summary.json)
+- [Protocol and source identities](../assets/tum_depth_frontend/protocol.json)
+- [Every attempt](../assets/tum_depth_frontend/attempts.json)
+- [Complete byte inventory](../assets/tum_depth_frontend/index.json)
+- [Validation and provenance](../assets/tum_depth_frontend/validation.json)
+- [Input fingerprints](../assets/tum_depth_frontend/inputs.json)
+- [Public schema byte parity](../assets/tum_depth_frontend/schema-parity.json)
