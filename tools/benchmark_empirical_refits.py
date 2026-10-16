@@ -164,9 +164,22 @@ def summarize(root: Path, *, frozen: bool = False) -> dict:
             result["resample_count"] != 20
             or result["block_length"] != 3
             or result["policy_status"] != "inconclusive"
-            or result["reference_transform"] is not None
+            or result.get("reference_transform") is not None
         ):
             raise ValueError("changed refit workload or accuracy claim")
+        provenance = result["provenance"]
+        command = provenance["command"]
+        worker_flag = ["--workers", str(protocol["workers"][variant])]
+        if (
+            (variant == "current" and command[-2:] != worker_flag)
+            or (variant == "prior" and "--workers" in command)
+            or provenance["data_verified"] is not True
+            or sorted(provenance["source_sha256"].values())
+            != sorted(
+                protocol["provenance"]["inputs"][n] for n in ("correspondence.json", "problem.json")
+            )
+        ):
+            raise ValueError("uncertainty input or worker binding differs")
         values = {}
         count = 0
         ids = [f"resample-{i:04d}" for i in range(20)]
@@ -194,6 +207,7 @@ def summarize(root: Path, *, frozen: bool = False) -> dict:
                 != protocol["provenance"]["inputs"]["correspondence.json"]
                 or p["initialization_problem_sha256"]
                 != protocol["provenance"]["inputs"]["problem.json"]
+                or p["command"] != command
             ):
                 raise ValueError("refit input/source binding differs")
             if value["options"]["max_evaluations"] != 400:
@@ -249,6 +263,23 @@ def audit(root: Path) -> dict:
     ):
         if sha(root / name) != protocol["provenance"][field]:
             raise ValueError("launcher, freezer or schema binding differs")
+    postprocessing = _read(root, "postprocessing.json")
+    if (
+        postprocessing["measurement_unchanged"] is not True
+        or postprocessing["failed_timed_workers"] != 0
+        or postprocessing["timed_workers"] != 2 * protocol["repetitions"]
+        or any(
+            sha(root / name) != postprocessing["provenance"][field]
+            for name, field in (
+                ("protocol.json", "protocol_sha256"),
+                ("attempts.json", "attempts_sha256"),
+                ("launcher.py.txt", "launcher_sha256"),
+                ("auditor.py.txt", "auditor_sha256"),
+                ("summary.json", "summary_sha256"),
+            )
+        )
+    ):
+        raise ValueError("postprocessing binding differs")
     manifests = {}
     for variant in ("prior", "current"):
         name = "sources-" + variant
@@ -287,9 +318,14 @@ def audit(root: Path) -> dict:
         "calibrex/solvers/probabilistic_camera_lidar_refiner.py",
     }:
         raise ValueError("runtime changes extend beyond refit acceleration")
+    fixture = _read(root, "fixture-protocol.json")
     if (
         sha(root / "fixture-protocol.json")
         != protocol["provenance"]["inputs"]["fixture-protocol.json"]
+        or sha(root / "fixture-builder.py.txt") != fixture["builder_sha256"]
+        or fixture["correspondence_sha256"]
+        != protocol["provenance"]["inputs"]["correspondence.json"]
+        or fixture["problem_sha256"] != protocol["provenance"]["inputs"]["problem.json"]
     ):
         raise ValueError("fixture provenance differs")
     summary = summarize(root)

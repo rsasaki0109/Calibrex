@@ -1,0 +1,77 @@
+........................................................................ [ 63%]
+.........................F...............                                [100%]
+================================== FAILURES ===================================
+________ test_audit_rejects_changed_interval_after_inventory_rebinding ________
+
+archive_copy = WindowsPath('C:/Users/rsasa/Workspace/Calibrex/outputs/empirical-refits-final-checks-v1/tmp/test_audit_rejects_changed_int0/archive')
+
+    def test_audit_rejects_changed_interval_after_inventory_rebinding(archive_copy: Path) -> None:
+        name = "00-current/uncertainty.yaml"
+        value = yaml.safe_load((archive_copy / name).read_bytes())
+        value["axis_intervals"][0]["half_width"] += 0.001
+        _changed(archive_copy, name, value, yaml_file=True)
+        with pytest.raises(ValueError, match="complete refit or uncertainty result differs"):
+>           audit(archive_copy)
+
+tests\unit\test_empirical_refit_benchmark.py:87: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tools\benchmark_empirical_refits.py:331: in audit
+    summary = summarize(root)
+              ^^^^^^^^^^^^^^^
+tools\benchmark_empirical_refits.py:160: in summarize
+    if not validate_file(path).valid:
+           ^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = WindowsPath('C:/Users/rsasa/Workspace/Calibrex/outputs/empirical-refits-final-checks-v1/tmp/test_audit_rejects_changed_int0/archive/00-current/uncertainty.yaml')
+kind = 'auto'
+
+    def validate_file(
+        path: str | Path,
+        kind: ValidationKind = "auto",
+        *,
+        verify_inputs: bool = False,
+    ) -> ValidationReport:
+        """Validate a schema-versioned Calibrex artifact.
+    
+        Payloads whose ``schema_version`` is older than the kind's model accepts
+        are upgraded through registered lossless migrations first; the upgraded
+        source versions are reported in ``migrated_from``.
+        """
+    
+        artifact_path = Path(path)
+        payload = read_mapping(artifact_path)
+        detected_kind = _detect_kind(payload) if kind == "auto" else kind
+        model = _model_for_kind(detected_kind)
+        try:
+            payload, migrated_from = upgrade_payload(detected_kind, payload)
+        except SchemaRegistryError as exc:
+            raise CalibrexError(str(exc)) from exc
+>       validated = model.model_validate(payload)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       pydantic_core._pydantic_core.ValidationError: 1 validation error for EmpiricalSe3UncertaintyArtifact
+E       axis_intervals.0
+E         Value error, interval half width must equal half the width [type=value_error, input_value={'axis': 'translation_x_m...'weak_direction': False}, input_type=dict]
+E           For further information visit https://errors.pydantic.dev/2.12/v/value_error
+
+src\calibrex\core\validation.py:212: ValidationError
+
+During handling of the above exception, another exception occurred:
+
+archive_copy = WindowsPath('C:/Users/rsasa/Workspace/Calibrex/outputs/empirical-refits-final-checks-v1/tmp/test_audit_rejects_changed_int0/archive')
+
+    def test_audit_rejects_changed_interval_after_inventory_rebinding(archive_copy: Path) -> None:
+        name = "00-current/uncertainty.yaml"
+        value = yaml.safe_load((archive_copy / name).read_bytes())
+        value["axis_intervals"][0]["half_width"] += 0.001
+        _changed(archive_copy, name, value, yaml_file=True)
+>       with pytest.raises(ValueError, match="complete refit or uncertainty result differs"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'complete refit or uncertainty result differs'
+E         Actual message: "1 validation error for EmpiricalSe3UncertaintyArtifact\naxis_intervals.0\n  Value error, interval half width must equal half the width [type=value_error, input_value={'axis': 'translation_x_m...'weak_direction': False}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.12/v/value_error"
+
+tests\unit\test_empirical_refit_benchmark.py:86: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/unit/test_empirical_refit_benchmark.py::test_audit_rejects_changed_interval_after_inventory_rebinding
+1 failed, 112 passed in 270.23s (0:04:30)

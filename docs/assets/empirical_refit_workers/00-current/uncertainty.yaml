@@ -1,0 +1,795 @@
+schema_version: slac.empirical_se3_uncertainty/v0.1
+uncertainty_id: kitti-projected-execution-control-kitti-projected-control-empirical-uncertainty
+calibration_family: probabilistic_multiframe_refinement/v0.2
+transform_convention: T_parent_child
+parent_frame: camera
+child_frame: lidar
+tangent_ordering:
+- translation_x_m
+- translation_y_m
+- translation_z_m
+- rotation_x_deg
+- rotation_y_deg
+- rotation_z_deg
+tangent_origin: resample_mean
+sampling_unit: temporal_block
+block_length: 3
+block_count: 3
+resampling_method: seeded_block_subsampling
+resample_count: 20
+seed: 0
+target_coverage: 0.9
+fit_block_ratio: 0.6
+blocks:
+- block_id: block-0000
+  frame_ids:
+  - '0000000114'
+  - '0000000115'
+  - '0000000116'
+  capture_time_start_ns: 0
+  capture_time_end_ns: 200000000
+- block_id: block-0001
+  frame_ids:
+  - 0000000229
+  - '0000000230'
+  - '0000000231'
+  capture_time_start_ns: 300000000
+  capture_time_end_ns: 500000000
+- block_id: block-0002
+  frame_ids:
+  - '0000000344'
+  - '0000000345'
+  - '0000000346'
+  capture_time_start_ns: 600000000
+  capture_time_end_ns: 800000000
+iterations:
+- iteration_id: resample-0000
+  status: success
+  solver_status: converged
+  train_block_ids:
+  - block-0001
+  - block-0002
+  holdout_block_ids:
+  - block-0000
+  transform_camera_lidar:
+    convention: T_parent_child
+    parent: camera
+    child: lidar
+    translation_m:
+    - 0.10562500000000001
+    - -0.04875
+    - 0.018125
+    rotation_quat_xyzw:
+    - -0.49996358811246644
+    - 0.5002621733634749
+    - -0.500162541138046
+    - -0.4996114499345397
+    quality:
+      grade: warn
+      std_translation_m: []
+      std_rotation_deg: []
+    provenance:
+      producer: unknown
+      execution_mode: unknown
+      evidence_level: unknown
+      notes: []
+  output_sha256: 06e67b18d0c4c7586670534b4785f26a29d4d0c4567adb7d0af4acafdd2705f9
+- iteration_id: resample-0001
+  status: success
+  solver_status: converged
+  train_block_ids:
+  - block-0000
+  - block-0002
+  holdout_block_ids:
+  - block-0001
+  transform_camera_lidar:
+    convention: T_parent_child
+    parent: camera
+    child: lidar
+    translation_m:
+    - 0.10250000000000001
+    - -0.04875
+    - 0.018125
+    rotation_quat_xyzw:
+    - -0.5001004128327989
+    - 0.5001263539665554
+    - -0.5000257329032836
+    - -0.49974740978530174
+    quality:
+      grade: warn
+      std_translation_m: []
+      std_rotation_deg: []
+    provenance:
+      producer: unknown
+      execution_mode: unknown
+      evidence_level: unknown
+      notes: []
+  output_sha256: cb53e34637b7f2f5b84f33b076970c352dbc77a934d6b94d9ae24a75dd5322d8
+- iteration_id: resample-0002
+  status: success
+  solver_status: converged
+  train_block_ids:
+  - block-0000
+  - block-0002
+  holdout_block_ids:
+  - block-0001
+  transform_camera_lidar:
+    convention: T_parent_child
+    parent: camera
+    child: lidar
+    translation_m:
+    - 0.10250000000000001
+    - -0.04875
+    - 0.018125
+    rotation_quat_xyzw:
+    - -0.5001004128327989
+    - 0.5001263539665554
+    - -0.5000257329032836
+    - -0.49974740978530174
+    quality:
+      grade: warn
+      std_translation_m: []
+      std_rotation_deg: []
+    provenance:
+      producer: unknown
+      execution_mode: unknown
+      evidence_level: unknown
+      notes: []
+  output_sha256: 5954e10dae25df72d3a8f08d58d6b47d8eddabcf06a87f9b127886293b4ae82f
+- iteration_id: resample-0003
+  status: success
+  solver_status: converged
+  train_block_ids:
+  - block-0000
+  - block-0002
+  holdout_block_ids:
+  - block-0001
+  transform_camera_lidar:
+    convention: T_parent_child
+    parent: camera
+    child: lidar
+    translation_m:
+    - 0.10250000000000001
+    - -0.04875
+    - 0.018125
+    rotation_quat_xyzw:
+    - -0.5001004128327989
+    - 0.5001263539665554
+    - -0.5000257329032836
+    - -0.49974740978530174
+    quality:
+      grade: warn
+      std_translation_m: []
+      std_rotation_deg: []
+    provenance:
+      producer: unknown
+      execution_mode: unknown
+      evidence_level: unknown
+      notes: []
+  output_sha256: d21823fa70b1853a58b1fd442fc760ed112a12937d1bbefcbdd3f7da392da6fc
+- iteration_id: resample-0004
+  status: success
+  solver_status: converged
+  train_block_ids:
+  - block-0000
+  - block-0001
+  holdout_block_ids:
+  - block-0002
+  transform_camera_lidar:
+    convention: T_parent_child
+    parent: camera
+    child: lidar
+    translation_m:
+    - 0.10250000000000001
+    - -0.04875
+    - 0.018125
+    rotation_quat_xyzw:
+    - -0.5001004128327989
+    - 0.5001263539665554
+    - -0.5000257329032836
+    - -0.49974740978530174
+    quality:
+      grade: warn
+      std_translation_m: []
+      std_rotation_deg: []
+    provenance:
+      producer: unknown
+      execution_mode: unknown
+      evidence_level: unknown
+      notes: []
+  output_sha256: a5df886beb7ae93b318f17330bb1fce2c2ddd857989e8202938f28b46b48ac47
+- iteration_id: resample-0005
+  status: success
+  solver_status: converged
+  train_block_ids:
+  - block-0001
+  - block-0002
+  holdout_block_ids:
+  - block-0000
+  transform_camera_lidar:
+    convention: T_parent_child
+    parent: camera
+    child: lidar
+    translation_m:
+    - 0.10562500000000001
+    - -0.04875
+    - 0.018125
+    rotation_quat_xyzw:
+    - -0.49996358811246644
+    - 0.5002621733634749
+    - -0.500162541138046
+    - -0.4996114499345397
+    quality:
+      grade: warn
+      std_translation_m: []
+      std_rotation_deg: []
+    provenance:
+      producer: unknown
+      execution_mode: unknown
+      evidence_level: unknown
+      notes: []
+  output_sha256: 395f073b019b16fc3c06715287b916a30ac60771850b1f8f000dbe3ab09975d8
+- iteration_id: resample-0006
+  status: success
+  solver_status: converged
+  train_block_ids:
+  - block-0000
+  - block-0002
+  holdout_block_ids:
+  - block-0001
+  transform_camera_lidar:
+    convention: T_parent_child
+    parent: camera
+    child: lidar
+    translation_m:
+    - 0.10250000000000001
+    - -0.04875
+    - 0.018125
+    rotation_quat_xyzw:
+    - -0.5001004128327989
+    - 0.5001263539665554
+    - -0.5000257329032836
+    - -0.49974740978530174
+    quality:
+      grade: warn
+      std_translation_m: []
+      std_rotation_deg: []
+    provenance:
+      producer: unknown
+      execution_mode: unknown
+      evidence_level: unknown
+      notes: []
+  output_sha256: a0d4c9c7961bc73cbe03a0396f18f9ad0ffb2e477f7db57377be0e73b0e17c91
+- iteration_id: resample-0007
+  status: success
+  solver_status: converged
+  train_block_ids:
+  - block-0000
+  - block-0001
+  holdout_block_ids:
+  - block-0002
+  transform_camera_lidar:
+    convention: T_parent_child
+    parent: camera
+    child: lidar
+    translation_m:
+    - 0.10250000000000001
+    - -0.04875
+    - 0.018125
+    rotation_quat_xyzw:
+    - -0.5001004128327989
+    - 0.5001263539665554
+    - -0.5000257329032836
+    - -0.49974740978530174
+    quality:
+      grade: warn
+      std_translation_m: []
+      std_rotation_deg: []
+    provenance:
+      producer: unknown
+      execution_mode: unknown
+      evidence_level: unknown
+      notes: []
+  output_sha256: 929c7f3f87482cf33c3b9564836c651ff1c8ff2c8d813bb3aa6eba31a5460981
+- iteration_id: resample-0008
+  status: success
+  solver_status: converged
+  train_block_ids:
+  - block-0000
+  - block-0001
+  holdout_block_ids:
+  - block-0002
+  transform_camera_lidar:
+    convention: T_parent_child
+    parent: camera
+    child: lidar
+    translation_m:
+    - 0.10250000000000001
+    - -0.04875
+    - 0.018125
+    rotation_quat_xyzw:
+    - -0.5001004128327989
+    - 0.5001263539665554
+    - -0.5000257329032836
+    - -0.49974740978530174
+    quality:
+      grade: warn
+      std_translation_m: []
+      std_rotation_deg: []
+    provenance:
+      producer: unknown
+      execution_mode: unknown
+      evidence_level: unknown
+      notes: []
+  output_sha256: 63f7bd9ae120e47b4d00140c1c19082f3640e193c51213f0211b88baca12f76f
+- iteration_id: resample-0009
+  status: success
+  solver_status: converged
+  train_block_ids:
+  - block-0001
+  - block-0002
+  holdout_block_ids:
+  - block-0000
+  transform_camera_lidar:
+    convention: T_parent_child
+    parent: camera
+    child: lidar
+    translation_m:
+    - 0.10562500000000001
+    - -0.04875
+    - 0.018125
+    rotation_quat_xyzw:
+    - -0.49996358811246644
+    - 0.5002621733634749
+    - -0.500162541138046
+    - -0.4996114499345397
+    quality:
+      grade: warn
+      std_translation_m: []
+      std_rotation_deg: []
+    provenance:
+      producer: unknown
+      execution_mode: unknown
+      evidence_level: unknown
+      notes: []
+  output_sha256: 99ba25cee8740282725ac6c7180748f8ee6be01958f1d321cf67b19f8731bcbc
+- iteration_id: resample-0010
+  status: success
+  solver_status: converged
+  train_block_ids:
+  - block-0000
+  - block-0002
+  holdout_block_ids:
+  - block-0001
+  transform_camera_lidar:
+    convention: T_parent_child
+    parent: camera
+    child: lidar
+    translation_m:
+    - 0.10250000000000001
+    - -0.04875
+    - 0.018125
+    rotation_quat_xyzw:
+    - -0.5001004128327989
+    - 0.5001263539665554
+    - -0.5000257329032836
+    - -0.49974740978530174
+    quality:
+      grade: warn
+      std_translation_m: []
+      std_rotation_deg: []
+    provenance:
+      producer: unknown
+      execution_mode: unknown
+      evidence_level: unknown
+      notes: []
+  output_sha256: e4471f814ff3bda64a85d5e795f0418cf3368093b22f6e0d8b03e7624a3efe0b
+- iteration_id: resample-0011
+  status: success
+  solver_status: converged
+  train_block_ids:
+  - block-0001
+  - block-0002
+  holdout_block_ids:
+  - block-0000
+  transform_camera_lidar:
+    convention: T_parent_child
+    parent: camera
+    child: lidar
+    translation_m:
+    - 0.10562500000000001
+    - -0.04875
+    - 0.018125
+    rotation_quat_xyzw:
+    - -0.49996358811246644
+    - 0.5002621733634749
+    - -0.500162541138046
+    - -0.4996114499345397
+    quality:
+      grade: warn
+      std_translation_m: []
+      std_rotation_deg: []
+    provenance:
+      producer: unknown
+      execution_mode: unknown
+      evidence_level: unknown
+      notes: []
+  output_sha256: 7ea1bfa6de8e6c8fe6607da6a0eab0c5f64126e180b995dfed2a444d8c9bb723
+- iteration_id: resample-0012
+  status: success
+  solver_status: converged
+  train_block_ids:
+  - block-0001
+  - block-0002
+  holdout_block_ids:
+  - block-0000
+  transform_camera_lidar:
+    convention: T_parent_child
+    parent: camera
+    child: lidar
+    translation_m:
+    - 0.10562500000000001
+    - -0.04875
+    - 0.018125
+    rotation_quat_xyzw:
+    - -0.49996358811246644
+    - 0.5002621733634749
+    - -0.500162541138046
+    - -0.4996114499345397
+    quality:
+      grade: warn
+      std_translation_m: []
+      std_rotation_deg: []
+    provenance:
+      producer: unknown
+      execution_mode: unknown
+      evidence_level: unknown
+      notes: []
+  output_sha256: 097ac51dc66d862c4216743f85b46733691d1e50a4dd4c45a851dd922cf87c73
+- iteration_id: resample-0013
+  status: success
+  solver_status: converged
+  train_block_ids:
+  - block-0001
+  - block-0002
+  holdout_block_ids:
+  - block-0000
+  transform_camera_lidar:
+    convention: T_parent_child
+    parent: camera
+    child: lidar
+    translation_m:
+    - 0.10562500000000001
+    - -0.04875
+    - 0.018125
+    rotation_quat_xyzw:
+    - -0.49996358811246644
+    - 0.5002621733634749
+    - -0.500162541138046
+    - -0.4996114499345397
+    quality:
+      grade: warn
+      std_translation_m: []
+      std_rotation_deg: []
+    provenance:
+      producer: unknown
+      execution_mode: unknown
+      evidence_level: unknown
+      notes: []
+  output_sha256: 5c6c21dd837852208151616f840effad2a83cbbe1839f4a6a7cd036daeaf8d05
+- iteration_id: resample-0014
+  status: success
+  solver_status: converged
+  train_block_ids:
+  - block-0000
+  - block-0002
+  holdout_block_ids:
+  - block-0001
+  transform_camera_lidar:
+    convention: T_parent_child
+    parent: camera
+    child: lidar
+    translation_m:
+    - 0.11187500000000002
+    - -0.04875
+    - 0.018125
+    rotation_quat_xyzw:
+    - -0.4998267262100986
+    - 0.5003979555561534
+    - -0.500299312175977
+    - -0.4994754529279306
+    quality:
+      grade: warn
+      std_translation_m: []
+      std_rotation_deg: []
+    provenance:
+      producer: unknown
+      execution_mode: unknown
+      evidence_level: unknown
+      notes: []
+  output_sha256: 9cd937116827b3fdef7faf9ad708ceb67a5c1d639b571acec9fbb9edacc76454
+- iteration_id: resample-0015
+  status: success
+  solver_status: converged
+  train_block_ids:
+  - block-0000
+  - block-0002
+  holdout_block_ids:
+  - block-0001
+  transform_camera_lidar:
+    convention: T_parent_child
+    parent: camera
+    child: lidar
+    translation_m:
+    - 0.10250000000000001
+    - -0.04875
+    - 0.018125
+    rotation_quat_xyzw:
+    - -0.5001004128327989
+    - 0.5001263539665554
+    - -0.5000257329032836
+    - -0.49974740978530174
+    quality:
+      grade: warn
+      std_translation_m: []
+      std_rotation_deg: []
+    provenance:
+      producer: unknown
+      execution_mode: unknown
+      evidence_level: unknown
+      notes: []
+  output_sha256: b5c731c86f85f21cfb86c976344ce7eebea19d9225dd5fc795ffb4a6a786f294
+- iteration_id: resample-0016
+  status: success
+  solver_status: converged
+  train_block_ids:
+  - block-0001
+  - block-0002
+  holdout_block_ids:
+  - block-0000
+  transform_camera_lidar:
+    convention: T_parent_child
+    parent: camera
+    child: lidar
+    translation_m:
+    - 0.10562500000000001
+    - -0.04875
+    - 0.018125
+    rotation_quat_xyzw:
+    - -0.49996358811246644
+    - 0.5002621733634749
+    - -0.500162541138046
+    - -0.4996114499345397
+    quality:
+      grade: warn
+      std_translation_m: []
+      std_rotation_deg: []
+    provenance:
+      producer: unknown
+      execution_mode: unknown
+      evidence_level: unknown
+      notes: []
+  output_sha256: 405db7c7ed4edeeb380574ff90f89e974628bb9cea9e6e5e5d889614cb8f3bb9
+- iteration_id: resample-0017
+  status: success
+  solver_status: converged
+  train_block_ids:
+  - block-0001
+  - block-0002
+  holdout_block_ids:
+  - block-0000
+  transform_camera_lidar:
+    convention: T_parent_child
+    parent: camera
+    child: lidar
+    translation_m:
+    - 0.10562500000000001
+    - -0.04875
+    - 0.018125
+    rotation_quat_xyzw:
+    - -0.49996358811246644
+    - 0.5002621733634749
+    - -0.500162541138046
+    - -0.4996114499345397
+    quality:
+      grade: warn
+      std_translation_m: []
+      std_rotation_deg: []
+    provenance:
+      producer: unknown
+      execution_mode: unknown
+      evidence_level: unknown
+      notes: []
+  output_sha256: a6f8f782b5e3fc9777a5d3f52d8900c5d47b73f57993b269fb873ffb1dd96a66
+- iteration_id: resample-0018
+  status: success
+  solver_status: converged
+  train_block_ids:
+  - block-0000
+  - block-0002
+  holdout_block_ids:
+  - block-0001
+  transform_camera_lidar:
+    convention: T_parent_child
+    parent: camera
+    child: lidar
+    translation_m:
+    - 0.11187500000000002
+    - -0.04875
+    - 0.018125
+    rotation_quat_xyzw:
+    - -0.4998267262100986
+    - 0.5003979555561534
+    - -0.500299312175977
+    - -0.4994754529279306
+    quality:
+      grade: warn
+      std_translation_m: []
+      std_rotation_deg: []
+    provenance:
+      producer: unknown
+      execution_mode: unknown
+      evidence_level: unknown
+      notes: []
+  output_sha256: 55ba9421dcaaf661194e986eeaa7cce0c97c4b1272bb4125aaff922658a38808
+- iteration_id: resample-0019
+  status: success
+  solver_status: converged
+  train_block_ids:
+  - block-0000
+  - block-0002
+  holdout_block_ids:
+  - block-0001
+  transform_camera_lidar:
+    convention: T_parent_child
+    parent: camera
+    child: lidar
+    translation_m:
+    - 0.11187500000000002
+    - -0.04875
+    - 0.018125
+    rotation_quat_xyzw:
+    - -0.4998267262100986
+    - 0.5003979555561534
+    - -0.500299312175977
+    - -0.4994754529279306
+    quality:
+      grade: warn
+      std_translation_m: []
+      std_rotation_deg: []
+    provenance:
+      producer: unknown
+      execution_mode: unknown
+      evidence_level: unknown
+      notes: []
+  output_sha256: d631318a4aeb68d42d0dfe48adda85f385d88ae6c7699d67cb8f3c2ff08524f9
+sample_ids:
+- resample-0000
+- resample-0001
+- resample-0002
+- resample-0003
+- resample-0004
+- resample-0005
+- resample-0006
+- resample-0007
+- resample-0008
+- resample-0009
+- resample-0010
+- resample-0011
+- resample-0012
+- resample-0013
+- resample-0014
+- resample-0015
+- resample-0016
+- resample-0017
+- resample-0018
+- resample-0019
+mean_estimate_transform:
+  convention: T_parent_child
+  parent: camera
+  child: lidar
+  translation_m:
+  - 0.10515625000000002
+  - -0.04875
+  - 0.018125
+  rotation_quat_xyzw:
+  - -0.5000046394334583
+  - 0.5002214314500716
+  - -0.5001215025725063
+  - -0.49965224179190587
+  quality:
+    grade: warn
+    std_translation_m: []
+    std_rotation_deg: []
+  provenance:
+    producer: unknown
+    execution_mode: unknown
+    evidence_level: unknown
+    notes: []
+axis_intervals:
+- axis: translation_x_m
+  unit: m
+  lower: -0.004687500000000004
+  upper: 0.004687500000000004
+  half_width: 0.004687500000000004
+  weak_direction: false
+- axis: translation_y_m
+  unit: m
+  lower: -0.0
+  upper: 0.0
+  half_width: 0.0
+  weak_direction: true
+- axis: translation_z_m
+  unit: m
+  lower: -0.0
+  upper: 0.0
+  half_width: 0.0
+  weak_direction: true
+- axis: rotation_x_deg
+  unit: deg
+  lower: -1.4207986558463193e-05
+  upper: 1.4207986558463193e-05
+  half_width: 1.4207986558463193e-05
+  weak_direction: false
+- axis: rotation_y_deg
+  unit: deg
+  lower: -0.00011014993318577661
+  upper: 0.00011014993318577661
+  half_width: 0.00011014993318577661
+  weak_direction: false
+- axis: rotation_z_deg
+  unit: deg
+  lower: -0.031249802641388977
+  upper: 0.031249802641388977
+  half_width: 0.031249802641388977
+  weak_direction: false
+interval_halfwidth_translation_m: 0.0015625000000000014
+interval_halfwidth_rotation_deg: 0.010458053520377738
+weak_directions:
+- translation_y_m
+- translation_z_m
+policy_status: inconclusive
+policy_reason: no injected reference truth is declared; coverage cannot be assessed
+warnings: []
+provenance:
+  generator: calibrex.evaluation.empirical_se3_uncertainty
+  generator_version: calibrex.empirical_se3_uncertainty/v0.1
+  git_commit: ed83117a
+  command:
+  - calibrex
+  - camera-lidar
+  - empirical-uncertainty
+  - C:\Users\rsasa\Workspace\Calibrex\outputs\empirical-refits-formal-v2\correspondence.json
+  - C:\Users\rsasa\Workspace\Calibrex\outputs\empirical-refits-formal-v2\problem.json
+  - --result-dir
+  - C:\Users\rsasa\Workspace\Calibrex\outputs\empirical-refits-formal-v2\00-current\resamples
+  - --output
+  - C:\Users\rsasa\Workspace\Calibrex\outputs\empirical-refits-formal-v2\00-current\uncertainty.yaml
+  - --workers
+  - '4'
+  source_sha256:
+    C:\Users\rsasa\Workspace\Calibrex\outputs\empirical-refits-formal-v2\correspondence.json: bd93e232497678d490c85835c68ebb7dce8e927197e2fff220dea316f05b0ac5
+    C:\Users\rsasa\Workspace\Calibrex\outputs\empirical-refits-formal-v2\problem.json: 58a3992d348c24c2a7cf36889ed9f0ba989b95518565a7422f7761c470f9f332
+  resample_output_sha256:
+    resample-0000: 06e67b18d0c4c7586670534b4785f26a29d4d0c4567adb7d0af4acafdd2705f9
+    resample-0001: cb53e34637b7f2f5b84f33b076970c352dbc77a934d6b94d9ae24a75dd5322d8
+    resample-0002: 5954e10dae25df72d3a8f08d58d6b47d8eddabcf06a87f9b127886293b4ae82f
+    resample-0003: d21823fa70b1853a58b1fd442fc760ed112a12937d1bbefcbdd3f7da392da6fc
+    resample-0004: a5df886beb7ae93b318f17330bb1fce2c2ddd857989e8202938f28b46b48ac47
+    resample-0005: 395f073b019b16fc3c06715287b916a30ac60771850b1f8f000dbe3ab09975d8
+    resample-0006: a0d4c9c7961bc73cbe03a0396f18f9ad0ffb2e477f7db57377be0e73b0e17c91
+    resample-0007: 929c7f3f87482cf33c3b9564836c651ff1c8ff2c8d813bb3aa6eba31a5460981
+    resample-0008: 63f7bd9ae120e47b4d00140c1c19082f3640e193c51213f0211b88baca12f76f
+    resample-0009: 99ba25cee8740282725ac6c7180748f8ee6be01958f1d321cf67b19f8731bcbc
+    resample-0010: e4471f814ff3bda64a85d5e795f0418cf3368093b22f6e0d8b03e7624a3efe0b
+    resample-0011: 7ea1bfa6de8e6c8fe6607da6a0eab0c5f64126e180b995dfed2a444d8c9bb723
+    resample-0012: 097ac51dc66d862c4216743f85b46733691d1e50a4dd4c45a851dd922cf87c73
+    resample-0013: 5c6c21dd837852208151616f840effad2a83cbbe1839f4a6a7cd036daeaf8d05
+    resample-0014: 9cd937116827b3fdef7faf9ad708ceb67a5c1d639b571acec9fbb9edacc76454
+    resample-0015: b5c731c86f85f21cfb86c976344ce7eebea19d9225dd5fc795ffb4a6a786f294
+    resample-0016: 405db7c7ed4edeeb380574ff90f89e974628bb9cea9e6e5e5d889614cb8f3bb9
+    resample-0017: a6f8f782b5e3fc9777a5d3f52d8900c5d47b73f57993b269fb873ffb1dd96a66
+    resample-0018: 55ba9421dcaaf661194e986eeaa7cce0c97c4b1272bb4125aaff922658a38808
+    resample-0019: d631318a4aeb68d42d0dfe48adda85f385d88ae6c7699d67cb8f3c2ff08524f9
+  data_verified: true
+  created_at: '2026-10-16T02:53:00.608735+00:00'
