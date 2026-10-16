@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import json
 import math
@@ -124,8 +125,35 @@ def audit(root: Path, *, expected_runtime_changes: frozenset[str] | None = None)
             ):
                 raise ValueError("actual full/short source identity differs")
         for name, digest in protocol["provenance"]["inputs"].items():
-            if sha(root / (name + ".json")) != digest:
+            raw = root / (name + ".json")
+            actual = (
+                sha(raw)
+                if raw.exists()
+                else hashlib.sha256(
+                    gzip.decompress((root / (name + ".json.gz")).read_bytes())
+                ).hexdigest()
+            )
+            if actual != digest:
                 raise ValueError("published prepared input differs")
+        parser_parity = read(root, "parser-parity.json")
+        if parser_parity["provenance"] != {
+            "protocol_sha256": sha(root / "protocol.json"),
+            "generator_sha256": sha(root / "schema-checker.py.txt"),
+        } or parser_parity["files"] != {
+            name: sha(root / name) for name in ("parser-prior.json.gz", "parser-current.json.gz")
+        }:
+            raise ValueError("parser proof provenance differs")
+        parser_rows = [
+            json.loads(gzip.decompress((root / name).read_bytes()))
+            for name in ("parser-prior.json.gz", "parser-current.json.gz")
+        ]
+        if (
+            parser_rows[0] != parser_rows[1]
+            or not parser_parity["complete_help_actions_defaults_and_choices_exact"]
+            or len(parser_rows[0]) != parser_parity["parsers"]
+            or sum(len(r["actions"]) for r in parser_rows[0]) != parser_parity["actions"]
+        ):
+            raise ValueError("complete parser definitions differ")
     attempts = json.loads((root / "attempts.json").read_bytes())
     expected_order = [
         (case, repeat, variant)

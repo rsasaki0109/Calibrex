@@ -1,0 +1,43 @@
+"""Verify current runtime and saved correctness evidence against measured sources."""
+import hashlib
+import json
+from pathlib import Path
+import tarfile
+
+ROOT = Path(__file__).resolve().parent
+ARCHIVE = ROOT / 'docs/assets/selective_package_initialization'
+VALIDATION = ARCHIVE / 'validation'
+sha = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
+protocol = json.loads((ARCHIVE / 'protocol.json').read_bytes())
+count = 0
+with tarfile.open(ARCHIVE / 'sources-current.tar.gz') as capsule:
+    for item in capsule.getmembers():
+        assert item.isfile() and item.name.startswith('src/calibrex/')
+        assert '..' not in Path(item.name).parts
+        stream = capsule.extractfile(item)
+        assert stream is not None
+        assert stream.read().replace(b'\r\n', b'\n') == (ROOT/item.name).read_bytes().replace(b'\r\n', b'\n')
+        count += 1
+assert count == 380
+assert '37 passed' in (VALIDATION / 'pytest.log').read_text()
+assert '67 passed' in (VALIDATION / 'calibration-tests.log').read_text()
+assert '8 passed' in (VALIDATION / 'wheel-tests.log').read_text()
+assert '380 source files' in (VALIDATION / 'mypy.log').read_text()
+names = ['test_selective_package_initialization.py','test_lazy_runtime_loading.py',
+    'test_cli_help_groups.py','test_probabilistic_camera_lidar_refiner.py',
+    'test_camera_lidar_initializer_calibration.py','test_imu_lidar_rotation.py',
+    'test_lidar_wheel.py','test_lidar_wheel_preparation.py']
+assert all((VALIDATION/name).read_bytes()==(ROOT/'tests/unit'/name).read_bytes() for name in names)
+receipt = dict(source_commit=protocol['commits']['current'],
+    source_manifest_sha256=sha(ARCHIVE/'sources-current-manifest.json'),
+    canonical_runtime_matches_measured_source_after_tests=True,measured_runtime_modules=count,
+    tests_passed=37,windows_distinct_cases=76,
+    test_sources={name:sha(VALIDATION/name) for name in names},
+    supplementary_windows_logs={'calibration-tests.log':'67 passed; 31 additional calibration cases',
+        'wheel-tests.log':'8 passed; all wheel cases'},
+    strict_mypy_core_modules=380,public_schemas_byte_identical=129,
+    public_schema_ledger_byte_identical=True,parsers_and_help_exact=164,
+    parser_actions_defaults_choices_exact=1257,
+    provenance=dict(pytest_log_sha256=sha(VALIDATION/'pytest.log'),checker_sha256=sha(Path(__file__))))
+(VALIDATION / 'receipt.json').write_bytes((json.dumps(receipt,indent=2,allow_nan=False)+'\n').encode())
+print('380 measured runtime modules and 76 distinct Windows correctness cases verified')

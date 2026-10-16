@@ -1,0 +1,5123 @@
+{
+  "acceptance": {
+    "absolute_train_objective_improvement": 1.0364564772659532,
+    "accepted": true,
+    "candidate_status": "converged",
+    "candidate_train_correspondence_count": 7168,
+    "candidate_train_objective": 0.01740460714726883,
+    "holdout_used_for_selection": false,
+    "initial_train_correspondence_count": 7168,
+    "initial_train_objective": 1.0538610844132221,
+    "maximum_candidate_bound_fraction": 0.1875,
+    "minimum_retained_train_correspondence_count": 6810,
+    "policy_id": "initializer_preserving_fit_only/v0.1",
+    "reasons": [],
+    "relative_train_objective_improvement": 0.9834849133299579,
+    "selected_source": "refined_candidate"
+  },
+  "candidate_holdout_evaluation": {
+    "mean_mahalanobis_error": 0.338110429382433,
+    "objective": 0.016022217667961084,
+    "skipped_correspondence_count": 0,
+    "valid_correspondence_count": 2048,
+    "weighted_reprojection_rmse_px": 0.5018460877716573
+  },
+  "candidate_rotation_error_deg": 0.034475125481814806,
+  "candidate_train_evaluation": {
+    "mean_mahalanobis_error": 0.3537164239043047,
+    "objective": 0.01740460714726883,
+    "skipped_correspondence_count": 0,
+    "valid_correspondence_count": 7168,
+    "weighted_reprojection_rmse_px": 0.5244291698987045
+  },
+  "candidate_transform_camera_lidar": {
+    "child": "lidar",
+    "convention": "T_parent_child",
+    "parent": "camera",
+    "provenance": {
+      "evidence_level": "unknown",
+      "execution_mode": "unknown",
+      "notes": [],
+      "producer": "unknown"
+    },
+    "quality": {
+      "grade": "warn",
+      "std_rotation_deg": [],
+      "std_translation_m": []
+    },
+    "rotation_quat_xyzw": [
+      -0.5001004128327989,
+      0.5001263539665554,
+      -0.5000257329032836,
+      -0.49974740978530174
+    ],
+    "translation_m": [
+      0.10250000000000001,
+      -0.04875,
+      0.018125
+    ]
+  },
+  "candidate_translation_error_m": 0.003365728004459068,
+  "correspondence_artifact_id": "kitti-projected-execution-control",
+  "final_holdout_evaluation": {
+    "mean_mahalanobis_error": 0.338110429382433,
+    "objective": 0.016022217667961084,
+    "skipped_correspondence_count": 0,
+    "valid_correspondence_count": 2048,
+    "weighted_reprojection_rmse_px": 0.5018460877716573
+  },
+  "final_rotation_error_deg": 0.034475125481814806,
+  "final_train_evaluation": {
+    "mean_mahalanobis_error": 0.3537164239043047,
+    "objective": 0.01740460714726883,
+    "skipped_correspondence_count": 0,
+    "valid_correspondence_count": 7168,
+    "weighted_reprojection_rmse_px": 0.5244291698987045
+  },
+  "final_translation_error_m": 0.003365728004459068,
+  "holdout_frame_ids": [
+    "0000000231",
+    "0000000345"
+  ],
+  "initial_holdout_evaluation": {
+    "mean_mahalanobis_error": 3.2917741555029654,
+    "objective": 0.7777024049724037,
+    "skipped_correspondence_count": 0,
+    "valid_correspondence_count": 2048,
+    "weighted_reprojection_rmse_px": 4.860425070483877
+  },
+  "initial_rotation_error_deg": 0.5389046851052944,
+  "initial_train_evaluation": {
+    "mean_mahalanobis_error": 4.25703231367247,
+    "objective": 1.0538610844132221,
+    "skipped_correspondence_count": 0,
+    "valid_correspondence_count": 7168,
+    "weighted_reprojection_rmse_px": 6.5856916098748615
+  },
+  "initial_transform_camera_lidar": {
+    "child": "lidar",
+    "convention": "T_parent_child",
+    "parent": "camera",
+    "provenance": {
+      "evidence_level": "unknown",
+      "execution_mode": "unknown",
+      "notes": [],
+      "producer": "unknown"
+    },
+    "quality": {
+      "grade": "warn",
+      "std_rotation_deg": [],
+      "std_translation_m": []
+    },
+    "rotation_quat_xyzw": [
+      -0.5013133583340816,
+      0.5021707867410162,
+      -0.5004300336100179,
+      -0.4960637047404194
+    ],
+    "translation_m": [
+      0.14,
+      -0.08,
+      0.04
+    ]
+  },
+  "initial_translation_error_m": 0.05385164807134505,
+  "initialization_problem_id": "kitti-projected-control",
+  "initialization_source": "problem_initial_transform",
+  "method": "probabilistic_multiframe_refinement/v0.3",
+  "options": {
+    "acceptance_policy_id": "initializer_preserving_fit_only/v0.1",
+    "cauchy_scale": 3.0,
+    "holdout_ratio": 0.25,
+    "initial_rotation_step_deg": 0.5,
+    "initial_translation_step_m": 0.05,
+    "max_evaluations": 400,
+    "maximum_accepted_bound_fraction": 0.95,
+    "maximum_train_correspondence_loss_fraction": 0.05,
+    "minimum_absolute_train_objective_improvement": 1e-06,
+    "minimum_confidence": 0.25,
+    "minimum_holdout_correspondences": 8,
+    "minimum_relative_train_objective_improvement": 0.0001,
+    "minimum_rotation_step_deg": 0.02,
+    "minimum_train_correspondences": 24,
+    "minimum_translation_step_m": 0.002,
+    "rotation_bound_deg": 2.0,
+    "split_seed": 0,
+    "translation_bound_m": 0.25,
+    "use_covariance": true,
+    "use_outlier_probability": true,
+    "use_reliability": true
+  },
+  "provenance": {
+    "command": [
+      "calibrex",
+      "camera-lidar",
+      "refine-probabilistic-multiframe",
+      "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\package-initialization-cli-v3\\correspondence.json",
+      "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\package-initialization-cli-v3\\problem.json",
+      "--output",
+      "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\package-initialization-cli-v3\\refine-01-prior\\result.json",
+      "--split-seed",
+      "0"
+    ],
+    "correspondence_artifact_sha256": "bd93e232497678d490c85835c68ebb7dce8e927197e2fff220dea316f05b0ac5",
+    "created_at": "2026-10-16T10:31:29.663056+00:00",
+    "generator": "calibrex.evaluation.probabilistic_camera_lidar_run",
+    "generator_version": "0.3",
+    "git_commit": "08452aa1",
+    "initialization_problem_sha256": "58a3992d348c24c2a7cf36889ed9f0ba989b95518565a7422f7761c470f9f332"
+  },
+  "provider": {
+    "checkpoint_redistribution": "no checkpoint",
+    "license_spdx": "Apache-2.0",
+    "model": "declared-camera-projections",
+    "provider": "generated-projection-execution-control",
+    "source_commit": "6cd53740fc851ad8b1a0bea10a1cb710c8561f0e",
+    "source_repository": "https://github.com/rsasaki0109/Calibrex",
+    "version": "1"
+  },
+  "reason": "all pose correction steps reached their minima",
+  "reference_transform_camera_lidar": {
+    "child": "lidar",
+    "convention": "T_parent_child",
+    "parent": "camera",
+    "provenance": {
+      "evidence_level": "unknown",
+      "execution_mode": "unknown",
+      "notes": [],
+      "producer": "unknown"
+    },
+    "quality": {
+      "grade": "warn",
+      "std_rotation_deg": [],
+      "std_translation_m": []
+    },
+    "rotation_quat_xyzw": [
+      0.5,
+      -0.5,
+      0.5,
+      0.5
+    ],
+    "translation_m": [
+      0.1,
+      -0.05,
+      0.02
+    ]
+  },
+  "result_id": "kitti-projected-execution-control-kitti-projected-control-refinement",
+  "schema_version": "slac.probabilistic_refinement_result/v0.2",
+  "status": "converged",
+  "trace": [
+    {
+      "accepted": true,
+      "delta_rotation_deg_xyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "evaluation": 1,
+      "objective": 1.0538610844132221
+    },
+    {
+      "accepted": true,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "evaluation": 2,
+      "objective": 0.4194251109155736
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "evaluation": 3,
+      "objective": 1.7294490279644186
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        0.0,
+        -0.5,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "evaluation": 4,
+      "objective": 1.5962601787807231
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        0.0,
+        0.5,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "evaluation": 5,
+      "objective": 1.3347876956685096
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        0.0,
+        0.0,
+        -0.5
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "evaluation": 6,
+      "objective": 1.050544063980343
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        0.0,
+        0.0,
+        0.5
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "evaluation": 7,
+      "objective": 1.1919045353112772
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        -0.05,
+        0.0,
+        0.0
+      ],
+      "evaluation": 8,
+      "objective": 1.2576830865064947
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.05,
+        0.0,
+        0.0
+      ],
+      "evaluation": 9,
+      "objective": 1.1726496306936212
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        -0.05,
+        0.0
+      ],
+      "evaluation": 10,
+      "objective": 1.6204820468310872
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.05,
+        0.0
+      ],
+      "evaluation": 11,
+      "objective": 0.5042186944898274
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.05
+      ],
+      "evaluation": 12,
+      "objective": 0.887955752535243
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        0.05
+      ],
+      "evaluation": 13,
+      "objective": 1.3588372362446537
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -1.0,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "evaluation": 14,
+      "objective": 0.5219877835473672
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "evaluation": 15,
+      "objective": 1.053861084413229
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        -0.5,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "evaluation": 16,
+      "objective": 1.2850738936977195
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.5,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "evaluation": 17,
+      "objective": 0.9161563984297203
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.5
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "evaluation": 18,
+      "objective": 0.46803559637711367
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.5
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "evaluation": 19,
+      "objective": 0.7505161377812383
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        -0.05,
+        0.0,
+        0.0
+      ],
+      "evaluation": 20,
+      "objective": 0.8354365708266299
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.05,
+        0.0,
+        0.0
+      ],
+      "evaluation": 21,
+      "objective": 0.6415276057931396
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        -0.05,
+        0.0
+      ],
+      "evaluation": 22,
+      "objective": 0.9715802634629516
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.05,
+        0.0
+      ],
+      "evaluation": 23,
+      "objective": 0.4119860743756931
+    },
+    {
+      "accepted": true,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.05
+      ],
+      "evaluation": 24,
+      "objective": 0.34592603881990164
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        0.05
+      ],
+      "evaluation": 25,
+      "objective": 0.8055925117316536
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -1.0,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.05
+      ],
+      "evaluation": 26,
+      "objective": 0.7287526336982479
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.05
+      ],
+      "evaluation": 27,
+      "objective": 0.887955752535243
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        -0.5,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.05
+      ],
+      "evaluation": 28,
+      "objective": 1.2633331719660883
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.5,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.05
+      ],
+      "evaluation": 29,
+      "objective": 0.8760393614469841
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.5
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.05
+      ],
+      "evaluation": 30,
+      "objective": 0.4325531725408219
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.5
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.05
+      ],
+      "evaluation": 31,
+      "objective": 0.6680608329217794
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        -0.05,
+        0.0,
+        -0.05
+      ],
+      "evaluation": 32,
+      "objective": 0.800230327703815
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.05,
+        0.0,
+        -0.05
+      ],
+      "evaluation": 33,
+      "objective": 0.5741055751064214
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        -0.05,
+        -0.05
+      ],
+      "evaluation": 34,
+      "objective": 0.862600190201028
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.05,
+        -0.05
+      ],
+      "evaluation": 35,
+      "objective": 0.5640841612040386
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.1
+      ],
+      "evaluation": 36,
+      "objective": 0.7012123315375612
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "evaluation": 37,
+      "objective": 0.4194251109155736
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.75,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.05
+      ],
+      "evaluation": 38,
+      "objective": 0.43172860489299786
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.25,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.05
+      ],
+      "evaluation": 39,
+      "objective": 0.544745871009463
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        -0.25,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.05
+      ],
+      "evaluation": 40,
+      "objective": 0.7291655463848511
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.25,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.05
+      ],
+      "evaluation": 41,
+      "objective": 0.40526504098671373
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.05
+      ],
+      "evaluation": 42,
+      "objective": 0.3325448386349976
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.05
+      ],
+      "evaluation": 43,
+      "objective": 0.4696798365956244
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.0,
+        -0.05
+      ],
+      "evaluation": 44,
+      "objective": 0.5037175997665345
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.025,
+        0.0,
+        -0.05
+      ],
+      "evaluation": 45,
+      "objective": 0.38672587885771126
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        -0.025,
+        -0.05
+      ],
+      "evaluation": 46,
+      "objective": 0.5701865445882335
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.05
+      ],
+      "evaluation": 47,
+      "objective": 0.3360819671301288
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.07500000000000001
+      ],
+      "evaluation": 48,
+      "objective": 0.5038832097502298
+    },
+    {
+      "accepted": true,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.025
+      ],
+      "evaluation": 49,
+      "objective": 0.3085937845801215
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.75,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.025
+      ],
+      "evaluation": 50,
+      "objective": 0.3032430948872303
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.25,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.025
+      ],
+      "evaluation": 51,
+      "objective": 0.5710230414778329
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        -0.25,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.025
+      ],
+      "evaluation": 52,
+      "objective": 0.7260151331961482
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.25,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.025
+      ],
+      "evaluation": 53,
+      "objective": 0.3884180430987575
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.025
+      ],
+      "evaluation": 54,
+      "objective": 0.28571543761951407
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.025
+      ],
+      "evaluation": 55,
+      "objective": 0.44199366726248424
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.0,
+        -0.025
+      ],
+      "evaluation": 56,
+      "objective": 0.4837892463902833
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.025,
+        0.0,
+        -0.025
+      ],
+      "evaluation": 57,
+      "objective": 0.3779095280587731
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        -0.025,
+        -0.025
+      ],
+      "evaluation": 58,
+      "objective": 0.5814844497849501
+    },
+    {
+      "accepted": true,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 59,
+      "objective": 0.21257169909069307
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.05
+      ],
+      "evaluation": 60,
+      "objective": 0.34592603881990164
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "evaluation": 61,
+      "objective": 0.4194251109155736
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.75,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 62,
+      "objective": 0.4579979592268093
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.25,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 63,
+      "objective": 0.28252027687037895
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        -0.25,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 64,
+      "objective": 0.6644837366315891
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.25,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 65,
+      "objective": 0.29981411887853077
+    },
+    {
+      "accepted": true,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 66,
+      "objective": 0.20657824553178514
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 67,
+      "objective": 0.3721114034812447
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 68,
+      "objective": 0.42363626309471153
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.025,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 69,
+      "objective": 0.30062953160300404
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.025
+      ],
+      "evaluation": 70,
+      "objective": 0.3085937845801215
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.05,
+        -0.025
+      ],
+      "evaluation": 71,
+      "objective": 0.42217670139683877
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.05
+      ],
+      "evaluation": 72,
+      "objective": 0.3360819671301288
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        0.0
+      ],
+      "evaluation": 73,
+      "objective": 0.28442430838097754
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.75,
+        0.0,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 74,
+      "objective": 0.45532636194253695
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.25,
+        0.0,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 75,
+      "objective": 0.27455098930786853
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        -0.25,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 76,
+      "objective": 0.6067390137477464
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.25,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 77,
+      "objective": 0.33856835538632735
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.5
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 78,
+      "objective": 0.3557441127983152
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 79,
+      "objective": 0.21257169909069307
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 80,
+      "objective": 0.3358699391280433
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.025,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 81,
+      "objective": 0.3410622805419994
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0,
+        -0.025
+      ],
+      "evaluation": 82,
+      "objective": 0.28571543761951407
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.05,
+        -0.025
+      ],
+      "evaluation": 83,
+      "objective": 0.4158958012418163
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.05
+      ],
+      "evaluation": 84,
+      "objective": 0.3283490997078606
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        0.0
+      ],
+      "evaluation": 85,
+      "objective": 0.2672599349190854
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.625,
+        0.0,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 86,
+      "objective": 0.30172048435910936
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.0,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 87,
+      "objective": 0.19655576375047396
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        -0.125,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 88,
+      "objective": 0.3606685313297866
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.125,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 89,
+      "objective": 0.1941510343630046
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.375
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 90,
+      "objective": 0.26579961541855923
+    },
+    {
+      "accepted": true,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 91,
+      "objective": 0.18758291292260232
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 92,
+      "objective": 0.22750506860927688
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.0125,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 93,
+      "objective": 0.2527793986936595
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0125,
+        -0.025
+      ],
+      "evaluation": 94,
+      "objective": 0.20730819675986475
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.037500000000000006,
+        -0.025
+      ],
+      "evaluation": 95,
+      "objective": 0.28463040417775837
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.037500000000000006
+      ],
+      "evaluation": 96,
+      "objective": 0.24683923334201183
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.0125
+      ],
+      "evaluation": 97,
+      "objective": 0.21502086441209048
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.625,
+        0.0,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 98,
+      "objective": 0.2855246949516296
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.0,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 99,
+      "objective": 0.17832678124745968
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        -0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 100,
+      "objective": 0.35953191126935324
+    },
+    {
+      "accepted": true,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 101,
+      "objective": 0.16186718614213277
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 102,
+      "objective": 0.20657824553178514
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 103,
+      "objective": 0.21257169909069307
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 104,
+      "objective": 0.23066329594002336
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        0.0125,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 105,
+      "objective": 0.22049400213309397
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0125,
+        -0.025
+      ],
+      "evaluation": 106,
+      "objective": 0.19531590220116657
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.037500000000000006,
+        -0.025
+      ],
+      "evaluation": 107,
+      "objective": 0.26855905459669227
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.037500000000000006
+      ],
+      "evaluation": 108,
+      "objective": 0.22868397194260212
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.0125
+      ],
+      "evaluation": 109,
+      "objective": 0.19862341698364266
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.625,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 110,
+      "objective": 0.2534943724879274
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 111,
+      "objective": 0.15851077404892447
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 112,
+      "objective": 0.18758291292260232
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.25,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 113,
+      "objective": 0.2996781796456812
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.125,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 114,
+      "objective": 0.1941510343630046
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.125,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 115,
+      "objective": 0.17426667926530948
+    },
+    {
+      "accepted": true,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 116,
+      "objective": 0.10005445666201092
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        0.0125,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 117,
+      "objective": 0.2737312376547672
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.0125,
+        -0.025
+      ],
+      "evaluation": 118,
+      "objective": 0.17350252391278045
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.037500000000000006,
+        -0.025
+      ],
+      "evaluation": 119,
+      "objective": 0.22948394817002785
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.037500000000000006
+      ],
+      "evaluation": 120,
+      "objective": 0.18841846400908846
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.0125
+      ],
+      "evaluation": 121,
+      "objective": 0.17722514914688345
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.625,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 122,
+      "objective": 0.20363684788174607
+    },
+    {
+      "accepted": true,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 123,
+      "objective": 0.092441346361379
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.0,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 124,
+      "objective": 0.23066329594002336
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.25,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 125,
+      "objective": 0.15846205247102316
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.125,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 126,
+      "objective": 0.11754917230970514
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.125,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 127,
+      "objective": 0.13206848884404654
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 128,
+      "objective": 0.12721203941212952
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 129,
+      "objective": 0.16186718614213277
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.0125,
+        -0.025
+      ],
+      "evaluation": 130,
+      "objective": 0.11299917611232761
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.037500000000000006,
+        -0.025
+      ],
+      "evaluation": 131,
+      "objective": 0.1827363967920173
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.037500000000000006
+      ],
+      "evaluation": 132,
+      "objective": 0.15053650281213693
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.0125
+      ],
+      "evaluation": 133,
+      "objective": 0.11210434255751166
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.5,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 134,
+      "objective": 0.10005445666201092
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.25,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 135,
+      "objective": 0.18331625088328704
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.0,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 136,
+      "objective": 0.21744203729159198
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 137,
+      "objective": 0.1598419262559378
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 138,
+      "objective": 0.1091165875051685
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        0.0
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 139,
+      "objective": 0.12493549787452442
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 140,
+      "objective": 0.1134103878502911
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        0.0,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 141,
+      "objective": 0.15851077404892447
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.0125,
+        -0.025
+      ],
+      "evaluation": 142,
+      "objective": 0.18302270131214865
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.037500000000000006,
+        -0.025
+      ],
+      "evaluation": 143,
+      "objective": 0.09404444171018397
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.037500000000000006
+      ],
+      "evaluation": 144,
+      "objective": 0.11480370733536582
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.0125
+      ],
+      "evaluation": 145,
+      "objective": 0.13114533509716228
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.4375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 146,
+      "objective": 0.08311968934100258
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.3125,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 147,
+      "objective": 0.12698043418537952
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.0625,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 148,
+      "objective": 0.13323398913309425
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 149,
+      "objective": 0.10155975226185322
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 150,
+      "objective": 0.09457257415414906
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.0625
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 151,
+      "objective": 0.10277076096953426
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.018750000000000003,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 152,
+      "objective": 0.08950735792476289
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.00625,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 153,
+      "objective": 0.11726475499070639
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.018750000000000003,
+        -0.025
+      ],
+      "evaluation": 154,
+      "objective": 0.1283190958465731
+    },
+    {
+      "accepted": true,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 155,
+      "objective": 0.08041455831155452
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.03125
+      ],
+      "evaluation": 156,
+      "objective": 0.09534467434462328
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.018750000000000003
+      ],
+      "evaluation": 157,
+      "objective": 0.104965794356724
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.4375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 158,
+      "objective": 0.09298832903547712
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.3125,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 159,
+      "objective": 0.09433967979023569
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.0625,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 160,
+      "objective": 0.12363837154004446
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 161,
+      "objective": 0.08793464276137447
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 162,
+      "objective": 0.08414065759300818
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.0625
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 163,
+      "objective": 0.08962432259482785
+    },
+    {
+      "accepted": true,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.018750000000000003,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 164,
+      "objective": 0.07832881047119819
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.00625,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 165,
+      "objective": 0.10503549185211737
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 166,
+      "objective": 0.092441346361379
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.0375,
+        -0.025
+      ],
+      "evaluation": 167,
+      "objective": 0.09404444171018395
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.03125,
+        -0.03125
+      ],
+      "evaluation": 168,
+      "objective": 0.08967979480915127
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.0125,
+        0.03125,
+        -0.018750000000000003
+      ],
+      "evaluation": 169,
+      "objective": 0.08754012947216003
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.4375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.018750000000000003,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 170,
+      "objective": 0.09308134781428377
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.3125,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.018750000000000003,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 171,
+      "objective": 0.09049997983420187
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.0625,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.018750000000000003,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 172,
+      "objective": 0.15297832218551932
+    },
+    {
+      "accepted": true,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.018750000000000003,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 173,
+      "objective": 0.054915128363690065
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.018750000000000003,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 174,
+      "objective": 0.07618942371450421
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.0625
+      ],
+      "delta_translation_m_xyz": [
+        -0.018750000000000003,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 175,
+      "objective": 0.09369516306164684
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 176,
+      "objective": 0.10401012802601503
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.012500000000000002,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 177,
+      "objective": 0.08041455831155452
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.018750000000000003,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 178,
+      "objective": 0.08950735792476289
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.018750000000000003,
+        0.0375,
+        -0.025
+      ],
+      "evaluation": 179,
+      "objective": 0.09467668967330578
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.018750000000000003,
+        0.03125,
+        -0.03125
+      ],
+      "evaluation": 180,
+      "objective": 0.09314165960564813
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.018750000000000003,
+        0.03125,
+        -0.018750000000000003
+      ],
+      "evaluation": 181,
+      "objective": 0.08297888783078078
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.4375,
+        0.1875,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.018750000000000003,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 182,
+      "objective": 0.06677295117375429
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.3125,
+        0.1875,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.018750000000000003,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 183,
+      "objective": 0.07014221474800024
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.018750000000000003,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 184,
+      "objective": 0.07832881047119819
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.018750000000000003,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 185,
+      "objective": 0.0871287973560663
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.018750000000000003,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 186,
+      "objective": 0.05800492267800492
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.0625
+      ],
+      "delta_translation_m_xyz": [
+        -0.018750000000000003,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 187,
+      "objective": 0.06530734962766258
+    },
+    {
+      "accepted": true,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 188,
+      "objective": 0.04593857518068047
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.012500000000000002,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 189,
+      "objective": 0.08793464276137447
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.018750000000000003,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 190,
+      "objective": 0.06857604863278682
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.018750000000000003,
+        0.0375,
+        -0.025
+      ],
+      "evaluation": 191,
+      "objective": 0.06767977705839331
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.018750000000000003,
+        0.03125,
+        -0.03125
+      ],
+      "evaluation": 192,
+      "objective": 0.06561908851903933
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.018750000000000003,
+        0.03125,
+        -0.018750000000000003
+      ],
+      "evaluation": 193,
+      "objective": 0.06181656736588449
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.4375,
+        0.1875,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 194,
+      "objective": 0.060373719077162255
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.3125,
+        0.1875,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 195,
+      "objective": 0.05930575729815182
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 196,
+      "objective": 0.10401012802601503
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 197,
+      "objective": 0.04577078520133181
+    },
+    {
+      "accepted": true,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 198,
+      "objective": 0.042705087601336
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.0625
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 199,
+      "objective": 0.06303011419660592
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 200,
+      "objective": 0.06697070434367833
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.018750000000000003,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 201,
+      "objective": 0.054915128363690065
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 202,
+      "objective": 0.05878084329517159
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.0375,
+        -0.025
+      ],
+      "evaluation": 203,
+      "objective": 0.06145931394683474
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.03125
+      ],
+      "evaluation": 204,
+      "objective": 0.06368404102227501
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.018750000000000003
+      ],
+      "evaluation": 205,
+      "objective": 0.04947890348605001
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.4375,
+        0.1875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 206,
+      "objective": 0.05721226969631496
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.3125,
+        0.1875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 207,
+      "objective": 0.05615589115974903
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.125,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 208,
+      "objective": 0.09506190726483162
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 209,
+      "objective": 0.0482580473446469
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.25
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 210,
+      "objective": 0.05351232745857014
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.125
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 211,
+      "objective": 0.04593857518068047
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 212,
+      "objective": 0.05656077473718163
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.018750000000000003,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 213,
+      "objective": 0.05800492267800492
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.025,
+        -0.025
+      ],
+      "evaluation": 214,
+      "objective": 0.053850996591217434
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.0375,
+        -0.025
+      ],
+      "evaluation": 215,
+      "objective": 0.059533116116367225
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.03125
+      ],
+      "evaluation": 216,
+      "objective": 0.061067409951242
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.018750000000000003
+      ],
+      "evaluation": 217,
+      "objective": 0.04529248301253871
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.40625,
+        0.1875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 218,
+      "objective": 0.04649482918384228
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.34375,
+        0.1875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 219,
+      "objective": 0.045958256131180576
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.15625,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 220,
+      "objective": 0.06209286486066452
+    },
+    {
+      "accepted": true,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 221,
+      "objective": 0.0379967111018133
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.21875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 222,
+      "objective": 0.04638151657052713
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.15625
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 223,
+      "objective": 0.0425545374149907
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.028125,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 224,
+      "objective": 0.045750750043537666
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.021875000000000002,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 225,
+      "objective": 0.04706525521068523
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.028125,
+        -0.025
+      ],
+      "evaluation": 226,
+      "objective": 0.04470674439494837
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.034375,
+        -0.025
+      ],
+      "evaluation": 227,
+      "objective": 0.04780378352217221
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.028125
+      ],
+      "evaluation": 228,
+      "objective": 0.049348290647586945
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 229,
+      "objective": 0.041412748920649556
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.40625,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 230,
+      "objective": 0.04098571739768841
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.34375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 231,
+      "objective": 0.042056820737006714
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 232,
+      "objective": 0.042705087601336
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 233,
+      "objective": 0.0482580473446469
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.21875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 234,
+      "objective": 0.04313696822919361
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.15625
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 235,
+      "objective": 0.03637755066397531
+    },
+    {
+      "accepted": true,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.028125,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 236,
+      "objective": 0.031870957376664545
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.021875000000000002,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 237,
+      "objective": 0.05094704114633048
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.028125,
+        -0.025
+      ],
+      "evaluation": 238,
+      "objective": 0.040742507377488024
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.034375,
+        -0.025
+      ],
+      "evaluation": 239,
+      "objective": 0.04223660783713906
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.028125
+      ],
+      "evaluation": 240,
+      "objective": 0.04339813024842882
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 241,
+      "objective": 0.03768406221850602
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.40625,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.028125,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 242,
+      "objective": 0.03550385246835768
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.34375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.028125,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 243,
+      "objective": 0.03537102562561343
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.028125,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 244,
+      "objective": 0.045750750043537666
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.028125,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 245,
+      "objective": 0.03334144286986465
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.21875
+      ],
+      "delta_translation_m_xyz": [
+        -0.028125,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 246,
+      "objective": 0.03538515866300677
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.15625
+      ],
+      "delta_translation_m_xyz": [
+        -0.028125,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 247,
+      "objective": 0.03195416918466241
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 248,
+      "objective": 0.03340873428253799
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 249,
+      "objective": 0.0379967111018133
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.028125,
+        0.028125,
+        -0.025
+      ],
+      "evaluation": 250,
+      "objective": 0.034235971095160196
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.028125,
+        0.034375,
+        -0.025
+      ],
+      "evaluation": 251,
+      "objective": 0.03672658797222464
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.028125,
+        0.03125,
+        -0.028125
+      ],
+      "evaluation": 252,
+      "objective": 0.039176400202192194
+    },
+    {
+      "accepted": true,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.028125,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 253,
+      "objective": 0.030114583288568388
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.40625,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.028125,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 254,
+      "objective": 0.031540804157181045
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.34375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.028125,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 255,
+      "objective": 0.03583741950047179
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.028125,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 256,
+      "objective": 0.04291022489890178
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.028125,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 257,
+      "objective": 0.03273007213860691
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.21875
+      ],
+      "delta_translation_m_xyz": [
+        -0.028125,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 258,
+      "objective": 0.03343492171337027
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.15625
+      ],
+      "delta_translation_m_xyz": [
+        -0.028125,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 259,
+      "objective": 0.0304070045974983
+    },
+    {
+      "accepted": true,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 260,
+      "objective": 0.02994304635502733
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.025,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 261,
+      "objective": 0.03768406221850602
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.028125,
+        0.028125,
+        -0.021875000000000002
+      ],
+      "evaluation": 262,
+      "objective": 0.03431898222033575
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.028125,
+        0.034375,
+        -0.021875000000000002
+      ],
+      "evaluation": 263,
+      "objective": 0.03313132039863192
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.028125,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 264,
+      "objective": 0.031870957376664545
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.028125,
+        0.03125,
+        -0.018750000000000003
+      ],
+      "evaluation": 265,
+      "objective": 0.033766464364475834
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.40625,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 266,
+      "objective": 0.03191913127017197
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.34375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 267,
+      "objective": 0.035138086600139486
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.1875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 268,
+      "objective": 0.05211674475682601
+    },
+    {
+      "accepted": true,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 269,
+      "objective": 0.02321131050452241
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.21875
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 270,
+      "objective": 0.0314726652556589
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.15625
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 271,
+      "objective": 0.03205987883769757
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.034375,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 272,
+      "objective": 0.03776325731120764
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.028125,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 273,
+      "objective": 0.030114583288568388
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.028125,
+        -0.021875000000000002
+      ],
+      "evaluation": 274,
+      "objective": 0.033776806930555694
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.034375,
+        -0.021875000000000002
+      ],
+      "evaluation": 275,
+      "objective": 0.03350232851302245
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 276,
+      "objective": 0.03340873428253799
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.03125,
+        -0.018750000000000003
+      ],
+      "evaluation": 277,
+      "objective": 0.032249086367944484
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.40625,
+        0.25,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 278,
+      "objective": 0.024429871319807027
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.34375,
+        0.25,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 279,
+      "objective": 0.029199614422131488
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 280,
+      "objective": 0.02994304635502733
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.28125,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 281,
+      "objective": 0.032358860126197576
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.21875
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 282,
+      "objective": 0.026362356420584696
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.15625
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 283,
+      "objective": 0.02372426170539873
+    },
+    {
+      "accepted": true,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.034375,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 284,
+      "objective": 0.021342541790078474
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.028125,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 285,
+      "objective": 0.03273007213860691
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.028125,
+        -0.021875000000000002
+      ],
+      "evaluation": 286,
+      "objective": 0.027806268981058615
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.034375,
+        -0.021875000000000002
+      ],
+      "evaluation": 287,
+      "objective": 0.025941935355121175
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 288,
+      "objective": 0.025465125034819625
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.03125,
+        -0.018750000000000003
+      ],
+      "evaluation": 289,
+      "objective": 0.0265598121459111
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.40625,
+        0.25,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.034375,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 290,
+      "objective": 0.023133723980778873
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.34375,
+        0.25,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.034375,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 291,
+      "objective": 0.026797890733364183
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.21875,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.034375,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 292,
+      "objective": 0.03776325731120764
+    },
+    {
+      "accepted": true,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.28125,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.034375,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 293,
+      "objective": 0.020962405736146092
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.21875
+      ],
+      "delta_translation_m_xyz": [
+        -0.034375,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 294,
+      "objective": 0.022658391946134435
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.15625
+      ],
+      "delta_translation_m_xyz": [
+        -0.034375,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 295,
+      "objective": 0.02372743275233672
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.037500000000000006,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 296,
+      "objective": 0.02765908547704909
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 297,
+      "objective": 0.02321131050452241
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.034375,
+        0.028125,
+        -0.021875000000000002
+      ],
+      "evaluation": 298,
+      "objective": 0.02557150044759914
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.034375,
+        0.034375,
+        -0.021875000000000002
+      ],
+      "evaluation": 299,
+      "objective": 0.0245877785309637
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.034375,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 300,
+      "objective": 0.025431304998284186
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.034375,
+        0.03125,
+        -0.018750000000000003
+      ],
+      "evaluation": 301,
+      "objective": 0.023188518668864396
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.40625,
+        0.28125,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.034375,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 302,
+      "objective": 0.021963773804875603
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.34375,
+        0.28125,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.034375,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 303,
+      "objective": 0.027183392662624144
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.034375,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 304,
+      "objective": 0.021342541790078474
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.3125,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.034375,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 305,
+      "objective": 0.03662526173277407
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.28125,
+        -0.21875
+      ],
+      "delta_translation_m_xyz": [
+        -0.034375,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 306,
+      "objective": 0.023920447088988325
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.28125,
+        -0.15625
+      ],
+      "delta_translation_m_xyz": [
+        -0.034375,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 307,
+      "objective": 0.021692730022215254
+    },
+    {
+      "accepted": true,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.28125,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.037500000000000006,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 308,
+      "objective": 0.01740460714726883
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.28125,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.03125,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 309,
+      "objective": 0.032358860126197576
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.28125,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.034375,
+        0.028125,
+        -0.021875000000000002
+      ],
+      "evaluation": 310,
+      "objective": 0.025941773185798662
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.28125,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.034375,
+        0.034375,
+        -0.021875000000000002
+      ],
+      "evaluation": 311,
+      "objective": 0.02337755137031809
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.28125,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.034375,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 312,
+      "objective": 0.023730277236319056
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.28125,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.034375,
+        0.03125,
+        -0.018750000000000003
+      ],
+      "evaluation": 313,
+      "objective": 0.023927769632535435
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.40625,
+        0.28125,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.037500000000000006,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 314,
+      "objective": 0.018993449528442313
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.34375,
+        0.28125,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.037500000000000006,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 315,
+      "objective": 0.023094203322032537
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.25,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.037500000000000006,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 316,
+      "objective": 0.02765908547704909
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.3125,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.037500000000000006,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 317,
+      "objective": 0.023483598533368524
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.28125,
+        -0.21875
+      ],
+      "delta_translation_m_xyz": [
+        -0.037500000000000006,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 318,
+      "objective": 0.01849511744609264
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.28125,
+        -0.15625
+      ],
+      "delta_translation_m_xyz": [
+        -0.037500000000000006,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 319,
+      "objective": 0.020040248941896842
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.28125,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.04062500000000001,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 320,
+      "objective": 0.02210793761880435
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.28125,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.034375,
+        0.03125,
+        -0.021875000000000002
+      ],
+      "evaluation": 321,
+      "objective": 0.020962405736146092
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.28125,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.037500000000000006,
+        0.028125,
+        -0.021875000000000002
+      ],
+      "evaluation": 322,
+      "objective": 0.02201707547753361
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.28125,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.037500000000000006,
+        0.034375,
+        -0.021875000000000002
+      ],
+      "evaluation": 323,
+      "objective": 0.020300561496807496
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.28125,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.037500000000000006,
+        0.03125,
+        -0.025
+      ],
+      "evaluation": 324,
+      "objective": 0.02207815827799469
+    },
+    {
+      "accepted": false,
+      "delta_rotation_deg_xyz": [
+        -0.375,
+        0.28125,
+        -0.1875
+      ],
+      "delta_translation_m_xyz": [
+        -0.037500000000000006,
+        0.03125,
+        -0.018750000000000003
+      ],
+      "evaluation": 325,
+      "objective": 0.018727677888516276
+    }
+  ],
+  "train_frame_ids": [
+    "0000000114",
+    "0000000115",
+    "0000000116",
+    "0000000229",
+    "0000000230",
+    "0000000344",
+    "0000000346"
+  ],
+  "transform_camera_lidar": {
+    "child": "lidar",
+    "convention": "T_parent_child",
+    "parent": "camera",
+    "provenance": {
+      "evidence_level": "unknown",
+      "execution_mode": "unknown",
+      "notes": [],
+      "producer": "unknown"
+    },
+    "quality": {
+      "grade": "warn",
+      "std_rotation_deg": [],
+      "std_translation_m": []
+    },
+    "rotation_quat_xyzw": [
+      -0.5001004128327989,
+      0.5001263539665554,
+      -0.5000257329032836,
+      -0.49974740978530174
+    ],
+    "translation_m": [
+      0.10250000000000001,
+      -0.04875,
+      0.018125
+    ]
+  }
+}
