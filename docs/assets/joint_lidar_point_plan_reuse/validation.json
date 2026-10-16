@@ -1,0 +1,30 @@
+{
+  "checks": {
+    "windows_python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "windows_packages": {
+      "numpy": "2.3.4",
+      "scipy": "1.17.1",
+      "pydantic": "2.12.5",
+      "PyYAML": "6.0.3",
+      "jsonschema": "4.26.0",
+      "pytest": "9.0.2"
+    },
+    "windows_graph_tests": 111,
+    "windows_archive_tests": 21,
+    "windows_schema_registry_tests": 15,
+    "linux_graph_tests": 111,
+    "linux_archive_tests": 21,
+    "strict_mypy_modules": 382,
+    "ruff": "passed",
+    "mkdocs_strict": "passed",
+    "measured_launcher_equals_archived_auditor_and_committed_tool": true,
+    "public_schema_exports_and_ledger_byte_identical": 130
+  },
+  "provenance": {
+    "protocol_sha256": "e3491dbe5a3bf15ebffccff56db23859545d9ff27461fbb3cf3ef12fb473b7ff",
+    "runtime_git_commit": "dfd9df76515fc36b3b252e48a6c58d605b636b93",
+    "source_manifest_sha256": "6b327cc52564a7e166bcd53962d35478798960dc95c37a274dd893909479a701",
+    "finalizer_sha256": "9ae92962d91a66d5e745cd20c78d14511fbab5b7b284d2951541a0b97c63e0aa",
+    "linux_runner_sha256": "3097b128b5e73c63f93a025bfeae495296377916bb4c1a757f04501feba2e0a0"
+  }
+}
