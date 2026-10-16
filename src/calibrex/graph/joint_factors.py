@@ -204,6 +204,9 @@ def make_joint_depth_point_to_plane_factor(
     ray = measurement.normalized_ray_sensor
     if measurement.nominal_depth_m <= 0.0 or abs(ray[2] - 1.0) > 1.0e-9:
         raise ValueError("joint depth factor requires positive depth and ray z=1")
+    transform_key = _rgbd_transform_signature(
+        measurement.transform_world_body_initial, measurement.transform_body_sensor_initial
+    )
 
     def evaluator(values: ParameterValues) -> tuple[float]:
         depth_values = tuple(values[depth_calibration_block])
@@ -211,11 +214,10 @@ def make_joint_depth_point_to_plane_factor(
             raise ValueError("joint depth calibration block requires log-scale and bias")
         corrected_depth = math.exp(depth_values[0]) * measurement.nominal_depth_m + depth_values[1]
         point_sensor = _scale(ray, corrected_depth)
-        pose_delta = se3_from_tangent(values[pose_block])
-        extrinsic_delta = se3_from_tangent(values[extrinsic_block])
-        transform_world_sensor = pose_delta.compose(
-            measurement.transform_world_body_initial
-        ).compose(extrinsic_delta.compose(measurement.transform_body_sensor_initial))
+        transform_world_sensor = _rgbd_transform(
+            values, pose_block, measurement.transform_world_body_initial,
+            transform_key, extrinsic_block, measurement.transform_body_sensor_initial,
+        )
         point_world = transform_world_sensor.transform_point(point_sensor)
         return (_dot(normal, _subtract(point_world, measurement.plane_point_world_m)),)
 
@@ -247,6 +249,9 @@ def make_joint_trilinear_depth_point_to_plane_factor(
         raise ValueError("joint trilinear depth factor requires nonnegative lattice weights")
     if abs(sum(weights) - 1.0) > 1.0e-9:
         raise ValueError("joint trilinear depth lattice weights must sum to one")
+    transform_key = _rgbd_transform_signature(
+        measurement.transform_world_body_initial, measurement.transform_body_sensor_initial
+    )
 
     def evaluator(values: ParameterValues) -> tuple[float]:
         offsets = values[depth_lattice_block]
@@ -255,11 +260,10 @@ def make_joint_trilinear_depth_point_to_plane_factor(
         displacement = sum(weight * offset for weight, offset in zip(weights, offsets, strict=True))
         corrected_depth = measurement.nominal_depth_m + displacement
         point_sensor = _scale(ray, corrected_depth)
-        pose_delta = se3_from_tangent(values[pose_block])
-        extrinsic_delta = se3_from_tangent(values[extrinsic_block])
-        transform_world_sensor = pose_delta.compose(
-            measurement.transform_world_body_initial
-        ).compose(extrinsic_delta.compose(measurement.transform_body_sensor_initial))
+        transform_world_sensor = _rgbd_transform(
+            values, pose_block, measurement.transform_world_body_initial,
+            transform_key, extrinsic_block, measurement.transform_body_sensor_initial,
+        )
         point_world = transform_world_sensor.transform_point(point_sensor)
         return (_dot(normal, _subtract(point_world, measurement.plane_point_world_m)),)
 
@@ -292,6 +296,9 @@ def make_joint_centered_trilinear_depth_point_to_plane_factor(
         raise ValueError("joint centered depth factor requires nonnegative lattice weights")
     if abs(sum(weights) - 1.0) > 1.0e-9:
         raise ValueError("joint centered depth lattice weights must sum to one")
+    transform_key = _rgbd_transform_signature(
+        measurement.transform_world_body_initial, measurement.transform_body_sensor_initial
+    )
 
     def evaluator(values: ParameterValues) -> tuple[float]:
         bias_values = values[depth_bias_block]
@@ -305,11 +312,10 @@ def make_joint_centered_trilinear_depth_point_to_plane_factor(
         )
         corrected_depth = measurement.nominal_depth_m + bias_values[0] + spatial_displacement
         point_sensor = _scale(ray, corrected_depth)
-        pose_delta = se3_from_tangent(values[pose_block])
-        extrinsic_delta = se3_from_tangent(values[extrinsic_block])
-        transform_world_sensor = pose_delta.compose(
-            measurement.transform_world_body_initial
-        ).compose(extrinsic_delta.compose(measurement.transform_body_sensor_initial))
+        transform_world_sensor = _rgbd_transform(
+            values, pose_block, measurement.transform_world_body_initial,
+            transform_key, extrinsic_block, measurement.transform_body_sensor_initial,
+        )
         point_world = transform_world_sensor.transform_point(point_sensor)
         return (_dot(normal, _subtract(point_world, measurement.plane_point_world_m)),)
 
@@ -340,17 +346,19 @@ def make_joint_trilinear_xyz_point_to_plane_factor(
     normal = _normalize(measurement.plane_normal_world)
     weights = measurement.lattice_weights
     _validate_xyz_lattice_weights(weights)
+    transform_key = _rgbd_transform_signature(
+        measurement.transform_world_body_initial, measurement.transform_body_sensor_initial
+    )
 
     def evaluator(values: ParameterValues) -> tuple[float]:
         offsets = values[xyz_lattice_block]
         calibrated_point = _calibrated_xyz_lattice_point(
             measurement.point_sensor_m, weights, offsets
         )
-        pose_delta = se3_from_tangent(values[pose_block])
-        extrinsic_delta = se3_from_tangent(values[extrinsic_block])
-        transform_world_sensor = pose_delta.compose(
-            measurement.transform_world_body_initial
-        ).compose(extrinsic_delta.compose(measurement.transform_body_sensor_initial))
+        transform_world_sensor = _rgbd_transform(
+            values, pose_block, measurement.transform_world_body_initial,
+            transform_key, extrinsic_block, measurement.transform_body_sensor_initial,
+        )
         point_world = transform_world_sensor.transform_point(calibrated_point)
         return (_dot(normal, _subtract(point_world, measurement.plane_point_world_m)),)
 
@@ -382,6 +390,8 @@ def make_joint_trilinear_xyz_pair_factor(
         raise ValueError("joint trilinear XYZ pair lattices must have the same size")
     if source_pose_block == target_pose_block:
         raise ValueError("joint trilinear XYZ pair requires distinct pose blocks")
+    source_key = _rgbd_transform_signature(measurement.transform_world_source_initial)
+    target_key = _rgbd_transform_signature(measurement.transform_world_target_initial)
 
     def evaluator(values: ParameterValues) -> tuple[float]:
         offsets = values[xyz_lattice_block]
@@ -391,11 +401,11 @@ def make_joint_trilinear_xyz_pair_factor(
         target_calibrated = _calibrated_xyz_lattice_point(
             measurement.target_point_sensor_m, target_weights, offsets
         )
-        source_world = se3_from_tangent(values[source_pose_block]).compose(
-            measurement.transform_world_source_initial
+        source_world = _rgbd_transform(
+            values, source_pose_block, measurement.transform_world_source_initial, source_key
         )
-        target_world = se3_from_tangent(values[target_pose_block]).compose(
-            measurement.transform_world_target_initial
+        target_world = _rgbd_transform(
+            values, target_pose_block, measurement.transform_world_target_initial, target_key
         )
         difference = _subtract(
             source_world.transform_point(source_calibrated),
@@ -792,6 +802,100 @@ def se3_from_tangent(values: Sequence[float]) -> SE3:
 
 
 _SE3_FROM_TANGENT_IMPLEMENTATION = se3_from_tangent
+
+
+@dataclass(frozen=True)
+class _RGBDTransformSignature:
+    key: bytes
+    leaves: tuple[tuple[float, ...], ...]
+
+    def matches(self, world: SE3, sensor: SE3 | None) -> bool:
+        return (
+            type(world) is SE3
+            and world.translation_m is self.leaves[0]
+            and world.rotation_quat_xyzw is self.leaves[1]
+            and (
+                (sensor is None and len(self.leaves) == 2)
+                or (
+                    type(sensor) is SE3
+                    and len(self.leaves) == 4
+                    and sensor.translation_m is self.leaves[2]
+                    and sensor.rotation_quat_xyzw is self.leaves[3]
+                )
+            )
+        )
+
+
+def _rgbd_transform_signature(
+    world: SE3, sensor: SE3 | None = None
+) -> _RGBDTransformSignature | None:
+    frames = (world,) if sensor is None else (world, sensor)
+    if any(type(frame) is not SE3 for frame in frames):
+        return None
+    leaves = tuple(leaf for frame in frames for leaf in (
+        frame.translation_m, frame.rotation_quat_xyzw
+    ))
+    if any(
+        type(leaf) is not tuple
+        or len(leaf) != (3 if index % 2 == 0 else 4)
+        or any(type(value) is not float or not math.isfinite(value) for value in leaf)
+        for index, leaf in enumerate(leaves)
+    ):
+        return None
+    numbers = tuple(value for leaf in leaves for value in leaf)
+    return _RGBDTransformSignature(
+        b"joint_rgbd_transform/v1\0" + struct.pack(f"<{len(numbers)}d", *numbers), leaves
+    )
+
+
+def _rgbd_transform(
+    values: ParameterValues,
+    pose_block: str,
+    world: SE3,
+    signature: _RGBDTransformSignature | None,
+    extrinsic_block: str | None = None,
+    sensor: SE3 | None = None,
+) -> SE3:
+    cache = _EVALUATION_CACHE.get()
+    key = None
+    if (
+        cache is not None
+        and signature is not None
+        and type(values) is dict
+        and signature.matches(world, sensor)
+    ):
+        pose = values[pose_block]
+        # Validate the pose before looking up the extrinsic, retaining scalar
+        # exception order for direct evaluator calls with invalid input.
+        if _rgbd_tangent_supported(pose):
+            extrinsic = values[extrinsic_block] if extrinsic_block is not None else ()
+            if extrinsic_block is None or _rgbd_tangent_supported(extrinsic):
+                key = signature.key + struct.pack(
+                    "<6d" if extrinsic_block is None else "<12d", *pose, *extrinsic
+                )
+                transform = cast(SE3 | None, cache.get(key))
+                if transform is not None:
+                    cache.move_to_end(key)
+                    return transform
+    pose_delta = se3_from_tangent(values[pose_block])
+    if extrinsic_block is None:
+        transform = pose_delta.compose(world)
+    else:
+        assert sensor is not None
+        extrinsic_delta = se3_from_tangent(values[extrinsic_block])
+        transform = pose_delta.compose(world).compose(extrinsic_delta.compose(sensor))
+    if cache is not None and key is not None:
+        cache[key] = transform
+        if len(cache) > _EVALUATION_CACHE_LIMIT:
+            cache.popitem(last=False)
+    return transform
+
+
+def _rgbd_tangent_supported(vector: Sequence[float]) -> bool:
+    return (
+        type(vector) is tuple and len(vector) == 6
+        and all(type(value) is float and math.isfinite(value) for value in vector)
+    )
 
 
 def _vector3(values: Sequence[float]) -> Vector3:
