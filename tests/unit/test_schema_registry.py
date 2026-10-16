@@ -38,6 +38,9 @@ UNREGISTERED_SCHEMA_VERSIONS = {
 # Benchmark records are validated by their explicit tool schemas and archive
 # audits, without adding benchmark-internal formats to the core public API.
 TOOL_SCHEMA_VERSIONS = {
+    "slac.lidar_wheel_preparation_benchmark/v0.1": (
+        "tools/schemas/lidar_wheel_preparation_benchmark.schema.json"
+    ),
     "slac.gnss_lever_arm_reuse_benchmark/v0.1": (
         "tools/schemas/gnss_lever_arm_reuse_benchmark.schema.json"
     ),
