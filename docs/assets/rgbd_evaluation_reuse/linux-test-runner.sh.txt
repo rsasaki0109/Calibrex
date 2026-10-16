@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd /mnt/c/Users/rsasa/Workspace/Calibrex
+python3 -m venv /tmp/calibrex-joint-plan-reuse-tests
+py=/tmp/calibrex-joint-plan-reuse-tests/bin/python
+"$py" -m pip install --disable-pip-version-check -q 'numpy>=1.21,<2.3' 'scipy>=1.8,<1.16' 'pydantic>=2.6,<3' 'PyYAML>=6.0,<7' 'jsonschema>=4.18,<5' 'pytest>=8.4,<10'
+export OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 OMP_NUM_THREADS=1
+export PYTHONPATH=src:.
+"$py" - <<'PY' > outputs/rgbd-array-validation-final/linux-environment.json
+import hashlib, importlib.metadata, json, subprocess, sys
+from pathlib import Path
+runner = Path('.tmp-calibrex-rgbd-array-linux.sh')
+print(json.dumps({"python": sys.version, "packages": {name: importlib.metadata.version(name) for name in ('numpy', 'scipy', 'pydantic', 'PyYAML', 'jsonschema', 'pytest')}, "provenance": {"runner_sha256": hashlib.sha256(runner.read_bytes()).hexdigest(), "git_commit": subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip(), "scope": "Linux graph/archive tests, without performance claims"}}, indent=2))
+PY
+if [[ "${1:-core}" == "archive" ]]; then
+  "$py" -m pytest tests/unit/test_rgbd_transform_reuse_archive.py -o cache_dir=/tmp/calibrex-joint-plan-reuse-tests/pytest-cache > outputs/rgbd-array-validation-final/archive-linux.log 2>&1
+  cat outputs/rgbd-array-validation-final/archive-linux.log
+else
+  "$py" -m pytest tests/unit/test_rgbd_transform_reuse.py tests/unit/test_joint_point_batches.py tests/unit/test_joint_transform_reuse.py tests/unit/test_joint_factors.py tests/unit/test_joint_optimization.py -o cache_dir=/tmp/calibrex-joint-plan-reuse-tests/pytest-cache > outputs/rgbd-array-validation-final/core-linux.log 2>&1
+  cat outputs/rgbd-array-validation-final/core-linux.log
+fi
