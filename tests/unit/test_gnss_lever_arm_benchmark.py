@@ -70,6 +70,19 @@ def test_replay_bounds_both_caches_and_keeps_jackknife_contexts_separate() -> No
     assert replay_work(value, True)["lidar_poses_calls"] == 4
 
 
+def test_combined_lookup_counts_every_epoch_and_each_actual_interpolation_call() -> None:
+    value = history([event(0.0), event(0.0, 0.1), event(0.0)])
+    for row in value["residuals"]:
+        row["epoch_count"] = 19
+    value["excitation"] = [{"window_ids": ["a", "b"], "epoch_count": 19}]
+    prior = replay_work(value, False, combined_pose_interpolation=True)
+    current = replay_work(value, True, combined_pose_interpolation=True)
+    assert prior["interpolated_epochs"] == 76
+    assert current["interpolated_epochs"] == 38
+    assert prior["lidar_poses_calls"] == 8 and prior["pose_batch_calls"] == 0
+    assert current["lidar_poses_calls"] == 2 and current["pose_batch_calls"] == 1
+
+
 @pytest.mark.parametrize("part", ["fit", "boolean_fit", "dimension", "finite", "normalization"])
 def test_replay_rejects_invalid_evaluation(part: str) -> None:
     row = event(0.0)

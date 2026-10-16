@@ -151,7 +151,7 @@ class GnssLeverArmSolver:
         pairs = build_pairs(rebased, windows, opts, epoch=epoch)
         if len(pairs) < 2 or sum(len(item.first) for item in pairs) < 12:
             return LeverArmResult("insufficient_windows", None, 0.0, (), None, 0)
-        evaluate = _make_residual_evaluator(rebased, pairs, opts)
+        evaluate = _make_residual_evaluator(rebased, pairs, opts, windows=windows)
         params, weights, variance = _irls(rebased, pairs, opts, residual_evaluator=evaluate)
         dofs = _observability(
             rebased, pairs, params, weights, variance, opts, residual_evaluator=evaluate
@@ -322,8 +322,45 @@ def _alignment_rotations(covariances: FloatArray) -> FloatArray:
     return np.asarray(left @ correction @ right_t, dtype=np.float64)
 
 
+def _make_pose_lookup(
+    pairs: Sequence[WindowPairs], windows: Sequence[OdometryWindow] | None
+) -> Callable[[float], tuple[FloatArray, FloatArray, FloatArray]] | None:
+    """Combine disjoint odometry intervals without interpolating their gaps."""
+
+    if not pairs or windows is None:
+        return None
+    by_id = {w.window_id: w for w in windows}
+    if len(by_id) != len(windows) or any(p.window_id not in by_id for p in pairs):
+        return None
+    times = np.concatenate([p.odometry_times_s for p in pairs])
+    if np.any(np.diff(times) <= 0.0):
+        return None
+    rotations = np.concatenate([by_id[p.window_id].poses[:, :3, :3] for p in pairs])
+    translations = np.concatenate([p.odometry_translations for p in pairs])
+    slerp = Slerp(times, Rotation.from_matrix(rotations))
+
+    def lookup(offset: float) -> tuple[FloatArray, FloatArray, FloatArray]:
+        # build_pairs keeps each query in its original window over the entire
+        # solver clock bound. The intervals across gaps are never evaluated.
+        query = np.concatenate([p.epoch_times_s - offset for p in pairs])
+        rotation = slerp(query).as_matrix()
+        translation = np.column_stack(
+            [np.interp(query, times, translations[:, axis]) for axis in range(3)]
+        )
+        upper = np.clip(np.searchsorted(times, query, side="right"), 1, len(times) - 1)
+        lower = times[upper - 1]
+        fraction = (query - lower) / (times[upper] - lower)
+        return rotation, translation, (1.0 - fraction) ** 2 + fraction**2
+
+    return lookup
+
+
 def _make_residual_evaluator(
-    track: GnssTrackModel, pairs: Sequence[WindowPairs], opts: LeverArmOptions
+    track: GnssTrackModel,
+    pairs: Sequence[WindowPairs],
+    opts: LeverArmOptions,
+    *,
+    windows: Sequence[OdometryWindow] | None = None,
 ) -> _ResidualEvaluator:
     def scalar(lever: FloatArray, offset: float) -> FloatArray:
         return window_residuals(track, pairs, lever, offset, opts)
@@ -331,7 +368,9 @@ def _make_residual_evaluator(
     # Include 64 clock states, 256 residuals, prepared indices and working
     # arrays. Inputs above this conservative bound keep the scalar path.
     estimate = sum(
-        (len(p.epoch_times_s) + len(p.first)) * _EVALUATION_CACHE_BYTES_PER_ROW + 4096
+        (len(p.epoch_times_s) + len(p.first)) * _EVALUATION_CACHE_BYTES_PER_ROW
+        + len(p.odometry_times_s) * 512
+        + 4096
         for p in pairs
     )
     if not pairs or estimate > _EVALUATION_CACHE_MAX_BYTES:
@@ -345,14 +384,18 @@ def _make_residual_evaluator(
     )
     cuts = np.r_[0, np.cumsum([len(p.first) for p in pairs])]
     slices = [slice(a, b) for a, b in pairwise(cuts)]
+    lookup = _make_pose_lookup(pairs, windows)
 
     @lru_cache(maxsize=64)
     def clock_state(bits: bytes) -> tuple[FloatArray, FloatArray, FloatArray]:
         offset = struct.unpack("d", bits)[0]
-        states = [p.lidar_poses(p.epoch_times_s - offset) for p in pairs]
-        rotation = np.concatenate([state[0] for state in states])
-        translation = np.concatenate([state[1] for state in states])
-        blend = np.concatenate([state[2] for state in states])
+        if lookup is None:
+            states = [p.lidar_poses(p.epoch_times_s - offset) for p in pairs]
+            rotation = np.concatenate([state[0] for state in states])
+            translation = np.concatenate([state[1] for state in states])
+            blend = np.concatenate([state[2] for state in states])
+        else:
+            rotation, translation, blend = lookup(offset)
         # Keep the original additions in order, including the offset-dependent
         # pose-noise blend. The displacement term still depends on the lever.
         fixed_variance = gnss_variance + opts.odometry_pose_sigma_m**2 * (

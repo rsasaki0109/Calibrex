@@ -107,6 +107,7 @@ def worker(protocol_path: Path, variant: str, folder: Path) -> None:
     from calibrex.solvers import gnss_lever_arm_solver as solver
 
     protocol = json.loads(protocol_path.read_bytes())
+    combined = protocol.get("combined_pose_interpolation", False)
     full = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
     short = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], text=True).strip()
     verify_git(full, short, protocol["commits"][variant], git_commit())
@@ -136,6 +137,8 @@ def worker(protocol_path: Path, variant: str, folder: Path) -> None:
         ),
         0,
     )
+    if combined:
+        counts.update(pose_batch_calls=0, interpolated_epochs=0)
     active = None
     original_solve = solver.GnssLeverArmSolver.solve
     original_residuals = solver.window_residuals
@@ -166,6 +169,7 @@ def worker(protocol_path: Path, variant: str, folder: Path) -> None:
                 "fit": active,
                 "window_ids": [p.window_id for p in pairs],
                 "pair_count": sum(len(p.first) for p in pairs),
+                **({"epoch_count": sum(len(p.epoch_times_s) for p in pairs)} if combined else {}),
                 "lever": lever.tolist(),
                 "offset": offset,
                 "normalize": normalize,
@@ -188,8 +192,8 @@ def worker(protocol_path: Path, variant: str, folder: Path) -> None:
         original_factory = solver._make_residual_evaluator
         original_alignments = solver._alignment_rotations
 
-        def factory(track, pairs, opts):
-            evaluate = original_factory(track, pairs, opts)
+        def factory(track, pairs, opts, **kwargs):
+            evaluate = original_factory(track, pairs, opts, **kwargs)
             return lambda lever, offset: record(pairs, lever, offset, True, evaluate(lever, offset))
 
         def alignments(covariances):
@@ -199,6 +203,22 @@ def worker(protocol_path: Path, variant: str, folder: Path) -> None:
 
         solver._make_residual_evaluator = factory
         solver._alignment_rotations = alignments
+        if combined:
+            original_lookup = solver._make_pose_lookup
+
+            def make_lookup(pairs, windows):
+                lookup = original_lookup(pairs, windows)
+                if lookup is None:
+                    return None
+
+                def batch(offset):
+                    counts["pose_batch_calls"] += 1
+                    counts["interpolated_epochs"] += sum(len(p.epoch_times_s) for p in pairs)
+                    return lookup(offset)
+
+                return batch
+
+            solver._make_pose_lookup = make_lookup
 
     def procrustes(*args):
         counts["svd_calls"] += 1
@@ -207,6 +227,8 @@ def worker(protocol_path: Path, variant: str, folder: Path) -> None:
 
     def poses(*args):
         counts["lidar_poses_calls"] += 1
+        if combined:
+            counts["interpolated_epochs"] += len(args[1])
         return original_poses(*args)
 
     def excitation(pairs, *args):
@@ -214,6 +236,7 @@ def worker(protocol_path: Path, variant: str, folder: Path) -> None:
             {
                 "window_ids": [p.window_id for p in pairs],
                 "pair_count": sum(len(p.first) for p in pairs),
+                **({"epoch_count": sum(len(p.epoch_times_s) for p in pairs)} if combined else {}),
             }
         )
         return original_excitation(pairs, *args)
@@ -438,7 +461,7 @@ def input_lineage(output: Path, problem: dict) -> None:
         raise ValueError("generated control geometry, noise or unchanged defaults differ")
 
 
-def replay_work(history: dict, current: bool) -> dict:
+def replay_work(history: dict, current: bool, *, combined_pose_interpolation: bool = False) -> dict:
     caches, clocks = {}, {}
     counts = dict.fromkeys(
         (
@@ -456,6 +479,8 @@ def replay_work(history: dict, current: bool) -> dict:
         residual_requests=len(history["residuals"]),
         least_squares_calls=len(history["least_squares"]),
     )
+    if combined_pose_interpolation:
+        counts.update(pose_batch_calls=0, interpolated_epochs=0)
     for event in history["residuals"]:
         fit, size = event["fit"], len(event["window_ids"])
         if event["residual_count"] != 3 * event["pair_count"] or not all(
@@ -464,6 +489,8 @@ def replay_work(history: dict, current: bool) -> dict:
             raise ValueError("invalid residual dimensions or parameters")
         if fit is None or not current:
             counts["lidar_poses_calls"] += size
+            if combined_pose_interpolation:
+                counts["interpolated_epochs"] += event["epoch_count"]
             counts["svd_calls"] += size
             counts["profiled_windows"] += size
             continue
@@ -486,11 +513,17 @@ def replay_work(history: dict, current: bool) -> dict:
         if key[1] in clock:
             clock.move_to_end(key[1])
         else:
-            counts["lidar_poses_calls"] += size
+            if combined_pose_interpolation:
+                counts["pose_batch_calls"] += 1
+                counts["interpolated_epochs"] += event["epoch_count"]
+            else:
+                counts["lidar_poses_calls"] += size
             clock[key[1]] = None
             if len(clock) > 64:
                 clock.popitem(last=False)
     counts["lidar_poses_calls"] += sum(len(e["window_ids"]) for e in history["excitation"])
+    if combined_pose_interpolation:
+        counts["interpolated_epochs"] += sum(e["epoch_count"] for e in history["excitation"])
     return counts
 
 
@@ -503,6 +536,7 @@ def audit(output: Path) -> dict:
 
     schema = json.loads((output / "schema.json").read_bytes())
     protocol = json.loads((output / "protocol.json").read_bytes())
+    combined = protocol.get("combined_pose_interpolation", False)
     jsonschema.validate(protocol, schema)
     if set(protocol["provenance"]["files"]) != PINNED:
         raise ValueError("incomplete pinned artifact inventory")
@@ -570,7 +604,12 @@ def audit(output: Path) -> dict:
         return sum(len(p.first) for p in pairs)
 
     expected_excitation = [
-        {"window_ids": ids(p), "pair_count": pair_count(p)} for p in (fit_pairs[0], held_pairs)
+        {
+            "window_ids": ids(p),
+            "pair_count": pair_count(p),
+            **({"epoch_count": sum(len(w.epoch_times_s) for w in p)} if combined else {}),
+        }
+        for p in (fit_pairs[0], held_pairs)
     ]
     work, api = {v: [] for v in ("prior", "current")}, {v: [] for v in ("prior", "current")}
     outputs, histories = [], []
@@ -653,7 +692,11 @@ def audit(output: Path) -> dict:
                 raise ValueError("unknown residual fit")
             else:
                 pairs = fit_pairs[fit]
-            if event["window_ids"] != ids(pairs) or event["pair_count"] != pair_count(pairs):
+            if (
+                event["window_ids"] != ids(pairs)
+                or event["pair_count"] != pair_count(pairs)
+                or (combined and event["epoch_count"] != sum(len(p.epoch_times_s) for p in pairs))
+            ):
                 raise ValueError("residual uses different windows/pairs")
         if len(outside) != 10 or sum(not e["normalize"] for e in outside) != 2:
             raise ValueError("held-out controls or metre summaries differ")
@@ -667,7 +710,9 @@ def audit(output: Path) -> dict:
                     raise ValueError("optimizer residual/Jacobian dimensions differ")
         if len(history["least_squares"]) != len(subsets) * options.solver.irls_iterations:
             raise ValueError("optimizer fit count differs")
-        if measurement["counts"] != replay_work(history, variant == "current"):
+        if measurement["counts"] != replay_work(
+            history, variant == "current", combined_pose_interpolation=combined
+        ):
             raise ValueError("observed work differs from cache replay")
         seconds = measurement["api_seconds"]
         if not math.isfinite(seconds) or not 0 < seconds <= run["seconds"]:
@@ -787,6 +832,7 @@ def main() -> None:
         "fresh_workers": True,
         "blas_threads": 1,
         "host_unreserved": True,
+        "combined_pose_interpolation": True,
         "options": default_options(),
         "provenance": {
             "files": {n: sha(output / n) for n in sorted(PINNED)},

@@ -181,7 +181,7 @@ def test_complete_evaluation_and_all_optimizer_results_match_uncached(
     monkeypatch.setattr(
         solver,
         "_make_residual_evaluator",
-        lambda track, pairs, opts: (
+        lambda track, pairs, opts, **_kwargs: (
             lambda lever, offset: solver.window_residuals(track, pairs, lever, offset, opts)
         ),
     )
@@ -190,3 +190,62 @@ def test_complete_evaluation_and_all_optimizer_results_match_uncached(
     assert traces == cached_traces
     assert cached.jackknife_fits == 5
     assert cached.holdout_windows == 3
+
+
+@pytest.mark.parametrize("estimate_time", [False, True])
+def test_combined_pose_lookup_keeps_bits_at_boundaries_and_in_ragged_windows(
+    estimate_time: bool,
+) -> None:
+    track, windows = synthetic(11, windows=4)
+    options = solver.LeverArmOptions(estimate_time_offset=estimate_time)
+    windows[1] = replace(windows[1], times_s=windows[1].times_s[:71], poses=windows[1].poses[:71])
+    rebased = replace(track, times_s=track.times_s - EPOCH)
+    pairs = solver.build_pairs(rebased, windows, options, epoch=EPOCH)
+    lookup = solver._make_pose_lookup(pairs, windows)
+    assert lookup is not None
+    evaluate = solver._make_residual_evaluator(rebased, pairs, options, windows=windows)
+    for offset in [0.0, -0.0, -0.2, 0.2, 0.0123] if estimate_time else [0.0]:
+        actual = lookup(offset)
+        expected = [p.lidar_poses(p.epoch_times_s - offset) for p in pairs]
+        for index in range(3):
+            assert actual[index].tobytes() == np.concatenate([p[index] for p in expected]).tobytes()
+        assert (
+            evaluate(LEVER, offset).tobytes()
+            == solver.window_residuals(rebased, pairs, LEVER, offset, options).tobytes()
+        )
+
+
+def test_combined_pose_lookup_rejects_overlapping_unordered_and_ambiguous_windows() -> None:
+    track, windows = synthetic(11, windows=4)
+    opts = solver.LeverArmOptions()
+    rebased = replace(track, times_s=track.times_s - EPOCH)
+    pairs = solver.build_pairs(rebased, windows, opts, epoch=EPOCH)
+    for selected, source in (
+        ([], windows),
+        (pairs, None),
+        (pairs, windows[:1]),
+        (pairs, [*windows, windows[0]]),
+        (list(reversed(pairs)), windows),
+        ([pairs[0], pairs[0]], windows),
+    ):
+        assert solver._make_pose_lookup(selected, source) is None
+
+
+def test_combined_lookup_preserves_exact_endpoints_on_both_sides_of_a_gap() -> None:
+    times = np.arange(11, dtype=np.float64)
+    poses = np.tile(np.eye(4), (11, 1, 1))
+    poses[:, :3, :3] = solver.Rotation.from_euler("z", times[:, None] * 0.1).as_matrix()
+    poses[:, 0, 3] = times**2
+    track = solver.GnssTrackModel(times, np.zeros((11, 3)), np.ones(11), max_gap_s=1.1)
+    windows = [
+        solver.OdometryWindow("a", 0, times[:5], poses[:5]),
+        solver.OdometryWindow("b", 1, times[6:], poses[6:]),
+    ]
+    opts = solver.LeverArmOptions(estimate_time_offset=False, pair_steps=(1,))
+    pairs = solver.build_pairs(track, windows, opts)
+    lookup = solver._make_pose_lookup(pairs, windows)
+    assert lookup is not None
+    expected = [p.lidar_poses(p.epoch_times_s) for p in pairs]
+    actual = lookup(0.0)
+    for index in range(3):
+        assert actual[index].tobytes() == np.concatenate([p[index] for p in expected]).tobytes()

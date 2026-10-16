@@ -209,7 +209,8 @@
         "blas_threads",
         "host_unreserved",
         "options",
-        "provenance"
+        "provenance",
+        "combined_pose_interpolation"
       ],
       "properties": {
         "schema_version": {
@@ -343,6 +344,9 @@
               }
             }
           }
+        },
+        "combined_pose_interpolation": {
+          "const": true
         }
       }
     },
@@ -414,6 +418,7 @@
               "window_ids",
               "pair_count",
               "lever",
+              "epoch_count",
               "offset",
               "normalize",
               "residual_count",
@@ -444,6 +449,10 @@
                 },
                 "minItems": 3,
                 "maxItems": 3
+              },
+              "epoch_count": {
+                "type": "integer",
+                "minimum": 0
               },
               "offset": {
                 "type": "number"
@@ -564,7 +573,8 @@
             "additionalProperties": false,
             "required": [
               "window_ids",
-              "pair_count"
+              "pair_count",
+              "epoch_count"
             ],
             "properties": {
               "window_ids": {
@@ -574,6 +584,10 @@
                 }
               },
               "pair_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "epoch_count": {
                 "type": "integer",
                 "minimum": 0
               }
@@ -645,7 +659,9 @@
             "least_squares_calls",
             "lidar_poses_calls",
             "svd_calls",
-            "profiled_windows"
+            "profiled_windows",
+            "pose_batch_calls",
+            "interpolated_epochs"
           ],
           "properties": {
             "solve_calls": {
@@ -669,6 +685,14 @@
               "minimum": 0
             },
             "profiled_windows": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "pose_batch_calls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "interpolated_epochs": {
               "type": "integer",
               "minimum": 0
             }
@@ -854,7 +878,9 @@
                 "least_squares_calls",
                 "lidar_poses_calls",
                 "svd_calls",
-                "profiled_windows"
+                "profiled_windows",
+                "pose_batch_calls",
+                "interpolated_epochs"
               ],
               "properties": {
                 "solve_calls": {
@@ -878,6 +904,14 @@
                   "minimum": 0
                 },
                 "profiled_windows": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "pose_batch_calls": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "interpolated_epochs": {
                   "type": "integer",
                   "minimum": 0
                 }
@@ -892,7 +926,9 @@
                 "least_squares_calls",
                 "lidar_poses_calls",
                 "svd_calls",
-                "profiled_windows"
+                "profiled_windows",
+                "pose_batch_calls",
+                "interpolated_epochs"
               ],
               "properties": {
                 "solve_calls": {
@@ -916,6 +952,14 @@
                   "minimum": 0
                 },
                 "profiled_windows": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "pose_batch_calls": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "interpolated_epochs": {
                   "type": "integer",
                   "minimum": 0
                 }
