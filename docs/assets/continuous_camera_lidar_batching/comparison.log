@@ -1,0 +1,62 @@
+starting 00-prior
+{"repeat": 0, "variant": "prior", "seconds": 41.869765100069344, "exit_code": 0}
+starting 00-current
+{"repeat": 0, "variant": "current", "seconds": 5.188824400072917, "exit_code": 0}
+starting 01-current
+{"repeat": 1, "variant": "current", "seconds": 5.140644800034352, "exit_code": 0}
+starting 01-prior
+{"repeat": 1, "variant": "prior", "seconds": 38.05470109998714, "exit_code": 0}
+starting 02-prior
+{"repeat": 2, "variant": "prior", "seconds": 37.244181599933654, "exit_code": 0}
+starting 02-current
+{"repeat": 2, "variant": "current", "seconds": 3.387997700017877, "exit_code": 0}
+{
+  "schema_version": "slac.continuous_camera_lidar_reuse_benchmark/v0.2",
+  "record_type": "audit",
+  "verified_runs": 6,
+  "complete_results_exact": true,
+  "capture_count": 9,
+  "correspondence_count": 9216,
+  "objective_evaluations_per_run": 341,
+  "projection_requests_per_run": 2462720,
+  "deskew_computations_per_run": {
+    "prior": 556032,
+    "current": 556032
+  },
+  "work_counts_per_run": {
+    "prior": {
+      "scalar_deskew_points": 556032,
+      "batched_deskew_points": 0,
+      "batched_deskew_calls": 0,
+      "scalar_projection_points": 2462720,
+      "batched_projection_points": 0,
+      "batched_projection_calls": 0
+    },
+    "current": {
+      "scalar_deskew_points": 0,
+      "batched_deskew_points": 556032,
+      "batched_deskew_calls": 543,
+      "scalar_projection_points": 0,
+      "batched_projection_points": 2462720,
+      "batched_projection_calls": 2405
+    }
+  },
+  "whole_seconds_median": {
+    "prior": 38.05470109998714,
+    "current": 5.140644800034352
+  },
+  "api_seconds_median": {
+    "prior": 35.62211919995025,
+    "current": 2.203404700034298
+  },
+  "whole_speedup": 7.40270969504309,
+  "api_speedup": 16.166852689111426,
+  "runtime_source_changes": [
+    "calibrex/solvers/continuous_time_camera_lidar_solver.py"
+  ],
+  "provenance": {
+    "protocol_sha256": "270f7675a4313b044b056fe962adc7673f2d23566d0791132912545fad90124f",
+    "attempts_sha256": "c3341392ae9bc272563f3cc66246ee152f9a2026aa6e7564ba41b881d43a93d3",
+    "problem_sha256": "32cb6f4f1b36a6e64cc0061f904b67b7490eb2d5a3af49d464d316a4d835fc9b"
+  }
+}

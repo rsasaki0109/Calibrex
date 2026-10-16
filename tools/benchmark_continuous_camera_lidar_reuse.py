@@ -26,6 +26,8 @@ from tools.benchmark_lazy_runtime_loading import _git_identity  # noqa: E402
 
 VERSION = "slac.continuous_camera_lidar_reuse_benchmark/v0.1"
 SCHEMA = ROOT / "tools/schemas/continuous_camera_lidar_reuse_benchmark.schema.json"
+BATCH_VERSION = "slac.continuous_camera_lidar_reuse_benchmark/v0.2"
+BATCH_SCHEMA = ROOT / "tools/schemas/continuous_camera_lidar_batch_benchmark.schema.json"
 RUNTIME = "calibrex/solvers/continuous_time_camera_lidar_solver.py"
 PINNED = {
     "problem.json",
@@ -53,7 +55,8 @@ def sha(path: Path) -> str:
 def write(path: Path, value: dict) -> None:
     import jsonschema
 
-    jsonschema.validate(value, json.loads(SCHEMA.read_bytes()))
+    schema = BATCH_SCHEMA if value["schema_version"] == BATCH_VERSION else SCHEMA
+    jsonschema.validate(value, json.loads(schema.read_bytes()))
     path.write_bytes((json.dumps(value, indent=2, allow_nan=False) + "\n").encode())
 
 
@@ -90,6 +93,7 @@ def worker(protocol_path: Path, variant: str, folder: Path) -> None:
     from calibrex.solvers import continuous_time_camera_lidar_solver as solver
 
     protocol = json.loads(protocol_path.read_bytes())
+    batched = protocol["schema_version"] == BATCH_VERSION
     # Check the existing core's real (abbreviated) provenance contract before
     # spending time on calibration; retain both actual Git forms in the receipt.
     _verify_git_provenance(
@@ -99,23 +103,67 @@ def worker(protocol_path: Path, variant: str, folder: Path) -> None:
         git_commit(),
     )
     computations = 0
+    work = dict.fromkeys(
+        (
+            "scalar_deskew_points",
+            "batched_deskew_points",
+            "batched_deskew_calls",
+            "scalar_projection_points",
+            "batched_projection_points",
+            "batched_projection_calls",
+        ),
+        0,
+    )
     original_twist = capture_time._static_point_at_later_body_frame
     original_trajectory = PiecewiseSE3Trajectory.transform_static_point_between_body_frames
 
     def counted_twist(*args):
         nonlocal computations
         computations += 1
+        work["scalar_deskew_points"] += 1
         return original_twist(*args)
 
     def counted_trajectory(*args, **kwargs):
         nonlocal computations
         computations += 1
+        work["scalar_deskew_points"] += 1
         return original_trajectory(*args, **kwargs)
 
     capture_time._static_point_at_later_body_frame = counted_twist
     if hasattr(solver, "_static_point_at_later_body_frame"):
         solver._static_point_at_later_body_frame = counted_twist
     PiecewiseSE3Trajectory.transform_static_point_between_body_frames = counted_trajectory
+    if batched:
+        original_prepare = solver._prepare_point_transform
+
+        def counted_prepare(*args):
+            transform = original_prepare(*args)
+
+            def counted_point(*point_args):
+                work["scalar_projection_points"] += 1
+                return transform(*point_args)
+
+            return counted_point
+
+        solver._prepare_point_transform = counted_prepare
+        if hasattr(solver, "_constant_twist_points"):
+            original_batch = solver._constant_twist_points
+            original_project = solver._CaptureBatch.project
+
+            def counted_batch(points, *args):
+                nonlocal computations
+                computations += len(points)
+                work["batched_deskew_points"] += len(points)
+                work["batched_deskew_calls"] += 1
+                return original_batch(points, *args)
+
+            def counted_project(batch, *args):
+                work["batched_projection_points"] += len(batch.selected)
+                work["batched_projection_calls"] += 1
+                return original_project(batch, *args)
+
+            solver._constant_twist_points = counted_batch
+            solver._CaptureBatch.project = counted_project
     start = time.perf_counter()
     result = run_continuous_time_camera_lidar_problem(
         protocol_path.parent / "problem.json",
@@ -143,10 +191,11 @@ def worker(protocol_path: Path, variant: str, folder: Path) -> None:
     write(
         folder / "measurement.json",
         {
-            "schema_version": VERSION,
+            "schema_version": protocol["schema_version"],
             "record_type": "measurement",
             "api_seconds": api_seconds,
             "deskew_computations": computations,
+            **({"work_counts": work} if batched else {}),
             "imports": imports,
             "result_sha256": sha(folder / "result.json"),
             "provenance": {
@@ -220,11 +269,64 @@ def _input_lineage(output: Path, problem: dict) -> None:
         raise ValueError("input correspondence count differs")
 
 
+def _replay_clock_work(problem: dict, result: dict, options: dict) -> dict:
+    """Derive point work and two-clock cache misses from the unchanged trace."""
+    if problem.get("body_trajectory") is not None:
+        raise ValueError("ordered-batch counters require the constant-twist control")
+    sizes = {
+        c["capture_id"]: sum(
+            p["reliability"] * (1.0 - p["outlier_probability"]) >= options["minimum_confidence"]
+            for p in c["correspondences"]
+        )
+        for c in problem["captures"]
+    }
+    train, holdout = result["train_capture_ids"], result["holdout_capture_ids"]
+    initial = result["initial_time_offset_sec"]
+    probe = options["time_sensitivity_probe_sec"]
+    visits = [
+        (train, initial),
+        (holdout, initial),
+        (train, initial - probe),
+        (train, initial + probe),
+    ]
+    visits += [(train, item["time_offset_sec"]) for item in result["trace"][1:]]
+    visits += [(holdout, result["estimated_time_offset_sec"])]
+    caches = {name: [] for name in sizes}
+    output = dict.fromkeys(
+        (
+            "deskew_points",
+            "deskew_batch_calls",
+            "projection_points",
+            "projection_batch_calls",
+        ),
+        0,
+    )
+    import struct
+
+    for captures, offset in visits:
+        key = struct.pack("d", offset)
+        for capture in captures:
+            output["projection_points"] += sizes[capture]
+            output["projection_batch_calls"] += 1
+            cache = caches[capture]
+            if key in cache:
+                cache.remove(key)
+            else:
+                output["deskew_points"] += sizes[capture]
+                output["deskew_batch_calls"] += 1
+            cache.append(key)
+            del cache[:-2]
+    return output
+
+
 def audit(output: Path) -> dict:
     """Verify the complete comparison offline, without calibration or raw downloads."""
     import jsonschema
 
     protocol = json.loads((output / "protocol.json").read_bytes())
+    batched = protocol["schema_version"] == BATCH_VERSION
+    if protocol["schema_version"] not in (VERSION, BATCH_VERSION):
+        raise ValueError("unknown benchmark version")
     schema = json.loads((output / "schema.json").read_bytes())
     jsonschema.validate(protocol, schema)
     if set(protocol["provenance"]["files"]) != PINNED:
@@ -270,6 +372,7 @@ def audit(output: Path) -> dict:
     if [(r["repeat"], r["variant"]) for r in records] != expected:
         raise ValueError("missing, duplicate or reordered runs")
     outputs, counts = [], {v: [] for v in ("prior", "current")}
+    observed_work = {v: [] for v in ("prior", "current")}
     api = {v: [] for v in ("prior", "current")}
     result_schema = json.loads((output / "result-schema.json").read_bytes())
     for record in records:
@@ -335,7 +438,30 @@ def audit(output: Path) -> dict:
             sizes[k] for k in holdout
         )
         counts[variant].append(measured["deskew_computations"])
-        if variant == "prior" and measured["deskew_computations"] != queries:
+        if batched:
+            expected_work = _replay_clock_work(problem, result, protocol["options"])
+            expected_counts = {
+                "scalar_deskew_points": expected_work["deskew_points"] if variant == "prior" else 0,
+                "batched_deskew_points": expected_work["deskew_points"]
+                if variant == "current"
+                else 0,
+                "batched_deskew_calls": expected_work["deskew_batch_calls"]
+                if variant == "current"
+                else 0,
+                "scalar_projection_points": queries if variant == "prior" else 0,
+                "batched_projection_points": queries if variant == "current" else 0,
+                "batched_projection_calls": expected_work["projection_batch_calls"]
+                if variant == "current"
+                else 0,
+            }
+            if (
+                measured["work_counts"] != expected_counts
+                or measured["deskew_computations"] != expected_work["deskew_points"]
+                or expected_work["projection_points"] != queries
+            ):
+                raise ValueError("observed work differs from complete trace and two-clock replay")
+            observed_work[variant].append(measured["work_counts"])
+        elif variant == "prior" and measured["deskew_computations"] != queries:
             raise ValueError("baseline deskew count differs from unchanged trace workload")
         if (
             json.loads((folder / "stdout.txt").read_bytes())
@@ -360,14 +486,14 @@ def audit(output: Path) -> dict:
         raise ValueError("complete results or objective traces differ")
     if any(len(set(values)) != 1 for values in counts.values()):
         raise ValueError("deskew counts differ between repeated runs")
-    if not 0 < counts["current"][0] < counts["prior"][0]:
+    if not batched and not 0 < counts["current"][0] < counts["prior"][0]:
         raise ValueError("reuse did not reduce deskew computations")
     medians = {
         v: statistics.median(r["seconds"] for r in records if r["variant"] == v) for v in api
     }
     api_medians = {v: statistics.median(values) for v, values in api.items()}
     report = {
-        "schema_version": VERSION,
+        "schema_version": protocol["schema_version"],
         "record_type": "audit",
         "verified_runs": len(records),
         "complete_results_exact": True,
@@ -376,6 +502,11 @@ def audit(output: Path) -> dict:
         "objective_evaluations_per_run": len(result["trace"]),
         "projection_requests_per_run": queries,
         "deskew_computations_per_run": {v: values[0] for v, values in counts.items()},
+        **(
+            {"work_counts_per_run": {v: values[0] for v, values in observed_work.items()}}
+            if batched
+            else {}
+        ),
         "whole_seconds_median": medians,
         "api_seconds_median": api_medians,
         "whole_speedup": medians["prior"] / medians["current"],
@@ -407,6 +538,7 @@ def main() -> None:
     parser.add_argument("--baseline-commit")
     parser.add_argument("--repetitions", type=int, default=3)
     parser.add_argument("--variant", choices=("prior", "current"))
+    parser.add_argument("--ordered-batches", action="store_true")
     args = parser.parse_args()
     if args.audit_only:
         print(json.dumps(audit(args.audit_only), indent=2))
@@ -433,12 +565,14 @@ def main() -> None:
         )
     output = args.output_dir.resolve()
     output.mkdir(parents=True, exist_ok=False)
+    version = BATCH_VERSION if args.ordered_batches else VERSION
+    schema_path = BATCH_SCHEMA if args.ordered_batches else SCHEMA
     for source, target in (
         (args.problem, "problem.json"),
         (args.input_provenance, "input-provenance.json"),
         (args.control_generator, "control-generator.py.txt"),
         (Path(__file__), "launcher.py.txt"),
-        (SCHEMA, "schema.json"),
+        (schema_path, "schema.json"),
         (ROOT / "tools/benchmark_bspline_lidar_imu.py", "freezer.py.txt"),
         (ROOT / "tools/benchmark_lazy_runtime_loading.py", "identity.py.txt"),
         (ROOT / "schemas/continuous_time_camera_lidar_problem.schema.json", "problem-schema.json"),
@@ -471,7 +605,7 @@ def main() -> None:
     )
 
     protocol = {
-        "schema_version": VERSION,
+        "schema_version": version,
         "record_type": "protocol",
         "commits": commits,
         "source_roots": roots,
@@ -537,7 +671,7 @@ def main() -> None:
             write(
                 output / "attempts.json",
                 {
-                    "schema_version": VERSION,
+                    "schema_version": version,
                     "record_type": "attempts",
                     "runs": runs,
                     "provenance": {"protocol_sha256": protocol_sha},
@@ -554,7 +688,7 @@ def main() -> None:
                 raise ValueError("benchmark pinned artifact changed during measurement")
             if (
                 sha(Path(__file__)) != protocol["provenance"]["files"]["launcher.py.txt"]
-                or sha(SCHEMA) != protocol["provenance"]["files"]["schema.json"]
+                or sha(schema_path) != protocol["provenance"]["files"]["schema.json"]
                 or sha(output / "protocol.json") != protocol_sha
             ):
                 raise ValueError("benchmark launcher or schema changed during measurement")

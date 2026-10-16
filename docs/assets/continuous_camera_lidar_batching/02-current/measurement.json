@@ -1,0 +1,243 @@
+{
+  "schema_version": "slac.continuous_camera_lidar_reuse_benchmark/v0.2",
+  "record_type": "measurement",
+  "api_seconds": 1.3294787999475375,
+  "deskew_computations": 556032,
+  "work_counts": {
+    "scalar_deskew_points": 0,
+    "batched_deskew_points": 556032,
+    "batched_deskew_calls": 543,
+    "scalar_projection_points": 0,
+    "batched_projection_points": 2462720,
+    "batched_projection_calls": 2405
+  },
+  "imports": {
+    "calibrex.core": {
+      "path": "calibrex/core/__init__.py",
+      "sha256": "de90bba9eac3497afe032050c356c5f73dfaeb9455e56add1dd11ed288bfda01"
+    },
+    "calibrex.core.exceptions": {
+      "path": "calibrex/core/exceptions.py",
+      "sha256": "11328d0422f5ef2853acf8f61e3af099a3ed4ad5077ebecd6c61971fa430abdd"
+    },
+    "calibrex.core.io": {
+      "path": "calibrex/core/io.py",
+      "sha256": "b8b00a5269f42a3bc926345e33bf5d3a251bb815ba2ce8dd16f27f4f9bd4b014"
+    },
+    "calibrex.core.geometry": {
+      "path": "calibrex/core/geometry.py",
+      "sha256": "6597695de33360d44b8b18e457f84355df3ace30837462f4b9501193879d66aa"
+    },
+    "calibrex.core.solid_state": {
+      "path": "calibrex/core/solid_state.py",
+      "sha256": "3134ba46337a33ede5c01c49f2a4bcd593da13a85b706206787f9e50fda4793e"
+    },
+    "calibrex.core.result": {
+      "path": "calibrex/core/result.py",
+      "sha256": "9066a9feba904dad1ab54daa0cca681fff518aeafbd879f0cbb5d4969ff9ba8b"
+    },
+    "calibrex.core.external_run": {
+      "path": "calibrex/core/external_run.py",
+      "sha256": "fd1bf104bd20600b766cf3b82a7cdd315b544b5f3856daf976506a8612267c29"
+    },
+    "calibrex.core.provenance": {
+      "path": "calibrex/core/provenance.py",
+      "sha256": "eb7849f342892272ae136454da816852d080684b25c8ec55771582c1b8621f47"
+    },
+    "calibrex.core.koide_runner": {
+      "path": "calibrex/core/koide_runner.py",
+      "sha256": "80ec5e7831fea524082e75eebe953e58a5e50381a71d3ea18f5cf2f5ff3ee9fc"
+    },
+    "calibrex.core.config": {
+      "path": "calibrex/core/config.py",
+      "sha256": "2bb00bcf7cd0747e4c2670773e22080939085a972b8da382ee95a7aa3b6b4448"
+    },
+    "calibrex": {
+      "path": "calibrex/__init__.py",
+      "sha256": "46bbad6289c37f4f91c58c9570d8fe94eb09695c826bff772377e3a63109f151"
+    },
+    "calibrex.core.capture_time": {
+      "path": "calibrex/core/capture_time.py",
+      "sha256": "fb09625fcc55fa7379f1f8fbc5b9ad95703318fc6dca4f083640fd696f8878d8"
+    },
+    "calibrex.core.continuous_trajectory": {
+      "path": "calibrex/core/continuous_trajectory.py",
+      "sha256": "4c44e5be35918a9908597d02ddb96820a88e58fa7e4ff466d924e3d1f60d31a3"
+    },
+    "calibrex.core.report_artifacts": {
+      "path": "calibrex/core/report_artifacts.py",
+      "sha256": "83ab08ac7bdc2ff41e63aa091d407b2e57187407c82589afefd4b0839fb6d405"
+    },
+    "calibrex.data.base": {
+      "path": "calibrex/data/base.py",
+      "sha256": "da80b627f1b85ce65f17462c918a4724311a97246a2a637ebc341fc9eac8d594"
+    },
+    "calibrex.data.a2d2": {
+      "path": "calibrex/data/a2d2.py",
+      "sha256": "966c2b8b1d5bca334459b4aa3e033da750ec62691f1948ffce1dc0de94c14a19"
+    },
+    "calibrex.data.ethz_hand_eye": {
+      "path": "calibrex/data/ethz_hand_eye.py",
+      "sha256": "e7efcfdf8f6bf859b559987df0e82e1b8aed0aae1962a28bc97481aa42440420"
+    },
+    "calibrex.data.manifest": {
+      "path": "calibrex/data/manifest.py",
+      "sha256": "81d14ab21cdbd2c67006b23ffadddef872152a4e2179f1dba9f8410b5a09dc75"
+    },
+    "calibrex.data.filesystem": {
+      "path": "calibrex/data/filesystem.py",
+      "sha256": "82bed5c6e3f4f76cf07f1ee4fafca335d9e6b8943fd3ae7c480918bafb515103"
+    },
+    "calibrex.core.evidence": {
+      "path": "calibrex/core/evidence.py",
+      "sha256": "bc5685784f2a190c2647621b8d1d0944be1cbbad392aa7b99867843ea82237ab"
+    },
+    "calibrex.data.kitti": {
+      "path": "calibrex/data/kitti.py",
+      "sha256": "46de9618f504d0a00a31506816b5ed5093d104890702988bac54335cac73ce40"
+    },
+    "calibrex.data.livox": {
+      "path": "calibrex/data/livox.py",
+      "sha256": "0773a7e2fccb2d2faa23f9e90636a00355499af131ad671845edb2c8d33b1bfd"
+    },
+    "calibrex.core.mcap_integrity": {
+      "path": "calibrex/core/mcap_integrity.py",
+      "sha256": "1782ad8be9d39b0a6ac0d31d395ce7c6c6ac7ace25ded707ad3b76aeb60dc281"
+    },
+    "calibrex.data.mcap": {
+      "path": "calibrex/data/mcap.py",
+      "sha256": "c3ff27fb2135d69425b9f674b8380164bbe76b9695bf96612738c0e035143d40"
+    },
+    "calibrex.data.nuscenes": {
+      "path": "calibrex/data/nuscenes.py",
+      "sha256": "7f5340d96ffe4be4807ac04ca4355b273a0f1d8fea458e03164fd36dceaea564"
+    },
+    "calibrex.data.ros_messages": {
+      "path": "calibrex/data/ros_messages.py",
+      "sha256": "e2fb668c870d482e8b52dddc5f063f665e7eca561fb24942d642d040337d8d73"
+    },
+    "calibrex.data.rosbag1": {
+      "path": "calibrex/data/rosbag1.py",
+      "sha256": "00dc451c18c7a9a630d9f97dccda9dc63503fd2d26fc3a8321238151864a7c5e"
+    },
+    "calibrex.data.ros1_cdr": {
+      "path": "calibrex/data/ros1_cdr.py",
+      "sha256": "5eb7c8e6244a72a74cbb4334268f0082cc62b748f4dac0cf269f4cc5e0e7321b"
+    },
+    "calibrex.data.bag_formats": {
+      "path": "calibrex/data/bag_formats.py",
+      "sha256": "81f1a6caedc201bd1720eaa113571ea94f5a6fc2c9621a06b9889eb1485c46e0"
+    },
+    "calibrex.data.ros_cdr": {
+      "path": "calibrex/data/ros_cdr.py",
+      "sha256": "97981000ff40ed73334759b9b0f773e7f12f6ffc7056a9bdc6a99f7f40f0a043"
+    },
+    "calibrex.data.rosbag2": {
+      "path": "calibrex/data/rosbag2.py",
+      "sha256": "bb6d75152aed2e114364d54a50e4e91c726d4fac8e242ea88cdf1a3a176d1428"
+    },
+    "calibrex.core.time": {
+      "path": "calibrex/core/time.py",
+      "sha256": "6327d64ee0b1e4dbd2322efacf31f61e0750606311bc66142cd4d66bf9fd4e40"
+    },
+    "calibrex.data.tum_rgbd": {
+      "path": "calibrex/data/tum_rgbd.py",
+      "sha256": "7f8f9af94df0ea48b690489390e41ad7091c809e1b74f08e26ff04a0299e951c"
+    },
+    "calibrex.data.inspect": {
+      "path": "calibrex/data/inspect.py",
+      "sha256": "0ba2603130aa0ffedb57a51e199a31835c36d566eb5ef4677165f553b11189bd"
+    },
+    "calibrex.data.kitti_benchmark": {
+      "path": "calibrex/data/kitti_benchmark.py",
+      "sha256": "30d99b9c9819f21e0dfef78b92f45128f8915af9d53f17a8c0096500f459b614"
+    },
+    "calibrex.data.public_datasets": {
+      "path": "calibrex/data/public_datasets.py",
+      "sha256": "79fa0b7a21d970c32f07eb6a4c19defb967039f37a45b596d1b98e5b37c662f8"
+    },
+    "calibrex.data": {
+      "path": "calibrex/data/__init__.py",
+      "sha256": "3bb6e392d0620854362cfdeffb7878bfbddb2f5ab63b13001d27a6faf7071e9e"
+    },
+    "calibrex.evaluation.holdout": {
+      "path": "calibrex/evaluation/holdout.py",
+      "sha256": "24c0eee5b132cf535dbbfb98ceb4b5f5e1b9ebafce68962a6cef8cff6ff30854"
+    },
+    "calibrex.evaluation.lidar_camera": {
+      "path": "calibrex/evaluation/lidar_camera.py",
+      "sha256": "d5ece436c51388b90a3466cccf1cb43256a6484bcb8abbe41c825447ae833f07"
+    },
+    "calibrex.evaluation.lidar_camera_comparison": {
+      "path": "calibrex/evaluation/lidar_camera_comparison.py",
+      "sha256": "ea72773d7e30bd7012eca65d4e68b0b733022a294a63f02017ca7d1601e8f1e5"
+    },
+    "calibrex.evaluation.thresholds": {
+      "path": "calibrex/evaluation/thresholds.py",
+      "sha256": "a420f216a19aa7cf0bbfef3bfd64129a7fa0fe4c88bd7321e6ef2ccf086c7ac2"
+    },
+    "calibrex.evaluation.evidence_summary": {
+      "path": "calibrex/evaluation/evidence_summary.py",
+      "sha256": "d1ac3f79cdfec1aef0d8ef719bc7d717a309240fe80f1c8a32be14d10ff66d60"
+    },
+    "calibrex.evaluation.recommendations": {
+      "path": "calibrex/evaluation/recommendations.py",
+      "sha256": "6f002d1ca30c1a8e5d8d06709a573f1452d636e2750df07c686ba321a6ee7367"
+    },
+    "calibrex.evaluation.metrics": {
+      "path": "calibrex/evaluation/metrics.py",
+      "sha256": "923413deb6f9a1b3916d80ff3a5c2c6663f528d5b68d5a4bbcb4a0ddb8814772"
+    },
+    "calibrex.evaluation.registry": {
+      "path": "calibrex/evaluation/registry.py",
+      "sha256": "8c4d0fdcf5d514229019bfb17d944246a9b411c38a45289bfb5fdc7ee2a53cb4"
+    },
+    "calibrex.evaluation": {
+      "path": "calibrex/evaluation/__init__.py",
+      "sha256": "cc9050b3bbe0fe382fdc93309239b1ef99f6db7089ef05d4cf1c80e0ddd9cb6a"
+    },
+    "calibrex.data.depth": {
+      "path": "calibrex/data/depth.py",
+      "sha256": "77fc02063c27f888202247d3d2923248e5585da06ed7bc45210bfaba1f756012"
+    },
+    "calibrex.core.probabilistic_correspondence": {
+      "path": "calibrex/core/probabilistic_correspondence.py",
+      "sha256": "1adf1f2529548c1b8508a9484720585c75fbaea7fc86dccd1de5a5ae332794ee"
+    },
+    "calibrex.core.continuous_time_camera_lidar_artifacts": {
+      "path": "calibrex/core/continuous_time_camera_lidar_artifacts.py",
+      "sha256": "7774a2b0e05dae660a980581a6d0ae5033240a3891a9f206ff45dfb6d4767000"
+    },
+    "calibrex.solvers": {
+      "path": "calibrex/solvers/__init__.py",
+      "sha256": "00f4e2dac3c4b546e1ede9eeb30c8515d0e3c4dd7abd958df52c4a7a81218d3c"
+    },
+    "calibrex.solvers.borer_depth_to_depth_solver": {
+      "path": "calibrex/solvers/borer_depth_to_depth_solver.py",
+      "sha256": "844beeddd998a1e023998564384fe2d54602007eb5c7cef1564698c4d0db214a"
+    },
+    "calibrex.solvers.borer_rotation_only_solver": {
+      "path": "calibrex/solvers/borer_rotation_only_solver.py",
+      "sha256": "1eb176b892ee47905d63b186a4ffb726b1e774ffe6500bacb9705a7412aaa816"
+    },
+    "calibrex.solvers.borer_six_dof_solver": {
+      "path": "calibrex/solvers/borer_six_dof_solver.py",
+      "sha256": "e3eb509385d7f865a08630d88ef8694d26bae3206919aa9e20fb86029b6f0d48"
+    },
+    "calibrex.solvers.continuous_time_camera_lidar_solver": {
+      "path": "calibrex/solvers/continuous_time_camera_lidar_solver.py",
+      "sha256": "c63630219304dbe97ea0791fa24d12a9d11eebf2e2ec455c2fd7e80c0243e59b"
+    },
+    "calibrex.evaluation.continuous_time_camera_lidar_run": {
+      "path": "calibrex/evaluation/continuous_time_camera_lidar_run.py",
+      "sha256": "33352bffbc888016456c223630eeff952ae7bafd608aa312814cd7ed0f54cf56"
+    }
+  },
+  "result_sha256": "8c98aa378d6ae55d552470a2138e88f568dfd772a8806593964cedf33f597d21",
+  "provenance": {
+    "protocol_sha256": "270f7675a4313b044b056fe962adc7673f2d23566d0791132912545fad90124f",
+    "git_commit": "a892491de1c7f97cb9ae87f592b4b0bdc868ea1a",
+    "git_commit_short": "a892491d",
+    "problem_sha256": "32cb6f4f1b36a6e64cc0061f904b67b7490eb2d5a3af49d464d316a4d835fc9b"
+  }
+}
