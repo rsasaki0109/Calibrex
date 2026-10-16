@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from bisect import bisect_left
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from itertools import pairwise
@@ -158,8 +159,19 @@ class RadarSpatiotemporalLeverArmSolver:
             return _empty("insufficient_measurements", train_ids, holdout_ids, solver_options)
 
         offsets = _offset_grid(solver_options)
+        times = tuple(sample.timestamp_sec for sample in reference)
+        # Keep the existing scan semantics for non-finite reference clocks.
+        reference_timestamps = (
+            times if all(math.isfinite(timestamp) for timestamp in times) else None
+        )
         candidates = [
-            _profile_candidate(train, reference, rotation_body_radar_xyzw, offset)
+            _profile_candidate(
+                train,
+                reference,
+                rotation_body_radar_xyzw,
+                offset,
+                reference_timestamps=reference_timestamps,
+            )
             for offset in offsets
         ]
         valid = [(index, candidate) for index, candidate in enumerate(candidates) if candidate]
@@ -287,11 +299,22 @@ def _profile_candidate(
     reference: Sequence[ReferenceKinematicSample],
     rotation: QuaternionXYZW,
     offset: float,
+    *,
+    reference_timestamps: tuple[float, ...] | None = None,
 ) -> ProfileCandidate | None:
     rows: list[list[float]] = []
     values: list[float] = []
     for measurement in measurements:
-        sample = _interpolate(reference, measurement.timestamp_sec + offset)
+        timestamp = measurement.timestamp_sec + offset
+        support = reference
+        if reference_timestamps is not None:
+            # The original scan uses the interval on the left of an exact knot,
+            # including the first of any duplicate timestamps. Retain that pair
+            # and its original interpolation arithmetic, rather than rounding
+            # queries or returning the knot's stored value directly.
+            first = max(0, bisect_left(reference_timestamps, timestamp) - 1)
+            support = reference[first : first + 2]
+        sample = _interpolate(support, timestamp)
         if sample is None:
             return None
         observed = rotate_vector_xyzw(rotation, measurement.velocity_radar_mps)

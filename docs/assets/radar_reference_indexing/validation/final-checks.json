@@ -1,0 +1,44 @@
+{
+  "tests": {
+    "count": 77,
+    "log_sha256": "3db2c8b8129cfb739b78f06ed9ebc1c5e4e5e826964311c9f75c63d86110a221"
+  },
+  "docs_strict": {
+    "success": true,
+    "log_sha256": "e8219adefc87fdbc8cde522543174991bac5976f6a85734465faed4a62f7a3bb"
+  },
+  "ruff": {
+    "success": true,
+    "command": [
+      "ruff",
+      "check",
+      "."
+    ]
+  },
+  "mypy": {
+    "success": true,
+    "source_files": 378,
+    "observed_output": "Success: no issues found in 378 source files",
+    "command": "uvx --offline --isolated --with-requirements tools/typecheck-requirements.txt mypy --cache-dir outputs/reference-index-typecheck-v1 src/calibrex"
+  },
+  "live_runtime_matches_measured_allowing_checkout_eol": true,
+  "checkout_eol_only_differences": [
+    "calibrex/cli/main.py",
+    "calibrex/core/benchmark.py",
+    "calibrex/core/schema_registry.py",
+    "calibrex/data/livox_ros2.py",
+    "calibrex/data/pillow_png_adapter.py",
+    "calibrex/solvers/__init__.py"
+  ],
+  "public_schema_count": 129,
+  "schema_ledger_files": 1,
+  "all_export_contents_equal": true,
+  "download_receipts_match_control_raw_inputs": true,
+  "provenance": {
+    "runtime_commit": "559df53946079719ac2052559138dabcedabbeb9",
+    "protocol_sha256": "ff1a0fb4fff21f199e933bc3bc2a790395ef95eb3259d2e7eb9d9a6189dd62b6",
+    "runtime_manifest_sha256": "0bef22ad4b696f878e0a0400e2bc12c7aa97012b5fbdfaf597ae2cf466b1c881",
+    "launcher_sha256": "1e89e62f487af2038a86034757a0e12b1b81b2ff64977076aa12784046ddf19b",
+    "receipt_generator_sha256": "66cf3e430a353ff59f8a948fc257224c8460a21e8837fec0d2da9453b88d4e88"
+  }
+}
