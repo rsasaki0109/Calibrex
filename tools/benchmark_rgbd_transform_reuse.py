@@ -112,6 +112,19 @@ def worker(protocol_path: Path, variant: str, folder: Path) -> None:
     original_linearize = graph._linearize
     original_residuals = graph._factor_residuals
     original_solve = graph.BackendNeutralJointOptimizer.solve
+    plan_requests, plan_accepts = 0, 0
+    rgbd = sys.modules.get("calibrex.graph._rgbd_batches")
+    if rgbd is not None:
+        original_prepare = rgbd._prepare_rgbd_plan
+
+        def prepare(*args):
+            nonlocal plan_requests, plan_accepts
+            plan_requests += 1
+            plan = original_prepare(*args)
+            plan_accepts += plan is not None
+            return plan
+
+        rgbd._prepare_rgbd_plan = prepare
 
     def array(value):
         return {
@@ -197,6 +210,8 @@ def worker(protocol_path: Path, variant: str, folder: Path) -> None:
                 "solve_count": len(solves),
                 "jacobian_calls": sum(e["kind"] == "linearize" for e in events),
                 "residual_calls": sum(e["kind"] == "residuals" for e in events),
+                "rgbd_plan_requests": plan_requests,
+                "rgbd_plan_accepts": plan_accepts,
             },
             provenance,
         ),
@@ -273,6 +288,7 @@ def audit(output: Path) -> dict:
         raise ValueError("calibration result schema differs")
     timings = {kind: {v: [] for v in manifests} for kind in ("whole", "api", "optimizer")}
     results, histories = [], []
+    plan_counts = {}
     for index, attempt in enumerate(attempts):
         variant = attempt["variant"]
         if attempt["folder"] != f"{index // 2 + 1:02d}-{variant}" or attempt["exit_code"] != 0:
@@ -333,6 +349,16 @@ def audit(output: Path) -> dict:
         if history["provenance"] != lineage:
             raise ValueError("history lineage differs")
         events, solves = history["payload"]["events"], history["payload"]["solves"]
+        requests, accepts = info["rgbd_plan_requests"], info["rgbd_plan_accepts"]
+        if (
+            requests != (len(events) if variant == "current" else 0)
+            or (variant == "prior" and accepts != 0)
+            or (variant == "current" and not info["jacobian_calls"] <= accepts <= requests)
+        ):
+            raise ValueError("array evaluation work differs")
+        if variant in plan_counts and plan_counts[variant] != (requests, accepts):
+            raise ValueError("repeated array evaluation work differs")
+        plan_counts[variant] = (requests, accepts)
         if (
             len(solves) != 24
             or len(solves) != info["solve_count"]
@@ -404,6 +430,8 @@ def audit(output: Path) -> dict:
             "complete_results_exact": True,
             "all_array_digests_exact": True,
             "runtime_source_changes": sorted(changed),
+            "array_plan_requests_per_run": {v: counts[0] for v, counts in plan_counts.items()},
+            "array_plan_accepts_per_run": {v: counts[1] for v, counts in plan_counts.items()},
         },
         {"protocol_sha256": sha(protocol_path), "attempts_sha256": sha(output / "attempts.json")},
     )

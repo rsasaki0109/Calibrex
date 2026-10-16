@@ -232,6 +232,14 @@
             "residual_calls": {
               "type": "integer",
               "minimum": 0
+            },
+            "rgbd_plan_requests": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "rgbd_plan_accepts": {
+              "type": "integer",
+              "minimum": 0
             }
           },
           "required": [
@@ -713,6 +721,42 @@
               "items": {
                 "type": "string"
               }
+            },
+            "array_plan_requests_per_run": {
+              "type": "object",
+              "properties": {
+                "prior": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "current": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "prior",
+                "current"
+              ],
+              "additionalProperties": false
+            },
+            "array_plan_accepts_per_run": {
+              "type": "object",
+              "properties": {
+                "prior": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "current": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "prior",
+                "current"
+              ],
+              "additionalProperties": false
             }
           },
           "required": [
