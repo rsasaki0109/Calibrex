@@ -1,0 +1,204 @@
+{
+  "calibrated_dofs": [
+    "time_offset"
+  ],
+  "dofs": [
+    {
+      "error_to_reference": -0.007819992141693821,
+      "excitation": {
+        "bound_std_m": 0.01,
+        "cause": "insufficient_duration",
+        "fit_windows": 19,
+        "information_efficiency": 0.40641219819088853,
+        "missing_rotation_axes": [
+          "y"
+        ],
+        "name": "x",
+        "needed_duration_s": 2105.9715334752227,
+        "perpendicular_rotation_rms_deg": 5.369476522856565,
+        "predicted_std_m": 0.011907439275568763,
+        "recommendation": "x: the motion excites it (5 deg RMS rotation about the other axes) but too briefly: std 2.79 cm against the 1 cm bound. About 35 min of the same motion would reach it (this recording: 4 min).",
+        "recording_s": 269.64109683036804,
+        "rotation_rms_deg": [
+          0.6230368128782564,
+          0.5418224447942405,
+          7.574231624219901
+        ],
+        "scaling_std_m": 0.027946871994064138
+      },
+      "known_bad_control": {
+        "amount": 0.05,
+        "detected": true,
+        "holdout_delta_chi2": 31.045379238514215,
+        "unit": "m"
+      },
+      "name": "x",
+      "reference_value": 0.4,
+      "status": "unobservable",
+      "std_analytic": 0.011907439275568763,
+      "std_jackknife": 0.027946871994064138,
+      "std_reported": 0.027946871994064138,
+      "unit": "m",
+      "value": 0.3921800078583062
+    },
+    {
+      "error_to_reference": 0.003657804334424558,
+      "excitation": {
+        "bound_std_m": 0.01,
+        "cause": "insufficient_duration",
+        "fit_windows": 19,
+        "information_efficiency": 0.7527320789487475,
+        "missing_rotation_axes": [
+          "x"
+        ],
+        "name": "y",
+        "needed_duration_s": 964.3286847753186,
+        "perpendicular_rotation_rms_deg": 5.373879397955183,
+        "predicted_std_m": 0.008746502042761416,
+        "recommendation": "y: the motion excites it (5 deg RMS rotation about the other axes) but too briefly: std 1.89 cm against the 1 cm bound. About 16 min of the same motion would reach it (this recording: 4 min).",
+        "recording_s": 269.64109683036804,
+        "rotation_rms_deg": [
+          0.6230368128782564,
+          0.5418224447942405,
+          7.574231624219901
+        ],
+        "scaling_std_m": 0.018911217963486125
+      },
+      "known_bad_control": {
+        "amount": 0.05,
+        "detected": true,
+        "holdout_delta_chi2": 18.17103107554385,
+        "unit": "m"
+      },
+      "name": "y",
+      "reference_value": -0.2,
+      "status": "unobservable",
+      "std_analytic": 0.008746502042761416,
+      "std_jackknife": 0.018911217963486125,
+      "std_reported": 0.018911217963486125,
+      "unit": "m",
+      "value": -0.19634219566557545
+    },
+    {
+      "error_to_reference": -0.09315731041997599,
+      "excitation": {
+        "bound_std_m": 0.01,
+        "cause": "no_excitation",
+        "fit_windows": 19,
+        "information_efficiency": 0.7099510572196363,
+        "missing_rotation_axes": [
+          "x",
+          "y"
+        ],
+        "name": "z",
+        "needed_duration_s": 62886.923702182736,
+        "perpendicular_rotation_rms_deg": 0.5838434858265968,
+        "predicted_std_m": 0.087487259554536,
+        "recommendation": "z: needs rotation about the sensor x or y axis (for a level rig, tilting for x or y and turning for z). The recording rotates only 1/1/8 deg RMS about x/y/z. Model estimate: about 27 s of it at >= 30 deg/s would reach the 1 cm bound. The motion is rotation about z alone (planar), which cannot excite z: measure it and give it with --tf.",
+        "recording_s": 269.64109683036804,
+        "rotation_rms_deg": [
+          0.6230368128782564,
+          0.5418224447942405,
+          7.574231624219901
+        ],
+        "scaling_std_m": 0.15271691159198358
+      },
+      "known_bad_control": {
+        "amount": 0.05,
+        "detected": false,
+        "holdout_delta_chi2": 3.2571351464735017,
+        "unit": "m"
+      },
+      "name": "z",
+      "reference_value": 0.7,
+      "status": "unobservable",
+      "std_analytic": 0.087487259554536,
+      "std_jackknife": 0.15271691159198358,
+      "std_reported": 0.15271691159198358,
+      "unit": "m",
+      "value": 0.606842689580024
+    },
+    {
+      "known_bad_control": {
+        "amount": 0.02,
+        "detected": true,
+        "holdout_delta_chi2": 158.80301769514085,
+        "unit": "s"
+      },
+      "name": "time_offset",
+      "status": "estimated",
+      "std_analytic": 0.0015349094995797236,
+      "std_jackknife": 6.012213704176863e-09,
+      "std_reported": 0.0015349094995797236,
+      "unit": "s",
+      "value": 0.012000082525051994
+    }
+  ],
+  "holdout_median_residual_m": 0.04547985583972846,
+  "holdout_windows": 10,
+  "jackknife_fits": 8,
+  "lever_arm_frame": "lidar",
+  "lever_arm_m": [
+    0.3921800078583062,
+    -0.19634219566557545,
+    0.606842689580024
+  ],
+  "limitations": [
+    "Public OXTS trajectory; generated GNSS and odometry execution control, no raw LiDAR registration or independent accuracy evidence."
+  ],
+  "method": "windowed_variable_projection/v0.1",
+  "options": {
+    "detection_delta_chi2": 9.0,
+    "holdout_every": 3,
+    "jackknife_groups": 8,
+    "lever_arm_control_m": 0.05,
+    "local_map_scans": 5,
+    "observable_time_offset_std_s": 0.005,
+    "observable_translation_std_m": 0.01,
+    "odometry_pose_sigma_m": 0.01,
+    "odometry_sigma_per_m": 0.01,
+    "pair_steps": [
+      5,
+      10,
+      20
+    ],
+    "time_control_s": 0.02,
+    "voxel_size_m": 0.3,
+    "window_duration_s": 10.0
+  },
+  "policy_reasons": [
+    "not constrained by the data, so not calibrated: x, y, z"
+  ],
+  "policy_status": "inconclusive",
+  "provenance": {
+    "command": [
+      "complete-gnss-control"
+    ],
+    "created_at": "2026-10-16T09:01:37.042686+00:00",
+    "dataset_family": "kitti_oxts_generated_gnss_odometry_control",
+    "dataset_license": "CC BY-NC-SA 3.0",
+    "generator": "prepared_gnss_control",
+    "generator_version": "0.5.1",
+    "git_commit": "01127d3a",
+    "input_digest_scope": "Complete prepared generated control",
+    "input_sha256": "9270702e1967d11c0392ed165e64e6f110532ba85b1f8a031def1a3a758a98a7",
+    "sequence_ids": [
+      "2011_09_30_drive_0018_sync"
+    ]
+  },
+  "reference": "Declared generated antenna lever arm; evaluation only",
+  "schema_version": "slac.gnss_lidar_lever_arm/v0.1",
+  "segments": {
+    "gnss_epochs_rejected": 0,
+    "gnss_epochs_used": 2762,
+    "odometry_segments": 1,
+    "scans_in_gnss_coverage": 2762,
+    "scans_read": 2762,
+    "unreliable_registrations": 0,
+    "windows": 29
+  },
+  "solver_status": "converged",
+  "time_offset_s": 0.012000082525051994,
+  "train_median_residual_m": 0.044473927892040105,
+  "train_windows": 19
+}
