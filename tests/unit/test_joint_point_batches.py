@@ -476,3 +476,111 @@ def test_mutable_initial_frame_leaves_are_prepared_afresh():
         assert second.evaluate(values).tobytes() == expected.tobytes() != before
 
     evaluate()
+
+
+@pytest.mark.parametrize("solver,fixed", [("dense", False), ("schur", False), ("dense", True)])
+@pytest.mark.parametrize("outliers", [False, True])
+def test_owned_native_graphs_match_guarded_solve_without_repeated_point_inspection(
+    monkeypatch, solver, fixed, outliers
+):
+    blocks, point_factors, truth = problem(384, outliers=outliers, extra=True)
+    blocks[0] = replace(blocks[0], fixed=fixed)
+    options = graph.JointOptimizerOptions(max_iterations=12, split_seed=7, linear_solver=solver)
+    traces = []
+    checked = []
+    original_linearize = graph._linearize
+    original_matches = batches._FactorState.matches
+
+    def linearize(*args):
+        result = original_linearize(*args)
+        traces.append(tuple(value.tobytes() for value in result))
+        return result
+
+    def matches(self, factor):
+        checked.append(factor.factor_id)
+        return original_matches(self, factor)
+
+    monkeypatch.setattr(graph, "_linearize", linearize)
+    monkeypatch.setattr(batches._FactorState, "matches", matches)
+    guarded = graph.BackendNeutralJointOptimizer().solve(blocks, point_factors, options)
+    assert checked
+    expected_traces = traces.copy()
+    traces.clear()
+    checked.clear()
+    owned = graph.BackendNeutralJointOptimizer().solve(
+        blocks, batches._OwnedPointFactors(point_factors), options
+    )
+    assert not checked
+    assert traces == expected_traces
+    assert owned.as_dict() == guarded.as_dict()
+    if not outliers:
+        assert owned.optimized_values["ext"] == pytest.approx(truth, abs=1e-7)
+    assert _PREPARATION_CACHE.get() is None
+
+
+def test_owned_private_snapshot_keeps_frame_bits_and_is_released_between_solves():
+    blocks, point_factors, _ = problem(96)
+    owned = batches._OwnedPointFactors(point_factors)
+    values = {block.name: block.initial_values for block in blocks}
+    measurement = batches._binding(point_factors[0]).measurement
+
+    @_with_preparation_cache
+    def first_solve():
+        plan = batches._prepare_point_plane_plan(owned, values)
+        before = plan.evaluate(values).tobytes()
+        frozen = plan.groups[0].binding.measurement
+        assert frozen.transform_world_body_initial is not measurement.transform_world_body_initial
+        assert (
+            frozen.transform_world_body_initial.rotation_quat_xyzw
+            is measurement.transform_world_body_initial.rotation_quat_xyzw
+        )
+        object.__setattr__(measurement, "point_sensor_m", (-0.0, 0.0, -0.0))
+        object.__setattr__(measurement.transform_world_body_initial, "translation_m", (0.4,) * 3)
+        assert batches._prepare_point_plane_plan(owned, values) is plan
+        assert plan.evaluate(values).tobytes() == before
+        return plan, before
+
+    original, before = first_solve()
+
+    @_with_preparation_cache
+    def next_solve():
+        plan = batches._prepare_point_plane_plan(owned, values)
+        assert plan is not original
+        assert plan.evaluate(values).tobytes() != before
+
+    next_solve()
+    assert _PREPARATION_CACHE.get() is None
+
+
+@pytest.mark.parametrize("change", ["wrapped", "mutable_frame"])
+def test_private_ownership_marker_does_not_override_purity_or_immutable_leaf_checks(change):
+    blocks, point_factors, _ = problem(96)
+    values = {block.name: block.initial_values for block in blocks}
+    calls = []
+    if change == "wrapped":
+        original = point_factors[0].evaluator
+
+        @functools.wraps(original)
+        def wrapped(supplied):
+            calls.append(True)
+            return original(supplied)
+
+        point_factors[0] = replace(point_factors[0], evaluator=wrapped)
+    else:
+        world = batches._binding(point_factors[0]).measurement.transform_world_body_initial
+        object.__setattr__(world, "translation_m", list(world.translation_m))
+    owned = batches._OwnedPointFactors(point_factors)
+
+    @_with_preparation_cache
+    def evaluate():
+        first = batches._prepare_point_plane_plan(owned, values)
+        second = batches._prepare_point_plane_plan(owned, values)
+        assert first is None or second is not first
+        assert not _PREPARATION_CACHE.get()
+        before = graph._factor_residuals(owned, values)
+        after = graph._factor_residuals(owned, values)
+        assert before.tobytes() == after.tobytes()
+        if change == "wrapped":
+            assert calls == [True, True]
+
+    evaluate()

@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 import struct
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from types import CellType, CodeType, FunctionType
 from typing import TYPE_CHECKING, TypeAlias
 from weakref import ReferenceType, ref
@@ -43,6 +43,10 @@ _ATTRIBUTE = "_calibrex_joint_builtin"
 _SE3_POINT_METHOD = SE3.transform_point
 _FloatArray: TypeAlias = NDArray[np.float64]
 _IndexArray: TypeAlias = NDArray[np.intp]
+
+
+class _OwnedPointFactors(tuple[JointResidualBlock, ...]):
+    """Private native-adapter factors that cannot escape during their solve."""
 
 
 @dataclass(frozen=True)
@@ -433,8 +437,12 @@ class _PreparedPlan:
             factors is self.factors
             and len(factors) == len(self.states)
             and self.limits == (_MIN_POINTS, _MAX_POINTS, _MAX_GROUPS)
-            and all(
-                state.matches(factor) for state, factor in zip(self.states, factors, strict=True)
+            and (
+                type(factors) is _OwnedPointFactors
+                or all(
+                    state.matches(factor)
+                    for state, factor in zip(self.states, factors, strict=True)
+                )
             )
             and self.plan.accepts(values)
         )
@@ -455,6 +463,11 @@ def _prepare_point_plane_plan(
         or se3_from_tangent is not _SE3_FROM_TANGENT_IMPLEMENTATION
         or not _values_supported(values)
     ):
+        cache = _PREPARATION_CACHE.get()
+        if cache is not None:
+            # The scalar fallback can execute user code. Do not retain an
+            # adapter-owned snapshot across an unsupported evaluation.
+            cache.clear()
         return None
     cache = _PREPARATION_CACHE.get()
     key = id(factors)
@@ -470,11 +483,13 @@ def _prepare_point_plane_plan(
     if (
         plan is not None
         and cache is not None
-        and type(factors) in (list, tuple)
+        and type(factors) in (list, tuple, _OwnedPointFactors)
         and len(factors) <= _PLAN_FACTOR_LIMIT
     ):
         states = tuple(_factor_state(factor) for factor in factors)
         if all(state is not None for state in states):
+            if type(factors) is _OwnedPointFactors:
+                plan = _owned_plan_snapshot(plan)
             prepared = _PreparedPlan(
                 factors,
                 tuple(state for state in states if state is not None),
@@ -494,6 +509,39 @@ def _prepare_point_plane_plan(
                 cache.popitem(last=False)
             cache[key] = prepared
     return plan
+
+
+def _owned_plan_snapshot(plan: _PointPlanePlan) -> _PointPlanePlan:
+    def frozen_frame(frame: SE3) -> SE3:
+        # Keep the exact stored quaternion bits; the public SE3 constructor
+        # would normalize them again. All leaves were validated as immutable.
+        snapshot = object.__new__(SE3)
+        object.__setattr__(snapshot, "translation_m", frame.translation_m)
+        object.__setattr__(snapshot, "rotation_quat_xyzw", frame.rotation_quat_xyzw)
+        return snapshot
+
+    groups = []
+    for group in plan.groups:
+        binding = group.binding
+        measurement = binding.measurement
+        groups.append(
+            replace(
+                group,
+                binding=replace(
+                    binding,
+                    measurement=replace(
+                        measurement,
+                        transform_world_body_initial=frozen_frame(
+                            measurement.transform_world_body_initial
+                        ),
+                        transform_body_sensor_initial=frozen_frame(
+                            measurement.transform_body_sensor_initial
+                        ),
+                    ),
+                ),
+            )
+        )
+    return replace(plan, groups=tuple(groups))
 
 
 def _build_point_plane_plan(

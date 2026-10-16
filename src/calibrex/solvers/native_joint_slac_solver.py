@@ -14,6 +14,7 @@ from calibrex.core.result import Grade, MetricResult, ObservabilityResult
 from calibrex.data.inspect import DatasetInspection
 from calibrex.evaluation.lidar import build_rig_point_to_plane_observations
 from calibrex.graph._evaluation_scope import _with_evaluation_cache
+from calibrex.graph._point_plane_batches import _OwnedPointFactors
 from calibrex.graph.joint_factors import (
     JointPointToPlaneMeasurement,
     make_joint_point_to_plane_factor,
@@ -165,7 +166,7 @@ class NativeJointSlacSolver(SolverAdapter):
         ]
         result = BackendNeutralJointOptimizer().solve(
             blocks,
-            factors,
+            _OwnedPointFactors(factors),
             JointOptimizerOptions(
                 max_iterations=max(1, config.solver.max_iterations),
                 convergence_tolerance=config.solver.convergence_tolerance,

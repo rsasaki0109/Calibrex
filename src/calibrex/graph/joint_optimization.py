@@ -314,9 +314,15 @@ class BackendNeutralJointOptimizer:
         _validate_options(solver_options)
         blocks = _validate_blocks(parameter_blocks)
         _validate_factors(factors, blocks)
+        from calibrex.graph._point_plane_batches import _OwnedPointFactors
+
+        train: Sequence[JointResidualBlock]
+        holdout: Sequence[JointResidualBlock]
         train, holdout, train_groups, holdout_groups = split_joint_factors(
             factors, solver_options.holdout_ratio, solver_options.split_seed
         )
+        if type(factors) is _OwnedPointFactors:
+            train, holdout = _OwnedPointFactors(train), _OwnedPointFactors(holdout)
         initial = {block.name: block.initial_values for block in blocks}
         if len(train) < solver_options.minimum_train_factors:
             return _empty(
