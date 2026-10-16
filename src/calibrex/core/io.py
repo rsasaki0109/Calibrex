@@ -7,16 +7,39 @@ import os
 import tempfile
 from contextlib import suppress
 from pathlib import Path
-from typing import Any
+from typing import Any, TextIO
 
 import yaml
+
+
+def _read_yaml(stream: TextIO) -> Any:
+    """Use LibYAML's parser with the same safe constructor and resolver tables."""
+    loader = getattr(yaml, "CSafeLoader", None)
+    tables = (
+        "yaml_constructors",
+        "yaml_multi_constructors",
+        "yaml_implicit_resolvers",
+        "yaml_path_resolvers",
+    )
+    if loader is None or any(
+        getattr(loader, table) is not getattr(yaml.SafeLoader, table) for table in tables
+    ):
+        # Preserve Python SafeLoader registrations made by an embedding caller.
+        return yaml.safe_load(stream)
+    try:
+        return yaml.load(stream, Loader=loader)
+    except yaml.YAMLError:
+        # The parsers differ on a few edge cases. Retain the original Python
+        # parser's acceptance and diagnostics when LibYAML cannot parse a file.
+        stream.seek(0)
+        return yaml.safe_load(stream)
 
 
 def read_mapping(path: Path) -> dict[str, Any]:
     """Read a YAML or JSON file and return its top-level mapping."""
 
     with path.open("r", encoding="utf-8") as stream:
-        data = json.load(stream) if path.suffix.lower() == ".json" else yaml.safe_load(stream)
+        data = json.load(stream) if path.suffix.lower() == ".json" else _read_yaml(stream)
     if not isinstance(data, dict):
         msg = f"{path} must contain a mapping at the top level"
         raise ValueError(msg)

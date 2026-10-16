@@ -32,6 +32,36 @@ def write(path: Path, value: object) -> None:
     path.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n", encoding="utf-8")
 
 
+def _git_identity(source: Path, commit: str) -> None:
+    """Retain normal Git provenance for extracted sources using local objects."""
+    common = Path(
+        subprocess.check_output(
+            ["git", "rev-parse", "--git-common-dir"],
+            cwd=ROOT,
+            text=True,
+        ).strip()
+    )
+    objects = (ROOT / common).resolve() / "objects"
+    if not objects.is_dir():
+        raise ValueError("local Git object store is unavailable")
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "init.templateDir=",
+            "-c",
+            "init.defaultBranch=benchmark",
+            "init",
+            "--bare",
+            "--quiet",
+            str(source / ".git"),
+        ],
+        check=True,
+    )
+    (source / ".git/objects/info/alternates").write_bytes((objects.as_posix() + "\n").encode())
+    subprocess.run(["git", "-C", str(source), "update-ref", "HEAD", commit], check=True)
+
+
 def comparable_result(result: dict) -> dict:
     """Normalize only run time, source commit and the declared CLI output path."""
     result = json.loads(json.dumps(result))
@@ -76,6 +106,7 @@ def main() -> None:
     parser.add_argument("--baseline-commit")
     parser.add_argument("--correspondence", type=Path)
     parser.add_argument("--problem", type=Path)
+    parser.add_argument("--input-format", choices=("json", "yaml"), default="json")
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--repetitions", type=int, default=3)
     parser.add_argument("--worker-protocol", type=Path)
@@ -95,9 +126,21 @@ def main() -> None:
         name: subprocess.check_output(["git", "rev-parse", ref], text=True).strip()
         for name, ref in (("prior", args.baseline_commit), ("current", "HEAD"))
     }
+    suffix = "." + args.input_format
+    origins = {}
     for name in ("correspondence", "problem"):
-        shutil.copyfile(getattr(args, name), output / (name + ".json"))
-    inputs = {name: sha(output / (name + ".json")) for name in ("correspondence", "problem")}
+        origin = getattr(args, name)
+        origins[name] = sha(origin)
+        if args.input_format == "yaml":
+            from calibrex.core.io import read_mapping, write_mapping
+
+            value = read_mapping(origin)
+            write_mapping(output / (name + suffix), value)
+            if read_mapping(output / (name + suffix)) != value:
+                raise ValueError("input conversion changed the mapping")
+        else:
+            shutil.copyfile(origin, output / (name + suffix))
+    inputs = {name: sha(output / (name + suffix)) for name in ("correspondence", "problem")}
     shutil.copyfile(__file__, output / "launcher.py.txt")
     helper = ROOT / "tools/benchmark_bspline_lidar_imu.py"
     shutil.copyfile(helper, output / "freezer.py.txt")
@@ -105,6 +148,7 @@ def main() -> None:
     for variant, commit in commits.items():
         frozen = output / ("sources-" + variant)
         _freeze(frozen, commit)
+        _git_identity(frozen, commit)
         manifests[variant] = sha(frozen / "manifest.json")
         shutil.copyfile(
             frozen / "manifest.json", output / ("sources-" + variant + "-manifest.json")
@@ -121,12 +165,12 @@ def main() -> None:
         "blas_threads": 1,
         "commands": {
             "help": ["--help"],
-            "validate": ["validate", str(output / "correspondence.json"), "--json"],
+            "validate": ["validate", str(output / ("correspondence" + suffix)), "--json"],
             "refine": [
                 "camera-lidar",
                 "refine-probabilistic-multiframe",
-                str(output / "correspondence.json"),
-                str(output / "problem.json"),
+                str(output / ("correspondence" + suffix)),
+                str(output / ("problem" + suffix)),
                 "--output",
                 "<OUTPUT>",
                 "--json",
@@ -141,6 +185,32 @@ def main() -> None:
         },
     }
     write(output / "protocol.json", protocol)
+    protocol_digest = sha(output / "protocol.json")
+    if args.input_format == "yaml":
+        import importlib.metadata
+
+        import yaml
+
+        if not getattr(yaml, "__with_libyaml__", False):
+            raise RuntimeError("compiled YAML timing requires LibYAML; no worker started")
+        write(
+            output / "input-transcoding.json",
+            {
+                "format": "yaml",
+                "original_sha256": origins,
+                "input_sha256": inputs,
+                "pyyaml": yaml.__version__,
+                "libyaml": True,
+                "versions": {
+                    name: importlib.metadata.version(name)
+                    for name in ("numpy", "scipy", "pydantic", "jsonschema", "PyYAML")
+                },
+                "provenance": {
+                    "launcher_sha256": sha(Path(__file__)),
+                    "protocol_sha256": sha(output / "protocol.json"),
+                },
+            },
+        )
     import jsonschema
 
     jsonschema.validate(
@@ -154,6 +224,8 @@ def main() -> None:
             for variant in order:
                 frozen = output / ("sources-" + variant)
                 expected = _verify_sources(frozen)
+                if inputs != {name: sha(output / (name + suffix)) for name in inputs}:
+                    raise ValueError("benchmark input changed before execution")
                 folder = output / f"{case}-{repeat:02d}-{variant}"
                 folder.mkdir()
                 env = os.environ.copy()
@@ -195,6 +267,7 @@ def main() -> None:
                     }
                 )
                 write(output / "attempts.json", attempts)
+                print(json.dumps(attempts[-1]), flush=True)
                 if completed.returncode:
                     raise RuntimeError(f"worker failed; preserved {folder}")
                 imports = json.loads((folder / "imports.json").read_bytes())
@@ -206,11 +279,17 @@ def main() -> None:
                     ):
                         raise ValueError("worker used an unfrozen module")
                 _verify_sources(frozen)
-                if inputs != {name: sha(output / (name + ".json")) for name in inputs}:
+                if inputs != {name: sha(output / (name + suffix)) for name in inputs}:
                     raise ValueError("benchmark input changed")
                 if (
                     sha(Path(__file__)) != protocol["provenance"]["launcher_sha256"]
                     or sha(helper) != protocol["provenance"]["freezer_sha256"]
+                    or sha(output / "protocol.json") != protocol_digest
+                    or subprocess.check_output(
+                        ["git", "-C", str(frozen), "rev-parse", "HEAD"],
+                        text=True,
+                    ).strip()
+                    != commits[variant]
                 ):
                     raise ValueError("benchmark source changed")
     # Validate and compare every result, not only selected summary statistics.
