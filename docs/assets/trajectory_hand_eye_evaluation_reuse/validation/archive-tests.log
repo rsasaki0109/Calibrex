@@ -1,0 +1,35 @@
+..........F................                                              [100%]
+================================== FAILURES ===================================
+__ test_interrupted_cohort_preserves_every_pin_and_unchanged_core_and_input ___
+
+    def test_interrupted_cohort_preserves_every_pin_and_unchanged_core_and_input() -> None:
+        earlier = ARCHIVE / "interrupted-v1"
+        protocol = json.loads((earlier / "protocol.json").read_bytes())
+        assert set(protocol["provenance"]["files"]) == PINNED
+        for name, digest in protocol["provenance"]["files"].items():
+            assert hashlib.sha256((earlier / name).read_bytes()).hexdigest() == digest
+        assert (earlier / "problem.json").read_bytes() == (ARCHIVE / "problem.json").read_bytes()
+        for variant in ("prior", "current"):
+            assert (earlier / f"sources-{variant}-manifest.json").read_bytes() == (
+                ARCHIVE / f"sources-{variant}-manifest.json"
+            ).read_bytes()
+        attempts = json.loads((earlier / "attempts.json").read_bytes())["runs"]
+        assert len(attempts) == 1 and attempts[0]["exit_code"] == 0
+        for name in ("result.json", "history.json.gz"):
+    
+            def read(folder: Path, filename: str = name) -> dict:
+                raw = (folder / filename).read_bytes()
+                return json.loads(gzip.decompress(raw) if filename.endswith(".gz") else raw)
+    
+>           assert comparable(read(earlier / "00-prior")) == comparable(read(ARCHIVE / "00-prior"))
+E           AssertionError: assert {'fits': [{'f...3e20b7'}, ...} == {'fits': [{'f...85b705'}, ...}
+E             
+E             Omitting 5 identical items, use -vv to show
+E             Differing items:
+E             {'provenance': {'problem_sha256': '558fc29f5332b669e6618a1844440033f3637096082c4676023e0c054cf79a9b', 'protocol_sha256': 'b4e740126c3e941f9d824d9b0b62fc704c0417cbe05051d242c343072f3e20b7'}} != {'provenance': {'problem_sha256': '558fc29f5332b669e6618a1844440033f3637096082c4676023e0c054cf79a9b', 'protocol_sha256': 'c40b423727d2f0177fe244bb807d722bb036cfd198a840b37dc752d56b85b705'}}
+E             Use -v to get more diff
+
+tests\unit\test_trajectory_hand_eye_reuse_archive.py:147: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/unit/test_trajectory_hand_eye_reuse_archive.py::test_interrupted_cohort_preserves_every_pin_and_unchanged_core_and_input
+1 failed, 26 passed in 201.69s (0:03:21)
