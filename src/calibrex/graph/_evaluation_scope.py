@@ -12,6 +12,9 @@ _EVALUATION_CACHE_LIMIT = 128
 _EVALUATION_CACHE: ContextVar[OrderedDict[bytes, object] | None] = ContextVar(
     "joint_evaluation_cache", default=None
 )
+_PREPARATION_CACHE: ContextVar[OrderedDict[int, object] | None] = ContextVar(
+    "joint_preparation_cache", default=None
+)
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
 
@@ -28,3 +31,17 @@ def _with_evaluation_cache(function: Callable[_P, _R]) -> Callable[_P, _R]:
             _EVALUATION_CACHE.reset(token)
 
     return evaluate
+
+
+def _with_preparation_cache(function: Callable[_P, _R]) -> Callable[_P, _R]:
+    """Keep bounded graph preparation local to one synchronous solver call."""
+
+    @wraps(function)
+    def solve(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+        token = _PREPARATION_CACHE.set(OrderedDict())
+        try:
+            return function(*args, **kwargs)
+        finally:
+            _PREPARATION_CACHE.reset(token)
+
+    return solve

@@ -5,8 +5,8 @@ from __future__ import annotations
 import math
 import struct
 from collections.abc import Sequence
-from dataclasses import dataclass
-from types import CodeType, FunctionType
+from dataclasses import dataclass, replace
+from types import CellType, CodeType, FunctionType
 from typing import TYPE_CHECKING, TypeAlias
 from weakref import ReferenceType, ref
 
@@ -19,6 +19,7 @@ from calibrex.core.geometry import (
     normalize_quaternion_xyzw,
     quaternion_conjugate_xyzw,
 )
+from calibrex.graph._evaluation_scope import _PREPARATION_CACHE
 from calibrex.graph.joint_optimization import (
     _BUILTIN_RESIDUALS_METHOD,
     JointOptimizerOptions,
@@ -26,6 +27,7 @@ from calibrex.graph.joint_optimization import (
     JointResidualBlock,
     ParameterValues,
     ResidualEvaluator,
+    SquareRootInformation,
 )
 
 if TYPE_CHECKING:
@@ -35,10 +37,16 @@ _MIN_POINTS = 64
 _MAX_POINTS = 65536
 _MAX_GROUPS = 128
 _CHUNK_ROWS = 4096
+_PLAN_ENTRIES = 2
+_PLAN_FACTOR_LIMIT = 65536
 _ATTRIBUTE = "_calibrex_joint_builtin"
 _SE3_POINT_METHOD = SE3.transform_point
 _FloatArray: TypeAlias = NDArray[np.float64]
 _IndexArray: TypeAlias = NDArray[np.intp]
+
+
+class _OwnedPointFactors(tuple[JointResidualBlock, ...]):
+    """Private native-adapter factors that cannot escape during their solve."""
 
 
 @dataclass(frozen=True)
@@ -166,6 +174,17 @@ class _PointPlanePlan:
     groups: tuple[_PointGroup, ...]
     priors: tuple[tuple[int, int, JointResidualBlock], ...]
 
+    def accepts(self, values: ParameterValues) -> bool:
+        return all(
+            name in values and len(values[name]) == 6
+            for group in self.groups
+            for name in (group.binding.pose, group.binding.extrinsic)
+        ) and all(
+            factor.variable_names[0] in values
+            and len(values[factor.variable_names[0]]) == dimension
+            for _, dimension, factor in self.priors
+        )
+
     def evaluate(self, values: ParameterValues, active: str | None = None) -> _FloatArray:
         from calibrex.graph.joint_factors import se3_from_tangent
 
@@ -243,12 +262,197 @@ class _PointPlanePlan:
         return baseline, jacobian
 
 
+@dataclass(frozen=True)
+class _PointState:
+    measurement: JointPointToPlaneMeasurement
+    measurement_type: type[object]
+    point: Vector3
+    plane: Vector3
+    world: SE3
+    sensor: SE3
+    world_translation: Vector3
+    world_rotation: tuple[float, float, float, float]
+    sensor_translation: Vector3
+    sensor_rotation: tuple[float, float, float, float]
+    normal: Vector3
+    pose: str
+    extrinsic: str
+
+    def matches(self, binding: _PointBinding) -> bool:
+        measurement = self.measurement
+        return (
+            binding.measurement is measurement
+            and type(measurement) is self.measurement_type
+            and measurement.point_sensor_m is self.point
+            and measurement.plane_point_world_m is self.plane
+            and measurement.transform_world_body_initial is self.world
+            and measurement.transform_body_sensor_initial is self.sensor
+            and type(self.world) is SE3
+            and type(self.sensor) is SE3
+            and self.world.translation_m is self.world_translation
+            and self.world.rotation_quat_xyzw is self.world_rotation
+            and self.sensor.translation_m is self.sensor_translation
+            and self.sensor.rotation_quat_xyzw is self.sensor_rotation
+            and binding.normal is self.normal
+            and binding.pose is self.pose
+            and binding.extrinsic is self.extrinsic
+        )
+
+
+@dataclass(frozen=True)
+class _FactorState:
+    factor: JointResidualBlock
+    evaluator: FunctionType
+    binding: _PointBinding | _PriorBinding
+    owner: _Owner
+    reference: ReferenceType[object]
+    code: CodeType
+    cells: tuple[CellType, ...]
+    closed: tuple[object, ...]
+    weight: float
+    names: tuple[str, ...]
+    information: SquareRootInformation
+    point: _PointState | None
+    prior: tuple[str, int] | None
+
+    def matches(self, factor: JointResidualBlock) -> bool:
+        if (
+            factor is not self.factor
+            or type(factor) is not JointResidualBlock
+            or factor.evaluator is not self.evaluator
+            or factor.weight is not self.weight
+            or factor.variable_names is not self.names
+            or factor.sqrt_information is not self.information
+        ):
+            return False
+        evaluator, binding, owner = self.evaluator, self.binding, self.owner
+        if (
+            getattr(evaluator, _ATTRIBUTE, None) is not binding
+            or evaluator.__code__ is not self.code
+            or (evaluator.__closure__ or ()) is not self.cells
+            or binding.owner is not owner
+            or owner.reference is not self.reference
+            or owner.code is not self.code
+            or owner.closure is not self.closed
+        ):
+            return False
+        cells, closed = self.cells, self.closed
+        try:
+            if len(cells) == 6:
+                # Native point factories share this closure layout. Avoid an
+                # allocated generator for every point on every LM evaluation.
+                if (
+                    cells[0].cell_contents is not closed[0]
+                    or cells[1].cell_contents is not closed[1]
+                    or cells[2].cell_contents is not closed[2]
+                    or cells[3].cell_contents is not closed[3]
+                    or cells[4].cell_contents is not closed[4]
+                    or cells[5].cell_contents is not closed[5]
+                ):
+                    return False
+            elif any(
+                cell.cell_contents is not value for cell, value in zip(cells, closed, strict=True)
+            ):
+                return False
+        except ValueError:
+            return False
+        if self.point is not None and type(binding) is _PointBinding:
+            return self.point.matches(binding)
+        return (
+            type(binding) is _PriorBinding
+            and self.prior is not None
+            and binding.block is self.prior[0]
+            and binding.dimension is self.prior[1]
+        )
+
+
+def _factor_state(factor: JointResidualBlock) -> _FactorState | None:
+    binding = _binding(factor)
+    if type(binding) not in (_PointBinding, _PriorBinding):
+        return None
+    assert isinstance(binding, (_PointBinding, _PriorBinding))
+    evaluator = factor.evaluator
+    assert isinstance(evaluator, FunctionType)
+    point = None
+    prior = None
+    if isinstance(binding, _PointBinding):
+        measurement = binding.measurement
+        world, sensor = (
+            measurement.transform_world_body_initial,
+            measurement.transform_body_sensor_initial,
+        )
+        if not (
+            _vector(world.translation_m, 3)
+            and _vector(world.rotation_quat_xyzw, 4)
+            and _vector(sensor.translation_m, 3)
+            and _vector(sensor.rotation_quat_xyzw, 4)
+        ):
+            # Frozen SE3 normally owns plain tuples. A caller can deliberately
+            # bypass freezing; mutable/custom leaves must be prepared afresh.
+            return None
+        point = _PointState(
+            measurement,
+            type(measurement),
+            measurement.point_sensor_m,
+            measurement.plane_point_world_m,
+            world,
+            sensor,
+            world.translation_m,
+            world.rotation_quat_xyzw,
+            sensor.translation_m,
+            sensor.rotation_quat_xyzw,
+            binding.normal,
+            binding.pose,
+            binding.extrinsic,
+        )
+    else:
+        prior = (binding.block, binding.dimension)
+    owner = binding.owner
+    return _FactorState(
+        factor,
+        evaluator,
+        binding,
+        owner,
+        owner.reference,
+        owner.code,
+        evaluator.__closure__ or (),
+        owner.closure,
+        factor.weight,
+        factor.variable_names,
+        factor.sqrt_information,
+        point,
+        prior,
+    )
+
+
+@dataclass(frozen=True)
+class _PreparedPlan:
+    factors: Sequence[JointResidualBlock]
+    states: tuple[_FactorState, ...]
+    plan: _PointPlanePlan
+    limits: tuple[int, int, int]
+
+    def matches(self, factors: Sequence[JointResidualBlock], values: ParameterValues) -> bool:
+        return (
+            factors is self.factors
+            and len(factors) == len(self.states)
+            and self.limits == (_MIN_POINTS, _MAX_POINTS, _MAX_GROUPS)
+            and (
+                type(factors) is _OwnedPointFactors
+                or all(
+                    state.matches(factor)
+                    for state, factor in zip(self.states, factors, strict=True)
+                )
+            )
+            and self.plan.accepts(values)
+        )
+
+
 def _prepare_point_plane_plan(
     factors: Sequence[JointResidualBlock], values: ParameterValues
 ) -> _PointPlanePlan | None:
     from calibrex.graph.joint_factors import (
         _SE3_FROM_TANGENT_IMPLEMENTATION,
-        JointPointToPlaneMeasurement,
         se3_from_tangent,
     )
 
@@ -259,7 +463,92 @@ def _prepare_point_plane_plan(
         or se3_from_tangent is not _SE3_FROM_TANGENT_IMPLEMENTATION
         or not _values_supported(values)
     ):
+        cache = _PREPARATION_CACHE.get()
+        if cache is not None:
+            # The scalar fallback can execute user code. Do not retain an
+            # adapter-owned snapshot across an unsupported evaluation.
+            cache.clear()
         return None
+    cache = _PREPARATION_CACHE.get()
+    key = id(factors)
+    cached = cache.get(key) if cache is not None else None
+    if isinstance(cached, _PreparedPlan):
+        if cached.matches(factors, values):
+            assert cache is not None
+            cache.move_to_end(key)
+            return cached.plan
+        assert cache is not None
+        del cache[key]
+    plan = _build_point_plane_plan(factors, values)
+    if (
+        plan is not None
+        and cache is not None
+        and type(factors) in (list, tuple, _OwnedPointFactors)
+        and len(factors) <= _PLAN_FACTOR_LIMIT
+    ):
+        states = tuple(_factor_state(factor) for factor in factors)
+        if all(state is not None for state in states):
+            if type(factors) is _OwnedPointFactors:
+                plan = _owned_plan_snapshot(plan)
+            prepared = _PreparedPlan(
+                factors,
+                tuple(state for state in states if state is not None),
+                plan,
+                (_MIN_POINTS, _MAX_POINTS, _MAX_GROUPS),
+            )
+            while cache and (
+                len(cache) >= _PLAN_ENTRIES
+                or sum(
+                    len(value.factors)
+                    for value in cache.values()
+                    if isinstance(value, _PreparedPlan)
+                )
+                + len(factors)
+                > _PLAN_FACTOR_LIMIT
+            ):
+                cache.popitem(last=False)
+            cache[key] = prepared
+    return plan
+
+
+def _owned_plan_snapshot(plan: _PointPlanePlan) -> _PointPlanePlan:
+    def frozen_frame(frame: SE3) -> SE3:
+        # Keep the exact stored quaternion bits; the public SE3 constructor
+        # would normalize them again. All leaves were validated as immutable.
+        snapshot = object.__new__(SE3)
+        object.__setattr__(snapshot, "translation_m", frame.translation_m)
+        object.__setattr__(snapshot, "rotation_quat_xyzw", frame.rotation_quat_xyzw)
+        return snapshot
+
+    groups = []
+    for group in plan.groups:
+        binding = group.binding
+        measurement = binding.measurement
+        groups.append(
+            replace(
+                group,
+                binding=replace(
+                    binding,
+                    measurement=replace(
+                        measurement,
+                        transform_world_body_initial=frozen_frame(
+                            measurement.transform_world_body_initial
+                        ),
+                        transform_body_sensor_initial=frozen_frame(
+                            measurement.transform_body_sensor_initial
+                        ),
+                    ),
+                ),
+            )
+        )
+    return replace(plan, groups=tuple(groups))
+
+
+def _build_point_plane_plan(
+    factors: Sequence[JointResidualBlock], values: ParameterValues
+) -> _PointPlanePlan | None:
+    from calibrex.graph.joint_factors import JointPointToPlaneMeasurement
+
     pending: dict[tuple[str, str, bytes], list[tuple[int, _PointBinding, float]]] = {}
     priors: list[tuple[int, int, JointResidualBlock]] = []
     cursor, point_count = 0, 0

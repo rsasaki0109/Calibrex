@@ -11,7 +11,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from calibrex.evaluation.holdout import split_indices
-from calibrex.graph._evaluation_scope import _with_evaluation_cache
+from calibrex.graph._evaluation_scope import _with_evaluation_cache, _with_preparation_cache
 
 ParameterValues: TypeAlias = Mapping[str, tuple[float, ...]]
 ResidualEvaluator: TypeAlias = Callable[[ParameterValues], Sequence[float]]
@@ -303,6 +303,7 @@ class JointOptimizerResult:
 class BackendNeutralJointOptimizer:
     """Optimize arbitrary coupled residual blocks with numeric factor Jacobians."""
 
+    @_with_preparation_cache
     def solve(
         self,
         parameter_blocks: Sequence[JointParameterBlock],
@@ -313,9 +314,15 @@ class BackendNeutralJointOptimizer:
         _validate_options(solver_options)
         blocks = _validate_blocks(parameter_blocks)
         _validate_factors(factors, blocks)
+        from calibrex.graph._point_plane_batches import _OwnedPointFactors
+
+        train: Sequence[JointResidualBlock]
+        holdout: Sequence[JointResidualBlock]
         train, holdout, train_groups, holdout_groups = split_joint_factors(
             factors, solver_options.holdout_ratio, solver_options.split_seed
         )
+        if type(factors) is _OwnedPointFactors:
+            train, holdout = _OwnedPointFactors(train), _OwnedPointFactors(holdout)
         initial = {block.name: block.initial_values for block in blocks}
         if len(train) < solver_options.minimum_train_factors:
             return _empty(
@@ -765,6 +772,7 @@ def _factor_whitening(
     )
 
 
+@_with_evaluation_cache
 def _factor_family_diagnostics(
     factors: Sequence[JointResidualBlock],
     values: dict[str, tuple[float, ...]],

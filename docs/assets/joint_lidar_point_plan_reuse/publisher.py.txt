@@ -1,0 +1,208 @@
+"""Publish the exact complete public Livox point-plan reuse comparison."""
+import json
+from pathlib import Path
+import shutil
+
+from tools import benchmark_joint_point_plan_reuse as bench
+
+ROOT = Path(__file__).resolve().parent
+SOURCE = ROOT / 'outputs/joint-plan-reuse-pairs-v3'
+VALIDATION = ROOT / 'outputs/joint-plan-reuse-validation-v3'
+TARGET = ROOT / 'docs/assets/joint_lidar_point_plan_reuse'
+report = bench.audit(SOURCE)
+value = report['payload']
+protocol = json.loads((SOURCE / 'protocol.json').read_bytes())
+attempts = json.loads((SOURCE / 'attempts.json').read_bytes())['payload']['attempts']
+TARGET.mkdir(exist_ok=False)
+for name in sorted(bench.PINNED | {'protocol.json', 'attempts.json', 'summary.json'}):
+    shutil.copyfile(SOURCE / name, TARGET / name)
+for attempt in attempts:
+    folder = TARGET / attempt['folder']
+    folder.mkdir()
+    for name in ('result.json.gz', 'history.json', 'measurement.json', 'stdout.txt', 'stderr.txt'):
+        shutil.copyfile(SOURCE / attempt['folder'] / name, folder / name)
+for source, name in (
+    (ROOT / 'tools/benchmark_joint_point_plan_reuse.py', 'auditor.py.txt'),
+    (ROOT / 'tests/unit/test_joint_point_batches.py', 'test_joint_point_batches.py.txt'),
+    (ROOT / 'tests/unit/test_joint_point_plan_reuse_archive.py', 'test_joint_point_plan_reuse_archive.py.txt'),
+    (Path(__file__), 'publisher.py.txt'),
+):
+    shutil.copyfile(source, TARGET / name)
+for name in ('core-windows.log', 'core-linux.log', 'mypy.log', 'ruff.log', 'schema-parity.json', 'schema-parity.py.txt'):
+    if (VALIDATION / name).exists():
+        shutil.copyfile(VALIDATION / name, TARGET / name)
+(TARGET / '.gitattributes').write_bytes(b'* -text whitespace=cr-at-eol\n*.log -whitespace\n')
+commits = protocol['payload']['commits']
+whole, api = value['whole_seconds_median'], value['api_seconds_median']
+rows = []
+for index in range(2):
+    pair = attempts[2 * index:2 * index + 2]
+    times = {x['variant']: x['seconds'] for x in pair}
+    order = ', '.join(x['variant'] for x in pair)
+    rows.append(f"| {index + 1} ({order}) | {times['prior']:.6f} | {times['current']:.6f} | {times['prior'] / times['current']:.3f}x |")
+document = f'''# Guarded preparation reuse for joint LiDAR calibration
+
+Compared with [ordered point batches](joint_lidar_point_batches.md), the complete
+public Livox joint pipeline improves from **{whole['prior']:.6f} to
+{whole['current']:.6f} seconds ({value['whole_speedup']:.6f}x)**. Complete
+`run_calibration` calls improve from **{api['prior']:.6f} to {api['current']:.6f}
+seconds ({value['api_speedup']:.6f}x)**. This additional CPU acceleration reuses
+point/plane preparation during one joint solve. The array geometry and numerical
+Jacobian arithmetic retain their previous implementation.
+
+## Change and lifetime
+
+The previous version validated every point's factory callback, numeric geometry,
+initial frames and weights and rebuilt the same read-only arrays for every
+linearization, candidate evaluation and holdout probe. For this complete workload
+that meant 106 preparations. The new version builds one training plan and one
+holdout plan and reuses them for the other 104 evaluations. The measured workers
+record both preparation-call and actual-build counts; the offline auditor checks
+106 calls and 106 previous builds versus two current builds in every run.
+
+The native adapter creates its factor graph internally and passes a private,
+immutable factor tuple to the optimizer. These factors are not returned to a
+caller or handed to a user callback. After the complete ordinary-input and
+factory-purity checks, the cached plan takes a private snapshot of initial
+frames as well as point/plane arrays. Stored quaternion bits are copied without
+another normalization. Fixed native geometry therefore needs no recursive
+point inspection on the other 104 requests. This optimization is restricted to
+that private ownership marker and is not a new public option.
+
+General optimizer callers still receive identity/code/closure checks on every
+reuse: factor order, weights, names, whitening, factory descriptor/owner,
+point/plane tuples, normals and both initial frames and their stored vectors.
+Identity checks distinguish signed zero and avoid user-defined equality.
+Their changed inputs rebuild preparation or take the scalar fallback. Current
+parameter values and dimensions and the global method/decoder eligibility are
+checked for both paths on every request. Global method, decoder or parameter eligibility failures clear retained
+preparation before scalar fallback. Ineligible graphs are never
+negatively cached. Mutable or custom initial-frame leaves are prepared afresh.
+
+Preparation belongs to one synchronous `BackendNeutralJointOptimizer.solve`
+invocation and is released on return or error. Nested solves and separate
+threads use separate contexts. Calls made outside a solver invocation retain fresh
+preparation. At most two plans and 65,536 combined factor snapshots are retained;
+eviction removes a complete cached plan and recomputes it when needed. These are
+retention bounds, not total process memory bounds. The existing 4,096-row geometry
+chunks and dense Jacobian allocation are unchanged. No factor, input point or
+iteration is discarded to meet a bound.
+
+Family diagnostics and the native adapter's final metric evaluation also receive
+the existing bounded transform scratch scope. They still invoke every original
+scalar callback in its original order and retain the original Python reduction.
+Public signatures, configs, schemas, solver choices, convergence rules and
+dependencies are unchanged. Custom callbacks and unsupported inputs retain the
+previous conservative behavior.
+
+## Complete public workload
+
+The official [Livox Horizon pair](https://github.com/Livox-SDK/Livox_automatic_calibration)
+contains 23,921 source and 23,666 target points according to its raw PCD headers.
+Both reader caps are disabled. Every run retains 16,884 point-plane observations,
+40 joint iterations, 41 complete 13,605 x 12 Jacobians, 65 residual passes and
+24 known-bad probes. Training has 13,599 point factors and a six-residual train-only
+pose prior; holdout has 3,285 points. Inspection, map/plane preparation, the
+independent fixed-baseline solve and report saving remain in the timed pipeline.
+
+This existing development capture remains **degenerate with rank 9** in both
+versions. Status, optimizer history, diagnostics, probe responses and final
+outputs are preserved. This is execution/parity evidence and does not establish
+independent calibration accuracy. No SOTA cohort or leaderboard claim is opened.
+
+## Complete measurements
+
+Two alternating pairs run in fresh processes using frozen 382-module source trees
+and actual Git identities. One BLAS thread is used on an unreserved host.
+Whole-worker time includes cold startup, data loading, the complete pipeline,
+array-hash capture, compression and saving. API time covers the complete
+`run_calibration` call, including its report/artifact saving and trace capture.
+Downloads, source freezing and external auditing are outside the timed workers.
+All four runs are retained.
+
+| Pair (order) | Previous whole s | Reuse whole s | Paired ratio |
+| --- | ---: | ---: | ---: |
+{chr(10).join(rows)}
+
+Reported speedups divide the two-run medians. Results describe this existing
+capture and host; graph size, geometry and host load affect the gain. This is a
+comparison with the immediately preceding optimized version. Earlier published
+ratios are not multiplied into this measurement.
+
+## Parity and validation
+
+All four full schema-valid results match after removing only run ID, dates and
+the three independently verified source-identity fields. All 106 ordered event
+states, factor-ID hashes and complete residual/Jacobian little-endian float64
+array hashes match. The auditor also verifies work counts, full dimensions,
+final values and every known-bad parameter state. The exact measured launcher
+and public auditor have identical bytes.
+
+Tests check full residual/Jacobian bytes, complete dense/Schur LM results,
+synthetic extrinsic recovery and existing fallback behavior. New tests cover
+actual build reduction, owned-versus-guarded full-solve parity, exact frame
+snapshot bits and scope release, changed point/plane geometry and weights, initial-frame
+translations/quaternions, changed callbacks and closure cells, descriptors,
+ownership, whitening, factor order, dynamic parameter values/dimensions,
+conservative limits, whole-plan eviction and nested/concurrent/error cleanup.
+Windows/Python 3.12 and Linux/Python 3.10 run the same checks. Archive mutation
+tests reject rehashed work reductions, false build counts, changed numeric
+history, IDs/order/probe states, timings and source identities. All 129 public
+schemas and their ledger remain byte-identical across both measured runtimes.
+
+The [complete archive](../assets/joint_lidar_point_plan_reuse/README.md) retains
+four full results, traces, measurements and logs, exact config/launcher/schemas,
+both source capsules, upstream input identities and validation/publication code.
+Raw PCDs remain external inputs; the historical upstream manifest is preserved
+verbatim, while protocol counts come from the actual PCD headers.
+
+Baseline: `{commits['prior']}`.
+Measured runtime: `{commits['current']}`.
+Only four existing runtime modules differ; no runtime module is added or removed.
+
+```bash
+python -m tools.benchmark_joint_point_plan_reuse \\
+  --baseline-commit {commits['prior']} \\
+  --output outputs/joint-plan-reuse-reproduction --repetitions 2
+python -m tools.benchmark_joint_point_plan_reuse \\
+  --audit-only docs/assets/joint_lidar_point_plan_reuse
+```
+
+Use committed runtime sources and a new output directory. Offline archive audit
+requires no PCD download, ROS installation or GPU.
+'''
+(ROOT / 'docs/benchmarks/joint_lidar_point_plan_reuse.md').write_bytes(document.encode())
+(TARGET / 'README.md').write_bytes(f'''# Complete guarded point-plan reuse comparison
+
+Whole-worker median: {whole['prior']:.6f} -> {whole['current']:.6f} seconds
+({value['whole_speedup']:.6f}x). See [workload and bounds](../../benchmarks/joint_lidar_point_plan_reuse.md).
+Each run retains 106 preparation requests; actual builds fall from 106 to two.
+
+`protocol.json` binds both source revisions, full-point config, input hashes/counts,
+exact launcher, schemas and source capsules. `attempts.json` retains every worker.
+Each worker folder contains the complete result, full event/parameter trace and
+array hashes, measurement and both logs. `summary.json` is recomputed by the
+public auditor; `index.json` binds every published file. Source capsules and
+measured files preserve their original bytes. The measured launcher equals
+the public auditor.
+
+Raw PCDs are external public inputs. The historical upstream manifest is copied
+verbatim; actual header counts are pinned in the protocol. This development
+capture remains degenerate with rank 9; this archive supports timing/parity and
+does not establish independent calibration accuracy.
+
+Baseline: `{commits['prior']}`.
+Measured runtime: `{commits['current']}`.
+Protocol SHA-256: `{bench.sha(SOURCE / 'protocol.json')}`.
+
+```bash
+python -m tools.benchmark_joint_point_plan_reuse --audit-only docs/assets/joint_lidar_point_plan_reuse
+```
+'''.encode())
+bench.write(TARGET / 'index.json', {
+    'files': {p.relative_to(TARGET).as_posix(): {'sha256': bench.sha(p), 'size_bytes': p.stat().st_size}
+              for p in sorted(TARGET.rglob('*')) if p.is_file() and p.name != 'index.json'},
+    'provenance': {'protocol_sha256': bench.sha(TARGET / 'protocol.json')},
+})
+assert bench.audit(TARGET) == report
+print(json.dumps({'published_files': sum(p.is_file() for p in TARGET.rglob('*')), 'report': value}, indent=2))

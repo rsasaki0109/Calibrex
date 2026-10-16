@@ -1,0 +1,56 @@
+"""Bind final validation and the exact measured auditor to the public archive."""
+import importlib.metadata
+import json
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+
+from tools import benchmark_joint_point_plan_reuse as bench
+
+root = Path(__file__).resolve().parent
+archive = root / 'docs/assets/joint_lidar_point_plan_reuse'
+validation = root / 'outputs/joint-plan-reuse-validation-v3'
+for name in ('archive-windows.log', 'archive-linux.log', 'schema-registry-final.log', 'ruff-final.log', 'mkdocs.log', 'linux-environment.json'):
+    assert (validation / name).exists(), name
+    shutil.copyfile(validation / name, archive / name)
+for source, name in (
+    (root / 'tools/benchmark_joint_point_plan_reuse.py', 'auditor.py.txt'),
+    (root / 'tests/unit/test_joint_point_plan_reuse_archive.py', 'test_joint_point_plan_reuse_archive.py.txt'),
+    (root / '.tmp-calibrex-joint-plan-linux-v3.sh', 'linux-runner.sh.txt'),
+    (Path(__file__), 'publisher-finalizer.py.txt'),
+):
+    shutil.copyfile(source, archive / name)
+launcher = (archive / 'launcher.py.txt').read_bytes()
+assert launcher == (archive / 'auditor.py.txt').read_bytes()
+assert launcher == subprocess.check_output(['git', 'show', 'HEAD:tools/benchmark_joint_point_plan_reuse.py'], cwd=root)
+protocol = json.loads((archive / 'protocol.json').read_bytes())
+bench.write(archive / 'validation.json', {
+    'checks': {
+        'windows_python': sys.version,
+        'windows_packages': {k: importlib.metadata.version(k) for k in ('numpy', 'scipy', 'pydantic', 'PyYAML', 'jsonschema', 'pytest')},
+        'windows_graph_tests': 111,
+        'windows_archive_tests': 21,
+        'windows_schema_registry_tests': 15,
+        'linux_graph_tests': 111,
+        'linux_archive_tests': 21,
+        'strict_mypy_modules': 382,
+        'ruff': 'passed',
+        'mkdocs_strict': 'passed',
+        'measured_launcher_equals_archived_auditor_and_committed_tool': True,
+        'public_schema_exports_and_ledger_byte_identical': 130,
+    },
+    'provenance': {
+        'protocol_sha256': bench.sha(archive / 'protocol.json'),
+        'runtime_git_commit': protocol['payload']['commits']['current'],
+        'source_manifest_sha256': bench.sha(archive / 'sources-current-manifest.json'),
+        'finalizer_sha256': bench.sha(Path(__file__)),
+        'linux_runner_sha256': bench.sha(root / '.tmp-calibrex-joint-plan-linux-v3.sh'),
+    },
+})
+bench.write(archive / 'index.json', {
+    'files': {p.relative_to(archive).as_posix(): {'sha256': bench.sha(p), 'size_bytes': p.stat().st_size}
+              for p in sorted(archive.rglob('*')) if p.is_file() and p.name != 'index.json'},
+    'provenance': {'protocol_sha256': bench.sha(archive / 'protocol.json')},
+})
+print(json.dumps(bench.audit(archive), indent=2))
