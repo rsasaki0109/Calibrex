@@ -534,3 +534,61 @@ def test_monkeypatched_xyz_computation_retains_original_callback_count(monkeypat
     assert batches._prepare_rgbd_plan(items, inputs()) is None
     graph._factor_residuals(items, inputs())
     assert len(calls) == len(items)
+
+
+def test_repeated_evaluations_use_replaced_nominal_depth_and_initial_frame():
+    _, items = batch_problem("depth")
+    before = graph._factor_residuals(items, inputs()).tobytes()
+    binding = getattr(items[0].evaluator, batches._ATTRIBUTE)
+    object.__setattr__(binding.measurement, "nominal_depth_m", 1.8)
+    object.__setattr__(binding.measurement, "transform_world_body_initial", SE3.identity())
+    expected = np.asarray([r for item in items for r in item.residuals(inputs())]).tobytes()
+    assert expected != before
+    assert graph._factor_residuals(items, inputs()).tobytes() == expected
+
+
+@pytest.mark.parametrize("kind", ["depth", "pair"])
+def test_fixed_pose_does_not_add_or_remove_other_jacobian_columns(kind, monkeypatch):
+    blocks, items = batch_problem(kind, regularizers=True)
+    blocks[0] = replace(blocks[0], fixed=True)
+    layout = graph._variable_layout(blocks)
+    assert "pose" not in layout
+    options = graph.JointOptimizerOptions()
+    residual, jacobian = graph._linearize(items, inputs(), blocks, layout, options)
+    monkeypatch.setattr(batches, "_MIN_POINTS", 1_000_000)
+    scalar_r, scalar_j = graph._linearize(items, inputs(), blocks, layout, options)
+    assert residual.tobytes() == scalar_r.tobytes()
+    assert jacobian.tobytes() == scalar_j.tobytes()
+
+
+def test_interleaved_families_keep_row_order_and_coupled_columns(monkeypatch):
+    items = [
+        replace(factory(kind, measurement(kind, i)), factor_id=f"{kind}-{i}")
+        for i in range(64)
+        for kind in KINDS
+    ]
+    names = tuple(dict.fromkeys(name for item in items for name in item.variable_names))
+    blocks = [graph.JointParameterBlock(name, inputs()[name]) for name in names]
+    layout = graph._variable_layout(blocks)
+    options = graph.JointOptimizerOptions()
+    assert batches._prepare_rgbd_plan(items, inputs()) is not None
+    residual, jacobian = graph._linearize(items, inputs(), blocks, layout, options)
+    monkeypatch.setattr(batches, "_MIN_POINTS", 1_000_000)
+    scalar_r, scalar_j = graph._linearize(items, inputs(), blocks, layout, options)
+    assert residual.tobytes() == scalar_r.tobytes()
+    assert jacobian.tobytes() == scalar_j.tobytes()
+
+
+@pytest.mark.parametrize("kind", ["list", "int", "numpy"])
+def test_unsupported_parameter_vectors_keep_scalar_results(kind):
+    _, items = batch_problem("depth")
+    values = inputs()
+    if kind == "list":
+        values["pose"] = list(values["pose"])
+    elif kind == "int":
+        values["pose"] = (0,) * 6
+    else:
+        values["pose"] = tuple(np.float64(v) for v in values["pose"])
+    assert batches._prepare_rgbd_plan(items, values) is None
+    expected = np.asarray([r for item in items for r in item.residuals(values)])
+    assert graph._factor_residuals(items, values).tobytes() == expected.tobytes()
