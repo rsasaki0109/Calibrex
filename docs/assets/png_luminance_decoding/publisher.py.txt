@@ -56,6 +56,9 @@ Pillow or a GPU:
 python -m tools.benchmark_png_luminance --audit docs/assets/png_luminance_decoding
 ```
 ''',encoding='utf-8')
+for name in ('.gitattributes','README.md'):
+    path=target/name
+    path.write_bytes(path.read_bytes().replace(b'\r\n',b'\n'))
 def index():
     value={'files':{p.relative_to(target).as_posix():sha(p) for p in sorted(target.rglob('*'))
                     if p.is_file() and p!=target/'index.json'},
