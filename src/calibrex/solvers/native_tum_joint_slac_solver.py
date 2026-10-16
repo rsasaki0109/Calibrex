@@ -3,10 +3,15 @@
 from __future__ import annotations
 
 import math
+import struct
+from collections import OrderedDict
 from dataclasses import dataclass, replace
 from functools import partial
 from pathlib import Path
 from typing import Any
+
+import numpy as np
+from numpy.typing import NDArray
 
 from calibrex.core.config import CalibrationConfig
 from calibrex.core.frames import FrameGraph
@@ -17,6 +22,7 @@ from calibrex.data.inspect import DatasetInspection
 from calibrex.data.livox import (
     LivoxPointRecord,
     VoxelPlaneMatch,
+    VoxelPlaneQueryContext,
     build_voxel_plane_map,
     nearest_voxel_plane,
     nearest_voxel_plane_match,
@@ -46,6 +52,7 @@ from calibrex.evaluation.numerical_curvature import (
     NumericalCurvatureEvaluation,
     evaluate_numerical_curvature,
 )
+from calibrex.graph._point_plane_batches import _transform_points
 from calibrex.graph.joint_factors import (
     JointDepthPointToPlaneMeasurement,
     JointTrilinearDepthPointToPlaneMeasurement,
@@ -84,6 +91,7 @@ from calibrex.graph.joint_reassociation import (
     JointReassociationState,
     evaluate_joint_reassociation_probes,
 )
+from calibrex.solvers._tum_geometry import _DepthPointGroup, _SpatialPoints, _XYZSamples
 from calibrex.solvers.base import SolverAdapter, SolverAdapterResult
 
 NATIVE_TUM_JOINT_SLAC_BACKEND = "native_tum_joint_slac"
@@ -98,6 +106,9 @@ _SPATIAL_LATTICE_MINIMUM_M = (-3.1, -2.4, 0.2)
 _SPATIAL_LATTICE_MAXIMUM_M = (3.1, 2.4, 5.0)
 _MIN_QUERY_FRAMES = 4
 _MIN_TOTAL_CORRESPONDENCES = 100
+_REASSOCIATION_CACHE_POINTS = 65536
+_REASSOCIATION_CACHE_FACTORS = 65536
+_REASSOCIATION_CACHE_STATES = 2
 
 
 @dataclass(frozen=True)
@@ -259,6 +270,104 @@ class _TUMXYZPairReassociationRun:
     result: JointReassociationResult
     terminal_state: JointReassociationState
     probe_evaluation: JointReassociationProbeEvaluation
+
+
+@dataclass(frozen=True)
+class _TUMXYZPairTarget:
+    query: VoxelPlaneQueryContext
+    points_by_voxel: dict[tuple[int, int, int], list[tuple[int, Vector3, Vector3]]]
+
+
+@dataclass(frozen=True)
+class _TUMXYZPairGeometry:
+    calibrated: tuple[NDArray[np.float64], ...]
+    targets: dict[int, _TUMXYZPairTarget]
+
+
+class _TUMXYZPairReassociationContext:
+    """Own fixed raw samples and at most two field states for one window."""
+
+    def __init__(self, problem: _TUMXYZPairProblem, options: TUMJointSlacOptions) -> None:
+        self.associations = tuple(
+            tuple(
+                association
+                for association in problem.associations
+                if association.observation_group == f"tum-xyz-pair-{index:03d}-"
+                f"{index + options.xyz_pair_stride:03d}"
+            )
+            for index in range(len(problem.query_frames) - options.xyz_pair_stride)
+        )
+        required = [
+            set(range(len(points))) if index >= options.xyz_pair_stride else set()
+            for index, points in enumerate(problem.sampled_points)
+        ]
+        for source, associations in enumerate(self.associations):
+            required[source].update(item.source_point_index for item in associations)
+        self.weights = tuple(
+            tuple(
+                trilinear_lattice_weights(
+                    point,
+                    minimum=_SPATIAL_LATTICE_MINIMUM_M,
+                    maximum=_SPATIAL_LATTICE_MAXIMUM_M,
+                    shape=_SPATIAL_LATTICE_SHAPE,
+                )
+                if row in required[index]
+                else (0.0,) * 8
+                for row, point in enumerate(points)
+            )
+            for index, points in enumerate(problem.sampled_points)
+        )
+        self.samples = tuple(
+            _XYZSamples(
+                np.asarray(points, dtype=np.float64).reshape((-1, 3)),
+                np.asarray(weights, dtype=np.float64).reshape((-1, 8)),
+            )
+            for points, weights in zip(problem.sampled_points, self.weights, strict=True)
+        )
+        for sample in self.samples:
+            sample.points.setflags(write=False)
+            sample.weights.setflags(write=False)
+        self._states: OrderedDict[bytes, _TUMXYZPairGeometry] = OrderedDict()
+        self.geometry_builds = 0
+        self.geometry_hits = 0
+        self.factors: OrderedDict[tuple[str, int, bytes], JointResidualBlock] = OrderedDict()
+
+    def geometry(
+        self,
+        problem: _TUMXYZPairProblem,
+        offsets: tuple[float, ...],
+        options: TUMJointSlacOptions,
+    ) -> _TUMXYZPairGeometry:
+        # Byte keys distinguish signed zero. Pose-only probes reuse the field
+        # without retaining every perturbation or caching mutable factor graphs.
+        key = struct.pack(f"<{len(offsets)}d", *offsets)
+        if key in self._states:
+            self.geometry_hits += 1
+            self._states.move_to_end(key)
+            return self._states[key]
+        calibrated = tuple(sample.calibrated(offsets) for sample in self.samples)
+        targets: dict[int, _TUMXYZPairTarget] = {}
+        for index in range(options.xyz_pair_stride, len(problem.query_frames)):
+            points = tuple(tuple(row) for row in calibrated[index].tolist())
+            plane_map = build_voxel_plane_map(
+                [LivoxPointRecord((*point, 0.0), None) for point in points],
+                options.voxel_size_m,
+            )
+            targets[index] = _TUMXYZPairTarget(
+                VoxelPlaneQueryContext(plane_map),
+                _xyz_pair_points_by_voxel(
+                    problem.sampled_points[index],
+                    points,
+                    options.voxel_size_m,
+                ),
+            )
+        state = _TUMXYZPairGeometry(calibrated, targets)
+        self.geometry_builds += 1
+        if sum(len(sample.points) for sample in self.samples) <= _REASSOCIATION_CACHE_POINTS:
+            self._states[key] = state
+            while len(self._states) > _REASSOCIATION_CACHE_STATES:
+                self._states.popitem(last=False)
+        return state
 
 
 @dataclass(frozen=True)
@@ -752,6 +861,7 @@ def _xyz_pair_reassociation_runs(
             _xyz_pair_reassociation_state,
             problem,
             options=options,
+            context=_TUMXYZPairReassociationContext(problem, options),
         )
         refined = BackendNeutralJointReassociation().refine(
             problem.parameter_blocks,
@@ -993,8 +1103,12 @@ def _xyz_pair_reassociation_state(
     problem: _TUMXYZPairProblem,
     values: ParameterValues,
     options: TUMJointSlacOptions,
+    *,
+    context: _TUMXYZPairReassociationContext | None = None,
 ) -> JointReassociationState:
-    offsets = values[_XYZ_LATTICE_BLOCK]
+    context = context or _TUMXYZPairReassociationContext(problem, options)
+    geometry = context.geometry(problem, values[_XYZ_LATTICE_BLOCK], options)
+    factor_limit = min(_REASSOCIATION_CACHE_FACTORS, max(64, 2 * len(problem.associations)))
     factors: list[JointResidualBlock] = []
     assignments: list[CorrespondenceAssignment] = []
     for source_index in range(len(problem.query_frames) - options.xyz_pair_stride):
@@ -1007,38 +1121,26 @@ def _xyz_pair_reassociation_state(
         target_pose = se3_from_tangent(values[_pose_block(target_index, target_frame)]).compose(
             target_frame.transform_world_camera
         )
-        raw_targets = problem.sampled_points[target_index]
-        calibrated_targets = tuple(
-            _xyz_pair_calibrated_point(point, offsets) for point in raw_targets
-        )
-        target_plane_map = build_voxel_plane_map(
-            [LivoxPointRecord((*point, 0.0), None) for point in calibrated_targets],
-            options.voxel_size_m,
-        )
-        target_points_by_voxel = _xyz_pair_points_by_voxel(
-            raw_targets, calibrated_targets, options.voxel_size_m
-        )
+        target = geometry.targets[target_index]
         group = f"tum-xyz-pair-{source_index:03d}-{target_index:03d}"
-        group_associations = (
-            association
-            for association in problem.associations
-            if association.observation_group == group
+        group_associations = context.associations[source_index]
+        source_rows = [association.source_point_index for association in group_associations]
+        source_world = _transform_points(
+            geometry.calibrated[source_index][source_rows],
+            source_pose,
         )
-        for association in group_associations:
+        source_in_target = _transform_points(source_world, target_pose.inverse())
+        matches = target.query.nearest_matches(
+            source_in_target,
+            voxel_size_m=options.voxel_size_m,
+            correspondence_gate_m=options.correspondence_gate_m,
+        )
+        for association, match in zip(group_associations, matches, strict=True):
             source_point = problem.sampled_points[source_index][association.source_point_index]
-            calibrated_source = _xyz_pair_calibrated_point(source_point, offsets)
-            source_world = source_pose.transform_point(calibrated_source)
-            source_in_calibrated_target = target_pose.inverse().transform_point(source_world)
-            match = nearest_voxel_plane_match(
-                source_in_calibrated_target,
-                target_plane_map,
-                voxel_size_m=options.voxel_size_m,
-                correspondence_gate_m=options.correspondence_gate_m,
-            )
             if match is None:
                 continue
             target_point_index, target_point = _xyz_pair_representative_point(
-                match, target_points_by_voxel
+                match, target.points_by_voxel
             )
             normal_world = rotate_vector_xyzw(target_pose.rotation_quat_xyzw, match.normal)
             measurement = JointTrilinearXYZPairMeasurement(
@@ -1046,30 +1148,31 @@ def _xyz_pair_reassociation_state(
                 group,
                 source_point,
                 target_point,
-                trilinear_lattice_weights(
-                    source_point,
-                    minimum=_SPATIAL_LATTICE_MINIMUM_M,
-                    maximum=_SPATIAL_LATTICE_MAXIMUM_M,
-                    shape=_SPATIAL_LATTICE_SHAPE,
-                ),
-                trilinear_lattice_weights(
-                    target_point,
-                    minimum=_SPATIAL_LATTICE_MINIMUM_M,
-                    maximum=_SPATIAL_LATTICE_MAXIMUM_M,
-                    shape=_SPATIAL_LATTICE_SHAPE,
-                ),
+                context.weights[source_index][association.source_point_index],
+                context.weights[target_index][target_point_index],
                 normal_world,
                 source_frame.transform_world_camera,
                 target_frame.transform_world_camera,
             )
-            factors.append(
-                make_joint_trilinear_xyz_pair_factor(
+            factor_key = (
+                association.measurement_id,
+                target_point_index,
+                struct.pack("<3d", *normal_world),
+            )
+            factor = context.factors.get(factor_key)
+            if factor is None:
+                factor = make_joint_trilinear_xyz_pair_factor(
                     measurement,
                     source_pose_block=_pose_block(source_index, source_frame),
                     target_pose_block=_pose_block(target_index, target_frame),
                     xyz_lattice_block=_XYZ_LATTICE_BLOCK,
                 )
-            )
+                context.factors[factor_key] = factor
+                while len(context.factors) > factor_limit:
+                    context.factors.popitem(last=False)
+            else:
+                context.factors.move_to_end(factor_key)
+            factors.append(factor)
             assignments.append(
                 CorrespondenceAssignment(
                     association.measurement_id,
@@ -1414,9 +1517,19 @@ def _iterative_reassociation_runs(
     output: list[_TUMIterativeReassociationRun] = []
     for run in runs:
         plane_map = _build_map_planes(root, run.source_problem.map_frames, intrinsics, options)
-        initial_state = _initial_spatial_reassociation_state(run, plane_map, options)
+        query = VoxelPlaneQueryContext(plane_map)
+        points = _spatial_point_batch(run.source_problem, run.source_problem.measurements)
+        initial_state = _initial_spatial_reassociation_state(run, plane_map, options, query=query)
         blocks = _spatial_parameter_blocks(run.source_problem, options)
-        reassociate = partial(_reassociated_spatial_state, run, plane_map, options)
+        reassociate = partial(
+            _reassociated_spatial_state,
+            run,
+            plane_map,
+            options,
+            points=points,
+            query=query,
+            factor_cache=OrderedDict(),
+        )
         result = BackendNeutralJointReassociation().refine(
             blocks,
             initial_state,
@@ -1456,15 +1569,21 @@ def _initial_spatial_reassociation_state(
     run: _TUMSpatialWindowRun,
     plane_map: dict[tuple[int, int, int], Any],
     options: TUMJointSlacOptions,
+    *,
+    query: VoxelPlaneQueryContext | None = None,
 ) -> JointReassociationState:
+    query = query or VoxelPlaneQueryContext(plane_map)
     assignments: list[CorrespondenceAssignment] = []
-    for measurement in run.source_problem.measurements:
-        match = nearest_voxel_plane_match(
-            measurement.plane_point_world_m,
-            plane_map,
-            voxel_size_m=options.voxel_size_m,
-            correspondence_gate_m=options.correspondence_gate_m,
-        )
+    measurements = run.source_problem.measurements
+    matches = query.nearest_matches(
+        np.asarray(
+            [measurement.plane_point_world_m for measurement in measurements],
+            dtype=np.float64,
+        ).reshape((-1, 3)),
+        voxel_size_m=options.voxel_size_m,
+        correspondence_gate_m=options.correspondence_gate_m,
+    )
+    for measurement, match in zip(measurements, matches, strict=True):
         if match is None:
             raise ValueError(
                 f"initial TUM target identity is unavailable for {measurement.measurement_id}"
@@ -1478,24 +1597,82 @@ def _reassociated_spatial_state(
     plane_map: dict[tuple[int, int, int], Any],
     options: TUMJointSlacOptions,
     values: ParameterValues,
+    *,
+    points: _SpatialPoints | None = None,
+    query: VoxelPlaneQueryContext | None = None,
+    factor_cache: OrderedDict[tuple[int, tuple[int, int, int]], JointResidualBlock] | None = None,
 ) -> JointReassociationState:
+    measurements = run.source_problem.measurements
+    points = points or _spatial_point_batch(run.source_problem, measurements)
+    query = query or VoxelPlaneQueryContext(plane_map)
+    world_points = points.world_points(
+        values,
+        extrinsic=_EXTRINSIC_BLOCK,
+        bias=_SPATIAL_BIAS_BLOCK,
+        lattice=_SPATIAL_DEPTH_BLOCK,
+    )
+    matches = query.nearest_matches(
+        world_points,
+        voxel_size_m=options.voxel_size_m,
+        correspondence_gate_m=options.correspondence_gate_m,
+    )
     factors: list[JointResidualBlock] = []
     assignments: list[CorrespondenceAssignment] = []
-    for measurement in run.source_problem.measurements:
-        point_world = _spatial_measurement_world_point_from_values(
-            run.source_problem, measurement, values
-        )
-        match = nearest_voxel_plane_match(
-            point_world,
-            plane_map,
-            voxel_size_m=options.voxel_size_m,
-            correspondence_gate_m=options.correspondence_gate_m,
-        )
+    factor_limit = min(_REASSOCIATION_CACHE_FACTORS, max(64, 2 * len(measurements)))
+    for row, (measurement, match) in enumerate(zip(measurements, matches, strict=True)):
         if match is None:
             continue
-        factors.append(_spatial_factor(run.source_problem, measurement, match))
+        key = (row, match.voxel_key)
+        factor = None if factor_cache is None else factor_cache.get(key)
+        if factor is None:
+            factor = _spatial_factor(run.source_problem, measurement, match)
+            if factor_cache is not None:
+                factor_cache[key] = factor
+                while len(factor_cache) > factor_limit:
+                    factor_cache.popitem(last=False)
+        elif factor_cache is not None:
+            factor_cache.move_to_end(key)
+        factors.append(factor)
         assignments.append(CorrespondenceAssignment(measurement.measurement_id, match.target_id))
     return JointReassociationState(tuple(factors), tuple(assignments))
+
+
+def _spatial_point_batch(
+    problem: _TUMJointProblem,
+    measurements: tuple[JointDepthPointToPlaneMeasurement, ...]
+    | list[JointDepthPointToPlaneMeasurement],
+) -> _SpatialPoints:
+    grouped: dict[int, list[int]] = {}
+    for row, measurement in enumerate(measurements):
+        index = int(measurement.observation_group.rsplit("-", 1)[1])
+        grouped.setdefault(index, []).append(row)
+    groups: list[_DepthPointGroup] = []
+    for index, rows in grouped.items():
+        selected = [measurements[row] for row in rows]
+        frame = problem.query_frames[index]
+        group = _DepthPointGroup(
+            np.asarray(rows, dtype=np.intp),
+            np.asarray([item.normalized_ray_sensor for item in selected], dtype=np.float64),
+            np.asarray([item.nominal_depth_m for item in selected], dtype=np.float64),
+            np.asarray(
+                [
+                    trilinear_lattice_weights(
+                        _scale_ray(item.normalized_ray_sensor, item.nominal_depth_m),
+                        minimum=_SPATIAL_LATTICE_MINIMUM_M,
+                        maximum=_SPATIAL_LATTICE_MAXIMUM_M,
+                        shape=_SPATIAL_LATTICE_SHAPE,
+                    )
+                    for item in selected
+                ],
+                dtype=np.float64,
+            ),
+            _pose_block(index, frame),
+            frame.transform_world_camera,
+        )
+        for array in (group.rows, group.rays, group.depths, group.weights):
+            array.setflags(write=False)
+        groups.append(group)
+    return _SpatialPoints(len(measurements), tuple(groups))
 
 
 def _scale_ray(ray: tuple[float, float, float], depth_m: float) -> tuple[float, float, float]:
@@ -1511,65 +1688,56 @@ def _rematch_spatial_holdouts(
     evaluations: list[_TUMRematchEvaluation] = []
     for run in runs:
         plane_map = _build_map_planes(root, run.source_problem.map_frames, intrinsics, options)
+        query = VoxelPlaneQueryContext(plane_map)
         holdout_ids = set(run.result.holdout_factor_ids)
         reference: list[CorrespondenceAssignment] = []
         rematched: list[CorrespondenceAssignment] = []
         fixed_residuals: list[float] = []
         rematched_residuals: list[float] = []
         values = run.result.optimized_values
-        holdout_measurements: list[JointDepthPointToPlaneMeasurement] = []
-        for measurement in run.source_problem.measurements:
-            if measurement.measurement_id not in holdout_ids:
-                continue
-            holdout_measurements.append(measurement)
-            original = nearest_voxel_plane_match(
-                measurement.plane_point_world_m,
-                plane_map,
-                voxel_size_m=options.voxel_size_m,
-                correspondence_gate_m=options.correspondence_gate_m,
-            )
+        holdout_measurements = [
+            measurement
+            for measurement in run.source_problem.measurements
+            if measurement.measurement_id in holdout_ids
+        ]
+        points = _spatial_point_batch(run.source_problem, holdout_measurements)
+        world_points = points.world_points(
+            values,
+            extrinsic=_EXTRINSIC_BLOCK,
+            bias=_SPATIAL_BIAS_BLOCK,
+            lattice=_SPATIAL_DEPTH_BLOCK,
+        )
+        original_matches = query.nearest_matches(
+            np.asarray(
+                [item.plane_point_world_m for item in holdout_measurements],
+                dtype=np.float64,
+            ).reshape((-1, 3)),
+            voxel_size_m=options.voxel_size_m,
+            correspondence_gate_m=options.correspondence_gate_m,
+        )
+        matches = query.nearest_matches(
+            world_points,
+            voxel_size_m=options.voxel_size_m,
+            correspondence_gate_m=options.correspondence_gate_m,
+        )
+        for measurement, point, original, match in zip(
+            holdout_measurements,
+            world_points.tolist(),
+            original_matches,
+            matches,
+            strict=True,
+        ):
+            point_world = (point[0], point[1], point[2])
             if original is not None:
                 reference.append(
                     CorrespondenceAssignment(measurement.measurement_id, original.target_id)
                 )
-            frame_index = int(measurement.observation_group.rsplit("-", 1)[1])
-            frame = run.source_problem.query_frames[frame_index]
-            weights = trilinear_lattice_weights(
-                _scale_ray(
-                    measurement.normalized_ray_sensor,
-                    measurement.nominal_depth_m,
-                ),
-                minimum=_SPATIAL_LATTICE_MINIMUM_M,
-                maximum=_SPATIAL_LATTICE_MAXIMUM_M,
-                shape=_SPATIAL_LATTICE_SHAPE,
-            )
-            depth_m = (
-                measurement.nominal_depth_m
-                + values[_SPATIAL_BIAS_BLOCK][0]
-                + sum(
-                    weight * offset
-                    for weight, offset in zip(weights, values[_SPATIAL_DEPTH_BLOCK], strict=True)
-                )
-            )
-            point_sensor = _scale_ray(measurement.normalized_ray_sensor, depth_m)
-            world_sensor = (
-                se3_from_tangent(values[_pose_block(frame_index, frame)])
-                .compose(frame.transform_world_camera)
-                .compose(se3_from_tangent(values[_EXTRINSIC_BLOCK]))
-            )
-            point_world = world_sensor.transform_point(point_sensor)
             fixed_residuals.append(
                 _point_plane_residual(
                     point_world,
                     measurement.plane_point_world_m,
                     measurement.plane_normal_world,
                 )
-            )
-            match = nearest_voxel_plane_match(
-                point_world,
-                plane_map,
-                voxel_size_m=options.voxel_size_m,
-                correspondence_gate_m=options.correspondence_gate_m,
             )
             if match is None:
                 continue
@@ -1590,6 +1758,8 @@ def _rematch_spatial_holdouts(
                 plane_map,
                 options,
                 rematch=False,
+                points=points,
+                query=query,
             ),
             curvature_center,
             curvature_steps,
@@ -1602,6 +1772,8 @@ def _rematch_spatial_holdouts(
                 plane_map,
                 options,
                 rematch=True,
+                points=points,
+                query=query,
             ),
             curvature_center,
             curvature_steps,
@@ -1613,6 +1785,8 @@ def _rematch_spatial_holdouts(
                 plane_map,
                 options,
                 curvature_center,
+                points=points,
+                query=query,
             )
             if run.start_index == options.frame_start_index
             else ((), None)
@@ -1639,7 +1813,12 @@ def _run_primary_multistart(
     plane_map: dict[tuple[int, int, int], Any],
     options: TUMJointSlacOptions,
     center: tuple[float, ...],
+    *,
+    points: _SpatialPoints | None = None,
+    query: VoxelPlaneQueryContext | None = None,
 ) -> tuple[tuple[PatternSearchResult, ...], MultiStartEvaluation]:
+    points = points or _spatial_point_batch(run.source_problem, measurements)
+    query = query or VoxelPlaneQueryContext(plane_map)
     objective = partial(
         _shared_holdout_objective,
         run,
@@ -1647,6 +1826,8 @@ def _run_primary_multistart(
         plane_map,
         options,
         rematch=True,
+        points=points,
+        query=query,
     )
     starts = [
         ("optimized-center", center),
@@ -1694,22 +1875,48 @@ def _shared_holdout_objective(
     candidate: tuple[float, ...],
     *,
     rematch: bool,
+    points: _SpatialPoints | None = None,
+    query: VoxelPlaneQueryContext | None = None,
 ) -> float:
-    extrinsic = candidate[:6]
-    bias_m = candidate[6]
-    squared_sum = 0.0
-    for measurement in measurements:
-        point_world = _spatial_measurement_world_point(run, measurement, extrinsic, bias_m)
-        if rematch:
-            match = nearest_voxel_plane_match(
-                point_world,
-                plane_map,
+    points = points or _spatial_point_batch(run.source_problem, measurements)
+    values = dict(run.result.optimized_values)
+    values[_EXTRINSIC_BLOCK] = candidate[:6]
+    values[_SPATIAL_BIAS_BLOCK] = (candidate[6],)
+    world_points = points.world_points(
+        values,
+        extrinsic=_EXTRINSIC_BLOCK,
+        bias=_SPATIAL_BIAS_BLOCK,
+        lattice=_SPATIAL_DEPTH_BLOCK,
+    )
+    matches = None
+    if rematch:
+        query = query or VoxelPlaneQueryContext(plane_map)
+        geometries = query._nearest_geometries(
+            world_points,
+            voxel_size_m=options.voxel_size_m,
+            correspondence_gate_m=options.correspondence_gate_m,
+        )
+        matches = (
+            query.nearest_matches(
+                world_points,
                 voxel_size_m=options.voxel_size_m,
                 correspondence_gate_m=options.correspondence_gate_m,
             )
+            if geometries is None
+            else geometries
+        )
+    squared_sum = 0.0
+    for measurement, point, match in zip(
+        measurements,
+        world_points.tolist(),
+        [None] * len(measurements) if matches is None else matches,
+        strict=True,
+    ):
+        point_world = (point[0], point[1], point[2])
+        if rematch:
             residual = (
                 _point_plane_residual(point_world, match.centroid, match.normal)
-                if match is not None
+                if match is not None and match.normal is not None
                 else options.correspondence_gate_m
             )
         else:

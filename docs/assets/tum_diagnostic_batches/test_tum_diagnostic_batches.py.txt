@@ -1,0 +1,527 @@
+"""Scalar geometry, correspondence and diagnostic parity for native TUM batches."""
+
+import json
+import math
+from collections import OrderedDict
+from dataclasses import asdict, replace
+from functools import partial
+
+import numpy as np
+import pytest
+
+from calibrex.core.geometry import SE3
+from calibrex.data import livox
+from calibrex.data.tum_rgbd import TUMDepthPoseEntry, TUMImageEntry, TUMTrajectoryEntry
+from calibrex.evaluation.numerical_curvature import evaluate_numerical_curvature
+from calibrex.graph._rgbd_batches import _rgbd_binding
+from calibrex.graph.joint_optimization import JointOptimizerResult
+from calibrex.solvers import native_tum_joint_slac_solver as a
+from calibrex.solvers._tum_geometry import _XYZSamples
+
+
+def _frames():
+    return tuple(
+        TUMDepthPoseEntry(
+            TUMImageEntry(float(i), f"depth/{i}.png"),
+            TUMTrajectoryEntry(
+                float(i),
+                (0.005 * i, -0.003 * i, 0.002 * i),
+                (0.003 * i, -0.002 * i, 0.001 * i, 1.0),
+            ),
+            0.0,
+        )
+        for i in range(4)
+    )
+
+
+def _raw_points():
+    return tuple(
+        (0.08 * x + dx - 0.3, 0.08 * y + dy - 0.2, 1.0 + dz + 0.02 * (x % 2))
+        for x in range(8)
+        for y in range(6)
+        for dx, dy, dz in ((0.005, 0.0, 0.0), (0.025, 0.0, 0.004), (0.005, 0.025, 0.007))
+    )
+
+
+def _values(frames, angle=0.07):
+    return {
+        **{
+            a._pose_block(i, frame): (0.001 * i, -0.002, 0.003, 0.01, -0.02, 0.03)
+            for i, frame in enumerate(frames)
+        },
+        a._EXTRINSIC_BLOCK: (0.02, -0.01, 0.03, angle, -0.02, 0.01),
+        a._SPATIAL_BIAS_BLOCK: (0.012,),
+        a._SPATIAL_DEPTH_BLOCK: tuple(0.002 * math.sin(i) for i in range(8)),
+        a._XYZ_LATTICE_BLOCK: tuple(0.002 * math.cos(i) for i in range(24)),
+    }
+
+
+def _spatial(count=145, angle=0.07):
+    frames = _frames()
+    raw = _raw_points()
+    measurements = tuple(
+        a.JointDepthPointToPlaneMeasurement(
+            f"point-{i}",
+            f"query-{i % len(frames)}",
+            tuple(value / raw[i % len(raw)][2] for value in raw[i % len(raw)]),
+            raw[i % len(raw)][2],
+            (0.1 + 0.001 * i, -0.1, 1.0),
+            (0.3, -0.2, 0.7),
+            frames[i % len(frames)].transform_world_camera,
+            SE3.identity(),
+        )
+        for i in range(count)
+    )
+    problem = a._TUMJointProblem((), frames, measurements, (), (), (), 0, 0)
+    values = _values(frames, angle)
+    result = JointOptimizerResult(
+        status="converged",
+        reason="unit fixture",
+        optimized_values=values,
+        train_factor_ids=(),
+        holdout_factor_ids=tuple(item.measurement_id for item in measurements),
+        train_observation_groups=(),
+        holdout_observation_groups=(),
+        train_rmse=None,
+        holdout_rmse=None,
+        information_singular_values=(),
+        information_rank=0,
+        condition_number=None,
+        weak_parameter_blocks=(),
+        probes=(),
+        history=(),
+    )
+    run = a._TUMSpatialWindowRun(180, problem, (), result)
+    world = [
+        a._spatial_measurement_world_point_from_values(problem, item, values)
+        for item in measurements
+    ]
+    plane_map = livox.build_voxel_plane_map(
+        [livox.LivoxPointRecord((*point, 0.0), (0.3, -0.2, 0.7)) for point in world], 0.1
+    )
+    return run, plane_map, a.TUMJointSlacOptions()
+
+
+def _pair_problem():
+    frames = _frames()
+    raw = _raw_points()
+    associations = tuple(
+        a._TUMXYZPairAssociation(
+            f"pair-{source}-{i}",
+            f"tum-xyz-pair-{source:03d}-{target:03d}",
+            source,
+            target,
+            i,
+            i,
+            a._xyz_pair_target_id(target, i),
+            0.0,
+        )
+        for source in range(3)
+        for target in (source + 1,)
+        for i in reversed(range(len(raw)))
+    )
+    return a._TUMXYZPairProblem(frames, (), (), (), (), associations, (raw,) * len(frames))
+
+
+def _bytes(value):
+    return np.asarray(value, dtype="<f8").tobytes()
+
+
+def _assert_states(before, after, values):
+    assert before.as_dict() == after.as_dict()
+    assert len(before.factors) == len(after.factors)
+    for old, new in zip(before.factors, after.factors, strict=True):
+        assert (old.variable_names, old.weight, old.sqrt_information) == (
+            new.variable_names,
+            new.weight,
+            new.sqrt_information,
+        )
+        old_measurement, new_measurement = (
+            _rgbd_binding(old).measurement,
+            _rgbd_binding(new).measurement,
+        )
+        assert json.dumps(asdict(old_measurement), sort_keys=True) == json.dumps(
+            asdict(new_measurement),
+            sort_keys=True,
+        )
+        assert _bytes(old.residuals(values)) == _bytes(new.residuals(values))
+
+
+@pytest.mark.parametrize("count", [0, 1, 63, 64, 145])
+@pytest.mark.parametrize("angle", [0.0, 0.3, math.pi - 1e-8])
+def test_spatial_points_keep_scalar_bits_and_original_row_order(count, angle):
+    run, _, _ = _spatial(count, angle)
+    batch = a._spatial_point_batch(run.source_problem, run.source_problem.measurements)
+    for bias in (0.0, -0.03, 0.08):
+        values = {**run.result.optimized_values, a._SPATIAL_BIAS_BLOCK: (bias,)}
+        expected = [
+            a._spatial_measurement_world_point_from_values(run.source_problem, item, values)
+            for item in run.source_problem.measurements
+        ]
+        actual = batch.world_points(
+            values,
+            extrinsic=a._EXTRINSIC_BLOCK,
+            bias=a._SPATIAL_BIAS_BLOCK,
+            lattice=a._SPATIAL_DEPTH_BLOCK,
+        )
+        assert actual.shape == (count, 3)
+        assert _bytes(actual) == _bytes(expected)
+    assert all(
+        not array.flags.writeable
+        for group in batch.groups
+        for array in (group.rows, group.rays, group.depths, group.weights)
+    )
+
+
+@pytest.mark.parametrize(
+    "offsets",
+    [
+        (0.0,) * 24,
+        (-0.0,) * 24,
+        tuple(0.03 * math.sin(i) for i in range(24)),
+        (1e10, -1e10, 1e-6) * 8,
+    ],
+)
+def test_xyz_field_samples_retain_python_lattice_sum_rounding(offsets):
+    points = (
+        *_raw_points(),
+        a._SPATIAL_LATTICE_MINIMUM_M,
+        a._SPATIAL_LATTICE_MAXIMUM_M,
+        (-0.0, 0.0, 1.0),
+    )
+    weights = [
+        a.trilinear_lattice_weights(
+            point,
+            minimum=a._SPATIAL_LATTICE_MINIMUM_M,
+            maximum=a._SPATIAL_LATTICE_MAXIMUM_M,
+            shape=a._SPATIAL_LATTICE_SHAPE,
+        )
+        for point in points
+    ]
+    batch = _XYZSamples(np.asarray(points), np.asarray(weights))
+    expected = [a._xyz_pair_calibrated_point(point, offsets) for point in points]
+    actual = batch.calibrated(offsets)
+    assert _bytes(expected) == _bytes(actual)
+    assert not actual.flags.writeable
+    with pytest.raises(ValueError, match="dimension"):
+        batch.calibrated(offsets[:-1])
+
+
+@pytest.mark.parametrize("count", [0, 7, 64, 145])
+@pytest.mark.parametrize("budget", [0, 8 * 1024 * 1024])
+def test_spatial_reassociation_and_fixed_or_rematched_objectives_are_exact(
+    count, budget, monkeypatch
+):
+    monkeypatch.setattr(livox, "_DENSE_PLANE_INDEX_MAX_BYTES", budget)
+    run, plane_map, options = _spatial(count)
+    measurements = list(run.source_problem.measurements)
+    points = a._spatial_point_batch(run.source_problem, measurements)
+    query = livox.VoxelPlaneQueryContext(plane_map)
+    for change in (0.0, 0.03, 2.0):
+        values = dict(run.result.optimized_values)
+        values[a._SPATIAL_BIAS_BLOCK] = (change,)
+        expected = scalar_spatial_state(run, plane_map, options, values)
+        actual = a._reassociated_spatial_state(
+            run, plane_map, options, values, points=points, query=query
+        )
+        _assert_states(expected, actual, values)
+        candidate = (*values[a._EXTRINSIC_BLOCK], change)
+        for rematch in (False, True):
+            expected = scalar_objective(
+                run, measurements, plane_map, options, candidate, rematch=rematch
+            )
+            actual = a._shared_holdout_objective(
+                run,
+                measurements,
+                plane_map,
+                options,
+                candidate,
+                rematch=rematch,
+                points=points,
+                query=query,
+            )
+            assert _bytes(expected) == _bytes(actual)
+
+
+@pytest.mark.parametrize("budget", [0, 8 * 1024 * 1024])
+@pytest.mark.parametrize("gate", [0.0, 0.15])
+def test_xyz_pair_reassociation_keeps_identities_normals_and_field_changes(
+    gate, budget, monkeypatch
+):
+    monkeypatch.setattr(livox, "_DENSE_PLANE_INDEX_MAX_BYTES", budget)
+    problem = _pair_problem()
+    options = a.TUMJointSlacOptions(correspondence_gate_m=gate)
+    context = a._TUMXYZPairReassociationContext(problem, options)
+    values = _values(problem.query_frames)
+    for name, replacement in (
+        (a._XYZ_LATTICE_BLOCK, values[a._XYZ_LATTICE_BLOCK]),
+        (a._pose_block(1, problem.query_frames[1]), (0.03, 0.02, -0.01, 0.02, 0.01, -0.02)),
+        (a._XYZ_LATTICE_BLOCK, (0.02,) * 24),
+        (a._XYZ_LATTICE_BLOCK, (-0.02,) * 24),
+    ):
+        supplied = {**values, name: replacement}
+        before = scalar_pair_state(problem, supplied, options)
+        after = a._xyz_pair_reassociation_state(problem, supplied, options, context=context)
+        _assert_states(before, after, supplied)
+        assert len(context._states) <= 2
+    assert context.geometry_hits == 1
+    assert context.geometry_builds == 3
+
+
+def test_xyz_cache_is_window_local_bounded_and_distinguishes_signed_zero():
+    problem = _pair_problem()
+    options = a.TUMJointSlacOptions()
+    first = a._TUMXYZPairReassociationContext(problem, options)
+    second = a._TUMXYZPairReassociationContext(problem, options)
+    positive = first.geometry(problem, (0.0,) * 24, options)
+    negative = first.geometry(problem, (-0.0,) * 24, options)
+    assert positive is not negative
+    assert first.geometry(problem, (0.0,) * 24, options) is positive
+    assert not second._states
+    first.geometry(problem, (0.01,) * 24, options)
+    assert len(first._states) == 2
+    assert all(not points.flags.writeable for points in positive.calibrated)
+
+
+@pytest.mark.parametrize("limit", [3, 65536])
+def test_spatial_factor_reuse_keeps_changing_support_and_current_values(limit, monkeypatch):
+    monkeypatch.setattr(a, "_REASSOCIATION_CACHE_FACTORS", limit)
+    run, plane_map, options = _spatial(145)
+    points = a._spatial_point_batch(run.source_problem, run.source_problem.measurements)
+    query = livox.VoxelPlaneQueryContext(plane_map)
+    cache = OrderedDict()
+    calls = []
+    original = a._spatial_factor
+
+    def create(*args):
+        calls.append(1)
+        return original(*args)
+
+    monkeypatch.setattr(a, "_spatial_factor", create)
+    values = run.result.optimized_values
+    first = a._reassociated_spatial_state(
+        run, plane_map, options, values, points=points, query=query, factor_cache=cache
+    )
+    builds = len(calls)
+    again = a._reassociated_spatial_state(
+        run, plane_map, options, values, points=points, query=query, factor_cache=cache
+    )
+    if limit > len(first.factors):
+        assert len(calls) == builds
+        assert all(x is y for x, y in zip(first.factors, again.factors, strict=True))
+    for change in (0.03, 2.0, -0.03, 0.0):
+        supplied = {**values, a._SPATIAL_BIAS_BLOCK: (change,)}
+        before = scalar_spatial_state(run, plane_map, options, supplied)
+        after = a._reassociated_spatial_state(
+            run, plane_map, options, supplied, points=points, query=query, factor_cache=cache
+        )
+        _assert_states(before, after, supplied)
+        assert len(cache) <= limit
+    _assert_states(first, again, values)
+
+
+def test_xyz_cache_limits_only_storage_and_preserves_all_correspondences(monkeypatch):
+    problem = _pair_problem()
+    options = a.TUMJointSlacOptions()
+    values = _values(problem.query_frames)
+    monkeypatch.setattr(a, "_REASSOCIATION_CACHE_POINTS", 0)
+    monkeypatch.setattr(a, "_REASSOCIATION_CACHE_FACTORS", 3)
+    context = a._TUMXYZPairReassociationContext(problem, options)
+    for _ in range(2):
+        before = scalar_pair_state(problem, values, options)
+        after = a._xyz_pair_reassociation_state(problem, values, options, context=context)
+        _assert_states(before, after, values)
+        assert not context._states
+        assert len(context.factors) <= 3
+    assert context.geometry_builds == 2
+
+
+def test_unreferenced_source_samples_keep_the_original_population():
+    problem = _pair_problem()
+    problem = replace(
+        problem,
+        sampled_points=(
+            ((-10.0, -10.0, -10.0), *problem.sampled_points[0][1:]),
+            *problem.sampled_points[1:],
+        ),
+        associations=tuple(
+            item
+            for item in problem.associations
+            if item.source_frame_index != 0 or item.source_point_index != 0
+        ),
+    )
+    options = a.TUMJointSlacOptions()
+    values = _values(problem.query_frames)
+    before = scalar_pair_state(problem, values, options)
+    after = a._xyz_pair_reassociation_state(problem, values, options)
+    _assert_states(before, after, values)
+
+
+def test_curvature_and_all_multistart_searches_keep_the_full_scalar_result(monkeypatch):
+    run, plane_map, options = _spatial(7)
+    measurements = list(run.source_problem.measurements)
+    center = (*run.result.optimized_values[a._EXTRINSIC_BLOCK], 0.012)
+    points = a._spatial_point_batch(run.source_problem, measurements)
+    query = livox.VoxelPlaneQueryContext(plane_map)
+    for rematch in (False, True):
+        old = partial(scalar_objective, run, measurements, plane_map, options, rematch=rematch)
+        new = partial(
+            a._shared_holdout_objective,
+            run,
+            measurements,
+            plane_map,
+            options,
+            rematch=rematch,
+            points=points,
+            query=query,
+        )
+        assert evaluate_numerical_curvature(old, center, (0.002,) * 7).as_dict() == (
+            evaluate_numerical_curvature(new, center, (0.002,) * 7).as_dict()
+        )
+    new = a._run_primary_multistart(
+        run, measurements, plane_map, options, center, points=points, query=query
+    )
+
+    def reference(*args, **kwargs):
+        kwargs.pop("points", None)
+        kwargs.pop("query", None)
+        return scalar_objective(*args, **kwargs)
+
+    monkeypatch.setattr(a, "_shared_holdout_objective", reference)
+    assert new == a._run_primary_multistart(run, measurements, plane_map, options, center)
+
+
+# The functions below retain the pre-batching adapter logic from commit
+# a2a13db31f6f21c2b90aaa28779f9c1047b6b7d6 as the independent scalar reference.
+
+
+def scalar_pair_state(problem, values, options):
+    offsets = values[a._XYZ_LATTICE_BLOCK]
+    factors = []
+    assignments = []
+    for source_index in range(len(problem.query_frames) - options.xyz_pair_stride):
+        target_index = source_index + options.xyz_pair_stride
+        source_frame = problem.query_frames[source_index]
+        target_frame = problem.query_frames[target_index]
+        source_pose = a.se3_from_tangent(values[a._pose_block(source_index, source_frame)]).compose(
+            source_frame.transform_world_camera
+        )
+        target_pose = a.se3_from_tangent(values[a._pose_block(target_index, target_frame)]).compose(
+            target_frame.transform_world_camera
+        )
+        raw_targets = problem.sampled_points[target_index]
+        calibrated_targets = tuple(
+            a._xyz_pair_calibrated_point(point, offsets) for point in raw_targets
+        )
+        target_plane_map = a.build_voxel_plane_map(
+            [a.LivoxPointRecord((*point, 0.0), None) for point in calibrated_targets],
+            options.voxel_size_m,
+        )
+        target_points_by_voxel = a._xyz_pair_points_by_voxel(
+            raw_targets, calibrated_targets, options.voxel_size_m
+        )
+        group = f"tum-xyz-pair-{source_index:03d}-{target_index:03d}"
+        group_associations = (
+            association
+            for association in problem.associations
+            if association.observation_group == group
+        )
+        for association in group_associations:
+            source_point = problem.sampled_points[source_index][association.source_point_index]
+            calibrated_source = a._xyz_pair_calibrated_point(source_point, offsets)
+            source_world = source_pose.transform_point(calibrated_source)
+            source_in_calibrated_target = target_pose.inverse().transform_point(source_world)
+            match = a.nearest_voxel_plane_match(
+                source_in_calibrated_target,
+                target_plane_map,
+                voxel_size_m=options.voxel_size_m,
+                correspondence_gate_m=options.correspondence_gate_m,
+            )
+            if match is None:
+                continue
+            target_point_index, target_point = a._xyz_pair_representative_point(
+                match, target_points_by_voxel
+            )
+            normal_world = a.rotate_vector_xyzw(target_pose.rotation_quat_xyzw, match.normal)
+            measurement = a.JointTrilinearXYZPairMeasurement(
+                association.measurement_id,
+                group,
+                source_point,
+                target_point,
+                a.trilinear_lattice_weights(
+                    source_point,
+                    minimum=a._SPATIAL_LATTICE_MINIMUM_M,
+                    maximum=a._SPATIAL_LATTICE_MAXIMUM_M,
+                    shape=a._SPATIAL_LATTICE_SHAPE,
+                ),
+                a.trilinear_lattice_weights(
+                    target_point,
+                    minimum=a._SPATIAL_LATTICE_MINIMUM_M,
+                    maximum=a._SPATIAL_LATTICE_MAXIMUM_M,
+                    shape=a._SPATIAL_LATTICE_SHAPE,
+                ),
+                normal_world,
+                source_frame.transform_world_camera,
+                target_frame.transform_world_camera,
+            )
+            factors.append(
+                a.make_joint_trilinear_xyz_pair_factor(
+                    measurement,
+                    source_pose_block=a._pose_block(source_index, source_frame),
+                    target_pose_block=a._pose_block(target_index, target_frame),
+                    xyz_lattice_block=a._XYZ_LATTICE_BLOCK,
+                )
+            )
+            assignments.append(
+                a.CorrespondenceAssignment(
+                    association.measurement_id,
+                    a._xyz_pair_target_id(target_index, target_point_index),
+                )
+            )
+    return a.JointReassociationState(tuple(factors), tuple(assignments))
+
+
+def scalar_spatial_state(run, plane_map, options, values):
+    factors = []
+    assignments = []
+    for measurement in run.source_problem.measurements:
+        point_world = a._spatial_measurement_world_point_from_values(
+            run.source_problem, measurement, values
+        )
+        match = a.nearest_voxel_plane_match(
+            point_world,
+            plane_map,
+            voxel_size_m=options.voxel_size_m,
+            correspondence_gate_m=options.correspondence_gate_m,
+        )
+        if match is None:
+            continue
+        factors.append(a._spatial_factor(run.source_problem, measurement, match))
+        assignments.append(a.CorrespondenceAssignment(measurement.measurement_id, match.target_id))
+    return a.JointReassociationState(tuple(factors), tuple(assignments))
+
+
+def scalar_objective(run, measurements, plane_map, options, candidate, *, rematch):
+    extrinsic = candidate[:6]
+    bias_m = candidate[6]
+    squared_sum = 0.0
+    for measurement in measurements:
+        point_world = a._spatial_measurement_world_point(run, measurement, extrinsic, bias_m)
+        if rematch:
+            match = a.nearest_voxel_plane_match(
+                point_world,
+                plane_map,
+                voxel_size_m=options.voxel_size_m,
+                correspondence_gate_m=options.correspondence_gate_m,
+            )
+            residual = (
+                a._point_plane_residual(point_world, match.centroid, match.normal)
+                if match is not None
+                else options.correspondence_gate_m
+            )
+        else:
+            residual = a._point_plane_residual(
+                point_world, measurement.plane_point_world_m, measurement.plane_normal_world
+            )
+        squared_sum += residual * residual
+    return squared_sum / len(measurements) if measurements else 0.0
