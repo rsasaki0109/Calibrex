@@ -377,6 +377,15 @@ def _factor_state(factor: JointResidualBlock) -> _FactorState | None:
             measurement.transform_world_body_initial,
             measurement.transform_body_sensor_initial,
         )
+        if not (
+            _vector(world.translation_m, 3)
+            and _vector(world.rotation_quat_xyzw, 4)
+            and _vector(sensor.translation_m, 3)
+            and _vector(sensor.rotation_quat_xyzw, 4)
+        ):
+            # Frozen SE3 normally owns plain tuples. A caller can deliberately
+            # bypass freezing; mutable/custom leaves must be prepared afresh.
+            return None
         point = _PointState(
             measurement,
             type(measurement),

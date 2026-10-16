@@ -453,3 +453,26 @@ def test_modified_global_methods_and_eligibility_limits_disable_cached_plans(mon
             assert batches._prepare_point_plane_plan(point_factors, values) is None
 
     evaluate()
+
+
+def test_mutable_initial_frame_leaves_are_prepared_afresh():
+    blocks, point_factors, _ = problem(96)
+    values = {block.name: block.initial_values for block in blocks}
+    measurement = batches._binding(point_factors[0]).measurement
+    world = measurement.transform_world_body_initial
+    translation = list(world.translation_m)
+    object.__setattr__(world, "translation_m", translation)
+
+    @_with_preparation_cache
+    def evaluate():
+        first = batches._prepare_point_plane_plan(point_factors, values)
+        assert first is not None and not _PREPARATION_CACHE.get()
+        before = first.evaluate(values).tobytes()
+        translation[0] = 0.4
+        second = batches._prepare_point_plane_plan(point_factors, values)
+        assert second is not None and second is not first
+        assert not _PREPARATION_CACHE.get()
+        expected = batches._build_point_plane_plan(point_factors, values).evaluate(values)
+        assert second.evaluate(values).tobytes() == expected.tobytes() != before
+
+    evaluate()
