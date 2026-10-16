@@ -1,0 +1,23 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+____ test_combined_lookup_preserves_exact_endpoints_on_both_sides_of_a_gap ____
+
+    def test_combined_lookup_preserves_exact_endpoints_on_both_sides_of_a_gap() -> None:
+        times = np.arange(11, dtype=np.float64)
+        poses = np.tile(np.eye(4), (11, 1, 1))
+        poses[:, :3, :3] = solver.Rotation.from_euler("z", times[:, None] * 0.1).as_matrix()
+        poses[:, 0, 3] = times**2
+        track = solver.GnssTrackModel(times, np.zeros((11, 3)), np.ones(11))
+        windows = [
+            solver.OdometryWindow("a", 0, times[:5], poses[:5]),
+            solver.OdometryWindow("b", 1, times[6:], poses[6:]),
+        ]
+        opts = solver.LeverArmOptions(estimate_time_offset=False, pair_steps=(1,))
+        pairs = solver.build_pairs(track, windows, opts)
+        lookup = solver._make_pose_lookup(pairs, windows)
+>       assert lookup is not None
+E       assert None is not None
+
+tests\unit\test_gnss_lever_arm_reuse.py:247: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/unit/test_gnss_lever_arm_reuse.py::test_combined_lookup_preserves_exact_endpoints_on_both_sides_of_a_gap

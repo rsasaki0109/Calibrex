@@ -1,0 +1,89 @@
+{
+  "schema_version": "slac.gnss_lever_arm_reuse_benchmark/v0.1",
+  "record_type": "protocol",
+  "commits": {
+    "prior": "01127d3a8e6f830d99786d183dbef6a311e50c14",
+    "current": "1c91f5a5bec5f6324be5ca10f652bf863bc04b02"
+  },
+  "source_roots": {
+    "prior": "C:/Users/rsasa/Workspace/Calibrex/outputs/gnss-lever-arm-reuse-formal-v3/sources-prior",
+    "current": "C:/Users/rsasa/Workspace/Calibrex/outputs/gnss-lever-arm-reuse-formal-v3/sources-current"
+  },
+  "repetitions": 3,
+  "fresh_workers": true,
+  "blas_threads": 1,
+  "host_unreserved": true,
+  "combined_pose_interpolation": true,
+  "options": {
+    "window_duration_s": 10.0,
+    "holdout_every": 3,
+    "jackknife_groups": 8,
+    "lever_arm_control_m": 0.05,
+    "time_control_s": 0.02,
+    "detection_delta_chi2": 9.0,
+    "coverage_margin_s": 0.3,
+    "min_correspondences": 200,
+    "max_registration_rmse_m": 0.3,
+    "deskew": "constant_velocity",
+    "solver": {
+      "pair_steps": [
+        5,
+        10,
+        20
+      ],
+      "estimate_time_offset": true,
+      "time_offset_bound_s": 0.2,
+      "odometry_sigma_per_m": 0.01,
+      "odometry_sigma_floor_m": 0.005,
+      "odometry_pose_sigma_m": 0.01,
+      "huber_threshold": 1.5,
+      "irls_iterations": 4,
+      "observable_translation_std_m": 0.01,
+      "observable_time_offset_std_s": 0.005,
+      "anchor_sigma": 1000.0
+    },
+    "odometry": {
+      "voxel_size_m": 0.3,
+      "min_range_m": 1.0,
+      "max_range_m": 60.0,
+      "normal_neighbours": 10,
+      "max_planarity_ratio": 0.2,
+      "max_correspondence_m": 1.5,
+      "huber_delta_m": 0.1,
+      "max_iterations": 30,
+      "convergence_translation_m": 0.0001,
+      "convergence_rotation_rad": 1e-05,
+      "min_correspondences": 200,
+      "local_map_scans": 5,
+      "deskew_iterations": 1,
+      "geometry_quantum_m": 0.0,
+      "motion_translation_quantum_m": 0.0,
+      "motion_rotation_quantum_rad": 0.0,
+      "query_workers": 1
+    }
+  },
+  "provenance": {
+    "files": {
+      "control-generator.py.txt": "51b3f134f2744bf0376b028139b697835fb57bc9486f2d45e6fb49a1c8df4faf",
+      "freezer.py.txt": "2c72248f7ee1e7ea502abed49870859000034c55f2599b6eb66f63f3852033cb",
+      "identity.py.txt": "5dcbf54c1b5e3721fb019ad80d0074120d49fbb02a4fd7abebed6f7eccb67d41",
+      "launcher.py.txt": "373a05cecd2678de1740c185b25e9bae4d3a7752e0ea255d59e54845f1820aa1",
+      "problem.json": "9270702e1967d11c0392ed165e64e6f110532ba85b1f8a031def1a3a758a98a7",
+      "raw-oxts.tar.gz": "775abcb82786e7060b5fe5de14aedcfc87a1e5922756db27606f2f88ae1d5443",
+      "result-schema.json": "44793834eac17bfeb8c8b4c9fd42de29743a67fee83310d178af92be3c3e50b4",
+      "schema.json": "e9224ec6c7502a13cc202a357616b3f337716ea4612490f464cb5aa057efc3ab",
+      "sources-current-manifest.json": "89f97f18f28590d26dbfb55f4df1500188cd74fee793bb3bf55188197eac956a",
+      "sources-current.tar.gz": "30eef34ca0f04bf026832e00b4542b3a7c3118dcf72b54e82d6234feec8cb2eb",
+      "sources-prior-manifest.json": "204abafc97c77781098a5a7006dc401be681557f4193f540881248fb47cd47d2",
+      "sources-prior.tar.gz": "0a28d2ce7c4e817f6ee413c5d9d75a796489793b0f98cd2169301ecaf7f5a336"
+    },
+    "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "versions": {
+      "numpy": "2.3.4",
+      "scipy": "1.17.1",
+      "pydantic": "2.12.5",
+      "PyYAML": "6.0.3",
+      "jsonschema": "4.26.0"
+    }
+  }
+}

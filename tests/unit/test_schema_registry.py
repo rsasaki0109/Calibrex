@@ -38,6 +38,9 @@ UNREGISTERED_SCHEMA_VERSIONS = {
 # Benchmark records are validated by their explicit tool schemas and archive
 # audits, without adding benchmark-internal formats to the core public API.
 TOOL_SCHEMA_VERSIONS = {
+    "slac.gnss_lever_arm_reuse_benchmark/v0.1": (
+        "tools/schemas/gnss_lever_arm_reuse_benchmark.schema.json"
+    ),
     "slac.trajectory_hand_eye_reuse_benchmark/v0.1": (
         "tools/schemas/trajectory_hand_eye_reuse_benchmark.schema.json"
     ),
@@ -60,9 +63,7 @@ TOOL_SCHEMA_VERSIONS = {
     "slac.bspline_lidar_imu_publication/v0.1": (
         "tools/schemas/bspline_lidar_imu_publication.schema.json"
     ),
-    "slac.odometry_candidate_screen/v0.1": (
-        "tools/schemas/odometry_candidate_screen.schema.json"
-    ),
+    "slac.odometry_candidate_screen/v0.1": ("tools/schemas/odometry_candidate_screen.schema.json"),
     "slac.odometry_screen_publication/v0.1": (
         "tools/schemas/odometry_screen_publication.schema.json"
     ),

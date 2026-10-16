@@ -1,0 +1,1054 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Complete public-drive GNSS lever arm evaluation reuse comparison",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/problem"
+    },
+    {
+      "$ref": "#/$defs/protocol"
+    },
+    {
+      "$ref": "#/$defs/history"
+    },
+    {
+      "$ref": "#/$defs/measurement"
+    },
+    {
+      "$ref": "#/$defs/attempts"
+    },
+    {
+      "$ref": "#/$defs/audit"
+    }
+  ],
+  "$defs": {
+    "problem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "record_type",
+        "times_s",
+        "enu_m",
+        "sigma_m",
+        "windows",
+        "reference_lever_arm",
+        "options",
+        "provenance"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "slac.gnss_lever_arm_reuse_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "problem"
+        },
+        "times_s": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2762,
+          "maxItems": 2762
+        },
+        "enu_m": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 3,
+            "maxItems": 3
+          },
+          "minItems": 2762,
+          "maxItems": 2762
+        },
+        "sigma_m": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2762,
+          "maxItems": 2762
+        },
+        "windows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "window_id",
+              "block",
+              "times_s",
+              "poses"
+            ],
+            "properties": {
+              "window_id": {
+                "type": "string"
+              },
+              "block": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "times_s": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                }
+              },
+              "poses": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    },
+                    "minItems": 4,
+                    "maxItems": 4
+                  },
+                  "minItems": 4,
+                  "maxItems": 4
+                }
+              }
+            }
+          },
+          "minItems": 29,
+          "maxItems": 29
+        },
+        "reference_lever_arm": {
+          "const": [
+            0.4,
+            -0.2,
+            0.7
+          ]
+        },
+        "options": {
+          "const": {}
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "generator_sha256",
+            "git_commit",
+            "dataset",
+            "license",
+            "scope",
+            "source_provenance_sha256",
+            "source_files",
+            "reference_pose_indices",
+            "noise_seed",
+            "clock_offset_s",
+            "gnss_noise_sigma_m",
+            "odometry_walk_sigma_m"
+          ],
+          "properties": {
+            "generator_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "git_commit": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "dataset": {
+              "type": "string"
+            },
+            "license": {
+              "const": "CC BY-NC-SA 3.0"
+            },
+            "scope": {
+              "type": "string"
+            },
+            "source_provenance_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "source_files": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            },
+            "reference_pose_indices": {
+              "const": [
+                0,
+                2761
+              ]
+            },
+            "noise_seed": {
+              "const": 37
+            },
+            "clock_offset_s": {
+              "const": 0.012
+            },
+            "gnss_noise_sigma_m": {
+              "const": 0.02
+            },
+            "odometry_walk_sigma_m": {
+              "const": 0.002
+            }
+          }
+        }
+      }
+    },
+    "protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "record_type",
+        "commits",
+        "source_roots",
+        "repetitions",
+        "fresh_workers",
+        "blas_threads",
+        "host_unreserved",
+        "options",
+        "provenance",
+        "combined_pose_interpolation"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "slac.gnss_lever_arm_reuse_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "protocol"
+        },
+        "commits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "prior",
+            "current"
+          ],
+          "properties": {
+            "prior": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "current": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            }
+          }
+        },
+        "source_roots": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "prior",
+            "current"
+          ],
+          "properties": {
+            "prior": {
+              "type": "string"
+            },
+            "current": {
+              "type": "string"
+            }
+          }
+        },
+        "repetitions": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "fresh_workers": {
+          "const": true
+        },
+        "blas_threads": {
+          "const": 1
+        },
+        "host_unreserved": {
+          "const": true
+        },
+        "options": {
+          "const": {
+            "window_duration_s": 10.0,
+            "holdout_every": 3,
+            "jackknife_groups": 8,
+            "lever_arm_control_m": 0.05,
+            "time_control_s": 0.02,
+            "detection_delta_chi2": 9.0,
+            "coverage_margin_s": 0.3,
+            "min_correspondences": 200,
+            "max_registration_rmse_m": 0.3,
+            "deskew": "constant_velocity",
+            "solver": {
+              "pair_steps": [
+                5,
+                10,
+                20
+              ],
+              "estimate_time_offset": true,
+              "time_offset_bound_s": 0.2,
+              "odometry_sigma_per_m": 0.01,
+              "odometry_sigma_floor_m": 0.005,
+              "odometry_pose_sigma_m": 0.01,
+              "huber_threshold": 1.5,
+              "irls_iterations": 4,
+              "observable_translation_std_m": 0.01,
+              "observable_time_offset_std_s": 0.005,
+              "anchor_sigma": 1000.0
+            },
+            "odometry": {
+              "voxel_size_m": 0.3,
+              "min_range_m": 1.0,
+              "max_range_m": 60.0,
+              "normal_neighbours": 10,
+              "max_planarity_ratio": 0.2,
+              "max_correspondence_m": 1.5,
+              "huber_delta_m": 0.1,
+              "max_iterations": 30,
+              "convergence_translation_m": 0.0001,
+              "convergence_rotation_rad": 1e-05,
+              "min_correspondences": 200,
+              "local_map_scans": 5,
+              "deskew_iterations": 1,
+              "geometry_quantum_m": 0.0,
+              "motion_translation_quantum_m": 0.0,
+              "motion_rotation_quantum_rad": 0.0,
+              "query_workers": 1
+            }
+          }
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "files",
+            "python",
+            "versions"
+          ],
+          "properties": {
+            "files": {
+              "type": "object",
+              "minProperties": 1,
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            },
+            "python": {
+              "type": "string"
+            },
+            "versions": {
+              "type": "object",
+              "minProperties": 1,
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "combined_pose_interpolation": {
+          "const": true
+        }
+      }
+    },
+    "history": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "record_type",
+        "fits",
+        "residuals",
+        "least_squares",
+        "excitation",
+        "provenance"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "slac.gnss_lever_arm_reuse_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "history"
+        },
+        "fits": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "fit",
+              "input_window_ids",
+              "status",
+              "usable_window_ids",
+              "pair_count"
+            ],
+            "properties": {
+              "fit": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "input_window_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "status": {
+                "const": "converged"
+              },
+              "usable_window_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "pair_count": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "residuals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "fit",
+              "window_ids",
+              "pair_count",
+              "lever",
+              "epoch_count",
+              "offset",
+              "normalize",
+              "residual_count",
+              "residual_sha256"
+            ],
+            "properties": {
+              "fit": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "window_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "pair_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "lever": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "epoch_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "offset": {
+                "type": "number"
+              },
+              "normalize": {
+                "type": "boolean"
+              },
+              "residual_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "residual_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        "least_squares": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "fit",
+              "x",
+              "active_mask",
+              "fun_shape",
+              "jac_shape",
+              "fun_sha256",
+              "jac_sha256",
+              "nfev",
+              "njev",
+              "status",
+              "message",
+              "cost",
+              "optimality"
+            ],
+            "properties": {
+              "fit": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "x": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 4,
+                "maxItems": 4
+              },
+              "active_mask": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "enum": [
+                    -1,
+                    0,
+                    1
+                  ]
+                },
+                "minItems": 4,
+                "maxItems": 4
+              },
+              "fun_shape": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "minItems": 1,
+                "maxItems": 1
+              },
+              "jac_shape": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "fun_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "jac_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "nfev": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "njev": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "status": {
+                "type": "integer"
+              },
+              "message": {
+                "type": "string"
+              },
+              "cost": {
+                "type": "number"
+              },
+              "optimality": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "excitation": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "window_ids",
+              "pair_count",
+              "epoch_count"
+            ],
+            "properties": {
+              "window_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "pair_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "epoch_count": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "protocol_sha256",
+            "git_commit",
+            "git_commit_short",
+            "problem_sha256"
+          ],
+          "properties": {
+            "protocol_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "git_commit": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "git_commit_short": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{4,40}$"
+            },
+            "problem_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        }
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "record_type",
+        "api_seconds",
+        "counts",
+        "result_sha256",
+        "history_sha256",
+        "imports",
+        "provenance"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "slac.gnss_lever_arm_reuse_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "measurement"
+        },
+        "api_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "solve_calls",
+            "residual_requests",
+            "least_squares_calls",
+            "lidar_poses_calls",
+            "svd_calls",
+            "profiled_windows",
+            "pose_batch_calls",
+            "interpolated_epochs"
+          ],
+          "properties": {
+            "solve_calls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "residual_requests": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "least_squares_calls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "lidar_poses_calls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "svd_calls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "profiled_windows": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "pose_batch_calls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "interpolated_epochs": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "result_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "history_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "imports": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "sha256"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          }
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "protocol_sha256",
+            "git_commit",
+            "git_commit_short",
+            "problem_sha256"
+          ],
+          "properties": {
+            "protocol_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "git_commit": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "git_commit_short": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{4,40}$"
+            },
+            "problem_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        }
+      }
+    },
+    "attempts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "record_type",
+        "runs",
+        "provenance"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "slac.gnss_lever_arm_reuse_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "attempts"
+        },
+        "runs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "repeat",
+              "variant",
+              "seconds",
+              "exit_code"
+            ],
+            "properties": {
+              "repeat": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "variant": {
+                "enum": [
+                  "prior",
+                  "current"
+                ]
+              },
+              "seconds": {
+                "type": "number"
+              },
+              "exit_code": {
+                "type": "integer"
+              }
+            }
+          },
+          "minItems": 1
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "protocol_sha256"
+          ],
+          "properties": {
+            "protocol_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        }
+      }
+    },
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "record_type",
+        "verified_runs",
+        "complete_results_and_histories_exact",
+        "reference_pose_count",
+        "jackknife_fits",
+        "work_per_run",
+        "whole_seconds_median",
+        "api_seconds_median",
+        "whole_speedup",
+        "api_speedup",
+        "runtime_source_changes",
+        "provenance",
+        "window_count",
+        "train_windows",
+        "holdout_windows"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "slac.gnss_lever_arm_reuse_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "audit"
+        },
+        "verified_runs": {
+          "type": "integer",
+          "minimum": 4
+        },
+        "complete_results_and_histories_exact": {
+          "const": true
+        },
+        "reference_pose_count": {
+          "const": 2762
+        },
+        "jackknife_fits": {
+          "const": 8
+        },
+        "work_per_run": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "prior",
+            "current"
+          ],
+          "properties": {
+            "prior": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "solve_calls",
+                "residual_requests",
+                "least_squares_calls",
+                "lidar_poses_calls",
+                "svd_calls",
+                "profiled_windows",
+                "pose_batch_calls",
+                "interpolated_epochs"
+              ],
+              "properties": {
+                "solve_calls": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "residual_requests": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "least_squares_calls": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "lidar_poses_calls": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "svd_calls": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "profiled_windows": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "pose_batch_calls": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "interpolated_epochs": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "current": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "solve_calls",
+                "residual_requests",
+                "least_squares_calls",
+                "lidar_poses_calls",
+                "svd_calls",
+                "profiled_windows",
+                "pose_batch_calls",
+                "interpolated_epochs"
+              ],
+              "properties": {
+                "solve_calls": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "residual_requests": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "least_squares_calls": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "lidar_poses_calls": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "svd_calls": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "profiled_windows": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "pose_batch_calls": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "interpolated_epochs": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        },
+        "whole_seconds_median": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "prior",
+            "current"
+          ],
+          "properties": {
+            "prior": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "current": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "api_seconds_median": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "prior",
+            "current"
+          ],
+          "properties": {
+            "prior": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "current": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "whole_speedup": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "api_speedup": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "runtime_source_changes": {
+          "const": [
+            "calibrex/solvers/gnss_lever_arm_solver.py"
+          ]
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "protocol_sha256",
+            "attempts_sha256",
+            "problem_sha256"
+          ],
+          "properties": {
+            "protocol_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "attempts_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "problem_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        },
+        "window_count": {
+          "const": 29
+        },
+        "train_windows": {
+          "const": 19
+        },
+        "holdout_windows": {
+          "const": 10
+        }
+      }
+    }
+  }
+}

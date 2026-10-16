@@ -1,0 +1,111 @@
+"""Prepare a generated GNSS/odometry execution control from public KITTI OXTS."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import subprocess
+from pathlib import Path
+
+import numpy as np
+from numpy.typing import NDArray
+from scipy.spatial.transform import Rotation
+
+from calibrex.data.kitti import kitti_oxts_pose_world_imu, read_oxts_packet, read_timestamps
+from calibrex.data.kitti_ins_lidar import se3_matrix
+
+VERSION = "slac.gnss_lever_arm_reuse_benchmark/v0.1"
+SCOPE = (
+    "Public OXTS trajectory; generated GNSS and odometry execution control, "
+    "no raw LiDAR registration or independent accuracy evidence."
+)
+
+
+def sha(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def derive_control(times: NDArray[np.float64], body: NDArray[np.float64]) -> dict:
+    """Apply declared sensor geometry/noise and the default ten-second cuts."""
+
+    extrinsic = np.eye(4)
+    extrinsic[:3, :3] = Rotation.from_euler("xyz", [1.0, -2.0, 3.0], degrees=True).as_matrix()
+    extrinsic[:3, 3] = [0.8, -0.3, 0.9]
+    lidar = body @ extrinsic
+    lever = np.array([0.4, -0.2, 0.7])
+    antenna = lidar[:, :3, 3] + np.einsum("kij,j->ki", lidar[:, :3, :3], lever)
+    rng = np.random.default_rng(37)
+    antenna += rng.normal(0.0, 0.02, antenna.shape)
+    windows = []
+    for begin in np.arange(times[0], times[-1], 10.0):
+        mask = (times >= begin) & (times < begin + 10.0)
+        if np.count_nonzero(mask) < 20:
+            continue
+        selected = lidar[mask]
+        poses = np.linalg.inv(selected[0]) @ selected
+        poses[:, :3, 3] += np.cumsum(rng.normal(0.0, 0.002, (len(poses), 3)), axis=0)
+        index = len(windows)
+        windows.append(
+            {
+                "window_id": f"control/w{index}",
+                "block": index,
+                "times_s": times[mask].tolist(),
+                "poses": poses.tolist(),
+            }
+        )
+    return {
+        "schema_version": VERSION,
+        "record_type": "problem",
+        "times_s": (times + 0.012).tolist(),
+        "enu_m": antenna.tolist(),
+        "sigma_m": np.full(len(times), 0.02).tolist(),
+        "windows": windows,
+        "reference_lever_arm": lever.tolist(),
+        "options": {},
+    }
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--oxts-dir", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args()
+    source = args.oxts_dir
+    files = [source / "timestamps.txt", *[source / f"data/{i:010d}.txt" for i in range(2762)]]
+    original = json.loads((source / "provenance.json").read_bytes())
+    members = original.get("members", original.get("files"))
+    if any(sha(p) != members[p.relative_to(source).as_posix()]["sha256"] for p in files):
+        raise ValueError("original download input changed")
+    times = np.asarray(
+        [t.timestamp_ns * 1.0e-9 for t in read_timestamps(source / "timestamps.txt")][:2762]
+    )
+    packets = [read_oxts_packet(source / f"data/{i:010d}.txt") for i in range(2762)]
+    body = np.stack([se3_matrix(kitti_oxts_pose_world_imu(p, packets[0])) for p in packets])
+    problem = derive_control(times, body)
+    problem["provenance"] = {
+        "generator_sha256": sha(Path(__file__)),
+        "git_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+        "dataset": "KITTI 2011_09_30_drive_0018_sync OXTS",
+        "license": "CC BY-NC-SA 3.0",
+        "scope": SCOPE,
+        "source_provenance_sha256": sha(source / "provenance.json"),
+        "source_files": {p.relative_to(source).as_posix(): sha(p) for p in files},
+        "reference_pose_indices": [0, 2761],
+        "noise_seed": 37,
+        "clock_offset_s": 0.012,
+        "gnss_noise_sigma_m": 0.02,
+        "odometry_walk_sigma_m": 0.002,
+    }
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    with args.output.open("x", encoding="utf-8", newline="\n") as stream:
+        stream.write(json.dumps(problem, indent=2, allow_nan=False) + "\n")
+    print(
+        json.dumps(
+            {"epochs": len(times), "windows": len(problem["windows"]), "sha256": sha(args.output)}
+        )
+    )
+
+
+if __name__ == "__main__":
+    main()
