@@ -336,6 +336,14 @@ def audit(output: Path) -> dict:
             or len(events) < 1000
         ):
             raise ValueError("complete evaluation inventory differs")
+        if (
+            solves[0]["result_sha256"] != digest(p["native_tum_joint_slac_solver"])
+            or solves[0]["iterations"] != 9
+            or solves[0]["parameter_dimension"] != 56
+            or solves[0]["active_dimension"] != 56
+            or solves[0]["factor_count"] != p["native_tum_joint_slac_correspondence_count"] + 8
+        ):
+            raise ValueError("primary optimizer trace differs from saved result")
         for event in events:
             if len(event["residual"]["shape"]) != 1 or (
                 event["kind"] == "linearize"
