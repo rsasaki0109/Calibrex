@@ -1,0 +1,56 @@
+starting 00-prior
+{"repeat": 0, "variant": "prior", "seconds": 144.5582855999237, "exit_code": 0}
+starting 00-current
+{"repeat": 0, "variant": "current", "seconds": 28.628947700024582, "exit_code": 0}
+starting 01-current
+{"repeat": 1, "variant": "current", "seconds": 31.29142399993725, "exit_code": 0}
+starting 01-prior
+{"repeat": 1, "variant": "prior", "seconds": 99.65669340000022, "exit_code": 0}
+starting 02-prior
+{"repeat": 2, "variant": "prior", "seconds": 101.60017130000051, "exit_code": 0}
+starting 02-current
+{"repeat": 2, "variant": "current", "seconds": 27.74427739996463, "exit_code": 0}
+{
+  "schema_version": "slac.trajectory_hand_eye_reuse_benchmark/v0.1",
+  "record_type": "audit",
+  "verified_runs": 6,
+  "complete_results_and_histories_exact": true,
+  "reference_pose_count": 2762,
+  "sensor_pose_count": 2742,
+  "motion_count": 788,
+  "jackknife_fits": 38,
+  "work_per_run": {
+    "prior": {
+      "solve_calls": 39,
+      "normalized_requests": 17446,
+      "least_squares_calls": 410,
+      "poses_at_calls": 35000,
+      "motion_sigmas_calls": 17460
+    },
+    "current": {
+      "solve_calls": 39,
+      "normalized_requests": 17446,
+      "least_squares_calls": 410,
+      "poses_at_calls": 6430,
+      "motion_sigmas_calls": 53
+    }
+  },
+  "whole_seconds_median": {
+    "prior": 101.60017130000051,
+    "current": 28.628947700024582
+  },
+  "api_seconds_median": {
+    "prior": 98.41058490006253,
+    "current": 24.92660619993694
+  },
+  "whole_speedup": 3.548861535693583,
+  "api_speedup": 3.9480137853789135,
+  "runtime_source_changes": [
+    "calibrex/solvers/trajectory_hand_eye_solver.py"
+  ],
+  "provenance": {
+    "protocol_sha256": "c40b423727d2f0177fe244bb807d722bb036cfd198a840b37dc752d56b85b705",
+    "attempts_sha256": "ccd6c25bc64367d190211f2d213f32a2ffc115dab5433674a39996743f0e929c",
+    "problem_sha256": "558fc29f5332b669e6618a1844440033f3637096082c4676023e0c054cf79a9b"
+  }
+}

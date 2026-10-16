@@ -1,0 +1,99 @@
+{
+  "schema_version": "slac.trajectory_hand_eye_reuse_benchmark/v0.1",
+  "record_type": "protocol",
+  "commits": {
+    "prior": "823ae70a9edabaeac93a2461ed2dd8361f94fb40",
+    "current": "616b9bf8ab8e77612f75d9abba0e533683aec5d9"
+  },
+  "source_roots": {
+    "prior": "C:/Users/rsasa/Workspace/Calibrex/outputs/hand-eye-reuse-formal-v1/sources-prior",
+    "current": "C:/Users/rsasa/Workspace/Calibrex/outputs/hand-eye-reuse-formal-v1/sources-current"
+  },
+  "repetitions": 3,
+  "fresh_workers": true,
+  "blas_threads": 1,
+  "host_unreserved": true,
+  "options": {
+    "step_frames": [
+      5,
+      10,
+      20
+    ],
+    "block_duration_s": 5.0,
+    "holdout_every": 3,
+    "rotation_control_deg": 1.0,
+    "translation_control_m": 0.1,
+    "time_control_s": 0.02,
+    "detection_delta_chi2": 9.0,
+    "holdout_rotation_limit_deg": 0.5,
+    "holdout_translation_limit_m": 0.3,
+    "solver": {
+      "estimate_time_offset": true,
+      "time_offset_bound_s": 0.2,
+      "estimate_reference_scale": true,
+      "reference_scale_bound": 0.1,
+      "rotation_sigma_rad": 0.0017453292519943296,
+      "translation_sigma_floor_m": 0.01,
+      "translation_sigma_per_m": 0.02,
+      "huber_threshold": 1.5,
+      "irls_iterations": 5,
+      "yaw_starts_deg": [
+        0.0,
+        90.0,
+        180.0,
+        270.0
+      ],
+      "axis_alignment_start": true,
+      "extra_starts": [],
+      "observable_rotation_std_deg": 0.1,
+      "observable_translation_std_m": 0.02,
+      "observable_time_offset_std_s": 0.005,
+      "observable_reference_scale_std": 0.005,
+      "anchor_sigma": 1000.0,
+      "priors": []
+    },
+    "odometry": {
+      "voxel_size_m": 0.5,
+      "min_range_m": 3.0,
+      "max_range_m": 80.0,
+      "normal_neighbours": 10,
+      "max_planarity_ratio": 0.2,
+      "max_correspondence_m": 1.5,
+      "huber_delta_m": 0.1,
+      "max_iterations": 30,
+      "convergence_translation_m": 0.0001,
+      "convergence_rotation_rad": 1e-05,
+      "min_correspondences": 200,
+      "local_map_scans": 1,
+      "deskew_iterations": 1,
+      "geometry_quantum_m": 0.0,
+      "motion_translation_quantum_m": 0.0,
+      "motion_rotation_quantum_rad": 0.0,
+      "query_workers": 1
+    }
+  },
+  "provenance": {
+    "files": {
+      "control-generator.py.txt": "31cfe3352ba568bd74b273f5da3b7431c6ecd16a80b0f3ac846a4022569013a9",
+      "freezer.py.txt": "2c72248f7ee1e7ea502abed49870859000034c55f2599b6eb66f63f3852033cb",
+      "identity.py.txt": "5dcbf54c1b5e3721fb019ad80d0074120d49fbb02a4fd7abebed6f7eccb67d41",
+      "launcher.py.txt": "12a08e96f95a9fc330448e972f2cd4d285ad786328698066f495767b682160b0",
+      "problem.json": "558fc29f5332b669e6618a1844440033f3637096082c4676023e0c054cf79a9b",
+      "raw-oxts.tar.gz": "c4f2cd10ecb44783d812c93723a62f7c017ea35d1cee451677e953bb1629646a",
+      "result-schema.json": "034c5b853e9d03113ca9fbaf93b9b0e61aa96d2563d42ff35d4bda0f49859d8e",
+      "schema.json": "0251a080517cb36bde26f358210e08e2fe3631bba127544b7b7338f121f9acd2",
+      "sources-current-manifest.json": "204abafc97c77781098a5a7006dc401be681557f4193f540881248fb47cd47d2",
+      "sources-current.tar.gz": "631aefcfe8b6598da4508e55975c5db85e6c526e3830c45f6f6fcca49c567c36",
+      "sources-prior-manifest.json": "f2bb41c0d6a6fd531c2d1028ec1567a0946a2a421a6cf1087151aad7711d3445",
+      "sources-prior.tar.gz": "b51884d24d2874328022b7ce72070314bd4a88e5a14ef2e74f9cc0c94cdc9898"
+    },
+    "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "versions": {
+      "numpy": "2.3.4",
+      "scipy": "1.17.1",
+      "pydantic": "2.12.5",
+      "PyYAML": "6.0.3",
+      "jsonschema": "4.26.0"
+    }
+  }
+}

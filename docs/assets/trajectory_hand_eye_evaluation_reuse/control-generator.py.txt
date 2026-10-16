@@ -1,0 +1,60 @@
+"""Generate an execution control from original public KITTI OXTS packets."""
+import hashlib
+import json
+from pathlib import Path
+import subprocess
+import sys
+
+import numpy as np
+from scipy.spatial.transform import Rotation
+
+from calibrex.data.kitti import kitti_oxts_pose_world_imu, read_oxts_packet, read_timestamps
+from calibrex.data.kitti_ins_lidar import se3_matrix
+from calibrex.evaluation.ins_lidar_hand_eye import InsLidarRunOptions, build_sensor_motions
+from calibrex.solvers.trajectory_hand_eye_solver import ReferenceTrajectory
+
+ROOT = Path(__file__).resolve().parent
+SOURCE = ROOT / 'data/public/kitti_oxts_reference_v1'
+OUT = ROOT / 'outputs/trajectory-hand-eye-control-v3'
+OUT.mkdir(exist_ok=False)
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+write = lambda p, v: p.write_bytes((json.dumps(v, indent=2, allow_nan=False) + '\n').encode())
+download = json.loads((SOURCE / 'provenance.json').read_bytes())
+members = download['members'] if 'members' in download else download['files']
+files = [SOURCE / 'timestamps.txt', *[SOURCE / f'data/{i:010d}.txt' for i in range(2762)]]
+for path in files:
+    assert sha(path) == members[path.relative_to(SOURCE).as_posix()]['sha256']
+times = np.asarray([item.timestamp_ns * 1.0e-9 for item in read_timestamps(SOURCE / 'timestamps.txt')][:2762])
+packets = [read_oxts_packet(SOURCE / f'data/{i:010d}.txt') for i in range(2762)]
+reference = ReferenceTrajectory(times, np.stack([
+    se3_matrix(kitti_oxts_pose_world_imu(packet, packets[0])) for packet in packets
+]))
+truth = np.eye(4)
+truth[:3, :3] = Rotation.from_euler('xyz', [1.0, -2.0, 3.0], degrees=True).as_matrix()
+truth[:3, 3] = [0.8, -0.3, 0.9]
+sensor_times = times[10:2752]
+dt, scale = 0.012, 1.02
+sensor_poses = reference.poses_at(sensor_times + dt)
+sensor_poses[:, :3, 3] *= scale
+sensor_poses = sensor_poses @ truth
+motions = build_sensor_motions(list(sensor_times), list(sensor_poses), InsLidarRunOptions(), id_prefix='control/')
+rng = np.random.default_rng(29)
+for motion in motions:
+    motion.motion[:3, :3] = Rotation.from_rotvec(rng.normal(0.0, 2.0e-4, 3)).as_matrix() @ motion.motion[:3, :3]
+    motion.motion[:3, 3] += rng.normal(0.0, 0.003, 3)
+problem = {'schema_version': 'slac.trajectory_hand_eye_reuse_benchmark/v0.1', 'record_type': 'problem', 'reference_times_s': times.tolist(), 'reference_poses': reference.poses.tolist(),
+    'motions': [{'motion_id': m.motion_id, 'block': m.block, 'start_s': m.start_s,
+        'end_s': m.end_s, 'motion': m.motion.tolist()} for m in motions],
+    'options': {}, 'reference_transform': truth.tolist(),
+    'provenance': {'dataset': 'KITTI 2011_09_30_drive_0018_sync OXTS',
+        'scope': 'Original reference; generated sensor trajectory/motions, not LiDAR registration or independent accuracy.',
+        'license': 'CC BY-NC-SA 3.0', 'generator_sha256': sha(Path(__file__)),
+        'git_commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+        'source_provenance_sha256': sha(SOURCE / 'provenance.json'),
+        'source_files': {p.relative_to(SOURCE).as_posix(): sha(p) for p in files},
+        'sensor_pose_indices': [10, 2751], 'reference_pose_indices': [0, 2761],
+        'declared_clock_offset_s': dt, 'declared_reference_scale': scale,
+        'declared_rotation_noise_sigma_rad': 2.0e-4, 'declared_translation_noise_sigma_m': 0.003,
+        'noise_seed': 29}}
+write(OUT / 'problem.json', problem)
+print(len(times), len(sensor_times), len(motions), len({m.block for m in motions}), sha(OUT / 'problem.json'))
