@@ -11,6 +11,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from calibrex.evaluation.holdout import split_indices
+from calibrex.graph._evaluation_scope import _with_evaluation_cache
 
 ParameterValues: TypeAlias = Mapping[str, tuple[float, ...]]
 ResidualEvaluator: TypeAlias = Callable[[ParameterValues], Sequence[float]]
@@ -566,6 +567,7 @@ def evaluate_joint_observability(
     )
 
 
+@_with_evaluation_cache
 def _linearize(
     factors: Sequence[JointResidualBlock],
     values: dict[str, tuple[float, ...]],
@@ -611,6 +613,7 @@ def _linearize(
     return baseline, jacobian
 
 
+@_with_evaluation_cache
 def _factor_residuals(
     factors: Sequence[JointResidualBlock], values: ParameterValues
 ) -> NDArray[np.float64]:
