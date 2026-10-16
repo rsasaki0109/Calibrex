@@ -1,0 +1,127 @@
+"""Publish all complete CLI evidence without redistributing coordinate inputs."""
+import hashlib
+import json
+from pathlib import Path
+import re
+import shutil
+
+ROOT = Path(__file__).resolve().parent
+RUN = ROOT / 'outputs/yaml-loading-formal-v1'
+DEST = ROOT / 'docs/assets/compiled_yaml_loading'
+CHECKS = ROOT / 'outputs/yaml-loading-tests-v1'
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+write = lambda p,v: p.write_bytes((json.dumps(v, indent=2, allow_nan=False) + '\n').encode())
+DEST.mkdir(parents=True, exist_ok=False)
+for name in ('protocol.json', 'attempts.json', 'summary.json', 'launcher.py.txt', 'freezer.py.txt',
+             'sources-prior.tar.gz', 'sources-current.tar.gz',
+             'sources-prior-manifest.json', 'sources-current-manifest.json',
+             'input-transcoding.json', 'schema-parity.json'):
+    shutil.copyfile(RUN / name, DEST / name)
+for record in json.loads((RUN / 'attempts.json').read_bytes()):
+    name = f"{record['case']}-{record['repeat']:02d}-{record['variant']}"
+    shutil.copytree(RUN / name, DEST / name)
+for source, name in (
+    ('tools/schemas/lazy_runtime_benchmark.schema.json', 'protocol.schema.json'),
+    ('tools/benchmark_yaml_loading.py', 'yaml-entrypoint.py.txt'),
+    ('tools/audit_lazy_runtime_benchmark.py', 'cli-auditor.py.txt'),
+    ('.tmp-calibrex-yaml-schema-parity-v1.py', 'schema-checker.py.txt'),
+    ('docs/assets/empirical_refit_workers/fixture-builder.py.txt', 'fixture-builder.py.txt'),
+    ('outputs/kitti-probabilistic-control-v2/fixture-protocol.json', 'fixture-protocol.json'),
+    ('outputs/yaml-loading-formal-v1.log', 'measurement.log'),
+):
+    shutil.copyfile(ROOT / source, DEST / name)
+protocol = json.loads((DEST / 'protocol.json').read_bytes())
+assert sha(DEST / 'fixture-builder.py.txt') == json.loads((DEST / 'fixture-protocol.json').read_bytes())['builder_sha256']
+norm = lambda path: {p.relative_to(path).as_posix(): hashlib.sha256(p.read_bytes().replace(b'\r\n', b'\n')).hexdigest() for p in path.rglob('*.py')}
+live = norm(ROOT / 'src')
+assert live == norm(RUN / 'sources-current/src') and len(live) == 378
+log = CHECKS / 'regression.log'
+assert int(re.search(r'(\d+) passed', log.read_text(encoding='utf-8')).group(1)) == 129
+assert 'Success: no issues found in 378 source files' in (CHECKS / 'mypy.log').read_text(encoding='utf-8')
+assert 'All checks passed!' in (CHECKS / 'ruff.log').read_text(encoding='utf-8')
+validation = DEST / 'validation'
+validation.mkdir()
+names = ['test_yaml_mapping_loading.py', 'test_probabilistic_camera_lidar_refiner.py',
+         'test_probabilistic_pose_batching.py', 'test_empirical_se3_uncertainty.py',
+         'test_lazy_runtime_loading.py', 'test_lazy_runtime_benchmark.py']
+for name in names:
+    shutil.copyfile(ROOT / 'tests/unit' / name, validation / (name + '.txt'))
+shutil.copyfile(log, validation / 'pytest.log')
+shutil.copyfile(Path(__file__), validation / 'checker.py.txt')
+for name in ('mypy.log', 'ruff.log', 'schemas.log'):
+    shutil.copyfile(CHECKS / name, validation / name)
+for variant in ('prior', 'current'):
+    for stream in ('stdout', 'stderr'):
+        name = f'schema-{variant}-{stream}.txt'
+        shutil.copyfile(RUN / name, validation / name)
+write(validation / 'receipt.json', {
+    'tests_passed': 129,
+    'yaml_corpus_files': 1889,
+    'runtime_sources': len(live),
+    'canonical_runtime_matches_measured_source_after_tests': True,
+    'newline_normalization': 'CRLF to LF in both operands',
+    'source_commit': protocol['commits']['current'],
+    'source_manifest_sha256': protocol['provenance']['source_manifests']['current'],
+    'test_sources': {name + '.txt': sha(validation / (name + '.txt')) for name in names},
+    'command': ['python', '-m', 'pytest', *['tests/unit/' + n for n in names],
+        '--basetemp', 'outputs/yaml-loading-tests-v1/tmp-corpus', '-p', 'no:cacheprovider',
+        '--override-ini', 'addopts=--disable-plugin-autoload', '-q'],
+    'provenance': {'pytest_log_sha256': sha(validation / 'pytest.log'),
+                   'checker_sha256': sha(validation / 'checker.py.txt')},
+})
+(DEST / '.gitattributes').write_bytes(b'* -text linguist-generated=true\n.gitattributes text eol=lf\nREADME.md text eol=lf linguist-generated=false\n')
+(DEST / 'README.md').write_bytes(b'''# Complete compiled YAML loading comparison
+
+All eighteen timed CLI workers are retained: three alternating pairs each for
+YAML-input multiframe refinement, correspondence validation and help control.
+Whole-process medians are 10.648664 to 4.369567 s (2.437006x) for refinement and
+15.926314 to 3.862511 s (4.123306x) for validation. Help is 2.153393 to 2.416475 s
+(0.891130x); it reads no artifact and supplies no acceleration claim. The host
+was unreserved and variation is material. No warmup, slow attempt or failed
+worker is omitted. All workers exited successfully.
+
+The [benchmark report](../../benchmarks/compiled_yaml_loading.md) explains
+automatic selection, compatibility, complete timings and reproduction.
+All six complete refinement results and their 325 trace entries match exactly,
+including acceptance, candidate/selected transforms, holdout and input hashes.
+Only creation timestamps, source commit metadata and the declared output path
+are normalized. Validation/help outputs also match completely.
+
+`protocol.json` binds the actual launcher/freezer, both source manifests,
+commands and YAML input hashes. `input-transcoding.json` binds those inputs to
+the original JSON identities and records installed dependencies. The original
+fixture protocol and byte-exact builder bind all nine public KITTI raw scans.
+The 9,216 image correspondences are generated from public geometry. This is
+execution and parity evidence, not independent calibration accuracy or
+uncertainty coverage evidence. Coordinates and generated input files are not
+redistributed. No locked accuracy cohort is opened by this comparison.
+
+Each worker retains stdout/stderr and actual core-module import paths. Every
+refinement retains its full result. The only runtime change in the complete
+source capsules is core/io.py. Each extracted tree had a real Git identity
+backed by the local object store, retaining normal provenance during timing.
+The source trees' Git directories are not redistributed.
+
+Fixture conversion, source checking, schema exports and output auditing are
+untimed. Timed work includes startup, imports, parsing/validation, all solves,
+diagnostics and saving. The same installed LibYAML, PyYAML and numerical
+dependencies and one BLAS thread are used in both variants. The prior runtime
+selects the Python parser; the candidate selects the compatible safe C parser.
+
+The archive keeps both frozen source capsules/manifests, the launcher, shared
+auditor, YAML entry point, original fixture builder, all eighteen attempts,
+complete results, schema parity and the final regression receipt. The latter
+includes all 1,889 committed YAML files plus numerical and import checks.
+`index.json` binds every other file by SHA-256, including empty stderr files.
+
+Audit on CPU without the data, a GPU, or LibYAML:
+
+```bash
+python -m tools.benchmark_yaml_loading --audit docs/assets/compiled_yaml_loading
+```
+''')
+write(DEST / 'index.json', {'files': {p.relative_to(DEST).as_posix(): sha(p)
+    for p in sorted(DEST.rglob('*')) if p.is_file()},
+    'provenance': {'protocol_sha256': sha(DEST / 'protocol.json'),
+                    'publisher_sha256': sha(validation / 'checker.py.txt')}})
+print('Published all 18 CLI workers and the 129-test correctness receipt.')

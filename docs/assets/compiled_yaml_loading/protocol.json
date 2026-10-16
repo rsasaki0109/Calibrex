@@ -1,0 +1,43 @@
+{
+  "schema_version": "slac.lazy_runtime_benchmark/v0.1",
+  "commits": {
+    "prior": "c1a269773802b858083b18089b3cbb5789950c6e",
+    "current": "ec12eefd380f495edd219da40c0f29582ed04795"
+  },
+  "repetitions": 3,
+  "fresh_workers": true,
+  "host_unreserved": true,
+  "blas_threads": 1,
+  "commands": {
+    "help": [
+      "--help"
+    ],
+    "validate": [
+      "validate",
+      "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\yaml-loading-formal-v1\\correspondence.yaml",
+      "--json"
+    ],
+    "refine": [
+      "camera-lidar",
+      "refine-probabilistic-multiframe",
+      "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\yaml-loading-formal-v1\\correspondence.yaml",
+      "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\yaml-loading-formal-v1\\problem.yaml",
+      "--output",
+      "<OUTPUT>",
+      "--json"
+    ]
+  },
+  "provenance": {
+    "inputs": {
+      "correspondence": "5d7cef67eb41d7ca3315570c57fae0efac5e32c21d89a28902151dd4721e098e",
+      "problem": "15123938f14e705c2572e2de7100443b5a0353061bac8abf9b3048a66c71084b"
+    },
+    "source_manifests": {
+      "prior": "5687d8289f19db108470d1612575334b31ba4ba1bd6adf363f260f7d74b3042e",
+      "current": "eb8b634e6bab0733ef355840ed739741795cbe7060c163f5d0b3ff20a0e78aef"
+    },
+    "launcher_sha256": "5dcbf54c1b5e3721fb019ad80d0074120d49fbb02a4fd7abebed6f7eccb67d41",
+    "freezer_sha256": "2c72248f7ee1e7ea502abed49870859000034c55f2599b6eb66f63f3852033cb",
+    "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]"
+  }
+}

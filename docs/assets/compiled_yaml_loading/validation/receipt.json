@@ -1,0 +1,39 @@
+{
+  "tests_passed": 129,
+  "yaml_corpus_files": 1889,
+  "runtime_sources": 378,
+  "canonical_runtime_matches_measured_source_after_tests": true,
+  "newline_normalization": "CRLF to LF in both operands",
+  "source_commit": "ec12eefd380f495edd219da40c0f29582ed04795",
+  "source_manifest_sha256": "eb8b634e6bab0733ef355840ed739741795cbe7060c163f5d0b3ff20a0e78aef",
+  "test_sources": {
+    "test_yaml_mapping_loading.py.txt": "39b16857f9f76c38ebc7c9a40c6840bc440780fff5af4f368f66613cb6b951bf",
+    "test_probabilistic_camera_lidar_refiner.py.txt": "994128ac26dd64bcf2103d23261db8369057513aaf9897ce24507d5e2236d8c3",
+    "test_probabilistic_pose_batching.py.txt": "279a2ce34dddc5132ca47e6f506b4ca2df76352fdd8162638a66e70a033748b8",
+    "test_empirical_se3_uncertainty.py.txt": "55f1f1097d0c8fba69a398fae28b608908e1b070afd75ba23ef0b86827e6d26f",
+    "test_lazy_runtime_loading.py.txt": "788a8afc85eaf8cd821dac652eae2984585bf122b4d1e618363fe28d6ec8829b",
+    "test_lazy_runtime_benchmark.py.txt": "9287234aedf2be0814d9531ad6afec4ac7171ac1662a81222bffd06b33126108"
+  },
+  "command": [
+    "python",
+    "-m",
+    "pytest",
+    "tests/unit/test_yaml_mapping_loading.py",
+    "tests/unit/test_probabilistic_camera_lidar_refiner.py",
+    "tests/unit/test_probabilistic_pose_batching.py",
+    "tests/unit/test_empirical_se3_uncertainty.py",
+    "tests/unit/test_lazy_runtime_loading.py",
+    "tests/unit/test_lazy_runtime_benchmark.py",
+    "--basetemp",
+    "outputs/yaml-loading-tests-v1/tmp-corpus",
+    "-p",
+    "no:cacheprovider",
+    "--override-ini",
+    "addopts=--disable-plugin-autoload",
+    "-q"
+  ],
+  "provenance": {
+    "pytest_log_sha256": "1b6bfb9dd8ecf7b810eb6dc3960b01267e96e20cac814e088bdb297a0e146aa9",
+    "checker_sha256": "15f3e93e9d92aafefa0440b8c2e5e2daa59363e056c47fb4f3ea4fcb7cc0eedb"
+  }
+}

@@ -1,0 +1,101 @@
+usage: calibrex [-h] [--version] <command> ...
+
+Start here:
+    check               audit the calibration deployed on a robot against a
+                        bag
+    estimate            estimate the calibration of a bag that has none, and
+                        export it
+    drift               detect whether a rig's calibration changed between
+                        recordings of it
+    doctor              check the environment and optionally diagnose a
+                        dataset
+    demo                run reproducible public demos
+    inspect             inspect a dataset
+    init                write a starter config
+    calibrate           run calibration
+    render              render artifacts from an existing result without
+                        recomputing metrics
+
+Per-pair calibration:
+    imu-lidar           IMU-LiDAR rotation, clock offset, and gyro bias from
+                        angular rates
+    camera-imu          targetless camera-IMU rotation, clock offset, and gyro
+                        bias from images
+    lidar-lidar         LiDAR-LiDAR extrinsic from registering one LiDAR's
+                        scans to the other's maps
+    lidar-vehicle       LiDAR-to-vehicle rotation from the vehicle's non-
+                        holonomic motion
+    imu-vehicle         INS/IMU-to-vehicle rotation from the vehicle's non-
+                        holonomic motion
+    gnss-lidar          GNSS antenna lever arm and clock offset against LiDAR
+                        odometry
+    gnss-imu            GNSS antenna lever arm in the IMU frame
+    lidar-wheel         LiDAR-to-vehicle rotation, wheel-speed scale, and
+                        clock offset vs wheel odometry
+    ins-lidar           INS/GNSS-LiDAR trajectory hand-eye calibration
+                        evidence
+    camera-lidar        schema-valid camera-LiDAR research benchmark utilities
+
+Evidence and CI:
+    validate            validate a Calibrex artifact
+    verify              verify an evidence bundle manifest or saved
+                        verification artifact
+    assess              apply a policy to evidence
+    evidence            materialize evidence.json from an existing result
+                        without recomputing metrics
+    ci                  validate and assess a calibration result for
+                        continuous integration
+    evaluate            evaluate a result file
+    compare             compare two result files
+    report-compare      compare two or more labeled result files in one report
+                        artifact
+    window-consistency  gate one transform across multiple labeled capture-
+                        window results
+    calibration-readiness
+                        check motion and geometry readiness before LiDAR
+                        calibration
+    lifecycle           calibration lifecycle adoption and rollback evidence
+    schema              print JSON schema
+    metrics             list registered metric definitions
+    report              deprecated alias for 'render --format html'
+
+Data and conversion:
+    convert             convert a public dataset into a rosbag2 bag
+    kitti               KITTI raw utilities
+    public-datasets     inspect public dataset catalog
+    capture             capture/session inventory and readiness evidence
+    export              export a result to another format
+    autoware            ROS-independent Autoware package adapters
+    visualize           render result visualizations
+    external-run        import or inspect external calibration run artifacts
+
+Research, benchmarking and services:
+    benchmark           aggregate a shared N-way trial matrix
+    sota                pair-agnostic SOTA claim audits and per-pair standings
+    compile             compile config to a graph problem
+    trajectory          schema-valid continuous-time trajectory utilities
+    trajectory-window-drift
+                        recompute odometry/map consistency for each configured
+                        capture window
+    continuous-time-lidar-pair
+                        jointly profile LiDAR extrinsic and clock offset on
+                        rosbag1/rosbag2
+    replay              digest-bound raw-capture calibration replay and field-
+                        replacement pilot
+    multi-lidar-service
+                        digest-bound, read-only multi-LiDAR replacement
+                        planning and evaluation
+    camera-imu-service  digest-bound, read-only camera--IMU replacement
+                        planning and evaluation
+    radar-service       digest-bound, read-only automotive radar replacement
+                        planning and evaluation
+
+options:
+  -h, --help            show this help message and exit
+  --version             show program's version number and exit
+
+examples:
+  calibrex check bag/ --plan            list which sensor pairs a bag can check
+  calibrex check bag/ --html out.html   audit the deployed calibration against a bag
+  calibrex doctor                       verify the environment
+  calibrex <command> --help             options of one command
