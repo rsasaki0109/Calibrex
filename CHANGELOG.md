@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Add `calibrex convert kitti-360` for rectified perspective images, timed
+  Velodyne scans, sparse published poses and calibration in the official split
+  layout. Frame windows retain their original IDs, source files are digest-pinned,
+  and failed conversions preserve existing output bags. Synthetic round trips
+  are tested; real KITTI-360 conversion remains unverified while official-host
+  access is blocked. This adds no new SOTA claim.
+
 - **The KITTI camera-LiDAR check audit v2 is refuted: 8 of 9 gates.**
   - **The runs.** All 18 pre-registered drives of 2011_09_28, 2011_09_29, 2011_09_30 and
     2011_10_03 ran once from the frozen code.
