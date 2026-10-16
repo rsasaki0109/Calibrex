@@ -111,6 +111,12 @@ Result comparison excludes only `provenance.created_at` and
 `provenance.git_commit`. History comparison excludes its independently
 verified full and short Git IDs; protocol/input identities remain compared.
 Actual imported bytes and real source identities are checked in every run.
+The offline raw-OXTS reconstruction allows at most `2e-8` m translation and
+`1e-13` rotation-matrix element differences (`rtol=0`) across math libraries.
+Windows versus glibc Mercator reconstruction differed by `9.313225746e-10` m
+in a direct full-drive check. Timestamps, motion IDs, input/source hashes,
+and all archived result/residual/Jacobian comparisons remain exact. This
+portability bound affects only regeneration of geometry during an offline audit.
 KITTI-derived data retains CC BY-NC-SA 3.0 attribution separately from
 Apache-2.0 code. The complete publication has a byte index.
 

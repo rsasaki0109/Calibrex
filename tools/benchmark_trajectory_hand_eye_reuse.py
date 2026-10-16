@@ -286,6 +286,23 @@ def worker(protocol_path: Path, variant: str, folder: Path) -> None:
     )
 
 
+def _same_reconstructed_geometry(actual: object, expected: object) -> bool:
+    """Allow platform libm roundoff only when rebuilding geometry from raw OXTS."""
+
+    import numpy as np
+
+    left, right = np.asarray(actual), np.asarray(expected)
+    return bool(
+        left.shape == right.shape
+        and left.shape[-2:] == (4, 4)
+        and np.isfinite(left).all()
+        and np.isfinite(right).all()
+        and np.array_equal(left[..., 3, :], right[..., 3, :])
+        and np.allclose(left[..., :3, :3], right[..., :3, :3], rtol=0.0, atol=1e-13)
+        and np.allclose(left[..., :3, 3], right[..., :3, 3], rtol=0.0, atol=2e-8)
+    )
+
+
 def input_lineage(output: Path, problem: dict) -> None:
     import numpy as np
     from scipy.spatial.transform import Rotation
@@ -342,10 +359,9 @@ def input_lineage(output: Path, problem: dict) -> None:
         for i in range(high + 1)
     ]
     poses = np.stack([se3_matrix(kitti_oxts_pose_world_imu(p, packets[0])) for p in packets])
-    if (
-        times.tobytes() != np.asarray(problem["reference_times_s"]).tobytes()
-        or poses.tobytes() != np.asarray(problem["reference_poses"]).tobytes()
-    ):
+    if times.tobytes() != np.asarray(
+        problem["reference_times_s"]
+    ).tobytes() or not _same_reconstructed_geometry(poses, problem["reference_poses"]):
         raise ValueError("reference trajectory differs from original OXTS")
     reference = ReferenceTrajectory(times, poses)
     first, last = provenance["sensor_pose_indices"]
@@ -375,7 +391,19 @@ def input_lineage(output: Path, problem: dict) -> None:
         }
         for m in motions
     ]
-    if generated != problem["motions"] or problem["options"] != {}:
+    expected = problem["motions"]
+    if (
+        len(generated) != len(expected)
+        or any(
+            {k: v for k, v in a.items() if k != "motion"}
+            != {k: v for k, v in b.items() if k != "motion"}
+            for a, b in zip(generated, expected, strict=True)
+        )
+        or not _same_reconstructed_geometry(
+            [m["motion"] for m in generated], [m["motion"] for m in expected]
+        )
+        or problem["options"] != {}
+    ):
         raise ValueError("generated sensor motions or unchanged defaults differ")
 
 
@@ -499,7 +527,11 @@ def audit(output: Path) -> dict:
         result = json.loads((folder / "result.json").read_bytes())
         history = json.loads(gzip.decompress((folder / "history.json.gz").read_bytes()))
         jsonschema.validate(result, result_schema)
-        jsonschema.validate(history, schema)
+        # All complete histories must match below, after their provenance is
+        # independently checked. Validate their common payload once rather
+        # than re-walking 17,446 identical events in every repeated run.
+        if not histories:
+            jsonschema.validate(history, schema)
         p = measurement["provenance"]
         verify_git(
             p["git_commit"],

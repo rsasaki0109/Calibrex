@@ -7,9 +7,16 @@ import math
 import shutil
 from pathlib import Path
 
+import numpy as np
 import pytest
 from jsonschema import ValidationError
-from tools.benchmark_trajectory_hand_eye_reuse import PINNED, audit, comparable
+from tools.benchmark_trajectory_hand_eye_reuse import (
+    PINNED,
+    _same_reconstructed_geometry,
+    audit,
+    comparable,
+    input_lineage,
+)
 
 ARCHIVE = Path(__file__).resolve().parents[2] / "docs/assets/trajectory_hand_eye_evaluation_reuse"
 
@@ -55,6 +62,37 @@ def test_every_hand_eye_archive_byte_is_indexed() -> None:
         for p in ARCHIVE.rglob("*")
         if p.is_file() and p.name != "index.json"
     }
+
+
+def test_raw_geometry_reconstruction_allows_only_bounded_platform_roundoff() -> None:
+    original = np.tile(np.eye(4), (2, 1, 1))
+    changed = original.copy()
+    changed[0, 0, 3] = 9.313225746154785e-10  # Observed Windows/glibc Mercator difference.
+    changed[1, 0, 0] = np.nextafter(1.0, 0.0)
+    assert _same_reconstructed_geometry(original, changed)
+    for axis, amount in [((0, 0, 3), 1e-6), ((0, 0, 0), 1e-9), ((0, 3, 3), 1e-15)]:
+        changed = original.copy()
+        changed[axis] += amount
+        assert not _same_reconstructed_geometry(original, changed)
+    assert not _same_reconstructed_geometry(original, original[:1])
+    changed = original.copy()
+    changed[0, 1, 2] = math.nan
+    assert not _same_reconstructed_geometry(original, changed)
+
+
+@pytest.mark.parametrize("part", ["timestamp", "reference", "motion", "motion_id"])
+def test_raw_lineage_still_rejects_changed_geometry_times_and_ids(part: str) -> None:
+    problem = json.loads((ARCHIVE / "problem.json").read_bytes())
+    if part == "timestamp":
+        problem["reference_times_s"][3] += 1e-5
+    elif part == "reference":
+        problem["reference_poses"][3][0][3] += 1e-6
+    elif part == "motion":
+        problem["motions"][3]["motion"][0][3] += 1e-6
+    else:
+        problem["motions"][3]["motion_id"] += "-changed"
+    with pytest.raises(ValueError, match=r"trajectory differs|sensor motions"):
+        input_lineage(ARCHIVE, problem)
 
 
 def test_observed_work_must_match_full_history_replay(archive_copy: Path) -> None:
@@ -148,9 +186,10 @@ def test_interrupted_cohort_preserves_every_pin_and_unchanged_core_and_input() -
         for archive in (earlier, ARCHIVE):
             value = read(archive / "00-prior")
             if name.endswith(".gz"):
-                assert value["provenance"]["protocol_sha256"] == hashlib.sha256(
-                    (archive / "protocol.json").read_bytes()
-                ).hexdigest()
+                assert (
+                    value["provenance"]["protocol_sha256"]
+                    == hashlib.sha256((archive / "protocol.json").read_bytes()).hexdigest()
+                )
             value = comparable(value)
             if name.endswith(".gz"):
                 # The two independently pinned cohorts have different protocols.

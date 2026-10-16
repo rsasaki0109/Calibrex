@@ -1,0 +1,25 @@
+import hashlib
+import json
+import math
+from pathlib import Path
+import platform
+import sys
+
+root = Path(__file__).resolve().parent
+path = root / 'docs/assets/trajectory_hand_eye_evaluation_reuse/problem.json'
+problem = json.loads(path.read_bytes())
+packets = [[float(v) for v in (root / f'data/public/kitti_oxts_reference_v1/data/{i:010d}.txt').read_text().split()] for i in range(2762)]
+scale = math.cos(math.radians(packets[0][0]))
+def position(p):
+    return [scale * math.radians(p[1]) * 6378137., scale * 6378137. * math.log(math.tan(math.pi * (90. + p[0]) / 360.)), p[2]]
+origin = position(packets[0])
+differences = [[position(p)[i] - origin[i] - m[i][3] for i in range(3)] for p,m in zip(packets,problem['reference_poses'])]
+report = dict(platform=platform.platform(), python=sys.version,
+    max_translation_error_m=max(abs(v) for row in differences for v in row),
+    different_coordinates=sum(v != 0 for row in differences for v in row),
+    provenance=dict(generator_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        problem_sha256=hashlib.sha256(path.read_bytes()).hexdigest()))
+out = root / 'outputs/hand-eye-platform-repair-v1'
+out.mkdir(exist_ok=True)
+(out / (sys.argv[1]+'.json')).write_text(json.dumps(report, indent=2)+'\n', newline='\n')
+print(json.dumps(report))
