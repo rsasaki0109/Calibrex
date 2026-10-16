@@ -265,3 +265,19 @@ assert all(value in choices for value in expected)
 assert 'unknown-schema-kind' not in choices
 assert list(choices) == list(expected)
 """)
+
+
+def test_defaults_tolerate_a_module_still_being_initialized() -> None:
+    run("""
+import sys
+from types import ModuleType
+from calibrex.cli.main import _loaded_setting
+name = 'package_test_partial_import'
+fallback = (.2, .3)
+assert _loaded_setting(name, 'DEFAULT', fallback) is fallback
+module = ModuleType(name)
+sys.modules[name] = module
+assert _loaded_setting(name, 'DEFAULT', fallback) is fallback
+module.DEFAULT = (.8, .9)
+assert _loaded_setting(name, 'DEFAULT', fallback) is module.DEFAULT
+""")

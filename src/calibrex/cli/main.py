@@ -42,7 +42,7 @@ def _loaded_setting(module_name: str, name: str, fallback: _Setting) -> _Setting
     # Preserve explicit overrides on an already loaded public module without
     # importing a calibration pipeline merely to construct parser defaults.
     module = sys.modules.get(module_name)
-    return fallback if module is None else cast(_Setting, getattr(module, name))
+    return fallback if module is None else cast(_Setting, getattr(module, name, fallback))
 
 
 class _SchemaChoices:
