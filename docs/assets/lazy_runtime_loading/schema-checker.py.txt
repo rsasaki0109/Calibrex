@@ -1,0 +1,38 @@
+"""Export all schemas through each measured source tree, outside timing."""
+import hashlib
+import json
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+run = ROOT / 'outputs/lazy-runtime-cli-pairs-v1'
+protocol = json.loads((run / 'protocol.json').read_bytes())
+for variant in ('prior', 'current'):
+    source = run / ('sources-' + variant)
+    target = run / ('schemas-' + variant)
+    env = os.environ.copy()
+    env['PYTHONPATH'] = str(source / 'src')
+    env['PYTHONDONTWRITEBYTECODE'] = '1'
+    code = "from calibrex.cli.main import main; import sys; raise SystemExit(main(['schema','all','--output-dir',sys.argv[1]]))"
+    completed = subprocess.run([sys.executable, '-c', code, str(target)], env=env, cwd=source, capture_output=True, check=True)
+    (run / ('schema-' + variant + '-stdout.txt')).write_bytes(completed.stdout)
+    (run / ('schema-' + variant + '-stderr.txt')).write_bytes(completed.stderr)
+names = {p.name for p in (run / 'schemas-prior').glob('*.json')}
+assert names == {p.name for p in (run / 'schemas-current').glob('*.json')}
+exports = {
+    name: {v: hashlib.sha256((run / ('schemas-' + v) / name).read_bytes()).hexdigest() for v in ('prior','current')}
+    for name in sorted(names)
+}
+assert len(exports) == 130
+assert all(v['prior'] == v['current'] for v in exports.values())
+receipt = {
+    'exports': exports,
+    'provenance': {
+        'source_manifests': protocol['provenance']['source_manifests'],
+        'checker_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+    },
+}
+(run / 'schema-parity.json').write_text(json.dumps(receipt,indent=2)+'\n')
+print('All 130 frozen schema and ledger exports are byte-identical.')

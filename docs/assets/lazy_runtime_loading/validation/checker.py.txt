@@ -1,0 +1,46 @@
+import hashlib
+import json
+import re
+import shutil
+import subprocess
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+run = ROOT/'outputs/lazy-runtime-cli-pairs-v1'
+target = ROOT/'docs/assets/lazy_runtime_loading/validation'
+target.mkdir(parents=True,exist_ok=True)
+log = ROOT/'outputs/lazy-loading-validation-v3/pytest.log'
+text = log.read_text()
+count = int(re.search(r'(\d+) passed',text).group(1))
+assert count == 155, text
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+def normalized_tree(path):
+    return {p.relative_to(path).as_posix():hashlib.sha256(p.read_bytes().replace(b'\r\n',b'\n')).hexdigest() for p in sorted(path.rglob('*.py'))}
+live = normalized_tree(ROOT/'src')
+frozen = normalized_tree(run/'sources-current/src')
+assert live == frozen
+test_names = [
+    'test_lazy_runtime_loading.py','test_lazy_runtime_benchmark.py','test_lazy_runtime_archive.py',
+    'test_schema_registry.py','test_gnss_lidar_lever_arm.py','test_imu_lidar_rotation.py',
+    'test_imu_lidar_translation.py','test_ins_lidar_hand_eye.py',
+    'test_probabilistic_camera_lidar_refiner.py','test_probabilistic_pose_batching.py',
+]
+cli = subprocess.check_output(['rg','--files','tests/unit','-g','test_cli*.py'],cwd=ROOT,text=True).splitlines()
+test_names = sorted(set(test_names) | {Path(name).name for name in cli})
+for name in test_names:
+    shutil.copyfile(ROOT/'tests/unit'/name,target/(name+'.txt'))
+shutil.copyfile(log,target/'pytest.log')
+shutil.copyfile(ROOT/'outputs/lazy-loading-validation-v3/docs.log',target/'docs.log')
+shutil.copyfile(__file__,target/'checker.py.txt')
+protocol = json.loads((run/'protocol.json').read_bytes())
+receipt = {
+    'tests_passed': count,
+    'canonical_runtime_matches_measured_source_after_tests': True,
+    'source_commit': protocol['commits']['current'],
+    'source_manifest_sha256': protocol['provenance']['source_manifests']['current'],
+    'test_sources': {name+'.txt':sha(target/(name+'.txt')) for name in test_names},
+    'provenance': {'pytest_log_sha256':sha(target/'pytest.log'),'checker_sha256':sha(target/'checker.py.txt')},
+}
+(target/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')
+print(count,'tests; all',len(live),'runtime sources match the frozen candidate after newline normalization.')

@@ -1,301 +1,622 @@
-"""Solver adapter interfaces."""
+"""Solver adapter interfaces, imported on first use."""
 
-from calibrex.solvers.acfr_board_edges import (
-    ACFR_BOARD_EDGE_EXTRACTOR,
-    AcfrBoardEdgeCapture,
-    AcfrBoardEdgeExtraction,
-    extract_acfr_vlp_board_edges,
-)
-from calibrex.solvers.andreff_hand_eye_solver import (
-    AndreffHandEyeOptions,
-    AndreffHandEyeResult,
-    AndreffHandEyeSolver,
-    AndreffIncrementalUpdate,
-    AndreffKroneckerAccumulator,
-)
-from calibrex.solvers.base import SolverAdapter, SolverAdapterResult
-from calibrex.solvers.camera_lidar_capture_time_solver import (
-    CameraLidarCaptureTimeEvaluation,
-    CameraLidarCaptureTimeOptions,
-    CameraLidarCaptureTimeResult,
-    CameraLidarCaptureTimeSolver,
-    CameraLidarTimedCapture,
-    CameraLidarTimeProbe,
-    evaluate_camera_lidar_capture_times,
-)
-from calibrex.solvers.chen_medioni_point_to_plane_icp_solver import (
-    ChenMedioniIteration,
-    ChenMedioniPointToPlaneIcpSolver,
-    ChenMedioniPointToPlaneOptions,
-    ChenMedioniPointToPlaneResult,
-    ChenMedioniProbe,
-)
-from calibrex.solvers.chou_kamel_hand_eye_solver import (
-    ChouKamelHandEyeOptions,
-    ChouKamelHandEyeResult,
-    ChouKamelHandEyeSolver,
-)
-from calibrex.solvers.continuous_time_camera_lidar_solver import (
-    ContinuousTimeCameraLidarCapture,
-    ContinuousTimeCameraLidarOptions,
-    ContinuousTimeCameraLidarResult,
-    ContinuousTimeCameraLidarSolver,
-    ContinuousTimeEvaluation,
-    ContinuousTimeIteration,
-    TimedProbabilisticImageCorrespondence,
-    evaluate_continuous_time_camera_lidar,
-)
-from calibrex.solvers.daniilidis_hand_eye_solver import (
-    DaniilidisHandEyeOptions,
-    DaniilidisHandEyeResult,
-    DaniilidisHandEyeSolver,
-)
-from calibrex.solvers.dornaika_horaud_nonlinear_robot_world_hand_eye_solver import (
-    DornaikaHoraudNonlinearIteration,
-    DornaikaHoraudNonlinearOptions,
-    DornaikaHoraudNonlinearResult,
-    DornaikaHoraudNonlinearSolver,
-)
-from calibrex.solvers.dornaika_horaud_robot_world_hand_eye_solver import (
-    DornaikaHoraudRobotWorldHandEyeOptions,
-    DornaikaHoraudRobotWorldHandEyeResult,
-    DornaikaHoraudRobotWorldHandEyeSolver,
-)
-from calibrex.solvers.fixed_trajectory_se3_solver import (
-    FixedTrajectorySe3ExtrinsicSolver,
-    FixedTrajectorySe3SolverOptions,
-    FixedTrajectorySe3SolverResult,
-)
-from calibrex.solvers.horaud_dornaika_hand_eye_solver import (
-    HoraudDornaikaHandEyeOptions,
-    HoraudDornaikaHandEyeResult,
-    HoraudDornaikaHandEyeSolver,
-)
-from calibrex.solvers.horaud_dornaika_nonlinear_hand_eye_solver import (
-    HoraudDornaikaNonlinearHandEyeIteration,
-    HoraudDornaikaNonlinearHandEyeOptions,
-    HoraudDornaikaNonlinearHandEyeResult,
-    HoraudDornaikaNonlinearHandEyeSolver,
-)
-from calibrex.solvers.horn_point_lidar_camera_solver import (
-    HornPointEvaluation,
-    HornPointLidarCameraResult,
-    HornPointLidarCameraSolver,
-    HornPointObservation,
-    HornPointProbe,
-    HornPointSolverOptions,
-    evaluate_horn_point_observations,
-)
-from calibrex.solvers.koide_lidar_camera_solver import KoideLidarCameraSolver
-from calibrex.solvers.levinson_thrun_online_solver import (
-    LevinsonCameraModel,
-    LevinsonKnownBadProbe,
-    LevinsonObjectiveEvaluation,
-    LevinsonOnlineFrame,
-    LevinsonOnlineStep,
-    LevinsonThrunOnlineOptions,
-    LevinsonThrunOnlineResult,
-    LevinsonThrunOnlineSolver,
-    calibrated_probability,
-    evaluate_levinson_objective,
-    extract_near_depth_discontinuities,
-    levinson_edge_response,
-)
-from calibrex.solvers.li_robot_world_hand_eye_solver import (
-    LiRobotWorldHandEyeOptions,
-    LiRobotWorldHandEyeResult,
-    LiRobotWorldHandEyeSolver,
-)
-from calibrex.solvers.native_camera_lidar_capture_time_solver import (
-    NATIVE_CAMERA_LIDAR_CAPTURE_TIME_BACKEND,
-    NativeCameraLidarCaptureTimeSolver,
-)
-from calibrex.solvers.native_hand_eye_comparison_solver import (
-    NATIVE_HAND_EYE_COMPARISON_BACKEND,
-    NativeHandEyeComparisonSolver,
-)
-from calibrex.solvers.native_joint_slac_solver import (
-    NATIVE_JOINT_SLAC_BACKEND,
-    NativeJointSlacSolver,
-)
-from calibrex.solvers.native_levinson_thrun_online_solver import (
-    NATIVE_LEVINSON_THRUN_ONLINE_BACKEND,
-    NativeLevinsonThrunOnlineSolver,
-)
-from calibrex.solvers.native_lidar_point_to_plane_solver import (
-    NATIVE_LIDAR_POINT_TO_PLANE_BACKEND,
-    LidarPairData,
-    LidarPairSolveInputs,
-    NativeLidarPointToPlaneSolver,
-    lidar_pair_dataset_files,
-    lidar_pair_solve_inputs,
-    load_lidar_pair,
-)
-from calibrex.solvers.native_pandey_mutual_information_solver import (
-    NATIVE_PANDEY_MUTUAL_INFORMATION_BACKEND,
-    NativePandeyMutualInformationSolver,
-)
-from calibrex.solvers.native_planar_board_solver import (
-    ACFR_VLP_FORMAT,
-    ACFR_VLP_SOURCE_URL,
-    NATIVE_PLANAR_BOARD_BACKEND,
-    NativePlanarBoardSolver,
-    read_acfr_vlp_horn_point_observations,
-    read_acfr_vlp_plane_observations,
-    read_acfr_vlp_point_plane_observations,
-)
-from calibrex.solvers.native_registration_comparison_solver import (
-    NATIVE_REGISTRATION_COMPARISON_BACKEND,
-    NativeRegistrationComparisonSolver,
-    voxel_downsample_icp_points,
-)
-from calibrex.solvers.native_tum_joint_slac_solver import (
-    NATIVE_TUM_JOINT_SLAC_BACKEND,
-    NativeTUMJointSlacSolver,
-    TUMJointSlacOptions,
-)
-from calibrex.solvers.open3d_slac_solver import Open3DSLACSolver
-from calibrex.solvers.pandey_mutual_information_solver import (
-    MutualInformationCameraModel,
-    MutualInformationEvaluation,
-    MutualInformationObservation,
-    PandeyMutualInformationIteration,
-    PandeyMutualInformationOptions,
-    PandeyMutualInformationProbe,
-    PandeyMutualInformationResult,
-    PandeyMutualInformationSolver,
-    evaluate_mutual_information,
-)
-from calibrex.solvers.park_martin_hand_eye_solver import (
-    HandEyeEvaluation,
-    HandEyeMotionPair,
-    ParkMartinHandEyeOptions,
-    ParkMartinHandEyeResult,
-    ParkMartinHandEyeSolver,
-    evaluate_hand_eye_motions,
-)
-from calibrex.solvers.planar_board_lidar_camera_solver import (
-    OrientedPlane,
-    PlanarBoardEvaluation,
-    PlanarBoardLidarCameraResult,
-    PlanarBoardLidarCameraSolver,
-    PlanarBoardObservation,
-    PlanarBoardProbeResult,
-    PlanarBoardSolverOptions,
-    evaluate_planar_board_observations,
-)
-from calibrex.solvers.planar_board_line_plane_solver import (
-    BoardBoundaryCorrespondence,
-    LinePlaneBoardObservation,
-    LinePlaneEvaluation,
-    LinePlaneProbe,
-    LinePlaneSolverOptions,
-    OrientedLine3D,
-    PlanarBoardLinePlaneResult,
-    PlanarBoardLinePlaneSolver,
-    evaluate_line_plane_observations,
-)
-from calibrex.solvers.point_plane_lidar_camera_solver import (
-    PointPlaneEvaluation,
-    PointPlaneLidarCameraResult,
-    PointPlaneLidarCameraSolver,
-    PointPlaneObservation,
-    PointPlaneProbe,
-    PointPlaneSolverOptions,
-    evaluate_point_plane_observations,
-)
-from calibrex.solvers.probabilistic_camera_lidar_refiner import (
-    INITIALIZER_PRESERVING_ACCEPTANCE_POLICY_ID,
-    ProbabilisticCameraLidarRefinementOptions,
-    ProbabilisticCameraLidarRefinementResult,
-    ProbabilisticCameraLidarRefiner,
-    ProbabilisticPoseEvaluation,
-    ProbabilisticPoseIteration,
-    ProbabilisticRefinementAcceptanceDecision,
-    evaluate_probabilistic_camera_lidar_pose,
-    project_camera_point,
-)
-from calibrex.solvers.radar_ego_velocity_solver import (
-    RadarDopplerObservation,
-    RadarEgoVelocityResult,
-    RadarEgoVelocitySolver,
-    RadarEgoVelocitySolverOptions,
-)
-from calibrex.solvers.radar_joint_spatiotemporal_solver import (
-    RadarJointSpatiotemporalOptions,
-    RadarJointSpatiotemporalProbe,
-    RadarJointSpatiotemporalResult,
-    RadarJointSpatiotemporalSolver,
-    radar_joint_spatiotemporal_rmse,
-)
-from calibrex.solvers.radar_spatiotemporal_lever_arm_solver import (
-    RadarSpatiotemporalLeverArmOptions,
-    RadarSpatiotemporalLeverArmResult,
-    RadarSpatiotemporalLeverArmSolver,
-    RadarSpatiotemporalProbe,
-    RadarVelocityMeasurement,
-    ReferenceKinematicSample,
-    radar_spatiotemporal_rmse,
-)
-from calibrex.solvers.radar_trajectory_rotation_solver import (
-    RadarRotationProbe,
-    RadarTrajectoryRotationOptions,
-    RadarTrajectoryRotationPair,
-    RadarTrajectoryRotationResult,
-    RadarTrajectoryRotationSolver,
-    radar_trajectory_rotation_rmse,
-)
-from calibrex.solvers.radar_trajectory_yaw_solver import (
-    RadarTrajectoryVelocityPair,
-    RadarTrajectoryYawResult,
-    RadarTrajectoryYawSolver,
-    RadarTrajectoryYawSolverOptions,
-    RadarYawProbeResult,
-    radar_trajectory_yaw_rmse,
-)
-from calibrex.solvers.registration_adapters import (
-    NdtSubprocessAdapter,
-    NdtSubprocessOptions,
-    Open3DGeneralizedIcpAdapter,
-    Open3DGeneralizedIcpOptions,
-    RegistrationAdapterResult,
-)
-from calibrex.solvers.robust_point_to_point_icp_solver import (
-    IcpCandidateEvaluation,
-    IcpIteration,
-    IcpMultiStartTrial,
-    IcpPoint,
-    IcpRematchingDiagnostics,
-    RobustPointToPointIcpOptions,
-    RobustPointToPointIcpResult,
-    RobustPointToPointIcpSolver,
-    evaluate_icp_candidate,
-    split_icp_source_points,
-)
-from calibrex.solvers.shah_robot_world_hand_eye_solver import (
-    RobotWorldHandEyeEvaluation,
-    RobotWorldHandEyePosePair,
-    RobotWorldHandEyeProbe,
-    RobotWorldHandEyeProbeOptions,
-    ShahRobotWorldHandEyeOptions,
-    ShahRobotWorldHandEyeResult,
-    ShahRobotWorldHandEyeSolver,
-    evaluate_robot_world_hand_eye_known_bad_probes,
-    evaluate_robot_world_hand_eye_poses,
-)
-from calibrex.solvers.shiu_ahmad_hand_eye_solver import (
-    ShiuAhmadHandEyeOptions,
-    ShiuAhmadHandEyeResult,
-    ShiuAhmadHandEyeSolver,
-)
-from calibrex.solvers.tsai_lenz_hand_eye_solver import (
-    HandEyeProbeResult,
-    TsaiLenzHandEyeOptions,
-    TsaiLenzHandEyeResult,
-    TsaiLenzHandEyeSolver,
-    evaluate_hand_eye_known_bad_probes,
-)
-from calibrex.solvers.unicalib_lidar_camera_solver import UniCalibLidarCameraSolver
+from importlib import import_module
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from calibrex.solvers.acfr_board_edges import (
+        ACFR_BOARD_EDGE_EXTRACTOR,
+        AcfrBoardEdgeCapture,
+        AcfrBoardEdgeExtraction,
+        extract_acfr_vlp_board_edges,
+    )
+    from calibrex.solvers.andreff_hand_eye_solver import (
+        AndreffHandEyeOptions,
+        AndreffHandEyeResult,
+        AndreffHandEyeSolver,
+        AndreffIncrementalUpdate,
+        AndreffKroneckerAccumulator,
+    )
+    from calibrex.solvers.base import SolverAdapter, SolverAdapterResult
+    from calibrex.solvers.camera_lidar_capture_time_solver import (
+        CameraLidarCaptureTimeEvaluation,
+        CameraLidarCaptureTimeOptions,
+        CameraLidarCaptureTimeResult,
+        CameraLidarCaptureTimeSolver,
+        CameraLidarTimedCapture,
+        CameraLidarTimeProbe,
+        evaluate_camera_lidar_capture_times,
+    )
+    from calibrex.solvers.chen_medioni_point_to_plane_icp_solver import (
+        ChenMedioniIteration,
+        ChenMedioniPointToPlaneIcpSolver,
+        ChenMedioniPointToPlaneOptions,
+        ChenMedioniPointToPlaneResult,
+        ChenMedioniProbe,
+    )
+    from calibrex.solvers.chou_kamel_hand_eye_solver import (
+        ChouKamelHandEyeOptions,
+        ChouKamelHandEyeResult,
+        ChouKamelHandEyeSolver,
+    )
+    from calibrex.solvers.continuous_time_camera_lidar_solver import (
+        ContinuousTimeCameraLidarCapture,
+        ContinuousTimeCameraLidarOptions,
+        ContinuousTimeCameraLidarResult,
+        ContinuousTimeCameraLidarSolver,
+        ContinuousTimeEvaluation,
+        ContinuousTimeIteration,
+        TimedProbabilisticImageCorrespondence,
+        evaluate_continuous_time_camera_lidar,
+    )
+    from calibrex.solvers.daniilidis_hand_eye_solver import (
+        DaniilidisHandEyeOptions,
+        DaniilidisHandEyeResult,
+        DaniilidisHandEyeSolver,
+    )
+    from calibrex.solvers.dornaika_horaud_nonlinear_robot_world_hand_eye_solver import (
+        DornaikaHoraudNonlinearIteration,
+        DornaikaHoraudNonlinearOptions,
+        DornaikaHoraudNonlinearResult,
+        DornaikaHoraudNonlinearSolver,
+    )
+    from calibrex.solvers.dornaika_horaud_robot_world_hand_eye_solver import (
+        DornaikaHoraudRobotWorldHandEyeOptions,
+        DornaikaHoraudRobotWorldHandEyeResult,
+        DornaikaHoraudRobotWorldHandEyeSolver,
+    )
+    from calibrex.solvers.fixed_trajectory_se3_solver import (
+        FixedTrajectorySe3ExtrinsicSolver,
+        FixedTrajectorySe3SolverOptions,
+        FixedTrajectorySe3SolverResult,
+    )
+    from calibrex.solvers.horaud_dornaika_hand_eye_solver import (
+        HoraudDornaikaHandEyeOptions,
+        HoraudDornaikaHandEyeResult,
+        HoraudDornaikaHandEyeSolver,
+    )
+    from calibrex.solvers.horaud_dornaika_nonlinear_hand_eye_solver import (
+        HoraudDornaikaNonlinearHandEyeIteration,
+        HoraudDornaikaNonlinearHandEyeOptions,
+        HoraudDornaikaNonlinearHandEyeResult,
+        HoraudDornaikaNonlinearHandEyeSolver,
+    )
+    from calibrex.solvers.horn_point_lidar_camera_solver import (
+        HornPointEvaluation,
+        HornPointLidarCameraResult,
+        HornPointLidarCameraSolver,
+        HornPointObservation,
+        HornPointProbe,
+        HornPointSolverOptions,
+        evaluate_horn_point_observations,
+    )
+    from calibrex.solvers.koide_lidar_camera_solver import KoideLidarCameraSolver
+    from calibrex.solvers.levinson_thrun_online_solver import (
+        LevinsonCameraModel,
+        LevinsonKnownBadProbe,
+        LevinsonObjectiveEvaluation,
+        LevinsonOnlineFrame,
+        LevinsonOnlineStep,
+        LevinsonThrunOnlineOptions,
+        LevinsonThrunOnlineResult,
+        LevinsonThrunOnlineSolver,
+        calibrated_probability,
+        evaluate_levinson_objective,
+        extract_near_depth_discontinuities,
+        levinson_edge_response,
+    )
+    from calibrex.solvers.li_robot_world_hand_eye_solver import (
+        LiRobotWorldHandEyeOptions,
+        LiRobotWorldHandEyeResult,
+        LiRobotWorldHandEyeSolver,
+    )
+    from calibrex.solvers.native_camera_lidar_capture_time_solver import (
+        NATIVE_CAMERA_LIDAR_CAPTURE_TIME_BACKEND,
+        NativeCameraLidarCaptureTimeSolver,
+    )
+    from calibrex.solvers.native_hand_eye_comparison_solver import (
+        NATIVE_HAND_EYE_COMPARISON_BACKEND,
+        NativeHandEyeComparisonSolver,
+    )
+    from calibrex.solvers.native_joint_slac_solver import (
+        NATIVE_JOINT_SLAC_BACKEND,
+        NativeJointSlacSolver,
+    )
+    from calibrex.solvers.native_levinson_thrun_online_solver import (
+        NATIVE_LEVINSON_THRUN_ONLINE_BACKEND,
+        NativeLevinsonThrunOnlineSolver,
+    )
+    from calibrex.solvers.native_lidar_point_to_plane_solver import (
+        NATIVE_LIDAR_POINT_TO_PLANE_BACKEND,
+        LidarPairData,
+        LidarPairSolveInputs,
+        NativeLidarPointToPlaneSolver,
+        lidar_pair_dataset_files,
+        lidar_pair_solve_inputs,
+        load_lidar_pair,
+    )
+    from calibrex.solvers.native_pandey_mutual_information_solver import (
+        NATIVE_PANDEY_MUTUAL_INFORMATION_BACKEND,
+        NativePandeyMutualInformationSolver,
+    )
+    from calibrex.solvers.native_planar_board_solver import (
+        ACFR_VLP_FORMAT,
+        ACFR_VLP_SOURCE_URL,
+        NATIVE_PLANAR_BOARD_BACKEND,
+        NativePlanarBoardSolver,
+        read_acfr_vlp_horn_point_observations,
+        read_acfr_vlp_plane_observations,
+        read_acfr_vlp_point_plane_observations,
+    )
+    from calibrex.solvers.native_registration_comparison_solver import (
+        NATIVE_REGISTRATION_COMPARISON_BACKEND,
+        NativeRegistrationComparisonSolver,
+        voxel_downsample_icp_points,
+    )
+    from calibrex.solvers.native_tum_joint_slac_solver import (
+        NATIVE_TUM_JOINT_SLAC_BACKEND,
+        NativeTUMJointSlacSolver,
+        TUMJointSlacOptions,
+    )
+    from calibrex.solvers.open3d_slac_solver import Open3DSLACSolver
+    from calibrex.solvers.pandey_mutual_information_solver import (
+        MutualInformationCameraModel,
+        MutualInformationEvaluation,
+        MutualInformationObservation,
+        PandeyMutualInformationIteration,
+        PandeyMutualInformationOptions,
+        PandeyMutualInformationProbe,
+        PandeyMutualInformationResult,
+        PandeyMutualInformationSolver,
+        evaluate_mutual_information,
+    )
+    from calibrex.solvers.park_martin_hand_eye_solver import (
+        HandEyeEvaluation,
+        HandEyeMotionPair,
+        ParkMartinHandEyeOptions,
+        ParkMartinHandEyeResult,
+        ParkMartinHandEyeSolver,
+        evaluate_hand_eye_motions,
+    )
+    from calibrex.solvers.planar_board_lidar_camera_solver import (
+        OrientedPlane,
+        PlanarBoardEvaluation,
+        PlanarBoardLidarCameraResult,
+        PlanarBoardLidarCameraSolver,
+        PlanarBoardObservation,
+        PlanarBoardProbeResult,
+        PlanarBoardSolverOptions,
+        evaluate_planar_board_observations,
+    )
+    from calibrex.solvers.planar_board_line_plane_solver import (
+        BoardBoundaryCorrespondence,
+        LinePlaneBoardObservation,
+        LinePlaneEvaluation,
+        LinePlaneProbe,
+        LinePlaneSolverOptions,
+        OrientedLine3D,
+        PlanarBoardLinePlaneResult,
+        PlanarBoardLinePlaneSolver,
+        evaluate_line_plane_observations,
+    )
+    from calibrex.solvers.point_plane_lidar_camera_solver import (
+        PointPlaneEvaluation,
+        PointPlaneLidarCameraResult,
+        PointPlaneLidarCameraSolver,
+        PointPlaneObservation,
+        PointPlaneProbe,
+        PointPlaneSolverOptions,
+        evaluate_point_plane_observations,
+    )
+    from calibrex.solvers.probabilistic_camera_lidar_refiner import (
+        INITIALIZER_PRESERVING_ACCEPTANCE_POLICY_ID,
+        ProbabilisticCameraLidarRefinementOptions,
+        ProbabilisticCameraLidarRefinementResult,
+        ProbabilisticCameraLidarRefiner,
+        ProbabilisticPoseEvaluation,
+        ProbabilisticPoseIteration,
+        ProbabilisticRefinementAcceptanceDecision,
+        evaluate_probabilistic_camera_lidar_pose,
+        project_camera_point,
+    )
+    from calibrex.solvers.radar_ego_velocity_solver import (
+        RadarDopplerObservation,
+        RadarEgoVelocityResult,
+        RadarEgoVelocitySolver,
+        RadarEgoVelocitySolverOptions,
+    )
+    from calibrex.solvers.radar_joint_spatiotemporal_solver import (
+        RadarJointSpatiotemporalOptions,
+        RadarJointSpatiotemporalProbe,
+        RadarJointSpatiotemporalResult,
+        RadarJointSpatiotemporalSolver,
+        radar_joint_spatiotemporal_rmse,
+    )
+    from calibrex.solvers.radar_spatiotemporal_lever_arm_solver import (
+        RadarSpatiotemporalLeverArmOptions,
+        RadarSpatiotemporalLeverArmResult,
+        RadarSpatiotemporalLeverArmSolver,
+        RadarSpatiotemporalProbe,
+        RadarVelocityMeasurement,
+        ReferenceKinematicSample,
+        radar_spatiotemporal_rmse,
+    )
+    from calibrex.solvers.radar_trajectory_rotation_solver import (
+        RadarRotationProbe,
+        RadarTrajectoryRotationOptions,
+        RadarTrajectoryRotationPair,
+        RadarTrajectoryRotationResult,
+        RadarTrajectoryRotationSolver,
+        radar_trajectory_rotation_rmse,
+    )
+    from calibrex.solvers.radar_trajectory_yaw_solver import (
+        RadarTrajectoryVelocityPair,
+        RadarTrajectoryYawResult,
+        RadarTrajectoryYawSolver,
+        RadarTrajectoryYawSolverOptions,
+        RadarYawProbeResult,
+        radar_trajectory_yaw_rmse,
+    )
+    from calibrex.solvers.registration_adapters import (
+        NdtSubprocessAdapter,
+        NdtSubprocessOptions,
+        Open3DGeneralizedIcpAdapter,
+        Open3DGeneralizedIcpOptions,
+        RegistrationAdapterResult,
+    )
+    from calibrex.solvers.robust_point_to_point_icp_solver import (
+        IcpCandidateEvaluation,
+        IcpIteration,
+        IcpMultiStartTrial,
+        IcpPoint,
+        IcpRematchingDiagnostics,
+        RobustPointToPointIcpOptions,
+        RobustPointToPointIcpResult,
+        RobustPointToPointIcpSolver,
+        evaluate_icp_candidate,
+        split_icp_source_points,
+    )
+    from calibrex.solvers.shah_robot_world_hand_eye_solver import (
+        RobotWorldHandEyeEvaluation,
+        RobotWorldHandEyePosePair,
+        RobotWorldHandEyeProbe,
+        RobotWorldHandEyeProbeOptions,
+        ShahRobotWorldHandEyeOptions,
+        ShahRobotWorldHandEyeResult,
+        ShahRobotWorldHandEyeSolver,
+        evaluate_robot_world_hand_eye_known_bad_probes,
+        evaluate_robot_world_hand_eye_poses,
+    )
+    from calibrex.solvers.shiu_ahmad_hand_eye_solver import (
+        ShiuAhmadHandEyeOptions,
+        ShiuAhmadHandEyeResult,
+        ShiuAhmadHandEyeSolver,
+    )
+    from calibrex.solvers.tsai_lenz_hand_eye_solver import (
+        HandEyeProbeResult,
+        TsaiLenzHandEyeOptions,
+        TsaiLenzHandEyeResult,
+        TsaiLenzHandEyeSolver,
+        evaluate_hand_eye_known_bad_probes,
+    )
+    from calibrex.solvers.unicalib_lidar_camera_solver import UniCalibLidarCameraSolver
+
+_EXPORT_GROUPS = {
+    "calibrex.solvers.acfr_board_edges": (
+        "ACFR_BOARD_EDGE_EXTRACTOR",
+        "AcfrBoardEdgeCapture",
+        "AcfrBoardEdgeExtraction",
+        "extract_acfr_vlp_board_edges",
+    ),
+    "calibrex.solvers.andreff_hand_eye_solver": (
+        "AndreffHandEyeOptions",
+        "AndreffHandEyeResult",
+        "AndreffHandEyeSolver",
+        "AndreffIncrementalUpdate",
+        "AndreffKroneckerAccumulator",
+    ),
+    "calibrex.solvers.base": (
+        "SolverAdapter",
+        "SolverAdapterResult",
+    ),
+    "calibrex.solvers.camera_lidar_capture_time_solver": (
+        "CameraLidarCaptureTimeEvaluation",
+        "CameraLidarCaptureTimeOptions",
+        "CameraLidarCaptureTimeResult",
+        "CameraLidarCaptureTimeSolver",
+        "CameraLidarTimedCapture",
+        "CameraLidarTimeProbe",
+        "evaluate_camera_lidar_capture_times",
+    ),
+    "calibrex.solvers.chen_medioni_point_to_plane_icp_solver": (
+        "ChenMedioniIteration",
+        "ChenMedioniPointToPlaneIcpSolver",
+        "ChenMedioniPointToPlaneOptions",
+        "ChenMedioniPointToPlaneResult",
+        "ChenMedioniProbe",
+    ),
+    "calibrex.solvers.chou_kamel_hand_eye_solver": (
+        "ChouKamelHandEyeOptions",
+        "ChouKamelHandEyeResult",
+        "ChouKamelHandEyeSolver",
+    ),
+    "calibrex.solvers.continuous_time_camera_lidar_solver": (
+        "ContinuousTimeCameraLidarCapture",
+        "ContinuousTimeCameraLidarOptions",
+        "ContinuousTimeCameraLidarResult",
+        "ContinuousTimeCameraLidarSolver",
+        "ContinuousTimeEvaluation",
+        "ContinuousTimeIteration",
+        "TimedProbabilisticImageCorrespondence",
+        "evaluate_continuous_time_camera_lidar",
+    ),
+    "calibrex.solvers.daniilidis_hand_eye_solver": (
+        "DaniilidisHandEyeOptions",
+        "DaniilidisHandEyeResult",
+        "DaniilidisHandEyeSolver",
+    ),
+    "calibrex.solvers.dornaika_horaud_nonlinear_robot_world_hand_eye_solver": (
+        "DornaikaHoraudNonlinearIteration",
+        "DornaikaHoraudNonlinearOptions",
+        "DornaikaHoraudNonlinearResult",
+        "DornaikaHoraudNonlinearSolver",
+    ),
+    "calibrex.solvers.dornaika_horaud_robot_world_hand_eye_solver": (
+        "DornaikaHoraudRobotWorldHandEyeOptions",
+        "DornaikaHoraudRobotWorldHandEyeResult",
+        "DornaikaHoraudRobotWorldHandEyeSolver",
+    ),
+    "calibrex.solvers.fixed_trajectory_se3_solver": (
+        "FixedTrajectorySe3ExtrinsicSolver",
+        "FixedTrajectorySe3SolverOptions",
+        "FixedTrajectorySe3SolverResult",
+    ),
+    "calibrex.solvers.horaud_dornaika_hand_eye_solver": (
+        "HoraudDornaikaHandEyeOptions",
+        "HoraudDornaikaHandEyeResult",
+        "HoraudDornaikaHandEyeSolver",
+    ),
+    "calibrex.solvers.horaud_dornaika_nonlinear_hand_eye_solver": (
+        "HoraudDornaikaNonlinearHandEyeIteration",
+        "HoraudDornaikaNonlinearHandEyeOptions",
+        "HoraudDornaikaNonlinearHandEyeResult",
+        "HoraudDornaikaNonlinearHandEyeSolver",
+    ),
+    "calibrex.solvers.horn_point_lidar_camera_solver": (
+        "HornPointEvaluation",
+        "HornPointLidarCameraResult",
+        "HornPointLidarCameraSolver",
+        "HornPointObservation",
+        "HornPointProbe",
+        "HornPointSolverOptions",
+        "evaluate_horn_point_observations",
+    ),
+    "calibrex.solvers.koide_lidar_camera_solver": ("KoideLidarCameraSolver",),
+    "calibrex.solvers.levinson_thrun_online_solver": (
+        "LevinsonCameraModel",
+        "LevinsonKnownBadProbe",
+        "LevinsonObjectiveEvaluation",
+        "LevinsonOnlineFrame",
+        "LevinsonOnlineStep",
+        "LevinsonThrunOnlineOptions",
+        "LevinsonThrunOnlineResult",
+        "LevinsonThrunOnlineSolver",
+        "calibrated_probability",
+        "evaluate_levinson_objective",
+        "extract_near_depth_discontinuities",
+        "levinson_edge_response",
+    ),
+    "calibrex.solvers.li_robot_world_hand_eye_solver": (
+        "LiRobotWorldHandEyeOptions",
+        "LiRobotWorldHandEyeResult",
+        "LiRobotWorldHandEyeSolver",
+    ),
+    "calibrex.solvers.native_camera_lidar_capture_time_solver": (
+        "NATIVE_CAMERA_LIDAR_CAPTURE_TIME_BACKEND",
+        "NativeCameraLidarCaptureTimeSolver",
+    ),
+    "calibrex.solvers.native_hand_eye_comparison_solver": (
+        "NATIVE_HAND_EYE_COMPARISON_BACKEND",
+        "NativeHandEyeComparisonSolver",
+    ),
+    "calibrex.solvers.native_joint_slac_solver": (
+        "NATIVE_JOINT_SLAC_BACKEND",
+        "NativeJointSlacSolver",
+    ),
+    "calibrex.solvers.native_levinson_thrun_online_solver": (
+        "NATIVE_LEVINSON_THRUN_ONLINE_BACKEND",
+        "NativeLevinsonThrunOnlineSolver",
+    ),
+    "calibrex.solvers.native_lidar_point_to_plane_solver": (
+        "NATIVE_LIDAR_POINT_TO_PLANE_BACKEND",
+        "LidarPairData",
+        "LidarPairSolveInputs",
+        "NativeLidarPointToPlaneSolver",
+        "lidar_pair_dataset_files",
+        "lidar_pair_solve_inputs",
+        "load_lidar_pair",
+    ),
+    "calibrex.solvers.native_pandey_mutual_information_solver": (
+        "NATIVE_PANDEY_MUTUAL_INFORMATION_BACKEND",
+        "NativePandeyMutualInformationSolver",
+    ),
+    "calibrex.solvers.native_planar_board_solver": (
+        "ACFR_VLP_FORMAT",
+        "ACFR_VLP_SOURCE_URL",
+        "NATIVE_PLANAR_BOARD_BACKEND",
+        "NativePlanarBoardSolver",
+        "read_acfr_vlp_horn_point_observations",
+        "read_acfr_vlp_plane_observations",
+        "read_acfr_vlp_point_plane_observations",
+    ),
+    "calibrex.solvers.native_registration_comparison_solver": (
+        "NATIVE_REGISTRATION_COMPARISON_BACKEND",
+        "NativeRegistrationComparisonSolver",
+        "voxel_downsample_icp_points",
+    ),
+    "calibrex.solvers.native_tum_joint_slac_solver": (
+        "NATIVE_TUM_JOINT_SLAC_BACKEND",
+        "NativeTUMJointSlacSolver",
+        "TUMJointSlacOptions",
+    ),
+    "calibrex.solvers.open3d_slac_solver": ("Open3DSLACSolver",),
+    "calibrex.solvers.pandey_mutual_information_solver": (
+        "MutualInformationCameraModel",
+        "MutualInformationEvaluation",
+        "MutualInformationObservation",
+        "PandeyMutualInformationIteration",
+        "PandeyMutualInformationOptions",
+        "PandeyMutualInformationProbe",
+        "PandeyMutualInformationResult",
+        "PandeyMutualInformationSolver",
+        "evaluate_mutual_information",
+    ),
+    "calibrex.solvers.park_martin_hand_eye_solver": (
+        "HandEyeEvaluation",
+        "HandEyeMotionPair",
+        "ParkMartinHandEyeOptions",
+        "ParkMartinHandEyeResult",
+        "ParkMartinHandEyeSolver",
+        "evaluate_hand_eye_motions",
+    ),
+    "calibrex.solvers.planar_board_lidar_camera_solver": (
+        "OrientedPlane",
+        "PlanarBoardEvaluation",
+        "PlanarBoardLidarCameraResult",
+        "PlanarBoardLidarCameraSolver",
+        "PlanarBoardObservation",
+        "PlanarBoardProbeResult",
+        "PlanarBoardSolverOptions",
+        "evaluate_planar_board_observations",
+    ),
+    "calibrex.solvers.planar_board_line_plane_solver": (
+        "BoardBoundaryCorrespondence",
+        "LinePlaneBoardObservation",
+        "LinePlaneEvaluation",
+        "LinePlaneProbe",
+        "LinePlaneSolverOptions",
+        "OrientedLine3D",
+        "PlanarBoardLinePlaneResult",
+        "PlanarBoardLinePlaneSolver",
+        "evaluate_line_plane_observations",
+    ),
+    "calibrex.solvers.point_plane_lidar_camera_solver": (
+        "PointPlaneEvaluation",
+        "PointPlaneLidarCameraResult",
+        "PointPlaneLidarCameraSolver",
+        "PointPlaneObservation",
+        "PointPlaneProbe",
+        "PointPlaneSolverOptions",
+        "evaluate_point_plane_observations",
+    ),
+    "calibrex.solvers.probabilistic_camera_lidar_refiner": (
+        "INITIALIZER_PRESERVING_ACCEPTANCE_POLICY_ID",
+        "ProbabilisticCameraLidarRefinementOptions",
+        "ProbabilisticCameraLidarRefinementResult",
+        "ProbabilisticCameraLidarRefiner",
+        "ProbabilisticPoseEvaluation",
+        "ProbabilisticPoseIteration",
+        "ProbabilisticRefinementAcceptanceDecision",
+        "evaluate_probabilistic_camera_lidar_pose",
+        "project_camera_point",
+    ),
+    "calibrex.solvers.radar_ego_velocity_solver": (
+        "RadarDopplerObservation",
+        "RadarEgoVelocityResult",
+        "RadarEgoVelocitySolver",
+        "RadarEgoVelocitySolverOptions",
+    ),
+    "calibrex.solvers.radar_joint_spatiotemporal_solver": (
+        "RadarJointSpatiotemporalOptions",
+        "RadarJointSpatiotemporalProbe",
+        "RadarJointSpatiotemporalResult",
+        "RadarJointSpatiotemporalSolver",
+        "radar_joint_spatiotemporal_rmse",
+    ),
+    "calibrex.solvers.radar_spatiotemporal_lever_arm_solver": (
+        "RadarSpatiotemporalLeverArmOptions",
+        "RadarSpatiotemporalLeverArmResult",
+        "RadarSpatiotemporalLeverArmSolver",
+        "RadarSpatiotemporalProbe",
+        "RadarVelocityMeasurement",
+        "ReferenceKinematicSample",
+        "radar_spatiotemporal_rmse",
+    ),
+    "calibrex.solvers.radar_trajectory_rotation_solver": (
+        "RadarRotationProbe",
+        "RadarTrajectoryRotationOptions",
+        "RadarTrajectoryRotationPair",
+        "RadarTrajectoryRotationResult",
+        "RadarTrajectoryRotationSolver",
+        "radar_trajectory_rotation_rmse",
+    ),
+    "calibrex.solvers.radar_trajectory_yaw_solver": (
+        "RadarTrajectoryVelocityPair",
+        "RadarTrajectoryYawResult",
+        "RadarTrajectoryYawSolver",
+        "RadarTrajectoryYawSolverOptions",
+        "RadarYawProbeResult",
+        "radar_trajectory_yaw_rmse",
+    ),
+    "calibrex.solvers.registration_adapters": (
+        "NdtSubprocessAdapter",
+        "NdtSubprocessOptions",
+        "Open3DGeneralizedIcpAdapter",
+        "Open3DGeneralizedIcpOptions",
+        "RegistrationAdapterResult",
+    ),
+    "calibrex.solvers.robust_point_to_point_icp_solver": (
+        "IcpCandidateEvaluation",
+        "IcpIteration",
+        "IcpMultiStartTrial",
+        "IcpPoint",
+        "IcpRematchingDiagnostics",
+        "RobustPointToPointIcpOptions",
+        "RobustPointToPointIcpResult",
+        "RobustPointToPointIcpSolver",
+        "evaluate_icp_candidate",
+        "split_icp_source_points",
+    ),
+    "calibrex.solvers.shah_robot_world_hand_eye_solver": (
+        "RobotWorldHandEyeEvaluation",
+        "RobotWorldHandEyePosePair",
+        "RobotWorldHandEyeProbe",
+        "RobotWorldHandEyeProbeOptions",
+        "ShahRobotWorldHandEyeOptions",
+        "ShahRobotWorldHandEyeResult",
+        "ShahRobotWorldHandEyeSolver",
+        "evaluate_robot_world_hand_eye_known_bad_probes",
+        "evaluate_robot_world_hand_eye_poses",
+    ),
+    "calibrex.solvers.shiu_ahmad_hand_eye_solver": (
+        "ShiuAhmadHandEyeOptions",
+        "ShiuAhmadHandEyeResult",
+        "ShiuAhmadHandEyeSolver",
+    ),
+    "calibrex.solvers.tsai_lenz_hand_eye_solver": (
+        "HandEyeProbeResult",
+        "TsaiLenzHandEyeOptions",
+        "TsaiLenzHandEyeResult",
+        "TsaiLenzHandEyeSolver",
+        "evaluate_hand_eye_known_bad_probes",
+    ),
+    "calibrex.solvers.unicalib_lidar_camera_solver": ("UniCalibLidarCameraSolver",),
+}
+_EXPORT_MODULES = {name: module for module, names in _EXPORT_GROUPS.items() for name in names}
+
+
+def __getattr__(name: str) -> Any:
+    module = _EXPORT_MODULES.get(name)
+    if module is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    value = getattr(import_module(module), name)
+    globals()[name] = value
+    return value
+
+
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | set(__all__))
+
 
 __all__ = [
     "ACFR_BOARD_EDGE_EXTRACTOR",

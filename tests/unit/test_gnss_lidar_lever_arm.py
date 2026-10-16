@@ -264,7 +264,7 @@ def test_cli_pairs_bags_with_rtk_files(tmp_path: Path, monkeypatch: pytest.Monke
         captured["sequences"] = sequences
         return _artifact()
 
-    monkeypatch.setattr("calibrex.cli.main.run_rtk_slam_lever_arm", fake_run)
+    monkeypatch.setattr("calibrex.evaluation.gnss_lidar_lever_arm.run_rtk_slam_lever_arm", fake_run)
     output = tmp_path / "out.yaml"
     base = ["gnss-lidar", "rtk-slam", "--calib", "c.yaml", "--output", str(output)]
 
