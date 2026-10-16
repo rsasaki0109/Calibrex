@@ -2162,6 +2162,10 @@ def _build_parser() -> argparse.ArgumentParser:
     empirical_uncertainty.add_argument("--output", type=Path, required=True)
     empirical_uncertainty.add_argument("--uncertainty-id")
     empirical_uncertainty.add_argument(
+        "--workers", type=_positive_int, default=1,
+        help="independent refit processes (default 1); inherits BLAS thread settings",
+    )
+    empirical_uncertainty.add_argument(
         "--block-length",
         type=_positive_int,
         default=5,
@@ -8088,6 +8092,8 @@ def _cmd_camera_lidar_empirical_uncertainty(
         "--output",
         str(args.output),
     ]
+    if args.workers != 1:
+        command.extend(["--workers", str(args.workers)])
     try:
         artifact = run_empirical_se3_uncertainty(
             args.correspondence,
@@ -8097,6 +8103,7 @@ def _cmd_camera_lidar_empirical_uncertainty(
             block_length=args.block_length,
             target_coverage=args.target_coverage,
             resample_count=args.resample_count,
+            workers=args.workers,
             seed=args.seed,
             fit_block_ratio=args.fit_block_ratio,
             overconfidence_scale=args.overconfidence_scale,
@@ -8104,7 +8111,7 @@ def _cmd_camera_lidar_empirical_uncertainty(
             result_id=args.uncertainty_id,
         )
         artifact.save(args.output)
-    except (OSError, ValueError) as exc:
+    except (OSError, ValueError, RuntimeError) as exc:
         raise CalibrexError(str(exc)) from exc
     _emit(
         {

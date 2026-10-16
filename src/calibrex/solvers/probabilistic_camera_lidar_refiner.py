@@ -560,10 +560,7 @@ class _PreparedPoseEvaluation:
                     k1, k2, p1, p2 = intrinsics.distortion[:4]
                     k3 = intrinsics.distortion[4] if len(intrinsics.distortion) == 5 else 0.0
                     radius2 = x*x + y*y
-                    # Python float power is retained: vector pow may round
-                    # differently and perturb candidate selection near ties.
-                    squared = np.fromiter((float(r)**2 for r in radius2), dtype=float)
-                    cubed = np.fromiter((float(r)**3 for r in radius2), dtype=float)
+                    squared, cubed = _distortion_powers(radius2)
                     radial = 1.0 + k1*radius2 + k2*squared + k3*cubed
                     dx = x*radial + 2.0*p1*x*y + p2*(radius2+2.0*x*x)
                     dy = y*radial + p1*(radius2+2.0*y*y) + 2.0*p2*x*y
@@ -597,6 +594,21 @@ class _PreparedPoseEvaluation:
             valid_correspondence_count=len(weight_array),
             skipped_correspondence_count=self.total-len(weight_array),
         )
+
+
+def _distortion_powers(radius2: FloatArray) -> tuple[FloatArray, FloatArray]:
+    """Use the float64 platform-pow loop, retaining Python overflow behavior."""
+    # float_power's double loop calls platform pow, like Python float **. The
+    # ordinary power/square ufuncs may use differently rounded SIMD shortcuts.
+    # Stay native for extreme finite inputs: Python raises on overflow whereas
+    # NumPy normally returns infinity. Non-finite radii retain their native
+    # propagation and are subsequently excluded by the existing projection mask.
+    if np.any(np.isfinite(radius2) & (np.abs(radius2) > 1.0e100)):
+        return (
+            np.fromiter((float(r)**2 for r in radius2), dtype=float),
+            np.fromiter((float(r)**3 for r in radius2), dtype=float),
+        )
+    return np.float_power(radius2, 2), np.float_power(radius2, 3)
 
 
 def _evaluate_scalar_pose(

@@ -38,6 +38,7 @@ UNREGISTERED_SCHEMA_VERSIONS = {
 # Benchmark records are validated by their explicit tool schemas and archive
 # audits, without adding benchmark-internal formats to the core public API.
 TOOL_SCHEMA_VERSIONS = {
+    "slac.empirical_refit_benchmark/v0.1": "tools/schemas/empirical_refit_benchmark.schema.json",
     "slac.png_luminance_benchmark/v0.1": "tools/schemas/png_luminance_benchmark.schema.json",
     "slac.lazy_runtime_benchmark/v0.1": "tools/schemas/lazy_runtime_benchmark.schema.json",
     "slac.probabilistic_refinement_publication/v0.1": (
