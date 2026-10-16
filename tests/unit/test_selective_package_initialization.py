@@ -179,3 +179,89 @@ assert 'calibrex.evaluation.metrics' not in sys.modules
 assert 'calibrex.evaluation.evidence_summary' not in sys.modules
 assert 'calibrex.evaluation.camera_lidar_sota_audit' not in sys.modules
 """)
+
+
+def test_complete_parser_keeps_calibration_and_bag_processing_unloaded() -> None:
+    run("""
+import sys
+from calibrex.cli.main import _build_parser
+parser = _build_parser()
+assert not {'numpy','scipy','yaml','pydantic'} & sys.modules.keys()
+for name in ['calibrex.core.validation','calibrex.core.capture_manifest',
+             'calibrex.data.livox_ros2',
+             'calibrex.evaluation.camera_lidar_confidence_calibration',
+             'calibrex.evaluation.camera_lidar_initializer_calibration']:
+    assert name not in sys.modules, name
+""")
+
+
+def test_calibration_defaults_and_original_livox_class_remain_identical() -> None:
+    run("""
+import inspect
+import pickle
+from calibrex.data import livox_ros2
+from calibrex.data.livox_profile_fields import LIVOX_PROFILE_FIELDS
+from calibrex.evaluation import camera_lidar_defaults as defaults
+from calibrex.evaluation import camera_lidar_confidence_calibration as confidence
+from calibrex.evaluation import camera_lidar_initializer_calibration as initializer
+assert confidence.DEFAULT_CONFIDENCE_THRESHOLDS is defaults.DEFAULT_CONFIDENCE_THRESHOLDS
+signature = inspect.signature(confidence.calibrate_camera_lidar_confidence)
+assert signature.parameters['thresholds'].default is defaults.DEFAULT_CONFIDENCE_THRESHOLDS
+for name, param in [('DEFAULT_INITIALIZER_CONFIDENCE_THRESHOLDS','confidence_thresholds'),
+                    ('DEFAULT_INITIALIZER_RANSAC_THRESHOLDS_PX','ransac_reprojection_thresholds_px'),
+                    ('DEFAULT_INITIALIZER_RANDOM_SEEDS','random_seeds')]:
+    value = getattr(defaults, name)
+    assert getattr(initializer, name) is value
+    signature = inspect.signature(initializer.calibrate_camera_lidar_initializer)
+    assert signature.parameters[param].default is value
+assert livox_ros2.LivoxStreamProfile.__module__ == 'calibrex.data.livox_ros2'
+for name, fields in LIVOX_PROFILE_FIELDS.items():
+    value = livox_ros2.LIVOX_PROFILES[name]
+    assert value == livox_ros2.LivoxStreamProfile(name, *fields)
+    assert pickle.loads(pickle.dumps(value)) == value
+""")
+
+
+def test_parser_retains_overrides_from_already_loaded_public_modules() -> None:
+    run("""
+import argparse
+from calibrex.cli.main import _build_parser
+from calibrex.data import livox_ros2
+from calibrex.evaluation import camera_lidar_confidence_calibration as confidence
+from calibrex.evaluation import camera_lidar_initializer_calibration as initializer
+confidence.DEFAULT_CONFIDENCE_THRESHOLDS = (.6, .7)
+initializer.DEFAULT_INITIALIZER_CONFIDENCE_THRESHOLDS = (.8,)
+initializer.DEFAULT_INITIALIZER_RANSAC_THRESHOLDS_PX = (3.,)
+initializer.DEFAULT_INITIALIZER_RANDOM_SEEDS = (11, 13)
+livox_ros2.LIVOX_PROFILES['custom'] = livox_ros2.LivoxStreamProfile(
+    'custom','/p','/i',None,'offset_s','mps2')
+def child(parser, name):
+    action = next(a for a in parser._actions if isinstance(a,argparse._SubParsersAction))
+    return action.choices[name]
+parser = _build_parser()
+camera = child(parser, 'camera-lidar')
+conf = child(camera, 'calibrate-probabilistic-confidence')
+assert conf.get_default('thresholds') == '0.6,0.7'
+init = child(camera, 'calibrate-probabilistic-pnp-initializer')
+assert init.get_default('confidence_thresholds') == '0.8'
+assert init.get_default('ransac_reprojection_thresholds_px') == '3'
+assert init.get_default('random_seeds') == '11,13'
+livox = child(child(parser, 'imu-lidar'), 'livox')
+assert 'custom' in next(a for a in livox._actions if a.dest=='profile').choices
+""")
+
+
+@pytest.mark.parametrize("validation", [False, True])
+def test_deferred_schema_choices_keep_complete_order_and_reject_unknown_kinds(
+    validation: bool,
+) -> None:
+    run(f"""
+from calibrex.cli.main import _SchemaChoices
+from calibrex.core.schema_registry import schema_kinds, validatable_kinds
+choices = _SchemaChoices(validation={validation!r})
+expected = ('auto', *validatable_kinds()) if {validation!r} else (*schema_kinds(), 'ledger', 'all')
+assert list(choices) == list(expected)
+assert all(value in choices for value in expected)
+assert 'unknown-schema-kind' not in choices
+assert list(choices) == list(expected)
+""")
