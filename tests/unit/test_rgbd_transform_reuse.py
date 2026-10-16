@@ -5,11 +5,13 @@ import struct
 from collections import OrderedDict
 from contextvars import ContextVar
 from dataclasses import replace
+from functools import wraps
 
 import numpy as np
 import pytest
 
 from calibrex.core.geometry import SE3
+from calibrex.graph import _rgbd_batches as batches
 from calibrex.graph import joint_factors as factors
 from calibrex.graph import joint_optimization as graph
 from calibrex.graph._evaluation_scope import _EVALUATION_CACHE, _with_evaluation_cache
@@ -321,77 +323,214 @@ def test_complete_lm_derivatives_probes_whitening_and_diagnostics_match_scalar(
     assert _EVALUATION_CACHE.get() is None
 
 
-@pytest.mark.parametrize("kind", ["xyz", "pair"])
-def test_calibrated_points_reused_only_for_the_same_immutable_lattice(kind, monkeypatch):
-    items = [factory(kind, measurement(kind, index)) for index in range(12)]
-    supplied = inputs()
-    changed_pose = {**supplied, "pose": (-0.03,) * 6, "ext": (0.02,) * 6}
-    changed_field = {**supplied, "xyz": (-0.01,) * 24}
-    variants = [supplied, changed_pose, changed_field]
-    expected = [byte_values(f.residuals(v)) for v in variants for f in items]
-    calls = []
-    original = factors._calibrated_xyz_lattice_point
+def batch_problem(kind, count=96, regularizers=False):
+    items = []
+    for index in range(count):
+        item = measurement(kind, index)
+        name = (
+            "transform_world_source_initial" if kind == "pair" else "transform_world_body_initial"
+        )
+        if index % 2:
+            item = replace(item, **{name: SE3.identity()})
+        items.append(factory(kind, item))
+    names = tuple(dict.fromkeys(name for item in items for name in item.variable_names))
+    blocks = [
+        graph.JointParameterBlock(
+            name,
+            inputs()[name],
+            known_bad_steps=(0.1,) * len(inputs()[name]),
+            schur_role="eliminated" if name == "pose" else "retained",
+        )
+        for name in names
+    ]
+    if regularizers:
+        for name in names:
+            items.append(
+                factors.make_joint_prior_factor(
+                    factor_id=f"prior-{name}",
+                    observation_group=f"gauge-{name}",
+                    block=name,
+                    target=(0.0,) * len(inputs()[name]),
+                    sigma=(0.5,) * len(inputs()[name]),
+                )
+            )
+        if kind in ("centered", "trilinear"):
+            items.extend(
+                (
+                    factors.make_joint_lattice_zero_mean_factor(
+                        factor_id="mean",
+                        observation_group="gauge",
+                        block="lattice",
+                        size=8,
+                        sigma_m=0.1,
+                    ),
+                    factors.make_joint_lattice_smoothness_factor(
+                        factor_id="smooth",
+                        observation_group="gauge",
+                        block="lattice",
+                        shape=(2, 2, 2),
+                        sigma_m=0.1,
+                    ),
+                )
+            )
+        if kind in ("xyz", "pair"):
+            controls = factors.regular_lattice_control_points(
+                minimum=(-1.0, -1.0, 0.0), maximum=(1.0, 1.0, 3.0), shape=(2, 2, 2)
+            )
+            items.extend(
+                (
+                    factors.make_joint_xyz_lattice_shape_factor(
+                        factor_id="shape",
+                        observation_group="gauge",
+                        block="xyz",
+                        control_points_m=controls,
+                        local_rotations_xyzw=((0.0, 0.0, 0.0, 1.0),) * 8,
+                        shape=(2, 2, 2),
+                        sigma_m=0.1,
+                    ),
+                    factors.make_joint_xyz_lattice_rigid_gauge_factor(
+                        factor_id="rigid",
+                        observation_group="gauge",
+                        block="xyz",
+                        control_points_m=controls,
+                        translation_sigma_m=0.1,
+                        rotation_sigma_rad=0.1,
+                    ),
+                )
+            )
+    return blocks, items
 
-    def calibrate(*args):
+
+@pytest.mark.parametrize("kind", KINDS)
+@pytest.mark.parametrize("angle", [0.0, 1.0e-12, 0.3, math.pi - 1.0e-9])
+def test_array_residuals_and_full_central_differences_are_byte_exact(kind, angle, monkeypatch):
+    blocks, items = batch_problem(kind, regularizers=True)
+    values = inputs()
+    values["pose"] = (-0.0, 0.0, -0.0, angle, -angle * 0.2, angle * 0.3)
+    layout = graph._variable_layout(blocks)
+    options = graph.JointOptimizerOptions()
+    assert batches._prepare_rgbd_plan(items, values) is not None
+    fast_residual, fast_jacobian = graph._linearize(items, values, blocks, layout, options)
+    fast_evaluate = graph._factor_residuals(items, values)
+    monkeypatch.setattr(batches, "_MIN_POINTS", 1_000_000)
+    residual, jacobian = graph._linearize(items, values, blocks, layout, options)
+    assert fast_residual.tobytes() == residual.tobytes() == fast_evaluate.tobytes()
+    assert fast_jacobian.tobytes() == jacobian.tobytes()
+    assert _EVALUATION_CACHE.get() is None
+
+
+@pytest.mark.parametrize("kind", KINDS)
+@pytest.mark.parametrize("linear_solver", ["dense", "schur"])
+def test_array_complete_lm_with_lattice_regularizers_matches_scalar(
+    kind, linear_solver, monkeypatch
+):
+    blocks, items = batch_problem(kind, regularizers=True)
+    options = graph.JointOptimizerOptions(
+        max_iterations=3, split_seed=17, linear_solver=linear_solver, huber_delta=0.1
+    )
+    traces = []
+    original = graph._linearize
+
+    def linearize(*args):
+        residual, jacobian = original(*args)
+        traces.append((residual.tobytes(), jacobian.tobytes()))
+        return residual, jacobian
+
+    monkeypatch.setattr(graph, "_linearize", linearize)
+    fast = graph.BackendNeutralJointOptimizer().solve(blocks, items, options)
+    expected_traces = traces.copy()
+    traces.clear()
+    monkeypatch.setattr(batches, "_MIN_POINTS", 1_000_000)
+    scalar = graph.BackendNeutralJointOptimizer().solve(blocks, items, options)
+    assert traces == expected_traces
+    assert fast.as_dict() == scalar.as_dict()
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_point_arrays_reuse_only_unchanged_field_tuples_and_keep_two_states(kind):
+    _, items = batch_problem(kind)
+    values = inputs()
+    plan = batches._prepare_rgbd_plan(items, values)
+    assert plan is not None
+    group = plan.groups[0]
+    first = group.calibrated_points(values)
+    assert not first[0].flags.writeable
+    if first[1] is not None:
+        assert not first[1].flags.writeable
+    changed_pose = {**values, "pose": (0.1,) * 6}
+    again = group.calibrated_points(changed_pose)
+    assert again[0] is first[0] and again[1] is first[1]
+    field = group.names[-1]
+    for value in (0.0, -0.0, 0.01, -0.01):
+        supplied = {**values, field: (value,) * len(values[field])}
+        points, _ = group.calibrated_points(supplied)
+        assert not points.flags.writeable and len(group.points) <= 2
+    separate = batches._prepare_rgbd_plan(items, values)
+    assert separate is not None
+    assert separate.groups[0].calibrated_points(values)[0] is not first[0]
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_chunking_and_bounds_keep_every_residual(kind, monkeypatch):
+    _, items = batch_problem(kind)
+    expected = graph._factor_residuals(items, inputs()).tobytes()
+    monkeypatch.setattr(batches, "_CHUNK_ROWS", 3)
+    assert graph._factor_residuals(items, inputs()).tobytes() == expected
+    monkeypatch.setattr(batches, "_MAX_GROUPS", 1)
+    assert batches._prepare_rgbd_plan(items, inputs()) is None
+    assert graph._factor_residuals(items, inputs()).tobytes() == expected
+
+
+def test_copied_wrapper_attributes_cannot_bypass_a_custom_callback():
+    _, items = batch_problem("depth")
+    original = items[0].evaluator
+    calls = []
+
+    @wraps(original)
+    def wrapped(values):
+        calls.append(values)
+        return original(values)
+
+    items[0] = replace(items[0], evaluator=wrapped)
+    assert batches._prepare_rgbd_plan(items, inputs()) is None
+    assert not calls
+    graph._factor_residuals(items, inputs())
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize("mutation", ["names", "code", "closure", "frame", "whitening"])
+def test_changed_factory_inputs_rebuild_or_use_scalar_fallback(mutation):
+    _, items = batch_problem("depth")
+    factor = items[0]
+    binding = getattr(factor.evaluator, batches._ATTRIBUTE)
+    if mutation == "names":
+        object.__setattr__(binding, "names", (*binding.names,))
+    elif mutation == "code":
+        factor.evaluator.__code__ = factor.evaluator.__code__.replace(co_name="changed_rgbd")
+    elif mutation == "closure":
+        index = factor.evaluator.__code__.co_freevars.index("ray")
+        factor.evaluator.__closure__[index].cell_contents = (0.2, 0.3, 1.0)
+    elif mutation == "frame":
+        object.__setattr__(
+            binding.measurement.transform_world_body_initial, "translation_m", [0.1, -0.2, 0.3]
+        )
+    else:
+        items[0] = replace(factor, sqrt_information=((1.1,),))
+    assert batches._prepare_rgbd_plan(items, inputs()) is None
+    expected = np.asarray([r for item in items for r in item.residuals(inputs())])
+    assert graph._factor_residuals(items, inputs()).tobytes() == expected.tobytes()
+
+
+def test_monkeypatched_xyz_computation_retains_original_callback_count(monkeypatch):
+    _, items = batch_problem("xyz")
+    original = factors._calibrated_xyz_lattice_point
+    calls = []
+
+    def custom(*args):
         calls.append(args)
         return original(*args)
 
-    monkeypatch.setattr(factors, "_calibrated_xyz_lattice_point", calibrate)
-
-    @_with_evaluation_cache
-    def evaluate():
-        return [byte_values(f.residuals(v)) for v in variants for f in items]
-
-    assert evaluate() == expected
-    count = 48 if kind == "pair" else 24
-    assert len(calls) == count
-    assert evaluate() == expected
-    assert len(calls) == 2 * count
-    assert _EVALUATION_CACHE.get() is None
-
-
-def test_point_scratch_is_bounded_and_eviction_preserves_exact_bytes(monkeypatch):
-    monkeypatch.setattr(factors, "_RGBD_POINT_STATES", 2)
-    monkeypatch.setattr(factors, "_RGBD_POINTS_PER_STATE", 3)
-    items = [factory("xyz", measurement("xyz", i)) for i in range(6)]
-    supplied = [{**inputs(), "xyz": (value,) * 24} for value in (0.0, -0.0, 0.01, -0.01)]
-    expected = [byte_values(f.residuals(v)) for v in supplied for f in items]
-
-    @_with_evaluation_cache
-    def evaluate():
-        actual = []
-        for values in supplied:
-            for factor in items:
-                actual.append(byte_values(factor.residuals(values)))
-                states = _EVALUATION_CACHE.get()[factors._RGBD_POINT_CACHE_KEY]
-                assert len(states) <= 2
-                assert all(len(state.points) <= 3 for state in states.values())
-        return actual
-
-    assert evaluate() == expected
-    assert _EVALUATION_CACHE.get() is None
-
-
-@pytest.mark.parametrize("kind", ["xyz", "pair"])
-def test_changed_point_and_mutable_field_use_current_geometry(kind):
-    item = measurement(kind)
-    factor = factory(kind, item)
-    supplied = inputs()
-    name = "source_point_sensor_m" if kind == "pair" else "point_sensor_m"
-
-    @_with_evaluation_cache
-    def evaluate():
-        before = factor.residuals(supplied)
-        object.__setattr__(item, name, (0.4, -0.2, 1.3))
-        after = factor.residuals(supplied)
-        assert after != before
-        assert after == factory(kind, item).residuals(supplied)
-        mutable = list(supplied["xyz"])
-        values = {**supplied, "xyz": mutable}
-        first = factor.residuals(values)
-        mutable[0] += 0.1
-        assert factor.residuals(values) != first
-        return factor.residuals(values)
-
-    evaluate()
-    assert _EVALUATION_CACHE.get() is None
+    monkeypatch.setattr(factors, "_calibrated_xyz_lattice_point", custom)
+    assert batches._prepare_rgbd_plan(items, inputs()) is None
+    graph._factor_residuals(items, inputs())
+    assert len(calls) == len(items)

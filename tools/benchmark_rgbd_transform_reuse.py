@@ -28,12 +28,17 @@ SCHEMA = ROOT / "tools/schemas/rgbd_transform_reuse_benchmark.schema.json"
 CONFIG = ROOT / "examples/public_datasets/tum_rgbd_freiburg1_xyz/native_joint_slac_config.yaml"
 DATA = ROOT / "data/public/rgbd_dataset_freiburg1_xyz"
 INPUTS_SHA256 = "f1ec8837db3c70ddb173869a4362dd54a5a9da3dc8e6f9cc7ac59a7b14e2a108"
-CHANGES = {"calibrex/graph/joint_factors.py"}
+CHANGES = {
+    "calibrex/graph/_rgbd_batches.py",
+    "calibrex/graph/joint_factors.py",
+    "calibrex/graph/joint_optimization.py",
+}
+ADDED = {"calibrex/graph/_rgbd_batches.py"}
 SCOPE = (
     "Complete native_tum_joint_slac pipeline on the public development TUM fr1/xyz sequence: "
     "unchanged primary and replication windows, scalar and full-XYZ lattice ablations, "
     "two-sided pairs, reassociation, curvature, multistart, holdout, probes and saved reports. "
-    "Only bounded evaluation-local transform and calibrated-point reuse changes; "
+    "Ordered array geometry and bounded evaluation-local reuse retain scalar lattice sums; "
     "no accuracy or SOTA claim."
 )
 PINNED = {
@@ -234,7 +239,7 @@ def audit(output: Path) -> dict:
     manifests = {v: sources(output, v) for v in ("prior", "current")}
     prior, current = manifests["prior"], manifests["current"]
     changed = {k for k in prior.keys() | current.keys() if prior.get(k) != current.get(k)}
-    if changed != CHANGES or set(prior) != set(current):
+    if changed != CHANGES or set(current) != set(prior) | ADDED:
         raise ValueError("unexpected runtime source changes")
     index_path = output / "index.json"
     if index_path.exists():
@@ -259,7 +264,7 @@ def audit(output: Path) -> dict:
     order = [
         v
         for i in range(payload["repetitions"])
-        for v in (("prior", "current") if i % 2 == 0 else ("current", "prior"))
+        for v in (("current", "prior") if i % 2 == 0 else ("prior", "current"))
     ]
     if payload["repetitions"] < 2 or [a["variant"] for a in attempts] != order:
         raise ValueError("alternating run inventory differs")
@@ -487,7 +492,7 @@ def main() -> None:
     write(protocol_path, protocol)
     attempts = []
     for repeat in range(args.repetitions):
-        for variant in ("prior", "current") if repeat % 2 == 0 else ("current", "prior"):
+        for variant in ("current", "prior") if repeat % 2 == 0 else ("prior", "current"):
             folder = output / f"{repeat + 1:02d}-{variant}"
             folder.mkdir()
             source = output / ("sources-" + variant)

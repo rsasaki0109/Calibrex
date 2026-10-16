@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import math
 import struct
-from collections import OrderedDict
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import TypeAlias, cast
@@ -22,6 +21,7 @@ from calibrex.core.geometry import (
 )
 from calibrex.graph._evaluation_scope import _EVALUATION_CACHE, _EVALUATION_CACHE_LIMIT
 from calibrex.graph._point_plane_batches import _bind_point_plane, _bind_prior
+from calibrex.graph._rgbd_batches import _bind_rgbd, _bind_rgbd_scalar
 from calibrex.graph.joint_optimization import (
     JointResidualBlock,
     ParameterValues,
@@ -222,6 +222,8 @@ def make_joint_depth_point_to_plane_factor(
         point_world = transform_world_sensor.transform_point(point_sensor)
         return (_dot(normal, _subtract(point_world, measurement.plane_point_world_m)),)
 
+    _bind_rgbd(evaluator, "depth", measurement, normal,
+               (pose_block, extrinsic_block, depth_calibration_block), ray=ray)
     return JointResidualBlock(
         factor_id=measurement.measurement_id,
         observation_group=measurement.observation_group,
@@ -268,6 +270,8 @@ def make_joint_trilinear_depth_point_to_plane_factor(
         point_world = transform_world_sensor.transform_point(point_sensor)
         return (_dot(normal, _subtract(point_world, measurement.plane_point_world_m)),)
 
+    _bind_rgbd(evaluator, "trilinear", measurement, normal,
+               (pose_block, extrinsic_block, depth_lattice_block), ray=ray, weights=weights)
     return JointResidualBlock(
         factor_id=measurement.measurement_id,
         observation_group=measurement.observation_group,
@@ -320,6 +324,9 @@ def make_joint_centered_trilinear_depth_point_to_plane_factor(
         point_world = transform_world_sensor.transform_point(point_sensor)
         return (_dot(normal, _subtract(point_world, measurement.plane_point_world_m)),)
 
+    _bind_rgbd(evaluator, "centered", measurement, normal,
+               (pose_block, extrinsic_block, depth_bias_block, centered_lattice_block),
+               ray=ray, weights=weights)
     return JointResidualBlock(
         factor_id=measurement.measurement_id,
         observation_group=measurement.observation_group,
@@ -350,12 +357,11 @@ def make_joint_trilinear_xyz_point_to_plane_factor(
     transform_key = _rgbd_transform_signature(
         measurement.transform_world_body_initial, measurement.transform_body_sensor_initial
     )
-    point_key = _rgbd_point_signature(measurement.point_sensor_m, weights)
 
     def evaluator(values: ParameterValues) -> tuple[float]:
         offsets = values[xyz_lattice_block]
-        calibrated_point = _rgbd_calibrated_xyz_point(
-            measurement.point_sensor_m, weights, offsets, point_key
+        calibrated_point = _calibrated_xyz_lattice_point(
+            measurement.point_sensor_m, weights, offsets
         )
         transform_world_sensor = _rgbd_transform(
             values, pose_block, measurement.transform_world_body_initial,
@@ -364,6 +370,8 @@ def make_joint_trilinear_xyz_point_to_plane_factor(
         point_world = transform_world_sensor.transform_point(calibrated_point)
         return (_dot(normal, _subtract(point_world, measurement.plane_point_world_m)),)
 
+    _bind_rgbd(evaluator, "xyz", measurement, normal,
+               (pose_block, extrinsic_block, xyz_lattice_block), weights=weights)
     return JointResidualBlock(
         factor_id=measurement.measurement_id,
         observation_group=measurement.observation_group,
@@ -394,16 +402,14 @@ def make_joint_trilinear_xyz_pair_factor(
         raise ValueError("joint trilinear XYZ pair requires distinct pose blocks")
     source_key = _rgbd_transform_signature(measurement.transform_world_source_initial)
     target_key = _rgbd_transform_signature(measurement.transform_world_target_initial)
-    source_point_key = _rgbd_point_signature(measurement.source_point_sensor_m, source_weights)
-    target_point_key = _rgbd_point_signature(measurement.target_point_sensor_m, target_weights)
 
     def evaluator(values: ParameterValues) -> tuple[float]:
         offsets = values[xyz_lattice_block]
-        source_calibrated = _rgbd_calibrated_xyz_point(
-            measurement.source_point_sensor_m, source_weights, offsets, source_point_key
+        source_calibrated = _calibrated_xyz_lattice_point(
+            measurement.source_point_sensor_m, source_weights, offsets
         )
-        target_calibrated = _rgbd_calibrated_xyz_point(
-            measurement.target_point_sensor_m, target_weights, offsets, target_point_key
+        target_calibrated = _calibrated_xyz_lattice_point(
+            measurement.target_point_sensor_m, target_weights, offsets
         )
         source_world = _rgbd_transform(
             values, source_pose_block, measurement.transform_world_source_initial, source_key
@@ -417,6 +423,9 @@ def make_joint_trilinear_xyz_pair_factor(
         )
         return (_dot(normal, difference),)
 
+    _bind_rgbd(evaluator, "pair", measurement, normal,
+               (source_pose_block, target_pose_block, xyz_lattice_block),
+               weights=source_weights, target_weights=target_weights)
     return JointResidualBlock(
         factor_id=measurement.measurement_id,
         observation_group=measurement.observation_group,
@@ -467,6 +476,7 @@ def make_joint_xyz_lattice_shape_factor(
             )
         return tuple(residuals)
 
+    _bind_rgbd_scalar(evaluator, block, 3 * size, 3 * len(edges))
     return JointResidualBlock(
         factor_id=factor_id,
         observation_group=observation_group,
@@ -531,6 +541,7 @@ def make_joint_xyz_lattice_rigid_gauge_factor(
             *(float(value) / rotation_sigma_rad for value in rotation),
         )
 
+    _bind_rgbd_scalar(evaluator, block, 3 * len(controls), 6)
     return JointResidualBlock(
         factor_id=factor_id,
         observation_group=observation_group,
@@ -586,6 +597,7 @@ def make_joint_lattice_zero_mean_factor(
             raise ValueError("joint zero-mean lattice block dimension mismatch")
         return (sum(offsets) / (size * sigma_m),)
 
+    _bind_rgbd_scalar(evaluator, block, size, 1)
     return JointResidualBlock(
         factor_id=factor_id,
         observation_group=observation_group,
@@ -627,6 +639,7 @@ def make_joint_lattice_smoothness_factor(
             raise ValueError("joint lattice smoothness block dimension mismatch")
         return tuple((offsets[right] - offsets[left]) / sigma_m for left, right in edges)
 
+    _bind_rgbd_scalar(evaluator, block, nx * ny * nz, len(edges))
     return JointResidualBlock(
         factor_id=factor_id,
         observation_group=observation_group,
@@ -773,6 +786,7 @@ def make_joint_prior_factor(
         return tuple(value - expected for value, expected in zip(current, targets, strict=True))
 
     _bind_prior(evaluator, block, len(targets))
+    _bind_rgbd_scalar(evaluator, block, len(targets), len(targets))
     sqrt_information = tuple(
         tuple((1.0 / sigmas[row]) if row == column else 0.0 for column in range(len(sigmas)))
         for row in range(len(sigmas))
@@ -806,77 +820,6 @@ def se3_from_tangent(values: Sequence[float]) -> SE3:
 
 
 _SE3_FROM_TANGENT_IMPLEMENTATION = se3_from_tangent
-
-
-_RGBD_POINT_STATES = 4
-_RGBD_POINTS_PER_STATE = 8192
-_RGBD_POINT_CACHE_KEY = b"joint_rgbd_calibrated_points/v1"
-
-
-@dataclass(frozen=True, eq=False)
-class _RGBDPointSignature:
-    point: Vector3
-    weights: tuple[float, ...]
-
-
-def _rgbd_point_signature(
-    point: Vector3, weights: tuple[float, ...]
-) -> _RGBDPointSignature | None:
-    if (
-        type(point) is tuple and len(point) == 3 and type(weights) is tuple
-        and all(type(value) is float and math.isfinite(value) for value in (*point, *weights))
-    ):
-        return _RGBDPointSignature(point, weights)
-    return None
-
-
-@dataclass
-class _RGBDPointState:
-    offsets: tuple[float, ...]
-    points: OrderedDict[_RGBDPointSignature, Vector3]
-
-
-def _rgbd_calibrated_xyz_point(
-    point: Vector3,
-    weights: tuple[float, ...],
-    offsets: Sequence[float],
-    signature: _RGBDPointSignature | None,
-) -> Vector3:
-    cache = _EVALUATION_CACHE.get()
-    if (cache is None or signature is None or signature.point is not point
-            or signature.weights is not weights or type(offsets) is not tuple
-            or len(offsets) != 3 * len(weights)):
-        return _calibrated_xyz_lattice_point(point, weights, offsets)
-    states = cast(OrderedDict[int, _RGBDPointState] | None, cache.get(_RGBD_POINT_CACHE_KEY))
-    state = states.get(id(offsets)) if states is not None else None
-    if state is None:
-        if not all(type(value) is float and math.isfinite(value) for value in offsets):
-            return _calibrated_xyz_lattice_point(point, weights, offsets)
-        state = _RGBDPointState(offsets, OrderedDict())
-        if states is None:
-            states = OrderedDict()
-            cache[_RGBD_POINT_CACHE_KEY] = states
-            if len(cache) > _EVALUATION_CACHE_LIMIT:
-                cache.popitem(last=False)
-        states[id(offsets)] = state
-        if len(states) > _RGBD_POINT_STATES:
-            states.popitem(last=False)
-    else:
-        # Holding the immutable tuple prevents identity reuse and preserves
-        # distinctions such as signed zero without hashing every float per point.
-        assert state.offsets is offsets
-        assert states is not None
-        states.move_to_end(id(offsets))
-    cache.move_to_end(_RGBD_POINT_CACHE_KEY)
-    calibrated = state.points.get(signature)
-    if calibrated is None:
-        calibrated = _calibrated_xyz_lattice_point(point, weights, offsets)
-        state.points[signature] = calibrated
-        if len(state.points) > _RGBD_POINTS_PER_STATE:
-            state.points.popitem(last=False)
-    else:
-        state.points.move_to_end(signature)
-    return calibrated
 
 
 @dataclass(frozen=True)
@@ -1062,3 +1005,6 @@ def _calibrated_xyz_lattice_point(
         for axis in range(3)
     )
     return _add(point, _vector3(displacement))
+
+
+_RGBD_POINT_FUNCTION_IMPLEMENTATION = _calibrated_xyz_lattice_point

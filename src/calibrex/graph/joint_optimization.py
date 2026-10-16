@@ -585,6 +585,12 @@ def _linearize(
     layout: dict[str, slice],
     options: JointOptimizerOptions,
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    from calibrex.graph._rgbd_batches import _prepare_rgbd_plan, _rgbd_linearization_supported
+
+    if _rgbd_linearization_supported(blocks, options):
+        rgbd = _prepare_rgbd_plan(factors, values)
+        if rgbd is not None:
+            return rgbd.linearize(values, blocks, layout, options)
     from calibrex.graph._point_plane_batches import (
         _linearization_supported,
         _prepare_point_plane_plan,
@@ -636,6 +642,11 @@ def _linearize(
 def _factor_residuals(
     factors: Sequence[JointResidualBlock], values: ParameterValues
 ) -> NDArray[np.float64]:
+    from calibrex.graph._rgbd_batches import _prepare_rgbd_plan
+
+    rgbd = _prepare_rgbd_plan(factors, values)
+    if rgbd is not None:
+        return rgbd.evaluate(values)
     from calibrex.graph._point_plane_batches import _prepare_point_plane_plan
 
     plan = _prepare_point_plane_plan(factors, values)
