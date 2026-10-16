@@ -163,3 +163,29 @@ def test_benchmark_schema_is_valid_and_rejects_boolean_work_counts() -> None:
     value["wheel_at_calls"] = True
     with pytest.raises(jsonschema.ValidationError):
         jsonschema.validate(value, counts)
+
+
+def test_generated_control_removes_common_epoch_and_exercises_clock_differences() -> None:
+    import numpy as np
+    from tools.benchmark_lidar_wheel_preparation import inputs
+    from tools.prepare_lidar_wheel_control import derive_control
+
+    from calibrex.solvers.lidar_wheel_solver import lidar_wheel_residuals
+
+    times = 1e9 + np.arange(12) * 0.1
+    relative = times - times[0]
+    poses = np.repeat(np.eye(4)[None], len(times), axis=0)
+    poses[:, 0, 3] = 8 * relative
+    values = np.zeros((len(times), 30))
+    values[:, 8] = 8 + 0.1 * relative
+    values[:, 22] = 0.01 * relative
+    problem = derive_control(times, poses, values)
+    assert problem["times_s"] == relative.tolist()
+    assert len(problem["motions"]) == len(times) - 2
+    motions, wheel = inputs(problem)
+    params = np.array([0.0, 0.0, 0.0, 0.0, 1.0, 0.0])
+    before = lidar_wheel_residuals(motions, wheel, params, np.eye(3))
+    params[5] = np.sqrt(np.finfo(float).eps)
+    assert params[5] < np.spacing(times[0])
+    after = lidar_wheel_residuals(motions, wheel, params, np.eye(3))
+    assert before.tobytes() != after.tobytes()

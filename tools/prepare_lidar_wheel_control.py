@@ -36,7 +36,10 @@ def derive_control(
     extrinsic = np.eye(4)
     extrinsic[:3, :3] = Rotation.from_euler("xyz", [1.0, -2.0, 3.0], degrees=True).as_matrix()
     extrinsic[:3, 3] = [0.8, -0.3, 0.9]
-    motions = motions_from_poses(times, list(body @ extrinsic))
+    # Keep finite-difference clock steps resolvable. Absolute Unix seconds have
+    # coarser spacing than the solver's default clock perturbation.
+    relative = times - times[0]
+    motions = motions_from_poses(relative, list(body @ extrinsic))
     return {
         "schema_version": VERSION,
         "record_type": "problem",
@@ -44,7 +47,7 @@ def derive_control(
             {k: v.tolist() if isinstance(v, np.ndarray) else v for k, v in asdict(m).items()}
             for m in motions
         ],
-        "times_s": times.tolist(),
+        "times_s": relative.tolist(),
         "speed_mps": values[:, 8].tolist(),
         "yaw_rate_rps": values[:, 22].tolist(),
         "options": {},
@@ -78,6 +81,7 @@ def main() -> None:
         "source_provenance_sha256": sha(source / "provenance.json"),
         "source_files": {p.relative_to(source).as_posix(): sha(p) for p in files},
         "reference_pose_indices": [0, 2761],
+        "time_origin_s": float(times[0]),
         "sensor_rotation_xyz_deg": [1.0, -2.0, 3.0],
         "sensor_translation_m": [0.8, -0.3, 0.9],
         "wheel_proxy_columns": {"speed_mps": 8, "yaw_rate_rps": 22},

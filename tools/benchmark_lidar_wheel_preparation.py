@@ -397,6 +397,8 @@ def input_lineage(output: Path, problem: dict) -> None:
     values = np.array(
         [[float(v) for v in raw[f"data/{i:010d}.txt"].decode().split()] for i in range(2762)]
     )
+    if provenance["time_origin_s"] != float(times[0]):
+        raise ValueError("original time origin differs")
     packets = [_packet_from_oxts_values(row.tolist()) for row in values]
     body = np.stack([se3_matrix(kitti_oxts_pose_world_imu(p, packets[0])) for p in packets])
     if not _same_control_geometry(
@@ -599,6 +601,11 @@ def audit(output: Path) -> dict:
                 raise ValueError("residual uses different motions or row count")
         if len(outside) != 8:
             raise ValueError("held-out controls or median summaries differ")
+        if any(
+            len({e["params"][5] for e in history["residuals"] if e["fit"] == i}) < 3
+            for i in range(len(subsets))
+        ):
+            raise ValueError("clock optimization was not exercised")
         if len(history["least_squares"]) != len(subsets):
             raise ValueError("optimizer fit count differs")
         for i, event in enumerate(history["least_squares"]):
