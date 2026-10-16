@@ -1,0 +1,43 @@
+{
+  "schema_version": "slac.radar_doppler_batches_benchmark/v0.1",
+  "record_type": "protocol",
+  "payload": {
+    "scope": "Generated 256-return Doppler scans for all 2758 public KITTI-derived Radar velocities; no measured Radar, raw LiDAR registration or independent accuracy claim.",
+    "commits": {
+      "prior": "36446a4fabdbfe8d406ea1908677357f4f027c0f",
+      "current": "782d4cfdb314985e5991a0d816b24a137f5c75ae"
+    },
+    "options": {
+      "max_iterations": 20,
+      "convergence_tolerance_mps": 1e-08,
+      "huber_delta_mps": 0.2,
+      "min_return_count": 5,
+      "rank_tolerance": 1e-08,
+      "inlier_threshold_mps": 1.0
+    },
+    "returns_per_scan": 256,
+    "repetitions": 3,
+    "blas_threads": 1,
+    "environment": {
+      "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+      "packages": {
+        "numpy": "2.3.4",
+        "scipy": "1.17.1",
+        "pydantic": "2.12.5"
+      }
+    }
+  },
+  "provenance": {
+    "files": {
+      "control.json": "f4cf16efba310c97b1e803347612d47f55aa4a85476fb81bec870a5fc4b7cc06",
+      "freezer.py.txt": "2c72248f7ee1e7ea502abed49870859000034c55f2599b6eb66f63f3852033cb",
+      "identity.py.txt": "5dcbf54c1b5e3721fb019ad80d0074120d49fbb02a4fd7abebed6f7eccb67d41",
+      "launcher.py.txt": "fbbd8f0e42a0474983b03f543a323b2ffc40356450b903e0aee1ff7a57198aec",
+      "schema.json": "ab8b3267f4b21aa6dcc9506d3941002458b51dfcbc7dd2c2576cb0ec1c29d18b",
+      "sources-current-manifest.json": "a172c3c92633efe98df6042ddf8934cc68c5b6a91f6d7b198fae16b7f7ed253f",
+      "sources-current.tar.gz": "85ac1bcf33888882288a118a7703a9a94751182ea8f29c5623422bda90f90702",
+      "sources-prior-manifest.json": "9580111955ea149f73264137e0c5dbd4a2987d695a999358156397b4dad7d769",
+      "sources-prior.tar.gz": "e7b033aae32bd5903d7ccda306fd6037453e73b40803367ce78e5837837847db"
+    }
+  }
+}

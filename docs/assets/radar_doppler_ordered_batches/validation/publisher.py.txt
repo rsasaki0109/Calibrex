@@ -1,0 +1,103 @@
+"""Publish the complete frozen generated-Doppler performance comparison."""
+import hashlib
+import json
+from pathlib import Path
+import shutil
+import sys
+
+ROOT=Path(__file__).resolve().parent
+sys.path.insert(0,str(ROOT))
+from tools.benchmark_radar_doppler_batches import audit, SCOPE
+
+SOURCE=ROOT/'outputs/radar-doppler-ordered-pairs-v1'
+ARCHIVE=ROOT/'docs/assets/radar_doppler_ordered_batches'
+VALIDATION=ROOT/'outputs/radar-doppler-validation-v1'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+def write(p,v):p.write_bytes((json.dumps(v,indent=2,allow_nan=False)+'\n').encode())
+
+def main():
+    ARCHIVE.mkdir(exist_ok=True)
+    for p in SOURCE.iterdir():
+        if p.is_file():shutil.copyfile(p,ARCHIVE/p.name)
+        elif p.name.startswith(('01-','02-','03-')):
+            (ARCHIVE/p.name).mkdir(exist_ok=True)
+            for f in p.iterdir():
+                assert f.is_file()
+                shutil.copyfile(f,ARCHIVE/p.name/f.name)
+    (ARCHIVE/'.gitattributes').write_bytes(b'* -text whitespace=cr-at-eol\n*.log -whitespace\n')
+    (ARCHIVE/'validation').mkdir(exist_ok=True)
+    for name in ('tests.log','linux-tests.log','mypy.log','archive-tests.log','linux-archive-tests.log','radar-tests.log','registry-tests.log','ruff.log','docs.log','schema-parity.json'):
+        p=VALIDATION/name
+        if p.exists():shutil.copyfile(p,ARCHIVE/'validation'/name)
+    for p,name in ((Path(__file__),'publisher.py.txt'),(ROOT/'tools/benchmark_radar_doppler_batches.py','auditor.py.txt'),(ROOT/'tests/unit/test_radar_doppler_batches.py','test_radar_doppler_batches.py.txt'),(ROOT/'tests/unit/test_radar_doppler_archive.py','test_radar_doppler_archive.py.txt'),(ROOT/'.tmp-calibrex-doppler-schema-parity.py','schema-parity-checker.py.txt')):
+        shutil.copyfile(p,ARCHIVE/'validation'/name)
+    report=json.loads((SOURCE/'summary.json').read_bytes())
+    r=report['payload']
+    text=f'''# Ordered Doppler IRLS execution comparison
+
+{SCOPE}
+
+Three alternating fresh-process pairs retain all 2,758 scan results and every
+initial/IRLS normal system. The full worker includes imports, source identity
+checks, input loading, generation of all 706,048 weighted returns, estimation,
+binary history capture, compression, result serialization and saving. Source
+freezing, input download and external auditing are outside the timed workers.
+The API time sums complete `RadarEgoVelocitySolver.solve` calls, including
+normalization, preparation, robust iterations, diagnostics and trace capture.
+
+| Scope | Previous median s | Ordered batches median s | Ratio |
+| --- | ---: | ---: | ---: |
+| Complete worker | {r['whole_seconds_median']['prior']:.6f} | {r['whole_seconds_median']['current']:.6f} | {r['whole_speedup']:.6f}x |
+| Solver API | {r['api_seconds_median']['prior']:.6f} | {r['api_seconds_median']['current']:.6f} | {r['api_speedup']:.6f}x |
+
+The unchanged defaults retain 20 maximum iterations, 0.2 m/s Huber threshold,
+1e-8 m/s convergence tolerance, rank checks and 1 m/s inlier threshold. All
+17,658 IRLS iterations and final numeric fields match exactly across all six
+workers. No numerical tolerance or measurement reduction is applied.
+
+The original [public velocity control](../radar_reference_indexing/README.md)
+derives 2,758 interior Radar-frame velocities from all 2,762 KITTI OXTS samples
+of `2011_09_30_drive_0018_sync`. Its original JSON and provenance are retained
+byte for byte in [control.json](control.json). KITTI data: CC BY-NC-SA 3.0.
+The declared generator makes 256 noncoplanar directions per scan, deterministic
+0.015 m/s sinusoidal noise, 16 outliers (every seventeenth return) with a 4 m/s
+cosine term, and weights 1.0 through 1.4. It supplies no independent Radar truth.
+The fixed geometry and moderate scan size do not establish a speedup for every
+Radar, dataset, point count or calibration pipeline. Host load is unreserved;
+one BLAS thread is used. Python/package versions are in the protocol.
+
+Baseline: `36446a4fabdbfe8d406ea1908677357f4f027c0f`.
+Measured runtime: `782d4cfdb314985e5991a0d816b24a137f5c75ae`.
+Only `solvers/radar_ego_velocity_solver.py` changes across the 380-module trees.
+
+- [protocol.json](protocol.json), [attempts.json](attempts.json), [summary.json](summary.json)
+- Exact measured [launcher](launcher.py.txt), [schema](schema.json), source capsules/manifests
+- Six worker directories, each with full `result.json.gz`, full `history.bin.gz`,
+  measurements, actual full/short Git identities, import hashes and empty logs
+- [Post-measurement auditor](validation/auditor.py.txt), publication code,
+  regression tests and validation logs in `validation/`
+- [index.json](index.json) binds every other file's raw size and SHA-256
+
+`history.bin.gz` decompresses to sequential scan records: `B` followed by nine
+little-endian doubles for the initial 3x3 normal matrix, then one `I` and fifteen
+doubles per IRLS iteration (3x3 matrix, 3-vector RHS, 3-vector solved velocity).
+Scan order and iteration counts come from that worker's full result. The audit
+checks the record inventory, final solution bits and complete history equality.
+
+```bash
+python -m tools.benchmark_radar_doppler_batches --audit-only docs/assets/radar_doppler_ordered_batches
+python -m tools.benchmark_radar_doppler_batches --baseline-commit 36446a4fabdbfe8d406ea1908677357f4f027c0f --output outputs/radar-doppler-reproduction --repetitions 3
+```
+
+The measured launcher remains unchanged. Later auditor additions bind the
+publication inventory and verify the saved summary; no numerical runtime or
+measurement was rerun after observing the result.
+'''
+    (ARCHIVE/'README.md').write_text(text,encoding='utf-8',newline='\n')
+    # Index generation does not embed a hash of itself.
+    index={'files':{p.relative_to(ARCHIVE).as_posix():{'size_bytes':p.stat().st_size,'sha256':sha(p)} for p in sorted(ARCHIVE.rglob('*')) if p.is_file() and p.name!='index.json'},'provenance':{'scope':SCOPE,'protocol_sha256':sha(ARCHIVE/'protocol.json'),'publisher_sha256':sha(Path(__file__))}}
+    write(ARCHIVE/'index.json',index)
+    assert audit(ARCHIVE)==report
+    print(json.dumps({'files':len(index['files'])+1,'whole_speedup':r['whole_speedup'],'api_speedup':r['api_speedup'],'archive':ARCHIVE.relative_to(ROOT).as_posix()}))
+
+if __name__=='__main__':main()
