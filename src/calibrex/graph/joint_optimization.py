@@ -11,7 +11,11 @@ import numpy as np
 from numpy.typing import NDArray
 
 from calibrex.evaluation.holdout import split_indices
-from calibrex.graph._evaluation_scope import _with_evaluation_cache, _with_preparation_cache
+from calibrex.graph._evaluation_scope import (
+    _discard_preparation_caches,
+    _with_evaluation_cache,
+    _with_preparation_cache,
+)
 
 ParameterValues: TypeAlias = Mapping[str, tuple[float, ...]]
 ResidualEvaluator: TypeAlias = Callable[[ParameterValues], Sequence[float]]
@@ -600,6 +604,7 @@ def _linearize(
         plan = _prepare_point_plane_plan(factors, values)
         if plan is not None:
             return plan.linearize(values, blocks, layout, options)
+    _discard_preparation_caches()
     baseline_parts = [factor.residuals(values) for factor in factors]
     baseline = np.asarray(
         [value for residuals in baseline_parts for value in residuals],
@@ -652,6 +657,7 @@ def _factor_residuals(
     plan = _prepare_point_plane_plan(factors, values)
     if plan is not None:
         return plan.evaluate(values)
+    _discard_preparation_caches()
     residuals = [value for factor in factors for value in factor.residuals(values)]
     return np.asarray(residuals, dtype=np.float64)
 
