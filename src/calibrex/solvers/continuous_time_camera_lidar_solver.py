@@ -8,8 +8,10 @@ keeps trajectory estimation outside this boundary.
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+import struct
+from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass
+from functools import lru_cache
 from typing import Literal, TypeAlias
 
 import numpy as np
@@ -20,10 +22,18 @@ from calibrex.core.capture_time import (
     DeskewedLidarPoint,
     LidarCaptureTimePolicy,
     TimedLidarPoint,
+    _static_point_at_later_body_frame,
     deskew_lidar_points_to_reference,
 )
 from calibrex.core.continuous_trajectory import PiecewiseSE3Trajectory
-from calibrex.core.geometry import SE3
+from calibrex.core.geometry import (
+    SE3,
+    Vector3,
+    _quaternion_multiply_raw_xyzw,
+    _tuple3,
+    normalize_quaternion_xyzw,
+    quaternion_conjugate_xyzw,
+)
 from calibrex.data.depth import DepthCameraIntrinsics
 from calibrex.evaluation.holdout import split_indices
 from calibrex.solvers.borer_six_dof_solver import apply_local_se3_delta
@@ -198,6 +208,19 @@ class ContinuousTimeEvaluation:
     skipped_correspondence_count: int
 
 
+_DeskewEvaluator: TypeAlias = Callable[
+    [
+        ContinuousTimeCameraLidarCapture,
+        TimedProbabilisticImageCorrespondence,
+        LidarCaptureTimePolicy,
+        ContinuousTimeCameraLidarOptions,
+    ],
+    DeskewedLidarPoint,
+]
+_DESKEW_CACHE_MAX_BYTES = 128 * 1024 * 1024
+_DESKEW_CACHE_BYTES_PER_POINT = 4096
+
+
 @dataclass(frozen=True)
 class ContinuousTimeIteration:
     """One evaluated bounded correction."""
@@ -322,20 +345,25 @@ class ContinuousTimeCameraLidarSolver:
         )
         train = tuple(ordered[index] for index in train_indices)
         holdout = tuple(ordered[index] for index in holdout_indices)
+        deskew = _make_deskew_evaluator(ordered, settings)
+
+        def evaluate(
+            selected: Sequence[ContinuousTimeCameraLidarCapture],
+            transform: SE3,
+            offset: float,
+        ) -> ContinuousTimeEvaluation:
+            return _evaluate(selected, transform, capture_time_policy, offset, settings, deskew)
+
         initial_time = capture_time_policy.sensor_time_offset_sec
-        initial_train = evaluate_continuous_time_camera_lidar(
+        initial_train = evaluate(
             train,
             initial_transform_camera_lidar,
-            capture_time_policy,
             initial_time,
-            settings,
         )
-        initial_holdout = evaluate_continuous_time_camera_lidar(
+        initial_holdout = evaluate(
             holdout,
             initial_transform_camera_lidar,
-            capture_time_policy,
             initial_time,
-            settings,
         )
         if (
             initial_train.valid_correspondence_count
@@ -375,6 +403,7 @@ class ContinuousTimeCameraLidarSolver:
             capture_time_policy,
             initial_time,
             settings,
+            deskew,
         )
         if (
             settings.estimate_time_offset
@@ -463,12 +492,10 @@ class ContinuousTimeCameraLidarSolver:
                         candidate[:3],
                         candidate[3:6],
                     )
-                    result = evaluate_continuous_time_camera_lidar(
+                    result = evaluate(
                         train,
                         transform,
-                        capture_time_policy,
                         initial_time + float(candidate[6]),
-                        settings,
                     )
                     evaluations += 1
                     candidates.append(
@@ -513,12 +540,10 @@ class ContinuousTimeCameraLidarSolver:
             initial_transform_camera_lidar, delta[:3], delta[3:6]
         )
         estimated_time = initial_time + float(delta[6])
-        final_holdout = evaluate_continuous_time_camera_lidar(
+        final_holdout = evaluate(
             holdout,
             transform,
-            capture_time_policy,
             estimated_time,
-            settings,
         )
         at_bound = bool(
             np.any(
@@ -575,6 +600,20 @@ def evaluate_continuous_time_camera_lidar(
     """Evaluate robust covariance-normalized reprojection loss."""
 
     settings = options or ContinuousTimeCameraLidarOptions()
+    return _evaluate(
+        captures, transform_camera_lidar, capture_time_policy, time_offset_sec,
+        settings, _deskew_correspondence,
+    )
+
+
+def _evaluate(
+    captures: Sequence[ContinuousTimeCameraLidarCapture],
+    transform_camera_lidar: SE3,
+    capture_time_policy: LidarCaptureTimePolicy,
+    time_offset_sec: float,
+    settings: ContinuousTimeCameraLidarOptions,
+    deskew: _DeskewEvaluator,
+) -> ContinuousTimeEvaluation:
     policy = LidarCaptureTimePolicy(
         point_offset_unit=capture_time_policy.point_offset_unit,
         stamp_reference=capture_time_policy.stamp_reference,
@@ -584,6 +623,7 @@ def evaluate_continuous_time_camera_lidar(
     mahalanobis_errors: list[float] = []
     weights: list[float] = []
     skipped = 0
+    transform_point = _prepare_point_transform(transform_camera_lidar)
     for capture in captures:
         selected = [
             item
@@ -592,10 +632,10 @@ def evaluate_continuous_time_camera_lidar(
             >= settings.minimum_confidence
         ]
         for correspondence in selected:
-            point = _deskew_correspondence(
+            point = deskew(
                 capture, correspondence, policy, settings
             )
-            point_camera = transform_camera_lidar.transform_point(
+            point_camera = transform_point(
                 point.position_lidar_at_reference_m
             )
             if point_camera[2] <= 1.0e-9:
@@ -669,10 +709,11 @@ def _time_sensitivity(
     policy: LidarCaptureTimePolicy,
     time_offset: float,
     settings: ContinuousTimeCameraLidarOptions,
+    deskew: _DeskewEvaluator | None = None,
 ) -> float:
     step = settings.time_sensitivity_probe_sec
-    left = _projected_pixels(captures, transform, policy, time_offset - step, settings)
-    right = _projected_pixels(captures, transform, policy, time_offset + step, settings)
+    left = _projected_pixels(captures, transform, policy, time_offset - step, settings, deskew)
+    right = _projected_pixels(captures, transform, policy, time_offset + step, settings, deskew)
     common = sorted(set(left).intersection(right))
     if not common:
         return 0.0
@@ -690,6 +731,7 @@ def _projected_pixels(
     policy: LidarCaptureTimePolicy,
     time_offset: float,
     settings: ContinuousTimeCameraLidarOptions,
+    deskew: _DeskewEvaluator | None = None,
 ) -> dict[tuple[str, str], tuple[float, float]]:
     resolved_policy = LidarCaptureTimePolicy(
         policy.point_offset_unit,
@@ -697,6 +739,8 @@ def _projected_pixels(
         time_offset,
     )
     output: dict[tuple[str, str], tuple[float, float]] = {}
+    transform_point = _prepare_point_transform(transform)
+    evaluate_deskew = deskew or _deskew_correspondence
     for capture in captures:
         selected = [
             item
@@ -705,10 +749,10 @@ def _projected_pixels(
             >= settings.minimum_confidence
         ]
         for correspondence in selected:
-            point = _deskew_correspondence(
+            point = evaluate_deskew(
                 capture, correspondence, resolved_policy, settings
             )
-            point_camera = transform.transform_point(
+            point_camera = transform_point(
                 point.position_lidar_at_reference_m
             )
             if point_camera[2] <= 1.0e-9:
@@ -720,6 +764,101 @@ def _projected_pixels(
                 + capture.camera.cy,
             )
     return output
+
+
+def _prepare_point_transform(transform: SE3) -> Callable[[Vector3], Vector3]:
+    rotation = normalize_quaternion_xyzw(transform.rotation_quat_xyzw)
+    conjugate = quaternion_conjugate_xyzw(rotation)
+    translation = transform.translation_m
+
+    def transform_point(point: Vector3) -> Vector3:
+        # Preserve SE3.transform_point's conversion, normalization and Hamilton
+        # product order, moving only the point-independent work out of the loop.
+        px, py, pz = _tuple3(point)
+        rotated = _quaternion_multiply_raw_xyzw(
+            _quaternion_multiply_raw_xyzw(rotation, (px, py, pz, 0.0)), conjugate
+        )
+        return (
+            rotated[0] + translation[0],
+            rotated[1] + translation[1],
+            rotated[2] + translation[2],
+        )
+
+    return transform_point
+
+
+def _prepared_deskew(
+    capture: ContinuousTimeCameraLidarCapture,
+    correspondence: TimedProbabilisticImageCorrespondence,
+    settings: ContinuousTimeCameraLidarOptions,
+    inverse: SE3,
+) -> Callable[[bytes, LidarCaptureTimePolicy], DeskewedLidarPoint]:
+    point_offset = correspondence.capture_offset_sec if settings.use_per_point_time else 0.0
+    reference_time = _camera_row_exposure_time(capture, correspondence.image_mean_px[1], settings)
+    position_body = capture.transform_body_lidar.transform_point(correspondence.point_lidar_m)
+
+    @lru_cache(maxsize=2)
+    def deskew(_offset_bits: bytes, policy: LidarCaptureTimePolicy) -> DeskewedLidarPoint:
+        capture_time = policy.point_reference_time_sec(
+            capture.lidar_message_stamp_sec, point_offset
+        )
+        delta = reference_time - capture_time
+        if capture.body_trajectory is not None:
+            position_reference = capture.body_trajectory.transform_static_point_between_body_frames(
+                position_body, source_time_sec=capture_time, target_time_sec=reference_time,
+            )
+        else:
+            position_reference = _static_point_at_later_body_frame(
+                position_body, capture.twist, delta
+            )
+        return DeskewedLidarPoint(
+            correspondence.correspondence_id, inverse.transform_point(position_reference),
+            capture_time, delta,
+        )
+
+    return deskew
+
+
+def _make_deskew_evaluator(
+    captures: Sequence[ContinuousTimeCameraLidarCapture],
+    settings: ContinuousTimeCameraLidarOptions,
+) -> _DeskewEvaluator:
+    count = sum(len(capture.correspondences) for capture in captures)
+    if count * _DESKEW_CACHE_BYTES_PER_POINT > _DESKEW_CACHE_MAX_BYTES:
+        return _deskew_correspondence
+    # Retain the original objects with each key; identities cannot be recycled.
+    # The entry set is fixed at construction, even if a foreign point is queried.
+    entries = {
+        (id(capture), id(item)): (capture, item) for capture in captures
+        for item in capture.correspondences
+    }
+    kernels: dict[
+        tuple[int, int], Callable[[bytes, LidarCaptureTimePolicy], DeskewedLidarPoint]
+    ] = {}
+    inverses: dict[int, SE3] = {}
+
+    def deskew(
+        capture: ContinuousTimeCameraLidarCapture,
+        correspondence: TimedProbabilisticImageCorrespondence,
+        policy: LidarCaptureTimePolicy,
+        options: ContinuousTimeCameraLidarOptions,
+    ) -> DeskewedLidarPoint:
+        key = (id(capture), id(correspondence))
+        if options is not settings or key not in entries:
+            return _deskew_correspondence(capture, correspondence, policy, options)
+        kernel = kernels.get(key)
+        if kernel is None:
+            inverse = inverses.get(id(capture))
+            if inverse is None:
+                inverse = capture.transform_body_lidar.inverse()
+                inverses[id(capture)] = inverse
+            kernel = _prepared_deskew(capture, correspondence, settings, inverse)
+            kernels[key] = kernel
+        # The policy includes units and stamp semantics. Byte keys additionally
+        # preserve signed-zero offsets. Each point retains only two clock states.
+        return kernel(struct.pack("d", policy.sensor_time_offset_sec), policy)
+
+    return deskew
 
 
 def _deskew_correspondence(
