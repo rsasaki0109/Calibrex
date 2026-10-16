@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import statistics
 import tarfile
 from pathlib import Path, PurePosixPath, PureWindowsPath
@@ -23,7 +24,7 @@ def read(root: Path, name: str) -> dict:
     return json.loads((root / name).read_bytes())
 
 
-def audit(root: Path) -> dict:
+def audit(root: Path, *, expected_runtime_changes: frozenset[str] | None = None) -> dict:
     index = read(root, "index.json")
     actual_files = {
         path.relative_to(root).as_posix(): sha(path)
@@ -77,11 +78,16 @@ def audit(root: Path) -> dict:
         for name in manifests["prior"].keys() | manifests["current"].keys()
         if manifests["prior"].get(name) != manifests["current"].get(name)
     }
-    if changed != {
-        "calibrex/cli/main.py",
-        "calibrex/core/schema_registry.py",
-        "calibrex/solvers/__init__.py",
-    }:
+    allowed = (
+        expected_runtime_changes
+        if expected_runtime_changes is not None
+        else {
+            "calibrex/cli/main.py",
+            "calibrex/core/schema_registry.py",
+            "calibrex/solvers/__init__.py",
+        }
+    )
+    if changed != allowed:
         raise ValueError("changes extend beyond runtime loading")
     attempts = json.loads((root / "attempts.json").read_bytes())
     expected_order = [
@@ -91,7 +97,8 @@ def audit(root: Path) -> dict:
         for variant in (("prior", "current") if repeat % 2 == 0 else ("current", "prior"))
     ]
     if [(r["case"], r["repeat"], r["variant"]) for r in attempts] != expected_order or any(
-        r["exit_code"] != 0 for r in attempts
+        r["exit_code"] != 0 or not math.isfinite(r["seconds"]) or r["seconds"] <= 0
+        for r in attempts
     ):
         raise ValueError("incomplete, failed or reordered attempts")
     summary = read(root, "summary.json")

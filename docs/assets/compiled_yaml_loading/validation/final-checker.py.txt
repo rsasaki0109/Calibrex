@@ -1,0 +1,46 @@
+"""Bind archive regression, schema-registry and documentation checks."""
+from pathlib import Path
+import hashlib
+import json
+import re
+import shutil
+
+ROOT = Path(__file__).resolve().parent
+ARCHIVE = ROOT / 'docs/assets/compiled_yaml_loading'
+CHECKS = ROOT / 'outputs/yaml-loading-tests-v1'
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+write = lambda p,v: p.write_bytes((json.dumps(v, indent=2, allow_nan=False) + '\n').encode())
+text = (CHECKS / 'archive-tests.log').read_text(encoding='utf-8')
+count = int(re.search(r'(\d+) passed', text).group(1))
+assert count >= 28 and ' failed' not in text
+assert 'Documentation built in' in (CHECKS / 'docs.log').read_text(encoding='utf-8')
+assert 'All checks passed!' in (CHECKS / 'ruff-final.log').read_text(encoding='utf-8')
+validation = ARCHIVE / 'validation'
+for name in ('archive-tests.log', 'docs.log', 'ruff-final.log'):
+    shutil.copyfile(CHECKS / name, validation / name)
+names = ['test_yaml_loading_benchmark.py', 'test_lazy_runtime_archive.py', 'test_schema_registry.py']
+for name in names:
+    shutil.copyfile(ROOT / 'tests/unit' / name, validation / (name + '.txt'))
+shutil.copyfile(Path(__file__), validation / 'final-checker.py.txt')
+norm = lambda path: {p.relative_to(path).as_posix(): hashlib.sha256(p.read_bytes().replace(b'\r\n', b'\n')).hexdigest() for p in path.rglob('*.py')}
+assert norm(ROOT / 'src') == norm(ROOT / 'outputs/yaml-loading-formal-v1/sources-current/src')
+receipt = json.loads((validation / 'receipt.json').read_bytes())
+write(validation / 'additional-checks.json', {
+    'tests_passed': count,
+    'total_tests_passed': 129 + count,
+    'canonical_runtime_matches_measured_source_after_tests': True,
+    'command': ['python', '-m', 'pytest', *['tests/unit/' + n for n in names],
+        '--basetemp', 'outputs/yaml-loading-tests-v1/tmp-archive', '-p', 'no:cacheprovider',
+        '--override-ini', 'addopts=--disable-plugin-autoload', '-q'],
+    'provenance': {'primary_receipt_sha256': sha(validation / 'receipt.json'),
+        'source_manifest_sha256': receipt['source_manifest_sha256'],
+        'checker_sha256': sha(Path(__file__)),
+        'logs': {n: sha(validation / n) for n in ('archive-tests.log','docs.log','ruff-final.log')},
+        'test_sources': {n: sha(ROOT / 'tests/unit' / n) for n in names}},
+})
+index = json.loads((ARCHIVE / 'index.json').read_bytes())
+index['provenance']['final_checker_sha256'] = sha(Path(__file__))
+index['files'] = {p.relative_to(ARCHIVE).as_posix(): sha(p) for p in sorted(ARCHIVE.rglob('*'))
+                  if p.is_file() and p != ARCHIVE / 'index.json'}
+write(ARCHIVE / 'index.json', index)
+print(129 + count, 'passing tests; all runtime sources still match the measured candidate.')

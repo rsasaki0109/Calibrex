@@ -1,0 +1,38 @@
+"""Export every schema and compare the complete measured runtime outside timing."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+ROOT = Path(__file__).resolve().parent
+RUN = ROOT / 'outputs/yaml-loading-formal-v1'
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+protocol = json.loads((RUN / 'protocol.json').read_bytes())
+for variant in ('prior', 'current'):
+    source = RUN / ('sources-' + variant)
+    manifest = json.loads((RUN / ('sources-' + variant + '-manifest.json')).read_bytes())
+    assert manifest == {p.relative_to(source / 'src').as_posix(): sha(p) for p in (source / 'src').rglob('*.py')}
+    target = RUN / ('schemas-' + variant)
+    env = os.environ.copy()
+    env.update(PYTHONPATH=str(source / 'src'), PYTHONDONTWRITEBYTECODE='1')
+    code = "from calibrex.cli.main import main; import sys; raise SystemExit(main(['schema','all','--output-dir',sys.argv[1]]))"
+    done = subprocess.run([sys.executable, '-c', code, str(target)], env=env, cwd=source,
+                          capture_output=True, check=True)
+    (RUN / ('schema-' + variant + '-stdout.txt')).write_bytes(done.stdout)
+    (RUN / ('schema-' + variant + '-stderr.txt')).write_bytes(done.stderr)
+    assert manifest == {p.relative_to(source / 'src').as_posix(): sha(p) for p in (source / 'src').rglob('*.py')}
+names = {p.name for p in (RUN / 'schemas-prior').glob('*.json')}
+assert names == {p.name for p in (RUN / 'schemas-current').glob('*.json')}
+exports = {n: {v: sha(RUN / ('schemas-' + v) / n) for v in ('prior', 'current')} for n in sorted(names)}
+assert len(exports) == 130 and all(v['prior'] == v['current'] for v in exports.values())
+norm = lambda path: {p.relative_to(path).as_posix(): hashlib.sha256(p.read_bytes().replace(b'\r\n', b'\n')).hexdigest() for p in path.rglob('*.py')}
+live, frozen = norm(ROOT / 'src'), norm(RUN / 'sources-current/src')
+assert live == frozen and len(live) == 378
+receipt = {'exports': exports, 'runtime_sources': len(live),
+    'canonical_runtime_matches_measured_source': True, 'newline_normalization': 'CRLF to LF in both operands',
+    'provenance': {'source_manifests': protocol['provenance']['source_manifests'],
+                   'checker_sha256': sha(Path(__file__))}}
+(RUN / 'schema-parity.json').write_bytes((json.dumps(receipt, indent=2) + '\n').encode())
+print('130 byte-identical schema/ledger exports; all 378 runtime files match the measured candidate.')
