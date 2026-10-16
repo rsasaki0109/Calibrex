@@ -1,0 +1,126 @@
+from __future__ import annotations
+
+import copy
+import json
+
+import pytest
+from jsonschema import validate
+from tools.benchmark_gnss_lever_arm_reuse import (
+    SCHEMA,
+    comparable,
+    default_options,
+    replay_work,
+    verify_git,
+)
+
+
+def event(offset: float, x: float = 0.0) -> dict:
+    return {
+        "fit": 0,
+        "window_ids": ["a", "b"],
+        "pair_count": 3,
+        "residual_count": 9,
+        "lever": [x, 0.0, 0.0],
+        "offset": offset,
+        "normalize": True,
+    }
+
+
+def history(events: list[dict]) -> dict:
+    return {"fits": [{}], "residuals": events, "least_squares": [{}], "excitation": []}
+
+
+def test_replay_counts_exact_states_batched_svd_and_uncached_evaluation() -> None:
+    value = history([event(offset) for offset in [0.0, 0.0, -0.0, 0.0]])
+    outside = event(0.0)
+    outside["fit"] = None
+    outside["normalize"] = False
+    value["residuals"].append(outside)
+    value["excitation"] = [{"window_ids": ["a", "b"]}]
+    assert replay_work(value, False) == {
+        "solve_calls": 1,
+        "residual_requests": 5,
+        "least_squares_calls": 1,
+        "lidar_poses_calls": 12,
+        "svd_calls": 10,
+        "profiled_windows": 10,
+    }
+    assert replay_work(value, True) == {
+        "solve_calls": 1,
+        "residual_requests": 5,
+        "least_squares_calls": 1,
+        "lidar_poses_calls": 8,
+        "svd_calls": 4,
+        "profiled_windows": 6,
+    }
+
+
+def test_replay_bounds_both_caches_and_keeps_jackknife_contexts_separate() -> None:
+    value = history([event(i * 0.001) for i in range(65)] + [event(0.0, 1.0)])
+    assert replay_work(value, True)["lidar_poses_calls"] == 132
+    value = history([event(0.0, i * 0.001) for i in range(257)] + [event(0.0)])
+    assert replay_work(value, True)["svd_calls"] == 258
+    assert replay_work(value, True)["lidar_poses_calls"] == 2
+    value["fits"].append({})
+    second = event(0.0)
+    second["fit"] = 1
+    value["residuals"].append(second)
+    assert replay_work(value, True)["lidar_poses_calls"] == 4
+
+
+@pytest.mark.parametrize("part", ["fit", "boolean_fit", "dimension", "finite", "normalization"])
+def test_replay_rejects_invalid_evaluation(part: str) -> None:
+    row = event(0.0)
+    if part == "fit":
+        row["fit"] = 1
+    elif part == "boolean_fit":
+        row["fit"] = False
+    elif part == "dimension":
+        row["residual_count"] = 8
+    elif part == "finite":
+        row["offset"] = float("nan")
+    else:
+        row["normalize"] = False
+    with pytest.raises(ValueError):
+        replay_work(history([row]), True)
+
+
+@pytest.mark.parametrize("part", ["full", "short", "recorded"])
+def test_git_identity_checks_both_actual_forms(part: str) -> None:
+    full, short, expected, recorded = "a" * 40, "a" * 8, "a" * 40, "a" * 8
+    verify_git(full, short, expected, recorded)
+    if part == "full":
+        full = "b" * 40
+    elif part == "short":
+        short = "b" * 8
+    else:
+        recorded = None
+    with pytest.raises(ValueError, match="actual Git identities"):
+        verify_git(full, short, expected, recorded)
+
+
+def test_comparison_preserves_input_and_protocol_after_source_identity_checks() -> None:
+    left = {
+        "record_type": "history",
+        "residuals": [event(0.0)],
+        "provenance": {
+            "git_commit": "a" * 40,
+            "git_commit_short": "a" * 8,
+            "problem_sha256": "b" * 64,
+            "protocol_sha256": "c" * 64,
+        },
+    }
+    right = copy.deepcopy(left)
+    right["provenance"].update(git_commit="d" * 40, git_commit_short="d" * 8)
+    assert comparable(left) == comparable(right)
+    right["provenance"]["problem_sha256"] = "e" * 64
+    assert comparable(left) != comparable(right)
+    assert left["provenance"]["git_commit_short"] == "a" * 8
+
+
+def test_full_default_options_are_json_canonical_and_schema_valid() -> None:
+    value = default_options()
+    assert value["solver"]["pair_steps"] == [5, 10, 20]
+    assert value["jackknife_groups"] == 8
+    assert value["solver"]["irls_iterations"] == 4
+    validate(value, json.loads(SCHEMA.read_bytes())["$defs"]["protocol"]["properties"]["options"])

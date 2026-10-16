@@ -26,8 +26,12 @@ standard deviation is below the policy threshold.
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+import struct
+from collections import OrderedDict
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
+from functools import lru_cache
+from itertools import pairwise
 from typing import Literal, TypeAlias
 
 import numpy as np
@@ -39,6 +43,9 @@ FloatArray: TypeAlias = NDArray[np.float64]
 LeverArmDofName = Literal["x", "y", "z", "time_offset"]
 LeverArmDofStatus = Literal["estimated", "unobservable"]
 LEVER_ARM_DOFS: tuple[LeverArmDofName, ...] = ("x", "y", "z", "time_offset")
+_ResidualEvaluator: TypeAlias = Callable[[FloatArray, float], FloatArray]
+_EVALUATION_CACHE_MAX_BYTES = 64 * 1024 * 1024
+_EVALUATION_CACHE_BYTES_PER_ROW = 8 * 1024
 
 
 @dataclass(frozen=True)
@@ -144,8 +151,11 @@ class GnssLeverArmSolver:
         pairs = build_pairs(rebased, windows, opts, epoch=epoch)
         if len(pairs) < 2 or sum(len(item.first) for item in pairs) < 12:
             return LeverArmResult("insufficient_windows", None, 0.0, (), None, 0)
-        params, weights, variance = _irls(rebased, pairs, opts)
-        dofs = _observability(rebased, pairs, params, weights, variance, opts)
+        evaluate = _make_residual_evaluator(rebased, pairs, opts)
+        params, weights, variance = _irls(rebased, pairs, opts, residual_evaluator=evaluate)
+        dofs = _observability(
+            rebased, pairs, params, weights, variance, opts, residual_evaluator=evaluate
+        )
         return LeverArmResult(
             status="converged",
             lever_arm_m=params[:3].copy(),
@@ -302,6 +312,100 @@ def _pair_sigma(
     )
 
 
+def _alignment_rotations(covariances: FloatArray) -> FloatArray:
+    """Profile independent window alignments with the original 3x3 operations."""
+
+    left, _, right_t = np.linalg.svd(covariances)
+    signs = np.sign(np.linalg.det(left @ right_t))
+    correction = np.tile(np.eye(3), (len(covariances), 1, 1))
+    correction[:, 2, 2] = np.where(signs == 0.0, 1.0, signs)
+    return np.asarray(left @ correction @ right_t, dtype=np.float64)
+
+
+def _make_residual_evaluator(
+    track: GnssTrackModel, pairs: Sequence[WindowPairs], opts: LeverArmOptions
+) -> _ResidualEvaluator:
+    def scalar(lever: FloatArray, offset: float) -> FloatArray:
+        return window_residuals(track, pairs, lever, offset, opts)
+
+    # Include 64 clock states, 256 residuals, prepared indices and working
+    # arrays. Inputs above this conservative bound keep the scalar path.
+    estimate = sum(
+        (len(p.epoch_times_s) + len(p.first)) * _EVALUATION_CACHE_BYTES_PER_ROW + 4096
+        for p in pairs
+    )
+    if not pairs or estimate > _EVALUATION_CACHE_MAX_BYTES:
+        return scalar
+    starts = np.r_[0, np.cumsum([len(p.epoch_times_s) for p in pairs])[:-1]]
+    first = np.concatenate([p.first + start for p, start in zip(pairs, starts, strict=True)])
+    second = np.concatenate([p.second + start for p, start in zip(pairs, starts, strict=True)])
+    gnss = np.concatenate([p.gnss_m[p.second] - p.gnss_m[p.first] for p in pairs])
+    gnss_variance = np.concatenate(
+        [p.gnss_sigma_m[p.first] ** 2 + p.gnss_sigma_m[p.second] ** 2 for p in pairs]
+    )
+    cuts = np.r_[0, np.cumsum([len(p.first) for p in pairs])]
+    slices = [slice(a, b) for a, b in pairwise(cuts)]
+
+    @lru_cache(maxsize=64)
+    def clock_state(bits: bytes) -> tuple[FloatArray, FloatArray, FloatArray]:
+        offset = struct.unpack("d", bits)[0]
+        states = [p.lidar_poses(p.epoch_times_s - offset) for p in pairs]
+        rotation = np.concatenate([state[0] for state in states])
+        translation = np.concatenate([state[1] for state in states])
+        blend = np.concatenate([state[2] for state in states])
+        # Keep the original additions in order, including the offset-dependent
+        # pose-noise blend. The displacement term still depends on the lever.
+        fixed_variance = gnss_variance + opts.odometry_pose_sigma_m**2 * (
+            blend[first] + blend[second]
+        )
+        for array in (rotation, translation, fixed_variance):
+            array.setflags(write=False)
+        return rotation, translation, fixed_variance
+
+    residuals: OrderedDict[tuple[bytes, bytes], FloatArray] = OrderedDict()
+
+    def evaluate(lever: FloatArray, offset: float) -> FloatArray:
+        # Exact bits retain signed zeros and every finite-difference step.
+        # Only data residuals are reused; IRLS weights/variance/anchors are fresh.
+        key = lever.tobytes(), struct.pack("d", offset)
+        cached = residuals.get(key)
+        if cached is not None:
+            residuals.move_to_end(key)
+            return cached
+        rotations, translations, fixed = clock_state(key[1])
+        antenna = translations + np.einsum("kij,j->ki", rotations, lever)
+        odometry = antenna[second] - antenna[first]
+        sigma = np.sqrt(
+            fixed
+            + (
+                opts.odometry_sigma_floor_m
+                + opts.odometry_sigma_per_m * np.linalg.norm(odometry, axis=1)
+            )
+            ** 2
+        )
+        weights = 1.0 / sigma**2
+        # Each covariance and final displacement product keeps its original
+        # window shape and reduction order. Only independent SVDs are batched.
+        covariances = np.stack(
+            [(gnss[cut] * weights[cut, None]).T @ odometry[cut] for cut in slices]
+        )
+        alignments = _alignment_rotations(covariances)
+        errors = np.concatenate(
+            [
+                gnss[cut] - odometry[cut] @ rotation.T
+                for cut, rotation in zip(slices, alignments, strict=True)
+            ]
+        )
+        rows = (errors / sigma[:, None]).reshape(-1)
+        rows.setflags(write=False)
+        residuals[key] = rows
+        if len(residuals) > 256:
+            residuals.popitem(last=False)
+        return rows
+
+    return evaluate
+
+
 @dataclass(frozen=True)
 class PairExcitation:
     """Rotation between the paired antenna epochs, summed over a set of windows.
@@ -365,8 +469,15 @@ def _unpack(params: FloatArray, opts: LeverArmOptions) -> tuple[FloatArray, floa
 
 
 def _irls(
-    track: GnssTrackModel, pairs: Sequence[WindowPairs], opts: LeverArmOptions
+    track: GnssTrackModel,
+    pairs: Sequence[WindowPairs],
+    opts: LeverArmOptions,
+    *,
+    residual_evaluator: _ResidualEvaluator | None = None,
 ) -> tuple[FloatArray, FloatArray, float]:
+    evaluate = residual_evaluator or (
+        lambda lever, offset: window_residuals(track, pairs, lever, offset, opts)
+    )
     params = np.zeros(4)
     bound = opts.time_offset_bound_s if opts.estimate_time_offset else 1e-12
     lower = np.array([-np.inf, -np.inf, -np.inf, -bound])
@@ -381,11 +492,11 @@ def _irls(
             values: FloatArray, root: FloatArray = root, variance: float = variance
         ) -> FloatArray:
             lever_arm, offset = _unpack(values, opts)
-            data = root * window_residuals(track, pairs, lever_arm, offset, opts)
+            data = root * evaluate(lever_arm, offset)
             return np.concatenate([data / math.sqrt(variance), values / opts.anchor_sigma])
 
         params = least_squares(residuals, params, bounds=(lower, upper), x_scale="jac").x
-        raw = window_residuals(track, pairs, *_unpack(params, opts), opts)
+        raw = evaluate(*_unpack(params, opts))
         spread = max(1.4826 * float(np.median(np.abs(raw - np.median(raw)))), 1e-6)
         variance = spread**2
         scaled = np.abs(raw) / spread
@@ -404,15 +515,20 @@ def _observability(
     weights: FloatArray,
     variance: float,
     opts: LeverArmOptions,
+    *,
+    residual_evaluator: _ResidualEvaluator | None = None,
 ) -> tuple[LeverArmDof, ...]:
+    evaluate = residual_evaluator or (
+        lambda lever, offset: window_residuals(track, pairs, lever, offset, opts)
+    )
     active = 4 if opts.estimate_time_offset else 3
     steps = np.array([1e-4, 1e-4, 1e-4, 1e-4])
     columns = []
     for index in range(active):
         delta = np.zeros(4)
         delta[index] = steps[index]
-        forward = window_residuals(track, pairs, *_unpack(params + delta, opts), opts)
-        backward = window_residuals(track, pairs, *_unpack(params - delta, opts), opts)
+        forward = evaluate(*_unpack(params + delta, opts))
+        backward = evaluate(*_unpack(params - delta, opts))
         columns.append((forward - backward) / (2.0 * steps[index]))
     jacobian = np.column_stack(columns) * (np.sqrt(weights)[:, None] / math.sqrt(variance))
     information = jacobian.T @ jacobian + np.eye(active) / opts.anchor_sigma**2
