@@ -1,0 +1,1266 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calibrex.dev/tools/schemas/tum_depth_frontend_benchmark.schema.json",
+  "title": "Complete public TUM RGB-D transform reuse benchmark",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "slac.tum_depth_frontend_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "protocol"
+        },
+        "payload": {
+          "type": "object",
+          "properties": {
+            "scope": {
+              "type": "string"
+            },
+            "commits": {
+              "type": "object",
+              "properties": {
+                "prior": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{40}$"
+                },
+                "current": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{40}$"
+                }
+              },
+              "required": [
+                "prior",
+                "current"
+              ],
+              "additionalProperties": false
+            },
+            "inputs_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "repetitions": {
+              "type": "integer",
+              "minimum": 2
+            },
+            "blas_threads": {
+              "const": 1
+            },
+            "environment": {
+              "type": "object",
+              "properties": {
+                "python": {
+                  "type": "string"
+                },
+                "packages": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "python",
+                "packages"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "scope",
+            "commits",
+            "inputs_sha256",
+            "repetitions",
+            "blas_threads",
+            "environment"
+          ],
+          "additionalProperties": false
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "files": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          },
+          "required": [
+            "files"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "record_type",
+        "payload",
+        "provenance"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "slac.tum_depth_frontend_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "attempts"
+        },
+        "payload": {
+          "type": "object",
+          "properties": {
+            "attempts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "folder": {
+                    "type": "string"
+                  },
+                  "variant": {
+                    "enum": [
+                      "prior",
+                      "current"
+                    ]
+                  },
+                  "seconds": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "exit_code": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "folder",
+                  "variant",
+                  "seconds",
+                  "exit_code"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "attempts"
+          ],
+          "additionalProperties": false
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "protocol_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "protocol_sha256"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "record_type",
+        "payload",
+        "provenance"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "slac.tum_depth_frontend_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "measurement"
+        },
+        "payload": {
+          "type": "object",
+          "properties": {
+            "api_seconds": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "optimizer_seconds": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "imports": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  }
+                },
+                "required": [
+                  "path",
+                  "sha256"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "result_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "history_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "solve_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "jacobian_calls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "residual_calls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "rgbd_plan_requests": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "rgbd_plan_accepts": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "stage_seconds": {
+              "type": "object",
+              "properties": {
+                "_xyz_pair_reassociation_runs": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "_iterative_reassociation_runs": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "_rematch_spatial_holdouts": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              },
+              "required": [
+                "_xyz_pair_reassociation_runs",
+                "_iterative_reassociation_runs",
+                "_rematch_spatial_holdouts"
+              ],
+              "additionalProperties": false
+            },
+            "factory_calls": {
+              "type": "object",
+              "properties": {
+                "_spatial_factor": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "make_joint_trilinear_xyz_pair_factor": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "_spatial_factor",
+                "make_joint_trilinear_xyz_pair_factor"
+              ],
+              "additionalProperties": false
+            },
+            "rgbd_plan_builds": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "frontend_seconds": {
+              "type": "object",
+              "properties": {
+                "read_tum_depth_png": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "sample_tum_depth_points": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              },
+              "required": [
+                "read_tum_depth_png",
+                "sample_tum_depth_points"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "api_seconds",
+            "optimizer_seconds",
+            "imports",
+            "result_sha256",
+            "history_sha256",
+            "solve_count",
+            "jacobian_calls",
+            "residual_calls",
+            "stage_seconds",
+            "factory_calls",
+            "rgbd_plan_requests",
+            "rgbd_plan_accepts",
+            "rgbd_plan_builds",
+            "frontend_seconds"
+          ],
+          "additionalProperties": false
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "protocol_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "git_commit": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "git_commit_short": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{7,40}$"
+            }
+          },
+          "required": [
+            "protocol_sha256",
+            "git_commit",
+            "git_commit_short"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "record_type",
+        "payload",
+        "provenance"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "slac.tum_depth_frontend_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "history"
+        },
+        "payload": {
+          "type": "object",
+          "properties": {
+            "events": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "enum": [
+                      "linearize",
+                      "residuals"
+                    ]
+                  },
+                  "factor_count": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "values_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "factor_ids_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "residual": {
+                    "type": "object",
+                    "properties": {
+                      "shape": {
+                        "type": "array",
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      }
+                    },
+                    "required": [
+                      "shape",
+                      "sha256"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "jacobian": {
+                    "type": "object",
+                    "properties": {
+                      "shape": {
+                        "type": "array",
+                        "items": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      }
+                    },
+                    "required": [
+                      "shape",
+                      "sha256"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "kind",
+                  "factor_count",
+                  "values_sha256",
+                  "factor_ids_sha256",
+                  "residual"
+                ],
+                "additionalProperties": false,
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "kind": {
+                          "const": "linearize"
+                        }
+                      }
+                    },
+                    "then": {
+                      "required": [
+                        "jacobian"
+                      ]
+                    },
+                    "else": {
+                      "not": {
+                        "required": [
+                          "jacobian"
+                        ]
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "solves": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "factor_count": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "factor_ids_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "parameter_dimension": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "active_dimension": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "iterations": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "probes": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "result_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  }
+                },
+                "required": [
+                  "factor_count",
+                  "factor_ids_sha256",
+                  "parameter_dimension",
+                  "active_dimension",
+                  "iterations",
+                  "probes",
+                  "status",
+                  "result_sha256"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "diagnostics": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "enum": [
+                          "_xyz_pair_reassociation_state",
+                          "_reassociated_spatial_state"
+                        ]
+                      },
+                      "values_sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      "state_sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      "factor_count": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "values_sha256",
+                      "state_sha256",
+                      "factor_count"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "const": "_shared_holdout_objective"
+                      },
+                      "window": {
+                        "enum": [
+                          60,
+                          180,
+                          300
+                        ]
+                      },
+                      "measurement_count": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "candidate_sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      "rematch": {
+                        "type": "boolean"
+                      },
+                      "value_hex": {
+                        "type": "string",
+                        "pattern": "^-?0x[0-9a-f]+\\.[0-9a-f]+p[+-][0-9]+$"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "window",
+                      "measurement_count",
+                      "candidate_sha256",
+                      "rematch",
+                      "value_hex"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "frontend": {
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "const": "read_tum_depth_png"
+                      },
+                      "width": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "height": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "pixel_count": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "pixels_sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      "path": {
+                        "type": "string",
+                        "pattern": "^depth/[^/]+\\.png$"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "width",
+                      "height",
+                      "pixel_count",
+                      "pixels_sha256",
+                      "path"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "const": "sample_tum_depth_points"
+                      },
+                      "width": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "height": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "pixel_count": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "pixels_sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      "point_count": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "points_sha256": {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "width",
+                      "height",
+                      "pixel_count",
+                      "pixels_sha256",
+                      "point_count",
+                      "points_sha256"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            }
+          },
+          "required": [
+            "events",
+            "solves",
+            "diagnostics",
+            "frontend"
+          ],
+          "additionalProperties": false
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "protocol_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "git_commit": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "git_commit_short": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{7,40}$"
+            }
+          },
+          "required": [
+            "protocol_sha256",
+            "git_commit",
+            "git_commit_short"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "record_type",
+        "payload",
+        "provenance"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "slac.tum_depth_frontend_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "progress"
+        },
+        "payload": {
+          "type": "object",
+          "properties": {
+            "solves": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "factor_count": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "factor_ids_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "parameter_dimension": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "active_dimension": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "iterations": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "probes": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "status": {
+                    "type": "string"
+                  },
+                  "result_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  }
+                },
+                "required": [
+                  "factor_count",
+                  "factor_ids_sha256",
+                  "parameter_dimension",
+                  "active_dimension",
+                  "iterations",
+                  "probes",
+                  "status",
+                  "result_sha256"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "solve_seconds": {
+              "type": "array",
+              "items": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              }
+            }
+          },
+          "required": [
+            "solves",
+            "solve_seconds"
+          ],
+          "additionalProperties": false
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "protocol_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "git_commit": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "git_commit_short": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{7,40}$"
+            }
+          },
+          "required": [
+            "protocol_sha256",
+            "git_commit",
+            "git_commit_short"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "record_type",
+        "payload",
+        "provenance"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "slac.tum_depth_frontend_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "report"
+        },
+        "payload": {
+          "type": "object",
+          "properties": {
+            "seconds_median": {
+              "type": "object",
+              "properties": {
+                "whole": {
+                  "type": "object",
+                  "properties": {
+                    "prior": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "current": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    }
+                  },
+                  "required": [
+                    "prior",
+                    "current"
+                  ],
+                  "additionalProperties": false
+                },
+                "api": {
+                  "type": "object",
+                  "properties": {
+                    "prior": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "current": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    }
+                  },
+                  "required": [
+                    "prior",
+                    "current"
+                  ],
+                  "additionalProperties": false
+                },
+                "optimizer": {
+                  "type": "object",
+                  "properties": {
+                    "prior": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "current": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    }
+                  },
+                  "required": [
+                    "prior",
+                    "current"
+                  ],
+                  "additionalProperties": false
+                },
+                "_xyz_pair_reassociation_runs": {
+                  "type": "object",
+                  "properties": {
+                    "prior": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "current": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    }
+                  },
+                  "required": [
+                    "prior",
+                    "current"
+                  ],
+                  "additionalProperties": false
+                },
+                "_iterative_reassociation_runs": {
+                  "type": "object",
+                  "properties": {
+                    "prior": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "current": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    }
+                  },
+                  "required": [
+                    "prior",
+                    "current"
+                  ],
+                  "additionalProperties": false
+                },
+                "_rematch_spatial_holdouts": {
+                  "type": "object",
+                  "properties": {
+                    "prior": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "current": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    }
+                  },
+                  "required": [
+                    "prior",
+                    "current"
+                  ],
+                  "additionalProperties": false
+                },
+                "read_tum_depth_png": {
+                  "type": "object",
+                  "properties": {
+                    "prior": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "current": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    }
+                  },
+                  "required": [
+                    "prior",
+                    "current"
+                  ],
+                  "additionalProperties": false
+                },
+                "sample_tum_depth_points": {
+                  "type": "object",
+                  "properties": {
+                    "prior": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "current": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    }
+                  },
+                  "required": [
+                    "prior",
+                    "current"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "whole",
+                "api",
+                "optimizer",
+                "_xyz_pair_reassociation_runs",
+                "_iterative_reassociation_runs",
+                "_rematch_spatial_holdouts",
+                "read_tum_depth_png",
+                "sample_tum_depth_points"
+              ],
+              "additionalProperties": false
+            },
+            "speedup": {
+              "type": "object",
+              "properties": {
+                "whole": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "api": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "optimizer": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "_xyz_pair_reassociation_runs": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "_iterative_reassociation_runs": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "_rematch_spatial_holdouts": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "read_tum_depth_png": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "sample_tum_depth_points": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              },
+              "required": [
+                "whole",
+                "api",
+                "optimizer",
+                "_xyz_pair_reassociation_runs",
+                "_iterative_reassociation_runs",
+                "_rematch_spatial_holdouts",
+                "read_tum_depth_png",
+                "sample_tum_depth_points"
+              ],
+              "additionalProperties": false
+            },
+            "verified_runs": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "solve_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "jacobian_calls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "residual_calls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "complete_results_exact": {
+              "const": true
+            },
+            "all_array_digests_exact": {
+              "const": true
+            },
+            "runtime_source_changes": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "array_plan_requests_per_run": {
+              "type": "object",
+              "properties": {
+                "prior": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "current": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "prior",
+                "current"
+              ],
+              "additionalProperties": false
+            },
+            "array_plan_accepts_per_run": {
+              "type": "object",
+              "properties": {
+                "prior": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "current": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "required": [
+                "prior",
+                "current"
+              ],
+              "additionalProperties": false
+            },
+            "diagnostic_evaluations_per_run": {
+              "type": "object",
+              "properties": {
+                "_xyz_pair_reassociation_state": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "_reassociated_spatial_state": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "_shared_holdout_objective": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "_xyz_pair_reassociation_state",
+                "_reassociated_spatial_state",
+                "_shared_holdout_objective"
+              ],
+              "additionalProperties": false
+            },
+            "factory_calls_per_run": {
+              "type": "object",
+              "properties": {
+                "prior": {
+                  "type": "object",
+                  "properties": {
+                    "_spatial_factor": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "make_joint_trilinear_xyz_pair_factor": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "_spatial_factor",
+                    "make_joint_trilinear_xyz_pair_factor"
+                  ],
+                  "additionalProperties": false
+                },
+                "current": {
+                  "type": "object",
+                  "properties": {
+                    "_spatial_factor": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "make_joint_trilinear_xyz_pair_factor": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "_spatial_factor",
+                    "make_joint_trilinear_xyz_pair_factor"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "prior",
+                "current"
+              ],
+              "additionalProperties": false
+            },
+            "array_plan_builds_per_run": {
+              "type": "object",
+              "properties": {
+                "prior": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "current": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "prior",
+                "current"
+              ],
+              "additionalProperties": false
+            },
+            "frontend_evaluations_per_run": {
+              "type": "object",
+              "properties": {
+                "read_tum_depth_png": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "sample_tum_depth_points": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "read_tum_depth_png",
+                "sample_tum_depth_points"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "seconds_median",
+            "speedup",
+            "verified_runs",
+            "solve_count",
+            "jacobian_calls",
+            "residual_calls",
+            "complete_results_exact",
+            "all_array_digests_exact",
+            "runtime_source_changes",
+            "diagnostic_evaluations_per_run",
+            "factory_calls_per_run",
+            "array_plan_builds_per_run",
+            "frontend_evaluations_per_run"
+          ],
+          "additionalProperties": false
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "protocol_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "attempts_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "protocol_sha256",
+            "attempts_sha256"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "record_type",
+        "payload",
+        "provenance"
+      ],
+      "additionalProperties": false
+    }
+  ]
+}

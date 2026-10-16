@@ -355,3 +355,8 @@ The [ordered lattice and owned graph comparison](../benchmarks/rgbd_lattice_batc
 batches lattice products while preserving Python's ordered sums and reuses
 private train/holdout preparation during each solve. It records the full
 pipeline time as well as optimizer time, with complete numeric-history parity.
+
+The [depth reconstruction and paired target comparison](../benchmarks/tum_depth_frontend.md)
+also records every reconstructed pixel and ordered back-projected sample. It
+batches integer PNG reconstruction and prepares repeated target geometry once
+per matched voxel, retaining the full calibration and diagnostic workload.

@@ -1083,6 +1083,11 @@ def _xyz_pair_target_id(frame_index: int, point_index: int) -> str:
     return f"tum-target-point:{frame_index:03d}:{point_index:05d}"
 
 
+_PAIR_REPRESENTATIVE_IMPLEMENTATION = _xyz_pair_representative_point
+_PAIR_ROTATION_IMPLEMENTATION = rotate_vector_xyzw
+_PAIR_MATCH_IMPLEMENTATION = VoxelPlaneQueryContext.nearest_matches
+
+
 def _xyz_pair_calibrated_point(point: Vector3, offsets: tuple[float, ...]) -> Vector3:
     weights = trilinear_lattice_weights(
         point,
@@ -1115,11 +1120,13 @@ def _xyz_pair_reassociation_state(
         target_index = source_index + options.xyz_pair_stride
         source_frame = problem.query_frames[source_index]
         target_frame = problem.query_frames[target_index]
+        source_initial = source_frame.transform_world_camera
+        target_initial = target_frame.transform_world_camera
         source_pose = se3_from_tangent(values[_pose_block(source_index, source_frame)]).compose(
-            source_frame.transform_world_camera
+            source_initial
         )
         target_pose = se3_from_tangent(values[_pose_block(target_index, target_frame)]).compose(
-            target_frame.transform_world_camera
+            target_initial
         )
         target = geometry.targets[target_index]
         group = f"tum-xyz-pair-{source_index:03d}-{target_index:03d}"
@@ -1135,32 +1142,53 @@ def _xyz_pair_reassociation_state(
             voxel_size_m=options.voxel_size_m,
             correspondence_gate_m=options.correspondence_gate_m,
         )
+        reuse_targets = (
+            type(target.query) is VoxelPlaneQueryContext
+            and target.query._native_geometry
+            and type(target.query).nearest_matches is _PAIR_MATCH_IMPLEMENTATION
+            and "nearest_matches" not in target.query.__dict__
+            and _xyz_pair_representative_point is _PAIR_REPRESENTATIVE_IMPLEMENTATION
+            and rotate_vector_xyzw is _PAIR_ROTATION_IMPLEMENTATION
+        )
+        selected_targets: dict[
+            tuple[int, int, int], tuple[int, Vector3, Vector3, bytes, str]
+        ] = {}
         for association, match in zip(group_associations, matches, strict=True):
             source_point = problem.sampled_points[source_index][association.source_point_index]
             if match is None:
                 continue
-            target_point_index, target_point = _xyz_pair_representative_point(
-                match, target.points_by_voxel
-            )
-            normal_world = rotate_vector_xyzw(target_pose.rotation_quat_xyzw, match.normal)
-            measurement = JointTrilinearXYZPairMeasurement(
-                association.measurement_id,
-                group,
-                source_point,
-                target_point,
-                context.weights[source_index][association.source_point_index],
-                context.weights[target_index][target_point_index],
-                normal_world,
-                source_frame.transform_world_camera,
-                target_frame.transform_world_camera,
-            )
+            selected = selected_targets.get(match.voxel_key) if reuse_targets else None
+            if selected is None:
+                target_point_index, target_point = _xyz_pair_representative_point(
+                    match, target.points_by_voxel
+                )
+                normal_world = rotate_vector_xyzw(target_pose.rotation_quat_xyzw, match.normal)
+                selected = (
+                    target_point_index, target_point, normal_world,
+                    struct.pack("<3d", *normal_world),
+                    _xyz_pair_target_id(target_index, target_point_index),
+                )
+                if reuse_targets:
+                    selected_targets[match.voxel_key] = selected
+            target_point_index, target_point, normal_world, normal_bytes, target_id = selected
             factor_key = (
                 association.measurement_id,
                 target_point_index,
-                struct.pack("<3d", *normal_world),
+                normal_bytes,
             )
             factor = context.factors.get(factor_key)
             if factor is None:
+                measurement = JointTrilinearXYZPairMeasurement(
+                    association.measurement_id,
+                    group,
+                    source_point,
+                    target_point,
+                    context.weights[source_index][association.source_point_index],
+                    context.weights[target_index][target_point_index],
+                    normal_world,
+                    source_initial,
+                    target_initial,
+                )
                 factor = make_joint_trilinear_xyz_pair_factor(
                     measurement,
                     source_pose_block=_pose_block(source_index, source_frame),
@@ -1176,7 +1204,7 @@ def _xyz_pair_reassociation_state(
             assignments.append(
                 CorrespondenceAssignment(
                     association.measurement_id,
-                    _xyz_pair_target_id(target_index, target_point_index),
+                    target_id,
                 )
             )
     return JointReassociationState(_OwnedPointFactors(factors), tuple(assignments))

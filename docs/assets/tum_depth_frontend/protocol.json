@@ -1,0 +1,40 @@
+{
+  "schema_version": "slac.tum_depth_frontend_benchmark/v0.1",
+  "record_type": "protocol",
+  "payload": {
+    "scope": "Complete native_tum_joint_slac pipeline on the public development TUM fr1/xyz sequence: unchanged primary and replication windows, scalar and full-XYZ lattice ablations, two-sided pairs, reassociation, curvature, multistart, holdout, probes and saved reports. Integer PNG reconstruction batches and per-voxel paired geometry preparation preserve every depth pixel, sampled point and original scalar evaluation population; no accuracy or SOTA claim.",
+    "commits": {
+      "prior": "257e96440a54d21952e5e4bccf42db1b4f2a8778",
+      "current": "a4843c7c3d509e928b86bdf0ef0e766dd1d18462"
+    },
+    "inputs_sha256": "f1ec8837db3c70ddb173869a4362dd54a5a9da3dc8e6f9cc7ac59a7b14e2a108",
+    "repetitions": 2,
+    "blas_threads": 1,
+    "environment": {
+      "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+      "packages": {
+        "numpy": "2.3.4",
+        "scipy": "1.17.1",
+        "pydantic": "2.12.5",
+        "PyYAML": "6.0.3"
+      }
+    }
+  },
+  "provenance": {
+    "files": {
+      "capsule-auditor.py.txt": "c1cf1f16d9ce3e84a8fd39e255ee91ed25eb192c49abf91f458781261c9045e9",
+      "config.yaml": "1712cf24bae694cb607f77c4aabeeb37baeaecaac28676c87bd1f37213d3296d",
+      "freezer.py.txt": "2c72248f7ee1e7ea502abed49870859000034c55f2599b6eb66f63f3852033cb",
+      "identity.py.txt": "5dcbf54c1b5e3721fb019ad80d0074120d49fbb02a4fd7abebed6f7eccb67d41",
+      "inputs.json": "f1ec8837db3c70ddb173869a4362dd54a5a9da3dc8e6f9cc7ac59a7b14e2a108",
+      "launcher.py.txt": "d0825a6b589630ed8a58f11cb0d11ac765d270d7022ad14b1d614fa7879973a8",
+      "result-schema.json": "a9c1c17177c45c01a98e7cdd49a1f4761b246bec8c9ce115e2fd2239d1e61c5e",
+      "schema.json": "ae12734bb0bfe387990bb3edab5d34270c7aa5c900ba38bf2324c0440b1d2f97",
+      "sources-current-manifest.json": "2ae76054a625c1c8c69a0cf42419fa08231b1386c0c98b6c2a7163aab5cbd7bf",
+      "sources-current.tar.gz": "b77a2fe59f949bc3714092d90b608739459e962e12ac6947481f4673cb8ed261",
+      "sources-prior-manifest.json": "f897ebd1ed1c42144b7853fbd79f84a7e1d273599aa38d73be73c4785eb38093",
+      "sources-prior.tar.gz": "80a91ac00e05810f0631990c4391afacfc0af0a75a1a625691bd97215fabc353",
+      "upstream-manifest.yaml": "6e6861a752a92999cfce613465fc69da12ca40205b920fefe18c5e4fc265f02d"
+    }
+  }
+}
