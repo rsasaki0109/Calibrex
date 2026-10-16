@@ -1,0 +1,45 @@
+import gzip
+import hashlib
+import json
+import shutil
+import subprocess
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+SOURCE = ROOT / 'outputs/lidar-wheel-preparation-formal-v2'
+ARCHIVE = ROOT / 'docs/assets/lidar_wheel_evaluation_preparation'
+QA = ARCHIVE / 'qa'
+QA.mkdir(parents=True, exist_ok=False)
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+write = lambda p,v: p.write_bytes((json.dumps(v,indent=2,allow_nan=False)+'\n').encode())
+protocol = json.loads((SOURCE/'protocol.json').read_bytes())
+assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip() == protocol['commits']['current']
+for name in [*protocol['provenance']['files'], 'protocol.json','attempts.json','audit.json']:
+    shutil.copyfile(SOURCE/name, ARCHIVE/name)
+for run in json.loads((SOURCE/'attempts.json').read_bytes())['runs']:
+    name=f"{run['repeat']:02d}-{run['variant']}"
+    shutil.copytree(SOURCE/name,ARCHIVE/name)
+(ARCHIVE/'.gitattributes').write_bytes(b'* -text whitespace=cr-at-eol\n*.log -whitespace\n')
+for name in ['tests.log','benchmark-v2-tests.log','mypy.log','formal-v2.log']:
+    shutil.copyfile(ROOT/'outputs/wheel-preparation-validation-v1'/name,QA/name)
+shutil.copyfile(Path(__file__),QA/'publication.py.txt')
+old = ROOT/'outputs/lidar-wheel-preparation-formal-v1'
+oldtrace=json.loads(gzip.decompress((old/'00-prior/history.json.gz').read_bytes()))
+newtrace=json.loads(gzip.decompress((SOURCE/'00-prior/history.json.gz').read_bytes()))
+states=lambda h:[len({e['params'][5] for e in h['residuals'] if e['fit']==i}) for i in range(9)]
+assert states(oldtrace)==[2]*9 and min(states(newtrace))>=3
+assert (old/'sources-current-manifest.json').read_bytes()==(SOURCE/'sources-current-manifest.json').read_bytes()
+write(QA/'cohort-selection.json',dict(
+    scope='Performance/parity controls only; no accuracy claims or locked data.',
+    selected='formal-v2: common epoch removed from both sensor and proxy times, all 2762 samples and 2760 motions retained.',
+    excluded='formal-v1: absolute Unix time spacing hides finite-difference clock perturbations; only two clock states per fit. Excluded before publication because clock optimization was not exercised.',
+    runtime_source_manifests_identical=True,
+    excluded_clock_states_per_fit=states(oldtrace),selected_clock_states_per_fit=states(newtrace),
+    excluded_attempts=json.loads((old/'attempts.json').read_bytes()),
+    excluded_audit=json.loads((old/'audit.json').read_bytes()),
+    provenance=dict(generator_sha256=sha(Path(__file__)),
+        selected_protocol_sha256=sha(SOURCE/'protocol.json'),
+        excluded_files={p.relative_to(old).as_posix():sha(p) for p in sorted(old.rglob('*')) if p.is_file() and 'sources-' not in p.relative_to(old).parts[0]})))
+write(ARCHIVE/'index.json',dict(files={p.relative_to(ARCHIVE).as_posix():sha(p) for p in sorted(ARCHIVE.rglob('*')) if p.is_file() and p.name!='index.json'},
+    provenance=dict(generator_sha256=sha(Path(__file__)),protocol_sha256=sha(ARCHIVE/'protocol.json'))))
+print('published initial archive',len(json.loads((ARCHIVE/'index.json').read_bytes())['files'])+1)

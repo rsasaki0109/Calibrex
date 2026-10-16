@@ -1,0 +1,37 @@
+import hashlib
+import json
+import shutil
+import subprocess
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+ARCHIVE = ROOT / 'docs/assets/lidar_wheel_evaluation_preparation'
+OUT = ROOT / 'outputs/wheel-preparation-validation-v1'
+QA = ARCHIVE / 'qa'
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+write = lambda p,v: p.write_bytes((json.dumps(v,indent=2,allow_nan=False)+'\n').encode())
+protocol = json.loads((ARCHIVE / 'protocol.json').read_bytes())
+assert all(sha(ARCHIVE/n)==digest for n,digest in protocol['provenance']['files'].items())
+for name in ['archive-registry-tests.log','archive-registry-v2-tests.log','linux-tests.log','ruff-all.log','docs.log','schemas.log','schema-proof.log','schema-verification.json']:
+    shutil.copyfile(OUT/name,QA/name)
+shutil.copyfile(ROOT/'.tmp-calibrex-check-wheel-sources-schemas.py',QA/'check-sources-schemas.py.txt')
+shutil.copyfile(Path(__file__),QA/'publication-final.py.txt')
+write(QA/'validation.json',dict(
+    scope='Selected relative-time full public OXTS proxy/generated-motion control; same measured core and launcher.',
+    windows_distinct_cases=59,
+    windows_case_groups=dict(existing_solver_cli=3,preparation=5,benchmark=20,archive=16,registry=15),
+    linux_repeated_cases=44,linux_groups=dict(existing_solver_cli=3,preparation=5,benchmark=20,archive=16),
+    linux_versions=dict(python='3.10.12',numpy='2.2.6',scipy='1.15.3',pydantic='2.14.1'),
+    strict_mypy_core_modules=378,ruff_all=True,mkdocs_strict=True,
+    public_schema_exports_identical=129,public_schema_ledger_identical=True,
+    measured_core_modules_unchanged=378,measured_generator_and_launcher_unchanged=True,
+    initial_windows_launch=dict(passed=16,setup_errors=15,reason='Missing parent of explicit pytest basetemp; directory created before corrected run. No test assertion or runtime change.',
+        corrected_run_passed=31,failed_log='archive-registry-tests.log',corrected_log='archive-registry-v2-tests.log'),
+    provenance=dict(runtime_commit=protocol['commits']['current'],
+        publication_parent=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+        protocol_sha256=sha(ARCHIVE/'protocol.json'),generator_sha256=sha(Path(__file__)),
+        typecheck_requirements_sha256=sha(ROOT/'tools/typecheck-requirements.txt'),
+        files={p.relative_to(QA).as_posix():sha(p) for p in sorted(QA.rglob('*')) if p.is_file() and p.name!='validation.json'})))
+write(ARCHIVE/'index.json',dict(files={p.relative_to(ARCHIVE).as_posix():sha(p) for p in sorted(ARCHIVE.rglob('*')) if p.is_file() and p.name!='index.json'},
+    provenance=dict(generator_sha256=sha(Path(__file__)),protocol_sha256=sha(ARCHIVE/'protocol.json'))))
+print('final indexed archive files',len(json.loads((ARCHIVE/'index.json').read_bytes())['files'])+1)

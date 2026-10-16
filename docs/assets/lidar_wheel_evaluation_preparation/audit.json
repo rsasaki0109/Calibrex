@@ -1,0 +1,50 @@
+{
+  "schema_version": "slac.lidar_wheel_preparation_benchmark/v0.1",
+  "record_type": "audit",
+  "verified_runs": 6,
+  "complete_results_and_histories_exact": true,
+  "reference_pose_count": 2762,
+  "motion_count": 2760,
+  "block_count": 29,
+  "train_motions": 1824,
+  "holdout_motions": 936,
+  "jackknife_fits": 8,
+  "work_per_run": {
+    "prior": {
+      "solve_calls": 9,
+      "residual_requests": 411,
+      "least_squares_calls": 9,
+      "moving_calls": 420,
+      "motion_selection_visits": 646689,
+      "wheel_at_calls": 3120,
+      "wheel_samples_queried": 4829055
+    },
+    "current": {
+      "solve_calls": 9,
+      "residual_requests": 411,
+      "least_squares_calls": 9,
+      "moving_calls": 17,
+      "motion_selection_visits": 22968,
+      "wheel_at_calls": 2836,
+      "wheel_samples_queried": 4389516
+    }
+  },
+  "whole_seconds_median": {
+    "prior": 5.353725099936128,
+    "current": 3.397487899987027
+  },
+  "api_seconds_median": {
+    "prior": 2.3890197000000626,
+    "current": 0.49139560002367944
+  },
+  "whole_speedup": 1.575789305962376,
+  "api_speedup": 4.861703482662319,
+  "runtime_source_changes": [
+    "calibrex/solvers/lidar_wheel_solver.py"
+  ],
+  "provenance": {
+    "protocol_sha256": "f91f3d62a845fe6bb1a0a9de779c6adfb9a08feaaeff3da83f7dafbf25457a15",
+    "attempts_sha256": "546855ee767add2f43671f27d4e55cf81b9f38932c4d7b4ae01732dc56874dbf",
+    "problem_sha256": "a3075a2b523bbc74591109df940c3e4105b98291a2a2f9b2d107fb3d4375151d"
+  }
+}
