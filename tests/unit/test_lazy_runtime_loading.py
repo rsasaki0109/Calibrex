@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import subprocess
 import sys
 import textwrap
@@ -70,7 +71,30 @@ def test_all_solver_exports_are_original_objects_and_support_star_import() -> No
     """)
 
 
-def test_solver_submodule_imports_still_work() -> None:
+def test_solver_submodule_imports_work_without_optional_accelerators() -> None:
+    _run("""
+        import sys
+        from importlib import import_module
+        from importlib.abc import MetaPathFinder
+
+        class BlockAccelerators(MetaPathFinder):
+            def find_spec(self, fullname, path=None, target=None):
+                if fullname.split('.')[0] in {'numba', 'cupy', 'cv2', 'open3d'}:
+                    raise ModuleNotFoundError(fullname)
+
+        sys.meta_path.insert(0, BlockAccelerators())
+        from calibrex.solvers import scan_to_scan_odometry, chen_medioni_point_to_plane_icp_solver
+        assert scan_to_scan_odometry is import_module('calibrex.solvers.scan_to_scan_odometry')
+        assert chen_medioni_point_to_plane_icp_solver is import_module(
+            'calibrex.solvers.chen_medioni_point_to_plane_icp_solver'
+        )
+        assert not {'numba', 'cupy', 'cv2', 'open3d'} & sys.modules.keys()
+    """)
+
+
+def test_optional_solver_submodule_imports_work_with_numba() -> None:
+    if importlib.util.find_spec("numba") is None:
+        pytest.skip("Numba adapter requires the optional numba extra")
     _run("""
         from importlib import import_module
         from calibrex.solvers import scan_to_scan_odometry, numba_continuous_time_adapter
