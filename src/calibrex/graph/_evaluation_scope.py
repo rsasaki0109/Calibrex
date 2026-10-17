@@ -18,6 +18,10 @@ _PREPARATION_CACHE: ContextVar[OrderedDict[int, object] | None] = ContextVar(
 _RGBD_PREPARATION_CACHE: ContextVar[OrderedDict[int, object] | None] = ContextVar(
     "joint_rgbd_preparation_cache", default=None
 )
+_RGBD_FACTORY_CACHE_LIMIT = 128
+_RGBD_FACTORY_CACHE: ContextVar[OrderedDict[tuple[int, int], object] | None] = ContextVar(
+    "joint_rgbd_factory_cache", default=None
+)
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
 
@@ -50,6 +54,22 @@ def _with_preparation_cache(function: Callable[_P, _R]) -> Callable[_P, _R]:
             _PREPARATION_CACHE.reset(token)
 
     return solve
+
+
+def _with_rgbd_factory_cache(function: Callable[_P, _R]) -> Callable[_P, _R]:
+    """Reuse immutable transform signatures only during one synchronous builder."""
+
+    @wraps(function)
+    def build(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+        cache: OrderedDict[tuple[int, int], object] = OrderedDict()
+        token = _RGBD_FACTORY_CACHE.set(cache)
+        try:
+            return function(*args, **kwargs)
+        finally:
+            cache.clear()
+            _RGBD_FACTORY_CACHE.reset(token)
+
+    return build
 
 
 def _discard_preparation_caches() -> None:
