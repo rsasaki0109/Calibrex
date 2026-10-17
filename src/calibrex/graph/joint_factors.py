@@ -19,7 +19,12 @@ from calibrex.core.geometry import (
     quaternion_xyzw_from_rotation_matrix,
     rotate_vector_xyzw,
 )
-from calibrex.graph._evaluation_scope import _EVALUATION_CACHE, _EVALUATION_CACHE_LIMIT
+from calibrex.graph._evaluation_scope import (
+    _EVALUATION_CACHE,
+    _EVALUATION_CACHE_LIMIT,
+    _RGBD_FACTORY_CACHE,
+    _RGBD_FACTORY_CACHE_LIMIT,
+)
 from calibrex.graph._point_plane_batches import _bind_point_plane, _bind_prior
 from calibrex.graph._rgbd_batches import _bind_rgbd, _bind_rgbd_scalar
 from calibrex.graph.joint_optimization import (
@@ -28,6 +33,7 @@ from calibrex.graph.joint_optimization import (
 )
 
 FloatArray: TypeAlias = NDArray[np.float64]
+_CROSS_IMPLEMENTATION = np.cross
 
 
 @dataclass(frozen=True)
@@ -529,12 +535,19 @@ def make_joint_xyz_lattice_rigid_gauge_factor(
         offsets = np.asarray(raw, dtype=np.float64).reshape((-1, 3))
         mean = np.mean(offsets, axis=0)
         centered_offsets = offsets - mean
-        moment: FloatArray = sum(
-            (np.cross(position, displacement) for position, displacement in zip(
-                centered, centered_offsets, strict=True
-            )),
-            start=np.zeros(3, dtype=np.float64),
-        )
+        if np.cross is _CROSS_IMPLEMENTATION:
+            # Batch the independent cross products, retaining the original
+            # left-to-right vector additions and all their float rounding.
+            moment: FloatArray = sum(
+                np.cross(centered, centered_offsets), start=np.zeros(3, dtype=np.float64)
+            )
+        else:
+            moment = sum(
+                (np.cross(position, displacement) for position, displacement in zip(
+                    centered, centered_offsets, strict=True
+                )),
+                start=np.zeros(3, dtype=np.float64),
+            )
         rotation = inertia_inverse @ moment
         return (
             *(float(value) / translation_sigma_m for value in mean),
@@ -847,6 +860,18 @@ class _RGBDTransformSignature:
 def _rgbd_transform_signature(
     world: SE3, sensor: SE3 | None = None
 ) -> _RGBDTransformSignature | None:
+    cache = _RGBD_FACTORY_CACHE.get()
+    key = (id(world), id(sensor))
+    cached = cache.get(key) if cache is not None else None
+    if (
+        isinstance(cached, _RGBDTransformSignature)
+        and "translation_m" not in vars(SE3)
+        and "rotation_quat_xyzw" not in vars(SE3)
+        and cached.matches(world, sensor)
+    ):
+        assert cache is not None
+        cache.move_to_end(key)
+        return cached
     frames = (world,) if sensor is None else (world, sensor)
     if any(type(frame) is not SE3 for frame in frames):
         return None
@@ -861,9 +886,14 @@ def _rgbd_transform_signature(
     ):
         return None
     numbers = tuple(value for leaf in leaves for value in leaf)
-    return _RGBDTransformSignature(
+    signature = _RGBDTransformSignature(
         b"joint_rgbd_transform/v1\0" + struct.pack(f"<{len(numbers)}d", *numbers), leaves
     )
+    if cache is not None:
+        cache[key] = signature
+        if len(cache) > _RGBD_FACTORY_CACHE_LIMIT:
+            cache.popitem(last=False)
+    return signature
 
 
 def _rgbd_transform(

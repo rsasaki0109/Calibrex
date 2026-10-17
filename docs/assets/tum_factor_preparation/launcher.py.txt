@@ -1,0 +1,194 @@
+"""Explore a complete large public-data XYZ solve, including all diagnostics."""
+import gzip
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import shutil
+import statistics
+import subprocess
+import sys
+import time
+
+ROOT=Path(__file__).resolve().parent
+OUT=ROOT/'outputs/tum-factor-preparation-pairs-v2'
+BASE='cbc69784089af8e29035ffe22ad7d119ad92a005'
+sha=lambda path:hashlib.sha256(path.read_bytes()).hexdigest()
+def write(path,value):
+    path.write_bytes((json.dumps(value,indent=2,allow_nan=False)+'\n').encode())
+
+def worker(variant):
+    sys.dont_write_bytecode=True
+    source=OUT/('sources-'+('prior' if variant=='numpy' else variant))
+    sys.path.insert(0,str(source/'src'))
+    from tools.benchmark_bspline_lidar_imu import _verify_sources
+    assert sha(Path(__file__))==sha(OUT/'launcher.py.txt')
+    manifest=_verify_sources(source)
+    import numpy as np
+    from calibrex.core.config import load_config
+    from calibrex.solvers import native_tum_joint_slac_solver as adapter
+    from calibrex.data.tum_rgbd import associate_depth_groundtruth,read_image_index,read_groundtruth
+    from calibrex.graph._point_plane_batches import _OwnedPointFactors
+    config_path=OUT/('config-numpy.yaml' if variant=='numpy' else 'config-cuda.yaml')
+    config=load_config(config_path)
+    options=adapter._options(config)
+    intrinsics=adapter._intrinsics(config,sorted(name for name,sensor in config.sensors.items() if sensor.type=='camera')[0])
+    data=Path(config.dataset.path)
+    paired=associate_depth_groundtruth(read_image_index(data/'depth.txt'),read_groundtruth(data/'groundtruth.txt'),max_difference_sec=options.max_pose_time_delta_sec)
+    selected=adapter._select_frames(paired,options)
+    pins={item['name']:item for item in json.loads((ROOT/'docs/assets/tum_window_processes/inputs.json').read_bytes())}
+    input_files=['depth.txt','groundtruth.txt',*[frame.depth.path for frame in selected]]
+    verified_inputs={}
+    for relative in input_files:
+        path=data/relative
+        assert path.stat().st_size==pins[relative]['size_bytes']
+        assert sha(path)==pins[relative]['sha256']
+        verified_inputs[relative]=pins[relative]
+    from dataclasses import asdict
+    frontend=[]
+    active_path=None
+    def digest(value):
+        return hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
+    read=adapter.read_tum_depth_png
+    sample=adapter.sample_tum_depth_points
+    build_map=adapter.build_voxel_plane_map
+    def read_image(path):
+        nonlocal active_path
+        active_path=Path(path).relative_to(data).as_posix()
+        image=read(path)
+        frontend.append({'kind':'image','path':active_path,'width':image.width,'height':image.height,
+                         'pixels_sha256':hashlib.sha256(np.asarray(image.raw_values,dtype='<u2').tobytes()).hexdigest()})
+        return image
+    def sample_points(*args,**kwargs):
+        points=sample(*args,**kwargs)
+        frontend.append({'kind':'samples','path':active_path,'count':len(points),
+                         'points_sha256':hashlib.sha256(np.asarray(points,dtype='<f8').tobytes()).hexdigest()})
+        return points
+    def map_planes(records,*args,**kwargs):
+        assert all(record.normal_xyz is None for record in records)
+        planes=build_map(records,*args,**kwargs)
+        frontend.append({'kind':'map','records':len(records),'voxels':len(planes),
+                         'input_sha256':hashlib.sha256(np.asarray([r.point for r in records],dtype='<f8').tobytes()).hexdigest(),
+                         'geometry_sha256':digest([(key,plane.centroid,plane.normal) for key,plane in planes.items()])})
+        return planes
+    adapter.read_tum_depth_png=read_image
+    adapter.sample_tum_depth_points=sample_points
+    adapter.build_voxel_plane_map=map_planes
+    begin_frontend=time.perf_counter()
+    problem=adapter._build_problem(data,selected,intrinsics,options)
+    blocks=adapter._xyz_parameter_blocks(problem,options)
+    controls=adapter.regular_lattice_control_points(minimum=adapter._SPATIAL_LATTICE_MINIMUM_M,maximum=adapter._SPATIAL_LATTICE_MAXIMUM_M,shape=adapter._SPATIAL_LATTICE_SHAPE)
+    factors=_OwnedPointFactors((*adapter._xyz_data_factors(problem),*adapter._xyz_train_only_factors(problem,controls,((0.0,0.0,0.0,1.0),)*len(controls),options)))
+    frontend.append({'kind':'initial_problem','data_factors':len(problem.measurements),
+                     'measurements_sha256':digest([asdict(item) for item in problem.measurements]),
+                     'factor_metadata_sha256':digest([(f.factor_id,f.variable_names,f.weight,f.sqrt_information) for f in problem.data_factors]),
+                     'blocks_sha256':digest([asdict(block) for block in blocks])})
+    frontend_seconds=time.perf_counter()-begin_frontend
+    from calibrex.graph import joint_optimization as graph
+    traces=[]
+    factor_ids={}
+    def digest(value):
+        return hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False).encode()).hexdigest()
+    for label in ('_linearize','_factor_residuals'):
+        original=getattr(graph,label)
+        def traced(*args,_label=label,_original=original,**kwargs):
+            factor_sequence=args[0]
+            key=id(factor_sequence)
+            if key not in factor_ids:
+                factor_ids[key]=(factor_sequence,digest([factor.factor_id for factor in factor_sequence]))
+            result=_original(*args,**kwargs)
+            arrays=result if _label=='_linearize' else (result,)
+            traces.append({'kind':_label,'factor_ids_sha256':factor_ids[key][1],
+                'values_sha256':digest(args[1]),'arrays':[{'shape':list(array.shape),
+                'sha256':hashlib.sha256(np.asarray(array,dtype='<f8').tobytes()).hexdigest()} for array in arrays]})
+            return result
+        setattr(graph,label,traced)
+    begin=time.perf_counter()
+    result=adapter._optimize_joint(config,blocks,factors,options)
+    elapsed=time.perf_counter()-begin
+    from calibrex.graph._rgbd_execution import _last_execution_report
+    execution=_last_execution_report()
+    if variant=='numpy':
+        assert execution is None and 'cupy' not in sys.modules
+    else:
+        assert execution is not None and execution['linearizations']==21 and execution['evaluations']==606
+        assert execution['kernel_launches']==1090 and execution['budget_fallbacks']==0
+        assert 'cupy' in sys.modules
+    write(OUT/sys.argv[3]/'execution.json',{'execution':execution,'provenance':{'source_manifest_sha256':sha(source/'manifest.json'),'launcher_sha256':sha(Path(__file__)),'run_provenance_sha256':sha(OUT/'provenance.json')}})
+    imports={}
+    for name,module in sys.modules.copy().items():
+        if name=='calibrex' or name.startswith('calibrex.'):
+            path=Path(module.__file__).resolve()
+            relative=path.relative_to(source/'src').as_posix()
+            assert sha(path)==manifest[relative]
+            imports[name]=relative
+    _verify_sources(source)
+    payload=result.as_dict()
+    provenance={'variant':variant,'requested_backend':options.joint_evaluation_backend,'source_manifest_sha256':sha(source/'manifest.json'),'git_commit':subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],text=True).strip(),'config_sha256':sha(config_path),'input_inventory_sha256':sha(ROOT/'docs/assets/tum_window_processes/inputs.json'),'launcher_sha256':sha(Path(__file__)),'imports':imports,'pid':os.getpid(),'parent_pid':os.getppid(),'python':sys.version,'verified_inputs':verified_inputs,'scope':'Complete 20-iteration XYZ optimizer API on a larger spent public-data graph; full worker also includes frontend preparation. This is not the complete multi-window calibration suite and makes no accuracy claim.'}
+    folder=OUT/sys.argv[3]
+    (folder/'result.json.gz').write_bytes(gzip.compress((json.dumps({'payload':payload,'provenance':provenance},indent=2)+'\n').encode(),mtime=0))
+    (folder/'traces.json.gz').write_bytes(gzip.compress((json.dumps({'payload':traces,'provenance':provenance},indent=2)+'\n').encode(),mtime=0))
+    (folder/'frontend.json.gz').write_bytes(gzip.compress((json.dumps({'payload':frontend,'provenance':provenance},indent=2)+'\n').encode(),mtime=0))
+    write(folder/'measurement.json',{'seconds':elapsed,'frontend_seconds':frontend_seconds,'frontend_sha256':sha(folder/'frontend.json.gz'),'data_factors':len(problem.measurements),'all_factors':len(factors),'iterations':len(result.history),'status':result.status,'trace_events':len(traces),'result_sha256':sha(folder/'result.json.gz'),'traces_sha256':sha(folder/'traces.json.gz'),'provenance':provenance})
+
+def main():
+    if len(sys.argv)>1:
+        worker(sys.argv[2])
+        return
+    import yaml
+    from tools.benchmark_bspline_lidar_imu import _freeze
+    from tools.benchmark_lazy_runtime_loading import _git_identity
+    OUT.mkdir(exist_ok=False)
+    commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+    for variant,identity in {'prior':BASE,'current':commit}.items():
+        _freeze(OUT/('sources-'+variant),identity)
+        _git_identity(OUT/('sources-'+variant),identity)
+    config=yaml.safe_load((ROOT/'examples/public_datasets/tum_rgbd_freiburg1_xyz/native_joint_slac_config.yaml').read_bytes())
+    config['dataset']['path']=str(ROOT/'data/public/rgbd_dataset_freiburg1_xyz')
+    options=config['pipeline']['factors']['tum_rgbd_joint_point_to_plane']['options']
+    options.update(query_points_per_frame=20000,map_points_per_frame=50000,max_correspondences_per_frame=4000,joint_evaluation_backend='cuda')
+    (OUT/'config-cuda.yaml').write_bytes(yaml.safe_dump(config,sort_keys=False).encode())
+    options.pop('joint_evaluation_backend')
+    (OUT/'config-numpy.yaml').write_bytes(yaml.safe_dump(config,sort_keys=False).encode())
+    shutil.copyfile(Path(__file__),OUT/'launcher.py.txt')
+    write(OUT/'provenance.json',{'commits':{'prior':BASE,'current':commit},'config_sha256':{v:sha(OUT/('config-'+v+'.yaml')) for v in ('numpy','cuda')},'launcher_sha256':sha(Path(__file__)),'python':sys.version,'blas_threads':1,'gpu_cache_policy':'Fresh CuPy compiler cache per worker; persistent CUDA driver cache disabled. Initialization and compilation included in optimizer and whole-worker timings.','scope':'Post-hoc performance development experiment on spent public TUM data.'})
+    attempts=[]
+    results=[]
+    for index,variant in enumerate(('current','numpy','prior','numpy','prior','current','prior','current','numpy')):
+        folder=OUT/f'{index+1:02d}-{variant}'
+        folder.mkdir()
+        env=dict(os.environ,CUPY_CACHE_DIR=str(folder/'cupy-compiler-cache'),CUDA_CACHE_DISABLE='1',CUDA_CACHE_PATH=str(folder/'driver-cache'),PYTHONPATH=str(OUT/('sources-'+('prior' if variant=='numpy' else variant))/'src'),OPENBLAS_NUM_THREADS='1',MKL_NUM_THREADS='1',OMP_NUM_THREADS='1')
+        begin=time.perf_counter()
+        with (folder/'stdout.log').open('wb') as out,(folder/'stderr.log').open('wb') as err:
+            completed=subprocess.run([sys.executable,str(Path(__file__)),'--worker',variant,folder.name],cwd=OUT/('sources-'+('prior' if variant=='numpy' else variant)),env=env,stdout=out,stderr=err)
+        attempt={'folder':folder.name,'variant':variant,'whole_seconds':time.perf_counter()-begin,'exit_code':completed.returncode}
+        attempts.append(attempt)
+        write(OUT/'attempts.json',{'attempts':attempts,'provenance_sha256':sha(OUT/'provenance.json')})
+        assert completed.returncode==0,folder/'stderr.log'
+        measurement=json.loads((folder/'measurement.json').read_bytes())
+        attempt['optimizer_seconds']=measurement['seconds']
+        attempt['data_factors']=measurement['data_factors']
+        attempt['frontend_seconds']=measurement['frontend_seconds']
+        results.append(json.loads(gzip.decompress((folder/'result.json.gz').read_bytes()))['payload'])
+        assert json.dumps(results[-1],sort_keys=True)==json.dumps(results[0],sort_keys=True),'Complete solver results differ'
+        parent=json.loads(gzip.decompress((ROOT/'docs/assets/cuda_rgbd_joint/01-cuda/result.json.gz').read_bytes()))['payload']
+        assert json.dumps(results[-1],sort_keys=True)==json.dumps(parent,sort_keys=True),'Complete results differ from published parent'
+        current_trace=json.loads(gzip.decompress((folder/'traces.json.gz').read_bytes()))['payload']
+        if index==0:
+            reference_trace=current_trace
+        assert current_trace==reference_trace,'Numerical histories differ'
+        current_frontend=json.loads(gzip.decompress((folder/'frontend.json.gz').read_bytes()))['payload']
+        if index==0:
+            reference_frontend=current_frontend
+        assert current_frontend==reference_frontend,'Complete frontend pixels, samples, maps or correspondences differ'
+        print(attempt,flush=True)
+    medians={variant:statistics.median(a['optimizer_seconds'] for a in attempts if a['variant']==variant) for variant in ('prior','current','numpy')}
+    front={variant:statistics.median(a['frontend_seconds'] for a in attempts if a['variant']==variant) for variant in ('prior','current','numpy')}
+    whole={variant:statistics.median(a['whole_seconds'] for a in attempts if a['variant']==variant) for variant in ('prior','current','numpy')}
+    write(OUT/'attempts.json',{'attempts':attempts,'provenance_sha256':sha(OUT/'provenance.json')})
+    write(OUT/'summary.json',{'frontend_seconds_median':front,'frontend_speedup':front['prior']/front['current'],'optimizer_seconds_median':medians,'optimizer_speedup':medians['prior']/medians['current'],'whole_seconds_median':whole,'whole_speedup':whole['prior']/whole['current'],'numpy_whole_speedup':whole['numpy']/whole['current'],'numpy_optimizer_speedup':medians['numpy']/medians['current'],'complete_result_and_histories_exact':True,'complete_frontend_exact':True,'attempts':attempts,'provenance_sha256':sha(OUT/'provenance.json')})
+    print('frontend',front,'whole',whole, 'whole speedup',whole['prior']/whole['current'])
+
+if __name__=='__main__':
+    main()

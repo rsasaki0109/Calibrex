@@ -182,6 +182,46 @@ def _frame(frame: SE3) -> bool:
     )
 
 
+@dataclass(frozen=True)
+class _FrameKey:
+    world: SE3
+    sensor: SE3
+    leaves: tuple[tuple[float, ...], ...]
+    key: bytes
+
+
+def _frame_key(
+    world: SE3, sensor: SE3, cache: dict[tuple[int, int], _FrameKey]
+) -> bytes | None:
+    """Validate shared immutable frames once within this plan construction."""
+    identity = (id(world), id(sensor))
+    cached = cache.get(identity)
+    if (
+        cached is not None
+        and type(world) is SE3
+        and type(sensor) is SE3
+        and world is cached.world
+        and sensor is cached.sensor
+        and "translation_m" not in vars(SE3)
+        and "rotation_quat_xyzw" not in vars(SE3)
+        and world.translation_m is cached.leaves[0]
+        and world.rotation_quat_xyzw is cached.leaves[1]
+        and sensor.translation_m is cached.leaves[2]
+        and sensor.rotation_quat_xyzw is cached.leaves[3]
+    ):
+        return cached.key
+    if not _frame(world) or not _frame(sensor):
+        return None
+    leaves = (
+        world.translation_m, world.rotation_quat_xyzw,
+        sensor.translation_m, sensor.rotation_quat_xyzw,
+    )
+    key = struct.pack("<14d", *(value for leaf in leaves for value in leaf))
+    if len(cache) < _MAX_GROUPS or identity in cache:
+        cache[identity] = _FrameKey(world, sensor, leaves, key)
+    return key
+
+
 def _plain_closed(value: object, depth: int = 0) -> bool:
     """Regularizers may only close over ordinary numeric, side-effect-free data."""
     if depth > 6:
@@ -502,6 +542,7 @@ def _build_rgbd_plan(
     ] = {}
     scalars: list[tuple[int, int, JointResidualBlock]] = []
     frames: dict[tuple[_Kind, tuple[str, ...], bytes], tuple[SE3, SE3]] = {}
+    frame_keys: dict[tuple[int, int], _FrameKey] = {}
     cursor, point_count = 0, 0
     for factor in factors:
         if (
@@ -584,9 +625,9 @@ def _build_rgbd_plan(
                 geometry = _Geometry(
                     binding.ray, m.nominal_depth_m, binding.weights, (0.0, 0.0, 0.0), ()
                 )
+        initial_key = _frame_key(world, sensor, frame_keys)
         if (
-            not _frame(world)
-            or not _frame(sensor)
+            initial_key is None
             or not _vector(plane, 3)
             or not _vector(geometry.point, 3)
             or not _vector(geometry.target, 3)
@@ -617,13 +658,7 @@ def _build_rgbd_plan(
                 or (binding.kind == "pair" and len(geometry.target_weights) != count)
             ):
                 return None
-        initial = (
-            *world.translation_m,
-            *world.rotation_quat_xyzw,
-            *sensor.translation_m,
-            *sensor.rotation_quat_xyzw,
-        )
-        key = (binding.kind, binding.names, struct.pack("<14d", *initial))
+        key = (binding.kind, binding.names, initial_key)
         if key not in pending:
             if len(pending) >= _MAX_GROUPS:
                 return None
