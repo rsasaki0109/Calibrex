@@ -92,10 +92,19 @@ from calibrex.graph.joint_reassociation import (
     evaluate_joint_reassociation_probes,
 )
 from calibrex.solvers._tum_geometry import _DepthPointGroup, _SpatialPoints, _XYZSamples
+from calibrex.solvers._tum_initial_geometry import (
+    _frame_matches,
+    _frame_records,
+    _InitialPlane,
+    _pair_matches,
+    _query_snapshot,
+)
 from calibrex.solvers.base import SolverAdapter, SolverAdapterResult
 
 NATIVE_TUM_JOINT_SLAC_BACKEND = "native_tum_joint_slac"
 _FACTOR_NAME = "tum_rgbd_joint_point_to_plane"
+_INITIAL_PLANE_IMPLEMENTATION = nearest_voxel_plane
+_INITIAL_MATCH_IMPLEMENTATION = nearest_voxel_plane_match
 _EXTRINSIC_BLOCK = "T_trajectory_camera_correction"
 _DEPTH_BLOCK = "depth_log_scale_bias_m"
 _SPATIAL_BIAS_BLOCK = "depth_spatial_constant_bias_m"
@@ -966,16 +975,28 @@ def _build_xyz_pair_problem(
         transform_target_source = target_frame.transform_world_camera.inverse().compose(
             source_frame.transform_world_camera
         )
+        query = (
+            _query_snapshot(target_plane_map)
+            if nearest_voxel_plane_match is _INITIAL_MATCH_IMPLEMENTATION else None
+        )
+        initial_matches = _pair_matches(
+            sampled_points[source_index], transform_target_source, query,
+            voxel_size_m=options.voxel_size_m,
+            correspondence_gate_m=options.correspondence_gate_m,
+        )
         group = f"tum-xyz-pair-{source_index:03d}-{target_index:03d}"
         candidates: list[tuple[JointTrilinearXYZPairMeasurement, _TUMXYZPairAssociation]] = []
         for point_index, source_point in enumerate(sampled_points[source_index]):
-            source_in_target = transform_target_source.transform_point(source_point)
-            match = nearest_voxel_plane_match(
-                source_in_target,
-                target_plane_map,
-                voxel_size_m=options.voxel_size_m,
-                correspondence_gate_m=options.correspondence_gate_m,
-            )
+            if initial_matches is None:
+                source_in_target = transform_target_source.transform_point(source_point)
+                match = nearest_voxel_plane_match(
+                    source_in_target,
+                    target_plane_map,
+                    voxel_size_m=options.voxel_size_m,
+                    correspondence_gate_m=options.correspondence_gate_m,
+                )
+            else:
+                match = initial_matches[point_index]
             if match is None:
                 continue
             target_point_index, target_point = _xyz_pair_representative_point(
@@ -2056,12 +2077,10 @@ def _build_map_planes(
     records: list[LivoxPointRecord] = []
     for frame in frames:
         image = read_tum_depth_png(root / frame.depth.path)
-        for point in sample_tum_depth_points(
+        points = sample_tum_depth_points(
             image, intrinsics, max_points=options.map_points_per_frame
-        ):
-            records.append(
-                LivoxPointRecord((*frame.transform_world_camera.transform_point(point), 0.0))
-            )
+        )
+        records.extend(_frame_records(frame, points))
     return build_voxel_plane_map(records, options.voxel_size_m)
 
 
@@ -2089,14 +2108,17 @@ def _build_problem(
     map_records: list[LivoxPointRecord] = []
     for frame in map_frames:
         image = read_tum_depth_png(root / frame.depth.path)
-        for point in sample_tum_depth_points(
+        points = sample_tum_depth_points(
             image,
             intrinsics,
             max_points=options.map_points_per_frame,
-        ):
-            world = frame.transform_world_camera.transform_point(point)
-            map_records.append(LivoxPointRecord((*world, 0.0), None))
+        )
+        map_records.extend(_frame_records(frame, points))
     plane_map = build_voxel_plane_map(map_records, options.voxel_size_m)
+    query = (
+        _query_snapshot(plane_map)
+        if nearest_voxel_plane is _INITIAL_PLANE_IMPLEMENTATION else None
+    )
     measurements: list[JointDepthPointToPlaneMeasurement] = []
     factors: list[JointResidualBlock] = []
     blocks: list[JointParameterBlock] = []
@@ -2125,20 +2147,23 @@ def _build_problem(
         )
         image = read_tum_depth_png(root / frame.depth.path)
         candidates: list[JointDepthPointToPlaneMeasurement] = []
-        for point_index, point in enumerate(
-            sample_tum_depth_points(
-                image,
-                intrinsics,
-                max_points=options.query_points_per_frame,
-            )
-        ):
-            world = frame.transform_world_camera.transform_point(point)
-            plane = nearest_voxel_plane(
-                world,
-                plane_map,
-                voxel_size_m=options.voxel_size_m,
-                correspondence_gate_m=options.correspondence_gate_m,
-            )
+        points = sample_tum_depth_points(
+            image, intrinsics, max_points=options.query_points_per_frame
+        )
+        initial_matches = _frame_matches(
+            frame, points, query, voxel_size_m=options.voxel_size_m,
+            correspondence_gate_m=options.correspondence_gate_m,
+        )
+        plane: _InitialPlane | None
+        for point_index, point in enumerate(points):
+            if initial_matches is None:
+                world = frame.transform_world_camera.transform_point(point)
+                plane = nearest_voxel_plane(
+                    world, plane_map, voxel_size_m=options.voxel_size_m,
+                    correspondence_gate_m=options.correspondence_gate_m,
+                )
+            else:
+                plane = initial_matches[point_index]
             if plane is None or plane.normal is None:
                 continue
             candidates.append(
