@@ -5,11 +5,10 @@ from __future__ import annotations
 import math
 import struct
 from collections import OrderedDict
-from contextlib import AbstractContextManager, nullcontext
 from dataclasses import dataclass, replace
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
@@ -22,7 +21,6 @@ from calibrex.core.result import Grade, MetricResult, ObservabilityResult
 from calibrex.data.inspect import DatasetInspection
 from calibrex.data.livox import (
     LivoxPointRecord,
-    VoxelPlaneMap,
     VoxelPlaneMatch,
     VoxelPlaneQueryContext,
     build_voxel_plane_map,
@@ -89,7 +87,6 @@ from calibrex.graph.joint_optimization import (
 )
 from calibrex.graph.joint_reassociation import (
     BackendNeutralJointReassociation,
-    JointReassociationCallback,
     JointReassociationOptions,
     JointReassociationProbeEvaluation,
     JointReassociationProbeOptions,
@@ -107,9 +104,6 @@ from calibrex.solvers._tum_initial_geometry import (
     _query_snapshot,
 )
 from calibrex.solvers.base import SolverAdapter, SolverAdapterResult
-
-if TYPE_CHECKING:
-    from calibrex.solvers._tum_probe_executor import _TUMProbePool
 
 NATIVE_TUM_JOINT_SLAC_BACKEND = "native_tum_joint_slac"
 _FACTOR_NAME = "tum_rgbd_joint_point_to_plane"
@@ -172,14 +166,11 @@ class TUMJointSlacOptions:
     xyz_pair_max_correspondences_per_pair: int = 120
     xyz_pair_stride: int = 1
     window_workers: int = 1
-    probe_workers: int = 1
     joint_evaluation_backend: _RGBDBackend = "numpy"
 
     def as_dict(self) -> dict[str, float | int | str | list[int]]:
         values: dict[str, float | int | str | list[int]] = {}
         for name, value in self.__dict__.items():
-            if name == "probe_workers" and value == 1:
-                continue
             if isinstance(value, tuple):
                 values[name] = list(value)
             elif isinstance(value, (float, int)):
@@ -431,27 +422,13 @@ def _evaluate_window_runs(
         spatial = _spatial_ablation_runs(config, runs, options)
         xyz = _xyz_ablation_runs(config, runs, options)
         pair = _xyz_pair_ablation_runs(root, intrinsics, config, runs, options)
-        resource: AbstractContextManager[_TUMProbePool | None] = nullcontext(None)
-        if options.probe_workers > 1:
-            from calibrex.solvers._tum_probe_executor import _effective_probe_workers, _TUMProbePool
-
-            workers = _effective_probe_workers(options)
-            if workers > 1:
-                resource = _TUMProbePool(workers)
-        with resource as probe_pool:
-            pair_reassociation = _xyz_pair_reassociation_runs(
-                config, pair, options, probe_pool=probe_pool
-            )
-            reassociation = _iterative_reassociation_runs(
-                root, intrinsics, config, spatial, options, probe_pool=probe_pool
-            )
         return _TUMWindowProducts(
             runs,
             spatial,
             xyz,
             pair,
-            pair_reassociation,
-            reassociation,
+            _xyz_pair_reassociation_runs(config, pair, options),
+            _iterative_reassociation_runs(root, intrinsics, config, spatial, options),
             _rematch_spatial_holdouts(root, intrinsics, spatial, options),
         )
 
@@ -914,7 +891,6 @@ def _xyz_pair_reassociation_runs(
     config: CalibrationConfig,
     baselines: tuple[_TUMXYZPairWindowRun, ...],
     options: TUMJointSlacOptions,
-    *, probe_pool: _TUMProbePool | None = None,
 ) -> tuple[_TUMXYZPairReassociationRun, ...]:
     controls = regular_lattice_control_points(
         minimum=_SPATIAL_LATTICE_MINIMUM_M,
@@ -951,12 +927,16 @@ def _xyz_pair_reassociation_runs(
             ),
         )
         terminal_state = callback(refined.final_result.optimized_values)
-        probes = _evaluate_tum_probes(
+        probes = evaluate_joint_reassociation_probes(
             problem.parameter_blocks,
             initial_state,
             refined,
             callback,
-            options, probe_pool=probe_pool, kind="pair", subject=problem,
+            JointReassociationProbeOptions(
+                unmatched_residual_penalty=(options.reassociation_unmatched_residual_penalty_m),
+                known_bad_margin=options.known_bad_margin_m,
+                minimum_retained_fraction=(options.reassociation_min_train_retained_fraction),
+            ),
         )
         runs.append(
             _TUMXYZPairReassociationRun(
@@ -1629,7 +1609,6 @@ def _iterative_reassociation_runs(
     config: CalibrationConfig,
     runs: tuple[_TUMSpatialWindowRun, ...],
     options: TUMJointSlacOptions,
-    *, probe_pool: _TUMProbePool | None = None,
 ) -> tuple[_TUMIterativeReassociationRun, ...]:
     output: list[_TUMIterativeReassociationRun] = []
     for run in runs:
@@ -1660,12 +1639,16 @@ def _iterative_reassociation_runs(
                 minimum_train_retained_fraction=(options.reassociation_min_train_retained_fraction),
             ),
         )
-        probe_evaluation = _evaluate_tum_probes(
+        probe_evaluation = evaluate_joint_reassociation_probes(
             blocks,
             initial_state,
             result,
             reassociate,
-            options, probe_pool=probe_pool, kind="spatial", subject=run, planes=plane_map,
+            JointReassociationProbeOptions(
+                unmatched_residual_penalty=(options.reassociation_unmatched_residual_penalty_m),
+                known_bad_margin=options.known_bad_margin_m,
+                minimum_retained_fraction=(options.reassociation_min_train_retained_fraction),
+            ),
         )
         output.append(
             _TUMIterativeReassociationRun(
@@ -1676,44 +1659,6 @@ def _iterative_reassociation_runs(
             )
         )
     return tuple(output)
-
-
-def _evaluate_tum_probes(
-    blocks: tuple[JointParameterBlock, ...], initial: JointReassociationState,
-    result: JointReassociationResult, callback: JointReassociationCallback,
-    options: TUMJointSlacOptions, *, probe_pool: _TUMProbePool | None,
-    kind: Literal["pair", "spatial"], subject: _TUMXYZPairProblem | _TUMSpatialWindowRun,
-    planes: VoxelPlaneMap | None = None,
-) -> JointReassociationProbeEvaluation:
-    policy = JointReassociationProbeOptions(
-        unmatched_residual_penalty=options.reassociation_unmatched_residual_penalty_m,
-        known_bad_margin=options.known_bad_margin_m,
-        minimum_retained_fraction=options.reassociation_min_train_retained_fraction,
-    )
-    if probe_pool is None:
-        return evaluate_joint_reassociation_probes(blocks, initial, result, callback, policy)
-    with probe_pool.callback(kind, subject, options, callback, planes) as proxy:
-        return evaluate_joint_reassociation_probes(
-            blocks, initial, result, proxy, policy, executor=probe_pool.executor,
-        )
-
-
-def _probe_execution_provenance(options: TUMJointSlacOptions) -> dict[str, object]:
-    if options.probe_workers == 1:
-        return {}
-    from calibrex.solvers._tum_probe_executor import _effective_probe_workers
-
-    workers = _effective_probe_workers(options)
-    return {"native_tum_joint_slac_probe_execution": {
-        "method": "native_tum_probe_execution/v0.1",
-        "backend": "process" if workers > 1 else "serial",
-        "requested_workers_per_window": options.probe_workers,
-        "effective_workers_per_window": workers,
-        "maximum_workers_per_window": 4,
-        "ordering": "parameter block, dimension, negative then positive step",
-        "worker_math_backend": "numpy",
-        "worker_callback_context_limit": 2,
-    }}
 
 
 def _initial_spatial_reassociation_state(
@@ -3519,7 +3464,6 @@ def _provenance(
         ],
         "native_tum_joint_slac_intrinsics": intrinsics.__dict__,
         "native_tum_joint_slac_options": options.as_dict(),
-        **_probe_execution_provenance(options),
         **({"native_tum_joint_slac_cuda": _cuda_identity()}
            if options.joint_evaluation_backend == "cuda" else {}),
         "native_tum_joint_slac_map_record_count": problem.map_record_count,
@@ -3970,7 +3914,6 @@ def _options(config: CalibrationConfig) -> TUMJointSlacOptions:
             defaults.xyz_pair_stride,
         ),
         window_workers=_integer(values, "window_workers", defaults.window_workers),
-        probe_workers=_integer(values, "probe_workers", defaults.probe_workers),
         joint_evaluation_backend=_joint_backend(values),
     )
 
