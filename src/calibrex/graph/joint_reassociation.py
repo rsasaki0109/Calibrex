@@ -12,6 +12,8 @@ from calibrex.evaluation.correspondence import (
     CorrespondenceStabilityEvaluation,
     evaluate_correspondence_stability,
 )
+from calibrex.graph._point_plane_batches import _OwnedPointFactors
+from calibrex.graph._rgbd_scoring import _native_residuals
 from calibrex.graph.joint_optimization import (
     BackendNeutralJointOptimizer,
     JointOptimizerOptions,
@@ -722,6 +724,23 @@ def _fixed_population_rmse(
     unmatched_penalty: float,
 ) -> tuple[float, int]:
     factors = {factor.factor_id: factor for factor in state.factors}
+    if (
+        type(state.factors) is _OwnedPointFactors
+        and type(population) is tuple
+        and all(type(query_id) is str for query_id in population)
+        and all(type(factor) is JointResidualBlock and type(factor.factor_id) is str
+                for factor in state.factors)
+    ):
+        selected = tuple(factors[query_id] for query_id in population if query_id in factors)
+        native = _native_residuals(selected, values, scalar_factors=True)
+        if native is not None:
+            squared_by_query = iter(value * value for value in native)
+            scores = [
+                next(squared_by_query) if query_id in factors
+                else unmatched_penalty * unmatched_penalty
+                for query_id in population
+            ]
+            return math.sqrt(sum(scores) / len(scores)), len(native)
     squared_scores: list[float] = []
     matched = 0
     for query_id in population:
