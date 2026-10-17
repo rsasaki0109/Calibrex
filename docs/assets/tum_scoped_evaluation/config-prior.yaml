@@ -1,0 +1,179 @@
+schema_version: slac.config/v0.1
+project:
+  name: tum_rgbd_freiburg1_xyz_native_joint_slac
+  description: Native pose/extrinsic/depth-scale/bias joint calibration on TUM fr1/xyz
+  output_dir: C:\Users\rsasa\Workspace\Calibrex\outputs\tum-scoped-evaluation-production-v5\shared-output
+  domain: robotics
+dataset:
+  type: tum_rgbd
+  path: C:\Users\rsasa\Workspace\Calibrex\data\public\rgbd_dataset_freiburg1_xyz
+  time_base: sensor_time_sec
+sensors:
+  rgbd0:
+    type: camera
+    model: tum_rgbd_registered_depth
+    frame_id: rgbd0
+    intrinsics:
+      estimate: false
+      fx: 525.0
+      fy: 525.0
+      cx: 319.5
+      cy: 239.5
+      distortion_model: none
+frames:
+  world:
+    root: true
+  trajectory_body:
+    parent: world
+    transform:
+      estimate: false
+  rgbd0:
+    parent: trajectory_body
+    transform:
+      estimate: true
+      initial:
+        translation:
+        - 0.0
+        - 0.0
+        - 0.0
+        rotation_quat_xyzw:
+        - 0.0
+        - 0.0
+        - 0.0
+        - 1.0
+pipeline:
+  type: multi_sensor_slac
+  frontends:
+  - tum_depth_png
+  - tum_groundtruth_trajectory
+  factors:
+    tum_rgbd_joint_point_to_plane:
+      enabled: true
+      options:
+        frame_start_index: 180
+        frame_stride: 10
+        map_frame_count: 3
+        query_frame_count: 8
+        map_points_per_frame: 5000
+        query_points_per_frame: 1000
+        max_correspondences_per_frame: 400
+        voxel_size_m: 0.1
+        correspondence_gate_m: 0.15
+        max_pose_time_delta_sec: 0.02
+        pose_prior_translation_sigma_m: 0.01
+        pose_prior_rotation_sigma_deg: 0.5
+        holdout_ratio: 0.25
+        huber_delta_m: 0.05
+        known_bad_translation_m: 0.03
+        known_bad_rotation_deg: 0.5
+        known_bad_depth_log_scale: 0.02
+        known_bad_depth_bias_m: 0.02
+        reference_translation_gate_m: 0.05
+        reference_rotation_gate_deg: 1.0
+        reference_depth_scale_error_gate_percent: 2.0
+        reference_depth_bias_gate_m: 0.03
+        replication_start_indices:
+        - 60
+        - 180
+        - 300
+        cross_window_nondegradation_margin_m: 0.005
+        spatial_lattice_smoothness_sigma_m: 0.05
+        spatial_lattice_zero_mean_sigma_m: 0.0001
+        reassociation_max_outer_iterations: 2
+        reassociation_min_train_pair_jaccard: 0.99
+        reassociation_min_train_retained_fraction: 0.95
+        reassociation_unmatched_residual_penalty_m: 0.15
+        xyz_lattice_shape_sigma_m: 0.05
+        xyz_lattice_translation_gauge_sigma_m: 0.0001
+        xyz_lattice_rotation_gauge_sigma_rad: 0.0001
+        xyz_lattice_local_rotation_updates: 1
+        xyz_pair_max_correspondences_per_pair: 60
+        xyz_pair_stride: 1
+solver:
+  backend: native_tum_joint_slac
+  max_iterations: 20
+  robust_loss: huber
+  convergence_tolerance: 1.0e-06
+  seed: 23
+evaluation:
+  holdout_ratio: 0.25
+  metrics:
+  - tum_joint_point_to_plane_rmse_m
+  - tum_joint_augmented_information_rank
+  - tum_joint_train_factor_family_count
+  - tum_joint_train_max_family_information_fraction
+  - tum_joint_schur_solver_used
+  - tum_joint_schur_eliminated_dimension
+  - tum_joint_schur_retained_dimension
+  - tum_joint_schur_step_count
+  - tum_joint_schur_linear_residual_inf
+  - tum_joint_schur_complement_condition_number
+  - tum_joint_data_only_extrinsic_rank
+  - tum_joint_data_only_extrinsic_condition_number
+  - tum_joint_data_only_shared_rank
+  - tum_joint_data_only_shared_condition_number
+  - tum_joint_depth_scale_reference_error_percent
+  - tum_joint_depth_bias_reference_error_m
+  - tum_joint_known_bad_detectable_fraction
+  - tum_joint_identity_reference_translation_error_m
+  - tum_joint_identity_reference_rotation_error_deg
+  - tum_joint_replication_window_count
+  - tum_joint_replication_converged_fraction
+  - tum_joint_replication_reference_pass_fraction
+  - tum_joint_replication_depth_scale_range_percent
+  - tum_joint_replication_depth_bias_range_m
+  - tum_joint_cross_window_max_holdout_delta_rmse_m
+  - tum_joint_cross_window_nondegrading_fraction
+  - tum_joint_spatial_ablation_converged_fraction
+  - tum_joint_spatial_ablation_holdout_improved_fraction
+  - tum_joint_spatial_ablation_worst_holdout_delta_rmse_m
+  - tum_joint_spatial_lattice_max_abs_offset_m
+  - tum_joint_spatial_constant_bias_range_m
+  - tum_joint_spatial_known_bad_detectable_fraction_min
+  - tum_joint_spatial_cross_window_max_holdout_delta_rmse_m
+  - tum_joint_spatial_cross_window_nondegrading_fraction
+  - tum_joint_xyz_ablation_window_count
+  - tum_joint_xyz_ablation_converged_fraction
+  - tum_joint_xyz_ablation_holdout_improved_fraction
+  - tum_joint_xyz_ablation_worst_holdout_delta_rmse_m
+  - tum_joint_xyz_data_only_field_rank_min
+  - tum_joint_xyz_data_only_shared_rank_min
+  - tum_joint_xyz_lattice_max_abs_offset_m
+  - tum_joint_xyz_pair_holdout_improved_fraction
+  - tum_joint_xyz_pair_data_only_field_rank_min
+  - tum_joint_xyz_pair_known_bad_detectable_fraction_min
+  - tum_joint_xyz_pair_reassociation_train_pair_jaccard_min
+  - tum_joint_xyz_pair_reassociation_aware_probe_detectable_fraction_min
+  - tum_joint_xyz_pair_reassociation_support_collapse_fraction_max
+  - tum_joint_xyz_local_rotation_update_max_deg
+  - tum_joint_xyz_known_bad_detectable_fraction_min
+  - tum_joint_xyz_cross_window_max_holdout_delta_rmse_m
+  - tum_joint_xyz_cross_window_nondegrading_fraction
+  - tum_joint_reassociation_window_count
+  - tum_joint_reassociation_converged_fraction
+  - tum_joint_reassociation_train_pair_jaccard_min
+  - tum_joint_reassociation_train_retained_query_fraction_min
+  - tum_joint_reassociation_holdout_pair_jaccard_min
+  - tum_joint_reassociation_holdout_rmse_delta_max_m
+  - tum_joint_reassociation_outer_iterations_max
+  - tum_joint_reassociation_known_bad_detectable_fraction_min
+  - tum_joint_reassociation_aware_known_bad_detectable_fraction_min
+  - tum_joint_reassociation_aware_probe_valid_fraction_min
+  - tum_joint_reassociation_aware_support_collapse_fraction_max
+  - tum_joint_reassociation_aware_pair_jaccard_min
+  - tum_joint_reassociation_aware_baseline_retained_fraction_min
+  - tum_joint_rematch_pair_jaccard_min
+  - tum_joint_rematch_retained_query_fraction_min
+  - tum_joint_rematch_same_target_fraction_min
+  - tum_joint_rematch_best_holdout_delta_rmse_m
+  - tum_joint_rematched_curvature_rank_min
+  - tum_joint_rematched_negative_curvature_count_max
+  - tum_joint_curvature_relative_hessian_difference_max
+  - tum_joint_multistart_converged_fraction
+  - tum_joint_multistart_basin_count
+  - tum_joint_multistart_competitive_basin_count
+  - tum_joint_multistart_ambiguity
+outputs:
+  result: result.yaml
+  report: report.html
+  artifacts_dir: artifacts

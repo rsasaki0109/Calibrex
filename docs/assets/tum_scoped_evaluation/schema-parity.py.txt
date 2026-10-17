@@ -1,0 +1,30 @@
+"""Check all public schemas on both exact measured runtime trees."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+ROOT=Path(__file__).resolve().parent
+FROZEN=ROOT/'outputs/tum-scoped-evaluation-production-v5'
+OUT=ROOT/'outputs/tse-validation-v1'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+for variant in ('prior','current'):
+    source=FROZEN/('sources-'+variant)
+    target=OUT/('schemas-'+variant)
+    env=os.environ.copy()
+    env.update(PYTHONPATH=str(source/'src'),PYTHONNOUSERSITE='1',PYTHONDONTWRITEBYTECODE='1')
+    code="from calibrex.cli.main import main; import sys; raise SystemExit(main(['schema','all','--output-dir',sys.argv[1]]))"
+    done=subprocess.run([sys.executable,'-c',code,str(target)],cwd=source,env=env,capture_output=True)
+    (OUT/(variant+'-schemas.stdout.txt')).write_bytes(done.stdout)
+    (OUT/(variant+'-schemas.stderr.txt')).write_bytes(done.stderr)
+    assert done.returncode==0, done.stderr
+names={p.name for p in (OUT/'schemas-prior').glob('*.json')}
+assert len(names)==130 and names=={p.name for p in (OUT/'schemas-current').glob('*.json')}
+exports={name:{v:sha(OUT/('schemas-'+v)/name) for v in ('prior','current')} for name in sorted(names)}
+assert all(v['prior']==v['current'] for v in exports.values())
+assert all(json.loads((OUT/'schemas-current'/name).read_bytes())==json.loads((ROOT/'schemas'/name).read_bytes()) for name in names)
+value=dict(schema_exports_and_ledger=130,all_exports_byte_identical=True,committed_schemas_semantically_equal=True,hashes=exports,provenance=dict(generator_sha256=sha(Path(__file__)),protocol_sha256=sha(FROZEN/'provenance.json')))
+(OUT/'schema-parity.json').write_text(json.dumps(value,indent=2)+'\n',encoding='utf-8')
+print('All 129 public schemas and their ledger match exactly.')
