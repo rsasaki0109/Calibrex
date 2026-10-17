@@ -52,7 +52,7 @@ from calibrex.evaluation.numerical_curvature import (
     NumericalCurvatureEvaluation,
     evaluate_numerical_curvature,
 )
-from calibrex.graph._evaluation_scope import _with_rgbd_factory_cache
+from calibrex.graph._evaluation_scope import _with_evaluation_cache, _with_rgbd_factory_cache
 from calibrex.graph._point_plane_batches import _OwnedPointFactors, _transform_points
 from calibrex.graph._rgbd_execution import _cuda_identity, _RGBDBackend, _using_rgbd_backend
 from calibrex.graph.joint_factors import (
@@ -1166,6 +1166,7 @@ def _xyz_pair_calibrated_point(point: Vector3, offsets: tuple[float, ...]) -> Ve
     )  # type: ignore[return-value]
 
 
+@_with_rgbd_factory_cache
 def _xyz_pair_reassociation_state(
     problem: _TUMXYZPairProblem,
     values: ParameterValues,
@@ -1686,6 +1687,7 @@ def _initial_spatial_reassociation_state(
     return JointReassociationState(run.data_factors, tuple(assignments))
 
 
+@_with_rgbd_factory_cache
 def _reassociated_spatial_state(
     run: _TUMSpatialWindowRun,
     plane_map: dict[tuple[int, int, int], Any],
@@ -2501,6 +2503,7 @@ def _metrics(
     }
 
 
+@_with_evaluation_cache
 def _factor_rmse(
     factors: list[JointResidualBlock], values: dict[str, tuple[float, ...]]
 ) -> float | None:

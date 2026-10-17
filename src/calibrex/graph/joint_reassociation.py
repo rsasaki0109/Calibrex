@@ -12,6 +12,7 @@ from calibrex.evaluation.correspondence import (
     CorrespondenceStabilityEvaluation,
     evaluate_correspondence_stability,
 )
+from calibrex.graph._evaluation_scope import _with_evaluation_cache
 from calibrex.graph.joint_optimization import (
     BackendNeutralJointOptimizer,
     JointOptimizerOptions,
@@ -715,6 +716,7 @@ def _population_assignments(
     )
 
 
+@_with_evaluation_cache
 def _fixed_population_rmse(
     state: JointReassociationState,
     values: ParameterValues,
