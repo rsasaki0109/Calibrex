@@ -1,0 +1,85 @@
+"""Small captured queries keep scalar identities, gates, ties and float bits."""
+
+from dataclasses import asdict
+
+import numpy as np
+import pytest
+from tests.unit.test_livox_batched_evaluation import _map
+
+from calibrex.data import livox
+
+
+def _bits(matches):
+    return [
+        None
+        if m is None
+        else (
+            m.voxel_key,
+            np.asarray((*m.centroid, *m.normal, m.centroid_distance_m), dtype="<f8").tobytes(),
+        )
+        for m in matches
+    ]
+
+
+@pytest.mark.parametrize("count", [0, 1, 7, 8, 17, 63, 64])
+@pytest.mark.parametrize("gate", [0.0, 0.75, float("inf"), float("nan")])
+def test_every_small_match_keeps_scalar_identity_distance_and_order(count, gate, monkeypatch):
+    context = livox.VoxelPlaneQueryContext(_map())
+    points = np.random.default_rng(32).uniform(-4, 4, (count, 3))
+    options = {"voxel_size_m": 1.0, "correspondence_gate_m": gate}
+    expected = [context.nearest_match(tuple(point), **options) for point in points.tolist()]
+    calls, original = [], livox._packed_plane_positions
+
+    def packed(*args):
+        calls.append(len(args[0]))
+        return original(*args)
+
+    monkeypatch.setattr(livox, "_packed_plane_positions", packed)
+    assert _bits(context.nearest_matches(points, **options)) == _bits(expected)
+    assert bool(calls) == (count >= 8)
+
+
+def test_small_queries_preserve_first_tie_and_reject_normal_less_nearest():
+    first = livox._VoxelPlane(count=1, normal_x_sum=1.0, normal_count=1)
+    second = livox._VoxelPlane(count=1, x_sum=2.0, normal_y_sum=1.0, normal_count=1)
+    planes = {(2, 0, 0): second, (0, 0, 0): first}
+    points = np.asarray([(1.0, -0.0, 0.0)] * 8)
+    options = {"voxel_size_m": 1.0, "correspondence_gate_m": 5.0}
+    context = livox.VoxelPlaneQueryContext(planes)
+    assert all(m.voxel_key == (0, 0, 0) for m in context.nearest_matches(points, **options))
+    first.normal_count = 0
+    context = livox.VoxelPlaneQueryContext(planes)
+    assert context.nearest_matches(points, **options) == [None] * 8
+
+
+@pytest.mark.parametrize("dtype", [np.float32, object])
+def test_non_native_small_arrays_keep_original_scalar_conversion(dtype, monkeypatch):
+    context = livox.VoxelPlaneQueryContext(_map())
+    points = np.asarray([(0.3, 0.2, 0.1)] * 17, dtype=dtype)
+    options = {"voxel_size_m": 1.0, "correspondence_gate_m": 1.5}
+    expected = [
+        context.nearest_match(tuple(float(v) for v in point), **options) for point in points
+    ]
+
+    def unexpected(*args):
+        raise AssertionError("non-native small batch used packed lookup")
+
+    monkeypatch.setattr(livox, "_packed_plane_positions", unexpected)
+    assert [asdict(m) if m else None for m in context.nearest_matches(points, **options)] == [
+        asdict(m) if m else None for m in expected
+    ]
+
+
+@pytest.mark.parametrize("coordinate,voxel", [(1e20, 1.0), (float("nan"), 1.0), (1.0, 0.0)])
+def test_small_unusual_voxel_keys_keep_scalar_results_or_errors(coordinate, voxel):
+    records = [livox.LivoxPointRecord((0.0, 0.0, 0.0, 0.0), (1.0, 0.0, 0.0))]
+    context = livox.VoxelPlaneQueryContext(livox.build_voxel_plane_map(records, 1.0))
+    points = np.asarray([(coordinate, 0.0, 0.0)] * 8)
+    options = {"voxel_size_m": voxel, "correspondence_gate_m": 1.5}
+    try:
+        expected = [context.nearest_match(tuple(point), **options) for point in points.tolist()]
+    except (ValueError, OverflowError, ZeroDivisionError) as error:
+        with pytest.raises(type(error)):
+            context.nearest_matches(points, **options)
+    else:
+        assert _bits(context.nearest_matches(points, **options)) == _bits(expected)
