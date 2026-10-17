@@ -1,0 +1,21 @@
+"""Keep the official result schema's local references rooted in the wrapper."""
+import hashlib
+import json
+from pathlib import Path
+import shutil
+root=Path(__file__).resolve().parent
+target=root/'docs/assets/tum_diagnostic_execution'
+p=target/'record-schemas.json'
+value=json.loads(p.read_bytes())
+public=value['calibration-result']
+value['result']={'$schema':'https://json-schema.org/draft/2020-12/schema',
+    '$defs':dict(public['$defs'],CalibrationResult={k:v for k,v in public.items() if k!='$defs'}),
+    'type':'object','additionalProperties':False,'required':['payload','provenance'],
+    'properties':{'payload':{'$ref':'#/$defs/CalibrationResult'},'provenance':{'type':'object'}}}
+p.write_bytes((json.dumps(value,indent=2)+'\n').encode())
+shutil.copyfile(Path(__file__),target/'schema-compactor-v2.py.txt')
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+index=json.loads((target/'index.json').read_bytes())
+index['files']={p.relative_to(target).as_posix():{'sha256':sha(p),'size_bytes':p.stat().st_size}
+    for p in sorted(target.rglob('*')) if p.is_file() and p.name!='index.json'}
+(target/'index.json').write_bytes((json.dumps(index,indent=2)+'\n').encode())
