@@ -347,12 +347,21 @@ class _RGBDPlan:
         layout: dict[str, slice],
         options: JointOptimizerOptions,
     ) -> tuple[_FloatArray, _FloatArray]:
+        from calibrex.graph._rgbd_field_columns import _field_columns
         from calibrex.graph.joint_optimization import _perturb
 
         baseline = self.evaluate(values)
         jacobian = np.zeros((self.size, sum(s.stop - s.start for s in layout.values())))
         by_name = {block.name: block for block in blocks}
         for name, column in layout.items():
+            block = by_name[name]
+            if (
+                block.dimension >= 8
+                and any(name in group.names[2:] for group in self.groups)
+                and not any(name in group.names[:2] for group in self.groups)
+            ):
+                _field_columns(self, values, name, block, options, jacobian[:, column])
+                continue
             affected = np.zeros(self.size, dtype=np.bool_)
             for group in self.groups:
                 if name in group.names:
@@ -360,7 +369,6 @@ class _RGBDPlan:
             for row, dimension, factor in self.scalars:
                 if name in factor.variable_names:
                     affected[row : row + dimension] = True
-            block = by_name[name]
             for index in range(block.dimension):
                 step = (
                     block.finite_difference_steps[index]

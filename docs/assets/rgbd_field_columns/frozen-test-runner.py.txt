@@ -1,0 +1,57 @@
+"""Run cross-platform tests against the exact measured source capsule."""
+import hashlib
+import importlib.metadata
+import json
+import os
+from pathlib import Path
+import sys
+root = Path(__file__).resolve().parent
+source = root / "outputs/rgbd-field-columns-pairs-v1/sources-current/src"
+output = root / "outputs/rgbd-field-columns-validation-v1"
+mode = sys.argv[1]
+platform = "windows" if os.name == "nt" else "linux"
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(source))
+sys.path.insert(1, str(root))
+import calibrex
+import pytest
+assert Path(calibrex.__file__).resolve().is_relative_to(source.resolve())
+tests = {
+    "core":["test_rgbd_field_columns", "test_yaml_emission", "test_result_provenance", "test_tum_window_processes", "test_tum_depth_frontend", "test_dataset", "test_tum_diagnostic_batches", "test_rgbd_transform_reuse", "test_joint_reassociation",
+            "test_multistart", "test_numerical_curvature", "test_joint_factors",
+            "test_joint_optimization", "test_livox_batched_evaluation"],
+    "archive":["test_yaml_emission_benchmark"],
+    "registry":["test_schema_registry"],
+}[mode]
+args = ["tests/unit/" + name + ".py" for name in tests]
+test_files = {name:hashlib.sha256((root / name).read_bytes()).hexdigest() for name in args}
+args += ["--basetemp="+str(output / ("tmp-"+platform+"-"+mode)),
+         "-o", "cache_dir="+str(output / ("cache-"+platform)),
+         "-o", "pythonpath="+str(source)+" "+str(root)]
+status = pytest.main(args)
+assert all(hashlib.sha256((root / name).read_bytes()).hexdigest() == digest
+           for name,digest in test_files.items())
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+imports = {}
+for name, module in sys.modules.copy().items():
+    if name == "calibrex" or name.startswith("calibrex."):
+        path = Path(module.__file__).resolve()
+        assert path.is_relative_to(source.resolve()), (name, path)
+        imports[name] = {"path":path.relative_to(source).as_posix(),"sha256":sha(path)}
+manifest = json.loads((source.parent / "manifest.json").read_bytes())
+actual = {p.relative_to(source).as_posix():sha(p) for p in (source / "calibrex").rglob("*.py")}
+assert actual == manifest
+environment = {
+    "python":sys.version,
+    "packages":{name:importlib.metadata.version(name) for name in ('numpy','scipy','pydantic','PyYAML','jsonschema','pytest')},
+    "imports":imports,"exit_status":int(status),
+    "test_files_sha256":test_files,
+    "provenance":{"runner_sha256":sha(Path(__file__)),"sources":actual,
+                  "git_commit":json.loads((source.parent.parent / "provenance.json").read_bytes())["commits"]["current"],
+                  "benchmark_provenance_sha256":sha(root / "outputs/rgbd-field-columns-pairs-v1/provenance.json"),
+                  "scope":"Tests against the frozen RGB-D field-column implementation; no test timing speed claim"},
+}
+(output / (mode+"-"+platform+"-environment.json")).write_text(json.dumps(environment,indent=2)+"\n",encoding="utf-8")
+if mode == "core":
+    (output / (platform+"-environment.json")).write_text(json.dumps(environment,indent=2)+"\n",encoding="utf-8")
+raise SystemExit(status)
