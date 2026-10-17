@@ -128,3 +128,23 @@ def test_nested_score_scopes_restore_outer_state_even_on_error():
         assert scores._SCORES.get() is current
     outer()
     assert scores._SCORES.get() is None
+
+
+def test_frame_guard_budget_exhaustion_keeps_the_scalar_path(monkeypatch):
+    from calibrex.graph import _rgbd_batches
+
+    monkeypatch.setattr(_rgbd_batches, "_MAX_GROUPS", 1)
+    problem = _pair_problem()
+    values = _values(problem.query_frames)
+    population = ("pair-0-1", "pair-1-1")
+
+    @scores._with_probe_scores
+    def check():
+        scores._set_probe_population(population)
+        state = a._xyz_pair_reassociation_state(problem, values, a.TUMJointSlacOptions())
+        assert scores._captured_scores(state, values, population) is None
+        expected = _scalar_score(state, values, population, 0.15)
+        actual = r._fixed_population_rmse(state, values, population, 0.15)
+        assert actual[0].hex() == expected[0].hex() and actual[1] == expected[1]
+
+    check()

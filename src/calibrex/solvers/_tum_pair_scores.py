@@ -60,6 +60,9 @@ class _PairProbeScores:
         if not self.active or not rows:
             return
         expected_frame = _frame_key(source_initial, target_initial, self.frames)
+        if (id(source_initial), id(target_initial)) not in self.frames:
+            self.active = False
+            return
         normals = []
         for position, target_row, factor in rows:
             binding = _rgbd_binding(factor)
@@ -89,6 +92,10 @@ class _PairProbeScores:
                 self.active = False
                 return
             normals.append(binding.normal)
+            if (id(m.transform_world_source_initial), id(m.transform_world_target_initial)) \
+                    not in self.frames:
+                self.active = False
+                return
             # Detect edits to an otherwise frozen native measurement before use.
             self.owners.append((factor, binding, (
                 factor.factor_id, m.source_point_sensor_m, m.target_point_sensor_m,
