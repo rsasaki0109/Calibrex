@@ -12,6 +12,7 @@ from tests.unit.test_tum_initial_geometry import _canonical, _fixture
 from calibrex.core import geometry
 from calibrex.core.geometry import SE3
 from calibrex.data.tum_rgbd import TUMDepthPoseEntry, TUMImageEntry, TUMTrajectoryEntry
+from calibrex.graph import _rgbd_batches as batches
 from calibrex.graph import joint_factors as factors
 from calibrex.graph._evaluation_scope import (
     _RGBD_FACTORY_CACHE,
@@ -203,3 +204,64 @@ def test_non_native_frame_values_keep_scalar_conversions():
         0.0,
     )
     assert initial._frame_initial_transforms(frame) is None
+
+
+def test_plan_frame_keys_revalidate_mutation_range_and_signed_zero(monkeypatch):
+    world, sensor, cache = SE3.identity(), SE3.identity(), {}
+    calls = []
+    original = batches._frame
+
+    def validate(frame):
+        calls.append(frame)
+        return original(frame)
+
+    monkeypatch.setattr(batches, "_frame", validate)
+    positive = batches._frame_key(world, sensor, cache)
+    assert batches._frame_key(world, sensor, cache) == positive
+    assert len(calls) == 2
+    object.__setattr__(world, "translation_m", (-0.0, 0.0, 0.0))
+    negative = batches._frame_key(world, sensor, cache)
+    assert negative != positive and len(calls) == 4
+    object.__setattr__(sensor, "translation_m", (1.0e13, 0.0, 0.0))
+    assert batches._frame_key(world, sensor, cache) is None
+    assert len(calls) == 6
+
+
+def test_plan_frame_key_cache_has_a_fixed_construction_bound():
+    cache, sensor = {}, SE3.identity()
+    for i in range(batches._MAX_GROUPS + 10):
+        world = SE3((float(i), 0.0, 0.0), (0.0, 0.0, 0.0, 1.0))
+        assert batches._frame_key(world, sensor, cache) is not None
+        assert len(cache) <= batches._MAX_GROUPS
+    assert len(cache) == batches._MAX_GROUPS
+
+
+@pytest.mark.parametrize("shape", [(2, 2, 2), (3, 3, 3), (4, 4, 4)])
+@pytest.mark.parametrize("scale", [0.0, 1.0e-310, 0.01, 1.0e10])
+def test_batched_rigid_gauge_cross_products_retain_every_residual_bit(shape, scale, monkeypatch):
+    controls = factors.regular_lattice_control_points(
+        minimum=(-3.1, -2.4, 0.2), maximum=(3.1, 2.4, 5.0), shape=shape
+    )
+    factor = factors.make_joint_xyz_lattice_rigid_gauge_factor(
+        factor_id="gauge",
+        observation_group="regularization",
+        block="field",
+        control_points_m=controls,
+        translation_sigma_m=1.0e-4,
+        rotation_sigma_rad=1.0e-4,
+    )
+    values = {
+        "field": tuple(scale * math.sin(i) if i % 3 else -scale for i in range(3 * len(controls)))
+    }
+    original, calls = np.cross, []
+
+    def cross(left, right):
+        calls.append((left.shape, right.shape))
+        return original(left, right)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(np, "cross", cross)
+        expected = factor.residuals(values)
+    assert len(calls) == len(controls)
+    assert all(a == b == (3,) for a, b in calls)
+    assert np.asarray(factor.residuals(values)).tobytes() == np.asarray(expected).tobytes()

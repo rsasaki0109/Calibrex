@@ -33,6 +33,7 @@ from calibrex.graph.joint_optimization import (
 )
 
 FloatArray: TypeAlias = NDArray[np.float64]
+_CROSS_IMPLEMENTATION = np.cross
 
 
 @dataclass(frozen=True)
@@ -534,12 +535,19 @@ def make_joint_xyz_lattice_rigid_gauge_factor(
         offsets = np.asarray(raw, dtype=np.float64).reshape((-1, 3))
         mean = np.mean(offsets, axis=0)
         centered_offsets = offsets - mean
-        moment: FloatArray = sum(
-            (np.cross(position, displacement) for position, displacement in zip(
-                centered, centered_offsets, strict=True
-            )),
-            start=np.zeros(3, dtype=np.float64),
-        )
+        if np.cross is _CROSS_IMPLEMENTATION:
+            # Batch the independent cross products, retaining the original
+            # left-to-right vector additions and all their float rounding.
+            moment: FloatArray = sum(
+                np.cross(centered, centered_offsets), start=np.zeros(3, dtype=np.float64)
+            )
+        else:
+            moment = sum(
+                (np.cross(position, displacement) for position, displacement in zip(
+                    centered, centered_offsets, strict=True
+                )),
+                start=np.zeros(3, dtype=np.float64),
+            )
         rotation = inertia_inverse @ moment
         return (
             *(float(value) / translation_sigma_m for value in mean),
