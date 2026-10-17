@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
+from concurrent.futures import Executor
 from dataclasses import dataclass, replace
+from functools import partial
 from typing import Literal, TypeAlias
 
 from calibrex.evaluation.correspondence import (
@@ -430,8 +432,10 @@ def evaluate_joint_reassociation_probes(
     result: JointReassociationResult,
     reassociate: JointReassociationCallback,
     options: JointReassociationProbeOptions,
+    *,
+    executor: Executor | None = None,
 ) -> JointReassociationProbeEvaluation:
-    """Evaluate signed known-bad steps with rematching and a fixed holdout population."""
+    """Evaluate fixed-population probes, optionally mapping independent callbacks in order."""
 
     _validate_probe_options(options)
     blocks = tuple(parameter_blocks)
@@ -462,60 +466,10 @@ def evaluate_joint_reassociation_probes(
         options.unmatched_residual_penalty,
     )
     baseline_assignments = _population_assignments(baseline_state, population)
-    probes: list[JointReassociationProbe] = []
-    for block in blocks:
-        if block.fixed or not block.known_bad_steps:
-            continue
-        for dimension, step in enumerate(block.known_bad_steps):
-            for amount in (-step, step):
-                perturbed = _perturbed_values(values, block.name, dimension, amount)
-                try:
-                    state = reassociate(perturbed)
-                    error = _probe_state_error(state, query_groups)
-                    if error is not None:
-                        raise ValueError(error)
-                    perturbed_rmse, matched = _fixed_population_rmse(
-                        state,
-                        perturbed,
-                        population,
-                        options.unmatched_residual_penalty,
-                    )
-                    retained = matched / len(population)
-                    delta = perturbed_rmse - baseline_rmse
-                    stability = evaluate_correspondence_stability(
-                        baseline_assignments,
-                        _population_assignments(state, population),
-                    )
-                    probes.append(
-                        JointReassociationProbe(
-                            block.name,
-                            dimension,
-                            amount,
-                            baseline_rmse,
-                            perturbed_rmse,
-                            delta,
-                            delta > options.known_bad_margin,
-                            retained,
-                            retained < options.minimum_retained_fraction,
-                            stability,
-                        )
-                    )
-                except (KeyError, ValueError) as exc:
-                    probes.append(
-                        JointReassociationProbe(
-                            block.name,
-                            dimension,
-                            amount,
-                            baseline_rmse,
-                            None,
-                            None,
-                            None,
-                            None,
-                            None,
-                            None,
-                            str(exc),
-                        )
-                    )
+    context = _ProbeContext(
+        reassociate, query_groups, population, baseline_rmse, baseline_assignments, options
+    )
+    probes = _map_probe_tasks(_probe_tasks(blocks, values), context, executor)
     return JointReassociationProbeEvaluation(
         len(population),
         baseline_matched,
@@ -524,6 +478,77 @@ def evaluate_joint_reassociation_probes(
         options,
         tuple(probes),
     )
+
+
+@dataclass(frozen=True)
+class _ProbeTask:
+    ordinal: int
+    block: str
+    dimension: int
+    amount: float
+    values: dict[str, tuple[float, ...]]
+
+
+@dataclass(frozen=True)
+class _ProbeContext:
+    reassociate: JointReassociationCallback
+    query_groups: dict[str, str]
+    population: tuple[str, ...]
+    baseline_rmse: float
+    baseline_assignments: tuple[CorrespondenceAssignment, ...]
+    options: JointReassociationProbeOptions
+
+
+def _probe_tasks(
+    blocks: tuple[JointParameterBlock, ...], values: ParameterValues,
+) -> Iterator[_ProbeTask]:
+    ordinal = 0
+    for block in blocks:
+        if block.fixed or not block.known_bad_steps:
+            continue
+        for dimension, step in enumerate(block.known_bad_steps):
+            for amount in (-step, step):
+                yield _ProbeTask(
+                    ordinal, block.name, dimension, amount,
+                    _perturbed_values(values, block.name, dimension, amount),
+                )
+                ordinal += 1
+
+
+def _map_probe_tasks(
+    tasks: Iterable[_ProbeTask], context: _ProbeContext, executor: Executor | None,
+) -> tuple[JointReassociationProbe, ...]:
+    evaluate = partial(_evaluate_probe_task, context=context)
+    # Serial evaluation stays lazy, preserving callback and error order. Map's
+    # result order is also the public parameter/dimension/signed-step order.
+    return tuple(map(evaluate, tasks) if executor is None else executor.map(evaluate, tasks))
+
+
+def _evaluate_probe_task(task: _ProbeTask, *, context: _ProbeContext) -> JointReassociationProbe:
+    options = context.options
+    try:
+        state = context.reassociate(task.values)
+        error = _probe_state_error(state, context.query_groups)
+        if error is not None:
+            raise ValueError(error)
+        perturbed_rmse, matched = _fixed_population_rmse(
+            state, task.values, context.population, options.unmatched_residual_penalty,
+        )
+        retained = matched / len(context.population)
+        delta = perturbed_rmse - context.baseline_rmse
+        stability = evaluate_correspondence_stability(
+            context.baseline_assignments, _population_assignments(state, context.population),
+        )
+        return JointReassociationProbe(
+            task.block, task.dimension, task.amount, context.baseline_rmse,
+            perturbed_rmse, delta, delta > options.known_bad_margin, retained,
+            retained < options.minimum_retained_fraction, stability,
+        )
+    except (KeyError, ValueError) as exc:
+        return JointReassociationProbe(
+            task.block, task.dimension, task.amount, context.baseline_rmse,
+            None, None, None, None, None, None, str(exc),
+        )
 
 
 def _validate_options(options: JointReassociationOptions) -> None:
