@@ -383,3 +383,10 @@ batches native pose transforms and captures voxel-plane geometry for initial
 world and pair matches. It checks complete frontend and optimizer histories on
 the dense graph and retains a separate original multi-window suite comparison;
 the larger preparation gain does not apply to the smaller suite's whole runtime.
+
+The [optional CUDA execution comparison](../benchmarks/cuda_rgbd_joint.md)
+keeps native geometry and calibrated points on the device and evaluates the
+same residuals and finite differences in FP64. It records GPU startup and
+compilation in the dense-graph timings and preserves all numerical histories.
+The original smaller suite does not establish a speedup, so NumPy remains the
+default and small native batches avoid CUDA initialization.

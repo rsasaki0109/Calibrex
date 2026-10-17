@@ -1,0 +1,76 @@
+{
+  "frontend_seconds_median": {
+    "numpy": 5.235433500027284,
+    "cuda": 5.888827899936587
+  },
+  "frontend_speedup": 0.8890450848603779,
+  "optimizer_seconds_median": {
+    "numpy": 10.69917850010097,
+    "cuda": 4.4075964000076056
+  },
+  "optimizer_speedup": 2.4274406114140823,
+  "whole_seconds_median": {
+    "numpy": 19.659309300011955,
+    "cuda": 14.484211700037122
+  },
+  "whole_speedup": 1.3572923198824531,
+  "complete_result_and_histories_exact": true,
+  "complete_frontend_exact": true,
+  "attempts": [
+    {
+      "folder": "01-cuda",
+      "variant": "cuda",
+      "whole_seconds": 14.703668200061657,
+      "exit_code": 0,
+      "optimizer_seconds": 4.4075964000076056,
+      "data_factors": 27544,
+      "frontend_seconds": 6.34094530006405
+    },
+    {
+      "folder": "02-numpy",
+      "variant": "numpy",
+      "whole_seconds": 18.99746069998946,
+      "exit_code": 0,
+      "optimizer_seconds": 10.23705430002883,
+      "data_factors": 27544,
+      "frontend_seconds": 5.144118100055493
+    },
+    {
+      "folder": "03-numpy",
+      "variant": "numpy",
+      "whole_seconds": 19.763826800044626,
+      "exit_code": 0,
+      "optimizer_seconds": 10.69917850010097,
+      "data_factors": 27544,
+      "frontend_seconds": 5.4514049999415874
+    },
+    {
+      "folder": "04-cuda",
+      "variant": "cuda",
+      "whole_seconds": 14.484211700037122,
+      "exit_code": 0,
+      "optimizer_seconds": 4.670081099960953,
+      "data_factors": 27544,
+      "frontend_seconds": 5.888827899936587
+    },
+    {
+      "folder": "05-cuda",
+      "variant": "cuda",
+      "whole_seconds": 13.561906399903819,
+      "exit_code": 0,
+      "optimizer_seconds": 4.2958313000854105,
+      "data_factors": 27544,
+      "frontend_seconds": 5.475841199979186
+    },
+    {
+      "folder": "06-numpy",
+      "variant": "numpy",
+      "whole_seconds": 19.659309300011955,
+      "exit_code": 0,
+      "optimizer_seconds": 10.758298799977638,
+      "data_factors": 27544,
+      "frontend_seconds": 5.235433500027284
+    }
+  ],
+  "provenance_sha256": "d01b3f9a9d8cec6793ed1748afb0adbabfbcc3219b48f86b637ced4e1d3b3ee1"
+}
