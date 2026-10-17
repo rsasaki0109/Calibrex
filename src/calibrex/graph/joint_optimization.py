@@ -594,7 +594,9 @@ def _linearize(
     if _rgbd_linearization_supported(blocks, options):
         rgbd = _prepare_rgbd_plan(factors, values)
         if rgbd is not None:
-            return rgbd.linearize(values, blocks, layout, options)
+            from calibrex.graph._rgbd_execution import _linearize_rgbd
+
+            return _linearize_rgbd(rgbd, values, blocks, layout, options)
     from calibrex.graph._point_plane_batches import (
         _linearization_supported,
         _prepare_point_plane_plan,
@@ -651,7 +653,9 @@ def _factor_residuals(
 
     rgbd = _prepare_rgbd_plan(factors, values)
     if rgbd is not None:
-        return rgbd.evaluate(values)
+        from calibrex.graph._rgbd_execution import _evaluate_rgbd
+
+        return _evaluate_rgbd(rgbd, values)
     from calibrex.graph._point_plane_batches import _prepare_point_plane_plan
 
     plan = _prepare_point_plane_plan(factors, values)
@@ -799,10 +803,15 @@ def _factor_family_diagnostics(
 ) -> tuple[JointFactorFamilyDiagnostic, ...]:
     if not factors:
         return ()
+    from calibrex.graph._rgbd_execution import _diagnostic_dimensions
+
+    dimensions = _diagnostic_dimensions(factors, values)
     family_rows: dict[str, list[int]] = {}
     row_cursor = 0
-    for factor in factors:
-        residual_count = len(factor.residuals(values))
+    for index, factor in enumerate(factors):
+        residual_count = (
+            len(factor.residuals(values)) if dimensions is None else dimensions[index]
+        )
         family_rows.setdefault(factor.family, []).extend(
             range(row_cursor, row_cursor + residual_count)
         )
