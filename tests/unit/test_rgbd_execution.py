@@ -9,6 +9,8 @@ import numpy as np
 import pytest
 
 from calibrex.graph import _rgbd_execution as runtime
+from calibrex.graph import joint_optimization as graph
+from calibrex.graph._point_plane_batches import _OwnedPointFactors
 from calibrex.solvers import native_tum_joint_slac_solver as tum
 
 
@@ -128,3 +130,38 @@ def test_cuda_policy_provenance_does_not_import_cupy():
         "assert 'kernel_sha256=' in value; assert 'cupy' not in sys.modules"
     )
     subprocess.run([sys.executable, "-c", code], check=True, capture_output=True, text=True)
+
+
+@pytest.mark.parametrize("kind", ["depth", "trilinear", "centered", "xyz", "pair"])
+def test_owned_cpu_diagnostics_use_dimensions_without_evaluating_callbacks(kind, monkeypatch):
+    from test_rgbd_transform_reuse import batch_problem, inputs
+
+    blocks, factors = batch_problem(kind, regularizers=True)
+    factors = _OwnedPointFactors(factors)
+    values = inputs()
+    expected_dimensions = tuple(len(factor.residuals(values)) for factor in factors)
+    options = graph.JointOptimizerOptions()
+    residual, jacobian = graph._linearize(
+        factors, values, blocks, graph._variable_layout(blocks), options
+    )
+    metadata = runtime._diagnostic_dimensions
+    monkeypatch.setattr(runtime, "_diagnostic_dimensions", lambda *_: None)
+    expected = graph._factor_family_diagnostics(factors, values, residual, jacobian, options)
+    monkeypatch.setattr(runtime, "_diagnostic_dimensions", metadata)
+    codes = {factor.evaluator.__code__ for factor in factors}
+    calls = []
+
+    def profile(frame, event, arg):
+        if event == "call" and frame.f_code in codes:
+            calls.append(frame.f_code)
+
+    previous = sys.getprofile()
+    try:
+        sys.setprofile(profile)
+        assert metadata(factors, values) == expected_dimensions
+        actual = graph._factor_family_diagnostics(factors, values, residual, jacobian, options)
+    finally:
+        sys.setprofile(previous)
+    assert actual == expected
+    assert calls == []
+    assert metadata(tuple(factors), values) is None
