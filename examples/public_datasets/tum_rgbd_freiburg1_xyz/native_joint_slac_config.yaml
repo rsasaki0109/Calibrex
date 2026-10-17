@@ -71,6 +71,7 @@ pipeline:
         reference_depth_scale_error_gate_percent: 2.0
         reference_depth_bias_gate_m: 0.03
         replication_start_indices: [60, 180, 300]
+        window_workers: 3
         cross_window_nondegradation_margin_m: 0.005
         spatial_lattice_smoothness_sigma_m: 0.05
         spatial_lattice_zero_mean_sigma_m: 0.0001

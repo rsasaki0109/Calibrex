@@ -61,7 +61,10 @@ def test_probe_and_scalar_fields_share_the_same_compensation_and_tie_bits():
 
 
 @pytest.mark.parametrize(
-    "change", ["small", "large", "wide", "empty", "dtype", "subclass", "nan", "inf", "magnitude", "version"],
+    "change", [
+        "small", "large", "wide", "empty", "dtype",
+        "subclass", "nan", "inf", "magnitude", "version",
+    ],
 )
 def test_unusual_products_keep_the_original_scalar_path(change):
     products = np.ones((256, 8))
