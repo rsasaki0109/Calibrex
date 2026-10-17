@@ -104,6 +104,14 @@ from a library caller, missing windows, a primary outside the replication list,
 failure reporting, owned child cleanup and evidence tampering. Strict mypy, Ruff,
 strict MkDocs and all 129 public schemas plus their ledger are checked.
 
+The archived mypy check targeted Windows. Linux CI subsequently found that its
+type definitions do not expose the Windows-only `subprocess.CREATE_NO_WINDOW`
+constant. The [portability follow-up](../assets/tum_window_portability/validation.json)
+uses an explicit `sys.platform` branch and checks both Linux and Windows type
+definitions, plus 408 regression cases on each OS. Launch flags on those platforms
+are unchanged. CI now checks both type targets. This follow-up adds no timing
+claim and leaves the measured source capsule and all recorded timings intact.
+
 The [initial protocol](../assets/tum_window_processes/initial-redirector-run/protocol.json)
 completed four computations but failed its parent/child process ownership audit:
 the Windows venv redirector inserted another process. Those
@@ -116,7 +124,8 @@ worker PID and parent PID before accepting its response. Tests also check that
 termination owns the actual interpreter and retains its virtual environment.
 
 - Prior runtime: `6c10b0542d279c6571bc80bf7bc5b3d502361e21`.
-- Current runtime: `04fcb5d9b4fbb20e3f404d742e77af505b349736`.
+- Measured process runtime: `04fcb5d9b4fbb20e3f404d742e77af505b349736`.
+- Portability follow-up: `a677482a1ff9248bb3be991d408a426aa73c00a6`.
 - [Frozen protocol](../assets/tum_window_processes/protocol.json) and
   [all attempts](../assets/tum_window_processes/attempts.json).
 - [Recomputed summary](../assets/tum_window_processes/summary.json) and

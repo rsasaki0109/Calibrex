@@ -1,0 +1,47 @@
+"""Freeze the portability repair without changing the measured archive."""
+import hashlib
+import json
+from pathlib import Path
+import subprocess
+
+from tools.benchmark_bspline_lidar_imu import _freeze
+from tools.benchmark_lazy_runtime_loading import _git_identity
+
+root = Path(__file__).resolve().parent
+out = root / "outputs/tum-window-portability-v1"
+commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+_freeze(out / "source", commit)
+_git_identity(out / "source", commit)
+measured = "04fcb5d9b4fbb20e3f404d742e77af505b349736"
+prior = json.loads((root / "outputs/tum-window-process-pairs-v2/sources-current/manifest.json").read_bytes())
+current = json.loads((out / "source/manifest.json").read_bytes())
+changes = [name for name in current if prior.get(name) != current[name]]
+assert changes == ["calibrex/solvers/_tum_window_processes.py"]
+patch = subprocess.check_output(["git", "diff", measured, commit, "--", "src/calibrex"])
+(out / "runtime.patch").write_bytes(patch)
+runner = (root / ".tmp-calibrex-window-frozen-tests.py").read_text(encoding="utf-8")
+runner = runner.replace("outputs/tum-window-process-pairs-v2/sources-current/src", "outputs/tum-window-portability-v1/source/src")
+runner = runner.replace("outputs/tum-window-process-validation-v2", "outputs/tum-window-portability-v1")
+runner = runner.replace(measured, commit)
+runner = runner.replace('"protocol_sha256":sha(source.parent.parent / "protocol.json")',
+                        '"parent_measured_protocol_sha256":sha(root / "docs/assets/tum_window_processes/protocol.json")')
+runner = runner.replace("Tests against the exact measured source capsule; no timing claim", "Tests against the frozen portability repair; no new timing claim")
+(root / ".tmp-calibrex-window-portability-tests.py").write_text(runner, encoding="utf-8", newline="\n")
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+provenance = {
+    "tested_runtime_commit": commit,
+    "measured_runtime_commit": measured,
+    "source_changes_from_measured": changes,
+    "source_manifest_sha256": sha(out / "source/manifest.json"),
+    "runtime_patch_sha256": sha(out / "runtime.patch"),
+    "test_runner_sha256": sha(root / ".tmp-calibrex-window-portability-tests.py"),
+    "setup_sha256": sha(Path(__file__)),
+    "scope": "Cross-platform portability regression; earlier timing evidence remains unchanged.",
+}
+(out / "provenance.json").write_text(json.dumps(provenance, indent=2) + "\n", encoding="utf-8")
+linux = (root / ".tmp-calibrex-window-linux.sh").read_text(encoding="utf-8")
+linux = linux.replace("calibrex-tum-window-tests", "calibrex-tum-window-portability")
+linux = linux.replace(".tmp-calibrex-window-frozen-tests.py", ".tmp-calibrex-window-portability-tests.py")
+linux = linux.replace("tum-window-process-validation-v2", "tum-window-portability-v1")
+(root / ".tmp-calibrex-window-portability-linux.sh").write_text(linux, encoding="utf-8", newline="\n")
+print("Frozen", commit, "with", len(current), "runtime modules;", len(changes), "changed since measurement")
