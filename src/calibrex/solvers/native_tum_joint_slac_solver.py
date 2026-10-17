@@ -343,6 +343,14 @@ class _TUMXYZPairReassociationContext:
         for sample in self.samples:
             sample.points.setflags(write=False)
             sample.weights.setflags(write=False)
+        self.native_score_geometry = (
+            sum(len(points) for points in problem.sampled_points) <= _REASSOCIATION_CACHE_POINTS
+            and all(type(point) is tuple and len(point) == 3
+                    and all(type(x) is float and math.isfinite(x) and abs(x) <= 1e12 for x in point)
+                    for points in problem.sampled_points for point in points)
+            and all(type(w) is float and math.isfinite(w)
+                    for frame in self.weights for weights in frame for w in weights)
+        )
         self._states: OrderedDict[bytes, _TUMXYZPairGeometry] = OrderedDict()
         self.geometry_builds = 0
         self.geometry_hits = 0
@@ -1157,6 +1165,24 @@ _PAIR_ROTATION_IMPLEMENTATION = rotate_vector_xyzw
 _PAIR_MATCH_IMPLEMENTATION = VoxelPlaneQueryContext.nearest_matches
 _PAIR_MAP_IMPLEMENTATION = build_voxel_plane_map
 _PAIR_QUERY_IMPLEMENTATION = VoxelPlaneQueryContext
+_PAIR_FACTOR_IMPLEMENTATION = make_joint_trilinear_xyz_pair_factor
+_PAIR_POINT_IMPLEMENTATION = _transform_points
+_PAIR_CALIBRATED_IMPLEMENTATION = _XYZSamples.calibrated
+
+
+def _pair_probe_math_supported() -> bool:
+    from calibrex.graph import joint_factors as f
+    from calibrex.graph._rgbd_batches import _COMPOSE_METHOD, _POINT_METHOD
+
+    return (
+        make_joint_trilinear_xyz_pair_factor is _PAIR_FACTOR_IMPLEMENTATION
+        and _transform_points is _PAIR_POINT_IMPLEMENTATION
+        and _XYZSamples.calibrated is _PAIR_CALIBRATED_IMPLEMENTATION
+        and se3_from_tangent is f._SE3_FROM_TANGENT_IMPLEMENTATION
+        and f.se3_from_tangent is f._SE3_FROM_TANGENT_IMPLEMENTATION
+        and f._calibrated_xyz_lattice_point is f._RGBD_POINT_FUNCTION_IMPLEMENTATION
+        and SE3.compose is _COMPOSE_METHOD and SE3.transform_point is _POINT_METHOD
+    )
 
 
 def _xyz_pair_calibrated_point(point: Vector3, offsets: tuple[float, ...]) -> Vector3:
@@ -1183,7 +1209,10 @@ def _xyz_pair_reassociation_state(
     *,
     context: _TUMXYZPairReassociationContext | None = None,
 ) -> JointReassociationState:
+    from calibrex.solvers._tum_pair_scores import _PairProbeScores
+
     context = context or _TUMXYZPairReassociationContext(problem, options)
+    scoring = _PairProbeScores(problem, context, values)
     geometry = context.geometry(problem, values[_XYZ_LATTICE_BLOCK], options)
     factor_limit = min(_REASSOCIATION_CACHE_FACTORS, max(64, 2 * len(problem.associations)))
     factors: list[JointResidualBlock] = []
@@ -1225,7 +1254,12 @@ def _xyz_pair_reassociation_state(
         selected_targets: dict[
             tuple[int, int, int], tuple[int, Vector3, Vector3, bytes, str]
         ] = {}
-        for association, match in zip(group_associations, matches, strict=True):
+        score_rows: list[tuple[int, int, JointResidualBlock]] = []
+        if not reuse_targets:
+            scoring.active = False
+        for position, (association, match) in enumerate(
+            zip(group_associations, matches, strict=True)
+        ):
             source_point = problem.sampled_points[source_index][association.source_point_index]
             if match is None:
                 continue
@@ -1273,13 +1307,19 @@ def _xyz_pair_reassociation_state(
             else:
                 context.factors.move_to_end(factor_key)
             factors.append(factor)
+            if scoring.active and association.measurement_id in scoring.population:
+                score_rows.append((position, target_point_index, factor))
             assignments.append(
                 CorrespondenceAssignment(
                     association.measurement_id,
                     target_id,
                 )
             )
-    return JointReassociationState(_OwnedPointFactors(factors), tuple(assignments))
+        scoring.add_group(source_index, target_index, source_initial, target_initial,
+                          target_pose, source_world, geometry, score_rows)
+    state = JointReassociationState(_OwnedPointFactors(factors), tuple(assignments))
+    scoring.capture(state, values)
+    return state
 
 
 def _xyz_pair_initial_reassociation_state(

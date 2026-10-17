@@ -13,6 +13,11 @@ from calibrex.evaluation.correspondence import (
     evaluate_correspondence_stability,
 )
 from calibrex.graph._evaluation_scope import _with_evaluation_cache
+from calibrex.graph._probe_scores import (
+    _captured_scores,
+    _set_probe_population,
+    _with_probe_scores,
+)
 from calibrex.graph.joint_optimization import (
     BackendNeutralJointOptimizer,
     JointOptimizerOptions,
@@ -423,6 +428,7 @@ class BackendNeutralJointReassociation:
         )
 
 
+@_with_probe_scores
 def evaluate_joint_reassociation_probes(
     parameter_blocks: Sequence[JointParameterBlock],
     initial_state: JointReassociationState,
@@ -450,6 +456,7 @@ def evaluate_joint_reassociation_probes(
     )
     if not population:
         raise ValueError("reassociation probes require a non-empty holdout query population")
+    _set_probe_population(population)
     baseline_state = reassociate(values)
     baseline_error = _probe_state_error(baseline_state, query_groups)
     if baseline_error is not None:
@@ -723,6 +730,14 @@ def _fixed_population_rmse(
     population: tuple[str, ...],
     unmatched_penalty: float,
 ) -> tuple[float, int]:
+    captured = _captured_scores(state, values, population)
+    if captured is not None:
+        scores = [
+            captured[name] * captured[name] if name in captured
+            else unmatched_penalty * unmatched_penalty
+            for name in population
+        ]
+        return math.sqrt(sum(scores) / len(scores)), sum(name in captured for name in population)
     factors = {factor.factor_id: factor for factor in state.factors}
     squared_scores: list[float] = []
     matched = 0
