@@ -96,6 +96,8 @@ def _evaluate_rgbd(plan: _RGBDPlan, values: ParameterValues) -> _FloatArray:
 def _diagnostic_dimensions(
     factors: Sequence[JointResidualBlock], values: ParameterValues
 ) -> tuple[int, ...] | None:
+    if _EXECUTION.get() is None:
+        return None
     from calibrex.graph._point_plane_batches import _OwnedPointFactors
     from calibrex.graph._rgbd_batches import _prepare_rgbd_plan
 
