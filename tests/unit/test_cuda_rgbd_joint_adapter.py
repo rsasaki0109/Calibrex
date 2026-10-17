@@ -21,6 +21,11 @@ except Exception:
 from calibrex.solvers import cuda_rgbd_joint_adapter as cuda  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def exercise_real_device_for_small_test_graphs(monkeypatch):
+    monkeypatch.setattr(runtime, "_MIN_CUDA_POINTS", 0)
+
+
 @pytest.mark.parametrize("kind", KINDS)
 @pytest.mark.parametrize("count", [96, 4097])
 def test_complete_residual_and_jacobian_bytes_match_numpy(kind, count):

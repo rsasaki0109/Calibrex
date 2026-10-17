@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 
 _RGBDBackend: TypeAlias = Literal["numpy", "cuda"]
 _FloatArray: TypeAlias = NDArray[np.float64]
+_MIN_CUDA_POINTS = 4096
 
 
 @dataclass
@@ -66,6 +67,8 @@ def _adapter(plan: _RGBDPlan) -> _CudaRGBDBackend | None:
     if execution is None:
         return None
     if execution.adapter is None:
+        if sum(len(group.rows) for group in plan.groups) < _MIN_CUDA_POINTS:
+            return None
         execution.adapter = _new_cuda_backend()
     return execution.adapter if execution.adapter.accepts(plan) else None
 
@@ -120,6 +123,11 @@ def _last_execution_report() -> dict[str, object] | None:
 
 
 def _cuda_identity() -> str:
-    from calibrex.solvers.cuda_rgbd_joint_adapter import _identity
+    import hashlib
 
-    return _identity()
+    from calibrex.solvers._cuda_rgbd_joint_kernels import SOURCE
+
+    return (
+        f"calibrex.cuda_rgbd_joint/v0.1;initial_min_points={_MIN_CUDA_POINTS};"
+        f"fp64;fmad=false;kernel_sha256={hashlib.sha256(SOURCE.encode()).hexdigest()}"
+    )

@@ -3,6 +3,7 @@
 import json
 import subprocess
 import sys
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -41,6 +42,8 @@ def test_cuda_option_is_explicit_and_cpu_provenance_stays_unchanged():
 
 
 class Plan:
+    groups = (SimpleNamespace(rows=range(8192)),)
+
     def evaluate(self, values):
         return np.asarray([1.0, -0.0])
 
@@ -104,3 +107,24 @@ def test_missing_cuda_dependency_reports_the_requested_extra_and_resets_scope(mo
     with pytest.raises(ValueError, match=r"calibrex\[cuda\]"), runtime._using_rgbd_backend("cuda"):
         runtime._evaluate_rgbd(Plan(), {})
     assert runtime._EXECUTION.get() is None
+
+
+def test_small_native_graph_does_not_initialize_cuda(monkeypatch):
+    def unexpected():
+        raise AssertionError("small graph loaded CUDA")
+
+    monkeypatch.setattr(runtime, "_new_cuda_backend", unexpected)
+    plan = Plan()
+    plan.groups = (SimpleNamespace(rows=range(runtime._MIN_CUDA_POINTS - 1)),)
+    with runtime._using_rgbd_backend("cuda"):
+        assert runtime._evaluate_rgbd(plan, {}).tobytes() == plan.evaluate({}).tobytes()
+    assert runtime._last_execution_report() is None
+
+
+def test_cuda_policy_provenance_does_not_import_cupy():
+    code = (
+        "import sys; from calibrex.graph._rgbd_execution import _cuda_identity; "
+        "value=_cuda_identity(); assert 'initial_min_points=4096' in value; "
+        "assert 'kernel_sha256=' in value; assert 'cupy' not in sys.modules"
+    )
+    subprocess.run([sys.executable, "-c", code], check=True, capture_output=True, text=True)
