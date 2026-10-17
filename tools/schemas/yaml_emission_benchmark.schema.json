@@ -1,0 +1,488 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calibrex.dev/tools/schemas/yaml_emission_benchmark.schema.json",
+  "title": "Complete safe YAML export of the public TUM result",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "slac.yaml_emission_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "protocol"
+        },
+        "payload": {
+          "type": "object",
+          "properties": {
+            "scope": {
+              "type": "string"
+            },
+            "commits": {
+              "type": "object",
+              "properties": {
+                "prior": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{40}$"
+                },
+                "current": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{40}$"
+                }
+              },
+              "required": [
+                "prior",
+                "current"
+              ],
+              "additionalProperties": false
+            },
+            "repetitions": {
+              "type": "integer",
+              "minimum": 2
+            },
+            "environment": {
+              "type": "object",
+              "properties": {
+                "python": {
+                  "type": "string"
+                },
+                "pyyaml": {
+                  "type": "string"
+                },
+                "libyaml": {
+                  "const": true
+                }
+              },
+              "required": [
+                "python",
+                "pyyaml",
+                "libyaml"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "scope",
+            "commits",
+            "repetitions",
+            "environment"
+          ],
+          "additionalProperties": false
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "files": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          },
+          "required": [
+            "files"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "record_type",
+        "payload",
+        "provenance"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "slac.yaml_emission_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "worker"
+        },
+        "payload": {
+          "type": "object",
+          "properties": {
+            "methods": {
+              "type": "object",
+              "properties": {
+                "write": {
+                  "type": "object",
+                  "properties": {
+                    "seconds": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "size_bytes": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  },
+                  "required": [
+                    "seconds",
+                    "sha256",
+                    "size_bytes"
+                  ],
+                  "additionalProperties": false
+                },
+                "atomic": {
+                  "type": "object",
+                  "properties": {
+                    "seconds": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "sha256": {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    "size_bytes": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  },
+                  "required": [
+                    "seconds",
+                    "sha256",
+                    "size_bytes"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "write",
+                "atomic"
+              ],
+              "additionalProperties": false
+            },
+            "native_emissions": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "input_fingerprint": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "imports": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  }
+                },
+                "required": [
+                  "path",
+                  "sha256"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "environment": {
+              "type": "object",
+              "properties": {
+                "python": {
+                  "type": "string"
+                },
+                "pyyaml": {
+                  "type": "string"
+                },
+                "libyaml": {
+                  "const": true
+                }
+              },
+              "required": [
+                "python",
+                "pyyaml",
+                "libyaml"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "methods",
+            "native_emissions",
+            "input_fingerprint",
+            "imports",
+            "environment"
+          ],
+          "additionalProperties": false
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "protocol_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "git_commit": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "variant": {
+              "enum": [
+                "prior",
+                "current"
+              ]
+            },
+            "pid": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "protocol_sha256",
+            "git_commit",
+            "variant",
+            "pid"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "record_type",
+        "payload",
+        "provenance"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "slac.yaml_emission_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "attempts"
+        },
+        "payload": {
+          "type": "object",
+          "properties": {
+            "attempts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "folder": {
+                    "type": "string"
+                  },
+                  "variant": {
+                    "enum": [
+                      "prior",
+                      "current"
+                    ]
+                  },
+                  "seconds": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "exit_code": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "folder",
+                  "variant",
+                  "seconds",
+                  "exit_code"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "attempts"
+          ],
+          "additionalProperties": false
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "protocol_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "protocol_sha256"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "record_type",
+        "payload",
+        "provenance"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "slac.yaml_emission_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "report"
+        },
+        "payload": {
+          "type": "object",
+          "properties": {
+            "seconds_median": {
+              "type": "object",
+              "properties": {
+                "whole": {
+                  "type": "object",
+                  "properties": {
+                    "prior": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "current": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    }
+                  },
+                  "required": [
+                    "prior",
+                    "current"
+                  ],
+                  "additionalProperties": false
+                },
+                "write": {
+                  "type": "object",
+                  "properties": {
+                    "prior": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "current": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    }
+                  },
+                  "required": [
+                    "prior",
+                    "current"
+                  ],
+                  "additionalProperties": false
+                },
+                "atomic": {
+                  "type": "object",
+                  "properties": {
+                    "prior": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "current": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    }
+                  },
+                  "required": [
+                    "prior",
+                    "current"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "whole",
+                "write",
+                "atomic"
+              ],
+              "additionalProperties": false
+            },
+            "speedup": {
+              "type": "object",
+              "properties": {
+                "whole": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "write": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "atomic": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              },
+              "required": [
+                "whole",
+                "write",
+                "atomic"
+              ],
+              "additionalProperties": false
+            },
+            "verified_workers": {
+              "type": "integer",
+              "minimum": 4
+            },
+            "full_exports": {
+              "type": "integer",
+              "minimum": 8
+            },
+            "complete_values_types_order_exact": {
+              "const": true
+            },
+            "runtime_source_changes": {
+              "const": [
+                "calibrex/core/io.py"
+              ]
+            }
+          },
+          "required": [
+            "seconds_median",
+            "speedup",
+            "verified_workers",
+            "full_exports",
+            "complete_values_types_order_exact",
+            "runtime_source_changes"
+          ],
+          "additionalProperties": false
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "protocol_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "attempts_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "protocol_sha256",
+            "attempts_sha256"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "record_type",
+        "payload",
+        "provenance"
+      ],
+      "additionalProperties": false
+    }
+  ]
+}

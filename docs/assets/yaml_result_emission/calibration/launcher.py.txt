@@ -1,0 +1,153 @@
+"""Exploratory complete-pipeline screen using the pinned process trace worker."""
+import gzip
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import statistics
+import subprocess
+import sys
+import time
+
+ROOT = Path(__file__).resolve().parent
+OUT = ROOT / "outputs/tum-yaml-emission-screen-v1"
+BASE = "2ab25954f4af1c9b8229d332487d9910f793564a"
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+def write(path, value):
+    path.write_bytes((json.dumps(value, indent=2, allow_nan=False) + "\n").encode())
+
+def worker():
+    from tools import benchmark_tum_window_processes as bench
+    from calibrex.graph import joint_reassociation as reassociation
+    # Route descendants through this same supplementary trace installer.
+    bench.__file__ = str(Path(__file__).resolve())
+    folder = Path(sys.argv[sys.argv.index("--output") + 1])
+    protocol_path = Path(sys.argv[sys.argv.index("--worker-protocol") + 1])
+    child = "--window-request" in sys.argv
+    if child:
+        request = Path(sys.argv[sys.argv.index("--window-request") + 1])
+        window = int(request.stem.removesuffix("-request"))
+    else:
+        import yaml
+        config = yaml.safe_load((protocol_path.parent / "config.yaml").read_bytes())
+        window = config["pipeline"]["factors"]["tum_rgbd_joint_point_to_plane"]["options"]["frame_start_index"]
+    events = []
+    original = reassociation._fixed_population_rmse
+    def trace(state, values, population, penalty):
+        begin = time.perf_counter()
+        result = original(state, values, population, penalty)
+        events.append({"window": window, "values_sha256": bench.digest(values),
+                       "factors_sha256": bench.digest([f.factor_id for f in state.factors]),
+                       "population_sha256": bench.digest(population),
+                       "population_count": len(population), "penalty_hex": penalty.hex(),
+                       "rmse_hex": result[0].hex(), "matched": result[1],
+                       "seconds": time.perf_counter() - begin})
+        return result
+    reassociation._fixed_population_rmse = trace
+    bench.main()
+    (folder / "population-history.json.gz").write_bytes(gzip.compress(
+        (json.dumps({"events":events, "provenance":{"launcher_sha256":sha(Path(__file__)),
+                    "protocol_sha256":sha(protocol_path),"pid":os.getpid(),"parent_pid":os.getppid()}},
+                   indent=2) + "\n").encode(), mtime=0))
+
+def audit(attempts):
+    from tools.benchmark_tum_window_processes import comparable
+    histories, populations, results = [], [], []
+    for attempt in attempts:
+        variant = attempt["variant"]
+        protocol = OUT / variant / "protocol.json"
+        folder = OUT / attempt["folder"]
+        history = json.loads(gzip.decompress((folder / "history.json.gz").read_bytes()))
+        histories.append(history["payload"])
+        records = []
+        elapsed = 0.0
+        for path in [folder / "population-history.json.gz", *sorted((folder / "children").glob("*/population-history.json.gz"))]:
+            trace = json.loads(gzip.decompress(path.read_bytes()))
+            assert trace["provenance"]["launcher_sha256"] == sha(Path(__file__))
+            assert trace["provenance"]["protocol_sha256"] == sha(protocol)
+            for event in trace["events"]:
+                elapsed += event.pop("seconds")
+                records.append(event)
+        records.sort(key=lambda item:item["window"])
+        assert len(records) == 492
+        populations.append(records)
+        result = comparable(json.loads(gzip.decompress((folder / "result.json.gz").read_bytes())))
+        command = result["run"]["provenance"]["command"]
+        assert command == ["calibrex", "calibrate", str(protocol.parent / "config.yaml")]
+        command[2] = "<verified identical config bytes>"
+        expected_hash = sha(protocol.parent / "config.yaml")
+        assert result["run"]["config_sha256"] == expected_hash
+        assert result["run"]["provenance"]["config_sha256"] == expected_hash
+        results.append(result)
+        attempt["summed_population_seconds"] = elapsed
+    assert all(value == histories[0] for value in histories), "Numeric/front-end/solve traces differ"
+    assert all(value == populations[0] for value in populations), "Fixed population probe traces differ"
+    assert all(value == results[0] for value in results), "Complete results differ"
+    medians = {variant: statistics.median(a["seconds"] for a in attempts if a["variant"] == variant)
+               for variant in ("prior", "current")}
+    report = {"whole_seconds_median":medians,"whole_speedup":medians["prior"]/medians["current"],
+              "attempts":attempts,"complete_results_exact":True,"all_original_numeric_histories_exact":True,
+              "fixed_population_probe_events_exact":492,
+              "scope":"Exploratory complete-pipeline CPU screen; alternating pairs on an unreserved host; no accuracy or SOTA claim.",
+              "provenance":{"launcher_sha256":sha(Path(__file__)),"run_provenance_sha256":sha(OUT / "provenance.json")}}
+    write(OUT / "summary.json", report)
+    print(json.dumps(report, indent=2), flush=True)
+
+def main():
+    if "--worker-protocol" in sys.argv:
+        worker()
+        return
+    import yaml
+    from tools.benchmark_bspline_lidar_imu import _freeze, _verify_sources
+    from tools.benchmark_lazy_runtime_loading import _git_identity
+    OUT.mkdir(exist_ok=False)
+    current = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    commits = {"prior": BASE, "current": current}
+    config = yaml.safe_load((ROOT / "examples/public_datasets/tum_rgbd_freiburg1_xyz/native_joint_slac_config.yaml").read_bytes())
+    config["dataset"]["path"] = str(ROOT / "data/public/rgbd_dataset_freiburg1_xyz")
+    config["project"]["output_dir"] = str(OUT / "shared-output")
+    config["pipeline"]["factors"]["tum_rgbd_joint_point_to_plane"]["options"]["window_workers"] = 3
+    for variant, commit in commits.items():
+        parent = OUT / variant
+        parent.mkdir()
+        source = parent / "sources-current"
+        _freeze(source, commit)
+        _git_identity(source, commit)
+        (parent / "config.yaml").write_bytes(yaml.safe_dump(config, sort_keys=False).encode())
+        write(parent / "protocol.json", {"payload":{"commits":{"current":commit}},
+              "provenance":{"scope":"Exploratory screen; worker label current enables the same three processes in both variants.",
+                            "launcher_sha256":sha(Path(__file__)),"source_manifest_sha256":sha(source / "manifest.json")}})
+    shutil.copyfile(Path(__file__), OUT / "launcher.py.txt")
+    worker_path = ROOT / "tools/benchmark_tum_window_processes.py"
+    write(OUT / "provenance.json", {"commits":commits,"launcher_sha256":sha(Path(__file__)),
+          "trace_worker_sha256":sha(worker_path),"config_sha256":sha(OUT / "current/config.yaml"),
+          "input_inventory_sha256":sha(ROOT / "docs/assets/tum_window_processes/inputs.json"),
+          "python":sys.version,"blas_threads":1})
+    attempts = []
+    for i, variant in enumerate(("current", "prior", "prior", "current")):
+        folder = OUT / f"{i+1:02d}-{variant}"
+        folder.mkdir()
+        parent = OUT / variant
+        source = parent / "sources-current"
+        _verify_sources(source)
+        env = dict(os.environ,PYTHONPATH=str(source / "src"),OPENBLAS_NUM_THREADS="1",MKL_NUM_THREADS="1",OMP_NUM_THREADS="1")
+        begin = time.perf_counter()
+        with (folder / "stdout.log").open("wb") as stdout, (folder / "stderr.log").open("wb") as stderr:
+            done = subprocess.run([sys.executable,str(Path(__file__)),"--worker-protocol",str(parent / "protocol.json"),
+                                   "--variant","current","--output",str(folder)],
+                                  cwd=source,env=env,stdout=stdout,stderr=stderr)
+        attempts.append({"folder":folder.name,"variant":variant,"seconds":time.perf_counter()-begin,"exit_code":done.returncode})
+        write(OUT / "attempts.json",{"attempts":attempts,"provenance":{"launcher_sha256":sha(Path(__file__))}})
+        print(attempts[-1],flush=True)
+        assert done.returncode == 0, folder / "stderr.log"
+        _verify_sources(source)
+        assert sha(worker_path) == json.loads((OUT / "provenance.json").read_bytes())["trace_worker_sha256"]
+        assert sha(Path(__file__)) == sha(OUT / "launcher.py.txt")
+    audit(attempts)
+
+if __name__ == "__main__":
+    main()
