@@ -53,6 +53,7 @@ from calibrex.evaluation.numerical_curvature import (
     evaluate_numerical_curvature,
 )
 from calibrex.graph._point_plane_batches import _OwnedPointFactors, _transform_points
+from calibrex.graph._rgbd_execution import _cuda_identity, _RGBDBackend, _using_rgbd_backend
 from calibrex.graph.joint_factors import (
     JointDepthPointToPlaneMeasurement,
     JointTrilinearDepthPointToPlaneMeasurement,
@@ -162,14 +163,17 @@ class TUMJointSlacOptions:
     xyz_pair_max_correspondences_per_pair: int = 120
     xyz_pair_stride: int = 1
     window_workers: int = 1
+    joint_evaluation_backend: _RGBDBackend = "numpy"
 
-    def as_dict(self) -> dict[str, float | int | list[int]]:
-        values: dict[str, float | int | list[int]] = {}
+    def as_dict(self) -> dict[str, float | int | str | list[int]]:
+        values: dict[str, float | int | str | list[int]] = {}
         for name, value in self.__dict__.items():
             if isinstance(value, tuple):
                 values[name] = list(value)
             elif isinstance(value, (float, int)):
                 values[name] = value
+        if self.joint_evaluation_backend != "numpy":
+            values["joint_evaluation_backend"] = self.joint_evaluation_backend
         return values
 
 
@@ -411,18 +415,19 @@ def _evaluate_window_runs(
     options: TUMJointSlacOptions,
     runs: tuple[_TUMWindowRun, ...],
 ) -> _TUMWindowProducts:
-    spatial = _spatial_ablation_runs(config, runs, options)
-    xyz = _xyz_ablation_runs(config, runs, options)
-    pair = _xyz_pair_ablation_runs(root, intrinsics, config, runs, options)
-    return _TUMWindowProducts(
-        runs,
-        spatial,
-        xyz,
-        pair,
-        _xyz_pair_reassociation_runs(config, pair, options),
-        _iterative_reassociation_runs(root, intrinsics, config, spatial, options),
-        _rematch_spatial_holdouts(root, intrinsics, spatial, options),
-    )
+    with _using_rgbd_backend(options.joint_evaluation_backend):
+        spatial = _spatial_ablation_runs(config, runs, options)
+        xyz = _xyz_ablation_runs(config, runs, options)
+        pair = _xyz_pair_ablation_runs(root, intrinsics, config, runs, options)
+        return _TUMWindowProducts(
+            runs,
+            spatial,
+            xyz,
+            pair,
+            _xyz_pair_reassociation_runs(config, pair, options),
+            _iterative_reassociation_runs(root, intrinsics, config, spatial, options),
+            _rematch_spatial_holdouts(root, intrinsics, spatial, options),
+        )
 
 
 class NativeTUMJointSlacSolver(SolverAdapter):
@@ -604,11 +609,12 @@ def _optimize_joint(
     factors: tuple[JointResidualBlock, ...],
     options: TUMJointSlacOptions,
 ) -> JointOptimizerResult:
-    return BackendNeutralJointOptimizer().solve(
-        parameter_blocks,
-        _OwnedPointFactors(factors),
-        _joint_optimizer_options(config, options),
-    )
+    with _using_rgbd_backend(options.joint_evaluation_backend):
+        return BackendNeutralJointOptimizer().solve(
+            parameter_blocks,
+            _OwnedPointFactors(factors),
+            _joint_optimizer_options(config, options),
+        )
 
 
 def _joint_optimizer_options(
@@ -3439,6 +3445,8 @@ def _provenance(
         ],
         "native_tum_joint_slac_intrinsics": intrinsics.__dict__,
         "native_tum_joint_slac_options": options.as_dict(),
+        **({"native_tum_joint_slac_cuda": _cuda_identity()}
+           if options.joint_evaluation_backend == "cuda" else {}),
         "native_tum_joint_slac_map_record_count": problem.map_record_count,
         "native_tum_joint_slac_map_plane_count": problem.map_plane_count,
         "native_tum_joint_slac_correspondence_count": len(problem.measurements),
@@ -3887,7 +3895,17 @@ def _options(config: CalibrationConfig) -> TUMJointSlacOptions:
             defaults.xyz_pair_stride,
         ),
         window_workers=_integer(values, "window_workers", defaults.window_workers),
+        joint_evaluation_backend=_joint_backend(values),
     )
+
+
+def _joint_backend(values: dict[str, Any]) -> _RGBDBackend:
+    value = values.get("joint_evaluation_backend", "numpy")
+    if value == "numpy":
+        return "numpy"
+    if value == "cuda":
+        return "cuda"
+    raise ValueError("joint_evaluation_backend must be numpy or cuda")
 
 
 def _integer(values: dict[str, Any], key: str, default: int) -> int:

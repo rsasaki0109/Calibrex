@@ -1,0 +1,106 @@
+"""CPU import isolation, scoped CUDA ownership and explicit TUM options."""
+
+import json
+import subprocess
+import sys
+
+import numpy as np
+import pytest
+
+from calibrex.graph import _rgbd_execution as runtime
+from calibrex.solvers import native_tum_joint_slac_solver as tum
+
+
+def test_default_tum_import_and_options_do_not_load_cuda():
+    code = (
+        "import json,sys; from calibrex.solvers.native_tum_joint_slac_solver "
+        "import TUMJointSlacOptions; o=TUMJointSlacOptions(); "
+        "assert o.joint_evaluation_backend=='numpy'; "
+        "assert 'joint_evaluation_backend' not in o.as_dict(); "
+        "print(json.dumps([n for n in sys.modules if n=='cupy' or n.startswith('cupy.')]))"
+    )
+    done = subprocess.run([sys.executable, "-c", code], check=True, capture_output=True, text=True)
+    assert json.loads(done.stdout) == []
+
+
+@pytest.mark.parametrize("value", ["auto", "numba_cpu", None, True, 1, [], {}])
+def test_unknown_backend_is_rejected(value):
+    with pytest.raises(ValueError, match="joint_evaluation_backend"):
+        tum._joint_backend({"joint_evaluation_backend": value})
+
+
+def test_cuda_option_is_explicit_and_cpu_provenance_stays_unchanged():
+    assert tum._joint_backend({}) == "numpy"
+    assert tum._joint_backend({"joint_evaluation_backend": "cuda"}) == "cuda"
+    assert (
+        tum.TUMJointSlacOptions(joint_evaluation_backend="cuda").as_dict()[
+            "joint_evaluation_backend"
+        ]
+        == "cuda"
+    )
+
+
+class Plan:
+    def evaluate(self, values):
+        return np.asarray([1.0, -0.0])
+
+
+class Adapter:
+    def __init__(self):
+        self.closed = False
+
+    def accepts(self, plan):
+        return True
+
+    def evaluate(self, plan, values):
+        return np.asarray([2.0, -0.0])
+
+    def report(self):
+        return {"closed_before_report": self.closed}
+
+    def close(self):
+        self.closed = True
+
+
+def test_nested_cpu_scope_restores_cuda_and_releases_it_on_error(monkeypatch):
+    created = []
+
+    def new():
+        result = Adapter()
+        created.append(result)
+        return result
+
+    monkeypatch.setattr(runtime, "_new_cuda_backend", new)
+    plan = Plan()
+    assert runtime._evaluate_rgbd(plan, {}).tobytes() == plan.evaluate({}).tobytes()
+    with pytest.raises(RuntimeError, match="stop"), runtime._using_rgbd_backend("cuda"):
+        assert created == []
+        assert runtime._evaluate_rgbd(plan, {})[0] == 2.0
+        with runtime._using_rgbd_backend("numpy"):
+            assert runtime._evaluate_rgbd(plan, {})[0] == 1.0
+        assert runtime._evaluate_rgbd(plan, {})[0] == 2.0
+        assert len(created) == 1
+        raise RuntimeError("stop")
+    assert created[0].closed
+    assert runtime._EXECUTION.get() is None
+    report = runtime._last_execution_report()
+    assert report == {"closed_before_report": False}
+    report["changed"] = True
+    assert "changed" not in runtime._last_execution_report()
+
+
+def test_rejected_device_plan_uses_the_complete_cpu_plan(monkeypatch):
+    adapter = Adapter()
+    monkeypatch.setattr(adapter, "accepts", lambda plan: False)
+    monkeypatch.setattr(runtime, "_new_cuda_backend", lambda: adapter)
+    with runtime._using_rgbd_backend("cuda"):
+        plan = Plan()
+        assert runtime._evaluate_rgbd(plan, {}).tobytes() == plan.evaluate({}).tobytes()
+    assert adapter.closed
+
+
+def test_missing_cuda_dependency_reports_the_requested_extra_and_resets_scope(monkeypatch):
+    monkeypatch.setitem(sys.modules, "calibrex.solvers.cuda_rgbd_joint_adapter", None)
+    with pytest.raises(ValueError, match=r"calibrex\[cuda\]"), runtime._using_rgbd_backend("cuda"):
+        runtime._evaluate_rgbd(Plan(), {})
+    assert runtime._EXECUTION.get() is None
