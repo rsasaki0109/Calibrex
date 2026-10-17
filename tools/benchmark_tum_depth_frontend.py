@@ -19,13 +19,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from tools._tum_benchmark_config import load_serial_tum_config  # noqa: E402
 from tools.benchmark_bspline_lidar_imu import _freeze, _verify_sources  # noqa: E402
 from tools.benchmark_lazy_runtime_loading import _git_identity  # noqa: E402
 from tools.benchmark_radar_doppler_batches import sources  # noqa: E402
 
 VERSION = "slac.tum_depth_frontend_benchmark/v0.1"
 SCHEMA = ROOT / "tools/schemas/tum_depth_frontend_benchmark.schema.json"
-CONFIG = ROOT / "examples/public_datasets/tum_rgbd_freiburg1_xyz/native_joint_slac_config.yaml"
+MANIFEST = ROOT / "examples/public_datasets/tum_rgbd_freiburg1_xyz/manifest.yaml"
 DATA = ROOT / "data/public/rgbd_dataset_freiburg1_xyz"
 INPUTS_SHA256 = "f1ec8837db3c70ddb173869a4362dd54a5a9da3dc8e6f9cc7ac59a7b14e2a108"
 CHANGES = {
@@ -357,7 +358,7 @@ def audit(output: Path) -> dict:
     if payload["scope"] != SCOPE or payload["blas_threads"] != 1:
         raise ValueError("benchmark scope differs")
     config = yaml.safe_load((output / "config.yaml").read_bytes())
-    reference = yaml.safe_load(CONFIG.read_bytes())
+    reference = load_serial_tum_config()
     reference["dataset"]["path"] = config["dataset"]["path"]
     reference["project"]["output_dir"] = config["project"]["output_dir"]
     if config != reference:
@@ -648,7 +649,7 @@ def main() -> None:
     write(output / "inputs.json", inputs)
     if sha(output / "inputs.json") != INPUTS_SHA256:
         raise ValueError("public depth input inventory differs")
-    config = yaml.safe_load(CONFIG.read_bytes())
+    config = load_serial_tum_config()
     config["dataset"]["path"] = str(DATA)
     config["project"]["output_dir"] = str(output / "shared-output")
     (output / "config.yaml").write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
@@ -659,7 +660,7 @@ def main() -> None:
     for path, name in (
         (Path(__file__), "launcher.py.txt"),
         (SCHEMA, "schema.json"),
-        (CONFIG.with_name("manifest.yaml"), "upstream-manifest.yaml"),
+        (MANIFEST, "upstream-manifest.yaml"),
         (ROOT / "schemas/result.schema.json", "result-schema.json"),
         (ROOT / "tools/benchmark_bspline_lidar_imu.py", "freezer.py.txt"),
         (ROOT / "tools/benchmark_lazy_runtime_loading.py", "identity.py.txt"),

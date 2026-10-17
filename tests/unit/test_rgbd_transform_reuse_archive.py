@@ -74,7 +74,9 @@ def test_published_complete_tum_comparison_reaudits():
     assert result["payload"]["solve_count"] == 24
 
 
-@pytest.mark.parametrize("change", ["iterations", "points", "windows", "local_rotations"])
+@pytest.mark.parametrize(
+    "change", ["iterations", "points", "windows", "local_rotations", "workers"]
+)
 def test_rehashed_work_reduction_is_rejected(archive, change):
     path = archive / "config.yaml"
     value = yaml.safe_load(path.read_bytes())
@@ -85,6 +87,8 @@ def test_rehashed_work_reduction_is_rejected(archive, change):
         options["query_points_per_frame"] = 512
     elif change == "windows":
         options["replication_start_indices"] = [180]
+    elif change == "workers":
+        options["window_workers"] = 3
     else:
         options["xyz_lattice_local_rotation_updates"] = 0
     path.write_text(yaml.safe_dump(value), encoding="utf-8")

@@ -127,3 +127,10 @@ passes for all 394 source modules on both platform targets; the 129 public
 schema exports and their ledger remain byte-identical. The
 [validation record](../assets/tum_scoped_evaluation/validation.json) binds these
 checks to the measured source capsule.
+
+Historical serial benchmark launchers and auditors use the original
+hash-pinned template in `tools/fixtures/tum_joint_serial_v1.yaml`. Their
+workload checks remain independent of later changes to the public example.
+The original archived records remain intact; all four historical serial
+archives reject rehashed changes to their worker count as well as changes to
+samples, windows and optimization options.
