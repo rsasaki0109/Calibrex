@@ -1,0 +1,118 @@
+"""Preserve all measured actual-source TUM factor-preparation workers without rewriting them."""
+import gzip
+import hashlib
+import json
+from pathlib import Path
+import shutil
+import tarfile
+
+ROOT=Path(__file__).resolve().parent
+OUT=ROOT/'outputs/tum-factor-preparation-pairs-v2'
+TARGET=ROOT/'docs/assets/tum_factor_preparation'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+def write(path,value):
+    path.write_bytes((json.dumps(value,indent=2,allow_nan=False)+'\n').encode())
+
+def schema(value):
+    if value is None:
+        return {'type':'null'}
+    if isinstance(value,bool):
+        return {'type':'boolean'}
+    if isinstance(value,int):
+        return {'type':'integer'}
+    if isinstance(value,float):
+        return {'type':'number'}
+    if isinstance(value,str):
+        return {'type':'string'}
+    if isinstance(value,list):
+        choices={json.dumps(schema(item),sort_keys=True) for item in value}
+        items={} if not choices else json.loads(next(iter(choices))) if len(choices)==1 else {'anyOf':[json.loads(item) for item in sorted(choices)]}
+        return {'type':'array','minItems':len(value),'maxItems':len(value),'items':items}
+    return {'type':'object','additionalProperties':False,'required':list(value),'properties':{key:schema(item) for key,item in value.items()}}
+
+summary=json.loads((OUT/'summary.json').read_bytes())
+assert len(summary['attempts'])==9 and summary['complete_result_and_histories_exact']
+TARGET.mkdir(exist_ok=False)
+(TARGET/'.gitattributes').write_bytes(b'* -text whitespace=cr-at-eol\n')
+for name in ['config-cuda.yaml','config-numpy.yaml','provenance.json','attempts.json','summary.json','launcher.py.txt']:
+    shutil.copyfile(OUT/name,TARGET/name)
+for source,name in [('docs/assets/tum_window_processes/inputs.json','inputs.json'),
+                    ('tools/benchmark_bspline_lidar_imu.py','freezer.py.txt'),
+                    ('tools/benchmark_lazy_runtime_loading.py','identity.py.txt'),
+                    ('tools/benchmark_radar_doppler_batches.py','capsule-auditor.py.txt'),
+                    ('tools/audit_tum_factor_preparation.py','auditor.py.txt')]:
+    shutil.copyfile(ROOT/source,TARGET/name)
+shutil.copyfile(Path(__file__),TARGET/'publisher.py.txt')
+for variant in ('prior','current'):
+    source=OUT/('sources-'+variant)
+    shutil.copyfile(source/'manifest.json',TARGET/f'sources-{variant}-manifest.json')
+    with tarfile.open(TARGET/f'sources-{variant}.tar.gz','w:gz') as bundle:
+        for path in sorted((source/'src').rglob('*.py')):
+            bundle.add(path,arcname=path.relative_to(source).as_posix())
+suite = ROOT / 'outputs/tum-factor-preparation-suite-v1'
+suite_summary = json.loads((suite / 'summary.json').read_bytes())
+assert suite_summary['complete_results_exact'] and suite_summary['fixed_population_probe_events_exact'] == 492
+shutil.copyfile(suite / 'summary.json', TARGET / 'suite-summary.json')
+suite_files = []
+for name in ['launcher.py.txt', 'provenance.json', 'attempts.json', 'summary.json']:
+    suite_files.append((suite / name, name))
+for variant in ('prior', 'current'):
+    source = suite / variant / 'sources-current'
+    expected = json.loads((OUT / ('sources-' + variant) / 'manifest.json').read_bytes())
+    assert expected == json.loads((source / 'manifest.json').read_bytes())
+    suite_files.extend((suite / variant / name, variant + '/' + name) for name in ['config.yaml', 'protocol.json'])
+    suite_files.append((source / 'manifest.json', variant + '/source-manifest.json'))
+for attempt in suite_summary['attempts']:
+    for path in sorted((suite / attempt['folder']).rglob('*')):
+        if path.is_file():
+            suite_files.append((path, path.relative_to(suite).as_posix()))
+suite_files.append((ROOT / 'tools/benchmark_tum_window_processes.py', 'trace-worker.py.txt'))
+assert sha(ROOT / 'tools/benchmark_tum_window_processes.py') == json.loads((suite / 'provenance.json').read_bytes())['trace_worker_sha256']
+with tarfile.open(TARGET / 'full-suite-screen.tar.gz', 'w:gz') as bundle:
+    for path, name in suite_files:
+        bundle.add(path, arcname=name)
+shutil.copyfile(ROOT/'docs/assets/cuda_rgbd_joint/01-cuda/result.json.gz', TARGET/'parent-result.json.gz')
+# Preserve the intermediate implementation and all exploratory attempts; exclude caches.
+intermediate=ROOT/'outputs/tum-factor-preparation-pairs-v1/sources-current'
+shutil.copyfile(intermediate/'manifest.json', TARGET/'sources-intermediate-manifest.json')
+with tarfile.open(TARGET/'sources-intermediate.tar.gz','w:gz') as bundle:
+    for path in sorted((intermediate/'src').rglob('*.py')):
+        bundle.add(path,arcname=path.relative_to(intermediate).as_posix())
+explorations={
+    'baseline-profile':'outputs/rgbd-current-profile-v1',
+    'intermediate-profile':'outputs/tum-factor-preparation-profile-v1',
+    'intermediate-pairs':'outputs/tum-factor-preparation-pairs-v1',
+}
+records_index={}
+with tarfile.open(TARGET/'development-screens.tar.gz','w:gz') as bundle:
+    for label,relative in explorations.items():
+        folder=ROOT/relative
+        chosen=[]
+        for path in sorted(folder.rglob('*')):
+            name=path.relative_to(folder)
+            if not path.is_file() or any(part in {'source','sources-prior','sources-current','cupy-compiler-cache','driver-cache'} for part in name.parts):
+                continue
+            bundle.add(path,arcname=label+'/'+name.as_posix())
+            chosen.append({'name':name.as_posix(),'sha256':sha(path),'size_bytes':path.stat().st_size})
+        records_index[label]={'files':chosen,'scope':'Exploratory profile (with profiler overhead) or superseded comparison; no headline claim.'}
+write(TARGET/'development-index.json',records_index)
+records={'execution':[],'measurement':[],'result':[],'traces':[],'frontend':[],'provenance':[json.loads((OUT/'provenance.json').read_bytes())],
+         'attempts':[json.loads((OUT/'attempts.json').read_bytes())]}
+for attempt in summary['attempts']:
+    folder=TARGET/attempt['folder']
+    folder.mkdir()
+    for name in ['measurement.json','execution.json','result.json.gz','traces.json.gz','frontend.json.gz','stdout.log','stderr.log']:
+        shutil.copyfile(OUT/folder.name/name,folder/name)
+    for kind,name in [('execution','execution.json'),('measurement','measurement.json'),('result','result.json.gz'),('traces','traces.json.gz'),('frontend','frontend.json.gz')]:
+        raw=(folder/name).read_bytes()
+        records[kind].append(json.loads(gzip.decompress(raw) if name.endswith('.gz') else raw))
+schemas={}
+for kind,values in records.items():
+    choices={json.dumps(schema(value),sort_keys=True) for value in values}
+    schemas[kind]=json.loads(next(iter(choices))) if len(choices)==1 else {'anyOf':[json.loads(item) for item in sorted(choices)]}
+    schemas[kind]['$schema']='https://json-schema.org/draft/2020-12/schema'
+write(TARGET/'record-schemas.json',schemas)
+files={p.relative_to(TARGET).as_posix():{'sha256':sha(p),'size_bytes':p.stat().st_size}
+       for p in sorted(TARGET.rglob('*')) if p.is_file() and p.name!='index.json'}
+write(TARGET/'index.json',{'files':files,'provenance':{'measurement_provenance_sha256':sha(TARGET/'provenance.json'),'publisher_sha256':sha(Path(__file__))}})
+print('Preserved',len(files)+1,'original source-bound measurement files')
