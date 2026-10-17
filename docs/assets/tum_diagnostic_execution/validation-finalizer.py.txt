@@ -1,0 +1,89 @@
+"""Bind candidate validation and the decision to restore the preceding runtime."""
+import hashlib
+import io
+import json
+from pathlib import Path
+import re
+import shutil
+import subprocess
+import tarfile
+
+ROOT=Path(__file__).resolve().parent
+TARGET=ROOT/'docs/assets/tum_diagnostic_execution'
+CORE=ROOT/'outputs/tdg-validation-v1'
+ARCHIVE=ROOT/'outputs/tdg-validation-v2'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+def write(path,value):path.write_bytes((json.dumps(value,indent=2)+'\n').encode())
+candidate=json.loads((TARGET/'sources-current-manifest.json').read_bytes())
+prior=json.loads((TARGET/'sources-prior-manifest.json').read_bytes())
+assert len(candidate)==394 and len(prior)==392
+raw=subprocess.check_output(['git','archive','HEAD','src/calibrex'])
+with tarfile.open(fileobj=io.BytesIO(raw)) as bundle:
+    maintained={m.name.removeprefix('src/'):hashlib.sha256(bundle.extractfile(m).read()).hexdigest()
+                for m in bundle if m.isfile() and m.name.endswith('.py')}
+assert maintained==prior
+counts={}
+for mode in ('core','archive'):
+    folder=CORE if mode=='core' else ARCHIVE
+    for platform in ('windows','linux'):
+        name=f'{mode}-{platform}'
+        env=json.loads((folder/(name+'-environment.json')).read_bytes())
+        assert env['exit_status']==0 and env['provenance']['sources']==candidate
+        assert env['provenance']['git_commit']=='ae943a932e220813650fc5174e3c60a5d5b5f526'
+        assert all(candidate[item['path']]==item['sha256'] for item in env['imports'].values())
+        for path,digest in env['test_files_sha256'].items():
+            source=ROOT/path
+            if not source.exists():source=TARGET/(Path(path).stem+'.py.txt')
+            assert sha(source)==digest,(path,digest)
+        log=(ROOT/'outputs/tdg-validation-v1-core-windows.log' if mode=='core' and platform=='windows'
+             else ROOT/'outputs/tdg-validation-v2-archive-windows.log' if mode=='archive' and platform=='windows'
+             else folder/(name+'.log'))
+        text=log.read_text(encoding='utf-8')
+        counts[name]=int(re.findall(r'(\d+) passed',text)[-1])
+        assert counts[name]==(9 if mode=='archive' else 658 if platform=='windows' else 624)
+        if mode=='core' and platform=='linux':assert '1 skipped' in text
+        shutil.copyfile(log,TARGET/(name+'.log'))
+        shutil.copyfile(folder/(name+'-environment.json'),TARGET/(name+'-environment.json'))
+for platform in ('linux','win32'):
+    p=CORE/f'mypy-{platform}.log'
+    assert 'Success: no issues found in 394 source files' in p.read_text()
+    shutil.copyfile(p,TARGET/p.name)
+parity=json.loads((CORE/'schema-parity.json').read_bytes())
+assert parity['schema_exports_and_ledger']==130 and parity['all_exports_byte_identical']
+shutil.copyfile(CORE/'schema-parity.json',TARGET/'schema-parity.json')
+for filename in ('ruff.log','mkdocs.log'):
+    marker='All checks passed!' if filename=='ruff.log' else 'Documentation built in '
+    assert marker in (CORE/filename).read_text(encoding='utf-8',errors='replace')
+    shutil.copyfile(CORE/filename,TARGET/filename)
+for source,name in [
+    ('.tmp-calibrex-tdg-frozen-tests-v1.py','frozen-test-runner-v1.py.txt'),
+    ('.tmp-calibrex-tdg-frozen-tests-v2.py','frozen-test-runner-v2.py.txt'),
+    ('.tmp-calibrex-tdg-linux-v1.sh','linux-test-runner-v1.sh.txt'),
+    ('.tmp-calibrex-tdg-linux-v2.sh','linux-test-runner-v2.sh.txt'),
+    ('.tmp-calibrex-tdg-schema-parity-v1.py','schema-parity.py.txt'),
+    ('tests/unit/test_tum_diagnostic_execution_archive.py','test_tum_diagnostic_execution_archive.py.txt'),
+    ('tools/audit_tum_diagnostic_execution.py','auditor.py.txt'),
+]:shutil.copyfile(ROOT/source,TARGET/name)
+shutil.copyfile(Path(__file__),TARGET/'validation-finalizer.py.txt')
+with tarfile.open(TARGET/'validation-attempts.tar.gz','w:gz') as bundle:
+    for name in ('archive-windows.log','archive-windows-environment.json','archive-linux.log','archive-linux-environment.json'):
+        p=CORE/name
+        if p.exists():bundle.add(p,arcname='initial-archive-test/'+name)
+write(TARGET/'validation.json',{
+    'test_pass_counts':counts,'real_device_cases_windows':34,
+    'linux_optional_cuda_module_skipped':1,'mypy_source_modules':{'linux':394,'win32':394},
+    'public_schema_exports_and_ledger_byte_identical':130,
+    'runtime_candidate_adopted':False,'maintained_runtime_source_modules':392,
+    'ruff_passed':True,'strict_mkdocs_passed':True,
+    'initial_archive_test_note':'An initial test edited a null optional metric; its target was corrected to the numeric holdout metric. The failed Windows attempt and interrupted Linux attempt are retained.',
+    'provenance':{'candidate_commit':'ae943a932e220813650fc5174e3c60a5d5b5f526',
+                  'candidate_source_manifest_sha256':sha(TARGET/'sources-current-manifest.json'),
+                  'maintained_source_manifest_sha256':sha(TARGET/'sources-prior-manifest.json'),
+                  'restoration_commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
+                  'generator_sha256':sha(Path(__file__)),
+                  'production_provenance_sha256':sha(TARGET/'provenance.json')}})
+index=json.loads((TARGET/'index.json').read_bytes())
+index['files']={p.relative_to(TARGET).as_posix():{'sha256':sha(p),'size_bytes':p.stat().st_size}
+                for p in sorted(TARGET.rglob('*')) if p.is_file() and p.name!='index.json'}
+write(TARGET/'index.json',index)
+print('Candidate validation bound; maintained runtime exactly matches preceding capsule:',counts)
