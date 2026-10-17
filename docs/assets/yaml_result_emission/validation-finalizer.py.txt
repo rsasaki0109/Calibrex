@@ -1,0 +1,69 @@
+"""Bind completed checks to the unchanged measured runtime and archive."""
+import hashlib
+import json
+from pathlib import Path
+import re
+import shutil
+
+root=Path(__file__).resolve().parent
+target=root/'docs/assets/yaml_result_emission'
+validation=root/'outputs/yaml-emission-validation-v1'
+development=root/'outputs/fast-yaml-emission-development-v1'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+manifest=json.loads((target/'sources-current-manifest.json').read_bytes())
+runtime='6f22f69f67bcafbe2d7f1e698f34f1c509aef833'
+logs={}
+counts={}
+for mode,platform in [('core','windows'),('core','linux'),('archive','windows'),('archive','linux'),('registry','windows')]:
+    envname=f'{mode}-{platform}-environment.json'
+    env=json.loads((validation/envname).read_bytes())
+    assert env['exit_status']==0
+    assert env['provenance']['git_commit']==runtime
+    assert env['provenance']['sources']==manifest
+    assert all(manifest[v['path']]==v['sha256'] for v in env['imports'].values())
+    assert all(sha(root/file)==digest for file,digest in env['test_files_sha256'].items())
+    shutil.copyfile(validation/envname,target/envname)
+    logname=f'{mode}-{platform}.log' if mode!='registry' else 'registry.log'
+    contents=(validation/logname).read_bytes()
+    assert not contents.startswith(b'\xff\xfe')
+    counts[logname]=int(re.findall(r'(\d+) passed',contents.decode('utf-8'))[-1])
+    shutil.copyfile(validation/logname,target/logname)
+    logs[logname]=sha(target/logname)
+assert counts['core-windows.log']==counts['core-linux.log']==436
+assert counts['archive-windows.log']==counts['archive-linux.log']==15
+assert counts['registry.log']==15
+for name in ['mypy-linux.log','mypy-win32.log']:
+    assert 'Success: no issues found in 387 source files' in (development/name).read_text()
+    shutil.copyfile(development/name,target/name)
+    logs[name]=sha(target/name)
+parity=json.loads((validation/'schema-parity.json').read_bytes())
+assert parity['schema_exports_and_ledger']==130 and parity['all_exports_byte_identical']
+shutil.copyfile(validation/'schema-parity.json',target/'schema-parity.json')
+for source,name in [('.tmp-calibrex-fast-yaml-frozen-tests.py','frozen-test-runner.py.txt'),
+                    ('.tmp-calibrex-fast-yaml-linux.sh','linux-test-runner.sh.txt'),
+                    ('.tmp-calibrex-fast-yaml-archive-tests-v2.py','archive-test-runner.py.txt'),
+                    ('.tmp-calibrex-fast-yaml-archive-linux-v2.sh','linux-archive-test-runner.sh.txt'),
+                    ('.tmp-calibrex-fast-yaml-schema-parity.py','schema-parity.py.txt'),
+                    ('tests/unit/test_yaml_emission.py','test_yaml_emission.py.txt'),
+                    ('tests/unit/test_yaml_emission_benchmark.py','test_yaml_emission_benchmark.py.txt'),
+                    ('tools/audit_tum_yaml_emission.py','calibration-auditor.py.txt')]:
+    shutil.copyfile(root/source,target/name)
+shutil.copyfile(Path(__file__),target/'validation-finalizer.py.txt')
+value={'test_pass_counts':counts,'mypy_source_files_by_platform':{'linux':387,'win32':387},
+       'public_schema_exports_and_ledger_byte_identical':130,'complete_yaml_export_bytes_exact':12,
+       'provenance':{'protocol_sha256':sha(target/'protocol.json'),'tested_runtime_commit':runtime,
+                     'measured_runtime_commit':runtime,'generator_sha256':sha(Path(__file__)),
+                     'typecheck_requirements_sha256':sha(root/'tools/typecheck-requirements.txt')},
+       'log_sha256':logs}
+for name,key,marker in [('ruff.log','ruff_passed','All checks passed!'),('mkdocs.log','strict_mkdocs_passed','Documentation built in ')]:
+    if (validation/name).exists():
+        text=(validation/name).read_text(encoding='utf-8',errors='replace')
+        assert marker in text
+        shutil.copyfile(validation/name,target/name)
+        value[key]=True
+        logs[name]=sha(target/name)
+(target/'validation.json').write_bytes((json.dumps(value,indent=2)+'\n').encode())
+files={p.relative_to(target).as_posix():{'sha256':sha(p),'size_bytes':p.stat().st_size}
+       for p in sorted(target.rglob('*')) if p.is_file() and p.name!='index.json'}
+(target/'index.json').write_bytes((json.dumps({'files':files,'provenance':{'protocol_sha256':sha(target/'protocol.json')}},indent=2)+'\n').encode())
+print('Bound completed validation to',runtime,';',len(files)+1,'archive files')

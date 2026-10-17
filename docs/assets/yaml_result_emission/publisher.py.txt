@@ -1,0 +1,57 @@
+"""Publish exact exports and their supplementary full-calibration evidence."""
+import gzip
+import hashlib
+import json
+from pathlib import Path
+import shutil
+
+from tools import benchmark_yaml_emission as emission
+from tools import audit_tum_yaml_emission as calibration
+
+root=Path(__file__).resolve().parent
+source=root/'outputs/yaml-emission-pairs-v1'
+full=root/'outputs/tum-yaml-emission-screen-v1'
+target=root/'docs/assets/yaml_result_emission'
+target.mkdir(exist_ok=False)
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+for path in source.iterdir():
+    if path.is_file():shutil.copyfile(path,target/path.name)
+for path in sorted(source.glob('0*')):
+    if not path.is_dir():continue
+    dest=target/path.name
+    dest.mkdir()
+    for item in path.iterdir():
+        if item.suffix=='.yaml':
+            (dest/(item.name+'.gz')).write_bytes(gzip.compress(item.read_bytes(),mtime=0))
+        elif item.is_file():shutil.copyfile(item,dest/item.name)
+(target/'.gitattributes').write_bytes(b'* -text whitespace=cr-at-eol\n')
+secondary=target/'calibration'
+secondary.mkdir()
+for name in ['provenance.json','attempts.json','summary.json','launcher.py.txt']:
+    shutil.copyfile(full/name,secondary/name)
+for variant in ['prior','current']:
+    (secondary/variant).mkdir()
+    for name in ['protocol.json','config.yaml']:
+        shutil.copyfile(full/variant/name,secondary/variant/name)
+for path in sorted(full.glob('0*')):
+    if path.is_dir():shutil.copytree(path,secondary/path.name)
+shutil.copyfile(root/'tools/benchmark_tum_window_processes.py',secondary/'trace-worker.py.txt')
+shutil.copyfile(root/'tools/schemas/tum_window_processes_benchmark.schema.json',secondary/'worker-schema.json')
+shutil.copyfile(root/'tools/audit_tum_yaml_emission.py',target/'calibration-auditor.py.txt')
+shutil.copyfile(Path(__file__),target/'publisher.py.txt')
+assert emission.audit(target)==json.loads((target/'summary.json').read_bytes())
+report=calibration.audit(target)
+(target/'calibration-validation.json').write_bytes((json.dumps(report,indent=2)+'\n').encode())
+checksums={json.loads((p/'worker.json').read_bytes())['payload']['methods'][method]['sha256']
+           for p in target.glob('0*') if p.is_dir() for method in emission.METHODS}
+assert len(checksums)==1
+(target/'export-byte-parity.json').write_bytes((json.dumps({
+    'complete_yaml_bytes_exact':True,'full_export_count':12,'sha256':next(iter(checksums)),
+    'provenance':{'protocol_sha256':sha(target/'protocol.json'),'publisher_sha256':sha(Path(__file__))}
+},indent=2)+'\n').encode())
+files={p.relative_to(target).as_posix():{'sha256':sha(p),'size_bytes':p.stat().st_size}
+       for p in sorted(target.rglob('*')) if p.is_file()}
+(target/'index.json').write_bytes((json.dumps({'files':files,'provenance':{'protocol_sha256':sha(target/'protocol.json')}},indent=2)+'\n').encode())
+assert emission.audit(target)==json.loads((target/'summary.json').read_bytes())
+assert calibration.audit(target)==report
+print('Published',len(files)+1,'files; 12 byte-exact exports; 4 complete calibration runs match original evidence')
