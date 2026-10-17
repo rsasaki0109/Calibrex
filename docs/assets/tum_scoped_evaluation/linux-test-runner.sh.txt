@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd /mnt/c/Users/rsasa/Workspace/Calibrex
+python3 -m venv /tmp/calibrex-tse-validation
+py=/tmp/calibrex-tse-validation/bin/python
+"$py" -m pip install --disable-pip-version-check -q 'numpy>=1.21,<2.3' 'scipy>=1.8,<1.16' 'pydantic>=2.6,<3' 'PyYAML>=6.0,<7' 'jsonschema>=4.18,<5' 'pytest>=8.4,<10'
+export OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 OMP_NUM_THREADS=1
+export PYTHONPATH=src:.
+if [[ "${1:-core}" == "archive" ]]; then
+  "$py" .tmp-calibrex-tse-frozen-tests-v1.py archive > outputs/tse-validation-v1/archive-linux.log 2>&1
+  cat outputs/tse-validation-v1/archive-linux.log
+else
+  "$py" .tmp-calibrex-tse-frozen-tests-v1.py core > outputs/tse-validation-v1/core-linux.log 2>&1
+  cat outputs/tse-validation-v1/core-linux.log
+fi

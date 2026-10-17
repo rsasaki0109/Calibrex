@@ -15,7 +15,7 @@ from calibrex.data.livox import (
 from calibrex.evaluation.lidar import _batched_plane_choices
 
 
-@pytest.mark.parametrize("count", [0, 63, 64, 4097])
+@pytest.mark.parametrize("count", [0, 7, 8, 63, 64, 4097])
 @pytest.mark.parametrize("gate", [0.001, 0.5, 1.5])
 def test_captured_geometries_retain_original_match_values(count, gate):
     rng = np.random.default_rng(632)
@@ -27,7 +27,7 @@ def test_captured_geometries_retain_original_match_values(count, gate):
     points = rng.uniform(-4, 4, (count, 3))
     actual = context._nearest_geometries(points, voxel_size_m=0.5, correspondence_gate_m=gate)
     expected = context.nearest_matches(points, voxel_size_m=0.5, correspondence_gate_m=gate)
-    if count < 64:
+    if count < 8:
         assert actual is None
         return
     assert actual is not None

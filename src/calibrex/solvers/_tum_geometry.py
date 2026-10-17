@@ -9,6 +9,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from calibrex.core.geometry import SE3
+from calibrex.graph._ordered_sums import _ordered_float_sums
 from calibrex.graph._point_plane_batches import _transform_points
 from calibrex.graph.joint_factors import se3_from_tangent
 from calibrex.graph.joint_optimization import ParameterValues
@@ -17,9 +18,11 @@ _FloatArray: TypeAlias = NDArray[np.float64]
 
 
 def _weighted_sums(weights: _FloatArray, offsets: tuple[float, ...]) -> _FloatArray:
-    # Keep Python's sum on ordinary floats. Its rounding differs between the
-    # supported Python versions and cannot be replaced by a BLAS dot product.
+    # The ordered path keeps version-specific float bits without row lists.
     products = weights * np.asarray(offsets, dtype=np.float64)
+    ordered = _ordered_float_sums(products)
+    if ordered is not None:
+        return ordered
     return np.asarray([sum(row) for row in products.tolist()], dtype=np.float64)
 
 

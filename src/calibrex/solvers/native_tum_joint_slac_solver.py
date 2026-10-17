@@ -52,7 +52,7 @@ from calibrex.evaluation.numerical_curvature import (
     NumericalCurvatureEvaluation,
     evaluate_numerical_curvature,
 )
-from calibrex.graph._evaluation_scope import _with_rgbd_factory_cache
+from calibrex.graph._evaluation_scope import _with_evaluation_cache, _with_rgbd_factory_cache
 from calibrex.graph._point_plane_batches import _OwnedPointFactors, _transform_points
 from calibrex.graph._rgbd_execution import _cuda_identity, _RGBDBackend, _using_rgbd_backend
 from calibrex.graph.joint_factors import (
@@ -365,12 +365,19 @@ class _TUMXYZPairReassociationContext:
         targets: dict[int, _TUMXYZPairTarget] = {}
         for index in range(options.xyz_pair_stride, len(problem.query_frames)):
             points = tuple(tuple(row) for row in calibrated[index].tolist())
-            plane_map = build_voxel_plane_map(
-                [LivoxPointRecord((*point, 0.0), None) for point in points],
-                options.voxel_size_m,
+            query = (
+                VoxelPlaneQueryContext._from_points(calibrated[index], options.voxel_size_m)
+                if build_voxel_plane_map is _PAIR_MAP_IMPLEMENTATION
+                and VoxelPlaneQueryContext is _PAIR_QUERY_IMPLEMENTATION else None
             )
+            if query is None:
+                plane_map = build_voxel_plane_map(
+                    [LivoxPointRecord((*point, 0.0), None) for point in points],
+                    options.voxel_size_m,
+                )
+                query = VoxelPlaneQueryContext(plane_map)
             targets[index] = _TUMXYZPairTarget(
-                VoxelPlaneQueryContext(plane_map),
+                query,
                 _xyz_pair_points_by_voxel(
                     problem.sampled_points[index],
                     points,
@@ -1148,6 +1155,8 @@ def _xyz_pair_target_id(frame_index: int, point_index: int) -> str:
 _PAIR_REPRESENTATIVE_IMPLEMENTATION = _xyz_pair_representative_point
 _PAIR_ROTATION_IMPLEMENTATION = rotate_vector_xyzw
 _PAIR_MATCH_IMPLEMENTATION = VoxelPlaneQueryContext.nearest_matches
+_PAIR_MAP_IMPLEMENTATION = build_voxel_plane_map
+_PAIR_QUERY_IMPLEMENTATION = VoxelPlaneQueryContext
 
 
 def _xyz_pair_calibrated_point(point: Vector3, offsets: tuple[float, ...]) -> Vector3:
@@ -1166,6 +1175,7 @@ def _xyz_pair_calibrated_point(point: Vector3, offsets: tuple[float, ...]) -> Ve
     )  # type: ignore[return-value]
 
 
+@_with_rgbd_factory_cache
 def _xyz_pair_reassociation_state(
     problem: _TUMXYZPairProblem,
     values: ParameterValues,
@@ -1686,6 +1696,7 @@ def _initial_spatial_reassociation_state(
     return JointReassociationState(run.data_factors, tuple(assignments))
 
 
+@_with_rgbd_factory_cache
 def _reassociated_spatial_state(
     run: _TUMSpatialWindowRun,
     plane_map: dict[tuple[int, int, int], Any],
@@ -2501,6 +2512,7 @@ def _metrics(
     }
 
 
+@_with_evaluation_cache
 def _factor_rmse(
     factors: list[JointResidualBlock], values: dict[str, tuple[float, ...]]
 ) -> float | None:

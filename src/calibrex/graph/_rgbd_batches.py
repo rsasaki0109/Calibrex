@@ -15,6 +15,7 @@ from numpy.typing import NDArray
 
 from calibrex.core.geometry import SE3, Vector3
 from calibrex.graph._evaluation_scope import _RGBD_PREPARATION_CACHE
+from calibrex.graph._ordered_sums import _ordered_float_sums
 from calibrex.graph._point_plane_batches import (
     _OwnedPointFactors,
     _Owner,
@@ -320,9 +321,11 @@ class _Group:
 
 
 def _weighted_sums(weights: _FloatArray, offsets: tuple[float, ...]) -> _FloatArray:
-    # Batch independent products, but keep Python's version-specific sum of
-    # ordinary floats, including zero terms, in the original lattice order.
+    # Batch independent products and retain the original CPython sum order.
     products = weights * np.asarray(offsets, dtype=np.float64)
+    ordered = _ordered_float_sums(products)
+    if ordered is not None:
+        return ordered
     return np.asarray([sum(row) for row in products.tolist()], dtype=np.float64)
 
 
