@@ -1,0 +1,148 @@
+{
+  "seconds": 13.345086499932222,
+  "frontend_seconds": 24.01751590007916,
+  "frontend_sha256": "f95763b72312e4eac1841435a7b87f4045c37c0a13562895f1a4f4507b418a8c",
+  "data_factors": 27544,
+  "all_factors": 27554,
+  "iterations": 20,
+  "status": "max_iterations",
+  "trace_events": 102,
+  "result_sha256": "ea355bca9c716035ab0fe1b157418c1d4e6b861a110eba21ed32ef422e516f75",
+  "traces_sha256": "f98728ab13678c18ac5e2032843476d969243c14d42d7370854810f09758b896",
+  "provenance": {
+    "variant": "prior",
+    "source_manifest_sha256": "07c482ed0c3342880d7eb62550fce9427687e8327d0fb63aa5039f59cc999b80",
+    "git_commit": "2ae6cb775e002cd21d2af6ccbef133600b27a0fd",
+    "config_sha256": "53d17f3c3b464d3e67a50678d93836f4154815119964bb91793355dc0d9291e2",
+    "input_inventory_sha256": "f1ec8837db3c70ddb173869a4362dd54a5a9da3dc8e6f9cc7ac59a7b14e2a108",
+    "launcher_sha256": "9cf40bb41c4851af7ff2bf99c4845ffbf64d9bca435a6617073d60593130f0a9",
+    "imports": {
+      "calibrex": "calibrex/__init__.py",
+      "calibrex.core": "calibrex/core/__init__.py",
+      "calibrex.core.exceptions": "calibrex/core/exceptions.py",
+      "calibrex.core.io": "calibrex/core/io.py",
+      "calibrex.core.geometry": "calibrex/core/geometry.py",
+      "calibrex.core.solid_state": "calibrex/core/solid_state.py",
+      "calibrex.core.result": "calibrex/core/result.py",
+      "calibrex.core.external_run": "calibrex/core/external_run.py",
+      "calibrex.core.provenance": "calibrex/core/provenance.py",
+      "calibrex.core.koide_runner": "calibrex/core/koide_runner.py",
+      "calibrex.core.config": "calibrex/core/config.py",
+      "calibrex.solvers": "calibrex/solvers/__init__.py",
+      "calibrex.core.frames": "calibrex/core/frames.py",
+      "calibrex.data": "calibrex/data/__init__.py",
+      "calibrex.data.base": "calibrex/data/base.py",
+      "calibrex.data.a2d2": "calibrex/data/a2d2.py",
+      "calibrex.data.manifest": "calibrex/data/manifest.py",
+      "calibrex.data.filesystem": "calibrex/data/filesystem.py",
+      "calibrex.core.evidence": "calibrex/core/evidence.py",
+      "calibrex.data.kitti": "calibrex/data/kitti.py",
+      "calibrex.data.livox": "calibrex/data/livox.py",
+      "calibrex.core.mcap_integrity": "calibrex/core/mcap_integrity.py",
+      "calibrex.data.mcap": "calibrex/data/mcap.py",
+      "calibrex.data.nuscenes": "calibrex/data/nuscenes.py",
+      "calibrex.data.ros_messages": "calibrex/data/ros_messages.py",
+      "calibrex.data.rosbag1": "calibrex/data/rosbag1.py",
+      "calibrex.data.ros1_cdr": "calibrex/data/ros1_cdr.py",
+      "calibrex.data.bag_formats": "calibrex/data/bag_formats.py",
+      "calibrex.data.ros_cdr": "calibrex/data/ros_cdr.py",
+      "calibrex.data.rosbag2": "calibrex/data/rosbag2.py",
+      "calibrex.core.time": "calibrex/core/time.py",
+      "calibrex.data.tum_rgbd": "calibrex/data/tum_rgbd.py",
+      "calibrex.data.inspect": "calibrex/data/inspect.py",
+      "calibrex.evaluation": "calibrex/evaluation/__init__.py",
+      "calibrex.evaluation.correspondence": "calibrex/evaluation/correspondence.py",
+      "calibrex.evaluation.numerical_curvature": "calibrex/evaluation/numerical_curvature.py",
+      "calibrex.evaluation.multistart": "calibrex/evaluation/multistart.py",
+      "calibrex.graph.factors": "calibrex/graph/factors.py",
+      "calibrex.graph._evaluation_scope": "calibrex/graph/_evaluation_scope.py",
+      "calibrex.evaluation.holdout": "calibrex/evaluation/holdout.py",
+      "calibrex.graph.joint_optimization": "calibrex/graph/joint_optimization.py",
+      "calibrex.graph._point_plane_batches": "calibrex/graph/_point_plane_batches.py",
+      "calibrex.graph._rgbd_batches": "calibrex/graph/_rgbd_batches.py",
+      "calibrex.graph.joint_factors": "calibrex/graph/joint_factors.py",
+      "calibrex.graph.joint_reassociation": "calibrex/graph/joint_reassociation.py",
+      "calibrex.graph.gauge": "calibrex/graph/gauge.py",
+      "calibrex.graph.observability": "calibrex/graph/observability.py",
+      "calibrex.graph.priors": "calibrex/graph/priors.py",
+      "calibrex.graph.variables": "calibrex/graph/variables.py",
+      "calibrex.graph.problem": "calibrex/graph/problem.py",
+      "calibrex.graph": "calibrex/graph/__init__.py",
+      "calibrex.solvers._tum_geometry": "calibrex/solvers/_tum_geometry.py",
+      "calibrex.solvers.base": "calibrex/solvers/base.py",
+      "calibrex.solvers.native_tum_joint_slac_solver": "calibrex/solvers/native_tum_joint_slac_solver.py",
+      "calibrex.graph._rgbd_field_columns": "calibrex/graph/_rgbd_field_columns.py"
+    },
+    "pid": 18520,
+    "parent_pid": 32396,
+    "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "verified_inputs": {
+      "depth.txt": {
+        "name": "depth.txt",
+        "sha256": "d5abcc12d67cd2f5ae6f405ab1459a416ab2c1cdfb16d9bbd137d5f77d3285df",
+        "size_bytes": 36783
+      },
+      "groundtruth.txt": {
+        "name": "groundtruth.txt",
+        "sha256": "aac0319a6ef4e1cdf61e779d2152b95aa7e9f7b1749d6d18717b43ddabffede2",
+        "size_bytes": 201100
+      },
+      "depth/1305031108.167357.png": {
+        "name": "depth/1305031108.167357.png",
+        "sha256": "a983cbe3f5309015973fd4a92d9386bdb9332381da4944d4236e9c9e4ac2f3ed",
+        "size_bytes": 125507
+      },
+      "depth/1305031108.503548.png": {
+        "name": "depth/1305031108.503548.png",
+        "sha256": "151f85970db6eb0d5b8645a74cc53ae9c5488a49ffd4a5ac41a2de0870643e3b",
+        "size_bytes": 119837
+      },
+      "depth/1305031108.835163.png": {
+        "name": "depth/1305031108.835163.png",
+        "sha256": "8aac42e7fba45a0b30e51a1c9e49b70a6d4be76241b8a9ef5e2737b7ce0cf04e",
+        "size_bytes": 118275
+      },
+      "depth/1305031109.234324.png": {
+        "name": "depth/1305031109.234324.png",
+        "sha256": "98229b50626565b124608d6ca21fe938ab941d007ab97e7344ceb77b206199fd",
+        "size_bytes": 119977
+      },
+      "depth/1305031109.567452.png": {
+        "name": "depth/1305031109.567452.png",
+        "sha256": "f617e1318f33b1656b1a26fcef67f0bf68088866b38dd8457c3f64dba30a3eba",
+        "size_bytes": 119985
+      },
+      "depth/1305031109.900535.png": {
+        "name": "depth/1305031109.900535.png",
+        "sha256": "739f7eb0a27dd37efa4adb77256f43caf893aeda45096ef3a29fcf31f766a76b",
+        "size_bytes": 115857
+      },
+      "depth/1305031110.234909.png": {
+        "name": "depth/1305031110.234909.png",
+        "sha256": "5af0c163c3448c002fd73bdd8ebd0cac4a2273456664591f69b23663deffac74",
+        "size_bytes": 117409
+      },
+      "depth/1305031110.571676.png": {
+        "name": "depth/1305031110.571676.png",
+        "sha256": "d475b887ecb556b4d3524c375af2cfd2eeb8ee244e7f08743f532550e33dc1c9",
+        "size_bytes": 120490
+      },
+      "depth/1305031110.901900.png": {
+        "name": "depth/1305031110.901900.png",
+        "sha256": "753334411bb3e48a00ffe6ac7ca2e54e0941f69b608af48fec453fc35a12a308",
+        "size_bytes": 122666
+      },
+      "depth/1305031111.236670.png": {
+        "name": "depth/1305031111.236670.png",
+        "sha256": "93814c7916afb32ed88024b44bbd1ea5796d4eee8db01911fe27ec4e131d0088",
+        "size_bytes": 118928
+      },
+      "depth/1305031111.571320.png": {
+        "name": "depth/1305031111.571320.png",
+        "sha256": "e80cc92083bc26db5f4c4a26c53fc23acd1bd7dd5e674e2a1932e4132f603d28",
+        "size_bytes": 116816
+      }
+    },
+    "scope": "Complete 20-iteration XYZ optimizer API on a larger spent public-data graph; full worker also includes frontend preparation. This is not the complete multi-window calibration suite and makes no accuracy claim."
+  }
+}
