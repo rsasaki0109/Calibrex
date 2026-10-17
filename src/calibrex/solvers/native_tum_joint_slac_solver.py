@@ -366,19 +366,12 @@ class _TUMXYZPairReassociationContext:
         targets: dict[int, _TUMXYZPairTarget] = {}
         for index in range(options.xyz_pair_stride, len(problem.query_frames)):
             points = tuple(tuple(row) for row in calibrated[index].tolist())
-            query = (
-                VoxelPlaneQueryContext._from_points(calibrated[index], options.voxel_size_m)
-                if build_voxel_plane_map is _PAIR_MAP_IMPLEMENTATION
-                and VoxelPlaneQueryContext is _PAIR_QUERY_IMPLEMENTATION else None
+            plane_map = build_voxel_plane_map(
+                [LivoxPointRecord((*point, 0.0), None) for point in points],
+                options.voxel_size_m,
             )
-            if query is None:
-                plane_map = build_voxel_plane_map(
-                    [LivoxPointRecord((*point, 0.0), None) for point in points],
-                    options.voxel_size_m,
-                )
-                query = VoxelPlaneQueryContext(plane_map)
             targets[index] = _TUMXYZPairTarget(
-                query,
+                VoxelPlaneQueryContext(plane_map),
                 _xyz_pair_points_by_voxel(
                     problem.sampled_points[index],
                     points,
@@ -1156,8 +1149,6 @@ def _xyz_pair_target_id(frame_index: int, point_index: int) -> str:
 _PAIR_REPRESENTATIVE_IMPLEMENTATION = _xyz_pair_representative_point
 _PAIR_ROTATION_IMPLEMENTATION = rotate_vector_xyzw
 _PAIR_MATCH_IMPLEMENTATION = VoxelPlaneQueryContext.nearest_matches
-_PAIR_MAP_IMPLEMENTATION = build_voxel_plane_map
-_PAIR_QUERY_IMPLEMENTATION = VoxelPlaneQueryContext
 
 
 def _xyz_pair_calibrated_point(point: Vector3, offsets: tuple[float, ...]) -> Vector3:
