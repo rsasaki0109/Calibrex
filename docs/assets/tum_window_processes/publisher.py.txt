@@ -1,0 +1,50 @@
+"""Publish all measured process traces, with complete source and input lineage."""
+import json
+from pathlib import Path
+import shutil
+from tools import benchmark_tum_window_processes as b
+
+root=Path(__file__).resolve().parent
+source=root/'outputs/tum-window-process-pairs-v2'
+target=root/'docs/assets/tum_window_processes'
+report=b.audit(source)
+attempts=json.loads((source/'attempts.json').read_bytes())['payload']['attempts']
+target.mkdir(exist_ok=False)
+for name in b.PINNED | {'protocol.json','attempts.json','summary.json'}:
+    shutil.copyfile(source/name,target/name)
+for attempt in attempts:
+    shutil.copytree(source/attempt['folder'],target/attempt['folder'])
+initial=root/'outputs/tum-window-process-pairs-v1'
+rejected=target/'initial-redirector-run'
+rejected.mkdir()
+for name in b.PINNED | {'protocol.json','attempts.json'}:
+    shutil.copyfile(initial/name,rejected/name)
+for attempt in json.loads((initial/'attempts.json').read_bytes())['payload']['attempts']:
+    shutil.copytree(initial/attempt['folder'],rejected/attempt['folder'])
+try:
+    b.audit(rejected)
+except ValueError as exc:
+    assert str(exc)=='child process ownership differs', str(exc)
+    (rejected/'audit-failure.log').write_text(
+        'Initial protocol rejected: '+str(exc)+'\n'
+        'Windows venv redirectors interposed between parent and Python worker.\n'
+        'Preserved all four attempts; excluded from the accepted speed comparison.\n',
+        encoding='utf-8',
+    )
+else:
+    raise AssertionError('The rejected initial protocol unexpectedly passed')
+for path,name in (
+    (root/'tests/unit/test_tum_window_processes.py','test_tum_window_processes.py.txt'),
+    (root/'tests/unit/test_tum_window_processes_archive.py','test_tum_window_processes_archive.py.txt'),
+    (root/'.tmp-calibrex-window-linux.sh','linux-test-runner.sh.txt'),
+    (Path(__file__),'publisher.py.txt'),
+):
+    shutil.copyfile(path,target/name)
+(target/'.gitattributes').write_bytes(b'* -text whitespace=cr-at-eol\n*.log -whitespace\n')
+b.write(target/'index.json',{
+    'files':{p.relative_to(target).as_posix():{'sha256':b.sha(p),'size_bytes':p.stat().st_size}
+             for p in sorted(target.rglob('*')) if p.is_file() and p.name!='index.json'},
+    'provenance':{'protocol_sha256':b.sha(target/'protocol.json')},
+})
+assert b.audit(target)==report
+print('Published',len(json.loads((target/'index.json').read_bytes())['files'])+1,'files')
