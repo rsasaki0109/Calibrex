@@ -305,9 +305,34 @@ class VoxelPlaneQueryContext:
     """
 
     def __init__(self, plane_map: VoxelPlaneMap) -> None:
-        self._planes = {
+        self._initialize({
             key: _PlaneGeometry(plane.centroid, plane.normal) for key, plane in plane_map.items()
-        }
+        })
+
+    @classmethod
+    def _from_points(
+        cls, points: NDArray[np.float64], voxel_size_m: float,
+    ) -> VoxelPlaneQueryContext | None:
+        """Capture owned normal-free points without mutable plane accumulators."""
+        if (
+            cls is not VoxelPlaneQueryContext
+            or _fallback_plane_normal is not _NATIVE_FALLBACK_NORMAL
+            or _VoxelPlane.add is not _NATIVE_PLANE_ADD
+            or _VoxelPlane.centroid is not _NATIVE_PLANE_CENTROID
+            or _VoxelPlane.normal is not _NATIVE_PLANE_NORMAL
+        ):
+            return None
+        from calibrex.data._voxel_geometry import _point_plane_geometry
+
+        geometry = _point_plane_geometry(points, voxel_size_m)
+        if geometry is None:
+            return None
+        result = cls.__new__(cls)
+        result._initialize(geometry)
+        return result
+
+    def _initialize(self, geometry: dict[tuple[int, int, int], _PlaneGeometry]) -> None:
+        self._planes = geometry
         self._keys = tuple(sorted(self._planes))
         self._index = _prepare_plane_index(self._planes)
         self._native_geometry = all(
@@ -1903,6 +1928,12 @@ def _fallback_plane_normal(points: list[Vector3]) -> Vector3 | None:
         key=lambda point: _norm3(_cross3(_sub3(first, origin), _sub3(point, origin))),
     )
     return _normalized3(_cross3(_sub3(first, origin), _sub3(second, origin)))
+
+
+_NATIVE_FALLBACK_NORMAL = _fallback_plane_normal
+_NATIVE_PLANE_ADD = _VoxelPlane.add
+_NATIVE_PLANE_CENTROID = _VoxelPlane.centroid
+_NATIVE_PLANE_NORMAL = _VoxelPlane.normal
 
 
 def _sub3(left: Vector3, right: Vector3) -> Vector3:
