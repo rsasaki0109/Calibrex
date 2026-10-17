@@ -1,0 +1,4880 @@
+{
+  "measurement": {
+    "anyOf": [
+      {
+        "additionalProperties": false,
+        "properties": {
+          "all_factors": {
+            "type": "integer"
+          },
+          "data_factors": {
+            "type": "integer"
+          },
+          "iterations": {
+            "type": "integer"
+          },
+          "provenance": {
+            "additionalProperties": false,
+            "properties": {
+              "config_sha256": {
+                "type": "string"
+              },
+              "git_commit": {
+                "type": "string"
+              },
+              "imports": {
+                "additionalProperties": false,
+                "properties": {
+                  "calibrex": {
+                    "type": "string"
+                  },
+                  "calibrex.core": {
+                    "type": "string"
+                  },
+                  "calibrex.core.config": {
+                    "type": "string"
+                  },
+                  "calibrex.core.evidence": {
+                    "type": "string"
+                  },
+                  "calibrex.core.exceptions": {
+                    "type": "string"
+                  },
+                  "calibrex.core.external_run": {
+                    "type": "string"
+                  },
+                  "calibrex.core.frames": {
+                    "type": "string"
+                  },
+                  "calibrex.core.geometry": {
+                    "type": "string"
+                  },
+                  "calibrex.core.io": {
+                    "type": "string"
+                  },
+                  "calibrex.core.koide_runner": {
+                    "type": "string"
+                  },
+                  "calibrex.core.mcap_integrity": {
+                    "type": "string"
+                  },
+                  "calibrex.core.provenance": {
+                    "type": "string"
+                  },
+                  "calibrex.core.result": {
+                    "type": "string"
+                  },
+                  "calibrex.core.solid_state": {
+                    "type": "string"
+                  },
+                  "calibrex.core.time": {
+                    "type": "string"
+                  },
+                  "calibrex.data": {
+                    "type": "string"
+                  },
+                  "calibrex.data.a2d2": {
+                    "type": "string"
+                  },
+                  "calibrex.data.bag_formats": {
+                    "type": "string"
+                  },
+                  "calibrex.data.base": {
+                    "type": "string"
+                  },
+                  "calibrex.data.filesystem": {
+                    "type": "string"
+                  },
+                  "calibrex.data.inspect": {
+                    "type": "string"
+                  },
+                  "calibrex.data.kitti": {
+                    "type": "string"
+                  },
+                  "calibrex.data.livox": {
+                    "type": "string"
+                  },
+                  "calibrex.data.manifest": {
+                    "type": "string"
+                  },
+                  "calibrex.data.mcap": {
+                    "type": "string"
+                  },
+                  "calibrex.data.nuscenes": {
+                    "type": "string"
+                  },
+                  "calibrex.data.ros1_cdr": {
+                    "type": "string"
+                  },
+                  "calibrex.data.ros_cdr": {
+                    "type": "string"
+                  },
+                  "calibrex.data.ros_messages": {
+                    "type": "string"
+                  },
+                  "calibrex.data.rosbag1": {
+                    "type": "string"
+                  },
+                  "calibrex.data.rosbag2": {
+                    "type": "string"
+                  },
+                  "calibrex.data.tum_rgbd": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation.correspondence": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation.holdout": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation.multistart": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation.numerical_curvature": {
+                    "type": "string"
+                  },
+                  "calibrex.graph": {
+                    "type": "string"
+                  },
+                  "calibrex.graph._evaluation_scope": {
+                    "type": "string"
+                  },
+                  "calibrex.graph._point_plane_batches": {
+                    "type": "string"
+                  },
+                  "calibrex.graph._rgbd_batches": {
+                    "type": "string"
+                  },
+                  "calibrex.graph._rgbd_field_columns": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.factors": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.gauge": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.joint_factors": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.joint_optimization": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.joint_reassociation": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.observability": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.priors": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.problem": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.variables": {
+                    "type": "string"
+                  },
+                  "calibrex.solvers": {
+                    "type": "string"
+                  },
+                  "calibrex.solvers._tum_geometry": {
+                    "type": "string"
+                  },
+                  "calibrex.solvers.base": {
+                    "type": "string"
+                  },
+                  "calibrex.solvers.native_tum_joint_slac_solver": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "calibrex",
+                  "calibrex.core",
+                  "calibrex.core.exceptions",
+                  "calibrex.core.io",
+                  "calibrex.core.geometry",
+                  "calibrex.core.solid_state",
+                  "calibrex.core.result",
+                  "calibrex.core.external_run",
+                  "calibrex.core.provenance",
+                  "calibrex.core.koide_runner",
+                  "calibrex.core.config",
+                  "calibrex.solvers",
+                  "calibrex.core.frames",
+                  "calibrex.data",
+                  "calibrex.data.base",
+                  "calibrex.data.a2d2",
+                  "calibrex.data.manifest",
+                  "calibrex.data.filesystem",
+                  "calibrex.core.evidence",
+                  "calibrex.data.kitti",
+                  "calibrex.data.livox",
+                  "calibrex.core.mcap_integrity",
+                  "calibrex.data.mcap",
+                  "calibrex.data.nuscenes",
+                  "calibrex.data.ros_messages",
+                  "calibrex.data.rosbag1",
+                  "calibrex.data.ros1_cdr",
+                  "calibrex.data.bag_formats",
+                  "calibrex.data.ros_cdr",
+                  "calibrex.data.rosbag2",
+                  "calibrex.core.time",
+                  "calibrex.data.tum_rgbd",
+                  "calibrex.data.inspect",
+                  "calibrex.evaluation",
+                  "calibrex.evaluation.correspondence",
+                  "calibrex.evaluation.numerical_curvature",
+                  "calibrex.evaluation.multistart",
+                  "calibrex.graph.factors",
+                  "calibrex.graph._evaluation_scope",
+                  "calibrex.evaluation.holdout",
+                  "calibrex.graph.joint_optimization",
+                  "calibrex.graph._point_plane_batches",
+                  "calibrex.graph._rgbd_batches",
+                  "calibrex.graph.joint_factors",
+                  "calibrex.graph.joint_reassociation",
+                  "calibrex.graph.gauge",
+                  "calibrex.graph.observability",
+                  "calibrex.graph.priors",
+                  "calibrex.graph.variables",
+                  "calibrex.graph.problem",
+                  "calibrex.graph",
+                  "calibrex.solvers._tum_geometry",
+                  "calibrex.solvers.base",
+                  "calibrex.solvers.native_tum_joint_slac_solver",
+                  "calibrex.graph._rgbd_field_columns"
+                ],
+                "type": "object"
+              },
+              "input_inventory_sha256": {
+                "type": "string"
+              },
+              "launcher_sha256": {
+                "type": "string"
+              },
+              "parent_pid": {
+                "type": "integer"
+              },
+              "pid": {
+                "type": "integer"
+              },
+              "python": {
+                "type": "string"
+              },
+              "scope": {
+                "type": "string"
+              },
+              "source_manifest_sha256": {
+                "type": "string"
+              },
+              "variant": {
+                "type": "string"
+              },
+              "verified_inputs": {
+                "additionalProperties": false,
+                "properties": {
+                  "depth.txt": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031108.167357.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031108.503548.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031108.835163.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031109.234324.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031109.567452.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031109.900535.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031110.234909.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031110.571676.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031110.901900.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031111.236670.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031111.571320.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "groundtruth.txt": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "depth.txt",
+                  "groundtruth.txt",
+                  "depth/1305031108.167357.png",
+                  "depth/1305031108.503548.png",
+                  "depth/1305031108.835163.png",
+                  "depth/1305031109.234324.png",
+                  "depth/1305031109.567452.png",
+                  "depth/1305031109.900535.png",
+                  "depth/1305031110.234909.png",
+                  "depth/1305031110.571676.png",
+                  "depth/1305031110.901900.png",
+                  "depth/1305031111.236670.png",
+                  "depth/1305031111.571320.png"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "variant",
+              "source_manifest_sha256",
+              "git_commit",
+              "config_sha256",
+              "input_inventory_sha256",
+              "launcher_sha256",
+              "imports",
+              "pid",
+              "parent_pid",
+              "python",
+              "verified_inputs",
+              "scope"
+            ],
+            "type": "object"
+          },
+          "result_sha256": {
+            "type": "string"
+          },
+          "seconds": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string"
+          },
+          "trace_events": {
+            "type": "integer"
+          },
+          "traces_sha256": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "seconds",
+          "data_factors",
+          "all_factors",
+          "iterations",
+          "status",
+          "trace_events",
+          "result_sha256",
+          "traces_sha256",
+          "provenance"
+        ],
+        "type": "object"
+      },
+      {
+        "additionalProperties": false,
+        "properties": {
+          "all_factors": {
+            "type": "integer"
+          },
+          "data_factors": {
+            "type": "integer"
+          },
+          "iterations": {
+            "type": "integer"
+          },
+          "provenance": {
+            "additionalProperties": false,
+            "properties": {
+              "config_sha256": {
+                "type": "string"
+              },
+              "git_commit": {
+                "type": "string"
+              },
+              "imports": {
+                "additionalProperties": false,
+                "properties": {
+                  "calibrex": {
+                    "type": "string"
+                  },
+                  "calibrex.core": {
+                    "type": "string"
+                  },
+                  "calibrex.core.config": {
+                    "type": "string"
+                  },
+                  "calibrex.core.evidence": {
+                    "type": "string"
+                  },
+                  "calibrex.core.exceptions": {
+                    "type": "string"
+                  },
+                  "calibrex.core.external_run": {
+                    "type": "string"
+                  },
+                  "calibrex.core.frames": {
+                    "type": "string"
+                  },
+                  "calibrex.core.geometry": {
+                    "type": "string"
+                  },
+                  "calibrex.core.io": {
+                    "type": "string"
+                  },
+                  "calibrex.core.koide_runner": {
+                    "type": "string"
+                  },
+                  "calibrex.core.mcap_integrity": {
+                    "type": "string"
+                  },
+                  "calibrex.core.provenance": {
+                    "type": "string"
+                  },
+                  "calibrex.core.result": {
+                    "type": "string"
+                  },
+                  "calibrex.core.solid_state": {
+                    "type": "string"
+                  },
+                  "calibrex.core.time": {
+                    "type": "string"
+                  },
+                  "calibrex.data": {
+                    "type": "string"
+                  },
+                  "calibrex.data.a2d2": {
+                    "type": "string"
+                  },
+                  "calibrex.data.bag_formats": {
+                    "type": "string"
+                  },
+                  "calibrex.data.base": {
+                    "type": "string"
+                  },
+                  "calibrex.data.filesystem": {
+                    "type": "string"
+                  },
+                  "calibrex.data.inspect": {
+                    "type": "string"
+                  },
+                  "calibrex.data.kitti": {
+                    "type": "string"
+                  },
+                  "calibrex.data.livox": {
+                    "type": "string"
+                  },
+                  "calibrex.data.manifest": {
+                    "type": "string"
+                  },
+                  "calibrex.data.mcap": {
+                    "type": "string"
+                  },
+                  "calibrex.data.nuscenes": {
+                    "type": "string"
+                  },
+                  "calibrex.data.ros1_cdr": {
+                    "type": "string"
+                  },
+                  "calibrex.data.ros_cdr": {
+                    "type": "string"
+                  },
+                  "calibrex.data.ros_messages": {
+                    "type": "string"
+                  },
+                  "calibrex.data.rosbag1": {
+                    "type": "string"
+                  },
+                  "calibrex.data.rosbag2": {
+                    "type": "string"
+                  },
+                  "calibrex.data.tum_rgbd": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation.correspondence": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation.holdout": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation.multistart": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation.numerical_curvature": {
+                    "type": "string"
+                  },
+                  "calibrex.graph": {
+                    "type": "string"
+                  },
+                  "calibrex.graph._evaluation_scope": {
+                    "type": "string"
+                  },
+                  "calibrex.graph._point_plane_batches": {
+                    "type": "string"
+                  },
+                  "calibrex.graph._rgbd_batches": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.factors": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.gauge": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.joint_factors": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.joint_optimization": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.joint_reassociation": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.observability": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.priors": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.problem": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.variables": {
+                    "type": "string"
+                  },
+                  "calibrex.solvers": {
+                    "type": "string"
+                  },
+                  "calibrex.solvers._tum_geometry": {
+                    "type": "string"
+                  },
+                  "calibrex.solvers.base": {
+                    "type": "string"
+                  },
+                  "calibrex.solvers.native_tum_joint_slac_solver": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "calibrex",
+                  "calibrex.core",
+                  "calibrex.core.exceptions",
+                  "calibrex.core.io",
+                  "calibrex.core.geometry",
+                  "calibrex.core.solid_state",
+                  "calibrex.core.result",
+                  "calibrex.core.external_run",
+                  "calibrex.core.provenance",
+                  "calibrex.core.koide_runner",
+                  "calibrex.core.config",
+                  "calibrex.solvers",
+                  "calibrex.core.frames",
+                  "calibrex.data",
+                  "calibrex.data.base",
+                  "calibrex.data.a2d2",
+                  "calibrex.data.manifest",
+                  "calibrex.data.filesystem",
+                  "calibrex.core.evidence",
+                  "calibrex.data.kitti",
+                  "calibrex.data.livox",
+                  "calibrex.core.mcap_integrity",
+                  "calibrex.data.mcap",
+                  "calibrex.data.nuscenes",
+                  "calibrex.data.ros_messages",
+                  "calibrex.data.rosbag1",
+                  "calibrex.data.ros1_cdr",
+                  "calibrex.data.bag_formats",
+                  "calibrex.data.ros_cdr",
+                  "calibrex.data.rosbag2",
+                  "calibrex.core.time",
+                  "calibrex.data.tum_rgbd",
+                  "calibrex.data.inspect",
+                  "calibrex.evaluation",
+                  "calibrex.evaluation.correspondence",
+                  "calibrex.evaluation.numerical_curvature",
+                  "calibrex.evaluation.multistart",
+                  "calibrex.graph.factors",
+                  "calibrex.graph._evaluation_scope",
+                  "calibrex.evaluation.holdout",
+                  "calibrex.graph.joint_optimization",
+                  "calibrex.graph._point_plane_batches",
+                  "calibrex.graph._rgbd_batches",
+                  "calibrex.graph.joint_factors",
+                  "calibrex.graph.joint_reassociation",
+                  "calibrex.graph.gauge",
+                  "calibrex.graph.observability",
+                  "calibrex.graph.priors",
+                  "calibrex.graph.variables",
+                  "calibrex.graph.problem",
+                  "calibrex.graph",
+                  "calibrex.solvers._tum_geometry",
+                  "calibrex.solvers.base",
+                  "calibrex.solvers.native_tum_joint_slac_solver"
+                ],
+                "type": "object"
+              },
+              "input_inventory_sha256": {
+                "type": "string"
+              },
+              "launcher_sha256": {
+                "type": "string"
+              },
+              "parent_pid": {
+                "type": "integer"
+              },
+              "pid": {
+                "type": "integer"
+              },
+              "python": {
+                "type": "string"
+              },
+              "scope": {
+                "type": "string"
+              },
+              "source_manifest_sha256": {
+                "type": "string"
+              },
+              "variant": {
+                "type": "string"
+              },
+              "verified_inputs": {
+                "additionalProperties": false,
+                "properties": {
+                  "depth.txt": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031108.167357.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031108.503548.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031108.835163.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031109.234324.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031109.567452.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031109.900535.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031110.234909.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031110.571676.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031110.901900.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031111.236670.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031111.571320.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "groundtruth.txt": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "depth.txt",
+                  "groundtruth.txt",
+                  "depth/1305031108.167357.png",
+                  "depth/1305031108.503548.png",
+                  "depth/1305031108.835163.png",
+                  "depth/1305031109.234324.png",
+                  "depth/1305031109.567452.png",
+                  "depth/1305031109.900535.png",
+                  "depth/1305031110.234909.png",
+                  "depth/1305031110.571676.png",
+                  "depth/1305031110.901900.png",
+                  "depth/1305031111.236670.png",
+                  "depth/1305031111.571320.png"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "variant",
+              "source_manifest_sha256",
+              "git_commit",
+              "config_sha256",
+              "input_inventory_sha256",
+              "launcher_sha256",
+              "imports",
+              "pid",
+              "parent_pid",
+              "python",
+              "verified_inputs",
+              "scope"
+            ],
+            "type": "object"
+          },
+          "result_sha256": {
+            "type": "string"
+          },
+          "seconds": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string"
+          },
+          "trace_events": {
+            "type": "integer"
+          },
+          "traces_sha256": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "seconds",
+          "data_factors",
+          "all_factors",
+          "iterations",
+          "status",
+          "trace_events",
+          "result_sha256",
+          "traces_sha256",
+          "provenance"
+        ],
+        "type": "object"
+      }
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  },
+  "result": {
+    "anyOf": [
+      {
+        "additionalProperties": false,
+        "properties": {
+          "payload": {
+            "additionalProperties": false,
+            "properties": {
+              "condition_number": {
+                "type": "number"
+              },
+              "factor_family_information_policy": {
+                "type": "string"
+              },
+              "factor_weighting_policy": {
+                "type": "string"
+              },
+              "history": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "accepted": {
+                      "type": "boolean"
+                    },
+                    "damping": {
+                      "type": "number"
+                    },
+                    "eliminated_dimension": {
+                      "type": "integer"
+                    },
+                    "iteration": {
+                      "type": "integer"
+                    },
+                    "linear_solver": {
+                      "type": "string"
+                    },
+                    "linear_system_residual_inf": {
+                      "type": "number"
+                    },
+                    "retained_dimension": {
+                      "type": "integer"
+                    },
+                    "schur_complement_condition_number": {
+                      "type": "number"
+                    },
+                    "step_norm": {
+                      "type": "number"
+                    },
+                    "train_rmse": {
+                      "type": "number"
+                    },
+                    "train_robust_objective": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "iteration",
+                    "train_rmse",
+                    "train_robust_objective",
+                    "damping",
+                    "step_norm",
+                    "accepted",
+                    "linear_solver",
+                    "eliminated_dimension",
+                    "retained_dimension",
+                    "linear_system_residual_inf",
+                    "schur_complement_condition_number"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 20,
+                "minItems": 20,
+                "type": "array"
+              },
+              "holdout_factor_family_diagnostics": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "diagnostic_kind": {
+                      "type": "string"
+                    },
+                    "factor_count": {
+                      "type": "integer"
+                    },
+                    "family": {
+                      "type": "string"
+                    },
+                    "mean_huber_weight": {
+                      "type": "number"
+                    },
+                    "observation_group_count": {
+                      "type": "integer"
+                    },
+                    "residual_dimension": {
+                      "type": "integer"
+                    },
+                    "residual_rmse": {
+                      "type": "number"
+                    },
+                    "robust_information_fraction": {
+                      "type": "null"
+                    },
+                    "robust_jacobian_frobenius_norm": {
+                      "type": "null"
+                    }
+                  },
+                  "required": [
+                    "family",
+                    "factor_count",
+                    "observation_group_count",
+                    "residual_dimension",
+                    "residual_rmse",
+                    "mean_huber_weight",
+                    "robust_jacobian_frobenius_norm",
+                    "robust_information_fraction",
+                    "diagnostic_kind"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 1,
+                "minItems": 1,
+                "type": "array"
+              },
+              "holdout_factor_ids": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 6452,
+                "minItems": 6452,
+                "type": "array"
+              },
+              "holdout_observation_groups": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "holdout_rmse": {
+                "type": "number"
+              },
+              "information_policy": {
+                "type": "string"
+              },
+              "information_rank": {
+                "type": "integer"
+              },
+              "information_rank_threshold": {
+                "type": "number"
+              },
+              "information_singular_values": {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 78,
+                "minItems": 78,
+                "type": "array"
+              },
+              "known_bad_probes": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "amount": {
+                      "type": "number"
+                    },
+                    "baseline_holdout_rmse": {
+                      "type": "number"
+                    },
+                    "block": {
+                      "type": "string"
+                    },
+                    "delta": {
+                      "type": "number"
+                    },
+                    "detectable": {
+                      "type": "boolean"
+                    },
+                    "dimension": {
+                      "type": "integer"
+                    },
+                    "perturbed_holdout_rmse": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "block",
+                    "dimension",
+                    "amount",
+                    "baseline_holdout_rmse",
+                    "perturbed_holdout_rmse",
+                    "delta",
+                    "detectable"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 60,
+                "minItems": 60,
+                "type": "array"
+              },
+              "linear_solver": {
+                "type": "string"
+              },
+              "linear_solver_contract": {
+                "type": "string"
+              },
+              "linear_solver_limitation": {
+                "type": "string"
+              },
+              "linear_solver_papers": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "authors": {
+                      "type": "string"
+                    },
+                    "doi": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "authors",
+                    "doi"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "max_linear_system_residual_inf": {
+                "type": "number"
+              },
+              "max_schur_complement_condition_number": {
+                "type": "number"
+              },
+              "method": {
+                "type": "string"
+              },
+              "optimized_values": {
+                "additionalProperties": false,
+                "properties": {
+                  "T_trajectory_camera_correction": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "maxItems": 6,
+                    "minItems": 6,
+                    "type": "array"
+                  },
+                  "depth_full_xyz_lattice_offsets_m": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "maxItems": 24,
+                    "minItems": 24,
+                    "type": "array"
+                  },
+                  "pose_000_1305031109.234324": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "maxItems": 6,
+                    "minItems": 6,
+                    "type": "array"
+                  },
+                  "pose_001_1305031109.567452": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "maxItems": 6,
+                    "minItems": 6,
+                    "type": "array"
+                  },
+                  "pose_002_1305031109.900535": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "maxItems": 6,
+                    "minItems": 6,
+                    "type": "array"
+                  },
+                  "pose_003_1305031110.234909": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "maxItems": 6,
+                    "minItems": 6,
+                    "type": "array"
+                  },
+                  "pose_004_1305031110.571676": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "maxItems": 6,
+                    "minItems": 6,
+                    "type": "array"
+                  },
+                  "pose_005_1305031110.901900": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "maxItems": 6,
+                    "minItems": 6,
+                    "type": "array"
+                  },
+                  "pose_006_1305031111.236670": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "maxItems": 6,
+                    "minItems": 6,
+                    "type": "array"
+                  },
+                  "pose_007_1305031111.571320": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "maxItems": 6,
+                    "minItems": 6,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "T_trajectory_camera_correction",
+                  "depth_full_xyz_lattice_offsets_m",
+                  "pose_000_1305031109.234324",
+                  "pose_001_1305031109.567452",
+                  "pose_002_1305031109.900535",
+                  "pose_003_1305031110.234909",
+                  "pose_004_1305031110.571676",
+                  "pose_005_1305031110.901900",
+                  "pose_006_1305031111.236670",
+                  "pose_007_1305031111.571320"
+                ],
+                "type": "object"
+              },
+              "rank_tolerance_policy": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "schur_eliminated_blocks": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 8,
+                "minItems": 8,
+                "type": "array"
+              },
+              "schur_eliminated_dimension": {
+                "type": "integer"
+              },
+              "schur_retained_blocks": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "schur_retained_dimension": {
+                "type": "integer"
+              },
+              "status": {
+                "type": "string"
+              },
+              "train_factor_family_diagnostics": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "diagnostic_kind": {
+                      "type": "string"
+                    },
+                    "factor_count": {
+                      "type": "integer"
+                    },
+                    "family": {
+                      "type": "string"
+                    },
+                    "mean_huber_weight": {
+                      "type": "number"
+                    },
+                    "observation_group_count": {
+                      "type": "integer"
+                    },
+                    "residual_dimension": {
+                      "type": "integer"
+                    },
+                    "residual_rmse": {
+                      "type": "number"
+                    },
+                    "robust_information_fraction": {
+                      "type": "number"
+                    },
+                    "robust_jacobian_frobenius_norm": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "family",
+                    "factor_count",
+                    "observation_group_count",
+                    "residual_dimension",
+                    "residual_rmse",
+                    "mean_huber_weight",
+                    "robust_jacobian_frobenius_norm",
+                    "robust_information_fraction",
+                    "diagnostic_kind"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 4,
+                "minItems": 4,
+                "type": "array"
+              },
+              "train_factor_ids": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 21102,
+                "minItems": 21102,
+                "type": "array"
+              },
+              "train_factor_whitening": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "factor_id": {
+                      "type": "string"
+                    },
+                    "family": {
+                      "type": "string"
+                    },
+                    "sqrt_information": {
+                      "items": {
+                        "items": {
+                          "type": "number"
+                        },
+                        "maxItems": 6,
+                        "minItems": 6,
+                        "type": "array"
+                      },
+                      "maxItems": 6,
+                      "minItems": 6,
+                      "type": "array"
+                    },
+                    "weight": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "factor_id",
+                    "family",
+                    "weight",
+                    "sqrt_information"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 8,
+                "minItems": 8,
+                "type": "array"
+              },
+              "train_observation_groups": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 6,
+                "minItems": 6,
+                "type": "array"
+              },
+              "train_rmse": {
+                "type": "number"
+              },
+              "train_whitened_factor_count": {
+                "type": "integer"
+              },
+              "weak_parameter_blocks": {
+                "items": {},
+                "maxItems": 0,
+                "minItems": 0,
+                "type": "array"
+              }
+            },
+            "required": [
+              "status",
+              "reason",
+              "optimized_values",
+              "train_factor_ids",
+              "holdout_factor_ids",
+              "train_observation_groups",
+              "holdout_observation_groups",
+              "train_rmse",
+              "holdout_rmse",
+              "information_singular_values",
+              "information_rank_threshold",
+              "information_rank",
+              "condition_number",
+              "weak_parameter_blocks",
+              "known_bad_probes",
+              "history",
+              "method",
+              "information_policy",
+              "rank_tolerance_policy",
+              "train_whitened_factor_count",
+              "factor_weighting_policy",
+              "train_factor_whitening",
+              "train_factor_family_diagnostics",
+              "holdout_factor_family_diagnostics",
+              "factor_family_information_policy",
+              "linear_solver",
+              "schur_eliminated_blocks",
+              "schur_retained_blocks",
+              "schur_eliminated_dimension",
+              "schur_retained_dimension",
+              "max_linear_system_residual_inf",
+              "max_schur_complement_condition_number",
+              "linear_solver_contract",
+              "linear_solver_limitation",
+              "linear_solver_papers"
+            ],
+            "type": "object"
+          },
+          "provenance": {
+            "additionalProperties": false,
+            "properties": {
+              "config_sha256": {
+                "type": "string"
+              },
+              "git_commit": {
+                "type": "string"
+              },
+              "imports": {
+                "additionalProperties": false,
+                "properties": {
+                  "calibrex": {
+                    "type": "string"
+                  },
+                  "calibrex.core": {
+                    "type": "string"
+                  },
+                  "calibrex.core.config": {
+                    "type": "string"
+                  },
+                  "calibrex.core.evidence": {
+                    "type": "string"
+                  },
+                  "calibrex.core.exceptions": {
+                    "type": "string"
+                  },
+                  "calibrex.core.external_run": {
+                    "type": "string"
+                  },
+                  "calibrex.core.frames": {
+                    "type": "string"
+                  },
+                  "calibrex.core.geometry": {
+                    "type": "string"
+                  },
+                  "calibrex.core.io": {
+                    "type": "string"
+                  },
+                  "calibrex.core.koide_runner": {
+                    "type": "string"
+                  },
+                  "calibrex.core.mcap_integrity": {
+                    "type": "string"
+                  },
+                  "calibrex.core.provenance": {
+                    "type": "string"
+                  },
+                  "calibrex.core.result": {
+                    "type": "string"
+                  },
+                  "calibrex.core.solid_state": {
+                    "type": "string"
+                  },
+                  "calibrex.core.time": {
+                    "type": "string"
+                  },
+                  "calibrex.data": {
+                    "type": "string"
+                  },
+                  "calibrex.data.a2d2": {
+                    "type": "string"
+                  },
+                  "calibrex.data.bag_formats": {
+                    "type": "string"
+                  },
+                  "calibrex.data.base": {
+                    "type": "string"
+                  },
+                  "calibrex.data.filesystem": {
+                    "type": "string"
+                  },
+                  "calibrex.data.inspect": {
+                    "type": "string"
+                  },
+                  "calibrex.data.kitti": {
+                    "type": "string"
+                  },
+                  "calibrex.data.livox": {
+                    "type": "string"
+                  },
+                  "calibrex.data.manifest": {
+                    "type": "string"
+                  },
+                  "calibrex.data.mcap": {
+                    "type": "string"
+                  },
+                  "calibrex.data.nuscenes": {
+                    "type": "string"
+                  },
+                  "calibrex.data.ros1_cdr": {
+                    "type": "string"
+                  },
+                  "calibrex.data.ros_cdr": {
+                    "type": "string"
+                  },
+                  "calibrex.data.ros_messages": {
+                    "type": "string"
+                  },
+                  "calibrex.data.rosbag1": {
+                    "type": "string"
+                  },
+                  "calibrex.data.rosbag2": {
+                    "type": "string"
+                  },
+                  "calibrex.data.tum_rgbd": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation.correspondence": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation.holdout": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation.multistart": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation.numerical_curvature": {
+                    "type": "string"
+                  },
+                  "calibrex.graph": {
+                    "type": "string"
+                  },
+                  "calibrex.graph._evaluation_scope": {
+                    "type": "string"
+                  },
+                  "calibrex.graph._point_plane_batches": {
+                    "type": "string"
+                  },
+                  "calibrex.graph._rgbd_batches": {
+                    "type": "string"
+                  },
+                  "calibrex.graph._rgbd_field_columns": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.factors": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.gauge": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.joint_factors": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.joint_optimization": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.joint_reassociation": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.observability": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.priors": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.problem": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.variables": {
+                    "type": "string"
+                  },
+                  "calibrex.solvers": {
+                    "type": "string"
+                  },
+                  "calibrex.solvers._tum_geometry": {
+                    "type": "string"
+                  },
+                  "calibrex.solvers.base": {
+                    "type": "string"
+                  },
+                  "calibrex.solvers.native_tum_joint_slac_solver": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "calibrex",
+                  "calibrex.core",
+                  "calibrex.core.exceptions",
+                  "calibrex.core.io",
+                  "calibrex.core.geometry",
+                  "calibrex.core.solid_state",
+                  "calibrex.core.result",
+                  "calibrex.core.external_run",
+                  "calibrex.core.provenance",
+                  "calibrex.core.koide_runner",
+                  "calibrex.core.config",
+                  "calibrex.solvers",
+                  "calibrex.core.frames",
+                  "calibrex.data",
+                  "calibrex.data.base",
+                  "calibrex.data.a2d2",
+                  "calibrex.data.manifest",
+                  "calibrex.data.filesystem",
+                  "calibrex.core.evidence",
+                  "calibrex.data.kitti",
+                  "calibrex.data.livox",
+                  "calibrex.core.mcap_integrity",
+                  "calibrex.data.mcap",
+                  "calibrex.data.nuscenes",
+                  "calibrex.data.ros_messages",
+                  "calibrex.data.rosbag1",
+                  "calibrex.data.ros1_cdr",
+                  "calibrex.data.bag_formats",
+                  "calibrex.data.ros_cdr",
+                  "calibrex.data.rosbag2",
+                  "calibrex.core.time",
+                  "calibrex.data.tum_rgbd",
+                  "calibrex.data.inspect",
+                  "calibrex.evaluation",
+                  "calibrex.evaluation.correspondence",
+                  "calibrex.evaluation.numerical_curvature",
+                  "calibrex.evaluation.multistart",
+                  "calibrex.graph.factors",
+                  "calibrex.graph._evaluation_scope",
+                  "calibrex.evaluation.holdout",
+                  "calibrex.graph.joint_optimization",
+                  "calibrex.graph._point_plane_batches",
+                  "calibrex.graph._rgbd_batches",
+                  "calibrex.graph.joint_factors",
+                  "calibrex.graph.joint_reassociation",
+                  "calibrex.graph.gauge",
+                  "calibrex.graph.observability",
+                  "calibrex.graph.priors",
+                  "calibrex.graph.variables",
+                  "calibrex.graph.problem",
+                  "calibrex.graph",
+                  "calibrex.solvers._tum_geometry",
+                  "calibrex.solvers.base",
+                  "calibrex.solvers.native_tum_joint_slac_solver",
+                  "calibrex.graph._rgbd_field_columns"
+                ],
+                "type": "object"
+              },
+              "input_inventory_sha256": {
+                "type": "string"
+              },
+              "launcher_sha256": {
+                "type": "string"
+              },
+              "parent_pid": {
+                "type": "integer"
+              },
+              "pid": {
+                "type": "integer"
+              },
+              "python": {
+                "type": "string"
+              },
+              "scope": {
+                "type": "string"
+              },
+              "source_manifest_sha256": {
+                "type": "string"
+              },
+              "variant": {
+                "type": "string"
+              },
+              "verified_inputs": {
+                "additionalProperties": false,
+                "properties": {
+                  "depth.txt": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031108.167357.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031108.503548.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031108.835163.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031109.234324.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031109.567452.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031109.900535.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031110.234909.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031110.571676.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031110.901900.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031111.236670.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031111.571320.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "groundtruth.txt": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "depth.txt",
+                  "groundtruth.txt",
+                  "depth/1305031108.167357.png",
+                  "depth/1305031108.503548.png",
+                  "depth/1305031108.835163.png",
+                  "depth/1305031109.234324.png",
+                  "depth/1305031109.567452.png",
+                  "depth/1305031109.900535.png",
+                  "depth/1305031110.234909.png",
+                  "depth/1305031110.571676.png",
+                  "depth/1305031110.901900.png",
+                  "depth/1305031111.236670.png",
+                  "depth/1305031111.571320.png"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "variant",
+              "source_manifest_sha256",
+              "git_commit",
+              "config_sha256",
+              "input_inventory_sha256",
+              "launcher_sha256",
+              "imports",
+              "pid",
+              "parent_pid",
+              "python",
+              "verified_inputs",
+              "scope"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "payload",
+          "provenance"
+        ],
+        "type": "object"
+      },
+      {
+        "additionalProperties": false,
+        "properties": {
+          "payload": {
+            "additionalProperties": false,
+            "properties": {
+              "condition_number": {
+                "type": "number"
+              },
+              "factor_family_information_policy": {
+                "type": "string"
+              },
+              "factor_weighting_policy": {
+                "type": "string"
+              },
+              "history": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "accepted": {
+                      "type": "boolean"
+                    },
+                    "damping": {
+                      "type": "number"
+                    },
+                    "eliminated_dimension": {
+                      "type": "integer"
+                    },
+                    "iteration": {
+                      "type": "integer"
+                    },
+                    "linear_solver": {
+                      "type": "string"
+                    },
+                    "linear_system_residual_inf": {
+                      "type": "number"
+                    },
+                    "retained_dimension": {
+                      "type": "integer"
+                    },
+                    "schur_complement_condition_number": {
+                      "type": "number"
+                    },
+                    "step_norm": {
+                      "type": "number"
+                    },
+                    "train_rmse": {
+                      "type": "number"
+                    },
+                    "train_robust_objective": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "iteration",
+                    "train_rmse",
+                    "train_robust_objective",
+                    "damping",
+                    "step_norm",
+                    "accepted",
+                    "linear_solver",
+                    "eliminated_dimension",
+                    "retained_dimension",
+                    "linear_system_residual_inf",
+                    "schur_complement_condition_number"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 20,
+                "minItems": 20,
+                "type": "array"
+              },
+              "holdout_factor_family_diagnostics": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "diagnostic_kind": {
+                      "type": "string"
+                    },
+                    "factor_count": {
+                      "type": "integer"
+                    },
+                    "family": {
+                      "type": "string"
+                    },
+                    "mean_huber_weight": {
+                      "type": "number"
+                    },
+                    "observation_group_count": {
+                      "type": "integer"
+                    },
+                    "residual_dimension": {
+                      "type": "integer"
+                    },
+                    "residual_rmse": {
+                      "type": "number"
+                    },
+                    "robust_information_fraction": {
+                      "type": "null"
+                    },
+                    "robust_jacobian_frobenius_norm": {
+                      "type": "null"
+                    }
+                  },
+                  "required": [
+                    "family",
+                    "factor_count",
+                    "observation_group_count",
+                    "residual_dimension",
+                    "residual_rmse",
+                    "mean_huber_weight",
+                    "robust_jacobian_frobenius_norm",
+                    "robust_information_fraction",
+                    "diagnostic_kind"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 1,
+                "minItems": 1,
+                "type": "array"
+              },
+              "holdout_factor_ids": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 6452,
+                "minItems": 6452,
+                "type": "array"
+              },
+              "holdout_observation_groups": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "holdout_rmse": {
+                "type": "number"
+              },
+              "information_policy": {
+                "type": "string"
+              },
+              "information_rank": {
+                "type": "integer"
+              },
+              "information_rank_threshold": {
+                "type": "number"
+              },
+              "information_singular_values": {
+                "items": {
+                  "type": "number"
+                },
+                "maxItems": 78,
+                "minItems": 78,
+                "type": "array"
+              },
+              "known_bad_probes": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "amount": {
+                      "type": "number"
+                    },
+                    "baseline_holdout_rmse": {
+                      "type": "number"
+                    },
+                    "block": {
+                      "type": "string"
+                    },
+                    "delta": {
+                      "type": "number"
+                    },
+                    "detectable": {
+                      "type": "boolean"
+                    },
+                    "dimension": {
+                      "type": "integer"
+                    },
+                    "perturbed_holdout_rmse": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "block",
+                    "dimension",
+                    "amount",
+                    "baseline_holdout_rmse",
+                    "perturbed_holdout_rmse",
+                    "delta",
+                    "detectable"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 60,
+                "minItems": 60,
+                "type": "array"
+              },
+              "linear_solver": {
+                "type": "string"
+              },
+              "linear_solver_contract": {
+                "type": "string"
+              },
+              "linear_solver_limitation": {
+                "type": "string"
+              },
+              "linear_solver_papers": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "authors": {
+                      "type": "string"
+                    },
+                    "doi": {
+                      "type": "string"
+                    },
+                    "title": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "title",
+                    "authors",
+                    "doi"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "max_linear_system_residual_inf": {
+                "type": "number"
+              },
+              "max_schur_complement_condition_number": {
+                "type": "number"
+              },
+              "method": {
+                "type": "string"
+              },
+              "optimized_values": {
+                "additionalProperties": false,
+                "properties": {
+                  "T_trajectory_camera_correction": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "maxItems": 6,
+                    "minItems": 6,
+                    "type": "array"
+                  },
+                  "depth_full_xyz_lattice_offsets_m": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "maxItems": 24,
+                    "minItems": 24,
+                    "type": "array"
+                  },
+                  "pose_000_1305031109.234324": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "maxItems": 6,
+                    "minItems": 6,
+                    "type": "array"
+                  },
+                  "pose_001_1305031109.567452": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "maxItems": 6,
+                    "minItems": 6,
+                    "type": "array"
+                  },
+                  "pose_002_1305031109.900535": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "maxItems": 6,
+                    "minItems": 6,
+                    "type": "array"
+                  },
+                  "pose_003_1305031110.234909": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "maxItems": 6,
+                    "minItems": 6,
+                    "type": "array"
+                  },
+                  "pose_004_1305031110.571676": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "maxItems": 6,
+                    "minItems": 6,
+                    "type": "array"
+                  },
+                  "pose_005_1305031110.901900": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "maxItems": 6,
+                    "minItems": 6,
+                    "type": "array"
+                  },
+                  "pose_006_1305031111.236670": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "maxItems": 6,
+                    "minItems": 6,
+                    "type": "array"
+                  },
+                  "pose_007_1305031111.571320": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "maxItems": 6,
+                    "minItems": 6,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "T_trajectory_camera_correction",
+                  "depth_full_xyz_lattice_offsets_m",
+                  "pose_000_1305031109.234324",
+                  "pose_001_1305031109.567452",
+                  "pose_002_1305031109.900535",
+                  "pose_003_1305031110.234909",
+                  "pose_004_1305031110.571676",
+                  "pose_005_1305031110.901900",
+                  "pose_006_1305031111.236670",
+                  "pose_007_1305031111.571320"
+                ],
+                "type": "object"
+              },
+              "rank_tolerance_policy": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "schur_eliminated_blocks": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 8,
+                "minItems": 8,
+                "type": "array"
+              },
+              "schur_eliminated_dimension": {
+                "type": "integer"
+              },
+              "schur_retained_blocks": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 2,
+                "minItems": 2,
+                "type": "array"
+              },
+              "schur_retained_dimension": {
+                "type": "integer"
+              },
+              "status": {
+                "type": "string"
+              },
+              "train_factor_family_diagnostics": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "diagnostic_kind": {
+                      "type": "string"
+                    },
+                    "factor_count": {
+                      "type": "integer"
+                    },
+                    "family": {
+                      "type": "string"
+                    },
+                    "mean_huber_weight": {
+                      "type": "number"
+                    },
+                    "observation_group_count": {
+                      "type": "integer"
+                    },
+                    "residual_dimension": {
+                      "type": "integer"
+                    },
+                    "residual_rmse": {
+                      "type": "number"
+                    },
+                    "robust_information_fraction": {
+                      "type": "number"
+                    },
+                    "robust_jacobian_frobenius_norm": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "family",
+                    "factor_count",
+                    "observation_group_count",
+                    "residual_dimension",
+                    "residual_rmse",
+                    "mean_huber_weight",
+                    "robust_jacobian_frobenius_norm",
+                    "robust_information_fraction",
+                    "diagnostic_kind"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 4,
+                "minItems": 4,
+                "type": "array"
+              },
+              "train_factor_ids": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 21102,
+                "minItems": 21102,
+                "type": "array"
+              },
+              "train_factor_whitening": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "factor_id": {
+                      "type": "string"
+                    },
+                    "family": {
+                      "type": "string"
+                    },
+                    "sqrt_information": {
+                      "items": {
+                        "items": {
+                          "type": "number"
+                        },
+                        "maxItems": 6,
+                        "minItems": 6,
+                        "type": "array"
+                      },
+                      "maxItems": 6,
+                      "minItems": 6,
+                      "type": "array"
+                    },
+                    "weight": {
+                      "type": "number"
+                    }
+                  },
+                  "required": [
+                    "factor_id",
+                    "family",
+                    "weight",
+                    "sqrt_information"
+                  ],
+                  "type": "object"
+                },
+                "maxItems": 8,
+                "minItems": 8,
+                "type": "array"
+              },
+              "train_observation_groups": {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 6,
+                "minItems": 6,
+                "type": "array"
+              },
+              "train_rmse": {
+                "type": "number"
+              },
+              "train_whitened_factor_count": {
+                "type": "integer"
+              },
+              "weak_parameter_blocks": {
+                "items": {},
+                "maxItems": 0,
+                "minItems": 0,
+                "type": "array"
+              }
+            },
+            "required": [
+              "status",
+              "reason",
+              "optimized_values",
+              "train_factor_ids",
+              "holdout_factor_ids",
+              "train_observation_groups",
+              "holdout_observation_groups",
+              "train_rmse",
+              "holdout_rmse",
+              "information_singular_values",
+              "information_rank_threshold",
+              "information_rank",
+              "condition_number",
+              "weak_parameter_blocks",
+              "known_bad_probes",
+              "history",
+              "method",
+              "information_policy",
+              "rank_tolerance_policy",
+              "train_whitened_factor_count",
+              "factor_weighting_policy",
+              "train_factor_whitening",
+              "train_factor_family_diagnostics",
+              "holdout_factor_family_diagnostics",
+              "factor_family_information_policy",
+              "linear_solver",
+              "schur_eliminated_blocks",
+              "schur_retained_blocks",
+              "schur_eliminated_dimension",
+              "schur_retained_dimension",
+              "max_linear_system_residual_inf",
+              "max_schur_complement_condition_number",
+              "linear_solver_contract",
+              "linear_solver_limitation",
+              "linear_solver_papers"
+            ],
+            "type": "object"
+          },
+          "provenance": {
+            "additionalProperties": false,
+            "properties": {
+              "config_sha256": {
+                "type": "string"
+              },
+              "git_commit": {
+                "type": "string"
+              },
+              "imports": {
+                "additionalProperties": false,
+                "properties": {
+                  "calibrex": {
+                    "type": "string"
+                  },
+                  "calibrex.core": {
+                    "type": "string"
+                  },
+                  "calibrex.core.config": {
+                    "type": "string"
+                  },
+                  "calibrex.core.evidence": {
+                    "type": "string"
+                  },
+                  "calibrex.core.exceptions": {
+                    "type": "string"
+                  },
+                  "calibrex.core.external_run": {
+                    "type": "string"
+                  },
+                  "calibrex.core.frames": {
+                    "type": "string"
+                  },
+                  "calibrex.core.geometry": {
+                    "type": "string"
+                  },
+                  "calibrex.core.io": {
+                    "type": "string"
+                  },
+                  "calibrex.core.koide_runner": {
+                    "type": "string"
+                  },
+                  "calibrex.core.mcap_integrity": {
+                    "type": "string"
+                  },
+                  "calibrex.core.provenance": {
+                    "type": "string"
+                  },
+                  "calibrex.core.result": {
+                    "type": "string"
+                  },
+                  "calibrex.core.solid_state": {
+                    "type": "string"
+                  },
+                  "calibrex.core.time": {
+                    "type": "string"
+                  },
+                  "calibrex.data": {
+                    "type": "string"
+                  },
+                  "calibrex.data.a2d2": {
+                    "type": "string"
+                  },
+                  "calibrex.data.bag_formats": {
+                    "type": "string"
+                  },
+                  "calibrex.data.base": {
+                    "type": "string"
+                  },
+                  "calibrex.data.filesystem": {
+                    "type": "string"
+                  },
+                  "calibrex.data.inspect": {
+                    "type": "string"
+                  },
+                  "calibrex.data.kitti": {
+                    "type": "string"
+                  },
+                  "calibrex.data.livox": {
+                    "type": "string"
+                  },
+                  "calibrex.data.manifest": {
+                    "type": "string"
+                  },
+                  "calibrex.data.mcap": {
+                    "type": "string"
+                  },
+                  "calibrex.data.nuscenes": {
+                    "type": "string"
+                  },
+                  "calibrex.data.ros1_cdr": {
+                    "type": "string"
+                  },
+                  "calibrex.data.ros_cdr": {
+                    "type": "string"
+                  },
+                  "calibrex.data.ros_messages": {
+                    "type": "string"
+                  },
+                  "calibrex.data.rosbag1": {
+                    "type": "string"
+                  },
+                  "calibrex.data.rosbag2": {
+                    "type": "string"
+                  },
+                  "calibrex.data.tum_rgbd": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation.correspondence": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation.holdout": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation.multistart": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation.numerical_curvature": {
+                    "type": "string"
+                  },
+                  "calibrex.graph": {
+                    "type": "string"
+                  },
+                  "calibrex.graph._evaluation_scope": {
+                    "type": "string"
+                  },
+                  "calibrex.graph._point_plane_batches": {
+                    "type": "string"
+                  },
+                  "calibrex.graph._rgbd_batches": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.factors": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.gauge": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.joint_factors": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.joint_optimization": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.joint_reassociation": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.observability": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.priors": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.problem": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.variables": {
+                    "type": "string"
+                  },
+                  "calibrex.solvers": {
+                    "type": "string"
+                  },
+                  "calibrex.solvers._tum_geometry": {
+                    "type": "string"
+                  },
+                  "calibrex.solvers.base": {
+                    "type": "string"
+                  },
+                  "calibrex.solvers.native_tum_joint_slac_solver": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "calibrex",
+                  "calibrex.core",
+                  "calibrex.core.exceptions",
+                  "calibrex.core.io",
+                  "calibrex.core.geometry",
+                  "calibrex.core.solid_state",
+                  "calibrex.core.result",
+                  "calibrex.core.external_run",
+                  "calibrex.core.provenance",
+                  "calibrex.core.koide_runner",
+                  "calibrex.core.config",
+                  "calibrex.solvers",
+                  "calibrex.core.frames",
+                  "calibrex.data",
+                  "calibrex.data.base",
+                  "calibrex.data.a2d2",
+                  "calibrex.data.manifest",
+                  "calibrex.data.filesystem",
+                  "calibrex.core.evidence",
+                  "calibrex.data.kitti",
+                  "calibrex.data.livox",
+                  "calibrex.core.mcap_integrity",
+                  "calibrex.data.mcap",
+                  "calibrex.data.nuscenes",
+                  "calibrex.data.ros_messages",
+                  "calibrex.data.rosbag1",
+                  "calibrex.data.ros1_cdr",
+                  "calibrex.data.bag_formats",
+                  "calibrex.data.ros_cdr",
+                  "calibrex.data.rosbag2",
+                  "calibrex.core.time",
+                  "calibrex.data.tum_rgbd",
+                  "calibrex.data.inspect",
+                  "calibrex.evaluation",
+                  "calibrex.evaluation.correspondence",
+                  "calibrex.evaluation.numerical_curvature",
+                  "calibrex.evaluation.multistart",
+                  "calibrex.graph.factors",
+                  "calibrex.graph._evaluation_scope",
+                  "calibrex.evaluation.holdout",
+                  "calibrex.graph.joint_optimization",
+                  "calibrex.graph._point_plane_batches",
+                  "calibrex.graph._rgbd_batches",
+                  "calibrex.graph.joint_factors",
+                  "calibrex.graph.joint_reassociation",
+                  "calibrex.graph.gauge",
+                  "calibrex.graph.observability",
+                  "calibrex.graph.priors",
+                  "calibrex.graph.variables",
+                  "calibrex.graph.problem",
+                  "calibrex.graph",
+                  "calibrex.solvers._tum_geometry",
+                  "calibrex.solvers.base",
+                  "calibrex.solvers.native_tum_joint_slac_solver"
+                ],
+                "type": "object"
+              },
+              "input_inventory_sha256": {
+                "type": "string"
+              },
+              "launcher_sha256": {
+                "type": "string"
+              },
+              "parent_pid": {
+                "type": "integer"
+              },
+              "pid": {
+                "type": "integer"
+              },
+              "python": {
+                "type": "string"
+              },
+              "scope": {
+                "type": "string"
+              },
+              "source_manifest_sha256": {
+                "type": "string"
+              },
+              "variant": {
+                "type": "string"
+              },
+              "verified_inputs": {
+                "additionalProperties": false,
+                "properties": {
+                  "depth.txt": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031108.167357.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031108.503548.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031108.835163.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031109.234324.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031109.567452.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031109.900535.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031110.234909.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031110.571676.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031110.901900.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031111.236670.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031111.571320.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "groundtruth.txt": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "depth.txt",
+                  "groundtruth.txt",
+                  "depth/1305031108.167357.png",
+                  "depth/1305031108.503548.png",
+                  "depth/1305031108.835163.png",
+                  "depth/1305031109.234324.png",
+                  "depth/1305031109.567452.png",
+                  "depth/1305031109.900535.png",
+                  "depth/1305031110.234909.png",
+                  "depth/1305031110.571676.png",
+                  "depth/1305031110.901900.png",
+                  "depth/1305031111.236670.png",
+                  "depth/1305031111.571320.png"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "variant",
+              "source_manifest_sha256",
+              "git_commit",
+              "config_sha256",
+              "input_inventory_sha256",
+              "launcher_sha256",
+              "imports",
+              "pid",
+              "parent_pid",
+              "python",
+              "verified_inputs",
+              "scope"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "payload",
+          "provenance"
+        ],
+        "type": "object"
+      }
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  },
+  "traces": {
+    "anyOf": [
+      {
+        "additionalProperties": false,
+        "properties": {
+          "payload": {
+            "items": {
+              "anyOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "arrays": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "sha256": {
+                            "type": "string"
+                          },
+                          "shape": {
+                            "items": {
+                              "type": "integer"
+                            },
+                            "maxItems": 1,
+                            "minItems": 1,
+                            "type": "array"
+                          }
+                        },
+                        "required": [
+                          "shape",
+                          "sha256"
+                        ],
+                        "type": "object"
+                      },
+                      "maxItems": 1,
+                      "minItems": 1,
+                      "type": "array"
+                    },
+                    "factor_ids_sha256": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "values_sha256": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "factor_ids_sha256",
+                    "values_sha256",
+                    "arrays"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "arrays": {
+                      "items": {
+                        "anyOf": [
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "sha256": {
+                                "type": "string"
+                              },
+                              "shape": {
+                                "items": {
+                                  "type": "integer"
+                                },
+                                "maxItems": 1,
+                                "minItems": 1,
+                                "type": "array"
+                              }
+                            },
+                            "required": [
+                              "shape",
+                              "sha256"
+                            ],
+                            "type": "object"
+                          },
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "sha256": {
+                                "type": "string"
+                              },
+                              "shape": {
+                                "items": {
+                                  "type": "integer"
+                                },
+                                "maxItems": 2,
+                                "minItems": 2,
+                                "type": "array"
+                              }
+                            },
+                            "required": [
+                              "shape",
+                              "sha256"
+                            ],
+                            "type": "object"
+                          }
+                        ]
+                      },
+                      "maxItems": 2,
+                      "minItems": 2,
+                      "type": "array"
+                    },
+                    "factor_ids_sha256": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "values_sha256": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "factor_ids_sha256",
+                    "values_sha256",
+                    "arrays"
+                  ],
+                  "type": "object"
+                }
+              ]
+            },
+            "maxItems": 102,
+            "minItems": 102,
+            "type": "array"
+          },
+          "provenance": {
+            "additionalProperties": false,
+            "properties": {
+              "config_sha256": {
+                "type": "string"
+              },
+              "git_commit": {
+                "type": "string"
+              },
+              "imports": {
+                "additionalProperties": false,
+                "properties": {
+                  "calibrex": {
+                    "type": "string"
+                  },
+                  "calibrex.core": {
+                    "type": "string"
+                  },
+                  "calibrex.core.config": {
+                    "type": "string"
+                  },
+                  "calibrex.core.evidence": {
+                    "type": "string"
+                  },
+                  "calibrex.core.exceptions": {
+                    "type": "string"
+                  },
+                  "calibrex.core.external_run": {
+                    "type": "string"
+                  },
+                  "calibrex.core.frames": {
+                    "type": "string"
+                  },
+                  "calibrex.core.geometry": {
+                    "type": "string"
+                  },
+                  "calibrex.core.io": {
+                    "type": "string"
+                  },
+                  "calibrex.core.koide_runner": {
+                    "type": "string"
+                  },
+                  "calibrex.core.mcap_integrity": {
+                    "type": "string"
+                  },
+                  "calibrex.core.provenance": {
+                    "type": "string"
+                  },
+                  "calibrex.core.result": {
+                    "type": "string"
+                  },
+                  "calibrex.core.solid_state": {
+                    "type": "string"
+                  },
+                  "calibrex.core.time": {
+                    "type": "string"
+                  },
+                  "calibrex.data": {
+                    "type": "string"
+                  },
+                  "calibrex.data.a2d2": {
+                    "type": "string"
+                  },
+                  "calibrex.data.bag_formats": {
+                    "type": "string"
+                  },
+                  "calibrex.data.base": {
+                    "type": "string"
+                  },
+                  "calibrex.data.filesystem": {
+                    "type": "string"
+                  },
+                  "calibrex.data.inspect": {
+                    "type": "string"
+                  },
+                  "calibrex.data.kitti": {
+                    "type": "string"
+                  },
+                  "calibrex.data.livox": {
+                    "type": "string"
+                  },
+                  "calibrex.data.manifest": {
+                    "type": "string"
+                  },
+                  "calibrex.data.mcap": {
+                    "type": "string"
+                  },
+                  "calibrex.data.nuscenes": {
+                    "type": "string"
+                  },
+                  "calibrex.data.ros1_cdr": {
+                    "type": "string"
+                  },
+                  "calibrex.data.ros_cdr": {
+                    "type": "string"
+                  },
+                  "calibrex.data.ros_messages": {
+                    "type": "string"
+                  },
+                  "calibrex.data.rosbag1": {
+                    "type": "string"
+                  },
+                  "calibrex.data.rosbag2": {
+                    "type": "string"
+                  },
+                  "calibrex.data.tum_rgbd": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation.correspondence": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation.holdout": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation.multistart": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation.numerical_curvature": {
+                    "type": "string"
+                  },
+                  "calibrex.graph": {
+                    "type": "string"
+                  },
+                  "calibrex.graph._evaluation_scope": {
+                    "type": "string"
+                  },
+                  "calibrex.graph._point_plane_batches": {
+                    "type": "string"
+                  },
+                  "calibrex.graph._rgbd_batches": {
+                    "type": "string"
+                  },
+                  "calibrex.graph._rgbd_field_columns": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.factors": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.gauge": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.joint_factors": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.joint_optimization": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.joint_reassociation": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.observability": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.priors": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.problem": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.variables": {
+                    "type": "string"
+                  },
+                  "calibrex.solvers": {
+                    "type": "string"
+                  },
+                  "calibrex.solvers._tum_geometry": {
+                    "type": "string"
+                  },
+                  "calibrex.solvers.base": {
+                    "type": "string"
+                  },
+                  "calibrex.solvers.native_tum_joint_slac_solver": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "calibrex",
+                  "calibrex.core",
+                  "calibrex.core.exceptions",
+                  "calibrex.core.io",
+                  "calibrex.core.geometry",
+                  "calibrex.core.solid_state",
+                  "calibrex.core.result",
+                  "calibrex.core.external_run",
+                  "calibrex.core.provenance",
+                  "calibrex.core.koide_runner",
+                  "calibrex.core.config",
+                  "calibrex.solvers",
+                  "calibrex.core.frames",
+                  "calibrex.data",
+                  "calibrex.data.base",
+                  "calibrex.data.a2d2",
+                  "calibrex.data.manifest",
+                  "calibrex.data.filesystem",
+                  "calibrex.core.evidence",
+                  "calibrex.data.kitti",
+                  "calibrex.data.livox",
+                  "calibrex.core.mcap_integrity",
+                  "calibrex.data.mcap",
+                  "calibrex.data.nuscenes",
+                  "calibrex.data.ros_messages",
+                  "calibrex.data.rosbag1",
+                  "calibrex.data.ros1_cdr",
+                  "calibrex.data.bag_formats",
+                  "calibrex.data.ros_cdr",
+                  "calibrex.data.rosbag2",
+                  "calibrex.core.time",
+                  "calibrex.data.tum_rgbd",
+                  "calibrex.data.inspect",
+                  "calibrex.evaluation",
+                  "calibrex.evaluation.correspondence",
+                  "calibrex.evaluation.numerical_curvature",
+                  "calibrex.evaluation.multistart",
+                  "calibrex.graph.factors",
+                  "calibrex.graph._evaluation_scope",
+                  "calibrex.evaluation.holdout",
+                  "calibrex.graph.joint_optimization",
+                  "calibrex.graph._point_plane_batches",
+                  "calibrex.graph._rgbd_batches",
+                  "calibrex.graph.joint_factors",
+                  "calibrex.graph.joint_reassociation",
+                  "calibrex.graph.gauge",
+                  "calibrex.graph.observability",
+                  "calibrex.graph.priors",
+                  "calibrex.graph.variables",
+                  "calibrex.graph.problem",
+                  "calibrex.graph",
+                  "calibrex.solvers._tum_geometry",
+                  "calibrex.solvers.base",
+                  "calibrex.solvers.native_tum_joint_slac_solver",
+                  "calibrex.graph._rgbd_field_columns"
+                ],
+                "type": "object"
+              },
+              "input_inventory_sha256": {
+                "type": "string"
+              },
+              "launcher_sha256": {
+                "type": "string"
+              },
+              "parent_pid": {
+                "type": "integer"
+              },
+              "pid": {
+                "type": "integer"
+              },
+              "python": {
+                "type": "string"
+              },
+              "scope": {
+                "type": "string"
+              },
+              "source_manifest_sha256": {
+                "type": "string"
+              },
+              "variant": {
+                "type": "string"
+              },
+              "verified_inputs": {
+                "additionalProperties": false,
+                "properties": {
+                  "depth.txt": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031108.167357.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031108.503548.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031108.835163.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031109.234324.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031109.567452.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031109.900535.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031110.234909.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031110.571676.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031110.901900.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031111.236670.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031111.571320.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "groundtruth.txt": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "depth.txt",
+                  "groundtruth.txt",
+                  "depth/1305031108.167357.png",
+                  "depth/1305031108.503548.png",
+                  "depth/1305031108.835163.png",
+                  "depth/1305031109.234324.png",
+                  "depth/1305031109.567452.png",
+                  "depth/1305031109.900535.png",
+                  "depth/1305031110.234909.png",
+                  "depth/1305031110.571676.png",
+                  "depth/1305031110.901900.png",
+                  "depth/1305031111.236670.png",
+                  "depth/1305031111.571320.png"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "variant",
+              "source_manifest_sha256",
+              "git_commit",
+              "config_sha256",
+              "input_inventory_sha256",
+              "launcher_sha256",
+              "imports",
+              "pid",
+              "parent_pid",
+              "python",
+              "verified_inputs",
+              "scope"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "payload",
+          "provenance"
+        ],
+        "type": "object"
+      },
+      {
+        "additionalProperties": false,
+        "properties": {
+          "payload": {
+            "items": {
+              "anyOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "arrays": {
+                      "items": {
+                        "additionalProperties": false,
+                        "properties": {
+                          "sha256": {
+                            "type": "string"
+                          },
+                          "shape": {
+                            "items": {
+                              "type": "integer"
+                            },
+                            "maxItems": 1,
+                            "minItems": 1,
+                            "type": "array"
+                          }
+                        },
+                        "required": [
+                          "shape",
+                          "sha256"
+                        ],
+                        "type": "object"
+                      },
+                      "maxItems": 1,
+                      "minItems": 1,
+                      "type": "array"
+                    },
+                    "factor_ids_sha256": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "values_sha256": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "factor_ids_sha256",
+                    "values_sha256",
+                    "arrays"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "arrays": {
+                      "items": {
+                        "anyOf": [
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "sha256": {
+                                "type": "string"
+                              },
+                              "shape": {
+                                "items": {
+                                  "type": "integer"
+                                },
+                                "maxItems": 1,
+                                "minItems": 1,
+                                "type": "array"
+                              }
+                            },
+                            "required": [
+                              "shape",
+                              "sha256"
+                            ],
+                            "type": "object"
+                          },
+                          {
+                            "additionalProperties": false,
+                            "properties": {
+                              "sha256": {
+                                "type": "string"
+                              },
+                              "shape": {
+                                "items": {
+                                  "type": "integer"
+                                },
+                                "maxItems": 2,
+                                "minItems": 2,
+                                "type": "array"
+                              }
+                            },
+                            "required": [
+                              "shape",
+                              "sha256"
+                            ],
+                            "type": "object"
+                          }
+                        ]
+                      },
+                      "maxItems": 2,
+                      "minItems": 2,
+                      "type": "array"
+                    },
+                    "factor_ids_sha256": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string"
+                    },
+                    "values_sha256": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "factor_ids_sha256",
+                    "values_sha256",
+                    "arrays"
+                  ],
+                  "type": "object"
+                }
+              ]
+            },
+            "maxItems": 102,
+            "minItems": 102,
+            "type": "array"
+          },
+          "provenance": {
+            "additionalProperties": false,
+            "properties": {
+              "config_sha256": {
+                "type": "string"
+              },
+              "git_commit": {
+                "type": "string"
+              },
+              "imports": {
+                "additionalProperties": false,
+                "properties": {
+                  "calibrex": {
+                    "type": "string"
+                  },
+                  "calibrex.core": {
+                    "type": "string"
+                  },
+                  "calibrex.core.config": {
+                    "type": "string"
+                  },
+                  "calibrex.core.evidence": {
+                    "type": "string"
+                  },
+                  "calibrex.core.exceptions": {
+                    "type": "string"
+                  },
+                  "calibrex.core.external_run": {
+                    "type": "string"
+                  },
+                  "calibrex.core.frames": {
+                    "type": "string"
+                  },
+                  "calibrex.core.geometry": {
+                    "type": "string"
+                  },
+                  "calibrex.core.io": {
+                    "type": "string"
+                  },
+                  "calibrex.core.koide_runner": {
+                    "type": "string"
+                  },
+                  "calibrex.core.mcap_integrity": {
+                    "type": "string"
+                  },
+                  "calibrex.core.provenance": {
+                    "type": "string"
+                  },
+                  "calibrex.core.result": {
+                    "type": "string"
+                  },
+                  "calibrex.core.solid_state": {
+                    "type": "string"
+                  },
+                  "calibrex.core.time": {
+                    "type": "string"
+                  },
+                  "calibrex.data": {
+                    "type": "string"
+                  },
+                  "calibrex.data.a2d2": {
+                    "type": "string"
+                  },
+                  "calibrex.data.bag_formats": {
+                    "type": "string"
+                  },
+                  "calibrex.data.base": {
+                    "type": "string"
+                  },
+                  "calibrex.data.filesystem": {
+                    "type": "string"
+                  },
+                  "calibrex.data.inspect": {
+                    "type": "string"
+                  },
+                  "calibrex.data.kitti": {
+                    "type": "string"
+                  },
+                  "calibrex.data.livox": {
+                    "type": "string"
+                  },
+                  "calibrex.data.manifest": {
+                    "type": "string"
+                  },
+                  "calibrex.data.mcap": {
+                    "type": "string"
+                  },
+                  "calibrex.data.nuscenes": {
+                    "type": "string"
+                  },
+                  "calibrex.data.ros1_cdr": {
+                    "type": "string"
+                  },
+                  "calibrex.data.ros_cdr": {
+                    "type": "string"
+                  },
+                  "calibrex.data.ros_messages": {
+                    "type": "string"
+                  },
+                  "calibrex.data.rosbag1": {
+                    "type": "string"
+                  },
+                  "calibrex.data.rosbag2": {
+                    "type": "string"
+                  },
+                  "calibrex.data.tum_rgbd": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation.correspondence": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation.holdout": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation.multistart": {
+                    "type": "string"
+                  },
+                  "calibrex.evaluation.numerical_curvature": {
+                    "type": "string"
+                  },
+                  "calibrex.graph": {
+                    "type": "string"
+                  },
+                  "calibrex.graph._evaluation_scope": {
+                    "type": "string"
+                  },
+                  "calibrex.graph._point_plane_batches": {
+                    "type": "string"
+                  },
+                  "calibrex.graph._rgbd_batches": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.factors": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.gauge": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.joint_factors": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.joint_optimization": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.joint_reassociation": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.observability": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.priors": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.problem": {
+                    "type": "string"
+                  },
+                  "calibrex.graph.variables": {
+                    "type": "string"
+                  },
+                  "calibrex.solvers": {
+                    "type": "string"
+                  },
+                  "calibrex.solvers._tum_geometry": {
+                    "type": "string"
+                  },
+                  "calibrex.solvers.base": {
+                    "type": "string"
+                  },
+                  "calibrex.solvers.native_tum_joint_slac_solver": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "calibrex",
+                  "calibrex.core",
+                  "calibrex.core.exceptions",
+                  "calibrex.core.io",
+                  "calibrex.core.geometry",
+                  "calibrex.core.solid_state",
+                  "calibrex.core.result",
+                  "calibrex.core.external_run",
+                  "calibrex.core.provenance",
+                  "calibrex.core.koide_runner",
+                  "calibrex.core.config",
+                  "calibrex.solvers",
+                  "calibrex.core.frames",
+                  "calibrex.data",
+                  "calibrex.data.base",
+                  "calibrex.data.a2d2",
+                  "calibrex.data.manifest",
+                  "calibrex.data.filesystem",
+                  "calibrex.core.evidence",
+                  "calibrex.data.kitti",
+                  "calibrex.data.livox",
+                  "calibrex.core.mcap_integrity",
+                  "calibrex.data.mcap",
+                  "calibrex.data.nuscenes",
+                  "calibrex.data.ros_messages",
+                  "calibrex.data.rosbag1",
+                  "calibrex.data.ros1_cdr",
+                  "calibrex.data.bag_formats",
+                  "calibrex.data.ros_cdr",
+                  "calibrex.data.rosbag2",
+                  "calibrex.core.time",
+                  "calibrex.data.tum_rgbd",
+                  "calibrex.data.inspect",
+                  "calibrex.evaluation",
+                  "calibrex.evaluation.correspondence",
+                  "calibrex.evaluation.numerical_curvature",
+                  "calibrex.evaluation.multistart",
+                  "calibrex.graph.factors",
+                  "calibrex.graph._evaluation_scope",
+                  "calibrex.evaluation.holdout",
+                  "calibrex.graph.joint_optimization",
+                  "calibrex.graph._point_plane_batches",
+                  "calibrex.graph._rgbd_batches",
+                  "calibrex.graph.joint_factors",
+                  "calibrex.graph.joint_reassociation",
+                  "calibrex.graph.gauge",
+                  "calibrex.graph.observability",
+                  "calibrex.graph.priors",
+                  "calibrex.graph.variables",
+                  "calibrex.graph.problem",
+                  "calibrex.graph",
+                  "calibrex.solvers._tum_geometry",
+                  "calibrex.solvers.base",
+                  "calibrex.solvers.native_tum_joint_slac_solver"
+                ],
+                "type": "object"
+              },
+              "input_inventory_sha256": {
+                "type": "string"
+              },
+              "launcher_sha256": {
+                "type": "string"
+              },
+              "parent_pid": {
+                "type": "integer"
+              },
+              "pid": {
+                "type": "integer"
+              },
+              "python": {
+                "type": "string"
+              },
+              "scope": {
+                "type": "string"
+              },
+              "source_manifest_sha256": {
+                "type": "string"
+              },
+              "variant": {
+                "type": "string"
+              },
+              "verified_inputs": {
+                "additionalProperties": false,
+                "properties": {
+                  "depth.txt": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031108.167357.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031108.503548.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031108.835163.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031109.234324.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031109.567452.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031109.900535.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031110.234909.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031110.571676.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031110.901900.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031111.236670.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "depth/1305031111.571320.png": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  },
+                  "groundtruth.txt": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "sha256": {
+                        "type": "string"
+                      },
+                      "size_bytes": {
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "sha256",
+                      "size_bytes"
+                    ],
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "depth.txt",
+                  "groundtruth.txt",
+                  "depth/1305031108.167357.png",
+                  "depth/1305031108.503548.png",
+                  "depth/1305031108.835163.png",
+                  "depth/1305031109.234324.png",
+                  "depth/1305031109.567452.png",
+                  "depth/1305031109.900535.png",
+                  "depth/1305031110.234909.png",
+                  "depth/1305031110.571676.png",
+                  "depth/1305031110.901900.png",
+                  "depth/1305031111.236670.png",
+                  "depth/1305031111.571320.png"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "variant",
+              "source_manifest_sha256",
+              "git_commit",
+              "config_sha256",
+              "input_inventory_sha256",
+              "launcher_sha256",
+              "imports",
+              "pid",
+              "parent_pid",
+              "python",
+              "verified_inputs",
+              "scope"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "payload",
+          "provenance"
+        ],
+        "type": "object"
+      }
+    ],
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  },
+  "provenance": {
+    "additionalProperties": false,
+    "properties": {
+      "blas_threads": {
+        "type": "integer"
+      },
+      "commits": {
+        "additionalProperties": false,
+        "properties": {
+          "current": {
+            "type": "string"
+          },
+          "prior": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "prior",
+          "current"
+        ],
+        "type": "object"
+      },
+      "config_sha256": {
+        "type": "string"
+      },
+      "launcher_sha256": {
+        "type": "string"
+      },
+      "python": {
+        "type": "string"
+      },
+      "scope": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "commits",
+      "config_sha256",
+      "launcher_sha256",
+      "python",
+      "blas_threads",
+      "scope"
+    ],
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  },
+  "attempts": {
+    "additionalProperties": false,
+    "properties": {
+      "attempts": {
+        "items": {
+          "additionalProperties": false,
+          "properties": {
+            "data_factors": {
+              "type": "integer"
+            },
+            "exit_code": {
+              "type": "integer"
+            },
+            "folder": {
+              "type": "string"
+            },
+            "optimizer_seconds": {
+              "type": "number"
+            },
+            "variant": {
+              "type": "string"
+            },
+            "whole_seconds": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "folder",
+            "variant",
+            "whole_seconds",
+            "exit_code",
+            "optimizer_seconds",
+            "data_factors"
+          ],
+          "type": "object"
+        },
+        "maxItems": 6,
+        "minItems": 6,
+        "type": "array"
+      },
+      "provenance_sha256": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "attempts",
+      "provenance_sha256"
+    ],
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema"
+  }
+}

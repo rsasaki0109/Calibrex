@@ -1,0 +1,73 @@
+"""Bind completed validation to the exact measured RGB-D implementation."""
+import hashlib
+import json
+from pathlib import Path
+import re
+import shutil
+
+ROOT=Path(__file__).resolve().parent
+TARGET=ROOT/'docs/assets/rgbd_field_columns'
+VALIDATION=ROOT/'outputs/rgbd-field-columns-validation-v1'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+def write(path,value):
+    path.write_bytes((json.dumps(value,indent=2)+'\n').encode())
+
+manifest=json.loads((TARGET/'sources-current-manifest.json').read_bytes())
+assert len(manifest)==388
+runtime='63b80c3109b7c714fd09129cc653d439e881c138'
+assert sha(ROOT/'tools/audit_rgbd_field_columns.py')==sha(TARGET/'auditor.py.txt')
+counts={}
+logs={}
+for mode in ['core','archive']:
+    for platform in ['windows','linux']:
+        name=f'{mode}-{platform}'
+        env=json.loads((VALIDATION/(name+'-environment.json')).read_bytes())
+        assert env['exit_status']==0
+        assert env['provenance']['sources']==manifest
+        assert env['provenance']['git_commit']==runtime
+        assert all(manifest[v['path']]==v['sha256'] for v in env['imports'].values())
+        assert all(sha(ROOT/path)==digest for path,digest in env['test_files_sha256'].items())
+        text=(VALIDATION/(name+'.log')).read_text(encoding='utf-8')
+        counts[name]=int(re.findall(r'(\d+) passed',text)[-1])
+        assert counts[name]==(454 if mode=='core' else 6)
+        for suffix in ['.log','-environment.json']:
+            shutil.copyfile(VALIDATION/(name+suffix),TARGET/(name+suffix))
+        logs[name+'.log']=sha(TARGET/(name+'.log'))
+for platform in ['linux','win32']:
+    source=(ROOT/'outputs/rgbd-field-columns-development-v1/mypy-linux.log'
+            if platform=='linux' else VALIDATION/'mypy-win32.log')
+    assert 'Success: no issues found in 388 source files' in source.read_text()
+    shutil.copyfile(source,TARGET/f'mypy-{platform}.log')
+    logs[f'mypy-{platform}.log']=sha(TARGET/f'mypy-{platform}.log')
+parity=json.loads((VALIDATION/'schema-parity.json').read_bytes())
+assert parity['schema_exports_and_ledger']==130 and parity['all_exports_byte_identical']
+shutil.copyfile(VALIDATION/'schema-parity.json',TARGET/'schema-parity.json')
+for source,name in [('.tmp-calibrex-rgbd-field-frozen-tests-v1.py','frozen-test-runner.py.txt'),
+                    ('.tmp-calibrex-rgbd-field-linux-v1.sh','linux-test-runner.sh.txt'),
+                    ('.tmp-calibrex-rgbd-field-archive-tests-v1.py','archive-test-runner.py.txt'),
+                    ('.tmp-calibrex-rgbd-field-archive-linux-v1.sh','linux-archive-test-runner.sh.txt'),
+                    ('.tmp-calibrex-rgbd-field-schema-parity-v1.py','schema-parity.py.txt'),
+                    ('tests/unit/test_rgbd_field_columns.py','test_rgbd_field_columns.py.txt'),
+                    ('tests/unit/test_rgbd_field_columns_archive.py','test_rgbd_field_columns_archive.py.txt')]:
+    shutil.copyfile(ROOT/source,TARGET/name)
+shutil.copyfile(Path(__file__),TARGET/'validation-finalizer.py.txt')
+record={'test_pass_counts':counts,'mypy_source_modules':{'linux':388,'win32':388},
+        'public_schema_exports_and_ledger_byte_identical':130,
+        'complete_optimizer_results_and_array_traces_exact':6,
+        'provenance':{'runtime_commit':runtime,'source_manifest_sha256':sha(TARGET/'sources-current-manifest.json'),
+                      'measurement_provenance_sha256':sha(TARGET/'provenance.json'),
+                      'generator_sha256':sha(Path(__file__)),
+                      'typecheck_requirements_sha256':sha(ROOT/'tools/typecheck-requirements.txt')},
+        'log_sha256':logs}
+for name,key,marker in [('ruff.log','ruff_passed','All checks passed!'),('mkdocs.log','strict_mkdocs_passed','Documentation built in ')]:
+    if (VALIDATION/name).exists():
+        assert marker in (VALIDATION/name).read_text(encoding='utf-8',errors='replace')
+        shutil.copyfile(VALIDATION/name,TARGET/name)
+        record[key]=True
+        logs[name]=sha(TARGET/name)
+write(TARGET/'validation.json',record)
+index=json.loads((TARGET/'index.json').read_bytes())
+index['files']={p.relative_to(TARGET).as_posix():{'sha256':sha(p),'size_bytes':p.stat().st_size}
+                for p in sorted(TARGET.rglob('*')) if p.is_file() and p.name!='index.json'}
+write(TARGET/'index.json',index)
+print('Bound all completed checks to',runtime,';',len(index['files'])+1,'archive files')

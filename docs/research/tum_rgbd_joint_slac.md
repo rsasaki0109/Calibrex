@@ -371,3 +371,9 @@ The [safe YAML emission comparison](../benchmarks/yaml_result_emission.md)
 accelerates complete result saving through optional LibYAML, preserving parsed
 values and existing custom hooks. It reports result-export and complete
 calibration timings separately, with all original numerical work retained.
+
+The [ordered field-column comparison](../benchmarks/rgbd_field_columns.md)
+evaluates the complete XYZ optimizer on a denser public-data graph. It batches
+unchanged-pose finite differences with exact numeric histories and reports
+optimizer and fresh-worker latency separately, retaining the original iteration
+limit and outcome.
