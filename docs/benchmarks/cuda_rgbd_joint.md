@@ -43,6 +43,8 @@ the same residuals and Jacobian to the existing CPU robust weighting, Schur
 solver and observability calculations. Scalar priors and regularizers retain
 their native evaluators. Family diagnostics reuse validated native residual
 dimensions rather than calculating every point residual again.
+The NumPy path also reuses this validated metadata for owned native factors.
+Unowned and unsupported factors keep their callback-based dimension checks.
 
 The kernels preserve the host's ordered lattice sum, including CPython 3.12
 compensation, and the original two quaternion products. The host performs both

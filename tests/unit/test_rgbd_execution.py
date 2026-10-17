@@ -3,6 +3,7 @@
 import json
 import subprocess
 import sys
+from dataclasses import replace
 from types import SimpleNamespace
 
 import numpy as np
@@ -165,3 +166,35 @@ def test_owned_cpu_diagnostics_use_dimensions_without_evaluating_callbacks(kind,
     assert actual == expected
     assert calls == []
     assert metadata(tuple(factors), values) is None
+
+
+@pytest.mark.parametrize("mode", ["unowned", "custom", "changed_code"])
+def test_cpu_diagnostics_preserve_callback_path_without_verified_dimensions(mode):
+    from test_rgbd_transform_reuse import batch_problem, inputs
+
+    _blocks, items = batch_problem("depth", regularizers=True)
+    if mode == "custom":
+        items[0] = replace(items[0], evaluator=lambda _: (0.125, -0.25))
+    elif mode == "changed_code":
+        items[0].evaluator.__code__ = items[0].evaluator.__code__.replace(co_name="custom")
+    factors = tuple(items) if mode == "unowned" else _OwnedPointFactors(items)
+    values = inputs()
+    assert runtime._diagnostic_dimensions(factors, values) is None
+    residuals = np.asarray([value for factor in factors for value in factor.residuals(values)])
+    codes = {factor.evaluator.__code__ for factor in factors}
+    calls = []
+
+    def profile(frame, event, arg):
+        if event == "call" and frame.f_code in codes:
+            calls.append(frame.f_code)
+
+    previous = sys.getprofile()
+    try:
+        sys.setprofile(profile)
+        diagnostics = graph._factor_family_diagnostics(
+            factors, values, residuals, None, graph.JointOptimizerOptions()
+        )
+    finally:
+        sys.setprofile(previous)
+    assert len(calls) == len(factors)
+    assert sum(item.residual_dimension for item in diagnostics) == len(residuals)
