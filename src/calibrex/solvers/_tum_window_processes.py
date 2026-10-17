@@ -112,9 +112,12 @@ class _WindowChildren:
                 if self.closed:
                     raise RuntimeError("native TUM window execution was cancelled")
                 command = _direct_python_command(_worker_command(request, response), env)
+                creationflags = 0
+                if sys.platform == "win32":
+                    creationflags = subprocess.CREATE_NO_WINDOW
                 process = subprocess.Popen(
                     command, env=env, stdout=out, stderr=err,
-                    creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+                    creationflags=creationflags,
                 )
                 self.processes.add(process)
             try:
