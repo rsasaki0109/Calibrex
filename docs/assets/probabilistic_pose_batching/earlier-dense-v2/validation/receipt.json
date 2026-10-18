@@ -1,0 +1,28 @@
+{
+  "canonical_runtime_matches_measured_source_after_tests": true,
+  "canonicalization": "Both working and frozen source normalize CRLF to LF, matching Python universal-newline parsing",
+  "source_commit": "4e6b766cc86f679c73fcf912e2183a909a87f2a9",
+  "source_manifest_sha256": "6e998cffb9c8b79d1a31b6cfd79207bf497d7a65cbd607117196ae34207f7d79",
+  "pytest_log_sha256": "0773ee8dc3bb99ddc3a22bc4a75740de711a761167b8a5dede77fc6755eef3c4",
+  "test_sources": {
+    "test_probabilistic_camera_lidar_refiner.py.txt": "994128ac26dd64bcf2103d23261db8369057513aaf9897ce24507d5e2236d8c3",
+    "test_probabilistic_pose_batching.py.txt": "516efd7ecb389a88db6bc9da06a123c07ba1c75c8dfbfa8eebc9b94ee7aa7ed4",
+    "test_probabilistic_refinement_benchmark.py.txt": "cbbc7797549a1edb3c844410e80031faaf94fe3e0d43d4b14326248f130e8a3d"
+  },
+  "tests_passed": 71,
+  "command": [
+    "python",
+    "-m",
+    "pytest",
+    "tests\\unit\\test_probabilistic_pose_batching.py",
+    "tests\\unit\\test_probabilistic_camera_lidar_refiner.py",
+    "tests\\unit\\test_probabilistic_refinement_benchmark.py",
+    "--basetemp",
+    "outputs/probabilistic-batch-validation-v1/source-bound-tmp",
+    "-p",
+    "no:cacheprovider",
+    "--override-ini",
+    "addopts=--disable-plugin-autoload",
+    "-q"
+  ]
+}
