@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import math
+from bisect import bisect_left
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from itertools import pairwise
+from operator import attrgetter
 from typing import Literal
 
 from calibrex.core.geometry import SE3, Vector3, rotate_vector_xyzw
@@ -29,6 +31,22 @@ RadarJointSpatiotemporalStatus = Literal[
 RadarJointProbeParameter = Literal["x", "y", "z", "roll", "pitch", "yaw", "time"]
 _EXTRINSIC_BLOCK = "radar_extrinsic_correction"
 _TIME_BLOCK = "radar_time_latent"
+_TIMESTAMP = attrgetter("timestamp_sec")
+
+
+class _IndexedReference(tuple[ReferenceKinematicSample, ...]):
+    """Immutable, finite, strictly increasing reference samples owned by one solve."""
+
+
+def _ordered_reference(
+    samples: Sequence[ReferenceKinematicSample],
+) -> Sequence[ReferenceKinematicSample]:
+    ordered = sorted(samples, key=lambda item: item.timestamp_sec)
+    if all(math.isfinite(item.timestamp_sec) for item in ordered) and all(
+        left.timestamp_sec < right.timestamp_sec for left, right in pairwise(ordered)
+    ):
+        return _IndexedReference(ordered)
+    return ordered
 
 
 @dataclass(frozen=True)
@@ -154,7 +172,7 @@ class RadarJointSpatiotemporalSolver:
         identifiers = [item.measurement_id for item in measurements]
         if len(set(identifiers)) != len(identifiers):
             raise ValueError("Radar joint measurement IDs must be unique")
-        reference = sorted(reference_samples, key=lambda item: item.timestamp_sec)
+        reference = _ordered_reference(reference_samples)
         supported = sorted(
             (
                 item
@@ -266,7 +284,7 @@ def radar_joint_spatiotemporal_rmse(
 ) -> float | None:
     if not measurements:
         return None
-    reference = sorted(reference_samples, key=lambda item: item.timestamp_sec)
+    reference = _ordered_reference(reference_samples)
     squared: list[float] = []
     for item in measurements:
         kinematic = _interpolate(reference, item.timestamp_sec + time_offset_sec)
@@ -462,6 +480,11 @@ def _has_full_time_support(
 def _interpolate(
     samples: Sequence[ReferenceKinematicSample], timestamp: float
 ) -> tuple[Vector3, Vector3] | None:
+    if isinstance(samples, _IndexedReference):
+        # Preserve the original left interval and interpolation arithmetic at
+        # exact knots. Other sequences retain their existing scan semantics.
+        first = max(0, bisect_left(samples, timestamp, key=_TIMESTAMP) - 1)
+        samples = samples[first : first + 2]
     for left, right in pairwise(samples):
         if left.timestamp_sec <= timestamp <= right.timestamp_sec:
             span = right.timestamp_sec - left.timestamp_sec

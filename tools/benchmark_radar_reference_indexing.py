@@ -1,4 +1,4 @@
-"""Compare the complete profiled Radar calibration workflow in fresh processes.
+"""Compare complete profiled or joint Radar calibration workflows in fresh processes.
 
 KITTI OXTS supplies the reference kinematics; Radar velocities are generated
 execution controls, not independent Radar accuracy evidence. Freeze both source
@@ -35,6 +35,7 @@ URL = (
     "2011_09_30_drive_0018/2011_09_30_drive_0018_sync.zip"
 )
 RUNTIME = "calibrex/solvers/radar_spatiotemporal_lever_arm_solver.py"
+JOINT_RUNTIME = "calibrex/solvers/radar_joint_spatiotemporal_solver.py"
 
 
 def sha(path: Path) -> str:
@@ -145,27 +146,48 @@ def worker(protocol_path: Path, variant: str, folder: Path) -> None:
     control = json.loads((protocol_path.parent / "control.json").read_bytes())
     reference = [solver.ReferenceKinematicSample(**item) for item in control["reference"]]
     measurements = [solver.RadarVelocityMeasurement(**item) for item in control["measurements"]]
-    options = solver.RadarSpatiotemporalLeverArmOptions(**control["options"])
+    kind = protocol.get("solver", "profiled")
     trace = []
-    original = solver._profile_candidate
+    calls = 0
+    if kind == "profiled":
+        options = solver.RadarSpatiotemporalLeverArmOptions(**control["options"])
+        original = solver._profile_candidate
 
-    def record(*args, **kwargs):
-        result = original(*args, **kwargs)
-        trace.append(
-            {
-                "offset": args[3],
-                "translation": result[0].tolist() if result else None,
-                "mse": result[1] if result else None,
-                "singular_values": result[2].tolist() if result else None,
-            }
+        def record(*args, **kwargs):
+            result = original(*args, **kwargs)
+            trace.append(
+                {
+                    "offset": args[3],
+                    "translation": result[0].tolist() if result else None,
+                    "mse": result[1] if result else None,
+                    "singular_values": result[2].tolist() if result else None,
+                }
+            )
+            return result
+
+        solver._profile_candidate = record
+        start = time.perf_counter()
+        result = solver.RadarSpatiotemporalLeverArmSolver().solve(
+            measurements, reference, control["rotation"], options
         )
-        return result
+    else:
+        from calibrex.core.geometry import SE3
+        from calibrex.solvers import radar_joint_spatiotemporal_solver as joint
 
-    solver._profile_candidate = record
-    start = time.perf_counter()
-    result = solver.RadarSpatiotemporalLeverArmSolver().solve(
-        measurements, reference, control["rotation"], options
-    )
+        interpolate = joint._interpolate
+
+        def counted(*args):
+            nonlocal calls
+            calls += 1
+            return interpolate(*args)
+
+        joint._interpolate = counted
+        options = joint.RadarJointSpatiotemporalOptions(**protocol["solver_options"])
+        initial = SE3.from_lists(**protocol["initial_transform"])
+        start = time.perf_counter()
+        result = joint.RadarJointSpatiotemporalSolver().solve(
+            measurements, reference, initial, options
+        )
     api_seconds = time.perf_counter() - start
     observed_commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
     if observed_commit != protocol["commits"][variant]:
@@ -180,6 +202,7 @@ def worker(protocol_path: Path, variant: str, folder: Path) -> None:
         {
             "schema_version": VERSION,
             "record_type": "result",
+            "solver": kind,
             "result": result.as_dict(),
             "candidates": trace,
             "provenance": provenance,
@@ -195,6 +218,7 @@ def worker(protocol_path: Path, variant: str, folder: Path) -> None:
         folder / "measurement.json",
         {
             "api_seconds": api_seconds,
+            "interpolation_calls": calls if kind == "joint" else None,
             "imports": imports,
             "result_sha256": sha(folder / "result.json"),
             "provenance": provenance,
@@ -206,6 +230,8 @@ def worker(protocol_path: Path, variant: str, folder: Path) -> None:
 def audit(output: Path) -> dict:
     """Recheck every source, run, profile candidate and diagnostic without calibration."""
     protocol = json.loads((output / "protocol.json").read_bytes())
+    kind = protocol.get("solver", "profiled")
+    runtime = JOINT_RUNTIME if kind == "joint" else RUNTIME
     schema = json.loads((output / "schema.json").read_bytes())
     validate(protocol, schema)
     digests = protocol["provenance"]
@@ -220,7 +246,13 @@ def audit(output: Path) -> dict:
             raise ValueError(f"benchmark artifact changed: {name}")
     control = json.loads((output / "control.json").read_bytes())
     validate(control, schema)
-    if control["provenance"]["generator_sha256"] != digests["launcher_sha256"]:
+    generator_sha = digests.get("control_generator_sha256", digests["launcher_sha256"])
+    if (
+        "control_generator_sha256" in digests
+        and sha(output / "control-generator.py.txt") != generator_sha
+    ):
+        raise ValueError("input generator snapshot changed")
+    if control["provenance"]["generator_sha256"] != generator_sha:
         raise ValueError("input generator differs from the frozen launcher")
     manifests = {}
     for variant in ("prior", "current"):
@@ -246,7 +278,7 @@ def audit(output: Path) -> dict:
     changed = sorted(
         k for k in manifests["prior"] if manifests["prior"][k] != manifests["current"][k]
     )
-    if changed != [RUNTIME]:
+    if changed != [runtime]:
         raise ValueError("unexpected runtime source changes")
     attempts = json.loads((output / "attempts.json").read_bytes())
     expected = [
@@ -257,6 +289,7 @@ def audit(output: Path) -> dict:
     if [(r["repeat"], r["variant"]) for r in attempts] != expected:
         raise ValueError("missing, duplicate or reordered runs")
     outputs = []
+    interpolation_calls = []
     api = {variant: [] for variant in ("prior", "current")}
     for record in attempts:
         if (
@@ -272,6 +305,8 @@ def audit(output: Path) -> dict:
             raise ValueError("result changed")
         result = json.loads((folder / "result.json").read_bytes())
         validate(result, schema)
+        if result.get("solver", "profiled") != kind:
+            raise ValueError("worker ran the wrong solver")
         expected_provenance = {
             "git_commit": protocol["commits"][variant],
             "protocol_sha256": sha(output / "protocol.json"),
@@ -283,13 +318,30 @@ def audit(output: Path) -> dict:
         ):
             raise ValueError("run provenance differs")
         value = result["result"]
-        if value["status"] != "converged" or len(value["known_bad_probes"]) != 8:
+        if value["status"] != "converged" or len(value["known_bad_probes"]) != (
+            14 if kind == "joint" else 8
+        ):
             raise ValueError("control did not complete its calibration and probes")
         assigned = value["train_measurement_ids"] + value["holdout_measurement_ids"]
+        expected_options = control["options"]
+        if kind == "joint":
+            expected_options = protocol["solver_options"]
+            if (
+                value["initial_transform_body_radar"] != protocol["initial_transform"]
+                or value["input_measurement_count"] != len(control["measurements"])
+                or value["eligible_measurement_count"] != len(assigned)
+                or not value["optimizer"]["history"]
+            ):
+                raise ValueError("joint input, initial transform or optimizer history differs")
+            assigned += value["rejected_initial_residual_ids"]
+            calls = measured["interpolation_calls"]
+            if not isinstance(calls, int) or calls <= 0:
+                raise ValueError("missing interpolation call count")
+            interpolation_calls.append(calls)
         if (
             sorted(assigned) != sorted(item["measurement_id"] for item in control["measurements"])
             or len(set(assigned)) != len(assigned)
-            or value["solver_options"] != control["options"]
+            or value["solver_options"] != expected_options
         ):
             raise ValueError("input measurements or solver settings differ")
         if (
@@ -308,9 +360,14 @@ def audit(output: Path) -> dict:
                 or manifests[variant].get(item["path"]) != item["sha256"]
             ):
                 raise ValueError("worker used an unfrozen module")
-        if not any(item["path"] == RUNTIME for item in measured["imports"].values()):
+        if not any(item["path"] == runtime for item in measured["imports"].values()):
             raise ValueError("measured solver import is missing")
         candidates = result["candidates"]
+        if kind == "joint":
+            if candidates:
+                raise ValueError("joint solve must retain its optimizer history instead of a grid")
+            outputs.append(json.dumps(value, allow_nan=False))
+            continue
         options = control["options"]
         count = round(2 * options["max_abs_time_offset_sec"] / options["time_offset_step_sec"]) + 1
         offsets = [
@@ -326,14 +383,13 @@ def audit(output: Path) -> dict:
         v: statistics.median(r["seconds"] for r in attempts if r["variant"] == v) for v in api
     }
     api_medians = {v: statistics.median(values) for v, values in api.items()}
-    return {
+    report = {
         "whole_seconds_median": medians,
         "api_seconds_median": api_medians,
         "whole_speedup": medians["prior"] / medians["current"],
         "api_speedup": api_medians["prior"] / api_medians["current"],
         "verified_runs": len(attempts),
         "complete_results_exact": True,
-        "profile_candidates_per_run": count,
         "reference_count": len(control["reference"]),
         "measurement_count": len(control["measurements"]),
         "runtime_source_changes": changed,
@@ -343,12 +399,28 @@ def audit(output: Path) -> dict:
             "control_sha256": digests["control_sha256"],
         },
     }
+    if kind == "joint":
+        if len(set(interpolation_calls)) != 1:
+            raise ValueError("joint interpolation call counts differ")
+        report.update(
+            solver="joint",
+            optimizer_iterations_per_run=len(value["optimizer"]["history"]),
+            rejected_measurements=len(value["rejected_initial_residual_ids"]),
+            eligible_measurements=value["eligible_measurement_count"],
+            signed_probes=14,
+            interpolation_calls_per_run=interpolation_calls[0],
+        )
+    else:
+        report["profile_candidates_per_run"] = count
+    return report
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--prepare-oxts", type=Path)
     parser.add_argument("--control", type=Path)
+    parser.add_argument("--control-generator", type=Path)
+    parser.add_argument("--solver", choices=("profiled", "joint"), default="profiled")
     parser.add_argument("--baseline-commit")
     parser.add_argument("--output-dir", type=Path)
     parser.add_argument("--repetitions", type=int, default=3)
@@ -371,6 +443,10 @@ def main() -> None:
         )
     output = args.output_dir.resolve()
     output.mkdir(parents=True, exist_ok=False)
+    control = json.loads(args.control.read_bytes())
+    generator = args.control_generator or Path(__file__)
+    if sha(generator) != control["provenance"]["generator_sha256"]:
+        parser.error("supply the byte-exact control generator using --control-generator")
     commits = {
         v: subprocess.check_output(["git", "rev-parse", ref], text=True).strip()
         for v, ref in (("prior", args.baseline_commit), ("current", "HEAD"))
@@ -381,6 +457,7 @@ def main() -> None:
         (ROOT / "tools/benchmark_bspline_lidar_imu.py", "freezer.py.txt"),
         (ROOT / "tools/benchmark_lazy_runtime_loading.py", "identity.py.txt"),
         (args.control, "control.json"),
+        (generator, "control-generator.py.txt"),
     ):
         shutil.copyfile(source, output / target)
     manifests, capsules, roots = {}, {}, {}
@@ -399,6 +476,7 @@ def main() -> None:
     protocol = {
         "schema_version": VERSION,
         "record_type": "protocol",
+        "solver": args.solver,
         "commits": commits,
         "source_roots": roots,
         "repetitions": args.repetitions,
@@ -407,6 +485,7 @@ def main() -> None:
         "host_unreserved": True,
         "provenance": {
             "control_sha256": sha(output / "control.json"),
+            "control_generator_sha256": sha(generator),
             "launcher_sha256": sha(Path(__file__)),
             "schema_sha256": sha(SCHEMA),
             "freezer_sha256": sha(output / "freezer.py.txt"),
@@ -417,6 +496,14 @@ def main() -> None:
             "versions": {name: importlib.metadata.version(name) for name in ("numpy", "scipy")},
         },
     }
+    if args.solver == "joint":
+        from calibrex.core.geometry import SE3
+        from calibrex.solvers.radar_joint_spatiotemporal_solver import (
+            RadarJointSpatiotemporalOptions,
+        )
+
+        protocol["solver_options"] = asdict(RadarJointSpatiotemporalOptions())
+        protocol["initial_transform"] = SE3.identity().as_dict()
     validate(protocol, json.loads(SCHEMA.read_bytes()))
     validate(json.loads((output / "control.json").read_bytes()), json.loads(SCHEMA.read_bytes()))
     write(output / "protocol.json", protocol)
