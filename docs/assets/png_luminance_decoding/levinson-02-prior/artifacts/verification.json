@@ -1,0 +1,710 @@
+{
+  "artifact_count": 10,
+  "checked_artifacts": [
+    "report.html",
+    "summary.json",
+    "metrics.json",
+    "observability.json",
+    "degeneracy.json",
+    "evidence.json",
+    "assessment.json",
+    "protocol.json",
+    "policy.json",
+    "transforms.json"
+  ],
+  "checked_input_file_count": 5,
+  "checked_input_files": [
+    "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\cams_lidars.json",
+    "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\20180810150607_camera_frontleft_000000060.png",
+    "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\20180810150607_lidar_frontleft_000000060.npz",
+    "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\20180810150607_camera_frontleft_000000061.png",
+    "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\20180810150607_lidar_frontleft_000000061.npz"
+  ],
+  "input_file_count": 5,
+  "issue_count": 0,
+  "issues": [],
+  "path": "verification.json",
+  "primary_evidence_materialization": {
+    "computed_at": null,
+    "data_verified": true,
+    "metrics_origin": "recomputed",
+    "report_generated_at": "2026-10-16T01:52:51.307443+00:00"
+  },
+  "raw_recomputed_required": false,
+  "schema_version": "slac.evidence_bundle.verification/v0.1",
+  "source_bundle": {
+    "path": "bundle.json",
+    "run_id": "2026-10-16T01-52-51Z_a2d2_levinson_thrun_online_monitor",
+    "schema_version": "slac.evidence_bundle/v0.1",
+    "sha256": "220995f9c15ea7fbe1908018379c3f583574649ff1bcc3c73ad126da0d7052be",
+    "size_bytes": 2559
+  },
+  "valid": true,
+  "verification_claims": [
+    {
+      "expected": {
+        "primary_evidence_path": "evidence.json"
+      },
+      "issues": [],
+      "method": "primary_evidence_membership",
+      "observed": {
+        "artifact_count": 10
+      },
+      "scope": "bundle_manifest",
+      "status": "ok",
+      "subject": "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\png-luminance-formal-v1\\levinson-02-prior\\artifacts\\bundle.json"
+    },
+    {
+      "expected": {
+        "sha256": "0ef0e08d1b288007fc535b931f231f9849703b6f6eb4a8b207755c8df64bd3ff",
+        "size_bytes": 16162
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "0ef0e08d1b288007fc535b931f231f9849703b6f6eb4a8b207755c8df64bd3ff",
+        "size_bytes": 16162
+      },
+      "scope": "artifact_digest",
+      "status": "ok",
+      "subject": "report.html"
+    },
+    {
+      "expected": {
+        "run_id": "2026-10-16T01-52-51Z_a2d2_levinson_thrun_online_monitor"
+      },
+      "issues": [],
+      "method": "run_id_field",
+      "observed": {
+        "reason": "html artifacts do not expose structured run metadata"
+      },
+      "scope": "run_consistency",
+      "status": "skipped",
+      "subject": "report.html"
+    },
+    {
+      "expected": {
+        "sha256": "b4d2101f94bce851351a9f437add56d322aedd1d71c52d1b406e6c939a5db7d1",
+        "size_bytes": 3049
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "b4d2101f94bce851351a9f437add56d322aedd1d71c52d1b406e6c939a5db7d1",
+        "size_bytes": 3049
+      },
+      "scope": "artifact_digest",
+      "status": "ok",
+      "subject": "summary.json"
+    },
+    {
+      "expected": {
+        "schema_version": "slac.report.summary/v0.1"
+      },
+      "issues": [],
+      "method": "schema_version_field",
+      "observed": {
+        "schema_version": "slac.report.summary/v0.1"
+      },
+      "scope": "artifact_schema",
+      "status": "ok",
+      "subject": "summary.json"
+    },
+    {
+      "expected": {
+        "run_id": "2026-10-16T01-52-51Z_a2d2_levinson_thrun_online_monitor"
+      },
+      "issues": [],
+      "method": "run_id_field",
+      "observed": {
+        "run_id": "2026-10-16T01-52-51Z_a2d2_levinson_thrun_online_monitor"
+      },
+      "scope": "run_consistency",
+      "status": "ok",
+      "subject": "summary.json"
+    },
+    {
+      "expected": {
+        "path": "evidence.json",
+        "sha256": "eb4458c9df18baf71bff8e834af41c48d5b78d0e4e19fc29eeddb28c6a36a942"
+      },
+      "issues": [],
+      "method": "source_evidence_pointer",
+      "observed": {
+        "path": "evidence.json",
+        "sha256": "eb4458c9df18baf71bff8e834af41c48d5b78d0e4e19fc29eeddb28c6a36a942"
+      },
+      "scope": "source_evidence_link",
+      "status": "ok",
+      "subject": "summary.json"
+    },
+    {
+      "expected": {
+        "sha256": "64605295d44c9b0ab67c8368f6aec78514d42f38a533d24c30e3b5888e20ba92",
+        "size_bytes": 4983
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "64605295d44c9b0ab67c8368f6aec78514d42f38a533d24c30e3b5888e20ba92",
+        "size_bytes": 4983
+      },
+      "scope": "artifact_digest",
+      "status": "ok",
+      "subject": "metrics.json"
+    },
+    {
+      "expected": {
+        "schema_version": "slac.report.metrics/v0.1"
+      },
+      "issues": [],
+      "method": "schema_version_field",
+      "observed": {
+        "schema_version": "slac.report.metrics/v0.1"
+      },
+      "scope": "artifact_schema",
+      "status": "ok",
+      "subject": "metrics.json"
+    },
+    {
+      "expected": {
+        "run_id": "2026-10-16T01-52-51Z_a2d2_levinson_thrun_online_monitor"
+      },
+      "issues": [],
+      "method": "run_id_field",
+      "observed": {
+        "run_id": "2026-10-16T01-52-51Z_a2d2_levinson_thrun_online_monitor"
+      },
+      "scope": "run_consistency",
+      "status": "ok",
+      "subject": "metrics.json"
+    },
+    {
+      "expected": {
+        "path": "evidence.json",
+        "sha256": "eb4458c9df18baf71bff8e834af41c48d5b78d0e4e19fc29eeddb28c6a36a942"
+      },
+      "issues": [],
+      "method": "source_evidence_pointer",
+      "observed": {
+        "path": "evidence.json",
+        "sha256": "eb4458c9df18baf71bff8e834af41c48d5b78d0e4e19fc29eeddb28c6a36a942"
+      },
+      "scope": "source_evidence_link",
+      "status": "ok",
+      "subject": "metrics.json"
+    },
+    {
+      "expected": {
+        "sha256": "8cdd34402414f6471d8e1b9032dff0910a71c2addb17acbd2be580da6a1bac20",
+        "size_bytes": 924
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "8cdd34402414f6471d8e1b9032dff0910a71c2addb17acbd2be580da6a1bac20",
+        "size_bytes": 924
+      },
+      "scope": "artifact_digest",
+      "status": "ok",
+      "subject": "observability.json"
+    },
+    {
+      "expected": {
+        "schema_version": "slac.report.observability/v0.1"
+      },
+      "issues": [],
+      "method": "schema_version_field",
+      "observed": {
+        "schema_version": "slac.report.observability/v0.1"
+      },
+      "scope": "artifact_schema",
+      "status": "ok",
+      "subject": "observability.json"
+    },
+    {
+      "expected": {
+        "run_id": "2026-10-16T01-52-51Z_a2d2_levinson_thrun_online_monitor"
+      },
+      "issues": [],
+      "method": "run_id_field",
+      "observed": {
+        "run_id": "2026-10-16T01-52-51Z_a2d2_levinson_thrun_online_monitor"
+      },
+      "scope": "run_consistency",
+      "status": "ok",
+      "subject": "observability.json"
+    },
+    {
+      "expected": {
+        "path": "evidence.json",
+        "sha256": "eb4458c9df18baf71bff8e834af41c48d5b78d0e4e19fc29eeddb28c6a36a942"
+      },
+      "issues": [],
+      "method": "source_evidence_pointer",
+      "observed": {
+        "path": "evidence.json",
+        "sha256": "eb4458c9df18baf71bff8e834af41c48d5b78d0e4e19fc29eeddb28c6a36a942"
+      },
+      "scope": "source_evidence_link",
+      "status": "ok",
+      "subject": "observability.json"
+    },
+    {
+      "expected": {
+        "sha256": "424253c6ce1aaeb35bd8f6851044ccf1538b04810e96fa81f0dcb7774abcbfb2",
+        "size_bytes": 2722
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "424253c6ce1aaeb35bd8f6851044ccf1538b04810e96fa81f0dcb7774abcbfb2",
+        "size_bytes": 2722
+      },
+      "scope": "artifact_digest",
+      "status": "ok",
+      "subject": "degeneracy.json"
+    },
+    {
+      "expected": {
+        "schema_version": "slac.report.degeneracy/v0.1"
+      },
+      "issues": [],
+      "method": "schema_version_field",
+      "observed": {
+        "schema_version": "slac.report.degeneracy/v0.1"
+      },
+      "scope": "artifact_schema",
+      "status": "ok",
+      "subject": "degeneracy.json"
+    },
+    {
+      "expected": {
+        "run_id": "2026-10-16T01-52-51Z_a2d2_levinson_thrun_online_monitor"
+      },
+      "issues": [],
+      "method": "run_id_field",
+      "observed": {
+        "run_id": "2026-10-16T01-52-51Z_a2d2_levinson_thrun_online_monitor"
+      },
+      "scope": "run_consistency",
+      "status": "ok",
+      "subject": "degeneracy.json"
+    },
+    {
+      "expected": {
+        "path": "evidence.json",
+        "sha256": "eb4458c9df18baf71bff8e834af41c48d5b78d0e4e19fc29eeddb28c6a36a942"
+      },
+      "issues": [],
+      "method": "source_evidence_pointer",
+      "observed": {
+        "path": "evidence.json",
+        "sha256": "eb4458c9df18baf71bff8e834af41c48d5b78d0e4e19fc29eeddb28c6a36a942"
+      },
+      "scope": "source_evidence_link",
+      "status": "ok",
+      "subject": "degeneracy.json"
+    },
+    {
+      "expected": {
+        "sha256": "eb4458c9df18baf71bff8e834af41c48d5b78d0e4e19fc29eeddb28c6a36a942",
+        "size_bytes": 2044
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "eb4458c9df18baf71bff8e834af41c48d5b78d0e4e19fc29eeddb28c6a36a942",
+        "size_bytes": 2044
+      },
+      "scope": "artifact_digest",
+      "status": "ok",
+      "subject": "evidence.json"
+    },
+    {
+      "expected": {
+        "schema_version": "slac.report.evidence/v0.1"
+      },
+      "issues": [],
+      "method": "schema_version_field",
+      "observed": {
+        "schema_version": "slac.report.evidence/v0.1"
+      },
+      "scope": "artifact_schema",
+      "status": "ok",
+      "subject": "evidence.json"
+    },
+    {
+      "expected": {
+        "run_id": "2026-10-16T01-52-51Z_a2d2_levinson_thrun_online_monitor"
+      },
+      "issues": [],
+      "method": "run_id_field",
+      "observed": {
+        "run_id": "2026-10-16T01-52-51Z_a2d2_levinson_thrun_online_monitor"
+      },
+      "scope": "run_consistency",
+      "status": "ok",
+      "subject": "evidence.json"
+    },
+    {
+      "expected": {
+        "sha256": "ababe599da81d6dce848d4b297577322a6e4e51178cfb94ebc2fc091d24c32e6",
+        "size_bytes": 1929
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "ababe599da81d6dce848d4b297577322a6e4e51178cfb94ebc2fc091d24c32e6",
+        "size_bytes": 1929
+      },
+      "scope": "artifact_digest",
+      "status": "ok",
+      "subject": "assessment.json"
+    },
+    {
+      "expected": {
+        "schema_version": "slac.assessment/v0.1"
+      },
+      "issues": [],
+      "method": "schema_version_field",
+      "observed": {
+        "schema_version": "slac.assessment/v0.1"
+      },
+      "scope": "artifact_schema",
+      "status": "ok",
+      "subject": "assessment.json"
+    },
+    {
+      "expected": {
+        "run_id": "2026-10-16T01-52-51Z_a2d2_levinson_thrun_online_monitor"
+      },
+      "issues": [],
+      "method": "run_id_field",
+      "observed": {
+        "reason": "artifact has no run object"
+      },
+      "scope": "run_consistency",
+      "status": "skipped",
+      "subject": "assessment.json"
+    },
+    {
+      "expected": {
+        "path": "evidence.json",
+        "sha256": "eb4458c9df18baf71bff8e834af41c48d5b78d0e4e19fc29eeddb28c6a36a942"
+      },
+      "issues": [],
+      "method": "source_evidence_pointer",
+      "observed": {
+        "path": "evidence.json",
+        "sha256": "eb4458c9df18baf71bff8e834af41c48d5b78d0e4e19fc29eeddb28c6a36a942"
+      },
+      "scope": "assessment_source",
+      "status": "ok",
+      "subject": "assessment.json"
+    },
+    {
+      "expected": {
+        "policy_sha256": "ee1ccd4392ac5a4731dbe49daf51b49dc722bb8943cc6d49810eaa99fe4ae900",
+        "reason": "1 falsification policy gate(s) were inconclusive; 0 failed",
+        "rule_ids": [
+          "raw_recomputation",
+          "protocol_declared"
+        ],
+        "rules_sha256": "74b453b3150da6453f57534615bd67a22897f1e1b4bcebcc9d5bf55d1f8cc1af",
+        "source_evidence_sha256": "eb4458c9df18baf71bff8e834af41c48d5b78d0e4e19fc29eeddb28c6a36a942",
+        "status": "inconclusive"
+      },
+      "issues": [],
+      "method": "assessment_recompute_match",
+      "observed": {
+        "policy_sha256": "ee1ccd4392ac5a4731dbe49daf51b49dc722bb8943cc6d49810eaa99fe4ae900",
+        "reason": "1 falsification policy gate(s) were inconclusive; 0 failed",
+        "rule_ids": [
+          "raw_recomputation",
+          "protocol_declared"
+        ],
+        "rules_sha256": "74b453b3150da6453f57534615bd67a22897f1e1b4bcebcc9d5bf55d1f8cc1af",
+        "source_evidence_sha256": "eb4458c9df18baf71bff8e834af41c48d5b78d0e4e19fc29eeddb28c6a36a942",
+        "status": "inconclusive"
+      },
+      "scope": "assessment_source",
+      "status": "ok",
+      "subject": "assessment.json"
+    },
+    {
+      "expected": {
+        "sha256": "6066bbdc7ccf5698a05cc44aaad5ab91ecf75f248cce43b5c10e47d1c3fccaef",
+        "size_bytes": 495
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "6066bbdc7ccf5698a05cc44aaad5ab91ecf75f248cce43b5c10e47d1c3fccaef",
+        "size_bytes": 495
+      },
+      "scope": "artifact_digest",
+      "status": "ok",
+      "subject": "protocol.json"
+    },
+    {
+      "expected": {
+        "schema_version": "slac.protocol/v0.1"
+      },
+      "issues": [],
+      "method": "schema_version_field",
+      "observed": {
+        "schema_version": "slac.protocol/v0.1"
+      },
+      "scope": "artifact_schema",
+      "status": "ok",
+      "subject": "protocol.json"
+    },
+    {
+      "expected": {
+        "run_id": "2026-10-16T01-52-51Z_a2d2_levinson_thrun_online_monitor"
+      },
+      "issues": [],
+      "method": "run_id_field",
+      "observed": {
+        "run_id": "2026-10-16T01-52-51Z_a2d2_levinson_thrun_online_monitor"
+      },
+      "scope": "run_consistency",
+      "status": "ok",
+      "subject": "protocol.json"
+    },
+    {
+      "expected": {
+        "primary_evidence_path": "evidence.json",
+        "protocol_count": 0,
+        "protocols_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "issues": [],
+      "method": "protocols_match_primary_evidence",
+      "observed": {
+        "protocol_count": 0,
+        "protocols_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+      },
+      "scope": "protocol_evidence_link",
+      "status": "ok",
+      "subject": "protocol.json"
+    },
+    {
+      "expected": {
+        "sha256": "33d369511f874a1ac9d081cff848b2b8d6d8494b765310c58005b7ff9dc6d7b8",
+        "size_bytes": 1778
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "33d369511f874a1ac9d081cff848b2b8d6d8494b765310c58005b7ff9dc6d7b8",
+        "size_bytes": 1778
+      },
+      "scope": "artifact_digest",
+      "status": "ok",
+      "subject": "policy.json"
+    },
+    {
+      "expected": {
+        "schema_version": "slac.policy/v0.1"
+      },
+      "issues": [],
+      "method": "schema_version_field",
+      "observed": {
+        "schema_version": "slac.policy/v0.1"
+      },
+      "scope": "artifact_schema",
+      "status": "ok",
+      "subject": "policy.json"
+    },
+    {
+      "expected": {
+        "run_id": "2026-10-16T01-52-51Z_a2d2_levinson_thrun_online_monitor"
+      },
+      "issues": [],
+      "method": "run_id_field",
+      "observed": {
+        "run_id": "2026-10-16T01-52-51Z_a2d2_levinson_thrun_online_monitor"
+      },
+      "scope": "run_consistency",
+      "status": "ok",
+      "subject": "policy.json"
+    },
+    {
+      "expected": {
+        "gate_rule_ids": [
+          "raw_recomputation",
+          "protocol_declared"
+        ],
+        "gates_sha256": "ace0c3baccdea45e4da60c17b9274dffde6c4f6c441c24068f82edccbebb156b",
+        "policy_sha256": "ee1ccd4392ac5a4731dbe49daf51b49dc722bb8943cc6d49810eaa99fe4ae900"
+      },
+      "issues": [],
+      "method": "policy_matches_assessment",
+      "observed": {
+        "gate_rule_ids": [
+          "raw_recomputation",
+          "protocol_declared"
+        ],
+        "gates_sha256": "ace0c3baccdea45e4da60c17b9274dffde6c4f6c441c24068f82edccbebb156b",
+        "policy_sha256": "ee1ccd4392ac5a4731dbe49daf51b49dc722bb8943cc6d49810eaa99fe4ae900"
+      },
+      "scope": "policy_assessment_link",
+      "status": "ok",
+      "subject": "policy.json"
+    },
+    {
+      "expected": {
+        "sha256": "da1120fc654009bad0caeefca81342ba4b34c4543e0c2559042cbc1ee745e051",
+        "size_bytes": 4765
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "da1120fc654009bad0caeefca81342ba4b34c4543e0c2559042cbc1ee745e051",
+        "size_bytes": 4765
+      },
+      "scope": "artifact_digest",
+      "status": "ok",
+      "subject": "transforms.json"
+    },
+    {
+      "expected": {
+        "schema_version": "slac.transforms/v0.1"
+      },
+      "issues": [],
+      "method": "schema_version_field",
+      "observed": {
+        "schema_version": "slac.transforms/v0.1"
+      },
+      "scope": "artifact_schema",
+      "status": "ok",
+      "subject": "transforms.json"
+    },
+    {
+      "expected": {
+        "run_id": "2026-10-16T01-52-51Z_a2d2_levinson_thrun_online_monitor"
+      },
+      "issues": [],
+      "method": "run_id_field",
+      "observed": {
+        "run_id": "2026-10-16T01-52-51Z_a2d2_levinson_thrun_online_monitor"
+      },
+      "scope": "run_consistency",
+      "status": "ok",
+      "subject": "transforms.json"
+    },
+    {
+      "expected": {
+        "path": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\cams_lidars.json",
+        "sha256": "ffec04167050b9c0397121720b8f0bad2cacee83d03c1b7e864619394629c8d2",
+        "size_bytes": 10971
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "ffec04167050b9c0397121720b8f0bad2cacee83d03c1b7e864619394629c8d2",
+        "size_bytes": 10971
+      },
+      "scope": "input_file_digest",
+      "status": "ok",
+      "subject": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\cams_lidars.json"
+    },
+    {
+      "expected": {
+        "path": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\20180810150607_camera_frontleft_000000060.png",
+        "sha256": "b07c5bc0c985a0fa9604c81b03649033855dde6f7587a4dc33e0d6216e958aca",
+        "size_bytes": 3008998
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "b07c5bc0c985a0fa9604c81b03649033855dde6f7587a4dc33e0d6216e958aca",
+        "size_bytes": 3008998
+      },
+      "scope": "input_file_digest",
+      "status": "ok",
+      "subject": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\20180810150607_camera_frontleft_000000060.png"
+    },
+    {
+      "expected": {
+        "path": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\20180810150607_lidar_frontleft_000000060.npz",
+        "sha256": "1605ad835324e73d31998c94493c646307716404662d3e446a15d3f3f0616c63",
+        "size_bytes": 2977425
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "1605ad835324e73d31998c94493c646307716404662d3e446a15d3f3f0616c63",
+        "size_bytes": 2977425
+      },
+      "scope": "input_file_digest",
+      "status": "ok",
+      "subject": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\20180810150607_lidar_frontleft_000000060.npz"
+    },
+    {
+      "expected": {
+        "path": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\20180810150607_camera_frontleft_000000061.png",
+        "sha256": "a1389f0ed253dc0fe84d175034edfe6159e3f220813776c601a7455e01f00616",
+        "size_bytes": 3010263
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "a1389f0ed253dc0fe84d175034edfe6159e3f220813776c601a7455e01f00616",
+        "size_bytes": 3010263
+      },
+      "scope": "input_file_digest",
+      "status": "ok",
+      "subject": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\20180810150607_camera_frontleft_000000061.png"
+    },
+    {
+      "expected": {
+        "path": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\20180810150607_lidar_frontleft_000000061.npz",
+        "sha256": "fee0b3ef3f347e422ee38c01fe41b2722b1148a076062b9c4a0df9a42dd24f91",
+        "size_bytes": 2946473
+      },
+      "issues": [],
+      "method": "sha256_and_size",
+      "observed": {
+        "exists": true,
+        "sha256": "fee0b3ef3f347e422ee38c01fe41b2722b1148a076062b9c4a0df9a42dd24f91",
+        "size_bytes": 2946473
+      },
+      "scope": "input_file_digest",
+      "status": "ok",
+      "subject": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information\\20180810150607_lidar_frontleft_000000061.npz"
+    }
+  ],
+  "verification_summary": {
+    "by_scope": {
+      "artifact_digest": 10,
+      "artifact_schema": 9,
+      "assessment_source": 2,
+      "bundle_manifest": 1,
+      "input_file_digest": 5,
+      "policy_assessment_link": 1,
+      "protocol_evidence_link": 1,
+      "run_consistency": 10,
+      "source_evidence_link": 4
+    },
+    "failed": 0,
+    "ok": 41,
+    "skipped": 2,
+    "total": 43
+  }
+}

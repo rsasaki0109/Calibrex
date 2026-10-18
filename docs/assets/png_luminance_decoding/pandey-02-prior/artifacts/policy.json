@@ -1,0 +1,52 @@
+{
+  "gates": [
+    {
+      "evidence_refs": [],
+      "metric_ids": [],
+      "rule_id": "raw_recomputation",
+      "status_on_failure": "inconclusive",
+      "status_on_missing_evidence": "inconclusive",
+      "status_on_pass": "pass",
+      "thresholds": {}
+    },
+    {
+      "evidence_refs": [
+        "protocols"
+      ],
+      "metric_ids": [],
+      "rule_id": "protocol_declared",
+      "status_on_failure": "fail",
+      "status_on_missing_evidence": "inconclusive",
+      "status_on_pass": "pass",
+      "thresholds": {}
+    }
+  ],
+  "policy": {
+    "parameters": {
+      "max_unmatched_fraction": 0.9,
+      "min_accepted_correspondence_count": 500,
+      "min_eligible_point_count": 500,
+      "min_known_bad_case_count": 1,
+      "min_known_bad_pass_fraction": 0.5,
+      "min_mandatory_known_bad_case_count": 12,
+      "min_mandatory_supported_detection_count": 8,
+      "min_map_voxel_count": 20,
+      "min_matched_point_count": 500,
+      "min_support_ratio": 0.1,
+      "min_supported_known_bad_pass_fraction": 0.5
+    },
+    "policy_id": "slac.falsification.lidar_pair/v0.1",
+    "status_semantics": "pass means all required gates passed; fail means at least one gate rejected the candidate; inconclusive means the evidence cannot support or reject the candidate under this policy"
+  },
+  "run": {
+    "created_at": "2026-10-16T01:54:10.629285+00:00",
+    "dataset_path": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information",
+    "dataset_type": "a2d2_lidar",
+    "domain": "autonomous_driving",
+    "git_commit": "5478ec42493fb9495cbabba39452c70bff8890be",
+    "id": "2026-10-16T01-54-10Z_a2d2_pandey_mutual_information",
+    "slac_version": "0.5.1",
+    "status": "failed"
+  },
+  "schema_version": "slac.policy/v0.1"
+}

@@ -193,12 +193,16 @@ dev = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
     { name = "numpy", version = "2.5.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
+    { name = "pillow" },
     { name = "pytest" },
     { name = "ruff" },
 ]
 docs = [
     { name = "mkdocs-include-markdown-plugin" },
     { name = "mkdocs-material" },
+]
+images = [
+    { name = "pillow" },
 ]
 mcap = [
     { name = "mcap" },
@@ -257,6 +261,8 @@ requires-dist = [
     { name = "numpy", marker = "extra == 'rosbag2-compression'", specifier = ">=1.21" },
     { name = "open3d", marker = "extra == 'open3d'", specifier = ">=0.18" },
     { name = "opencv-python-headless", marker = "extra == 'opencv'", specifier = ">=4.8,<5" },
+    { name = "pillow", marker = "extra == 'dev'", specifier = ">=10" },
+    { name = "pillow", marker = "extra == 'images'", specifier = ">=10" },
     { name = "pydantic", specifier = ">=2.6" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.4,<10" },
     { name = "pyyaml", specifier = ">=6.0" },
@@ -264,7 +270,7 @@ requires-dist = [
     { name = "scipy", specifier = ">=1.8" },
     { name = "zstandard", marker = "extra == 'rosbag2-compression'", specifier = ">=0.22" },
 ]
-provides-extras = ["dev", "mcap", "rosbag1", "rosbag1-lz4", "rosbag2", "rosbag2-compression", "open3d", "opencv", "numba", "cuda", "autonomous", "docs"]
+provides-extras = ["images", "dev", "mcap", "rosbag1", "rosbag1-lz4", "rosbag2", "rosbag2-compression", "open3d", "opencv", "numba", "cuda", "autonomous", "docs"]
 
 [[package]]
 name = "certifi"

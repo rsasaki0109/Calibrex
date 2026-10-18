@@ -1,0 +1,38 @@
+{
+  "degeneracy": {
+    "grade": "warn",
+    "reason": "native SLAC observability and degeneracy analysis are not implemented in this alpha; A2D2 point clouds are pre-registered into each camera view; this run is execution and perturbation evidence, not an independent extrinsic accuracy test"
+  },
+  "metrics": {},
+  "quality_warnings": [
+    "dynamic-object holdout and radar-camera-lidar timing checks are required before deployment",
+    "overlay score proxy needs LiDAR point coverage and camera-LiDAR timestamp alignment diagnostics",
+    "objective magnitude has no universal accuracy threshold",
+    "error to A2D2's distributed camera-view registration; not independent metrology",
+    "A2D2 distributes LiDAR points already mapped into the camera view",
+    "T_base_link_lidar0: transform uncertainty is provisional",
+    "native SLAC observability and degeneracy analysis are not implemented in this alpha; A2D2 point clouds are pre-registered into each camera view; this run is execution and perturbation evidence, not an independent extrinsic accuracy test"
+  ],
+  "recommendations": [
+    "verify camera-LiDAR calibration files and collect logs with clear shared field of view",
+    "preserve image exposure and LiDAR intensity fields for mutual-information checks",
+    "validate camera-lidar-radar timing on driving logs with dynamic objects held out"
+  ],
+  "run": {
+    "created_at": "2026-10-16T01:53:38.688048+00:00",
+    "dataset_path": "C:\\Users\\rsasa\\Workspace\\Calibrex\\data\\public\\a2d2_pandey_mutual_information",
+    "dataset_type": "a2d2_lidar",
+    "domain": "autonomous_driving",
+    "git_commit": "183fb3d1221d118a20006b615d594bbf4fdc9875",
+    "id": "2026-10-16T01-53-38Z_a2d2_pandey_mutual_information",
+    "slac_version": "0.5.1",
+    "status": "failed"
+  },
+  "schema_version": "slac.report.degeneracy/v0.1",
+  "source_evidence": {
+    "path": "evidence.json",
+    "run_id": "2026-10-16T01-53-38Z_a2d2_pandey_mutual_information",
+    "schema_version": "slac.report.evidence/v0.1",
+    "sha256": "347a2942868bbcace9ae278db1d6f9c8bc412c2dfd82ed41ae2534cfb65c401a"
+  }
+}
