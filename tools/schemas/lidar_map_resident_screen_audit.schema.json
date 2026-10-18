@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Rejected resident LiDAR-map integration audit",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "decision", "production_changed", "complete_workers", "complete_fits", "cpu_gpu_fit_comparisons", "gpu_fit_bit_comparisons", "quality_passed", "medians_seconds", "cpu_to_resident", "native_to_resident", "candidate_slowdown_fraction", "candidate_faster_pairs", "gpu_runtime_imported", "provenance"],
+  "properties": {
+    "schema_version": {"const": "calibrex.lidar_map_resident_screen_audit/v0.1"},
+    "decision": {"enum": ["not_adopted", "would_advance"]},
+    "production_changed": {"const": false},
+    "complete_workers": {"const": 9}, "complete_fits": {"const": 45},
+    "cpu_gpu_fit_comparisons": {"const": 30}, "gpu_fit_bit_comparisons": {"const": 15},
+    "quality_passed": {"const": true},
+    "medians_seconds": {
+      "type": "object", "required": ["cpu", "native", "resident"], "additionalProperties": false,
+      "properties": {"cpu": {"$ref": "#/$defs/positive"}, "native": {"$ref": "#/$defs/positive"}, "resident": {"$ref": "#/$defs/positive"}}
+    },
+    "cpu_to_resident": {"$ref": "#/$defs/positive"},
+    "native_to_resident": {"$ref": "#/$defs/positive"},
+    "candidate_slowdown_fraction": {"type": "number", "exclusiveMinimum": -1},
+    "candidate_faster_pairs": {"type": "integer", "minimum": 0, "maximum": 3},
+    "gpu_runtime_imported": {"const": false},
+    "provenance": {
+      "type": "object", "required": ["protocol_sha256", "archive_index_sha256", "auditor_sha256", "commits"], "additionalProperties": false,
+      "properties": {
+        "protocol_sha256": {"$ref": "#/$defs/sha"}, "archive_index_sha256": {"$ref": "#/$defs/sha"}, "auditor_sha256": {"$ref": "#/$defs/sha"},
+        "commits": {
+          "type": "object", "required": ["prior", "current"], "additionalProperties": false,
+          "properties": {"prior": {"type": "string", "pattern": "^[0-9a-f]{40}$"}, "current": {"type": "string", "pattern": "^[0-9a-f]{40}$"}}
+        }
+      }
+    }
+  },
+  "$defs": {"sha": {"type": "string", "pattern": "^[0-9a-f]{64}$"}, "positive": {"type": "number", "exclusiveMinimum": 0}}
+}

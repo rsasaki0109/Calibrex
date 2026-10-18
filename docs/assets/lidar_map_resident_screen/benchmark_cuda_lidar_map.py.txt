@@ -1,0 +1,405 @@
+"""Fresh public KITTI map-evaluation comparisons with preserved quality evidence.
+
+Raw scan windows and their central scans form a copied-sensor identity control.
+This measures registration/evidence execution, not independent extrinsic accuracy
+or reference-odometry generation. Every process includes imports, input reading,
+GPU preparation/compilation, the complete evaluation, hashes and result saves.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import platform
+import re
+import subprocess
+import sys
+import time
+from dataclasses import asdict, is_dataclass
+from pathlib import Path
+from typing import Any
+
+SOURCES = (
+    "src/calibrex/solvers/lidar_lidar_map_solver.py",
+    "src/calibrex/solvers/cuda_lidar_map_adapter.py",
+    "src/calibrex/evaluation/lidar_lidar_map.py",
+    "src/calibrex/core/lidar_lidar_extrinsic.py",
+    "src/calibrex/core/benchmark.py",
+    "tools/benchmark_cuda_lidar_map.py",
+)
+
+
+def _digest(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _json(value: Any) -> Any:
+    if hasattr(value, "model_dump"):
+        return value.model_dump(mode="json", exclude_none=True)
+    if is_dataclass(value):
+        return _json(asdict(value))
+    if isinstance(value, dict):
+        return {key: _json(item) for key, item in value.items()}
+    if isinstance(value, (tuple, list)):
+        return [_json(item) for item in value]
+    if hasattr(value, "tolist"):
+        return value.tolist()
+    return value
+
+
+def _compare(left: Any, right: Any, path: str = "") -> list[str]:
+    if path == ".result.execution_backend":
+        declared = re.fullmatch(
+            r"calibrex\.cuda_lidar_map/v0\.1;fp64=true;query_fma=false;"
+            r"cupy=[0-9.]+;cuda=[0-9]+;driver=[0-9]+;cc=[0-9.]+;"
+            r"query_sha256=[0-9a-f]{64}"
+            r"(?:;normal_sha256=[0-9a-f]{64};normal_cache=lazy"
+            r"(?:;registration_sha256=[0-9a-f]{64})?)?", right,
+        )
+        if left != "numpy_scipy" or declared is None:
+            return [path]
+        return []
+    if type(left) is not type(right):
+        return [path]
+    if isinstance(left, dict):
+        if left.keys() != right.keys():
+            return [path]
+        return [error for key in left
+                for error in _compare(left[key], right[key], path + "." + key)]
+    if isinstance(left, list):
+        if len(left) != len(right):
+            return [path]
+        return [error for i, (a, b) in enumerate(zip(left, right, strict=True))
+                for error in _compare(a, b, path + f"[{i}]")]
+    if isinstance(left, float):
+        import math
+
+        absolute = 1e-13 if path.startswith(".result.covariance") else 1e-9
+        relative = 1e-5 if path.startswith(".result.covariance") else 1e-6
+        return [] if math.isclose(left, right, abs_tol=absolute, rel_tol=relative) else [path]
+    return [] if left == right else [path]
+
+
+def _paths(sequence: Path, half_window: int) -> list[Path]:
+    return [sequence / "velodyne_points/data" / f"{i:010d}.bin"
+            for center in (115, 230, 345)
+            for i in range(center - half_window, center + half_window + 1)]
+
+
+def _worker(args: argparse.Namespace) -> None:
+    cpu_start = time.process_time()
+    source_root = getattr(args, "source_root", None)
+    import numpy as np
+    from scipy.spatial.transform import Rotation
+
+    from calibrex import __version__
+    from calibrex.core.io import read_mapping
+    from calibrex.core.lidar_lidar_extrinsic import (
+        LidarLidarExtrinsicArtifact,
+        LidarLidarProvenance,
+        LidarLidarSamples,
+        LidarLidarTransform,
+    )
+    from calibrex.evaluation import lidar_lidar_map as evaluation
+    from calibrex.solvers.lidar_lidar_map_solver import MapSample
+
+    inputs = {}
+    centers = (115, 230, 345)
+    maps, targets = [], []
+    for center in centers:
+        scans = []
+        for i in range(center - args.half_window, center + args.half_window + 1):
+            path = args.sequence / "velodyne_points/data" / f"{i:010d}.bin"
+            contents = path.read_bytes()
+            inputs[str(path)] = hashlib.sha256(contents).hexdigest()
+            points = np.frombuffer(contents, dtype="<f4").reshape((-1, 4))[:, :3].astype(np.float64)
+            if not np.isfinite(points).all():
+                raise ValueError("nonfinite public scan coordinates")
+            scans.append(points)
+            if i == center:
+                targets.append(points)
+        maps.append(np.concatenate(scans))
+    # Fixed small measurement noise avoids a zero-residual identity fit making
+    # the existing held-out/training residual-ratio gate depend on roundoff.
+    rng = np.random.default_rng(20261012)
+    targets = [points + rng.normal(0.0, 0.01, points.shape) for points in targets]
+    samples = []
+    prepared_hash = hashlib.sha256()
+    for i in range(6):
+        group = i // 2
+        pose = np.eye(4)
+        pose[:3, :3] = Rotation.from_rotvec([0.01 * i, -0.02 * i, 0.03 * i]).as_matrix()
+        pose[:3, 3] = [0.4 * i, 0.2 * i, 0.1 * i]
+        world = maps[group] @ pose[:3, :3].T + pose[:3, 3]
+        points = targets[group]
+        samples.append(MapSample(float(i), i, pose, points, world))
+        for array in (pose, points, world):
+            prepared_hash.update(array.tobytes())
+    partition_hashes = {}
+    for label, indices in (("train", (0, 2, 3, 5)), ("holdout", (1, 4))):
+        digest = hashlib.sha256()
+        for index in indices:
+            digest.update(np.asarray([index], dtype=np.int64).tobytes())
+            digest.update(samples[index].target_points.tobytes())
+            digest.update(samples[index].reference_pose.tobytes())
+        partition_hashes[label] = digest.hexdigest()
+    options = evaluation.LidarLidarMapOptions(jackknife_groups=4)
+    initial = np.eye(4)
+    initial[:3, 3] = [0.08, -0.07, 0.05]
+    runtime = None
+    factory = evaluation._map_runtime
+
+    def captured_runtime(*arguments: Any, **keywords: Any) -> Any:
+        nonlocal runtime
+        runtime = factory(*arguments, **keywords)
+        return runtime
+
+    evaluation._map_runtime = captured_runtime
+    started = time.perf_counter()
+    result = evaluation.evaluate_lidar_lidar_map(samples, initial, options, backend=args.worker)
+    api_seconds = time.perf_counter() - started
+    payload = _json(result)
+    statistics = {} if runtime is None else runtime.statistics()
+    transform = result.result.transform
+    identity = result.result.execution_backend
+    input_hash = hashlib.sha256(json.dumps(inputs, sort_keys=True).encode()).hexdigest()
+    artifact = LidarLidarExtrinsicArtifact(
+        solver_status=result.result.status, policy_status=result.policy_status,
+        policy_reasons=list(result.policy_reasons),
+        calibrated_dofs=[record.name for record in result.records if record.status == "estimated"],
+        transform=None if transform is None else LidarLidarTransform(
+            parent_frame="public_scan_window", child_frame="public_scan_copy",
+            translation_m=transform[:3, 3].tolist(),
+            rotation_quat_xyzw=Rotation.from_matrix(transform[:3, :3]).as_quat().tolist(),
+        ),
+        dofs=list(result.records), residual_sigma_m=result.result.sigma_m,
+        holdout_median_residual_m=result.holdout_median_m,
+        samples=LidarLidarSamples(
+            reference_scans=len(inputs), samples=len(samples), train_samples=result.train_samples,
+            holdout_samples=result.holdout_samples,
+            train_correspondences=result.result.correspondences,
+            holdout_correspondences=result.holdout_correspondences,
+        ),
+        train_blocks=list(result.train_blocks), holdout_blocks=list(result.holdout_blocks),
+        jackknife_fits=result.jackknife_fits, options={
+            "map_options": asdict(options.solver), "execution_backend": identity,
+            "half_window": args.half_window, "initial_transform": initial.tolist(),
+            "target_noise_std_m": 0.01, "target_noise_seed": 20261012,
+        },
+        limitations=["Concatenated raw windows are not motion compensated; copied central scans "
+                     "form an identity execution control, not independent two-sensor accuracy."],
+        provenance=LidarLidarProvenance(
+            generator="tools.benchmark_cuda_lidar_map", generator_version=__version__,
+            git_commit=getattr(args, "source_commit", None) or subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], text=True,
+            ).strip(),
+            command=["<PYTHON>", "tools/benchmark_cuda_lidar_map.py", "--worker", args.worker],
+            dataset_family="kitti_raw", sequence_ids=[args.sequence.name],
+            reference_topic="public_scan_window", target_topic="public_scan_copy",
+            input_sha256=input_hash, input_digest_scope="SHA256 of all raw scan bytes",
+            dataset_license="KITTI terms: https://www.cvlibs.net/datasets/kitti/raw_data.php",
+        ),
+    )
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    artifact.save(args.output_dir / "result.json")
+    if LidarLidarExtrinsicArtifact.model_validate(
+        read_mapping(args.output_dir / "result.json"),
+    ) != artifact:
+        raise ValueError("saved result differs from API artifact")
+    measurement = {
+        "api_seconds": api_seconds, "worker_cpu_seconds": time.process_time() - cpu_start,
+        "evaluation": payload, "artifact": artifact.model_dump(mode="json", exclude_none=True),
+        "result_sha256": _digest(args.output_dir / "result.json"), "statistics": statistics,
+        "prepared_sha256": prepared_hash.hexdigest(),
+        "partition_sha256": partition_hashes,
+        "map_points": [len(sample.map_points) for sample in samples],
+        "target_points": [len(sample.target_points) for sample in samples],
+        "provenance": {"input_sha256": inputs,
+                       "source_sha256": {
+                           path: _digest(Path(source_root) / path if source_root is not None
+                                         and path.startswith("src/") else Path(path))
+                           for path in SOURCES
+                       }},
+    }
+    (args.output_dir / "measurement.json").write_text(
+        json.dumps(measurement, indent=2, allow_nan=False) + "\n", encoding="utf-8",
+    )
+
+
+def main(arguments: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--sequence", type=Path, required=True)
+    parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--repetitions", type=int, default=3)
+    parser.add_argument("--half-window", type=int, default=5)
+    parser.add_argument("--worker", choices=("cpu", "cuda"))
+    args = parser.parse_args(arguments)
+    if args.repetitions < 1 or not 0 <= args.half_window <= 5:
+        raise ValueError("repetitions must be positive; half-window must be between 0 and 5")
+    if args.worker:
+        _worker(args)
+        return
+    if args.output_dir.exists() and any(args.output_dir.iterdir()):
+        raise ValueError("output directory must be new or empty")
+    from calibrex import __version__
+    from calibrex.core.benchmark import (
+        BenchmarkDefinition,
+        BenchmarkMethodDefinition,
+        BenchmarkMetricDefinition,
+        BenchmarkProtocol,
+        BenchmarkProvenance,
+        BenchmarkSplit,
+        BenchmarkTrial,
+        BenchmarkTrialProvenance,
+        aggregate_benchmark_definition,
+    )
+
+    bindings = {path: _digest(Path(path)) for path in SOURCES}
+    inputs = {str(path): _digest(path) for path in _paths(args.sequence, args.half_window)}
+    revision = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    config_hash = hashlib.sha256(json.dumps({"half_window": args.half_window}).encode()).hexdigest()
+    input_hash = hashlib.sha256(json.dumps(inputs, sort_keys=True).encode()).hexdigest()
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+
+    def guard() -> None:
+        if (revision != subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+            or bindings != {p: _digest(Path(p)) for p in bindings}
+            or inputs != {p: _digest(Path(p)) for p in inputs}):
+            raise ValueError("source, inputs or HEAD changed during measurement")
+
+    trials, snapshots = [], []
+    for repeat in range(1, args.repetitions + 1):
+        order = ("cpu", "cuda") if repeat % 2 else ("cuda", "cpu")
+        pair = {}
+        for method in order:
+            guard()
+            folder = args.output_dir / f"{method}.{repeat:02d}"
+            cache = args.output_dir / "cupy-cache" / method
+            before = {p.name: _digest(p) for p in cache.rglob("*") if p.is_file()}
+            command = [sys.executable, __file__, "--sequence", str(args.sequence),
+                       "--output-dir", str(folder), "--half-window", str(args.half_window),
+                       "--worker", method]
+            print(f"START {repeat} {method}", flush=True)
+            started = time.perf_counter()
+            subprocess.run(command, check=True, env=dict(os.environ,
+                CUPY_CACHE_DIR=str(cache.resolve()), OMP_NUM_THREADS="1", PYTHONIOENCODING="utf-8"))
+            elapsed = time.perf_counter() - started
+            after = {p.name: _digest(p) for p in cache.rglob("*") if p.is_file()}
+            row = json.loads((folder / "measurement.json").read_bytes())
+            if row["provenance"]["input_sha256"] != inputs:
+                raise ValueError("worker input binding mismatch")
+            if row["provenance"]["source_sha256"] != bindings:
+                raise ValueError("worker source binding mismatch")
+            pair[method] = row
+            snapshots.append({"repeat": repeat, "method": method, "row": row,
+                              "wall_seconds": elapsed, "command": command,
+                              "cache_before": before, "cache_after": after})
+            print(f"DONE {repeat} {method} {elapsed:.6f}s", flush=True)
+        errors = _compare(pair["cpu"]["evaluation"], pair["cuda"]["evaluation"])
+        if pair["cpu"]["prepared_sha256"] != pair["cuda"]["prepared_sha256"]:
+            raise ValueError("prepared point identities changed")
+        for snapshot in snapshots[-2:]:
+            snapshot["comparison_errors"] = errors
+        print(f"COMPARISON {repeat} errors={errors[:12]}", flush=True)
+    guard()
+    for snapshot in snapshots:
+        row = snapshot["row"]
+        method = snapshot["method"]
+        canonical = json.dumps(row["artifact"], sort_keys=True, separators=(",", ":"))
+        trials.append(BenchmarkTrial(
+            method_id=method, split_id=f"repeat-{snapshot['repeat']:02d}",
+            status="failed" if snapshot["comparison_errors"] else "success",
+            runtime_seconds=snapshot["wall_seconds"], metrics={
+                "complete_wall_seconds": snapshot["wall_seconds"],
+                "api_seconds": row["api_seconds"],
+                "worker_cpu_seconds": row["worker_cpu_seconds"],
+                "quality_matches": float(not snapshot["comparison_errors"]),
+                "gpu_query_rows": float(row["statistics"].get("gpu_query_rows", 0)),
+            },
+            provenance=BenchmarkTrialProvenance(
+                command=subprocess.list2cmdline(snapshot["command"]), config_sha256=config_hash,
+                input_sha256=input_hash,
+                output_sha256=hashlib.sha256(canonical.encode()).hexdigest(),
+                execution_host=platform.platform(), notes=[
+                    json.dumps({"cache_before": snapshot["cache_before"],
+                                "cache_after": snapshot["cache_after"],
+                                "prepared_sha256": row["prepared_sha256"],
+                                "result_sha256": row["result_sha256"],
+                                "statistics": row["statistics"],
+                                "comparison_errors": snapshot["comparison_errors"]},
+                               sort_keys=True),
+                    json.dumps(row["evaluation"], sort_keys=True), canonical,
+                ],
+            ),
+        ))
+    representative = snapshots[0]["row"]
+    definition = BenchmarkDefinition(
+        benchmark_id="public-kitti-cuda-lidar-map", title="Complete public LiDAR map evaluation",
+        reference_method_id="cpu", bootstrap_samples=1,
+        protocol=BenchmarkProtocol(
+            protocol_id="cuda-lidar-map/v0.1", dataset_id="kitti_raw_0018",
+            dataset_source_sha256=input_hash,
+            data_license="KITTI terms: https://www.cvlibs.net/datasets/kitti/raw_data.php",
+            split_policy="Every third sample block held out; four leave-one-block-out fits",
+            splits=[BenchmarkSplit(
+                split_id=f"repeat-{r:02d}", seed=0,
+                fit_count=sum(representative["target_points"][i] for i in (0, 2, 3, 5)),
+                holdout_count=sum(representative["target_points"][i] for i in (1, 4)),
+                fit_ids_sha256=representative["partition_sha256"]["train"],
+                holdout_ids_sha256=representative["partition_sha256"]["holdout"],
+            ) for r in range(1, args.repetitions + 1)],
+            initial_estimate_policy="Identical [0.08,-0.07,0.05] m initial translation; "
+            "copied targets have fixed 0.01 m Gaussian noise, seed 20261012",
+            tuning_policy="Reverse process order every other pair; no changed point counts",
+            failure_policy="Retain every run, first compilation and numerical mismatch",
+        ),
+        methods=[BenchmarkMethodDefinition(
+            method_id=m, label=m, implementation="subprocess", tool_name="Calibrex",
+            tool_version=__version__, source_commit=revision, adapter_version="cuda-lidar-map/v0.1",
+        ) for m in ("cpu", "cuda")],
+        metrics=[BenchmarkMetricDefinition(
+            name=name, label=name, unit="bool" if name == "quality_matches" else (
+                "rows" if name == "gpu_query_rows" else "s"),
+            direction="higher" if name in ("quality_matches", "gpu_query_rows") else "lower",
+            primary=name == "complete_wall_seconds",
+            interpretation={
+                "complete_wall_seconds": "Fresh process including input preparation, evaluation, "
+                "GPU initialization/compilation, hashes and saves; parent audits excluded",
+                "api_seconds": "Map preparation, solve, block jackknife, holdout and controls",
+                "worker_cpu_seconds": "All-thread CPU from worker entry through result save",
+                "quality_matches": "Full evaluation parity under declared numeric tolerances",
+                "gpu_query_rows": "Actual point rows queried by the CUDA spatial kernel",
+            }[name],
+        ) for name in trials[0].metrics], trials=trials,
+        limitations=[
+            "Copied public scans and generated rigid poses are an identity execution control, "
+            "not independent two-sensor accuracy; raw scan windows are not motion compensated.",
+            "Wall includes fresh imports, raw reads, GPU construction/compilation, full blocked "
+            "evaluation, input hashes and saves. Parent guards/aggregation are excluded.",
+            "CPU and GPU reductions/eigensolves have different arithmetic. Full evaluation "
+            "numeric fields use abs 1e-9/rel 1e-6; covariance abs 1e-13/rel 1e-5. "
+            "Every status/count/decision/string matches exactly; only execution identity differs.",
+            "Prepared points and original raw-input hashes must match. No separate warmup, "
+            "timing exclusions or point subsampling. Separate compiler caches start empty.",
+            "Single public sequence on a shared host; descriptive timings are not "
+            "portable guarantees.",
+        ],
+        provenance=BenchmarkProvenance(
+            generator="tools.benchmark_cuda_lidar_map", generator_version="v0.1",
+            git_commit=revision, data_verified=True,
+            command=subprocess.list2cmdline([
+                sys.executable, __file__, *(arguments or sys.argv[1:]),
+            ]),
+            source_artifacts={**bindings, **inputs},
+        ),
+    )
+    definition.save(args.output_dir / "comparison.definition.json")
+    aggregate_benchmark_definition(definition).save(args.output_dir / "comparison.benchmark.json")
+    if any(trial.status != "success" for trial in trials):
+        raise ValueError("numerical comparisons failed; all trials retained")
+
+
+if __name__ == "__main__":
+    main()

@@ -165,3 +165,8 @@ preserves all measured payloads and the original auditor.
 python -m tools.audit_resident_scan_validation \
   docs/assets/resident_scan_validation --check
 ```
+
+A separate [LiDAR–LiDAR map-front-end screen](lidar_map_resident_screen.md)
+tested the resident path with a single reference pass. It was 12.0% slower
+than existing CUDA and was not adopted; its results are separate from the
+LiDAR–IMU comparisons above.

@@ -254,3 +254,8 @@ tools/audit_resident_lidar_geometry.py text eol=lf
 # Preserve all follow-up validation worker and source bytes.
 docs/assets/resident_scan_validation/** -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
 tools/audit_resident_scan_validation.py text eol=lf
+
+# Keep complete rejected-screen evidence byte-bound across platforms.
+docs/assets/lidar_map_resident_screen/** -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+tools/audit_lidar_map_resident_screen.py text eol=lf
+docs/benchmarks/lidar_map_resident_screen.md text eol=lf

@@ -1,0 +1,141 @@
+"""Live map-front-end parity and failure cleanup with the resident factory."""
+
+from __future__ import annotations
+
+from dataclasses import replace
+from typing import Any
+
+import numpy as np
+import pytest
+
+pytest.importorskip("cupy")
+import cupy as cp
+from tools.benchmark_bspline_lidar_imu import _same_float_bits, _without_run_metadata
+
+from calibrex.evaluation import lidar_lidar_map as runner
+from calibrex.solvers.lidar_lidar_map_solver import MapSample
+
+
+@pytest.fixture(scope="module", autouse=True)
+def require_cuda() -> None:
+    try:
+        count = cp.cuda.runtime.getDeviceCount()
+    except cp.cuda.runtime.CUDARuntimeError:
+        count = 0
+    if not count:
+        pytest.skip("requires a CUDA device")
+
+
+def _scene() -> np.ndarray:
+    rng = np.random.default_rng(51)
+    parts = []
+    for axis in range(3):
+        face = rng.uniform(-4, 4, (600, 3))
+        face[:, axis] = 3.0
+        parts.append(face)
+    return np.concatenate(parts)
+
+
+def _options() -> runner.LidarLidarMapOptions:
+    options = runner.LidarLidarMapOptions(
+        sample_every_scans=1,
+        map_half_window_scans=1,
+        min_target_points=100,
+        block_duration_s=0.15,
+        jackknife_groups=3,
+    )
+    return replace(
+        options,
+        odometry=replace(
+            options.odometry,
+            voxel_size_m=0.12,
+            min_range_m=0,
+            geometry_quantum_m=1e-9,
+            motion_translation_quantum_m=1e-6,
+            motion_rotation_quantum_rad=1e-7,
+            local_map_scans=3,
+            min_correspondences=50,
+        ),
+    )
+
+
+@pytest.mark.parametrize("deskew", ["constant_velocity", "none"])
+def test_resident_map_front_end_preserves_all_sample_bits_and_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+    deskew: Any,
+) -> None:
+    scene = _scene()
+    offsets = np.linspace(0, 0.09, len(scene))
+
+    def scans(*args: Any, **kwargs: Any) -> Any:
+        for i in range(8):
+            yield i * 0.1, scene - np.array([0.02 * i, 0.005 * i, 0.0]), offsets
+
+    monkeypatch.setattr(runner, "iter_livox_points", scans)
+    monkeypatch.setattr(runner, "bag_input_digest", lambda bags: ("a" * 64, "synthetic"))
+    samples: list[list[MapSample]] = []
+    evaluate = runner.evaluate_lidar_lidar_map
+
+    def observed(data: list[MapSample], *args: Any, **kwargs: Any) -> Any:
+        samples.append(data)
+        return evaluate(data, *args, **kwargs)
+
+    monkeypatch.setattr(runner, "evaluate_lidar_lidar_map", observed)
+    options = replace(_options(), deskew=deskew)
+    artifacts = []
+    for resident in (False, True):
+        artifacts.append(
+            runner.run_ros2_lidar_lidar_map(
+                "synthetic-bag",
+                reference_topic="/reference",
+                target_topic="/target",
+                initial=np.eye(4),
+                point_time_field="t",
+                dataset_family="synthetic",
+                dataset_license="synthetic",
+                options=options,
+                odometry_backend="cuda",
+                resident_odometry=resident,
+            )
+        )
+    assert len(samples) == 2 and len(samples[0]) == len(samples[1]) > 0
+    for a, b in zip(*samples, strict=True):
+        assert (a.time_s, a.block) == (b.time_s, b.block)
+        for name in ("reference_pose", "map_points", "target_points"):
+            left, right = getattr(a, name), getattr(b, name)
+            assert left.dtype == right.dtype and left.tobytes() == right.tobytes()
+    left, right = [_without_run_metadata(a.model_dump(mode="json")) for a in artifacts]
+    assert right["options"].pop("resident_odometry") is True
+    work = right["options"].pop("resident_geometry_execution")
+    assert work["source_captures"] == 8 and work["source_cache_hits"] == 0
+    statistics = right["options"].pop("odometry_statistics")
+    assert statistics["gpu_grid_captures"] == 7
+    assert "geometry_pipeline=resident-v1" in right["options"]["odometry_execution"]
+    right["options"]["odometry_execution"] = left["options"]["odometry_execution"]
+    assert _same_float_bits(left, right)
+
+
+def test_resident_map_decode_failure_restores_the_callers_stream(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def broken(*args: Any, **kwargs: Any) -> Any:
+        yield 0.0, _scene(), np.zeros(len(_scene()))
+        raise RuntimeError("decode failed")
+
+    monkeypatch.setattr(runner, "iter_livox_points", broken)
+    outer = cp.cuda.Stream(non_blocking=True)
+    with outer:
+        with pytest.raises(RuntimeError, match="decode failed"):
+            runner.run_ros2_lidar_lidar_map(
+                "synthetic-bag",
+                reference_topic="/reference",
+                target_topic="/target",
+                initial=np.eye(4),
+                point_time_field="t",
+                dataset_family="synthetic",
+                dataset_license="synthetic",
+                options=_options(),
+                odometry_backend="cuda",
+                resident_odometry=True,
+            )
+        assert cp.cuda.get_current_stream().ptr == outer.ptr
