@@ -38,6 +38,9 @@ UNREGISTERED_SCHEMA_VERSIONS = {
 # Benchmark records are validated by their explicit tool schemas and archive
 # audits, without adding benchmark-internal formats to the core public API.
 TOOL_SCHEMA_VERSIONS = {
+    "slac.tum_window_processes_benchmark/v0.1": (
+        "tools/schemas/tum_window_processes_benchmark.schema.json"
+    ),
     "slac.tum_depth_frontend_benchmark/v0.1": (
         "tools/schemas/tum_depth_frontend_benchmark.schema.json"
     ),

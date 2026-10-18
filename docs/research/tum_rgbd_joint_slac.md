@@ -360,3 +360,9 @@ The [depth reconstruction and paired target comparison](../benchmarks/tum_depth_
 also records every reconstructed pixel and ordered back-projected sample. It
 batches integer PNG reconstruction and prepares repeated target geometry once
 per matched voxel, retaining the full calibration and diagnostic workload.
+
+The [native window process comparison](../benchmarks/tum_window_processes.md)
+evaluates independent windows concurrently with `window_workers: 3`, restoring
+native factors and aggregating in configured order. It includes child startup
+and transport in whole-worker latency and checks raw parent and child traces,
+complete numeric histories and calibration results.

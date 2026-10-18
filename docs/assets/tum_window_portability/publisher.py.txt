@@ -1,0 +1,60 @@
+"""Publish supplementary checks, leaving the original measurement untouched."""
+import hashlib
+import json
+from pathlib import Path
+import re
+import shutil
+import subprocess
+
+root = Path(__file__).resolve().parent
+out = root / "outputs/tum-window-portability-v1"
+target = root / "docs/assets/tum_window_portability"
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+prov = json.loads((out / "provenance.json").read_bytes())
+manifest = json.loads((out / "source/manifest.json").read_bytes())
+environments = {}
+counts = {}
+for platform in ("windows", "linux"):
+    name = f"core-{platform}-environment.json"
+    record = json.loads((out / name).read_bytes())
+    assert record["exit_status"] == 0
+    assert record["provenance"]["git_commit"] == prov["tested_runtime_commit"]
+    assert record["provenance"]["sources"] == manifest
+    assert all(manifest[item["path"]] == item["sha256"] for item in record["imports"].values())
+    assert all(sha(root / file) == digest for file, digest in record["test_files_sha256"].items())
+    environments[platform] = record
+    counts[platform] = int(re.findall(r"(\d+) passed", (out / f"core-{platform}.log").read_text())[-1])
+assert counts == {"windows": 408, "linux": 408}
+for platform in ("linux", "win32"):
+    assert "Success: no issues found in 387 source files" in (out / f"mypy-{platform}.log").read_text()
+assert sha(root / ".tmp-calibrex-window-portability-tests.py") == prov["test_runner_sha256"]
+assert sha(out / "source/manifest.json") == prov["source_manifest_sha256"]
+assert sha(out / "runtime.patch") == prov["runtime_patch_sha256"]
+target.mkdir(exist_ok=False)
+(target / ".gitattributes").write_bytes(b"* -text whitespace=cr-at-eol\n")
+for name in ("core-windows.log", "core-linux.log", "mypy-linux.log", "mypy-win32.log",
+             "core-windows-environment.json", "core-linux-environment.json", "runtime.patch"):
+    shutil.copyfile(out / name, target / name)
+shutil.copyfile(out / "source/manifest.json", target / "source-manifest.json")
+for source, name in ((".tmp-calibrex-window-portability-tests.py", "frozen-test-runner.py.txt"),
+                     (".tmp-calibrex-window-portability-setup.py", "setup.py.txt"),
+                     (".tmp-calibrex-window-portability-linux.sh", "linux-test-runner.sh.txt")):
+    shutil.copyfile(root / source, target / name)
+shutil.copyfile(Path(__file__), target / "publisher.py.txt")
+prov["publisher_sha256"] = sha(Path(__file__))
+prov["typecheck_requirements_sha256"] = sha(root / "tools/typecheck-requirements.txt")
+prov["parent_measurement_protocol_sha256"] = sha(root / "docs/assets/tum_window_processes/protocol.json")
+prov["ci_failure_url"] = "https://github.com/rsasaki0109/Calibrex/actions/runs/38981490816/job/117243139037"
+record = {
+    "test_pass_counts": counts,
+    "mypy": {"linux": {"source_files": 387, "exit_status": 0},
+             "win32": {"source_files": 387, "exit_status": 0}},
+    "change": "Use an explicit sys.platform branch before reading the Windows-only subprocess constant; launch flags on supported platforms are unchanged.",
+    "scope": "Supplementary portability checks. The earlier Windows-targeted mypy run did not cover Linux types. No new performance measurement or change to the archived runtime/timings.",
+    "provenance": prov,
+}
+(target / "validation.json").write_bytes((json.dumps(record, indent=2) + "\n").encode())
+files = {p.name: {"sha256": sha(p), "size_bytes": p.stat().st_size}
+         for p in sorted(target.iterdir()) if p.is_file()}
+(target / "index.json").write_bytes((json.dumps({"files": files, "provenance": prov}, indent=2) + "\n").encode())
+print("Published supplementary portability checks:", counts, ";", len(files) + 1, "files")

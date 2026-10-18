@@ -1,0 +1,1650 @@
+{
+  "$defs": {
+    "ArtifactSet": {
+      "additionalProperties": false,
+      "properties": {
+        "camera_lidar_overlay": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Camera Lidar Overlay"
+        },
+        "html_report": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Html Report"
+        },
+        "residual_histogram": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Residual Histogram"
+        },
+        "rig_3d_viewer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rig 3D Viewer"
+        },
+        "trajectory_plot": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Trajectory Plot"
+        }
+      },
+      "title": "ArtifactSet",
+      "type": "object"
+    },
+    "CovarianceInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "matrix": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Matrix",
+          "type": "array"
+        },
+        "order": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Order",
+          "type": "array"
+        }
+      },
+      "required": [
+        "order",
+        "matrix"
+      ],
+      "title": "CovarianceInfo",
+      "type": "object"
+    },
+    "DegeneracyResult": {
+      "additionalProperties": false,
+      "properties": {
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        }
+      },
+      "title": "DegeneracyResult",
+      "type": "object"
+    },
+    "ExportSet": {
+      "additionalProperties": false,
+      "properties": {
+        "autoware": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Autoware"
+        },
+        "kalibr_yaml": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Kalibr Yaml"
+        },
+        "ros_tf": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ros Tf"
+        },
+        "urdf": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Urdf"
+        }
+      },
+      "title": "ExportSet",
+      "type": "object"
+    },
+    "FrameGraphSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "convention": {
+          "const": "T_parent_child",
+          "default": "T_parent_child",
+          "title": "Convention",
+          "type": "string"
+        },
+        "frames": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Frames",
+          "type": "object"
+        },
+        "root": {
+          "title": "Root",
+          "type": "string"
+        }
+      },
+      "required": [
+        "root",
+        "frames"
+      ],
+      "title": "FrameGraphSnapshot",
+      "type": "object"
+    },
+    "MetricResult": {
+      "additionalProperties": false,
+      "properties": {
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "holdout": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Holdout"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "train": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Train"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        }
+      },
+      "title": "MetricResult",
+      "type": "object"
+    },
+    "ObservabilityResult": {
+      "additionalProperties": false,
+      "properties": {
+        "condition_number": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Condition Number"
+        },
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "rank": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rank"
+        },
+        "weak_directions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Weak Directions",
+          "type": "array"
+        }
+      },
+      "title": "ObservabilityResult",
+      "type": "object"
+    },
+    "QualitySummary": {
+      "additionalProperties": false,
+      "properties": {
+        "blocking_failures": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Blocking Failures",
+          "type": "array"
+        },
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "recommendation": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Recommendation",
+          "type": "array"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "title": "QualitySummary",
+      "type": "object"
+    },
+    "ResultProvenance": {
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "anyOf": [
+            {
+              "properties": {
+                "git_commit": {
+                  "minLength": 1,
+                  "pattern": "\\S",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "git_commit"
+              ]
+            },
+            {
+              "properties": {
+                "git_commit_unavailable_reason": {
+                  "minLength": 1,
+                  "pattern": "\\S",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "git_commit_unavailable_reason"
+              ]
+            }
+          ]
+        },
+        {
+          "anyOf": [
+            {
+              "properties": {
+                "config_sha256": {
+                  "pattern": "^[0-9a-fA-F]{64}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "config_sha256"
+              ]
+            },
+            {
+              "properties": {
+                "config_digest_unavailable_reason": {
+                  "minLength": 1,
+                  "pattern": "\\S",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "config_digest_unavailable_reason"
+              ]
+            }
+          ]
+        },
+        {
+          "anyOf": [
+            {
+              "properties": {
+                "input_sha256": {
+                  "pattern": "^[0-9a-fA-F]{64}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "input_sha256"
+              ]
+            },
+            {
+              "properties": {
+                "input_digest_unavailable_reason": {
+                  "minLength": 1,
+                  "pattern": "\\S",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "input_digest_unavailable_reason"
+              ]
+            }
+          ]
+        }
+      ],
+      "description": "Versioned generation metadata for a calibration result.\n\nResult provenance deliberately allows additional pipeline-specific fields.\nThe fields below are the stable minimum required to identify how a new\nresult was produced.  Legacy v0.1 files may contain an unstructured map;\nthose files remain readable through :func:`load_result`, but are not\nproduction-admissible until explicitly migrated.",
+      "properties": {
+        "command": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            {
+              "items": {
+                "minLength": 1,
+                "pattern": "\\S",
+                "type": "string"
+              },
+              "minItems": 1,
+              "type": "array"
+            }
+          ],
+          "title": "Command"
+        },
+        "config_digest_unavailable_reason": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Config Digest Unavailable Reason"
+        },
+        "config_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-fA-F]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Config Sha256"
+        },
+        "generated_at": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Generated At",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "git_commit_unavailable_reason": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit Unavailable Reason"
+        },
+        "input_digest_unavailable_reason": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "\\S",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input Digest Unavailable Reason"
+        },
+        "input_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-fA-F]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Input Sha256"
+        },
+        "producer": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Producer",
+          "type": "string"
+        },
+        "provenance_version": {
+          "const": "slac.result.provenance/v0.1",
+          "default": "slac.result.provenance/v0.1",
+          "title": "Provenance Version",
+          "type": "string"
+        },
+        "tool_name": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Tool Name",
+          "type": "string"
+        },
+        "tool_version": {
+          "minLength": 1,
+          "pattern": "\\S",
+          "title": "Tool Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provenance_version",
+        "producer",
+        "tool_name",
+        "tool_version",
+        "generated_at",
+        "command",
+        "config_sha256",
+        "input_sha256"
+      ],
+      "title": "ResultProvenance",
+      "type": "object"
+    },
+    "RunInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "config_sha256": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Config Sha256"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "dataset_sha256": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dataset Sha256"
+        },
+        "domain": {
+          "default": "robotics",
+          "title": "Domain",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "provenance": {
+          "description": "Versioned provenance for new results. Legacy v0.1 maps, including an empty or omitted map, are readable but are not production-admissible.",
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ResultProvenance"
+            },
+            {
+              "additionalProperties": true,
+              "not": {
+                "required": [
+                  "provenance_version"
+                ]
+              },
+              "type": "object"
+            }
+          ]
+        },
+        "slac_version": {
+          "title": "Slac Version",
+          "type": "string"
+        },
+        "status": {
+          "default": "success",
+          "enum": [
+            "success",
+            "warning",
+            "failed",
+            "dry_run"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "slac_version"
+      ],
+      "title": "RunInfo",
+      "type": "object"
+    },
+    "SolidStateCaptureWindow": {
+      "additionalProperties": false,
+      "description": "Observed timing and operating conditions for one capture interval.",
+      "properties": {
+        "capture_span_s": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capture Span S"
+        },
+        "end_timestamp_ns": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Timestamp Ns"
+        },
+        "fov_azimuth_deg": {
+          "anyOf": [
+            {
+              "maximum": 360.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fov Azimuth Deg"
+        },
+        "fov_elevation_deg": {
+          "anyOf": [
+            {
+              "maximum": 180.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fov Elevation Deg"
+        },
+        "integration_window_s": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Integration Window S"
+        },
+        "point_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Point Count"
+        },
+        "point_time_deskew_applied": {
+          "default": false,
+          "title": "Point Time Deskew Applied",
+          "type": "boolean"
+        },
+        "point_time_field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Point Time Field"
+        },
+        "point_time_max_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Point Time Max S"
+        },
+        "point_time_min_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Point Time Min S"
+        },
+        "point_time_offsets_available": {
+          "default": false,
+          "title": "Point Time Offsets Available",
+          "type": "boolean"
+        },
+        "range_max_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Range Max M"
+        },
+        "range_min_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Range Min M"
+        },
+        "reference_timestamp_ns": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Timestamp Ns"
+        },
+        "start_timestamp_ns": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Timestamp Ns"
+        },
+        "temperature": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SolidStateTemperatureCondition"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "SolidStateCaptureWindow",
+      "type": "object"
+    },
+    "SolidStateIntrinsicCalibration": {
+      "additionalProperties": false,
+      "description": "Origin and representation of the sensor's internal calibration.",
+      "properties": {
+        "artifact_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Path"
+        },
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-fA-F]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "model": {
+          "default": "unknown",
+          "enum": [
+            "manufacturer_native",
+            "beam_table",
+            "angular_resolution",
+            "flash_projection",
+            "unknown"
+          ],
+          "title": "Model",
+          "type": "string"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Parameters",
+          "type": "object"
+        },
+        "source": {
+          "default": "unknown",
+          "enum": [
+            "manufacturer",
+            "estimated",
+            "imported",
+            "unknown"
+          ],
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "title": "SolidStateIntrinsicCalibration",
+      "type": "object"
+    },
+    "SolidStateLidarCalibrationContext": {
+      "additionalProperties": false,
+      "description": "Result-level solid-state context for one calibration run.",
+      "properties": {
+        "capture_windows": {
+          "additionalProperties": {
+            "$ref": "#/$defs/SolidStateCaptureWindow"
+          },
+          "title": "Capture Windows",
+          "type": "object"
+        },
+        "provenance": {
+          "$ref": "#/$defs/SolidStateProvenance"
+        },
+        "schema_version": {
+          "const": "slac.solid_state_lidar_context/v0.1",
+          "default": "slac.solid_state_lidar_context/v0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "sensors": {
+          "additionalProperties": {
+            "$ref": "#/$defs/SolidStateLidarProfile"
+          },
+          "title": "Sensors",
+          "type": "object"
+        }
+      },
+      "required": [
+        "sensors",
+        "provenance"
+      ],
+      "title": "SolidStateLidarCalibrationContext",
+      "type": "object"
+    },
+    "SolidStateLidarProfile": {
+      "additionalProperties": false,
+      "description": "Static and acquisition-semantic metadata for one solid-state LiDAR.",
+      "properties": {
+        "architecture": {
+          "default": "unknown",
+          "enum": [
+            "solid_state",
+            "mems",
+            "flash",
+            "opa",
+            "hybrid",
+            "unknown"
+          ],
+          "title": "Architecture",
+          "type": "string"
+        },
+        "firmware_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Firmware Version"
+        },
+        "integration_window_s": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Integration Window S"
+        },
+        "intrinsic_calibration": {
+          "$ref": "#/$defs/SolidStateIntrinsicCalibration"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "point_time_available": {
+          "default": false,
+          "title": "Point Time Available",
+          "type": "boolean"
+        },
+        "point_time_field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "source field carrying per-point capture-time offsets, when applicable",
+          "title": "Point Time Field"
+        },
+        "point_time_reference": {
+          "default": "unknown",
+          "enum": [
+            "message_stamp",
+            "timebase",
+            "sweep_start",
+            "sweep_end",
+            "mid_sweep",
+            "absolute_sensor_time",
+            "unknown"
+          ],
+          "title": "Point Time Reference",
+          "type": "string"
+        },
+        "point_time_unit": {
+          "default": "unknown",
+          "enum": [
+            "seconds",
+            "nanoseconds",
+            "unknown"
+          ],
+          "title": "Point Time Unit",
+          "type": "string"
+        },
+        "scan_pattern": {
+          "default": "unknown",
+          "enum": [
+            "repetitive",
+            "non_repetitive",
+            "frame",
+            "unknown"
+          ],
+          "title": "Scan Pattern",
+          "type": "string"
+        },
+        "temperature": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SolidStateTemperatureCondition"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "SolidStateLidarProfile",
+      "type": "object"
+    },
+    "SolidStateProvenance": {
+      "additionalProperties": false,
+      "description": "Provenance for solid-state metadata and operating-condition claims.",
+      "properties": {
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "source_paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Paths",
+          "type": "array"
+        },
+        "source_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Source Sha256",
+          "type": "object"
+        },
+        "tool_name": {
+          "default": "calibrex",
+          "title": "Tool Name",
+          "type": "string"
+        },
+        "tool_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Version"
+        }
+      },
+      "title": "SolidStateProvenance",
+      "type": "object"
+    },
+    "SolidStateTemperatureCondition": {
+      "additionalProperties": false,
+      "description": "Temperature attached to a calibration or capture interval.",
+      "properties": {
+        "ambient_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ambient C"
+        },
+        "compensation_applied": {
+          "default": false,
+          "title": "Compensation Applied",
+          "type": "boolean"
+        },
+        "max_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max C"
+        },
+        "min_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min C"
+        },
+        "sensor_c": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sensor C"
+        },
+        "source": {
+          "default": "unknown",
+          "enum": [
+            "sensor_telemetry",
+            "ambient",
+            "external",
+            "unknown"
+          ],
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "title": "SolidStateTemperatureCondition",
+      "type": "object"
+    },
+    "TimeOffsetQuality": {
+      "additionalProperties": false,
+      "properties": {
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        }
+      },
+      "title": "TimeOffsetQuality",
+      "type": "object"
+    },
+    "TimeOffsetResult": {
+      "additionalProperties": false,
+      "properties": {
+        "quality": {
+          "$ref": "#/$defs/TimeOffsetQuality"
+        },
+        "seconds": {
+          "title": "Seconds",
+          "type": "number"
+        },
+        "std_seconds": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Std Seconds"
+        }
+      },
+      "required": [
+        "seconds"
+      ],
+      "title": "TimeOffsetResult",
+      "type": "object"
+    },
+    "TransformEstimateProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "adapter_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adapter Version"
+        },
+        "command": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Command"
+        },
+        "evidence_level": {
+          "default": "unknown",
+          "enum": [
+            "synthetic_truth",
+            "independently_measured",
+            "dataset_provided",
+            "factory_provided",
+            "algorithmically_refined",
+            "imported_without_documented_derivation",
+            "unknown"
+          ],
+          "title": "Evidence Level",
+          "type": "string"
+        },
+        "execution_mode": {
+          "default": "unknown",
+          "enum": [
+            "offline_batch",
+            "sliding_window",
+            "online_stream",
+            "manual",
+            "imported",
+            "dataset_reference",
+            "unknown"
+          ],
+          "title": "Execution Mode",
+          "type": "string"
+        },
+        "license_spdx": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License Spdx"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "producer": {
+          "default": "unknown",
+          "enum": [
+            "slac_native",
+            "external_tool",
+            "human",
+            "dataset_provider",
+            "factory",
+            "unknown"
+          ],
+          "title": "Producer",
+          "type": "string"
+        },
+        "role_in_comparison": {
+          "anyOf": [
+            {
+              "enum": [
+                "initial",
+                "candidate",
+                "selected_reference",
+                "output",
+                "comparison_baseline"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Role In Comparison"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "source_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Commit"
+        },
+        "source_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Path"
+        },
+        "tool_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Name"
+        },
+        "tool_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Version"
+        }
+      },
+      "title": "TransformEstimateProvenance",
+      "type": "object"
+    },
+    "TransformQuality": {
+      "additionalProperties": false,
+      "properties": {
+        "grade": {
+          "default": "warn",
+          "enum": [
+            "pass",
+            "warn",
+            "fail"
+          ],
+          "title": "Grade",
+          "type": "string"
+        },
+        "std_rotation_deg": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std Rotation Deg",
+          "type": "array"
+        },
+        "std_translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Std Translation M",
+          "type": "array"
+        }
+      },
+      "title": "TransformQuality",
+      "type": "object"
+    },
+    "TransformResult": {
+      "additionalProperties": false,
+      "properties": {
+        "child": {
+          "title": "Child",
+          "type": "string"
+        },
+        "convention": {
+          "const": "T_parent_child",
+          "default": "T_parent_child",
+          "title": "Convention",
+          "type": "string"
+        },
+        "covariance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CovarianceInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "estimate_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimate Id"
+        },
+        "parent": {
+          "title": "Parent",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/TransformEstimateProvenance"
+        },
+        "quality": {
+          "$ref": "#/$defs/TransformQuality"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parent",
+        "child",
+        "translation_m",
+        "rotation_quat_xyzw"
+      ],
+      "title": "TransformResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifacts": {
+      "$ref": "#/$defs/ArtifactSet"
+    },
+    "candidate_extrinsics": {
+      "additionalProperties": {
+        "$ref": "#/$defs/TransformResult"
+      },
+      "title": "Candidate Extrinsics",
+      "type": "object"
+    },
+    "degeneracy": {
+      "$ref": "#/$defs/DegeneracyResult"
+    },
+    "export": {
+      "$ref": "#/$defs/ExportSet"
+    },
+    "frame_graph": {
+      "$ref": "#/$defs/FrameGraphSnapshot"
+    },
+    "metrics": {
+      "additionalProperties": {
+        "$ref": "#/$defs/MetricResult"
+      },
+      "title": "Metrics",
+      "type": "object"
+    },
+    "observability": {
+      "$ref": "#/$defs/ObservabilityResult"
+    },
+    "quality": {
+      "$ref": "#/$defs/QualitySummary"
+    },
+    "reference_extrinsics": {
+      "additionalProperties": {
+        "$ref": "#/$defs/TransformResult"
+      },
+      "title": "Reference Extrinsics",
+      "type": "object"
+    },
+    "run": {
+      "$ref": "#/$defs/RunInfo"
+    },
+    "schema_version": {
+      "const": "slac.result/v0.1",
+      "default": "slac.result/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "solid_state": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SolidStateLidarCalibrationContext"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "optional solid-state LiDAR acquisition, intrinsic-calibration, temperature, and timing context"
+    },
+    "time_offsets": {
+      "additionalProperties": {
+        "$ref": "#/$defs/TimeOffsetResult"
+      },
+      "title": "Time Offsets",
+      "type": "object"
+    },
+    "transforms": {
+      "additionalProperties": {
+        "$ref": "#/$defs/TransformResult"
+      },
+      "title": "Transforms",
+      "type": "object"
+    }
+  },
+  "required": [
+    "run",
+    "frame_graph"
+  ],
+  "title": "CalibrationResult",
+  "type": "object"
+}
