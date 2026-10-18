@@ -1,0 +1,170 @@
+{
+  "scope": "Performance/parity controls only; no accuracy claims or locked data.",
+  "selected": "formal-v2: common epoch removed from both sensor and proxy times, all 2762 samples and 2760 motions retained.",
+  "excluded": "formal-v1: absolute Unix time spacing hides finite-difference clock perturbations; only two clock states per fit. Excluded before publication because clock optimization was not exercised.",
+  "runtime_source_manifests_identical": true,
+  "excluded_clock_states_per_fit": [
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2
+  ],
+  "selected_clock_states_per_fit": [
+    13,
+    13,
+    15,
+    13,
+    13,
+    13,
+    13,
+    13,
+    13
+  ],
+  "excluded_attempts": {
+    "schema_version": "slac.lidar_wheel_preparation_benchmark/v0.1",
+    "record_type": "attempts",
+    "runs": [
+      {
+        "repeat": 0,
+        "variant": "prior",
+        "seconds": 8.294672499992885,
+        "exit_code": 0
+      },
+      {
+        "repeat": 0,
+        "variant": "current",
+        "seconds": 3.64244259998668,
+        "exit_code": 0
+      },
+      {
+        "repeat": 1,
+        "variant": "current",
+        "seconds": 3.62475020007696,
+        "exit_code": 0
+      },
+      {
+        "repeat": 1,
+        "variant": "prior",
+        "seconds": 8.641667600022629,
+        "exit_code": 0
+      },
+      {
+        "repeat": 2,
+        "variant": "prior",
+        "seconds": 8.18420859996695,
+        "exit_code": 0
+      },
+      {
+        "repeat": 2,
+        "variant": "current",
+        "seconds": 3.902327499934472,
+        "exit_code": 0
+      }
+    ],
+    "provenance": {
+      "protocol_sha256": "a2cfb8423437b3801966bfdd6c67a92753fc1a349593db935c91f19bcf4ef28a"
+    }
+  },
+  "excluded_audit": {
+    "schema_version": "slac.lidar_wheel_preparation_benchmark/v0.1",
+    "record_type": "audit",
+    "verified_runs": 6,
+    "complete_results_and_histories_exact": true,
+    "reference_pose_count": 2762,
+    "motion_count": 2760,
+    "block_count": 29,
+    "train_motions": 1824,
+    "holdout_motions": 936,
+    "jackknife_fits": 8,
+    "work_per_run": {
+      "prior": {
+        "solve_calls": 9,
+        "residual_requests": 895,
+        "least_squares_calls": 9,
+        "moving_calls": 904,
+        "motion_selection_visits": 1393787,
+        "wheel_at_calls": 3604,
+        "wheel_samples_queried": 5576153
+      },
+      "current": {
+        "solve_calls": 9,
+        "residual_requests": 895,
+        "least_squares_calls": 9,
+        "moving_calls": 17,
+        "motion_selection_visits": 22968,
+        "wheel_at_calls": 2735,
+        "wheel_samples_queried": 4233222
+      }
+    },
+    "whole_seconds_median": {
+      "prior": 8.294672499992885,
+      "current": 3.64244259998668
+    },
+    "api_seconds_median": {
+      "prior": 5.282758199959062,
+      "current": 0.7946131000062451
+    },
+    "whole_speedup": 2.277228061198059,
+    "api_speedup": 6.648214332129112,
+    "runtime_source_changes": [
+      "calibrex/solvers/lidar_wheel_solver.py"
+    ],
+    "provenance": {
+      "protocol_sha256": "a2cfb8423437b3801966bfdd6c67a92753fc1a349593db935c91f19bcf4ef28a",
+      "attempts_sha256": "7f0c8c98ea909c43fc63ca301c9d060d5d9b0939f0e773e90893c244b28df8a5",
+      "problem_sha256": "419f62750ef48232fde2847d5c68bc2e967d019cfc0e02d5ba95065c90c8ff69"
+    }
+  },
+  "provenance": {
+    "generator_sha256": "4ab1f0a96416b45aee35e704a2d35ab5e367feb5a43af98b02ead4e41264ce83",
+    "selected_protocol_sha256": "f91f3d62a845fe6bb1a0a9de779c6adfb9a08feaaeff3da83f7dafbf25457a15",
+    "excluded_files": {
+      "00-current/history.json.gz": "5e53f4bc6b5f1869127d6e8405ad12326f980a2698d31507d3ca1546b51792ad",
+      "00-current/measurement.json": "80b2dceac831fed7898a0334e89f84470eb553089b068b3589942aff2f9b07d1",
+      "00-current/result.json": "cfaf436520d3dcb9810ae522c5eb68b8fd73b9b838989cba03dc518743d71886",
+      "00-current/stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "00-current/stdout.txt": "12bc053fca68a7c716d995dbad4962cfd37071b9680ced580cd2e3fde345f077",
+      "00-prior/history.json.gz": "8a0f8f9695c8958b627e4b6c3ee467258baaf18a90671a5fc7bf5bea7d383290",
+      "00-prior/measurement.json": "4c617bef3c84deaa5106c9224421a60b01be29fdae18c5b65bc2990e298eccad",
+      "00-prior/result.json": "4e5466d864ef895100ecd7ff742e29b3116180760822555e7d35842dc550352c",
+      "00-prior/stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "00-prior/stdout.txt": "12bc053fca68a7c716d995dbad4962cfd37071b9680ced580cd2e3fde345f077",
+      "01-current/history.json.gz": "5e53f4bc6b5f1869127d6e8405ad12326f980a2698d31507d3ca1546b51792ad",
+      "01-current/measurement.json": "1eb15a2e0a552446888079865f6fe316db47f3f5ddd23b9176d8afefbb7f2b99",
+      "01-current/result.json": "bd4aba5d5e61246c69783f31531cf9b920d388950c6d355f8cbbfba0e7260022",
+      "01-current/stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "01-current/stdout.txt": "12bc053fca68a7c716d995dbad4962cfd37071b9680ced580cd2e3fde345f077",
+      "01-prior/history.json.gz": "8a0f8f9695c8958b627e4b6c3ee467258baaf18a90671a5fc7bf5bea7d383290",
+      "01-prior/measurement.json": "acd9eaaa72d05b57bd3eccaa7996e454a83bd6877204ccd8f99ca61b6c5f3451",
+      "01-prior/result.json": "d22a0ed92970233ecf5f9e01ad81f085369dcde23ec10462f7b4d11b4c35a68a",
+      "01-prior/stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "01-prior/stdout.txt": "12bc053fca68a7c716d995dbad4962cfd37071b9680ced580cd2e3fde345f077",
+      "02-current/history.json.gz": "5e53f4bc6b5f1869127d6e8405ad12326f980a2698d31507d3ca1546b51792ad",
+      "02-current/measurement.json": "f9b3b938c349fdfed01bad99a5218a19a7f7042b83cb1cd74be6e23d19318d40",
+      "02-current/result.json": "3c46f5821602767f8b4dc1f459a3d78c905554656032ffcf8a6044c2a452e038",
+      "02-current/stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "02-current/stdout.txt": "12bc053fca68a7c716d995dbad4962cfd37071b9680ced580cd2e3fde345f077",
+      "02-prior/history.json.gz": "8a0f8f9695c8958b627e4b6c3ee467258baaf18a90671a5fc7bf5bea7d383290",
+      "02-prior/measurement.json": "7dac00d0fdc35e532b007f7d6c045b431bd1ad25f77272f3635fd20d298f4c55",
+      "02-prior/result.json": "85bdcef5b97f42b6c0560e2463920cffab68213c1bd2eb8cba7398c862823862",
+      "02-prior/stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "02-prior/stdout.txt": "12bc053fca68a7c716d995dbad4962cfd37071b9680ced580cd2e3fde345f077",
+      "attempts.json": "7f0c8c98ea909c43fc63ca301c9d060d5d9b0939f0e773e90893c244b28df8a5",
+      "audit.json": "dd38f587107f922f93a14e0f2c2481b3634fcb14a892c80cc98a49ed1c808aa1",
+      "control-generator.py.txt": "a0209678902e2d54feedf33aa38378e32f1d64a135e0cf3de7e527bc1e23e3ae",
+      "freezer.py.txt": "2c72248f7ee1e7ea502abed49870859000034c55f2599b6eb66f63f3852033cb",
+      "identity.py.txt": "5dcbf54c1b5e3721fb019ad80d0074120d49fbb02a4fd7abebed6f7eccb67d41",
+      "launcher.py.txt": "9df55a1c35bfb265342d5e4e8868f8db76f421caa801ce2890a79a5aa899b968",
+      "problem.json": "419f62750ef48232fde2847d5c68bc2e967d019cfc0e02d5ba95065c90c8ff69",
+      "protocol.json": "a2cfb8423437b3801966bfdd6c67a92753fc1a349593db935c91f19bcf4ef28a",
+      "raw-oxts.tar.gz": "36874fb358cdd3569da9ef5e1a9d7d721d1ca270ff3c8e46db316f5060900989",
+      "result-schema.json": "d9abcbcfcdfbd2da3695f004e41d845c223b34414cc581621c2cb653b2d2e96c",
+      "schema.json": "ce37f4098a611ff4970816c19cc8dc94451e3b2acfc7d92fa09e782b763dacce"
+    }
+  }
+}

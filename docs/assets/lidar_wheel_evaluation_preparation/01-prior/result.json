@@ -1,0 +1,157 @@
+{
+  "calibrated_parameters": [
+    "pitch",
+    "yaw",
+    "lever",
+    "speed_scale",
+    "time_offset"
+  ],
+  "holdout_median_normalized_residual": 0.2915956916478803,
+  "holdout_motions": 936,
+  "jackknife_fits": 8,
+  "lever_m": 0.6675610161386583,
+  "limitations": [
+    "Full public KITTI OXTS vf/wu wheel proxy and generated sensor motions; KITTI has no wheel odometry. No raw LiDAR registration or independent accuracy evidence."
+  ],
+  "method": "wheel_odometry_motion/v0.1",
+  "motions": 2760,
+  "options": {
+    "block_duration_s": 10.0,
+    "detection_delta_chi2": 9.0,
+    "holdout_every": 3,
+    "jackknife_groups": 8,
+    "observable": {
+      "lever": 0.2,
+      "pitch": 0.1,
+      "roll": 0.1,
+      "speed_scale": 0.005,
+      "time_offset": 0.005,
+      "yaw": 0.1
+    },
+    "rotation_control_deg": 1.0,
+    "scale_control": 0.01,
+    "step_frames": 2,
+    "time_control_s": 0.02,
+    "time_offset_bound_s": 0.3
+  },
+  "parameters": [
+    {
+      "known_bad_control": {
+        "amount": 1.0,
+        "detected": true,
+        "holdout_delta_chi2": 81.17580125957102,
+        "unit": "deg"
+      },
+      "name": "roll",
+      "status": "unobservable",
+      "std_analytic": 0.05639728280326481,
+      "std_jackknife": 0.48420453747802156,
+      "std_reported": 0.48420453747802156,
+      "unit": "deg",
+      "value": 2.0196431653658644
+    },
+    {
+      "known_bad_control": {
+        "amount": 1.0,
+        "detected": true,
+        "holdout_delta_chi2": 1528.4276876508502,
+        "unit": "deg"
+      },
+      "name": "pitch",
+      "status": "estimated",
+      "std_analytic": 0.009141494295378033,
+      "std_jackknife": 0.03392758727245771,
+      "std_reported": 0.03392758727245771,
+      "unit": "deg",
+      "value": -1.2926127706232282
+    },
+    {
+      "known_bad_control": {
+        "amount": 1.0,
+        "detected": true,
+        "holdout_delta_chi2": 1047.5275659923573,
+        "unit": "deg"
+      },
+      "name": "yaw",
+      "status": "estimated",
+      "std_analytic": 0.009244370614777186,
+      "std_jackknife": 0.03879987530664727,
+      "std_reported": 0.03879987530664727,
+      "unit": "deg",
+      "value": 2.887552142560677
+    },
+    {
+      "name": "lever",
+      "status": "estimated",
+      "std_analytic": 0.006814179078557973,
+      "std_jackknife": 0.06815158913565722,
+      "std_reported": 0.06815158913565722,
+      "unit": "m",
+      "value": 0.6675610161386583
+    },
+    {
+      "known_bad_control": {
+        "amount": 0.01,
+        "detected": true,
+        "holdout_delta_chi2": 239.7822242853581,
+        "unit": "ratio"
+      },
+      "name": "speed_scale",
+      "status": "estimated",
+      "std_analytic": 0.00016276024531881525,
+      "std_jackknife": 0.001210420773203229,
+      "std_reported": 0.001210420773203229,
+      "unit": "ratio",
+      "value": 0.9987145222769593
+    },
+    {
+      "known_bad_control": {
+        "amount": 0.02,
+        "detected": false,
+        "holdout_delta_chi2": -13.310670298717923,
+        "unit": "s"
+      },
+      "name": "time_offset",
+      "status": "estimated",
+      "std_analytic": 0.0007519173940335847,
+      "std_jackknife": 0.0017023254009431532,
+      "std_reported": 0.0017023254009431532,
+      "unit": "s",
+      "value": 0.053561971912484845
+    }
+  ],
+  "policy_reasons": [
+    "time_offset is reported as estimated but its known-bad shift is not detected (delta chi-square -13.3)",
+    "not constrained by the data, so not calibrated: roll"
+  ],
+  "policy_status": "warn",
+  "provenance": {
+    "command": [
+      "complete-wheel-control"
+    ],
+    "created_at": "2026-10-16T09:44:20.611934+00:00",
+    "dataset_family": "kitti_oxts_generated_sensor_control",
+    "dataset_license": "CC BY-NC-SA 3.0",
+    "generator": "prepared_public_kitti_wheel_proxy",
+    "generator_version": "0.5.1",
+    "git_commit": "88d6fba2",
+    "input_sha256": "a3075a2b523bbc74591109df940c3e4105b98291a2a2f9b2d107fb3d4375151d",
+    "sequence_ids": [
+      "2011_09_30_drive_0018_sync"
+    ],
+    "wheel_source": "OXTS vf and wu proxy; KITTI has no wheel odometry"
+  },
+  "references": [],
+  "rotation_quat_xyzw": [
+    0.01790124801175446,
+    -0.010830582180170922,
+    0.025389195701576068,
+    0.9994586697562272
+  ],
+  "schema_version": "slac.lidar_wheel_odometry/v0.1",
+  "solver_status": "converged",
+  "speed_scale": 0.9987145222769593,
+  "time_offset_s": 0.053561971912484845,
+  "train_median_normalized_residual": 0.27287178222300035,
+  "train_motions": 1824
+}

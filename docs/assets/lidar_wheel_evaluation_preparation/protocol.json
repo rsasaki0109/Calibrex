@@ -1,0 +1,85 @@
+{
+  "schema_version": "slac.lidar_wheel_preparation_benchmark/v0.1",
+  "record_type": "protocol",
+  "commits": {
+    "prior": "88d6fba240ed38a744bccd023111303f84b7be5b",
+    "current": "479d15b79bf4258bfc8f94175ed63b77d6eccd0a"
+  },
+  "source_roots": {
+    "prior": "C:/Users/rsasa/Workspace/Calibrex/outputs/lidar-wheel-preparation-formal-v2/sources-prior",
+    "current": "C:/Users/rsasa/Workspace/Calibrex/outputs/lidar-wheel-preparation-formal-v2/sources-current"
+  },
+  "repetitions": 3,
+  "fresh_workers": true,
+  "blas_threads": 1,
+  "host_unreserved": true,
+  "options": {
+    "step_frames": 2,
+    "block_duration_s": 10.0,
+    "holdout_every": 3,
+    "jackknife_groups": 8,
+    "rotation_control_deg": 1.0,
+    "time_control_s": 0.02,
+    "scale_control": 0.01,
+    "detection_delta_chi2": 9.0,
+    "observable": {
+      "roll": 0.1,
+      "pitch": 0.1,
+      "yaw": 0.1,
+      "lever": 0.2,
+      "speed_scale": 0.005,
+      "time_offset": 0.005
+    },
+    "solver": {
+      "min_speed_mps": 2.0,
+      "velocity_sigma_mps": 0.05,
+      "velocity_sigma_fraction": 0.01,
+      "rate_sigma_rps": 0.01,
+      "time_offset_bound_s": 0.3,
+      "huber_threshold": 1.5
+    },
+    "odometry": {
+      "voxel_size_m": 0.5,
+      "min_range_m": 3.0,
+      "max_range_m": 80.0,
+      "normal_neighbours": 10,
+      "max_planarity_ratio": 0.2,
+      "max_correspondence_m": 1.5,
+      "huber_delta_m": 0.1,
+      "max_iterations": 30,
+      "convergence_translation_m": 0.0001,
+      "convergence_rotation_rad": 1e-05,
+      "min_correspondences": 200,
+      "local_map_scans": 1,
+      "deskew_iterations": 1,
+      "geometry_quantum_m": 0.0,
+      "motion_translation_quantum_m": 0.0,
+      "motion_rotation_quantum_rad": 0.0,
+      "query_workers": 1
+    }
+  },
+  "provenance": {
+    "files": {
+      "control-generator.py.txt": "8b9a5361c99adce03d7b87487bfa3d7425e232223a79d49da463753c1b0bab40",
+      "freezer.py.txt": "2c72248f7ee1e7ea502abed49870859000034c55f2599b6eb66f63f3852033cb",
+      "identity.py.txt": "5dcbf54c1b5e3721fb019ad80d0074120d49fbb02a4fd7abebed6f7eccb67d41",
+      "launcher.py.txt": "eba55e960014805e5dd9f2369d37e3fb0089f13ad5c6e3dfc6bed11a74b39c2d",
+      "problem.json": "a3075a2b523bbc74591109df940c3e4105b98291a2a2f9b2d107fb3d4375151d",
+      "raw-oxts.tar.gz": "ede73f5886c77f4546cea2a54cc0dead310503ea1aecc341ebd0d4c07c13df21",
+      "result-schema.json": "d9abcbcfcdfbd2da3695f004e41d845c223b34414cc581621c2cb653b2d2e96c",
+      "schema.json": "3ba8a2ee4eb6d0300c6398373cb054d93b463f1bb5775a598a46bfa251c8c396",
+      "sources-current-manifest.json": "d29eccaf590577bf4b6c28b320d65b4d8d90297d63b4647a26adee92e4d1df01",
+      "sources-current.tar.gz": "c3a53d08e028ed46395cd0aacb02dc1f2f846bb8f2ddf28de17d246f7bf4e1fa",
+      "sources-prior-manifest.json": "89f97f18f28590d26dbfb55f4df1500188cd74fee793bb3bf55188197eac956a",
+      "sources-prior.tar.gz": "d7fd9f58983e3530444b5d4137de9876975e4468d79fcbf169304ab439328d6a"
+    },
+    "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "versions": {
+      "numpy": "2.3.4",
+      "scipy": "1.17.1",
+      "pydantic": "2.12.5",
+      "PyYAML": "6.0.3",
+      "jsonschema": "4.26.0"
+    }
+  }
+}

@@ -1,0 +1,1016 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Complete public-drive LiDAR-wheel evaluation preparation comparison",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/problem"
+    },
+    {
+      "$ref": "#/$defs/protocol"
+    },
+    {
+      "$ref": "#/$defs/history"
+    },
+    {
+      "$ref": "#/$defs/measurement"
+    },
+    {
+      "$ref": "#/$defs/attempts"
+    },
+    {
+      "$ref": "#/$defs/audit"
+    }
+  ],
+  "$defs": {
+    "problem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "record_type",
+        "motions",
+        "times_s",
+        "speed_mps",
+        "yaw_rate_rps",
+        "options",
+        "provenance"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "slac.lidar_wheel_preparation_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "problem"
+        },
+        "motions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "block",
+              "start_s",
+              "end_s",
+              "velocity_mps",
+              "angular_rate_rps"
+            ],
+            "properties": {
+              "block": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "start_s": {
+                "type": "number"
+              },
+              "end_s": {
+                "type": "number"
+              },
+              "velocity_mps": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "angular_rate_rps": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 3,
+                "maxItems": 3
+              }
+            }
+          },
+          "minItems": 2760,
+          "maxItems": 2760
+        },
+        "times_s": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2762,
+          "maxItems": 2762
+        },
+        "speed_mps": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2762,
+          "maxItems": 2762
+        },
+        "yaw_rate_rps": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 2762,
+          "maxItems": 2762
+        },
+        "options": {
+          "const": {}
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "generator_sha256",
+            "git_commit",
+            "dataset",
+            "license",
+            "scope",
+            "source_provenance_sha256",
+            "source_files",
+            "reference_pose_indices",
+            "sensor_rotation_xyz_deg",
+            "sensor_translation_m",
+            "wheel_proxy_columns",
+            "time_origin_s"
+          ],
+          "properties": {
+            "generator_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "git_commit": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "dataset": {
+              "const": "KITTI 2011_09_30_drive_0018_sync OXTS"
+            },
+            "license": {
+              "const": "CC BY-NC-SA 3.0"
+            },
+            "scope": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_provenance_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "source_files": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "minProperties": 2763,
+              "maxProperties": 2763
+            },
+            "reference_pose_indices": {
+              "const": [
+                0,
+                2761
+              ]
+            },
+            "sensor_rotation_xyz_deg": {
+              "const": [
+                1.0,
+                -2.0,
+                3.0
+              ]
+            },
+            "sensor_translation_m": {
+              "const": [
+                0.8,
+                -0.3,
+                0.9
+              ]
+            },
+            "wheel_proxy_columns": {
+              "const": {
+                "speed_mps": 8,
+                "yaw_rate_rps": 22
+              }
+            },
+            "time_origin_s": {
+              "type": "number"
+            }
+          }
+        }
+      }
+    },
+    "protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "record_type",
+        "commits",
+        "source_roots",
+        "repetitions",
+        "fresh_workers",
+        "blas_threads",
+        "host_unreserved",
+        "options",
+        "provenance"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "slac.lidar_wheel_preparation_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "protocol"
+        },
+        "commits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "prior",
+            "current"
+          ],
+          "properties": {
+            "prior": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "current": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            }
+          }
+        },
+        "source_roots": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "prior",
+            "current"
+          ],
+          "properties": {
+            "prior": {
+              "type": "string"
+            },
+            "current": {
+              "type": "string"
+            }
+          }
+        },
+        "repetitions": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "fresh_workers": {
+          "const": true
+        },
+        "blas_threads": {
+          "const": 1
+        },
+        "host_unreserved": {
+          "const": true
+        },
+        "options": {
+          "const": {
+            "step_frames": 2,
+            "block_duration_s": 10.0,
+            "holdout_every": 3,
+            "jackknife_groups": 8,
+            "rotation_control_deg": 1.0,
+            "time_control_s": 0.02,
+            "scale_control": 0.01,
+            "detection_delta_chi2": 9.0,
+            "observable": {
+              "roll": 0.1,
+              "pitch": 0.1,
+              "yaw": 0.1,
+              "lever": 0.2,
+              "speed_scale": 0.005,
+              "time_offset": 0.005
+            },
+            "solver": {
+              "min_speed_mps": 2.0,
+              "velocity_sigma_mps": 0.05,
+              "velocity_sigma_fraction": 0.01,
+              "rate_sigma_rps": 0.01,
+              "time_offset_bound_s": 0.3,
+              "huber_threshold": 1.5
+            },
+            "odometry": {
+              "voxel_size_m": 0.5,
+              "min_range_m": 3.0,
+              "max_range_m": 80.0,
+              "normal_neighbours": 10,
+              "max_planarity_ratio": 0.2,
+              "max_correspondence_m": 1.5,
+              "huber_delta_m": 0.1,
+              "max_iterations": 30,
+              "convergence_translation_m": 0.0001,
+              "convergence_rotation_rad": 1e-05,
+              "min_correspondences": 200,
+              "local_map_scans": 1,
+              "deskew_iterations": 1,
+              "geometry_quantum_m": 0.0,
+              "motion_translation_quantum_m": 0.0,
+              "motion_rotation_quantum_rad": 0.0,
+              "query_workers": 1
+            }
+          }
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "files",
+            "python",
+            "versions"
+          ],
+          "properties": {
+            "files": {
+              "type": "object",
+              "minProperties": 1,
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            },
+            "python": {
+              "type": "string"
+            },
+            "versions": {
+              "type": "object",
+              "minProperties": 1,
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "history": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "record_type",
+        "fits",
+        "residuals",
+        "least_squares",
+        "provenance"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "slac.lidar_wheel_preparation_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "history"
+        },
+        "fits": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "fit",
+              "input_indices",
+              "selected_indices",
+              "status",
+              "motion_count",
+              "scan_candidates"
+            ],
+            "properties": {
+              "fit": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "input_indices": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "selected_indices": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "status": {
+                "const": "converged"
+              },
+              "motion_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "scan_candidates": {
+                "const": 301
+              }
+            }
+          }
+        },
+        "residuals": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "fit",
+              "input_count",
+              "selected_count",
+              "params",
+              "base",
+              "residual_count",
+              "residual_sha256"
+            ],
+            "properties": {
+              "fit": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "input_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "selected_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "params": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 6,
+                "maxItems": 6
+              },
+              "base": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 9,
+                "maxItems": 9
+              },
+              "residual_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "residual_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          }
+        },
+        "least_squares": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "fit",
+              "x",
+              "active_mask",
+              "fun_shape",
+              "jac_shape",
+              "fun_sha256",
+              "jac_sha256",
+              "nfev",
+              "njev",
+              "status",
+              "message",
+              "cost",
+              "optimality",
+              "x_sha256",
+              "active_mask_sha256"
+            ],
+            "properties": {
+              "fit": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "x": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                },
+                "minItems": 6,
+                "maxItems": 6
+              },
+              "active_mask": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "enum": [
+                    -1,
+                    0,
+                    1
+                  ]
+                },
+                "minItems": 6,
+                "maxItems": 6
+              },
+              "fun_shape": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "minItems": 1,
+                "maxItems": 1
+              },
+              "jac_shape": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "minItems": 2,
+                "maxItems": 2
+              },
+              "fun_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "jac_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "nfev": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "njev": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "status": {
+                "type": "integer"
+              },
+              "message": {
+                "type": "string"
+              },
+              "cost": {
+                "type": "number"
+              },
+              "optimality": {
+                "type": "number"
+              },
+              "x_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "active_mask_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          }
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "protocol_sha256",
+            "git_commit",
+            "git_commit_short",
+            "problem_sha256"
+          ],
+          "properties": {
+            "protocol_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "git_commit": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "git_commit_short": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{4,40}$"
+            },
+            "problem_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        }
+      }
+    },
+    "measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "record_type",
+        "api_seconds",
+        "counts",
+        "result_sha256",
+        "history_sha256",
+        "imports",
+        "provenance"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "slac.lidar_wheel_preparation_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "measurement"
+        },
+        "api_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "counts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "solve_calls",
+            "residual_requests",
+            "least_squares_calls",
+            "moving_calls",
+            "motion_selection_visits",
+            "wheel_at_calls",
+            "wheel_samples_queried"
+          ],
+          "properties": {
+            "solve_calls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "residual_requests": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "least_squares_calls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "moving_calls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "motion_selection_visits": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "wheel_at_calls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "wheel_samples_queried": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "result_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "history_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "imports": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "sha256"
+            ],
+            "properties": {
+              "path": {
+                "type": "string"
+              },
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          }
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "protocol_sha256",
+            "git_commit",
+            "git_commit_short",
+            "problem_sha256"
+          ],
+          "properties": {
+            "protocol_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "git_commit": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "git_commit_short": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{4,40}$"
+            },
+            "problem_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        }
+      }
+    },
+    "attempts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "record_type",
+        "runs",
+        "provenance"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "slac.lidar_wheel_preparation_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "attempts"
+        },
+        "runs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "repeat",
+              "variant",
+              "seconds",
+              "exit_code"
+            ],
+            "properties": {
+              "repeat": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "variant": {
+                "enum": [
+                  "prior",
+                  "current"
+                ]
+              },
+              "seconds": {
+                "type": "number"
+              },
+              "exit_code": {
+                "type": "integer"
+              }
+            }
+          },
+          "minItems": 1
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "protocol_sha256"
+          ],
+          "properties": {
+            "protocol_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        }
+      }
+    },
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "record_type",
+        "verified_runs",
+        "complete_results_and_histories_exact",
+        "reference_pose_count",
+        "jackknife_fits",
+        "work_per_run",
+        "whole_seconds_median",
+        "api_seconds_median",
+        "whole_speedup",
+        "api_speedup",
+        "runtime_source_changes",
+        "provenance",
+        "motion_count",
+        "block_count",
+        "train_motions",
+        "holdout_motions"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "slac.lidar_wheel_preparation_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "audit"
+        },
+        "verified_runs": {
+          "type": "integer",
+          "minimum": 4
+        },
+        "complete_results_and_histories_exact": {
+          "const": true
+        },
+        "reference_pose_count": {
+          "const": 2762
+        },
+        "jackknife_fits": {
+          "const": 8
+        },
+        "work_per_run": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "prior",
+            "current"
+          ],
+          "properties": {
+            "prior": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "solve_calls",
+                "residual_requests",
+                "least_squares_calls",
+                "moving_calls",
+                "motion_selection_visits",
+                "wheel_at_calls",
+                "wheel_samples_queried"
+              ],
+              "properties": {
+                "solve_calls": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "residual_requests": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "least_squares_calls": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "moving_calls": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "motion_selection_visits": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "wheel_at_calls": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "wheel_samples_queried": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "current": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "solve_calls",
+                "residual_requests",
+                "least_squares_calls",
+                "moving_calls",
+                "motion_selection_visits",
+                "wheel_at_calls",
+                "wheel_samples_queried"
+              ],
+              "properties": {
+                "solve_calls": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "residual_requests": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "least_squares_calls": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "moving_calls": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "motion_selection_visits": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "wheel_at_calls": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "wheel_samples_queried": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        },
+        "whole_seconds_median": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "prior",
+            "current"
+          ],
+          "properties": {
+            "prior": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "current": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "api_seconds_median": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "prior",
+            "current"
+          ],
+          "properties": {
+            "prior": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "current": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "whole_speedup": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "api_speedup": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "runtime_source_changes": {
+          "const": [
+            "calibrex/solvers/lidar_wheel_solver.py"
+          ]
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "protocol_sha256",
+            "attempts_sha256",
+            "problem_sha256"
+          ],
+          "properties": {
+            "protocol_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "attempts_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "problem_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          }
+        },
+        "motion_count": {
+          "const": 2760
+        },
+        "block_count": {
+          "const": 29
+        },
+        "train_motions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "holdout_motions": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
