@@ -75,6 +75,7 @@ def test_default_cache_dir_respects_xdg(monkeypatch: pytest.MonkeyPatch, tmp_pat
     assert default_cache_dir() == tmp_path / "xdg" / "calibrex" / "check"
     monkeypatch.delenv("XDG_CACHE_HOME")
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path / "home"))
     assert default_cache_dir() == tmp_path / "home" / ".cache" / "calibrex" / "check"
 
 

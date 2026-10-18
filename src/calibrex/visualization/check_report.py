@@ -26,7 +26,12 @@ from calibrex.core.calibration_check import (
 )
 
 ARROW = " \u2192 "
-_ABSOLUTE_PATH = re.compile(r"(?<![\w.|])/(?:[^\s'\"<>/]+/)*[^\s'\"<>/]+")
+_ABSOLUTE_PATH = re.compile(
+    r"(?<![\w.|])(?:"
+    r"(?:[A-Za-z]:[\\/]|\\\\|//)"
+    r"(?:(?:[^\r\n'\"<>:|?*\\/]*[^\s'\"<>:|?*\\/])?[\\/])*[^\s'\"<>\\/]+"
+    r"|/(?:[^\s'\"<>/]+/)*[^\s'\"<>/]+)"
+)
 
 _CSS = """
 :root {
@@ -104,7 +109,9 @@ details { margin: 8px 0; } summary { cursor: pointer; }
 def _redact(text: str, enabled: bool) -> str:
     if not enabled:
         return text
-    return _ABSOLUTE_PATH.sub(lambda match: ".../" + match.group(0).rsplit("/", 1)[-1], text)
+    return _ABSOLUTE_PATH.sub(
+        lambda match: ".../" + match.group(0).replace("\\", "/").rsplit("/", 1)[-1], text
+    )
 
 
 def _badge(status: str) -> str:

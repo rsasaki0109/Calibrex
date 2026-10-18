@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import sqlite3
+import struct
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 import pytest
 import yaml
@@ -24,6 +27,8 @@ from calibrex.check.browser import (
 from calibrex.check.runner import BAG_DIGEST_SCOPE, bag_input_digest
 from calibrex.core.calibration_check import CalibrationCheckArtifact
 from calibrex.core.exceptions import DatasetError
+from calibrex.data.ros_cdr import CdrReader
+from calibrex.data.ros_cdr_writer import encode_imu
 from calibrex.data.rosbag2 import iter_messages, open_sqlite_readonly
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -43,6 +48,32 @@ def _messages(bag: Path) -> list[tuple[str, str, int, bytes]]:
     ]
 
 
+def _assert_sample_payload_matches(message_type: str, expected: bytes, actual: bytes) -> None:
+    """Allow only libm rounding in the sample's three trigonometric float64 fields."""
+
+    assert len(actual) == len(expected)
+    if message_type != "sensor_msgs/msg/Imu":
+        assert actual == expected
+        return
+    reader = CdrReader(expected)
+    reader.read_int32()
+    reader.read_uint32()
+    reader.read_string()
+    reader.align(8)
+    normalized = bytearray(actual)
+    # The other 34 float64 fields, header, alignment and payload length stay exact.
+    for index in (13, 14, 25):  # angular x/y and acceleration x use sin/cos.
+        offset = reader.offset + index * 8
+        (want,) = struct.unpack_from("<d", expected, offset)
+        (got,) = struct.unpack_from("<d", actual, offset)
+        assert math.isfinite(want) and math.isfinite(got)
+        lower = math.nextafter(math.nextafter(want, -math.inf), -math.inf)
+        upper = math.nextafter(math.nextafter(want, math.inf), math.inf)
+        assert lower <= got <= upper
+        normalized[offset : offset + 8] = expected[offset : offset + 8]
+    assert normalized == expected
+
+
 def test_sample_bag_is_deterministic_and_small(tmp_path: Path) -> None:
     first = sample.build_sample_bag(tmp_path / "check_sample")
     second = sample.build_sample_bag(tmp_path / "again" / "check_sample")
@@ -53,10 +84,66 @@ def test_sample_bag_is_deterministic_and_small(tmp_path: Path) -> None:
 
 def test_committed_sample_matches_the_generator(tmp_path: Path) -> None:
     rebuilt = sample.build_sample_bag(tmp_path / "check_sample")
-    assert _messages(COMMITTED_SAMPLE) == _messages(rebuilt)
+    expected, actual = _messages(COMMITTED_SAMPLE), _messages(rebuilt)
+    assert len(actual) == len(expected)
+    for want, got in zip(expected, actual, strict=True):
+        assert got[:3] == want[:3]  # Topic, type, timestamp and message order are exact.
+        _assert_sample_payload_matches(want[1], want[3], got[3])
     assert (COMMITTED_SAMPLE / "metadata.yaml").read_bytes() == (
         rebuilt / "metadata.yaml"
     ).read_bytes()
+
+
+def _comparison_imu(**changes: Any) -> bytes:
+    options: dict[str, Any] = {
+        "frame_id": "imu_link",
+        "timestamp_ns": sample.START_NS,
+        "angular_velocity": (0.2, 0.1, 0.3),
+        "linear_acceleration": (0.5, 0.0, 9.81),
+    }
+    return encode_imu(**(options | changes))
+
+
+@pytest.mark.parametrize("base", [0.0, 0.2, 0.25, -0.25])
+@pytest.mark.parametrize("direction", [-math.inf, math.inf])
+def test_sample_comparison_allows_at_most_two_ulps(base: float, direction: float) -> None:
+    expected = _comparison_imu(angular_velocity=(base, 0.1, 0.3))
+    value = math.nextafter(math.nextafter(base, direction), direction)
+    _assert_sample_payload_matches(
+        "sensor_msgs/msg/Imu", expected, _comparison_imu(angular_velocity=(value, 0.1, 0.3))
+    )
+    with pytest.raises(AssertionError):
+        _assert_sample_payload_matches(
+            "sensor_msgs/msg/Imu",
+            expected,
+            _comparison_imu(angular_velocity=(math.nextafter(value, direction), 0.1, 0.3)),
+        )
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"frame_id": "imu_other"},
+        {"timestamp_ns": sample.START_NS + 1},
+        {"orientation_known": True},
+        {"orientation_xyzw": (0.0, 0.0, 0.0, math.nextafter(1.0, math.inf))},
+        {"angular_velocity": (0.2, 0.1, math.nextafter(0.3, math.inf))},
+        {"angular_velocity": (0.2 + 1e-9, 0.1, 0.3)},
+        {"angular_velocity": (math.nan, 0.1, 0.3)},
+        {"angular_velocity": (math.inf, 0.1, 0.3)},
+        {"linear_acceleration": (0.5, 0.0, math.nextafter(9.81, math.inf))},
+    ],
+)
+def test_sample_comparison_rejects_semantic_changes(changes: dict[str, Any]) -> None:
+    with pytest.raises(AssertionError):
+        _assert_sample_payload_matches(
+            "sensor_msgs/msg/Imu", _comparison_imu(), _comparison_imu(**changes)
+        )
+
+
+def test_sample_comparison_keeps_other_payloads_byte_exact() -> None:
+    with pytest.raises(AssertionError):
+        _assert_sample_payload_matches("sensor_msgs/msg/Image", b"\x00\x01", b"\x00\x02")
 
 
 def test_plan_of_the_sample_bag() -> None:
@@ -245,8 +332,22 @@ def test_plan_path_imports_without_opencv_open3d_or_ros(tmp_path: Path) -> None:
     assert completed.returncode == 0, completed.stderr
 
 
-def test_open_sqlite_readonly_matches_plain_open_and_handles_odd_paths(tmp_path: Path) -> None:
-    odd = tmp_path / "a b#c?d%41"
+@pytest.mark.parametrize(
+    "directory_name",
+    [
+        "a b#c%41",
+        pytest.param(
+            "a b#c?d%41",
+            marks=pytest.mark.skipif(
+                os.name == "nt", reason="Windows filenames cannot contain '?'"
+            ),
+        ),
+    ],
+)
+def test_open_sqlite_readonly_matches_plain_open_and_handles_odd_paths(
+    tmp_path: Path, directory_name: str
+) -> None:
+    odd = tmp_path / directory_name
     odd.mkdir()
     db = odd / "x.db3"
     connection = sqlite3.connect(db)

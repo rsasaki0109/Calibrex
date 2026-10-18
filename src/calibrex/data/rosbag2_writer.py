@@ -179,6 +179,7 @@ class Rosbag2Writer:
         (self.directory / "metadata.yaml").write_text(
             yaml.safe_dump({"rosbag2_bagfile_information": info}, sort_keys=False),
             encoding="utf-8",
+            newline="\n",
         )
 
     def __enter__(self) -> Rosbag2Writer:
