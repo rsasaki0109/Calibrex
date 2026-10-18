@@ -1,0 +1,58 @@
+{
+  "scope": "Three cold complete resident comparisons; only capture validation changes.",
+  "commits": {
+    "prior": "3dbd181830a744c7635aefc4b2fc11f2fd74fa32",
+    "current": "3fd317259d32406a20be38c5ff9ad8425177e2a7"
+  },
+  "orders": [
+    [
+      "prior",
+      "current"
+    ],
+    [
+      "current",
+      "prior"
+    ],
+    [
+      "prior",
+      "current"
+    ]
+  ],
+  "options": {
+    "max_seconds": 6.0,
+    "max_rounds": 4,
+    "voxel_size_m": 0.03,
+    "local_map_scans": 3,
+    "geometry_quantum_m": 1e-09,
+    "motion_translation_quantum_m": 1e-06,
+    "motion_rotation_quantum_rad": 1e-07
+  },
+  "gates": {
+    "all_result_fit_placement_float_bits": true,
+    "only_new_work_fields_removed": [
+      "source_validation_rows",
+      "gyro_cached_validations"
+    ],
+    "median_prior_to_current_minimum": 1.1,
+    "faster_pairs_minimum": 2
+  },
+  "limitations": [
+    "Spent GLIM development data; no independent accuracy claim.",
+    "Unreserved host; cold complete medians, not guaranteed per-run speed.",
+    "Both arms already use resident odometry and CUDA plane fitting.",
+    "Explicit positive grids and dense geometry; no defaults speed claim."
+  ],
+  "bag": {
+    "path": "data/public/glim_versatile/livox.bag",
+    "bytes": 613350674,
+    "sha256": "f57a2e85339316d4235ab693ab2876aac5e113625c7f8b0f7873b62f92e09643"
+  },
+  "provenance": {
+    "launcher_sha256": "5ea2434eb89aeb0f52f38c1afab98514f094421bb3453a9354f53d82174cf293",
+    "benchmark_sha256": "9c29cd4193c8693fd5a939edda56b9dda35d0e4f74cfb4b1dc7281231bad25aa",
+    "source_manifests": {
+      "prior": "dd299bc99855a9a1423b9fe9347537cf08836494af256e77357f7c1e69ac35d7",
+      "current": "e2c66d562238a31719c20f91a13b86694966dbd47c3d85ca065934c598ac38cf"
+    }
+  }
+}

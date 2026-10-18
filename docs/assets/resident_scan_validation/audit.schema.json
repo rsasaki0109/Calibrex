@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Resident scan validation whole-process audit",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "status", "complete_workers", "complete_fit_bit_comparisons", "point_rows_bit_compared", "medians_seconds", "prior_to_current_ratio", "faster_pairs", "pair_ratios", "gpu_runtime_imported", "provenance"],
+  "properties": {
+    "schema_version": {"const": "calibrex.resident_scan_validation_audit/v0.1"},
+    "status": {"enum": ["confirmed", "speed_gate_not_met"]},
+    "complete_workers": {"const": 6},
+    "complete_fit_bit_comparisons": {"const": 12},
+    "point_rows_bit_compared": {"type": "integer", "minimum": 1},
+    "medians_seconds": {
+      "type": "object", "additionalProperties": false, "required": ["prior", "current"],
+      "properties": {"prior": {"$ref": "#/$defs/positive"}, "current": {"$ref": "#/$defs/positive"}}
+    },
+    "prior_to_current_ratio": {"$ref": "#/$defs/positive"},
+    "faster_pairs": {"type": "integer", "minimum": 0, "maximum": 3},
+    "pair_ratios": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"$ref": "#/$defs/positive"}},
+    "gpu_runtime_imported": {"const": false},
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["protocol_sha256", "archive_index_sha256", "auditor_sha256", "commits"],
+      "properties": {
+        "protocol_sha256": {"$ref": "#/$defs/sha"},
+        "archive_index_sha256": {"$ref": "#/$defs/sha"},
+        "auditor_sha256": {"$ref": "#/$defs/sha"},
+        "commits": {
+          "type": "object", "additionalProperties": false, "required": ["prior", "current"],
+          "properties": {
+            "prior": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+            "current": {"type": "string", "pattern": "^[a-f0-9]{40}$"}
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "positive": {"type": "number", "exclusiveMinimum": 0}
+  }
+}
