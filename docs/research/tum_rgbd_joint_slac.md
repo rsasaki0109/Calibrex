@@ -390,3 +390,10 @@ same residuals and finite differences in FP64. It records GPU startup and
 compilation in the dense-graph timings and preserves all numerical histories.
 The original smaller suite does not establish a speedup, so NumPy remains the
 default and small native batches avoid CUDA initialization.
+
+The [factor preparation comparison](../benchmarks/tum_factor_preparation.md)
+reuses native frame construction and graph validation around that CUDA path.
+On the dense graph, fresh-worker latency improves from 14.529 to 12.208 seconds
+against the preceding CUDA runtime. A direct NumPy control takes 21.241 seconds.
+All complete results and histories agree; the original smaller multi-window
+suite shows no speedup (30.126 to 30.520 seconds).

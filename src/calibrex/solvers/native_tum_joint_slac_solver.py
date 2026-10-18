@@ -52,6 +52,7 @@ from calibrex.evaluation.numerical_curvature import (
     NumericalCurvatureEvaluation,
     evaluate_numerical_curvature,
 )
+from calibrex.graph._evaluation_scope import _with_rgbd_factory_cache
 from calibrex.graph._point_plane_batches import _OwnedPointFactors, _transform_points
 from calibrex.graph._rgbd_execution import _cuda_identity, _RGBDBackend, _using_rgbd_backend
 from calibrex.graph.joint_factors import (
@@ -94,6 +95,7 @@ from calibrex.graph.joint_reassociation import (
 )
 from calibrex.solvers._tum_geometry import _DepthPointGroup, _SpatialPoints, _XYZSamples
 from calibrex.solvers._tum_initial_geometry import (
+    _frame_initial_transforms,
     _frame_matches,
     _frame_records,
     _InitialPlane,
@@ -947,6 +949,7 @@ def _xyz_pair_reassociation_runs(
     return tuple(runs)
 
 
+@_with_rgbd_factory_cache
 def _build_xyz_pair_problem(
     root: Path,
     query_frames: tuple[TUMDepthPoseEntry, ...],
@@ -1346,6 +1349,7 @@ def _xyz_pair_data_only_observability(
     return evaluate_joint_observability(blocks, train_factors, result.optimized_values)
 
 
+@_with_rgbd_factory_cache
 def _xyz_data_factors(problem: _TUMJointProblem) -> tuple[JointResidualBlock, ...]:
     return tuple(_xyz_factor(problem, measurement) for measurement in problem.measurements)
 
@@ -1450,6 +1454,7 @@ def _xyz_data_only_observability(
     )
 
 
+@_with_rgbd_factory_cache
 def _spatial_data_factors(
     problem: _TUMJointProblem,
 ) -> tuple[JointResidualBlock, ...]:
@@ -2103,6 +2108,7 @@ def _rmse_values(values: list[float]) -> float | None:
     return math.sqrt(sum(value * value for value in values) / len(values)) if values else None
 
 
+@_with_rgbd_factory_cache
 def _build_problem(
     root: Path,
     selected: tuple[TUMDepthPoseEntry, ...],
@@ -2160,6 +2166,9 @@ def _build_problem(
             frame, points, query, voxel_size_m=options.voxel_size_m,
             correspondence_gate_m=options.correspondence_gate_m,
         )
+        initial_frames = (
+            _frame_initial_transforms(frame) if initial_matches is not None else None
+        )
         plane: _InitialPlane | None
         for point_index, point in enumerate(points):
             if initial_matches is None:
@@ -2184,8 +2193,13 @@ def _build_problem(
                     nominal_depth_m=point[2],
                     plane_point_world_m=plane.centroid,
                     plane_normal_world=plane.normal,
-                    transform_world_body_initial=frame.transform_world_camera,
-                    transform_body_sensor_initial=SE3.identity(),
+                    transform_world_body_initial=(
+                        frame.transform_world_camera
+                        if initial_frames is None else initial_frames[0]
+                    ),
+                    transform_body_sensor_initial=(
+                        SE3.identity() if initial_frames is None else initial_frames[1]
+                    ),
                 )
             )
         retained = _bounded_sample(candidates, options.max_correspondences_per_frame)

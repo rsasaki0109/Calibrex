@@ -27,6 +27,10 @@ _CHUNK_ROWS = 4096
 _FRAME_PROPERTY = TUMDepthPoseEntry.transform_world_camera
 _POINT_METHOD = SE3.transform_point
 _SE3_INIT = SE3.__post_init__
+_SE3_CONSTRUCTOR = SE3.__init__
+_SE3_IDENTITY = getattr(SE3.identity, "__func__", None)
+_TUPLE3 = geometry._tuple3
+_TUPLE4 = geometry._tuple4
 _ROTATE = geometry.rotate_vector_xyzw
 _NORMALIZE = geometry.normalize_quaternion_xyzw
 _CENTROID_PROPERTY = _VoxelPlane.centroid
@@ -39,9 +43,27 @@ def _native_transform_methods() -> bool:
     return (
         SE3.transform_point is _POINT_METHOD
         and SE3.__post_init__ is _SE3_INIT
+        and SE3.__init__ is _SE3_CONSTRUCTOR
+        and geometry._tuple3 is _TUPLE3
+        and geometry._tuple4 is _TUPLE4
         and geometry.rotate_vector_xyzw is _ROTATE
         and geometry.normalize_quaternion_xyzw is _NORMALIZE
     )
+
+
+def _frame_initial_transforms(frame: TUMDepthPoseEntry) -> tuple[SE3, SE3] | None:
+    """Share the native frozen frame values across one frame's measurements."""
+    if (
+        type(frame) is not TUMDepthPoseEntry
+        or type(frame.trajectory) is not TUMTrajectoryEntry
+        or TUMDepthPoseEntry.transform_world_camera is not _FRAME_PROPERTY
+        or not _native_transform_methods()
+        or getattr(SE3.identity, "__func__", None) is not _SE3_IDENTITY
+        or not _ordinary_vector(frame.trajectory.translation_m, 3)
+        or not _ordinary_vector(frame.trajectory.rotation_quat_xyzw, 4)
+    ):
+        return None
+    return frame.transform_world_camera, SE3.identity()
 
 
 def _ordinary_vector(value: object, dimension: int) -> bool:
