@@ -1,0 +1,1055 @@
+{
+  "variant": "parallel",
+  "scenario": "map-001",
+  "repeat": 1,
+  "api_seconds": 15.015092099900357,
+  "stages": {
+    "collect_seconds": 8.872915300074965,
+    "evaluate_seconds": 5.705743599915877
+  },
+  "fit_seconds": [
+    2.1475172999780625,
+    0.3208351000212133,
+    0.32176259998232126,
+    0.3130036999937147,
+    0.2362479999428615
+  ],
+  "artifact": {
+    "schema_version": "slac.lidar_lidar_extrinsic/v0.1",
+    "method": "map_registration/v0.1",
+    "solver_status": "converged",
+    "policy_status": "pass",
+    "policy_reasons": [
+      "every DoF is estimated and held-out blocks detect every control"
+    ],
+    "calibrated_dofs": [
+      "roll",
+      "pitch",
+      "yaw",
+      "x",
+      "y",
+      "z"
+    ],
+    "transform": {
+      "parent_frame": "/livox/points",
+      "child_frame": "/livox/points",
+      "translation_m": [
+        -0.0001302984391199393,
+        -1.439347891055278e-06,
+        0.0014819067928353437
+      ],
+      "rotation_quat_xyzw": [
+        6.409567060967813e-05,
+        9.303716462789863e-05,
+        -1.541008796534597e-05,
+        0.9999999934991801
+      ]
+    },
+    "dofs": [
+      {
+        "name": "roll",
+        "unit": "deg",
+        "value": 0.007344658630344066,
+        "std_analytic": 0.0038407732884798923,
+        "std_jackknife": 0.00501575088051936,
+        "std_reported": 0.00501575088051936,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 1.0,
+          "unit": "deg",
+          "holdout_delta_chi2": 40394.53239332186,
+          "detected": true
+        }
+      },
+      {
+        "name": "pitch",
+        "unit": "deg",
+        "value": 0.010661386918680252,
+        "std_analytic": 0.0029654994758793415,
+        "std_jackknife": 0.01264477496144195,
+        "std_reported": 0.01264477496144195,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 1.0,
+          "unit": "deg",
+          "holdout_delta_chi2": 110583.3168290453,
+          "detected": true
+        }
+      },
+      {
+        "name": "yaw",
+        "unit": "deg",
+        "value": -0.0017651826825481264,
+        "std_analytic": 0.002986122422720329,
+        "std_jackknife": 0.005693861395471026,
+        "std_reported": 0.005693861395471026,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 1.0,
+          "unit": "deg",
+          "holdout_delta_chi2": 68724.08278562455,
+          "detected": true
+        }
+      },
+      {
+        "name": "x",
+        "unit": "m",
+        "value": -0.0001302984391199393,
+        "std_analytic": 0.0001405287739222105,
+        "std_jackknife": 0.0003280225889764146,
+        "std_reported": 0.0003280225889764146,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 0.05,
+          "unit": "m",
+          "holdout_delta_chi2": 54764.27237389283,
+          "detected": true
+        }
+      },
+      {
+        "name": "y",
+        "unit": "m",
+        "value": -1.439347891055278e-06,
+        "std_analytic": 0.0003165354543072324,
+        "std_jackknife": 0.0006796412884929702,
+        "std_reported": 0.0006796412884929702,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 0.05,
+          "unit": "m",
+          "holdout_delta_chi2": 38956.43485093862,
+          "detected": true
+        }
+      },
+      {
+        "name": "z",
+        "unit": "m",
+        "value": 0.0014819067928353437,
+        "std_analytic": 0.00026499907838412355,
+        "std_jackknife": 0.001891074142992392,
+        "std_reported": 0.001891074142992392,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 0.05,
+          "unit": "m",
+          "holdout_delta_chi2": 105503.84679387696,
+          "detected": true
+        }
+      }
+    ],
+    "residual_sigma_m": 0.009044721861125227,
+    "holdout_median_residual_m": 0.005999112003906953,
+    "samples": {
+      "reference_scans": 60,
+      "samples": 10,
+      "train_samples": 5,
+      "holdout_samples": 5,
+      "train_correspondences": 12597,
+      "holdout_correspondences": 13342
+    },
+    "train_blocks": [
+      0,
+      2,
+      3,
+      5
+    ],
+    "holdout_blocks": [
+      1,
+      4
+    ],
+    "jackknife_fits": 4,
+    "options": {
+      "sample_every_scans": 5,
+      "map_half_window_scans": 5,
+      "block_duration_s": 1.0,
+      "holdout_every": 3,
+      "jackknife_groups": 4,
+      "rotation_control_deg": 1.0,
+      "translation_control_m": 0.05,
+      "detection_delta_chi2": 9.0,
+      "observable_rotation_std_deg": 0.1,
+      "observable_translation_std_m": 0.02,
+      "voxel_size_m": 0.03,
+      "max_correspondence_m": 0.5,
+      "huber_m": 0.05,
+      "iterations": 30,
+      "registration_query_workers": 8,
+      "odometry_backend": "cuda",
+      "odometry_execution": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b;normal_schedule=async-v1",
+      "odometry_options": {
+        "voxel_size_m": 0.03,
+        "min_range_m": 1.0,
+        "max_range_m": 60.0,
+        "normal_neighbours": 10,
+        "max_planarity_ratio": 0.2,
+        "max_correspondence_m": 1.5,
+        "huber_delta_m": 0.1,
+        "max_iterations": 30,
+        "convergence_translation_m": 0.0001,
+        "convergence_rotation_rad": 1e-05,
+        "min_correspondences": 200,
+        "local_map_scans": 3,
+        "deskew_iterations": 1,
+        "geometry_quantum_m": 1e-09,
+        "motion_translation_quantum_m": 1e-06,
+        "motion_rotation_quantum_rad": 1e-07,
+        "query_workers": 1
+      }
+    },
+    "limitations": [
+      "The reference LiDAR's odometry supplies the map; its drift over the map window adds noise to every sample.",
+      "The clock offset between the two LiDARs is not estimated; both clouds are matched at their header times.",
+      "The reference transform, if given, is a comparison, not ground truth."
+    ],
+    "provenance": {
+      "generator": "calibrex.evaluation.lidar_lidar_map",
+      "generator_version": "0.5.1",
+      "git_commit": "917748b10d5eff9bb077b332a018eafdb33e9fcd",
+      "command": [
+        "python",
+        "-m",
+        "tools.benchmark_cpu_map_bag",
+        "--worker",
+        "parallel",
+        "--scenario",
+        "map-001",
+        "--repeat",
+        "1"
+      ],
+      "dataset_family": "glim_versatile",
+      "sequence_ids": [
+        "livox.bag"
+      ],
+      "reference_topic": "/livox/points",
+      "target_topic": "/livox/points",
+      "input_sha256": "2d5ce57c440c22057e4c16abb1dc67a73e23ac5b19a0b79150afb02edfbdbd06",
+      "input_digest_scope": "bag metadata.yaml in full; bag databases by size and first 64 MiB",
+      "dataset_license": "upstream AIST GLIM dataset terms",
+      "created_at": "2026-10-18T07:29:16.246977+00:00"
+    }
+  },
+  "fits": [
+    {
+      "status": "converged",
+      "transform": [
+        [
+          0.9999999822132299,
+          3.083210228925251e-05,
+          0.00018607235260631718,
+          -0.0001302984391199393
+        ],
+        [
+          -3.0808249171418525e-05,
+          0.999999991308549,
+          -0.00012819420780778897,
+          -1.439347891055278e-06
+        ],
+        [
+          -0.00018607630348600594,
+          0.0001281884729642259,
+          0.999999974471662,
+          0.0014819067928353437
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "covariance": [
+        [
+          4.493575886207199e-09,
+          7.304238164524367e-10,
+          3.7090924394135974e-10,
+          -9.871929617333518e-11,
+          -8.654406480927755e-10,
+          1.8926450172370867e-09
+        ],
+        [
+          7.304238164524368e-10,
+          2.6788625961471015e-09,
+          1.7374977399010302e-10,
+          -7.567964264808582e-10,
+          -3.8255338332269e-10,
+          1.2071858872060345e-08
+        ],
+        [
+          3.7090924394135974e-10,
+          1.7374977399010302e-10,
+          2.7162513327785013e-09,
+          1.1568474632882427e-09,
+          -1.3894165848729782e-08,
+          4.1294425145345827e-10
+        ],
+        [
+          -9.871929617333527e-11,
+          -7.567964264808582e-10,
+          1.156847463288243e-09,
+          1.9748336300079752e-08,
+          -6.914766262799243e-09,
+          -2.8067284187565336e-09
+        ],
+        [
+          -8.654406480927752e-10,
+          -3.8255338332269007e-10,
+          -1.3894165848729782e-08,
+          -6.914766262799243e-09,
+          1.0019469383348602e-07,
+          2.0716354560127927e-09
+        ],
+        [
+          1.8926450172370842e-09,
+          1.2071858872060342e-08,
+          4.1294425145345837e-10,
+          -2.8067284187565336e-09,
+          2.0716354560127927e-09,
+          7.022451154443486e-08
+        ]
+      ],
+      "sigma_m": 0.009044721861125227,
+      "samples": 5,
+      "correspondences": 12597,
+      "iterations": 13,
+      "execution_backend": "numpy_scipy"
+    },
+    {
+      "status": "converged",
+      "transform": [
+        [
+          0.9999999833766662,
+          0.00011371815526881519,
+          0.00014253016149321917,
+          -0.00031646550927651846
+        ],
+        [
+          -0.00011370141141494401,
+          0.9999999866354001,
+          -0.00011747846206207869,
+          0.0006161096932872866
+        ],
+        [
+          -0.00014254351902234964,
+          0.00011746225422866483,
+          0.9999999829419811,
+          0.0010852826746120656
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "covariance": [
+        [
+          5.298012388438472e-09,
+          8.492038585017397e-10,
+          3.08551741013531e-10,
+          -9.706139299879766e-11,
+          -5.839256922834455e-10,
+          2.2039362439603778e-09
+        ],
+        [
+          8.492038585017395e-10,
+          3.358532885454321e-09,
+          1.1437070322820177e-10,
+          -6.938083690928893e-10,
+          8.768084316686693e-11,
+          1.5139597025699965e-08
+        ],
+        [
+          3.08551741013531e-10,
+          1.1437070322820149e-10,
+          3.687760264498434e-09,
+          1.4447137859126665e-09,
+          -1.9340928197617397e-08,
+          -4.532330823240838e-11
+        ],
+        [
+          -9.706139299879764e-11,
+          -6.938083690928891e-10,
+          1.444713785912666e-09,
+          2.582675531853363e-08,
+          -8.322104876058535e-09,
+          -2.2073588171484514e-09
+        ],
+        [
+          -5.839256922834452e-10,
+          8.768084316686871e-11,
+          -1.9340928197617397e-08,
+          -8.322104876058538e-09,
+          1.403176120892958e-07,
+          6.573702804048762e-09
+        ],
+        [
+          2.203936243960378e-09,
+          1.5139597025699965e-08,
+          -4.532330823240687e-11,
+          -2.2073588171484522e-09,
+          6.573702804048753e-09,
+          8.70616843738065e-08
+        ]
+      ],
+      "sigma_m": 0.009054802867211581,
+      "samples": 4,
+      "correspondences": 10032,
+      "iterations": 8,
+      "execution_backend": "numpy_scipy"
+    },
+    {
+      "status": "converged",
+      "transform": [
+        [
+          0.9999999186985308,
+          -1.9844063853382144e-05,
+          0.000402751963295054,
+          -0.00017739743877892488
+        ],
+        [
+          1.9915729990602473e-05,
+          0.9999999839707359,
+          -0.00017793789393737194,
+          -0.0003802999871086406
+        ],
+        [
+          -0.00040274842582830613,
+          0.00017794590057011478,
+          0.9999999030644764,
+          0.0033187201960382436
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "covariance": [
+        [
+          6.453679084115999e-09,
+          9.942734285085395e-10,
+          6.2622694826697e-10,
+          -1.8294714562339332e-10,
+          -1.909421680951913e-09,
+          2.94058093327696e-09
+        ],
+        [
+          9.942734285085393e-10,
+          3.6310592914133353e-09,
+          2.346924542196904e-10,
+          -9.92023310673164e-10,
+          -6.299228374302164e-10,
+          1.6161907477612775e-08
+        ],
+        [
+          6.262269482669703e-10,
+          2.3469245421969046e-10,
+          3.5410547405647546e-09,
+          1.3210543325481733e-09,
+          -1.7585434876014912e-08,
+          6.903350665229408e-10
+        ],
+        [
+          -1.8294714562339327e-10,
+          -9.920233106731642e-10,
+          1.3210543325481733e-09,
+          2.41445615997431e-08,
+          -7.556233059497544e-09,
+          -3.8103618429716525e-09
+        ],
+        [
+          -1.9094216809519127e-09,
+          -6.299228374302162e-10,
+          -1.758543487601491e-08,
+          -7.556233059497546e-09,
+          1.2459067019303042e-07,
+          1.1686750332411264e-09
+        ],
+        [
+          2.940580933276959e-09,
+          1.6161907477612778e-08,
+          6.903350665229406e-10,
+          -3.8103618429716525e-09,
+          1.1686750332411264e-09,
+          9.320312130824097e-08
+        ]
+      ],
+      "sigma_m": 0.009152986244829174,
+      "samples": 4,
+      "correspondences": 9929,
+      "iterations": 8,
+      "execution_backend": "numpy_scipy"
+    },
+    {
+      "status": "converged",
+      "transform": [
+        [
+          0.9999999955418846,
+          -2.792766437458558e-05,
+          9.020130552530129e-05,
+          0.00018584126871306724
+        ],
+        [
+          2.794497927096999e-05,
+          0.9999999811846766,
+          -0.0001919628232602861,
+          -0.00030317531360234937
+        ],
+        [
+          -9.019594275483371e-05,
+          0.0001919653430781077,
+          0.9999999775069995,
+          0.0005867141758199777
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "covariance": [
+        [
+          7.234302115570771e-09,
+          1.2219263631061718e-09,
+          5.949350361762981e-10,
+          -1.5676627439163373e-10,
+          -8.614374871330599e-10,
+          1.8736891503384713e-09
+        ],
+        [
+          1.221926363106172e-09,
+          4.49417653392338e-09,
+          4.300434209058289e-10,
+          -1.4124241280154468e-09,
+          -1.4553287361210947e-09,
+          2.0545972977620852e-08
+        ],
+        [
+          5.949350361762981e-10,
+          4.300434209058288e-10,
+          4.262855392437137e-09,
+          1.8492013616765833e-09,
+          -2.1915617737180906e-08,
+          1.3686973185118348e-09
+        ],
+        [
+          -1.5676627439163368e-10,
+          -1.4124241280154468e-09,
+          1.8492013616765829e-09,
+          3.178839376467814e-08,
+          -1.0823693366750833e-08,
+          -5.464990498093103e-09
+        ],
+        [
+          -8.614374871330592e-10,
+          -1.4553287361210938e-09,
+          -2.1915617737180906e-08,
+          -1.0823693366750835e-08,
+          1.5937566495364087e-07,
+          -2.1497965862231794e-09
+        ],
+        [
+          1.8736891503384717e-09,
+          2.0545972977620856e-08,
+          1.3686973185118356e-09,
+          -5.464990498093103e-09,
+          -2.149796586223186e-09,
+          1.225153486776826e-07
+        ]
+      ],
+      "sigma_m": 0.009072697171219094,
+      "samples": 3,
+      "correspondences": 7637,
+      "iterations": 11,
+      "execution_backend": "numpy_scipy"
+    },
+    {
+      "status": "converged",
+      "transform": [
+        [
+          0.9999999935503565,
+          4.803339697800823e-05,
+          0.00010291782625921699,
+          -0.00021181374111455667
+        ],
+        [
+          -4.802667777557824e-05,
+          0.9999999967154232,
+          -6.528853804545278e-05,
+          1.8552838770992052e-05
+        ],
+        [
+          -0.00010292096195144104,
+          6.528359482308665e-05,
+          0.9999999925726639,
+          0.0008192514375931371
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "covariance": [
+        [
+          5.52521432206802e-09,
+          9.050830332075864e-10,
+          4.995451613579968e-10,
+          -1.3362568345949956e-10,
+          -1.130991675419474e-09,
+          2.664714026178168e-09
+        ],
+        [
+          9.050830332075861e-10,
+          3.109890299790294e-09,
+          2.1263865715206573e-10,
+          -1.082339272096973e-09,
+          -3.4148731443017643e-10,
+          1.4007832608888375e-08
+        ],
+        [
+          4.995451613579966e-10,
+          2.1263865715206573e-10,
+          3.2147553737634634e-09,
+          1.6301566898091176e-09,
+          -1.6419057966881037e-08,
+          4.823044997939425e-10
+        ],
+        [
+          -1.3362568345949956e-10,
+          -1.0823392720969732e-09,
+          1.630156689809117e-09,
+          2.5339894356025934e-08,
+          -1.0596347578057914e-08,
+          -4.1279143606480386e-09
+        ],
+        [
+          -1.130991675419473e-09,
+          -3.414873144301763e-10,
+          -1.6419057966881037e-08,
+          -1.0596347578057915e-08,
+          1.187391394889044e-07,
+          3.396867004910102e-09
+        ],
+        [
+          2.6647140261781666e-09,
+          1.4007832608888375e-08,
+          4.823044997939425e-10,
+          -4.1279143606480386e-09,
+          3.396867004910102e-09,
+          8.173977114240542e-08
+        ]
+      ],
+      "sigma_m": 0.008971935407362528,
+      "samples": 4,
+      "correspondences": 10241,
+      "iterations": 6,
+      "execution_backend": "numpy_scipy"
+    }
+  ],
+  "options": {
+    "sample_every_scans": 5,
+    "map_half_window_scans": 5,
+    "max_time_gap_s": 0.06,
+    "min_target_points": 300,
+    "block_duration_s": 1.0,
+    "holdout_every": 3,
+    "jackknife_groups": 4,
+    "rotation_control_deg": 1.0,
+    "translation_control_m": 0.05,
+    "detection_delta_chi2": 9.0,
+    "observable_rotation_std_deg": 0.1,
+    "observable_translation_std_m": 0.02,
+    "holdout_residual_ratio": 2.0,
+    "deskew": "constant_velocity",
+    "preprocess": {
+      "voxel_size_m": 0.03,
+      "min_range_m": 1.0,
+      "max_range_m": 40.0,
+      "normal_neighbours": 10,
+      "max_planarity_ratio": 0.2,
+      "max_correspondence_m": 1.5,
+      "huber_delta_m": 0.1,
+      "max_iterations": 30,
+      "convergence_translation_m": 0.0001,
+      "convergence_rotation_rad": 1e-05,
+      "min_correspondences": 200,
+      "local_map_scans": 1,
+      "deskew_iterations": 1,
+      "geometry_quantum_m": 0.0,
+      "motion_translation_quantum_m": 0.0,
+      "motion_rotation_quantum_rad": 0.0,
+      "query_workers": 1
+    },
+    "odometry": {
+      "voxel_size_m": 0.03,
+      "min_range_m": 1.0,
+      "max_range_m": 60.0,
+      "normal_neighbours": 10,
+      "max_planarity_ratio": 0.2,
+      "max_correspondence_m": 1.5,
+      "huber_delta_m": 0.1,
+      "max_iterations": 30,
+      "convergence_translation_m": 0.0001,
+      "convergence_rotation_rad": 1e-05,
+      "min_correspondences": 200,
+      "local_map_scans": 3,
+      "deskew_iterations": 1,
+      "geometry_quantum_m": 1e-09,
+      "motion_translation_quantum_m": 1e-06,
+      "motion_rotation_quantum_rad": 1e-07,
+      "query_workers": 1
+    },
+    "solver": {
+      "max_correspondence_m": 0.5,
+      "normal_neighbours": 10,
+      "max_planarity_ratio": 0.2,
+      "huber_m": 0.05,
+      "iterations": 30,
+      "convergence_rotation_rad": 1e-06,
+      "convergence_translation_m": 1e-05,
+      "query_workers": 8
+    }
+  },
+  "prepared_samples": [
+    {
+      "time_s": 110.99962884000001,
+      "block": 0,
+      "reference_pose": {
+        "dtype": "<f8",
+        "shape": [
+          4,
+          4
+        ],
+        "sha256": "d96b3c862dd4af56350e047b8bd29f154e5349df33697a05128b0357fa2319ce"
+      },
+      "map_points": {
+        "dtype": "<f8",
+        "shape": [
+          216643,
+          3
+        ],
+        "sha256": "05ff7b4e748fbbf580fb1dec4587bd02a8238387928e821a25fb57cab4c07ec9"
+      },
+      "target_points": {
+        "dtype": "<f8",
+        "shape": [
+          20596,
+          3
+        ],
+        "sha256": "e1853fdc01f816c888a257aada74cf7f5c87e5d38530e1061c475dd8888c6e15"
+      }
+    },
+    {
+      "time_s": 111.49961958,
+      "block": 1,
+      "reference_pose": {
+        "dtype": "<f8",
+        "shape": [
+          4,
+          4
+        ],
+        "sha256": "04c3b913ee338f0af72dd3baa6ccb0c6b5623b299d5951eb996bff55f5e65774"
+      },
+      "map_points": {
+        "dtype": "<f8",
+        "shape": [
+          216950,
+          3
+        ],
+        "sha256": "6f507cbde5069f4a405e48e13793a2d96024d1433f00ab197d130ea88fd528df"
+      },
+      "target_points": {
+        "dtype": "<f8",
+        "shape": [
+          20266,
+          3
+        ],
+        "sha256": "c04a51210bce0247f5b207a1db7118819bcfc94c4961d817dc631e844f59f8f3"
+      }
+    },
+    {
+      "time_s": 111.99961640000001,
+      "block": 1,
+      "reference_pose": {
+        "dtype": "<f8",
+        "shape": [
+          4,
+          4
+        ],
+        "sha256": "667896d6366ff7277240c354f97a171160fdfbb74f4915a28aa9251f199d58ad"
+      },
+      "map_points": {
+        "dtype": "<f8",
+        "shape": [
+          213314,
+          3
+        ],
+        "sha256": "be239f9885b2debb5ebb041acd99a3f9155ff4176d462657928eaeb500226cd3"
+      },
+      "target_points": {
+        "dtype": "<f8",
+        "shape": [
+          20158,
+          3
+        ],
+        "sha256": "a234a4a4eb0eea4300fb625ed51019659e0eb40c384215a8c0840a52e4593fae"
+      }
+    },
+    {
+      "time_s": 112.49961146000001,
+      "block": 1,
+      "reference_pose": {
+        "dtype": "<f8",
+        "shape": [
+          4,
+          4
+        ],
+        "sha256": "0b18844d89e84a17fa5e4ea9e1d93d384580548fe07f2d50edddbce64d3a65aa"
+      },
+      "map_points": {
+        "dtype": "<f8",
+        "shape": [
+          213648,
+          3
+        ],
+        "sha256": "699ce8c964e96c4d48ba2d96503f940a9ce90f454ab913f5e1ea3973b78f0a22"
+      },
+      "target_points": {
+        "dtype": "<f8",
+        "shape": [
+          20081,
+          3
+        ],
+        "sha256": "3406aadd78b2cad7d66eb21dbef780fcce874e1024b1ff109532ca19ca0bd5a6"
+      }
+    },
+    {
+      "time_s": 112.99959726,
+      "block": 2,
+      "reference_pose": {
+        "dtype": "<f8",
+        "shape": [
+          4,
+          4
+        ],
+        "sha256": "a88977d0584e07e178ae6d73b24bdbffb2eb1f53e462978c57eca90eae18d022"
+      },
+      "map_points": {
+        "dtype": "<f8",
+        "shape": [
+          214832,
+          3
+        ],
+        "sha256": "208cc00ca177193158c8a2aac00be9ed9438265f6bd0dbb7c73b77b6c6fba336"
+      },
+      "target_points": {
+        "dtype": "<f8",
+        "shape": [
+          20086,
+          3
+        ],
+        "sha256": "d2e7cd91bc43b6cc410aa0bb7a73c5106e7da8ae5c85a7fb042146262352f874"
+      }
+    },
+    {
+      "time_s": 113.4999763,
+      "block": 3,
+      "reference_pose": {
+        "dtype": "<f8",
+        "shape": [
+          4,
+          4
+        ],
+        "sha256": "f06daf37d00f7bd98d62580e7d32cc9566caa413aed813d29213103b34d4d79c"
+      },
+      "map_points": {
+        "dtype": "<f8",
+        "shape": [
+          217706,
+          3
+        ],
+        "sha256": "fcd4641a9cca9744564efd10d8f085624cc12348039b60c7c02bfb8dc640179f"
+      },
+      "target_points": {
+        "dtype": "<f8",
+        "shape": [
+          20158,
+          3
+        ],
+        "sha256": "5f0262169564327338230a9898101cdd5fd05e29d28c8875605bc13fee558f4b"
+      }
+    },
+    {
+      "time_s": 113.99996576000001,
+      "block": 3,
+      "reference_pose": {
+        "dtype": "<f8",
+        "shape": [
+          4,
+          4
+        ],
+        "sha256": "5fc6329954b4e151e0495500afb4eb2ba56386f44bb3aeccf3d67106d49d1364"
+      },
+      "map_points": {
+        "dtype": "<f8",
+        "shape": [
+          221043,
+          3
+        ],
+        "sha256": "ea0c24cc089d9375b01e2251ca8de5974efddffce5bcecfa3ec8bb4895fcb91a"
+      },
+      "target_points": {
+        "dtype": "<f8",
+        "shape": [
+          20829,
+          3
+        ],
+        "sha256": "3bb1f2983ad15a7197bb18bc321da52f1890e67c3b955be60e2cee1cf224535f"
+      }
+    },
+    {
+      "time_s": 114.49997124000001,
+      "block": 4,
+      "reference_pose": {
+        "dtype": "<f8",
+        "shape": [
+          4,
+          4
+        ],
+        "sha256": "5ddf04652ef098b9c751c012416a144e756edb16c05bafa98686f09a6947cce4"
+      },
+      "map_points": {
+        "dtype": "<f8",
+        "shape": [
+          221987,
+          3
+        ],
+        "sha256": "4dac755f97fe75a9f4d93ff181b0d371f92547d0f201052fe3c0116009c02ba9"
+      },
+      "target_points": {
+        "dtype": "<f8",
+        "shape": [
+          20682,
+          3
+        ],
+        "sha256": "1fc341f8c0636a04c62d079a7b2800765fe7195495e72e71f171f47c72b0323e"
+      }
+    },
+    {
+      "time_s": 114.99996386000001,
+      "block": 4,
+      "reference_pose": {
+        "dtype": "<f8",
+        "shape": [
+          4,
+          4
+        ],
+        "sha256": "484dc903b8f30aeb98e62969cc838a7e33424e80189f839acc3f12027d8c9fec"
+      },
+      "map_points": {
+        "dtype": "<f8",
+        "shape": [
+          221991,
+          3
+        ],
+        "sha256": "3623ed59874f53dfc6203b13793926e4c3f64e01181ae4ecd87ec0bb440c1258"
+      },
+      "target_points": {
+        "dtype": "<f8",
+        "shape": [
+          20829,
+          3
+        ],
+        "sha256": "efe6db41132c6748652b5f9d5409b73a7b64c5c385d2496d0627b9ad9de1d8d8"
+      }
+    },
+    {
+      "time_s": 115.49994786,
+      "block": 5,
+      "reference_pose": {
+        "dtype": "<f8",
+        "shape": [
+          4,
+          4
+        ],
+        "sha256": "b96c4969720d292732f69f2fa998d976ac612ab34bdf0c3c676814284a552e38"
+      },
+      "map_points": {
+        "dtype": "<f8",
+        "shape": [
+          221449,
+          3
+        ],
+        "sha256": "47ca49f8247a3d755e961d1c2d61e8c9fa8e2422b726c614bc249ba1831ead5e"
+      },
+      "target_points": {
+        "dtype": "<f8",
+        "shape": [
+          20621,
+          3
+        ],
+        "sha256": "e0ff27d65ad10c87adc7afaae51d17def8240adfb39531144bc00c10a6b109c8"
+      }
+    }
+  ],
+  "work": {
+    "normal_rows": 724383,
+    "map_rows": 2179563,
+    "target_rows": 204306
+  },
+  "provenance": {
+    "source_commit": "917748b10d5eff9bb077b332a018eafdb33e9fcd",
+    "source_manifest_sha256": "3cda7d5dcafcc52b964586e7f77d4208c68af0921f8aa2e00f4c2d8bc401de20",
+    "executed_sources": {
+      "calibrex/__init__.py": "c05e3d851dae2030fee177ef264994a185d422fc891401e83ea05c0d1e0810cb",
+      "calibrex/core/__init__.py": "de90bba9eac3497afe032050c356c5f73dfaeb9455e56add1dd11ed288bfda01",
+      "calibrex/core/io.py": "ebc5b7788d87dcb2f2fa596a99e74cba4e7be8c55f246931c2b4c8bf432d37ef",
+      "calibrex/core/exceptions.py": "11328d0422f5ef2853acf8f61e3af099a3ed4ad5077ebecd6c61971fa430abdd",
+      "calibrex/core/geometry.py": "6597695de33360d44b8b18e457f84355df3ace30837462f4b9501193879d66aa",
+      "calibrex/core/solid_state.py": "3134ba46337a33ede5c01c49f2a4bcd593da13a85b706206787f9e50fda4793e",
+      "calibrex/core/result.py": "9066a9feba904dad1ab54daa0cca681fff518aeafbd879f0cbb5d4969ff9ba8b",
+      "calibrex/core/lidar_lidar_extrinsic.py": "e0addb87c353bab0d8d620f05f7c27d3072983673d214d289c135c8029fea30e",
+      "calibrex/evaluation/__init__.py": "41338dc5849631f2f6243fe7be64a83d5aa36ea0c7b17ccecd6ff5cd16a26b36",
+      "calibrex/core/progress.py": "7bb5796113ad6dfc9e99ea752b50512da8884c810832e95b19d2563ef21667df",
+      "calibrex/core/provenance.py": "eb7849f342892272ae136454da816852d080684b25c8ec55771582c1b8621f47",
+      "calibrex/data/__init__.py": "5e871fcd5f388b13b9bc7adf3ceb8a68c99ddcadc8e99c2f3e4ad2a241044923",
+      "calibrex/data/ros_messages.py": "e2fb668c870d482e8b52dddc5f063f665e7eca561fb24942d642d040337d8d73",
+      "calibrex/data/ros_cdr.py": "97981000ff40ed73334759b9b0f773e7f12f6ffc7056a9bdc6a99f7f40f0a043",
+      "calibrex/data/livox_profile_fields.py": "173f7d3dd85e33b527036207e3df97772a129225800f785f65ed34ae5419524d",
+      "calibrex/data/base.py": "da80b627f1b85ce65f17462c918a4724311a97246a2a637ebc341fc9eac8d594",
+      "calibrex/data/rosbag1.py": "00dc451c18c7a9a630d9f97dccda9dc63503fd2d26fc3a8321238151864a7c5e",
+      "calibrex/data/ros1_cdr.py": "5eb7c8e6244a72a74cbb4334268f0082cc62b748f4dac0cf269f4cc5e0e7321b",
+      "calibrex/data/bag_formats.py": "81f1a6caedc201bd1720eaa113571ea94f5a6fc2c9621a06b9889eb1485c46e0",
+      "calibrex/data/rosbag2.py": "bb6d75152aed2e114364d54a50e4e91c726d4fac8e242ea88cdf1a3a176d1428",
+      "calibrex/data/livox_ros2.py": "05ef41c117d1049847632886d26cf8b168b97cae49781fdbcd8c7f3dc8c6b43e",
+      "calibrex/solvers/__init__.py": "00f4e2dac3c4b546e1ede9eeb30c8515d0e3c4dd7abd958df52c4a7a81218d3c",
+      "calibrex/solvers/lidar_lidar_map_solver.py": "bedb88514b2efa05ed382ab160bf130f26f3b61d7b1e490a6a5442cf5bc78e6a",
+      "calibrex/solvers/scan_to_scan_odometry.py": "d56fd8c097d8f943dcf0049abc52bab44e1216e8de1d9db34e3c42cfe4d269eb",
+      "calibrex/evaluation/lidar_lidar_map.py": "24bf009c27f8c39d017c21624534877933ba32652a38cde49239e155d3113442",
+      "calibrex/solvers/scipy_spatial_snapshot.py": "d0052442373deb9f681e6f2d96b8a6ab847f3be7aaff4739fd53f01814144bf6",
+      "calibrex/solvers/cuda_lidar_map_adapter.py": "e16dd3913282bf27987b51708a996012e54ef52cc4e899af0c95caa62df5cc0a",
+      "calibrex/solvers/cuda_scan_odometry_adapter.py": "1c4bdcc6544630497b5c9b0d4176ee51dde13b79c4b21ad88af94a1d079c5f4b"
+    },
+    "bag_sha256": "f57a2e85339316d4235ab693ab2876aac5e113625c7f8b0f7873b62f92e09643",
+    "result_sha256": "7ca2dfd950286202e08eb50d02b016ebd539e5c4c8a9537738f674809aefc673",
+    "query_workers": 8,
+    "odometry_backend": "cuda",
+    "cuda_cache_initially_empty": true,
+    "blas_threads": {
+      "OPENBLAS_NUM_THREADS": "1",
+      "MKL_NUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1"
+    },
+    "protocol_sha256": "b12083b45fef5a2f8690513254dcf5e4833af2f8a06a80a5147c1aa6a85eb2c1",
+    "helpers_sha256": {
+      "tools/benchmark_cpu_map_bag.py": "e5cb06578ae7d4e8dd3329f90bc5b003e37d703682213ab7abf85d26b62de46c",
+      "tools/benchmark_bspline_lidar_imu.py": "9c29cd4193c8693fd5a939edda56b9dda35d0e4f74cfb4b1dc7281231bad25aa",
+      "tools/benchmark_cuda_lidar_map.py": "4eb605229b19a634b99702a48be866b3a7ce28622b9848de29ca3b6a8aebb35a",
+      "tools/schemas/cpu_map_bag_comparison.schema.json": "4d0db89ab55676af6552263d235dd238d080ee64f6fc98d8d1dc5b55c481a644"
+    }
+  }
+}

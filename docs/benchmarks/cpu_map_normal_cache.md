@@ -11,6 +11,8 @@ with reached-point normals and eight query workers. Complete fresh-process
 ratios are **1.987x** and **2.138x**. All six paired eight-worker processes are
 faster, but these unreserved-host observations do not establish a portable
 minimum of 2x. Bag decoding and reference odometry are outside this workload.
+A later [whole-bag GLIM comparison](cpu_map_bag_validation.md) includes those
+stages and observes 1.249x at 0.2 m map voxels and 1.687x at 0.03 m map voxels.
 
 ## Complete measurements
 
