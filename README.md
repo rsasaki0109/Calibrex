@@ -830,6 +830,7 @@ Tests fail if the committed evidence card drifts from its validated source.
 - [Selective runtime loading: 2.58x complete refinement CLI, 3.83x validation](docs/benchmarks/lazy_runtime_loading.md)
 - [Optional compiled PNG decoding for camera–LiDAR calibration](docs/benchmarks/png_luminance_decoding.md)
 - [Parallel empirical Camera–LiDAR uncertainty refits](docs/benchmarks/empirical_refit_workers.md)
+- [Compiled safe YAML loading for calibration artifacts](docs/benchmarks/compiled_yaml_loading.md)
 - Benchmark pages: [MID360 IMU-LiDAR](docs/benchmarks/mid360_imu_lidar.md) ·
   [KITTI LiDAR-vehicle](docs/benchmarks/kitti_lidar_vehicle.md) ·
   [NTU VIRAL LiDAR-LiDAR](docs/benchmarks/ntu_viral_lidar_lidar.md) ·

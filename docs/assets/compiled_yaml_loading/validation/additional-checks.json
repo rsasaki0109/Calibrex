@@ -1,0 +1,35 @@
+{
+  "tests_passed": 28,
+  "total_tests_passed": 157,
+  "canonical_runtime_matches_measured_source_after_tests": true,
+  "command": [
+    "python",
+    "-m",
+    "pytest",
+    "tests/unit/test_yaml_loading_benchmark.py",
+    "tests/unit/test_lazy_runtime_archive.py",
+    "tests/unit/test_schema_registry.py",
+    "--basetemp",
+    "outputs/yaml-loading-tests-v1/tmp-archive",
+    "-p",
+    "no:cacheprovider",
+    "--override-ini",
+    "addopts=--disable-plugin-autoload",
+    "-q"
+  ],
+  "provenance": {
+    "primary_receipt_sha256": "71b312e6a3d1d636dc241a816072d978d001992c1c856a71a2a8309c2f143877",
+    "source_manifest_sha256": "eb8b634e6bab0733ef355840ed739741795cbe7060c163f5d0b3ff20a0e78aef",
+    "checker_sha256": "ecf03d317b2421567d00c1345b372aced13bf24a23cbbd2b16902503b8480c34",
+    "logs": {
+      "archive-tests.log": "fbaf2114e41f09121cee60e8c6392722b69256ff9766b1b624dabcf6496a6ea3",
+      "docs.log": "7d2c1df4beb55ac1347cf574f0e1e56ca9fbf451770693ee9824fe39cc5b8897",
+      "ruff-final.log": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0"
+    },
+    "test_sources": {
+      "test_yaml_loading_benchmark.py": "39cc3e7a5e0a1fbcb6106b3dba2858cf80537b3ddafa9eca3ad62232f404ac12",
+      "test_lazy_runtime_archive.py": "7bf853687ea48301bdcec3190fab6ddb6c5a7d515b74f8dc2fb815e3defca236",
+      "test_schema_registry.py": "6c3628fbb442128735c72ee9eb858d9ddc475aebface68b29d8929197de5673e"
+    }
+  }
+}

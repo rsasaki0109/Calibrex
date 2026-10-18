@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Source-bound complete CLI startup comparison protocol",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "commits", "repetitions", "fresh_workers", "host_unreserved", "blas_threads", "commands", "provenance"],
+  "properties": {
+    "schema_version": {"const": "slac.lazy_runtime_benchmark/v0.1"},
+    "commits": {"$ref": "#/$defs/commits"},
+    "repetitions": {"type": "integer", "minimum": 2},
+    "fresh_workers": {"const": true},
+    "host_unreserved": {"const": true},
+    "blas_threads": {"const": 1},
+    "commands": {
+      "type": "object", "additionalProperties": false,
+      "required": ["help", "validate", "refine"],
+      "properties": {
+        "help": {"$ref": "#/$defs/command"},
+        "validate": {"$ref": "#/$defs/command"},
+        "refine": {"$ref": "#/$defs/command"}
+      }
+    },
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["inputs", "source_manifests", "launcher_sha256", "freezer_sha256", "python"],
+      "properties": {
+        "inputs": {
+          "type": "object", "additionalProperties": false,
+          "required": ["correspondence", "problem"],
+          "properties": {
+            "correspondence": {"$ref": "#/$defs/sha"},
+            "problem": {"$ref": "#/$defs/sha"}
+          }
+        },
+        "source_manifests": {"$ref": "#/$defs/digests"},
+        "launcher_sha256": {"$ref": "#/$defs/sha"},
+        "freezer_sha256": {"$ref": "#/$defs/sha"},
+        "python": {"type": "string", "minLength": 1}
+      }
+    }
+  },
+  "$defs": {
+    "sha": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "command": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+    "commits": {
+      "type": "object", "additionalProperties": false,
+      "required": ["prior", "current"],
+      "properties": {
+        "prior": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+        "current": {"type": "string", "pattern": "^[a-f0-9]{40}$"}
+      }
+    },
+    "digests": {
+      "type": "object", "additionalProperties": false,
+      "required": ["prior", "current"],
+      "properties": {"prior": {"$ref": "#/$defs/sha"}, "current": {"$ref": "#/$defs/sha"}}
+    }
+  }
+}
