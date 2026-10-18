@@ -20,6 +20,7 @@ from calibrex.core.geometry import (
     rotate_vector_xyzw,
 )
 from calibrex.graph._evaluation_scope import _EVALUATION_CACHE, _EVALUATION_CACHE_LIMIT
+from calibrex.graph._point_plane_batches import _bind_point_plane, _bind_prior
 from calibrex.graph.joint_optimization import (
     JointResidualBlock,
     ParameterValues,
@@ -179,6 +180,7 @@ def make_joint_point_to_plane_factor(
         difference = _subtract(point_world, measurement.plane_point_world_m)
         return (_dot(normal, difference),)
 
+    _bind_point_plane(evaluator, measurement, normal, pose_block, extrinsic_block)
     return JointResidualBlock(
         factor_id=measurement.measurement_id,
         observation_group=measurement.observation_group,
@@ -756,6 +758,7 @@ def make_joint_prior_factor(
             raise ValueError("joint prior block dimension mismatch")
         return tuple(value - expected for value, expected in zip(current, targets, strict=True))
 
+    _bind_prior(evaluator, block, len(targets))
     sqrt_information = tuple(
         tuple((1.0 / sigmas[row]) if row == column else 0.0 for column in range(len(sigmas)))
         for row in range(len(sigmas))
@@ -786,6 +789,9 @@ def se3_from_tangent(values: Sequence[float]) -> SE3:
         scale = math.sin(0.5 * angle) / angle
         quaternion = (rx * scale, ry * scale, rz * scale, math.cos(0.5 * angle))
     return SE3((tx, ty, tz), quaternion)
+
+
+_SE3_FROM_TANGENT_IMPLEMENTATION = se3_from_tangent
 
 
 def _vector3(values: Sequence[float]) -> Vector3:

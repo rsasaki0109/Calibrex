@@ -74,6 +74,9 @@ class JointResidualBlock:
         return residuals
 
 
+_BUILTIN_RESIDUALS_METHOD = JointResidualBlock.residuals
+
+
 @dataclass(frozen=True)
 class JointOptimizerOptions:
     max_iterations: int = 50
@@ -575,6 +578,15 @@ def _linearize(
     layout: dict[str, slice],
     options: JointOptimizerOptions,
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    from calibrex.graph._point_plane_batches import (
+        _linearization_supported,
+        _prepare_point_plane_plan,
+    )
+
+    if _linearization_supported(blocks, options):
+        plan = _prepare_point_plane_plan(factors, values)
+        if plan is not None:
+            return plan.linearize(values, blocks, layout, options)
     baseline_parts = [factor.residuals(values) for factor in factors]
     baseline = np.asarray(
         [value for residuals in baseline_parts for value in residuals],
@@ -617,6 +629,11 @@ def _linearize(
 def _factor_residuals(
     factors: Sequence[JointResidualBlock], values: ParameterValues
 ) -> NDArray[np.float64]:
+    from calibrex.graph._point_plane_batches import _prepare_point_plane_plan
+
+    plan = _prepare_point_plane_plan(factors, values)
+    if plan is not None:
+        return plan.evaluate(values)
     residuals = [value for factor in factors for value in factor.residuals(values)]
     return np.asarray(residuals, dtype=np.float64)
 
