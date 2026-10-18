@@ -1,0 +1,53 @@
+"""Parallel spatial queries preserve native geometry, ties and full trajectories."""
+
+from __future__ import annotations
+
+from dataclasses import replace
+
+import numpy as np
+import pytest
+from scipy.spatial import cKDTree
+
+from calibrex.solvers.scan_to_scan_odometry import (
+    ScanOdometryOptions,
+    estimate_normals,
+    run_scan_to_scan_odometry,
+)
+
+
+@pytest.mark.parametrize("workers", [0, -1, 1.5, True, "4"])
+def test_invalid_worker_count_is_rejected(workers: object) -> None:
+    with pytest.raises(ValueError, match="query_workers"):
+        ScanOdometryOptions(query_workers=workers)  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("workers", [2, 4, 8])
+def test_parallel_queries_preserve_tied_normals_and_full_odometry(workers: int) -> None:
+    rng = np.random.default_rng(818)
+    parts = []
+    for axis in range(3):
+        face = rng.uniform(-4., 4., (800, 3))
+        face[:, axis] = 3.
+        parts.append(face)
+    reference = np.vstack(parts)
+    # Duplicates exercise SciPy's original neighborhood tie order on each row.
+    reference = np.vstack((reference, reference[:60]))
+    serial = ScanOdometryOptions(voxel_size_m=.08, local_map_scans=3)
+    parallel = replace(serial, query_workers=workers)
+    tree = cKDTree(reference)
+    expected_normals, expected_planar = estimate_normals(reference, tree, serial)
+    actual_normals, actual_planar = estimate_normals(reference, tree, parallel)
+    np.testing.assert_array_equal(actual_normals, expected_normals)
+    np.testing.assert_array_equal(actual_planar, expected_planar)
+    scans = [reference - np.array([.02, -.03, .01]) * i for i in range(4)]
+    expected = run_scan_to_scan_odometry(scans, serial, times_s=[0., .1, .2, .4])
+    actual = run_scan_to_scan_odometry(scans, parallel, times_s=[0., .1, .2, .4])
+    for a, b in zip(actual.poses, expected.poses, strict=True):
+        np.testing.assert_array_equal(a, b)
+    for a, b in zip(actual.registrations, expected.registrations, strict=True):
+        np.testing.assert_array_equal(a.transform, b.transform)
+        assert (a.converged, a.iterations, a.correspondences,
+                a.rmse_m, a.hessian_min_eigenvalue, a.execution_backend) == (
+            b.converged, b.iterations, b.correspondences,
+            b.rmse_m, b.hessian_min_eigenvalue, b.execution_backend,
+        )

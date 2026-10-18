@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Resident LiDAR geometry whole-process audit",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "status", "fresh_triads", "complete_workers", "complete_fits",
+    "cpu_gpu_fit_comparisons", "gpu_bit_exact_fit_comparisons", "gpu_bit_exact_point_rows",
+    "medians", "measurements_seconds", "ranges_seconds", "cpu_improved_runs", "native_improved_runs",
+    "cpu_to_resident", "native_to_resident", "quality_passed",
+    "gpu_runtime_imported", "provenance"
+  ],
+  "properties": {
+    "schema_version": {"const": "calibrex.resident_geometry_audit/v0.1"},
+    "status": {"enum": ["confirmed", "not_confirmed"]},
+    "fresh_triads": {"const": 3},
+    "complete_workers": {"const": 9},
+    "complete_fits": {"const": 36},
+    "cpu_gpu_fit_comparisons": {"const": 24},
+    "gpu_bit_exact_fit_comparisons": {"const": 12},
+    "gpu_bit_exact_point_rows": {"type": "integer", "minimum": 1},
+    "medians": {
+      "type": "object", "additionalProperties": false,
+      "required": ["cpu", "native", "resident"],
+      "properties": {
+        "cpu": {"type": "number", "exclusiveMinimum": 0},
+        "native": {"type": "number", "exclusiveMinimum": 0},
+        "resident": {"type": "number", "exclusiveMinimum": 0}
+      }
+    },
+    "measurements_seconds": {
+      "type": "array", "minItems": 3, "maxItems": 3,
+      "items": {
+        "type": "object", "required": ["cpu", "native", "resident"], "additionalProperties": false,
+        "properties": {
+          "cpu": {"type": "number", "exclusiveMinimum": 0},
+          "native": {"type": "number", "exclusiveMinimum": 0},
+          "resident": {"type": "number", "exclusiveMinimum": 0}
+        }
+      }
+    },
+    "ranges_seconds": {
+      "type": "object", "required": ["cpu", "native", "resident"], "additionalProperties": false,
+      "properties": {
+        "cpu": {"$ref": "#/$defs/range"},
+        "native": {"$ref": "#/$defs/range"},
+        "resident": {"$ref": "#/$defs/range"}
+      }
+    },
+    "cpu_improved_runs": {"type": "integer", "minimum": 0, "maximum": 3},
+    "native_improved_runs": {"type": "integer", "minimum": 0, "maximum": 3},
+    "cpu_to_resident": {"type": "number", "exclusiveMinimum": 0},
+    "native_to_resident": {"type": "number", "exclusiveMinimum": 0},
+    "quality_passed": {"const": true},
+    "gpu_runtime_imported": {"const": false},
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["archive_index_sha256", "protocol_sha256", "auditor_sha256", "commits"],
+      "properties": {
+        "archive_index_sha256": {"$ref": "#/$defs/sha"},
+        "protocol_sha256": {"$ref": "#/$defs/sha"},
+        "auditor_sha256": {"$ref": "#/$defs/sha"},
+        "commits": {
+          "type": "object", "additionalProperties": false, "required": ["baseline", "current"],
+          "properties": {
+            "baseline": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+            "current": {"type": "string", "pattern": "^[a-f0-9]{40}$"}
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "range": {
+      "type": "array", "minItems": 2, "maxItems": 2,
+      "items": {"type": "number", "exclusiveMinimum": 0}
+    }
+  }
+}

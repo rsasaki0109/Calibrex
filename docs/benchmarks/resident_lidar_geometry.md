@@ -27,6 +27,45 @@ These explicit settings define the experiment; the resident flag does not
 choose a voxel density or silently enable rounding. CPU execution and ordinary
 CUDA odometry remain available with their existing defaults.
 
+## Complete production comparison
+
+Three fresh cyclic triads replay six seconds of the public GLIM Livox bag with
+four map/fit rounds, all eight odometry passes, the same explicit settings
+above, one BLAS thread and a separate initially empty compiler cache per worker.
+Startup, first compilation, decoding, covariance, holdout, all 32 signed
+controls, saving and import verification enter whole-process wall time.
+
+| Triad | CPU (s) | Ordinary CUDA (s) | Resident CUDA (s) | CPU / resident | CUDA / resident |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1 | 264.455 | 68.247 | 53.222 | 4.969x | 1.282x |
+| 2 | 244.027 | 67.348 | 50.918 | 4.793x | 1.323x |
+| 3 | 250.123 | 74.704 | 98.514 | 2.539x | 0.758x |
+| Median time | **250.123** | **68.247** | **53.222** | **4.700x** | **1.282x** |
+
+The last row divides median worker times. The cumulative CPU comparison
+includes CUDA odometry, the existing CUDA spline plane backend, resident
+geometry and pose-only CPU placement. The incremental comparison is 1.282x
+against ordinary CUDA. Resident execution was faster in two of three GPU
+pairs; the third was slower. Host resources were unreserved, and the cause of
+the variation was not identified. These observations do not establish a
+consistent latency improvement for every run, other data or other devices.
+
+The [complete bound archive](../assets/resident_lidar_geometry/README.md)
+retains all nine workers. Every CPU/GPU decision and evidence gate passes;
+all 24 CPU/GPU full-fit comparisons preserve status, iterations and dimensions
+and meet the original numerical tolerances. Ordinary/resident CUDA results
+and all 12 paired full fits match every floating-point bit after only the
+declared execution metadata. All 1,188,000 compared placed point rows also
+match by digest. The final verdict remains INCONCLUSIVE.
+
+The [CPU-only auditor](../assets/resident_lidar_geometry/auditor-v2.py.txt)
+recomputes both ratios and their variability, verifies all
+source/import/kernel/input bindings and checks the complete results and fits.
+The measured runtime is frozen at
+[5fda3a1f](https://github.com/rsasaki0109/Calibrex/commit/5fda3a1f29a33289828798a04cd4236af9d5b4b7);
+the CPU and ordinary CUDA baseline is
+[ae5a5582](https://github.com/rsasaki0109/Calibrex/commit/ae5a55822485b4ee9daf2b0195aa35bd4c5b7484).
+
 ## Resources and fallback behavior
 
 Each calibration owns its stream and content cache. Repeated decoded scans

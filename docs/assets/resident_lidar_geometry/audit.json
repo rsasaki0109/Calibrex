@@ -1,0 +1,61 @@
+{
+  "schema_version": "calibrex.resident_geometry_audit/v0.1",
+  "status": "confirmed",
+  "fresh_triads": 3,
+  "complete_workers": 9,
+  "complete_fits": 36,
+  "cpu_gpu_fit_comparisons": 24,
+  "gpu_bit_exact_fit_comparisons": 12,
+  "gpu_bit_exact_point_rows": 1188000,
+  "medians": {
+    "cpu": 250.1227292000549,
+    "native": 68.24685210001189,
+    "resident": 53.222443599952385
+  },
+  "measurements_seconds": [
+    {
+      "cpu": 264.45535319997,
+      "native": 68.24685210001189,
+      "resident": 53.222443599952385
+    },
+    {
+      "cpu": 244.026726400014,
+      "native": 67.34778589999769,
+      "resident": 50.91777390008792
+    },
+    {
+      "cpu": 250.1227292000549,
+      "native": 74.70352740003727,
+      "resident": 98.51435529999435
+    }
+  ],
+  "ranges_seconds": {
+    "cpu": [
+      244.026726400014,
+      264.45535319997
+    ],
+    "native": [
+      67.34778589999769,
+      74.70352740003727
+    ],
+    "resident": [
+      50.91777390008792,
+      98.51435529999435
+    ]
+  },
+  "cpu_improved_runs": 3,
+  "native_improved_runs": 2,
+  "cpu_to_resident": 4.699572441282622,
+  "native_to_resident": 1.2822946013713836,
+  "quality_passed": true,
+  "gpu_runtime_imported": false,
+  "provenance": {
+    "archive_index_sha256": "3fc436ae2f5c5ae81196325c93f70b81395a7dc0f16b52da7f552dfbac362dce",
+    "protocol_sha256": "af392d3e094be10b4dc9fb6810f511eb697d3d743f380aed8daffed6f455fe88",
+    "auditor_sha256": "7501f6d594a3615ea0d8bbe99c0f56616d542d6126e71046b6616b75eb9de966",
+    "commits": {
+      "baseline": "ae5a55822485b4ee9daf2b0195aa35bd4c5b7484",
+      "current": "5fda3a1f29a33289828798a04cd4236af9d5b4b7"
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "repeat": 1,
+  "seconds": {
+    "cpu": 244.026726400014,
+    "native": 67.34778589999769,
+    "resident": 50.91777390008792
+  },
+  "cpu_to_resident": 4.792564711859735,
+  "native_to_resident": 1.3226773431248022,
+  "quality": {
+    "native": {
+      "passed": true,
+      "decisions_equal": true,
+      "numeric_evidence_equal": true,
+      "errors": {
+        "rotation_deg": 4.711142882939167e-11,
+        "lever_arm_m": 8.156079978061115e-13,
+        "clock_offset_s": 3.0965768144097794e-13
+      },
+      "max_holdout_whitened_rms_difference": 5.619948950652542e-13
+    },
+    "resident": {
+      "passed": true,
+      "decisions_equal": true,
+      "numeric_evidence_equal": true,
+      "errors": {
+        "rotation_deg": 4.711142882939167e-11,
+        "lever_arm_m": 8.156079978061115e-13,
+        "clock_offset_s": 3.0965768144097794e-13
+      },
+      "max_holdout_whitened_rms_difference": 5.619948950652542e-13
+    }
+  },
+  "errors": [],
+  "quality_passed": true,
+  "gpu_complete_result_and_full_fit_bits_equal": true,
+  "gpu_placement_bits_equal": true,
+  "provenance": {
+    "protocol_sha256": "af392d3e094be10b4dc9fb6810f511eb697d3d743f380aed8daffed6f455fe88",
+    "worker_records": {
+      "01-cpu\\measurement.json": "15ea5dc97fa474b6337109f7d28ddd1cb4bc1be0645b7c5deef173aa10d34f57",
+      "01-cpu\\placement.json": "96c15ed774e3e304a9eb6fbfa201d2e2e1471a95d426485288453595ed2f105a",
+      "01-cpu\\result.json": "35710da00c9b33a0d60ed2001180f3fe3c546e9f96caea4e580a5274b7016980",
+      "01-cpu\\started.json": "fa3d6ce9ec61b3159bd8d86373c6465b98d9dcb08c08a6736ade8ce3a8df0ee7",
+      "01-cpu\\whole.json": "feda92890673d23292be2b9c64f936cc00088936d62c53955ee2dbc95adaa19d",
+      "01-native\\measurement.json": "eb56ad0dcb77b94ef66639fad4ebcb8c826519d4dd7a9fe02296910aab3678e2",
+      "01-native\\placement.json": "80a4439576b5b3e240cfe11380bd45e84a990634be7c62ccd410e39f20c8e478",
+      "01-native\\result.json": "c4e9e5295b8f7f9261899e7dba92d33bc330049672177f98a9bb5adc30434fbf",
+      "01-native\\started.json": "440511f5116e617779b52c606d46af6288e3760f09dafa145d3c616e1a13718a",
+      "01-native\\whole.json": "e8aedc6a2db3ea178d2e120cd748127b4ce87ebb49af3c4eaf5bf486f1a8afd7",
+      "01-resident\\measurement.json": "8436f9c6b69bdb9cf1e869787286c90f4a1ac4001c81b912af461beb364c9d4a",
+      "01-resident\\placement.json": "c6b6b3386dd12b4a1d9c7b4120c729e296b59a9cce0b2757cd85c5a269f7b63b",
+      "01-resident\\result.json": "b76d009980347b6953a67193c02ebb86097532213fc7030cf7b69ed284b2c43c",
+      "01-resident\\started.json": "86b2fe521519444bca54a79e3ed8e1fde0d1938219e0506555e68792f0dba002",
+      "01-resident\\whole.json": "44d41c431b3530f68614d98c11c74d451a9e53c85a8e8d5d866a0bf6f700e7fc"
+    }
+  }
+}

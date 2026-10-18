@@ -1,0 +1,215 @@
+"""Predeclared production CPU/native-CUDA/resident-CUDA cold whole-process triads."""
+import os
+for key in ("OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "OMP_NUM_THREADS"):
+    os.environ[key] = "1"
+import argparse
+from argparse import Namespace
+import hashlib
+import json
+from pathlib import Path
+import statistics
+import subprocess
+import sys
+import time
+
+ROOT = Path(__file__).resolve().parent
+OUT = ROOT / "outputs/production-resident-triad-v1"
+BAG = ROOT / "data/public/glim_versatile/livox.bag"
+BASE = "ae5a55822485b4ee9daf2b0195aa35bd4c5b7484"
+sys.dont_write_bytecode = True
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+def write(path, value):
+    path.write_text(json.dumps(value, indent=2, allow_nan=False)+"\n", encoding="utf-8")
+
+def read(path):
+    return json.loads(path.read_bytes())
+
+def roots(variant):
+    return OUT / ("source-current" if variant == "resident" else "source-baseline")
+
+def worker(repeat, variant):
+    source = roots(variant)
+    sys.path.insert(0, str(source / "src"))
+    import numpy as np
+    from calibrex.evaluation import lidar_imu_bag_calibration as runner
+    from tools import benchmark_bspline_lidar_imu as benchmark
+    placements = []
+    original = runner._place
+    def observed(trajectory, times, points):
+        start = time.perf_counter()
+        result = original(trajectory, times, points)
+        placements.append({
+            "rows": len(points), "seconds": time.perf_counter()-start,
+            "sha256": hashlib.sha256(np.ascontiguousarray(result).tobytes()).hexdigest(),
+        })
+        return result
+    runner._place = observed
+    args = Namespace(
+        source_root=str(source),
+        source_commit=read(OUT/"protocol.json")["commits"]["current" if variant=="resident" else "baseline"],
+        variant="current" if variant=="resident" else "prior",
+        bag=str(BAG), output=str(OUT/f"{repeat:02d}-{variant}"),
+        max_seconds=6.0, max_rounds=4,
+        comparison="cpu-cuda" if variant=="cpu" else "cuda-cuda",
+        prior_fit_plane_backend="numpy" if variant=="cpu" else "cuda",
+        current_fit_plane_backend="cuda", current_resident_odometry=True,
+        odometry_voxel_size_m=0.03, odometry_local_map_scans=3,
+        odometry_geometry_quantum_m=1e-9, odometry_motion_translation_quantum_m=1e-6,
+        odometry_motion_rotation_quantum_rad=1e-7,
+    )
+    benchmark._worker(args)
+    write(Path(args.output)/"placement.json", {
+        "calls": placements,
+        "provenance": {"launcher_sha256":sha(Path(__file__)),
+                       "source_manifest_sha256":sha(source/"manifest.json")},
+    })
+
+def check(repeat):
+    from tools import benchmark_bspline_lidar_imu as benchmark
+    directories = {v: OUT/f"{repeat:02d}-{v}" for v in ("cpu","native","resident")}
+    result = {v: read(p/"result.json") for v,p in directories.items()}
+    measurement = {v: read(p/"measurement.json") for v,p in directories.items()}
+    seconds = {v: read(p/"whole.json")["seconds"] for v,p in directories.items()}
+    quality = {v: benchmark._compare(result["cpu"],result[v]) for v in ("native","resident")}
+    errors = []
+    for v in ("native","resident"):
+        try:
+            benchmark._validate_plane_fit_pair(measurement["cpu"]["rounds"], measurement[v]["rounds"])
+        except ValueError as exc:
+            errors.append(v+": "+str(exc))
+    try:
+        benchmark._validate_resident_pair(
+            result["native"], result["resident"],
+            measurement["native"]["rounds"], measurement["resident"]["rounds"],
+            benchmark._scan_spatial_hashes(roots("native")),
+            benchmark._resident_hashes(roots("resident")),
+        )
+    except ValueError as exc:
+        errors.append(str(exc))
+    poses = {
+        v: [{k:x for k,x in row.items() if k!="seconds"}
+            for row in read(p/"placement.json")["calls"]]
+        for v,p in directories.items()
+    }
+    placement_equal = benchmark._same_float_bits(poses["native"],poses["resident"])
+    if not placement_equal:
+        errors.append("native/resident point placement bits differ")
+    passed = not errors and all(row["passed"] for row in quality.values())
+    payload = {
+        "repeat":repeat,"seconds":seconds,
+        "cpu_to_resident":seconds["cpu"]/seconds["resident"],
+        "native_to_resident":seconds["native"]/seconds["resident"],
+        "quality":quality,"errors":errors,"quality_passed":passed,
+        "gpu_complete_result_and_full_fit_bits_equal":not any(
+            "resident" in error for error in errors),
+        "gpu_placement_bits_equal":placement_equal,
+        "provenance":{"protocol_sha256":sha(OUT/"protocol.json"),
+                      "worker_records":{str(p.relative_to(OUT)):sha(p)
+                          for d in directories.values() for p in sorted(d.glob("*.json"))}},
+    }
+    write(OUT/f"triad-{repeat:02d}.json",payload)
+    print(json.dumps({k:v for k,v in payload.items() if k not in ("provenance","quality")}),flush=True)
+    if not passed:
+        raise ValueError("complete output/fit/placement quality failed; all records retained")
+    return payload
+
+def parent():
+    from tools import benchmark_bspline_lidar_imu as benchmark
+    current = subprocess.check_output(["git","rev-parse","HEAD"],cwd=ROOT,text=True).strip()
+    subprocess.run(["git","diff","--exit-code","HEAD","--","src/calibrex"],cwd=ROOT,check=True)
+    OUT.mkdir(exist_ok=False)
+    (OUT/"launcher.py.txt").write_bytes(Path(__file__).read_bytes())
+    (OUT/"benchmark.py.txt").write_bytes(Path(benchmark.__file__).read_bytes())
+    schema = ROOT/"tools/schemas/bspline_lidar_imu_comparison.schema.json"
+    (OUT/"benchmark.schema.json").write_bytes(schema.read_bytes())
+    benchmark._freeze(roots("cpu"),BASE)
+    benchmark._freeze(roots("resident"),current)
+    protocol = {
+        "scope":"Three fresh, cyclic, cold complete production calibrations on identical public data/options.",
+        "commits":{"baseline":BASE,"current":current},
+        "launch_order":[["cpu","native","resident"],["resident","cpu","native"],["native","resident","cpu"]],
+        "options":{"max_seconds":6.0,"max_rounds":4,"voxel_size_m":0.03,"local_map_scans":3,
+                   "geometry_quantum_m":1e-9,"motion_translation_quantum_m":1e-6,
+                   "motion_rotation_quantum_rad":1e-7},
+        "plane_backends":{"cpu":"numpy","native":"cuda","resident":"cuda"},
+        "gates":{"all_original_physical_evidence_and_decisions":True,
+                 "all_full_fits_rtol":1e-8,"all_full_fits_atol":1e-9,
+                 "native_resident_all_float_bits_equal_after_declared_execution_metadata":True,
+                 "native_resident_all_placement_bits_equal":True,
+                 "median_cpu_to_resident_minimum":2.0,"median_native_to_resident_minimum_exclusive":1.0},
+        "limitations":["Spent GLIM development sequence; no independent extrinsic truth.",
+                       "Positive explicit grids and dense geometry; not default/zero-grid speed.",
+                       "Host resources unreserved; no extrapolation to other devices or bags."],
+        "bag":{"path":BAG.relative_to(ROOT).as_posix(),"bytes":BAG.stat().st_size,"sha256":sha(BAG)},
+        "provenance":{"launcher_sha256":sha(Path(__file__)),
+                      "benchmark_sha256":sha(Path(benchmark.__file__)),
+                      "schema_sha256":sha(schema),
+                      "baseline_manifest_sha256":sha(roots("cpu")/"manifest.json"),
+                      "current_manifest_sha256":sha(roots("resident")/"manifest.json")},
+    }
+    write(OUT/"protocol.json",protocol)
+    rows = []
+    for repeat,order in enumerate(protocol["launch_order"]):
+        for variant in order:
+            directory = OUT/f"{repeat:02d}-{variant}"
+            directory.mkdir()
+            env = dict(os.environ)
+            env.update(CUPY_CACHE_DIR=str(directory/"cupy-cache"),CUDA_CACHE_DISABLE="1",
+                       PYTHONDONTWRITEBYTECODE="1")
+            command = [sys.executable,"-u",str(Path(__file__).resolve()),
+                       "--worker",str(repeat),variant]
+            write(directory/"started.json",{
+                "repeat":repeat,"variant":variant,
+                "provenance":{"protocol_sha256":sha(OUT/"protocol.json")},
+            })
+            print(json.dumps({"started":True,"repeat":repeat,"variant":variant}),flush=True)
+            start = time.perf_counter()
+            with (directory/"stdout.log").open("wb") as stdout, (directory/"stderr.log").open("wb") as stderr:
+                process = subprocess.run(command,cwd=ROOT,env=env,stdout=stdout,stderr=stderr,timeout=1200)
+            elapsed = time.perf_counter()-start
+            write(directory/"whole.json",{
+                "seconds":elapsed,"exit_code":process.returncode,
+                "provenance":{"protocol_sha256":sha(OUT/"protocol.json"),
+                              "stdout_sha256":sha(directory/"stdout.log"),
+                              "stderr_sha256":sha(directory/"stderr.log")},
+            })
+            print(json.dumps({"finished":True,"repeat":repeat,"variant":variant,
+                              "seconds":elapsed,"exit_code":process.returncode}),flush=True)
+            if process.returncode:
+                raise ValueError("worker failed; retain entire interrupted/failed attempt")
+        rows.append(check(repeat))
+    medians = {v:statistics.median(row["seconds"][v] for row in rows)
+               for v in ("cpu","native","resident")}
+    summary = {
+        "medians":medians,"cpu_to_resident":medians["cpu"]/medians["resident"],
+        "native_to_resident":medians["native"]/medians["resident"],
+        "quality_passed":all(row["quality_passed"] for row in rows),
+        "production_runtime_measured":True,
+        "provenance":{"protocol_sha256":sha(OUT/"protocol.json"),
+                      "triads":{f"triad-{i:02d}.json":sha(OUT/f"triad-{i:02d}.json") for i in range(3)}},
+    }
+    summary["advance"] = (
+        summary["quality_passed"] and summary["cpu_to_resident"]>=2
+        and summary["native_to_resident"]>1
+    )
+    write(OUT/"summary.json",summary)
+    print(json.dumps(summary),flush=True)
+
+if __name__=="__main__":
+    parser=argparse.ArgumentParser()
+    parser.add_argument("--worker",nargs=2)
+    args=parser.parse_args()
+    try:
+        if args.worker:
+            worker(int(args.worker[0]),args.worker[1])
+        else:
+            parent()
+    except BaseException as exc:
+        if OUT.exists():
+            write(OUT/("worker-failure-"+ "-".join(args.worker)+".json" if args.worker else "supervisor-failure.json"),
+                  {"error_type":type(exc).__name__,"error":str(exc),
+                   "provenance":{"launcher_sha256":sha(Path(__file__))}})
+        raise
