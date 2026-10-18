@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "sha": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "hashes": {"type": "object", "minProperties": 1, "additionalProperties": {"$ref": "#/$defs/sha"}},
+    "positive": {"type": "number", "exclusiveMinimum": 0},
+    "times": {
+      "type": "object", "required": ["prior", "lazy", "parallel"], "additionalProperties": false,
+      "properties": {"prior": {"$ref": "#/$defs/positive"}, "lazy": {"$ref": "#/$defs/positive"}, "parallel": {"$ref": "#/$defs/positive"}}
+    },
+    "errors": {
+      "type": "object", "required": ["lazy", "parallel"], "additionalProperties": false,
+      "properties": {"lazy": {"type": "array", "items": {"type": "string"}}, "parallel": {"type": "array", "items": {"type": "string"}}}
+    },
+    "protocol": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "commits", "bag", "settings", "scenarios", "repeats", "query_workers", "orders", "source_manifests_sha256", "helpers_sha256", "scope", "limitations"],
+      "properties": {
+        "schema_version": {"const": "calibrex.cpu_map_bag_comparison/v0.1"},
+        "commits": {"type": "object", "required": ["prior", "current"], "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{40}$"}},
+        "bag": {
+          "type": "object", "required": ["path", "bytes", "sha256"], "additionalProperties": false,
+          "properties": {"path": {"type": "string"}, "bytes": {"type": "integer", "minimum": 1}, "sha256": {"$ref": "#/$defs/sha"}}
+        },
+        "settings": {
+          "type": "object", "additionalProperties": false,
+          "required": ["max_seconds", "topic", "point_time_field", "dataset_family", "dataset_license", "sample_every_scans", "map_half_window_scans", "block_duration_s", "jackknife_groups", "target_noise_seed", "target_noise_std_m", "initial_translation_m", "odometry_backend", "odometry_options"],
+          "properties": {
+            "max_seconds": {"$ref": "#/$defs/positive"}, "topic": {"type": "string", "minLength": 1},
+            "point_time_field": {"type": "string", "minLength": 1}, "dataset_family": {"type": "string", "minLength": 1},
+            "dataset_license": {"type": "string", "minLength": 1}, "sample_every_scans": {"const": 5},
+            "map_half_window_scans": {"const": 5}, "block_duration_s": {"const": 1.0}, "jackknife_groups": {"const": 4},
+            "target_noise_seed": {"const": 20261018}, "target_noise_std_m": {"const": 0.01},
+            "initial_translation_m": {"const": [0.08, -0.07, 0.05]}, "odometry_backend": {"enum": ["cpu", "cuda"]},
+            "odometry_options": {"const": {"voxel_size_m": 0.03, "local_map_scans": 3, "geometry_quantum_m": 1e-9, "motion_translation_quantum_m": 1e-6, "motion_rotation_quantum_rad": 1e-7}}
+          }
+        },
+        "scenarios": {
+          "type": "object", "minProperties": 1, "patternProperties": {
+            "^map-[0-9]{3}$": {"type": "object", "required": ["map_voxel_size_m"], "additionalProperties": false, "properties": {"map_voxel_size_m": {"$ref": "#/$defs/positive"}}}
+          }, "additionalProperties": false
+        },
+        "repeats": {"type": "integer", "minimum": 1},
+        "query_workers": {"type": "object", "required": ["prior", "lazy", "parallel"], "additionalProperties": false, "properties": {"prior": {"const": 1}, "lazy": {"const": 1}, "parallel": {"type": "integer", "minimum": 1}}},
+        "orders": {"type": "array", "minItems": 1, "items": {"type": "array", "minItems": 3, "maxItems": 3, "uniqueItems": true, "items": {"enum": ["prior", "lazy", "parallel"]}}},
+        "source_manifests_sha256": {"$ref": "#/$defs/hashes"}, "helpers_sha256": {"$ref": "#/$defs/hashes"},
+        "scope": {"type": "string", "minLength": 1}, "limitations": {"type": "array", "minItems": 3, "items": {"type": "string"}}
+      }
+    },
+    "worker": {
+      "type": "object", "additionalProperties": false,
+      "required": ["variant", "scenario", "repeat", "api_seconds", "stages", "fit_seconds", "artifact", "fits", "options", "prepared_samples", "work", "provenance"],
+      "properties": {
+        "variant": {"enum": ["prior", "lazy", "parallel"]}, "scenario": {"type": "string", "pattern": "^map-[0-9]{3}$"},
+        "repeat": {"type": "integer", "minimum": 0}, "api_seconds": {"$ref": "#/$defs/positive"},
+        "stages": {"type": "object", "required": ["collect_seconds", "evaluate_seconds"], "additionalProperties": {"$ref": "#/$defs/positive"}},
+        "fit_seconds": {"type": "array", "minItems": 5, "maxItems": 5, "items": {"$ref": "#/$defs/positive"}},
+        "artifact": {"type": "object"}, "fits": {"type": "array", "minItems": 5, "maxItems": 5, "items": {"type": "object"}},
+        "options": {"type": "object"}, "prepared_samples": {"type": "array", "minItems": 3, "items": {"type": "object", "required": ["time_s", "block", "reference_pose", "map_points", "target_points"]}},
+        "work": {"type": "object", "additionalProperties": false, "required": ["normal_rows", "map_rows", "target_rows"], "properties": {"normal_rows": {"type": "integer", "minimum": 0}, "map_rows": {"type": "integer", "minimum": 1}, "target_rows": {"type": "integer", "minimum": 1}}},
+        "provenance": {
+          "type": "object", "additionalProperties": false,
+          "required": ["source_commit", "source_manifest_sha256", "executed_sources", "bag_sha256", "result_sha256", "query_workers", "odometry_backend", "cuda_cache_initially_empty", "blas_threads", "protocol_sha256", "helpers_sha256"],
+          "properties": {
+            "source_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"}, "source_manifest_sha256": {"$ref": "#/$defs/sha"},
+            "executed_sources": {"$ref": "#/$defs/hashes"}, "bag_sha256": {"$ref": "#/$defs/sha"}, "result_sha256": {"$ref": "#/$defs/sha"},
+            "query_workers": {"type": "integer", "minimum": 1}, "odometry_backend": {"enum": ["cpu", "cuda"]}, "cuda_cache_initially_empty": {"type": ["boolean", "null"]},
+            "blas_threads": {"const": {"OPENBLAS_NUM_THREADS": "1", "MKL_NUM_THREADS": "1", "OMP_NUM_THREADS": "1"}},
+            "protocol_sha256": {"$ref": "#/$defs/sha"}, "helpers_sha256": {"$ref": "#/$defs/hashes"}
+          }
+        }
+      }
+    },
+    "whole": {
+      "type": "object", "additionalProperties": false, "required": ["seconds", "returncode", "protocol_sha256", "helpers_sha256"],
+      "properties": {"seconds": {"$ref": "#/$defs/positive"}, "returncode": {"type": "integer"}, "protocol_sha256": {"$ref": "#/$defs/sha"}, "helpers_sha256": {"$ref": "#/$defs/hashes"}}
+    },
+    "triad": {
+      "type": "object", "additionalProperties": false, "required": ["scenario", "repeat", "seconds", "errors", "measurement_sha256"],
+      "properties": {"scenario": {"type": "string", "pattern": "^map-[0-9]{3}$"}, "repeat": {"type": "integer", "minimum": 0}, "seconds": {"$ref": "#/$defs/times"}, "errors": {"$ref": "#/$defs/errors"}, "measurement_sha256": {"$ref": "#/$defs/hashes"}}
+    },
+    "cohort": {
+      "type": "object", "additionalProperties": false, "required": ["workers", "fits", "quality_passed", "median_seconds", "prior_to_lazy", "prior_to_parallel", "lazy_to_parallel", "parallel_faster_pairs"],
+      "properties": {"workers": {"type": "integer", "minimum": 3}, "fits": {"type": "integer", "minimum": 15}, "quality_passed": {"type": "boolean"}, "median_seconds": {"$ref": "#/$defs/times"}, "prior_to_lazy": {"$ref": "#/$defs/positive"}, "prior_to_parallel": {"$ref": "#/$defs/positive"}, "lazy_to_parallel": {"$ref": "#/$defs/positive"}, "parallel_faster_pairs": {"type": "integer", "minimum": 0}}
+    },
+    "summary": {
+      "type": "object", "additionalProperties": false, "required": ["schema_version", "scenarios", "protocol_sha256", "triads_sha256"],
+      "properties": {"schema_version": {"const": "calibrex.cpu_map_bag_comparison/v0.1"}, "scenarios": {"type": "object", "minProperties": 1, "additionalProperties": {"$ref": "#/$defs/cohort"}}, "protocol_sha256": {"$ref": "#/$defs/sha"}, "triads_sha256": {"$ref": "#/$defs/hashes"}}
+    }
+  }
+}

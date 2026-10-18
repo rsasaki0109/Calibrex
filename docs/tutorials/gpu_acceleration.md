@@ -563,6 +563,9 @@ the prior one-worker CPU path. These scopes include covariance, jackknife and
 controls, and exclude bag decoding and reference odometry. The
 [full CPU evidence](../benchmarks/cpu_map_normal_cache.md) retains all timings,
 the original missed gate and a rejected additional query-cache experiment.
+The separate [complete bag comparison](../benchmarks/cpu_map_bag_validation.md)
+includes decoding and common CUDA odometry: observed whole-worker ratios are
+1.249x at 0.2 m map voxels and 1.687x at 0.03 m map voxels.
 
 ## CUDA LiDAR scan odometry
 

@@ -1,0 +1,85 @@
+{
+  "schema_version": "calibrex.cpu_map_bag_comparison/v0.1",
+  "commits": {
+    "prior": "96871f64588a122e33e01c713e6710f0f0f36d71",
+    "current": "917748b10d5eff9bb077b332a018eafdb33e9fcd"
+  },
+  "bag": {
+    "path": "data\\public\\glim_versatile\\livox.bag",
+    "bytes": 613350674,
+    "sha256": "f57a2e85339316d4235ab693ab2876aac5e113625c7f8b0f7873b62f92e09643"
+  },
+  "settings": {
+    "max_seconds": 6.0,
+    "topic": "/livox/points",
+    "point_time_field": "t",
+    "dataset_family": "glim_versatile",
+    "dataset_license": "upstream AIST GLIM dataset terms",
+    "sample_every_scans": 5,
+    "map_half_window_scans": 5,
+    "block_duration_s": 1.0,
+    "jackknife_groups": 4,
+    "target_noise_seed": 20261018,
+    "target_noise_std_m": 0.01,
+    "initial_translation_m": [
+      0.08,
+      -0.07,
+      0.05
+    ],
+    "odometry_backend": "cuda",
+    "odometry_options": {
+      "voxel_size_m": 0.03,
+      "local_map_scans": 3,
+      "geometry_quantum_m": 1e-09,
+      "motion_translation_quantum_m": 1e-06,
+      "motion_rotation_quantum_rad": 1e-07
+    }
+  },
+  "scenarios": {
+    "map-000": {
+      "map_voxel_size_m": 0.2
+    },
+    "map-001": {
+      "map_voxel_size_m": 0.03
+    }
+  },
+  "repeats": 3,
+  "query_workers": {
+    "prior": 1,
+    "lazy": 1,
+    "parallel": 8
+  },
+  "orders": [
+    [
+      "prior",
+      "lazy",
+      "parallel"
+    ],
+    [
+      "lazy",
+      "parallel",
+      "prior"
+    ],
+    [
+      "parallel",
+      "prior",
+      "lazy"
+    ]
+  ],
+  "source_manifests_sha256": {
+    "prior": "e2c66d562238a31719c20f91a13b86694966dbd47c3d85ca065934c598ac38cf",
+    "current": "3cda7d5dcafcc52b964586e7f77d4208c68af0921f8aa2e00f4c2d8bc401de20"
+  },
+  "helpers_sha256": {
+    "tools/benchmark_cpu_map_bag.py": "e5cb06578ae7d4e8dd3329f90bc5b003e37d703682213ab7abf85d26b62de46c",
+    "tools/benchmark_bspline_lidar_imu.py": "9c29cd4193c8693fd5a939edda56b9dda35d0e4f74cfb4b1dc7281231bad25aa",
+    "tools/benchmark_cuda_lidar_map.py": "4eb605229b19a634b99702a48be866b3a7ce28622b9848de29ca3b6a8aebb35a",
+    "tools/schemas/cpu_map_bag_comparison.schema.json": "4d0db89ab55676af6552263d235dd238d080ee64f6fc98d8d1dc5b55c481a644"
+  },
+  "scope": "Whole fresh worker: startup, imports, bag streams, reference odometry, map preparation, five fits, covariance, held-out scoring, six controls, saves and verification.",
+  "limitations": [
+    "No independent dual-LiDAR accuracy or SOTA evidence; spent public copied-topic control.",
+    "Unreserved host; one BLAS thread; cold independent CUDA compiler cache when selected.",
+    "No timing is discarded, replaced, pooled across densities, or multiplied with other cohorts."
+  ]
+}

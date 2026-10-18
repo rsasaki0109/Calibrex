@@ -1,0 +1,60 @@
+{"scenario": "map-000", "repeat": 0, "variant": "prior", "seconds": 17.645548000000417}
+{"scenario": "map-000", "repeat": 0, "variant": "lazy", "seconds": 13.939332799986005}
+{"scenario": "map-000", "repeat": 0, "variant": "parallel", "seconds": 14.052175700082444}
+{"scenario": "map-001", "repeat": 0, "variant": "prior", "seconds": 31.748420800082386}
+{"scenario": "map-001", "repeat": 0, "variant": "lazy", "seconds": 22.962518999935128}
+{"scenario": "map-001", "repeat": 0, "variant": "parallel", "seconds": 17.893385100062005}
+{"scenario": "map-001", "repeat": 1, "variant": "lazy", "seconds": 24.792670499999076}
+{"scenario": "map-001", "repeat": 1, "variant": "parallel", "seconds": 20.788190599996597}
+{"scenario": "map-001", "repeat": 1, "variant": "prior", "seconds": 32.838309000013396}
+{"scenario": "map-000", "repeat": 1, "variant": "lazy", "seconds": 17.251238299999386}
+{"scenario": "map-000", "repeat": 1, "variant": "parallel", "seconds": 15.74166930001229}
+{"scenario": "map-000", "repeat": 1, "variant": "prior", "seconds": 18.711491800029762}
+{"scenario": "map-000", "repeat": 2, "variant": "parallel", "seconds": 14.132125900010578}
+{"scenario": "map-000", "repeat": 2, "variant": "prior", "seconds": 15.263827900053002}
+{"scenario": "map-000", "repeat": 2, "variant": "lazy", "seconds": 15.158177900011651}
+{"scenario": "map-001", "repeat": 2, "variant": "parallel", "seconds": 19.234373999992386}
+{"scenario": "map-001", "repeat": 2, "variant": "prior", "seconds": 32.44942199997604}
+{"scenario": "map-001", "repeat": 2, "variant": "lazy", "seconds": 29.316244199988432}
+{
+  "schema_version": "calibrex.cpu_map_bag_comparison/v0.1",
+  "scenarios": {
+    "map-000": {
+      "workers": 9,
+      "fits": 45,
+      "quality_passed": true,
+      "median_seconds": {
+        "prior": 17.645548000000417,
+        "lazy": 15.158177900011651,
+        "parallel": 14.132125900010578
+      },
+      "prior_to_lazy": 1.1640942675561852,
+      "prior_to_parallel": 1.2486124256780935,
+      "lazy_to_parallel": 1.072604221563035,
+      "parallel_faster_pairs": 3
+    },
+    "map-001": {
+      "workers": 9,
+      "fits": 45,
+      "quality_passed": true,
+      "median_seconds": {
+        "prior": 32.44942199997604,
+        "lazy": 24.792670499999076,
+        "parallel": 19.234373999992386
+      },
+      "prior_to_lazy": 1.3088312531712647,
+      "prior_to_parallel": 1.6870537091557483,
+      "lazy_to_parallel": 1.288977249792943,
+      "parallel_faster_pairs": 3
+    }
+  },
+  "protocol_sha256": "b12083b45fef5a2f8690513254dcf5e4833af2f8a06a80a5147c1aa6a85eb2c1",
+  "triads_sha256": {
+    "map-000-triad-00.json": "86c5c21a8c5c5601e8121463300ed5bf2d5a333166512878b77f0eb35b393e3a",
+    "map-000-triad-01.json": "d713a8afa345ab3a151bc390211b66c657589727a3b7d8635018fc84a8a84935",
+    "map-000-triad-02.json": "750e268b251deb9ed91ca62407380e27f8ba06803942122edd0aa3c5a3c1b90c",
+    "map-001-triad-00.json": "8c3a6615ee5860c73493d81bcc29dc27dfa47ff27ec59c23b16b08e4f47c86d3",
+    "map-001-triad-01.json": "c444d8a6b90f8b65dceaa7ef9767afab6976a6ee1a6b40b2b86866ab540afc78",
+    "map-001-triad-02.json": "73098cfea76169374443118e1c135f7af7bef1f540ff1e5aa8f53b7f3d693d77"
+  }
+}

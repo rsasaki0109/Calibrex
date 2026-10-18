@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Whole-bag CPU map execution audit",
+  "type": "object", "additionalProperties": false,
+  "required": ["schema_version", "complete_workers", "complete_fits", "fit_bit_comparisons", "quality_passed", "scenarios", "gpu_runtime_imported", "provenance"],
+  "properties": {
+    "schema_version": {"const": "calibrex.cpu_map_bag_audit/v0.1"},
+    "complete_workers": {"const": 18}, "complete_fits": {"const": 90}, "fit_bit_comparisons": {"const": 60},
+    "quality_passed": {"const": true}, "gpu_runtime_imported": {"const": false},
+    "scenarios": {
+      "type": "object", "required": ["map-000", "map-001"], "additionalProperties": false,
+      "properties": {"map-000": {"$ref": "#/$defs/scenario"}, "map-001": {"$ref": "#/$defs/scenario"}}
+    },
+    "provenance": {
+      "type": "object", "additionalProperties": false, "required": ["archive_index_sha256", "protocol_sha256", "auditor_sha256", "commits"],
+      "properties": {
+        "archive_index_sha256": {"$ref": "#/$defs/sha"}, "protocol_sha256": {"$ref": "#/$defs/sha"},
+        "auditor_sha256": {"$ref": "#/$defs/sha"},
+        "commits": {
+          "type": "object", "required": ["prior", "current"], "additionalProperties": false,
+          "properties": {"prior": {"$ref": "#/$defs/commit"}, "current": {"$ref": "#/$defs/commit"}}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "positive": {"type": "number", "exclusiveMinimum": 0},
+    "times": {
+      "type": "object", "required": ["prior", "lazy", "parallel"], "additionalProperties": false,
+      "properties": {"prior": {"$ref": "#/$defs/positive"}, "lazy": {"$ref": "#/$defs/positive"}, "parallel": {"$ref": "#/$defs/positive"}}
+    },
+    "whole": {
+      "type": "object", "additionalProperties": false,
+      "required": ["workers", "fits", "quality_passed", "median_seconds", "prior_to_lazy", "prior_to_parallel", "lazy_to_parallel", "parallel_faster_pairs"],
+      "properties": {
+        "workers": {"const": 9}, "fits": {"const": 45}, "quality_passed": {"const": true},
+        "median_seconds": {"$ref": "#/$defs/times"}, "prior_to_lazy": {"$ref": "#/$defs/positive"},
+        "prior_to_parallel": {"$ref": "#/$defs/positive"}, "lazy_to_parallel": {"$ref": "#/$defs/positive"},
+        "parallel_faster_pairs": {"type": "integer", "minimum": 0, "maximum": 3}
+      }
+    },
+    "stage": {
+      "type": "object", "additionalProperties": false, "required": ["collect_seconds", "evaluate_seconds"],
+      "properties": {"collect_seconds": {"$ref": "#/$defs/positive"}, "evaluate_seconds": {"$ref": "#/$defs/positive"}}
+    },
+    "scenario": {
+      "type": "object", "additionalProperties": false, "required": ["map_voxel_size_m", "whole", "median_stages_seconds", "normal_rows"],
+      "properties": {
+        "map_voxel_size_m": {"enum": [0.2, 0.03]}, "whole": {"$ref": "#/$defs/whole"},
+        "median_stages_seconds": {
+          "type": "object", "required": ["prior", "lazy", "parallel"], "additionalProperties": false,
+          "properties": {"prior": {"$ref": "#/$defs/stage"}, "lazy": {"$ref": "#/$defs/stage"}, "parallel": {"$ref": "#/$defs/stage"}}
+        },
+        "normal_rows": {
+          "type": "object", "required": ["prior", "lazy", "parallel"], "additionalProperties": false,
+          "properties": {"prior": {"$ref": "#/$defs/counts"}, "lazy": {"$ref": "#/$defs/counts"}, "parallel": {"$ref": "#/$defs/counts"}}
+        }
+      }
+    },
+    "counts": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "integer", "minimum": 1}}
+  }
+}
