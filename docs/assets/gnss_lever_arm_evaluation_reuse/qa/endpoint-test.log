@@ -1,0 +1,23 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+____ test_combined_lookup_preserves_exact_endpoints_on_both_sides_of_a_gap ____
+
+    def test_combined_lookup_preserves_exact_endpoints_on_both_sides_of_a_gap() -> None:
+        times = np.arange(11, dtype=np.float64)
+        poses = np.tile(np.eye(4), (11, 1, 1))
+>       poses[:, :3, :3] = solver.Rotation.from_euler("z", times * 0.1).as_matrix()
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\unit\test_gnss_lever_arm_reuse.py:237: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\..\AppData\Local\Programs\Python\Python312\Lib\site-packages\scipy\spatial\transform\_rotation.py:765: in from_euler
+    quat = backend.from_euler(seq, angles, degrees=degrees)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+>   ???
+E   ValueError: Expected last dimension of `angles` to match number of sequence axes specified, got 11.
+
+scipy/spatial/transform/_rotation_cy.pyx:454: ValueError
+=========================== short test summary info ===========================
+FAILED tests/unit/test_gnss_lever_arm_reuse.py::test_combined_lookup_preserves_exact_endpoints_on_both_sides_of_a_gap

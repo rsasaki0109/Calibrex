@@ -1,0 +1,37 @@
+import hashlib
+import json
+from pathlib import Path
+import shutil
+import subprocess
+import tarfile
+
+ROOT = Path(__file__).resolve().parent
+ARCHIVE = ROOT / 'docs/assets/gnss_lever_arm_evaluation_reuse'
+OUT = ROOT / 'outputs/gnss-reuse-validation-v1'
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+write = lambda p,v: p.write_bytes((json.dumps(v,indent=2,allow_nan=False)+'\n').encode())
+protocol = json.loads((ARCHIVE / 'protocol.json').read_bytes())
+assert subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip() == protocol['commits']['current']
+for file in ('launcher.py.txt','control-generator.py.txt'):
+    source = 'tools/benchmark_gnss_lever_arm_reuse.py' if file.startswith('launcher') else 'tools/prepare_gnss_lever_arm_control.py'
+    assert (ROOT / source).read_bytes() == (ARCHIVE / file).read_bytes()
+with tarfile.open(ARCHIVE / 'sources-current.tar.gz') as capsule:
+    for item in capsule.getmembers():
+        stream = capsule.extractfile(item)
+        assert stream is not None
+        assert stream.read().replace(b'\r\n',b'\n') == (ROOT / item.name).read_bytes().replace(b'\r\n',b'\n')
+for name in ('archive-tests.log','linux-tests-audit.log','ruff-all.log','docs.log','schemas.log','schema-verification.json'):
+    shutil.copyfile(OUT / name, ARCHIVE / 'qa' / name)
+shutil.copyfile(Path(__file__), ARCHIVE / 'qa/publication.py.txt')
+write(ARCHIVE / 'qa/validation.json',dict(scope='Final selected GNSS lever-arm runtime and complete prepared-input evaluation.',
+    windows_distinct_targeted_cases=76,
+    windows_case_groups=dict(existing_solver_evaluation=13,reuse=18,benchmark_replay=18,archive=12,registry=15),
+    linux_repeated_cases=36,linux_complete_archive_audit=True,
+    strict_mypy_core_modules=378,ruff=True,mkdocs_strict=True,
+    public_schema_exports_identical=129,public_schema_ledger_identical=True,
+    measured_core_and_launcher_unchanged=True,
+    provenance=dict(runtime_commit=protocol['commits']['current'],protocol_sha256=sha(ARCHIVE / 'protocol.json'),
+        generator_sha256=sha(Path(__file__)),files={p.relative_to(ARCHIVE / 'qa').as_posix():sha(p) for p in sorted((ARCHIVE / 'qa').rglob('*')) if p.is_file() and p.name!='validation.json'})))
+write(ARCHIVE / 'index.json',dict(files={p.relative_to(ARCHIVE).as_posix():sha(p) for p in sorted(ARCHIVE.rglob('*')) if p.is_file() and p.name!='index.json'},
+    provenance=dict(generator_sha256=sha(Path(__file__)),protocol_sha256=sha(ARCHIVE / 'protocol.json'))))
+print('final archive files',len(json.loads((ARCHIVE / 'index.json').read_bytes())['files'])+1)
