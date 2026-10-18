@@ -336,3 +336,11 @@ priors and is therefore reported as augmented. Separate rank-6 and rank-8
 metrics diagnose data-only shared extrinsic and extrinsic/depth geometry. The
 The next extension can increase lattice resolution only if public support
 remains observable, or move to the next primary-paper calibration family.
+
+## Execution comparison
+
+The [ordered RGB-D evaluation comparison](../benchmarks/rgbd_evaluation_reuse.md)
+replays the complete existing three-window pipeline using array geometry and
+the original scalar lattice sums. Its source capsules, input fingerprints,
+numeric histories and full results support an execution-only comparison.
+The reference verdicts and observability limitations described above are retained.
