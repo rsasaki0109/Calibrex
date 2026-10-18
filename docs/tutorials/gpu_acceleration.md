@@ -16,6 +16,11 @@ parallel workload, so it was selected first. This is a throughput optimization;
 the estimator, histogram objective, calibration thresholds and evidence contract
 retain their existing definitions.
 
+For repeated probabilistic correspondence refinement, see the
+[resident CUDA refinement adapter](../benchmarks/probabilistic_cuda_refinement.md).
+It has a separate `--evaluation-backend` option and preserves native NumPy
+aggregation and estimator options.
+
 ## Install
 
 From a checkout containing this change:

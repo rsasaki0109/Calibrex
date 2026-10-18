@@ -130,7 +130,7 @@ def test_complete_solver_trace_selection_and_holdout_match_scalar(
     settings = replace(refiner.ProbabilisticCameraLidarRefinementOptions(), max_evaluations=73)
     expected = refiner.ProbabilisticCameraLidarRefiner().solve(frames, SE3.identity(), settings)
 
-    class ScalarEvaluator:
+    class ScalarEvaluator(refiner._PreparedPoseEvaluation):
         def __init__(self, rows: object, options: object) -> None:
             self.frames, self.options = rows, options
 

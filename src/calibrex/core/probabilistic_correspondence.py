@@ -350,6 +350,31 @@ class ProbabilisticRefinementAcceptanceArtifact(StrictModel):
         return self
 
 
+class ProbabilisticRefinementExecution(StrictModel):
+    """Optional accelerator lineage; numerical estimator options stay separate."""
+
+    backend: Literal["cuda"]
+    runtime: str = Field(min_length=1)
+    kernel_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    math_policy: Literal["fp64_no_fmad_numpy_reductions"] = "fp64_no_fmad_numpy_reductions"
+    calls: int = Field(ge=0)
+    cuda_calls: int = Field(ge=0)
+    kernel_launches: int = Field(default=0, ge=0)
+    pose_upload_bytes: int = Field(default=0, ge=0)
+    numpy_fallback_calls: int = Field(ge=0)
+    upload_bytes: int = Field(ge=0)
+    download_bytes: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def check_call_counts(self) -> ProbabilisticRefinementExecution:
+        """Every evaluation must identify an executed backend."""
+        if not 0 <= self.kernel_launches <= self.cuda_calls <= self.calls or not (
+            self.calls - self.cuda_calls <= self.numpy_fallback_calls <= self.calls
+        ):
+            raise ValueError("pose execution counters are inconsistent")
+        return self
+
+
 class ProbabilisticRefinementProvenance(StrictModel):
     """D2D initializer and learned correspondence lineage."""
 
@@ -357,6 +382,7 @@ class ProbabilisticRefinementProvenance(StrictModel):
     generator_version: str
     git_commit: str | None = None
     command: list[str] = Field(default_factory=list)
+    execution: ProbabilisticRefinementExecution | None = None
     correspondence_artifact_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     initialization_problem_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     initialization_trace_sha256: str | None = Field(

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
-from dataclasses import asdict, dataclass
-from typing import Literal, TypeAlias
+from dataclasses import asdict, dataclass, replace
+from typing import TYPE_CHECKING, Literal, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -18,10 +18,18 @@ from calibrex.core.geometry import (
 from calibrex.core.probabilistic_correspondence import (
     ProbabilisticCorrespondenceFrame,
     ProbabilisticImageCorrespondence,
+    ProbabilisticRefinementExecution,
 )
 from calibrex.data.depth import DepthCameraIntrinsics
 from calibrex.evaluation.holdout import split_indices
 from calibrex.solvers.borer_six_dof_solver import apply_local_se3_delta
+
+if TYPE_CHECKING:
+    from calibrex.solvers.cuda_probabilistic_camera_lidar_adapter import (
+        CudaProbabilisticPoseRuntime,
+    )
+
+PoseEvaluationBackend: TypeAlias = Literal["numpy", "cuda"]
 
 FloatArray: TypeAlias = NDArray[np.float64]
 ProbabilisticRefinementStatus = Literal[
@@ -35,9 +43,7 @@ ProbabilisticRefinementSelectedSource = Literal[
     "refined_candidate",
     "initializer_rollback",
 ]
-INITIALIZER_PRESERVING_ACCEPTANCE_POLICY_ID = (
-    "initializer_preserving_fit_only/v0.1"
-)
+INITIALIZER_PRESERVING_ACCEPTANCE_POLICY_ID = "initializer_preserving_fit_only/v0.1"
 _POSE_CAPTURE_BUDGET_BYTES = 128 * 1024**2
 
 
@@ -176,6 +182,7 @@ class ProbabilisticCameraLidarRefinementResult:
     acceptance: ProbabilisticRefinementAcceptanceDecision
     trace: tuple[ProbabilisticPoseIteration, ...]
     options: ProbabilisticCameraLidarRefinementOptions
+    execution: ProbabilisticRefinementExecution | None = None
 
     def as_dict(self) -> dict[str, object]:
         """Return typed metrics, trace, ablations, and method provenance."""
@@ -183,31 +190,17 @@ class ProbabilisticCameraLidarRefinementResult:
         return {
             "status": self.status,
             "reason": self.reason,
-            "initial_transform_camera_lidar": (
-                self.initial_transform_camera_lidar.as_dict()
-            ),
-            "candidate_transform_camera_lidar": (
-                self.candidate_transform_camera_lidar.as_dict()
-            ),
+            "initial_transform_camera_lidar": (self.initial_transform_camera_lidar.as_dict()),
+            "candidate_transform_camera_lidar": (self.candidate_transform_camera_lidar.as_dict()),
             "transform_camera_lidar": self.transform_camera_lidar.as_dict(),
             "train_frame_ids": list(self.train_frame_ids),
             "holdout_frame_ids": list(self.holdout_frame_ids),
-            "initial_train_evaluation": asdict(
-                self.initial_train_evaluation
-            ),
-            "candidate_train_evaluation": asdict(
-                self.candidate_train_evaluation
-            ),
+            "initial_train_evaluation": asdict(self.initial_train_evaluation),
+            "candidate_train_evaluation": asdict(self.candidate_train_evaluation),
             "final_train_evaluation": asdict(self.final_train_evaluation),
-            "initial_holdout_evaluation": asdict(
-                self.initial_holdout_evaluation
-            ),
-            "candidate_holdout_evaluation": asdict(
-                self.candidate_holdout_evaluation
-            ),
-            "final_holdout_evaluation": asdict(
-                self.final_holdout_evaluation
-            ),
+            "initial_holdout_evaluation": asdict(self.initial_holdout_evaluation),
+            "candidate_holdout_evaluation": asdict(self.candidate_holdout_evaluation),
+            "final_holdout_evaluation": asdict(self.final_holdout_evaluation),
             "acceptance": asdict(self.acceptance),
             "trace": [asdict(item) for item in self.trace],
             "options": asdict(self.options),
@@ -216,15 +209,41 @@ class ProbabilisticCameraLidarRefinementResult:
                 "initial_transform_camera_lidar is supplied by the analytical "
                 "D2D stage or another explicitly declared initializer"
             ),
+            **({"execution": self.execution.model_dump(mode="json")} if self.execution else {}),
             "implementation": (
-                "independent ROS-free NumPy implementation; learned provider "
+                "independent ROS-free CUDA points and NumPy aggregation"
+                if self.execution is not None
+                else "independent ROS-free NumPy implementation; learned provider "
                 "is isolated behind slac.probabilistic_correspondence/v0.1"
             ),
         }
 
 
+def _partition_pose_frames(
+    frames: Sequence[ProbabilisticCorrespondenceFrame],
+    settings: ProbabilisticCameraLidarRefinementOptions,
+) -> tuple[
+    tuple[ProbabilisticCorrespondenceFrame, ...], tuple[ProbabilisticCorrespondenceFrame, ...]
+]:
+    identifiers = [item.frame_id for item in frames]
+    if len(identifiers) != len(set(identifiers)):
+        raise ValueError("probabilistic correspondence frame IDs must be unique")
+    ordered = sorted(frames, key=lambda item: item.frame_id)
+    train_indices, holdout_indices = split_indices(
+        len(ordered), settings.holdout_ratio, settings.split_seed
+    )
+    train = tuple(ordered[index] for index in train_indices)
+    holdout = tuple(ordered[index] for index in holdout_indices)
+    return train, holdout
+
+
 class ProbabilisticCameraLidarRefiner:
     """Refine one shared extrinsic from probabilistic correspondences."""
+
+    def __init__(self, *, evaluation_backend: PoseEvaluationBackend = "numpy") -> None:
+        if evaluation_backend not in {"numpy", "cuda"}:
+            raise ValueError("pose evaluation backend must be numpy or cuda")
+        self.evaluation_backend = evaluation_backend
 
     def solve(
         self,
@@ -235,15 +254,7 @@ class ProbabilisticCameraLidarRefiner:
         """Optimize training frames and retain disjoint holdout evidence."""
 
         settings = options or ProbabilisticCameraLidarRefinementOptions()
-        identifiers = [item.frame_id for item in frames]
-        if len(identifiers) != len(set(identifiers)):
-            raise ValueError("probabilistic correspondence frame IDs must be unique")
-        ordered = sorted(frames, key=lambda item: item.frame_id)
-        train_indices, holdout_indices = split_indices(
-            len(ordered), settings.holdout_ratio, settings.split_seed
-        )
-        train = tuple(ordered[index] for index in train_indices)
-        holdout = tuple(ordered[index] for index in holdout_indices)
+        train, holdout = _partition_pose_frames(frames, settings)
         return self.solve_partitioned(
             train,
             holdout,
@@ -258,6 +269,55 @@ class ProbabilisticCameraLidarRefiner:
         initial_transform_camera_lidar: SE3,
         options: ProbabilisticCameraLidarRefinementOptions | None = None,
     ) -> ProbabilisticCameraLidarRefinementResult:
+        """Refine disjoint caller-selected frames with a per-call runtime.
+
+        The caller must keep neighboring measurements sharing a scene on the
+        same side of the train/holdout boundary.
+        """
+        runtime = None
+        if self.evaluation_backend == "cuda":
+            try:
+                from calibrex.solvers.cuda_probabilistic_camera_lidar_adapter import (
+                    CudaProbabilisticPoseRuntime,
+                )
+            except ImportError as exc:
+                raise ValueError("CUDA pose evaluation requires calibrex[cuda]") from exc
+            runtime = CudaProbabilisticPoseRuntime()
+        result = self._solve_partitioned(
+            train_frames,
+            holdout_frames,
+            initial_transform_camera_lidar,
+            options,
+            runtime,
+        )
+        return replace(result, execution=runtime.execution()) if runtime is not None else result
+
+    def _solve_in_runtime(
+        self,
+        frames: Sequence[ProbabilisticCorrespondenceFrame],
+        initial_transform_camera_lidar: SE3,
+        settings: ProbabilisticCameraLidarRefinementOptions,
+        runtime: CudaProbabilisticPoseRuntime,
+    ) -> ProbabilisticCameraLidarRefinementResult:
+        train, holdout = _partition_pose_frames(frames, settings)
+        before = runtime.execution()
+        result = self._solve_partitioned(
+            train,
+            holdout,
+            initial_transform_camera_lidar,
+            settings,
+            runtime,
+        )
+        return replace(result, execution=runtime.execution(before))
+
+    def _solve_partitioned(
+        self,
+        train_frames: Sequence[ProbabilisticCorrespondenceFrame],
+        holdout_frames: Sequence[ProbabilisticCorrespondenceFrame],
+        initial_transform_camera_lidar: SE3,
+        options: ProbabilisticCameraLidarRefinementOptions | None,
+        runtime: CudaProbabilisticPoseRuntime | None,
+    ) -> ProbabilisticCameraLidarRefinementResult:
         """Refine from caller-supplied disjoint train/holdout frame sets.
 
         The caller is responsible for assembling block-aligned frame subsets so
@@ -268,19 +328,15 @@ class ProbabilisticCameraLidarRefiner:
         settings = options or ProbabilisticCameraLidarRefinementOptions()
         train = tuple(train_frames)
         holdout = tuple(holdout_frames)
-        identifiers = [item.frame_id for item in train] + [
-            item.frame_id for item in holdout
-        ]
+        identifiers = [item.frame_id for item in train] + [item.frame_id for item in holdout]
         if len(identifiers) != len(set(identifiers)):
             raise ValueError("train and holdout frame IDs must be disjoint")
-        train_evaluator = _PreparedPoseEvaluation(train, settings)
-        holdout_evaluator = _PreparedPoseEvaluation(holdout, settings)
+        prepare = runtime.prepare if runtime is not None else _PreparedPoseEvaluation
+        train_evaluator = prepare(train, settings)
+        holdout_evaluator = prepare(holdout, settings)
         initial_train = train_evaluator.evaluate(initial_transform_camera_lidar)
         initial_holdout = holdout_evaluator.evaluate(initial_transform_camera_lidar)
-        if (
-            initial_train.valid_correspondence_count
-            < settings.minimum_train_correspondences
-        ):
+        if initial_train.valid_correspondence_count < settings.minimum_train_correspondences:
             return _terminal(
                 "insufficient_correspondences",
                 "too few training correspondences passed confidence/projection gates",
@@ -291,10 +347,7 @@ class ProbabilisticCameraLidarRefiner:
                 initial_holdout,
                 settings,
             )
-        if (
-            initial_holdout.valid_correspondence_count
-            < settings.minimum_holdout_correspondences
-        ):
+        if initial_holdout.valid_correspondence_count < settings.minimum_holdout_correspondences:
             return _terminal(
                 "missing_holdout",
                 "too few disjoint holdout correspondences passed the gates",
@@ -346,6 +399,8 @@ class ProbabilisticCameraLidarRefiner:
             candidates: list[
                 tuple[float, tuple[float, ...], FloatArray, ProbabilisticPoseEvaluation]
             ] = []
+            candidate_deltas: list[FloatArray] = []
+            candidate_poses: list[SE3] = []
             for axis in range(6):
                 if steps[axis] < minimum_steps[axis]:
                     continue
@@ -365,20 +420,16 @@ class ProbabilisticCameraLidarRefiner:
                         candidate[:3],
                         candidate[3:],
                     )
-                    result = train_evaluator.evaluate(transform)
-                    evaluations += 1
-                    candidates.append(
-                        (
-                            result.objective,
-                            tuple(candidate.tolist()),
-                            candidate,
-                            result,
-                        )
-                    )
-                    if evaluations >= settings.max_evaluations:
+                    candidate_deltas.append(candidate)
+                    candidate_poses.append(transform)
+                    if evaluations + len(candidate_poses) >= settings.max_evaluations:
                         break
-                if evaluations >= settings.max_evaluations:
+                if evaluations + len(candidate_poses) >= settings.max_evaluations:
                     break
+            batch = train_evaluator.evaluate_many(candidate_poses)
+            evaluations += len(batch)
+            for candidate, result in zip(candidate_deltas, batch, strict=True):
+                candidates.append((result.objective, tuple(candidate.tolist()), candidate, result))
             if not candidates:
                 break
             objective, _tie, candidate_delta, candidate_result = min(
@@ -391,10 +442,7 @@ class ProbabilisticCameraLidarRefiner:
                         len(trace) + 1,
                         candidate,
                         candidate_objective,
-                        accepted=(
-                            accepted
-                            and np.array_equal(candidate, candidate_delta)
-                        ),
+                        accepted=(accepted and np.array_equal(candidate, candidate_delta)),
                     )
                 )
             if accepted:
@@ -409,11 +457,7 @@ class ProbabilisticCameraLidarRefiner:
         at_bound = bool(np.any(np.isclose(np.abs(delta), bounds, atol=1.0e-12)))
         converged = bool(np.all(steps < minimum_steps))
         status: ProbabilisticRefinementStatus = (
-            "at_bound"
-            if at_bound
-            else "converged"
-            if converged
-            else "max_evaluations"
+            "at_bound" if at_bound else "converged" if converged else "max_evaluations"
         )
         acceptance = _accept_candidate(
             status,
@@ -424,9 +468,7 @@ class ProbabilisticCameraLidarRefiner:
             settings,
         )
         selected_transform = (
-            candidate_transform
-            if acceptance.accepted
-            else initial_transform_camera_lidar
+            candidate_transform if acceptance.accepted else initial_transform_camera_lidar
         )
         final_train = best if acceptance.accepted else initial_train
         final_holdout = candidate_holdout if acceptance.accepted else initial_holdout
@@ -510,6 +552,10 @@ class _PreparedPoseEvaluation:
                     np.asarray([weight for _, weight in selected], dtype=float),
                 ))
         self.frames = tuple(prepared)
+
+    def evaluate_many(self, transforms: Sequence[SE3]) -> tuple[ProbabilisticPoseEvaluation, ...]:
+        """Preserve native order; optional adapters may batch independent poses."""
+        return tuple(self.evaluate(transform) for transform in transforms)
 
     def evaluate(self, transform: SE3) -> ProbabilisticPoseEvaluation:
         if self.fallback:

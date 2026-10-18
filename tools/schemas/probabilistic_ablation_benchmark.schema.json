@@ -1,0 +1,439 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Complete probabilistic ablation performance records",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "order": {
+          "const": [
+            "prior",
+            "numpy",
+            "cuda",
+            "cuda",
+            "numpy",
+            "prior"
+          ]
+        },
+        "split_seeds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer"
+          }
+        },
+        "uncertainty_variants": {
+          "const": 4
+        },
+        "max_evaluations": {
+          "const": 400
+        },
+        "bootstrap_samples": {
+          "const": 2000
+        },
+        "gates": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "complete_results": {
+              "type": "string",
+              "minLength": 1
+            },
+            "prior_cuda_whole_ratio_at_least": {
+              "const": 2.0
+            },
+            "numpy_cuda_whole_ratio_at_least": {
+              "const": 2.0
+            }
+          },
+          "required": [
+            "complete_results",
+            "prior_cuda_whole_ratio_at_least",
+            "numpy_cuda_whole_ratio_at_least"
+          ]
+        },
+        "commits": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "prior": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "current": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            }
+          },
+          "required": [
+            "prior",
+            "current"
+          ]
+        },
+        "source_manifests": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "prior": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "current": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "prior",
+            "current"
+          ]
+        },
+        "inputs": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "correspondence": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "problem": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "correspondence",
+            "problem"
+          ]
+        },
+        "launcher_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "freezer_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "provenance_binding": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "recorded_at": {
+              "type": "string",
+              "minLength": 1
+            },
+            "host_unreserved": {
+              "const": true
+            },
+            "blas_threads": {
+              "const": 1
+            },
+            "fresh_worker_and_cupy_cache": {
+              "const": true
+            },
+            "cuda_driver_cache": {
+              "const": false
+            }
+          },
+          "required": [
+            "recorded_at",
+            "host_unreserved",
+            "blas_threads",
+            "fresh_worker_and_cupy_cache",
+            "cuda_driver_cache"
+          ]
+        }
+      },
+      "required": [
+        "scope",
+        "order",
+        "split_seeds",
+        "uncertainty_variants",
+        "max_evaluations",
+        "bootstrap_samples",
+        "gates",
+        "commits",
+        "source_manifests",
+        "inputs",
+        "launcher_sha256",
+        "freezer_sha256",
+        "provenance_binding",
+        "provenance"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "variant": {
+          "enum": [
+            "prior",
+            "numpy",
+            "cuda"
+          ]
+        },
+        "api_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "complete_results": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "minProperties": 1
+        },
+        "definition_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "benchmark_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "execution": {
+          "type": "array",
+          "items": {
+            "additionalProperties": false,
+            "description": "Optional accelerator lineage; numerical estimator options stay separate.",
+            "properties": {
+              "backend": {
+                "const": "cuda",
+                "title": "Backend",
+                "type": "string"
+              },
+              "runtime": {
+                "minLength": 1,
+                "title": "Runtime",
+                "type": "string"
+              },
+              "kernel_sha256": {
+                "pattern": "^[0-9a-f]{64}$",
+                "title": "Kernel Sha256",
+                "type": "string"
+              },
+              "math_policy": {
+                "const": "fp64_no_fmad_numpy_reductions",
+                "default": "fp64_no_fmad_numpy_reductions",
+                "title": "Math Policy",
+                "type": "string"
+              },
+              "calls": {
+                "minimum": 0,
+                "title": "Calls",
+                "type": "integer"
+              },
+              "cuda_calls": {
+                "minimum": 0,
+                "title": "Cuda Calls",
+                "type": "integer"
+              },
+              "kernel_launches": {
+                "default": 0,
+                "minimum": 0,
+                "title": "Kernel Launches",
+                "type": "integer"
+              },
+              "pose_upload_bytes": {
+                "default": 0,
+                "minimum": 0,
+                "title": "Pose Upload Bytes",
+                "type": "integer"
+              },
+              "numpy_fallback_calls": {
+                "minimum": 0,
+                "title": "Numpy Fallback Calls",
+                "type": "integer"
+              },
+              "upload_bytes": {
+                "minimum": 0,
+                "title": "Upload Bytes",
+                "type": "integer"
+              },
+              "download_bytes": {
+                "minimum": 0,
+                "title": "Download Bytes",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "backend",
+              "runtime",
+              "kernel_sha256",
+              "calls",
+              "cuda_calls",
+              "numpy_fallback_calls",
+              "upload_bytes",
+              "download_bytes"
+            ],
+            "title": "ProbabilisticRefinementExecution",
+            "type": "object"
+          }
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "source_commit": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "source_manifest_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "launcher_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "protocol_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "python": {
+              "type": "string",
+              "minLength": 1
+            },
+            "recorded_at": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "source_commit",
+            "source_manifest_sha256",
+            "launcher_sha256",
+            "protocol_sha256",
+            "python",
+            "recorded_at"
+          ]
+        }
+      },
+      "required": [
+        "variant",
+        "api_seconds",
+        "complete_results",
+        "definition_sha256",
+        "benchmark_sha256",
+        "execution",
+        "provenance"
+      ]
+    },
+    {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5
+          },
+          "variant": {
+            "enum": [
+              "prior",
+              "numpy",
+              "cuda"
+            ]
+          },
+          "whole_seconds": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "exit_code": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "index",
+          "variant",
+          "whole_seconds",
+          "exit_code"
+        ]
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "exact_complete_results": {
+          "type": "boolean"
+        },
+        "median_whole_seconds": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "prior": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "numpy": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "cuda": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          },
+          "required": [
+            "prior",
+            "numpy",
+            "cuda"
+          ]
+        },
+        "prior_cuda_whole_ratio": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "numpy_cuda_whole_ratio": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "passes_gate": {
+          "type": "boolean"
+        },
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "protocol_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "attempts_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "protocol_sha256",
+            "attempts_sha256"
+          ]
+        }
+      },
+      "required": [
+        "exact_complete_results",
+        "median_whole_seconds",
+        "prior_cuda_whole_ratio",
+        "numpy_cuda_whole_ratio",
+        "passes_gate",
+        "provenance"
+      ]
+    }
+  ]
+}
