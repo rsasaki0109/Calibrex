@@ -213,3 +213,16 @@ def test_cli_rejects_invalid_worker_budget(workers):
     with pytest.raises(SystemExit) as error:
         main(["lidar-lidar", "ros2", "bag", "--registration-query-workers", workers])
     assert error.value.code == 2
+
+
+def test_bag_api_records_nondefault_query_budget(monkeypatch):
+    monkeypatch.setattr(evaluation, "collect_map_samples", lambda *args, **kwargs: ([], 0))
+    monkeypatch.setattr(evaluation, "bag_input_digest", lambda *args: ("a" * 64, "synthetic"))
+    artifact = evaluation.run_ros2_lidar_lidar_map(
+        "synthetic-bag", reference_topic="/reference", target_topic="/target",
+        initial=np.eye(4), point_time_field=None, dataset_family="synthetic",
+        dataset_license="test", options=evaluation.LidarLidarMapOptions(
+            solver=MapSampleOptions(query_workers=4),
+        ),
+    )
+    assert artifact.options["registration_query_workers"] == 4
