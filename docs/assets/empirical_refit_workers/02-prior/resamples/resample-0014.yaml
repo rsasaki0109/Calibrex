@@ -1,0 +1,3099 @@
+schema_version: slac.probabilistic_refinement_result/v0.2
+result_id: resample-0014
+status: converged
+reason: all pose correction steps reached their minima
+correspondence_artifact_id: kitti-projected-execution-control
+initialization_problem_id: kitti-projected-control
+initialization_source: problem_initial_transform
+provider:
+  provider: generated-projection-execution-control
+  model: declared-camera-projections
+  version: '1'
+  source_repository: https://github.com/rsasaki0109/Calibrex
+  source_commit: 6cd53740fc851ad8b1a0bea10a1cb710c8561f0e
+  license_spdx: Apache-2.0
+  checkpoint_redistribution: no checkpoint
+initial_transform_camera_lidar:
+  convention: T_parent_child
+  parent: camera
+  child: lidar
+  translation_m:
+  - 0.14
+  - -0.08
+  - 0.04
+  rotation_quat_xyzw:
+  - -0.5013133583340816
+  - 0.5021707867410162
+  - -0.5004300336100179
+  - -0.4960637047404194
+  quality:
+    grade: warn
+    std_translation_m: []
+    std_rotation_deg: []
+  provenance:
+    producer: unknown
+    execution_mode: unknown
+    evidence_level: unknown
+    notes: []
+candidate_transform_camera_lidar:
+  convention: T_parent_child
+  parent: camera
+  child: lidar
+  translation_m:
+  - 0.11187500000000002
+  - -0.04875
+  - 0.018125
+  rotation_quat_xyzw:
+  - -0.4998267262100986
+  - 0.5003979555561534
+  - -0.500299312175977
+  - -0.4994754529279306
+  quality:
+    grade: warn
+    std_translation_m: []
+    std_rotation_deg: []
+  provenance:
+    producer: unknown
+    execution_mode: unknown
+    evidence_level: unknown
+    notes: []
+transform_camera_lidar:
+  convention: T_parent_child
+  parent: camera
+  child: lidar
+  translation_m:
+  - 0.11187500000000002
+  - -0.04875
+  - 0.018125
+  rotation_quat_xyzw:
+  - -0.4998267262100986
+  - 0.5003979555561534
+  - -0.500299312175977
+  - -0.4994754529279306
+  quality:
+    grade: warn
+    std_translation_m: []
+    std_rotation_deg: []
+  provenance:
+    producer: unknown
+    execution_mode: unknown
+    evidence_level: unknown
+    notes: []
+train_frame_ids:
+- '0000000114'
+- '0000000115'
+- '0000000116'
+- '0000000344'
+- '0000000345'
+- '0000000346'
+holdout_frame_ids:
+- 0000000229
+- '0000000230'
+- '0000000231'
+initial_train_evaluation:
+  objective: 0.989025346505857
+  weighted_reprojection_rmse_px: 6.258992370613763
+  mean_mahalanobis_error: 4.036540236305817
+  valid_correspondence_count: 6144
+  skipped_correspondence_count: 0
+candidate_train_evaluation:
+  objective: 0.02932312876884579
+  weighted_reprojection_rmse_px: 0.6729939375354093
+  mean_mahalanobis_error: 0.45174788015534817
+  valid_correspondence_count: 6144
+  skipped_correspondence_count: 0
+final_train_evaluation:
+  objective: 0.02932312876884579
+  weighted_reprojection_rmse_px: 0.6729939375354093
+  mean_mahalanobis_error: 0.45174788015534817
+  valid_correspondence_count: 6144
+  skipped_correspondence_count: 0
+initial_holdout_evaluation:
+  objective: 1.006557053049599
+  weighted_reprojection_rmse_px: 6.272921095905661
+  mean_mahalanobis_error: 4.085401329390451
+  valid_correspondence_count: 3072
+  skipped_correspondence_count: 0
+candidate_holdout_evaluation:
+  objective: 0.02792618374086472
+  weighted_reprojection_rmse_px: 0.6530218543551181
+  mean_mahalanobis_error: 0.44511833756020136
+  valid_correspondence_count: 3072
+  skipped_correspondence_count: 0
+final_holdout_evaluation:
+  objective: 0.02792618374086472
+  weighted_reprojection_rmse_px: 0.6530218543551181
+  mean_mahalanobis_error: 0.44511833756020136
+  valid_correspondence_count: 3072
+  skipped_correspondence_count: 0
+acceptance:
+  policy_id: initializer_preserving_fit_only/v0.1
+  accepted: true
+  selected_source: refined_candidate
+  candidate_status: converged
+  reasons: []
+  holdout_used_for_selection: false
+  initial_train_objective: 0.989025346505857
+  candidate_train_objective: 0.02932312876884579
+  absolute_train_objective_improvement: 0.9597022177370113
+  relative_train_objective_improvement: 0.9703514890973807
+  initial_train_correspondence_count: 6144
+  candidate_train_correspondence_count: 6144
+  minimum_retained_train_correspondence_count: 5837
+  maximum_candidate_bound_fraction: 0.1875
+trace:
+- evaluation: 1
+  delta_rotation_deg_xyz:
+  - 0.0
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - 0.0
+  objective: 0.989025346505857
+  accepted: true
+- evaluation: 2
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - 0.0
+  objective: 0.4043321448613643
+  accepted: true
+- evaluation: 3
+  delta_rotation_deg_xyz:
+  - 0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - 0.0
+  objective: 1.6316917761059553
+  accepted: false
+- evaluation: 4
+  delta_rotation_deg_xyz:
+  - 0.0
+  - -0.5
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - 0.0
+  objective: 1.5146482823931906
+  accepted: false
+- evaluation: 5
+  delta_rotation_deg_xyz:
+  - 0.0
+  - 0.5
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - 0.0
+  objective: 1.2482800567599674
+  accepted: false
+- evaluation: 6
+  delta_rotation_deg_xyz:
+  - 0.0
+  - 0.0
+  - -0.5
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - 0.0
+  objective: 0.9976201606617848
+  accepted: false
+- evaluation: 7
+  delta_rotation_deg_xyz:
+  - 0.0
+  - 0.0
+  - 0.5
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - 0.0
+  objective: 1.1280455563825527
+  accepted: false
+- evaluation: 8
+  delta_rotation_deg_xyz:
+  - 0.0
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - -0.05
+  - 0.0
+  - 0.0
+  objective: 1.1849378324106123
+  accepted: false
+- evaluation: 9
+  delta_rotation_deg_xyz:
+  - 0.0
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.05
+  - 0.0
+  - 0.0
+  objective: 1.1012944889722276
+  accepted: false
+- evaluation: 10
+  delta_rotation_deg_xyz:
+  - 0.0
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - -0.05
+  - 0.0
+  objective: 1.551491645206107
+  accepted: false
+- evaluation: 11
+  delta_rotation_deg_xyz:
+  - 0.0
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.05
+  - 0.0
+  objective: 0.4727466875927763
+  accepted: false
+- evaluation: 12
+  delta_rotation_deg_xyz:
+  - 0.0
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.05
+  objective: 0.8278701324392029
+  accepted: false
+- evaluation: 13
+  delta_rotation_deg_xyz:
+  - 0.0
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - 0.05
+  objective: 1.3047397451651752
+  accepted: false
+- evaluation: 14
+  delta_rotation_deg_xyz:
+  - -1.0
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - 0.0
+  objective: 0.49243147914272456
+  accepted: false
+- evaluation: 15
+  delta_rotation_deg_xyz:
+  - 0.0
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - 0.0
+  objective: 0.9890253465058636
+  accepted: false
+- evaluation: 16
+  delta_rotation_deg_xyz:
+  - -0.5
+  - -0.5
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - 0.0
+  objective: 1.2213523393267973
+  accepted: false
+- evaluation: 17
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.5
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - 0.0
+  objective: 0.8477050527303298
+  accepted: false
+- evaluation: 18
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - -0.5
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - 0.0
+  objective: 0.4609811240620811
+  accepted: false
+- evaluation: 19
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.5
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - 0.0
+  objective: 0.726065491498312
+  accepted: false
+- evaluation: 20
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - -0.05
+  - 0.0
+  - 0.0
+  objective: 0.7878806187410898
+  accepted: false
+- evaluation: 21
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.05
+  - 0.0
+  - 0.0
+  objective: 0.5980220902409203
+  accepted: false
+- evaluation: 22
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - -0.05
+  - 0.0
+  objective: 0.9355714198881773
+  accepted: false
+- evaluation: 23
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.05
+  - 0.0
+  objective: 0.4000006152950376
+  accepted: false
+- evaluation: 24
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.05
+  objective: 0.3342970207633636
+  accepted: true
+- evaluation: 25
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - 0.05
+  objective: 0.7906198505704111
+  accepted: false
+- evaluation: 26
+  delta_rotation_deg_xyz:
+  - -1.0
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.05
+  objective: 0.6743223177254777
+  accepted: false
+- evaluation: 27
+  delta_rotation_deg_xyz:
+  - 0.0
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.05
+  objective: 0.8278701324392029
+  accepted: false
+- evaluation: 28
+  delta_rotation_deg_xyz:
+  - -0.5
+  - -0.5
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.05
+  objective: 1.1821640148732548
+  accepted: false
+- evaluation: 29
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.5
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.05
+  objective: 0.8219468709775308
+  accepted: false
+- evaluation: 30
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - -0.5
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.05
+  objective: 0.4343684591819398
+  accepted: false
+- evaluation: 31
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.5
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.05
+  objective: 0.64667333961231
+  accepted: false
+- evaluation: 32
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - -0.05
+  - 0.0
+  - -0.05
+  objective: 0.7428739998975993
+  accepted: false
+- evaluation: 33
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.05
+  - 0.0
+  - -0.05
+  objective: 0.5415384969332226
+  accepted: false
+- evaluation: 34
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - -0.05
+  - -0.05
+  objective: 0.835286951375299
+  accepted: false
+- evaluation: 35
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.05
+  - -0.05
+  objective: 0.537808783434322
+  accepted: false
+- evaluation: 36
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.1
+  objective: 0.6985666640997737
+  accepted: false
+- evaluation: 37
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - 0.0
+  objective: 0.4043321448613643
+  accepted: false
+- evaluation: 38
+  delta_rotation_deg_xyz:
+  - -0.75
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.05
+  objective: 0.4095568285096748
+  accepted: false
+- evaluation: 39
+  delta_rotation_deg_xyz:
+  - -0.25
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.05
+  objective: 0.5129809633065867
+  accepted: false
+- evaluation: 40
+  delta_rotation_deg_xyz:
+  - -0.5
+  - -0.25
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.05
+  objective: 0.6834460832398465
+  accepted: false
+- evaluation: 41
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.25
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.05
+  objective: 0.3897812797040958
+  accepted: false
+- evaluation: 42
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.05
+  objective: 0.3292105096752856
+  accepted: false
+- evaluation: 43
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.05
+  objective: 0.4522183328297413
+  accepted: false
+- evaluation: 44
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.0
+  - -0.05
+  objective: 0.4748365753803648
+  accepted: false
+- evaluation: 45
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.025
+  - 0.0
+  - -0.05
+  objective: 0.37118920068445266
+  accepted: false
+- evaluation: 46
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - -0.025
+  - -0.05
+  objective: 0.5504253024694526
+  accepted: false
+- evaluation: 47
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.05
+  objective: 0.32028057467339294
+  accepted: false
+- evaluation: 48
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.07500000000000001
+  objective: 0.49550114780790727
+  accepted: false
+- evaluation: 49
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.025
+  objective: 0.29562050700959147
+  accepted: true
+- evaluation: 50
+  delta_rotation_deg_xyz:
+  - -0.75
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.025
+  objective: 0.29174009439516396
+  accepted: false
+- evaluation: 51
+  delta_rotation_deg_xyz:
+  - -0.25
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.025
+  objective: 0.5325894561838139
+  accepted: false
+- evaluation: 52
+  delta_rotation_deg_xyz:
+  - -0.5
+  - -0.25
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.025
+  objective: 0.6835914452475331
+  accepted: false
+- evaluation: 53
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.25
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.025
+  objective: 0.3611362828918556
+  accepted: false
+- evaluation: 54
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.025
+  objective: 0.27752537996969345
+  accepted: false
+- evaluation: 55
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.025
+  objective: 0.4253305611878793
+  accepted: false
+- evaluation: 56
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.0
+  - -0.025
+  objective: 0.45358037826818803
+  accepted: false
+- evaluation: 57
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.025
+  - 0.0
+  - -0.025
+  objective: 0.35332182174951593
+  accepted: false
+- evaluation: 58
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - -0.025
+  - -0.025
+  objective: 0.5559240860660906
+  accepted: false
+- evaluation: 59
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.2051236364959429
+  accepted: true
+- evaluation: 60
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.05
+  objective: 0.3342970207633636
+  accepted: false
+- evaluation: 61
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - 0.0
+  objective: 0.4043321448613643
+  accepted: false
+- evaluation: 62
+  delta_rotation_deg_xyz:
+  - -0.75
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.4237218169929013
+  accepted: false
+- evaluation: 63
+  delta_rotation_deg_xyz:
+  - -0.25
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.26313495045373436
+  accepted: false
+- evaluation: 64
+  delta_rotation_deg_xyz:
+  - -0.5
+  - -0.25
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.620787378439987
+  accepted: false
+- evaluation: 65
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.25
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.27161800342697173
+  accepted: false
+- evaluation: 66
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.19503691017974065
+  accepted: true
+- evaluation: 67
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.3644518847722342
+  accepted: false
+- evaluation: 68
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.025
+  - -0.025
+  objective: 0.3924433766128999
+  accepted: false
+- evaluation: 69
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.025
+  - 0.025
+  - -0.025
+  objective: 0.2770577963253794
+  accepted: false
+- evaluation: 70
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.025
+  objective: 0.29562050700959147
+  accepted: false
+- evaluation: 71
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.05
+  - -0.025
+  objective: 0.4019031905221001
+  accepted: false
+- evaluation: 72
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.05
+  objective: 0.32028057467339294
+  accepted: false
+- evaluation: 73
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - 0.0
+  objective: 0.2787956402809862
+  accepted: false
+- evaluation: 74
+  delta_rotation_deg_xyz:
+  - -0.75
+  - 0.0
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.4133640498628536
+  accepted: false
+- evaluation: 75
+  delta_rotation_deg_xyz:
+  - -0.25
+  - 0.0
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.2544789219954474
+  accepted: false
+- evaluation: 76
+  delta_rotation_deg_xyz:
+  - -0.5
+  - -0.25
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.5664231181511893
+  accepted: false
+- evaluation: 77
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.25
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.3061641192235621
+  accepted: false
+- evaluation: 78
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - -0.5
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.3407876441711386
+  accepted: false
+- evaluation: 79
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - 0.0
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.2051236364959429
+  accepted: false
+- evaluation: 80
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - -0.25
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.025
+  - -0.025
+  objective: 0.30844757586532556
+  accepted: false
+- evaluation: 81
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.025
+  - 0.025
+  - -0.025
+  objective: 0.3134400089425381
+  accepted: false
+- evaluation: 82
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0
+  - -0.025
+  objective: 0.27752537996969345
+  accepted: false
+- evaluation: 83
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.05
+  - -0.025
+  objective: 0.3887728076248274
+  accepted: false
+- evaluation: 84
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.05
+  objective: 0.3117213215211286
+  accepted: false
+- evaluation: 85
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - 0.0
+  objective: 0.25969785467285966
+  accepted: false
+- evaluation: 86
+  delta_rotation_deg_xyz:
+  - -0.625
+  - 0.0
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.27798347583770366
+  accepted: false
+- evaluation: 87
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.0
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.18618154880550944
+  accepted: false
+- evaluation: 88
+  delta_rotation_deg_xyz:
+  - -0.5
+  - -0.125
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.34072373999676997
+  accepted: false
+- evaluation: 89
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.17762817699775194
+  accepted: true
+- evaluation: 90
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - -0.375
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.2522517238366335
+  accepted: false
+- evaluation: 91
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - -0.125
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.17834507266577723
+  accepted: false
+- evaluation: 92
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - -0.25
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.21352122234437487
+  accepted: false
+- evaluation: 93
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0125
+  - 0.025
+  - -0.025
+  objective: 0.2345874044120439
+  accepted: false
+- evaluation: 94
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0125
+  - -0.025
+  objective: 0.1996569331184326
+  accepted: false
+- evaluation: 95
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.037500000000000006
+  - -0.025
+  objective: 0.2657241345552055
+  accepted: false
+- evaluation: 96
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.037500000000000006
+  objective: 0.23249154267884103
+  accepted: false
+- evaluation: 97
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.0125
+  objective: 0.20532885080190694
+  accepted: false
+- evaluation: 98
+  delta_rotation_deg_xyz:
+  - -0.625
+  - 0.125
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.25660497801303905
+  accepted: false
+- evaluation: 99
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.174651833961709
+  accepted: false
+- evaluation: 100
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.19503691017974065
+  accepted: false
+- evaluation: 101
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.25
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.3061641192235621
+  accepted: false
+- evaluation: 102
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - -0.375
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.24890885097511314
+  accepted: false
+- evaluation: 103
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.1475328501520191
+  accepted: false
+- evaluation: 104
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - -0.25
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.10996820458862819
+  accepted: true
+- evaluation: 105
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0125
+  - 0.025
+  - -0.025
+  objective: 0.2849936365180776
+  accepted: false
+- evaluation: 106
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.0125
+  - -0.025
+  objective: 0.186640046925482
+  accepted: false
+- evaluation: 107
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.037500000000000006
+  - -0.025
+  objective: 0.23843753561811953
+  accepted: false
+- evaluation: 108
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.037500000000000006
+  objective: 0.20765718282403864
+  accepted: false
+- evaluation: 109
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.0125
+  objective: 0.19139406978196383
+  accepted: false
+- evaluation: 110
+  delta_rotation_deg_xyz:
+  - -0.625
+  - 0.125
+  - -0.25
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.19877349909486963
+  accepted: false
+- evaluation: 111
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.25
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.1028527762460004
+  accepted: false
+- evaluation: 112
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - -0.25
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.21352122234437487
+  accepted: false
+- evaluation: 113
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.25
+  - -0.25
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.1713838690685504
+  accepted: false
+- evaluation: 114
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - -0.375
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.17130468417890735
+  accepted: false
+- evaluation: 115
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.09455354142495884
+  accepted: true
+- evaluation: 116
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - -0.25
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.025
+  - -0.025
+  objective: 0.11146111020142646
+  accepted: false
+- evaluation: 117
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - -0.25
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.17762817699775194
+  accepted: false
+- evaluation: 118
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - -0.25
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.0125
+  - -0.025
+  objective: 0.11968801766915964
+  accepted: false
+- evaluation: 119
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - -0.25
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.037500000000000006
+  - -0.025
+  objective: 0.1842991797651332
+  accepted: false
+- evaluation: 120
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - -0.25
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.037500000000000006
+  objective: 0.15861174278689652
+  accepted: false
+- evaluation: 121
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - -0.25
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.0125
+  objective: 0.1203098000240969
+  accepted: false
+- evaluation: 122
+  delta_rotation_deg_xyz:
+  - -0.625
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.18543309344791806
+  accepted: false
+- evaluation: 123
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.08751122340710993
+  accepted: true
+- evaluation: 124
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.0
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.21667130531783893
+  accepted: false
+- evaluation: 125
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.25
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.14178086489103464
+  accepted: false
+- evaluation: 126
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - -0.25
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.10996820458862819
+  accepted: false
+- evaluation: 127
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - 0.0
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.1278841262400176
+  accepted: false
+- evaluation: 128
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.025
+  - -0.025
+  objective: 0.11912797547774537
+  accepted: false
+- evaluation: 129
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.1475328501520191
+  accepted: false
+- evaluation: 130
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.0125
+  - -0.025
+  objective: 0.10977685501298332
+  accepted: false
+- evaluation: 131
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.037500000000000006
+  - -0.025
+  objective: 0.17021578654847214
+  accepted: false
+- evaluation: 132
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.037500000000000006
+  objective: 0.1429741134450339
+  accepted: false
+- evaluation: 133
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.0125
+  objective: 0.10789634926692737
+  accepted: false
+- evaluation: 134
+  delta_rotation_deg_xyz:
+  - -0.5
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.09455354142495884
+  accepted: false
+- evaluation: 135
+  delta_rotation_deg_xyz:
+  - -0.25
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.16694568235983734
+  accepted: false
+- evaluation: 136
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.0
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.20453988607222878
+  accepted: false
+- evaluation: 137
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.25
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.1438052200218416
+  accepted: false
+- evaluation: 138
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.25
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.1028527762460004
+  accepted: false
+- evaluation: 139
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - 0.0
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.12069132740679604
+  accepted: false
+- evaluation: 140
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.025
+  - -0.025
+  objective: 0.10687297329657786
+  accepted: false
+- evaluation: 141
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - 0.0
+  - 0.025
+  - -0.025
+  objective: 0.14486510166174496
+  accepted: false
+- evaluation: 142
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.0125
+  - -0.025
+  objective: 0.17237343828114504
+  accepted: false
+- evaluation: 143
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.037500000000000006
+  - -0.025
+  objective: 0.0909696908449336
+  accepted: false
+- evaluation: 144
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.037500000000000006
+  objective: 0.11132610263497912
+  accepted: false
+- evaluation: 145
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.0125
+  objective: 0.12494746384993113
+  accepted: false
+- evaluation: 146
+  delta_rotation_deg_xyz:
+  - -0.4375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.0795914915210951
+  accepted: false
+- evaluation: 147
+  delta_rotation_deg_xyz:
+  - -0.3125
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.11754541349130267
+  accepted: false
+- evaluation: 148
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.0625
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.12680981797463153
+  accepted: false
+- evaluation: 149
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.0931868406568915
+  accepted: false
+- evaluation: 150
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.08902497347391486
+  accepted: false
+- evaluation: 151
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.0625
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.0982975159427834
+  accepted: false
+- evaluation: 152
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.018750000000000003
+  - 0.025
+  - -0.025
+  objective: 0.08556261460603205
+  accepted: false
+- evaluation: 153
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.00625
+  - 0.025
+  - -0.025
+  objective: 0.10870942598808672
+  accepted: false
+- evaluation: 154
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.018750000000000003
+  - -0.025
+  objective: 0.12080298912297147
+  accepted: false
+- evaluation: 155
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.03125
+  - -0.025
+  objective: 0.07707247575318489
+  accepted: true
+- evaluation: 156
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.03125
+  objective: 0.09133292409502106
+  accepted: false
+- evaluation: 157
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.018750000000000003
+  objective: 0.09926621825934295
+  accepted: false
+- evaluation: 158
+  delta_rotation_deg_xyz:
+  - -0.4375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.03125
+  - -0.025
+  objective: 0.08860844681323912
+  accepted: false
+- evaluation: 159
+  delta_rotation_deg_xyz:
+  - -0.3125
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.03125
+  - -0.025
+  objective: 0.08859039442278238
+  accepted: false
+- evaluation: 160
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.0625
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.03125
+  - -0.025
+  objective: 0.11868179030366703
+  accepted: false
+- evaluation: 161
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.03125
+  - -0.025
+  objective: 0.08098971680768152
+  accepted: false
+- evaluation: 162
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.03125
+  - -0.025
+  objective: 0.07976073878634442
+  accepted: false
+- evaluation: 163
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.0625
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.03125
+  - -0.025
+  objective: 0.08709065136542497
+  accepted: false
+- evaluation: 164
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.018750000000000003
+  - 0.03125
+  - -0.025
+  objective: 0.07583797310502162
+  accepted: true
+- evaluation: 165
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.00625
+  - 0.03125
+  - -0.025
+  objective: 0.09794818341279211
+  accepted: false
+- evaluation: 166
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.025
+  - -0.025
+  objective: 0.08751122340710993
+  accepted: false
+- evaluation: 167
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.0375
+  - -0.025
+  objective: 0.0909696908449336
+  accepted: false
+- evaluation: 168
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.03125
+  - -0.03125
+  objective: 0.086528102715876
+  accepted: false
+- evaluation: 169
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.0125
+  - 0.03125
+  - -0.018750000000000003
+  objective: 0.08392202602548766
+  accepted: false
+- evaluation: 170
+  delta_rotation_deg_xyz:
+  - -0.4375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.018750000000000003
+  - 0.03125
+  - -0.025
+  objective: 0.08924667382650883
+  accepted: false
+- evaluation: 171
+  delta_rotation_deg_xyz:
+  - -0.3125
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.018750000000000003
+  - 0.03125
+  - -0.025
+  objective: 0.08574689141906268
+  accepted: false
+- evaluation: 172
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.0625
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.018750000000000003
+  - 0.03125
+  - -0.025
+  objective: 0.14436615743032055
+  accepted: false
+- evaluation: 173
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.018750000000000003
+  - 0.03125
+  - -0.025
+  objective: 0.052536086717926415
+  accepted: true
+- evaluation: 174
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.018750000000000003
+  - 0.03125
+  - -0.025
+  objective: 0.07318487345967926
+  accepted: false
+- evaluation: 175
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.0625
+  delta_translation_m_xyz:
+  - -0.018750000000000003
+  - 0.03125
+  - -0.025
+  objective: 0.091364046805304
+  accepted: false
+- evaluation: 176
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.09856582340486054
+  accepted: false
+- evaluation: 177
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.012500000000000002
+  - 0.03125
+  - -0.025
+  objective: 0.07707247575318489
+  accepted: false
+- evaluation: 178
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.018750000000000003
+  - 0.025
+  - -0.025
+  objective: 0.08556261460603205
+  accepted: false
+- evaluation: 179
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.018750000000000003
+  - 0.0375
+  - -0.025
+  objective: 0.09215112000090214
+  accepted: false
+- evaluation: 180
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.018750000000000003
+  - 0.03125
+  - -0.03125
+  objective: 0.09005411606221653
+  accepted: false
+- evaluation: 181
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.018750000000000003
+  - 0.03125
+  - -0.018750000000000003
+  objective: 0.08027089968422256
+  accepted: false
+- evaluation: 182
+  delta_rotation_deg_xyz:
+  - -0.4375
+  - 0.1875
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.018750000000000003
+  - 0.03125
+  - -0.025
+  objective: 0.06331006239291294
+  accepted: false
+- evaluation: 183
+  delta_rotation_deg_xyz:
+  - -0.3125
+  - 0.1875
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.018750000000000003
+  - 0.03125
+  - -0.025
+  objective: 0.06534487720310257
+  accepted: false
+- evaluation: 184
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.018750000000000003
+  - 0.03125
+  - -0.025
+  objective: 0.07583797310502162
+  accepted: false
+- evaluation: 185
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.25
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.018750000000000003
+  - 0.03125
+  - -0.025
+  objective: 0.07907569220554707
+  accepted: false
+- evaluation: 186
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.018750000000000003
+  - 0.03125
+  - -0.025
+  objective: 0.05455837670870201
+  accepted: false
+- evaluation: 187
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.0625
+  delta_translation_m_xyz:
+  - -0.018750000000000003
+  - 0.03125
+  - -0.025
+  objective: 0.06372810512988837
+  accepted: false
+- evaluation: 188
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.04525816656664709
+  accepted: true
+- evaluation: 189
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.012500000000000002
+  - 0.03125
+  - -0.025
+  objective: 0.08098971680768152
+  accepted: false
+- evaluation: 190
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.018750000000000003
+  - 0.025
+  - -0.025
+  objective: 0.06464608346705741
+  accepted: false
+- evaluation: 191
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.018750000000000003
+  - 0.0375
+  - -0.025
+  objective: 0.0656293224024487
+  accepted: false
+- evaluation: 192
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.018750000000000003
+  - 0.03125
+  - -0.03125
+  objective: 0.06371500825425447
+  accepted: false
+- evaluation: 193
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.018750000000000003
+  - 0.03125
+  - -0.018750000000000003
+  objective: 0.05901639587927232
+  accepted: false
+- evaluation: 194
+  delta_rotation_deg_xyz:
+  - -0.4375
+  - 0.1875
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.058274984007750344
+  accepted: false
+- evaluation: 195
+  delta_rotation_deg_xyz:
+  - -0.3125
+  - 0.1875
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.05635208399755677
+  accepted: false
+- evaluation: 196
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.09856582340486054
+  accepted: false
+- evaluation: 197
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.25
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.043190250025262784
+  accepted: false
+- evaluation: 198
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.041512243024972174
+  accepted: true
+- evaluation: 199
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.0625
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.06247708494143169
+  accepted: false
+- evaluation: 200
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.03125
+  - 0.03125
+  - -0.025
+  objective: 0.06430467293449026
+  accepted: false
+- evaluation: 201
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.018750000000000003
+  - 0.03125
+  - -0.025
+  objective: 0.052536086717926415
+  accepted: false
+- evaluation: 202
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.025
+  - -0.025
+  objective: 0.05667037347742762
+  accepted: false
+- evaluation: 203
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.0375
+  - -0.025
+  objective: 0.06081458390929151
+  accepted: false
+- evaluation: 204
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.03125
+  objective: 0.06272375261492412
+  accepted: false
+- evaluation: 205
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.018750000000000003
+  objective: 0.048489668431998444
+  accepted: false
+- evaluation: 206
+  delta_rotation_deg_xyz:
+  - -0.4375
+  - 0.1875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.05450023748316001
+  accepted: false
+- evaluation: 207
+  delta_rotation_deg_xyz:
+  - -0.3125
+  - 0.1875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.05277081453566848
+  accepted: false
+- evaluation: 208
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.125
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.08981251708035762
+  accepted: false
+- evaluation: 209
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.25
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.04455412210363825
+  accepted: false
+- evaluation: 210
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.25
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.05147612520757505
+  accepted: false
+- evaluation: 211
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.125
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.04525816656664709
+  accepted: false
+- evaluation: 212
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.03125
+  - 0.03125
+  - -0.025
+  objective: 0.05407093826343918
+  accepted: false
+- evaluation: 213
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.018750000000000003
+  - 0.03125
+  - -0.025
+  objective: 0.05455837670870201
+  accepted: false
+- evaluation: 214
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.025
+  - -0.025
+  objective: 0.05162818878927554
+  accepted: false
+- evaluation: 215
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.0375
+  - -0.025
+  objective: 0.05802408834505857
+  accepted: false
+- evaluation: 216
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.03125
+  objective: 0.05965366503423013
+  accepted: false
+- evaluation: 217
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.018750000000000003
+  objective: 0.04380663962785972
+  accepted: false
+- evaluation: 218
+  delta_rotation_deg_xyz:
+  - -0.40625
+  - 0.1875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.04500347646992016
+  accepted: false
+- evaluation: 219
+  delta_rotation_deg_xyz:
+  - -0.34375
+  - 0.1875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.044125356588943496
+  accepted: false
+- evaluation: 220
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.15625
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.05965827485488266
+  accepted: false
+- evaluation: 221
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.21875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.03636618065990893
+  accepted: true
+- evaluation: 222
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.21875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.04480334315764754
+  accepted: false
+- evaluation: 223
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.15625
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.04166375292659855
+  accepted: false
+- evaluation: 224
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.028125
+  - 0.03125
+  - -0.025
+  objective: 0.044362308696241096
+  accepted: false
+- evaluation: 225
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.021875000000000002
+  - 0.03125
+  - -0.025
+  objective: 0.0451528210680914
+  accepted: false
+- evaluation: 226
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.028125
+  - -0.025
+  objective: 0.04316507192221937
+  accepted: false
+- evaluation: 227
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.034375
+  - -0.025
+  objective: 0.046618130703160725
+  accepted: false
+- evaluation: 228
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.028125
+  objective: 0.04810328536993084
+  accepted: false
+- evaluation: 229
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.021875000000000002
+  objective: 0.04012759471013907
+  accepted: false
+- evaluation: 230
+  delta_rotation_deg_xyz:
+  - -0.40625
+  - 0.21875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.039132759889875295
+  accepted: false
+- evaluation: 231
+  delta_rotation_deg_xyz:
+  - -0.34375
+  - 0.21875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.03972161915667204
+  accepted: false
+- evaluation: 232
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.041512243024972174
+  accepted: false
+- evaluation: 233
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.25
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.04455412210363825
+  accepted: false
+- evaluation: 234
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.21875
+  - -0.21875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.04097286036048422
+  accepted: false
+- evaluation: 235
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.21875
+  - -0.15625
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.03520888918939866
+  accepted: false
+- evaluation: 236
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.21875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.028125
+  - 0.03125
+  - -0.025
+  objective: 0.031220904196234908
+  accepted: true
+- evaluation: 237
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.21875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.021875000000000002
+  - 0.03125
+  - -0.025
+  objective: 0.04753370934724557
+  accepted: false
+- evaluation: 238
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.21875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.028125
+  - -0.025
+  objective: 0.03870954392156493
+  accepted: false
+- evaluation: 239
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.21875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.034375
+  - -0.025
+  objective: 0.0406903192828196
+  accepted: false
+- evaluation: 240
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.21875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.028125
+  objective: 0.04195521237792241
+  accepted: false
+- evaluation: 241
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.21875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.021875000000000002
+  objective: 0.035813935423001785
+  accepted: false
+- evaluation: 242
+  delta_rotation_deg_xyz:
+  - -0.40625
+  - 0.21875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.028125
+  - 0.03125
+  - -0.025
+  objective: 0.034553260972716306
+  accepted: false
+- evaluation: 243
+  delta_rotation_deg_xyz:
+  - -0.34375
+  - 0.21875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.028125
+  - 0.03125
+  - -0.025
+  objective: 0.03407498557939601
+  accepted: false
+- evaluation: 244
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.028125
+  - 0.03125
+  - -0.025
+  objective: 0.044362308696241096
+  accepted: false
+- evaluation: 245
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.25
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.028125
+  - 0.03125
+  - -0.025
+  objective: 0.031683847806530135
+  accepted: false
+- evaluation: 246
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.21875
+  - -0.21875
+  delta_translation_m_xyz:
+  - -0.028125
+  - 0.03125
+  - -0.025
+  objective: 0.03433647375364322
+  accepted: false
+- evaluation: 247
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.21875
+  - -0.15625
+  delta_translation_m_xyz:
+  - -0.028125
+  - 0.03125
+  - -0.025
+  objective: 0.03161444391993515
+  accepted: false
+- evaluation: 248
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.21875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.03125
+  - 0.03125
+  - -0.025
+  objective: 0.032837193713122145
+  accepted: false
+- evaluation: 249
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.21875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.025
+  objective: 0.03636618065990893
+  accepted: false
+- evaluation: 250
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.21875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.028125
+  - 0.028125
+  - -0.025
+  objective: 0.0332341861083795
+  accepted: false
+- evaluation: 251
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.21875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.028125
+  - 0.034375
+  - -0.025
+  objective: 0.036091937856942584
+  accepted: false
+- evaluation: 252
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.21875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.028125
+  - 0.03125
+  - -0.028125
+  objective: 0.038543882190651226
+  accepted: false
+- evaluation: 253
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.21875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.028125
+  - 0.03125
+  - -0.021875000000000002
+  objective: 0.02932312876884579
+  accepted: true
+- evaluation: 254
+  delta_rotation_deg_xyz:
+  - -0.40625
+  - 0.21875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.028125
+  - 0.03125
+  - -0.021875000000000002
+  objective: 0.030715462732446255
+  accepted: false
+- evaluation: 255
+  delta_rotation_deg_xyz:
+  - -0.34375
+  - 0.21875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.028125
+  - 0.03125
+  - -0.021875000000000002
+  objective: 0.03413631480957581
+  accepted: false
+- evaluation: 256
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.1875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.028125
+  - 0.03125
+  - -0.021875000000000002
+  objective: 0.041548812997528245
+  accepted: false
+- evaluation: 257
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.25
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.028125
+  - 0.03125
+  - -0.021875000000000002
+  objective: 0.030775540902589098
+  accepted: false
+- evaluation: 258
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.21875
+  - -0.21875
+  delta_translation_m_xyz:
+  - -0.028125
+  - 0.03125
+  - -0.021875000000000002
+  objective: 0.03224223992915427
+  accepted: false
+- evaluation: 259
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.21875
+  - -0.15625
+  delta_translation_m_xyz:
+  - -0.028125
+  - 0.03125
+  - -0.021875000000000002
+  objective: 0.029928635399794557
+  accepted: false
+- evaluation: 260
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.21875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.03125
+  - 0.03125
+  - -0.021875000000000002
+  objective: 0.02934752013472851
+  accepted: false
+- evaluation: 261
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.21875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.025
+  - 0.03125
+  - -0.021875000000000002
+  objective: 0.035813935423001785
+  accepted: false
+- evaluation: 262
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.21875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.028125
+  - 0.028125
+  - -0.021875000000000002
+  objective: 0.03296321891517107
+  accepted: false
+- evaluation: 263
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.21875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.028125
+  - 0.034375
+  - -0.021875000000000002
+  objective: 0.03256771050138722
+  accepted: false
+- evaluation: 264
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.21875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.028125
+  - 0.03125
+  - -0.025
+  objective: 0.031220904196234908
+  accepted: false
+- evaluation: 265
+  delta_rotation_deg_xyz:
+  - -0.375
+  - 0.21875
+  - -0.1875
+  delta_translation_m_xyz:
+  - -0.028125
+  - 0.03125
+  - -0.018750000000000003
+  objective: 0.03274282777359281
+  accepted: false
+options:
+  holdout_ratio: 0.25
+  split_seed: 0
+  minimum_confidence: 0.25
+  minimum_train_correspondences: 24
+  minimum_holdout_correspondences: 8
+  rotation_bound_deg: 2.0
+  translation_bound_m: 0.25
+  initial_rotation_step_deg: 0.5
+  initial_translation_step_m: 0.05
+  minimum_rotation_step_deg: 0.02
+  minimum_translation_step_m: 0.002
+  max_evaluations: 400
+  cauchy_scale: 3.0
+  use_covariance: true
+  use_outlier_probability: true
+  use_reliability: true
+  acceptance_policy_id: initializer_preserving_fit_only/v0.1
+  minimum_absolute_train_objective_improvement: 1.0e-06
+  minimum_relative_train_objective_improvement: 0.0001
+  maximum_train_correspondence_loss_fraction: 0.05
+  maximum_accepted_bound_fraction: 0.95
+method: probabilistic_multiframe_refinement/v0.3
+provenance:
+  generator: calibrex.evaluation.empirical_se3_uncertainty
+  generator_version: calibrex.empirical_se3_uncertainty/v0.1
+  git_commit: dd29d3cc
+  command:
+  - calibrex
+  - camera-lidar
+  - empirical-uncertainty
+  - C:\Users\rsasa\Workspace\Calibrex\outputs\empirical-refits-formal-v2\correspondence.json
+  - C:\Users\rsasa\Workspace\Calibrex\outputs\empirical-refits-formal-v2\problem.json
+  - --result-dir
+  - C:\Users\rsasa\Workspace\Calibrex\outputs\empirical-refits-formal-v2\02-prior\resamples
+  - --output
+  - C:\Users\rsasa\Workspace\Calibrex\outputs\empirical-refits-formal-v2\02-prior\uncertainty.yaml
+  correspondence_artifact_sha256: bd93e232497678d490c85835c68ebb7dce8e927197e2fff220dea316f05b0ac5
+  initialization_problem_sha256: 58a3992d348c24c2a7cf36889ed9f0ba989b95518565a7422f7761c470f9f332
+  created_at: '2026-10-16T02:54:12.440076+00:00'

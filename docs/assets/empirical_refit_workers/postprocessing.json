@@ -1,0 +1,19 @@
+{
+  "measurement_unchanged": true,
+  "timed_workers": 6,
+  "failed_timed_workers": 0,
+  "notes": [
+    "v1 initialization stopped before any timed worker because older Git did not support --path-format=absolute.",
+    "The portable Git fix preceded the v2 frozen comparison.",
+    "v2 retained all six successful CLI timings and then failed while reading an absent optional reference_transform.",
+    "Postprocessing treats an omitted reference as None and strengthens input/worker/fixture bindings.",
+    "The measured launcher, protocol, sources, attempts and outputs are unchanged. No worker was rerun or discarded."
+  ],
+  "provenance": {
+    "protocol_sha256": "b44db037bbe6bcbfa5356f6c99055146412d9566ed1fdc665ca08ccfee14a86b",
+    "attempts_sha256": "6770f4b81d18d986ff8483a4a018d806064de27fe4f03631fd6f143110b44ada",
+    "launcher_sha256": "b38928e125c74e0d9396690e4f943b54b222efc8d26e3c190268011baca565c5",
+    "auditor_sha256": "84b818e8c867037cc43794e39673d2dd61902844b060f3c383a9db1596d68f94",
+    "summary_sha256": "b6b231d172882698a3b859b2decb67eb0f67d0deaa7dc72e1cecd44b3b1a6986"
+  }
+}

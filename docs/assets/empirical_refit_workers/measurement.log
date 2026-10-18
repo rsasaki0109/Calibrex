@@ -1,0 +1,16 @@
+{"repeat": 0, "variant": "prior", "seconds": 28.047527099959552, "exit_code": 0}
+{"repeat": 0, "variant": "current", "seconds": 14.412417900050059, "exit_code": 0}
+{"repeat": 1, "variant": "current", "seconds": 11.293290200061165, "exit_code": 0}
+{"repeat": 1, "variant": "prior", "seconds": 29.935851600021124, "exit_code": 0}
+{"repeat": 2, "variant": "prior", "seconds": 31.79327249992639, "exit_code": 0}
+{"repeat": 2, "variant": "current", "seconds": 12.64388540002983, "exit_code": 0}
+Traceback (most recent call last):
+  File "C:\Users\rsasa\Workspace\Calibrex\tools\benchmark_empirical_refits.py", line 488, in <module>
+    main()
+  File "C:\Users\rsasa\Workspace\Calibrex\tools\benchmark_empirical_refits.py", line 483, in main
+    write(output / "summary.json", summarize(output, frozen=True))
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rsasa\Workspace\Calibrex\tools\benchmark_empirical_refits.py", line 167, in summarize
+    or result["reference_transform"] is not None
+       ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'reference_transform'

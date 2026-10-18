@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import math
 import random
+from concurrent.futures import Future
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -16,6 +18,7 @@ from calibrex.core.empirical_uncertainty import (
     load_empirical_se3_uncertainty,
 )
 from calibrex.core.geometry import SE3
+from calibrex.core.io import read_mapping
 from calibrex.core.probabilistic_correspondence import (
     CorrespondenceProviderIdentity,
     ProbabilisticCorrespondenceArtifact,
@@ -23,6 +26,7 @@ from calibrex.core.probabilistic_correspondence import (
     ProbabilisticCorrespondenceProvenance,
     ProbabilisticImageCorrespondence,
 )
+from calibrex.core.provenance import sha256_path
 from calibrex.core.result import TransformResult
 from calibrex.core.validation import validate_file
 from calibrex.data.depth import DepthCameraIntrinsics, DepthFileReference
@@ -31,6 +35,7 @@ from calibrex.evaluation.empirical_se3_uncertainty import (
     _TRANSLATION_AXES,
     TANGENT_AXES,
     _axis_intervals,
+    _bounded_refits,
     _central_half_width,
     _delta_to_reference,
     _estimate_delta,
@@ -409,6 +414,147 @@ def _fast_options() -> ProbabilisticCameraLidarRefinementOptions:
         minimum_translation_step_m=0.005,
         max_evaluations=400,
     )
+
+
+def _parallel_inputs(directory: Path) -> tuple[Path, Path]:
+    frames = _frames(1.8, n=8, per_frame_rot_deg=0.3, per_frame_trans_m=0.01)
+    for frame in frames:
+        frame.correspondences = [
+            item.model_copy(update={"correspondence_id": f"{repeat}-{item.correspondence_id}"})
+            for repeat in range(8) for item in frame.correspondences
+        ]
+        frame.intrinsics = frame.intrinsics.model_copy(update={
+            "distortion_model": "radial-tangential", "distortion": [0.0002, 0.0, 0.0, 0.0],
+        })
+    correspondence, problem = directory / "correspondence.json", directory / "problem.json"
+    _artifact(frames).save(correspondence)
+    _problem(frames).save(problem)
+    return correspondence, problem
+
+
+def _semantic_refits(folder: Path) -> dict[str, object]:
+    values = {}
+    for path in sorted(folder.glob("*.yaml")):
+        assert validate_file(path).valid
+        value = read_mapping(path)
+        assert value["provenance"]["git_commit"] == "1" * 40
+        value["provenance"].pop("created_at")
+        if "iterations" in value:
+            for item in value["iterations"]:
+                filename = folder / (item["iteration_id"] + ".yaml")
+                digest = sha256_path(filename)
+                assert digest == item["output_sha256"]
+                assert digest == value["provenance"]["resample_output_sha256"][item["iteration_id"]]
+                item["output_sha256"] = "<HASH>"
+            value["provenance"]["resample_output_sha256"] = {}
+        values[path.name] = value
+    return values
+
+
+def test_spawn_refits_preserve_every_result_interval_and_parent_source_commit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from calibrex.evaluation import empirical_se3_uncertainty as uncertainty
+
+    correspondence, problem = _parallel_inputs(tmp_path)
+    calls = []
+
+    def source_commit() -> str:
+        calls.append(True)
+        return "1" * 40
+
+    monkeypatch.setattr(uncertainty, "git_commit", source_commit)
+    for workers in (1, 2):
+        folder = tmp_path / str(workers)
+        result = run_empirical_se3_uncertainty(
+            correspondence, problem, result_directory=folder, command="pytest",
+            block_length=2, resample_count=4, seed=3, workers=workers,
+            options=_fast_options(),
+        )
+        result.save(folder / "uncertainty.yaml")
+        assert len(result.iterations) == 4
+        assert result.reference_transform is not None
+        assert result.overconfidence_control is not None
+    assert len(calls) == 2  # No Git subprocess is repeated in a refit process.
+    assert _semantic_refits(tmp_path / "1") == _semantic_refits(tmp_path / "2")
+    assert uncertainty._WORKER_CONTEXT is None
+
+
+def test_parallel_failed_refits_are_retained_without_forming_intervals(tmp_path: Path) -> None:
+    correspondence, problem = _parallel_inputs(tmp_path)
+    folder = tmp_path / "failed"
+    with pytest.raises(ValueError, match="fewer than two successful"):
+        run_empirical_se3_uncertainty(
+            correspondence, problem, result_directory=folder, command="pytest",
+            block_length=2, resample_count=2, workers=2,
+            options=replace(_fast_options(), minimum_train_correspondences=10**9),
+        )
+    files = list(folder.glob("resample-*.yaml"))
+    assert len(files) == 2
+    assert all(validate_file(path).valid for path in files)
+    assert all(read_mapping(path)["status"] == "insufficient_correspondences" for path in files)
+
+
+@pytest.mark.parametrize("workers", [0, -1])
+def test_invalid_worker_budget_is_rejected_before_input_loading(workers: int) -> None:
+    with pytest.raises(ValueError, match="workers must be at least one"):
+        run_empirical_se3_uncertainty(
+            "absent.json", "absent.json", result_directory="unused", command="pytest",
+            workers=workers,
+        )
+
+
+def test_refit_queue_is_bounded_and_cancels_unconsumed_work() -> None:
+    class Executor:
+        def __init__(self) -> None:
+            self.futures: list[Future[int]] = []
+
+        def submit(self, function: object, task: tuple[int, object]) -> Future[int]:
+            future: Future[int] = Future()
+            self.futures.append(future)
+            # Deliberately leave later work unresolved. Closing the iterator
+            # must cancel it instead of scheduling the entire requested run.
+            if task[0] == 0:
+                future.set_result(0)
+            return future
+
+    executor = Executor()
+    results = _bounded_refits(executor, [([0], [1])] * 1000, 2)
+    assert next(results) == 0
+    assert len(executor.futures) == 4
+    results.close()
+    assert all(future.cancelled() for future in executor.futures[1:])
+
+
+def test_worker_exception_is_propagated_without_retrying_in_serial() -> None:
+    class Executor:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def submit(self, function: object, task: object) -> Future[object]:
+            self.calls += 1
+            future: Future[object] = Future()
+            future.set_exception(RuntimeError("worker failed"))
+            return future
+
+    executor = Executor()
+    with pytest.raises(RuntimeError, match="worker failed"):
+        list(_bounded_refits(executor, [([0], [1])] * 20, 2))
+    assert executor.calls == 4
+
+
+def test_cli_parallel_refits_record_requested_workers(tmp_path: Path) -> None:
+    correspondence, problem = _parallel_inputs(tmp_path)
+    output, folder = tmp_path / "uncertainty.yaml", tmp_path / "resamples"
+    assert main([
+        "camera-lidar", "empirical-uncertainty", str(correspondence), str(problem),
+        "--output", str(output), "--result-dir", str(folder), "--workers", "2",
+        "--block-length", "2", "--resample-count", "2", "--stability-only", "--json",
+    ]) == 0
+    result = load_empirical_se3_uncertainty(output)
+    assert result.provenance.command[-2:] == ["--workers", "2"]
+    assert len(result.iterations) == 2
+    assert result.policy_status == "inconclusive"
 
 
 def _frames(

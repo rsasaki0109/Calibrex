@@ -1,0 +1,11 @@
+error: object directory C:/Users/rsasa/Workspace/Calibrex/outputs/empirical-refits-formal-v1/sources-prior/.git/objects/--path-format=absolute does not exist; check .git/objects/info/alternates
+error: object directory C:/Users/rsasa/Workspace/Calibrex/outputs/empirical-refits-formal-v1/sources-prior/.git/objects/.git/objects does not exist; check .git/objects/info/alternates
+fatal: update_ref failed for ref 'HEAD': cannot update ref 'refs/heads/benchmark': trying to write ref 'refs/heads/benchmark' with nonexistent object dd29d3cc554786a333bf9da5a09e012d5cf1ba45
+Traceback (most recent call last):
+  File "C:\Users\rsasa\Workspace\Calibrex\tools\benchmark_empirical_refits.py", line 487, in <module>
+    main()
+  File "C:\Users\rsasa\Workspace\Calibrex\tools\benchmark_empirical_refits.py", line 373, in main
+    subprocess.run(["git", "-C", str(source), "update-ref", "HEAD", commit], check=True)
+  File "C:\Users\rsasa\AppData\Local\Programs\Python\Python312\Lib\subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['git', '-C', 'C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\empirical-refits-formal-v1\\sources-prior', 'update-ref', 'HEAD', 'dd29d3cc554786a333bf9da5a09e012d5cf1ba45']' returned non-zero exit status 128.

@@ -161,3 +161,31 @@ def test_tiny_frames_retain_scalar_evaluation(count: int, scalar: bool) -> None:
     assert prepared.evaluate(SE3.identity()) == refiner._evaluate_scalar_pose(
         [frame], SE3.identity(), settings
     )
+
+
+def test_distortion_platform_power_bits_for_wide_and_strided_inputs() -> None:
+    rng = np.random.default_rng(326)
+    radii = np.concatenate((
+        rng.uniform(0.0, 9.0, 30000),
+        np.exp(rng.uniform(-740.0, 230.0, 30000)),
+        np.asarray([0.0, -0.0, 1.0, np.inf, np.nan, np.finfo(float).tiny]),
+    ))
+    for values in (radii, radii[::3], radii[:0]):
+        values.flags.writeable = False
+        actual = refiner._distortion_powers(values)
+        for exponent, measured in zip((2, 3), actual, strict=True):
+            expected = np.fromiter((float(value)**exponent for value in values), dtype=float)
+            assert np.array_equal(measured.view(np.uint64), expected.view(np.uint64))
+
+
+@pytest.mark.parametrize("radius", [1e103, 1e155, 1e300])
+def test_distortion_extremes_preserve_python_overflow(radius: float) -> None:
+    with pytest.raises(OverflowError):
+        refiner._distortion_powers(np.asarray([0.0, radius]))
+
+
+def test_finite_extreme_without_overflow_matches_scalar_bits() -> None:
+    radii = np.asarray([1e101, -1e101])
+    for exponent, measured in zip((2, 3), refiner._distortion_powers(radii), strict=True):
+        expected = np.fromiter((float(r)**exponent for r in radii), dtype=float)
+        assert np.array_equal(measured.view(np.uint64), expected.view(np.uint64))
