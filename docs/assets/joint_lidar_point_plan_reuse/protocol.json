@@ -1,0 +1,51 @@
+{
+  "schema_version": "slac.joint_point_plan_reuse_benchmark/v0.1",
+  "record_type": "protocol",
+  "payload": {
+    "scope": "Guarded point-plane preparation reuse and scoped diagnostic transforms in the complete native_joint_slac pipeline on all finite public Livox Horizon points, including inspection, frontend, joint LM, holdout, probes, fixed baseline and report saving. Existing development geometry is degenerate; no accuracy claim.",
+    "commits": {
+      "prior": "c517dca9b98c6bc092a184707406db4f0c56a908",
+      "current": "dfd9df76515fc36b3b252e48a6c58d605b636b93"
+    },
+    "inputs": [
+      {
+        "name": "base_horizon_100432.pcd",
+        "sha256": "19b3864cbee76b785d207fcb3fe48f6f506d142d8233f842d0a87fe4330fe407",
+        "size_bytes": 769568,
+        "point_count": 23921
+      },
+      {
+        "name": "target_horizon_100538.pcd",
+        "sha256": "61a74eb8b8ff4eeba4ca0ff824a4046ae220e947e8156f27d93da452538f5b6f",
+        "size_bytes": 761408,
+        "point_count": 23666
+      }
+    ],
+    "repetitions": 2,
+    "blas_threads": 1,
+    "environment": {
+      "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+      "packages": {
+        "numpy": "2.3.4",
+        "scipy": "1.17.1",
+        "pydantic": "2.12.5"
+      }
+    }
+  },
+  "provenance": {
+    "files": {
+      "capsule-auditor.py.txt": "c1cf1f16d9ce3e84a8fd39e255ee91ed25eb192c49abf91f458781261c9045e9",
+      "config.yaml": "6141ed950c0653c2b3d9c3c6ae930253358fadf05b711d9aa07d64b26a66e3ff",
+      "freezer.py.txt": "2c72248f7ee1e7ea502abed49870859000034c55f2599b6eb66f63f3852033cb",
+      "identity.py.txt": "5dcbf54c1b5e3721fb019ad80d0074120d49fbb02a4fd7abebed6f7eccb67d41",
+      "launcher.py.txt": "de1ae86d1e0dd28820b8a5ac0e2539f08ca6b216100e41185658470960ca5463",
+      "result-schema.json": "a9c1c17177c45c01a98e7cdd49a1f4761b246bec8c9ce115e2fd2239d1e61c5e",
+      "schema.json": "285759968e3e8dde2b2eda2c4cb0802fe7839d7231f82a492ff3545390f0c54d",
+      "sources-current-manifest.json": "6b327cc52564a7e166bcd53962d35478798960dc95c37a274dd893909479a701",
+      "sources-current.tar.gz": "d884b401578cb15e81e622c334b7471468ea6d3375aab068a70dd130a9be40a7",
+      "sources-prior-manifest.json": "c0c3b06acfd183c36ff4bf97caa680fcdbd6ab0a84c7d4745eebc5e286a88870",
+      "sources-prior.tar.gz": "2c1102a3e0bcc67765615e712156863e1989a7bd7cdca09987320c22722cf032",
+      "upstream-manifest.yaml": "48e838c5b3dd81e52ca2c68ba92e10af616af031efdcbd86097c0f5fde54c45a"
+    }
+  }
+}

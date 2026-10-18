@@ -5,6 +5,7 @@ import json
 import math
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
+from threading import Barrier
 
 import numpy as np
 import pytest
@@ -13,6 +14,7 @@ from calibrex.core.geometry import SE3
 from calibrex.graph import _point_plane_batches as batches
 from calibrex.graph import joint_factors as factors
 from calibrex.graph import joint_optimization as graph
+from calibrex.graph._evaluation_scope import _PREPARATION_CACHE, _with_preparation_cache
 
 
 def problem(count=96, outliers=False, extra=False):
@@ -232,3 +234,353 @@ def test_concurrent_passes_use_separate_prepared_arrays(monkeypatch):
     monkeypatch.setattr(batches, "_prepare_point_plane_plan", lambda *_: None)
     expected = [graph._factor_residuals(point_factors, v) for v in inputs]
     assert [v.tobytes() for v in actual] == [v.tobytes() for v in expected]
+
+
+def test_complete_solver_builds_only_train_and_holdout_plans(monkeypatch):
+    blocks, point_factors, _ = problem(384)
+    original = batches._build_point_plane_plan
+    builds = []
+
+    def build(*args):
+        plan = original(*args)
+        builds.append((len(args[0]), plan is not None))
+        return plan
+
+    monkeypatch.setattr(batches, "_build_point_plane_plan", build)
+    options = graph.JointOptimizerOptions(max_iterations=6, split_seed=7)
+    result = graph.BackendNeutralJointOptimizer().solve(blocks, point_factors, options)
+    assert len(result.history) > 1
+    assert len(result.probes) == 24
+    assert builds == [(len(result.train_factor_ids), True), (len(result.holdout_factor_ids), True)]
+    assert _PREPARATION_CACHE.get() is None
+    values = {block.name: block.initial_values for block in blocks}
+    first = batches._prepare_point_plane_plan(point_factors, values)
+    assert first is not batches._prepare_point_plane_plan(point_factors, values)
+    assert len(builds) == 4
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        "replacement",
+        "weight",
+        "point",
+        "plane",
+        "world",
+        "sensor",
+        "rotation",
+        "cell",
+        "code",
+        "descriptor",
+        "owner",
+        "prior",
+        "names",
+        "whitening",
+        "subclass",
+    ],
+)
+def test_reused_plans_observe_changes_between_evaluations(monkeypatch, change):
+    from contextvars import ContextVar
+
+    blocks, point_factors, _ = problem(96)
+    values = {block.name: block.initial_values for block in blocks}
+
+    @_with_preparation_cache
+    def evaluate():
+        first = batches._prepare_point_plane_plan(point_factors, values)
+        assert first is not None
+        binding = batches._binding(point_factors[0])
+        if change == "replacement":
+            point_factors[0] = replace(point_factors[0], weight=3.25)
+        elif change == "weight":
+            object.__setattr__(point_factors[0], "weight", 3.25)
+        elif change == "point":
+            object.__setattr__(binding.measurement, "point_sensor_m", (-0.0, 0.0, -0.0))
+        elif change == "plane":
+            object.__setattr__(binding.measurement, "plane_point_world_m", (0.2, 0.1, -0.1))
+        elif change in ("world", "sensor"):
+            transform = (
+                binding.measurement.transform_world_body_initial
+                if change == "world"
+                else binding.measurement.transform_body_sensor_initial
+            )
+            object.__setattr__(transform, "translation_m", (-0.0, 0.0, -0.0))
+        elif change == "rotation":
+            object.__setattr__(
+                binding.measurement.transform_world_body_initial,
+                "rotation_quat_xyzw",
+                (0.01, -0.02, 0.03, 0.99),
+            )
+        elif change == "cell":
+            evaluator = point_factors[0].evaluator
+            index = evaluator.__code__.co_freevars.index("normal")
+            evaluator.__closure__[index].cell_contents = (-0.2, 0.4, 0.8)
+        elif change == "code":
+            evaluator = point_factors[0].evaluator
+            evaluator.__code__ = evaluator.__code__.replace(co_filename="changed_native.py")
+        elif change == "descriptor":
+            setattr(point_factors[0].evaluator, batches._ATTRIBUTE, replace(binding))
+        elif change == "owner":
+            object.__setattr__(binding.owner, "code", binding.owner.code.replace(co_name="changed"))
+        elif change == "prior":
+            prior = batches._binding(point_factors[-1])
+            object.__setattr__(prior, "dimension", 7)
+        elif change == "names":
+            point_factors[0] = replace(point_factors[0], variable_names=("ext", "pose"))
+        elif change == "whitening":
+            point_factors[0] = replace(point_factors[0], sqrt_information=((1.2,),))
+        else:
+
+            class Custom(graph.JointResidualBlock):
+                pass
+
+            point_factors[0] = Custom(**point_factors[0].__dict__)
+        assert batches._prepare_point_plane_plan(point_factors, values) is not first
+        actual = graph._factor_residuals(point_factors, values)
+        with monkeypatch.context() as fresh:
+            fresh.setattr(batches, "_PREPARATION_CACHE", ContextVar("disabled", default=None))
+            expected = graph._factor_residuals(point_factors, values)
+        assert actual.tobytes() == expected.tobytes()
+
+    evaluate()
+    assert _PREPARATION_CACHE.get() is None
+
+
+def test_reuse_keeps_dynamic_values_and_rebuilds_for_factor_order():
+    blocks, point_factors, _ = problem(96)
+    values = {block.name: block.initial_values for block in blocks}
+
+    @_with_preparation_cache
+    def evaluate():
+        first = batches._prepare_point_plane_plan(point_factors, values)
+        changed = {**values, "ext": (0.05,) * 6}
+        assert batches._prepare_point_plane_plan(point_factors, changed) is first
+        assert first.evaluate(values).tobytes() != first.evaluate(changed).tobytes()
+        point_factors.reverse()
+        reordered = batches._prepare_point_plane_plan(point_factors, changed)
+        assert reordered is not None and reordered is not first
+        reference = batches._build_point_plane_plan(point_factors, changed)
+        assert reordered.evaluate(changed).tobytes() == reference.evaluate(changed).tobytes()
+        assert batches._prepare_point_plane_plan(point_factors, {"pose": (0.0,) * 6}) is None
+        assert (
+            batches._prepare_point_plane_plan(point_factors, {**values, "pose": (0.0,) * 5}) is None
+        )
+
+    evaluate()
+
+
+def test_cache_bounds_evict_whole_plans_and_never_cache_ineligible_graphs(monkeypatch):
+    blocks, first, _ = problem(64)
+    _, second, _ = problem(64)
+    _, third, _ = problem(64)
+    values = {block.name: block.initial_values for block in blocks}
+    monkeypatch.setattr(batches, "_PLAN_FACTOR_LIMIT", 150)
+
+    @_with_preparation_cache
+    def evaluate():
+        original = batches._prepare_point_plane_plan(first, values)
+        batches._prepare_point_plane_plan(second, values)
+        cache = _PREPARATION_CACHE.get()
+        assert len(cache) == 2
+        batches._prepare_point_plane_plan(third, values)
+        assert len(cache) == 2 and id(first) not in cache
+        rebuilt = batches._prepare_point_plane_plan(first, values)
+        assert rebuilt is not original
+        assert original.evaluate(values).tobytes() == rebuilt.evaluate(values).tobytes()
+        monkeypatch.setattr(batches, "_PLAN_FACTOR_LIMIT", 64)
+        cache.clear()
+        assert batches._prepare_point_plane_plan(first, values) is not None
+        assert not cache
+        first[0] = replace(first[0], evaluator=lambda _: (0.0,))
+        assert batches._prepare_point_plane_plan(first, values) is None and not cache
+
+    evaluate()
+
+
+def test_nested_concurrent_and_failed_solver_scopes_are_released():
+    blocks, point_factors, _ = problem(96)
+    values = {block.name: block.initial_values for block in blocks}
+
+    @_with_preparation_cache
+    def nested():
+        return batches._prepare_point_plane_plan(point_factors, values)
+
+    @_with_preparation_cache
+    def outer():
+        plan = batches._prepare_point_plane_plan(point_factors, values)
+        assert nested() is not plan
+        assert batches._prepare_point_plane_plan(point_factors, values) is plan
+        raise RuntimeError("release prepared data")
+
+    with pytest.raises(RuntimeError, match="release prepared data"):
+        outer()
+    assert _PREPARATION_CACHE.get() is None
+    barrier = Barrier(2)
+
+    @_with_preparation_cache
+    def worker(_):
+        plan = batches._prepare_point_plane_plan(point_factors, values)
+        barrier.wait(timeout=10)
+        assert batches._prepare_point_plane_plan(point_factors, values) is plan
+        return plan
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        plans = list(executor.map(worker, range(2)))
+    assert plans[0] is not plans[1]
+    assert _PREPARATION_CACHE.get() is None
+
+
+def test_modified_global_methods_and_eligibility_limits_disable_cached_plans(monkeypatch):
+    blocks, point_factors, _ = problem(96)
+    values = {block.name: block.initial_values for block in blocks}
+
+    @_with_preparation_cache
+    def evaluate():
+        assert batches._prepare_point_plane_plan(point_factors, values) is not None
+        with monkeypatch.context() as changed:
+            changed.setattr(batches, "_MAX_POINTS", 64)
+            assert batches._prepare_point_plane_plan(point_factors, values) is None
+        assert batches._prepare_point_plane_plan(point_factors, values) is not None
+        with monkeypatch.context() as changed:
+            original = graph.JointResidualBlock.residuals
+            changed.setattr(
+                graph.JointResidualBlock, "residuals", lambda self, v: original(self, v)
+            )
+            assert batches._prepare_point_plane_plan(point_factors, values) is None
+        with monkeypatch.context() as changed:
+            original = factors.se3_from_tangent
+            changed.setattr(factors, "se3_from_tangent", lambda v: original(v))
+            assert batches._prepare_point_plane_plan(point_factors, values) is None
+
+    evaluate()
+
+
+def test_mutable_initial_frame_leaves_are_prepared_afresh():
+    blocks, point_factors, _ = problem(96)
+    values = {block.name: block.initial_values for block in blocks}
+    measurement = batches._binding(point_factors[0]).measurement
+    world = measurement.transform_world_body_initial
+    translation = list(world.translation_m)
+    object.__setattr__(world, "translation_m", translation)
+
+    @_with_preparation_cache
+    def evaluate():
+        first = batches._prepare_point_plane_plan(point_factors, values)
+        assert first is not None and not _PREPARATION_CACHE.get()
+        before = first.evaluate(values).tobytes()
+        translation[0] = 0.4
+        second = batches._prepare_point_plane_plan(point_factors, values)
+        assert second is not None and second is not first
+        assert not _PREPARATION_CACHE.get()
+        expected = batches._build_point_plane_plan(point_factors, values).evaluate(values)
+        assert second.evaluate(values).tobytes() == expected.tobytes() != before
+
+    evaluate()
+
+
+@pytest.mark.parametrize("solver,fixed", [("dense", False), ("schur", False), ("dense", True)])
+@pytest.mark.parametrize("outliers", [False, True])
+def test_owned_native_graphs_match_guarded_solve_without_repeated_point_inspection(
+    monkeypatch, solver, fixed, outliers
+):
+    blocks, point_factors, truth = problem(384, outliers=outliers, extra=True)
+    blocks[0] = replace(blocks[0], fixed=fixed)
+    options = graph.JointOptimizerOptions(max_iterations=12, split_seed=7, linear_solver=solver)
+    traces = []
+    checked = []
+    original_linearize = graph._linearize
+    original_matches = batches._FactorState.matches
+
+    def linearize(*args):
+        result = original_linearize(*args)
+        traces.append(tuple(value.tobytes() for value in result))
+        return result
+
+    def matches(self, factor):
+        checked.append(factor.factor_id)
+        return original_matches(self, factor)
+
+    monkeypatch.setattr(graph, "_linearize", linearize)
+    monkeypatch.setattr(batches._FactorState, "matches", matches)
+    guarded = graph.BackendNeutralJointOptimizer().solve(blocks, point_factors, options)
+    assert checked
+    expected_traces = traces.copy()
+    traces.clear()
+    checked.clear()
+    owned = graph.BackendNeutralJointOptimizer().solve(
+        blocks, batches._OwnedPointFactors(point_factors), options
+    )
+    assert not checked
+    assert traces == expected_traces
+    assert owned.as_dict() == guarded.as_dict()
+    if not outliers:
+        assert owned.optimized_values["ext"] == pytest.approx(truth, abs=1e-7)
+    assert _PREPARATION_CACHE.get() is None
+
+
+def test_owned_private_snapshot_keeps_frame_bits_and_is_released_between_solves():
+    blocks, point_factors, _ = problem(96)
+    owned = batches._OwnedPointFactors(point_factors)
+    values = {block.name: block.initial_values for block in blocks}
+    measurement = batches._binding(point_factors[0]).measurement
+
+    @_with_preparation_cache
+    def first_solve():
+        plan = batches._prepare_point_plane_plan(owned, values)
+        before = plan.evaluate(values).tobytes()
+        frozen = plan.groups[0].binding.measurement
+        assert frozen.transform_world_body_initial is not measurement.transform_world_body_initial
+        assert (
+            frozen.transform_world_body_initial.rotation_quat_xyzw
+            is measurement.transform_world_body_initial.rotation_quat_xyzw
+        )
+        object.__setattr__(measurement, "point_sensor_m", (-0.0, 0.0, -0.0))
+        object.__setattr__(measurement.transform_world_body_initial, "translation_m", (0.4,) * 3)
+        assert batches._prepare_point_plane_plan(owned, values) is plan
+        assert plan.evaluate(values).tobytes() == before
+        return plan, before
+
+    original, before = first_solve()
+
+    @_with_preparation_cache
+    def next_solve():
+        plan = batches._prepare_point_plane_plan(owned, values)
+        assert plan is not original
+        assert plan.evaluate(values).tobytes() != before
+
+    next_solve()
+    assert _PREPARATION_CACHE.get() is None
+
+
+@pytest.mark.parametrize("change", ["wrapped", "mutable_frame"])
+def test_private_ownership_marker_does_not_override_purity_or_immutable_leaf_checks(change):
+    blocks, point_factors, _ = problem(96)
+    values = {block.name: block.initial_values for block in blocks}
+    calls = []
+    if change == "wrapped":
+        original = point_factors[0].evaluator
+
+        @functools.wraps(original)
+        def wrapped(supplied):
+            calls.append(True)
+            return original(supplied)
+
+        point_factors[0] = replace(point_factors[0], evaluator=wrapped)
+    else:
+        world = batches._binding(point_factors[0]).measurement.transform_world_body_initial
+        object.__setattr__(world, "translation_m", list(world.translation_m))
+    owned = batches._OwnedPointFactors(point_factors)
+
+    @_with_preparation_cache
+    def evaluate():
+        first = batches._prepare_point_plane_plan(owned, values)
+        second = batches._prepare_point_plane_plan(owned, values)
+        assert first is None or second is not first
+        assert not _PREPARATION_CACHE.get()
+        before = graph._factor_residuals(owned, values)
+        after = graph._factor_residuals(owned, values)
+        assert before.tobytes() == after.tobytes()
+        if change == "wrapped":
+            assert calls == [True, True]
+
+    evaluate()

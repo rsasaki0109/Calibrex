@@ -1,0 +1,38 @@
+{
+  "schema_version": "slac.joint_point_plan_reuse_benchmark/v0.1",
+  "record_type": "report",
+  "payload": {
+    "whole_seconds_median": {
+      "prior": 23.32464579999214,
+      "current": 9.522337600006722
+    },
+    "api_seconds_median": {
+      "prior": 20.801695700036362,
+      "current": 7.212690650019795
+    },
+    "whole_speedup": 2.4494663789252415,
+    "api_speedup": 2.884041020112137,
+    "verified_runs": 4,
+    "observations": 16884,
+    "joint_iterations": 40,
+    "jacobian_calls": 41,
+    "residual_calls": 65,
+    "preparation_calls_per_run": 106,
+    "plan_builds_per_run": {
+      "prior": 106,
+      "current": 2
+    },
+    "complete_results_exact": true,
+    "all_array_digests_exact": true,
+    "runtime_source_changes": [
+      "calibrex/graph/_evaluation_scope.py",
+      "calibrex/graph/_point_plane_batches.py",
+      "calibrex/graph/joint_optimization.py",
+      "calibrex/solvers/native_joint_slac_solver.py"
+    ]
+  },
+  "provenance": {
+    "protocol_sha256": "e3491dbe5a3bf15ebffccff56db23859545d9ff27461fbb3cf3ef12fb473b7ff",
+    "attempts_sha256": "bd464ec756deeb772c22121df76bb0d5fe9f0d1933d2b025a8d723f018956b30"
+  }
+}
