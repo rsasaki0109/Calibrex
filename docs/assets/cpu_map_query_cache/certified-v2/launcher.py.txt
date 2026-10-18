@@ -1,0 +1,271 @@
+"""Three cyclic fresh-process triads of certified CPU LiDAR map queries."""
+import os
+for name in ("OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "OMP_NUM_THREADS"):
+    os.environ[name] = "1"
+os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+
+from argparse import ArgumentParser, Namespace
+from dataclasses import replace
+import copy
+import hashlib
+import json
+from pathlib import Path
+import statistics
+import struct
+import subprocess
+import sys
+import time
+
+ROOT = Path(__file__).resolve().parent
+OUT = ROOT / "outputs/certified-cpu-map-triads-v2"
+SEQUENCE = Path("data/public/kitti_raw_icp/2011_09_30_drive_0018_sync")
+PRIOR = "96871f64588a122e33e01c713e6710f0f0f36d71"
+VARIANTS = ("prior", "lazy", "certified")
+WORKERS = {"prior": 1, "lazy": 8, "certified": 8}
+LAZY = "09f27193c9418ec9b6584caea459661e047fe875"
+HELPERS = (
+    "tools/benchmark_cuda_lidar_map.py",
+    "tools/benchmark_bspline_lidar_imu.py",
+)
+sys.dont_write_bytecode = True
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+read = lambda p: json.loads(p.read_bytes())
+
+
+def write(path, value):
+    path.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+
+
+def source(variant):
+    return OUT / {"prior": "source-prior", "lazy": "source-lazy", "certified": "source-current"}[variant]
+
+
+def exact(left, right, path=""):
+    if type(left) is not type(right):
+        return [path + ":type"]
+    if isinstance(left, dict):
+        if left.keys() != right.keys():
+            return [path + ":keys"]
+        return [e for key in left for e in exact(left[key], right[key], path + "." + key)]
+    if isinstance(left, list):
+        if len(left) != len(right):
+            return [path + ":length"]
+        return [e for i, (a, b) in enumerate(zip(left, right, strict=True))
+                for e in exact(a, b, path + f"[{i}]")]
+    if isinstance(left, float):
+        return [] if struct.pack(">d", left) == struct.pack(">d", right) else [path]
+    return [] if left == right else [path]
+
+
+def compare(prior, current):
+    errors = exact(prior["evaluation"], current["evaluation"], ".evaluation")
+    errors += exact(prior["full_fits"], current["full_fits"], ".full_fits")
+    left, right = copy.deepcopy(prior["artifact"]), copy.deepcopy(current["artifact"])
+    for value in (left, right):
+        value["provenance"]["git_commit"] = "<DECLARED_RUNTIME_COMMIT>"
+        # First-cohort records are retained. Only creation-time metadata
+        # is additionally normalized; physical float-bit checks stay strict.
+        value["provenance"]["created_at"] = "<DECLARED_RUN_TIMESTAMP>"
+        value["options"]["map_options"].pop("query_workers", None)
+    errors += exact(left, right, ".artifact")
+    for field in ("prepared_sha256", "partition_sha256", "map_points", "target_points"):
+        errors += exact(prior[field], current[field], "." + field)
+    errors += exact(prior["provenance"]["input_sha256"],
+                    current["provenance"]["input_sha256"], ".inputs")
+    return errors
+
+
+def worker(repeat, variant):
+    from tools import benchmark_bspline_lidar_imu as common
+    from tools import benchmark_cuda_lidar_map as workload
+    root = source(variant)
+    expected = common._verify_sources(root)
+    sys.path.insert(0, str(root / "src"))
+    from calibrex.evaluation import lidar_lidar_map as evaluation
+    from calibrex.solvers import lidar_lidar_map_solver as solver
+    protocol = read(OUT / "protocol.json")
+    for name in HELPERS:
+        assert sha(ROOT / name) == protocol["helpers_sha256"][name]
+    queries = []
+    observed_samples = []
+    projections = []
+    sample_class = solver.MapSample
+    residuals = sample_class.residuals
+    def observed_residuals(self, *args, **kwargs):
+        projections.append(len(self.target_points))
+        return residuals(self, *args, **kwargs)
+    sample_class.residuals = observed_residuals
+    def sample_factory(*args, **kwargs):
+        sample = sample_class(*args, **kwargs)
+        observed_samples.append(sample)
+        return sample
+    solver.MapSample = sample_factory
+    original_tree = solver.cKDTree
+    class ObservedTree(original_tree):
+        def query(self, points, *args, **kwargs):
+            queries.append({"kind": "normal" if kwargs.get("k") == 10 else "correspondence",
+                            "rows": len(points), "workers": kwargs.get("workers", 1)})
+            return super().query(points, *args, **kwargs)
+    solver.cKDTree = ObservedTree
+    if variant != "prior":
+        options_class = evaluation.LidarLidarMapOptions
+        def options_factory(*args, **kwargs):
+            value = options_class(*args, **kwargs)
+            return replace(value, solver=replace(value.solver, query_workers=WORKERS[variant]))
+        evaluation.LidarLidarMapOptions = options_factory
+    original_solve = evaluation.solve_map_extrinsic
+    fits = []
+    def fit(*args, **kwargs):
+        result = original_solve(*args, **kwargs)
+        fits.append(workload._json(result))
+        return result
+    evaluation.solve_map_extrinsic = fit
+    folder = OUT / f"{repeat:02d}-{variant}"
+    commit = protocol[{"prior": "prior_commit", "lazy": "lazy_commit", "certified": "current_commit"}[variant]]
+    workload._worker(Namespace(
+        sequence=SEQUENCE, output_dir=folder, half_window=1, worker="cpu",
+        source_root=root, source_commit=commit,
+    ))
+    assert len(fits) == 5
+    imports = {}
+    for name, module in list(sys.modules.items()):
+        if name == "calibrex" or name.startswith("calibrex."):
+            path = Path(module.__file__).resolve()
+            assert path.is_relative_to(root / "src"), name
+            relative = path.relative_to(root / "src").as_posix()
+            assert expected[relative] == sha(path), name
+            imports[relative] = expected[relative]
+    common._verify_sources(root)
+    assert "cupy" not in sys.modules
+    record = read(folder / "measurement.json")
+    record["full_fits"] = fits
+    record["work"] = {
+        "queries": queries,
+        "normal_rows": sum(row["rows"] for row in queries if row["kind"] == "normal"),
+        "correspondence_rows": sum(row["rows"] for row in queries
+                                   if row["kind"] == "correspondence"),
+        "requested_workers": WORKERS[variant],
+        "gpu_runtime_imported": False,
+    }
+    caches = [getattr(sample, "_query_cache", None) for sample in observed_samples]
+    caches = [cache for cache in caches if cache is not None]
+    record["work"].update(
+        projected_rows=sum(projections), residual_calls=len(projections),
+        certified_rows=sum(cache.reused_rows for cache in caches),
+        cached_query_rows=sum(cache.queried_rows for cache in caches),
+        native_tie_rows=sum(cache.native_tie_rows for cache in caches),
+    )
+    if variant == "certified":
+        work = record["work"]
+        assert work["certified_rows"] > 0
+        assert work["cached_query_rows"] == work["correspondence_rows"]
+        assert work["certified_rows"] + work["cached_query_rows"] - work["native_tie_rows"] == work["projected_rows"]
+    record["provenance"].update(
+        source_commit=commit, source_manifest_sha256=sha(root / "manifest.json"),
+        executed_sources_sha256=imports, launcher_sha256=sha(Path(__file__)),
+        protocol_sha256=sha(OUT / "protocol.json"),
+        helpers_sha256={name: sha(ROOT / name) for name in HELPERS},
+        threads={name: os.environ[name] for name in
+                 ("OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "OMP_NUM_THREADS")},
+    )
+    expected_workers = {WORKERS[variant]}
+    assert {row["workers"] for row in queries} == expected_workers
+    write(folder / "measurement.json", record)
+
+
+def main(candidate):
+    from tools import benchmark_bspline_lidar_imu as common
+    from tools.benchmark_cuda_lidar_map import _paths
+    assert not OUT.exists()
+    OUT.mkdir()
+    (OUT / "launcher.py.txt").write_bytes(Path(__file__).read_bytes())
+    common._freeze(source("prior"), PRIOR)
+    common._freeze(source("lazy"), LAZY)
+    common._freeze(source("certified"), candidate)
+    input_hashes = {path.as_posix(): sha(path) for path in _paths(SEQUENCE, 1)}
+    protocol = {
+        "schema_version": "calibrex.lazy_cpu_map_development/v0.1",
+        "scope": __doc__, "prior_commit": PRIOR, "lazy_commit": LAZY, "current_commit": candidate,
+        "repeats": 3, "variants": list(VARIANTS), "query_workers": WORKERS,
+        "order": [list(VARIANTS[i:] + VARIANTS[:i]) for i in range(3)],
+        "half_window": 1, "target_noise_seed": 20261012, "target_noise_std_m": 0.01,
+        "jackknife_groups": 4, "fits_per_worker": 5,
+        "launcher_sha256": sha(Path(__file__)),
+        "helpers_sha256": {name: sha(ROOT / name) for name in HELPERS},
+        "source_manifests_sha256": {variant: sha(source(variant) / "manifest.json")
+                                    for variant in VARIANTS},
+        "input_sha256": input_hashes,
+        "adoption_gate": {"all_physical_and_evidence_float_bits_equal": True,
+                          "prior_to_certified_median_at_least": 2.0,
+                          "lazy_to_certified_median_above": 1.0},
+        "query_cache": {"min_rows": 4096, "max_retained_bytes_per_sample": 8388608,
+                        "bytes_per_row": 40, "margin_machine_eps": 256},
+        "preceding_cohort": {"directory": "outputs/lazy-cpu-map-triads-v1",
+                             "metadata_comparator_fix": "normalize only created_at",
+                             "original_records_unchanged": True},
+        "limitations": [
+            "Spent public KITTI copied-sensor execution control; no new accuracy/SOTA claim.",
+            "Concatenated raw windows are not motion compensated; odometry/bag decoding are outside scope.",
+            "Every original scan point, full training fit, four jackknife fits, covariance and all six controls retained.",
+            "One BLAS thread, unreserved host, fresh worker includes imports, reads, evaluation, hashes and saves.",
+            "No timing is discarded or rerun to replace an unfavorable observation.",
+        ],
+    }
+    write(OUT / "protocol.json", protocol)
+    observations = []
+    for repeat in range(3):
+        data, walls = {}, {}
+        for variant in protocol["order"][repeat]:
+            folder = OUT / f"{repeat:02d}-{variant}"
+            folder.mkdir()
+            env = dict(os.environ, PYTHONPATH=str(source(variant) / "src"))
+            started = time.perf_counter()
+            with (folder / "stdout.log").open("w") as stdout, (folder / "stderr.log").open("w") as stderr:
+                result = subprocess.run([sys.executable, str(Path(__file__)), "--worker", variant,
+                                         "--repeat", str(repeat)], cwd=ROOT, env=env,
+                                        stdout=stdout, stderr=stderr, check=False)
+            elapsed = time.perf_counter() - started
+            write(folder / "whole.json", {"wall_seconds": elapsed, "returncode": result.returncode,
+                                          "launcher_sha256": sha(Path(__file__)),
+                                          "protocol_sha256": sha(OUT / "protocol.json")})
+            assert result.returncode == 0, (repeat, variant, result.returncode)
+            walls[variant] = elapsed
+            data[variant] = read(folder / "measurement.json")
+            print(json.dumps({"repeat": repeat, "variant": variant, "seconds": elapsed}), flush=True)
+        errors = {variant: compare(data["prior"], data[variant]) for variant in VARIANTS[1:]}
+        triad = {"repeat": repeat, "whole_seconds": walls, "errors": errors,
+                 "measurement_sha256": {variant: sha(OUT / f"{repeat:02d}-{variant}/measurement.json")
+                                        for variant in VARIANTS}}
+        write(OUT / f"triad-{repeat:02d}.json", triad)
+        observations.append(triad)
+    medians = {variant: statistics.median(t["whole_seconds"][variant] for t in observations)
+               for variant in VARIANTS}
+    quality = all(not values for triad in observations for values in triad["errors"].values())
+    ratio = medians["prior"] / medians["certified"]
+    incremental = medians["lazy"] / medians["certified"]
+    summary = {"complete_workers": 9, "complete_fits": 45, "quality_passed": quality,
+               "median_seconds": medians, "prior_to_lazy": medians["prior"] / medians["lazy"],
+               "prior_to_certified": ratio, "lazy_to_certified": incremental,
+               "advance": quality and ratio >= 2.0 and incremental > 1.0,
+               "protocol_sha256": sha(OUT / "protocol.json"),
+               "triads_sha256": [sha(OUT / f"triad-{i:02d}.json") for i in range(3)]}
+    for name, digest in input_hashes.items():
+        assert sha(ROOT / name) == digest
+    assert sha(Path(__file__)) == protocol["launcher_sha256"]
+    for variant in VARIANTS:
+        common._verify_sources(source(variant))
+    write(OUT / "summary.json", summary)
+    print(json.dumps(summary), flush=True)
+
+
+if __name__ == "__main__":
+    parser = ArgumentParser()
+    parser.add_argument("--worker", choices=VARIANTS)
+    parser.add_argument("--repeat", type=int)
+    parser.add_argument("--candidate-commit")
+    args = parser.parse_args()
+    if args.worker:
+        worker(args.repeat, args.worker)
+    else:
+        assert args.candidate_commit
+        main(args.candidate_commit)

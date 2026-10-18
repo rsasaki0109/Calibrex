@@ -550,6 +550,20 @@ attempts separately. Generated sample blocks reuse underlying scans and are
 an execution control, not independent temporal or two-sensor accuracy evidence.
 ROS-bag collection and reference odometry remain outside this timing scope.
 
+## Parallel CPU LiDAR map registration
+
+CPU map registration can also use `--registration-query-workers 8` on
+`calibrex lidar-lidar ros2`, or `MapSampleOptions(query_workers=8)` in Python.
+Native map normals are computed only for reached points and reused across
+fitting and evidence calls. One worker remains the default.
+
+Two separate public KITTI map-evaluation cohorts observe 1.987x and 2.138x
+complete-process ratios for reached normals with eight query workers against
+the prior one-worker CPU path. These scopes include covariance, jackknife and
+controls, and exclude bag decoding and reference odometry. The
+[full CPU evidence](../benchmarks/cpu_map_normal_cache.md) retains all timings,
+the original missed gate and a rejected additional query-cache experiment.
+
 ## CUDA LiDAR scan odometry
 
 Reference LiDAR odometry can now use `--odometry-backend cuda` on
