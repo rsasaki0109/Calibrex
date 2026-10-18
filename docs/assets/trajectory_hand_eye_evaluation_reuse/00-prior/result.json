@@ -1,0 +1,287 @@
+{
+  "block_duration_s": 5.0,
+  "calibrated_dofs": [
+    "roll",
+    "pitch",
+    "yaw",
+    "x",
+    "y",
+    "z",
+    "time_offset",
+    "reference_scale"
+  ],
+  "dofs": [
+    {
+      "error_to_reference": -0.010321531570948991,
+      "known_bad_control": {
+        "amount": 1.0,
+        "detected": true,
+        "holdout_delta_chi2": 4389.390361819946,
+        "unit": "deg"
+      },
+      "name": "roll",
+      "reference_value": 0.9999999999999994,
+      "status": "estimated",
+      "std_analytic": 0.0020565860034340673,
+      "std_jackknife": 0.004469376843099243,
+      "std_reported": 0.004469376843099243,
+      "unit": "deg",
+      "value": 0.9897841911014111
+    },
+    {
+      "error_to_reference": 0.001868830930440028,
+      "known_bad_control": {
+        "amount": 1.0,
+        "detected": true,
+        "holdout_delta_chi2": 10193.849602632688,
+        "unit": "deg"
+      },
+      "name": "pitch",
+      "reference_value": -2.0000000000000027,
+      "status": "estimated",
+      "std_analytic": 0.002078275453166031,
+      "std_jackknife": 0.001708458431574402,
+      "std_reported": 0.002078275453166031,
+      "unit": "deg",
+      "value": -1.9975936022868968
+    },
+    {
+      "error_to_reference": -0.0010216717451157838,
+      "known_bad_control": {
+        "amount": 1.0,
+        "detected": true,
+        "holdout_delta_chi2": 8174.394645929029,
+        "unit": "deg"
+      },
+      "name": "yaw",
+      "reference_value": 3.0,
+      "status": "estimated",
+      "std_analytic": 0.002863519216742103,
+      "std_jackknife": 0.0019041186609434363,
+      "std_reported": 0.002863519216742103,
+      "unit": "deg",
+      "value": 2.999334640442874
+    },
+    {
+      "error_to_reference": 0.00292304712253455,
+      "known_bad_control": {
+        "amount": 0.1,
+        "detected": true,
+        "holdout_delta_chi2": 1243.2307324083822,
+        "unit": "m"
+      },
+      "name": "x",
+      "reference_value": 0.8,
+      "status": "estimated",
+      "std_analytic": 0.0017135602924774622,
+      "std_jackknife": 0.0018534172334283914,
+      "std_reported": 0.0018534172334283914,
+      "unit": "m",
+      "value": 0.8029230471225346
+    },
+    {
+      "error_to_reference": 1.987147849508153e-05,
+      "known_bad_control": {
+        "amount": 0.1,
+        "detected": true,
+        "holdout_delta_chi2": 1220.802335096525,
+        "unit": "m"
+      },
+      "name": "y",
+      "reference_value": -0.3,
+      "status": "estimated",
+      "std_analytic": 0.001715449717587272,
+      "std_jackknife": 0.0015007647096817011,
+      "std_reported": 0.001715449717587272,
+      "unit": "m",
+      "value": -0.2999801285215049
+    },
+    {
+      "error_to_reference": 0.011620655778048494,
+      "known_bad_control": {
+        "amount": 0.1,
+        "detected": true,
+        "holdout_delta_chi2": 29.020902315529383,
+        "unit": "m"
+      },
+      "name": "z",
+      "reference_value": 0.9,
+      "status": "estimated",
+      "std_analytic": 0.015593605942771292,
+      "std_jackknife": 0.01513890930536073,
+      "std_reported": 0.015593605942771292,
+      "unit": "m",
+      "value": 0.9116206557780485
+    },
+    {
+      "known_bad_control": {
+        "amount": 0.02,
+        "detected": true,
+        "holdout_delta_chi2": 11037.204339755235,
+        "unit": "s"
+      },
+      "name": "time_offset",
+      "status": "estimated",
+      "std_analytic": 5.149035212188459e-05,
+      "std_jackknife": 0.00012796645764426884,
+      "std_reported": 0.00012796645764426884,
+      "unit": "s",
+      "value": 0.012176215688052295
+    },
+    {
+      "name": "reference_scale",
+      "status": "estimated",
+      "std_analytic": 5.160274512943252e-05,
+      "std_jackknife": 3.485356765790743e-05,
+      "std_reported": 5.160274512943252e-05,
+      "unit": "ratio",
+      "value": 1.0199966560632692
+    }
+  ],
+  "holdout": {
+    "motion_count": 264,
+    "rotation_median_deg": 0.01845593706621001,
+    "rotation_rmse_deg": 0.020620356041134817,
+    "translation_median_m": 0.004552203158589873,
+    "translation_rmse_m": 0.005217982411245801
+  },
+  "holdout_blocks": [
+    2,
+    5,
+    8,
+    11,
+    14,
+    17,
+    20,
+    23,
+    26,
+    29,
+    32,
+    35,
+    38,
+    41,
+    44,
+    47,
+    50,
+    53,
+    56
+  ],
+  "jackknife_fits": 38,
+  "limitations": [
+    "Generated sensor motions from public OXTS; performance/parity control, no raw LiDAR registration or independent accuracy evidence."
+  ],
+  "method": "joint_trajectory_hand_eye/v0.1",
+  "odometry": {
+    "converged_registrations": 0,
+    "frame_count": 2742,
+    "missing_frames": [],
+    "registration_count": 0
+  },
+  "options": {
+    "detection_delta_chi2": 9.0,
+    "estimate_reference_scale": true,
+    "estimate_time_offset": true,
+    "holdout_every": 3,
+    "observable_rotation_std_deg": 0.1,
+    "observable_time_offset_std_s": 0.005,
+    "observable_translation_std_m": 0.02,
+    "priors": [],
+    "rotation_control_deg": 1.0,
+    "rotation_sigma_rad": 0.0017453292519943296,
+    "step_frames": [
+      5,
+      10,
+      20
+    ],
+    "time_control_s": 0.02,
+    "translation_control_m": 0.1,
+    "translation_sigma_floor_m": 0.01,
+    "translation_sigma_per_m": 0.02
+  },
+  "policy_reasons": [
+    "every extrinsic DoF is constrained and held-out blocks detect every control"
+  ],
+  "policy_status": "pass",
+  "provenance": {
+    "command": [
+      "complete-hand-eye-control"
+    ],
+    "created_at": "2026-10-16T07:59:43.484079+00:00",
+    "dataset_family": "kitti_oxts_generated_sensor_control",
+    "dataset_license": "CC BY-NC-SA 3.0",
+    "drive_ids": [
+      "2011_09_30_drive_0018_sync"
+    ],
+    "generator": "prepared_hand_eye_control",
+    "generator_version": "0.5.1",
+    "git_commit": "823ae70a",
+    "input_sha256": "558fc29f5332b669e6618a1844440033f3637096082c4676023e0c054cf79a9b"
+  },
+  "reference_calibration": "Declared generated sensor-control transform; evaluation only",
+  "reference_scale": 1.0199966560632692,
+  "schema_version": "slac.ins_lidar_hand_eye/v0.1",
+  "solver_status": "converged",
+  "time_offset_s": 0.012176215688052295,
+  "train": {
+    "motion_count": 524,
+    "rotation_median_deg": 0.0175832057165771,
+    "rotation_rmse_deg": 0.019867032729969515,
+    "translation_median_m": 0.004626643666010979,
+    "translation_rmse_m": 0.005244452751419618
+  },
+  "train_blocks": [
+    0,
+    1,
+    3,
+    4,
+    6,
+    7,
+    9,
+    10,
+    12,
+    13,
+    15,
+    16,
+    18,
+    19,
+    21,
+    22,
+    24,
+    25,
+    27,
+    28,
+    30,
+    31,
+    33,
+    34,
+    36,
+    37,
+    39,
+    40,
+    42,
+    43,
+    45,
+    46,
+    48,
+    49,
+    51,
+    52,
+    54,
+    55
+  ],
+  "transform": {
+    "child_frame": "lidar",
+    "parent_frame": "ins",
+    "rotation_quat_xyzw": [
+      0.009089301618642515,
+      -0.017198773162591316,
+      0.026316701719874762,
+      0.9994643655520562
+    ],
+    "translation_m": [
+      0.8029230471225346,
+      -0.2999801285215049,
+      0.9116206557780485
+    ]
+  }
+}

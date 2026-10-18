@@ -1,0 +1,34 @@
+{
+  "scope": "Offline raw-input regeneration portability only; all measured core/input/result/history bytes unchanged.",
+  "tests": {
+    "windows_archive": 17,
+    "linux_archive": 17,
+    "final_common_history_and_mutation_checks": 3
+  },
+  "tolerance": {
+    "rotation_matrix_element_atol": 1e-13,
+    "translation_atol_m": 2e-08,
+    "rtol": 0
+  },
+  "exact_checks": [
+    "raw input and source hashes",
+    "timestamps",
+    "motion ids and blocks",
+    "complete recorded results/residuals/Jacobians"
+  ],
+  "source_version_note": "Windows/Linux archive tests verified bounded geometry regeneration; subsequent common-history schema reuse was independently tested on Windows.",
+  "provenance": {
+    "parent_commit": "3df9b0edd44b0363bcc4c2fe314e54cb0ca01d36",
+    "auditor_after_repair_sha256": "419e95da0b5c9e3c734879a13136cd90b3092e149a4575a1e8f36603d8e58e3d",
+    "tests_sha256": "837c2cf3025b6dc0b23491fd2965ce89eab129216514674b6a53317d7a866008",
+    "measured_protocol_sha256": "c40b423727d2f0177fe244bb807d722bb036cfd198a840b37dc752d56b85b705",
+    "files": {
+      "check-oxts-platform.py.txt": "d35f90243fe1e1d0c2dccd3ed40bf7b9c7bf03ea60c7937d22846ff1ef5822a6",
+      "linux-tests.log": "1674f3a9025cdf445b9ec8cc4289d27380dc5e6fef5a80dfa8eaeae2fd7ef6be",
+      "linux.json": "fbcbb2029b7b08ea1a2bb4fb4a99cb2da854c8dcec01284dee7d04e4ff38e751",
+      "optimized-tests.log": "a1ff7b18c450107a2b647ba9a8ab650d70cebe1a13a13684583ac4450ea9425a",
+      "windows-tests.log": "97538e3d72eb5a06c53c5a4df9c6cd936cbb683d452892ca7e38e8bf5ee27ee3",
+      "windows.json": "5550f53c198dac92ac3102dd076f373ed040fee7c6a9e3fa2dd9b250dde6a36a"
+    }
+  }
+}

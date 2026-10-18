@@ -1,0 +1,546 @@
+{
+  "$defs": {
+    "InsLidarDofRecord": {
+      "additionalProperties": false,
+      "description": "One DoF of the estimate with its uncertainty and evidence.",
+      "properties": {
+        "error_to_reference": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error To Reference"
+        },
+        "known_bad_control": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InsLidarKnownBadControl"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "name": {
+          "enum": [
+            "roll",
+            "pitch",
+            "yaw",
+            "x",
+            "y",
+            "z",
+            "time_offset",
+            "reference_scale"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "reference_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Value"
+        },
+        "status": {
+          "enum": [
+            "estimated",
+            "prior",
+            "unobservable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "std_analytic": {
+          "minimum": 0.0,
+          "title": "Std Analytic",
+          "type": "number"
+        },
+        "std_jackknife": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Std Jackknife"
+        },
+        "std_reported": {
+          "minimum": 0.0,
+          "title": "Std Reported",
+          "type": "number"
+        },
+        "unit": {
+          "enum": [
+            "deg",
+            "m",
+            "s",
+            "ratio"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "unit",
+        "value",
+        "std_analytic",
+        "std_reported",
+        "status"
+      ],
+      "title": "InsLidarDofRecord",
+      "type": "object"
+    },
+    "InsLidarHandEyeProvenance": {
+      "additionalProperties": false,
+      "description": "Inputs and generator lineage.",
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "dataset_family": {
+          "title": "Dataset Family",
+          "type": "string"
+        },
+        "dataset_license": {
+          "title": "Dataset License",
+          "type": "string"
+        },
+        "drive_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Drive Ids",
+          "type": "array"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "dataset_family",
+        "drive_ids",
+        "input_sha256",
+        "dataset_license"
+      ],
+      "title": "InsLidarHandEyeProvenance",
+      "type": "object"
+    },
+    "InsLidarKnownBadControl": {
+      "additionalProperties": false,
+      "description": "Held-out chi-square increase after moving one DoF by a known-bad amount.",
+      "properties": {
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        },
+        "detected": {
+          "title": "Detected",
+          "type": "boolean"
+        },
+        "holdout_delta_chi2": {
+          "title": "Holdout Delta Chi2",
+          "type": "number"
+        },
+        "unit": {
+          "enum": [
+            "deg",
+            "m",
+            "s"
+          ],
+          "title": "Unit",
+          "type": "string"
+        }
+      },
+      "required": [
+        "amount",
+        "unit",
+        "holdout_delta_chi2",
+        "detected"
+      ],
+      "title": "InsLidarKnownBadControl",
+      "type": "object"
+    },
+    "InsLidarOdometrySummary": {
+      "additionalProperties": false,
+      "description": "LiDAR-only odometry quality; the reference never enters it.",
+      "properties": {
+        "converged_registrations": {
+          "minimum": 0,
+          "title": "Converged Registrations",
+          "type": "integer"
+        },
+        "frame_count": {
+          "minimum": 0,
+          "title": "Frame Count",
+          "type": "integer"
+        },
+        "median_correspondences": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Median Correspondences"
+        },
+        "median_registration_rmse_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Median Registration Rmse M"
+        },
+        "missing_frames": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Missing Frames",
+          "type": "array"
+        },
+        "registration_count": {
+          "minimum": 0,
+          "title": "Registration Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "frame_count",
+        "registration_count",
+        "converged_registrations"
+      ],
+      "title": "InsLidarOdometrySummary",
+      "type": "object"
+    },
+    "InsLidarResidualSummary": {
+      "additionalProperties": false,
+      "description": "Residual norms of ``(A X)^-1 X B`` on one motion subset.",
+      "properties": {
+        "motion_count": {
+          "minimum": 0,
+          "title": "Motion Count",
+          "type": "integer"
+        },
+        "rotation_median_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rotation Median Deg"
+        },
+        "rotation_rmse_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rotation Rmse Deg"
+        },
+        "translation_median_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Translation Median M"
+        },
+        "translation_rmse_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Translation Rmse M"
+        }
+      },
+      "required": [
+        "motion_count"
+      ],
+      "title": "InsLidarResidualSummary",
+      "type": "object"
+    },
+    "InsLidarTransform": {
+      "additionalProperties": false,
+      "description": "``T_ins_lidar`` in ``T_parent_child`` convention.",
+      "properties": {
+        "child_frame": {
+          "title": "Child Frame",
+          "type": "string"
+        },
+        "parent_frame": {
+          "title": "Parent Frame",
+          "type": "string"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parent_frame",
+        "child_frame",
+        "translation_m",
+        "rotation_quat_xyzw"
+      ],
+      "title": "InsLidarTransform",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Evidence for one INS--LiDAR trajectory hand-eye calibration run.",
+  "properties": {
+    "block_duration_s": {
+      "exclusiveMinimum": 0.0,
+      "title": "Block Duration S",
+      "type": "number"
+    },
+    "calibrated_dofs": {
+      "items": {
+        "enum": [
+          "roll",
+          "pitch",
+          "yaw",
+          "x",
+          "y",
+          "z",
+          "time_offset",
+          "reference_scale"
+        ],
+        "type": "string"
+      },
+      "title": "Calibrated Dofs",
+      "type": "array"
+    },
+    "dofs": {
+      "items": {
+        "$ref": "#/$defs/InsLidarDofRecord"
+      },
+      "title": "Dofs",
+      "type": "array"
+    },
+    "holdout": {
+      "$ref": "#/$defs/InsLidarResidualSummary"
+    },
+    "holdout_blocks": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Holdout Blocks",
+      "type": "array"
+    },
+    "jackknife_fits": {
+      "minimum": 0,
+      "title": "Jackknife Fits",
+      "type": "integer"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "method": {
+      "const": "joint_trajectory_hand_eye/v0.1",
+      "default": "joint_trajectory_hand_eye/v0.1",
+      "title": "Method",
+      "type": "string"
+    },
+    "odometry": {
+      "$ref": "#/$defs/InsLidarOdometrySummary"
+    },
+    "options": {
+      "additionalProperties": true,
+      "title": "Options",
+      "type": "object"
+    },
+    "policy_reasons": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Policy Reasons",
+      "type": "array"
+    },
+    "policy_status": {
+      "enum": [
+        "pass",
+        "warn",
+        "fail",
+        "inconclusive"
+      ],
+      "title": "Policy Status",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/InsLidarHandEyeProvenance"
+    },
+    "reference_calibration": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reference Calibration"
+    },
+    "reference_scale": {
+      "title": "Reference Scale",
+      "type": "number"
+    },
+    "schema_version": {
+      "const": "slac.ins_lidar_hand_eye/v0.1",
+      "default": "slac.ins_lidar_hand_eye/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "solver_status": {
+      "enum": [
+        "converged",
+        "insufficient_motions"
+      ],
+      "title": "Solver Status",
+      "type": "string"
+    },
+    "time_offset_s": {
+      "title": "Time Offset S",
+      "type": "number"
+    },
+    "train": {
+      "$ref": "#/$defs/InsLidarResidualSummary"
+    },
+    "train_blocks": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Train Blocks",
+      "type": "array"
+    },
+    "transform": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/InsLidarTransform"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "solver_status",
+    "policy_status",
+    "policy_reasons",
+    "calibrated_dofs",
+    "time_offset_s",
+    "reference_scale",
+    "dofs",
+    "options",
+    "odometry",
+    "block_duration_s",
+    "train_blocks",
+    "holdout_blocks",
+    "jackknife_fits",
+    "train",
+    "holdout",
+    "provenance"
+  ],
+  "title": "InsLidarHandEyeArtifact",
+  "type": "object"
+}

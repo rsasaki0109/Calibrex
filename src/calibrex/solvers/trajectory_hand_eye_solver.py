@@ -30,8 +30,11 @@ are left rotation perturbations about the parent x/y/z axes, and ``x``/``y``/
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+import struct
+from collections import OrderedDict
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field, replace
+from functools import lru_cache
 from typing import Literal, TypeAlias
 
 import numpy as np
@@ -54,6 +57,9 @@ DOF_NAMES: tuple[DofName, ...] = (
 )
 _TIME = 6
 _SCALE = 7
+_RESIDUAL_CACHE_MAX_BYTES = 64 * 1024 * 1024
+_RESIDUAL_CACHE_BYTES_PER_MOTION = 12 * 1024
+_NormalizedEvaluator: TypeAlias = Callable[[FloatArray, FloatArray], FloatArray]
 
 
 @dataclass(frozen=True)
@@ -269,6 +275,7 @@ class TrajectoryHandEyeSolver:
                 train=MotionResidualStats(len(usable), None, None, None, None),
                 start_yaw_deg=None,
             )
+        normalized_evaluator = _make_normalized_evaluator(reference, usable, opts)
         best: tuple[float, FloatArray, FloatArray, float | None] | None = None
         starts: list[tuple[float | None, FloatArray]] = []
         for yaw in opts.yaw_starts_deg:
@@ -284,17 +291,22 @@ class TrajectoryHandEyeSolver:
             if axis_start is not None:
                 starts.append((None, axis_start))
         for start_yaw, start_base in starts:
-            params, weights, _ = _irls(reference, usable, start_base, opts)
-            normalized = _normalized_residuals(reference, usable, start_base, params, opts)
+            params, weights, _ = _irls(
+                reference, usable, start_base, opts, normalized_evaluator=normalized_evaluator
+            )
+            normalized = normalized_evaluator(start_base, params)
             cost = float(np.sum(weights * normalized**2))
             if best is None or cost < best[0]:
                 best = (cost, start_base, params, start_yaw)
         assert best is not None
         _, base, params, chosen_yaw = best
-        _, weights, variance_factor = _irls(reference, usable, base, opts, initial=params)
+        _, weights, variance_factor = _irls(
+            reference, usable, base, opts, initial=params, normalized_evaluator=normalized_evaluator
+        )
         transform = compose(base, params)
         dofs, eigenvalues = _observability(
-            reference, usable, base, params, weights, variance_factor, opts
+            reference, usable, base, params, weights, variance_factor, opts,
+            normalized_evaluator=normalized_evaluator,
         )
         time_offset = float(params[_TIME]) if opts.estimate_time_offset else 0.0
         scale = 1.0 + (float(params[_SCALE]) if opts.estimate_reference_scale else 0.0)
@@ -398,12 +410,18 @@ def motion_errors(
         "nij,nj->ni", start_rotation_t, ends[:, :3, 3] - starts[:, :3, 3]
     )
     motion_b = np.stack([item.motion for item in motions])
+    return _motion_error_rows(motion_a, motion_b, transform)
+
+
+def _motion_error_rows(
+    motion_a: FloatArray, motion_b: FloatArray, transform: FloatArray,
+) -> FloatArray:
     left = motion_a @ transform
     right = transform @ motion_b
     left_rotation_t = np.transpose(left[:, :3, :3], (0, 2, 1))
     error_rotation = left_rotation_t @ right[:, :3, :3]
     error_translation = np.einsum("nij,nj->ni", left_rotation_t, right[:, :3, 3] - left[:, :3, 3])
-    rows = np.empty((len(motions), 6))
+    rows = np.empty((len(motion_b), 6))
     rows[:, :3] = Rotation.from_matrix(error_rotation).as_rotvec()
     rows[:, 3:] = error_translation
     return rows
@@ -461,6 +479,62 @@ def _normalized_residuals(
     return errors.reshape(-1) / motion_sigmas(motions, opts)
 
 
+def _make_normalized_evaluator(
+    reference: ReferenceTrajectory,
+    motions: Sequence[SensorMotion],
+    opts: TrajectoryHandEyeOptions,
+) -> _NormalizedEvaluator:
+    def scalar(base: FloatArray, params: FloatArray) -> FloatArray:
+        return _normalized_residuals(reference, motions, base, params, opts)
+
+    # Bound the full residual cache, reference-motion cache, inputs and working
+    # arrays conservatively. Larger inputs retain the original evaluation path.
+    if not motions or len(motions) * _RESIDUAL_CACHE_BYTES_PER_MOTION > _RESIDUAL_CACHE_MAX_BYTES:
+        return scalar
+    starts = np.array([item.start_s for item in motions])
+    ends = np.array([item.end_s for item in motions])
+    motion_b = np.stack([item.motion for item in motions])
+    sigmas = motion_sigmas(motions, opts)
+
+    @lru_cache(maxsize=16)
+    def reference_motion(offset_bits: bytes) -> tuple[FloatArray, FloatArray]:
+        offset = struct.unpack("d", offset_bits)[0]
+        first = reference.poses_at(starts + offset)
+        last = reference.poses_at(ends + offset)
+        rotation_t = np.transpose(first[:, :3, :3], (0, 2, 1))
+        rotation = rotation_t @ last[:, :3, :3]
+        translation = np.einsum("nij,nj->ni", rotation_t, last[:, :3, 3] - first[:, :3, 3])
+        rotation.setflags(write=False)
+        translation.setflags(write=False)
+        return rotation, translation
+
+    residuals: OrderedDict[tuple[bytes, bytes], FloatArray] = OrderedDict()
+
+    def evaluate(base: FloatArray, params: FloatArray) -> FloatArray:
+        # Byte keys preserve signed zeros and keep starts/IRLS weights separate
+        # from the reusable data residual. No parameter or time is rounded.
+        key = (base.tobytes(), params.tobytes())
+        cached = residuals.get(key)
+        if cached is not None:
+            residuals.move_to_end(key)
+            return cached
+        offset = float(params[_TIME]) if opts.estimate_time_offset else 0.0
+        scale = 1.0 + (float(params[_SCALE]) if opts.estimate_reference_scale else 0.0)
+        rotation, translation = reference_motion(struct.pack("d", offset))
+        motion_a = np.tile(np.eye(4), (len(motions), 1, 1))
+        motion_a[:, :3, :3] = rotation
+        motion_a[:, :3, 3] = scale * translation
+        rows = _motion_error_rows(motion_a, motion_b, compose(base, params))
+        normalized = rows.reshape(-1) / sigmas
+        normalized.setflags(write=False)
+        residuals[key] = normalized
+        if len(residuals) > 128:
+            residuals.popitem(last=False)
+        return normalized
+
+    return evaluate
+
+
 def _prior_rows(base: FloatArray, params: FloatArray, opts: TrajectoryHandEyeOptions) -> FloatArray:
     rows = []
     for prior in opts.priors:
@@ -482,6 +556,7 @@ def _irls(
     opts: TrajectoryHandEyeOptions,
     *,
     initial: FloatArray | None = None,
+    normalized_evaluator: _NormalizedEvaluator | None = None,
 ) -> tuple[FloatArray, FloatArray, float]:
     """Iteratively reweighted least squares with Huber weights.
 
@@ -489,6 +564,9 @@ def _irls(
     rescales the declared noise model to the observed residual spread.
     """
 
+    evaluate = normalized_evaluator or (
+        lambda base, params: _normalized_residuals(reference, motions, base, params, opts)
+    )
     mask = opts.active_mask()
     params = np.zeros(8) if initial is None else initial.copy()
     params[~mask] = 0.0
@@ -508,7 +586,7 @@ def _irls(
         ) -> FloatArray:
             full = np.zeros(8)
             full[mask] = active
-            data = root_weights * _normalized_residuals(reference, motions, base, full, opts)
+            data = root_weights * evaluate(base, full)
             data /= math.sqrt(variance_factor)
             return np.concatenate([data, _prior_rows(base, full, opts), active / opts.anchor_sigma])
 
@@ -517,7 +595,7 @@ def _irls(
         )
         params = np.zeros(8)
         params[mask] = solution.x
-        normalized = _normalized_residuals(reference, motions, base, params, opts)
+        normalized = evaluate(base, params)
         spread = _robust_spread(normalized)
         variance_factor = spread**2
         scaled = np.abs(normalized) / spread
@@ -542,7 +620,12 @@ def _observability(
     weights: FloatArray,
     variance_factor: float,
     opts: TrajectoryHandEyeOptions,
+    *,
+    normalized_evaluator: _NormalizedEvaluator | None = None,
 ) -> tuple[tuple[DofEstimate, ...], tuple[float, ...]]:
+    evaluate = normalized_evaluator or (
+        lambda base, params: _normalized_residuals(reference, motions, base, params, opts)
+    )
     mask = opts.active_mask()
     active = np.flatnonzero(mask)
     steps = np.array([1e-6, 1e-6, 1e-6, 1e-5, 1e-5, 1e-5, 1e-5, 1e-6])
@@ -550,8 +633,8 @@ def _observability(
     for column, index in enumerate(active):
         delta = np.zeros(8)
         delta[index] = steps[index]
-        forward = _normalized_residuals(reference, motions, base, params + delta, opts)
-        backward = _normalized_residuals(reference, motions, base, params - delta, opts)
+        forward = evaluate(base, params + delta)
+        backward = evaluate(base, params - delta)
         jacobian[:, column] = (forward - backward) / (2.0 * steps[index])
     jacobian *= np.sqrt(weights)[:, None] / math.sqrt(variance_factor)
     information = jacobian.T @ jacobian
