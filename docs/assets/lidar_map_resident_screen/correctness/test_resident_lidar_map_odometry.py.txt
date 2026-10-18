@@ -1,0 +1,197 @@
+"""Explicit resident map options, CLI provenance and ROS/CUDA-independent defaults."""
+
+from __future__ import annotations
+
+import subprocess
+import sys
+from dataclasses import replace
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+import pytest
+
+from calibrex.cli.main import main
+from calibrex.evaluation.lidar_lidar_map import LidarLidarMapOptions, run_ros2_lidar_lidar_map
+
+
+def _options() -> LidarLidarMapOptions:
+    options = LidarLidarMapOptions()
+    return replace(
+        options,
+        odometry=replace(
+            options.odometry,
+            geometry_quantum_m=1e-9,
+            motion_translation_quantum_m=1e-6,
+            motion_rotation_quantum_rad=1e-7,
+        ),
+    )
+
+
+@pytest.mark.parametrize("backend", ["cpu", "unknown"])
+def test_resident_map_requires_cuda_before_reading_input(backend: Any) -> None:
+    with pytest.raises(ValueError, match="CUDA odometry backend"):
+        run_ros2_lidar_lidar_map(
+            "does-not-exist",
+            reference_topic="/reference",
+            target_topic="/target",
+            initial=np.eye(4),
+            point_time_field=None,
+            dataset_family="synthetic",
+            dataset_license="synthetic",
+            options=_options(),
+            odometry_backend=backend,
+            resident_odometry=True,
+        )
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "geometry_quantum_m",
+        "motion_translation_quantum_m",
+        "motion_rotation_quantum_rad",
+    ],
+)
+@pytest.mark.parametrize("value", [0.0, -1.0, float("nan"), float("inf")])
+def test_resident_map_requires_each_explicit_positive_grid(field: str, value: float) -> None:
+    options = _options()
+    with pytest.raises(ValueError, match="quanta"):
+        options = replace(options, odometry=replace(options.odometry, **{field: value}))
+        run_ros2_lidar_lidar_map(
+            "does-not-exist",
+            reference_topic="/reference",
+            target_topic="/target",
+            initial=np.eye(4),
+            point_time_field=None,
+            dataset_family="synthetic",
+            dataset_license="synthetic",
+            options=options,
+            odometry_backend="cuda",
+            resident_odometry=True,
+        )
+
+
+def test_default_map_module_imports_without_cuda_or_ros() -> None:
+    code = """
+import builtins, sys
+original = builtins.__import__
+def guard(name, *args, **kwargs):
+    if name.startswith(("cupy", "rclpy", "rospy")):
+        raise AssertionError(name)
+    return original(name, *args, **kwargs)
+builtins.__import__ = guard
+from calibrex.evaluation.lidar_lidar_map import LidarLidarMapOptions
+assert LidarLidarMapOptions().odometry.geometry_quantum_m == 0
+assert not any(n.startswith(("cupy", "rclpy", "rospy")) for n in sys.modules)
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", code], capture_output=True, text=True, timeout=30
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_cli_records_resident_reference_options(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    matrix = tmp_path / "initial.yaml"
+    matrix.write_text("matrix: [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]\n")
+    captured: dict[str, Any] = {}
+
+    def stop(bag: Any, **kwargs: Any) -> Any:
+        captured.update(kwargs)
+        raise ValueError("captured")
+
+    monkeypatch.setattr("calibrex.evaluation.lidar_lidar_map.run_ros2_lidar_lidar_map", stop)
+    assert (
+        main(
+            [
+                "lidar-lidar",
+                "ros2",
+                "bag",
+                "--reference-topic",
+                "/reference",
+                "--target-topic",
+                "/target",
+                "--initial",
+                str(matrix),
+                "--dataset-family",
+                "synthetic",
+                "--dataset-license",
+                "synthetic",
+                "--output",
+                str(tmp_path / "out.json"),
+                "--odometry-backend",
+                "cuda",
+                "--resident-odometry",
+                "--odometry-voxel-size-m",
+                "0.03",
+                "--odometry-local-map-scans",
+                "3",
+                "--odometry-geometry-quantum-m",
+                "1e-9",
+                "--odometry-motion-translation-quantum-m",
+                "1e-6",
+                "--odometry-motion-rotation-quantum-rad",
+                "1e-7",
+            ]
+        )
+        != 0
+    )
+    assert captured["resident_odometry"] and captured["odometry_backend"] == "cuda"
+    odometry = captured["options"].odometry
+    assert (odometry.voxel_size_m, odometry.local_map_scans) == (0.03, 3)
+    for name, value in (
+        ("geometry_quantum_m", 1e-9),
+        ("motion_translation_quantum_m", 1e-6),
+        ("motion_rotation_quantum_rad", 1e-7),
+    ):
+        assert getattr(odometry, name) == value
+        flag = "--odometry-" + name.replace("_", "-")
+        index = captured["command"].index(flag)
+        assert float(captured["command"][index + 1]) == value
+    assert "--resident-odometry" in captured["command"]
+
+
+@pytest.mark.parametrize("value", ["-1", "0", "nan"])
+def test_cli_invalid_grid_reports_an_error_before_bag_or_cuda_access(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    value: str,
+) -> None:
+    matrix = tmp_path / "initial.yaml"
+    matrix.write_text("matrix: [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]]\n")
+    assert (
+        main(
+            [
+                "lidar-lidar",
+                "ros2",
+                "does-not-exist",
+                "--reference-topic",
+                "/a",
+                "--target-topic",
+                "/b",
+                "--initial",
+                str(matrix),
+                "--dataset-family",
+                "synthetic",
+                "--dataset-license",
+                "synthetic",
+                "--output",
+                str(tmp_path / "out.json"),
+                "--resident-odometry",
+                "--odometry-backend",
+                "cuda",
+                "--odometry-geometry-quantum-m",
+                "1e-9",
+                "--odometry-motion-translation-quantum-m",
+                value,
+                "--odometry-motion-rotation-quantum-rad",
+                "1e-7",
+            ]
+        )
+        != 0
+    )
+    captured = capsys.readouterr()
+    assert "quanta" in captured.err and "Traceback" not in captured.err

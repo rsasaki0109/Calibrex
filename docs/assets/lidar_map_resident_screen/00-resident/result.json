@@ -1,0 +1,244 @@
+{
+  "calibrated_dofs": [
+    "roll",
+    "pitch",
+    "yaw",
+    "x",
+    "y",
+    "z"
+  ],
+  "dofs": [
+    {
+      "known_bad_control": {
+        "amount": 1.0,
+        "detected": true,
+        "holdout_delta_chi2": 96331.49912454994,
+        "unit": "deg"
+      },
+      "name": "roll",
+      "status": "estimated",
+      "std_analytic": 0.0021609816938310154,
+      "std_jackknife": 0.0018946142188109338,
+      "std_reported": 0.0021609816938310154,
+      "unit": "deg",
+      "value": -0.0022599211267015492
+    },
+    {
+      "known_bad_control": {
+        "amount": 1.0,
+        "detected": true,
+        "holdout_delta_chi2": 194998.725915556,
+        "unit": "deg"
+      },
+      "name": "pitch",
+      "status": "estimated",
+      "std_analytic": 0.0020483773988044553,
+      "std_jackknife": 0.0033775174103024513,
+      "std_reported": 0.0033775174103024513,
+      "unit": "deg",
+      "value": 0.0060096421002587596
+    },
+    {
+      "known_bad_control": {
+        "amount": 1.0,
+        "detected": true,
+        "holdout_delta_chi2": 121653.40192698545,
+        "unit": "deg"
+      },
+      "name": "yaw",
+      "status": "estimated",
+      "std_analytic": 0.002502740625546737,
+      "std_jackknife": 0.0034304517803680993,
+      "std_reported": 0.0034304517803680993,
+      "unit": "deg",
+      "value": -0.0048476902423990696
+    },
+    {
+      "known_bad_control": {
+        "amount": 0.05,
+        "detected": true,
+        "holdout_delta_chi2": 82548.85568842935,
+        "unit": "m"
+      },
+      "name": "x",
+      "status": "estimated",
+      "std_analytic": 0.00011768242035374362,
+      "std_jackknife": 0.0002681673436685997,
+      "std_reported": 0.0002681673436685997,
+      "unit": "m",
+      "value": -7.695307695226843e-05
+    },
+    {
+      "known_bad_control": {
+        "amount": 0.05,
+        "detected": true,
+        "holdout_delta_chi2": 60468.036959409656,
+        "unit": "m"
+      },
+      "name": "y",
+      "status": "estimated",
+      "std_analytic": 0.00030193407245411303,
+      "std_jackknife": 0.0006215508811052079,
+      "std_reported": 0.0006215508811052079,
+      "unit": "m",
+      "value": 0.0005915387065324666
+    },
+    {
+      "known_bad_control": {
+        "amount": 0.05,
+        "detected": true,
+        "holdout_delta_chi2": 173949.69209417005,
+        "unit": "m"
+      },
+      "name": "z",
+      "status": "estimated",
+      "std_analytic": 0.00019324216884272774,
+      "std_jackknife": 0.0002670211126310019,
+      "std_reported": 0.0002670211126310019,
+      "unit": "m",
+      "value": 0.0008517532474265504
+    }
+  ],
+  "holdout_blocks": [
+    1,
+    4
+  ],
+  "holdout_median_residual_m": 0.004381285732665309,
+  "jackknife_fits": 4,
+  "limitations": [
+    "The reference LiDAR's odometry supplies the map; its drift over the map window adds noise to every sample.",
+    "The clock offset between the two LiDARs is not estimated; both clouds are matched at their header times.",
+    "The reference transform, if given, is a comparison, not ground truth."
+  ],
+  "method": "map_registration/v0.1",
+  "options": {
+    "block_duration_s": 1.0,
+    "detection_delta_chi2": 9.0,
+    "holdout_every": 3,
+    "huber_m": 0.05,
+    "iterations": 30,
+    "jackknife_groups": 4,
+    "map_half_window_scans": 1,
+    "max_correspondence_m": 0.5,
+    "observable_rotation_std_deg": 0.1,
+    "observable_translation_std_m": 0.02,
+    "odometry_backend": "cuda",
+    "odometry_execution": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;normal_schedule=async-v1;query_sha256=b5a66026444086431593b6fa70682402e62cb007326d97c4897b72bd922c7880;system_sha256=12c663705508de761c163e7fb4afe73bc88abce4b0ee388af22850d87ef8ccfe;geometry_pipeline=resident-v1;geometry_sha256=c9f8c394ef2fb05d106f467984e289e3abc395d8b620de61c21bfb2a08ae4a25",
+    "odometry_options": {
+      "convergence_rotation_rad": 1e-05,
+      "convergence_translation_m": 0.0001,
+      "deskew_iterations": 1,
+      "geometry_quantum_m": 1e-09,
+      "huber_delta_m": 0.1,
+      "local_map_scans": 3,
+      "max_correspondence_m": 1.5,
+      "max_iterations": 30,
+      "max_planarity_ratio": 0.2,
+      "max_range_m": 60.0,
+      "min_correspondences": 200,
+      "min_range_m": 1.0,
+      "motion_rotation_quantum_rad": 1e-07,
+      "motion_translation_quantum_m": 1e-06,
+      "normal_neighbours": 10,
+      "query_workers": 1,
+      "voxel_size_m": 0.03
+    },
+    "odometry_statistics": {
+      "gpu_async_normal_batches": 59,
+      "gpu_fused_system_calls": 893,
+      "gpu_grid_brute_rows": 8725,
+      "gpu_grid_captures": 59,
+      "gpu_grid_native_fallbacks": 0,
+      "gpu_normal_kernel_calls": 59,
+      "gpu_normal_rows": 2721803,
+      "gpu_parallel_fallback_dispatches": 952,
+      "gpu_query_calls": 952,
+      "gpu_query_rows": 20238789,
+      "gpu_system_refresh_calls": 0,
+      "native_tree_captures": 1,
+      "public_node_tree_captures": 0,
+      "scalar_motion_repairs": 0,
+      "scalar_normal_repairs": 43,
+      "scalar_query_repairs": 0,
+      "scalar_registration_repairs": 1,
+      "serialized_tree_captures": 0,
+      "sparse_native_normal_rows": 43,
+      "spatial_native_normal_rows": 0
+    },
+    "resident_geometry_execution": {
+      "gyro_cached_validations": 0,
+      "gyro_native_fallbacks": 0,
+      "gyro_rows": 0,
+      "native_model_fallbacks": 0,
+      "preprocess_calls": 178,
+      "preprocess_rows": 6249779,
+      "source_cache_bytes": 46080000,
+      "source_cache_hits": 0,
+      "source_captures": 60,
+      "source_validation_rows": 1440000,
+      "transforms": 118,
+      "voxel_native_fallbacks": 0
+    },
+    "resident_odometry": true,
+    "rotation_control_deg": 1.0,
+    "sample_every_scans": 5,
+    "translation_control_m": 0.05,
+    "voxel_size_m": 0.2
+  },
+  "policy_reasons": [
+    "every DoF is estimated and held-out blocks detect every control"
+  ],
+  "policy_status": "pass",
+  "provenance": {
+    "command": [
+      "copied-topic-map-execution-control",
+      "--variant",
+      "resident"
+    ],
+    "created_at": "2026-10-18T05:34:23.784546+00:00",
+    "dataset_family": "glim_versatile",
+    "dataset_license": "upstream AIST GLIM dataset terms",
+    "generator": "calibrex.evaluation.lidar_lidar_map",
+    "generator_version": "0.5.1",
+    "git_commit": "fe37dd0c37d6dd82b70087fc0dd21382b310b70e",
+    "input_digest_scope": "bag metadata.yaml in full; bag databases by size and first 64 MiB",
+    "input_sha256": "2d5ce57c440c22057e4c16abb1dc67a73e23ac5b19a0b79150afb02edfbdbd06",
+    "reference_topic": "/livox/points",
+    "sequence_ids": [
+      "livox.bag"
+    ],
+    "target_topic": "/livox/points"
+  },
+  "residual_sigma_m": 0.0061398289314801525,
+  "samples": {
+    "holdout_correspondences": 11372,
+    "holdout_samples": 5,
+    "reference_scans": 60,
+    "samples": 11,
+    "train_correspondences": 12100,
+    "train_samples": 6
+  },
+  "schema_version": "slac.lidar_lidar_extrinsic/v0.1",
+  "solver_status": "converged",
+  "train_blocks": [
+    0,
+    2,
+    3,
+    5
+  ],
+  "transform": {
+    "child_frame": "/livox/points",
+    "parent_frame": "/livox/points",
+    "rotation_quat_xyzw": [
+      -1.9719313606175952e-05,
+      5.244485497801113e-05,
+      -4.230304356786672e-05,
+      0.9999999975355692
+    ],
+    "translation_m": [
+      -7.695307695226843e-05,
+      0.0005915387065324666,
+      0.0008517532474265504
+    ]
+  }
+}

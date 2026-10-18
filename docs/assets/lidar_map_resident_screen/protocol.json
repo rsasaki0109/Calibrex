@@ -1,0 +1,74 @@
+{
+  "scope": "Three cold whole-bag comparisons of reference odometry in LiDAR map calibration.",
+  "commits": {
+    "prior": "0a53989f9275795f6ca16381731a5aee1cbfa3e3",
+    "current": "fe37dd0c37d6dd82b70087fc0dd21382b310b70e"
+  },
+  "orders": [
+    [
+      "cpu",
+      "native",
+      "resident"
+    ],
+    [
+      "resident",
+      "cpu",
+      "native"
+    ],
+    [
+      "native",
+      "resident",
+      "cpu"
+    ]
+  ],
+  "bag": {
+    "path": "data/public/glim_versatile/livox.bag",
+    "bytes": 613350674,
+    "sha256": "f57a2e85339316d4235ab693ab2876aac5e113625c7f8b0f7873b62f92e09643"
+  },
+  "workload": {
+    "seconds": 6.0,
+    "map_registration_backend": "cpu",
+    "sample_every_scans": 5,
+    "map_half_window_scans": 1,
+    "block_duration_s": 1.0,
+    "jackknife_groups": 4,
+    "odometry_voxel_m": 0.03,
+    "odometry_local_map_scans": 3,
+    "geometry_quantum_m": 1e-09,
+    "translation_quantum_m": 1e-06,
+    "rotation_quantum_rad": 1e-07,
+    "initial_translation_m": [
+      0.08,
+      -0.07,
+      0.05
+    ],
+    "copied_topic": "/livox/points",
+    "target_noise_sigma_m": 0.01,
+    "target_noise_seed": 20261018
+  },
+  "gates": {
+    "all_original_map_tolerances": true,
+    "all_gpu_fit_result_sample_bits": true,
+    "all_five_fits": true,
+    "all_four_jackknives_and_six_controls": true,
+    "median_cpu_to_resident_minimum": 2.0,
+    "median_native_to_resident_minimum_exclusive": 1.0
+  },
+  "limitations": [
+    "Copied-topic execution control; no independent dual-LiDAR extrinsic truth.",
+    "Spent public GLIM data and explicit positive grids; no default-density speed claim.",
+    "Host unreserved. Map fit and evidence remain CPU in all three arms."
+  ],
+  "provenance": {
+    "launcher_sha256": "c887c41ad8c36e1f1e077fe007e236747b0f303af6a706be0b0931708411f707",
+    "source_manifests": {
+      "cpu": "e2c66d562238a31719c20f91a13b86694966dbd47c3d85ca065934c598ac38cf",
+      "resident": "d9466f55ec2963ed3ff2c1057380b2cfe7a4c260691ade4f3158c841dbc58ed8"
+    },
+    "helpers": {
+      "tools/benchmark_bspline_lidar_imu.py": "9c29cd4193c8693fd5a939edda56b9dda35d0e4f74cfb4b1dc7281231bad25aa",
+      "tools/benchmark_cuda_lidar_map.py": "4eb605229b19a634b99702a48be866b3a7ce28622b9848de29ca3b6a8aebb35a"
+    }
+  }
+}

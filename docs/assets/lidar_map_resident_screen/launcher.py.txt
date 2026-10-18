@@ -1,0 +1,237 @@
+"""Three cold whole-bag comparisons of reference odometry in LiDAR map calibration."""
+import os
+for name in ("OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "OMP_NUM_THREADS"):
+    os.environ[name] = "1"
+from argparse import ArgumentParser
+from dataclasses import asdict, replace
+import hashlib
+import json
+from pathlib import Path
+import statistics
+import subprocess
+import sys
+import time
+
+ROOT = Path(__file__).resolve().parent
+OUT = ROOT / "outputs/resident-lidar-map-triads-v1"
+BAG = ROOT / "data/public/glim_versatile/livox.bag"
+BASE = "0a53989f9275795f6ca16381731a5aee1cbfa3e3"
+VARIANTS = ("cpu", "native", "resident")
+sys.dont_write_bytecode = True
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+read = lambda p: json.loads(p.read_bytes())
+
+
+def write(path, value):
+    path.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+
+
+def source(variant):
+    return OUT / ("source-current" if variant == "resident" else "source-prior")
+
+
+def worker(repeat, variant):
+    from tools import benchmark_bspline_lidar_imu as common
+    from tools.benchmark_cuda_lidar_map import _json
+    sys.path.insert(0, str(source(variant) / "src"))
+    import numpy as np
+    from calibrex.evaluation import lidar_lidar_map as runner
+    expected = common._verify_sources(source(variant))
+    protocol = read(OUT / "protocol.json")
+    cache = Path(os.environ["CUPY_CACHE_DIR"])
+    assert not cache.exists() or not any(cache.iterdir())
+    opts = runner.LidarLidarMapOptions(
+        sample_every_scans=5, map_half_window_scans=1, block_duration_s=1.0,
+        jackknife_groups=4,
+    )
+    opts = replace(opts, odometry=replace(
+        opts.odometry, voxel_size_m=0.03, local_map_scans=3,
+        geometry_quantum_m=1e-9, motion_translation_quantum_m=1e-6,
+        motion_rotation_quantum_rad=1e-7,
+    ))
+    # The same public topic supplies a copied-sensor execution control. Fixed
+    # target-only noise avoids zero-residual identity/roundoff degeneracy; every
+    # input point is retained until the unchanged configured preprocessing.
+    iterator = runner.iter_livox_points
+    iterations = 0
+    rng = np.random.default_rng(20261018)
+    def observed_scans(*args, **kwargs):
+        nonlocal iterations
+        target = iterations == 1
+        iterations += 1
+        for stamp, points, offsets in iterator(*args, **kwargs):
+            if target:
+                points = points + rng.normal(0.0, 0.01, points.shape)
+            yield stamp, points, offsets
+    runner.iter_livox_points = observed_scans
+    captured = []
+    original_collect = runner.collect_map_samples
+    def collect(*args, **kwargs):
+        data, scans = original_collect(*args, **kwargs)
+        for sample in data:
+            item = {"time_s": sample.time_s, "block": sample.block}
+            for name in ("reference_pose", "map_points", "target_points"):
+                values = np.ascontiguousarray(getattr(sample, name))
+                item[name] = {"shape": list(values.shape), "dtype": values.dtype.str,
+                              "sha256": hashlib.sha256(values.tobytes()).hexdigest()}
+            captured.append(item)
+        return data, scans
+    runner.collect_map_samples = collect
+    fits = []
+    original_fit = runner.solve_map_extrinsic
+    def fit(*args, **kwargs):
+        result = original_fit(*args, **kwargs)
+        fits.append(_json(result))
+        return result
+    runner.solve_map_extrinsic = fit
+    initial = np.eye(4)
+    initial[:3, 3] = [0.08, -0.07, 0.05]
+    begin = time.perf_counter()
+    result = runner.run_ros2_lidar_lidar_map(
+        BAG, reference_topic="/livox/points", target_topic="/livox/points",
+        initial=initial, point_time_field="t", point_time_encoding="offset_s",
+        dataset_family="glim_versatile", dataset_license="upstream AIST GLIM dataset terms",
+        options=opts, max_seconds=6.0, backend="cpu",
+        odometry_backend="cpu" if variant == "cpu" else "cuda",
+        command=["copied-topic-map-execution-control", "--variant", variant],
+        **({"resident_odometry": True} if variant == "resident" else {}),
+    )
+    result.provenance.git_commit = protocol["commits"]["current" if variant == "resident" else "prior"]
+    folder = OUT / f"{repeat:02d}-{variant}"
+    result.save(folder / "result.json")
+    api_seconds = time.perf_counter() - begin
+    assert iterations == 2 and len(fits) == 5 and result.jackknife_fits == 4
+    assert len(result.dofs) == 6 and all(r.known_bad_control is not None for r in result.dofs)
+    imports = {}
+    for name, module in list(sys.modules.items()):
+        if name == "calibrex" or name.startswith("calibrex."):
+            path = Path(module.__file__).resolve()
+            assert path.is_relative_to(source(variant) / "src"), name
+            key = path.relative_to(source(variant) / "src").as_posix()
+            assert sha(path) == expected[key], name
+            imports[key] = expected[key]
+    if variant == "cpu":
+        assert "cupy" not in sys.modules
+    common._verify_sources(source(variant))
+    write(folder / "measurement.json", {
+        "variant": variant, "api_seconds": api_seconds, "options": asdict(opts),
+        "fits": fits, "prepared_samples": captured,
+        "provenance": {"source_commit": result.provenance.git_commit,
+                       "source_manifest_sha256": sha(source(variant) / "manifest.json"),
+                       "executed_sources": imports, "bag_sha256": sha(BAG),
+                       "result_sha256": sha(folder / "result.json"),
+                       "protocol_sha256": sha(OUT / "protocol.json"),
+                       "launcher_sha256": sha(Path(__file__)),
+                       "blas_threads": {k: os.environ[k] for k in ("OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "OMP_NUM_THREADS")},
+                       "cuda_cache_initially_empty": True},
+    })
+
+
+def check(repeat):
+    from tools.benchmark_bspline_lidar_imu import _same_float_bits, _without_run_metadata
+    from tools.benchmark_cuda_lidar_map import _compare
+    values = {v: read(OUT / f"{repeat:02d}-{v}/result.json") for v in VARIANTS}
+    measurements = {v: read(OUT / f"{repeat:02d}-{v}/measurement.json") for v in VARIANTS}
+    normalized = {v: _without_run_metadata(values[v]) for v in VARIANTS}
+    for v in VARIANTS:
+        opts = normalized[v]["options"]
+        for name in ("odometry_backend", "odometry_execution", "odometry_options",
+                     "resident_odometry", "resident_geometry_execution", "odometry_statistics"):
+            opts.pop(name, None)
+    errors = {v: _compare(normalized["cpu"], normalized[v]) for v in ("native", "resident")}
+    fit_errors = {}
+    for variant in ("native", "resident"):
+        found = []
+        for index, (a, b) in enumerate(zip(measurements["cpu"]["fits"], measurements[variant]["fits"], strict=True)):
+            a, b = dict(a), dict(b)
+            assert a.pop("execution_backend") == b.pop("execution_backend") == "numpy_scipy"
+            found.extend(f"fit-{index}:" + error for error in _compare({"result": a}, {"result": b}))
+        fit_errors[variant] = found
+    exact = _same_float_bits(normalized["native"], normalized["resident"])
+    fit_exact = _same_float_bits(measurements["native"]["fits"], measurements["resident"]["fits"])
+    sample_exact = _same_float_bits(measurements["native"]["prepared_samples"], measurements["resident"]["prepared_samples"])
+    seconds = {v: read(OUT / f"{repeat:02d}-{v}/whole.json")["seconds"] for v in VARIANTS}
+    passed = not any(errors.values()) and not any(fit_errors.values()) and exact and fit_exact and sample_exact
+    record = {"repeat": repeat, "seconds": seconds, "quality_passed": passed,
+              "cpu_to_resident": seconds["cpu"] / seconds["resident"],
+              "native_to_resident": seconds["native"] / seconds["resident"],
+              "errors": errors, "fit_errors": fit_errors,
+              "gpu_result_bits_equal": exact, "gpu_fit_bits_equal": fit_exact,
+              "gpu_sample_bits_equal": sample_exact,
+              "provenance": {"protocol_sha256": sha(OUT / "protocol.json"),
+                             "worker_records": {p.relative_to(OUT).as_posix(): sha(p)
+                                                for v in VARIANTS for p in sorted((OUT / f"{repeat:02d}-{v}").glob("*.json"))}}}
+    write(OUT / f"triad-{repeat:02d}.json", record)
+    print(json.dumps({k: v for k, v in record.items() if k != "provenance"}), flush=True)
+    if not passed:
+        raise ValueError("complete output/fit/sample quality failed; retain all records")
+    return record
+
+
+def parent():
+    from tools import benchmark_bspline_lidar_imu as common
+    current = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    subprocess.run(["git", "diff", "--exit-code", "HEAD", "--", "src/calibrex"], check=True)
+    OUT.mkdir(exist_ok=False)
+    (OUT / "launcher.py.txt").write_bytes(Path(__file__).read_bytes())
+    common._freeze(source("cpu"), BASE)
+    common._freeze(source("resident"), current)
+    protocol = {
+        "scope": __doc__, "commits": {"prior": BASE, "current": current},
+        "orders": [["cpu", "native", "resident"], ["resident", "cpu", "native"], ["native", "resident", "cpu"]],
+        "bag": {"path": BAG.relative_to(ROOT).as_posix(), "bytes": BAG.stat().st_size, "sha256": sha(BAG)},
+        "workload": {"seconds": 6.0, "map_registration_backend": "cpu", "sample_every_scans": 5,
+                     "map_half_window_scans": 1, "block_duration_s": 1.0, "jackknife_groups": 4,
+                     "odometry_voxel_m": 0.03, "odometry_local_map_scans": 3,
+                     "geometry_quantum_m": 1e-9, "translation_quantum_m": 1e-6, "rotation_quantum_rad": 1e-7,
+                     "initial_translation_m": [0.08, -0.07, 0.05],
+                     "copied_topic": "/livox/points", "target_noise_sigma_m": 0.01, "target_noise_seed": 20261018},
+        "gates": {"all_original_map_tolerances": True, "all_gpu_fit_result_sample_bits": True,
+                  "all_five_fits": True, "all_four_jackknives_and_six_controls": True,
+                  "median_cpu_to_resident_minimum": 2.0, "median_native_to_resident_minimum_exclusive": 1.0},
+        "limitations": ["Copied-topic execution control; no independent dual-LiDAR extrinsic truth.",
+                        "Spent public GLIM data and explicit positive grids; no default-density speed claim.",
+                        "Host unreserved. Map fit and evidence remain CPU in all three arms."],
+        "provenance": {"launcher_sha256": sha(Path(__file__)),
+                       "source_manifests": {v: sha(source(v) / "manifest.json") for v in ("cpu", "resident")},
+                       "helpers": {p: sha(ROOT / p) for p in ("tools/benchmark_bspline_lidar_imu.py", "tools/benchmark_cuda_lidar_map.py")}},
+    }
+    write(OUT / "protocol.json", protocol)
+    rows = []
+    for repeat, order in enumerate(protocol["orders"]):
+        for variant in order:
+            directory = OUT / f"{repeat:02d}-{variant}"
+            directory.mkdir()
+            env = dict(os.environ, CUPY_CACHE_DIR=str(directory / "cupy-cache"),
+                       CUDA_CACHE_DISABLE="1", PYTHONDONTWRITEBYTECODE="1")
+            print(json.dumps({"started": True, "repeat": repeat, "variant": variant}), flush=True)
+            begin = time.perf_counter()
+            with (directory / "stdout.log").open("wb") as out, (directory / "stderr.log").open("wb") as err:
+                result = subprocess.run([sys.executable, "-u", str(Path(__file__).resolve()), "--worker", str(repeat), variant],
+                                        cwd=ROOT, env=env, stdout=out, stderr=err, timeout=1200)
+            seconds = time.perf_counter() - begin
+            write(directory / "whole.json", {"seconds": seconds, "exit_code": result.returncode,
+                  "provenance": {"protocol_sha256": sha(OUT / "protocol.json"),
+                                 "stdout_sha256": sha(directory / "stdout.log"), "stderr_sha256": sha(directory / "stderr.log")}})
+            print(json.dumps({"finished": True, "repeat": repeat, "variant": variant, "seconds": seconds, "exit_code": result.returncode}), flush=True)
+            if result.returncode:
+                raise ValueError("worker failed; preserve the complete attempt")
+        rows.append(check(repeat))
+    medians = {v: statistics.median(row["seconds"][v] for row in rows) for v in VARIANTS}
+    summary = {"medians_seconds": medians, "cpu_to_resident": medians["cpu"] / medians["resident"],
+               "native_to_resident": medians["native"] / medians["resident"], "quality_passed": True,
+               "provenance": {"protocol_sha256": sha(OUT / "protocol.json"),
+                              "triads": {f"triad-{i:02d}.json": sha(OUT / f"triad-{i:02d}.json") for i in range(3)}}}
+    summary["advance"] = summary["cpu_to_resident"] >= 2.0 and summary["native_to_resident"] > 1.0
+    write(OUT / "summary.json", summary)
+    print(json.dumps(summary), flush=True)
+
+
+if __name__ == "__main__":
+    parser = ArgumentParser()
+    parser.add_argument("--worker", nargs=2)
+    args = parser.parse_args()
+    if args.worker:
+        worker(int(args.worker[0]), args.worker[1])
+    else:
+        parent()
