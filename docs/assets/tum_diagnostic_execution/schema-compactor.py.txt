@@ -1,0 +1,23 @@
+"""Reuse the public result schema instead of an enormous observed-shape union."""
+import gzip
+import hashlib
+import json
+from pathlib import Path
+import shutil
+root=Path(__file__).resolve().parent
+target=root/'docs/assets/tum_diagnostic_execution'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+p=target/'record-schemas.json'
+initial=p.read_bytes()
+value=json.loads(initial)
+(target/'record-schemas-generated-v1.json.gz').write_bytes(gzip.compress(initial,mtime=0))
+value['result']={'$schema':'https://json-schema.org/draft/2020-12/schema',
+    'type':'object','additionalProperties':False,'required':['payload','provenance'],
+    'properties':{'payload':value['calibration-result'],'provenance':{'type':'object'}}}
+p.write_bytes((json.dumps(value,indent=2)+'\n').encode())
+shutil.copyfile(Path(__file__),target/'schema-compactor.py.txt')
+index=json.loads((target/'index.json').read_bytes())
+index['files']={p.relative_to(target).as_posix():{'sha256':sha(p),'size_bytes':p.stat().st_size}
+    for p in sorted(target.rglob('*')) if p.is_file() and p.name!='index.json'}
+(target/'index.json').write_bytes((json.dumps(index,indent=2)+'\n').encode())
+print('Result wrapper uses the official schema; original generated schema retained.')

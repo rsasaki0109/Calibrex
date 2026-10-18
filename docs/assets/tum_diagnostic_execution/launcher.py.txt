@@ -1,0 +1,128 @@
+"""Fresh complete public TUM production runs, with no numerical tracing hooks."""
+import gzip
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import statistics
+import subprocess
+import sys
+import time
+
+ROOT = Path(__file__).resolve().parent
+OUT = ROOT/'outputs/tum-diagnostic-production-v1'
+BASE = 'dddf26a422ee320736d7cd8e1380733064095c8a'
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+
+def write(path, value):
+    path.write_bytes((json.dumps(value,indent=2,allow_nan=False)+'\n').encode())
+
+def worker(variant, name):
+    sys.dont_write_bytecode=True
+    source=OUT/('sources-'+variant)
+    sys.path.insert(0,str(source/'src'))
+    from dataclasses import replace
+    from tools.benchmark_bspline_lidar_imu import _verify_sources
+    manifest=_verify_sources(source)
+    assert sha(Path(__file__))==sha(OUT/'launcher.py.txt')
+    from calibrex.core.config import load_config
+    from calibrex.solvers import native_tum_joint_slac_solver as a
+    from calibrex.pipelines.calibrate import CalibrationRunOptions,run_calibration
+    config=load_config(OUT/'config.yaml')
+    options=a._options(config)
+    data=Path(config.dataset.path)
+    paired=a.associate_depth_groundtruth(a.read_image_index(data/'depth.txt'),a.read_groundtruth(data/'groundtruth.txt'),max_difference_sec=options.max_pose_time_delta_sec)
+    names={'depth.txt','groundtruth.txt'}
+    for start in options.replication_start_indices:
+        frames=a._select_frames(paired,replace(options,frame_start_index=start))
+        assert frames is not None
+        names.update(frame.depth.path for frame in frames)
+    inventory=ROOT/'docs/assets/tum_window_processes/inputs.json'
+    pins={item['name']:item for item in json.loads(inventory.read_bytes())}
+    verified={}
+    for relative in sorted(names):
+        assert sha(data/relative)==pins[relative]['sha256']
+        assert (data/relative).stat().st_size==pins[relative]['size_bytes']
+        verified[relative]=pins[relative]
+    assert len(verified)==35
+    begin=time.perf_counter()
+    result=run_calibration(OUT/'config.yaml',CalibrationRunOptions())
+    api_seconds=time.perf_counter()-begin
+    assert result is not None and 'cupy' not in sys.modules
+    imports={}
+    for module_name,module in sys.modules.copy().items():
+        if module_name=='calibrex' or module_name.startswith('calibrex.'):
+            path=Path(module.__file__).resolve()
+            relative=path.relative_to(source/'src').as_posix()
+            assert sha(path)==manifest[relative]
+            imports[module_name]=relative
+    for relative in names:
+        assert sha(data/relative)==pins[relative]['sha256']
+    _verify_sources(source)
+    folder=OUT/name
+    provenance={'variant':variant,'git_commit':subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],text=True).strip(),
+        'source_manifest_sha256':sha(source/'manifest.json'),'launcher_sha256':sha(Path(__file__)),
+        'config_sha256':sha(OUT/'config.yaml'),'input_inventory_sha256':sha(inventory),
+        'run_provenance_sha256':sha(OUT/'provenance.json'),'verified_inputs':verified,
+        'pid':os.getpid(),'parent_pid':os.getppid(),'python':sys.version,'imports':imports}
+    payload=result.model_dump(mode='json')
+    (folder/'result.json.gz').write_bytes(gzip.compress((json.dumps({'payload':payload,'provenance':provenance},indent=2)+'\n').encode(),mtime=0))
+    write(folder/'measurement.json',{'api_seconds':api_seconds,'result_sha256':sha(folder/'result.json.gz'),'provenance':provenance})
+
+def normalize(value,variant):
+    from tools.benchmark_tum_window_processes import comparable
+    result=comparable(value)
+    return json.dumps(result,sort_keys=True,separators=(',',':'),allow_nan=False)
+
+def main():
+    if len(sys.argv)>1:
+        worker(sys.argv[2],sys.argv[3])
+        return
+    import yaml
+    from tools.benchmark_bspline_lidar_imu import _freeze
+    from tools.benchmark_lazy_runtime_loading import _git_identity
+    OUT.mkdir(exist_ok=False)
+    current=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+    commits={'prior':BASE,'current':current}
+    for variant,commit in commits.items():
+        _freeze(OUT/('sources-'+variant),commit)
+        _git_identity(OUT/('sources-'+variant),commit)
+    config=yaml.safe_load((ROOT/'examples/public_datasets/tum_rgbd_freiburg1_xyz/native_joint_slac_config.yaml').read_bytes())
+    config['dataset']['path']=str(ROOT/'data/public/rgbd_dataset_freiburg1_xyz')
+    config['project']['output_dir']=str(OUT/'shared-output')
+    config['pipeline']['factors']['tum_rgbd_joint_point_to_plane']['options'].update(window_workers=3)
+    (OUT/'config.yaml').write_bytes(yaml.safe_dump(config,sort_keys=False).encode())
+    shutil.copyfile(Path(__file__),OUT/'launcher.py.txt')
+    write(OUT/'provenance.json',{'commits':commits,'config_sha256':sha(OUT/'config.yaml'),
+        'launcher_sha256':sha(Path(__file__)),'python':sys.version,'blas_threads':1,
+        'source_manifest_sha256':{v:sha(OUT/('sources-'+v)/'manifest.json') for v in commits},
+        'scope':'Complete production CLI-equivalent run with no numerical trace hooks. Worker startup, transport, all diagnostics and report saving are included. Public spent development data; no accuracy or SOTA claim.'})
+    attempts=[]
+    reference=None
+    for index,variant in enumerate(('current','prior','prior','current','current','prior')):
+        folder=OUT/f'{index+1:02d}-{variant}'
+        folder.mkdir()
+        source=OUT/('sources-'+variant)
+        env=dict(os.environ,PYTHONPATH=str(source/'src'),OPENBLAS_NUM_THREADS='1',MKL_NUM_THREADS='1',OMP_NUM_THREADS='1')
+        begin=time.perf_counter()
+        with (folder/'stdout.log').open('wb') as out,(folder/'stderr.log').open('wb') as err:
+            done=subprocess.run([sys.executable,str(Path(__file__)),'--worker',variant,folder.name],cwd=source,env=env,stdout=out,stderr=err)
+        attempt={'folder':folder.name,'variant':variant,'seconds':time.perf_counter()-begin,'exit_code':done.returncode}
+        attempts.append(attempt)
+        write(OUT/'attempts.json',{'attempts':attempts,'provenance_sha256':sha(OUT/'provenance.json')})
+        print(attempt,flush=True)
+        assert done.returncode==0,folder/'stderr.log'
+        value=json.loads(gzip.decompress((folder/'result.json.gz').read_bytes()))['payload']
+        normalized=normalize(value,variant)
+        if reference is None: reference=normalized
+        assert normalized==reference,'Complete normalized calibration results differ'
+        attempt['api_seconds']=json.loads((folder/'measurement.json').read_bytes())['api_seconds']
+    medians={v:statistics.median(a['seconds'] for a in attempts if a['variant']==v) for v in commits}
+    write(OUT/'summary.json',{'whole_seconds_median':medians,'whole_speedup':medians['prior']/medians['current'],
+        'complete_normalized_results_exact':True,'attempts':attempts,'provenance_sha256':sha(OUT/'provenance.json')})
+    write(OUT/'attempts.json',{'attempts':attempts,'provenance_sha256':sha(OUT/'provenance.json')})
+    print('Medians',medians,'speedup',medians['prior']/medians['current'],flush=True)
+
+if __name__=='__main__':
+    main()
