@@ -153,6 +153,7 @@ class RunControls:
     scan_store: ScanStore | None = None
     memo: dict[tuple[object, ...], Any] = field(default_factory=dict)
     """Per-run results shared by pairs (the LiDAR odometry of the vehicle pairs)."""
+    camera_lidar_start_scan_min_control_t: float | None = None
 
 
 @dataclass(frozen=True)
@@ -2292,7 +2293,10 @@ def run_camera_lidar(ctx: PairContext) -> EstimatorRun:
     )
     point_time = detect_point_time(ctx.bag, lidar_topic)
     candidate = ctx.candidate  # T_camera_lidar
-    options = EdgeAlignmentOptions(max_seconds=ctx.controls.max_duration_s)
+    options = EdgeAlignmentOptions(
+        max_seconds=ctx.controls.max_duration_s,
+        start_scan_min_control_t=ctx.controls.camera_lidar_start_scan_min_control_t,
+    )
     motion_source = camera_lidar_motion_source(ctx, lidar_frame)
     ctx.controls.progress(
         f"camera-lidar: {image_topic} + {lidar_topic} (intrinsics: {intrinsics_source})"

@@ -20,6 +20,17 @@
   are tested; real KITTI-360 conversion remains unverified while official-host
   access is blocked. This adds no new SOTA claim.
 
+- Add an opt-in `start_scan_min_control_t` margin for adopting camera-LiDAR
+  profile-start fits. A rejected fit retains the current transform and evidence;
+  defaults preserve v2 behavior pending spent-data replays. Publish a post hoc
+  inventory of the 55 spent KITTI raw drives with new-rule metrics explicitly
+  unknown. Add a spent-data-only seven-check input capture and paired replay
+  tool with lossless snapshots, digest verification, real-check parity and
+  retained failures. Expose the margin as `--camera-lidar-far-control-t` in
+  `check`, `estimate` and `drift`, recording it in their schema-valid results
+  and separating estimator cache entries. This work introduces no new SOTA
+  claim or audit thresholds.
+
 - **The KITTI camera-LiDAR check audit v2 is refuted: 8 of 9 gates.**
   - **The runs.** All 18 pre-registered drives of 2011_09_28, 2011_09_29, 2011_09_30 and
     2011_10_03 ran once from the frozen code.

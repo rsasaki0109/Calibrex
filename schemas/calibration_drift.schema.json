@@ -1017,6 +1017,20 @@
           "title": "Camera Lidar Motion",
           "type": "string"
         },
+        "camera_lidar_start_scan_min_control_t": {
+          "anyOf": [
+            {
+              "minimum": 2.5,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "extra held-out control t margin for adopting camera-lidar fits from distant starts; absent keeps the ordinary adoption rule",
+          "title": "Camera Lidar Start Scan Min Control T"
+        },
         "frame_map": {
           "additionalProperties": {
             "type": "string"

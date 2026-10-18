@@ -25,6 +25,7 @@ from typing import Literal
 
 from pydantic import Field, field_validator, model_validator
 
+from calibrex.core.camera_lidar_edge import DEFAULT_MIN_CONTROL_T
 from calibrex.core.excitation import AxisExcitation
 from calibrex.core.result import StrictModel
 
@@ -349,6 +350,14 @@ class CheckOptions(StrictModel):
         description="camera-lidar: auto moves LiDAR points to the image time with an "
         "odometry, twist or IMU topic of the bag when one is connected to the LiDAR in the "
         "frame tree; none keeps scans as recorded",
+    )
+    camera_lidar_start_scan_min_control_t: float | None = Field(
+        default=None,
+        ge=DEFAULT_MIN_CONTROL_T,
+        allow_inf_nan=False,
+        description="extra held-out control t margin required on every observed rotation "
+        "axis before adopting a camera-lidar fit from a distant start; absent keeps the "
+        "ordinary adoption rule",
     )
     topic_kinds: dict[str, str] = Field(
         default_factory=dict,
