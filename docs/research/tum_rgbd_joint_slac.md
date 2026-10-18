@@ -377,3 +377,9 @@ evaluates the complete XYZ optimizer on a denser public-data graph. It batches
 unchanged-pose finite differences with exact numeric histories and reports
 optimizer and fresh-worker latency separately, retaining the original iteration
 limit and outcome.
+
+The [initial correspondence comparison](../benchmarks/tum_initial_correspondences.md)
+batches native pose transforms and captures voxel-plane geometry for initial
+world and pair matches. It checks complete frontend and optimizer histories on
+the dense graph and retains a separate original multi-window suite comparison;
+the larger preparation gain does not apply to the smaller suite's whole runtime.
