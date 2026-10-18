@@ -1,0 +1,139 @@
+"""Private cooperative-grid ICP; existing CUDA repairs guard ambiguous iterations."""
+import math
+from pathlib import Path
+import ast
+import cupy as cp
+import numpy as np
+from calibrex.solvers import cuda_scan_odometry_adapter as native
+
+ROOT=Path(__file__).resolve().parent
+_SOLVER_FILE=ROOT/'.tmp-calibrex-cuda-batched-odometry-kernels-v1.py'
+_OLD_SOLVER=next(node.value.value for node in ast.parse(_SOLVER_FILE.read_bytes()).body
+                 if isinstance(node,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='SOURCE'
+                                                       for t in node.targets))
+solve=_OLD_SOLVER[_OLD_SOLVER.index('extern "C" __global__ void solve_update'):]
+solve=solve.replace('extern "C" __global__ void solve_update','__device__ void solve_update')
+fused=native._FUSED_SOURCE
+fused=fused.replace('extern "C" __global__ void project_query_system3(',
+                    '__device__ void fused_row(const int row,')
+fused=fused.replace('    int row=blockDim.x*blockIdx.x+threadIdx.x;\n    if(row>=n) return;\n','')
+assert 'blockDim' not in fused and 'if(row>=n)' not in fused
+
+KERNEL=r'''
+#include <cooperative_groups.h>
+namespace cg=cooperative_groups;
+'''+fused+solve+r'''
+extern "C" __global__ void persistent_icp(
+    const double* xyz,double* matrix,const double* reference,
+    const long long* order,const int* axis,const double* split,const int* child,
+    const long long* span,const double* boxes,const double* normals,
+    const bool* planar,const bool* done,int n,int m,double gate,double huber,
+    int iterations,int minimum,double translation_tol,double rotation_tol,double scale,
+    double* uncertain,double* terms,double* moved,double* distances,long long* indexes,
+    long long* pending,double* partial,double* hessian,double* meta,int* state,double* output) {
+    cg::grid_group grid=cg::this_grid();
+    int rank=blockIdx.x*blockDim.x+threadIdx.x,stride=gridDim.x*blockDim.x;
+    __shared__ double values[128];
+    for(int iteration=0;iteration<iterations;++iteration) {
+        if(state[0])break;
+        for(int row=rank;row<n;row+=stride)
+            fused_row(row,xyz,matrix,reference,order,axis,split,child,span,boxes,normals,
+                      planar,done,n,m,gate,huber,meta[0],uncertain,terms,moved,distances,indexes,pending);
+        grid.sync();
+        for(int component=0;component<31;++component) {
+            double sum=0.;
+            for(int row=rank;row<n;row+=stride)sum+=terms[component*n+row];
+            values[threadIdx.x]=sum;
+            __syncthreads();
+            for(int step=64;step>0;step>>=1) {
+                if(threadIdx.x<step)values[threadIdx.x]+=values[threadIdx.x+step];
+                __syncthreads();
+            }
+            if(threadIdx.x==0)partial[component*gridDim.x+blockIdx.x]=values[0];
+            __syncthreads();
+        }
+        grid.sync();
+        if(rank==0)solve_update(partial,gridDim.x,minimum,translation_tol,rotation_tol,
+                                scale,matrix,hessian,meta,state);
+        grid.sync();
+    }
+    if(rank==0) {
+        for(int j=0;j<16;++j)output[j]=matrix[j];
+        for(int j=0;j<36;++j)output[16+j]=hessian[j];
+        for(int j=0;j<5;++j)output[52+j]=meta[j];
+        output[57]=(double)state[0];output[58]=(double)state[1];
+    }
+}
+'''
+_SM={}
+
+
+def captured(self, source, initial):
+    options=self.options
+    if source.nbytes==0 or source.nbytes//24<self.point_count/10:
+        return native.CudaOdometryTarget._register_captured(self,source,initial)
+    transform=np.array(initial,dtype=np.float64,copy=True)
+    if transform.shape!=(4,4) or not np.isfinite(transform).all():
+        raise ValueError('finite 4x4 initial pose required')
+    if self.tree.data.nbytes*8+source.nbytes*12>1024**3:
+        raise ValueError('payload budget exceeded')
+    scale=max(self.scale,source.maximum())
+    with cp.cuda.Device(self.device_id):
+        self._finish_normal_preparation()
+        points=source.device()
+        self._reserve_queries(len(points))
+        self._ensure_all()
+        kernel=cp.RawKernel(KERNEL,'persistent_icp',options=('--fmad=false','--std=c++17'),
+                            enable_cooperative_groups=True)
+        if self.device_id not in _SM:
+            props=cp.cuda.runtime.getDeviceProperties(self.device_id)
+            assert props['cooperativeLaunch']
+            _SM[self.device_id]=props['multiProcessorCount']
+        blocks=_SM[self.device_id]
+        matrix=cp.asarray(transform)
+        n=len(points)
+        terms=cp.empty((31,n),dtype=cp.float64)
+        uncertain=cp.empty(n,dtype=cp.float64)
+        moved=cp.empty_like(points)
+        distances=cp.empty((n,2),dtype=cp.float64)
+        indexes=cp.empty((n,2),dtype=cp.int64)
+        pending=cp.empty(n,dtype=cp.int64)
+        partial=cp.empty((31,blocks),dtype=cp.float64)
+        hessian=cp.zeros((6,6),dtype=cp.float64)
+        meta=cp.asarray([128*np.finfo(float).eps*scale*max(1.,float(np.linalg.norm(transform,ord=1))),
+                         math.inf,0.,0.,0.],dtype=cp.float64)
+        state=cp.zeros(2,dtype=cp.int32)
+        output=cp.empty(59,dtype=cp.float64)
+        kernel((blocks,),(128,),(points,matrix,self.tree.data,*self.tree.arrays,
+            self._normals,self._planar,self.done,np.int32(n),np.int32(self.point_count),
+            np.float64(options.max_correspondence_m),np.float64(options.huber_delta_m),
+            np.int32(options.max_iterations),np.int32(options.min_correspondences),
+            np.float64(options.convergence_translation_m),np.float64(options.convergence_rotation_rad),
+            np.float64(scale),uncertain,terms,moved,distances,indexes,pending,partial,hessian,meta,state,output))
+        host=cp.asnumpy(output)
+        transform=host[:16].reshape(4,4)
+        hessian_host=host[16:52].reshape(6,6)
+        metadata=host[52:57]
+        status,iterations=map(int,host[57:59])
+        self.tree.query_calls+=iterations
+        self.tree.query_rows+=iterations*n
+        self.fused_calls+=iterations
+        self.persistent_calls=getattr(self,'persistent_calls',0)+1
+        self.persistent_iterations=getattr(self,'persistent_iterations',0)+iterations
+    if status==2 or self._near_motion_boundary(transform):
+        self.persistent_fallbacks=getattr(self,'persistent_fallbacks',0)+1
+        return native.CudaOdometryTarget._register_captured(self,source,initial)
+    eigenvalue=0. if metadata[3]==0 else float(np.linalg.eigvalsh(hessian_host)[0])/metadata[3]
+    return native.ScanRegistration(native._canonicalize_motion(transform,options),
+        bool(metadata[4] and metadata[2]>=options.min_correspondences),iterations,int(metadata[2]),
+        float(metadata[1]),float(eigenvalue),execution_backend=self.identity)
+
+
+class Fast(native.CudaOdometryTarget):
+    _register_captured=captured
+
+    def statistics(self):
+        values=super().statistics()
+        values.update({name:getattr(self,name,0) for name in
+                       ['persistent_calls','persistent_iterations','persistent_fallbacks']})
+        return values

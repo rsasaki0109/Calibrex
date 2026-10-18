@@ -1,0 +1,98 @@
+         6026534 function calls (5598370 primitive calls) in 49.624 seconds
+
+   Ordered by: internal time
+   List reduced from 2032 to 90 due to restriction <90>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+    11129   12.963    0.001   13.012    0.001 {method 'get' of 'cupy._core.core._ndarray_base' objects}
+       21    6.347    0.302    6.347    0.302 {built-in method cupy_backends.cuda.libs.nvrtc.compileProgram}
+       14    2.591    0.185    4.906    0.350 scan_to_scan_odometry.py:283(register_point_to_plane)
+     9567    2.149    0.000    2.149    0.000 {method 'read' of '_io.BufferedReader' objects}
+      991    2.110    0.002    2.110    0.002 {method 'update' of '_hashlib.HASH' objects}
+     7073    1.750    0.000    1.750    0.000 {built-in method numpy._core._multiarray_umath.c_einsum}
+    11320    1.082    0.000    1.111    0.000 {built-in method cupy._core.core.array}
+      952    0.906    0.001    0.906    0.001 {method 'update' of '_blake2.blake2b' objects}
+       91    0.893    0.010    2.244    0.025 scan_to_scan_odometry.py:267(ensure)
+      320    0.729    0.002    0.738    0.002 _linalg.py:1536(eigh)
+     1352    0.571    0.000    0.869    0.001 {method 'argsort' of 'cupy._core.core._ndarray_base' objects}
+    44130    0.449    0.000    0.449    0.000 {method 'reduce' of 'numpy.ufunc' objects}
+      896    0.414    0.000   19.147    0.021 cuda_scan_odometry_adapter.py:570(_register_captured)
+204460/51298    0.412    0.000    0.976    0.000 ros1_cdr.py:230(_write_value)
+     4777    0.390    0.000    0.814    0.000 cuda_resident_odometry_adapter.py:476(__call__)
+       53    0.335    0.006    0.335    0.006 {built-in method scipy.sparse._sparsetools.csr_matmat}
+     4777    0.333    0.000    0.333    0.000 {method 'sum' of 'cupy._core.core._ndarray_base' objects}
+       53    0.314    0.006    0.494    0.009 continuous_time_bspline_derivatives.py:61(_rotation_control_derivatives)
+     1352    0.294    0.000    7.035    0.005 cuda_resident_odometry_adapter.py:186(preprocess)
+     1320    0.285    0.000    0.366    0.000 continuous_time_bspline.py:200(_so3_exp_compact)
+     3118    0.283    0.000    0.602    0.000 imu_lidar_rotation_solver.py:111(orientation_and_bias_sum)
+      440    0.269    0.001    1.450    0.003 continuous_time_bspline.py:135(transform_points)
+      320    0.266    0.001    1.485    0.005 scan_to_scan_odometry.py:217(_normals_from_neighbours)
+     3938    0.264    0.000    1.181    0.000 _rotation.py:476(from_matrix)
+     4868    0.241    0.000    0.401    0.000 scan_to_scan_odometry.py:642(_exp_se3)
+241988/88826    0.220    0.000    1.159    0.000 ros1_cdr.py:196(_write_field)
+803551/784061    0.217    0.000    0.226    0.000 {built-in method builtins.len}
+     3952    0.217    0.000    0.415    0.000 numeric.py:2373(isclose)
+       53    0.207    0.004    0.207    0.004 {built-in method scipy.sparse._sparsetools.csr_matmat_maxnnz}
+     3600    0.204    0.000    1.021    0.000 basic.py:15(copyto)
+     9865    0.202    0.000    0.218    0.000 shape_base.py:380(stack)
+63604/12672    0.200    0.000    1.224    0.000 ros1_cdr.py:187(_write_struct)
+      913    0.192    0.000    0.205    0.000 {built-in method _io.open}
+       49    0.181    0.004    0.181    0.004 {built-in method scipy.sparse.linalg._dsolve._superlu.gssv}
+    13841    0.175    0.000    0.257    0.000 _stride_tricks_impl.py:340(_broadcast_to)
+     1559    0.169    0.000    1.545    0.001 imu_lidar_rotation_solver.py:314(increment_residuals)
+        4    0.164    0.041    1.972    0.493 lidar_imu_bag_calibration.py:564(_associate)
+       53    0.163    0.003    0.163    0.003 {built-in method scipy.sparse._sparsetools.csr_sort_indices}
+     1344    0.150    0.000    0.150    0.000 {method 'max' of 'cupy._core.core._ndarray_base' objects}
+       14    0.150    0.011    0.210    0.015 cuda_resident_odometry_adapter.py:415(cpu)
+      448    0.146    0.000    1.933    0.004 cuda_resident_odometry_adapter.py:528(_repair_normals)
+    24/22    0.144    0.006    0.056    0.003 {method 'read' of '_io.TextIOWrapper' objects}
+   368116    0.136    0.000    0.136    0.000 {method 'get' of 'dict' objects}
+    17148    0.135    0.000    0.214    0.000 rosbag1.py:327(_read_header_fields)
+     7975    0.132    0.000    0.548    0.000 _rotation.py:603(from_rotvec)
+    13496    0.132    0.000    0.132    0.000 basic.py:15(empty)
+    10485    0.130    0.000    0.326    0.000 _linalg.py:2623(norm)
+        2    0.129    0.064    0.133    0.067 imu_lidar_rotation_solver.py:95(_build_tables)
+   191544    0.129    0.000    0.169    0.000 ros1_cdr.py:267(_align)
+      159    0.128    0.001    0.762    0.005 continuous_time_bspline_fit.py:760(_gather)
+     4872    0.128    0.000    0.255    0.000 _linalg.py:382(solve)
+    20785    0.123    0.000    0.166    0.000 _twodim_base_impl.py:176(eye)
+    12674    0.113    0.000    2.090    0.000 bag_formats.py:163(iter_ros1_messages)
+        4    0.111    0.028    0.274    0.068 scan_to_scan_odometry.py:205(estimate_normals)
+    11919    0.111    0.000    0.460    0.000 _array_api.py:524(xp_promote)
+    12611    0.108    0.000    0.400    0.000 ros_cdr.py:758(decode_ros2_imu)
+      448    0.106    0.000    0.316    0.001 {built-in method cupy._core._routines_manipulation.concatenate_method}
+    11919    0.106    0.000    0.201    0.000 _array_api.py:471(xp_result_type)
+       53    0.102    0.002    1.867    0.035 continuous_time_bspline_fit.py:821(_linearize)
+      529    0.101    0.000    0.496    0.001 continuous_time_bspline.py:339(so3_exp_batch)
+     3911    0.094    0.000    0.094    0.000 _rotation.py:1120(as_rotvec)
+    15898    0.091    0.000    0.274    0.000 rosbag1.py:378(_iter_inner_records)
+    60335    0.091    0.000    0.091    0.000 {built-in method numpy.asarray}
+      160    0.089    0.001    0.470    0.003 continuous_time_bspline.py:261(_evaluate_local_spline)
+     3952    0.089    0.000    0.124    0.000 _linalg.py:2380(det)
+ 7252/460    0.089    0.000   33.268    0.072 .tmp-calibrex-profile-resident-full-v1.py:41(wrapper)
+   154813    0.087    0.000    0.087    0.000 {built-in method _struct.unpack_from}
+      155    0.087    0.001    0.087    0.001 {built-in method scipy.sparse._sparsetools.coo_tocsr}
+        1    0.085    0.085    0.127    0.127 cuda_resident_odometry_adapter.py:766(__init__)
+    30216    0.082    0.000    0.082    0.000 {method 'reshape' of 'numpy.ndarray' objects}
+     3592    0.080    0.000    0.080    0.000 {method 'memset_async' of 'cupy.cuda.memory.MemoryPointer' objects}
+    72117    0.079    0.000    0.116    0.000 _array_api.py:75(_asarray)
+     4432    0.076    0.000    0.153    0.000 basic.py:69(empty_like)
+      425    0.075    0.000    0.077    0.000 {built-in method nt.stat}
+    25355    0.074    0.000    0.075    0.000 {built-in method numpy.array}
+    20579    0.073    0.000    0.246    0.000 fromnumeric.py:89(_wrapreduction_any_all)
+     1559    0.071    0.000    0.685    0.000 imu_lidar_rotation_solver.py:126(increments)
+      896    0.071    0.000    0.204    0.000 cuda_scan_odometry_adapter.py:266(maximum)
+   189946    0.068    0.000    0.085    0.000 {built-in method builtins.isinstance}
+    23637    0.067    0.000    0.067    0.000 {method 'dot' of 'numpy.ndarray' objects}
+      392    0.066    0.000    0.443    0.001 cuda_resident_odometry_adapter.py:606(rotate)
+     4777    0.066    0.000    0.066    0.000 {method 'outer' of 'numpy.ufunc' objects}
+      357    0.065    0.000    0.117    0.000 continuous_time_bspline_derivatives.py:32(_right_jacobian)
+    47678    0.062    0.000    0.072    0.000 _helpers.py:149(is_torch_array)
+      448    0.061    0.000    1.707    0.004 cuda_resident_odometry_adapter.py:366(__init__)
+        2    0.060    0.030    2.277    1.138 benchmark_bspline_lidar_imu.py:46(_manifest)
+       61    0.059    0.001    0.059    0.001 ros_messages.py:842(filter_nonfinite_pointcloud_rows)
+    14331    0.058    0.000    0.260    0.000 _twodim_base_impl.py:1137(<genexpr>)
+    22373    0.058    0.000    0.058    0.000 {method 'astype' of 'numpy.ndarray' objects}
+     5434    0.058    0.000    0.084    0.000 _methods.py:98(_clip)
+
+

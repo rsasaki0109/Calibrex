@@ -1,0 +1,166 @@
+
+extern "C" __global__ void query3(
+    const double* xyz, const double* reference, const long long* order,
+    const int* axis, const double* split, const int* child,
+    const long long* span, const double* boxes, const int n, const int m, const int k,
+    double* distance, long long* index) {
+    int row = blockDim.x * blockIdx.x + threadIdx.x;
+    if (row >= n) return;
+    double p[3] = {xyz[3*row], xyz[3*row+1], xyz[3*row+2]};
+    double best[17]; long long chosen[17];
+    for(int j=0;j<k;j++){best[j]=1.0/0.0;chosen[j]=m;}
+    // 63 Morton bits plus fewer than 30 point-index bits bound radix depth below 96.
+    int stack[96]; int top=1;
+    stack[0]=0;
+    while(top){
+        --top; int node=stack[top];
+        double d[3];
+        for(int a=0;a<3;a++)
+            d[a]=fmax(0.0,fmax(boxes[6*node+a]-p[a],p[a]-boxes[6*node+3+a]));
+        // Retain equal and roundoff-close boxes; candidate distance arithmetic is unchanged.
+        double lower=(d[0]*d[0]+d[1]*d[1]+d[2]*d[2])*(1.0-16.0*2.2204460492503131e-16);
+        if(lower > best[k-1]) continue;
+        if(axis[node]<0){
+            for(long long j=span[2*node];j<span[2*node+1];j++){
+                long long position=order[j];
+                double x=p[0]-reference[3*position];
+                double y=p[1]-reference[3*position+1];
+                double z=p[2]-reference[3*position+2];
+                double d=x*x+y*y+z*z;
+                if(d<best[k-1] || (d==best[k-1] && position<chosen[k-1])){
+                    int slot=k-1;
+                    while(slot>0 && (d<best[slot-1] ||
+                         (d==best[slot-1] && position<chosen[slot-1]))){
+                        best[slot]=best[slot-1];chosen[slot]=chosen[slot-1];--slot;
+                    }
+                    best[slot]=d;chosen[slot]=position;
+                }
+            }
+        }else if(axis[node]==3){
+            int left=child[2*node],right=child[2*node+1];
+            double lower_child[2];
+            for(int side=0;side<2;side++){
+                int next=side==0?left:right;double v[3];
+                for(int a=0;a<3;a++)
+                    v[a]=fmax(0.0,fmax(boxes[6*next+a]-p[a],p[a]-boxes[6*next+3+a]));
+                lower_child[side]=(v[0]*v[0]+v[1]*v[1]+v[2]*v[2])
+                                 *(1.0-16.0*2.2204460492503131e-16);
+            }
+            int near=lower_child[0]<=lower_child[1]?0:1,far=1-near;
+            if(lower_child[far]<=best[k-1]) stack[top++]=far==0?left:right;
+            if(lower_child[near]<=best[k-1]) stack[top++]=near==0?left:right;
+        }else{
+            double delta=p[axis[node]]-split[node];
+            int side=delta<0?0:1;
+            int far=child[2*node+1-side], near=child[2*node+side];
+            if(delta*delta <= best[k-1]){
+                stack[top]=far;++top;
+            }
+            stack[top]=near;++top;
+        }
+    }
+    for(int j=0;j<k;j++){distance[row*k+j]=sqrt(best[j]);index[row*k+j]=chosen[j];}
+}
+
+extern "C" __global__ void morton3(
+    const double* points, const int n, const double lx, const double ly, const double lz,
+    const double hx, const double hy, const double hz, unsigned long long* codes) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;
+    if(row>=n) return;
+    double low[3]={lx,ly,lz},high[3]={hx,hy,hz};
+    double width=fmax(high[0]-low[0],fmax(high[1]-low[1],high[2]-low[2]));
+    unsigned long long code=0;
+    for(int a=0;a<3;a++){
+        double fraction=width>0?(points[3*row+a]-low[a])/width:0;
+        unsigned int key=(unsigned int)(fmax(0.0,fmin(1.0,fraction))*2097151.0);
+        for(int bit=0;bit<21;bit++)
+            code|=((unsigned long long)((key>>bit)&1))<<(3*bit+2-a);
+    }
+    codes[row]=code;
+}
+
+// Independent binary-prefix construction, following Karras (HPG 2012):
+// https://research.nvidia.com/publication/2012-06_maximizing-parallelism-construction-bvhs-octrees-and-k-d-trees
+__device__ int common3(const unsigned long long* codes, const long long* order,
+                      const int leaves, const int a, const int b) {
+    if(b<0 || b>=leaves) return -1;
+    unsigned long long bits=codes[order[8*a]]^codes[order[8*b]];
+    return bits?__clzll(bits):64+__clz((unsigned int)(a^b));
+}
+
+extern "C" __global__ void radix_nodes3(
+    const unsigned long long* codes, const long long* order, const int leaves,
+    int* axis, int* children, int* parents) {
+    int node=blockDim.x*blockIdx.x+threadIdx.x;
+    if(node>=leaves-1) return;
+    int direction=common3(codes,order,leaves,node,node+1)
+                  >common3(codes,order,leaves,node,node-1)?1:-1;
+    int threshold=common3(codes,order,leaves,node,node-direction);
+    int upper=2;
+    while(common3(codes,order,leaves,node,node+upper*direction)>threshold) upper*=2;
+    int distance=0;
+    for(int step=upper/2;step;step/=2)
+        if(common3(codes,order,leaves,node,node+(distance+step)*direction)>threshold)
+            distance+=step;
+    int end=node+distance*direction,first=min(node,end),last=max(node,end);
+    int prefix=common3(codes,order,leaves,first,last),middle=first,step=last-first;
+    do {
+        step=(step+1)/2;
+        int candidate=middle+step;
+        if(candidate<last && common3(codes,order,leaves,first,candidate)>prefix) middle=candidate;
+    } while(step>1);
+    int left=middle==first?leaves-1+middle:middle;
+    int right=middle+1==last?leaves+middle:middle+1;
+    axis[node]=3;children[2*node]=left;children[2*node+1]=right;
+    parents[left]=node;parents[right]=node;
+}
+
+extern "C" __global__ void leaf_refit3(
+    const double* points, const long long* order, const int n, const int leaves,
+    int* axis, int* children, const int* parents, int* arrivals,
+    long long* spans, double* boxes, double* splits) {
+    int leaf=blockDim.x*blockIdx.x+threadIdx.x;
+    if(leaf>=leaves) return;
+    int node=leaves-1+leaf;
+    long long start=(long long)leaf*8,end=min((long long)n,start+8LL);
+    if(start>n) start=n;if(end>n) end=n;
+    axis[node]=-1;children[2*node]=children[2*node+1]=0;
+    spans[2*node]=start;spans[2*node+1]=end;
+    for(int a=0;a<3;a++){
+        double low=1.0/0.0,high=-1.0/0.0;
+        for(long long j=start;j<end;j++){
+            double value=points[3*order[j]+a];low=fmin(low,value);high=fmax(high,value);
+        }
+        boxes[6*node+a]=low;boxes[6*node+3+a]=high;
+    }
+    volatile double* visible_boxes=boxes;
+    volatile long long* visible_spans=spans;
+    while(parents[node]>=0){
+        __threadfence();
+        node=parents[node];
+        if(atomicAdd(arrivals+node,1)==0) return;
+        int left=children[2*node],right=children[2*node+1];
+        visible_spans[2*node]=min(visible_spans[2*left],visible_spans[2*right]);
+        visible_spans[2*node+1]=max(visible_spans[2*left+1],visible_spans[2*right+1]);
+        for(int a=0;a<3;a++){
+            visible_boxes[6*node+a]=fmin(visible_boxes[6*left+a],visible_boxes[6*right+a]);
+            visible_boxes[6*node+3+a]=fmax(visible_boxes[6*left+3+a],visible_boxes[6*right+3+a]);
+        }
+        // Disjoint child boxes admit the cheaper axis-plane traversal. Leaf
+        // blocks straddling a Morton prefix retain full box traversal instead.
+        double gap=-1;int dimension=-1;bool reverse=false;
+        for(int a=0;a<3;a++){
+            double forward=visible_boxes[6*right+a]-visible_boxes[6*left+3+a];
+            double backward=visible_boxes[6*left+a]-visible_boxes[6*right+3+a];
+            if(forward>=0 && forward>gap){gap=forward;dimension=a;reverse=false;}
+            if(backward>=0 && backward>gap){gap=backward;dimension=a;reverse=true;}
+        }
+        if(dimension>=0){
+            if(reverse){int swap=left;left=right;right=swap;}
+            double low=visible_boxes[6*left+3+dimension],high=visible_boxes[6*right+dimension];
+            splits[node]=fmax(low,fmin(high,low+(high-low)*0.5));
+            children[2*node]=left;children[2*node+1]=right;axis[node]=dimension;
+        }
+        if(visible_spans[2*node+1]-visible_spans[2*node]<=8) axis[node]=-1;
+    }
+}

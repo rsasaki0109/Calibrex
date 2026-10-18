@@ -1,0 +1,45 @@
+def __init__(self, points: FloatArray) -> None:
+    self._host = None
+    if points.nbytes * 16 > _MAX_RETAINED_BYTES:
+        raise ValueError("CUDA spatial construction exceeds the 1 GiB payload budget")
+    self._cpu: cKDTree | None = None
+    self._cpu_lock = Lock()
+    self.native_tree_builds = 0
+    self.data = points
+    self.capture_method = "device_morton_bvh"
+    count = len(points)
+    leaves = max(1, (count+7)//8)
+    nodes = 2 * leaves - 1
+    axes = cp.empty(nodes, dtype=cp.int32)
+    splits = cp.zeros(nodes, dtype=cp.float64)
+    children = cp.empty((nodes, 2), dtype=cp.int32)
+    spans = cp.empty((nodes, 2), dtype=cp.int64)
+    boxes = cp.empty((nodes, 2, 3), dtype=cp.float64)
+    codes = cp.empty(count, dtype=cp.uint64)
+    parents = cp.full(nodes, -1, dtype=cp.int32)
+    arrivals = cp.zeros(leaves - 1, dtype=cp.int32)
+    morton = cp.RawKernel(_BUILD, "morton3", options=("--fmad=false",))
+    leaf_kernel = cp.RawKernel(_BUILD, "leaf_refit3", options=("--fmad=false",))
+    topology_kernel = cp.RawKernel(_BUILD, "radix_nodes3", options=("--fmad=false",))
+    self.build_kernel_calls = 0
+    if count:
+        lows=[np.float64(-128.)]*3
+        highs=[np.float64(128.)]*3
+        morton(((count + 127) // 128,), (128,),
+               (self.data, np.int32(count), *lows, *highs, codes))
+        self.build_kernel_calls += 1
+    order = cp.lexsort(cp.stack((cp.arange(count, dtype=cp.uint64), codes)))
+    if leaves > 1:
+        topology_kernel(((leaves - 1 + 127) // 128,), (128,),
+                        (codes, order, np.int32(leaves), axes, children, parents))
+        self.build_kernel_calls += 1
+    leaf_kernel(((leaves + 127) // 128,), (128,),
+                (self.data, order, np.int32(count), np.int32(leaves),
+                 axes, children, parents, arrivals, spans, boxes, splits))
+    self.build_kernel_calls += 1
+    self.scale=max(1.,float(np.max(np.abs(cp.asnumpy(boxes[0])))))
+    self.arrays = (order,axes,splits,children,spans,boxes)
+    self.kernel = cp.RawKernel(_SOURCE, "query3", options=("--fmad=false",))
+    self.bytes = int(self.data.nbytes + sum(array.nbytes for array in self.arrays))
+    self.query_calls = 0
+    self.query_rows = 0

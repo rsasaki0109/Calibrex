@@ -1,0 +1,129 @@
+[
+  {
+    "variant": "prior",
+    "case": 0,
+    "repeat": -1,
+    "seconds": 3.8914141000714153,
+    "target_seconds": 1.5609550999943167,
+    "registration_seconds": 2.3304590000770986,
+    "result": {
+      "transform": [
+        [
+          0.9999806181021741,
+          0.006136544739195568,
+          0.0010517788064976646,
+          0.024197
+        ],
+        [
+          -0.006130510881213757,
+          0.9999652628763369,
+          -0.005647112270345411,
+          0.001815
+        ],
+        [
+          -0.001086396027821432,
+          0.005640554877174512,
+          0.999983501806079,
+          0.004604
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14678,
+      "rmse_m": 0.0357605828975481,
+      "hessian_min_eigenvalue": 0.037262199200802835,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b;normal_schedule=async-v1"
+    },
+    "statistics": {
+      "serialized_tree_captures": 0,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 8,
+      "gpu_query_rows": 155127,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 19201,
+      "gpu_normal_kernel_calls": 1,
+      "gpu_async_normal_batches": 0,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0,
+      "gpu_grid_captures": 1,
+      "gpu_grid_native_fallbacks": 0,
+      "gpu_grid_brute_rows": 339,
+      "native_tree_captures": 0,
+      "sparse_native_normal_rows": 2,
+      "spatial_native_normal_rows": 0,
+      "gpu_parallel_fallback_dispatches": 8
+    }
+  },
+  {
+    "variant": "broad",
+    "case": 0,
+    "repeat": -1,
+    "seconds": 3.3683420999441296,
+    "target_seconds": 1.2843676999909803,
+    "registration_seconds": 2.0839743999531493,
+    "result": {
+      "transform": [
+        [
+          0.9999806181021741,
+          0.006136544739195568,
+          0.0010517788064976646,
+          0.024197
+        ],
+        [
+          -0.006130510881213757,
+          0.9999652628763369,
+          -0.005647112270345411,
+          0.001815
+        ],
+        [
+          -0.001086396027821432,
+          0.005640554877174512,
+          0.999983501806079,
+          0.004604
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "converged": true,
+      "iterations": 7,
+      "correspondences": 14678,
+      "rmse_m": 0.0357605828975481,
+      "hessian_min_eigenvalue": 0.037262199200802835,
+      "execution_backend": "calibrex.cuda_scan_odometry/v0.1;fp64=true;query_fma=false;cupy=14.2.0;cuda=12090;driver=13020;cc=7.5;query_sha256=e77f0b8960b8b44f474580a1419cc89e3da2be184f8472e845e99595389d37a9;system_sha256=55a086427eead4e99023382e9dc6644fa39aa3b510280db732adb51da70ec96b;normal_schedule=async-v1"
+    },
+    "statistics": {
+      "serialized_tree_captures": 0,
+      "public_node_tree_captures": 0,
+      "gpu_query_calls": 8,
+      "gpu_query_rows": 155127,
+      "scalar_query_repairs": 0,
+      "scalar_normal_repairs": 2,
+      "gpu_fused_system_calls": 7,
+      "gpu_system_refresh_calls": 0,
+      "gpu_normal_rows": 19201,
+      "gpu_normal_kernel_calls": 1,
+      "gpu_async_normal_batches": 0,
+      "scalar_registration_repairs": 0,
+      "scalar_motion_repairs": 0,
+      "broad_normal_fallback_rows": 27,
+      "broad_registration_fallback_rows": 62,
+      "device_tree_build_kernel_calls": 3,
+      "native_tree_builds": 0,
+      "sparse_native_normal_rows": 2,
+      "spatial_native_normal_rows": 0
+    }
+  }
+]

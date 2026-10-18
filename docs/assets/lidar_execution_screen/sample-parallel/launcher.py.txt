@@ -1,0 +1,217 @@
+"""Spent public KITTI screen: parallel sample work with ordered native reduction."""
+import os
+for key in ("OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "OMP_NUM_THREADS"):
+    os.environ[key] = "1"
+os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+
+from argparse import ArgumentParser, Namespace
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
+import copy
+import hashlib
+import json
+from pathlib import Path
+import shutil
+import statistics
+import struct
+import subprocess
+import sys
+import time
+
+ROOT = Path(__file__).resolve().parent
+OUT = ROOT / "outputs/map-sample-parallel-pilot-v1"
+SOURCE = ROOT / "outputs/cpu-map-bag-comparison-v1/source-current"
+SEQUENCE = Path("data/public/kitti_raw_icp/2011_09_30_drive_0018_sync")
+COMMIT = "917748b10d5eff9bb077b332a018eafdb33e9fcd"
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+read = lambda p: json.loads(p.read_bytes())
+
+
+def write(path, data):
+    path.write_text(json.dumps(data, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+
+
+def exact(a, b, path=""):
+    if type(a) is not type(b):
+        return [path + ":type"]
+    if isinstance(a, dict):
+        if a.keys() != b.keys():
+            return [path + ":keys"]
+        return [e for key in a for e in exact(a[key], b[key], path + "." + key)]
+    if isinstance(a, list):
+        if len(a) != len(b):
+            return [path + ":length"]
+        return [e for i, (x, y) in enumerate(zip(a, b, strict=True))
+                for e in exact(x, y, path + f"[{i}]")]
+    if isinstance(a, float):
+        return [] if struct.pack(">d", a) == struct.pack(">d", b) else [path]
+    return [] if a == b else [path]
+
+
+def worker(repeat, variant):
+    from tools import benchmark_bspline_lidar_imu as common
+    from tools import benchmark_cuda_lidar_map as workload
+    expected = common._verify_sources(SOURCE)
+    protocol = read(OUT / "protocol.json")
+    assert sha(Path(__file__)) == protocol["launcher_sha256"]
+    assert sha(SOURCE / "manifest.json") == protocol["source_manifest_sha256"]
+    sys.path.insert(0, str(SOURCE / "src"))
+    import numpy as np
+    from calibrex.evaluation import lidar_lidar_map as evaluation
+    from calibrex.solvers import lidar_lidar_map_solver as solver
+
+    options_class = evaluation.LidarLidarMapOptions
+    def options_factory(*args, **kwargs):
+        opts = options_class(*args, **kwargs)
+        return replace(opts, solver=replace(opts.solver, query_workers=8))
+    evaluation.LidarLidarMapOptions = options_factory
+    runtimes, fits = [], []
+    original_fit = evaluation.solve_map_extrinsic
+    def fit(*args, **kwargs):
+        value = original_fit(*args, **kwargs)
+        fits.append(workload._json(value))
+        return value
+    evaluation.solve_map_extrinsic = fit
+
+    class Runtime:
+        def __init__(self, samples, options):
+            self.options = replace(options, query_workers=1)
+            self.pool = ThreadPoolExecutor(max_workers=min(8, len(samples)))
+            self.calls = 0
+            self.samples = samples
+            runtimes.append(self)
+
+        def identity(self):
+            return "numpy_scipy"
+
+        def statistics(self):
+            return {}
+
+        def residuals(self, sample, extrinsic):
+            return sample.residuals(extrinsic, self.options)[0]
+
+        def batch(self, samples, extrinsic):
+            return list(self.pool.map(lambda sample: sample.residuals(extrinsic, self.options), samples))
+
+        def normal_equations(self, samples, extrinsic):
+            def contribution(sample):
+                residual, normals, points = sample.residuals(extrinsic, self.options)
+                if not len(residual):
+                    return None
+                jacobian = solver._jacobian(sample.reference_pose, extrinsic, normals, points)
+                weight = np.minimum(1.0, self.options.huber_m / np.maximum(np.abs(residual), 1e-12))
+                return (jacobian.T @ (jacobian * weight[:, None]),
+                        jacobian.T @ (weight * residual), residual)
+            parts = list(self.pool.map(contribution, samples))
+            hessian, gradient, residuals = np.zeros((6, 6)), np.zeros(6), []
+            for part in parts:
+                if part is not None:
+                    h, g, r = part
+                    hessian += h
+                    gradient += g
+                    residuals.append(r)
+            self.calls += len(samples)
+            return hessian, gradient, np.concatenate(residuals) if residuals else np.zeros(0)
+
+    if variant == "samples":
+        evaluation._map_runtime = lambda samples, options, backend: Runtime(samples, options)
+        original_chi = evaluation.chi_square
+        def chi(samples, extrinsic, sigma_m, options=None, *, backend="cpu", _runtime=None):
+            if not isinstance(_runtime, Runtime):
+                return original_chi(samples, extrinsic, sigma_m, options, backend=backend, _runtime=_runtime)
+            total, count, parts = 0.0, 0, []
+            for sample, (residual, _, _) in zip(samples, _runtime.batch(samples, extrinsic), strict=True):
+                lost = len(sample.target_points) - len(residual)
+                total += float(np.sum(np.minimum((residual / sigma_m) ** 2, 25.0))) + 25.0 * lost
+                count += len(residual)
+                parts.append(residual)
+            stacked = np.concatenate(parts) if parts else np.zeros(0)
+            median = float(np.median(np.abs(stacked))) if len(stacked) else float("nan")
+            return total, median, count
+        evaluation.chi_square = chi
+    folder = OUT / f"{repeat:02d}-{variant}"
+    try:
+        workload._worker(Namespace(sequence=SEQUENCE, output_dir=folder, half_window=1,
+                                   worker="cpu", source_root=SOURCE, source_commit=COMMIT))
+    finally:
+        for runtime in runtimes:
+            runtime.pool.shutdown(wait=True)
+    assert len(fits) == 5
+    imports = {}
+    for name, module in list(sys.modules.items()):
+        if name == "calibrex" or name.startswith("calibrex."):
+            path = Path(module.__file__).resolve()
+            assert path.is_relative_to(SOURCE / "src")
+            key = path.relative_to(SOURCE / "src").as_posix()
+            assert expected[key] == sha(path)
+            imports[key] = expected[key]
+    common._verify_sources(SOURCE)
+    assert "cupy" not in sys.modules
+    record = read(folder / "measurement.json")
+    record["full_fits"] = fits
+    record["executed_sources"] = imports
+    record["launcher_sha256"] = sha(Path(__file__))
+    record["protocol_sha256"] = sha(OUT / "protocol.json")
+    write(folder / "measurement.json", record)
+
+
+def main():
+    parser = ArgumentParser()
+    parser.add_argument("--worker", choices=("queries", "samples"))
+    parser.add_argument("--repeat", type=int)
+    args = parser.parse_args()
+    if args.worker:
+        worker(args.repeat, args.worker)
+        return
+    OUT.mkdir(exist_ok=False)
+    shutil.copyfile(Path(__file__), OUT / "launcher.py.txt")
+    protocol = {"scope": __doc__, "source_commit": COMMIT,
+                "source_manifest_sha256": sha(SOURCE / "manifest.json"),
+                "launcher_sha256": sha(Path(__file__)), "query_budget": 8, "blas_threads": 1,
+                "order": [["queries", "samples"], ["samples", "queries"]],
+                "limitations": ["Two exploratory rotated pairs; unreserved host; CPU only.",
+                                "Map evaluation, not bag/odometry; copied-sensor control, not independent accuracy."]}
+    write(OUT / "protocol.json", protocol)
+    pairs = []
+    for repeat, order in enumerate(protocol["order"]):
+        seconds = {}
+        for variant in order:
+            started = time.perf_counter()
+            completed = subprocess.run([sys.executable, str(Path(__file__).name), "--worker", variant,
+                                        "--repeat", str(repeat)], cwd=ROOT,
+                                       capture_output=True, check=False)
+            elapsed = time.perf_counter() - started
+            folder = OUT / f"{repeat:02d}-{variant}"
+            folder.mkdir(exist_ok=True)
+            (folder / "stdout.log").write_bytes(completed.stdout)
+            (folder / "stderr.log").write_bytes(completed.stderr)
+            write(folder / "whole.json", {"seconds": elapsed, "returncode": completed.returncode,
+                                          "measurement_sha256": sha(folder / "measurement.json") if (folder / "measurement.json").exists() else None})
+            if completed.returncode:
+                raise RuntimeError(f"{repeat}-{variant} failed; see retained logs")
+            seconds[variant] = elapsed
+            print(json.dumps({"repeat": repeat, "variant": variant, "seconds": elapsed}), flush=True)
+        records = {v: read(OUT / f"{repeat:02d}-{v}/measurement.json") for v in order}
+        physical = {}
+        for variant, record in records.items():
+            value = copy.deepcopy(record)
+            value.pop("api_seconds")
+            value.pop("worker_cpu_seconds")
+            value.pop("result_sha256")
+            value["artifact"]["provenance"]["created_at"] = "<RUN_TIME>"
+            physical[variant] = value
+        errors = exact(physical["queries"], physical["samples"])
+        pair = {"repeat": repeat, "seconds": seconds, "errors": errors}
+        write(OUT / f"pair-{repeat:02d}.json", pair)
+        pairs.append(pair)
+        print(json.dumps(pair), flush=True)
+    medians = {v: statistics.median(pair["seconds"][v] for pair in pairs) for v in ("queries", "samples")}
+    summary = {"pairs": pairs, "medians_seconds": medians, "ratio": medians["queries"] / medians["samples"],
+               "all_float_bits_equal": all(not pair["errors"] for pair in pairs),
+               "protocol_sha256": sha(OUT / "protocol.json")}
+    write(OUT / "summary.json", summary)
+    print(json.dumps(summary), flush=True)
+
+
+if __name__ == "__main__":
+    main()

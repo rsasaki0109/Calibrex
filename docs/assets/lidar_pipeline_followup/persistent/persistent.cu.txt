@@ -1,0 +1,189 @@
+
+#include <cooperative_groups.h>
+namespace cg=cooperative_groups;
+
+__device__ void fused_row(const int row,
+    const double* xyz, const double* matrix, const double* reference,
+    const long long* order, const int* axis, const double* split,
+    const int* child, const long long* span, const double* boxes, const double* normal,
+    const bool* planar, const bool* done, const int n, const int m, const double gate,
+    const double huber, const double error, double* uncertain, double* terms,
+    double* moved_out, double* distances_out, long long* indices_out,
+    long long* pending_out) {
+    const double* s=xyz+3*row;
+    double p[3];
+    for(int a=0;a<3;a++)
+        p[a]=matrix[4*a]*s[0]+matrix[4*a+1]*s[1]+matrix[4*a+2]*s[2]+matrix[4*a+3];
+    double best[2]={1.0/0.0,1.0/0.0};long long chosen[2]={m,m};
+    int stack[64];int top=1;stack[0]=0;
+    while(top){
+        --top;int node=stack[top];
+        double d[3];
+        for(int a=0;a<3;a++)
+            d[a]=fmax(0.0,fmax(boxes[6*node+a]-p[a],p[a]-boxes[6*node+3+a]));
+        double lower=(d[0]*d[0]+d[1]*d[1]+d[2]*d[2])*(1.0-16.0*2.2204460492503131e-16);
+        if(lower>best[1]) continue;
+        if(axis[node]<0){
+            for(long long v=span[2*node];v<span[2*node+1];v++){
+                long long position=order[v];
+                double x=p[0]-reference[3*position];
+                double y=p[1]-reference[3*position+1];
+                double z=p[2]-reference[3*position+2];
+                double d=x*x+y*y+z*z;
+                if(d<best[1] || (d==best[1] && position<chosen[1])){
+                    if(d<best[0] || (d==best[0] && position<chosen[0])){
+                        best[1]=best[0];chosen[1]=chosen[0];best[0]=d;chosen[0]=position;
+                    }else{best[1]=d;chosen[1]=position;}
+                }
+            }
+        }else{
+            double delta=p[axis[node]]-split[node];int side=delta<0?0:1;
+            if(delta*delta<=best[1]){
+                stack[top]=child[2*node+1-side];++top;
+            }
+            stack[top]=child[2*node+side];++top;
+        }
+    }
+    double distance=sqrt(best[0]);long long hit=chosen[0];
+    for(int a=0;a<3;a++) moved_out[3*row+a]=p[a];
+    distances_out[2*row]=distance;distances_out[2*row+1]=sqrt(best[1]);
+    indices_out[2*row]=hit;indices_out[2*row+1]=chosen[1];
+    bool repair=sqrt(best[1])-distance<=error || fabs(distance-gate)<=error;
+    uncertain[row]=repair?1.0:0.0;
+    bool valid=distance<gate && hit<m;
+    bool pending=valid && !done[hit];
+    pending_out[row]=pending?hit:-1;
+    if(valid) valid=done[hit] && planar[hit];
+    double j[6]={0,0,0,0,0,0},r=0,w=1;
+    if(valid){
+        const double* q=reference+3*hit;const double* a=normal+3*hit;
+        r=(p[0]-q[0])*a[0]+(p[1]-q[1])*a[1]+(p[2]-q[2])*a[2];
+        j[0]=p[1]*a[2]-p[2]*a[1];j[1]=p[2]*a[0]-p[0]*a[2];
+        j[2]=p[0]*a[1]-p[1]*a[0];j[3]=a[0];j[4]=a[1];j[5]=a[2];
+        w=fabs(r)<=huber?1.0:huber/fmax(fabs(r),1e-12);
+    }
+    int column=0;
+    for(int a=0;a<6;a++) for(int b=a;b<6;b++)
+        terms[(column++)*n+row]=(j[a]*w)*j[b];
+    for(int a=0;a<6;a++) terms[(column++)*n+row]=(j[a]*w)*r;
+    terms[27*n+row]=r*r;terms[28*n+row]=valid?1.0:0.0;
+    terms[29*n+row]=repair?1.0:0.0;
+    terms[30*n+row]=pending?1.0:0.0;
+}
+__device__ void solve_update(const double* partial,int blocks,
+    int minimum,double translation_tol,double rotation_tol,double scale,
+    double* matrix,double* hessian,double* meta,int* state) {
+    if(state[0])return;
+    double totals[31]={0.};
+    for(int c=0;c<31;++c)for(int j=0;j<blocks;++j)totals[c]+=partial[c*blocks+j];
+    ++state[1];
+    if(totals[29]>0 || totals[30]>0){state[0]=2;return;}
+    meta[2]=totals[28];
+    if(totals[28]<minimum){state[0]=3;return;}
+    double a[42],max_h=0.;
+    int slot=0;
+    for(int i=0;i<6;++i)for(int j=i;j<6;++j) {
+        double value=totals[slot++];a[7*i+j]=value;a[7*j+i]=value;
+        max_h=fmax(max_h,fabs(value));
+    }
+    for(int i=0;i<6;++i)a[7*i+6]=-totals[21+i];
+    for(int k=0;k<6;++k) {
+        int pivot=k;
+        for(int i=k+1;i<6;++i)if(fabs(a[7*i+k])>fabs(a[7*pivot+k]))pivot=i;
+        if(!isfinite(a[7*pivot+k]) || fabs(a[7*pivot+k])<=1e-12*max_h) {
+            state[0]=2;return;
+        }
+        if(pivot!=k)for(int j=k;j<7;++j) {
+            double value=a[7*k+j];a[7*k+j]=a[7*pivot+j];a[7*pivot+j]=value;
+        }
+        for(int i=k+1;i<6;++i) {
+            double factor=a[7*i+k]/a[7*k+k];a[7*i+k]=0.;
+            for(int j=k+1;j<7;++j)a[7*i+j]-=factor*a[7*k+j];
+        }
+    }
+    double step[6];
+    for(int i=5;i>=0;--i) {
+        double value=a[7*i+6];for(int j=i+1;j<6;++j)value-=a[7*i+j]*step[j];
+        step[i]=value/a[7*i+i];if(!isfinite(step[i])){state[0]=2;return;}
+    }
+    double rotation=sqrt((step[0]*step[0]+step[1]*step[1])+step[2]*step[2]);
+    double translation=sqrt((step[3]*step[3]+step[4]*step[4])+step[5]*step[5]);
+    if(fabs(rotation-rotation_tol)<=1e-3*rotation_tol ||
+       fabs(translation-translation_tol)<=1e-3*translation_tol){state[0]=2;return;}
+    double x=step[0],y=step[1],z=step[2];
+    double skew[9]={0.,-z,y,z,0.,-x,-y,x,0.},square[9];
+    for(int i=0;i<3;++i)for(int j=0;j<3;++j)
+        square[3*i+j]=(skew[3*i]*skew[j]+skew[3*i+1]*skew[3+j])+skew[3*i+2]*skew[6+j];
+    double r[9],left[9];
+    for(int i=0;i<9;++i) {
+        double identity=i%4==0?1.:0.;
+        if(rotation<1e-12){r[i]=identity+skew[i];left[i]=identity+.5*skew[i];}
+        else {
+            double aa=sin(rotation)/rotation;
+            double bb=(1.-cos(rotation))/(rotation*rotation);
+            double cc=(rotation-sin(rotation))/(rotation*rotation*rotation);
+            r[i]=(identity+aa*skew[i])+bb*square[i];
+            left[i]=(identity+bb*skew[i])+cc*square[i];
+        }
+    }
+    double update[16]={0.},result[16];update[15]=1.;
+    for(int i=0;i<3;++i) {
+        for(int j=0;j<3;++j)update[4*i+j]=r[3*i+j];
+        update[4*i+3]=(left[3*i]*step[3]+left[3*i+1]*step[4])+left[3*i+2]*step[5];
+    }
+    for(int i=0;i<4;++i)for(int j=0;j<4;++j)
+        result[4*i+j]=((update[4*i]*matrix[j]+update[4*i+1]*matrix[4+j])
+                     +update[4*i+2]*matrix[8+j])+update[4*i+3]*matrix[12+j];
+    for(int i=0;i<16;++i)matrix[i]=result[i];
+    double norm=0.;
+    for(int j=0;j<4;++j) {
+        double sum=0.;for(int i=0;i<4;++i)sum+=fabs(result[4*i+j]);norm=fmax(norm,sum);
+    }
+    meta[0]=128.*2.2204460492503131e-16*scale*fmax(1.,norm);
+    meta[1]=sqrt(totals[27]/totals[28]);meta[3]=totals[28];
+    slot=0;
+    for(int i=0;i<6;++i)for(int j=i;j<6;++j)hessian[6*i+j]=hessian[6*j+i]=totals[slot++];
+    if(rotation<rotation_tol && translation<translation_tol){state[0]=1;meta[4]=1.;}
+}
+
+extern "C" __global__ void persistent_icp(
+    const double* xyz,double* matrix,const double* reference,
+    const long long* order,const int* axis,const double* split,const int* child,
+    const long long* span,const double* boxes,const double* normals,
+    const bool* planar,const bool* done,int n,int m,double gate,double huber,
+    int iterations,int minimum,double translation_tol,double rotation_tol,double scale,
+    double* uncertain,double* terms,double* moved,double* distances,long long* indexes,
+    long long* pending,double* partial,double* hessian,double* meta,int* state,double* output) {
+    cg::grid_group grid=cg::this_grid();
+    int rank=blockIdx.x*blockDim.x+threadIdx.x,stride=gridDim.x*blockDim.x;
+    __shared__ double values[128];
+    for(int iteration=0;iteration<iterations;++iteration) {
+        if(state[0])break;
+        for(int row=rank;row<n;row+=stride)
+            fused_row(row,xyz,matrix,reference,order,axis,split,child,span,boxes,normals,
+                      planar,done,n,m,gate,huber,meta[0],uncertain,terms,moved,distances,indexes,pending);
+        grid.sync();
+        for(int component=0;component<31;++component) {
+            double sum=0.;
+            for(int row=rank;row<n;row+=stride)sum+=terms[component*n+row];
+            values[threadIdx.x]=sum;
+            __syncthreads();
+            for(int step=64;step>0;step>>=1) {
+                if(threadIdx.x<step)values[threadIdx.x]+=values[threadIdx.x+step];
+                __syncthreads();
+            }
+            if(threadIdx.x==0)partial[component*gridDim.x+blockIdx.x]=values[0];
+            __syncthreads();
+        }
+        grid.sync();
+        if(rank==0)solve_update(partial,gridDim.x,minimum,translation_tol,rotation_tol,
+                                scale,matrix,hessian,meta,state);
+        grid.sync();
+    }
+    if(rank==0) {
+        for(int j=0;j<16;++j)output[j]=matrix[j];
+        for(int j=0;j<36;++j)output[16+j]=hessian[j];
+        for(int j=0;j<5;++j)output[52+j]=meta[j];
+        output[57]=(double)state[0];output[58]=(double)state[1];
+    }
+}

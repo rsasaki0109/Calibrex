@@ -1,0 +1,40 @@
+{
+  "scope": "Spent public GLIM: one cooperative GPU launch for all ICP iterations and small solves.",
+  "launcher_sha256": "0391ea83ccbe25a2613be748506f8cd7e225f76db40d55970f3ef0bcc321ba49",
+  "source_commit": "917748b10d5eff9bb077b332a018eafdb33e9fcd",
+  "source_manifest_sha256": "3cda7d5dcafcc52b964586e7f77d4208c68af0921f8aa2e00f4c2d8bc401de20",
+  "candidate_kernel_sha256": "637299480d913a296e4faff271f63299e853dc4947a63873e95dca8072547218",
+  "fixtures_sha256": {
+    "registration-00.json": "ca394c8410da699ba2651ca1b558aa70c0e598ce4bb99b0bcc476413b987415f",
+    "registration-00.npz": "38e44cc53225fccbb7f1a51b2dfe6ac465565f82ed33f5672ecfc064ca465d94",
+    "registration-01.json": "af97db91f5af639c31f42ae13972f27fb14d103bea1752b056564661a36692f8",
+    "registration-01.npz": "0519df6e8a70279bd6f9df09706b2f49add5a1c5a16fb34e3cf93782ddd6eb49",
+    "registration-02.json": "7a8764647382e00a8f91b703f008c7ceb770d5d061c98809de2aefc7bb9a201b",
+    "registration-02.npz": "f4bd572eb82bdc0959b510a408aa30314b687a0d8aceca9356373bf5e0662b43",
+    "registration-03.json": "aa1a8f73c9afb6e7c4514c7607a0213ee58929fe9affd10e6b7ed0d1a6301fcc",
+    "registration-03.npz": "2f0224be5390a5d66648e1f9746b13a8f382ed7f714251af592a1e6a907b336b",
+    "registration-04.json": "baa1712224f48619495447da24e75adce872e341775d2fe5ce4269f674d052ff",
+    "registration-04.npz": "477a5eafa6ce3353b0f01f267f4d70649b2e5c60e143400072e61794385ac1c9",
+    "registration-05.json": "896523267eb7e43ad4360e18ed1de8d6252e06b862ebd6ecec3c009c37707e75",
+    "registration-05.npz": "813c0d5d2c706b0163133fc48ddfa6ddbdb53a97f9e4f423c952a883ef2ed6a2",
+    "registration-06.json": "3fa9da20cb543bcd7b5814a9747ce7d9082169f567565f674464fe2b5f69816b",
+    "registration-06.npz": "d33c21042f96f236e357151bd5328a48dd43481ca2430216e3d5d6f73837711a",
+    "registration-07.json": "28d107ec7b01fade74363342b9e7a7ec7293803f94107f0f3d986080bbd12e8d",
+    "registration-07.npz": "4446aeff3b975216a7cbe733245297450a0b306d0459a4ae956c569da77cc47d"
+  },
+  "blas_threads": 1,
+  "candidate_helper_sha256": "b85f77d378229571d7c3828cf5af3ed745aba852723c430bb3f08bef3305bc57",
+  "solver_helper_sha256": "becf7761034be1ecf5773beba723092f2cd44ac8d21966e7c004e61ece28fb11",
+  "quality": {
+    "rtol": 1e-06,
+    "atol": 1e-09,
+    "exact_decisions_iterations_correspondences": true
+  },
+  "cuda_cache_initially_empty": false,
+  "limitations": [
+    "Six alternating warm component repeats after one retained warmup case per arm.",
+    "Target construction and registration; not complete bag/calibration.",
+    "CPU/GPU unreserved; no accuracy or SOTA claim.",
+    "GPU solve/reduction changes operation order; existing fixed CPU/CUDA tolerances apply, not a bit-parity claim."
+  ]
+}

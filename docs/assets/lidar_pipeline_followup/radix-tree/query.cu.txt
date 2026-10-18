@@ -1,0 +1,92 @@
+
+template<int K> __device__ bool broad_query(
+    const double* p,const double* reference,const float* reference32,
+    const long long* order,const int* axis,const int* child,const long long* span,
+    const float* boxes32,const float* split32,int m,double reference_error,
+    double* exact,long long* chosen) {
+    const int L=K+1;
+    float point[3];double cast_error=0;
+    for(int a=0;a<3;++a) {
+        if(!isfinite(p[a]) || fabs(p[a])>1e6)return false;
+        point[a]=__double2float_rn(p[a]);
+        cast_error+=fabs((double)point[a]-p[a]);
+    }
+    float absolute=__double2float_ru((cast_error+reference_error)*
+                                    (1.+16.*2.2204460492503131e-16)+1e-18);
+    float near[L];long long ids[L];
+    for(int j=0;j<L;++j){near[j]=1.f/0.f;ids[j]=m;}
+    int stack[96],top=1;stack[0]=0;
+    float radius=1.f/0.f;
+    while(top) {
+        int node=stack[--top];float d[3];
+        for(int a=0;a<3;++a)d[a]=fmaxf(0.f,fmaxf(boxes32[6*node+a]-point[a],
+                                               point[a]-boxes32[6*node+3+a]));
+        float lower=fmaxf(0.f,__fsub_rd(__fmul_rd(sqrtf((d[0]*d[0]+d[1]*d[1])+d[2]*d[2]),
+                                                    0.999996f),absolute));
+        if(lower>radius)continue;
+        if(axis[node]<0) {
+            for(long long j=span[2*node];j<span[2*node+1];++j) {
+                long long id=order[j];
+                float x=point[0]-reference32[3*id],y=point[1]-reference32[3*id+1],
+                      z=point[2]-reference32[3*id+2];
+                float value=(x*x+y*y)+z*z;
+                if(value<near[L-1] || (value==near[L-1] && id<ids[L-1])) {
+                    int slot=L-1;
+                    while(slot>0 && (value<near[slot-1] ||
+                          (value==near[slot-1] && id<ids[slot-1]))) {
+                        near[slot]=near[slot-1];ids[slot]=ids[slot-1];--slot;
+                    }
+                    near[slot]=value;ids[slot]=id;
+                    radius=__fadd_ru(__fmul_ru(sqrtf(near[L-1]),1.000004f),absolute);
+                }
+            }
+        } else {
+            int side=0;
+            if(axis[node]==3) {
+                float lower_child[2];
+                for(int candidate=0;candidate<2;++candidate) {
+                    int at=child[2*node+candidate];float v[3];
+                    for(int a=0;a<3;++a)v[a]=fmaxf(0.f,fmaxf(boxes32[6*at+a]-point[a],
+                                                         point[a]-boxes32[6*at+3+a]));
+                    lower_child[candidate]=(v[0]*v[0]+v[1]*v[1])+v[2]*v[2];
+                }
+                side=lower_child[0]<=lower_child[1]?0:1;
+            } else side=point[axis[node]]<split32[node]?0:1;
+            stack[top++]=child[2*node+1-side];stack[top++]=child[2*node+side];
+        }
+    }
+    for(int j=0;j<K;++j){exact[j]=1./0.;chosen[j]=m;}
+    for(int j=0;j<L;++j)if(ids[j]<m) {
+        long long id=ids[j];
+        double x=p[0]-reference[3*id],y=p[1]-reference[3*id+1],z=p[2]-reference[3*id+2];
+        double value=x*x+y*y+z*z;
+        if(value<exact[K-1] || (value==exact[K-1] && id<chosen[K-1])) {
+            int slot=K-1;
+            while(slot>0 && (value<exact[slot-1] ||
+                  (value==exact[slot-1] && id<chosen[slot-1]))) {
+                exact[slot]=exact[slot-1];chosen[slot]=chosen[slot-1];--slot;
+            }
+            exact[slot]=value;chosen[slot]=id;
+        }
+    }
+    float cutoff=fmaxf(0.f,__fsub_rd(__fmul_rd(sqrtf(near[L-1]),0.999996f),absolute));
+    return isfinite(cutoff) && (double)cutoff>sqrt(exact[K-1]);
+}
+
+extern "C" __global__ void query3(
+    const double* xyz, const double* reference, const long long* order,
+    const int* axis, const double* split, const int* child,
+    const long long* span, const double* boxes, const int n, const int m, const int k,
+    double* distance, long long* index,
+    const float* reference32,const float* boxes32,const float* split32,
+    double reference_error,unsigned char* fallback,unsigned long long* counters) {
+
+    int row=blockDim.x*blockIdx.x+threadIdx.x;if(row>=n)return;
+    double p[3]={xyz[3*row],xyz[3*row+1],xyz[3*row+2]};
+    double best[11];long long chosen[11];
+    bool certified=broad_query<11>(p,reference,reference32,order,axis,child,span,
+                                  boxes32,split32,m,reference_error,best,chosen);
+    fallback[row]=certified?0:1;
+    if(!certified){atomicAdd(counters,1ULL);return;}
+    for(int j=0;j<11;++j){distance[11*row+j]=sqrt(best[j]);index[11*row+j]=chosen[j];}
+}

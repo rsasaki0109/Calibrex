@@ -1,0 +1,96 @@
+"""Diagnostic full resident pipeline profile; instrumentation excludes speed claims."""
+import os
+from pathlib import Path
+ROOT=Path(__file__).resolve().parent
+OUT=ROOT/'outputs/resident-full-profile-v1'
+SOURCE=ROOT/'outputs/cpu-map-bag-comparison-v1/source-current'
+for name in ('OPENBLAS_NUM_THREADS','MKL_NUM_THREADS','OMP_NUM_THREADS'):
+    os.environ[name]='1'
+os.environ['CUPY_CACHE_DIR']=str(OUT/'cupy-cache')
+os.environ['CUDA_CACHE_DISABLE']='1'
+os.environ['PYTHONDONTWRITEBYTECODE']='1'
+
+from argparse import Namespace
+import cProfile
+import hashlib
+import io
+import json
+import pstats
+import shutil
+import sys
+import time
+
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def write(path,value):
+    path.write_text(json.dumps(value,indent=2,allow_nan=False)+'\n',encoding='utf-8')
+
+
+def main():
+    OUT.mkdir(exist_ok=False)
+    shutil.copyfile(Path(__file__),OUT/'launcher.py.txt')
+    sys.path.insert(0,str(SOURCE/'src'))
+    from tools import benchmark_bspline_lidar_imu as common
+    from calibrex.solvers import cuda_resident_odometry_adapter as resident
+    from calibrex.solvers import cuda_scan_odometry_adapter as cuda
+    from calibrex.evaluation import lidar_imu_bag_calibration as evaluation
+    common._verify_sources(SOURCE)
+    calls,seconds={},{}
+    def measured(name,function):
+        def wrapper(*args,**kwargs):
+            started=time.perf_counter()
+            try:return function(*args,**kwargs)
+            finally:
+                calls[name]=calls.get(name,0)+1
+                seconds[name]=seconds.get(name,0.)+time.perf_counter()-started
+        return wrapper
+    for owner,name,label in [
+        (resident._ResidentIncremental,'add','odometry_add'),
+        (resident._ResidentTarget,'__init__','target_capture'),
+        (resident._Geometry,'capture','source_capture'),
+        (resident._Geometry,'preprocess','geometry_preprocess'),
+        (resident._Geometry,'transform','geometry_transform'),
+        (resident._Geometry,'rigid','geometry_rigid_deskew'),
+        (resident._DeviceGyro,'rotate','gyro_rotate'),
+        (cuda.CudaOdometryTarget,'_register_captured','registration'),
+        (cuda.CudaOdometryTarget,'_prime_normals','normal_submit'),
+        (cuda.CudaOdometryTarget,'_finish_normal_preparation','normal_finish'),
+        (evaluation,'_associate','map_association'),
+    ]:
+        setattr(owner,name,measured(label,getattr(owner,name)))
+    provenance={'schema_version':'calibrex.private_profile/v0.1','scope':__doc__,
+        'source_commit':'917748b10d5eff9bb077b332a018eafdb33e9fcd',
+        'source_manifest_sha256':sha(SOURCE/'manifest.json'),'launcher_sha256':sha(Path(__file__)),
+        'benchmark_sha256':sha(Path(common.__file__)),
+        'notes':['Nested markers overlap; do not add their times.',
+                 'cProfile and markers change scheduling. This profile is not comparative performance evidence.',
+                 'The binary profile contains local paths and must remain private.'],
+    }
+    write(OUT/'provenance.json',provenance)
+    args=Namespace(source_root=SOURCE,comparison='cuda-cuda',variant='prior',
+        source_commit=provenance['source_commit'],output=OUT,
+        bag=ROOT/'data/public/glim_versatile/livox.bag',max_seconds=6.,max_rounds=4,
+        odometry_voxel_size_m=.03,odometry_local_map_scans=3,odometry_geometry_quantum_m=1e-9,
+        odometry_motion_translation_quantum_m=1e-6,odometry_motion_rotation_quantum_rad=1e-7,
+        prior_fit_plane_backend='cuda',current_fit_plane_backend='cuda',
+        prior_resident_odometry=True,current_resident_odometry=True)
+    profile=cProfile.Profile()
+    started=time.perf_counter()
+    profile.runcall(common._worker,args)
+    elapsed=time.perf_counter()-started
+    profile.dump_stats(str(OUT/'profile.pstats'))
+    for sort in ('cumulative','tottime'):
+        output=io.StringIO()
+        pstats.Stats(profile,stream=output).strip_dirs().sort_stats(sort).print_stats(90)
+        (OUT/(sort+'.txt')).write_text(output.getvalue(),encoding='utf-8')
+    assert sha(Path(__file__))==provenance['launcher_sha256']
+    common._verify_sources(SOURCE)
+    summary={'profile_seconds':elapsed,'calls':calls,'seconds':seconds,
+        'measurement_sha256':sha(OUT/'measurement.json'),'result_sha256':sha(OUT/'result.json'),
+        'provenance_sha256':sha(OUT/'provenance.json')}
+    write(OUT/'summary.json',summary)
+    print(json.dumps(summary),flush=True)
+
+
+if __name__=='__main__':main()

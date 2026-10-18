@@ -1,0 +1,128 @@
+"""Spent public GLIM: one cooperative GPU launch for all ICP iterations and small solves."""
+import os
+from pathlib import Path
+ROOT = Path(__file__).resolve().parent
+OUT = ROOT / "outputs/persistent-icp-pilot-v1"
+for key in ("OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "OMP_NUM_THREADS"):
+    os.environ[key] = "1"
+os.environ["CUPY_CACHE_DIR"] = str(OUT / "cupy-cache")
+os.environ["CUDA_CACHE_DISABLE"] = "1"
+os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+
+from dataclasses import asdict
+import hashlib
+import json
+import re
+import shutil
+import statistics
+import sys
+import time
+
+SOURCE = ROOT / "outputs/cpu-map-bag-comparison-v1/source-current"
+FIXTURES = ROOT / "outputs/odometry-search-profile-v3"
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def write(path, value):
+    path.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+
+
+def main():
+    OUT.mkdir(exist_ok=False)
+    shutil.copyfile(Path(__file__), OUT / "launcher.py.txt")
+    from tools.benchmark_bspline_lidar_imu import _verify_sources
+    expected = _verify_sources(SOURCE)
+    sys.path.insert(0, str(SOURCE / "src"))
+    import cupy as cp
+    import numpy as np
+    from calibrex.solvers import cuda_scan_odometry_adapter as cuda
+    from calibrex.solvers.scan_to_scan_odometry import ScanOdometryOptions
+
+    import importlib.util
+    helper=ROOT/'.tmp-calibrex-persistent-icp-candidate-v1.py'
+    spec=importlib.util.spec_from_file_location('persistent_icp',helper)
+    module=importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    shutil.copyfile(helper,OUT/'candidate.py.txt')
+    shutil.copyfile(module._SOLVER_FILE,OUT/'solver-dependency.py.txt')
+    (OUT/'persistent.cu.txt').write_text(module.KERNEL,encoding='utf-8')
+    Fast=module.Fast
+
+    variants = {"prior": cuda.CudaOdometryTarget, "persistent": Fast}
+    cases = []
+    for number in range(8):
+        path = FIXTURES / f"registration-{number:02d}.npz"
+        metadata = json.loads(path.with_suffix(".json").read_bytes())
+        assert sha(path) == metadata["fixture_sha256"]
+        cases.append((np.load(path), ScanOdometryOptions(**metadata["options"])))
+    protocol = {
+        "scope": __doc__, "launcher_sha256": sha(Path(__file__)),
+        "source_commit": "917748b10d5eff9bb077b332a018eafdb33e9fcd",
+        "source_manifest_sha256": sha(SOURCE / "manifest.json"),
+        "candidate_kernel_sha256": sha(OUT / "persistent.cu.txt"),
+        "fixtures_sha256": {p.name: sha(p) for p in sorted(FIXTURES.glob("registration-*.*"))},
+        "blas_threads": 1,
+        "candidate_helper_sha256":sha(OUT/'candidate.py.txt'),
+        "solver_helper_sha256":sha(OUT/'solver-dependency.py.txt'),
+        "quality": {"rtol":1e-6,"atol":1e-9,"exact_decisions_iterations_correspondences":True}, "cuda_cache_initially_empty": not (OUT / "cupy-cache").exists(),
+        "limitations": ["Six alternating warm component repeats after one retained warmup case per arm.",
+                        "Target construction and registration; not complete bag/calibration.",
+                        "CPU/GPU unreserved; no accuracy or SOTA claim.",
+                        "GPU solve/reduction changes operation order; existing fixed CPU/CUDA tolerances apply, not a bit-parity claim."],
+    }
+    write(OUT / "protocol.json", protocol)
+    runs, references, warmups = [], {}, []
+
+    def execute(variant, case, repeat):
+        fixture, options = cases[case]
+        started = time.perf_counter()
+        target = variants[variant](fixture["target"], options)
+        captured = time.perf_counter()
+        result = target.register(fixture["source"], fixture["initial"])
+        work=target.statistics()
+        elapsed = time.perf_counter() - started
+        values = asdict(result)
+        values["transform"] = values["transform"].tolist()
+        if case in references:
+            previous = references[case]
+            np.testing.assert_allclose(previous['transform'],values['transform'],rtol=1e-6,atol=1e-9)
+            for key in ['converged','iterations','correspondences','execution_backend']:
+                assert previous[key]==values[key],(variant,case,key)
+            np.testing.assert_allclose([previous['rmse_m'],previous['hessian_min_eigenvalue']],
+                [values['rmse_m'],values['hessian_min_eigenvalue']],rtol=1e-6,atol=1e-9)
+        else:
+            references[case] = values
+        return {"variant": variant, "case": case, "repeat": repeat, "seconds": elapsed,
+                "target_seconds": captured - started, "registration_seconds": elapsed - (captured - started),
+                "result": values, "statistics": work}
+
+    for variant in variants:
+        warmups.append(execute(variant, 0, -1))
+        write(OUT / "warmups.json", warmups)
+    names = tuple(variants)
+    for repeat in range(6):
+        for variant in names[repeat % 2:] + names[:repeat % 2]:
+            for case in range(8):
+                runs.append(execute(variant, case, repeat))
+                write(OUT / "runs.json", runs)
+            print(json.dumps({"repeat": repeat, "variant": variant,
+                              "seconds": sum(r["seconds"] for r in runs
+                                             if r["repeat"] == repeat and r["variant"] == variant)}), flush=True)
+    _verify_sources(SOURCE)
+    for name, module in list(sys.modules.items()):
+        if name == "calibrex" or name.startswith("calibrex."):
+            path = Path(module.__file__).resolve()
+            assert path.is_relative_to(SOURCE / "src")
+            assert sha(path) == expected[path.relative_to(SOURCE / "src").as_posix()]
+    medians = {variant: statistics.median(sum(r["seconds"] for r in runs
+                                            if r["variant"] == variant and r["repeat"] == repeat)
+                                         for repeat in range(6)) for variant in names}
+    summary = {"observations": len(runs), "existing_cpu_cuda_quality_gate_passed": True,
+               "medians_seconds": medians, "ratio": medians["prior"] / medians["persistent"],
+               "protocol_sha256": sha(OUT / "protocol.json"), "runs_sha256": sha(OUT / "runs.json")}
+    write(OUT / "summary.json", summary)
+    print(json.dumps(summary), flush=True)
+
+
+if __name__ == "__main__":
+    main()

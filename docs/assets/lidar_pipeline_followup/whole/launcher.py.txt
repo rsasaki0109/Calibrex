@@ -1,0 +1,148 @@
+"""One complete exploratory public GLIM resident-grid/radix-broad comparison."""
+import os
+from pathlib import Path
+ROOT=Path(__file__).resolve().parent
+OUT=ROOT/'outputs/whole-resident-broad-v1'
+SOURCE=ROOT/'outputs/cpu-map-bag-comparison-v1/source-current'
+for name in ('OPENBLAS_NUM_THREADS','MKL_NUM_THREADS','OMP_NUM_THREADS'):
+    os.environ[name]='1'
+os.environ['PYTHONDONTWRITEBYTECODE']='1'
+
+from argparse import ArgumentParser,Namespace
+import copy
+import hashlib
+import importlib.util
+import inspect
+import json
+import shutil
+import subprocess
+import sys
+import textwrap
+import time
+
+COMMIT='917748b10d5eff9bb077b332a018eafdb33e9fcd'
+HELPERS={
+    'candidate.py.txt':'.tmp-calibrex-resident-broad-candidate-v1.py',
+    'parent-candidate.py.txt':'.tmp-calibrex-fast-radix-candidate-v1.py',
+    'radix-dependency.py.txt':'outputs/fused-map-formal-v1/sources-current/src/calibrex/solvers/cuda_lidar_map_adapter.py',
+    'benchmark.py.txt':'tools/benchmark_bspline_lidar_imu.py',
+}
+sha=lambda path:hashlib.sha256(path.read_bytes()).hexdigest()
+read=lambda path:json.loads(path.read_bytes())
+
+
+def write(path,value):
+    path.write_text(json.dumps(value,indent=2,allow_nan=False)+'\n',encoding='utf-8')
+
+
+def worker(variant):
+    from tools import benchmark_bspline_lidar_imu as common
+    protocol=read(OUT/'protocol.json')
+    assert sha(Path(__file__))==protocol['launcher_sha256']
+    for name,source in HELPERS.items():
+        assert sha(ROOT/source)==protocol['helpers_sha256'][name]
+    common._verify_sources(SOURCE)
+    assert sha(SOURCE/'manifest.json')==protocol['source_manifest_sha256']
+    sys.path.insert(0,str(SOURCE/'src'))
+    if variant=='current':
+        path=ROOT/HELPERS['candidate.py.txt']
+        spec=importlib.util.spec_from_file_location('whole_resident_broad',path)
+        module=importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        module.resident._ResidentTarget=module.Fast
+        # Retain the existing resident validation; require actual radix build
+        # work in place of the baseline's grid-capture counter.
+        source=textwrap.dedent(inspect.getsource(common._validate_resident_execution))
+        old='''statistics.get("gpu_grid_captures", 0) + statistics.get(
+                "gpu_grid_native_fallbacks", 0,
+            )'''
+        assert old in source
+        source=source.replace(old,'statistics.get("device_tree_build_kernel_calls", 0)')
+        (OUT/variant/'candidate-resident-validator.py.txt').write_text(source,encoding='utf-8')
+        namespace=dict(vars(common))
+        exec(compile(source,'candidate-resident-validator.py.txt','exec'),namespace)
+        common._validate_resident_execution=namespace['_validate_resident_execution']
+        for name,code in [('query',module.QUERY),('fallback',module.FALLBACK),('fused',module.FUSED),
+                          ('device-initializer',module.initializer)]:
+            (OUT/variant/(name+'.txt')).write_text(code,encoding='utf-8')
+    args=Namespace(source_root=SOURCE,comparison='cuda-cuda',variant=variant,source_commit=COMMIT,
+        output=OUT/variant,bag=ROOT/'data/public/glim_versatile/livox.bag',max_seconds=6.,max_rounds=4,
+        odometry_voxel_size_m=.03,odometry_local_map_scans=3,odometry_geometry_quantum_m=1e-9,
+        odometry_motion_translation_quantum_m=1e-6,odometry_motion_rotation_quantum_rad=1e-7,
+        prior_fit_plane_backend='cuda',current_fit_plane_backend='cuda',
+        prior_resident_odometry=True,current_resident_odometry=True)
+    common._worker(args)
+    for name,source in HELPERS.items():
+        assert sha(ROOT/source)==protocol['helpers_sha256'][name]
+    record=read(OUT/variant/'measurement.json')
+    record['prototype_provenance']={'protocol_sha256':sha(OUT/'protocol.json'),
+        'launcher_sha256':sha(Path(__file__)),'variant':variant,
+        'generated_code_sha256':{p.name:sha(p) for p in (OUT/variant).glob('*.txt')},
+        'helpers_sha256':protocol['helpers_sha256']}
+    write(OUT/variant/'measurement.json',record)
+
+
+def main():
+    parser=ArgumentParser()
+    parser.add_argument('--worker',choices=('prior','current'))
+    args=parser.parse_args()
+    if args.worker:
+        worker(args.worker)
+        return
+    OUT.mkdir(exist_ok=False)
+    (OUT/'helpers').mkdir()
+    for name,source in HELPERS.items():shutil.copyfile(ROOT/source,OUT/'helpers'/name)
+    shutil.copyfile(Path(__file__),OUT/'launcher.py.txt')
+    protocol={'scope':__doc__,'source_commit':COMMIT,'source_manifest_sha256':sha(SOURCE/'manifest.json'),
+        'launcher_sha256':sha(Path(__file__)),
+        'helpers_sha256':{n:sha(ROOT/p) for n,p in HELPERS.items()},
+        'input_bag_sha256':sha(ROOT/'data/public/glim_versatile/livox.bag'),
+        'max_seconds':6.,'max_rounds':4,'order':['prior','current'],'blas_threads':1,
+        'quanta':{'geometry_m':1e-9,'translation_m':1e-6,'rotation_rad':1e-7},
+        'limits':['One exploratory fresh-worker pair, unreserved host; not a latency guarantee.',
+                  'Both use resident geometry and CUDA plane fits; every worker starts with an independent empty compiler cache.',
+                  'Whole includes imports, decoding, all odometry passes/fits/evidence, saves and source/input verification.',
+                  'Prototype kernel hashes are separately bound; inherited identity describes ordinary resident source.',
+                  'Spent public development/performance data; no new accuracy/SOTA claim.']}
+    write(OUT/'protocol.json',protocol)
+    seconds={}
+    for variant in protocol['order']:
+        folder=OUT/variant
+        folder.mkdir()
+        env=dict(os.environ,CUPY_CACHE_DIR=str(folder/'cupy-cache'),CUDA_CACHE_DISABLE='1')
+        started=time.perf_counter()
+        with (folder/'stdout.log').open('wb') as stdout,(folder/'stderr.log').open('wb') as stderr:
+            result=subprocess.run([sys.executable,str(Path(__file__).name),'--worker',variant],
+                                   cwd=ROOT,env=env,stdout=stdout,stderr=stderr,check=False)
+        elapsed=time.perf_counter()-started
+        write(folder/'whole.json',{'seconds':elapsed,'returncode':result.returncode,
+                                  'measurement_sha256':sha(folder/'measurement.json') if (folder/'measurement.json').exists() else None})
+        if result.returncode:raise RuntimeError(variant+' failed; original logs retained')
+        seconds[variant]=elapsed
+        print(json.dumps({'variant':variant,'whole_seconds':elapsed}),flush=True)
+    from tools.benchmark_bspline_lidar_imu import _same_float_bits
+    results={v:read(OUT/v/'result.json') for v in protocol['order']}
+    rows={v:read(OUT/v/'measurement.json') for v in protocol['order']}
+    physical=copy.deepcopy(results)
+    declared_spatial={
+        'gpu_grid_captures','gpu_grid_native_fallbacks','gpu_grid_brute_rows','native_tree_captures',
+        'gpu_parallel_fallback_dispatches','broad_normal_fallback_rows','broad_registration_fallback_rows',
+        'device_tree_build_kernel_calls','native_tree_builds',
+    }
+    for value in physical.values():
+        value['provenance']['created_at']='<RUN_TIME>'
+        value['provenance']['command']=['<VALIDATED_WORKER_COMMAND>']
+        for name in ('initial_odometry_execution','segment_odometry_execution'):
+            for report in value['options'][name]:
+                for key in declared_spatial:report['statistics'].pop(key,None)
+    rounds={v:[{k:x for k,x in r.items() if k!='seconds'} for r in rows[v]['rounds']] for v in rows}
+    summary={'seconds':seconds,'whole_ratio':seconds['prior']/seconds['current'],
+        'physical_bits_equal':_same_float_bits(physical['prior'],physical['current']),
+        'all_four_full_fit_bits_equal':_same_float_bits(rounds['prior'],rounds['current']),
+        'protocol_sha256':sha(OUT/'protocol.json'),
+        'measurements_sha256':{v:sha(OUT/v/'measurement.json') for v in rows}}
+    write(OUT/'summary.json',summary)
+    print(json.dumps(summary),flush=True)
+
+
+if __name__=='__main__':main()
