@@ -113,6 +113,7 @@ def test_complete_solve_trace_and_diagnostics_match_scalar(
     initial = SE3((0.05, -0.05, 0.02), (0.0, 0.0, 0.0, 1.0))
     policy = LidarCaptureTimePolicy("seconds", "scan_end")
     prepared = solver.ContinuousTimeCameraLidarSolver().solve(captures, initial, policy, options)
+    monkeypatch.setattr(solver, "_make_capture_batches", lambda *_args: None)
     monkeypatch.setattr(
         solver, "_make_deskew_evaluator", lambda *_args: solver._deskew_correspondence
     )

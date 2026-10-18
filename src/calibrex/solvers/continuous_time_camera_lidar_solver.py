@@ -346,13 +346,16 @@ class ContinuousTimeCameraLidarSolver:
         train = tuple(ordered[index] for index in train_indices)
         holdout = tuple(ordered[index] for index in holdout_indices)
         deskew = _make_deskew_evaluator(ordered, settings)
+        batches = _make_capture_batches(ordered, settings, deskew)
 
         def evaluate(
             selected: Sequence[ContinuousTimeCameraLidarCapture],
             transform: SE3,
             offset: float,
         ) -> ContinuousTimeEvaluation:
-            return _evaluate(selected, transform, capture_time_policy, offset, settings, deskew)
+            return _evaluate(
+                selected, transform, capture_time_policy, offset, settings, deskew, batches
+            )
 
         initial_time = capture_time_policy.sensor_time_offset_sec
         initial_train = evaluate(
@@ -404,6 +407,7 @@ class ContinuousTimeCameraLidarSolver:
             initial_time,
             settings,
             deskew,
+            batches,
         )
         if (
             settings.estimate_time_offset
@@ -613,12 +617,15 @@ def _evaluate(
     time_offset_sec: float,
     settings: ContinuousTimeCameraLidarOptions,
     deskew: _DeskewEvaluator,
+    batches: dict[int, _CaptureBatch] | None = None,
 ) -> ContinuousTimeEvaluation:
     policy = LidarCaptureTimePolicy(
         point_offset_unit=capture_time_policy.point_offset_unit,
         stamp_reference=capture_time_policy.stamp_reference,
         sensor_time_offset_sec=time_offset_sec,
     )
+    if batches is not None:
+        return _evaluate_batches(captures, transform_camera_lidar, policy, settings, batches)
     squared_pixel_errors: list[float] = []
     mahalanobis_errors: list[float] = []
     weights: list[float] = []
@@ -710,10 +717,15 @@ def _time_sensitivity(
     time_offset: float,
     settings: ContinuousTimeCameraLidarOptions,
     deskew: _DeskewEvaluator | None = None,
+    batches: dict[int, _CaptureBatch] | None = None,
 ) -> float:
     step = settings.time_sensitivity_probe_sec
-    left = _projected_pixels(captures, transform, policy, time_offset - step, settings, deskew)
-    right = _projected_pixels(captures, transform, policy, time_offset + step, settings, deskew)
+    left = _projected_pixels(
+        captures, transform, policy, time_offset - step, settings, deskew, batches
+    )
+    right = _projected_pixels(
+        captures, transform, policy, time_offset + step, settings, deskew, batches
+    )
     common = sorted(set(left).intersection(right))
     if not common:
         return 0.0
@@ -732,6 +744,7 @@ def _projected_pixels(
     time_offset: float,
     settings: ContinuousTimeCameraLidarOptions,
     deskew: _DeskewEvaluator | None = None,
+    batches: dict[int, _CaptureBatch] | None = None,
 ) -> dict[tuple[str, str], tuple[float, float]]:
     resolved_policy = LidarCaptureTimePolicy(
         policy.point_offset_unit,
@@ -742,6 +755,14 @@ def _projected_pixels(
     transform_point = _prepare_point_transform(transform)
     evaluate_deskew = deskew or _deskew_correspondence
     for capture in captures:
+        if batches is not None:
+            batch = batches[id(capture)]
+            indices, u, v = batch.project(transform, resolved_policy)
+            for index, x, y in zip(indices, u, v, strict=True):
+                output[(capture.capture_id, batch.selected[index].correspondence_id)] = (
+                    float(x), float(y)
+                )
+            continue
         selected = [
             item
             for item in capture.correspondences
@@ -764,6 +785,254 @@ def _projected_pixels(
                 + capture.camera.cy,
             )
     return output
+
+
+def _normalize_quaternions(quaternions: FloatArray) -> FloatArray:
+    x, y, z, w = quaternions
+    norm = np.sqrt(x * x + y * y + z * z + w * w)
+    return np.asarray((x / norm, y / norm, z / norm, w / norm))
+
+
+def _rotate_points(
+    points: FloatArray, quaternions: FloatArray, translation: Vector3,
+) -> FloatArray:
+    # Use the scalar core's two Hamilton products, including zero terms and
+    # both normalizations. A rotation matrix would change rounding and ties.
+    x, y, z = points.T
+    qx, qy, qz, qw = _normalize_quaternions(quaternions)
+    cx, cy, cz, cw = _normalize_quaternions(np.asarray((qx, qy, qz, qw)))
+    cx, cy, cz = -cx, -cy, -cz
+    ax = qw * x + qx * 0.0 + qy * z - qz * y
+    ay = qw * y - qx * z + qy * 0.0 + qz * x
+    az = qw * z + qx * y - qy * x + qz * 0.0
+    aw = qw * 0.0 - qx * x - qy * y - qz * z
+    tx, ty, tz = translation
+    return np.column_stack((
+        aw * cx + ax * cw + ay * cz - az * cy + tx,
+        aw * cy - ax * cz + ay * cw + az * cx + ty,
+        aw * cz + ax * cy - ay * cx + az * cw + tz,
+    ))
+
+
+def _transform_points(points: FloatArray, transform: SE3) -> FloatArray:
+    return _rotate_points(
+        points, np.asarray(transform.rotation_quat_xyzw)[:, None], transform.translation_m
+    )
+
+
+def _axis_angle_quaternions(twist: ConstantBodyTwist, delta: FloatArray) -> FloatArray:
+    quaternions = np.zeros((4, delta.size))
+    quaternions[3] = 1.0
+    if not delta.size:
+        return quaternions
+    wx, wy, wz = twist.angular_velocity_body_radps
+    speed = math.sqrt(wx * wx + wy * wy + wz * wz)
+    if speed < 1.0e-15:
+        return quaternions
+    moving = delta != 0.0
+    x, y, z = wx / speed, wy / speed, wz / speed
+    angle = speed * -delta[moving]
+    # NumPy's vector trig can differ from libm by an ulp. Keep the core's
+    # math.sin/cos and batch the remaining ordered arithmetic.
+    cosine = np.fromiter(map(math.cos, angle), dtype=np.float64, count=angle.size)
+    sine = np.fromiter(map(math.sin, angle), dtype=np.float64, count=angle.size)
+    one_minus = 1.0 - cosine
+    m00 = cosine + x * x * one_minus
+    m01 = x * y * one_minus - z * sine
+    m02 = x * z * one_minus + y * sine
+    m10 = y * x * one_minus + z * sine
+    m11 = cosine + y * y * one_minus
+    m12 = y * z * one_minus - x * sine
+    m20 = z * x * one_minus - y * sine
+    m21 = z * y * one_minus + x * sine
+    m22 = cosine + z * z * one_minus
+    trace = m00 + m11 + m22
+    trace_branch = trace > 0.0
+    x_branch = ~trace_branch & (m00 > m11) & (m00 > m22)
+    y_branch = ~trace_branch & ~x_branch & (m11 > m22)
+    z_branch = ~(trace_branch | x_branch | y_branch)
+    result = np.empty((4, angle.size))
+    for branch, mask in enumerate((trace_branch, x_branch, y_branch, z_branch)):
+        if not np.any(mask):
+            continue
+        if branch == 0:
+            scale = np.sqrt(trace[mask] + 1.0) * 2.0
+            result[:, mask] = (
+                (m21[mask] - m12[mask]) / scale,
+                (m02[mask] - m20[mask]) / scale,
+                (m10[mask] - m01[mask]) / scale,
+                0.25 * scale,
+            )
+        elif branch == 1:
+            scale = np.sqrt(1.0 + m00[mask] - m11[mask] - m22[mask]) * 2.0
+            result[:, mask] = (
+                0.25 * scale,
+                (m01[mask] + m10[mask]) / scale,
+                (m02[mask] + m20[mask]) / scale,
+                (m21[mask] - m12[mask]) / scale,
+            )
+        elif branch == 2:
+            scale = np.sqrt(1.0 + m11[mask] - m00[mask] - m22[mask]) * 2.0
+            result[:, mask] = (
+                (m01[mask] + m10[mask]) / scale,
+                0.25 * scale,
+                (m12[mask] + m21[mask]) / scale,
+                (m02[mask] - m20[mask]) / scale,
+            )
+        else:
+            scale = np.sqrt(1.0 + m22[mask] - m00[mask] - m11[mask]) * 2.0
+            result[:, mask] = (
+                (m02[mask] + m20[mask]) / scale,
+                (m12[mask] + m21[mask]) / scale,
+                0.25 * scale,
+                (m10[mask] - m01[mask]) / scale,
+            )
+    # Match quaternion_xyzw_from_rotation_matrix and SE3 construction before
+    # the two normalizations performed by rotate_vector_xyzw.
+    quaternions[:, moving] = _normalize_quaternions(_normalize_quaternions(result))
+    return quaternions
+
+
+def _constant_twist_points(
+    points_body: FloatArray, twist: ConstantBodyTwist, delta: FloatArray,
+) -> FloatArray:
+    rotated = _rotate_points(points_body, _axis_angle_quaternions(twist, delta), (0.0, 0.0, 0.0))
+    return rotated - np.asarray(twist.linear_velocity_body_mps) * delta[:, None]
+
+
+@dataclass(frozen=True)
+class _CaptureBatch:
+    capture: ContinuousTimeCameraLidarCapture
+    selected: tuple[TimedProbabilisticImageCorrespondence, ...]
+    means: FloatArray
+    covariances: FloatArray
+    confidences: FloatArray
+    points: Callable[[bytes, LidarCaptureTimePolicy], FloatArray]
+
+    def project(
+        self, transform: SE3, policy: LidarCaptureTimePolicy,
+    ) -> tuple[NDArray[np.intp], FloatArray, FloatArray]:
+        points = self.points(struct.pack("d", policy.sensor_time_offset_sec), policy)
+        x, y, z = _transform_points(points, transform).T
+        # Preserve the scalar depth gate, including its NaN behavior.
+        positive = ~(z <= 1.0e-9)
+        camera = self.capture.camera
+        u = camera.fx * x[positive] / z[positive] + camera.cx
+        v = camera.fy * y[positive] / z[positive] + camera.cy
+        return np.flatnonzero(positive), u, v
+
+
+def _prepare_capture_batch(
+    capture: ContinuousTimeCameraLidarCapture,
+    settings: ContinuousTimeCameraLidarOptions,
+    deskew: _DeskewEvaluator,
+) -> _CaptureBatch:
+    selected = tuple(
+        point for point in capture.correspondences
+        if point.reliability * (1.0 - point.outlier_probability) >= settings.minimum_confidence
+    )
+    means = np.asarray([p.image_mean_px for p in selected], dtype=np.float64).reshape(-1, 2)
+    covariances = np.asarray(
+        [p.image_covariance_px2 for p in selected], dtype=np.float64
+    ).reshape(-1, 4)
+    confidences = np.asarray(
+        [p.reliability * (1.0 - p.outlier_probability) for p in selected], dtype=np.float64
+    )
+    points_lidar = np.asarray([p.point_lidar_m for p in selected], dtype=np.float64).reshape(-1, 3)
+    points_body = _transform_points(points_lidar, capture.transform_body_lidar)
+    inverse = capture.transform_body_lidar.inverse()
+    offsets = np.asarray(
+        [p.capture_offset_sec if settings.use_per_point_time else 0.0 for p in selected],
+        dtype=np.float64,
+    )
+    reference_times = np.asarray(
+        [_camera_row_exposure_time(capture, p.image_mean_px[1], settings) for p in selected],
+        dtype=np.float64,
+    )
+
+    @lru_cache(maxsize=2)
+    def points(_bits: bytes, policy: LidarCaptureTimePolicy) -> FloatArray:
+        if capture.body_trajectory is not None:
+            result = np.asarray([
+                deskew(capture, p, policy, settings).position_lidar_at_reference_m for p in selected
+            ], dtype=np.float64).reshape(-1, 3)
+        else:
+            scale = 1.0 if policy.point_offset_unit == "seconds" else 1.0e-9
+            capture_times = (
+                capture.lidar_message_stamp_sec + offsets * scale + policy.sensor_time_offset_sec
+            )
+            result = _transform_points(
+                _constant_twist_points(points_body, capture.twist, reference_times - capture_times),
+                inverse,
+            )
+        result.setflags(write=False)
+        return result
+
+    return _CaptureBatch(capture, selected, means, covariances, confidences, points)
+
+
+def _make_capture_batches(
+    captures: Sequence[ContinuousTimeCameraLidarCapture],
+    settings: ContinuousTimeCameraLidarOptions,
+    deskew: _DeskewEvaluator,
+) -> dict[int, _CaptureBatch] | None:
+    # The existing conservative allowance also covers the static arrays and
+    # two contiguous point arrays per capture. Larger problems keep scalar IO.
+    count = sum(len(capture.correspondences) for capture in captures)
+    if count * _DESKEW_CACHE_BYTES_PER_POINT > _DESKEW_CACHE_MAX_BYTES:
+        return None
+    return {id(c): _prepare_capture_batch(c, settings, deskew) for c in captures}
+
+
+def _evaluate_batches(
+    captures: Sequence[ContinuousTimeCameraLidarCapture],
+    transform: SE3,
+    policy: LidarCaptureTimePolicy,
+    settings: ContinuousTimeCameraLidarOptions,
+    batches: dict[int, _CaptureBatch],
+) -> ContinuousTimeEvaluation:
+    errors: list[FloatArray] = []
+    mahalanobis: list[FloatArray] = []
+    weights: list[FloatArray] = []
+    skipped = 0
+    for capture in captures:
+        batch = batches[id(capture)]
+        indices, u, v = batch.project(transform, policy)
+        inside = (u >= 0.0) & (u < capture.camera.width) & (v >= 0.0) & (v < capture.camera.height)
+        indices, u, v = indices[inside], u[inside], v[inside]
+        skipped += len(batch.selected) - indices.size
+        residual_u = u - batch.means[indices, 0]
+        residual_v = v - batch.means[indices, 1]
+        squared_pixel = residual_u * residual_u + residual_v * residual_v
+        if settings.use_covariance:
+            a, b, c, d = batch.covariances[indices].T
+            mahalanobis_squared = (
+                d * residual_u * residual_u - (b + c) * residual_u * residual_v
+                + a * residual_v * residual_v
+            ) / (a * d - b * c)
+        else:
+            mahalanobis_squared = squared_pixel
+        errors.append(squared_pixel)
+        # max(0.0, NaN) and signed zeros follow the scalar core's behavior.
+        mahalanobis.append(np.sqrt(np.where(mahalanobis_squared > 0.0, mahalanobis_squared, 0.0)))
+        weights.append(batch.confidences[indices])
+    weight_array = np.concatenate(weights) if weights else np.empty(0, dtype=np.float64)
+    if not weight_array.size:
+        return ContinuousTimeEvaluation(math.inf, None, None, 0, skipped)
+    mahalanobis_array = np.concatenate(mahalanobis)
+    pixel_error_array = np.concatenate(errors)
+    robust = np.log1p((mahalanobis_array / settings.cauchy_scale) ** 2)
+    return ContinuousTimeEvaluation(
+        objective=float(np.sum(weight_array * robust) / np.sum(weight_array)),
+        weighted_reprojection_rmse_px=math.sqrt(
+            float(np.sum(weight_array * pixel_error_array)) / float(np.sum(weight_array))
+        ),
+        mean_mahalanobis_error=float(
+            np.sum(weight_array * mahalanobis_array) / np.sum(weight_array)
+        ),
+        valid_correspondence_count=weight_array.size,
+        skipped_correspondence_count=skipped,
+    )
 
 
 def _prepare_point_transform(transform: SE3) -> Callable[[Vector3], Vector3]:
