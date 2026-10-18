@@ -1,0 +1,51 @@
+{
+  "schema_version": "slac.joint_lidar_transform_reuse_benchmark/v0.1",
+  "record_type": "protocol",
+  "payload": {
+    "scope": "Complete native_joint_slac pipeline on all finite points of the official public Livox Horizon pair, including inspection, frontend, joint LM, holdout, probes, fixed baseline and report saving. Existing development geometry is degenerate; no accuracy claim.",
+    "commits": {
+      "prior": "c0fbf5e2ddbebd589fab9e11b235e9f7ab84d5e6",
+      "current": "8e0a7fe645b07bc10badc641e9902e35362c8925"
+    },
+    "inputs": [
+      {
+        "name": "base_horizon_100432.pcd",
+        "sha256": "19b3864cbee76b785d207fcb3fe48f6f506d142d8233f842d0a87fe4330fe407",
+        "size_bytes": 769568,
+        "point_count": 23921
+      },
+      {
+        "name": "target_horizon_100538.pcd",
+        "sha256": "61a74eb8b8ff4eeba4ca0ff824a4046ae220e947e8156f27d93da452538f5b6f",
+        "size_bytes": 761408,
+        "point_count": 23666
+      }
+    ],
+    "repetitions": 2,
+    "blas_threads": 1,
+    "environment": {
+      "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+      "packages": {
+        "numpy": "2.3.4",
+        "scipy": "1.17.1",
+        "pydantic": "2.12.5"
+      }
+    }
+  },
+  "provenance": {
+    "files": {
+      "capsule-auditor.py.txt": "c1cf1f16d9ce3e84a8fd39e255ee91ed25eb192c49abf91f458781261c9045e9",
+      "config.yaml": "4ba28c60d3bbe9148d03bb2866feb36537aee2ae32384114382989b86d8f433e",
+      "freezer.py.txt": "2c72248f7ee1e7ea502abed49870859000034c55f2599b6eb66f63f3852033cb",
+      "identity.py.txt": "5dcbf54c1b5e3721fb019ad80d0074120d49fbb02a4fd7abebed6f7eccb67d41",
+      "launcher.py.txt": "ab106c508de1bc948ad33424716be8472c6754d9545ab08e19b0374de150e4c6",
+      "result-schema.json": "a9c1c17177c45c01a98e7cdd49a1f4761b246bec8c9ce115e2fd2239d1e61c5e",
+      "schema.json": "b5121d579d1905c4f2d3d8b2ce42907798ce7dddf366c82c1b8c93ccd5c72a3d",
+      "sources-current-manifest.json": "bb4cc35e480f297e2fb360ecc882c66adb1efd5fd0068696bb3f6d0e98b9163b",
+      "sources-current.tar.gz": "e413659d0faddd9cf0f8d6f1b553c1f171ea9bf09fbe7438ef826cfce06aba75",
+      "sources-prior-manifest.json": "a172c3c92633efe98df6042ddf8934cc68c5b6a91f6d7b198fae16b7f7ed253f",
+      "sources-prior.tar.gz": "36764d8210edf3b9fc670734eeb0dcb695932b5bbf346412a963b369cf84e372",
+      "upstream-manifest.yaml": "48e838c5b3dd81e52ca2c68ba92e10af616af031efdcbd86097c0f5fde54c45a"
+    }
+  }
+}

@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import math
+import struct
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TypeAlias
+from typing import TypeAlias, cast
 
 import numpy as np
 from numpy.typing import NDArray
@@ -18,6 +19,7 @@ from calibrex.core.geometry import (
     quaternion_xyzw_from_rotation_matrix,
     rotate_vector_xyzw,
 )
+from calibrex.graph._evaluation_scope import _EVALUATION_CACHE, _EVALUATION_CACHE_LIMIT
 from calibrex.graph.joint_optimization import (
     JointResidualBlock,
     ParameterValues,
@@ -126,13 +128,53 @@ def make_joint_point_to_plane_factor(
     """Create `nᵀ(T_world_body T_body_sensor p-q)` as a joint factor."""
 
     normal = _normalize(measurement.plane_normal_world)
+    initial_key = None
+    if (
+        type(measurement.transform_world_body_initial) is SE3
+        and type(measurement.transform_body_sensor_initial) is SE3
+    ):
+        initial_key = b"joint_point_to_plane/v1\0" + struct.pack(
+            "<14d",
+            *measurement.transform_world_body_initial.translation_m,
+            *measurement.transform_world_body_initial.rotation_quat_xyzw,
+            *measurement.transform_body_sensor_initial.translation_m,
+            *measurement.transform_body_sensor_initial.rotation_quat_xyzw,
+        )
 
-    def evaluator(values: ParameterValues) -> tuple[float]:
+    def compose_transform(values: ParameterValues) -> SE3:
         pose_delta = se3_from_tangent(values[pose_block])
         extrinsic_delta = se3_from_tangent(values[extrinsic_block])
-        transform_world_sensor = pose_delta.compose(
-            measurement.transform_world_body_initial
-        ).compose(extrinsic_delta.compose(measurement.transform_body_sensor_initial))
+        return pose_delta.compose(measurement.transform_world_body_initial).compose(
+            extrinsic_delta.compose(measurement.transform_body_sensor_initial)
+        )
+
+    def evaluator(values: ParameterValues) -> tuple[float]:
+        cache = _EVALUATION_CACHE.get()
+        cache_key = None
+        transform_world_sensor = None
+        if cache is not None and initial_key is not None:
+            pose_values, extrinsic_values = values[pose_block], values[extrinsic_block]
+            if (
+                type(pose_values) is tuple
+                and type(extrinsic_values) is tuple
+                and len(pose_values) == len(extrinsic_values) == 6
+                and all(
+                    type(value) is float and math.isfinite(value)
+                    for vector in (pose_values, extrinsic_values)
+                    for value in vector
+                )
+            ):
+                # Float bytes distinguish signed zero as well as both initial frames.
+                cache_key = initial_key + struct.pack("<12d", *pose_values, *extrinsic_values)
+                transform_world_sensor = cast(SE3 | None, cache.get(cache_key))
+        if transform_world_sensor is None:
+            transform_world_sensor = compose_transform(values)
+            if cache is not None and cache_key is not None:
+                cache[cache_key] = transform_world_sensor
+                if len(cache) > _EVALUATION_CACHE_LIMIT:
+                    cache.popitem(last=False)
+        elif cache is not None and cache_key is not None:
+            cache.move_to_end(cache_key)
         point_world = transform_world_sensor.transform_point(measurement.point_sensor_m)
         difference = _subtract(point_world, measurement.plane_point_world_m)
         return (_dot(normal, difference),)
