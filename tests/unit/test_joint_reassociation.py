@@ -1,6 +1,7 @@
 import pytest
 
 from calibrex.evaluation.correspondence import CorrespondenceAssignment
+from calibrex.graph._point_plane_batches import _OwnedPointFactors
 from calibrex.graph.joint_optimization import (
     BackendNeutralJointOptimizer,
     JointOptimizerOptions,
@@ -78,6 +79,35 @@ def test_joint_reassociation_recovers_truth_without_group_leakage() -> None:
     assert result.iterations[0].train_stability.pair_jaccard == 0.0
     assert result.iterations[1].train_stability.pair_jaccard == 1.0
     assert result.as_dict()["method"] == "backend_neutral_train_only_reassociation/v0.1"
+
+
+@pytest.mark.parametrize("owned_data", [False, True])
+@pytest.mark.parametrize("owned_priors", [False, True])
+def test_reassociation_preserves_ownership_only_for_two_owned_populations(
+    owned_data, owned_priors, monkeypatch
+):
+    initial = _state("wrong", 1.0)
+    blocks, options, fitted = _initial(initial)
+    candidate = _state("truth", 2.0)
+    if owned_data:
+        candidate = JointReassociationState(
+            _OwnedPointFactors(candidate.factors), candidate.assignments
+        )
+    priors = _OwnedPointFactors(()) if owned_priors else ()
+    observed = []
+    original = BackendNeutralJointOptimizer.solve
+
+    def solve(self, blocks, factors, options):
+        observed.append(type(factors))
+        return original(self, blocks, factors, options)
+
+    monkeypatch.setattr(BackendNeutralJointOptimizer, "solve", solve)
+    result = BackendNeutralJointReassociation().refine(
+        blocks, initial, priors, fitted, lambda _values: candidate, options
+    )
+    assert result.status == "converged"
+    assert result.final_result.optimized_values["x"] == pytest.approx((2.0,))
+    assert observed == [_OwnedPointFactors if owned_data and owned_priors else tuple]
 
 
 def test_joint_reassociation_stopping_ignores_holdout_assignment_change() -> None:

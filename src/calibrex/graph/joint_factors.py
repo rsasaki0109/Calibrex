@@ -1008,3 +1008,4 @@ def _calibrated_xyz_lattice_point(
 
 
 _RGBD_POINT_FUNCTION_IMPLEMENTATION = _calibrated_xyz_lattice_point
+_RGBD_SCALE_FUNCTION_IMPLEMENTATION = _scale

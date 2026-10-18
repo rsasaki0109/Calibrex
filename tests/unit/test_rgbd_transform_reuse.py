@@ -14,7 +14,13 @@ from calibrex.core.geometry import SE3
 from calibrex.graph import _rgbd_batches as batches
 from calibrex.graph import joint_factors as factors
 from calibrex.graph import joint_optimization as graph
-from calibrex.graph._evaluation_scope import _EVALUATION_CACHE, _with_evaluation_cache
+from calibrex.graph._evaluation_scope import (
+    _EVALUATION_CACHE,
+    _RGBD_PREPARATION_CACHE,
+    _with_evaluation_cache,
+    _with_preparation_cache,
+)
+from calibrex.graph._point_plane_batches import _OwnedPointFactors
 
 KINDS = ("depth", "trilinear", "centered", "xyz", "pair")
 
@@ -536,6 +542,22 @@ def test_monkeypatched_xyz_computation_retains_original_callback_count(monkeypat
     assert len(calls) == len(items)
 
 
+@pytest.mark.parametrize("kind", KINDS[:3])
+def test_replaced_scalar_ray_scaling_is_called_for_every_factor(kind, monkeypatch):
+    _, items = batch_problem(kind)
+    calls = []
+    original = factors._scale
+
+    def scale(point, amount):
+        calls.append((point, amount))
+        return original(point, amount)
+
+    monkeypatch.setattr(factors, "_scale", scale)
+    assert batches._prepare_rgbd_plan(items, inputs()) is None
+    graph._factor_residuals(items, inputs())
+    assert len(calls) == len(items)
+
+
 def test_repeated_evaluations_use_replaced_nominal_depth_and_initial_frame():
     _, items = batch_problem("depth")
     before = graph._factor_residuals(items, inputs()).tobytes()
@@ -592,3 +614,159 @@ def test_unsupported_parameter_vectors_keep_scalar_results(kind):
     assert batches._prepare_rgbd_plan(items, values) is None
     expected = np.asarray([r for item in items for r in item.residuals(values)])
     assert graph._factor_residuals(items, values).tobytes() == expected.tobytes()
+
+
+@pytest.mark.parametrize("kind", KINDS[1:])
+@pytest.mark.parametrize("count", [1, 8, 64])
+def test_lattice_array_products_preserve_ordered_sums_and_zero_terms(kind, count):
+    weights = (1.0 / count,) * count
+    items = []
+    for index in range(96):
+        item = measurement(kind, index)
+        changes = (
+            {"source_lattice_weights": weights, "target_lattice_weights": weights}
+            if kind == "pair"
+            else {"lattice_weights": weights}
+        )
+        items.append(factory(kind, replace(item, **changes)))
+    size = count * (3 if kind in ("xyz", "pair") else 1)
+    for offsets in (
+        (0.0,) * size,
+        (-0.0,) * size,
+        tuple((1.0e12, 1.0e-12, -1.0e12, -0.0)[i % 4] for i in range(size)),
+        tuple((1.0e-300, -1.0e-300, 0.0)[i % 3] for i in range(size)),
+    ):
+        values = {**inputs(), "xyz" if kind in ("xyz", "pair") else "lattice": offsets}
+        expected = np.asarray([r for item in items for r in item.residuals(values)])
+        plan = batches._prepare_rgbd_plan(items, values)
+        assert plan is not None
+        assert plan.evaluate(values).tobytes() == expected.tobytes()
+        for group in plan.groups:
+            assert all(
+                not array.flags.writeable
+                for array in (
+                    group.sensor_points,
+                    group.depths,
+                    group.weights,
+                    group.target_points,
+                    group.target_weights,
+                )
+            )
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_owned_solve_reuses_two_plans_with_exact_complete_traces(kind, monkeypatch):
+    blocks, items = batch_problem(kind, count=384, regularizers=True)
+    options = graph.JointOptimizerOptions(
+        max_iterations=3, split_seed=17, linear_solver="schur", huber_delta=0.1
+    )
+    events, builds = [], []
+    original_build = batches._build_rgbd_plan
+
+    def build(*args):
+        result = original_build(*args)
+        builds.append(result)
+        return result
+
+    monkeypatch.setattr(batches, "_build_rgbd_plan", build)
+    for name in ("_linearize", "_factor_residuals"):
+        original = getattr(graph, name)
+
+        def trace(*args, _original=original, _name=name):
+            result = _original(*args)
+            arrays = result if isinstance(result, tuple) else (result,)
+            events.append((_name, tuple((a.shape, a.tobytes()) for a in arrays)))
+            return result
+
+        monkeypatch.setattr(graph, name, trace)
+    owned = graph.BackendNeutralJointOptimizer().solve(blocks, _OwnedPointFactors(items), options)
+    assert len(builds) == 2 and all(plan is not None for plan in builds)
+    assert _RGBD_PREPARATION_CACHE.get() is None
+    owned_events = events.copy()
+    events.clear()
+    builds.clear()
+    generic = graph.BackendNeutralJointOptimizer().solve(blocks, items, options)
+    assert len(builds) > 2
+    assert events == owned_events
+    assert owned.as_dict() == generic.as_dict()
+
+
+@pytest.mark.parametrize("linearize", [False, True])
+def test_scalar_callback_discards_owned_snapshot_before_user_mutation(linearize):
+    blocks, items = batch_problem("depth")
+    owned = _OwnedPointFactors(items)
+    values = inputs()
+    binding = getattr(items[0].evaluator, batches._ATTRIBUTE)
+
+    def mutate(_values):
+        object.__setattr__(binding.measurement, "nominal_depth_m", 1.8)
+        object.__setattr__(
+            binding.measurement.transform_world_body_initial, "translation_m", (0.4, -0.2, 0.3)
+        )
+        return (0.0,)
+
+    @_with_preparation_cache
+    def evaluate():
+        first = batches._prepare_rgbd_plan(owned, values)
+        assert first is not None
+        world = first.groups[0].world
+        assert world is not binding.measurement.transform_world_body_initial
+        assert (
+            world.rotation_quat_xyzw
+            is binding.measurement.transform_world_body_initial.rotation_quat_xyzw
+        )
+        custom = graph.JointResidualBlock("mutator", "custom", (), mutate)
+        supplied = (*owned, custom)
+        if linearize:
+            graph._linearize(
+                supplied,
+                values,
+                blocks,
+                graph._variable_layout(blocks),
+                graph.JointOptimizerOptions(),
+            )
+        else:
+            graph._factor_residuals(supplied, values)
+        assert not _RGBD_PREPARATION_CACHE.get()
+        again = batches._prepare_rgbd_plan(owned, values)
+        assert again is not None and again is not first
+        expected = np.asarray([r for item in owned for r in item.residuals(values)])
+        assert again.evaluate(values).tobytes() == expected.tobytes()
+
+    evaluate()
+    assert _RGBD_PREPARATION_CACHE.get() is None
+
+
+def test_owned_plan_cache_bounds_shapes_and_nested_cleanup(monkeypatch):
+    _, items = batch_problem("depth")
+    populations = [_OwnedPointFactors(items) for _ in range(4)]
+    values = inputs()
+    monkeypatch.setattr(batches, "_PLAN_FACTOR_LIMIT", 200)
+
+    @_with_preparation_cache
+    def nested():
+        assert not _RGBD_PREPARATION_CACHE.get()
+        assert batches._prepare_rgbd_plan(populations[0], values) is not None
+        raise RuntimeError("nested solve failed")
+
+    @_with_preparation_cache
+    def evaluate():
+        for owned in populations:
+            assert batches._prepare_rgbd_plan(owned, values) is not None
+            cache = _RGBD_PREPARATION_CACHE.get()
+            assert len(cache) <= 2 and sum(len(entry.factors) for entry in cache.values()) <= 200
+        first = batches._prepare_rgbd_plan(populations[-1], values)
+        with pytest.raises(RuntimeError, match="nested solve failed"):
+            nested()
+        assert batches._prepare_rgbd_plan(populations[-1], values) is first
+        for changed in (
+            {**values, "depth": (0.0,)},
+            {**values, "depth": (51.0, 0.0)},
+            {name: v for name, v in values.items() if name != "pose"},
+        ):
+            assert batches._prepare_rgbd_plan(populations[-1], changed) is None
+        assert batches._prepare_rgbd_plan(populations[-1], values) is not None
+        assert len(_RGBD_PREPARATION_CACHE.get()) <= 2
+
+    evaluate()
+    assert _RGBD_PREPARATION_CACHE.get() is None

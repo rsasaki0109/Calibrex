@@ -14,7 +14,9 @@ import numpy as np
 from numpy.typing import NDArray
 
 from calibrex.core.geometry import SE3, Vector3
+from calibrex.graph._evaluation_scope import _RGBD_PREPARATION_CACHE
 from calibrex.graph._point_plane_batches import (
+    _OwnedPointFactors,
     _Owner,
     _owner,
     _transform_points,
@@ -42,6 +44,8 @@ _MIN_POINTS = 64
 _MAX_POINTS = 65536
 _MAX_GROUPS = 128
 _CHUNK_ROWS = 4096
+_PLAN_ENTRIES = 2
+_PLAN_FACTOR_LIMIT = 65536
 _ATTRIBUTE = "_calibrex_rgbd_builtin"
 _POINT_METHOD = SE3.transform_point
 _COMPOSE_METHOD = SE3.compose
@@ -218,7 +222,11 @@ class _Group:
     world: SE3
     sensor: SE3
     rows: NDArray[np.intp]
-    geometry: tuple[_Geometry, ...]
+    sensor_points: _FloatArray
+    depths: _FloatArray
+    weights: _FloatArray
+    target_points: _FloatArray
+    target_weights: _FloatArray
     planes: _FloatArray
     normals: _FloatArray
     sqrt_weights: _FloatArray
@@ -228,8 +236,6 @@ class _Group:
     ] = field(default_factory=OrderedDict)
 
     def calibrated_points(self, values: ParameterValues) -> tuple[_FloatArray, _FloatArray | None]:
-        from calibrex.graph.joint_factors import _calibrated_xyz_lattice_point, _scale
-
         parameters = tuple(values[name] for name in self.names[2:])
         key = tuple(id(vector) for vector in parameters)
         cached = self.points.get(key)
@@ -240,41 +246,30 @@ class _Group:
         target = None
         if self.kind in ("xyz", "pair"):
             offsets = parameters[0]
-            points = np.asarray(
-                [_calibrated_xyz_lattice_point(g.point, g.weights, offsets) for g in self.geometry],
-                dtype=np.float64,
+            points = np.column_stack(
+                [
+                    self.sensor_points[:, axis] + _weighted_sums(self.weights, offsets[axis::3])
+                    for axis in range(3)
+                ]
             )
             if self.kind == "pair":
-                target = np.asarray(
+                target = np.column_stack(
                     [
-                        _calibrated_xyz_lattice_point(g.target, g.target_weights, offsets)
-                        for g in self.geometry
-                    ],
-                    dtype=np.float64,
+                        self.target_points[:, axis]
+                        + _weighted_sums(self.target_weights, offsets[axis::3])
+                        for axis in range(3)
+                    ]
                 )
         elif self.kind == "depth":
             log_scale, depth_bias = parameters[0]
             scale = math.exp(log_scale)
-            points = np.asarray(
-                [_scale(g.point, scale * g.nominal + depth_bias) for g in self.geometry],
-                dtype=np.float64,
-            )
+            points = self.sensor_points * (scale * self.depths + depth_bias)[:, None]
         else:
             offsets = parameters[-1]
             bias = parameters[0][0] if self.kind == "centered" else None
-            # Python's sum implementation is intentionally retained on every
-            # supported Python version; no BLAS/dot/reduction reassociation.
-            points = np.asarray(
-                [
-                    _scale(
-                        g.point,
-                        (g.nominal if bias is None else g.nominal + bias)
-                        + sum(w * o for w, o in zip(g.weights, offsets, strict=True)),
-                    )
-                    for g in self.geometry
-                ],
-                dtype=np.float64,
-            )
+            nominal = self.depths if bias is None else self.depths + bias
+            depth = nominal + _weighted_sums(self.weights, offsets)
+            points = self.sensor_points * depth[:, None]
         points.flags.writeable = False
         if target is not None:
             target.flags.writeable = False
@@ -284,11 +279,25 @@ class _Group:
         return points, target
 
 
+def _weighted_sums(weights: _FloatArray, offsets: tuple[float, ...]) -> _FloatArray:
+    # Batch independent products, but keep Python's version-specific sum of
+    # ordinary floats, including zero terms, in the original lattice order.
+    products = weights * np.asarray(offsets, dtype=np.float64)
+    return np.asarray([sum(row) for row in products.tolist()], dtype=np.float64)
+
+
 @dataclass(frozen=True)
 class _RGBDPlan:
     size: int
     groups: tuple[_Group, ...]
     scalars: tuple[tuple[int, int, JointResidualBlock], ...]
+    dimensions: tuple[tuple[str, int], ...]
+    depth_scales: tuple[str, ...]
+
+    def accepts(self, values: ParameterValues) -> bool:
+        return all(
+            name in values and len(values[name]) == dimension for name, dimension in self.dimensions
+        ) and all(abs(values[name][0]) <= 50.0 for name in self.depth_scales)
 
     def evaluate(self, values: ParameterValues, active: str | None = None) -> _FloatArray:
         from calibrex.graph.joint_factors import se3_from_tangent
@@ -388,12 +397,10 @@ def _prepare_rgbd_plan(
 ) -> _RGBDPlan | None:
     from calibrex.graph.joint_factors import (
         _RGBD_POINT_FUNCTION_IMPLEMENTATION,
+        _RGBD_SCALE_FUNCTION_IMPLEMENTATION,
         _SE3_FROM_TANGENT_IMPLEMENTATION,
-        JointDepthPointToPlaneMeasurement,
-        JointTrilinearDepthPointToPlaneMeasurement,
-        JointTrilinearXYZPairMeasurement,
-        JointTrilinearXYZPointToPlaneMeasurement,
         _calibrated_xyz_lattice_point,
+        _scale,
         se3_from_tangent,
     )
 
@@ -409,8 +416,79 @@ def _prepare_rgbd_plan(
         or SE3.compose is not _COMPOSE_METHOD
         or se3_from_tangent is not _SE3_FROM_TANGENT_IMPLEMENTATION
         or _calibrated_xyz_lattice_point is not _RGBD_POINT_FUNCTION_IMPLEMENTATION
+        or _scale is not _RGBD_SCALE_FUNCTION_IMPLEMENTATION
     ):
+        cache = _RGBD_PREPARATION_CACHE.get()
+        if cache is not None:
+            cache.clear()
         return None
+    cache = _RGBD_PREPARATION_CACHE.get()
+    key = id(factors)
+    cached = cache.get(key) if cache is not None else None
+    if isinstance(cached, _PreparedRGBDPlan):
+        if (
+            factors is cached.factors
+            and cached.limits == (_MIN_POINTS, _MAX_POINTS, _MAX_GROUPS)
+            and cached.plan.accepts(values)
+        ):
+            assert cache is not None
+            cache.move_to_end(key)
+            return cached.plan
+        assert cache is not None
+        del cache[key]
+    plan = _build_rgbd_plan(factors, values)
+    if (
+        plan is not None
+        and cache is not None
+        and type(factors) is _OwnedPointFactors
+        and len(factors) <= _PLAN_FACTOR_LIMIT
+    ):
+        # Generic callers are always prepared afresh. Only a native adapter's
+        # synchronous, private factor sequence owns these immutable snapshots.
+        for group in plan.groups:
+            group.world = _frozen_frame(group.world)
+            group.sensor = _frozen_frame(group.sensor)
+        while cache and (
+            len(cache) >= _PLAN_ENTRIES
+            or sum(
+                len(value.factors)
+                for value in cache.values()
+                if isinstance(value, _PreparedRGBDPlan)
+            )
+            + len(factors)
+            > _PLAN_FACTOR_LIMIT
+        ):
+            cache.popitem(last=False)
+        cache[key] = _PreparedRGBDPlan(factors, plan, (_MIN_POINTS, _MAX_POINTS, _MAX_GROUPS))
+    return plan
+
+
+@dataclass(frozen=True)
+class _PreparedRGBDPlan:
+    factors: Sequence[JointResidualBlock]
+    plan: _RGBDPlan
+    limits: tuple[int, int, int]
+
+
+def _frozen_frame(frame: SE3) -> SE3:
+    # Constructing an SE3 normally normalizes its quaternion. Preserve the
+    # already validated bits, including quaternions rounded by composition.
+    result = object.__new__(SE3)
+    object.__setattr__(result, "translation_m", frame.translation_m)
+    object.__setattr__(result, "rotation_quat_xyzw", frame.rotation_quat_xyzw)
+    return result
+
+
+def _build_rgbd_plan(
+    factors: Sequence[JointResidualBlock], values: ParameterValues
+) -> _RGBDPlan | None:
+    from calibrex.graph.joint_factors import (
+        JointDepthPointToPlaneMeasurement,
+        JointTrilinearDepthPointToPlaneMeasurement,
+        JointTrilinearXYZPairMeasurement,
+        JointTrilinearXYZPointToPlaneMeasurement,
+    )
+
     pending: dict[
         tuple[_Kind, tuple[str, ...], bytes], list[tuple[int, _RGBDBinding, _Geometry, float]]
     ] = {}
@@ -566,12 +644,34 @@ def _prepare_rgbd_plan(
             world,
             sensor,
             np.asarray([r for r, _, _, _ in rows], dtype=np.intp),
-            tuple(g for _, _, g, _ in rows),
+            np.asarray([g.point for _, _, g, _ in rows], dtype=np.float64),
+            np.asarray([g.nominal for _, _, g, _ in rows], dtype=np.float64),
+            np.asarray([g.weights for _, _, g, _ in rows], dtype=np.float64),
+            np.asarray([g.target for _, _, g, _ in rows], dtype=np.float64),
+            np.asarray([g.target_weights for _, _, g, _ in rows], dtype=np.float64),
             np.asarray(planes, dtype=np.float64),
             np.asarray([b.normal for _, b, _, _ in rows], dtype=np.float64),
             np.asarray([w for _, _, _, w in rows], dtype=np.float64),
         )
-        for array in (group.rows, group.planes, group.normals, group.sqrt_weights):
+        for array in (
+            group.rows,
+            group.sensor_points,
+            group.depths,
+            group.weights,
+            group.target_points,
+            group.target_weights,
+            group.planes,
+            group.normals,
+            group.sqrt_weights,
+        ):
             array.flags.writeable = False
         groups.append(group)
-    return _RGBDPlan(cursor, tuple(groups), tuple(scalars))
+    dimensions = dict.fromkeys(name for group in groups for name in group.names)
+    dimensions.update(dict.fromkeys(factor.variable_names[0] for _, _, factor in scalars))
+    return _RGBDPlan(
+        cursor,
+        tuple(groups),
+        tuple(scalars),
+        tuple((name, len(values[name])) for name in dimensions),
+        tuple(group.names[2] for group in groups if group.kind == "depth"),
+    )

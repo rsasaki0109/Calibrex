@@ -200,6 +200,8 @@ class BackendNeutralJointReassociation:
         options: JointReassociationOptions | None = None,
     ) -> JointReassociationResult:
         outer_options = options or JointReassociationOptions()
+        from calibrex.graph._point_plane_batches import _OwnedPointFactors
+
         _validate_options(outer_options)
         blocks = tuple(parameter_blocks)
         priors = tuple(train_only_factors)
@@ -289,9 +291,15 @@ class BackendNeutralJointReassociation:
                 for block in blocks
             )
             try:
+                factors: Sequence[JointResidualBlock] = (*candidate_state.factors, *priors)
+                if (
+                    type(candidate_state.factors) is _OwnedPointFactors
+                    and type(train_only_factors) is _OwnedPointFactors
+                ):
+                    factors = _OwnedPointFactors(factors)
                 optimized = BackendNeutralJointOptimizer().solve(
                     warm_blocks,
-                    (*candidate_state.factors, *priors),
+                    factors,
                     optimizer_options,
                 )
             except ValueError as exc:
