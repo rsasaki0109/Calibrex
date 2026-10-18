@@ -282,9 +282,9 @@ def test_metadata_counts_times_and_custom_data(tmp_path: Path) -> None:
         for index in range(3):
             writer.write("/a", 100 + index, b"\x00\x01\x00\x00")
         writer.write("/b", 50, b"\x00\x01\x00\x00")
-    info = yaml.safe_load((tmp_path / "bag" / "metadata.yaml").read_text())[
-        "rosbag2_bagfile_information"
-    ]
+    metadata = (tmp_path / "bag" / "metadata.yaml").read_bytes()
+    assert b"\r\n" not in metadata
+    info = yaml.safe_load(metadata)["rosbag2_bagfile_information"]
     assert info["storage_identifier"] == "sqlite3"
     assert info["message_count"] == 4
     assert info["starting_time"]["nanoseconds_since_epoch"] == 50

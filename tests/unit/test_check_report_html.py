@@ -12,7 +12,7 @@ from tests.unit.test_check_run import CLOSURE_PAIRS, _closure_run
 from calibrex.check.runner import CheckRunOptions, build_calibration_check
 from calibrex.cli.main import main
 from calibrex.core.calibration_check import CalibrationCheckArtifact
-from calibrex.visualization.check_report import render_check_html
+from calibrex.visualization.check_report import _redact, render_check_html
 
 
 @pytest.fixture
@@ -73,6 +73,42 @@ def test_report_can_redact_absolute_paths(
     assert str(tmp_path) not in page
     assert not re.search(r"(?<![\w.<])/(tmp|home)/", page)
     assert ".../bag.db3" in page
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        (r"C:\Users\private\bag.db3", ".../bag.db3"),
+        ("C:/Users/private/bag.db3", ".../bag.db3"),
+        (r"C:\Users\Private User\my bag.db3", ".../my bag.db3"),
+        (r"\\server\private\bag.db3", ".../bag.db3"),
+        ("//server/private/bag.db3", ".../bag.db3"),
+        (r"\\server\private share\my bag.db3", ".../my bag.db3"),
+        (r"C:\private/inner\bag.db3", ".../bag.db3"),
+        (r"Read 'C:\Users\Private User\my bag.db3' failed", "Read '.../my bag.db3' failed"),
+        (
+            r"Read C:\private\bag.db3 and D:\other\rig.yaml failed",
+            "Read .../bag.db3 and .../rig.yaml failed",
+        ),
+        (
+            r"Read C:\private\bag.db3 then /home/private/other.db3 failed",
+            "Read .../bag.db3 then .../other.db3 failed",
+        ),
+        (
+            "Read C:/private/bag.db3 then /home/private/other.db3 failed",
+            "Read .../bag.db3 then .../other.db3 failed",
+        ),
+        ("/home/private/bag.db3", ".../bag.db3"),
+        ("Read '/home/private/bag.db3' failed", "Read '.../bag.db3' failed"),
+        ("relative/bag.db3", "relative/bag.db3"),
+        (r"relative\bag.db3", r"relative\bag.db3"),
+        ("../relative/bag.db3", "../relative/bag.db3"),
+        (".../bag.db3", ".../bag.db3"),
+    ],
+)
+def test_redaction_handles_paths_from_either_platform(text: str, expected: str) -> None:
+    assert _redact(text, True) == expected
+    assert _redact(text, False) == text
 
 
 def test_cli_writes_the_report_and_render_dispatches_on_the_schema(

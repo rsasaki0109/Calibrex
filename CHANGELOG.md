@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Redact Windows drive and UNC paths in check and estimate HTML reports on
+  either platform, and write rosbag2 metadata with LF line endings on every
+  platform. Keep cache-home and SQLite filename tests portable, and compare
+  only the synthetic sample's three trigonometric float64 fields within two
+  ULPs across platforms; other sample bytes and metadata remain exact.
+
 - Load CLI commands, solver exports and artifact models on demand. An 18-worker
   comparison against the batched refiner measured complete refinement CLI time
   of 7.758 s to 3.003 s (2.584x), with identical full results and 130 unchanged

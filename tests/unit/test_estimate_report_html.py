@@ -79,6 +79,19 @@ def test_report_escapes_text(tmp_path: Path, bag: Path, monkeypatch: pytest.Monk
     assert "<img" not in page
 
 
+@pytest.mark.parametrize("path", [r"C:\private\bag.db3", r"\\server\private\bag.db3"])
+def test_report_redacts_windows_paths_on_either_platform(
+    tmp_path: Path, bag: Path, monkeypatch: pytest.MonkeyPatch, path: str
+) -> None:
+    artifact = _partial_artifact(tmp_path, bag, monkeypatch)
+    artifact.bag.path = path
+    artifact.provenance.command = ["calibrex", "estimate", path]
+    artifact.provenance.notes.append(f"Read {path}")
+    page = render_estimate_html(artifact, redact_paths=True)
+    assert path not in page
+    assert ".../bag.db3" in page
+
+
 def test_cli_estimate_writes_html_and_render_dispatches(
     tmp_path: Path,
     bag: Path,
