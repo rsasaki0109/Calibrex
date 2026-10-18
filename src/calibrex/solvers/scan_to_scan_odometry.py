@@ -100,6 +100,22 @@ class ScanOdometryResult:
         return all(item.converged for item in self.registrations)
 
 
+class _IncrementalOdometry(Protocol):
+    def add(
+        self, scan: FloatArray, time_s: float | None = None,
+        point_offsets_s: FloatArray | None = None,
+    ) -> ScanRegistration | None: ...
+
+    def result(self) -> ScanOdometryResult: ...
+
+
+class _OdometryFactory(Protocol):
+    def __call__(
+        self, options: ScanOdometryOptions | None = None, *,
+        rotation_model: RotationModel | None = None, backend: OdometryBackend = "cpu",
+    ) -> _IncrementalOdometry: ...
+
+
 class _OdometryTarget(Protocol):
     def register(self, source: FloatArray, initial: FloatArray) -> ScanRegistration: ...
     def statistics(self) -> dict[str, int]: ...

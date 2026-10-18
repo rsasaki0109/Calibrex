@@ -74,6 +74,29 @@ def test_default_windowing_does_not_import_cuda(monkeypatch: pytest.MonkeyPatch)
     }
 
 
+def test_explicit_factory_is_scoped_to_its_own_segmenter() -> None:
+    class FirstOnly:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            self.count = 0
+
+        def add(self, *args: Any) -> None:
+            self.count += 1
+
+        def result(self) -> ScanOdometryResult:
+            return ScanOdometryResult(
+                tuple(np.eye(4) for _ in range(self.count)), (), "scoped", {"calls": self.count},
+            )
+
+    injected = windows.collect_odometry_windows(
+        [(0.0, np.ones((5, 3)))], windows.WindowingOptions(), _odometry_factory=FirstOnly,
+    )
+    ordinary = windows.collect_odometry_windows(
+        [(0.0, np.ones((5, 3)))], windows.WindowingOptions(),
+    )
+    assert injected.execution_report()["executed_backends"] == ["scoped"]
+    assert ordinary.execution_report()["executed_backends"] == ["numpy_scipy"]
+
+
 def test_invalid_windowing_backend_fails_before_reading() -> None:
     with pytest.raises(ValueError, match="unknown odometry backend"):
         windows.WindowingOptions(odometry_backend="unknown")
@@ -81,8 +104,9 @@ def test_invalid_windowing_backend_fails_before_reading() -> None:
 
 @pytest.mark.parametrize("backend", ["cpu", "cuda"])
 @pytest.mark.parametrize("plane_backend", ["numpy", "cuda"])
+@pytest.mark.parametrize("resident", [False, True])
 def test_joint_cli_records_and_forwards_backend_and_geometry(
-    monkeypatch: pytest.MonkeyPatch, backend: str, plane_backend: str,
+    monkeypatch: pytest.MonkeyPatch, backend: str, plane_backend: str, resident: bool,
 ) -> None:
     seen: dict[str, Any] = {}
 
@@ -93,7 +117,7 @@ def test_joint_cli_records_and_forwards_backend_and_geometry(
     monkeypatch.setattr("calibrex.check.estimators.detect_point_time", lambda *_: ("t", "offset_s"))
     monkeypatch.setattr("calibrex.evaluation.lidar_imu_bag_calibration.calibrate_lidar_imu_bag",
                         capture)
-    assert main([
+    arguments = [
         "imu-lidar", "joint", "public.bag", "--lidar-topic", "/p", "--imu-topic", "/i",
         "--dataset-family", "public", "--dataset-license", "upstream", "--output", "unused.json",
         "--odometry-backend", backend, "--odometry-voxel-size-m", "0.03",
@@ -102,8 +126,15 @@ def test_joint_cli_records_and_forwards_backend_and_geometry(
         "--odometry-motion-translation-quantum-m", "1e-6",
         "--odometry-motion-rotation-quantum-rad", "1e-7",
         "--fit-plane-backend", plane_backend,
-    ]) == 2
+    ]
+    if resident:
+        arguments.append("--resident-odometry")
+    assert main(arguments) == 2
+    if resident and backend == "cpu":
+        assert not seen
+        return
     assert seen["options"].fit_plane_backend == plane_backend
+    assert seen["options"].resident_odometry == resident
     options = seen["options"].rotation.windowing
     assert options.odometry_backend == backend
     assert options.odometry.voxel_size_m == 0.03
@@ -113,6 +144,7 @@ def test_joint_cli_records_and_forwards_backend_and_geometry(
     assert options.odometry.motion_translation_quantum_m == 1e-6
     assert options.odometry.motion_rotation_quantum_rad == 1e-7
     command = seen["command"]
+    assert ("--resident-odometry" in command) == resident
     if plane_backend == "cuda":
         assert command[command.index("--fit-plane-backend") + 1] == plane_backend
     else:

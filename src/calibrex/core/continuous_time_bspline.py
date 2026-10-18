@@ -132,6 +132,43 @@ class CubicBSplineTrajectory:
         states = self.evaluate(np.asarray([time_sec], dtype=float))
         return _pose_from_matrix(states.rotation_world_body[0], states.position_world_m[0])
 
+    def transform_points(self, times_sec: FloatArray, points: FloatArray) -> FloatArray:
+        """Place one body-frame point per timestamp in the world frame.
+
+        Only pose is needed here. Evaluate the referenced control edges once,
+        without allocating angular or linear derivatives for every return.
+        Control points are read on each call, so editing a trajectory cannot
+        leave a stale cache behind.
+        """
+        times = np.asarray(times_sec, dtype=float).reshape(-1)
+        xyz = np.asarray(points, dtype=float)
+        if xyz.shape != (len(times), 3) or not np.isfinite(xyz).all():
+            raise ValueError("B-spline point placement requires finite (T, 3) points")
+        if not np.isfinite(times).all():
+            raise ValueError("B-spline point placement requires finite timestamps")
+        segment, fraction = self.segments(times)
+        segments, local = np.unique(segment, return_inverse=True)
+        edges, inverse = np.unique(
+            segments[:, None] + np.arange(3)[None, :], return_inverse=True,
+        )
+        relative = np.einsum(
+            "tji,tjk->tik", self.rotations[edges], self.rotations[edges + 1],
+        )
+        deltas = so3_log_batch(relative)[inverse.reshape(len(segments), 3)]
+        count = len(times)
+        powers = np.stack(
+            [np.ones(count), fraction, fraction * fraction, fraction * fraction * fraction], axis=1,
+        )
+        basis = powers @ _CUMULATIVE_BASIS.T
+        rotation = self.rotations[segment].copy()
+        position = self.positions[segment].copy()
+        for slot in range(1, 4):
+            step = _so3_exp_compact(basis[:, slot, None] * deltas[local, slot - 1])
+            rotation = np.einsum("tij,tjk->tik", rotation, step)
+            difference = self.positions[segment + slot] - self.positions[segment + slot - 1]
+            position = position + basis[:, slot, None] * difference
+        return np.asarray(np.einsum("tij,tj->ti", rotation, xyz) + position, dtype=float)
+
     @classmethod
     def from_poses(
         cls,
@@ -158,6 +195,31 @@ class CubicBSplineTrajectory:
             rotations=np.asarray(rotations, dtype=float),
             positions=np.asarray(positions, dtype=float),
         )
+
+
+def _so3_exp_compact(vectors: FloatArray) -> FloatArray:
+    """Rodrigues with the evaluator's arithmetic and no batched skew product."""
+    angle = np.linalg.norm(vectors, axis=1)
+    small = angle < 1.0e-8
+    safe = np.where(small, 1.0, angle)
+    a = np.where(small, 1.0 - angle * angle / 6.0, np.sin(safe) / safe)
+    b = np.where(small, 0.5 - angle * angle / 24.0, (1.0 - np.cos(safe)) / (safe * safe))
+    x, y, z = vectors.T
+    square = (
+        ((-z * z) - y * y, y * x, z * x),
+        (x * y, (-z * z) - x * x, z * y),
+        (x * z, y * z, (-y * y) - x * x),
+    )
+    skew = (
+        (np.zeros_like(x), -z, y), (z, np.zeros_like(x), -x), (-y, x, np.zeros_like(x)),
+    )
+    result = np.empty((len(vectors), 3, 3))
+    for row in range(3):
+        for column in range(3):
+            result[:, row, column] = (
+                (1.0 if row == column else 0.0) + a * skew[row][column]
+            ) + b * square[row][column]
+    return result
 
 
 def cumulative_basis(

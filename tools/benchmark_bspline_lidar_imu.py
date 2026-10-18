@@ -1,4 +1,4 @@
-"""Compare the complete public-data LiDAR-IMU bag pipeline in fresh CPU workers.
+"""Compare the complete public-data LiDAR-IMU bag pipeline in fresh workers.
 
 Freeze both source trees before timing. Each worker verifies its actual imports,
 uses one BLAS thread, and saves the complete schema-valid calibration evidence.
@@ -16,6 +16,7 @@ import json
 import os
 import shutil
 import statistics
+import struct
 import subprocess
 import sys
 import tarfile
@@ -157,6 +158,8 @@ def _worker(args: argparse.Namespace) -> None:
                 ),
             ),
         ))
+    if _resident_backends(args)[args.variant]:
+        settings = replace(settings, resident_odometry=True)
     result = runner.calibrate_lidar_imu_bag(
         args.bag,
         LivoxStreamProfile("public-glim-avia", "/livox/points", "/livox/imu", "t", "offset_s", "g"),
@@ -198,6 +201,11 @@ def _worker(args: argparse.Namespace) -> None:
         raise RuntimeError("CPU comparison unexpectedly imported CuPy")
     if args.comparison != "source":
         _validate_backend_execution(result.model_dump(mode="json"), backend)
+    if any(_resident_backends(args).values()):
+        _validate_resident_execution(
+            result.model_dump(mode="json"), _resident_backends(args)[args.variant],
+            _resident_hashes(root) if _resident_backends(args)[args.variant] else None,
+        )
     if args.comparison in ("cpu-cpu", "cpu-source"):
         _validate_query_workers(result.model_dump(mode="json"), _query_workers(args)[args.variant])
     if _plane_comparison(args):
@@ -244,6 +252,8 @@ def _worker(args: argparse.Namespace) -> None:
                 **({"cpu_query_workers": _query_workers(args)[args.variant]}
                    if args.comparison in ("cpu-cpu", "cpu-source") else {}),
                 **({"fit_plane_backend": fit_plane_backend} if _plane_comparison(args) else {}),
+                **({"resident_odometry": _resident_backends(args)[args.variant]}
+                   if any(_resident_backends(args).values()) else {}),
                 **({"cuda_cache_initially_empty": cuda_cache_empty,
                     "cupy": (sys.modules["cupy"].__version__ if backend == "cuda" else None)}
                    if args.comparison in ("cpu-cuda", "cuda-cuda") else {}),
@@ -571,6 +581,9 @@ def _worker_arguments(args: argparse.Namespace) -> list[str]:
     if _plane_comparison(args):
         arguments += ["--prior-fit-plane-backend", args.prior_fit_plane_backend,
                       "--current-fit-plane-backend", args.current_fit_plane_backend]
+    for variant, enabled in _resident_backends(args).items():
+        if enabled:
+            arguments.append(f"--{variant}-resident-odometry")
     return arguments
 
 
@@ -580,6 +593,128 @@ def _plane_backends(args: argparse.Namespace) -> dict[str, str]:
 
 def _plane_comparison(args: argparse.Namespace) -> bool:
     return "cuda" in _plane_backends(args).values()
+
+
+def _resident_backends(args: argparse.Namespace) -> dict[str, bool]:
+    return {variant: bool(getattr(args, f"{variant}_resident_odometry", False))
+            for variant in ("prior", "current")}
+
+
+def _resident_hashes(root: Path) -> dict[str, str]:
+    """Read frozen source constants without importing optional CUDA dependencies."""
+    paths = {
+        "resident": root / "src/calibrex/solvers/_cuda_resident_kernels.py",
+        "native": root / "src/calibrex/solvers/cuda_scan_odometry_adapter.py",
+    }
+    constants = {}
+    for path in paths.values():
+        for node in ast.parse(path.read_bytes()).body:
+            if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and isinstance(node.value.value, str):
+                        constants[target.id] = node.value.value
+    sources = {
+        "query_sha256": constants["_GRID_SOURCE"],
+        "system_sha256": "".join(constants[name] for name in (
+            "_SYSTEM_SOURCE", "_FUSED_GRID_SOURCE", "_COVARIANCE_SOURCE", "_NORMAL_SOURCE",
+        )),
+        "geometry_sha256": "".join(constants[name] for name in (
+            "_VOXEL_SOURCE", "_GYRO_SOURCE", "_GEOMETRY_SOURCE",
+        )),
+    }
+    return {key: hashlib.sha256(source.encode()).hexdigest() for key, source in sources.items()}
+
+
+def _validate_resident_execution(result: dict, enabled: bool, hashes: dict | None) -> None:
+    options = result["options"]
+    if options.get("resident_odometry", False) != enabled:
+        raise ValueError("resident geometry option differs")
+    work = options.get("resident_geometry_execution")
+    if not enabled:
+        if work is not None:
+            raise ValueError("ordinary odometry reported resident geometry work")
+        return
+    if hashes is None or not isinstance(work, dict) or any(
+        type(value) is not int or value < 0 for value in work.values()
+    ):
+        raise ValueError("resident geometry counters are missing or invalid")
+    if any(work.get(name, 0) <= 0 for name in (
+        "source_captures", "source_cache_hits", "preprocess_calls", "preprocess_rows", "transforms",
+    )) or not 0 < work.get("source_cache_bytes", 0) <= 512 * 1024**2:
+        raise ValueError("resident geometry did not execute the declared work")
+    for name in ("initial_odometry_execution", "segment_odometry_execution"):
+        for report in options[name]:
+            identity = dict(
+                field.split("=", 1) for field in report["executed_backends"][0].split(";")[1:]
+            )
+            expected = {
+                "fp64": "true", "query_fma": "false", "geometry_pipeline": "resident-v1", **hashes,
+            }
+            if any(identity.get(key) != value for key, value in expected.items()):
+                raise ValueError("resident geometry kernel identity differs from frozen sources")
+            statistics = report["statistics"]
+            if statistics.get("gpu_grid_captures", 0) + statistics.get(
+                "gpu_grid_native_fallbacks", 0,
+            ) <= 0:
+                raise ValueError("resident geometry did not capture any targets")
+
+
+def _same_float_bits(left: object, right: object) -> bool:
+    if type(left) is not type(right):
+        return False
+    if isinstance(left, dict):
+        assert isinstance(right, dict)
+        return left.keys() == right.keys() and all(
+            _same_float_bits(left[key], right[key]) for key in left
+        )
+    if isinstance(left, list):
+        assert isinstance(right, list)
+        return len(left) == len(right) and all(
+            _same_float_bits(a, b) for a, b in zip(left, right, strict=True)
+        )
+    if isinstance(left, float):
+        assert isinstance(right, float)
+        return struct.pack("<d", left) == struct.pack("<d", right)
+    return left == right
+
+
+def _validate_resident_pair(
+    prior: dict, current: dict, left: list[dict], right: list[dict],
+    native_hashes: tuple[str, str], resident_hashes: dict[str, str],
+) -> None:
+    """Keep every float bit, decision and common work counter after declared metadata."""
+    _validate_backend_execution(prior, "cuda")
+    _validate_backend_execution(current, "cuda")
+    _validate_resident_execution(prior, False, None)
+    _validate_resident_execution(current, True, resident_hashes)
+    values = [_without_run_metadata(result) for result in (prior, current)]
+    changed_counters = (
+        "serialized_tree_captures", "public_node_tree_captures", "scalar_query_repairs",
+        "gpu_grid_captures", "gpu_grid_native_fallbacks", "gpu_grid_brute_rows",
+        "native_tree_captures", "sparse_native_normal_rows", "spatial_native_normal_rows",
+        "gpu_parallel_fallback_dispatches",
+    )
+    for index, value in enumerate(values):
+        assert isinstance(value, dict)
+        value["options"].pop("resident_odometry", None)
+        value["options"].pop("resident_geometry_execution", None)
+        for name in ("initial_odometry_execution", "segment_odometry_execution"):
+            for report in value["options"][name]:
+                if index == 0:
+                    identity = report["executed_backends"][0]
+                    if any(f"{name}={digest}" not in identity for name, digest in zip(
+                        ("query_sha256", "system_sha256"), native_hashes, strict=True,
+                    )):
+                        raise ValueError("ordinary spatial identity differs from frozen sources")
+                report["executed_backends"] = ["<validated FP64 odometry execution>"]
+                for counter in changed_counters:
+                    report["statistics"].pop(counter, None)
+    if not _same_float_bits(values[0], values[1]):
+        raise ValueError("resident complete calibration/evidence or common work differs")
+    fits = [[{key: value for key, value in fit.items() if key != "seconds"} for fit in records]
+            for records in (left, right)]
+    if not _same_float_bits(*fits):
+        raise ValueError("resident complete fit float bits differ")
 
 
 def _plane_kernel_hash(source: bytes) -> str:
@@ -666,6 +801,8 @@ def main() -> None:
                         help="require exact outputs/work, allowing only async scheduling metadata")
     parser.add_argument("--require-exact-spatial-results", action="store_true",
                         help="require exact outputs/work, allowing source-bound pruning metadata")
+    parser.add_argument("--require-exact-resident-results", action="store_true",
+                        help="require identical float bits and common work after resident metadata")
     parser.add_argument(
         "--comparison", choices=("source", "cpu-cpu", "cpu-source", "cpu-cuda", "cuda-cuda"),
         default="source",
@@ -674,6 +811,10 @@ def main() -> None:
     parser.add_argument("--current-query-workers", type=int, default=8)
     parser.add_argument("--prior-fit-plane-backend", choices=("numpy", "cuda"), default="numpy")
     parser.add_argument("--current-fit-plane-backend", choices=("numpy", "cuda"), default="numpy")
+    parser.add_argument("--prior-resident-odometry", action="store_true",
+                        help="use the resident geometry pipeline in the prior CUDA worker")
+    parser.add_argument("--current-resident-odometry", action="store_true",
+                        help="use the resident geometry pipeline in the current CUDA worker")
     parser.add_argument("--odometry-voxel-size-m", type=float)
     parser.add_argument("--odometry-local-map-scans", type=int)
     parser.add_argument("--odometry-geometry-quantum-m", type=float)
@@ -691,8 +832,23 @@ def main() -> None:
         parser.error("need positive repeats/seconds and at least two map rounds")
     if args.prior_query_workers < 1 or args.current_query_workers < 1:
         parser.error("query workers must be positive integers")
-    if _plane_comparison(args) and (args.comparison != "cuda-cuda" or args.require_exact_results):
-        parser.error("CUDA plane comparison requires cuda-cuda and numeric output comparison")
+    if _plane_comparison(args) and (
+        args.comparison not in ("cpu-cuda", "cuda-cuda") or args.require_exact_results
+        or (args.comparison == "cpu-cuda" and args.prior_fit_plane_backend != "numpy")
+    ):
+        parser.error("CUDA plane comparison requires GPU workers and numeric output comparison")
+    if any(_resident_backends(args).values()) and (
+        args.comparison not in ("cpu-cuda", "cuda-cuda")
+        or any(enabled and _backend(args.comparison, variant) != "cuda"
+               for variant, enabled in _resident_backends(args).items())
+        or any(getattr(args, name) is None or not (
+            0 < getattr(args, name) < float("inf")
+        ) for name in (
+            "odometry_geometry_quantum_m", "odometry_motion_translation_quantum_m",
+            "odometry_motion_rotation_quantum_rad",
+        ))
+    ):
+        parser.error("resident geometry requires a CUDA worker and three explicit positive quanta")
     if args.require_exact_preparation_results and (
         args.comparison != "cuda-cuda" or args.require_exact_results
         or args.prior_fit_plane_backend != args.current_fit_plane_backend
@@ -704,6 +860,14 @@ def main() -> None:
         or args.prior_fit_plane_backend != args.current_fit_plane_backend
     ):
         parser.error("exact spatial comparison requires cuda-cuda with the same plane backend")
+    if args.require_exact_resident_results and (
+        args.comparison != "cuda-cuda" or _resident_backends(args) != {
+            "prior": False, "current": True,
+        } or args.prior_fit_plane_backend != args.current_fit_plane_backend
+        or args.require_exact_results or args.require_exact_preparation_results
+        or args.require_exact_spatial_results
+    ):
+        parser.error("exact resident comparison requires ordinary/resident CUDA with the same fit")
     if args.comparison != "source" and (
         any(value is None for value in _odometry_options(args).values())
         or args.odometry_voxel_size_m <= 0 or args.odometry_local_map_scans < 1
@@ -742,6 +906,8 @@ def main() -> None:
                if args.require_exact_preparation_results else {}),
             **({"exact_spatial_outputs_required": True}
                if args.require_exact_spatial_results else {}),
+            **({"exact_resident_outputs_required": True}
+               if args.require_exact_resident_results else {}),
             "bag_sha256": _digest(bag),
             "launcher_sha256": launcher_digest,
             "scope": (
@@ -765,6 +931,8 @@ def main() -> None:
             **({"cpu_query_workers": _query_workers(args)}
                if args.comparison in ("cpu-cpu", "cpu-source") else {}),
             **({"fit_plane_backends": _plane_backends(args)} if _plane_comparison(args) else {}),
+            **({"resident_odometry": _resident_backends(args)}
+               if any(_resident_backends(args).values()) else {}),
         },
     )
     attempts: list[dict] = []
@@ -844,6 +1012,13 @@ def main() -> None:
             records = [json.loads((out / f"{repeat:02d}-{v}/measurement.json").read_bytes())
                        for v in ("prior", "current")]
             _validate_plane_fit_pair(records[0]["rounds"], records[1]["rounds"])
+        if args.require_exact_resident_results:
+            records = [json.loads((out / f"{repeat:02d}-{v}/measurement.json").read_bytes())
+                       for v in ("prior", "current")]
+            _validate_resident_pair(
+                prior, current, records[0]["rounds"], records[1]["rounds"],
+                _scan_spatial_hashes(roots["prior"]), _resident_hashes(roots["current"]),
+            )
         pairs.append(_compare(prior, current))
     medians = {
         v: statistics.median(a["whole_seconds"] for a in attempts if a["variant"] == v)

@@ -60,7 +60,7 @@ from calibrex.solvers.imu_lidar_rotation_solver import (
     model_residuals,
     rate_intervals,
 )
-from calibrex.solvers.scan_to_scan_odometry import RotationModel
+from calibrex.solvers.scan_to_scan_odometry import RotationModel, _OdometryFactory
 
 FloatArray: TypeAlias = NDArray[np.float64]
 _AXES: tuple[str, str, str] = ("roll", "pitch", "yaw")
@@ -216,6 +216,7 @@ def run_livox_imu_lidar_rotation(
     reference: str | None = None,
     command: list[str] | None = None,
     scan_store: ScanStore | None = None,
+    _odometry_factory: _OdometryFactory | None = None,
 ) -> ImuLidarRotationArtifact:
     """Run odometry and the rotation evaluation on Livox ROS 2 bags of one rig.
 
@@ -271,6 +272,7 @@ def run_livox_imu_lidar_rotation(
                 max_scans=max_scans,
                 into=segmenter,
                 rotation_model=model,
+                _odometry_factory=_odometry_factory,
             )
         assert segmenter is not None
         execution_reports.append(segmenter.execution_report())
@@ -840,6 +842,7 @@ def collect_livox_windows(
     max_seconds: float | None = None,
     scan_store: ScanStore | None = None,
     execution_reports: list[dict[str, object]] | None = None,
+    _odometry_factory: _OdometryFactory | None = None,
 ) -> tuple[GyroSeries, list[OdometryWindow]]:
     """Load the gyro and the odometry windows of Livox bags (one rig)."""
 
@@ -858,6 +861,7 @@ def collect_livox_windows(
             max_scans=max_scans,
             into=segmenter,
             rotation_model=rotation_model,
+            _odometry_factory=_odometry_factory,
         )
     assert segmenter is not None
     if execution_reports is not None:
