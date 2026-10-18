@@ -15,6 +15,7 @@ import cupy as cp
 from calibrex.solvers.cuda_resident_odometry_adapter import (
     ResidentGeometrySession,
     _DeviceGrid,
+    _DeviceGyro,
     _ResidentTarget,
 )
 from calibrex.solvers.cuda_scan_odometry_adapter import CudaOdometryTarget, _CapturedSource
@@ -186,7 +187,11 @@ def test_resident_temporal_passes_match_native_cuda_and_reuse_scans(
                 )
         assert session.statistics()["source_captures"] == len(scans)
         assert session.statistics()["source_cache_hits"] == len(scans)
+        assert session.statistics()["source_validation_rows"] == sum(map(len, scans))
         assert bool(session.statistics()["gyro_rows"]) == (deskew == "gyro")
+        assert session.statistics()["gyro_cached_validations"] == (
+            2 * (len(scans) - 1) if deskew == "gyro" else 0
+        )
 
 
 def test_session_ownership_and_exception_restore_the_callers_stream() -> None:
@@ -216,15 +221,18 @@ def test_cache_captures_content_and_offsets_without_aliasing_host_mutations() ->
         assert geometry is not None
         points = _scene()
         offsets = np.linspace(0, 0.09, len(points))
-        captured, captured_offsets = geometry.capture(points, offsets)
+        capture = geometry.capture(points, offsets)
+        captured, captured_offsets = capture.points, capture.offsets
         cp.cuda.get_current_stream().synchronize()
         saved = points.copy()
-        assert geometry.capture(points.copy(), offsets.copy())[0] is captured
+        assert geometry.capture(points.copy(), offsets.copy()) is capture
         points[0] += 0.001
-        assert geometry.capture(points, offsets)[0] is not captured
+        assert geometry.capture(points, offsets).points is not captured
         offsets[0] += 0.001
-        assert geometry.capture(saved, offsets)[1] is not captured_offsets
+        assert geometry.capture(saved, offsets).offsets is not captured_offsets
         np.testing.assert_array_equal(cp.asnumpy(captured), saved)
+        assert capture.finite_points
+        assert capture.offset_bounds == (0.0, 0.09)
 
 
 def test_arbitrary_rotation_callbacks_keep_the_native_path() -> None:
@@ -235,3 +243,150 @@ def test_arbitrary_rotation_callbacks_keep_the_native_path() -> None:
         actual = session.create_odometry(_options(), rotation_model=callback, backend="cuda")
         assert isinstance(actual, IncrementalScanOdometry)
         assert session.statistics()["native_model_fallbacks"] == 1
+
+
+def _gyro_model() -> _GyroRotationModel:
+    times = np.linspace(0, 1, 201)
+    rates = np.stack([0.02 + 0.01 * times, -0.01 * times, 0.015 + 0.03 * times], axis=1)
+    return _GyroRotationModel(
+        GyroSeries(times, rates),
+        Rotation.from_rotvec([0.1, -0.2, 0.05]).as_matrix(),
+        np.array([0.001, -0.002, 0.003]),
+        0.003,
+    )
+
+
+def test_gyro_uses_capture_validation_without_device_reductions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    points = _scene()
+    offsets = np.linspace(-0.02, 0.09, len(points))
+    model = _gyro_model()
+    expected = model.rotate_points(0.2, offsets, points)
+
+    def unexpected(*args: object, **kwargs: object) -> None:
+        pytest.fail("gyro capture validation launched a device reduction")
+
+    with ResidentGeometrySession() as session:
+        geometry = session._geometry
+        assert geometry is not None
+        capture = geometry.capture(points, offsets)
+        gyro = _DeviceGyro(model, geometry)
+        with monkeypatch.context() as patch:
+            for name in ("min", "max", "isfinite"):
+                patch.setattr(cp, name, unexpected)
+            actual = gyro.rotate(0.2, capture)
+        np.testing.assert_allclose(cp.asnumpy(actual), expected, rtol=1e-14, atol=1e-14)
+        assert geometry.gyro_cached_validations == 1
+        assert geometry.gyro_fallbacks == 0
+
+
+@pytest.mark.parametrize(
+    ("start", "offsets", "first", "last"),
+    [
+        (0.0, [0.0, 0.1, 0.2], 0.0, 0.2),
+        (0.0, [-1e-15, 0.0, 0.1], 0.0, 1.0),
+        (1.0, [0.0, np.nextafter(0.0, 1.0), 0.0], 0.0, 1.0),
+        (1.0, [0.0, 2 * np.finfo(float).eps, 0.0], 0.0, 1.0),
+        (2.0**50, [-0.03125, 0.03125, 0.0625], 2.0**50, 2.0**50 + 0.25),
+        (np.finfo(float).max, [0.0, np.finfo(float).max, -1.0], 0.0, np.finfo(float).max),
+        (float("nan"), [0.0, 0.1, 0.2], 0.0, 1.0),
+        (float("inf"), [0.0, 0.1, 0.2], 0.0, 1.0),
+    ],
+)
+def test_capture_coverage_matches_device_timestamp_rounding(
+    start: float,
+    offsets: list[float],
+    first: float,
+    last: float,
+) -> None:
+    with ResidentGeometrySession() as session:
+        geometry = session._geometry
+        assert geometry is not None
+        capture = geometry.capture(np.ones((len(offsets), 3)), np.array(offsets))
+        queries = cp.asnumpy(start + capture.offsets)
+        expected = bool(
+            np.isfinite(start)
+            and first <= start <= last
+            and queries.min() >= first
+            and queries.max() <= last
+        )
+        assert capture.covers(start, first, last) == expected
+
+
+@pytest.mark.parametrize(
+    "kind",
+    ["before", "after", "spans-before", "spans-after", "nan", "infinity", "empty", "model"],
+)
+def test_cached_gyro_validation_keeps_native_fallbacks(
+    kind: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    points = _scene()
+    offsets = np.linspace(0.0, 0.09, len(points))
+    scan_time = 0.2
+    model = _gyro_model()
+    if kind == "before":
+        scan_time = -1.0
+    elif kind == "after":
+        scan_time = 2.0
+    elif kind == "spans-before":
+        offsets[0] = -1.0
+    elif kind == "spans-after":
+        offsets[-1] = 2.0
+    elif kind in ("nan", "infinity"):
+        points[0, 0] = np.nan if kind == "nan" else np.inf
+    elif kind == "empty":
+        points, offsets = points[:0], offsets[:0]
+    elif kind == "model":
+        model = _GyroRotationModel(
+            model.gyro,
+            model.rotation,
+            np.array([2.0, 0.0, 0.0]),
+            model.time_offset_s,
+        )
+    calls = []
+
+    def fallback(
+        self: _GyroRotationModel,
+        time_s: float,
+        times: np.ndarray,
+        values: np.ndarray,
+    ) -> np.ndarray:
+        assert self is model and time_s == scan_time
+        np.testing.assert_array_equal(times, offsets)
+        np.testing.assert_array_equal(values, points)
+        calls.append(time_s)
+        return np.full(values.shape, 7.0)
+
+    with ResidentGeometrySession() as session:
+        geometry = session._geometry
+        assert geometry is not None
+        capture = geometry.capture(points, offsets)
+        monkeypatch.setattr(_GyroRotationModel, "rotate_points", fallback)
+        actual = _DeviceGyro(model, geometry).rotate(scan_time, capture)
+        np.testing.assert_array_equal(cp.asnumpy(actual), np.full(points.shape, 7.0))
+        assert calls == [scan_time]
+        assert geometry.gyro_fallbacks == 1
+
+
+def test_capture_validation_tracks_mutated_content_and_uncached_inputs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from calibrex.solvers import cuda_resident_odometry_adapter as resident
+
+    monkeypatch.setattr(resident, "_CACHE_BYTES", 1)
+    points = _scene()
+    offsets = np.linspace(0.0, 0.09, len(points))
+    with ResidentGeometrySession() as session:
+        geometry = session._geometry
+        assert geometry is not None
+        first = geometry.capture(points, offsets)
+        assert first.finite_points and first.offset_bounds == (0.0, 0.09)
+        assert not geometry.scans
+        points[0, 0] = np.nan
+        offsets[-1] = 0.5
+        second = geometry.capture(points, offsets)
+        assert not second.finite_points and second.offset_bounds == (0.0, 0.5)
+        assert first.finite_points and first.offset_bounds == (0.0, 0.09)
+        assert geometry.source_validation_rows == 2 * len(points)
