@@ -24,6 +24,8 @@ from calibrex.solvers.scan_to_scan_odometry import (
     RotationModel,
     ScanOdometryOptions,
     ScanRegistration,
+    _IncrementalOdometry,
+    _OdometryFactory,
 )
 
 FloatArray: TypeAlias = NDArray[np.float64]
@@ -65,8 +67,9 @@ class OdometrySegmenter:
     unreliable: int = 0
     execution_backends: set[str] = field(default_factory=set)
     execution_statistics: dict[str, int] = field(default_factory=dict)
-    _odometry: IncrementalScanOdometry | None = None
+    _odometry: _IncrementalOdometry | None = None
     _times: list[float] = field(default_factory=list)
+    _factory: _OdometryFactory | None = field(default=None, kw_only=True, repr=False)
 
     def add(self, time_s: float, scan: FloatArray, offsets_s: FloatArray | None = None) -> None:
         """Feed one scan; an uncovered scan ends the current odometry segment."""
@@ -77,7 +80,8 @@ class OdometrySegmenter:
             return
         self.scans_covered += 1
         if self._odometry is None:
-            self._odometry = IncrementalScanOdometry(
+            factory = self._factory or IncrementalScanOdometry
+            self._odometry = factory(
                 self.options.odometry, rotation_model=self.rotation_model,
                 backend=self.options.odometry_backend,
             )
@@ -151,10 +155,13 @@ def collect_odometry_windows(
     max_scans: int | None = None,
     into: OdometrySegmenter | None = None,
     rotation_model: RotationModel | None = None,
+    _odometry_factory: _OdometryFactory | None = None,
 ) -> OdometrySegmenter:
     """Stream scans once and return the segmenter holding every window."""
 
-    segmenter = into or OdometrySegmenter(options, covers, rotation_model=rotation_model)
+    segmenter = into or OdometrySegmenter(
+        options, covers, rotation_model=rotation_model, _factory=_odometry_factory,
+    )
     segmenter.prefix = prefix
     if covers is not None:
         segmenter.covers = covers

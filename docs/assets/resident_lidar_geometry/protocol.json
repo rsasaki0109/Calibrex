@@ -1,0 +1,64 @@
+{
+  "scope": "Three fresh, cyclic, cold complete production calibrations on identical public data/options.",
+  "commits": {
+    "baseline": "ae5a55822485b4ee9daf2b0195aa35bd4c5b7484",
+    "current": "5fda3a1f29a33289828798a04cd4236af9d5b4b7"
+  },
+  "launch_order": [
+    [
+      "cpu",
+      "native",
+      "resident"
+    ],
+    [
+      "resident",
+      "cpu",
+      "native"
+    ],
+    [
+      "native",
+      "resident",
+      "cpu"
+    ]
+  ],
+  "options": {
+    "max_seconds": 6.0,
+    "max_rounds": 4,
+    "voxel_size_m": 0.03,
+    "local_map_scans": 3,
+    "geometry_quantum_m": 1e-09,
+    "motion_translation_quantum_m": 1e-06,
+    "motion_rotation_quantum_rad": 1e-07
+  },
+  "plane_backends": {
+    "cpu": "numpy",
+    "native": "cuda",
+    "resident": "cuda"
+  },
+  "gates": {
+    "all_original_physical_evidence_and_decisions": true,
+    "all_full_fits_rtol": 1e-08,
+    "all_full_fits_atol": 1e-09,
+    "native_resident_all_float_bits_equal_after_declared_execution_metadata": true,
+    "native_resident_all_placement_bits_equal": true,
+    "median_cpu_to_resident_minimum": 2.0,
+    "median_native_to_resident_minimum_exclusive": 1.0
+  },
+  "limitations": [
+    "Spent GLIM development sequence; no independent extrinsic truth.",
+    "Positive explicit grids and dense geometry; not default/zero-grid speed.",
+    "Host resources unreserved; no extrapolation to other devices or bags."
+  ],
+  "bag": {
+    "path": "data/public/glim_versatile/livox.bag",
+    "bytes": 613350674,
+    "sha256": "f57a2e85339316d4235ab693ab2876aac5e113625c7f8b0f7873b62f92e09643"
+  },
+  "provenance": {
+    "launcher_sha256": "e347e619bdb4f2a95dd06418856f2a12538544679b81216e755e9387ffcfe562",
+    "benchmark_sha256": "9c29cd4193c8693fd5a939edda56b9dda35d0e4f74cfb4b1dc7281231bad25aa",
+    "schema_sha256": "4e516691d39107001e0aed6d5d43a53d12e40ba3c57b42658a3eb4acaec3af7e",
+    "baseline_manifest_sha256": "1ddfb1dd44f6bc7456447726e499dfb376e82ecefe95bd566fb9e41a3bd4832d",
+    "current_manifest_sha256": "dd299bc99855a9a1423b9fe9347537cf08836494af256e77357f7c1e69ac35d7"
+  }
+}

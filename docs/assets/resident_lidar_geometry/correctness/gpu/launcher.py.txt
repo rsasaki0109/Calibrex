@@ -1,0 +1,45 @@
+"""Pin the in-development runtime and execute actual-device regression tests."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+ROOT = Path(__file__).resolve().parent
+OUT = ROOT / "outputs/resident-runtime-tests-v2"
+OUT.mkdir(exist_ok=False)
+environment = dict(os.environ)
+for name in ("OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "OMP_NUM_THREADS"):
+    environment[name] = "1"
+environment["CUPY_CACHE_DIR"] = str(OUT / "cupy-cache")
+environment["CUDA_CACHE_DISABLE"] = "1"
+selected = [
+    "tests/unit/test_cuda_resident_odometry_adapter.py",
+    "tests/unit/test_cuda_scan_odometry_adapter.py",
+]
+sha = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
+for name in selected:
+    (OUT / (Path(name).name + ".txt")).write_bytes((ROOT / name).read_bytes())
+provenance = {
+    "scope": "Actual-device correctness regression; no latency claim.",
+    "launcher_sha256": sha(Path(__file__)),
+    "sources": {p.relative_to(ROOT).as_posix(): sha(p)
+                for p in sorted((ROOT / "src/calibrex").rglob("*.py"))},
+    "tests": {p: sha(ROOT / p) for p in selected},
+    "cache": "one fresh workspace cache for this correctness test process",
+}
+(OUT / "provenance.json").write_text(json.dumps(provenance, indent=2)+"\n")
+start = time.perf_counter()
+with (OUT / "pytest.log").open("wb") as output:
+    result = subprocess.run(
+        [sys.executable, "-m", "pytest", *selected,
+         "--basetemp=" + str(OUT / "tmp"), "-o", "cache_dir=" + str(OUT / "pytest-cache")],
+        cwd=ROOT, env=environment, stdout=output, stderr=subprocess.STDOUT, timeout=1200,
+    )
+summary = {"exit_code": result.returncode, "elapsed_seconds": time.perf_counter()-start,
+           "provenance_sha256": sha(OUT / "provenance.json"),
+           "pytest_log_sha256": sha(OUT / "pytest.log")}
+(OUT / "summary.json").write_text(json.dumps(summary, indent=2)+"\n")
+print(json.dumps(summary), flush=True)

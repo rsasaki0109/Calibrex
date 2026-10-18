@@ -1234,6 +1234,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="backend for spline plane residuals and systems (CUDA is optional)",
     )
     imu_lidar_joint.add_argument(
+        "--resident-odometry", action="store_true",
+        help="keep odometry geometry on CUDA; requires --odometry-backend cuda and all "
+        "three explicit odometry geometry/motion quanta",
+    )
+    imu_lidar_joint.add_argument(
         "--odometry-voxel-size-m", type=_positive_float,
         help="voxel size for scan odometry; smaller values retain denser geometry",
     )
@@ -7512,6 +7517,8 @@ def _cmd_imu_lidar_joint(args: argparse.Namespace) -> int:
     if args.imu_lowpass_hz is not None:
         command += ["--imu-lowpass-hz", str(args.imu_lowpass_hz)]
     command += ["--odometry-backend", args.odometry_backend]
+    if args.resident_odometry:
+        command += ["--resident-odometry"]
     windowing = WindowingOptions(odometry_backend=args.odometry_backend)
     odometry_settings = {
         "voxel_size_m": args.odometry_voxel_size_m,
@@ -7548,6 +7555,7 @@ def _cmd_imu_lidar_joint(args: argparse.Namespace) -> int:
             LidarImuBagOptions(
                 max_rounds=args.max_rounds, imu_lowpass_hz=args.imu_lowpass_hz,
                 fit_plane_backend=args.fit_plane_backend,
+                resident_odometry=args.resident_odometry,
                 rotation=ImuLidarRunOptions(windowing=windowing),
             ),
             dataset_family=args.dataset_family,

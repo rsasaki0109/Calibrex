@@ -82,6 +82,7 @@ from calibrex.evaluation.imu_lidar_rotation import (
 from calibrex.solvers.imu_lidar_rotation_solver import GyroSeries, gyro_rotation_model
 from calibrex.solvers.scan_to_scan_odometry import (
     ScanOdometryOptions,
+    _OdometryFactory,
     estimate_normals,
     preprocess_scan,
 )
@@ -175,10 +176,23 @@ class LidarImuBagOptions:
     )
     seed: int = 20261011
     rotation: ImuLidarRunOptions = field(default_factory=ImuLidarRunOptions)
+    resident_odometry: bool = False
 
     def __post_init__(self) -> None:
         if self.fit_plane_backend not in ("numpy", "cuda"):
             raise ValueError("spline plane backend must be numpy or cuda")
+        if self.resident_odometry:
+            odometry = self.rotation.windowing.odometry
+            if self.rotation.windowing.odometry_backend != "cuda":
+                raise ValueError("resident odometry requires the CUDA odometry backend")
+            quanta = (
+                odometry.geometry_quantum_m, odometry.motion_translation_quantum_m,
+                odometry.motion_rotation_quantum_rad,
+            )
+            if any(not math.isfinite(value) or value <= 0 for value in quanta):
+                raise ValueError(
+                    "resident odometry requires three explicit positive odometry quanta",
+                )
 
 
 @dataclass(frozen=True)
@@ -201,6 +215,37 @@ def calibrate_lidar_imu_bag(
     """Calibrate the IMU against the LiDAR of one bag; see the module docstring."""
 
     opts = options or LidarImuBagOptions()
+    if not opts.resident_odometry:
+        return _calibrate_lidar_imu_bag(
+            bag, profile, opts, dataset_family=dataset_family, dataset_license=dataset_license,
+            max_seconds=max_seconds, command=command,
+        )
+    try:
+        from calibrex.solvers.cuda_resident_odometry_adapter import ResidentGeometrySession
+    except ImportError as exc:
+        raise ValueError(
+            "resident odometry requires the optional calibrex[cuda] dependency",
+        ) from exc
+    with ResidentGeometrySession() as session:
+        artifact = _calibrate_lidar_imu_bag(
+            bag, profile, opts, dataset_family=dataset_family, dataset_license=dataset_license,
+            max_seconds=max_seconds, command=command, _odometry_factory=session.create_odometry,
+        )
+        artifact.options["resident_geometry_execution"] = session.statistics()
+        return artifact
+
+
+def _calibrate_lidar_imu_bag(
+    bag: str | Path,
+    profile: LivoxStreamProfile,
+    opts: LidarImuBagOptions,
+    *,
+    dataset_family: str,
+    dataset_license: str,
+    max_seconds: float | None = None,
+    command: list[str] | None = None,
+    _odometry_factory: _OdometryFactory | None = None,
+) -> LidarImuBagCalibrationArtifact:
     if opts.max_rounds <= opts.warmup_rounds:
         raise ValueError("max_rounds must exceed warmup_rounds so that every block is fitted")
     bag_path = Path(bag)
@@ -219,6 +264,7 @@ def calibrate_lidar_imu_bag(
         reference_rotation=None,
         max_seconds=max_seconds,
         scan_store=store,
+        _odometry_factory=_odometry_factory,
     )
     if initial.rotation_quat_xyzw is None:
         raise ValueError(
@@ -246,6 +292,7 @@ def calibrate_lidar_imu_bag(
         max_seconds=max_seconds,
         scan_store=store,
         execution_reports=segment_execution,
+        _odometry_factory=_odometry_factory,
     )
     if not windows:
         raise ValueError("no reliable LiDAR odometry segment in the bag")
@@ -451,6 +498,7 @@ def calibrate_lidar_imu_bag(
             "odometry_options": asdict(opts.rotation.windowing.odometry),
             "initial_odometry_execution": initial.options.get("odometry_execution", []),
             "segment_odometry_execution": segment_execution,
+            **({"resident_odometry": True} if opts.resident_odometry else {}),
             **({"fit_plane_backend": opts.fit_plane_backend, "fit_execution": fit_execution}
                if opts.fit_plane_backend != "numpy" else {}),
         },
@@ -510,11 +558,7 @@ def _segment_scans(
 
 
 def _place(trajectory: CubicBSplineTrajectory, times: FloatArray, points: FloatArray) -> FloatArray:
-    states = trajectory.evaluate(times)
-    return np.asarray(
-        np.einsum("tij,tj->ti", states.rotation_world_body, points) + states.position_world_m,
-        dtype=float,
-    )
+    return trajectory.transform_points(times, points)
 
 
 def _associate(

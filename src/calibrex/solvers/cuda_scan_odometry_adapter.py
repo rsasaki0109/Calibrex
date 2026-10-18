@@ -5,11 +5,12 @@ from __future__ import annotations
 import hashlib
 import math
 from dataclasses import dataclass, replace
-from typing import Any
+from typing import Any, Protocol
 
 import cupy as cp
 import numpy as np
 from numpy.typing import NDArray
+from scipy.spatial import cKDTree
 
 from calibrex.solvers.cuda_lidar_map_adapter import (
     _SOURCE,
@@ -248,6 +249,70 @@ class _PendingNormals:
     k: int
 
 
+@dataclass
+class _CapturedSource:
+    """Own one register call's source; host copies are created only by native repairs."""
+
+    host: FloatArray | None
+    points: cp.ndarray | None = None
+
+    @property
+    def nbytes(self) -> int:
+        if self.host is not None:
+            return int(self.host.nbytes)
+        assert self.points is not None
+        return int(self.points.nbytes)
+
+    def maximum(self) -> float:
+        if self.host is not None:
+            return float(np.max(np.abs(self.host))) if len(self.host) else 1.0
+        assert self.points is not None
+        with cp.cuda.Device(self.points.device.id):
+            return float(cp.max(cp.abs(self.points)).get()) if len(self.points) else 1.0
+
+    def device(self) -> cp.ndarray:
+        if self.points is None:
+            assert self.host is not None
+            self.points = cp.asarray(self.host)
+        return self.points
+
+    def native(self) -> FloatArray:
+        if self.host is None:
+            assert self.points is not None
+            with cp.cuda.Device(self.points.device.id):
+                self.host = np.asarray(cp.asnumpy(self.points), dtype=np.float64)
+        return self.host
+
+    def native_rows(self, rows: NDArray[np.int64]) -> FloatArray:
+        if self.host is not None:
+            return self.host[rows]
+        assert self.points is not None
+        with cp.cuda.Device(self.points.device.id):
+            return np.asarray(cp.asnumpy(self.points[cp.asarray(rows)]), dtype=np.float64)
+
+
+class _TargetTree(Protocol):
+    """Spatial index contract shared by captured and device-built targets."""
+
+    data: cp.ndarray
+    arrays: tuple[cp.ndarray, ...]
+    capture_method: str
+    query_calls: int
+    query_rows: int
+
+    @property
+    def cpu(self) -> cKDTree: ...
+
+    def query(self, points: cp.ndarray, k: int) -> tuple[cp.ndarray, cp.ndarray]: ...
+
+
+def _validate_options(options: ScanOdometryOptions) -> None:
+    if not 2 <= options.normal_neighbours <= 16:
+        raise ValueError("CUDA normal neighborhoods require 2 through 16 neighbors")
+    if not np.isfinite(options.max_correspondence_m) or options.max_correspondence_m <= 0:
+        raise ValueError("CUDA correspondence gate must be finite and positive")
+
+
 class CudaOdometryTarget:
     """Capture one target and reuse its tree/normals across deskew rounds.
 
@@ -258,26 +323,41 @@ class CudaOdometryTarget:
     """
 
     def __init__(self, target: FloatArray, options: ScanOdometryOptions) -> None:
-        self._pending_normals: _PendingNormals | None = None
-        if not 2 <= options.normal_neighbours <= 16:
-            raise ValueError("CUDA normal neighborhoods require 2 through 16 neighbors")
-        if not np.isfinite(options.max_correspondence_m) or options.max_correspondence_m <= 0:
-            raise ValueError("CUDA correspondence gate must be finite and positive")
-        self.options = options
-        self.device_id = cp.cuda.runtime.getDevice()
-        self.host = _coordinates(
-            _quantize_geometry(target, options.geometry_quantum_m), "odometry target",
+        _validate_options(options)
+        self._host: FloatArray | None = _coordinates(
+            _quantize_geometry(target, options.geometry_quantum_m),
+            "odometry target",
         )
         if len(self.host) < 3:
             raise ValueError("CUDA odometry targets require at least three points")
         if self.host.nbytes * 8 > 1024**3:
             raise ValueError("CUDA odometry target exceeds the 1 GiB payload budget")
+        self._initialize_target(
+            _CudaTree(self.host), options, max(1.0, float(np.max(np.abs(self.host)))),
+            execution_identity(),
+        )
+
+    @property
+    def host(self) -> FloatArray:
+        """Return native coordinates, downloading a resident target only on demand."""
+        if self._host is None:
+            with cp.cuda.Device(self.device_id):
+                self._host = _coordinates(cp.asnumpy(self.tree.data), "odometry target")
+        return self._host
+
+    def _initialize_target(
+        self, tree: _TargetTree, options: ScanOdometryOptions, scale: float, identity: str,
+    ) -> None:
+        """Initialize shared normals, kernels and counters after target validation."""
+        self._pending_normals: _PendingNormals | None = None
+        self.options = options
+        self.device_id = cp.cuda.runtime.getDevice()
+        self.tree = tree
         with cp.cuda.Device(self.device_id):
-            self.tree = _CudaTree(self.host)
             self._normals = cp.zeros_like(self.tree.data)
-            self._planar = cp.zeros(len(self.host), dtype=cp.bool_)
-            self.done = cp.zeros(len(self.host), dtype=cp.bool_)
-        self.scale = max(1.0, float(np.max(np.abs(self.host))))
+            self._planar = cp.zeros(self.point_count, dtype=cp.bool_)
+            self.done = cp.zeros(self.point_count, dtype=cp.bool_)
+        self.scale = scale
         self.query_repairs = 0
         self.normal_repairs = 0
         self.fused_calls = 0
@@ -289,7 +369,7 @@ class CudaOdometryTarget:
         self.async_normal_batches = 0
         self._prepared_normal_rows = 0
         self._all_done = False
-        self.identity = execution_identity()
+        self.identity = identity
         with cp.cuda.Device(self.device_id):
             self.system_kernel = cp.RawKernel(_SYSTEM_SOURCE, "system3", options=("--fmad=false",))
             self.fused_kernel = cp.RawKernel(
@@ -303,8 +383,18 @@ class CudaOdometryTarget:
                 options=("--fmad=false",),
             )
             self.normal_kernel = cp.RawKernel(
-                _NORMAL_SOURCE, "normals3", options=("--fmad=false",),
+                _NORMAL_SOURCE,
+                "normals3",
+                options=("--fmad=false",),
             )
+
+    @property
+    def point_count(self) -> int:
+        """Return the captured target size without requesting host coordinates."""
+        return len(self.tree.data)
+
+    def _reserve_queries(self, count: int) -> None:
+        """Allow an alternative spatial index to reserve its query workspace."""
 
     def __del__(self) -> None:
         # A caller can abandon a target while preprocessing/validation fails.
@@ -319,22 +409,34 @@ class CudaOdometryTarget:
 
     def _prime_normals(self, source_rows: int) -> None:
         """Enqueue one bounded dense batch while the caller prepares its source."""
-        if (self._all_done or self.normal_rows or self._pending_normals is not None
-                or len(self.host) > 65536 or source_rows < len(self.host) / 10):
+        if (
+            self._all_done
+            or self.normal_rows
+            or self._pending_normals is not None
+            or self.point_count > 65536
+            or source_rows < self.point_count / 10
+        ):
             return
         with cp.cuda.Device(self.device_id):
             # Allocate host ownership before submitting any asynchronous writes.
-            pinned = cp.cuda.alloc_pinned_memory(len(self.host))
-            native_flags = np.frombuffer(pinned, dtype=np.uint8, count=len(self.host))
-            rows = cp.arange(len(self.host), dtype=cp.int64)
-            k = min(self.options.normal_neighbours, len(self.host))
+            pinned = cp.cuda.alloc_pinned_memory(self.point_count)
+            native_flags = np.frombuffer(pinned, dtype=np.uint8, count=self.point_count)
+            rows = cp.arange(self.point_count, dtype=cp.int64)
+            k = min(self.options.normal_neighbours, self.point_count)
             try:
                 flags, distances, indexes = self._launch_normals(rows, self.tree.data, k)
                 cp.asnumpy(flags, out=native_flags, blocking=False)
                 ready = cp.cuda.Event()
                 ready.record()
                 self._pending_normals = _PendingNormals(
-                    rows, flags, distances, indexes, native_flags, pinned, ready, k,
+                    rows,
+                    flags,
+                    distances,
+                    indexes,
+                    native_flags,
+                    pinned,
+                    ready,
+                    k,
                 )
                 self.async_normal_batches += 1
             except Exception:
@@ -357,7 +459,7 @@ class CudaOdometryTarget:
                 raise
             else:
                 self._prepared_normal_rows += len(pending.rows)
-                self._all_done = self._prepared_normal_rows == len(self.host)
+                self._all_done = self._prepared_normal_rows == self.point_count
             finally:
                 self._pending_normals = None
 
@@ -387,17 +489,20 @@ class CudaOdometryTarget:
         if self._all_done:
             return
         if self.normal_rows:
-            self._ensure(cp.asarray(np.arange(len(self.host), dtype=np.int64)))
+            self._ensure(cp.asarray(np.arange(self.point_count, dtype=np.int64)))
         else:
             self._compute_normals(
-                cp.asarray(np.arange(len(self.host), dtype=np.int64)), complete=True,
+                cp.asarray(np.arange(self.point_count, dtype=np.int64)),
+                complete=True,
             )
 
     def _compute_normals(self, missing: cp.ndarray, *, complete: bool = False) -> None:
-        k = min(self.options.normal_neighbours, len(self.host))
+        k = min(self.options.normal_neighbours, self.point_count)
         for start in range(0, len(missing), 65536):
             rows = missing[start : start + 65536]
-            queries = self.tree.data[start:start + len(rows)] if complete else self.tree.data[rows]
+            queries = (
+                self.tree.data[start : start + len(rows)] if complete else self.tree.data[rows]
+            )
             flags, _distances, _indexes = self._launch_normals(rows, queries, k)
             try:
                 self._repair_normals(rows, k, cp.asnumpy(flags))
@@ -406,19 +511,33 @@ class CudaOdometryTarget:
                 self._all_done = False
                 raise
             self._prepared_normal_rows += len(rows)
-        self._all_done = self._prepared_normal_rows == len(self.host)
+        self._all_done = self._prepared_normal_rows == self.point_count
 
     def _launch_normals(
-        self, rows: cp.ndarray, queries: cp.ndarray, k: int,
+        self,
+        rows: cp.ndarray,
+        queries: cp.ndarray,
+        k: int,
     ) -> tuple[cp.ndarray, cp.ndarray, cp.ndarray]:
         self.normal_rows += len(rows)
         distances, indexes = self.tree.query(queries, k + 1)
         flags = cp.empty(len(rows), dtype=cp.uint8)
         self.normal_kernel(
-            ((len(rows) + 127) // 128,), (128,),
-            (self.tree.data, indexes, distances, rows, np.int32(len(rows)), np.int32(k),
-             np.float64(self.options.max_planarity_ratio), self._normals, self._planar,
-             self.done, flags),
+            ((len(rows) + 127) // 128,),
+            (128,),
+            (
+                self.tree.data,
+                indexes,
+                distances,
+                rows,
+                np.int32(len(rows)),
+                np.int32(k),
+                np.float64(self.options.max_planarity_ratio),
+                self._normals,
+                self._planar,
+                self.done,
+                flags,
+            ),
         )
         self.normal_kernel_calls += 1
         return flags, distances, indexes
@@ -430,7 +549,10 @@ class CudaOdometryTarget:
             _, native_indices = self.tree.cpu.query(self.host[native_rows], k=k)
             self.query_repairs += len(repair)
             normals, planar = _normals_from_neighbours(
-                self.host, native_indices, k, self.options,
+                self.host,
+                native_indices,
+                k,
+                self.options,
             )
             selected = rows[cp.asarray(repair)]
             self._normals[selected] = cp.asarray(normals)
@@ -438,11 +560,26 @@ class CudaOdometryTarget:
             self.normal_repairs += len(repair)
 
     def register(self, source: FloatArray, initial: FloatArray) -> ScanRegistration:
-        """Run native odometry iteration/stopping semantics on this captured target."""
+        """Capture native coordinates and execute the shared registration loop."""
         host_source = _coordinates(
-            _quantize_geometry(source, self.options.geometry_quantum_m), "odometry source",
+            _quantize_geometry(source, self.options.geometry_quantum_m),
+            "odometry source",
         )
-        if self.host.nbytes * 8 + host_source.nbytes * 12 > 1024**3:
+        return self._register_captured(_CapturedSource(host_source), initial)
+
+    def _register_captured(
+        self,
+        source: _CapturedSource,
+        initial: FloatArray,
+    ) -> ScanRegistration:
+        """Use validated source coordinates with lazy host repair access.
+
+        Native entry points validate before creating this capture. A device
+        pipeline must supply finite FP64 coordinates on this target's device.
+        """
+        if source.points is not None and source.points.device.id != self.device_id:
+            raise ValueError("captured source is on a different CUDA device")
+        if self.tree.data.nbytes * 8 + source.nbytes * 12 > 1024**3:
             raise ValueError("CUDA odometry inputs exceed the 1 GiB payload budget")
         transform = np.array(initial, dtype=np.float64, copy=True)
         if transform.shape != (4, 4) or not np.isfinite(transform).all():
@@ -452,14 +589,15 @@ class CudaOdometryTarget:
         converged, rmse = False, math.inf
         last_hessian: FloatArray | None = None
         uncertain_stopping = False
-        scale = max(self.scale, float(np.max(np.abs(host_source))) if len(host_source) else 1.0)
+        scale = max(self.scale, source.maximum())
         with cp.cuda.Device(self.device_id):
             self._finish_normal_preparation()
-            points = cp.asarray(host_source)
+            points = source.device()
+            self._reserve_queries(len(points))
             # Dense overlap amortizes one batched normal query/eigensolve.
             # Sparse sources request only their hits to avoid preparing a large,
             # mostly unused target. This changes work scheduling, not geometry.
-            if len(points) >= len(self.host) / 10:
+            if len(points) >= self.point_count / 10:
                 self._ensure_all()
             terms = cp.empty((31, len(points)), dtype=cp.float64)
             uncertain = cp.empty(len(points), dtype=cp.float64)
@@ -491,7 +629,7 @@ class CudaOdometryTarget:
                             self._planar,
                             self.done,
                             np.int32(len(points)),
-                            np.int32(len(self.host)),
+                            np.int32(self.point_count),
                             np.float64(opts.max_correspondence_m),
                             np.float64(opts.huber_delta_m),
                             np.float64(error),
@@ -514,7 +652,7 @@ class CudaOdometryTarget:
                     # iterations synchronize only for the reduced system.
                     moved = points @ matrix[:3, :3].T + matrix[:3, 3]
                     distances, indexes = self.tree.query(moved, 2)
-                    native_moved = host_source[rows] @ transform[:3, :3].T + transform[:3, 3]
+                    native_moved = source.native_rows(rows) @ transform[:3, :3].T + transform[:3, 3]
                     distance, index = self.tree.cpu.query(
                         native_moved,
                         k=1,
@@ -527,7 +665,7 @@ class CudaOdometryTarget:
                     self.query_repairs += len(rows)
                     valid_hits = indexes[:, 0][
                         (distances[:, 0] < opts.max_correspondence_m)
-                        & (indexes[:, 0] < len(self.host))
+                        & (indexes[:, 0] < self.point_count)
                     ]
                     self._ensure(valid_hits)
                     refresh = True
@@ -549,7 +687,7 @@ class CudaOdometryTarget:
                             distances,
                             indexes,
                             np.int32(len(points)),
-                            np.int32(len(self.host)),
+                            np.int32(self.point_count),
                             np.float64(opts.max_correspondence_m),
                             np.float64(opts.huber_delta_m),
                             terms,
@@ -586,7 +724,11 @@ class CudaOdometryTarget:
         near_motion_boundary = self._near_motion_boundary(transform)
         if uncertain_stopping or near_motion_boundary:
             native = register_point_to_plane(
-                host_source, self.host, initial, opts, target_tree=self.tree.cpu,
+                source.native(),
+                self.host,
+                initial,
+                opts,
+                target_tree=self.tree.cpu,
             )
             self.registration_repairs += 1
             self.motion_repairs += int(near_motion_boundary)
@@ -606,15 +748,19 @@ class CudaOdometryTarget:
 
     def _near_motion_boundary(self, transform: FloatArray) -> bool:
         """Use the native registration when the requested motion grid is ambiguous."""
-        if (self.options.motion_translation_quantum_m == 0
-                and self.options.motion_rotation_quantum_rad == 0):
+        if (
+            self.options.motion_translation_quantum_m == 0
+            and self.options.motion_rotation_quantum_rad == 0
+        ):
             return False
         from scipy.spatial.transform import Rotation
 
         for values, quantum in (
             (transform[:3, 3], self.options.motion_translation_quantum_m),
-            (Rotation.from_matrix(transform[:3, :3]).as_rotvec(),
-             self.options.motion_rotation_quantum_rad),
+            (
+                Rotation.from_matrix(transform[:3, :3]).as_rotvec(),
+                self.options.motion_rotation_quantum_rad,
+            ),
         ):
             if quantum and np.any(np.abs(np.remainder(values / quantum, 1) - 0.5) <= 1e-3):
                 return True

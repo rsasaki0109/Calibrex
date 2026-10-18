@@ -1,0 +1,60 @@
+"""Resident execution is explicit and ordinary imports remain CUDA-independent."""
+
+from __future__ import annotations
+
+import subprocess
+import sys
+from dataclasses import replace
+
+import numpy as np
+import pytest
+
+from calibrex.evaluation.imu_lidar_rotation import ImuLidarRunOptions
+from calibrex.evaluation.lidar_imu_bag_calibration import LidarImuBagOptions
+from calibrex.evaluation.odometry_windows import WindowingOptions
+from calibrex.solvers.scan_to_scan_odometry import ScanOdometryOptions
+
+
+def _options(**settings: float) -> LidarImuBagOptions:
+    odometry = ScanOdometryOptions(
+        geometry_quantum_m=1e-9, motion_translation_quantum_m=1e-6,
+        motion_rotation_quantum_rad=1e-7,
+    )
+    return LidarImuBagOptions(
+        resident_odometry=True,
+        rotation=ImuLidarRunOptions(windowing=WindowingOptions(
+            odometry_backend="cuda", odometry=replace(odometry, **settings),
+        )),
+    )
+
+
+def test_resident_execution_requires_explicit_backend_and_quanta() -> None:
+    assert not LidarImuBagOptions().resident_odometry
+    with pytest.raises(ValueError, match="CUDA odometry backend"):
+        LidarImuBagOptions(resident_odometry=True)
+    assert _options().resident_odometry
+    for name in (
+        "geometry_quantum_m", "motion_translation_quantum_m", "motion_rotation_quantum_rad",
+    ):
+        with pytest.raises(ValueError, match="explicit positive"):
+            _options(**{name: 0.0})
+    for value in (np.inf, np.nan, -1.0):
+        with pytest.raises(ValueError, match=r"finite|positive"):
+            _options(geometry_quantum_m=value)
+
+
+def test_native_import_does_not_load_optional_cuda_dependencies() -> None:
+    code = """
+import builtins
+original = builtins.__import__
+def blocked(name, *args, **kwargs):
+    if name.startswith(("cupy", "calibrex.solvers.cuda_")):
+        raise AssertionError("ordinary CPU imports requested CUDA")
+    return original(name, *args, **kwargs)
+builtins.__import__ = blocked
+from calibrex.evaluation.lidar_imu_bag_calibration import LidarImuBagOptions
+from calibrex.cli.main import _build_parser
+assert not LidarImuBagOptions().resident_odometry
+parser = _build_parser()
+"""
+    subprocess.run([sys.executable, "-c", code], check=True, capture_output=True, timeout=30)

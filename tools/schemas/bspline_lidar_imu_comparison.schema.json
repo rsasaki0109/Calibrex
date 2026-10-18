@@ -47,6 +47,16 @@
         "exact_outputs_required": {"const": true},
         "exact_preparation_outputs_required": {"const": true},
         "exact_spatial_outputs_required": {"const": true},
+        "exact_resident_outputs_required": {"const": true},
+        "resident_odometry": {
+          "type": "object",
+          "required": ["prior", "current"],
+          "properties": {
+            "prior": {"type": "boolean"},
+            "current": {"type": "boolean"}
+          },
+          "additionalProperties": false
+        },
         "bag_sha256": {
           "$ref": "#/$defs/sha"
         },
