@@ -1,0 +1,101 @@
+"""Preserve actual-source CPU/CUDA comparisons and every exploratory attempt."""
+import gzip
+import hashlib
+import json
+from pathlib import Path
+import shutil
+import tarfile
+
+ROOT=Path(__file__).resolve().parent
+OUT=ROOT/'outputs/cuda-rgbd-joint-pairs-v3'
+SUITE=ROOT/'outputs/cuda-rgbd-joint-suite-v2'
+TARGET=ROOT/'docs/assets/cuda_rgbd_joint'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+
+def write(path,value):
+    path.write_bytes((json.dumps(value,indent=2,allow_nan=False)+'\n').encode())
+
+def schema(value):
+    if value is None: return {'type':'null'}
+    if isinstance(value,bool): return {'type':'boolean'}
+    if isinstance(value,int): return {'type':'integer'}
+    if isinstance(value,float): return {'type':'number'}
+    if isinstance(value,str): return {'type':'string'}
+    if isinstance(value,list):
+        choices={json.dumps(schema(v),sort_keys=True) for v in value}
+        items={} if not choices else json.loads(next(iter(choices))) if len(choices)==1 else {'anyOf':[json.loads(v) for v in sorted(choices)]}
+        return {'type':'array','minItems':len(value),'maxItems':len(value),'items':items}
+    return {'type':'object','additionalProperties':False,'required':list(value),'properties':{k:schema(v) for k,v in value.items()}}
+
+def source_capsule(source,name):
+    shutil.copyfile(source/'manifest.json',TARGET/f'sources-{name}-manifest.json')
+    with tarfile.open(TARGET/f'sources-{name}.tar.gz','w:gz') as bundle:
+        for path in sorted((source/'src').rglob('*.py')):
+            bundle.add(path,arcname=path.relative_to(source).as_posix())
+
+def records(root,prefix=''):
+    for path in sorted(root.rglob('*')):
+        if not path.is_file(): continue
+        parts=path.relative_to(root).parts
+        if any('cache' in part.lower() or part in ('source','sources-current','sources-prior','shared-output') for part in parts[:-1]): continue
+        if path.suffix not in ('.json','.yaml','.txt','.gz','.log'): continue
+        yield path,prefix+path.relative_to(root).as_posix()
+
+summary=json.loads((OUT/'summary.json').read_bytes())
+assert len(summary['attempts'])==6 and summary['complete_result_and_histories_exact'] and summary['complete_frontend_exact']
+suite_summary=json.loads((SUITE/'summary.json').read_bytes())
+assert suite_summary['complete_results_exact'] and suite_summary['fixed_population_probe_events_exact']==492
+TARGET.mkdir(exist_ok=False)
+(TARGET/'.gitattributes').write_bytes(b'* -text whitespace=cr-at-eol\n')
+for name in ['config-numpy.yaml','config-cuda.yaml','provenance.json','attempts.json','summary.json','launcher.py.txt']:
+    shutil.copyfile(OUT/name,TARGET/name)
+for source,name in [
+    ('docs/assets/tum_window_processes/inputs.json','inputs.json'),
+    ('docs/assets/tum_initial_correspondences/01-current/result.json.gz','parent-result.json.gz'),
+    ('tools/benchmark_bspline_lidar_imu.py','freezer.py.txt'),
+    ('tools/benchmark_lazy_runtime_loading.py','identity.py.txt'),
+    ('tools/benchmark_radar_doppler_batches.py','capsule-auditor.py.txt'),
+    ('tools/audit_cuda_rgbd_joint.py','auditor.py.txt'),
+]: shutil.copyfile(ROOT/source,TARGET/name)
+shutil.copyfile(Path(__file__),TARGET/'publisher.py.txt')
+source_capsule(OUT/'source','current')
+source_capsule(ROOT/'outputs/rgbd-optimizer-profile-v1/source','screen')
+source_capsule(ROOT/'outputs/cuda-rgbd-joint-pairs-v2/source','intermediate')
+for variant in ('prior','current'):
+    assert json.loads((SUITE/variant/'sources-current/manifest.json').read_bytes())==json.loads((OUT/'source/manifest.json').read_bytes())
+suite_files=list(records(SUITE))
+for variant in ('prior','current'):
+    suite_files.append((SUITE/variant/'sources-current/manifest.json',variant+'/source-manifest.json'))
+suite_files.append((ROOT/'tools/benchmark_tum_window_processes.py','trace-worker.py.txt'))
+assert sha(ROOT/'tools/benchmark_tum_window_processes.py')==json.loads((SUITE/'provenance.json').read_bytes())['trace_worker_sha256']
+with tarfile.open(TARGET/'full-suite-screen.tar.gz','w:gz') as bundle:
+    for path,name in suite_files: bundle.add(path,arcname=name)
+shutil.copyfile(SUITE/'summary.json',TARGET/'suite-summary.json')
+development=[
+    'rgbd-optimizer-profile-v1','rgbd-reuse-screen-v1',
+    *[f'rgbd-fused-screen-v{i}' for i in (1,2,3,4)],
+    *[f'rgbd-cuda-screen-v{i}' for i in (1,2,3)],
+    'cuda-rgbd-joint-pairs-v1','cuda-rgbd-joint-pairs-v2','cuda-rgbd-joint-suite-v1',
+]
+with tarfile.open(TARGET/'development-screens.tar.gz','w:gz') as bundle:
+    for name in development:
+        for path,member in records(ROOT/'outputs'/name,name+'/'):
+            bundle.add(path,arcname=member)
+write(TARGET/'development-index.json',{'directories':development,'scope':'Exploratory profiles and rejected/superseded trials; includes failed runs and the slower small-workload CUDA trial. No headline speed claim is drawn from these screens.','source_capsules':{'initial_parent':'sources-screen.tar.gz','before_small_graph_guard':'sources-intermediate.tar.gz'},'provenance':{'publisher_sha256':sha(Path(__file__))}})
+all_records={k:[] for k in ['measurement','execution_record','result','traces','frontend']}
+all_records.update(provenance=[json.loads((OUT/'provenance.json').read_bytes())],attempts=[json.loads((OUT/'attempts.json').read_bytes())])
+for attempt in summary['attempts']:
+    folder=TARGET/attempt['folder'];folder.mkdir()
+    for name in ['measurement.json','execution.json','result.json.gz','traces.json.gz','frontend.json.gz','stdout.log','stderr.log']:
+        shutil.copyfile(OUT/folder.name/name,folder/name)
+    for kind,name in [('measurement','measurement.json'),('execution_record','execution.json'),('result','result.json.gz'),('traces','traces.json.gz'),('frontend','frontend.json.gz')]:
+        raw=(folder/name).read_bytes()
+        all_records[kind].append(json.loads(gzip.decompress(raw) if name.endswith('.gz') else raw))
+schemas={}
+for kind,values in all_records.items():
+    choices={json.dumps(schema(v),sort_keys=True) for v in values}
+    schemas[kind]=json.loads(next(iter(choices))) if len(choices)==1 else {'anyOf':[json.loads(v) for v in sorted(choices)]}
+    schemas[kind]['$schema']='https://json-schema.org/draft/2020-12/schema'
+write(TARGET/'record-schemas.json',schemas)
+write(TARGET/'index.json',{'files':{p.relative_to(TARGET).as_posix():{'sha256':sha(p),'size_bytes':p.stat().st_size} for p in sorted(TARGET.rglob('*')) if p.is_file() and p.name!='index.json'},'provenance':{'publisher_sha256':sha(Path(__file__)),'measurement_provenance_sha256':sha(TARGET/'provenance.json')}})
+print('Preserved all current, failed and exploratory trials with three exact source capsules')

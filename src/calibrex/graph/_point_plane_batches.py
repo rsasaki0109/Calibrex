@@ -16,8 +16,12 @@ from numpy.typing import NDArray
 from calibrex.core.geometry import (
     SE3,
     Vector3,
-    normalize_quaternion_xyzw,
-    quaternion_conjugate_xyzw,
+)
+from calibrex.core.geometry import (
+    normalize_quaternion_xyzw as normalize_quaternion_xyzw,
+)
+from calibrex.core.geometry import (
+    quaternion_conjugate_xyzw as quaternion_conjugate_xyzw,
 )
 from calibrex.graph._evaluation_scope import _PREPARATION_CACHE
 from calibrex.graph.joint_optimization import (
