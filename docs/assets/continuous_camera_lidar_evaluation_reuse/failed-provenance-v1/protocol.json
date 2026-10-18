@@ -1,0 +1,67 @@
+{
+  "schema_version": "slac.continuous_camera_lidar_reuse_benchmark/v0.1",
+  "record_type": "protocol",
+  "commits": {
+    "prior": "a844dc00354f987da0e103c0dc5bb9610df2eb2a",
+    "current": "06c3a7e67a7bba3fdfcb8d43f6900ae619cce14c"
+  },
+  "source_roots": {
+    "prior": "C:/Users/rsasa/Workspace/Calibrex/outputs/continuous-camera-reuse-formal-v1/sources-prior",
+    "current": "C:/Users/rsasa/Workspace/Calibrex/outputs/continuous-camera-reuse-formal-v1/sources-current"
+  },
+  "repetitions": 3,
+  "fresh_workers": true,
+  "blas_threads": 1,
+  "host_unreserved": true,
+  "options": {
+    "holdout_ratio": 0.25,
+    "split_seed": 0,
+    "minimum_train_correspondences": 24,
+    "minimum_holdout_correspondences": 8,
+    "minimum_confidence": 0.25,
+    "rotation_bound_deg": 2.0,
+    "translation_bound_m": 0.25,
+    "time_offset_bound_sec": 0.05,
+    "initial_rotation_step_deg": 0.5,
+    "initial_translation_step_m": 0.05,
+    "initial_time_step_sec": 0.01,
+    "minimum_rotation_step_deg": 0.02,
+    "minimum_translation_step_m": 0.002,
+    "minimum_time_step_sec": 0.0002,
+    "max_evaluations": 500,
+    "cauchy_scale": 3.0,
+    "time_sensitivity_probe_sec": 0.005,
+    "minimum_time_sensitivity_px_per_sec": 0.5,
+    "estimate_time_offset": true,
+    "use_per_point_time": true,
+    "use_covariance": true,
+    "use_rolling_shutter": true
+  },
+  "provenance": {
+    "files": {
+      "control-generator.py.txt": "dea26f114f4846839068434d76769c3cda63c45c0bfa6d3f59931b6303be4718",
+      "freezer.py.txt": "2c72248f7ee1e7ea502abed49870859000034c55f2599b6eb66f63f3852033cb",
+      "identity.py.txt": "5dcbf54c1b5e3721fb019ad80d0074120d49fbb02a4fd7abebed6f7eccb67d41",
+      "input-provenance.json": "cd4d357bc26647ba193ce69c04852f87b2d5f4443e344d18573a5c452c413988",
+      "launcher.py.txt": "bc81af2be1c50f61158f4b89014d5a6095779538c7e9c4ea9d1f6470254f4dff",
+      "motion-control.json.gz": "152b1262ce20939d31469ac233dc7d9111c05f13ef96eb1156db47564fc810b2",
+      "problem-schema.json": "0535d27f231c3dbe4db95593186a687a3334ab8458cbc0d9474f2c681f3a0ba6",
+      "problem.json": "32cb6f4f1b36a6e64cc0061f904b67b7490eb2d5a3af49d464d316a4d835fc9b",
+      "result-schema.json": "0ba259cd2d20cb5711d8c41302f41b88e278033ba378f862644df8ed1a8b53a0",
+      "schema.json": "eb9fa4f84b30d4e37df34f848a8c38bb9392bb3f6d8e414a683518eb655979cc",
+      "source-points.json.gz": "a903796da8c3cd024673a8bb2d65b69cb30a8f01de8b55dce76db4cb8e04eb31",
+      "sources-current-manifest.json": "9e5c5e8674b52e457e5f7b225e31a2589c3ca3dcc364e6e536b96910fb0db103",
+      "sources-current.tar.gz": "e205b4c5fe0fcb36014509cc12088eaed415840365fc9fc8eec260d4b808070f",
+      "sources-prior-manifest.json": "9006fbe1ac2003e6ce4f49556ba0ddd900c6d870f088252dc519cad8503dd42d",
+      "sources-prior.tar.gz": "d95d8e69f666100568dcf45a7bc68a29c13be2ccfb8b956aa1dcdfa0161bc879"
+    },
+    "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "versions": {
+      "numpy": "2.3.4",
+      "scipy": "1.17.1",
+      "pydantic": "2.12.5",
+      "PyYAML": "6.0.3",
+      "jsonschema": "4.26.0"
+    }
+  }
+}
