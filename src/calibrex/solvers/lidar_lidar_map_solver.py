@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal, Protocol, TypeAlias
 
 import numpy as np
@@ -68,6 +68,43 @@ class MapSampleOptions:
     iterations: int = 15
     convergence_rotation_rad: float = 1.0e-6
     convergence_translation_m: float = 1.0e-5
+    query_workers: int = 1
+
+    def __post_init__(self) -> None:
+        if type(self.query_workers) is not int or self.query_workers < 1:
+            raise ValueError("map query_workers must be a positive integer")
+
+
+class _MapNormals:
+    """Cache independent native eigensolves for reached map points."""
+
+    def __init__(
+        self, points: FloatArray, tree: cKDTree, options: MapSampleOptions,
+    ) -> None:
+        self.points = points
+        self.tree = tree
+        self.options = options
+        self.normals: FloatArray = np.zeros_like(points)
+        self.planar: NDArray[np.bool_] = np.zeros(len(points), dtype=bool)
+        self.done: NDArray[np.bool_] = np.zeros(len(points), dtype=bool)
+
+    def ensure(self, indices: NDArray[np.intp]) -> None:
+        missing = np.unique(indices[~self.done[indices]])
+        if not len(missing):
+            return
+        k = min(self.options.normal_neighbours, len(self.points))
+        _, neighbours = self.tree.query(
+            self.points[missing], k=k, workers=self.options.query_workers,
+        )
+        values = self.points[neighbours]
+        centered = values - values.mean(axis=1, keepdims=True)
+        covariance = np.einsum("nki,nkj->nij", centered, centered) / max(k, 1)
+        eigenvalues, eigenvectors = np.linalg.eigh(covariance)
+        self.normals[missing] = eigenvectors[:, :, 0]
+        self.planar[missing] = (
+            eigenvalues[:, 0] <= self.options.max_planarity_ratio * eigenvalues[:, 1]
+        )
+        self.done[missing] = True
 
 
 @dataclass
@@ -82,37 +119,46 @@ class MapSample:
     _tree: cKDTree | None = None
     _normals: FloatArray | None = None
     _planar: NDArray[np.bool_] | None = None
+    _normal_cache: _MapNormals | None = field(default=None, repr=False, compare=False)
+
+    def _cached_normals(self, options: MapSampleOptions) -> _MapNormals:
+        if self._tree is None:
+            self._tree = cKDTree(self.map_points)
+        if self._normal_cache is None:
+            self._normal_cache = _MapNormals(self.map_points, self._tree, options)
+        return self._normal_cache
 
     def prepare(self, options: MapSampleOptions) -> None:
         """Build the map's kd-tree and planar normals once."""
 
-        if self._tree is not None:
+        if self._normals is not None and self._planar is not None:
             return
-        self._tree = cKDTree(self.map_points)
-        k = min(options.normal_neighbours, len(self.map_points))
-        _, indices = self._tree.query(self.map_points, k=k)
-        neighbours = self.map_points[indices]
-        centered = neighbours - neighbours.mean(axis=1, keepdims=True)
-        covariance = np.einsum("nki,nkj->nij", centered, centered) / max(k, 1)
-        values, vectors = np.linalg.eigh(covariance)
-        self._normals = vectors[:, :, 0]
-        self._planar = values[:, 0] <= options.max_planarity_ratio * values[:, 1]
+        cache = self._cached_normals(options)
+        cache.ensure(np.arange(len(self.map_points), dtype=np.intp))
+        self._normals = cache.normals
+        self._planar = cache.planar
 
     def residuals(
         self, extrinsic: FloatArray, options: MapSampleOptions
     ) -> tuple[FloatArray, FloatArray, FloatArray]:
         """Point-to-plane residuals, their normals, and the transformed points."""
 
-        self.prepare(options)
-        assert self._tree is not None and self._normals is not None and self._planar is not None
+        if self._tree is None:
+            self._tree = cKDTree(self.map_points)
         transform = self.reference_pose @ extrinsic
         world = self.target_points @ transform[:3, :3].T + transform[:3, 3]
         distances, indices = self._tree.query(
-            world, distance_upper_bound=options.max_correspondence_m
+            world, distance_upper_bound=options.max_correspondence_m,
+            workers=options.query_workers,
         )
         valid = np.isfinite(distances)
-        valid[valid] &= self._planar[indices[valid]]
-        normals = self._normals[indices[valid]]
+        normals, planar = self._normals, self._planar
+        if normals is None or planar is None:
+            cache = self._cached_normals(options)
+            cache.ensure(indices[valid])
+            normals, planar = cache.normals, cache.planar
+        valid[valid] &= planar[indices[valid]]
+        normals = normals[indices[valid]]
         targets = self.map_points[indices[valid]]
         residual = np.einsum("ij,ij->i", world[valid] - targets, normals)
         return residual, normals, self.target_points[valid]
