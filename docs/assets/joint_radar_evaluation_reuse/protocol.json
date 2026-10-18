@@ -1,0 +1,70 @@
+{
+  "schema_version": "slac.radar_reference_benchmark/v0.1",
+  "record_type": "protocol",
+  "solver": "joint",
+  "commits": {
+    "prior": "d235e388dff403424447bca7548147b3e61ce06d",
+    "current": "4a1fd5004256f4da0bbc4bc392250a72c2fbbec5"
+  },
+  "source_roots": {
+    "prior": "C:/Users/rsasa/Workspace/Calibrex/outputs/joint-radar-reuse-formal-v1/sources-prior",
+    "current": "C:/Users/rsasa/Workspace/Calibrex/outputs/joint-radar-reuse-formal-v1/sources-current"
+  },
+  "repetitions": 3,
+  "fresh_workers": true,
+  "blas_threads": 1,
+  "host_unreserved": true,
+  "provenance": {
+    "control_sha256": "f4cf16efba310c97b1e803347612d47f55aa4a85476fb81bec870a5fc4b7cc06",
+    "control_generator_sha256": "1e89e62f487af2038a86034757a0e12b1b81b2ff64977076aa12784046ddf19b",
+    "launcher_sha256": "b3f3e613810472e3f77b41fec1852d0c84209799ce9eb05cbb983fcd00699bf0",
+    "schema_sha256": "3de62ab96803a440ef30ae5805a344c3c35632097fc663d7712840ae0ecc731e",
+    "freezer_sha256": "2c72248f7ee1e7ea502abed49870859000034c55f2599b6eb66f63f3852033cb",
+    "identity_sha256": "5dcbf54c1b5e3721fb019ad80d0074120d49fbb02a4fd7abebed6f7eccb67d41",
+    "manifests": {
+      "prior": "eb6c63883b9debe23cd2ca44f9fbe9df1c37a6c0ce871b7625470e5ec4578e51",
+      "current": "9006fbe1ac2003e6ce4f49556ba0ddd900c6d870f088252dc519cad8503dd42d"
+    },
+    "capsules": {
+      "prior": "e7bc79032626b2c59e5a5f66e80f60715ea347f43c57b27f560cd67451a30367",
+      "current": "bcb2476363eb02ea532e7338d0f0936f5465303ccad4592e6df8cfde72bca393"
+    },
+    "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "versions": {
+      "numpy": "2.3.4",
+      "scipy": "1.17.1"
+    }
+  },
+  "solver_options": {
+    "max_iterations": 80,
+    "convergence_tolerance": 1e-09,
+    "initial_damping": 0.001,
+    "huber_delta_mps": 0.3,
+    "holdout_ratio": 0.2,
+    "split_seed": 0,
+    "min_train_measurements": 12,
+    "max_initial_residual_mps": 3.0,
+    "max_abs_time_offset_sec": 0.1,
+    "initial_time_offset_sec": 0.0,
+    "rank_tolerance": 1e-08,
+    "max_condition_number": 10000000000.0,
+    "known_bad_translation_m": 0.1,
+    "known_bad_rotation_deg": 5.0,
+    "known_bad_time_offset_sec": 0.02,
+    "known_bad_margin_mps": 0.02
+  },
+  "initial_transform": {
+    "translation_m": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "rotation_quat_xyzw": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  },
+  "joint_work_counters": true
+}

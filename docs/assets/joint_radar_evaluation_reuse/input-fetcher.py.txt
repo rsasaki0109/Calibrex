@@ -1,0 +1,29 @@
+"""Private public OXTS-only download for a calibration performance control."""
+import hashlib
+import json
+from pathlib import Path
+import sys
+from zipfile import ZipFile
+
+ROOT = Path(__file__).resolve().parent
+sys.path.insert(0, str(ROOT))
+from tools.download_kitti360_selected_frames import HTTPRangeReader
+
+out = ROOT / 'data/public/kitti_oxts_reference_v1'
+out.mkdir(exist_ok=False)
+url = 'https://s3.eu-central-1.amazonaws.com/avg-kitti/raw_data/2011_09_30_drive_0018/2011_09_30_drive_0018_sync.zip'
+reader = HTTPRangeReader(url, block_size_bytes=2*1024*1024, read_cache_directories=[ROOT/'outputs/kitti-icp-download-cache-v1'], write_cache_directory=out/'range-cache')
+prefix = '2011_09_30/2011_09_30_drive_0018_sync/oxts/'
+receipts = {}
+with ZipFile(reader) as archive:
+    selected = [p for p in archive.infolist() if p.filename.startswith(prefix) and not p.is_dir()]
+    for info in selected:
+        raw = archive.read(info)
+        name = info.filename.removeprefix(prefix)
+        target = out/name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(raw)
+        receipts[name] = {'sha256':hashlib.sha256(raw).hexdigest(),'zip_crc32':info.CRC,'bytes':len(raw),'archive_member':info.filename}
+    print('downloaded OXTS members',len(receipts),flush=True)
+provenance = {'generator':Path(__file__).name,'generator_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),'url':url,'archive_size':reader.size_bytes,'etag':reader.etag,'scope':'All OXTS members only. Public performance control; no independent Radar accuracy evidence.','dataset_license':'CC BY-NC-SA 3.0','members':receipts}
+(out/'provenance.json').write_bytes((json.dumps(provenance,indent=2)+'\n').encode())

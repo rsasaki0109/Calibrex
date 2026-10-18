@@ -21,6 +21,7 @@
       "properties": {
         "schema_version": {"$ref": "#/$defs/version"}, "record_type": {"const": "protocol"},
         "solver": {"enum": ["profiled", "joint"]},
+        "joint_work_counters": {"const": true},
         "solver_options": {
           "type": "object", "minProperties": 10,
           "required": ["max_iterations", "convergence_tolerance", "max_abs_time_offset_sec"],
@@ -62,7 +63,7 @@
       "allOf": [{
         "if": {"required": ["solver"], "properties": {"solver": {"const": "joint"}}},
         "then": {"required": ["solver_options", "initial_transform"]},
-        "else": {"not": {"anyOf": [{"required": ["solver_options"]}, {"required": ["initial_transform"]}]}}
+        "else": {"not": {"anyOf": [{"required": ["solver_options"]}, {"required": ["initial_transform"]}, {"required": ["joint_work_counters"]}]}}
       }]
     },
     "control": {
