@@ -21,6 +21,7 @@ from tests.unit.camera_lidar_scene import (
 
 from calibrex.core.camera_lidar_edge import (
     CameraLidarEdgeArtifact,
+    CameraLidarEdgeControl,
     CameraLidarEdgeProvenance,
     camera_lidar_edge_json_schema,
     load_camera_lidar_edge,
@@ -360,19 +361,112 @@ def test_a_far_optimum_replaces_the_current_one_only_with_more_axes_and_none_at_
 
     options = EdgeAlignmentOptions()
     inside = np.array([-3.0, 0.2, 0.1, 0.0, 0.0, 0.0])
-    assert _replaces_current(1, 3, inside, options)
-    assert _replaces_current(0, 2, inside, options)
+    controls = [_control(4.0)] * 6
+    assert _replaces_current((1,), (0, 1, 2), inside, controls, options)
+    assert _replaces_current((), (0, 1), inside, controls, options)
     # as many DoFs observed: the objective no longer decides (KITTI 0029, yaw 9.6 deg off)
-    assert not _replaces_current(2, 2, inside, options)
+    assert not _replaces_current((0, 1), (0, 1), inside, controls, options)
     # a single DoF observed is not enough (a turned run of KITTI 0056, roll 6.6 deg off)
-    assert not _replaces_current(0, 1, inside, options)
-    assert _replaces_current(0, 1, inside, EdgeAlignmentOptions(start_scan_min_observed=1))
+    assert not _replaces_current((), (0,), inside, controls, options)
+    assert _replaces_current(
+        (), (0,), inside, controls, EdgeAlignmentOptions(start_scan_min_observed=1)
+    )
     # a rotation DoF at the search bound (KITTI 0056, yaw at -12 deg)
     at_bound = inside.copy()
     at_bound[2] = -options.rotation_bound_deg
-    assert not _replaces_current(0, 3, at_bound, options)
+    assert not _replaces_current((), (0, 1, 2), at_bound, controls, options)
     with pytest.raises(ValueError, match="start_scan_min_observed"):
         EdgeAlignmentOptions(start_scan_min_observed=4)
+
+
+def _control(t: float | None) -> CameraLidarEdgeControl:
+    return CameraLidarEdgeControl(
+        amount=2.0,
+        unit="deg",
+        held_out_blocks=4,
+        detected_blocks=4,
+        mean_objective_drop=0.01,
+        min_t_statistic=t,
+        detected=t is not None and t >= 2.5,
+    )
+
+
+@pytest.mark.parametrize("t", [2.65, 3.499999, None, float("nan"), float("inf")])
+def test_far_control_margin_checks_every_observed_axis(t: float | None) -> None:
+    from calibrex.evaluation.camera_lidar_edge import _replaces_current
+
+    options = EdgeAlignmentOptions(start_scan_min_control_t=3.5)
+    theta = np.zeros(6)
+    # The weak axis was already observed; the newly observed axis is strong.
+    # Checking only newly observed axes would admit this optimum incorrectly.
+    controls = [_control(3.5), _control(t)] + [_control(None)] * 4
+    assert not _replaces_current((1,), (0, 1), theta, controls, options)
+
+
+def test_far_control_margin_includes_boundary_and_ignores_unobserved_axes() -> None:
+    from calibrex.evaluation.camera_lidar_edge import _replaces_current
+
+    options = EdgeAlignmentOptions(start_scan_min_control_t=3.5)
+    controls = [_control(3.5), _control(4.0)] + [_control(None)] * 4
+    assert _replaces_current((1,), (0, 1), np.zeros(6), controls, options)
+    assert options.as_dict()["start_scan_min_control_t"] == 3.5
+    assert EdgeAlignmentOptions().as_dict()["start_scan_min_control_t"] is None
+
+
+@pytest.mark.parametrize("margin", [2.49, -1.0, float("nan"), float("inf")])
+def test_far_control_margin_cannot_weaken_the_ordinary_control(margin: float) -> None:
+    with pytest.raises(ValueError, match="start_scan_min_control_t"):
+        EdgeAlignmentOptions(start_scan_min_control_t=margin)
+    with pytest.raises(ValueError, match="start_scan_min_control_t"):
+        EdgeAlignmentOptions(min_control_t=4.0, start_scan_min_control_t=3.5)
+
+
+@pytest.mark.parametrize(
+    "margin, far_control_t, expected",
+    [(None, 2.65, ["roll", "pitch"]), (3.5, 2.65, ["pitch"]), (3.5, 3.5, ["roll", "pitch"])],
+)
+def test_rejected_far_fit_retains_current_transform_and_ordinary_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+    margin: float | None,
+    far_control_t: float,
+    expected: list[str],
+) -> None:
+    from calibrex.evaluation import camera_lidar_edge as edge
+
+    current = np.array([0.0, 0.05, 0.0, 0.0, 0.0, 0.0])
+    far = np.array([-1.5, -0.15, -5.3, 0.0, 0.0, 0.0])
+    current_controls = [_control(0.4), _control(3.0), _control(1.0)] + [_control(None)] * 3
+    far_controls = [_control(far_control_t), _control(4.0), _control(1.23)] + [_control(None)] * 3
+    monkeypatch.setattr(edge, "_profile_start", lambda *_: np.ones(6))
+    monkeypatch.setattr(edge, "_profile_starts", lambda *_: [np.ones(6)])
+    monkeypatch.setattr(
+        edge, "fit_extrinsic", lambda _, start, opts: (current if not start.any() else far, 1.0)
+    )
+
+    def evidence(*args: object) -> tuple[np.ndarray, np.ndarray, list[CameraLidarEdgeControl]]:
+        theta = args[3]
+        controls = current_controls if theta is current else far_controls
+        return np.tile(theta, (4, 1)), np.full(6, 0.025), controls
+
+    monkeypatch.setattr(edge, "_evidence", evidence)
+    truth = true_transform()
+    artifact = estimate_from_frames(
+        _frames(truth, count=8),
+        CAMERA,
+        truth,
+        options=EdgeAlignmentOptions(min_frames=8, blocks=4, start_scan_min_control_t=margin),
+        provenance=_provenance(),
+    )
+    assert artifact.solver_status == "converged"
+    assert artifact.calibrated_dofs == expected
+    rejected = expected == ["pitch"]
+    selected = current if rejected else far
+    assert [d.delta_from_start for d in artifact.dofs[:3]] == list(selected[:3])
+    assert artifact.dofs[1].known_bad_control == (
+        current_controls[1] if rejected else far_controls[1]
+    )
+    assert artifact.options["start_scan_min_control_t"] == margin
+    assert any("profile maxima" in reason for reason in artifact.policy_reasons) == (not rejected)
 
 
 class _BlockDrops:
@@ -404,7 +498,7 @@ def test_a_control_needs_t_of_2_5() -> None:
 
 def test_observed_rotations_counts_axes_by_the_record_rule() -> None:
     from calibrex.core.camera_lidar_edge import CameraLidarEdgeControl
-    from calibrex.evaluation.camera_lidar_edge import _observed_rotations
+    from calibrex.evaluation.camera_lidar_edge import _observed_rotation_axes
 
     def control(detected: bool) -> CameraLidarEdgeControl:
         return CameraLidarEdgeControl(
@@ -423,9 +517,9 @@ def test_observed_rotations_counts_axes_by_the_record_rule() -> None:
     jackknife = np.array([0.1, 0.1, 0.8, 0.01, 0.01, 0.01])
     theta = np.zeros(6)
     # roll: observed; pitch: control missed; yaw: std above the 0.5 deg bound.
-    assert _observed_rotations(theta, jackknife, controls, floor, options) == 1
+    assert _observed_rotation_axes(theta, jackknife, controls, floor, options) == (0,)
     theta[0] = options.rotation_bound_deg
-    assert _observed_rotations(theta, jackknife, controls, floor, options) == 0
+    assert _observed_rotation_axes(theta, jackknife, controls, floor, options) == ()
 
 
 def test_background_subtraction_stops_the_pull_towards_texture() -> None:
