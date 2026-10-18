@@ -1,0 +1,45 @@
+{
+  "schema_version": "slac.yaml_emission_benchmark/v0.1",
+  "record_type": "worker",
+  "payload": {
+    "methods": {
+      "write": {
+        "seconds": 0.8586586000164971,
+        "sha256": "3885bd47ff63cb0ef8f1429984ab32e93a31b0db9fd2cb702ba902fdcb8041b5",
+        "size_bytes": 3984581
+      },
+      "atomic": {
+        "seconds": 0.9470439000288025,
+        "sha256": "3885bd47ff63cb0ef8f1429984ab32e93a31b0db9fd2cb702ba902fdcb8041b5",
+        "size_bytes": 3984581
+      }
+    },
+    "native_emissions": 2,
+    "input_fingerprint": "4106ce8696fa0a0ea7e64773a0890208a6f4a09ebb28ad08c18b66b6a0e620b6",
+    "imports": {
+      "calibrex": {
+        "path": "calibrex/__init__.py",
+        "sha256": "c05e3d851dae2030fee177ef264994a185d422fc891401e83ea05c0d1e0810cb"
+      },
+      "calibrex.core": {
+        "path": "calibrex/core/__init__.py",
+        "sha256": "de90bba9eac3497afe032050c356c5f73dfaeb9455e56add1dd11ed288bfda01"
+      },
+      "calibrex.core.io": {
+        "path": "calibrex/core/io.py",
+        "sha256": "ebc5b7788d87dcb2f2fa596a99e74cba4e7be8c55f246931c2b4c8bf432d37ef"
+      }
+    },
+    "environment": {
+      "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+      "pyyaml": "6.0.3",
+      "libyaml": true
+    }
+  },
+  "provenance": {
+    "protocol_sha256": "91a3b897bb16771c4b3bf5be0098a4a0c3809bdc253e842b281605a9b4cd61cb",
+    "git_commit": "6f22f69f67bcafbe2d7f1e698f34f1c509aef833",
+    "variant": "current",
+    "pid": 29496
+  }
+}

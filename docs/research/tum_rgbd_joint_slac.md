@@ -366,3 +366,8 @@ evaluates independent windows concurrently with `window_workers: 3`, restoring
 native factors and aggregating in configured order. It includes child startup
 and transport in whole-worker latency and checks raw parent and child traces,
 complete numeric histories and calibration results.
+
+The [safe YAML emission comparison](../benchmarks/yaml_result_emission.md)
+accelerates complete result saving through optional LibYAML, preserving parsed
+values and existing custom hooks. It reports result-export and complete
+calibration timings separately, with all original numerical work retained.

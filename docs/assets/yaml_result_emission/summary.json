@@ -1,0 +1,35 @@
+{
+  "schema_version": "slac.yaml_emission_benchmark/v0.1",
+  "record_type": "report",
+  "payload": {
+    "seconds_median": {
+      "whole": {
+        "prior": 8.443804700043984,
+        "current": 2.450330500025302
+      },
+      "write": {
+        "prior": 3.7633234000531957,
+        "current": 0.8186781000113115
+      },
+      "atomic": {
+        "prior": 3.9024393000872806,
+        "current": 0.8344166000606492
+      }
+    },
+    "speedup": {
+      "whole": 3.44598604145718,
+      "write": 4.596829205521924,
+      "atomic": 4.676847631990583
+    },
+    "verified_workers": 6,
+    "full_exports": 12,
+    "complete_values_types_order_exact": true,
+    "runtime_source_changes": [
+      "calibrex/core/io.py"
+    ]
+  },
+  "provenance": {
+    "protocol_sha256": "91a3b897bb16771c4b3bf5be0098a4a0c3809bdc253e842b281605a9b4cd61cb",
+    "attempts_sha256": "190454a5706708dfec01e70663a89c59c19bbb0de6ee3119670d58fad6067d15"
+  }
+}
