@@ -1,0 +1,44 @@
+import ast
+import hashlib
+import json
+import re
+import subprocess
+from pathlib import Path
+
+root=Path(__file__).resolve().parent
+receipt={}
+targets={
+    'src/calibrex/cli/main.py':lambda start:start<=228 or start in {1072,1097,1900,1971,1975,1979},
+    'src/calibrex/evaluation/camera_lidar_confidence_calibration.py':lambda start:start<=56,
+    'src/calibrex/evaluation/camera_lidar_initializer_calibration.py':lambda start:start<=64,
+}
+for name,keep in targets.items():
+    path=root/name
+    before=path.read_bytes()
+    original=subprocess.check_output(['git','show','HEAD:'+name],text=True).splitlines(keepends=True)
+    patch=subprocess.check_output(['git','diff','--unified=0','--',name],text=True)
+    hunks=[]
+    for chunk in re.split(r'(?=^@@ )',patch,flags=re.M)[1:]:
+        lines=chunk.splitlines(keepends=True)
+        match=re.match(r'@@ -(\d+)(?:,(\d+))? \+\d+(?:,\d+)? @@',lines[0])
+        assert match
+        start=int(match[1]); size=int(match[2]) if match[2] is not None else 1
+        if keep(start):
+            old=[line[1:] for line in lines[1:] if line.startswith('-')]
+            new=[line[1:] for line in lines[1:] if line.startswith('+')]
+            index=start-1 if size else start
+            assert original[index:index+size]==old
+            hunks.append((index,size,new))
+    for index,size,new in sorted(hunks,reverse=True):
+        original[index:index+size]=new
+    after=''.join(original).encode()
+    normalized=lambda b:ast.dump(ast.parse(b.decode()),include_attributes=False)
+    assert normalized(before)==normalized(after),name
+    path.write_bytes(after)
+    receipt[name]=dict(tested_source_sha256=hashlib.sha256(before).hexdigest(),
+        final_source_sha256=hashlib.sha256(after).hexdigest(),identical_ast=True,
+        ast_sha256=hashlib.sha256(normalized(after).encode()).hexdigest())
+out=root/'outputs/package-initialization-validation-v1/formatting-parity.json'
+out.write_bytes((json.dumps(dict(files=receipt,provenance=dict(
+    generator_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest())),indent=2)+'\n').encode())
+print('removed unrelated formatting only; every tested runtime AST remains identical')

@@ -8,9 +8,9 @@ import json
 import shlex
 import shutil
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, NoReturn, cast
+from typing import TYPE_CHECKING, Any, Literal, NoReturn, TypeVar, cast
 
 from calibrex import __version__
 from calibrex.cli.help import (
@@ -33,6 +33,41 @@ if TYPE_CHECKING:
     from calibrex.evaluation.report_compare import ReportComparison
     from calibrex.export.autoware_promotion import AutowarePromotionPolicy
     from calibrex.export.autoware_smoke import AutowareSmokeCommand
+
+
+_Setting = TypeVar("_Setting")
+
+
+def _loaded_setting(module_name: str, name: str, fallback: _Setting) -> _Setting:
+    # Preserve explicit overrides on an already loaded public module without
+    # importing a calibration pipeline merely to construct parser defaults.
+    module = sys.modules.get(module_name)
+    return fallback if module is None else cast(_Setting, getattr(module, name, fallback))
+
+
+class _SchemaChoices:
+    """Resolve schema metadata only when parsing or displaying these choices."""
+
+    def __init__(self, *, validation: bool) -> None:
+        self._validation = validation
+        self._choices: tuple[str, ...] | None = None
+
+    def _values(self) -> tuple[str, ...]:
+        if self._choices is None:
+            from calibrex.core.schema_registry import schema_kinds, validatable_kinds
+
+            self._choices = (
+                ("auto", *validatable_kinds())
+                if self._validation
+                else (*schema_kinds(), "ledger", "all")
+            )
+        return self._choices
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self._values())
+
+    def __contains__(self, value: object) -> bool:
+        return value in self._values()
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -148,16 +183,35 @@ def _overconfidence_scale(value: str) -> float:
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    from calibrex.core.schema_registry import schema_kinds
-    from calibrex.core.validation import validation_kind_choices
-    from calibrex.data.livox_ros2 import LIVOX_PROFILES
-    from calibrex.evaluation.camera_lidar_confidence_calibration import (
+    from calibrex.data.livox_profile_fields import LIVOX_PROFILE_FIELDS
+    from calibrex.evaluation.camera_lidar_defaults import (
         DEFAULT_CONFIDENCE_THRESHOLDS,
-    )
-    from calibrex.evaluation.camera_lidar_initializer_calibration import (
         DEFAULT_INITIALIZER_CONFIDENCE_THRESHOLDS,
         DEFAULT_INITIALIZER_RANDOM_SEEDS,
         DEFAULT_INITIALIZER_RANSAC_THRESHOLDS_PX,
+    )
+
+    profile_choices = sorted(
+        getattr(sys.modules.get("calibrex.data.livox_ros2"), "LIVOX_PROFILES", LIVOX_PROFILE_FIELDS)
+    )
+    confidence_thresholds = _loaded_setting(
+        "calibrex.evaluation.camera_lidar_confidence_calibration",
+        "DEFAULT_CONFIDENCE_THRESHOLDS",
+        DEFAULT_CONFIDENCE_THRESHOLDS,
+    )
+    initializer_module = "calibrex.evaluation.camera_lidar_initializer_calibration"
+    initializer_confidence = _loaded_setting(
+        initializer_module,
+        "DEFAULT_INITIALIZER_CONFIDENCE_THRESHOLDS",
+        DEFAULT_INITIALIZER_CONFIDENCE_THRESHOLDS,
+    )
+    initializer_ransac = _loaded_setting(
+        initializer_module,
+        "DEFAULT_INITIALIZER_RANSAC_THRESHOLDS_PX",
+        DEFAULT_INITIALIZER_RANSAC_THRESHOLDS_PX,
+    )
+    initializer_seeds = _loaded_setting(
+        initializer_module, "DEFAULT_INITIALIZER_RANDOM_SEEDS", DEFAULT_INITIALIZER_RANDOM_SEEDS
     )
 
     parser = CalibrexArgumentParser(
@@ -209,23 +263,25 @@ def _build_parser() -> argparse.ArgumentParser:
     doctor.set_defaults(func=_cmd_doctor)
 
     schema = subcommands.add_parser("schema", help="print JSON schema")
-    schema.add_argument(
+    schema_kind = schema.add_argument(
         "kind",
-        choices=[*schema_kinds(), "ledger", "all"],
         help="artifact kind, 'ledger' for the schema version ledger, or 'all'",
     )
+    # Assign after add_argument's eager metavar check; argparse resolves this
+    # container normally for the selected command's parsing and help output.
+    schema_kind.choices = _SchemaChoices(validation=False)
     schema.add_argument("--output", type=Path, help="write schema to a file")
     schema.add_argument("--output-dir", type=Path, help="write all schemas to a directory")
     schema.set_defaults(func=_cmd_schema)
 
     validate = subcommands.add_parser("validate", help="validate a Calibrex artifact")
     validate.add_argument("path", type=Path)
-    validate.add_argument(
+    validation_kind = validate.add_argument(
         "--kind",
-        choices=validation_kind_choices(),
         default="auto",
         help="artifact kind; defaults to schema_version auto-detection",
     )
+    validation_kind.choices = _SchemaChoices(validation=True)
     validate.add_argument(
         "--verify-inputs",
         action="store_true",
@@ -1069,7 +1125,7 @@ def _build_parser() -> argparse.ArgumentParser:
     imu_lidar_livox.add_argument(
         "--profile",
         required=True,
-        choices=sorted(LIVOX_PROFILES),
+        choices=profile_choices,
         help="topic and unit conventions of the recording",
     )
     imu_lidar_livox.add_argument("--dataset-family", required=True)
@@ -1094,7 +1150,7 @@ def _build_parser() -> argparse.ArgumentParser:
     imu_lidar_translation.add_argument(
         "--profile",
         required=True,
-        choices=sorted(LIVOX_PROFILES),
+        choices=profile_choices,
         help="topic and unit conventions of the recording",
     )
     imu_lidar_translation.add_argument(
@@ -1897,7 +1953,7 @@ def _build_parser() -> argparse.ArgumentParser:
     probabilistic_confidence_calibration.add_argument("--calibration-id")
     probabilistic_confidence_calibration.add_argument(
         "--thresholds",
-        default=",".join(f"{value:g}" for value in DEFAULT_CONFIDENCE_THRESHOLDS),
+        default=",".join(f"{value:g}" for value in confidence_thresholds),
         help="ascending comma-separated effective confidence thresholds",
     )
     probabilistic_confidence_calibration.add_argument(
@@ -1968,15 +2024,15 @@ def _build_parser() -> argparse.ArgumentParser:
     probabilistic_initializer_calibration.add_argument("--calibration-id")
     probabilistic_initializer_calibration.add_argument(
         "--confidence-thresholds",
-        default=",".join(f"{value:g}" for value in DEFAULT_INITIALIZER_CONFIDENCE_THRESHOLDS),
+        default=",".join(f"{value:g}" for value in initializer_confidence),
     )
     probabilistic_initializer_calibration.add_argument(
         "--ransac-reprojection-thresholds-px",
-        default=",".join(f"{value:g}" for value in DEFAULT_INITIALIZER_RANSAC_THRESHOLDS_PX),
+        default=",".join(f"{value:g}" for value in initializer_ransac),
     )
     probabilistic_initializer_calibration.add_argument(
         "--random-seeds",
-        default=",".join(str(value) for value in DEFAULT_INITIALIZER_RANDOM_SEEDS),
+        default=",".join(str(value) for value in initializer_seeds),
     )
     probabilistic_initializer_calibration.add_argument(
         "--minimum-correspondences", type=_positive_int, default=4

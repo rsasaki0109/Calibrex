@@ -29,30 +29,16 @@ from calibrex.core.provenance import git_commit, sha256_path
 from calibrex.evaluation.camera_lidar_correspondence_quality import (
     summarize_camera_lidar_correspondence_quality_at_pose,
 )
+from calibrex.evaluation.camera_lidar_defaults import (
+    DEFAULT_CONFIDENCE_THRESHOLDS as DEFAULT_CONFIDENCE_THRESHOLDS,
+)
 from calibrex.evaluation.holdout import split_indices
 from calibrex.solvers.probabilistic_camera_lidar_refiner import (
     ProbabilisticCameraLidarRefinementOptions,
     project_camera_point,
 )
 
-CAMERA_LIDAR_CONFIDENCE_CALIBRATION_VERSION = (
-    "calibrex.camera_lidar_confidence_calibration/v0.2"
-)
-DEFAULT_CONFIDENCE_THRESHOLDS: tuple[float, ...] = (
-    0.01,
-    0.02,
-    0.03,
-    0.04,
-    0.05,
-    0.075,
-    0.10,
-    0.15,
-    0.20,
-    0.25,
-    0.30,
-    0.40,
-    0.50,
-)
+CAMERA_LIDAR_CONFIDENCE_CALIBRATION_VERSION = "calibrex.camera_lidar_confidence_calibration/v0.2"
 
 
 @dataclass(frozen=True)

@@ -31,6 +31,15 @@ from calibrex.core.probabilistic_correspondence import (
 )
 from calibrex.core.provenance import git_commit, sha256_path
 from calibrex.core.result import TransformResult
+from calibrex.evaluation.camera_lidar_defaults import (
+    DEFAULT_INITIALIZER_CONFIDENCE_THRESHOLDS as DEFAULT_INITIALIZER_CONFIDENCE_THRESHOLDS,
+)
+from calibrex.evaluation.camera_lidar_defaults import (
+    DEFAULT_INITIALIZER_RANDOM_SEEDS as DEFAULT_INITIALIZER_RANDOM_SEEDS,
+)
+from calibrex.evaluation.camera_lidar_defaults import (
+    DEFAULT_INITIALIZER_RANSAC_THRESHOLDS_PX as DEFAULT_INITIALIZER_RANSAC_THRESHOLDS_PX,
+)
 from calibrex.solvers.opencv_probabilistic_pnp_adapter import (
     OPENCV_AGGREGATE_PNP_METHOD,
     OPENCV_LICENSE_SPDX,
@@ -41,26 +50,7 @@ from calibrex.solvers.opencv_probabilistic_pnp_adapter import (
     OpenCvProbabilisticPnpOptions,
 )
 
-CAMERA_LIDAR_INITIALIZER_CALIBRATION_VERSION = (
-    "calibrex.camera_lidar_initializer_calibration/v0.1"
-)
-DEFAULT_INITIALIZER_CONFIDENCE_THRESHOLDS: tuple[float, ...] = (
-    0.10,
-    0.15,
-    0.20,
-    0.25,
-    0.30,
-    0.40,
-    0.50,
-)
-DEFAULT_INITIALIZER_RANSAC_THRESHOLDS_PX: tuple[float, ...] = (
-    2.0,
-    4.0,
-    8.0,
-    16.0,
-    32.0,
-)
-DEFAULT_INITIALIZER_RANDOM_SEEDS: tuple[int, ...] = tuple(range(5))
+CAMERA_LIDAR_INITIALIZER_CALIBRATION_VERSION = "calibrex.camera_lidar_initializer_calibration/v0.1"
 
 
 def calibrate_camera_lidar_initializer(

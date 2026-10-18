@@ -1,0 +1,38 @@
+import hashlib
+import json
+from pathlib import Path
+import shutil
+import sys
+import tarfile
+
+ROOT=Path(__file__).resolve().parent
+ARCHIVE=ROOT/'docs/assets/selective_package_initialization'
+OUT=ROOT/'outputs/package-initialization-validation-v1'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+write=lambda p,v:p.write_bytes((json.dumps(v,indent=2,allow_nan=False)+'\n').encode())
+shutil.copyfile(ROOT/'tools/audit_lazy_runtime_benchmark.py',ARCHIVE/'auditor.py.txt')
+if '--initial' not in sys.argv:
+    for name in ['archive-registry-tests.log','linux-tests.log','linux-archive-tests.log','ruff.log','docs.log']:
+        shutil.copyfile(OUT/name,ARCHIVE/'validation'/name)
+    shutil.copyfile(Path(__file__),ARCHIVE/'validation/finalizer.py.txt')
+    shutil.copyfile(ROOT/'tests/unit/test_selective_package_archive.py',ARCHIVE/'validation/test_selective_package_archive.py')
+    count=0
+    with tarfile.open(ARCHIVE/'sources-current.tar.gz') as capsule:
+        for item in capsule.getmembers():
+            stream=capsule.extractfile(item)
+            assert stream is not None
+            assert stream.read().replace(b'\r\n',b'\n')==(ROOT/item.name).read_bytes().replace(b'\r\n',b'\n')
+            count+=1
+    assert count==380
+    write(ARCHIVE/'validation/final-receipt.json',dict(windows_distinct_cases=104,
+        windows_groups=dict(public_api_cli_calibration=76,new_archive=9,legacy_archive=4,registry=15),
+        linux_cases_passed=88,linux_optional_numba_skipped=1,
+        strict_mypy_modules=380,ruff_all=True,mkdocs_strict=True,
+        measured_core_modules_unchanged=count,
+        public_schemas_byte_identical=129,public_schema_ledger_byte_identical=True,
+        parser_routes=164,recorded_argument_actions=1257,all_parser_definitions_exact=True,
+        provenance=dict(generator_sha256=sha(Path(__file__)),protocol_sha256=sha(ARCHIVE/'protocol.json'),
+            files={p.name:sha(p) for p in sorted((ARCHIVE/'validation').iterdir()) if p.is_file() and p.name!='final-receipt.json'})))
+write(ARCHIVE/'index.json',dict(files={p.relative_to(ARCHIVE).as_posix():sha(p) for p in sorted(ARCHIVE.rglob('*')) if p.is_file() and p.name!='index.json'},
+    provenance=dict(generator_sha256=sha(Path(__file__)),protocol_sha256=sha(ARCHIVE/'protocol.json'))))
+print('indexed',len(json.loads((ARCHIVE/'index.json').read_bytes())['files'])+1,'files')

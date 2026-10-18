@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import json
 import math
+import re
 import statistics
 import tarfile
 from pathlib import Path, PurePosixPath, PureWindowsPath
@@ -14,6 +16,20 @@ from jsonschema import validate
 from tools.benchmark_lazy_runtime_loading import comparable_result
 
 from calibrex.core.validation import validate_file
+
+SELECTIVE_INITIALIZATION_CHANGES = frozenset(
+    {
+        "calibrex/__init__.py",
+        "calibrex/data/__init__.py",
+        "calibrex/evaluation/__init__.py",
+        "calibrex/cli/main.py",
+        "calibrex/data/livox_ros2.py",
+        "calibrex/data/livox_profile_fields.py",
+        "calibrex/evaluation/camera_lidar_defaults.py",
+        "calibrex/evaluation/camera_lidar_confidence_calibration.py",
+        "calibrex/evaluation/camera_lidar_initializer_calibration.py",
+    }
+)
 
 
 def sha(path: Path) -> str:
@@ -89,6 +105,55 @@ def audit(root: Path, *, expected_runtime_changes: frozenset[str] | None = None)
     )
     if changed != allowed:
         raise ValueError("changes extend beyond runtime loading")
+    identities = None
+    if expected_runtime_changes == SELECTIVE_INITIALIZATION_CHANGES:
+        identities = read(root, "source-identities.json")
+        if identities["provenance"] != {
+            "protocol_sha256": sha(root / "protocol.json"),
+            "generator_sha256": sha(root / "source-identity-checker.py.txt"),
+        }:
+            raise ValueError("actual source identity provenance differs")
+        for variant, full in protocol["commits"].items():
+            row = identities["variants"][variant]
+            short = row["git_commit_short"]
+            if (
+                row["git_commit"] != full
+                or not isinstance(short, str)
+                or re.fullmatch(r"[a-f0-9]{4,40}", short) is None
+                or not full.startswith(short)
+                or row["manifest_sha256"] != protocol["provenance"]["source_manifests"][variant]
+            ):
+                raise ValueError("actual full/short source identity differs")
+        for name, digest in protocol["provenance"]["inputs"].items():
+            raw = root / (name + ".json")
+            actual = (
+                sha(raw)
+                if raw.exists()
+                else hashlib.sha256(
+                    gzip.decompress((root / (name + ".json.gz")).read_bytes())
+                ).hexdigest()
+            )
+            if actual != digest:
+                raise ValueError("published prepared input differs")
+        parser_parity = read(root, "parser-parity.json")
+        if parser_parity["provenance"] != {
+            "protocol_sha256": sha(root / "protocol.json"),
+            "generator_sha256": sha(root / "schema-checker.py.txt"),
+        } or parser_parity["files"] != {
+            name: sha(root / name) for name in ("parser-prior.json.gz", "parser-current.json.gz")
+        }:
+            raise ValueError("parser proof provenance differs")
+        parser_rows = [
+            json.loads(gzip.decompress((root / name).read_bytes()))
+            for name in ("parser-prior.json.gz", "parser-current.json.gz")
+        ]
+        if (
+            parser_rows[0] != parser_rows[1]
+            or not parser_parity["complete_help_actions_defaults_and_choices_exact"]
+            or len(parser_rows[0]) != parser_parity["parsers"]
+            or sum(len(r["actions"]) for r in parser_rows[0]) != parser_parity["actions"]
+        ):
+            raise ValueError("complete parser definitions differ")
     attempts = json.loads((root / "attempts.json").read_bytes())
     expected_order = [
         (case, repeat, variant)
@@ -134,6 +199,12 @@ def audit(root: Path, *, expected_runtime_changes: frozenset[str] | None = None)
                 if not validate_file(folder / "result.json").valid:
                     raise ValueError("invalid result")
                 result = read(folder, "result.json")
+                if (
+                    identities is not None
+                    and result["provenance"].get("git_commit")
+                    != (identities["variants"][record["variant"]]["git_commit_short"])
+                ):
+                    raise ValueError("result does not record its actual source commit")
                 command = result["provenance"]["command"]
                 expected_command = ["calibrex", *protocol["commands"]["refine"][:-1]]
                 expected_command[expected_command.index("--output") + 1] = command[
@@ -211,4 +282,11 @@ def audit(root: Path, *, expected_runtime_changes: frozenset[str] | None = None)
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("root", type=Path)
-    print(json.dumps(audit(parser.parse_args().root), indent=2))
+    parser.add_argument(
+        "--runtime-profile", choices=("legacy-cli", "selective-packages"), default="legacy-cli"
+    )
+    args = parser.parse_args()
+    expected = (
+        SELECTIVE_INITIALIZATION_CHANGES if args.runtime_profile == "selective-packages" else None
+    )
+    print(json.dumps(audit(args.root, expected_runtime_changes=expected), indent=2))
