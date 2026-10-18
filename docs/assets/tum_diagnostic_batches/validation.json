@@ -1,0 +1,38 @@
+{
+  "test_pass_counts": {
+    "core-windows.log": 302,
+    "core-linux.log": 302,
+    "archive-windows.log": 28,
+    "archive-linux.log": 28,
+    "registry.log": 15
+  },
+  "mypy_source_files": 384,
+  "strict_mkdocs_passed": true,
+  "ruff_passed": true,
+  "public_schema_exports_and_ledger_byte_identical": 130,
+  "tested_runtime_source_inventory_matches_measurement": true,
+  "live_source_comparison": "LF-normalized byte inventory; tests themselves use the exact frozen bytes",
+  "reversible_log_transcoding": {
+    "core-windows.log": {
+      "source_encoding": "UTF-16LE with BOM",
+      "source_sha256": "072388dafb20e0e7c146561ffdb224d63600319e0cf6db5cba61cd744d5f6bac",
+      "archive_encoding": "UTF-8"
+    }
+  },
+  "log_sha256": {
+    "core-windows.log": "28a706af682ced36395a8bc5ffb964cd3c43e2b7efad0541be4812206f87ee4e",
+    "core-linux.log": "ebcb2bd13e30a16682b7eee4aedb5897ce26fda8099bc3db1a26238673a44f33",
+    "archive-windows.log": "741374f0662830ed67163038f2c813c34e36210bed3ae4ced1c41e22ee2c48ef",
+    "archive-linux.log": "2b4943018ac7bffaf4bf21c9c3d4fef0cc2c965693f5f876bf71d8eef3a730fa",
+    "registry.log": "f85adb9ad716242bf54244128d77ed92bf1c5c01689ed7f0d314f327098d8d37",
+    "mypy.log": "e61ca133b89280a91aaaff7de6f8e4f8f5abc84cc6827604b6c43346efe9ed17",
+    "ruff.log": "a4443afdcfb6d7363adb285762515ccf7cf50473b1a05c20c1a50f6bed4d26b0",
+    "mkdocs.log": "719b2f8956d2ebbf6c12e321d27b09e08866f9b4bc9d0b069699fbc8b5fd65c0"
+  },
+  "provenance": {
+    "protocol_sha256": "af010496a14abb7543ccdebdea2b42003cbe9c2f3cc2ce96e8238e8974835229",
+    "tested_runtime_commit": "039e67ada5bd79897f7da6f2a48c6e2099c20d3e",
+    "measured_runtime_commit": "039e67ada5bd79897f7da6f2a48c6e2099c20d3e",
+    "generator_sha256": "4ff470cd2395c642a060ee3003e3ac8e150bc9d2a7ffe2ba34c11222f4938ef5"
+  }
+}

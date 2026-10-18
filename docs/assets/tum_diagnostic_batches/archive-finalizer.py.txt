@@ -1,0 +1,78 @@
+"""Bind completed validation and exact tested runtime bytes to the archive."""
+import hashlib
+import json
+from pathlib import Path
+import re
+import shutil
+from tools import benchmark_tum_diagnostic_batches as bench
+root = Path(__file__).resolve().parent
+target = root / "docs/assets/tum_diagnostic_batches"
+validation = root / "outputs/tum-diagnostic-validation-final"
+protocol = json.loads((target / "protocol.json").read_bytes())
+manifest = json.loads((target / "sources-current-manifest.json").read_bytes())
+environment = json.loads((validation / "linux-environment.json").read_bytes())
+actual_sources = {p.relative_to(root / "src").as_posix():hashlib.sha256(p.read_bytes().replace(b"\r\n",b"\n")).hexdigest()
+                  for p in (root / "src/calibrex").rglob("*.py")}
+frozen = root / "outputs/tum-diagnostic-pairs-v1/sources-current/src"
+normalized_frozen = {p.relative_to(frozen).as_posix():hashlib.sha256(p.read_bytes().replace(b"\r\n",b"\n")).hexdigest()
+                     for p in (frozen / "calibrex").rglob("*.py")}
+assert environment["provenance"]["sources"] == manifest
+assert actual_sources == normalized_frozen
+for name in ("windows-environment.json", "linux-environment.json",
+             "archive-windows-environment.json", "archive-linux-environment.json",
+             "registry-windows-environment.json"):
+    record = json.loads((validation / name).read_bytes())
+    assert record["exit_status"] == 0
+    assert record["provenance"]["sources"] == manifest
+    assert all(manifest[item["path"]] == item["sha256"] for item in record["imports"].values())
+    shutil.copyfile(validation / name, target / name)
+logs = {}
+counts = {}
+transcoding = {}
+for name in ("core-windows.log", "core-linux.log", "archive-windows.log", "archive-linux.log",
+             "registry.log", "mypy.log", "ruff.log", "mkdocs.log"):
+    path = validation / name
+    raw = path.read_bytes()
+    if raw.startswith(b"\xff\xfe"):
+        text = raw.decode("utf-16")
+        assert text.encode("utf-16") == raw
+        transcoding[name] = {"source_encoding":"UTF-16LE with BOM",
+                             "source_sha256":hashlib.sha256(raw).hexdigest(),
+                             "archive_encoding":"UTF-8"}
+        path.write_bytes(text.encode("utf-8"))
+    logs[name] = bench.sha(path)
+    shutil.copyfile(path, target / name)
+    if name in ("core-windows.log", "core-linux.log", "archive-windows.log", "archive-linux.log", "registry.log"):
+        counts[name] = int(re.findall(r"(\d+) passed", path.read_text())[-1])
+assert counts["archive-windows.log"] == counts["archive-linux.log"] == 28
+assert counts["core-windows.log"] == counts["core-linux.log"]
+assert "Success: no issues found in 384 source files" in (validation / "mypy.log").read_text()
+assert (validation / "ruff.log").read_text().strip() == "All checks passed!"
+assert "Documentation built in " in (validation / "mkdocs.log").read_text(errors="replace")
+for name, destination in (("linux-environment.json", "linux-environment.json"),
+                           ("windows-environment.json", "windows-environment.json"),
+                           ("schema-parity.json", "schema-parity.json")):
+    shutil.copyfile(validation / name, target / destination)
+shutil.copyfile(root / ".tmp-calibrex-tum-diagnostic-schema-parity.py", target / "schema-parity.py.txt")
+shutil.copyfile(Path(__file__), target / "archive-finalizer.py.txt")
+shutil.copyfile(root / ".tmp-calibrex-tum-frozen-tests.py", target / "frozen-test-runner.py.txt")
+shutil.copyfile(root / ".tmp-calibrex-tum-diagnostic-windows.ps1", target / "windows-test-runner.ps1.txt")
+shutil.copyfile(root / ".tmp-calibrex-write-tum-diagnostic-doc.py", target / "doc-generator.py.txt")
+bench.write(target / "validation.json", {
+    "test_pass_counts":counts, "mypy_source_files":384,
+    "strict_mkdocs_passed":True,"ruff_passed":True,
+    "public_schema_exports_and_ledger_byte_identical":130,
+    "tested_runtime_source_inventory_matches_measurement":True,
+    "live_source_comparison":"LF-normalized byte inventory; tests themselves use the exact frozen bytes",
+    "reversible_log_transcoding":transcoding,
+    "log_sha256":logs,
+    "provenance":{"protocol_sha256":bench.sha(target / "protocol.json"),
+                  "tested_runtime_commit":environment["provenance"]["git_commit"],
+                  "measured_runtime_commit":protocol["payload"]["commits"]["current"],
+                  "generator_sha256":bench.sha(Path(__file__))},
+})
+files = {p.relative_to(target).as_posix():{"sha256":bench.sha(p),"size_bytes":p.stat().st_size}
+         for p in sorted(target.rglob("*")) if p.is_file() and p.name != "index.json"}
+bench.write(target / "index.json", {"files":files,"provenance":{"protocol_sha256":bench.sha(target / "protocol.json")}})
+assert bench.audit(target) == json.loads((target / "summary.json").read_bytes())
+print("Verified",len(files)+1,"archive files and",len(manifest),"tested source modules")

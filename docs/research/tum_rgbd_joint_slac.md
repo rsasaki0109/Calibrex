@@ -344,3 +344,9 @@ replays the complete existing three-window pipeline using array geometry and
 the original scalar lattice sums. Its source capsules, input fingerprints,
 numeric histories and full results support an execution-only comparison.
 The reference verdicts and observability limitations described above are retained.
+
+The subsequent [batched diagnostic comparison](../benchmarks/tum_diagnostic_batches.md)
+also retains every reassociation state, curvature evaluation and multistart
+candidate. It batches correspondence geometry and reuses unchanged factors
+within each diagnostic window, with the complete result and evaluation
+histories included in the comparison.

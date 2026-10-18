@@ -1,0 +1,53 @@
+"""Run cross-platform tests against the exact measured source capsule."""
+import hashlib
+import importlib.metadata
+import json
+import os
+from pathlib import Path
+import sys
+root = Path(__file__).resolve().parent
+source = root / "outputs/tum-diagnostic-pairs-v1/sources-current/src"
+output = root / "outputs/tum-diagnostic-validation-final"
+mode = sys.argv[1]
+platform = "windows" if os.name == "nt" else "linux"
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(source))
+sys.path.insert(1, str(root))
+import calibrex
+import pytest
+assert Path(calibrex.__file__).resolve().is_relative_to(source.resolve())
+tests = {
+    "core":["test_tum_diagnostic_batches", "test_rgbd_transform_reuse", "test_joint_reassociation",
+            "test_multistart", "test_numerical_curvature", "test_joint_factors",
+            "test_joint_optimization", "test_livox_batched_evaluation"],
+    "archive":["test_tum_diagnostic_batches_archive"],
+    "registry":["test_schema_registry"],
+}[mode]
+args = ["tests/unit/" + name + ".py" for name in tests]
+args += ["--basetemp="+str(output / ("tmp-"+platform+"-"+mode)),
+         "-o", "cache_dir="+str(output / ("cache-"+platform)),
+         "-o", "pythonpath="+str(source)+" "+str(root)]
+status = pytest.main(args)
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+imports = {}
+for name, module in sys.modules.copy().items():
+    if name == "calibrex" or name.startswith("calibrex."):
+        path = Path(module.__file__).resolve()
+        assert path.is_relative_to(source.resolve()), (name, path)
+        imports[name] = {"path":path.relative_to(source).as_posix(),"sha256":sha(path)}
+manifest = json.loads((source.parent / "manifest.json").read_bytes())
+actual = {p.relative_to(source).as_posix():sha(p) for p in (source / "calibrex").rglob("*.py")}
+assert actual == manifest
+environment = {
+    "python":sys.version,
+    "packages":{name:importlib.metadata.version(name) for name in ('numpy','scipy','pydantic','PyYAML','jsonschema','pytest')},
+    "imports":imports,"exit_status":int(status),
+    "provenance":{"runner_sha256":sha(Path(__file__)),"sources":actual,
+                  "git_commit":"039e67ada5bd79897f7da6f2a48c6e2099c20d3e",
+                  "protocol_sha256":sha(source.parent.parent / "protocol.json"),
+                  "scope":"Tests against the exact measured source capsule; no timing claim"},
+}
+(output / (mode+"-"+platform+"-environment.json")).write_text(json.dumps(environment,indent=2)+"\n",encoding="utf-8")
+if mode == "core":
+    (output / (platform+"-environment.json")).write_text(json.dumps(environment,indent=2)+"\n",encoding="utf-8")
+raise SystemExit(status)
