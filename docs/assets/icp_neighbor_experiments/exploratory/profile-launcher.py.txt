@@ -1,0 +1,79 @@
+import os
+from pathlib import Path
+import hashlib
+import json
+import subprocess
+import sys
+import threading
+import time
+
+root = Path("outputs/icp-current-phase-profile-v2")
+assert not root.exists()
+root.mkdir(parents=True)
+for name in ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS"):
+    os.environ[name] = "1"
+os.environ["CUPY_CACHE_DIR"] = str((root / "import-cache").resolve())
+started = time.perf_counter()
+from calibrex.solvers import robust_point_to_point_icp_solver as native
+from calibrex.solvers import cuda_point_to_point_icp_adapter as cuda
+from tools import benchmark_cuda_point_to_point_icp as benchmark
+from argparse import Namespace
+
+events = []
+lock = threading.Lock()
+local = threading.local()
+
+def wrap(owner, name, label):
+    original = getattr(owner, name)
+    def measured(*args, **kwargs):
+        start = time.perf_counter()
+        cpu_start = time.thread_time()
+        stack = getattr(local, "stack", [])
+        if not stack:
+            local.stack = stack
+        entry = [0.0]
+        stack.append(entry)
+        try:
+            return original(*args, **kwargs)
+        finally:
+            end = time.perf_counter()
+            stack.pop()
+            if stack:
+                stack[-1][0] += end - start
+            with lock:
+                events.append({"phase": label, "thread": threading.get_ident(),
+                               "start": start-started, "end": end-started,
+                               "self_wall": end-start-entry[0],
+                               "thread_cpu": time.thread_time()-cpu_start})
+    setattr(owner, name, measured)
+
+for name in ("_information_diagnostics", "_scatter_rank", "_correspondences",
+             "_rigid_alignment", "_positions", "_spatial_split_indices",
+             "_transform_points", "_multi_start_diagnostics", "_rematching_diagnostics"):
+    wrap(native, name, name)
+wrap(cuda._CudaNeighbors, "_propose", "cuda_proposals")
+wrap(cuda._CudaRigidSource, "nearest", "rigid_source")
+benchmark._worker(Namespace(
+    output=str(root / "worker"), method="cuda", workers=0, seed=20261013,
+    pair_fixture="outputs/kitti-icp-pairs-default-v1/0000000115-0000000116.json",
+    data_root="data/public/kitti_raw_icp/2011_09_30_drive_0018_sync", point_budget=0,
+))
+whole = time.perf_counter()-started
+aggregate = {}
+for event in events:
+    item = aggregate.setdefault(event["phase"], {"calls":0, "call_wall":0.,
+                                                "self_wall":0., "thread_cpu":0.})
+    item["calls"] += 1
+    item["call_wall"] += event["end"]-event["start"]
+    item["self_wall"] += event["self_wall"]
+    item["thread_cpu"] += event["thread_cpu"]
+result_bytes = (root / "worker/result.json").read_bytes()
+golden = Path("docs/assets/cuda_point_to_point_icp/actual_frames/results/4134bb4fff3436ea806948a8fa52cf03298ed11df56bb738e6c38a2913e04320.json")
+record = {"provenance": {"commit": subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip(),
+           "sources": benchmark._identity(), "launcher_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+           "scope": "instrumented complete CUDA ICP with all six parallel starts; phase sums overlap",
+           "blas_budget":1}, "whole_seconds":whole, "phases":aggregate, "events":events,
+          "result_sha256":hashlib.sha256(result_bytes).hexdigest(),
+          "matches_published_primary": result_bytes==golden.read_bytes()}
+(root / "profile.json").write_text(json.dumps(record,indent=2)+"\n",encoding="utf-8")
+print(json.dumps({key:value for key,value in record.items() if key not in ("events", "provenance")},indent=2))
