@@ -1,0 +1,190 @@
+"""Three cold complete resident comparisons; only capture validation changes."""
+import os
+for name in ("OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "OMP_NUM_THREADS"):
+    os.environ[name] = "1"
+from argparse import ArgumentParser, Namespace
+import hashlib
+import json
+from pathlib import Path
+import statistics
+import subprocess
+import sys
+import time
+
+ROOT = Path(__file__).resolve().parent
+OUT = ROOT / "outputs/resident-validation-pairs-v1"
+BAG = ROOT / "data/public/glim_versatile/livox.bag"
+BASE = "3dbd181830a744c7635aefc4b2fc11f2fd74fa32"
+CURRENT = "3fd31725"
+sys.dont_write_bytecode = True
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def write(path, value):
+    path.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+
+
+def read(path):
+    return json.loads(path.read_bytes())
+
+
+def source(variant):
+    return OUT / ("source-" + variant)
+
+
+def worker(repeat, variant):
+    from tools import benchmark_bspline_lidar_imu as benchmark
+    sys.path.insert(0, str(source(variant) / "src"))
+    import numpy as np
+    from calibrex.evaluation import lidar_imu_bag_calibration as runner
+    placements = []
+    original = runner._place
+
+    def observed(trajectory, times, points):
+        result = original(trajectory, times, points)
+        placements.append({"rows": len(points),
+                           "sha256": hashlib.sha256(np.ascontiguousarray(result).tobytes()).hexdigest()})
+        return result
+
+    runner._place = observed
+    args = Namespace(
+        source_root=str(source(variant)),
+        source_commit=read(OUT / "protocol.json")["commits"][variant],
+        variant="current", bag=str(BAG), output=str(OUT / f"{repeat:02d}-{variant}"),
+        max_seconds=6.0, max_rounds=4, comparison="cuda-cuda",
+        prior_fit_plane_backend="cuda", current_fit_plane_backend="cuda",
+        current_resident_odometry=True, odometry_voxel_size_m=0.03, odometry_local_map_scans=3,
+        odometry_geometry_quantum_m=1e-9, odometry_motion_translation_quantum_m=1e-6,
+        odometry_motion_rotation_quantum_rad=1e-7,
+    )
+    benchmark._worker(args)
+    write(Path(args.output) / "placement.json", {
+        "calls": placements,
+        "provenance": {"launcher_sha256": sha(Path(__file__)),
+                       "source_manifest_sha256": sha(source(variant) / "manifest.json")},
+    })
+
+
+def check(repeat):
+    from tools import benchmark_bspline_lidar_imu as benchmark
+    variants = ("prior", "current")
+    dirs = {v: OUT / f"{repeat:02d}-{v}" for v in variants}
+    results = {v: read(dirs[v] / "result.json") for v in variants}
+    measurements = {v: read(dirs[v] / "measurement.json") for v in variants}
+    for v in variants:
+        benchmark._validate_resident_execution(results[v], True, benchmark._resident_hashes(source(v)))
+    old_work = results["prior"]["options"]["resident_geometry_execution"]
+    new_work = results["current"]["options"]["resident_geometry_execution"]
+    new_fields = ("source_validation_rows", "gyro_cached_validations")
+    assert not any(k in old_work for k in new_fields)
+    assert all(type(new_work.get(k)) is int and new_work[k] > 0 for k in new_fields)
+    normalized = [benchmark._without_run_metadata(results[v]) for v in variants]
+    for key in new_fields:
+        normalized[1]["options"]["resident_geometry_execution"].pop(key)
+    exact_results = benchmark._same_float_bits(*normalized)
+    full_fits = [[{k: x for k, x in row.items() if k != "seconds"}
+                  for row in measurements[v]["rounds"]] for v in variants]
+    exact_fits = benchmark._same_float_bits(*full_fits)
+    placements = [read(dirs[v] / "placement.json")["calls"] for v in variants]
+    exact_placements = benchmark._same_float_bits(*placements)
+    quality = benchmark._compare(results["prior"], results["current"])
+    seconds = {v: read(dirs[v] / "whole.json")["seconds"] for v in variants}
+    passed = exact_results and exact_fits and exact_placements and quality["passed"]
+    record = {
+        "repeat": repeat, "seconds": seconds,
+        "prior_to_current_ratio": seconds["prior"] / seconds["current"],
+        "quality_passed": passed, "complete_result_float_bits_equal": exact_results,
+        "all_full_fit_float_bits_equal": exact_fits, "all_placement_bits_equal": exact_placements,
+        "placed_rows_per_variant": sum(row["rows"] for row in placements[0]),
+        "full_fits_per_variant": len(full_fits[0]), "quality": quality,
+        "new_validation_work": {key: new_work[key] for key in new_fields},
+        "provenance": {"protocol_sha256": sha(OUT / "protocol.json"),
+                       "worker_records": {p.relative_to(OUT).as_posix(): sha(p)
+                                          for d in dirs.values() for p in sorted(d.glob("*.json"))}},
+    }
+    write(OUT / f"pair-{repeat:02d}.json", record)
+    print(json.dumps({k: v for k, v in record.items() if k not in ("quality", "provenance")}), flush=True)
+    if not passed:
+        raise ValueError("full output/fit/placement parity failed; retain all records")
+    return record
+
+
+def parent():
+    from tools import benchmark_bspline_lidar_imu as benchmark
+    OUT.mkdir(exist_ok=False)
+    (OUT / "launcher.py.txt").write_bytes(Path(__file__).read_bytes())
+    (OUT / "benchmark.py.txt").write_bytes(Path(benchmark.__file__).read_bytes())
+    benchmark._freeze(source("prior"), BASE)
+    current = subprocess.check_output(["git", "rev-parse", CURRENT], cwd=ROOT, text=True).strip()
+    benchmark._freeze(source("current"), current)
+    protocol = {
+        "scope": __doc__, "commits": {"prior": BASE, "current": current},
+        "orders": [["prior", "current"], ["current", "prior"], ["prior", "current"]],
+        "options": {"max_seconds": 6.0, "max_rounds": 4, "voxel_size_m": 0.03,
+                    "local_map_scans": 3, "geometry_quantum_m": 1e-9,
+                    "motion_translation_quantum_m": 1e-6, "motion_rotation_quantum_rad": 1e-7},
+        "gates": {"all_result_fit_placement_float_bits": True,
+                  "only_new_work_fields_removed": ["source_validation_rows", "gyro_cached_validations"],
+                  "median_prior_to_current_minimum": 1.10, "faster_pairs_minimum": 2},
+        "limitations": ["Spent GLIM development data; no independent accuracy claim.",
+                        "Unreserved host; cold complete medians, not guaranteed per-run speed.",
+                        "Both arms already use resident odometry and CUDA plane fitting.",
+                        "Explicit positive grids and dense geometry; no defaults speed claim."],
+        "bag": {"path": BAG.relative_to(ROOT).as_posix(), "bytes": BAG.stat().st_size, "sha256": sha(BAG)},
+        "provenance": {"launcher_sha256": sha(Path(__file__)),
+                       "benchmark_sha256": sha(Path(benchmark.__file__)),
+                       "source_manifests": {v: sha(source(v) / "manifest.json") for v in ("prior", "current")}},
+    }
+    write(OUT / "protocol.json", protocol)
+    pairs = []
+    for repeat, order in enumerate(protocol["orders"]):
+        for variant in order:
+            directory = OUT / f"{repeat:02d}-{variant}"
+            directory.mkdir()
+            env = dict(os.environ)
+            env.update(CUPY_CACHE_DIR=str(directory / "cupy-cache"), CUDA_CACHE_DISABLE="1",
+                       PYTHONDONTWRITEBYTECODE="1")
+            write(directory / "started.json", {
+                "repeat": repeat, "variant": variant,
+                "provenance": {"protocol_sha256": sha(OUT / "protocol.json")},
+            })
+            print(json.dumps({"started": True, "repeat": repeat, "variant": variant}), flush=True)
+            begin = time.perf_counter()
+            with (directory / "stdout.log").open("wb") as out, (directory / "stderr.log").open("wb") as err:
+                process = subprocess.run(
+                    [sys.executable, "-u", str(Path(__file__).resolve()), "--worker", str(repeat), variant],
+                    cwd=ROOT, env=env, stdout=out, stderr=err, timeout=1200,
+                )
+            whole = {"seconds": time.perf_counter() - begin, "exit_code": process.returncode,
+                     "provenance": {"protocol_sha256": sha(OUT / "protocol.json"),
+                                    "stdout_sha256": sha(directory / "stdout.log"),
+                                    "stderr_sha256": sha(directory / "stderr.log")}}
+            write(directory / "whole.json", whole)
+            print(json.dumps({"finished": True, "repeat": repeat, "variant": variant,
+                              "seconds": whole["seconds"], "exit_code": process.returncode}), flush=True)
+            if process.returncode:
+                raise ValueError("worker failed; retain all records")
+        pairs.append(check(repeat))
+    medians = {v: statistics.median(row["seconds"][v] for row in pairs) for v in ("prior", "current")}
+    faster = sum(row["seconds"]["current"] < row["seconds"]["prior"] for row in pairs)
+    ratio = medians["prior"] / medians["current"]
+    summary = {"medians_seconds": medians, "prior_to_current_ratio": ratio,
+               "faster_pairs": faster, "quality_passed": all(row["quality_passed"] for row in pairs),
+               "advance": ratio >= 1.10 and faster >= 2,
+               "provenance": {"protocol_sha256": sha(OUT / "protocol.json"),
+                              "pairs": {f"pair-{i:02d}.json": sha(OUT / f"pair-{i:02d}.json") for i in range(3)}}}
+    write(OUT / "summary.json", summary)
+    print(json.dumps(summary), flush=True)
+
+
+if __name__ == "__main__":
+    parser = ArgumentParser()
+    parser.add_argument("--worker", nargs=2)
+    args = parser.parse_args()
+    if args.worker:
+        worker(int(args.worker[0]), args.worker[1])
+    else:
+        parent()

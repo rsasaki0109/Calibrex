@@ -12,6 +12,7 @@ import hashlib
 import math
 from collections import deque
 from collections.abc import Callable
+from dataclasses import dataclass
 from types import TracebackType
 from typing import Any
 
@@ -94,6 +95,29 @@ def _validate_options(options: ScanOdometryOptions) -> None:
         raise ValueError("resident odometry requires three explicit positive odometry quanta")
 
 
+@dataclass(frozen=True)
+class _CapturedScan:
+    points: cp.ndarray
+    offsets: cp.ndarray | None
+    finite_points: bool
+    offset_bounds: tuple[float, float] | None
+
+    def covers(self, start: float, first: float, last: float) -> bool:
+        # Addition by a finite scalar is monotone in FP64. These extrema
+        # describe the same queries as start + offsets on device, including
+        # rounded timestamp boundaries and overflow to infinity.
+        start = float(start)
+        bounds = self.offset_bounds
+        return (
+            self.finite_points
+            and bounds is not None
+            and math.isfinite(start)
+            and first <= start <= last
+            and start + bounds[0] >= first
+            and start + bounds[1] <= last
+        )
+
+
 class _Geometry:
     def __init__(self) -> None:
         module = cp.RawModule(code=_VOXEL_SOURCE, options=("--fmad=false",))
@@ -108,7 +132,7 @@ class _Geometry:
         }
         self.scans: dict[
             tuple[tuple[int, ...], bytes, tuple[int, ...] | None],
-            tuple[cp.ndarray, cp.ndarray | None],
+            _CapturedScan,
         ] = {}
         self.bytes = 0
         self.preprocess_calls = 0
@@ -118,6 +142,8 @@ class _Geometry:
         self.gyro_rows = 0
         self.source_captures = 0
         self.source_hits = 0
+        self.source_validation_rows = 0
+        self.gyro_cached_validations = 0
         self.gyro_fallbacks = 0
         self.native_model_fallbacks = 0
 
@@ -125,7 +151,7 @@ class _Geometry:
         self,
         scan: FloatArray,
         offsets: FloatArray | None,
-    ) -> tuple[cp.ndarray, cp.ndarray | None]:
+    ) -> _CapturedScan:
         values = np.asarray(scan, dtype=np.float64)
         if values.ndim != 2 or values.shape[1] < 3:
             raise ValueError("resident scans require (N, 3+) coordinates")
@@ -144,7 +170,13 @@ class _Geometry:
         if key in self.scans:
             self.source_hits += 1
             return self.scans[key]
-        captured = (cp.asarray(points), None if times is None else cp.asarray(times))
+        captured = _CapturedScan(
+            cp.asarray(points),
+            None if times is None else cp.asarray(times),
+            bool(np.isfinite(points).all()),
+            None if times is None or not len(times) else (float(times.min()), float(times.max())),
+        )
+        self.source_validation_rows += len(points)
         if self.bytes + size <= _CACHE_BYTES:
             self.scans[key] = captured
             self.bytes += size
@@ -314,6 +346,8 @@ class _Geometry:
             "source_cache_bytes": self.bytes,
             "source_captures": self.source_captures,
             "source_cache_hits": self.source_hits,
+            "source_validation_rows": self.source_validation_rows,
+            "gyro_cached_validations": self.gyro_cached_validations,
             "preprocess_calls": self.preprocess_calls,
             "preprocess_rows": self.preprocess_rows,
             "voxel_native_fallbacks": self.voxel_fallbacks,
@@ -572,21 +606,13 @@ class _DeviceGyro:
     def rotate(
         self,
         scan_time: float,
-        offsets: cp.ndarray,
-        points: cp.ndarray,
+        scan: _CapturedScan,
     ) -> cp.ndarray:
+        points, offsets = scan.points, scan.offsets
+        assert offsets is not None
         start = scan_time + self.offset
-        queries = start + offsets
-        if (
-            not self.valid
-            or not math.isfinite(start)
-            or not len(points)
-            or start < self.times[0]
-            or start > self.times[-1]
-            or float(cp.min(queries).get()) < self.times[0]
-            or float(cp.max(queries).get()) > self.times[-1]
-            or not bool(cp.isfinite(points).all().get())
-        ):
+        self.geometry.gyro_cached_validations += 1
+        if not self.valid or not scan.covers(start, float(self.times[0]), float(self.times[-1])):
             self.geometry.gyro_fallbacks += 1
             return cp.asarray(
                 self.model.rotate_points(
@@ -595,6 +621,7 @@ class _DeviceGyro:
                     cp.asnumpy(points),
                 )
             )
+        queries = start + offsets
         index = int(
             np.clip(
                 np.searchsorted(self.times, start, side="right") - 1,
@@ -662,7 +689,8 @@ class _ResidentIncremental:
         point_offsets_s: FloatArray | None = None,
     ) -> ScanRegistration | None:
         self._require_context()
-        points, offsets = self.geometry.capture(scan, point_offsets_s)
+        captured = self.geometry.capture(scan, point_offsets_s)
+        points, offsets = captured.points, captured.offsets
         if not self.poses:
             self.poses.append(np.eye(4))
             self._recent.append(self.geometry.preprocess(points, self.options))
@@ -700,7 +728,7 @@ class _ResidentIncremental:
                 assert offsets is not None and gap is not None
                 if self.gyro is not None and time_s is not None:
                     if rotated is None:
-                        rotated = self.gyro.rotate(time_s, offsets, points)
+                        rotated = self.gyro.rotate(time_s, captured)
                     source = self.geometry.translate(rotated, offsets, motion, gap)
                 else:
                     source = self.geometry.rigid(points, offsets, motion, gap)

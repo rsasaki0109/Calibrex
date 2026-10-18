@@ -112,3 +112,56 @@ its physical, evidence, decision and full-fit numerical gates remain active.
 This spent public sequence is development and performance data. It supplies
 no independent extrinsic ground truth, and acceleration does not change the
 calibration verdict or establish a new accuracy claim.
+
+## Captured scan validation follow-up
+
+Resident gyro deskew now reuses the finite-coordinate decision and per-point
+time extrema captured with each raw scan. A changed scan or offset array gets
+a fresh content capture and validation. Each pass still checks the current
+scan timestamp and gyro clock offset against the IMU coverage. FP64 addition
+is monotone, so adding the start time to the captured extrema preserves the
+device query bounds, including rounded epoch timestamps and overflow. Invalid
+models, coordinates, empty scans and uncovered times keep the native fallback.
+
+This removes three device reductions and host synchronizations per gyro call,
+including compilation of the finite-coordinate reduction on a fresh cache.
+The public replay performs 392 cached gyro validations and validates 1,368,000
+source rows at capture. The kernels, motion solves, stopping rules, geometry
+quanta and requested workload are unchanged.
+
+Three fresh alternating complete comparisons use the same six-second public
+input, explicit settings and timing scope as above. Both arms already use
+resident CUDA odometry and CUDA spline plane fitting.
+
+| Pair | Prior resident (s) | Cached validation (s) | Prior / current |
+| --- | ---: | ---: | ---: |
+| 1 | 63.244 | 52.096 | 1.214x |
+| 2 | 65.119 | 52.281 | 1.246x |
+| 3 | 62.171 | 54.723 | 1.136x |
+| Median time | **63.244** | **52.281** | **1.210x** |
+
+The ratio of medians represents a 17.3% reduction in whole-process time;
+all three pairs improved. This is a separate cohort with its own resident
+baseline and an unreserved host. It does not measure a new cumulative CPU
+ratio, and its ratio must not be multiplied into the earlier 4.700x figure.
+
+The [complete follow-up archive](../assets/resident_scan_validation/README.md)
+retains all six workers, both complete source capsules, the protocol, launcher
+and 67-test actual-device/options qualification. Every result float bit,
+all 12 full-fit comparisons and all 1,188,000 placed point rows agree after
+only run provenance and the two new validation counters are normalized.
+The final verdict remains INCONCLUSIVE.
+
+The measured runtime changes from
+[3dbd1818](https://github.com/rsasaki0109/Calibrex/commit/3dbd181830a744c7635aefc4b2fc11f2fd74fa32)
+to [3fd31725](https://github.com/rsasaki0109/Calibrex/commit/3fd317259d32406a20be38c5ff9ad8425177e2a7).
+The [CPU-only auditor](../assets/resident_scan_validation/auditor-v2.py.txt)
+checks source/import/input/cache bindings, all quality gates and complete raw
+timings, then recomputes each pair and the summary. Its
+[line-ending repair](../assets/resident_scan_validation/AUDITOR_REPAIR.md)
+preserves all measured payloads and the original auditor.
+
+```sh
+python -m tools.audit_resident_scan_validation \
+  docs/assets/resident_scan_validation --check
+```

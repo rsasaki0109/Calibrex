@@ -1,0 +1,52 @@
+"""Capture current sources and execute live CUDA validation/cache regressions."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import time
+
+ROOT = Path(__file__).resolve().parent
+OUT = ROOT / "outputs/resident-validation-tests-v2"
+OUT.mkdir(exist_ok=False)
+env = dict(os.environ)
+for name in ("OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "OMP_NUM_THREADS"):
+    env[name] = "1"
+env.update(CUPY_CACHE_DIR=str(OUT / "cupy-cache"), CUDA_CACHE_DISABLE="1")
+selected = [
+    "tests/unit/test_cuda_resident_odometry_adapter.py",
+    "tests/unit/test_cuda_scan_odometry_adapter.py",
+    "tests/unit/test_resident_odometry_options.py",
+]
+sha = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
+source = {}
+for path in sorted((ROOT / "src/calibrex").rglob("*.py")):
+    relative = path.relative_to(ROOT)
+    copy = OUT / "source" / relative
+    copy.parent.mkdir(parents=True, exist_ok=True)
+    copy.write_bytes(path.read_bytes())
+    source[relative.as_posix()] = sha(path)
+for name in selected:
+    (OUT / (Path(name).name + ".txt")).write_bytes((ROOT / name).read_bytes())
+(OUT / "launcher.py.txt").write_bytes(Path(__file__).read_bytes())
+provenance = {
+    "scope": "Actual-device correctness; no latency claim.",
+    "launcher_sha256": sha(Path(__file__)), "sources": source,
+    "tests": {p: sha(ROOT / p) for p in selected},
+}
+(OUT / "provenance.json").write_text(json.dumps(provenance, indent=2) + "\n")
+begin = time.perf_counter()
+with (OUT / "pytest.log").open("wb") as output:
+    result = subprocess.run(
+        [sys.executable, "-m", "pytest", *selected,
+         "--basetemp=" + str(OUT / "tmp"), "-o", "cache_dir=" + str(OUT / "pytest-cache")],
+        cwd=ROOT, env=env, stdout=output, stderr=subprocess.STDOUT, timeout=1200,
+    )
+assert source == {p.relative_to(ROOT).as_posix(): sha(p)
+                  for p in sorted((ROOT / "src/calibrex").rglob("*.py"))}
+summary = {"exit_code": result.returncode, "seconds": time.perf_counter() - begin,
+           "provenance_sha256": sha(OUT / "provenance.json"),
+           "pytest_log_sha256": sha(OUT / "pytest.log")}
+(OUT / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
+print(json.dumps(summary), flush=True)
