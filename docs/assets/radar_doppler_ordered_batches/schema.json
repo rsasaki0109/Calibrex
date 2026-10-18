@@ -1,0 +1,627 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calibrex.dev/tools/schemas/radar_doppler_batches_benchmark.schema.json",
+  "title": "Tool-only ordered Doppler IRLS benchmark records",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "slac.radar_doppler_batches_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "protocol"
+        },
+        "payload": {
+          "type": "object",
+          "properties": {
+            "scope": {
+              "type": "string"
+            },
+            "commits": {
+              "type": "object",
+              "properties": {
+                "prior": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{40}$"
+                },
+                "current": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{40}$"
+                }
+              },
+              "required": [
+                "prior",
+                "current"
+              ],
+              "additionalProperties": false
+            },
+            "options": {
+              "type": "object",
+              "properties": {
+                "max_iterations": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "convergence_tolerance_mps": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "huber_delta_mps": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "min_return_count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "rank_tolerance": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "inlier_threshold_mps": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              },
+              "required": [
+                "max_iterations",
+                "convergence_tolerance_mps",
+                "huber_delta_mps",
+                "min_return_count",
+                "rank_tolerance",
+                "inlier_threshold_mps"
+              ],
+              "additionalProperties": false
+            },
+            "returns_per_scan": {
+              "const": 256
+            },
+            "repetitions": {
+              "type": "integer",
+              "minimum": 2
+            },
+            "blas_threads": {
+              "const": 1
+            },
+            "environment": {
+              "type": "object",
+              "properties": {
+                "python": {
+                  "type": "string"
+                },
+                "packages": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "python",
+                "packages"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "scope",
+            "commits",
+            "options",
+            "returns_per_scan",
+            "repetitions",
+            "blas_threads",
+            "environment"
+          ],
+          "additionalProperties": false
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "files": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          },
+          "required": [
+            "files"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "record_type",
+        "payload",
+        "provenance"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "slac.radar_doppler_batches_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "attempts"
+        },
+        "payload": {
+          "type": "object",
+          "properties": {
+            "attempts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "folder": {
+                    "type": "string"
+                  },
+                  "variant": {
+                    "enum": [
+                      "prior",
+                      "current"
+                    ]
+                  },
+                  "seconds": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  },
+                  "exit_code": {
+                    "const": 0
+                  }
+                },
+                "required": [
+                  "folder",
+                  "variant",
+                  "seconds",
+                  "exit_code"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "attempts"
+          ],
+          "additionalProperties": false
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "protocol_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "protocol_sha256"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "record_type",
+        "payload",
+        "provenance"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "slac.radar_doppler_batches_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "result"
+        },
+        "payload": {
+          "type": "object",
+          "properties": {
+            "options": {
+              "type": "object",
+              "properties": {
+                "max_iterations": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "convergence_tolerance_mps": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "huber_delta_mps": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "min_return_count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "rank_tolerance": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "inlier_threshold_mps": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              },
+              "required": [
+                "max_iterations",
+                "convergence_tolerance_mps",
+                "huber_delta_mps",
+                "min_return_count",
+                "rank_tolerance",
+                "inlier_threshold_mps"
+              ],
+              "additionalProperties": false
+            },
+            "scans": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "measurement_id": {
+                    "type": "string"
+                  },
+                  "result": {
+                    "type": "object",
+                    "properties": {
+                      "status": {
+                        "enum": [
+                          "converged",
+                          "max_iterations",
+                          "insufficient_returns",
+                          "degenerate_geometry"
+                        ]
+                      },
+                      "reason": {
+                        "type": "string"
+                      },
+                      "velocity_radar_mps": {
+                        "anyOf": [
+                          {
+                            "type": "array",
+                            "items": {
+                              "type": "number"
+                            },
+                            "minItems": 3,
+                            "maxItems": 3
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "return_count": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "inlier_count": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "rmse_mps": {
+                        "type": [
+                          "number",
+                          "null"
+                        ],
+                        "minimum": 0
+                      },
+                      "rank": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 3
+                      },
+                      "condition_number": {
+                        "type": [
+                          "number",
+                          "null"
+                        ],
+                        "minimum": 0
+                      },
+                      "iterations": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "method": {
+                        "const": "huber_irls_los_doppler/v0.1"
+                      }
+                    },
+                    "required": [
+                      "status",
+                      "reason",
+                      "velocity_radar_mps",
+                      "return_count",
+                      "inlier_count",
+                      "rmse_mps",
+                      "rank",
+                      "condition_number",
+                      "iterations",
+                      "method"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "measurement_id",
+                  "result"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "options",
+            "scans"
+          ],
+          "additionalProperties": false
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "protocol_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "git_commit": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "git_commit_short": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{4,40}$"
+            }
+          },
+          "required": [
+            "protocol_sha256",
+            "git_commit",
+            "git_commit_short"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "record_type",
+        "payload",
+        "provenance"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "slac.radar_doppler_batches_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "measurement"
+        },
+        "payload": {
+          "type": "object",
+          "properties": {
+            "api_seconds": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "imports": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string"
+                  },
+                  "sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  }
+                },
+                "required": [
+                  "path",
+                  "sha256"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "scans": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "returns": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "irls_iterations": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "result_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "history_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "history_raw_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "api_seconds",
+            "imports",
+            "scans",
+            "returns",
+            "irls_iterations",
+            "result_sha256",
+            "history_sha256",
+            "history_raw_sha256"
+          ],
+          "additionalProperties": false
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "protocol_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "git_commit": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            "git_commit_short": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{4,40}$"
+            }
+          },
+          "required": [
+            "protocol_sha256",
+            "git_commit",
+            "git_commit_short"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "record_type",
+        "payload",
+        "provenance"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "slac.radar_doppler_batches_benchmark/v0.1"
+        },
+        "record_type": {
+          "const": "report"
+        },
+        "payload": {
+          "type": "object",
+          "properties": {
+            "whole_seconds_median": {
+              "type": "object",
+              "properties": {
+                "prior": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "current": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              },
+              "required": [
+                "prior",
+                "current"
+              ],
+              "additionalProperties": false
+            },
+            "api_seconds_median": {
+              "type": "object",
+              "properties": {
+                "prior": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "current": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                }
+              },
+              "required": [
+                "prior",
+                "current"
+              ],
+              "additionalProperties": false
+            },
+            "whole_speedup": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "api_speedup": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "scans": {
+              "const": 2758
+            },
+            "returns": {
+              "const": 706048
+            },
+            "irls_iterations": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "verified_runs": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "complete_results_exact": {
+              "const": true
+            },
+            "all_irls_systems_exact": {
+              "const": true
+            },
+            "runtime_source_changes": {
+              "const": [
+                "calibrex/solvers/radar_ego_velocity_solver.py"
+              ]
+            }
+          },
+          "required": [
+            "whole_seconds_median",
+            "api_seconds_median",
+            "whole_speedup",
+            "api_speedup",
+            "scans",
+            "returns",
+            "irls_iterations",
+            "verified_runs",
+            "complete_results_exact",
+            "all_irls_systems_exact",
+            "runtime_source_changes"
+          ],
+          "additionalProperties": false
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "protocol_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "attempts_sha256": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            }
+          },
+          "required": [
+            "protocol_sha256",
+            "attempts_sha256"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "record_type",
+        "payload",
+        "provenance"
+      ],
+      "additionalProperties": false
+    }
+  ]
+}

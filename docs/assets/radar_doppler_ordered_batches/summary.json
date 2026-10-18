@@ -1,0 +1,29 @@
+{
+  "schema_version": "slac.radar_doppler_batches_benchmark/v0.1",
+  "record_type": "report",
+  "payload": {
+    "whole_seconds_median": {
+      "prior": 13.412054900079966,
+      "current": 4.9768016000743955
+    },
+    "api_seconds_median": {
+      "prior": 11.682495199493133,
+      "current": 3.1505244018044323
+    },
+    "whole_speedup": 2.6949145209805985,
+    "api_speedup": 3.708111320389106,
+    "scans": 2758,
+    "returns": 706048,
+    "irls_iterations": 17658,
+    "verified_runs": 6,
+    "complete_results_exact": true,
+    "all_irls_systems_exact": true,
+    "runtime_source_changes": [
+      "calibrex/solvers/radar_ego_velocity_solver.py"
+    ]
+  },
+  "provenance": {
+    "protocol_sha256": "a04ae08bf3b121c75ac9970229711c4b69d8a21724999bddd4c2681c5e77208d",
+    "attempts_sha256": "1e944ea0f78400f53d0cc29ed97d72b50180a95fe3ef977e7bf2b7ea76969523"
+  }
+}

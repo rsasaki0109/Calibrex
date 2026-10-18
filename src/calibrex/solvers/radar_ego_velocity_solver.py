@@ -5,7 +5,10 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, TypeAlias
+
+import numpy as np
+from numpy.typing import NDArray
 
 from calibrex.core.geometry import Vector3
 
@@ -82,7 +85,10 @@ class RadarEgoVelocitySolver:
                 "not enough positive-weight Doppler returns",
                 len(rows),
             )
-        base_hessian, _base_gradient = _normal_equations(rows, None)
+        prepared = _prepare_rows(rows)
+        base_hessian, _base_gradient = (
+            _normal_equations(rows, None) if prepared is None else prepared.normal_equations(None)
+        )
         eigenvalues = _symmetric_eigenvalues_3x3(base_hessian)
         maximum = max(eigenvalues)
         threshold = solver_options.rank_tolerance * max(1.0, maximum)
@@ -106,11 +112,16 @@ class RadarEgoVelocitySolver:
         status: RadarEgoVelocityStatus = "max_iterations"
         iterations = 0
         for iteration in range(solver_options.max_iterations):
-            residuals = [_residual(row, velocity) for row in rows]
-            robust_weights = [
-                _huber_weight(value, solver_options.huber_delta_mps) for value in residuals
-            ]
-            hessian, gradient = _normal_equations(rows, robust_weights)
+            if prepared is None:
+                residuals = [_residual(row, velocity) for row in rows]
+                robust_weights = [
+                    _huber_weight(value, solver_options.huber_delta_mps) for value in residuals
+                ]
+                hessian, gradient = _normal_equations(rows, robust_weights)
+            else:
+                values = prepared.residuals(velocity)
+                robust = prepared.weights(values, solver_options.huber_delta_mps)
+                hessian, gradient = prepared.normal_equations(robust)
             solved = _solve_3x3(hessian, gradient)
             if solved is None:
                 return RadarEgoVelocityResult(
@@ -136,7 +147,11 @@ class RadarEgoVelocitySolver:
                 status = "converged"
                 break
 
-        residuals = [_residual(row, velocity) for row in rows]
+        residuals = (
+            [_residual(row, velocity) for row in rows]
+            if prepared is None
+            else prepared.residuals(velocity).tolist()
+        )
         inliers = [
             value for value in residuals if abs(value) <= solver_options.inlier_threshold_mps
         ]
@@ -163,6 +178,70 @@ class RadarEgoVelocitySolver:
 
 
 _Row = tuple[Vector3, float, float]
+_FloatArray: TypeAlias = NDArray[np.float64]
+_BATCH_ROWS = 4096
+
+
+class _DopplerRows:
+    """Fit-local arrays with the scalar expression and accumulation order."""
+
+    def __init__(self, rows: Sequence[_Row]) -> None:
+        self.los = np.asarray([row[0] for row in rows], dtype=np.float64)
+        self.target = np.asarray([row[1] for row in rows], dtype=np.float64)
+        self.base_weight = np.asarray([row[2] for row in rows], dtype=np.float64)
+
+    def residuals(self, velocity: Vector3) -> _FloatArray:
+        # Keep the three products and left-to-right additions; a BLAS dot can
+        # change rounding and thus the robust weights or convergence decision.
+        return np.asarray(
+            self.los[:, 0] * velocity[0]
+            + self.los[:, 1] * velocity[1]
+            + self.los[:, 2] * velocity[2]
+            - self.target,
+            dtype=np.float64,
+        )
+
+    def weights(self, residuals: _FloatArray, delta: float) -> _FloatArray:
+        absolute = np.abs(residuals)
+        result = np.ones_like(absolute)
+        outside = ~((absolute <= delta) | (absolute == 0.0))
+        np.divide(delta, absolute, out=result, where=outside)
+        return result
+
+    def normal_equations(
+        self, robust: _FloatArray | None,
+    ) -> tuple[list[list[float]], list[float]]:
+        totals = np.zeros(12)
+        for start in range(0, len(self.target), _BATCH_ROWS):
+            stop = min(start + _BATCH_ROWS, len(self.target))
+            los, target = self.los[start:stop], self.target[start:stop]
+            weight = self.base_weight[start:stop]
+            if robust is not None:
+                weight = weight * robust[start:stop]
+            terms = np.empty((stop - start + 1, 12))
+            # Carry the previous prefix (including its signed zeros) into the
+            # next chunk. np.sum or matrix multiplication reorders additions.
+            terms[0] = totals
+            for left in range(3):
+                weighted = weight * los[:, left]
+                terms[1:, left] = weighted * target
+                for right in range(3):
+                    terms[1:, 3 + 3 * left + right] = weighted * los[:, right]
+            np.add.accumulate(terms, axis=0, out=terms)
+            totals = terms[-1].copy()
+        return totals[3:].reshape(3, 3).tolist(), totals[:3].tolist()
+
+
+def _prepare_rows(rows: Sequence[_Row]) -> _DopplerRows | None:
+    # Small scans keep the low-overhead scalar path. Preserve unusual numeric
+    # objects and non-finite/extreme input behavior through that same path.
+    if len(rows) < 64 or any(
+        type(value) is not float or not math.isfinite(value) or abs(value) > 1.0e100
+        for los, target, weight in rows
+        for value in (*los, target, weight)
+    ):
+        return None
+    return _DopplerRows(rows)
 
 
 def _normalized_row(observation: RadarDopplerObservation) -> _Row:
