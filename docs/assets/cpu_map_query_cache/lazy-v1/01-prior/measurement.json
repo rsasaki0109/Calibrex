@@ -1,0 +1,1341 @@
+{
+  "api_seconds": 24.037532299989834,
+  "worker_cpu_seconds": 24.4375,
+  "evaluation": {
+    "result": {
+      "status": "converged",
+      "transform": [
+        [
+          0.9999999999998337,
+          2.788124950691491e-07,
+          5.046809228192345e-07,
+          6.501002347580545e-05
+        ],
+        [
+          -2.7880981065759815e-07,
+          0.999999999985815,
+          -5.319019444063046e-06,
+          -0.00010417814172125121
+        ],
+        [
+          -5.046824058211373e-07,
+          5.319019303351875e-06,
+          0.9999999999857268,
+          -4.865640159118474e-05
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "covariance": [
+        [
+          1.4184271001085238e-11,
+          1.3429766459111436e-13,
+          -2.774288798741222e-16,
+          3.3675765936541944e-12,
+          -3.876306840322064e-11,
+          8.964063235035421e-12
+        ],
+        [
+          1.3429766459111436e-13,
+          5.380075285695033e-12,
+          -1.740346534220569e-13,
+          2.6026396979191167e-11,
+          -1.0118672251039025e-12,
+          2.999546022943461e-12
+        ],
+        [
+          -2.7742887987410964e-16,
+          -1.740346534220569e-13,
+          1.123998608093136e-11,
+          -5.68227959932428e-12,
+          3.717414836841309e-12,
+          1.2956515140540564e-16
+        ],
+        [
+          3.3675765936541944e-12,
+          2.6026396979191174e-11,
+          -5.682279599324281e-12,
+          2.7477036640953506e-09,
+          -8.488003597724732e-12,
+          -4.011177140260293e-11
+        ],
+        [
+          -3.876306840322063e-11,
+          -1.0118672251039023e-12,
+          3.7174148368413085e-12,
+          -8.48800359772473e-12,
+          2.0199097306349494e-09,
+          1.4715994350526218e-11
+        ],
+        [
+          8.964063235035421e-12,
+          2.999546022943461e-12,
+          1.2956515140541604e-16,
+          -4.011177140260293e-11,
+          1.4715994350526218e-11,
+          4.6478129277404436e-10
+        ]
+      ],
+      "sigma_m": 0.009803667936950375,
+      "samples": 4,
+      "correspondences": 298135,
+      "iterations": 8,
+      "execution_backend": "numpy_scipy"
+    },
+    "records": [
+      {
+        "name": "roll",
+        "unit": "deg",
+        "value": 0.00030475735723216205,
+        "std_analytic": 0.00021578742992271367,
+        "std_jackknife": 0.0004091837229094441,
+        "std_reported": 0.0004091837229094441,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 1.0,
+          "unit": "deg",
+          "holdout_delta_chi2": 2031039.6477026986,
+          "detected": true
+        }
+      },
+      {
+        "name": "pitch",
+        "unit": "deg",
+        "value": 2.891617186337076e-05,
+        "std_analytic": 0.00013289749926699486,
+        "std_jackknife": 0.00024660148572464203,
+        "std_reported": 0.00024660148572464203,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 1.0,
+          "unit": "deg",
+          "holdout_delta_chi2": 2261542.765495683,
+          "detected": true
+        }
+      },
+      {
+        "name": "yaw",
+        "unit": "deg",
+        "value": -1.5974625437524236e-05,
+        "std_analytic": 0.0001920903372908827,
+        "std_jackknife": 0.00012147636407908794,
+        "std_reported": 0.0001920903372908827,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 1.0,
+          "unit": "deg",
+          "holdout_delta_chi2": 622060.2367440863,
+          "detected": true
+        }
+      },
+      {
+        "name": "x",
+        "unit": "m",
+        "value": 6.501002347580545e-05,
+        "std_analytic": 5.24185431321336e-05,
+        "std_jackknife": 7.423710908261714e-05,
+        "std_reported": 7.423710908261714e-05,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 0.05,
+          "unit": "m",
+          "holdout_delta_chi2": 443153.5151769221,
+          "detected": true
+        }
+      },
+      {
+        "name": "y",
+        "unit": "m",
+        "value": -0.00010417814172125121,
+        "std_analytic": 4.494340586376326e-05,
+        "std_jackknife": 4.575377151462722e-05,
+        "std_reported": 4.575377151462722e-05,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 0.05,
+          "unit": "m",
+          "holdout_delta_chi2": 434724.07048485056,
+          "detected": true
+        }
+      },
+      {
+        "name": "z",
+        "unit": "m",
+        "value": -4.865640159118474e-05,
+        "std_analytic": 2.1558786904045515e-05,
+        "std_jackknife": 2.3110656529804585e-06,
+        "std_reported": 2.1558786904045515e-05,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 0.05,
+          "unit": "m",
+          "holdout_delta_chi2": 2097712.390860118,
+          "detected": true
+        }
+      }
+    ],
+    "train_blocks": [
+      0,
+      2,
+      3,
+      5
+    ],
+    "holdout_blocks": [
+      1,
+      4
+    ],
+    "jackknife_fits": 4,
+    "train_samples": 4,
+    "holdout_samples": 2,
+    "holdout_correspondences": 146385,
+    "holdout_median_m": 0.006674427340589344,
+    "reference_delta_chi2": null,
+    "policy_status": "pass",
+    "policy_reasons": [
+      "every DoF is estimated and held-out blocks detect every control"
+    ]
+  },
+  "artifact": {
+    "schema_version": "slac.lidar_lidar_extrinsic/v0.1",
+    "method": "map_registration/v0.1",
+    "solver_status": "converged",
+    "policy_status": "pass",
+    "policy_reasons": [
+      "every DoF is estimated and held-out blocks detect every control"
+    ],
+    "calibrated_dofs": [
+      "roll",
+      "pitch",
+      "yaw",
+      "x",
+      "y",
+      "z"
+    ],
+    "transform": {
+      "parent_frame": "public_scan_window",
+      "child_frame": "public_scan_copy",
+      "translation_m": [
+        6.501002347580545e-05,
+        -0.00010417814172125121,
+        -4.865640159118474e-05
+      ],
+      "rotation_quat_xyzw": [
+        2.6595096868632463e-06,
+        2.523408321609958e-07,
+        -1.394055764321856e-07,
+        0.999999999996422
+      ]
+    },
+    "dofs": [
+      {
+        "name": "roll",
+        "unit": "deg",
+        "value": 0.00030475735723216205,
+        "std_analytic": 0.00021578742992271367,
+        "std_jackknife": 0.0004091837229094441,
+        "std_reported": 0.0004091837229094441,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 1.0,
+          "unit": "deg",
+          "holdout_delta_chi2": 2031039.6477026986,
+          "detected": true
+        }
+      },
+      {
+        "name": "pitch",
+        "unit": "deg",
+        "value": 2.891617186337076e-05,
+        "std_analytic": 0.00013289749926699486,
+        "std_jackknife": 0.00024660148572464203,
+        "std_reported": 0.00024660148572464203,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 1.0,
+          "unit": "deg",
+          "holdout_delta_chi2": 2261542.765495683,
+          "detected": true
+        }
+      },
+      {
+        "name": "yaw",
+        "unit": "deg",
+        "value": -1.5974625437524236e-05,
+        "std_analytic": 0.0001920903372908827,
+        "std_jackknife": 0.00012147636407908794,
+        "std_reported": 0.0001920903372908827,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 1.0,
+          "unit": "deg",
+          "holdout_delta_chi2": 622060.2367440863,
+          "detected": true
+        }
+      },
+      {
+        "name": "x",
+        "unit": "m",
+        "value": 6.501002347580545e-05,
+        "std_analytic": 5.24185431321336e-05,
+        "std_jackknife": 7.423710908261714e-05,
+        "std_reported": 7.423710908261714e-05,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 0.05,
+          "unit": "m",
+          "holdout_delta_chi2": 443153.5151769221,
+          "detected": true
+        }
+      },
+      {
+        "name": "y",
+        "unit": "m",
+        "value": -0.00010417814172125121,
+        "std_analytic": 4.494340586376326e-05,
+        "std_jackknife": 4.575377151462722e-05,
+        "std_reported": 4.575377151462722e-05,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 0.05,
+          "unit": "m",
+          "holdout_delta_chi2": 434724.07048485056,
+          "detected": true
+        }
+      },
+      {
+        "name": "z",
+        "unit": "m",
+        "value": -4.865640159118474e-05,
+        "std_analytic": 2.1558786904045515e-05,
+        "std_jackknife": 2.3110656529804585e-06,
+        "std_reported": 2.1558786904045515e-05,
+        "status": "estimated",
+        "known_bad_control": {
+          "amount": 0.05,
+          "unit": "m",
+          "holdout_delta_chi2": 2097712.390860118,
+          "detected": true
+        }
+      }
+    ],
+    "residual_sigma_m": 0.009803667936950375,
+    "holdout_median_residual_m": 0.006674427340589344,
+    "samples": {
+      "reference_scans": 9,
+      "samples": 6,
+      "train_samples": 4,
+      "holdout_samples": 2,
+      "train_correspondences": 298135,
+      "holdout_correspondences": 146385
+    },
+    "train_blocks": [
+      0,
+      2,
+      3,
+      5
+    ],
+    "holdout_blocks": [
+      1,
+      4
+    ],
+    "jackknife_fits": 4,
+    "options": {
+      "map_options": {
+        "max_correspondence_m": 0.5,
+        "normal_neighbours": 10,
+        "max_planarity_ratio": 0.2,
+        "huber_m": 0.05,
+        "iterations": 30,
+        "convergence_rotation_rad": 1e-06,
+        "convergence_translation_m": 1e-05
+      },
+      "execution_backend": "numpy_scipy",
+      "half_window": 1,
+      "initial_transform": [
+        [
+          1.0,
+          0.0,
+          0.0,
+          0.08
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          -0.07
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.05
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "target_noise_std_m": 0.01,
+      "target_noise_seed": 20261012
+    },
+    "limitations": [
+      "Concatenated raw windows are not motion compensated; copied central scans form an identity execution control, not independent two-sensor accuracy."
+    ],
+    "provenance": {
+      "generator": "tools.benchmark_cuda_lidar_map",
+      "generator_version": "0.5.1",
+      "git_commit": "96871f64588a122e33e01c713e6710f0f0f36d71",
+      "command": [
+        "<PYTHON>",
+        "tools/benchmark_cuda_lidar_map.py",
+        "--worker",
+        "cpu"
+      ],
+      "dataset_family": "kitti_raw",
+      "sequence_ids": [
+        "2011_09_30_drive_0018_sync"
+      ],
+      "reference_topic": "public_scan_window",
+      "target_topic": "public_scan_copy",
+      "input_sha256": "a141e6dd1d84992aaedee82d91f648c727e625a0de7ccd8a8879c9c13c051b7c",
+      "input_digest_scope": "SHA256 of all raw scan bytes",
+      "dataset_license": "KITTI terms: https://www.cvlibs.net/datasets/kitti/raw_data.php",
+      "created_at": "2026-10-18T06:22:50.141948+00:00"
+    }
+  },
+  "result_sha256": "e094f26516cb038715478f46724f7707dfc0cf0448fe2845b9ac6c4bcb40493c",
+  "statistics": {},
+  "prepared_sha256": "415cb0e5b105bfa2d4cc46612f32fcb8e6fc854b8e67e2b26185997afec4b373",
+  "partition_sha256": {
+    "train": "6f69999b917dfc8f279da237bb16c2a24ef7b58c6c4d08bace24c70273d4df1d",
+    "holdout": "11d66601058e7ffac0e092aaa4fc549fbadd69caecc3d43e64c0bd899d9c15d6"
+  },
+  "map_points": [
+    381555,
+    381555,
+    381923,
+    381923,
+    379967,
+    379967
+  ],
+  "target_points": [
+    127158,
+    127158,
+    127303,
+    127303,
+    126598,
+    126598
+  ],
+  "provenance": {
+    "input_sha256": {
+      "data\\public\\kitti_raw_icp\\2011_09_30_drive_0018_sync\\velodyne_points\\data\\0000000114.bin": "a27accd1d9f54683215819a0205636b1ac624b2238c426ccd62ac0cc312f24d5",
+      "data\\public\\kitti_raw_icp\\2011_09_30_drive_0018_sync\\velodyne_points\\data\\0000000115.bin": "213948bd8c54c925aca7eb9f3b3c36e95e586b52ee8d9d64056c4fc4aeb12b2d",
+      "data\\public\\kitti_raw_icp\\2011_09_30_drive_0018_sync\\velodyne_points\\data\\0000000116.bin": "3202767186804ef01c66b64d30e35cbb1e275da635c0fb0d12eb5bb1b5640fc7",
+      "data\\public\\kitti_raw_icp\\2011_09_30_drive_0018_sync\\velodyne_points\\data\\0000000229.bin": "68522eec4b4ddb401c8d3b369033562cf3a41e0975087e9c62b64f17557154b3",
+      "data\\public\\kitti_raw_icp\\2011_09_30_drive_0018_sync\\velodyne_points\\data\\0000000230.bin": "b9b6ac62ef2b7be4dcec2eab424c142012c6e948cb3f24bf774b6459efbae2ca",
+      "data\\public\\kitti_raw_icp\\2011_09_30_drive_0018_sync\\velodyne_points\\data\\0000000231.bin": "05399157c4a6aad5984d0d5795534ae4003e9747c6185b24a29fdd8f3cadcbc0",
+      "data\\public\\kitti_raw_icp\\2011_09_30_drive_0018_sync\\velodyne_points\\data\\0000000344.bin": "7c18c2449cefa884161164a25454d44b747b6500b72211978cfcc046671ad6d9",
+      "data\\public\\kitti_raw_icp\\2011_09_30_drive_0018_sync\\velodyne_points\\data\\0000000345.bin": "2a5f331a041437dcfbc3d066f896fb8ac4757b30b4f64fb7f05c50bc2691bdcf",
+      "data\\public\\kitti_raw_icp\\2011_09_30_drive_0018_sync\\velodyne_points\\data\\0000000346.bin": "57cbefea4f9364cb8e52e76222b7caf6eeafca783580af17d2632c9b2c52496a"
+    },
+    "source_sha256": {
+      "src/calibrex/solvers/lidar_lidar_map_solver.py": "6ac97b60e57da523e599e3c49a4e0ab0e9729643ead376493e810317b936ac7e",
+      "src/calibrex/solvers/cuda_lidar_map_adapter.py": "e16dd3913282bf27987b51708a996012e54ef52cc4e899af0c95caa62df5cc0a",
+      "src/calibrex/evaluation/lidar_lidar_map.py": "d541c5aeba69f2df79acfa80ad329ce449986dfc939224bd4c7df7c149b48f61",
+      "src/calibrex/core/lidar_lidar_extrinsic.py": "e0addb87c353bab0d8d620f05f7c27d3072983673d214d289c135c8029fea30e",
+      "src/calibrex/core/benchmark.py": "3bd889b1461053fa07811ec381c9154f43e0482410a9389cb2ae8289e169aa7c",
+      "tools/benchmark_cuda_lidar_map.py": "4eb605229b19a634b99702a48be866b3a7ce28622b9848de29ca3b6a8aebb35a"
+    },
+    "source_commit": "96871f64588a122e33e01c713e6710f0f0f36d71",
+    "source_manifest_sha256": "e2c66d562238a31719c20f91a13b86694966dbd47c3d85ca065934c598ac38cf",
+    "executed_sources_sha256": {
+      "calibrex/__init__.py": "c05e3d851dae2030fee177ef264994a185d422fc891401e83ea05c0d1e0810cb",
+      "calibrex/evaluation/__init__.py": "41338dc5849631f2f6243fe7be64a83d5aa36ea0c7b17ccecd6ff5cd16a26b36",
+      "calibrex/core/__init__.py": "de90bba9eac3497afe032050c356c5f73dfaeb9455e56add1dd11ed288bfda01",
+      "calibrex/core/io.py": "ebc5b7788d87dcb2f2fa596a99e74cba4e7be8c55f246931c2b4c8bf432d37ef",
+      "calibrex/core/exceptions.py": "11328d0422f5ef2853acf8f61e3af099a3ed4ad5077ebecd6c61971fa430abdd",
+      "calibrex/core/geometry.py": "6597695de33360d44b8b18e457f84355df3ace30837462f4b9501193879d66aa",
+      "calibrex/core/solid_state.py": "3134ba46337a33ede5c01c49f2a4bcd593da13a85b706206787f9e50fda4793e",
+      "calibrex/core/result.py": "9066a9feba904dad1ab54daa0cca681fff518aeafbd879f0cbb5d4969ff9ba8b",
+      "calibrex/core/lidar_lidar_extrinsic.py": "e0addb87c353bab0d8d620f05f7c27d3072983673d214d289c135c8029fea30e",
+      "calibrex/core/progress.py": "7bb5796113ad6dfc9e99ea752b50512da8884c810832e95b19d2563ef21667df",
+      "calibrex/core/provenance.py": "eb7849f342892272ae136454da816852d080684b25c8ec55771582c1b8621f47",
+      "calibrex/data/__init__.py": "5e871fcd5f388b13b9bc7adf3ceb8a68c99ddcadc8e99c2f3e4ad2a241044923",
+      "calibrex/data/ros_messages.py": "e2fb668c870d482e8b52dddc5f063f665e7eca561fb24942d642d040337d8d73",
+      "calibrex/data/ros_cdr.py": "97981000ff40ed73334759b9b0f773e7f12f6ffc7056a9bdc6a99f7f40f0a043",
+      "calibrex/data/livox_profile_fields.py": "173f7d3dd85e33b527036207e3df97772a129225800f785f65ed34ae5419524d",
+      "calibrex/data/base.py": "da80b627f1b85ce65f17462c918a4724311a97246a2a637ebc341fc9eac8d594",
+      "calibrex/data/rosbag1.py": "00dc451c18c7a9a630d9f97dccda9dc63503fd2d26fc3a8321238151864a7c5e",
+      "calibrex/data/ros1_cdr.py": "5eb7c8e6244a72a74cbb4334268f0082cc62b748f4dac0cf269f4cc5e0e7321b",
+      "calibrex/data/bag_formats.py": "81f1a6caedc201bd1720eaa113571ea94f5a6fc2c9621a06b9889eb1485c46e0",
+      "calibrex/data/rosbag2.py": "bb6d75152aed2e114364d54a50e4e91c726d4fac8e242ea88cdf1a3a176d1428",
+      "calibrex/data/livox_ros2.py": "05ef41c117d1049847632886d26cf8b168b97cae49781fdbcd8c7f3dc8c6b43e",
+      "calibrex/solvers/__init__.py": "00f4e2dac3c4b546e1ede9eeb30c8515d0e3c4dd7abd958df52c4a7a81218d3c",
+      "calibrex/solvers/lidar_lidar_map_solver.py": "6ac97b60e57da523e599e3c49a4e0ab0e9729643ead376493e810317b936ac7e",
+      "calibrex/solvers/scan_to_scan_odometry.py": "d56fd8c097d8f943dcf0049abc52bab44e1216e8de1d9db34e3c42cfe4d269eb",
+      "calibrex/evaluation/lidar_lidar_map.py": "d541c5aeba69f2df79acfa80ad329ce449986dfc939224bd4c7df7c149b48f61"
+    },
+    "launcher_sha256": "5d0930b0305cfcd9b04362cde2316cff41048a40ce2dc8a7311b3ec406d1dd18",
+    "protocol_sha256": "912eaf88db0c174c598a2282dd32266c9c608be312a79fd12616cec1e8f396fe",
+    "helpers_sha256": {
+      "tools/benchmark_cuda_lidar_map.py": "4eb605229b19a634b99702a48be866b3a7ce28622b9848de29ca3b6a8aebb35a",
+      "tools/benchmark_bspline_lidar_imu.py": "9c29cd4193c8693fd5a939edda56b9dda35d0e4f74cfb4b1dc7281231bad25aa"
+    },
+    "threads": {
+      "OPENBLAS_NUM_THREADS": "1",
+      "MKL_NUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1"
+    }
+  },
+  "full_fits": [
+    {
+      "status": "converged",
+      "transform": [
+        [
+          0.9999999999998337,
+          2.788124950691491e-07,
+          5.046809228192345e-07,
+          6.501002347580545e-05
+        ],
+        [
+          -2.7880981065759815e-07,
+          0.999999999985815,
+          -5.319019444063046e-06,
+          -0.00010417814172125121
+        ],
+        [
+          -5.046824058211373e-07,
+          5.319019303351875e-06,
+          0.9999999999857268,
+          -4.865640159118474e-05
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "covariance": [
+        [
+          1.4184271001085238e-11,
+          1.3429766459111436e-13,
+          -2.774288798741222e-16,
+          3.3675765936541944e-12,
+          -3.876306840322064e-11,
+          8.964063235035421e-12
+        ],
+        [
+          1.3429766459111436e-13,
+          5.380075285695033e-12,
+          -1.740346534220569e-13,
+          2.6026396979191167e-11,
+          -1.0118672251039025e-12,
+          2.999546022943461e-12
+        ],
+        [
+          -2.7742887987410964e-16,
+          -1.740346534220569e-13,
+          1.123998608093136e-11,
+          -5.68227959932428e-12,
+          3.717414836841309e-12,
+          1.2956515140540564e-16
+        ],
+        [
+          3.3675765936541944e-12,
+          2.6026396979191174e-11,
+          -5.682279599324281e-12,
+          2.7477036640953506e-09,
+          -8.488003597724732e-12,
+          -4.011177140260293e-11
+        ],
+        [
+          -3.876306840322063e-11,
+          -1.0118672251039023e-12,
+          3.7174148368413085e-12,
+          -8.48800359772473e-12,
+          2.0199097306349494e-09,
+          1.4715994350526218e-11
+        ],
+        [
+          8.964063235035421e-12,
+          2.999546022943461e-12,
+          1.2956515140541604e-16,
+          -4.011177140260293e-11,
+          1.4715994350526218e-11,
+          4.6478129277404436e-10
+        ]
+      ],
+      "sigma_m": 0.009803667936950375,
+      "samples": 4,
+      "correspondences": 298135,
+      "iterations": 8,
+      "execution_backend": "numpy_scipy"
+    },
+    {
+      "status": "converged",
+      "transform": [
+        [
+          0.9999999999869588,
+          2.254349499751782e-06,
+          4.582607769934111e-06,
+          0.00012204946159165022
+        ],
+        [
+          -2.254290046243449e-06,
+          0.9999999999133006,
+          -1.2973692112562814e-05,
+          -0.0001337796710009158
+        ],
+        [
+          -4.5826370167731035e-06,
+          1.2973681781866244e-05,
+          0.9999999999053417,
+          -4.5032212967167656e-05
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "covariance": [
+        [
+          2.6069955749361028e-11,
+          -1.0441750141272141e-13,
+          -1.4332143350621624e-13,
+          -2.819259717164889e-12,
+          -5.0843414191035736e-11,
+          4.2422821252436964e-11
+        ],
+        [
+          -1.0441750141272145e-13,
+          9.154650757148009e-12,
+          -4.5380951116564396e-13,
+          3.8276734095563347e-11,
+          3.131131817338496e-13,
+          4.4246402119961345e-12
+        ],
+        [
+          -1.4332143350621626e-13,
+          -4.538095111656438e-13,
+          1.4786052643594293e-11,
+          -1.791724333145719e-11,
+          4.929956511313047e-12,
+          9.856669683766319e-14
+        ],
+        [
+          -2.819259717164889e-12,
+          3.8276734095563347e-11,
+          -1.7917243331457197e-11,
+          3.54573269873936e-09,
+          3.511987601487406e-11,
+          -6.460400197367125e-11
+        ],
+        [
+          -5.084341419103574e-11,
+          3.131131817338496e-13,
+          4.9299565113130464e-12,
+          3.511987601487407e-11,
+          2.3548254900764395e-09,
+          3.2681233058990526e-12
+        ],
+        [
+          4.2422821252436964e-11,
+          4.424640211996135e-12,
+          9.856669683766319e-14,
+          -6.460400197367125e-11,
+          3.2681233058990526e-12,
+          7.303413517925085e-10
+        ]
+      ],
+      "sigma_m": 0.00972898249805085,
+      "samples": 3,
+      "correspondences": 215168,
+      "iterations": 3,
+      "execution_backend": "numpy_scipy"
+    },
+    {
+      "status": "converged",
+      "transform": [
+        [
+          0.999999999998664,
+          -7.309538986576071e-07,
+          -1.4620442030707148e-06,
+          6.877899727583769e-05
+        ],
+        [
+          7.309494110546315e-07,
+          0.9999999999950222,
+          -3.0694012568923104e-06,
+          -7.641861469752861e-05
+        ],
+        [
+          1.462046446654273e-06,
+          3.0694001882075667e-06,
+          0.9999999999942208,
+          -4.494848223893787e-05
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "covariance": [
+        [
+          1.8670090596319698e-11,
+          1.7762196275267202e-13,
+          6.681571295125001e-14,
+          7.109625292099594e-12,
+          -5.605206002277015e-11,
+          1.8248733831576782e-12
+        ],
+        [
+          1.77621962752672e-13,
+          6.8585223242132295e-12,
+          -1.5600299707379389e-13,
+          3.3381480759977235e-11,
+          -2.0267416532302736e-12,
+          3.5381817673427656e-12
+        ],
+        [
+          6.681571295125003e-14,
+          -1.560029970737939e-13,
+          1.6031223188746282e-11,
+          -3.007150402283875e-12,
+          5.595407433267948e-12,
+          -1.2021423083153645e-13
+        ],
+        [
+          7.1096252920995935e-12,
+          3.3381480759977235e-11,
+          -3.007150402283875e-12,
+          3.5390488165850645e-09,
+          -1.7810823641809904e-11,
+          -5.1248259071822264e-11
+        ],
+        [
+          -5.605206002277015e-11,
+          -2.0267416532302732e-12,
+          5.595407433267949e-12,
+          -1.7810823641809904e-11,
+          2.9413533518255556e-09,
+          2.1636442535649178e-11
+        ],
+        [
+          1.824873383157678e-12,
+          3.538181767342767e-12,
+          -1.2021423083153645e-13,
+          -5.124825907182227e-11,
+          2.163644253564918e-11,
+          6.130812915552133e-10
+        ]
+      ],
+      "sigma_m": 0.00983220129581498,
+      "samples": 3,
+      "correspondences": 222262,
+      "iterations": 2,
+      "execution_backend": "numpy_scipy"
+    },
+    {
+      "status": "converged",
+      "transform": [
+        [
+          0.999999999998664,
+          -7.309859561858336e-07,
+          -1.4619681759967289e-06,
+          6.8780371484776e-05
+        ],
+        [
+          7.309814682398202e-07,
+          0.9999999999950209,
+          -3.0697955160510863e-06,
+          -7.642004142349149e-05
+        ],
+        [
+          1.4619704199668812e-06,
+          3.069794447375048e-06,
+          0.9999999999942196,
+          -4.494593812645603e-05
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "covariance": [
+        [
+          1.8670102852994673e-11,
+          1.7762194307350375e-13,
+          6.681752300356088e-14,
+          7.109633323960956e-12,
+          -5.6052248881194636e-11,
+          1.8248707478963748e-12
+        ],
+        [
+          1.776219430735038e-13,
+          6.858524496714449e-12,
+          -1.560031831206942e-13,
+          3.33814926580558e-11,
+          -2.026736242153861e-12,
+          3.5381860826099736e-12
+        ],
+        [
+          6.68175230035609e-14,
+          -1.5600318312069423e-13,
+          1.6031227875441292e-11,
+          -3.0071515549382544e-12,
+          5.595384419431127e-12,
+          -1.2022038905904942e-13
+        ],
+        [
+          7.109633323960957e-12,
+          3.33814926580558e-11,
+          -3.0071515549382544e-12,
+          3.5390488071591805e-09,
+          -1.781153789051392e-11,
+          -5.124808696309934e-11
+        ],
+        [
+          -5.605224888119465e-11,
+          -2.026736242153861e-12,
+          5.595384419431128e-12,
+          -1.7811537890513922e-11,
+          2.941353817835312e-09,
+          2.163638268599842e-11
+        ],
+        [
+          1.8248707478963748e-12,
+          3.5381860826099736e-12,
+          -1.2022038905904942e-13,
+          -5.124808696309934e-11,
+          2.163638268599842e-11,
+          6.130815627117792e-10
+        ]
+      ],
+      "sigma_m": 0.009832202726719719,
+      "samples": 3,
+      "correspondences": 222262,
+      "iterations": 2,
+      "execution_backend": "numpy_scipy"
+    },
+    {
+      "status": "converged",
+      "transform": [
+        [
+          0.9999999999991077,
+          5.279816946055233e-07,
+          1.227051294839832e-06,
+          1.2413501962575927e-06
+        ],
+        [
+          -5.27976165849505e-07,
+          0.9999999999897097,
+          -4.505721218614735e-06,
+          -0.00012377033596172216
+        ],
+        [
+          -1.2270536737655086e-06,
+          4.5057205707565815e-06,
+          0.9999999999890965,
+          -4.80559222820539e-05
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "covariance": [
+        [
+          1.5840819149206495e-11,
+          3.0800378438305503e-13,
+          9.394896947607956e-15,
+          4.615046387977244e-12,
+          -4.731508254556602e-11,
+          1.2589445607909378e-11
+        ],
+        [
+          3.08003784383055e-13,
+          6.402836624951052e-12,
+          -1.9815576619371418e-13,
+          3.550142741072485e-11,
+          -1.5653799593202488e-12,
+          4.2618604894622954e-12
+        ],
+        [
+          9.394896947607945e-15,
+          -1.9815576619371418e-13,
+          1.3415630985217722e-11,
+          -5.87297032033331e-12,
+          3.798745303716781e-12,
+          -6.329638326843242e-14
+        ],
+        [
+          4.615046387977245e-12,
+          3.550142741072485e-11,
+          -5.87297032033331e-12,
+          4.097760261136246e-09,
+          -5.6003703437947996e-11,
+          -5.931120282196794e-11
+        ],
+        [
+          -4.731508254556603e-11,
+          -1.5653799593202488e-12,
+          3.798745303716781e-12,
+          -5.600370343794802e-11,
+          2.6163784947237676e-09,
+          2.5251099954527848e-11
+        ],
+        [
+          1.2589445607909375e-11,
+          4.261860489462296e-12,
+          -6.329638326843245e-14,
+          -5.931120282196794e-11,
+          2.5251099954527848e-11,
+          5.785347881420991e-10
+        ]
+      ],
+      "sigma_m": 0.00980755134223375,
+      "samples": 3,
+      "correspondences": 234731,
+      "iterations": 2,
+      "execution_backend": "numpy_scipy"
+    }
+  ],
+  "work": {
+    "queries": [
+      {
+        "kind": "normal",
+        "rows": 381555,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127158,
+        "workers": 1
+      },
+      {
+        "kind": "normal",
+        "rows": 381923,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "normal",
+        "rows": 381923,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "normal",
+        "rows": 379967,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 126598,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127158,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 126598,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127158,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 126598,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127158,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 126598,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127158,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 126598,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127158,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 126598,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127158,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 126598,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127158,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 126598,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 126598,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 126598,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 126598,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127158,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 126598,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127158,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 126598,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127158,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 126598,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127158,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 126598,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127158,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127158,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "normal",
+        "rows": 381555,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127158,
+        "workers": 1
+      },
+      {
+        "kind": "normal",
+        "rows": 379967,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 126598,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127158,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 126598,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127158,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 126598,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127158,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 126598,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127158,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 126598,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127158,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 126598,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127158,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 126598,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127158,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 127303,
+        "workers": 1
+      },
+      {
+        "kind": "correspondence",
+        "rows": 126598,
+        "workers": 1
+      }
+    ],
+    "normal_rows": 2286890,
+    "correspondence_rows": 9782926,
+    "requested_workers": 1,
+    "gpu_runtime_imported": false
+  }
+}

@@ -1,0 +1,210 @@
+{
+  "calibrated_dofs": [
+    "roll",
+    "pitch",
+    "yaw",
+    "x",
+    "y",
+    "z"
+  ],
+  "dofs": [
+    {
+      "known_bad_control": {
+        "amount": 1.0,
+        "detected": true,
+        "holdout_delta_chi2": 2031039.6477026986,
+        "unit": "deg"
+      },
+      "name": "roll",
+      "status": "estimated",
+      "std_analytic": 0.00021578742992271367,
+      "std_jackknife": 0.0004091837229094441,
+      "std_reported": 0.0004091837229094441,
+      "unit": "deg",
+      "value": 0.00030475735723216205
+    },
+    {
+      "known_bad_control": {
+        "amount": 1.0,
+        "detected": true,
+        "holdout_delta_chi2": 2261542.765495683,
+        "unit": "deg"
+      },
+      "name": "pitch",
+      "status": "estimated",
+      "std_analytic": 0.00013289749926699486,
+      "std_jackknife": 0.00024660148572464203,
+      "std_reported": 0.00024660148572464203,
+      "unit": "deg",
+      "value": 2.891617186337076e-05
+    },
+    {
+      "known_bad_control": {
+        "amount": 1.0,
+        "detected": true,
+        "holdout_delta_chi2": 622060.2367440863,
+        "unit": "deg"
+      },
+      "name": "yaw",
+      "status": "estimated",
+      "std_analytic": 0.0001920903372908827,
+      "std_jackknife": 0.00012147636407908794,
+      "std_reported": 0.0001920903372908827,
+      "unit": "deg",
+      "value": -1.5974625437524236e-05
+    },
+    {
+      "known_bad_control": {
+        "amount": 0.05,
+        "detected": true,
+        "holdout_delta_chi2": 443153.5151769221,
+        "unit": "m"
+      },
+      "name": "x",
+      "status": "estimated",
+      "std_analytic": 5.24185431321336e-05,
+      "std_jackknife": 7.423710908261714e-05,
+      "std_reported": 7.423710908261714e-05,
+      "unit": "m",
+      "value": 6.501002347580545e-05
+    },
+    {
+      "known_bad_control": {
+        "amount": 0.05,
+        "detected": true,
+        "holdout_delta_chi2": 434724.07048485056,
+        "unit": "m"
+      },
+      "name": "y",
+      "status": "estimated",
+      "std_analytic": 4.494340586376326e-05,
+      "std_jackknife": 4.575377151462722e-05,
+      "std_reported": 4.575377151462722e-05,
+      "unit": "m",
+      "value": -0.00010417814172125121
+    },
+    {
+      "known_bad_control": {
+        "amount": 0.05,
+        "detected": true,
+        "holdout_delta_chi2": 2097712.390860118,
+        "unit": "m"
+      },
+      "name": "z",
+      "status": "estimated",
+      "std_analytic": 2.1558786904045515e-05,
+      "std_jackknife": 2.3110656529804585e-06,
+      "std_reported": 2.1558786904045515e-05,
+      "unit": "m",
+      "value": -4.865640159118474e-05
+    }
+  ],
+  "holdout_blocks": [
+    1,
+    4
+  ],
+  "holdout_median_residual_m": 0.006674427340589344,
+  "jackknife_fits": 4,
+  "limitations": [
+    "Concatenated raw windows are not motion compensated; copied central scans form an identity execution control, not independent two-sensor accuracy."
+  ],
+  "method": "map_registration/v0.1",
+  "options": {
+    "execution_backend": "numpy_scipy",
+    "half_window": 1,
+    "initial_transform": [
+      [
+        1.0,
+        0.0,
+        0.0,
+        0.08
+      ],
+      [
+        0.0,
+        1.0,
+        0.0,
+        -0.07
+      ],
+      [
+        0.0,
+        0.0,
+        1.0,
+        0.05
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "map_options": {
+      "convergence_rotation_rad": 1e-06,
+      "convergence_translation_m": 1e-05,
+      "huber_m": 0.05,
+      "iterations": 30,
+      "max_correspondence_m": 0.5,
+      "max_planarity_ratio": 0.2,
+      "normal_neighbours": 10
+    },
+    "target_noise_seed": 20261012,
+    "target_noise_std_m": 0.01
+  },
+  "policy_reasons": [
+    "every DoF is estimated and held-out blocks detect every control"
+  ],
+  "policy_status": "pass",
+  "provenance": {
+    "command": [
+      "<PYTHON>",
+      "tools/benchmark_cuda_lidar_map.py",
+      "--worker",
+      "cpu"
+    ],
+    "created_at": "2026-10-18T06:23:35.018571+00:00",
+    "dataset_family": "kitti_raw",
+    "dataset_license": "KITTI terms: https://www.cvlibs.net/datasets/kitti/raw_data.php",
+    "generator": "tools.benchmark_cuda_lidar_map",
+    "generator_version": "0.5.1",
+    "git_commit": "96871f64588a122e33e01c713e6710f0f0f36d71",
+    "input_digest_scope": "SHA256 of all raw scan bytes",
+    "input_sha256": "a141e6dd1d84992aaedee82d91f648c727e625a0de7ccd8a8879c9c13c051b7c",
+    "reference_topic": "public_scan_window",
+    "sequence_ids": [
+      "2011_09_30_drive_0018_sync"
+    ],
+    "target_topic": "public_scan_copy"
+  },
+  "residual_sigma_m": 0.009803667936950375,
+  "samples": {
+    "holdout_correspondences": 146385,
+    "holdout_samples": 2,
+    "reference_scans": 9,
+    "samples": 6,
+    "train_correspondences": 298135,
+    "train_samples": 4
+  },
+  "schema_version": "slac.lidar_lidar_extrinsic/v0.1",
+  "solver_status": "converged",
+  "train_blocks": [
+    0,
+    2,
+    3,
+    5
+  ],
+  "transform": {
+    "child_frame": "public_scan_copy",
+    "parent_frame": "public_scan_window",
+    "rotation_quat_xyzw": [
+      2.6595096868632463e-06,
+      2.523408321609958e-07,
+      -1.394055764321856e-07,
+      0.999999999996422
+    ],
+    "translation_m": [
+      6.501002347580545e-05,
+      -0.00010417814172125121,
+      -4.865640159118474e-05
+    ]
+  }
+}

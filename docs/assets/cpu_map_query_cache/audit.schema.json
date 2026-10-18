@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CPU map normal and query-cache evidence audit",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "complete_workers", "complete_fits", "fit_bit_comparisons", "cohorts", "gpu_runtime_imported", "provenance"],
+  "properties": {
+    "schema_version": {"const": "calibrex.cpu_map_query_cache_audit/v0.1"},
+    "complete_workers": {"const": 18},
+    "complete_fits": {"const": 90},
+    "fit_bit_comparisons": {"const": 60},
+    "gpu_runtime_imported": {"const": false},
+    "cohorts": {
+      "type": "object", "additionalProperties": false, "required": ["lazy-v1", "certified-v2"],
+      "properties": {"lazy-v1": {"$ref": "#/$defs/cohort"}, "certified-v2": {"$ref": "#/$defs/cohort"}}
+    },
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["archive_index_sha256", "auditor_sha256", "commits"],
+      "properties": {
+        "archive_index_sha256": {"$ref": "#/$defs/sha"},
+        "auditor_sha256": {"$ref": "#/$defs/sha"},
+        "commits": {
+          "type": "object", "additionalProperties": false,
+          "required": ["prior", "lazy", "current"],
+          "properties": {
+            "prior": {"$ref": "#/$defs/commit"}, "lazy": {"$ref": "#/$defs/commit"},
+            "current": {"$ref": "#/$defs/commit"}
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "positive": {"type": "number", "exclusiveMinimum": 0},
+    "cohort": {
+      "type": "object", "additionalProperties": false,
+      "required": ["median_seconds", "prior_to_candidate", "lazy_to_candidate", "physical_bit_parity", "original_quality_passed", "metadata_only_comparator_correction", "advance"],
+      "properties": {
+        "median_seconds": {
+          "type": "object", "minProperties": 3, "maxProperties": 3,
+          "required": ["prior", "lazy"], "additionalProperties": false,
+          "properties": {
+            "prior": {"$ref": "#/$defs/positive"}, "lazy": {"$ref": "#/$defs/positive"},
+            "parallel": {"$ref": "#/$defs/positive"}, "certified": {"$ref": "#/$defs/positive"}
+          }
+        },
+        "prior_to_candidate": {"$ref": "#/$defs/positive"},
+        "lazy_to_candidate": {"$ref": "#/$defs/positive"},
+        "physical_bit_parity": {"const": true},
+        "original_quality_passed": {"type": "boolean"},
+        "metadata_only_comparator_correction": {"type": "boolean"},
+        "advance": {"type": "boolean"}
+      }
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "schema_version": "calibrex.cpu_map_query_cache_audit/v0.1",
+  "complete_workers": 18,
+  "complete_fits": 90,
+  "fit_bit_comparisons": 60,
+  "cohorts": {
+    "lazy-v1": {
+      "median_seconds": {
+        "prior": 29.58923619997222,
+        "lazy": 24.062383000040427,
+        "parallel": 14.888551500043832
+      },
+      "prior_to_candidate": 1.9873817946551153,
+      "lazy_to_candidate": 1.6161668245543959,
+      "physical_bit_parity": true,
+      "original_quality_passed": false,
+      "metadata_only_comparator_correction": true,
+      "advance": false
+    },
+    "certified-v2": {
+      "median_seconds": {
+        "prior": 41.45831929997075,
+        "lazy": 19.387412399984896,
+        "certified": 23.41650429996662
+      },
+      "prior_to_candidate": 1.77047431029361,
+      "lazy_to_candidate": 0.8279379428983571,
+      "physical_bit_parity": true,
+      "original_quality_passed": true,
+      "metadata_only_comparator_correction": false,
+      "advance": false
+    }
+  },
+  "gpu_runtime_imported": false,
+  "provenance": {
+    "archive_index_sha256": "a41a36a2d8d0b679f0986efa8d3ec0dcb71273de56179d82d8b69378e86fb9e9",
+    "auditor_sha256": "b191690e73a5038312fa77ad90afea26d02858598d20805ba661ff228f6e7964",
+    "commits": {
+      "prior": "96871f64588a122e33e01c713e6710f0f0f36d71",
+      "lazy": "09f27193c9418ec9b6584caea459661e047fe875",
+      "current": "eeb6fddcb4fbdcee069f569df56c762d1815afce"
+    }
+  }
+}

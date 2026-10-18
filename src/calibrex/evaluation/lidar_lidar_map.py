@@ -382,6 +382,8 @@ def run_ros2_lidar_lidar_map(
             "max_correspondence_m": opts.solver.max_correspondence_m,
             "huber_m": opts.solver.huber_m,
             "iterations": opts.solver.iterations,
+            **({"registration_query_workers": opts.solver.query_workers}
+               if opts.solver.query_workers != 1 else {}),
             **({"deskew": "none"} if opts.deskew == "none" else {}),
             **({"registration_backend": "cuda", "registration_execution": result.execution_backend}
                if backend == "cuda" else {}),

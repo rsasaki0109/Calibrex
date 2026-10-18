@@ -1359,6 +1359,10 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     lidar_lidar_ros2.add_argument("--max-seconds", type=float)
     lidar_lidar_ros2.add_argument("--registration-backend", choices=("cpu", "cuda"), default="cpu")
+    lidar_lidar_ros2.add_argument(
+        "--registration-query-workers", type=_positive_int, default=1,
+        help="CPU workers for map correspondences and native normal neighborhoods (default: 1)",
+    )
     lidar_lidar_ros2.add_argument("--odometry-backend", choices=("cpu", "cuda"), default="cpu")
     lidar_lidar_ros2.add_argument("--dataset-family", required=True)
     lidar_lidar_ros2.add_argument("--dataset-license", required=True)
@@ -7747,9 +7751,15 @@ def _cmd_camera_imu_rotation(args: argparse.Namespace) -> int:
 
 
 def _cmd_lidar_lidar_ros2(args: argparse.Namespace) -> int:
+    from dataclasses import replace
+
     import numpy
 
-    from calibrex.evaluation.lidar_lidar_map import read_transform, run_ros2_lidar_lidar_map
+    from calibrex.evaluation.lidar_lidar_map import (
+        LidarLidarMapOptions,
+        read_transform,
+        run_ros2_lidar_lidar_map,
+    )
 
     command = ["calibrex", "lidar-lidar", "ros2", str(args.bag)]
     command += ["--reference-topic", args.reference_topic, "--target-topic", args.target_topic]
@@ -7759,6 +7769,12 @@ def _cmd_lidar_lidar_ros2(args: argparse.Namespace) -> int:
         command += ["--registration-backend", "cuda"]
     if args.odometry_backend == "cuda":
         command += ["--odometry-backend", "cuda"]
+    options = LidarLidarMapOptions()
+    if args.registration_query_workers != 1:
+        command += ["--registration-query-workers", str(args.registration_query_workers)]
+        options = replace(
+            options, solver=replace(options.solver, query_workers=args.registration_query_workers),
+        )
     try:
         reference_transform = None
         reference = None
@@ -7790,6 +7806,7 @@ def _cmd_lidar_lidar_ros2(args: argparse.Namespace) -> int:
             command=command,
             backend=args.registration_backend,
             odometry_backend=args.odometry_backend,
+            options=options,
         )
         artifact.save(args.output)
     except (OSError, ValueError) as exc:
