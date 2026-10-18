@@ -1,0 +1,40 @@
+"""Publish complete, source-frozen TUM timings and their diagnostic histories."""
+import json
+from pathlib import Path
+import shutil
+from tools import benchmark_tum_depth_frontend as bench
+
+root = Path(__file__).resolve().parent
+source = root / "outputs/tum-depth-frontend-pairs-v1"
+target = root / "docs/assets/tum_depth_frontend"
+report = bench.audit(source)
+protocol = json.loads((source / "protocol.json").read_bytes())
+attempts = json.loads((source / "attempts.json").read_bytes())["payload"]["attempts"]
+target.mkdir(exist_ok=False)
+for name in sorted(bench.PINNED | {"protocol.json", "attempts.json", "summary.json"}):
+    shutil.copyfile(source / name, target / name)
+for attempt in attempts:
+    folder = target / attempt["folder"]
+    folder.mkdir()
+    for name in ("result.json.gz", "history.json.gz", "measurement.json", "progress.json",
+                 "stdout.txt", "stderr.txt"):
+        shutil.copyfile(source / attempt["folder"] / name, folder / name)
+for path, name in (
+    (root / "tests/unit/test_tum_depth_frontend.py", "test_tum_depth_frontend.py.txt"),
+    (root / "tools/benchmark_tum_depth_frontend.py", "auditor.py.txt"),
+    (root / "tests/unit/test_tum_diagnostic_batches.py", "test_tum_diagnostic_batches.py.txt"),
+    (root / "tests/unit/test_tum_depth_frontend_archive.py", "test_tum_depth_frontend_archive.py.txt"),
+    (root / ".tmp-calibrex-frontend-linux.sh", "linux-test-runner.sh.txt"),
+    (Path(__file__), "publisher.py.txt"),
+):
+    shutil.copyfile(path, target / name)
+(target / ".gitattributes").write_bytes(b"* -text whitespace=cr-at-eol\n*.log -whitespace\n")
+def index():
+    bench.write(target / "index.json", {
+        "files":{p.relative_to(target).as_posix():{"sha256":bench.sha(p),"size_bytes":p.stat().st_size}
+                 for p in sorted(target.rglob("*")) if p.is_file() and p.name != "index.json"},
+        "provenance":{"protocol_sha256":bench.sha(target / "protocol.json")},
+    })
+index()
+assert bench.audit(target) == report
+print("Published all four complete comparisons:", len(json.loads((target / "index.json").read_bytes())["files"])+1, "files")

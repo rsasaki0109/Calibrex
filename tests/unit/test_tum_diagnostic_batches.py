@@ -1,5 +1,6 @@
 """Scalar geometry, correspondence and diagnostic parity for native TUM batches."""
 
+import cProfile
 import json
 import math
 from collections import OrderedDict
@@ -281,6 +282,59 @@ def test_xyz_cache_is_window_local_bounded_and_distinguishes_signed_zero():
     first.geometry(problem, (0.01,) * 24, options)
     assert len(first._states) == 2
     assert all(not points.flags.writeable for points in positive.calibrated)
+
+
+def _profile_calls(profile, function):
+    return sum(entry.callcount for entry in profile.getstats() if entry.code is function.__code__)
+
+
+def test_native_pair_targets_are_prepared_once_per_matched_voxel():
+    problem = _pair_problem()
+    options = a.TUMJointSlacOptions()
+    values = _values(problem.query_frames)
+    expected = scalar_pair_state(problem, values, options)
+    profile = cProfile.Profile()
+    actual = profile.runcall(a._xyz_pair_reassociation_state, problem, values, options)
+    _assert_states(expected, actual, values)
+    representative_calls = _profile_calls(profile, a._xyz_pair_representative_point)
+    assert 0 < representative_calls < len(actual.factors)
+    assert representative_calls == len({item.target_id for item in actual.assignments})
+    frame_getter = TUMDepthPoseEntry.transform_world_camera.fget
+    assert _profile_calls(profile, frame_getter) == 2 * (
+        len(problem.query_frames) - options.xyz_pair_stride
+    )
+
+
+@pytest.mark.parametrize("replacement", ["class_query", "instance_query", "rotation", "lineage"])
+def test_custom_pair_geometry_keeps_per_correspondence_evaluation(replacement, monkeypatch):
+    problem = _pair_problem()
+    options = a.TUMJointSlacOptions()
+    values = _values(problem.query_frames)
+    context = a._TUMXYZPairReassociationContext(problem, options)
+    if replacement == "class_query":
+        original = a.VoxelPlaneQueryContext.nearest_matches
+        monkeypatch.setattr(a.VoxelPlaneQueryContext, "nearest_matches",
+                            lambda *args, **kwargs: original(*args, **kwargs))
+    elif replacement == "instance_query":
+        geometry = context.geometry(problem, values[a._XYZ_LATTICE_BLOCK], options)
+        for target in geometry.targets.values():
+            original = target.query.nearest_matches
+            target.query.nearest_matches = lambda *args, _original=original, **kwargs: _original(
+                *args, **kwargs
+            )
+    else:
+        name = (
+            "rotate_vector_xyzw" if replacement == "rotation" else "_xyz_pair_representative_point"
+        )
+        original = getattr(a, name)
+        monkeypatch.setattr(a, name, lambda *args: original(*args))
+    expected = scalar_pair_state(problem, values, options)
+    profile = cProfile.Profile()
+    actual = profile.runcall(
+        a._xyz_pair_reassociation_state, problem, values, options, context=context
+    )
+    _assert_states(expected, actual, values)
+    assert _profile_calls(profile, a._xyz_pair_representative_point) == len(actual.factors)
 
 
 @pytest.mark.parametrize("limit", [3, 65536])
