@@ -140,7 +140,7 @@ The camera-imu v3 audit did exactly this with the camera-camera runs.
 | KITTI raw | `camera-lidar` | **All** synced drives with at least 125 frames: the 36 of 2011_09_26, 2011_09_30_0018 and the 18 of v2 (2011_09_28, 2011_09_29, 2011_09_30, 2011_10_03). Shorter drives were never eligible. |
 | KITTI raw | `lidar-vehicle` | 2011_09_26 0005, 0009, 0014, 0015, 0022 (dev); 0027, 0028, 0035, 0039, 0046, 0051, 0057, 0059 (evaluation) |
 | KITTI raw | `ins-lidar`, `lidar-wheel_odometry`, `imu-vehicle` | 2011_09_26 0005, 0009, 0014, 0022 (tool runs, no audit) |
-| KITTI-360 | camera-LiDAR research | 2013_05_28_drive_0000 and 0002 |
+| KITTI-360 | camera-LiDAR research | 2013_05_28_drive_0000, 0002 and 0003 (the [research plan](research/camera_lidar_sota_plan.md) records the materialized 0003 development capture; it was omitted from the original handoff) |
 | Hilti 2022 | `camera-imu` | exp01-07, exp11, exp14-16, exp18, exp21, exp23 (parts 0-2); exp09 and exp10 never run (size) |
 | Hilti 2022 | `camera-camera` | exp05, exp06, exp09, exp10, exp11, exp14, exp15, exp16, exp18, exp23 parts 0-2 (first 5 GB of each), plus development on exp01 and exp21 |
 | MID360 | `imu-lidar` | RTK-SLAM stadtgarten_seq1, stadtgarten_seq2, construction_seq1, construction_seq2 (every RTK-SLAM recording) and the Zenodo vehicle recording of the rotation audit |
@@ -198,8 +198,16 @@ estimator's inputs and re-estimating them in memory screened rules in minutes; t
 scripts were scratch-only, so rebuild them. Then confirm with real runs through the
 driver.
 
-**Evaluation data.** KITTI-360 (another car, sensor set and calibration) is the natural
-choice: sequences 0003-0007, 0009 and 0010 are unread.
+**Evaluation candidates.** KITTI-360 (another car, sensor set and calibration) is the
+natural choice: sequences 0004-0007, 0009 and 0010, subject to completing the exposure
+audit. Sequence 0003 is spent: the research plan already records a development capture.
+The original handoff's claim that it was unread was incorrect.
+
+**Access check, 2026-10-15.** [Step 1 stopped before development](benchmarks/kitti360_camera_lidar_v3_access.md):
+the official archive HEAD request returned HTTP 403 in the managed environment;
+per-sequence bytes, ETags, member lists and Range support remain unverified. No
+evaluation ran. Resume metadata-only checks after access is configured, or consider
+the `ins-lidar` claim below; neither path is authorized to begin evaluation yet.
 
 **Work needed first.**
 
