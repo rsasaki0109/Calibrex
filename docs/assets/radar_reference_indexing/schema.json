@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Radar reference indexing performance control, protocol and result",
+  "oneOf": [
+    {"$ref": "#/$defs/protocol"},
+    {"$ref": "#/$defs/control"},
+    {"$ref": "#/$defs/result"}
+  ],
+  "$defs": {
+    "sha": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "version": {"const": "slac.radar_reference_benchmark/v0.1"},
+    "pair_sha": {
+      "type": "object", "additionalProperties": false, "required": ["prior", "current"],
+      "properties": {"prior": {"$ref": "#/$defs/sha"}, "current": {"$ref": "#/$defs/sha"}}
+    },
+    "vector": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}},
+    "protocol": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "record_type", "commits", "source_roots", "repetitions", "fresh_workers", "blas_threads", "host_unreserved", "provenance"],
+      "properties": {
+        "schema_version": {"$ref": "#/$defs/version"}, "record_type": {"const": "protocol"},
+        "commits": {
+          "type": "object", "additionalProperties": false, "required": ["prior", "current"],
+          "properties": {"prior": {"$ref": "#/$defs/commit"}, "current": {"$ref": "#/$defs/commit"}}
+        },
+        "source_roots": {
+          "type": "object", "additionalProperties": false, "required": ["prior", "current"],
+          "properties": {"prior": {"type": "string"}, "current": {"type": "string"}}
+        },
+        "repetitions": {"type": "integer", "minimum": 2}, "fresh_workers": {"const": true},
+        "blas_threads": {"const": 1}, "host_unreserved": {"const": true},
+        "provenance": {
+          "type": "object", "additionalProperties": false,
+          "required": ["control_sha256", "launcher_sha256", "schema_sha256", "freezer_sha256", "identity_sha256", "manifests", "capsules", "python", "versions"],
+          "properties": {
+            "control_sha256": {"$ref": "#/$defs/sha"}, "launcher_sha256": {"$ref": "#/$defs/sha"},
+            "schema_sha256": {"$ref": "#/$defs/sha"}, "freezer_sha256": {"$ref": "#/$defs/sha"},
+            "identity_sha256": {"$ref": "#/$defs/sha"}, "manifests": {"$ref": "#/$defs/pair_sha"},
+            "capsules": {"$ref": "#/$defs/pair_sha"}, "python": {"type": "string"},
+            "versions": {
+              "type": "object", "additionalProperties": false, "required": ["numpy", "scipy"],
+              "properties": {"numpy": {"type": "string"}, "scipy": {"type": "string"}}
+            }
+          }
+        }
+      }
+    },
+    "control": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "record_type", "reference", "measurements", "rotation", "options", "provenance"],
+      "properties": {
+        "schema_version": {"$ref": "#/$defs/version"}, "record_type": {"const": "control"},
+        "reference": {
+          "type": "array", "minItems": 2,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["timestamp_sec", "linear_velocity_body_mps", "angular_velocity_body_radps"],
+            "properties": {
+              "timestamp_sec": {"type": "number"}, "linear_velocity_body_mps": {"$ref": "#/$defs/vector"},
+              "angular_velocity_body_radps": {"$ref": "#/$defs/vector"}
+            }
+          }
+        },
+        "measurements": {
+          "type": "array", "minItems": 12,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["measurement_id", "timestamp_sec", "velocity_radar_mps", "weight"],
+            "properties": {
+              "measurement_id": {"type": "string", "minLength": 1}, "timestamp_sec": {"type": "number"},
+              "velocity_radar_mps": {"$ref": "#/$defs/vector"}, "weight": {"type": "number", "exclusiveMinimum": 0}
+            }
+          }
+        },
+        "rotation": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "number"}},
+        "options": {
+          "type": "object", "minProperties": 10,
+          "required": ["max_abs_time_offset_sec", "time_offset_step_sec", "holdout_ratio", "split_seed"],
+          "additionalProperties": {"type": "number"}
+        },
+        "provenance": {
+          "type": "object", "additionalProperties": false,
+          "required": ["generator_sha256", "source_url", "dataset_license", "raw_inputs", "description", "fields", "truth"],
+          "properties": {
+            "generator_sha256": {"$ref": "#/$defs/sha"}, "source_url": {"type": "string", "format": "uri"},
+            "dataset_license": {"const": "CC BY-NC-SA 3.0"},
+            "raw_inputs": {"type": "object", "minProperties": 3, "additionalProperties": {"$ref": "#/$defs/sha"}},
+            "description": {"type": "string"}, "fields": {"type": "string"},
+            "truth": {
+              "type": "object", "additionalProperties": false, "required": ["translation_m", "time_offset_sec"],
+              "properties": {"translation_m": {"$ref": "#/$defs/vector"}, "time_offset_sec": {"type": "number"}}
+            }
+          }
+        }
+      }
+    },
+    "result": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "record_type", "result", "candidates", "provenance"],
+      "properties": {
+        "schema_version": {"$ref": "#/$defs/version"}, "record_type": {"const": "result"},
+        "result": {
+          "type": "object", "minProperties": 20,
+          "required": ["status", "reason", "translation_body_radar_m", "time_offset_sec", "train_measurement_ids", "holdout_measurement_ids", "train_rmse_mps", "holdout_rmse_mps", "lever_arm_rank", "joint_rank", "known_bad_probes", "solver_options", "method"],
+          "properties": {
+            "status": {"enum": ["converged", "insufficient_measurements", "degenerate_motion", "offset_at_boundary"]},
+            "method": {"const": "profiled_velocity_lever_arm_and_clock_offset/v0.2"},
+            "known_bad_probes": {"type": "array", "maxItems": 8}
+          }
+        },
+        "candidates": {
+          "type": "array", "minItems": 3,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["offset", "translation", "mse", "singular_values"],
+            "properties": {
+              "offset": {"type": "number"}, "translation": {"oneOf": [{"$ref": "#/$defs/vector"}, {"type": "null"}]},
+              "mse": {"type": ["number", "null"]}, "singular_values": {"oneOf": [{"$ref": "#/$defs/vector"}, {"type": "null"}]}
+            }
+          }
+        },
+        "provenance": {
+          "type": "object", "additionalProperties": false, "required": ["git_commit", "protocol_sha256", "control_sha256"],
+          "properties": {
+            "git_commit": {"$ref": "#/$defs/commit"}, "protocol_sha256": {"$ref": "#/$defs/sha"},
+            "control_sha256": {"$ref": "#/$defs/sha"}
+          }
+        }
+      }
+    }
+  }
+}
