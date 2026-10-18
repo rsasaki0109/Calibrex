@@ -1,0 +1,144 @@
+"""Direct old-default, old-parallel and new-example complete production workers."""
+import gzip
+import hashlib
+import json
+import os
+from pathlib import Path
+import shutil
+import statistics
+import subprocess
+import sys
+import time
+
+ROOT=Path(__file__).resolve().parent
+OUT=ROOT/'outputs/tum-scoped-evaluation-production-v5'
+BASE='c8b048f13986ee9255b0d93ac3ac2913d8b14ece'
+EXAMPLE='examples/public_datasets/tum_rgbd_freiburg1_xyz/native_joint_slac_config.yaml'
+SOURCE={'prior':'prior','parallel':'prior','current':'current'}
+ORDER=('current','prior','parallel','prior','parallel','current','parallel','current','prior')
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+def write(path,value):path.write_bytes((json.dumps(value,indent=2,allow_nan=False)+'\n').encode())
+
+def worker(variant,name):
+    sys.dont_write_bytecode=True
+    source=OUT/('sources-'+SOURCE[variant])
+    sys.path.insert(0,str(source/'src'))
+    from dataclasses import replace
+    from tools.benchmark_bspline_lidar_imu import _verify_sources
+    manifest=_verify_sources(source)
+    assert sha(Path(__file__))==sha(OUT/'launcher.py.txt')
+    from calibrex.core.config import load_config
+    from calibrex.solvers import native_tum_joint_slac_solver as a
+    from calibrex.pipelines.calibrate import CalibrationRunOptions,run_calibration
+    config_path=OUT/('config-'+variant+'.yaml')
+    config=load_config(config_path)
+    options=a._options(config)
+    assert options.window_workers==(1 if variant=='prior' else 3)
+    data=Path(config.dataset.path)
+    paired=a.associate_depth_groundtruth(a.read_image_index(data/'depth.txt'),a.read_groundtruth(data/'groundtruth.txt'),max_difference_sec=options.max_pose_time_delta_sec)
+    names={'depth.txt','groundtruth.txt'}
+    for start in options.replication_start_indices:
+        frames=a._select_frames(paired,replace(options,frame_start_index=start))
+        assert frames is not None
+        names.update(frame.depth.path for frame in frames)
+    inventory=ROOT/'docs/assets/tum_window_processes/inputs.json'
+    pins={item['name']:item for item in json.loads(inventory.read_bytes())}
+    verified={}
+    for relative in sorted(names):
+        assert sha(data/relative)==pins[relative]['sha256'] and (data/relative).stat().st_size==pins[relative]['size_bytes']
+        verified[relative]=pins[relative]
+    assert len(verified)==35
+    begin=time.perf_counter()
+    result=run_calibration(config_path,CalibrationRunOptions())
+    api_seconds=time.perf_counter()-begin
+    assert result is not None and 'cupy' not in sys.modules
+    imports={}
+    for module_name,module in sys.modules.copy().items():
+        if module_name=='calibrex' or module_name.startswith('calibrex.'):
+            path=Path(module.__file__).resolve()
+            relative=path.relative_to(source/'src').as_posix()
+            assert sha(path)==manifest[relative]
+            imports[module_name]=relative
+    for relative in names:assert sha(data/relative)==pins[relative]['sha256']
+    _verify_sources(source)
+    folder=OUT/name
+    provenance={'variant':variant,'source_variant':SOURCE[variant],
+        'git_commit':subprocess.check_output(['git','-C',str(source),'rev-parse','HEAD'],text=True).strip(),
+        'source_manifest_sha256':sha(source/'manifest.json'),'launcher_sha256':sha(Path(__file__)),
+        'config_sha256':sha(config_path),'input_inventory_sha256':sha(inventory),
+        'run_provenance_sha256':sha(OUT/'provenance.json'),'verified_inputs':verified,
+        'pid':os.getpid(),'parent_pid':os.getppid(),'python':sys.version,'imports':imports}
+    (folder/'result.json.gz').write_bytes(gzip.compress((json.dumps({'payload':result.model_dump(mode='json'),'provenance':provenance},indent=2)+'\n').encode(),mtime=0))
+    write(folder/'measurement.json',{'api_seconds':api_seconds,'result_sha256':sha(folder/'result.json.gz'),'provenance':provenance})
+
+def normalize(payload,variant):
+    from tools.benchmark_tum_window_processes import comparable
+    p=payload['run']['provenance']
+    assert p['native_tum_joint_slac_options'].get('window_workers',1)==(1 if variant=='prior' else 3)
+    value=comparable(payload)
+    run=value['run']
+    config=OUT/('config-'+variant+'.yaml')
+    assert run['config_sha256']==run['provenance']['config_sha256']==sha(config)
+    assert run['provenance']['command']==['calibrex','calibrate',str(config)]
+    run['config_sha256']=run['provenance']['config_sha256']='<verified configs differ only by window workers>'
+    run['provenance']['command'][2]='<verified config>'
+    return json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False)
+
+def main():
+    if len(sys.argv)>1:
+        worker(sys.argv[2],sys.argv[3]);return
+    import yaml
+    from tools.benchmark_bspline_lidar_imu import _freeze
+    from tools.benchmark_lazy_runtime_loading import _git_identity
+    OUT.mkdir(exist_ok=False)
+    current=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+    commits={'prior':BASE,'current':current}
+    for variant,commit in commits.items():
+        _freeze(OUT/('sources-'+variant),commit)
+        _git_identity(OUT/('sources-'+variant),commit)
+        (OUT/('example-'+variant+'.yaml')).write_bytes(subprocess.check_output(['git','show',commit+':'+EXAMPLE]))
+    original=yaml.safe_load((OUT/'example-prior.yaml').read_bytes())
+    changed=yaml.safe_load((OUT/'example-current.yaml').read_bytes())
+    option=lambda c:c['pipeline']['factors']['tum_rgbd_joint_point_to_plane']['options']
+    assert option(changed).pop('window_workers')==3 and changed==original
+    for variant in SOURCE:
+        config=yaml.safe_load((OUT/'example-prior.yaml').read_bytes())
+        config['dataset']['path']=str(ROOT/'data/public/rgbd_dataset_freiburg1_xyz')
+        config['project']['output_dir']=str(OUT/'shared-output')
+        if variant!='prior':option(config)['window_workers']=3
+        (OUT/('config-'+variant+'.yaml')).write_bytes(yaml.safe_dump(config,sort_keys=False).encode())
+    assert (OUT/'config-parallel.yaml').read_bytes()==(OUT/'config-current.yaml').read_bytes()
+    shutil.copyfile(Path(__file__),OUT/'launcher.py.txt')
+    write(OUT/'provenance.json',{'commits':commits,'variant_sources':SOURCE,
+        'config_sha256':{v:sha(OUT/('config-'+v+'.yaml')) for v in SOURCE},
+        'example_sha256':{v:sha(OUT/('example-'+v+'.yaml')) for v in commits},
+        'launcher_sha256':sha(Path(__file__)),'python':sys.version,'blas_threads':1,
+        'input_inventory_sha256':sha(ROOT/'docs/assets/tum_window_processes/inputs.json'),
+        'source_manifest_sha256':{v:sha(OUT/('sources-'+v)/'manifest.json') for v in commits},
+        'scope':'Direct complete production comparison of old checked-in serial example, old runtime with three window workers, and new checked-in parallel example. No numerical tracing. Fresh worker startup, verification, transport, all diagnostics, reports and evidence saving included. Public spent development input; no accuracy or SOTA claim.'})
+    attempts=[];reference=None
+    for index,variant in enumerate(ORDER):
+        folder=OUT/f'{index+1:02d}-{variant}';folder.mkdir()
+        source=OUT/('sources-'+SOURCE[variant])
+        env=dict(os.environ,PYTHONPATH=str(source/'src'),OPENBLAS_NUM_THREADS='1',MKL_NUM_THREADS='1',OMP_NUM_THREADS='1')
+        begin=time.perf_counter()
+        with (folder/'stdout.log').open('wb') as out,(folder/'stderr.log').open('wb') as err:
+            done=subprocess.run([sys.executable,str(Path(__file__)),'--worker',variant,folder.name],cwd=source,env=env,stdout=out,stderr=err)
+        a={'folder':folder.name,'variant':variant,'seconds':time.perf_counter()-begin,'exit_code':done.returncode}
+        attempts.append(a)
+        write(OUT/'attempts.json',{'attempts':attempts,'provenance_sha256':sha(OUT/'provenance.json')})
+        print(a,flush=True)
+        assert done.returncode==0,folder/'stderr.log'
+        payload=json.loads(gzip.decompress((folder/'result.json.gz').read_bytes()))['payload']
+        value=normalize(payload,variant)
+        if reference is None:reference=value
+        assert value==reference,'Complete calibration result differs'
+        a['api_seconds']=json.loads((folder/'measurement.json').read_bytes())['api_seconds']
+    medians={v:statistics.median(a['seconds'] for a in attempts if a['variant']==v) for v in SOURCE}
+    write(OUT/'attempts.json',{'attempts':attempts,'provenance_sha256':sha(OUT/'provenance.json')})
+    write(OUT/'summary.json',{'whole_seconds_median':medians,'direct_example_speedup':medians['prior']/medians['current'],
+        'parallel_only_speedup':medians['prior']/medians['parallel'],
+        'arithmetic_at_same_workers_speedup':medians['parallel']/medians['current'],
+        'complete_normalized_results_exact':True,'attempts':attempts,'provenance_sha256':sha(OUT/'provenance.json')})
+    print('Medians',medians,flush=True)
+if __name__=='__main__':main()

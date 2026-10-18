@@ -1,0 +1,100 @@
+"""Preserve original production controls, exact traces and all exploratory candidates."""
+import gzip
+import hashlib
+import json
+from pathlib import Path
+import shutil
+import tarfile
+
+ROOT=Path(__file__).resolve().parent
+OUT=ROOT/'outputs/tum-scoped-evaluation-production-v5'
+TARGET=ROOT/'docs/assets/tum_scoped_evaluation'
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+def write(path,value):path.write_bytes((json.dumps(value,indent=2,allow_nan=False)+'\n').encode())
+def schema(value):
+    if value is None:return {'type':'null'}
+    if isinstance(value,bool):return {'type':'boolean'}
+    if isinstance(value,int):return {'type':'integer'}
+    if isinstance(value,float):return {'type':'number'}
+    if isinstance(value,str):return {'type':'string'}
+    if isinstance(value,list):
+        choices={json.dumps(schema(v),sort_keys=True) for v in value}
+        items={} if not choices else json.loads(next(iter(choices))) if len(choices)==1 else {'anyOf':[json.loads(v) for v in sorted(choices)]}
+        return {'type':'array','minItems':len(value),'maxItems':len(value),'items':items}
+    return {'type':'object','additionalProperties':False,'required':list(value),'properties':{k:schema(v) for k,v in value.items()}}
+def capsule(source,label):
+    shutil.copyfile(source/'manifest.json',TARGET/f'sources-{label}-manifest.json')
+    with tarfile.open(TARGET/f'sources-{label}.tar.gz','w:gz') as bundle:
+        for p in sorted((source/'src').rglob('*.py')):bundle.add(p,arcname=p.relative_to(source).as_posix())
+
+summary=json.loads((OUT/'summary.json').read_bytes())
+assert len(summary['attempts'])==9 and summary['complete_normalized_results_exact']
+TARGET.mkdir(exist_ok=False)
+(TARGET/'.gitattributes').write_bytes(b'* -text whitespace=cr-at-eol\n')
+for name in ('provenance.json','attempts.json','summary.json','launcher.py.txt',
+             'config-prior.yaml','config-parallel.yaml','config-current.yaml','example-prior.yaml','example-current.yaml'):
+    shutil.copyfile(OUT/name,TARGET/name)
+for source,name in [('docs/assets/tum_window_processes/inputs.json','inputs.json'),
+                    ('docs/assets/tum_diagnostic_execution/02-prior/result.json.gz','reference-result.json.gz'),
+                    ('docs/assets/tum_diagnostic_execution/config.yaml','reference-config.yaml'),
+                    ('tools/audit_tum_scoped_evaluation.py','auditor.py.txt'),
+                    ('tools/audit_tum_diagnostic_execution.py','audit-primitives.py.txt')]:
+    shutil.copyfile(ROOT/source,TARGET/name)
+shutil.copyfile(Path(__file__),TARGET/'publisher.py.txt')
+for variant in ('prior','current'):capsule(OUT/('sources-'+variant),variant)
+for index,label in ((1,'scopes'),(2,'geometry'),(3,'fused-rejected')):
+    capsule(ROOT/f'outputs/tum-scoped-evaluation-production-v{index}/sources-current',label)
+records={'provenance':[json.loads((OUT/'provenance.json').read_bytes())],
+         'attempts':[json.loads((OUT/'attempts.json').read_bytes())],
+         'summary':[summary],'measurement':[]}
+for attempt in summary['attempts']:
+    folder=TARGET/attempt['folder'];folder.mkdir()
+    for name in ('measurement.json','result.json.gz','stdout.log','stderr.log'):
+        shutil.copyfile(OUT/folder.name/name,folder/name)
+    records['measurement'].append(json.loads((folder/'measurement.json').read_bytes()))
+schemas={}
+for kind,values in records.items():
+    choices={json.dumps(schema(v),sort_keys=True) for v in values}
+    schemas[kind]=json.loads(next(iter(choices))) if len(choices)==1 else {'anyOf':[json.loads(v) for v in sorted(choices)]}
+    schemas[kind]['$schema']='https://json-schema.org/draft/2020-12/schema'
+public=json.loads((ROOT/'schemas/result.schema.json').read_bytes())
+schemas['calibration-result']=public
+schemas['result']={'$schema':'https://json-schema.org/draft/2020-12/schema',
+    '$defs':dict(public['$defs'],CalibrationResult={k:v for k,v in public.items() if k!='$defs'}),
+    'type':'object','additionalProperties':False,'required':['payload','provenance'],
+    'properties':{'payload':{'$ref':'#/$defs/CalibrationResult'},'provenance':{'type':'object'}}}
+write(TARGET/'record-schemas.json',schemas)
+traces=ROOT/'outputs/tum-scoped-evaluation-traces-v5'
+traced=json.loads((traces/'summary.json').read_bytes())
+assert traced['fixed_population_probe_events_exact']==492 and traced['all_original_numeric_histories_exact']
+with tarfile.open(TARGET/'supplementary-traces.tar.gz','w:gz') as bundle:
+    for name in ('provenance.json','attempts.json','summary.json','launcher.py.txt'):
+        bundle.add(traces/name,arcname=name)
+    for variant in ('prior','current'):
+        source=traces/variant/'sources-current'
+        assert json.loads((source/'manifest.json').read_bytes())==json.loads((OUT/('sources-'+variant)/'manifest.json').read_bytes())
+        for name in ('config.yaml','protocol.json'):bundle.add(traces/variant/name,arcname=variant+'/'+name)
+        bundle.add(source/'manifest.json',arcname=variant+'/source-manifest.json')
+    for attempt in traced['attempts']:
+        for p in sorted((traces/attempt['folder']).rglob('*')):
+            if p.is_file():bundle.add(p,arcname=p.relative_to(traces).as_posix())
+    bundle.add(ROOT/'tools/benchmark_tum_window_processes.py',arcname='trace-worker.py.txt')
+assert sha(ROOT/'tools/benchmark_tum_window_processes.py')==json.loads((traces/'provenance.json').read_bytes())['trace_worker_sha256']
+development={f'production-v{i}':f'outputs/tum-scoped-evaluation-production-v{i}' for i in range(1,5)}
+excluded={'source','sources-prior','sources-current','shared-output','run','.git','__pycache__'}
+development_index={}
+with tarfile.open(TARGET/'development-screens.tar.gz','w:gz') as bundle:
+    for label,relative in development.items():
+        folder=ROOT/relative;files=[]
+        for p in sorted(folder.rglob('*')):
+            name=p.relative_to(folder)
+            if not p.is_file() or any(part in excluded for part in name.parts):continue
+            bundle.add(p,arcname=label+'/'+name.as_posix())
+            files.append({'name':name.as_posix(),'sha256':sha(p),'size_bytes':p.stat().st_size})
+        development_index[label]={'files':files,'scope':'Earlier direct three-worker runtime comparisons; do not combine ratios across screens. Fused score candidate was rejected.'}
+write(TARGET/'development-index.json',{'records':development_index,'provenance':{'publisher_sha256':sha(Path(__file__))}})
+for name in ('test_tum_scoped_diagnostics','test_owned_voxel_geometry','test_small_captured_plane_queries','test_ordered_rgbd_sums'):
+    shutil.copyfile(ROOT/f'tests/unit/{name}.py',TARGET/(name+'.py.txt'))
+shutil.copyfile(ROOT/'tools/typecheck-requirements.txt',TARGET/'typecheck-requirements.txt')
+write(TARGET/'index.json',{'files':{p.relative_to(TARGET).as_posix():{'sha256':sha(p),'size_bytes':p.stat().st_size} for p in sorted(TARGET.rglob('*')) if p.is_file() and p.name!='index.json'},'provenance':{'production_provenance_sha256':sha(TARGET/'provenance.json'),'publisher_sha256':sha(Path(__file__))}})
+print('Preserved all nine direct production workers, exact work traces and earlier candidates.')

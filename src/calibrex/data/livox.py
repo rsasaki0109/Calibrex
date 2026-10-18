@@ -294,6 +294,9 @@ class _PlaneGeometry:
     normal: Vector3 | None
 
 
+_CAPTURED_QUERY_MIN_POINTS = 8
+
+
 class VoxelPlaneQueryContext:
     """Capture plane geometry once for repeated, ordered correspondence queries.
 
@@ -302,9 +305,34 @@ class VoxelPlaneQueryContext:
     """
 
     def __init__(self, plane_map: VoxelPlaneMap) -> None:
-        self._planes = {
+        self._initialize({
             key: _PlaneGeometry(plane.centroid, plane.normal) for key, plane in plane_map.items()
-        }
+        })
+
+    @classmethod
+    def _from_points(
+        cls, points: NDArray[np.float64], voxel_size_m: float,
+    ) -> VoxelPlaneQueryContext | None:
+        """Capture owned normal-free points without mutable plane accumulators."""
+        if (
+            cls is not VoxelPlaneQueryContext
+            or _fallback_plane_normal is not _NATIVE_FALLBACK_NORMAL
+            or _VoxelPlane.add is not _NATIVE_PLANE_ADD
+            or _VoxelPlane.centroid is not _NATIVE_PLANE_CENTROID
+            or _VoxelPlane.normal is not _NATIVE_PLANE_NORMAL
+        ):
+            return None
+        from calibrex.data._voxel_geometry import _point_plane_geometry
+
+        geometry = _point_plane_geometry(points, voxel_size_m)
+        if geometry is None:
+            return None
+        result = cls.__new__(cls)
+        result._initialize(geometry)
+        return result
+
+    def _initialize(self, geometry: dict[tuple[int, int, int], _PlaneGeometry]) -> None:
+        self._planes = geometry
         self._keys = tuple(sorted(self._planes))
         self._index = _prepare_plane_index(self._planes)
         self._native_geometry = all(
@@ -339,12 +367,30 @@ class VoxelPlaneQueryContext:
         with np.errstate(over="ignore", divide="ignore", invalid="ignore"):
             cells = np.floor(points / voxel_size_m)
         index = self._index
-        if (len(points) < 64 or index is None or index.neighborhoods is None
+        if (len(points) < _CAPTURED_QUERY_MIN_POINTS
+            or (len(points) < 64 and not self._small_native_batch(
+                points, voxel_size_m, correspondence_gate_m
+            ))
+            or index is None or index.neighborhoods is None
             or not np.isfinite(cells).all() or np.any(cells < -(2.0**63))
             or np.any(cells >= 2.0**63)):
             return None
         return _packed_plane_positions(
             points, cells.astype(np.int64), index, correspondence_gate_m,
+        )
+
+    def _small_native_batch(
+        self, points: NDArray[np.float64], voxel_size_m: float, gate: float,
+    ) -> bool:
+        # The index is already owned by this context. Small native batches can
+        # amortize lookup without changing custom numeric conversions or hooks.
+        return (
+            type(self) is VoxelPlaneQueryContext
+            and self._native_geometry
+            and type(points) is np.ndarray
+            and points.dtype == np.float64
+            and points.ndim == 2 and points.shape[1] == 3
+            and type(voxel_size_m) is float and type(gate) is float
         )
 
     def nearest_match(
@@ -367,7 +413,11 @@ class VoxelPlaneQueryContext:
             cells = np.floor(points / voxel_size_m)
         index = self._index
         if (
-            len(points) < 64 or index is None or index.neighborhoods is None
+            len(points) < _CAPTURED_QUERY_MIN_POINTS
+            or (len(points) < 64 and not self._small_native_batch(
+                points, voxel_size_m, correspondence_gate_m
+            ))
+            or index is None or index.neighborhoods is None
             or not np.isfinite(cells).all() or np.any(cells < -(2.0**63))
             or np.any(cells >= 2.0**63)
         ):
@@ -1878,6 +1928,12 @@ def _fallback_plane_normal(points: list[Vector3]) -> Vector3 | None:
         key=lambda point: _norm3(_cross3(_sub3(first, origin), _sub3(point, origin))),
     )
     return _normalized3(_cross3(_sub3(first, origin), _sub3(second, origin)))
+
+
+_NATIVE_FALLBACK_NORMAL = _fallback_plane_normal
+_NATIVE_PLANE_ADD = _VoxelPlane.add
+_NATIVE_PLANE_CENTROID = _VoxelPlane.centroid
+_NATIVE_PLANE_NORMAL = _VoxelPlane.normal
 
 
 def _sub3(left: Vector3, right: Vector3) -> Vector3:

@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, TypeAlias
 import numpy as np
 from numpy.typing import NDArray
 
+from calibrex.graph._ordered_sums import _ordered_float_sums
 from calibrex.graph._point_plane_batches import _transform_points
 from calibrex.graph.joint_factors import se3_from_tangent
 from calibrex.graph.joint_optimization import JointOptimizerOptions, JointParameterBlock, _perturb
@@ -25,34 +26,11 @@ _SUM_VERSION = sys.version_info[:2] if sys.implementation.name == "cpython" else
 
 def _weighted_probes(weights: _FloatArray, offsets: _FloatArray) -> _FloatArray:
     products = weights[None, :, :] * offsets[:, None, :]
-    version = _SUM_VERSION
-    if (
-        products.shape[0] * products.shape[1] < 512
-        or version not in ((3, 10), (3, 11), (3, 12))
-    ):
-        rows = products.reshape((-1, weights.shape[1])).tolist()
-        return np.asarray([sum(row) for row in rows], dtype=np.float64).reshape(products.shape[:2])
-
-    # Each row follows the host's ordinary-float sum, including the initial
-    # integer zero. CPython 3.12 adds Neumaier compensation to subsequent terms:
-    # https://github.com/python/cpython/blob/v3.12.10/Python/bltinmodule.c
-    total = np.zeros(products.shape[:2], dtype=np.float64) + products[..., 0]
-    if version in ((3, 10), (3, 11)):
-        for index in range(1, products.shape[-1]):
-            total = total + products[..., index]
-        return total
-    correction = np.zeros_like(total)
-    for index in range(1, products.shape[-1]):
-        term = products[..., index]
-        updated = total + term
-        correction += np.where(
-            np.abs(total) >= np.abs(term), (total - updated) + term, (term - updated) + total
-        )
-        total = updated
-    # Adding a zero correction can lose a negative zero; non-finite corrections
-    # must not turn an overflowed total into a NaN.
-    np.copyto(total, total + correction, where=(correction != 0.0) & np.isfinite(correction))
-    return total
+    ordered = _ordered_float_sums(products, version=_SUM_VERSION, minimum_rows=512)
+    if ordered is not None:
+        return ordered
+    rows = products.reshape((-1, weights.shape[1])).tolist()
+    return np.asarray([sum(row) for row in rows], dtype=np.float64).reshape(products.shape[:2])
 
 
 def _unique_weighted_probes(weights: _FloatArray, offsets: _FloatArray) -> _FloatArray:
