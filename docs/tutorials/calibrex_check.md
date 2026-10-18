@@ -600,6 +600,61 @@ generator version and commit, frame and topic definitions). The db3 and
 `metadata.yaml` follow the rosbag2 sqlite3 layout and are read back by
 calibrex; they have not been opened with a ROS 2 install.
 
+### Converting KITTI-360 perspective data
+
+The `kitti-360` converter accepts the official split layout under one dataset
+root: `calibration/`, `data_2d_raw/SEQUENCE/image_00/` (and optionally
+`image_01/`), `data_3d_raw/SEQUENCE/velodyne_points/`, and
+`data_poses/SEQUENCE/poses.txt`. Use `data_rect/` images and each stream's
+original `timestamps.txt`; for `image_01`, `image_00/timestamps.txt` is also
+needed to timestamp the published poses.
+
+```bash
+calibrex convert kitti-360 KITTI360_ROOT \
+  --sequence 2013_05_28_drive_0000_sync --camera image_00 \
+  --start-frame 0 --max-frames 600 --velodyne-time azimuth \
+  --scan-period 0.1 --output kitti360_0000_bag
+```
+
+`--camera` supports the two perspective cameras, `image_00` (default) and
+`image_01`. `--start-frame` is inclusive, and `--max-frames` is the numeric
+frame window's length. It does not rename or renumber frames, and is not a
+duration guarantee: 600 frames are only nominally 60 seconds. Missing images
+and scans remain independent streams, with their actual frame IDs recorded.
+Write the output outside the input dataset and calibration directories.
+The selected-camera rectification and intrinsic-only projection follow the
+[official perspective camera helper](https://github.com/autonomousvision/kitti360Scripts/blob/master/kitti360scripts/helpers/project.py).
+
+| Topic | Content |
+| --- | --- |
+| `/camera/image_raw`, `/camera/camera_info` | Rectified `mono8` images and pinhole intrinsics in `cam0_optical` or `cam1_optical`. The physical stereo baseline is represented once in TF; CameraInfo uses `[K \| 0]`. |
+| `/velodyne_points` | Original XYZ/intensity in `velo_link`, with float32 `time` offsets by default. The declared clockwise azimuth model is `-atan2(y,x)/(2*pi)*scan_period`, relative to a forward-facing mid-sweep header stamp. KITTI-360 does not provide measured per-point firing times. `--velodyne-time none` omits this field. |
+| `/kitti360/odometry` | Published sparse `T_world_pose` rows in `kitti360_world`, child `imu_link`, stamped at the matching original image_00 frame ID. Translation and rotation finite differences supply approximate body-frame interval-average twists; their time spans are recorded. A singleton has zero twist with unknown uncertainty. |
+| `/tf_static` | Transient-local `base_link -> imu_link` identity (the GPS/IMU pose frame), and `imu_link -> velo_link` and selected rectified camera from the official calibration chain. |
+
+No pose interpolation, fabricated IMU packets, or scan motion compensation
+is applied by the converter. The published poses are image/LiDAR/OXTS-aided
+estimates, so they are **not independent INS evidence**. Sparse pose gaps can
+make the finite-difference motion approximation poor. Twist covariance is
+marked with a large unknown variance; the current camera-LiDAR motion loader
+does not use that covariance to reject sparse intervals. Inspect the recorded
+intervals before using this motion model for deskewing.
+
+The `calibrex_conversion.json` sidecar records every consumed file's SHA-256,
+the source sequence and selected IDs, the camera transform, time-model
+assumptions, command, version and commit. Conversion is staged: invalid image
+sizes, malformed scans, missing timestamps, and invalid poses/calibrations
+leave a previous output bag untouched. `--overwrite` replaces only an
+existing bag identified by `metadata.yaml`, or an empty output directory.
+
+**Development status.** Synthetic split-layout fixtures named `0000` and `0002`
+exercise both cameras, dropped scans, sparse poses, time fields, the bag reader,
+and provenance. The official host is still blocked in the managed development
+environment (HTTP 403), so real-data conversion on spent `0000`/`0002` and ROS 2
+playback remain unverified. This command is not evidence for a camera-LiDAR
+SOTA claim. No unread KITTI-360 sequence has been converted or used to choose
+thresholds; the access investigation is [PR #235](https://github.com/rsasaki0109/Calibrex/pull/235).
+
 ### Phase C1 results on KITTI raw (development drives only)
 
 Drives 0005, 0009, 0014, 0015, 0022 of 2011_09_26, converted to bags; candidate

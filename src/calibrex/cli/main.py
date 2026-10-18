@@ -1048,6 +1048,34 @@ def _build_parser() -> argparse.ArgumentParser:
     convert_kitti.add_argument("--json", action="store_true")
     convert_kitti.set_defaults(func=_cmd_convert_kitti_raw)
 
+    convert_360 = convert_subcommands.add_parser(
+        "kitti-360",
+        help="write KITTI-360 rectified perspective images, Velodyne and poses as rosbag2",
+    )
+    convert_360.add_argument("dataset_root", type=Path, help="root of the official split layout")
+    convert_360.add_argument("--sequence", required=True, help="2013_05_28_drive_NNNN_sync")
+    convert_360.add_argument("--calib-dir", type=Path, default=None)
+    convert_360.add_argument("--camera", choices=("image_00", "image_01"), default="image_00")
+    convert_360.add_argument(
+        "--velodyne-time",
+        choices=("none", "azimuth"),
+        default="azimuth",
+        help="per-point time model (default: azimuth); none keeps rigid scans",
+    )
+    convert_360.add_argument(
+        "--scan-period",
+        type=_positive_float,
+        default=0.1,
+        metavar="SECONDS",
+        help="declared period for the azimuth model, not measured firing times (default: 0.1)",
+    )
+    convert_360.add_argument("--start-frame", type=int, default=0)
+    convert_360.add_argument("--max-frames", type=_positive_int, default=None)
+    convert_360.add_argument("--output", type=Path, required=True)
+    convert_360.add_argument("--overwrite", action="store_true")
+    convert_360.add_argument("--json", action="store_true")
+    convert_360.set_defaults(func=_cmd_convert_kitti360)
+
     kitti = subcommands.add_parser("kitti", help="KITTI raw utilities")
     kitti_subcommands = kitti.add_subparsers(dest="kitti_command", required=True)
     kitti_import = kitti_subcommands.add_parser(
@@ -5247,6 +5275,35 @@ def _cmd_convert_kitti_raw(args: argparse.Namespace) -> int:
     else:
         counts = ", ".join(f"{topic}: {count}" for topic, count in result.message_counts.items())
         print(f"wrote {result.bag} ({counts})")
+        print(f"provenance: {result.provenance_path}")
+    return 0
+
+
+def _cmd_convert_kitti360(args: argparse.Namespace) -> int:
+    from calibrex.data.kitti360_to_rosbag2 import convert_kitti360_to_rosbag2
+
+    result = convert_kitti360_to_rosbag2(
+        args.dataset_root,
+        args.output,
+        sequence=args.sequence,
+        calibration_dir=args.calib_dir,
+        camera=args.camera,
+        velodyne_time=args.velodyne_time,
+        scan_period_s=args.scan_period,
+        start_frame=args.start_frame,
+        max_frames=args.max_frames,
+        overwrite=args.overwrite,
+        command=["calibrex", *args.invoked_argv],
+    )
+    payload = {
+        "bag": str(result.bag),
+        "provenance": str(result.provenance_path),
+        "message_counts": result.message_counts,
+    }
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(f"wrote {result.bag} ({result.message_counts})")
         print(f"provenance: {result.provenance_path}")
     return 0
 
