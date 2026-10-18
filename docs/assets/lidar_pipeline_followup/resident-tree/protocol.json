@@ -1,0 +1,42 @@
+{
+  "scope": "Spent public GLIM: resident grid versus resident radix/broad tree, without target download.",
+  "launcher_sha256": "c4784374a0ed139d92e7bdd33bbcc6a0a90d4ac9e9f848fc504728b0b0a31695",
+  "source_commit": "917748b10d5eff9bb077b332a018eafdb33e9fcd",
+  "source_manifest_sha256": "3cda7d5dcafcc52b964586e7f77d4208c68af0921f8aa2e00f4c2d8bc401de20",
+  "candidate_sources_sha256": {
+    "candidate.py.txt": "5b4d0ed71f4fdf2d9fa067e815e26820a717be1908c981c02883aabc56cef451",
+    "device-tree-initializer.py.txt": "464a36c11b4d22bcd2aa5aa358ca5d5800db8ec61aca5a3efe785186ee599382",
+    "fallback.cu.txt": "35462bec0ed46c30257de873e77bef41b678599c0c7e03324a3b1e44eda7a38a",
+    "fused.cu.txt": "17ff0ff7604a76fe1fa7a150677d68959a326ea10f9afd83a809fb5f4ed050b3",
+    "launcher.py.txt": "c4784374a0ed139d92e7bdd33bbcc6a0a90d4ac9e9f848fc504728b0b0a31695",
+    "parent-candidate.py.txt": "04a1e0d8edc32d1ce07023790e92468109da259d7d058a55463c235bb0717591",
+    "query.cu.txt": "33ab7585e13624976d3c6ed37eaadf6dab94e0cbe1358db4655027788b7565e7",
+    "radix-dependency.py.txt": "fa18816c09b40a55d82df4ff9c415fa3008c1f549b16fef95eba10bce8518758"
+  },
+  "fixtures_sha256": {
+    "registration-00.json": "ca394c8410da699ba2651ca1b558aa70c0e598ce4bb99b0bcc476413b987415f",
+    "registration-00.npz": "38e44cc53225fccbb7f1a51b2dfe6ac465565f82ed33f5672ecfc064ca465d94",
+    "registration-01.json": "af97db91f5af639c31f42ae13972f27fb14d103bea1752b056564661a36692f8",
+    "registration-01.npz": "0519df6e8a70279bd6f9df09706b2f49add5a1c5a16fb34e3cf93782ddd6eb49",
+    "registration-02.json": "7a8764647382e00a8f91b703f008c7ceb770d5d061c98809de2aefc7bb9a201b",
+    "registration-02.npz": "f4bd572eb82bdc0959b510a408aa30314b687a0d8aceca9356373bf5e0662b43",
+    "registration-03.json": "aa1a8f73c9afb6e7c4514c7607a0213ee58929fe9affd10e6b7ed0d1a6301fcc",
+    "registration-03.npz": "2f0224be5390a5d66648e1f9746b13a8f382ed7f714251af592a1e6a907b336b",
+    "registration-04.json": "baa1712224f48619495447da24e75adce872e341775d2fe5ce4269f674d052ff",
+    "registration-04.npz": "477a5eafa6ce3353b0f01f267f4d70649b2e5c60e143400072e61794385ac1c9",
+    "registration-05.json": "896523267eb7e43ad4360e18ed1de8d6252e06b862ebd6ecec3c009c37707e75",
+    "registration-05.npz": "813c0d5d2c706b0163133fc48ddfa6ddbdb53a97f9e4f423c952a883ef2ed6a2",
+    "registration-06.json": "3fa9da20cb543bcd7b5814a9747ce7d9082169f567565f674464fe2b5f69816b",
+    "registration-06.npz": "d33c21042f96f236e357151bd5328a48dd43481ca2430216e3d5d6f73837711a",
+    "registration-07.json": "28d107ec7b01fade74363342b9e7a7ec7293803f94107f0f3d986080bbd12e8d",
+    "registration-07.npz": "4446aeff3b975216a7cbe733245297450a0b306d0459a4ae956c569da77cc47d"
+  },
+  "blas_threads": 1,
+  "cuda_cache_initially_empty": true,
+  "limitations": [
+    "Six alternating warm component repeats after one retained warmup case per arm.",
+    "Target construction, registration and statistics; not complete bag/calibration.",
+    "CPU/GPU unreserved; no accuracy or SOTA claim.",
+    "Experimental kernels separately source-bound; inherited ordinary runtime identity describes the base."
+  ]
+}

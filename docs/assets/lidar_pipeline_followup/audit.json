@@ -1,0 +1,74 @@
+{
+  "schema_version": "calibrex.lidar_pipeline_followup_audit/v0.1",
+  "decision": "no_candidate_adopted",
+  "timed_registrations": 480,
+  "retained_warmups": 10,
+  "registration_bit_comparisons": 360,
+  "registration_tolerance_comparisons": 90,
+  "complete_workers": 2,
+  "complete_fits": 8,
+  "diagnostic_fits": 4,
+  "whole": {
+    "seconds": {
+      "prior": 53.42545710003469,
+      "current": 51.92959240009077
+    },
+    "whole_ratio": 1.0288056314484246,
+    "physical_bits_equal": true,
+    "all_four_full_fit_bits_equal": true,
+    "protocol_sha256": "8817dae5796f04b79e7a0c6e9a33a2c36fbc4be2db506983974138200a44edd8",
+    "measurements_sha256": {
+      "prior": "820771ac94e4282f3e761657e26433bfa01986eb3fed8bf90d6f94be5e6cbe68",
+      "current": "fc0ffbb64029866953c9555e0d968e76e4e16c7adda5214a49ac2fefe3bd66af"
+    }
+  },
+  "cohorts": {
+    "captured-tree": {
+      "observations": 96,
+      "ratio": 1.0279778496265248,
+      "medians_seconds": {
+        "prior": 0.42931844998383895,
+        "broad": 0.41763395012822
+      }
+    },
+    "radix-tree": {
+      "observations": 96,
+      "ratio": 1.1569735841068014,
+      "medians_seconds": {
+        "prior": 0.4988095499575138,
+        "broad": 0.43113304988946766
+      }
+    },
+    "resident-tree": {
+      "observations": 96,
+      "ratio": 1.2140788495969108,
+      "medians_seconds": {
+        "prior": 0.36527960014063865,
+        "broad": 0.3008697501500137
+      }
+    },
+    "block-tree": {
+      "observations": 96,
+      "ratio": 0.754886152029771,
+      "medians_seconds": {
+        "prior": 0.3650138000375591,
+        "broad": 0.4835349000059068
+      }
+    },
+    "persistent": {
+      "observations": 96,
+      "ratio": 0.9858599699019283,
+      "medians_seconds": {
+        "prior": 0.5016649999888614,
+        "persistent": 0.508860299945809
+      }
+    }
+  },
+  "gpu_runtime_imported": false,
+  "provenance": {
+    "source_commit": "917748b10d5eff9bb077b332a018eafdb33e9fcd",
+    "source_manifest_sha256": "3cda7d5dcafcc52b964586e7f77d4208c68af0921f8aa2e00f4c2d8bc401de20",
+    "archive_index_sha256": "0fa73a9b88a4baf775da14fbfcee1d98c4e687ce76993b82f8a5b2c8f96e604e",
+    "auditor_sha256": "c812bd16b27db5b159cf2cd3f43504ddfc446a91f310d2d96994be4814dbb1a1"
+  }
+}

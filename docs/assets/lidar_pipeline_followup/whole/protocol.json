@@ -1,0 +1,32 @@
+{
+  "scope": "One complete exploratory public GLIM resident-grid/radix-broad comparison.",
+  "source_commit": "917748b10d5eff9bb077b332a018eafdb33e9fcd",
+  "source_manifest_sha256": "3cda7d5dcafcc52b964586e7f77d4208c68af0921f8aa2e00f4c2d8bc401de20",
+  "launcher_sha256": "b191847d0dde912087aadf807c600854b25104d3e9bb7bff11d906f404199c08",
+  "helpers_sha256": {
+    "candidate.py.txt": "5b4d0ed71f4fdf2d9fa067e815e26820a717be1908c981c02883aabc56cef451",
+    "parent-candidate.py.txt": "04a1e0d8edc32d1ce07023790e92468109da259d7d058a55463c235bb0717591",
+    "radix-dependency.py.txt": "fa18816c09b40a55d82df4ff9c415fa3008c1f549b16fef95eba10bce8518758",
+    "benchmark.py.txt": "9c29cd4193c8693fd5a939edda56b9dda35d0e4f74cfb4b1dc7281231bad25aa"
+  },
+  "input_bag_sha256": "f57a2e85339316d4235ab693ab2876aac5e113625c7f8b0f7873b62f92e09643",
+  "max_seconds": 6.0,
+  "max_rounds": 4,
+  "order": [
+    "prior",
+    "current"
+  ],
+  "blas_threads": 1,
+  "quanta": {
+    "geometry_m": 1e-09,
+    "translation_m": 1e-06,
+    "rotation_rad": 1e-07
+  },
+  "limits": [
+    "One exploratory fresh-worker pair, unreserved host; not a latency guarantee.",
+    "Both use resident geometry and CUDA plane fits; every worker starts with an independent empty compiler cache.",
+    "Whole includes imports, decoding, all odometry passes/fits/evidence, saves and source/input verification.",
+    "Prototype kernel hashes are separately bound; inherited identity describes ordinary resident source.",
+    "Spent public development/performance data; no new accuracy/SOTA claim."
+  ]
+}

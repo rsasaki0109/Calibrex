@@ -1,0 +1,30 @@
+def _validate_resident_execution(result: dict, enabled: bool, hashes: dict | None) -> None:
+    options = result["options"]
+    if options.get("resident_odometry", False) != enabled:
+        raise ValueError("resident geometry option differs")
+    work = options.get("resident_geometry_execution")
+    if not enabled:
+        if work is not None:
+            raise ValueError("ordinary odometry reported resident geometry work")
+        return
+    if hashes is None or not isinstance(work, dict) or any(
+        type(value) is not int or value < 0 for value in work.values()
+    ):
+        raise ValueError("resident geometry counters are missing or invalid")
+    if any(work.get(name, 0) <= 0 for name in (
+        "source_captures", "source_cache_hits", "preprocess_calls", "preprocess_rows", "transforms",
+    )) or not 0 < work.get("source_cache_bytes", 0) <= 512 * 1024**2:
+        raise ValueError("resident geometry did not execute the declared work")
+    for name in ("initial_odometry_execution", "segment_odometry_execution"):
+        for report in options[name]:
+            identity = dict(
+                field.split("=", 1) for field in report["executed_backends"][0].split(";")[1:]
+            )
+            expected = {
+                "fp64": "true", "query_fma": "false", "geometry_pipeline": "resident-v1", **hashes,
+            }
+            if any(identity.get(key) != value for key, value in expected.items()):
+                raise ValueError("resident geometry kernel identity differs from frozen sources")
+            statistics = report["statistics"]
+            if statistics.get("device_tree_build_kernel_calls", 0) <= 0:
+                raise ValueError("resident geometry did not capture any targets")

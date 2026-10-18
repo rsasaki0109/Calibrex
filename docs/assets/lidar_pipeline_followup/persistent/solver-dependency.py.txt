@@ -1,0 +1,91 @@
+SOURCE = r'''
+extern "C" __global__ void reduce_system(const double* terms,int n,int blocks,
+    const int* state,double* partial) {
+    if(state[0])return;
+    int component=blockIdx.x/blocks,block=blockIdx.x%blocks;
+    int row=block*256+threadIdx.x;
+    __shared__ double values[256];
+    values[threadIdx.x]=row<n?terms[component*n+row]:0.;
+    __syncthreads();
+    for(int stride=128;stride;stride>>=1) {
+        if(threadIdx.x<stride)values[threadIdx.x]+=values[threadIdx.x+stride];
+        __syncthreads();
+    }
+    if(threadIdx.x==0)partial[component*blocks+block]=values[0];
+}
+extern "C" __global__ void solve_update(const double* partial,int blocks,
+    int minimum,double translation_tol,double rotation_tol,double scale,
+    double* matrix,double* hessian,double* meta,int* state) {
+    if(state[0])return;
+    double totals[31]={0.};
+    for(int c=0;c<31;++c)for(int j=0;j<blocks;++j)totals[c]+=partial[c*blocks+j];
+    ++state[1];
+    if(totals[29]>0 || totals[30]>0){state[0]=2;return;}
+    meta[2]=totals[28];
+    if(totals[28]<minimum){state[0]=3;return;}
+    double a[42],max_h=0.;
+    int slot=0;
+    for(int i=0;i<6;++i)for(int j=i;j<6;++j) {
+        double value=totals[slot++];a[7*i+j]=value;a[7*j+i]=value;
+        max_h=fmax(max_h,fabs(value));
+    }
+    for(int i=0;i<6;++i)a[7*i+6]=-totals[21+i];
+    for(int k=0;k<6;++k) {
+        int pivot=k;
+        for(int i=k+1;i<6;++i)if(fabs(a[7*i+k])>fabs(a[7*pivot+k]))pivot=i;
+        if(!isfinite(a[7*pivot+k]) || fabs(a[7*pivot+k])<=1e-12*max_h) {
+            state[0]=2;return;
+        }
+        if(pivot!=k)for(int j=k;j<7;++j) {
+            double value=a[7*k+j];a[7*k+j]=a[7*pivot+j];a[7*pivot+j]=value;
+        }
+        for(int i=k+1;i<6;++i) {
+            double factor=a[7*i+k]/a[7*k+k];a[7*i+k]=0.;
+            for(int j=k+1;j<7;++j)a[7*i+j]-=factor*a[7*k+j];
+        }
+    }
+    double step[6];
+    for(int i=5;i>=0;--i) {
+        double value=a[7*i+6];for(int j=i+1;j<6;++j)value-=a[7*i+j]*step[j];
+        step[i]=value/a[7*i+i];if(!isfinite(step[i])){state[0]=2;return;}
+    }
+    double rotation=sqrt((step[0]*step[0]+step[1]*step[1])+step[2]*step[2]);
+    double translation=sqrt((step[3]*step[3]+step[4]*step[4])+step[5]*step[5]);
+    if(fabs(rotation-rotation_tol)<=1e-3*rotation_tol ||
+       fabs(translation-translation_tol)<=1e-3*translation_tol){state[0]=2;return;}
+    double x=step[0],y=step[1],z=step[2];
+    double skew[9]={0.,-z,y,z,0.,-x,-y,x,0.},square[9];
+    for(int i=0;i<3;++i)for(int j=0;j<3;++j)
+        square[3*i+j]=(skew[3*i]*skew[j]+skew[3*i+1]*skew[3+j])+skew[3*i+2]*skew[6+j];
+    double r[9],left[9];
+    for(int i=0;i<9;++i) {
+        double identity=i%4==0?1.:0.;
+        if(rotation<1e-12){r[i]=identity+skew[i];left[i]=identity+.5*skew[i];}
+        else {
+            double aa=sin(rotation)/rotation;
+            double bb=(1.-cos(rotation))/(rotation*rotation);
+            double cc=(rotation-sin(rotation))/(rotation*rotation*rotation);
+            r[i]=(identity+aa*skew[i])+bb*square[i];
+            left[i]=(identity+bb*skew[i])+cc*square[i];
+        }
+    }
+    double update[16]={0.},result[16];update[15]=1.;
+    for(int i=0;i<3;++i) {
+        for(int j=0;j<3;++j)update[4*i+j]=r[3*i+j];
+        update[4*i+3]=(left[3*i]*step[3]+left[3*i+1]*step[4])+left[3*i+2]*step[5];
+    }
+    for(int i=0;i<4;++i)for(int j=0;j<4;++j)
+        result[4*i+j]=((update[4*i]*matrix[j]+update[4*i+1]*matrix[4+j])
+                     +update[4*i+2]*matrix[8+j])+update[4*i+3]*matrix[12+j];
+    for(int i=0;i<16;++i)matrix[i]=result[i];
+    double norm=0.;
+    for(int j=0;j<4;++j) {
+        double sum=0.;for(int i=0;i<4;++i)sum+=fabs(result[4*i+j]);norm=fmax(norm,sum);
+    }
+    meta[0]=128.*2.2204460492503131e-16*scale*fmax(1.,norm);
+    meta[1]=sqrt(totals[27]/totals[28]);meta[3]=totals[28];
+    slot=0;
+    for(int i=0;i<6;++i)for(int j=i;j<6;++j)hessian[6*i+j]=hessian[6*j+i]=totals[slot++];
+    if(rotation<rotation_tol && translation<translation_tol){state[0]=1;meta[4]=1.;}
+}
+'''

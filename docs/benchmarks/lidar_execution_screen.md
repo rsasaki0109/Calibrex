@@ -1,5 +1,10 @@
 # Rejected LiDAR execution candidates
 
+The later [preparation/registration follow-up](lidar_pipeline_followup.md) adds
+five separate component screens, a complete-pipeline pair and an instrumented
+diagnosis. Its best component ratio falls to 1.029x in the complete worker;
+the original measurements below remain unchanged.
+
 Five further scheduling/search candidates did not establish a substantial
 improvement. None is adopted. `src/calibrex` remains byte-identical to the
 runtime in `917748b10d5eff9bb077b332a018eafdb33e9fcd`.

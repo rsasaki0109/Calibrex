@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schema_version", "decision", "timed_registrations", "retained_warmups", "registration_bit_comparisons", "registration_tolerance_comparisons", "complete_workers", "complete_fits", "diagnostic_fits", "whole", "cohorts", "gpu_runtime_imported", "provenance"],
+  "properties": {
+    "schema_version": {"const": "calibrex.lidar_pipeline_followup_audit/v0.1"},
+    "decision": {"const": "no_candidate_adopted"},
+    "timed_registrations": {"const": 480},
+    "retained_warmups": {"const": 10},
+    "registration_bit_comparisons": {"const": 360},
+    "registration_tolerance_comparisons": {"const": 90},
+    "complete_workers": {"const": 2},
+    "complete_fits": {"const": 8},
+    "diagnostic_fits": {"const": 4},
+    "gpu_runtime_imported": {"const": false},
+    "whole": {
+      "type": "object", "required": ["seconds", "whole_ratio", "physical_bits_equal", "all_four_full_fit_bits_equal", "protocol_sha256", "measurements_sha256"],
+      "properties": {
+        "seconds": {"$ref": "#/$defs/numbers"},
+        "whole_ratio": {"type": "number", "exclusiveMinimum": 0},
+        "physical_bits_equal": {"const": true},
+        "all_four_full_fit_bits_equal": {"const": true},
+        "protocol_sha256": {"$ref": "#/$defs/digest"},
+        "measurements_sha256": {"type": "object", "additionalProperties": {"$ref": "#/$defs/digest"}}
+      }, "additionalProperties": false
+    },
+    "cohorts": {
+      "type": "object", "required": ["captured-tree", "radix-tree", "resident-tree", "block-tree", "persistent"],
+      "properties": {
+        "captured-tree": {"$ref": "#/$defs/cohort"},
+        "radix-tree": {"$ref": "#/$defs/cohort"},
+        "resident-tree": {"$ref": "#/$defs/cohort"},
+        "block-tree": {"$ref": "#/$defs/cohort"},
+        "persistent": {"$ref": "#/$defs/cohort"}
+      }, "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object", "required": ["source_commit", "source_manifest_sha256", "archive_index_sha256", "auditor_sha256"],
+      "properties": {
+        "source_commit": {"const": "917748b10d5eff9bb077b332a018eafdb33e9fcd"},
+        "source_manifest_sha256": {"$ref": "#/$defs/digest"},
+        "archive_index_sha256": {"$ref": "#/$defs/digest"},
+        "auditor_sha256": {"$ref": "#/$defs/digest"}
+      }, "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "numbers": {"type": "object", "minProperties": 2, "additionalProperties": {"type": "number", "exclusiveMinimum": 0}},
+    "cohort": {
+      "type": "object", "required": ["observations", "ratio", "medians_seconds"],
+      "properties": {
+        "observations": {"const": 96},
+        "ratio": {"type": "number", "exclusiveMinimum": 0},
+        "medians_seconds": {"$ref": "#/$defs/numbers"}
+      }, "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

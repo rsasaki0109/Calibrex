@@ -1,0 +1,107 @@
+"""Private device-input radix/broad target; ordinary resident repairs are retained."""
+from pathlib import Path
+import importlib.util
+import inspect
+import textwrap
+import cupy as cp
+import numpy as np
+from calibrex.solvers import cuda_resident_odometry_adapter as resident
+
+ROOT=Path(__file__).resolve().parent
+_PARENT=ROOT/'.tmp-calibrex-fast-radix-candidate-v1.py'
+_spec=importlib.util.spec_from_file_location('resident_broad_parent',_PARENT)
+broad=importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(broad)
+QUERY,FALLBACK,FUSED=broad.QUERY,broad.FALLBACK,broad.FUSED
+_OLD_MAP=broad._OLD_MAP
+
+initializer=textwrap.dedent(inspect.getsource(broad.radix._CudaTree.__init__))
+initializer=initializer.replace('self._host = _coordinates(points, "spatial tree")','self._host = None')
+initializer=initializer.replace('self._host.nbytes','points.nbytes')
+initializer=initializer.replace('self.data = cp.asarray(self._host)','self.data = points')
+initializer=initializer.replace('count = len(self._host)','count = len(points)')
+initializer=initializer.replace("""        lows = [np.float64(self._host[:, a].min()) for a in range(3)]
+        highs = [np.float64(self._host[:, a].max()) for a in range(3)]""","""        bounds=cp.asnumpy(cp.concatenate((points.min(axis=0),points.max(axis=0))))
+        lows=[np.float64(v) for v in bounds[:3]]
+        highs=[np.float64(v) for v in bounds[3:]]
+        self.scale=max(1.,float(np.max(np.abs(bounds))))""")
+assert 'self._host[:,' not in initializer
+
+BUILD=broad.radix._SOURCE
+BUILD=BUILD.replace('codes[order[a]]^codes[order[b]]','codes[order[8*a]]^codes[order[8*b]]')
+BUILD=BUILD.replace('long long start=leaf,end=start+1;',
+                    'long long start=(long long)leaf*8,end=min((long long)n,start+8LL);')
+initializer=initializer.replace('leaves = max(1, count)','leaves = max(1, (count+7)//8)')
+initializer=initializer.replace('cp.RawKernel(_SOURCE, "morton3"','cp.RawKernel(_BUILD, "morton3"')
+initializer=initializer.replace('cp.RawKernel(_SOURCE, "leaf_refit3"','cp.RawKernel(_BUILD, "leaf_refit3"')
+initializer=initializer.replace('cp.RawKernel(_SOURCE, "radix_nodes3"','cp.RawKernel(_BUILD, "radix_nodes3"')
+start=initializer.index('    ops = _map_ops(')
+stop=initializer.index('    self.kernel = ',start)
+initializer=initializer[:start]+'    self.arrays = (order,axes,splits,children,spans,boxes)\n'+initializer[stop:]
+old="""        bounds=cp.asnumpy(cp.concatenate((points.min(axis=0),points.max(axis=0))))
+        lows=[np.float64(v) for v in bounds[:3]]
+        highs=[np.float64(v) for v in bounds[3:]]
+        self.scale=max(1.,float(np.max(np.abs(bounds))))"""
+new="""        lows=[np.float64(-128.)]*3
+        highs=[np.float64(128.)]*3"""
+assert old in initializer
+initializer=initializer.replace(old,new)
+initializer=initializer.replace('    self.arrays = (order,axes,splits,children,spans,boxes)',
+    '    self.scale=max(1.,float(np.max(np.abs(cp.asnumpy(boxes[0])))))\n    self.arrays = (order,axes,splits,children,spans,boxes)')
+
+_namespace=dict(vars(broad.radix))
+_namespace["_BUILD"]=BUILD
+exec(compile(initializer,'device-tree-initializer.py.txt','exec'),_namespace)
+
+class DeviceTree(broad.radix._CudaTree):
+    def __init__(self, points):
+        _namespace['__init__'](self,points)
+        self.reference_error=3*np.finfo(np.float32).eps*self.scale
+        self.reference32=self.data.astype(cp.float32)
+        self.boxes32=self.arrays[-1].astype(cp.float32)
+        self.split32=self.arrays[2].astype(cp.float32)
+        self.counts=cp.zeros(2,dtype=cp.uint64)
+        self.broad=cp.RawKernel(QUERY,'query3',options=('--fmad=false',))
+        self.fallback=cp.RawKernel(FALLBACK,'query3',options=('--fmad=false',))
+        self.bytes+=self.reference32.nbytes+self.boxes32.nbytes+self.split32.nbytes
+
+    @property
+    def host(self):
+        if self._host is None:self._host=broad.native._coordinates(cp.asnumpy(self.data),'target')
+        return self._host
+
+    @property
+    def cpu(self):
+        _ = self.host
+        return super().cpu
+
+    def reserve(self,count):
+        pass
+
+    query=broad.Tree.query
+
+class Fast(resident._ResidentTarget):
+    def __init__(self, points, options, identity):
+        broad.native._validate_options(options)
+        tree=DeviceTree(points)
+        self.grid=tree
+        self._normal_payload=None
+        self.sparse_native_normal_rows=self.spatial_native_normal_rows=0
+        self._host=None
+        self._initialize_target(tree,options,tree.scale,identity)
+        kernel=cp.RawKernel(FUSED,'project_query_system3',options=('--fmad=false',))
+        def launch(grid,block,arguments):
+            kernel(grid,block,(*arguments,tree.reference32,tree.boxes32,tree.split32,
+                               np.float64(tree.reference_error),tree.counts))
+        self.fused_kernel=launch
+
+    def statistics(self):
+        values=broad.native.CudaOdometryTarget.statistics(self)
+        counts=cp.asnumpy(self.tree.counts)
+        values.update({'broad_normal_fallback_rows':int(counts[0]),
+                       'broad_registration_fallback_rows':int(counts[1]),
+                       'device_tree_build_kernel_calls':self.tree.build_kernel_calls,
+                       'native_tree_builds':self.tree.native_tree_builds,
+                       'sparse_native_normal_rows':self.sparse_native_normal_rows,
+                       'spatial_native_normal_rows':self.spatial_native_normal_rows})
+        return values
