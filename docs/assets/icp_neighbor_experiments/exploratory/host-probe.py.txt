@@ -1,0 +1,36 @@
+from pathlib import Path
+import hashlib
+import json
+import subprocess
+import time
+import numpy as np
+
+rng = np.random.default_rng(20261013)
+n = 125000
+indices = rng.integers(0, n, (n, 2), dtype=np.int64)
+squared = rng.uniform(0., 10., (n, 2))
+squared[::13, 1] = squared[::13, 0]
+
+def sort():
+    order = np.lexsort((indices, squared), axis=1)
+    return np.take_along_axis(indices, order, axis=1)[:, 0].copy(), np.take_along_axis(squared, order, axis=1)[:, 0]
+
+def compare():
+    first = (squared[:, 0] < squared[:, 1]) | ((squared[:, 0] == squared[:, 1]) & (indices[:, 0] < indices[:, 1]))
+    return np.where(first, indices[:, 0], indices[:, 1]), np.where(first, squared[:, 0], squared[:, 1])
+
+expected = sort()
+trials = []
+for i in range(12):
+    for name, operation in (("sort", sort), ("compare", compare)) if i%2==0 else (("compare",compare),("sort",sort)):
+        start = time.perf_counter()
+        result = operation()
+        elapsed = time.perf_counter()-start
+        assert np.array_equal(expected[0],result[0])
+        assert np.array_equal(expected[1].view(np.uint64),result[1].view(np.uint64))
+        trials.append({"repeat":i,"method":name,"seconds":elapsed})
+record={"provenance":{"generator":"two_neighbor_probe/v1","commit":subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip(),
+ "launcher_sha256":hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),"input_sha256":hashlib.sha256(indices.tobytes()+squared.tobytes()).hexdigest(),
+ "numpy":np.__version__,"seed":20261013,"scope":"host ordering microbenchmark only"},"trials":trials,"exact_equal":True}
+Path("outputs/two-neighbor-probe-v1.json").write_text(json.dumps(record,indent=2)+"\n")
+print(json.dumps({"medians":{name:float(np.median([t["seconds"] for t in trials if t["method"]==name])) for name in ("sort","compare")},"exact_equal":True}))

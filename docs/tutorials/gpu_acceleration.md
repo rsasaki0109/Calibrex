@@ -1346,3 +1346,12 @@ Two additional frame pairs retained result parity. The 768-point control used
 native fallback and was slower with cold CUDA initialization; choose CPU for
 small clouds. See the [actual-frame evidence](../assets/cuda_point_to_point_icp/actual_frames/README.md)
 for all trials, holdout scores, caps and reproducible fixture commands.
+## Further ICP neighbor experiments
+
+Four further GPU/host implementations retained exact complete calibration
+results but added only 1.17–1.31x whole-process improvements over the preceding
+GPU adapter. The final CPU control was about 1.02x and the small CUDA case
+regressed. These changes were rejected and production solvers were restored.
+The [complete experiments and reproduction tool](../assets/icp_neighbor_experiments/README.md)
+retain 36 formal workers, frozen import bindings, cold/slow observations and
+the separate exploratory controls. Kernel-only gains are not whole-process gains.

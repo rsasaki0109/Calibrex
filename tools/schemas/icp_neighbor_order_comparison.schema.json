@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Provenance-bound exact ICP neighbor-order comparison",
+  "type": "object",
+  "required": ["schema_version", "kind", "provenance"],
+  "properties": {
+    "schema_version": {"const": "calibrex.icp_neighbor_order_comparison/v0.1"},
+    "kind": {"enum": ["protocol", "attempts", "summary"]},
+    "provenance": {
+      "type": "object",
+      "required": ["generator", "current", "prior_commit", "launcher_sha256", "fixture_sha256"],
+      "properties": {
+        "generator": {"const": "calibrex.icp_neighbor_order_comparison/v0.1"},
+        "current": {
+          "type": "object", "required": ["commit", "sources"],
+          "properties": {"commit": {"type": "string"}, "sources": {"type": "object"}}
+        },
+        "prior_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "launcher_sha256": {"$ref": "#/$defs/digest"},
+        "fixture_sha256": {"$ref": "#/$defs/digest"}
+      }
+    },
+    "backend": {"enum": ["native", "cuda"]},
+    "repeats": {"type": "integer", "minimum": 1},
+    "point_budget": {"type": "integer", "minimum": 0},
+    "planned_orders": {
+      "type": "array", "minItems": 1,
+      "items": {"type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true,
+                "items": {"enum": ["prior", "candidate"]}}
+    },
+    "trials": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["repeat", "variant", "order", "whole_seconds", "exit_code"],
+        "properties": {
+          "repeat": {"type": "integer", "minimum": 1},
+          "variant": {"enum": ["prior", "candidate"]},
+          "order": {"type": "array", "minItems": 2, "maxItems": 2, "uniqueItems": true,
+                    "items": {"enum": ["prior", "candidate"]}},
+          "whole_seconds": {"type": "number", "exclusiveMinimum": 0},
+          "exit_code": {"type": "integer"},
+          "measurement": {"type": "object", "required": ["seconds", "provenance", "result_sha256"]}
+        }
+      }
+    },
+    "whole_medians_s": {"$ref": "#/$defs/medians"},
+    "solver_medians_s": {"$ref": "#/$defs/medians"},
+    "whole_speedup": {"type": "number", "exclusiveMinimum": 0},
+    "solver_speedup": {"type": "number", "exclusiveMinimum": 0},
+    "full_result_equal": {"const": true}
+  },
+  "allOf": [
+    {"if": {"properties": {"kind": {"const": "protocol"}}},
+     "then": {"required": ["backend", "repeats", "point_budget", "planned_orders", "scope", "cold_policy"]}},
+    {"if": {"properties": {"kind": {"const": "attempts"}}}, "then": {"required": ["trials"]}},
+    {"if": {"properties": {"kind": {"const": "summary"}}},
+     "then": {"required": ["trials", "whole_medians_s", "solver_medians_s", "whole_speedup", "solver_speedup", "full_result_equal"],
+              "properties": {"trials": {"minItems": 2}}}}
+  ],
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "medians": {
+      "type": "object", "required": ["prior", "candidate"], "additionalProperties": false,
+      "properties": {"prior": {"type": "number", "exclusiveMinimum": 0},
+                     "candidate": {"type": "number", "exclusiveMinimum": 0}}
+    }
+  }
+}
