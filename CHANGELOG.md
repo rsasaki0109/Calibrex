@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Load CLI commands, solver exports and artifact models on demand. An 18-worker
+  comparison against the batched refiner measured complete refinement CLI time
+  of 7.758 s to 3.003 s (2.584x), with identical full results and 130 unchanged
+  schema/ledger exports. Artifact validation measured 3.830x in fresh processes.
+
 - Batch probabilistic Camera–LiDAR pose evaluation on CPU and retain invariant
   distributions per solve. Preserve complete candidate traces, acceptance and
   holdout exactly; a four-worker projected KITTI geometry control measured
