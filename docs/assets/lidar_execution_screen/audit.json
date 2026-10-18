@@ -1,0 +1,64 @@
+{
+  "schema_version": "calibrex.lidar_execution_screen_audit/v0.1",
+  "decision": "no_candidate_adopted",
+  "complete_map_workers": 4,
+  "complete_map_fits": 20,
+  "gpu_timed_registrations": 288,
+  "retained_gpu_warmups": 7,
+  "registration_bit_comparisons": 271,
+  "physical_bits_equal": true,
+  "gpu_runtime_imported": false,
+  "cohorts": {
+    "sample-parallel": {
+      "observations": 4,
+      "medians_seconds": {
+        "queries": 17.69376724999165,
+        "samples": 15.640521849971265
+      },
+      "ratios": {
+        "samples": 1.1312772949467897
+      }
+    },
+    "system-transfer": {
+      "observations": 96,
+      "medians_seconds": {
+        "prior": 0.42006864986615255,
+        "pinned": 0.40928875003010035,
+        "mapped": 0.4238600500393659
+      },
+      "ratios": {
+        "prior": 1.0,
+        "pinned": 1.0263381288522087,
+        "mapped": 0.9910550659991164
+      }
+    },
+    "normal-fusion": {
+      "observations": 96,
+      "medians_seconds": {
+        "prior": 0.39779795007780194,
+        "fused": 0.4268608000711538
+      },
+      "ratios": {
+        "prior": 1.0,
+        "fused": 0.9319149240489937
+      }
+    },
+    "certified-search": {
+      "observations": 96,
+      "medians_seconds": {
+        "prior": 0.4210619499790482,
+        "fused": 0.5109877999639139
+      },
+      "ratios": {
+        "prior": 1.0,
+        "fused": 0.8240156614478541
+      }
+    }
+  },
+  "provenance": {
+    "source_commit": "917748b10d5eff9bb077b332a018eafdb33e9fcd",
+    "source_manifest_sha256": "3cda7d5dcafcc52b964586e7f77d4208c68af0921f8aa2e00f4c2d8bc401de20",
+    "archive_index_sha256": "2339931a309226b17d6577797c8151d25cccdcd6b8ec05859d20b4f27af38c89",
+    "auditor_sha256": "311ecdd832c8aa05335fe238fb7a82081c37b3c28ebcf62efdaa1b71739ecaaa"
+  }
+}

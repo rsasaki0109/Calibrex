@@ -1,0 +1,146 @@
+"""Build a separately frozen exact-search pilot; never edit an existing cohort."""
+from pathlib import Path
+
+root = Path(__file__).resolve().parent
+text = (root / '.tmp-calibrex-pilot-fused-normal-query-v1.py').read_text(encoding='utf-8')
+text = text.replace('fuse exact tree search with the existing FP64 normal PCA',
+                    'certified FP32 candidate intervals with exact FP64 selection/fallback')
+text = text.replace('outputs/fused-normal-query-pilot-v1', 'outputs/certified-fp32-search-pilot-v1')
+start = text.index('    query = cuda._SOURCE')
+end = text.index('    variants = ', start)
+replacement = '''    from calibrex.solvers.cuda_lidar_map_adapter import _CudaTree
+
+    helpers = r\"\"\"
+__device__ float lower3(const float* a, const float* b) {
+    float d[3];
+    for(int axis=0;axis<3;++axis)
+        d[axis]=fmaxf(0.f,fmaxf(__fsub_rd(a[axis],b[3+axis]),
+                             __fsub_rd(b[axis],a[3+axis])));
+    float v=__fadd_rd(__fadd_rd(__fmul_rd(d[0],d[0]),__fmul_rd(d[1],d[1])),
+                            __fmul_rd(d[2],d[2]));
+    return __fmul_rd(v,0.999999f);
+}
+__device__ float upper3(const float* a, const float* b) {
+    float d[3];
+    for(int axis=0;axis<3;++axis)
+        d[axis]=fmaxf(__fsub_ru(a[3+axis],b[axis]),__fsub_ru(b[3+axis],a[axis]));
+    float v=__fadd_ru(__fadd_ru(__fmul_ru(d[0],d[0]),__fmul_ru(d[1],d[1])),
+                            __fmul_ru(d[2],d[2]));
+    return __fmul_ru(v,1.000001f);
+}
+\"\"\"
+    header = r\"\"\"
+extern "C" __global__ void query3(
+    const double* xyz, const double* reference, const long long* order,
+    const int* axis, const double* split, const int* child,
+    const long long* span, const double* boxes, const int n, const int m, const int k,
+    double* distance, long long* index, const float* point_bounds,
+    const float* box_bounds, const float* float_splits) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;
+    if(row>=n)return;
+    double p[3]={xyz[3*row],xyz[3*row+1],xyz[3*row+2]};
+    float interval[6],center[3];
+    for(int a=0;a<3;++a) {
+        interval[a]=__double2float_rd(p[a]);
+        interval[3+a]=__double2float_ru(p[a]);
+        center[a]=__double2float_rn(p[a]);
+    }
+    float hi[17],lo[17],discarded=1.f/0.f;
+    double best[17]; long long chosen[17];
+    for(int j=0;j<k;++j){hi[j]=1.f/0.f;lo[j]=1.f/0.f;chosen[j]=m;}
+    int stack[64],top=1;stack[0]=0;
+    while(top) {
+        int node=stack[--top];
+        if(lower3(interval,box_bounds+6*node)>hi[k-1])continue;
+        if(axis[node]<0) {
+            for(long long j=span[2*node];j<span[2*node+1];++j) {
+                long long position=order[j];
+                float low=lower3(interval,point_bounds+6*position);
+                if(low>hi[k-1])continue;
+                float high=upper3(interval,point_bounds+6*position);
+                if(high<hi[k-1] || (high==hi[k-1] && position<chosen[k-1])) {
+                    if(chosen[k-1]<m)discarded=fminf(discarded,lo[k-1]);
+                    int slot=k-1;
+                    while(slot>0 && (high<hi[slot-1] ||
+                           (high==hi[slot-1] && position<chosen[slot-1]))) {
+                        hi[slot]=hi[slot-1];lo[slot]=lo[slot-1];chosen[slot]=chosen[slot-1];--slot;
+                    }
+                    hi[slot]=high;lo[slot]=low;chosen[slot]=position;
+                } else discarded=fminf(discarded,low);
+            }
+        } else {
+            int side=center[axis[node]]<float_splits[node]?0:1;
+            stack[top++]=child[2*node+1-side];stack[top++]=child[2*node+side];
+        }
+    }
+    // Refine every selected candidate with the original FP64 distance arithmetic.
+    for(int j=0;j<k;++j) {
+        double value=1./0.;long long position=chosen[j];
+        if(position<m) {
+            double x=p[0]-reference[3*position],y=p[1]-reference[3*position+1],
+                   z=p[2]-reference[3*position+2];
+            value=x*x+y*y+z*z;
+        }
+        int slot=j;
+        while(slot>0 && (value<best[slot-1] ||
+                    (value==best[slot-1] && position<chosen[slot-1]))) {
+            best[slot]=best[slot-1];chosen[slot]=chosen[slot-1];--slot;
+        }
+        best[slot]=value;chosen[slot]=position;
+    }
+    // An unselected interval that overlaps the exact cutoff triggers the entire
+    // original search in this thread; no approximate membership is accepted.
+    if(!isfinite(discarded) || (double)discarded<=best[k-1]) {
+\"\"\"
+    native = cuda._SOURCE
+    native = native[native.index('    for(int j=0;j<k;j++){best'):native.index('    for(int j=0;j<k;j++){distance')]
+    native = native.replace('    int stack[64]; int top=1;', '    top=1;')
+    output = '    }\\n    for(int j=0;j<k;j++){distance[row*k+j]=sqrt(best[j]);index[row*k+j]=chosen[j];}\\n}\\n'
+    fused = helpers + header + native + output
+    (OUT / 'certified-query.cu.txt').write_text(fused, encoding='utf-8')
+
+    def intervals(values):
+        rounded = np.asarray(values, dtype=np.float32)
+        return np.concatenate((np.nextafter(rounded, np.float32(-np.inf)),
+                               np.nextafter(rounded, np.float32(np.inf))), axis=-1)
+
+    class Tree(_CudaTree):
+        def __init__(self, points):
+            super().__init__(points)
+            self.point_intervals = cp.asarray(intervals(self.cpu.data))
+            native_bounds = cp.asnumpy(self.arrays[-1]).reshape(-1, 2, 3)
+            self.box_intervals = cp.asarray(np.concatenate((
+                np.nextafter(native_bounds[:, 0].astype(np.float32), np.float32(-np.inf)),
+                np.nextafter(native_bounds[:, 1].astype(np.float32), np.float32(np.inf))), axis=1))
+            self.float_splits = self.arrays[2].astype(cp.float32)
+            self.kernel = cp.RawKernel(fused, 'query3', options=('--fmad=false',))
+
+        def query(self, points, k):
+            assert 1 <= k <= 17
+            distances = cp.empty((len(points), k), dtype=cp.float64)
+            indexes = cp.empty((len(points), k), dtype=cp.int64)
+            if len(points):
+                self.kernel(((len(points)+127)//128,), (128,), (
+                    points, self.data, *self.arrays, np.int32(len(points)),
+                    np.int32(len(self.data)), np.int32(k), distances, indexes,
+                    self.point_intervals, self.box_intervals, self.float_splits))
+                self.query_calls += 1
+                self.query_rows += len(points)
+            return distances, indexes
+
+    class Fused(cuda.CudaOdometryTarget):
+        def __init__(self, target, options):
+            cuda._validate_options(options)
+            self._host = cuda._coordinates(cuda._quantize_geometry(target, options.geometry_quantum_m),
+                                            'odometry target')
+            self._initialize_target(Tree(self.host), options,
+                                    max(1., float(np.max(np.abs(self.host)))), cuda.execution_identity())
+
+'''
+text = text[:start] + replacement + text[end:]
+text = text.replace('sha(OUT / "fused-normal-query.cu.txt")', 'sha(OUT / "certified-query.cu.txt")')
+path = root / '.tmp-calibrex-pilot-certified-fp32-search-v1.py'
+if path.exists():
+    raise SystemExit('Refusing to replace existing pilot.')
+path.write_text(text, encoding='utf-8')
+print('Created immutable certified FP32 search pilot.')

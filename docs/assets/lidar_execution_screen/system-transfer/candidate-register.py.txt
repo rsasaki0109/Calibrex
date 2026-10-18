@@ -1,0 +1,178 @@
+def _register_captured(
+    self,
+    source: _CapturedSource,
+    initial: FloatArray,
+) -> ScanRegistration:
+    """Use validated source coordinates with lazy host repair access.
+
+    Native entry points validate before creating this capture. A device
+    pipeline must supply finite FP64 coordinates on this target's device.
+    """
+    if source.points is not None and source.points.device.id != self.device_id:
+        raise ValueError("captured source is on a different CUDA device")
+    if self.tree.data.nbytes * 8 + source.nbytes * 12 > 1024**3:
+        raise ValueError("CUDA odometry inputs exceed the 1 GiB payload budget")
+    transform = np.array(initial, dtype=np.float64, copy=True)
+    if transform.shape != (4, 4) or not np.isfinite(transform).all():
+        raise ValueError("CUDA initial odometry poses require finite 4x4 matrices")
+    opts = self.options
+    count, iteration, last_count = 0, 0, 0
+    converged, rmse = False, math.inf
+    last_hessian: FloatArray | None = None
+    uncertain_stopping = False
+    scale = max(self.scale, source.maximum())
+    with cp.cuda.Device(self.device_id):
+        self._finish_normal_preparation()
+        points = source.device()
+        self._reserve_queries(len(points))
+        # Dense overlap amortizes one batched normal query/eigensolve.
+        # Sparse sources request only their hits to avoid preparing a large,
+        # mostly unused target. This changes work scheduling, not geometry.
+        if len(points) >= self.point_count / 10:
+            self._ensure_all()
+        terms = cp.empty((31, len(points)), dtype=cp.float64)
+        uncertain = cp.empty(len(points), dtype=cp.float64)
+        moved = cp.empty_like(points)
+        distances = cp.empty((len(points), 2), dtype=cp.float64)
+        indexes = cp.empty((len(points), 2), dtype=cp.int64)
+        pending = cp.empty(len(points), dtype=cp.int64)
+        for iteration in range(1, opts.max_iterations + 1):  # noqa: B007
+            matrix = cp.asarray(transform)
+            error = (
+                128
+                * np.finfo(np.float64).eps
+                * scale
+                * max(
+                    1.0,
+                    float(np.linalg.norm(transform, ord=1)),
+                )
+            )
+            if len(points):
+                self.fused_kernel(
+                    ((len(points) + 127) // 128,),
+                    (128,),
+                    (
+                        points,
+                        matrix,
+                        self.tree.data,
+                        *self.tree.arrays,
+                        self._normals,
+                        self._planar,
+                        self.done,
+                        np.int32(len(points)),
+                        np.int32(self.point_count),
+                        np.float64(opts.max_correspondence_m),
+                        np.float64(opts.huber_delta_m),
+                        np.float64(error),
+                        uncertain,
+                        terms,
+                        moved,
+                        distances,
+                        indexes,
+                        pending,
+                    ),
+                )
+                self.tree.query_calls += 1
+                self.tree.query_rows += len(points)
+                self.fused_calls += 1
+            totals = self._transfer.reduce(terms)
+            refresh = False
+            if totals[29]:
+                rows = cp.asnumpy(cp.flatnonzero(uncertain))
+                # Recompute after rare native gate/tie repairs. Ordinary
+                # iterations synchronize only for the reduced system.
+                moved = points @ matrix[:3, :3].T + matrix[:3, 3]
+                distances, indexes = self.tree.query(moved, 2)
+                native_moved = source.native_rows(rows) @ transform[:3, :3].T + transform[:3, 3]
+                distance, index = self.tree.cpu.query(
+                    native_moved,
+                    k=1,
+                    distance_upper_bound=opts.max_correspondence_m,
+                )
+                positions = cp.asarray(rows)
+                distances[positions, 0] = cp.asarray(distance)
+                indexes[positions, 0] = cp.asarray(index)
+                moved[positions] = cp.asarray(native_moved)
+                self.query_repairs += len(rows)
+                valid_hits = indexes[:, 0][
+                    (distances[:, 0] < opts.max_correspondence_m)
+                    & (indexes[:, 0] < self.point_count)
+                ]
+                self._ensure(valid_hits)
+                refresh = True
+            elif totals[30]:
+                # The fused query has already captured the exact moved
+                # coordinates and matches. Compute only newly hit normals,
+                # then refresh the system without repeating spatial queries.
+                self._ensure(pending[pending >= 0])
+                refresh = True
+            if refresh:
+                self.system_kernel(
+                    ((len(points) + 127) // 128,),
+                    (128,),
+                    (
+                        moved,
+                        self.tree.data,
+                        self._normals,
+                        self._planar,
+                        distances,
+                        indexes,
+                        np.int32(len(points)),
+                        np.int32(self.point_count),
+                        np.float64(opts.max_correspondence_m),
+                        np.float64(opts.huber_delta_m),
+                        terms,
+                    ),
+                )
+                totals = self._transfer.reduce(terms[:29])
+                self.system_refresh_calls += 1
+            count = int(totals[28])
+            if count < opts.min_correspondences:
+                break
+            upper = np.triu_indices(6)
+            hessian = np.zeros((6, 6))
+            hessian[upper] = totals[:21]
+            hessian[(upper[1], upper[0])] = totals[:21]
+            gradient = totals[21:27]
+            rmse = math.sqrt(float(totals[27]) / count)
+            try:
+                delta = -np.linalg.solve(hessian, gradient)
+            except np.linalg.LinAlgError:
+                break
+            last_hessian, last_count = hessian, count
+            for norm, tolerance in (
+                (_norm3(delta[3:]), opts.convergence_translation_m),
+                (_norm3(delta[:3]), opts.convergence_rotation_rad),
+            ):
+                uncertain_stopping |= abs(norm - tolerance) <= 1e-3 * tolerance
+            transform = _exp_se3(delta) @ transform
+            if (
+                _norm3(delta[3:]) < opts.convergence_translation_m
+                and _norm3(delta[:3]) < opts.convergence_rotation_rad
+            ):
+                converged = True
+                break
+    near_motion_boundary = self._near_motion_boundary(transform)
+    if uncertain_stopping or near_motion_boundary:
+        native = register_point_to_plane(
+            source.native(),
+            self.host,
+            initial,
+            opts,
+            target_tree=self.tree.cpu,
+        )
+        self.registration_repairs += 1
+        self.motion_repairs += int(near_motion_boundary)
+        return replace(native, execution_backend=self.identity)
+    eigenvalue = (
+        0.0 if last_hessian is None else float(np.linalg.eigvalsh(last_hessian)[0]) / last_count
+    )
+    return ScanRegistration(
+        _canonicalize_motion(transform, opts),
+        converged and count >= opts.min_correspondences,
+        iteration,
+        count,
+        rmse,
+        eigenvalue,
+        execution_backend=self.identity,
+    )

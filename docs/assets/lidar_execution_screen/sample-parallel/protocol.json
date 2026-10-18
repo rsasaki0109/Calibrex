@@ -1,0 +1,22 @@
+{
+  "scope": "Spent public KITTI screen: parallel sample work with ordered native reduction.",
+  "source_commit": "917748b10d5eff9bb077b332a018eafdb33e9fcd",
+  "source_manifest_sha256": "3cda7d5dcafcc52b964586e7f77d4208c68af0921f8aa2e00f4c2d8bc401de20",
+  "launcher_sha256": "ce079651dcc339b2b5493e123e8cb2b030ade0c0318b032ed009673d6f4ff4da",
+  "query_budget": 8,
+  "blas_threads": 1,
+  "order": [
+    [
+      "queries",
+      "samples"
+    ],
+    [
+      "samples",
+      "queries"
+    ]
+  ],
+  "limitations": [
+    "Two exploratory rotated pairs; unreserved host; CPU only.",
+    "Map evaluation, not bag/odometry; copied-sensor control, not independent accuracy."
+  ]
+}

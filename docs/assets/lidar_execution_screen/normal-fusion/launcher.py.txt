@@ -1,0 +1,155 @@
+"""Spent public GLIM: fuse exact tree search with the existing FP64 normal PCA."""
+import os
+from pathlib import Path
+ROOT = Path(__file__).resolve().parent
+OUT = ROOT / "outputs/fused-normal-query-pilot-v1"
+for key in ("OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "OMP_NUM_THREADS"):
+    os.environ[key] = "1"
+os.environ["CUPY_CACHE_DIR"] = str(OUT / "cupy-cache")
+os.environ["CUDA_CACHE_DISABLE"] = "1"
+os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+
+from dataclasses import asdict
+import hashlib
+import json
+import re
+import shutil
+import statistics
+import sys
+import time
+
+SOURCE = ROOT / "outputs/cpu-map-bag-comparison-v1/source-current"
+FIXTURES = ROOT / "outputs/odometry-search-profile-v3"
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def write(path, value):
+    path.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+
+
+def main():
+    OUT.mkdir(exist_ok=False)
+    shutil.copyfile(Path(__file__), OUT / "launcher.py.txt")
+    from tools.benchmark_bspline_lidar_imu import _verify_sources
+    expected = _verify_sources(SOURCE)
+    sys.path.insert(0, str(SOURCE / "src"))
+    import cupy as cp
+    import numpy as np
+    from calibrex.solvers import cuda_scan_odometry_adapter as cuda
+    from calibrex.solvers.scan_to_scan_odometry import ScanOdometryOptions
+
+    query = cuda._SOURCE
+    query = query[query.index("    double p[3]"):query.index("    for(int j=0;j<k;j++){distance")]
+    for name, replacement in (("k", "kk"), ("p", "query_point"), ("best", "query_best"),
+                              ("chosen", "query_chosen"), ("reference", "points")):
+        query = re.sub(r"\b" + name + r"\b", replacement, query)
+    query = query.replace("{xyz[3*row], xyz[3*row+1], xyz[3*row+2]}",
+                          "{points[3*rows[row]], points[3*rows[row]+1], points[3*rows[row]+2]}")
+    query = "    int kk=k+1;\n" + query
+    header = '''extern "C" __global__ void normals3(
+    const double* points, const long long* order, const int* axis,
+    const double* split, const int* child, const long long* span, const double* boxes,
+    const long long* rows, const int n, const int m, const int k, const double ratio,
+    double* normal, bool* planar, bool* done, unsigned char* repair) {'''
+    code = cuda._NORMAL_SOURCE
+    code = code[code.index('extern "C"'):]
+    body = code[code.index("\n    int row="):]
+    body = body.replace("    const double eps=", query + "    const double eps=", 1)
+    body = body.replace("indices[row*(k+1)+j]", "query_chosen[j]")
+    body = body.replace("distances[row*(k+1)+k-1]", "sqrt(query_best[k-1])")
+    body = body.replace("distances[row*(k+1)+k]", "sqrt(query_best[k])")
+    fused = header + body
+    assert "xyz[" not in fused and "indices[" not in fused and "distances[" not in fused
+    (OUT / "fused-normal-query.cu.txt").write_text(fused, encoding="utf-8")
+
+    class Fused(cuda.CudaOdometryTarget):
+        def __init__(self, target, options):
+            super().__init__(target, options)
+            self.normal_kernel = cp.RawKernel(fused, "normals3", options=("--fmad=false",))
+
+        def _launch_normals(self, rows, queries, k):
+            self.normal_rows += len(rows)
+            flags = cp.empty(len(rows), dtype=cp.uint8)
+            self.normal_kernel(((len(rows) + 127) // 128,), (128,), (
+                self.tree.data, *self.tree.arrays, rows, np.int32(len(rows)),
+                np.int32(self.point_count), np.int32(k),
+                np.float64(self.options.max_planarity_ratio), self._normals,
+                self._planar, self.done, flags))
+            self.tree.query_calls += 1
+            self.tree.query_rows += len(rows)
+            self.normal_kernel_calls += 1
+            return flags, cp.empty(0, dtype=cp.float64), cp.empty(0, dtype=cp.int64)
+
+    variants = {"prior": cuda.CudaOdometryTarget, "fused": Fused}
+    cases = []
+    for number in range(8):
+        path = FIXTURES / f"registration-{number:02d}.npz"
+        metadata = json.loads(path.with_suffix(".json").read_bytes())
+        assert sha(path) == metadata["fixture_sha256"]
+        cases.append((np.load(path), ScanOdometryOptions(**metadata["options"])))
+    protocol = {
+        "scope": __doc__, "launcher_sha256": sha(Path(__file__)),
+        "source_commit": "917748b10d5eff9bb077b332a018eafdb33e9fcd",
+        "source_manifest_sha256": sha(SOURCE / "manifest.json"),
+        "candidate_kernel_sha256": sha(OUT / "fused-normal-query.cu.txt"),
+        "fixtures_sha256": {p.name: sha(p) for p in sorted(FIXTURES.glob("registration-*.*"))},
+        "blas_threads": 1, "cuda_cache_initially_empty": not (OUT / "cupy-cache").exists(),
+        "limitations": ["Six alternating warm component repeats after one retained warmup case per arm.",
+                        "Target construction and registration; not complete bag/calibration.",
+                        "CPU/GPU unreserved; no accuracy or SOTA claim.",
+                        "Experimental kernel separately source-bound; ordinary runtime identity is not a fused-kernel identity."],
+    }
+    write(OUT / "protocol.json", protocol)
+    runs, references, warmups = [], {}, []
+
+    def execute(variant, case, repeat):
+        fixture, options = cases[case]
+        started = time.perf_counter()
+        target = variants[variant](fixture["target"], options)
+        captured = time.perf_counter()
+        result = target.register(fixture["source"], fixture["initial"])
+        elapsed = time.perf_counter() - started
+        values = asdict(result)
+        values["transform"] = values["transform"].tolist()
+        if case in references:
+            previous = references[case]
+            assert np.array_equal(np.asarray(previous["transform"]).view(np.uint64),
+                                  np.asarray(values["transform"]).view(np.uint64)), (variant, case, "pose")
+            assert {k: v for k, v in previous.items() if k != "transform"} == {
+                k: v for k, v in values.items() if k != "transform"}, (variant, case, "quality")
+        else:
+            references[case] = values
+        return {"variant": variant, "case": case, "repeat": repeat, "seconds": elapsed,
+                "target_seconds": captured - started, "registration_seconds": elapsed - (captured - started),
+                "result": values, "statistics": target.statistics()}
+
+    for variant in variants:
+        warmups.append(execute(variant, 0, -1))
+        write(OUT / "warmups.json", warmups)
+    names = tuple(variants)
+    for repeat in range(6):
+        for variant in names[repeat % 2:] + names[:repeat % 2]:
+            for case in range(8):
+                runs.append(execute(variant, case, repeat))
+                write(OUT / "runs.json", runs)
+            print(json.dumps({"repeat": repeat, "variant": variant,
+                              "seconds": sum(r["seconds"] for r in runs
+                                             if r["repeat"] == repeat and r["variant"] == variant)}), flush=True)
+    _verify_sources(SOURCE)
+    for name, module in list(sys.modules.items()):
+        if name == "calibrex" or name.startswith("calibrex."):
+            path = Path(module.__file__).resolve()
+            assert path.is_relative_to(SOURCE / "src")
+            assert sha(path) == expected[path.relative_to(SOURCE / "src").as_posix()]
+    medians = {variant: statistics.median(sum(r["seconds"] for r in runs
+                                            if r["variant"] == variant and r["repeat"] == repeat)
+                                         for repeat in range(6)) for variant in names}
+    summary = {"observations": len(runs), "all_registration_float_bits_equal": True,
+               "medians_seconds": medians, "ratio": medians["prior"] / medians["fused"],
+               "protocol_sha256": sha(OUT / "protocol.json"), "runs_sha256": sha(OUT / "runs.json")}
+    write(OUT / "summary.json", summary)
+    print(json.dumps(summary), flush=True)
+
+
+if __name__ == "__main__":
+    main()

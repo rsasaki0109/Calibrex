@@ -1,0 +1,160 @@
+"""Spent public GLIM: reuse tiny system buffers and test mapped host reductions."""
+import os
+from pathlib import Path
+ROOT = Path(__file__).resolve().parent
+OUT = ROOT / "outputs/system-transfer-pilot-v1"
+for key in ("OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "OMP_NUM_THREADS"):
+    os.environ[key] = "1"
+os.environ["CUPY_CACHE_DIR"] = str(OUT / "cupy-cache")
+os.environ["CUDA_CACHE_DISABLE"] = "1"
+os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+
+from dataclasses import asdict
+import hashlib
+import inspect
+import json
+import shutil
+import statistics
+import sys
+import textwrap
+import time
+
+SOURCE = ROOT / "outputs/cpu-map-bag-comparison-v1/source-current"
+FIXTURES = ROOT / "outputs/odometry-search-profile-v3"
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+def write(path, value):
+    path.write_text(json.dumps(value, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+
+
+def main():
+    OUT.mkdir(exist_ok=False)
+    shutil.copyfile(Path(__file__), OUT / "launcher.py.txt")
+    from tools.benchmark_bspline_lidar_imu import _verify_sources
+    expected = _verify_sources(SOURCE)
+    sys.path.insert(0, str(SOURCE / "src"))
+    import cupy as cp
+    import numpy as np
+    from calibrex.solvers import cuda_scan_odometry_adapter as cuda
+    from calibrex.solvers.scan_to_scan_odometry import ScanOdometryOptions
+
+    class Transfer:
+        def __init__(self, mapped):
+            self.pinned = cp.cuda.alloc_pinned_memory(31 * 8)
+            self.host = np.frombuffer(self.pinned, dtype=np.float64, count=31)
+            self.ready = cp.cuda.Event()
+            self.mapped = mapped
+            if mapped:
+                pointer = cp.cuda.runtime.pointerGetAttributes(self.pinned.ptr).devicePointer
+                if not pointer:
+                    raise RuntimeError("pinned memory is not device-addressable")
+                memory = cp.cuda.UnownedMemory(pointer, 31 * 8, self.pinned,
+                                               device_id=cp.cuda.runtime.getDevice())
+                self.device = cp.ndarray((31,), dtype=cp.float64,
+                                         memptr=cp.cuda.MemoryPointer(memory, 0))
+            else:
+                self.device = cp.empty(31, dtype=cp.float64)
+
+        def reduce(self, terms):
+            count = len(terms)
+            cp.sum(terms, axis=1, out=self.device[:count])
+            if not self.mapped:
+                self.device[:count].get(out=self.host[:count], blocking=False)
+            self.ready.record()
+            self.ready.synchronize()
+            return self.host[:count].copy()
+
+    function = textwrap.dedent(inspect.getsource(cuda.CudaOdometryTarget._register_captured))
+    function = function.replace("totals = _host(cp.sum(terms, axis=1))",
+                                "totals = self._transfer.reduce(terms)")
+    function = function.replace("totals = _host(cp.sum(terms[:29], axis=1))",
+                                "totals = self._transfer.reduce(terms[:29])")
+    assert "_host(cp.sum" not in function
+    (OUT / "candidate-register.py.txt").write_text(function, encoding="utf-8")
+    namespace = dict(vars(cuda))
+    exec(compile(function, "candidate-register.py.txt", "exec"), namespace)
+
+    class Pinned(cuda.CudaOdometryTarget):
+        _register_captured = namespace["_register_captured"]
+        mapped = False
+
+        def __init__(self, target, options):
+            super().__init__(target, options)
+            self._transfer = Transfer(self.mapped)
+
+    class Mapped(Pinned):
+        mapped = True
+
+    variants = {"prior": cuda.CudaOdometryTarget, "pinned": Pinned, "mapped": Mapped}
+    cases = []
+    for number in range(8):
+        path = FIXTURES / f"registration-{number:02d}.npz"
+        metadata = json.loads(path.with_suffix(".json").read_bytes())
+        assert sha(path) == metadata["fixture_sha256"]
+        cases.append((np.load(path), ScanOdometryOptions(**metadata["options"])))
+    protocol = {
+        "scope": __doc__, "launcher_sha256": sha(Path(__file__)),
+        "source_commit": "917748b10d5eff9bb077b332a018eafdb33e9fcd",
+        "source_manifest_sha256": sha(SOURCE / "manifest.json"),
+        "candidate_register_sha256": sha(OUT / "candidate-register.py.txt"),
+        "fixtures_sha256": {p.name: sha(p) for p in sorted(FIXTURES.glob("registration-*.*"))},
+        "blas_threads": 1, "cuda_cache_initially_empty": not (OUT / "cupy-cache").exists(),
+        "limitations": ["Four cyclic warm component repeats after one retained warmup case per arm.",
+                        "Target construction and registration; not complete bag/calibration.",
+                        "CPU/GPU unreserved; no accuracy or SOTA claim."],
+    }
+    write(OUT / "protocol.json", protocol)
+    runs, references, warmups = [], {}, []
+
+    def execute(variant, case, repeat):
+        fixture, options = cases[case]
+        started = time.perf_counter()
+        target = variants[variant](fixture["target"], options)
+        captured = time.perf_counter()
+        result = target.register(fixture["source"], fixture["initial"])
+        elapsed = time.perf_counter() - started
+        values = asdict(result)
+        values["transform"] = values["transform"].tolist()
+        if case in references:
+            previous = references[case]
+            assert np.array_equal(np.asarray(previous["transform"]).view(np.uint64),
+                                  np.asarray(values["transform"]).view(np.uint64)), (variant, case, "pose")
+            assert {k: v for k, v in previous.items() if k != "transform"} == {
+                k: v for k, v in values.items() if k != "transform"}, (variant, case, "quality")
+        else:
+            references[case] = values
+        return {"variant": variant, "case": case, "repeat": repeat, "seconds": elapsed,
+                "target_seconds": captured - started, "registration_seconds": elapsed - (captured - started),
+                "result": values, "statistics": target.statistics()}
+
+    for variant in variants:
+        warmups.append(execute(variant, 0, -1))
+        write(OUT / "warmups.json", warmups)
+    names = tuple(variants)
+    for repeat in range(4):
+        for variant in names[repeat % 3:] + names[:repeat % 3]:
+            for case in range(8):
+                runs.append(execute(variant, case, repeat))
+                write(OUT / "runs.json", runs)
+            print(json.dumps({"repeat": repeat, "variant": variant,
+                              "seconds": sum(r["seconds"] for r in runs
+                                             if r["repeat"] == repeat and r["variant"] == variant)}), flush=True)
+    _verify_sources(SOURCE)
+    for name, module in list(sys.modules.items()):
+        if name == "calibrex" or name.startswith("calibrex."):
+            path = Path(module.__file__).resolve()
+            assert path.is_relative_to(SOURCE / "src")
+            assert sha(path) == expected[path.relative_to(SOURCE / "src").as_posix()]
+    medians = {variant: statistics.median(sum(r["seconds"] for r in runs
+                                            if r["variant"] == variant and r["repeat"] == repeat)
+                                         for repeat in range(4)) for variant in names}
+    summary = {"observations": len(runs), "all_registration_float_bits_equal": True,
+               "medians_seconds": medians, "ratios": {v: medians["prior"] / medians[v] for v in names},
+               "protocol_sha256": sha(OUT / "protocol.json"), "runs_sha256": sha(OUT / "runs.json")}
+    write(OUT / "summary.json", summary)
+    print(json.dumps(summary), flush=True)
+
+
+if __name__ == "__main__":
+    main()

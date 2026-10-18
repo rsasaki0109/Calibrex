@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Rejected LiDAR execution screens",
+  "type": "object",
+  "required": ["schema_version", "decision", "complete_map_workers", "complete_map_fits", "gpu_timed_registrations", "retained_gpu_warmups", "registration_bit_comparisons", "physical_bits_equal", "gpu_runtime_imported", "cohorts", "provenance"],
+  "properties": {
+    "schema_version": {"const": "calibrex.lidar_execution_screen_audit/v0.1"},
+    "decision": {"const": "no_candidate_adopted"},
+    "complete_map_workers": {"const": 4},
+    "complete_map_fits": {"const": 20},
+    "gpu_timed_registrations": {"const": 288},
+    "retained_gpu_warmups": {"const": 7},
+    "registration_bit_comparisons": {"const": 271},
+    "physical_bits_equal": {"const": true},
+    "gpu_runtime_imported": {"const": false},
+    "cohorts": {
+      "type": "object",
+      "required": ["sample-parallel", "system-transfer", "normal-fusion", "certified-search"],
+      "properties": {
+        "sample-parallel": {"$ref": "#/$defs/cohort"},
+        "system-transfer": {"$ref": "#/$defs/cohort"},
+        "normal-fusion": {"$ref": "#/$defs/cohort"},
+        "certified-search": {"$ref": "#/$defs/cohort"}
+      },
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["source_commit", "source_manifest_sha256", "archive_index_sha256", "auditor_sha256"],
+      "properties": {
+        "source_commit": {"const": "917748b10d5eff9bb077b332a018eafdb33e9fcd"},
+        "source_manifest_sha256": {"$ref": "#/$defs/digest"},
+        "archive_index_sha256": {"$ref": "#/$defs/digest"},
+        "auditor_sha256": {"$ref": "#/$defs/digest"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "timings": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "number", "exclusiveMinimum": 0}},
+    "cohort": {
+      "type": "object", "required": ["observations", "medians_seconds", "ratios"],
+      "properties": {
+        "observations": {"enum": [4, 96]},
+        "medians_seconds": {"$ref": "#/$defs/timings"},
+        "ratios": {"$ref": "#/$defs/timings"}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

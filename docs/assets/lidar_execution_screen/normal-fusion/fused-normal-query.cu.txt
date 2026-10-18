@@ -1,0 +1,105 @@
+extern "C" __global__ void normals3(
+    const double* points, const long long* order, const int* axis,
+    const double* split, const int* child, const long long* span, const double* boxes,
+    const long long* rows, const int n, const int m, const int k, const double ratio,
+    double* normal, bool* planar, bool* done, unsigned char* repair) {
+    int row=blockDim.x*blockIdx.x+threadIdx.x;
+    if(row>=n) return;
+    int kk=k+1;
+    double query_point[3] = {points[3*rows[row]], points[3*rows[row]+1], points[3*rows[row]+2]};
+    double query_best[17]; long long query_chosen[17];
+    for(int j=0;j<kk;j++){query_best[j]=1.0/0.0;query_chosen[j]=m;}
+    int stack[64]; int top=1;
+    stack[0]=0;
+    while(top){
+        --top; int node=stack[top];
+        double d[3];
+        for(int a=0;a<3;a++)
+            d[a]=fmax(0.0,fmax(boxes[6*node+a]-query_point[a],query_point[a]-boxes[6*node+3+a]));
+        // Retain equal and roundoff-close boxes; candidate distance arithmetic is unchanged.
+        double lower=(d[0]*d[0]+d[1]*d[1]+d[2]*d[2])*(1.0-16.0*2.2204460492503131e-16);
+        if(lower > query_best[kk-1]) continue;
+        if(axis[node]<0){
+            for(long long j=span[2*node];j<span[2*node+1];j++){
+                long long position=order[j];
+                double x=query_point[0]-points[3*position];
+                double y=query_point[1]-points[3*position+1];
+                double z=query_point[2]-points[3*position+2];
+                double d=x*x+y*y+z*z;
+                if(d<query_best[kk-1] || (d==query_best[kk-1] && position<query_chosen[kk-1])){
+                    int slot=kk-1;
+                    while(slot>0 && (d<query_best[slot-1] ||
+                         (d==query_best[slot-1] && position<query_chosen[slot-1]))){
+                        query_best[slot]=query_best[slot-1];query_chosen[slot]=query_chosen[slot-1];--slot;
+                    }
+                    query_best[slot]=d;query_chosen[slot]=position;
+                }
+            }
+        }else{
+            double delta=query_point[axis[node]]-split[node];
+            int side=delta<0?0:1;
+            int far=child[2*node+1-side], near=child[2*node+side];
+            if(delta*delta <= query_best[kk-1]){
+                stack[top]=far;++top;
+            }
+            stack[top]=near;++top;
+        }
+    }
+    const double eps=2.2204460492503131e-16;
+    double mean[3]={0,0,0},c[9]={0,0,0,0,0,0,0,0,0};
+    for(int j=0;j<k;j++) for(int a=0;a<3;a++)
+        mean[a]+=points[3*query_chosen[j]+a];
+    for(int a=0;a<3;a++) mean[a]/=k;
+    for(int j=0;j<k;j++) {
+        double d[3];
+        for(int a=0;a<3;a++) d[a]=points[3*query_chosen[j]+a]-mean[a];
+        for(int a=0;a<3;a++) for(int b=0;b<3;b++) c[3*a+b]+=d[a]*d[b];
+    }
+    for(int a=0;a<9;a++) c[a]/=k;
+    double scale=fmax(fmax(fabs(c[0]),fabs(c[4])),fabs(c[8]));
+    bool bad=!(scale>0) || !isfinite(scale);
+    double unit=fmax(scale,2.2250738585072014e-308);
+    for(int a=0;a<9;a++) c[a]/=unit;
+    double trace=c[0]+c[4]+c[8],q=trace/3;
+    double x=c[0]-q,y=c[4]-q,z=c[8]-q;
+    double p=sqrt((x*x+y*y+z*z+2*(c[1]*c[1]+c[2]*c[2]+c[5]*c[5]))/6);
+    bad|=!(p>64*eps);
+    double inv=1/fmax(p,2.2250738585072014e-308);
+    double b0=x*inv,b1=y*inv,b2=z*inv;
+    double b3=c[1]*inv,b4=c[2]*inv,b5=c[5]*inv;
+    double determinant=b0*b1*b2+2*b3*b4*b5-b0*b5*b5-b1*b4*b4-b2*b3*b3;
+    double phi=acos(fmax(-1.0,fmin(1.0,determinant/2)))/3;
+    double low=q+2*p*cos(phi+2.0943951023931954923);
+    double high=q+2*p*cos(phi),mid=trace-low-high;
+    double a[9];for(int j=0;j<9;j++) a[j]=c[j];
+    a[0]-=low;a[4]-=low;a[8]-=low;
+    double best=-1,v[3]={0,0,0};
+    for(int i=0;i<3;i++) {
+        int j=(i+1)%3;
+        double w[3]={a[3*i+1]*a[3*j+2]-a[3*i+2]*a[3*j+1],
+                     a[3*i+2]*a[3*j]-a[3*i]*a[3*j+2],
+                     a[3*i]*a[3*j+1]-a[3*i+1]*a[3*j]};
+        double norm=w[0]*w[0]+w[1]*w[1]+w[2]*w[2];
+        if(norm>best) {best=norm;for(int u=0;u<3;u++) v[u]=w[u];}
+    }
+    bad|=!(best>0) || !isfinite(best);
+    double length=sqrt(fmax(best,2.2250738585072014e-308));
+    for(int u=0;u<3;u++) v[u]/=length;
+    double residual=0;
+    for(int i=0;i<3;i++) {
+        double r=c[3*i]*v[0]+c[3*i+1]*v[1]+c[3*i+2]*v[2]-low*v[i];
+        residual+=r*r;
+    }
+    double floor=1e-12/unit,spectral=fmax(fabs(high),2.2250738585072014e-308);
+    double threshold=ratio*fmax(mid,floor);
+    // Cover closed-form root error near repeated upper eigenvalues.
+    bad|=mid-low<=1e-4*spectral || fabs(low-threshold)<=2e-8*spectral;
+    bad|=!isfinite(residual) || sqrt(residual)>64*eps*spectral;
+    bool tied=sqrt(query_best[k])-sqrt(query_best[k-1])
+              <=64*eps*fmax(1.0,sqrt(query_best[k]));
+    long long target=rows[row];
+    for(int u=0;u<3;u++) normal[3*target+u]=v[u];
+    planar[target]=low<=threshold;
+    done[target]=true;
+    repair[row]=(bad||tied)?1:0;
+}

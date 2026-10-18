@@ -1,5 +1,8 @@
 # CPU map changes through complete bag calibration
 
+Five later scheduling/search prototypes were [screened and rejected](lidar_execution_screen.md).
+The measurements below retain their original runtime and scope.
+
 The reached-normal cache and eight CPU query workers improve complete fresh
 bag workers by **1.249x at 0.2 m map voxels** and **1.687x at 0.03 m map voxels**
 on this public execution control. All six paired eight-worker processes are
