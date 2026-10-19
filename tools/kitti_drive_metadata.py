@@ -3,8 +3,8 @@
 
 An evaluation harness, not part of the Calibrex package. For every drive it reads the
 archive's size and S3 ETag with an HTTP HEAD request, fetches only the zip's end of
-central directory and central directory with HTTP range requests, writes them into a
-sparse local skeleton, and lists it with ``zipfile``. No image, point cloud or OXTS
+central directory and central directory with HTTP range requests, and presents only
+those bytes to ``zipfile`` through a seekable view. No image, point cloud or OXTS
 record is downloaded or decoded. It reports the number of frames per stream, which is
 how the evaluation drives of the KITTI camera-lidar pre-registration are chosen before
 any estimator reads them::
@@ -16,12 +16,12 @@ any estimator reads them::
 from __future__ import annotations
 
 import json
-import struct
 import subprocess
 import sys
-import tempfile
-import zipfile
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from tools.kitti_zip_metadata import read_central_directory
 
 S3 = "https://s3.eu-central-1.amazonaws.com/avg-kitti/raw_data"
 DATE = "2011_09_26"
@@ -51,27 +51,8 @@ def metadata(drive: str, date: str = DATE) -> dict[str, object]:
     name = f"{date}_drive_{drive}"
     url = f"{S3}/{name}/{name}_sync.zip"
     size, etag = head(url)
-    tail_length = min(size, 1 << 16)
-    tail = fetch(url, size - tail_length, size - 1)
-    eocd = tail.rfind(b"PK\x05\x06")
-    if eocd < 0:
-        raise SystemExit(f"{drive}: no end of central directory in the last {tail_length} bytes")
-    directory_size, directory_offset = struct.unpack_from("<II", tail, eocd + 12)
-    zip64 = directory_offset == 0xFFFFFFFF or directory_size == 0xFFFFFFFF
-    if zip64:  # the zip64 end of central directory record holds the real values
-        locator = tail.rfind(b"PK\x06\x07", 0, eocd)
-        record_offset = struct.unpack_from("<Q", tail, locator + 8)[0]
-        record = fetch(url, record_offset, record_offset + 55)
-        directory_size, directory_offset = struct.unpack_from("<QQ", record, 40)
-    directory = fetch(url, directory_offset, directory_offset + directory_size - 1)
-    with tempfile.TemporaryDirectory() as scratch:
-        skeleton = Path(scratch) / "skeleton.zip"
-        with skeleton.open("wb") as stream:  # sparse: only the directory and the tail
-            stream.seek(directory_offset)
-            stream.write(directory)
-            stream.seek(size - tail_length)
-            stream.write(tail)
-        names = zipfile.ZipFile(skeleton).namelist()
+    infos = read_central_directory(size, lambda lo, hi: fetch(url, lo, hi))
+    names = [info.filename for info in infos]
     counts = {
         stream: sum(1 for item in names if f"/{stream}/data/" in item and not item.endswith("/"))
         for stream in STREAMS

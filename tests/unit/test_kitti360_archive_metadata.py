@@ -60,17 +60,28 @@ class Response:
 class SparseArchive:
     """A large synthetic ZIP whose non-metadata region is never served."""
 
-    def __init__(self, path: Path, central_start: int) -> None:
-        self.path, self.central_start = path, central_start
+    def __init__(self, data: bytes, base: int, central_start: int) -> None:
+        self.data, self.base, self.central_start = data, base, central_start
 
     def __len__(self) -> int:
-        return self.path.stat().st_size
+        return self.base + len(self.data)
 
     def __getitem__(self, region: slice) -> bytes:
         assert self.central_start <= region.start <= region.stop <= len(self)
-        with self.path.open("rb") as stream:
-            stream.seek(region.start)
-            return stream.read(region.stop - region.start)
+        return self.data[region.start - self.base : region.stop - self.base]
+
+
+class OffsetBytesIO(io.BytesIO):
+    """Let zipfile write genuine large offsets without a disk or memory hole."""
+
+    base = (1 << 32) + 17
+
+    def tell(self) -> int:
+        return self.base + super().tell()
+
+    def seek(self, offset: int, whence: int = io.SEEK_SET) -> int:
+        local_offset = offset - self.base if whence == io.SEEK_SET else offset
+        return self.base + super().seek(local_offset, whence)
 
 
 class HTTP:
@@ -246,20 +257,20 @@ def test_empty_zip_needs_only_the_end_record(monkeypatch: pytest.MonkeyPatch) ->
 
 
 def test_real_zip64_offsets_above_four_gibibytes(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    path = tmp_path / "large-synthetic.zip"
-    with path.open("w+b") as stream:
-        stream.seek((1 << 32) + 17)
+    with OffsetBytesIO() as stream:
         with zipfile.ZipFile(stream, "w") as output:
             output.writestr(MEMBER, b"synthetic payload")
-    with zipfile.ZipFile(path) as reference:
-        central_start = reference.start_dir
-        (info,) = reference.infolist()
-    http = HTTP(SparseArchive(path, central_start))
+        data = stream.getvalue()
+        with zipfile.ZipFile(stream) as reference:
+            central_start = reference.start_dir
+            (info,) = reference.infolist()
+    assert len(data) < 4096
+    http = HTTP(SparseArchive(data, OffsetBytesIO.base, central_start))
     monkeypatch.setattr(metadata, "urlopen", http)
     report = metadata.inventory(URL)
-    assert report["size_bytes"] == path.stat().st_size > (1 << 32)
+    assert report["size_bytes"] == OffsetBytesIO.base + len(data) > (1 << 32)
     assert report["members"][0]["local_header_offset"] == info.header_offset > (1 << 32)
     assert len(http.requests) == 5
 

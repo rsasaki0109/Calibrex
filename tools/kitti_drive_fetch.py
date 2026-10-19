@@ -29,13 +29,15 @@ import json
 import struct
 import subprocess
 import sys
-import tempfile
 import time
 import zipfile
 import zlib
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from tools.kitti_zip_metadata import read_central_directory
 
 S3 = "https://s3.eu-central-1.amazonaws.com/avg-kitti/raw_data"
 FRAME_STREAMS = ("image_02", "velodyne_points", "oxts")
@@ -89,29 +91,7 @@ def fetch_range(url: str, start: int, end: int, etag: str) -> bytes:
 def central_directory(url: str, size: int, etag: str) -> list[zipfile.ZipInfo]:
     """The archive's members, read from its central directory only."""
 
-    tail_length = min(size, 1 << 16)
-    tail = fetch_range(url, size - tail_length, size - 1, etag)
-    eocd = tail.rfind(b"PK\x05\x06")
-    if eocd < 0:
-        raise ValueError("no end of central directory")
-    directory_size, directory_offset = struct.unpack_from("<II", tail, eocd + 12)
-    if directory_offset == 0xFFFFFFFF or directory_size == 0xFFFFFFFF:
-        locator = tail.rfind(b"PK\x06\x07", 0, eocd)
-        if locator < 0:
-            raise ValueError("no zip64 end of central directory locator")
-        record_offset = struct.unpack_from("<Q", tail, locator + 8)[0]
-        record = fetch_range(url, record_offset, record_offset + 55, etag)
-        directory_size, directory_offset = struct.unpack_from("<QQ", record, 40)
-    directory = fetch_range(url, directory_offset, directory_offset + directory_size - 1, etag)
-    with tempfile.TemporaryDirectory() as scratch:
-        skeleton = Path(scratch) / "skeleton.zip"
-        with skeleton.open("wb") as stream:  # sparse: only the directory and the tail
-            stream.seek(directory_offset)
-            stream.write(directory)
-            stream.seek(size - tail_length)
-            stream.write(tail)
-        infos = zipfile.ZipFile(skeleton).infolist()
-    return sorted(infos, key=lambda info: info.header_offset)
+    return read_central_directory(size, lambda start, end: fetch_range(url, start, end, etag))
 
 
 def frame_index(name: str) -> int | None:
