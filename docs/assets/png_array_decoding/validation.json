@@ -1,0 +1,57 @@
+{
+  "scope": "PNG array API and publication verification",
+  "checks": [
+    {
+      "command": "pytest test_png_luminance test_levinson_online_preparation test_levinson_thrun_online_solver test_lazy_runtime_loading",
+      "result": "70 passed"
+    },
+    {
+      "command": "pytest integration/test_a2d2_levinson_thrun_online -k not_cuda plus CPU/PNG archive tests",
+      "result": "15 passed; 1 deselected"
+    },
+    {
+      "command": "pytest test_png_array_benchmark plus test_png_luminance_benchmark",
+      "result": "12 passed before timeout-log cases were added"
+    },
+    {
+      "command": "pytest test_png_array_benchmark",
+      "result": "7 passed including CPU-only replay, four tamper cases and two launch-failure cases"
+    },
+    {
+      "command": "pytest integration/test_a2d2_levinson_thrun_online -k array_loading",
+      "result": "1 passed; complete normalized result JSON identical, signed zeros preserved"
+    },
+    {
+      "command": "uvx --offline --isolated --with-requirements tools/typecheck-requirements.txt mypy --platform linux src/calibrex",
+      "result": "Success: 401 source files"
+    },
+    {
+      "command": "uvx --offline --isolated --with-requirements tools/typecheck-requirements.txt mypy --platform win32 src/calibrex",
+      "result": "Success: 401 source files"
+    },
+    {
+      "command": [
+        "python",
+        "-m",
+        "pytest",
+        "tests/unit/test_png_array_benchmark.py",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp",
+        "outputs/png-array-publication-tests-v1"
+      ],
+      "result": "9 passed, including both published cohorts and complete inventory validation"
+    }
+  ],
+  "non_gate_precheck": {
+    "command": ".venv python -m mypy -p calibrex",
+    "mypy_version": "2.1.0",
+    "result": "106 errors in 35 files; installed runtime environment is not the repository strict typing gate",
+    "replacement": "Both isolated pinned mypy 2.3.1 platform checks passed"
+  },
+  "provenance": {
+    "numerical_source_commit": "87fbc7d9211ec4b865d55b64c3d6f8d90eefc08a",
+    "source_manifest_sha256": "3c89ef132a95bf48b7fada6b50a4885a4a262f09a3147c2907f6177e6ff49306"
+  },
+  "validation_policy": "Checks were run at incremental development stages. Counts are not pooled. The numerical source manifest is identical throughout; final CI validates the complete PR."
+}

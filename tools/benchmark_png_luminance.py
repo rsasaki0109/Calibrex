@@ -72,14 +72,19 @@ def worker(protocol_path: Path, variant: str, case: str, folder: Path) -> None:
     if variant == "current":
         from calibrex.data import pillow_png_adapter
 
-        original = pillow_png_adapter._decode_luminance_rows
+        decoder_name = (
+            "_decode_luminance_array"
+            if hasattr(pillow_png_adapter, "_decode_luminance_array")
+            else "_decode_luminance_rows"
+        )
+        original = getattr(pillow_png_adapter, decoder_name)
 
         def observed(*args):
             result = original(*args)
             work["compiled_decodes" if result is not None else "fallback_decodes"] += 1
             return result
 
-        pillow_png_adapter._decode_luminance_rows = observed
+        setattr(pillow_png_adapter, decoder_name, observed)
     if case == "pixels":
         import numpy as np
 

@@ -1,0 +1,83 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "scope",
+    "observations",
+    "images_per_worker",
+    "pixels_per_worker",
+    "decode_medians_seconds",
+    "whole_worker_medians_seconds",
+    "decode_ratio",
+    "whole_worker_ratio",
+    "all_float64_pixels_equal",
+    "provenance"
+  ],
+  "properties": {
+    "scope": {
+      "type": "string"
+    },
+    "observations": {
+      "type": "integer",
+      "minimum": 4
+    },
+    "images_per_worker": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "pixels_per_worker": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "decode_medians_seconds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rows",
+        "array"
+      ],
+      "properties": {
+        "rows": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "array": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "whole_worker_medians_seconds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rows",
+        "array"
+      ],
+      "properties": {
+        "rows": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "array": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "decode_ratio": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "whole_worker_ratio": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "all_float64_pixels_equal": {
+      "const": true
+    },
+    "provenance": {
+      "type": "object"
+    }
+  }
+}

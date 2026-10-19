@@ -18,7 +18,7 @@ from calibrex.core.provenance import sha256_path
 from calibrex.core.result import MetricResult, ObservabilityResult
 from calibrex.data.a2d2 import read_a2d2_lidar_boundary_points
 from calibrex.data.inspect import DatasetInspection
-from calibrex.data.kitti import read_png_luminance
+from calibrex.data.kitti import read_png_luminance_array
 from calibrex.solvers.base import SolverAdapter, SolverAdapterResult
 from calibrex.solvers.levinson_online_preparation import (
     LevinsonOnlineImage,
@@ -210,10 +210,9 @@ def _load_a2d2_frames(
     workers = _int_option(options, "preparation_workers", 1)
 
     def load(frame_id: str) -> LevinsonOnlineImage:
-        decoded = read_png_luminance(images[frame_id])
-        if decoded is None:
+        luminance = read_png_luminance_array(images[frame_id])
+        if luminance is None:
             raise ValueError(f"unsupported A2D2 PNG: {images[frame_id]}")
-        luminance = np.asarray(decoded.rows, dtype=float)
         reduced = _block_mean(luminance, downsample)
         points = read_a2d2_lidar_boundary_points(clouds[frame_id], max_points=max_points)
         return LevinsonOnlineImage(

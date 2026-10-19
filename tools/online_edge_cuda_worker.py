@@ -26,7 +26,7 @@ import numpy as np
 from tools.benchmark_bspline_lidar_imu import _verify_sources
 
 from calibrex.core.geometry import SE3, quaternion_xyzw_from_rotation_matrix
-from calibrex.data.kitti import read_calibration_file, read_png_luminance
+from calibrex.data.kitti import read_calibration_file, read_png_luminance_array
 from calibrex.evaluation.camera_lidar_edge import lidar_depth_edges
 from calibrex.solvers import levinson_thrun_online_solver as online
 from calibrex.solvers.levinson_online_preparation import (
@@ -122,10 +122,10 @@ def main() -> None:
     count_lock = Lock()
 
     def load(index: int) -> LevinsonOnlineImage:
-        decoded = read_png_luminance(folder / f"image_02/data/{index:010d}.png")
+        decoded = read_png_luminance_array(folder / f"image_02/data/{index:010d}.png")
         if decoded is None:
             raise ValueError("unsupported PNG")
-        image = _block_mean(np.asarray(decoded.rows, dtype=float), 4)
+        image = _block_mean(decoded, 4)
         points, weights, rings, fraction = lidar_depth_edges(
             np.fromfile(folder / f"velodyne_points/data/{index:010d}.bin", dtype="<f4").reshape(
                 -1, 4
