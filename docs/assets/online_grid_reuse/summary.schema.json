@@ -1,0 +1,144 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "medians_seconds",
+    "ratios",
+    "passes_solve_gate",
+    "observations",
+    "complete_quality_bits_equal",
+    "prepared_bits_equal",
+    "quality_sha256",
+    "provenance"
+  ],
+  "properties": {
+    "medians_seconds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "baseline",
+        "candidate"
+      ],
+      "properties": {
+        "baseline": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "solve",
+            "median_update",
+            "first_update",
+            "all_updates",
+            "whole_worker"
+          ],
+          "properties": {
+            "solve": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "median_update": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "first_update": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "all_updates": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "whole_worker": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "candidate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "solve",
+            "median_update",
+            "first_update",
+            "all_updates",
+            "whole_worker"
+          ],
+          "properties": {
+            "solve": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "median_update": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "first_update": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "all_updates": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "whole_worker": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        }
+      }
+    },
+    "ratios": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "solve",
+        "median_update",
+        "first_update",
+        "all_updates",
+        "whole_worker"
+      ],
+      "properties": {
+        "solve": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "median_update": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "first_update": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "all_updates": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "whole_worker": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "passes_solve_gate": {
+      "type": "boolean"
+    },
+    "observations": {
+      "const": 6
+    },
+    "complete_quality_bits_equal": {
+      "const": true
+    },
+    "prepared_bits_equal": {
+      "const": true
+    },
+    "quality_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "provenance": {
+      "type": "object"
+    }
+  }
+}

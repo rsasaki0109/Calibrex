@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+import threading
 from dataclasses import replace
 
 import numpy as np
@@ -192,3 +193,126 @@ def test_compilation_or_execution_failure_is_not_silently_retried(monkeypatch):
     monkeypatch.setattr(adapter, "_image_response", fail)
     with pytest.raises(RuntimeError, match="execution probe"):
         online.levinson_edge_response(np.ones((8, 8)), evaluation_backend="numba")
+
+
+def _poses():
+    pose = _transform(0.01, -0.03, 0.02, 0.07, -0.05, 0.08)
+    center = np.asarray(online._parameters_from_transform(pose))
+    return [
+        candidate
+        for offset, candidate in online._candidate_grid(center, np.asarray([0.01] * 6), pose)
+        if offset != (0, 0, 0, 0, 0, 0)
+    ]
+
+
+def _assert_raw_scores_native(runtime, frames, poses):
+    snapshots = [
+        [
+            array.copy()
+            for array in (frame.lidar_points, frame.discontinuity_weights, frame.edge_response)
+        ]
+        for frame in frames
+    ]
+    center = online.evaluate_levinson_objective(frames, SE3.identity())
+    expected = [online.evaluate_levinson_objective(frames, pose).raw_objective for pose in poses]
+    actual = runtime.raw_scores(frames, poses, center)
+    np.testing.assert_array_equal(
+        np.asarray(actual).view(np.uint64), np.asarray(expected).view(np.uint64)
+    )
+    for frame, arrays in zip(frames, snapshots, strict=True):
+        for actual, snapshot in zip(
+            (frame.lidar_points, frame.discontinuity_weights, frame.edge_response),
+            arrays,
+            strict=True,
+        ):
+            np.testing.assert_array_equal(actual.view(np.uint64), snapshot.view(np.uint64))
+    execution = runtime.execution()
+    assert execution.grid_calls == 1
+    assert execution.grid_pose_evaluations == len(poses)
+    assert execution.objective_evaluations == len(poses)
+    assert execution.point_rows == len(poses) * sum(len(frame.lidar_points) for frame in frames)
+    native = sum(frame.camera.projection != "pinhole" for frame in frames) * len(poses)
+    assert execution.native_frame_pose_evaluations == native
+    assert execution.numba_frame_pose_evaluations == len(poses) * len(frames) - native
+    assert set(vars(runtime)) == {"_counts"}
+
+
+@pytest.mark.parametrize("axes", ["optical_z", "forward_x_left_y_up_z"])
+@pytest.mark.parametrize(
+    "kind", ["strided", "fortran", "reversed", "column_stride", "empty", "tiny", "zero", "fisheye"]
+)
+def test_batched_grid_preserves_all_candidate_bits_support_layouts_and_counts(kind, axes):
+    _assert_raw_scores_native(
+        adapter.NumbaOnlineEdgeRuntime(), [_frame(kind, axes)], _poses()[::-1]
+    )
+
+
+def test_mixed_frame_order_and_repeated_poses_stay_native():
+    frames = [
+        _frame("tiny", "optical_z"),
+        _frame("fisheye", "forward_x_left_y_up_z"),
+        _frame("strided", "optical_z"),
+        _frame("empty", "optical_z"),
+    ]
+    poses = _poses()
+    _assert_raw_scores_native(adapter.NumbaOnlineEdgeRuntime(), frames, poses + poses[:1])
+
+
+def test_grid_shares_27_rotations_and_bounds_each_parallel_chunk(monkeypatch):
+    original = adapter._interpolate
+    calls = []
+    lock = threading.Lock()
+
+    def capture(rotated, indices, *args):
+        with lock:
+            calls.append((rotated.shape, len(indices), args[-1]))
+        return original(rotated, indices, *args)
+
+    monkeypatch.setattr(adapter, "_interpolate", capture)
+    monkeypatch.setattr(adapter.os, "cpu_count", lambda: 2)
+    _assert_raw_scores_native(
+        adapter.NumbaOnlineEdgeRuntime(), [_frame("strided", "optical_z")], _poses()
+    )
+    assert len(calls) == 12
+    assert {shape for shape, _, _ in calls} == {(27, 129, 3)}
+    assert all(size <= 64 and translation for _, size, translation in calls)
+    assert sum(size for _, size, _ in calls) == 728
+    assert not any(
+        thread.name.startswith("calibrex-online-grid") for thread in threading.enumerate()
+    )
+
+
+@pytest.mark.parametrize("reason", ["memory", "small", "large", "unique", "empty"])
+def test_grid_falls_back_before_allocating_batch_buffers(monkeypatch, reason):
+    def fail(*args):
+        raise AssertionError("batch allocation must not run")
+
+    poses = _poses()
+    if reason == "memory":
+        monkeypatch.setattr(adapter, "_GRID_BUFFER_BYTES", 0)
+    elif reason == "small":
+        poses = poses[:63]
+    elif reason == "large":
+        poses += poses[:2]
+    elif reason == "unique":
+        poses = [_transform(0, 0, 0, 0, 0, index * 0.001) for index in range(64)]
+    else:
+        poses = []
+    monkeypatch.setattr(adapter, "_raw_chunk", fail)
+    _assert_raw_scores_native(
+        adapter.NumbaOnlineEdgeRuntime(), [_frame("strided", "optical_z")], poses
+    )
+
+
+def test_parallel_grid_failure_propagates_and_releases_its_workers(monkeypatch):
+    def fail(*args):
+        raise RuntimeError("parallel grid execution probe")
+
+    monkeypatch.setattr(adapter, "_raw_chunk", fail)
+    frames = [_frame("strided", "optical_z")]
+    center = online.evaluate_levinson_objective(frames, SE3.identity())
+    with pytest.raises(RuntimeError, match="parallel grid execution probe"):
+        adapter.NumbaOnlineEdgeRuntime().raw_scores(frames, _poses(), center)
+    assert not any(
+        thread.name.startswith("calibrex-online-grid") for thread in threading.enumerate()
+    )

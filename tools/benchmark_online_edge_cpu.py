@@ -119,6 +119,25 @@ def kernel_digests(source: Path) -> dict[str, str]:
     return values
 
 
+def runtime_prefix(source: Path) -> str:
+    """Read the recorded runtime identity from either maintained source version."""
+    tree = ast.parse(
+        (source / "src/calibrex/solvers/numba_online_edge_adapter.py").read_text(encoding="utf-8")
+    )
+    prefixes = [
+        value.values[0].value
+        for value in ast.walk(tree)
+        if isinstance(value, ast.JoinedStr)
+        and isinstance(value.values[0], ast.Constant)
+        and isinstance(value.values[0].value, str)
+        and value.values[0].value.startswith("calibrex.numba_online_edge/")
+        and value.values[0].value.endswith(";numba=")
+    ]
+    if len(prefixes) != 1:
+        raise ValueError("frozen CPU runtime identity missing or ambiguous")
+    return str(prefixes[0])
+
+
 def _check_lineage(value: dict, protocol: dict, folder: Path, variant: str) -> None:
     expected = {
         "source_commit": protocol["source_commit"],
@@ -240,7 +259,7 @@ def audit(folder: Path, *, verify_git: bool = False) -> dict:
                 raise ValueError("compiled CPU image kernel differs")
             software = measured["software"]
             if execution["runtime"] != (
-                f"calibrex.numba_online_edge/v0.1;numba={software['numba']};numpy={software['numpy']}"
+                f"{runtime_prefix(folder / 'source')}{software['numba']};numpy={software['numpy']}"
             ):
                 raise ValueError("compiled CPU software lineage differs")
         elif execution is not None or measured["image_kernel_sha256"] is not None:
