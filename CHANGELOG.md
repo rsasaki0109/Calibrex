@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Add a typed PNG luminance array reader that avoids Python pixel tuples for
+  array consumers, preserving the existing rows API and validation. Connect it
+  to online A2D2 preparation and KITTI workers. On 48 public KITTI images, the
+  complete PNG-to-array read stage measured 2.855 s to 0.769 s (3.713x), with
+  all 21,773,760 float64 samples unchanged. Retain separate pilot/formal
+  evidence, a CPU-only auditor and full public-calibration parity tests.
+
 - Add an opt-in Numba CPU path for online camera–LiDAR projection and image
   spilloff. Preserve ordered transforms, reductions, tracking, holdout and
   curvature without global patches. Use separable image neighborhoods and

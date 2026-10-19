@@ -142,3 +142,20 @@ def test_failed_launches_still_produce_an_observation_and_logs(
     assert execute_worker(["worker"], {}, tmp_path) == code
     assert (tmp_path / "stdout.txt").is_file()
     assert (tmp_path / "stderr.txt").is_file()
+
+
+@pytest.mark.parametrize("cohort", ["formal", "pilot"])
+def test_published_cohorts_replay_with_the_complete_archive_inventory(cohort: str) -> None:
+    root = Path(__file__).resolve().parents[2] / "docs/assets/png_array_decoding"
+    index = json.loads((root / "inventory.json").read_bytes())
+    files = {
+        p.relative_to(root).as_posix(): sha(p)
+        for p in root.rglob("*")
+        if p.is_file() and p.name != "inventory.json"
+    }
+    assert files == index["files_sha256"]
+    result = audit(root / cohort)
+    assert result["observations"] == 6
+    assert result["images_per_worker"] == 48
+    assert result["pixels_per_worker"] == 21_773_760
+    assert result["all_float64_pixels_equal"]

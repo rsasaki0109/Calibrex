@@ -186,7 +186,10 @@ def audit(output: Path) -> dict:
             entries[member.name] = hashlib.sha256(stream.read()).hexdigest()
         if entries != manifest:
             raise ValueError("source capsule inventory differs")
-    if sha(output / "launcher.py") != protocol["launcher_sha256"]:
+    launcher = output / "launcher.py"
+    if not launcher.exists():
+        launcher = output / "launcher.py.txt"
+    if sha(launcher) != protocol["launcher_sha256"]:
         raise ValueError("launcher changed")
     attempts = read(output / "attempts.json")
     if attempts["provenance"]["protocol_sha256"] != sha(output / "protocol.json"):

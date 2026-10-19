@@ -58,6 +58,7 @@ manifests, input/config hashes, pixel digests and the frozen launcher/schema.
 Each capsule's commit is injected into source metadata because extracted source
 trees have no Git directory; this does not change a numerical operation.
 
+
 This is execution and numerical-parity evidence. A2D2's camera-view point clouds
 are already registered, and the two-frame online example uses `w=1`; the public
 example's inconclusive accuracy and deployment status remain unchanged. These
@@ -92,3 +93,48 @@ python -m tools.benchmark_png_luminance --audit docs/assets/png_luminance_decodi
 Run reproduction from the measured candidate revision recorded in the archive's
 protocol. Auditing the retained evidence requires the ordinary CPU dependencies,
 without Pillow, the external data or a GPU.
+
+## Array consumers
+
+`calibrex.data.read_png_luminance_array(path)` returns caller-owned,
+C-contiguous float64 luminance with shape `(height, width)`. It shares the
+existing PNG validation and optional Pillow decoder. Array consumers avoid
+creating Python pixel tuples and converting them back into arrays. The
+immutable `read_png_luminance` API is preserved, including its native fallback.
+The online A2D2 loader and KITTI online benchmark now use the array API.
+
+A separate comparison uses all **48 already-spent public KITTI images** from
+`2011_09_30_drive_0018_sync`, with three ordered read workers per arm. Both
+controls already use Pillow. All **21,773,760** decoded float64 samples match
+bit for bit in every worker. Three alternating pairs of fresh processes give:
+
+| Scope | Rows followed by array conversion | Direct array reader | Ratio |
+| --- | ---: | ---: | ---: |
+| Complete PNG-to-array read stage | 2.854628 s | 0.768915 s | 3.713x |
+| Measurement process including startup and verification | 4.791209 s | 2.460095 s | 1.948x |
+
+The read stage includes file reads, shared PNG validation, lazy Pillow import,
+parallel decoding and the required representation conversion. Parent timing
+also includes source/input verification, pixel hashing and saving evidence.
+Input verification warms the operating system file cache. The host is
+unreserved. These scopes exclude calibration and are reported separately from
+the earlier full CLI comparison below; the ratios must not be multiplied.
+
+The source is frozen at `87fbc7d9` and all 401 source modules are bound by a
+manifest and source capsule. An earlier six-worker pilot overlapped validation
+tests; its original evidence and context are retained separately and are not
+pooled with the formal six workers. The [array-reader evidence](../assets/png_array_decoding/README.md)
+includes both cohorts without images or scans. A public A2D2 regression compares
+the complete calibration result against the rows control, normalizing only
+run/source metadata and output paths; all serialized numerical values match.
+
+```bash
+python -m tools.benchmark_png_array \
+  --fixture outputs/levinson-online-screen-v1/fixture-48 \
+  --output-dir outputs/png-array-comparison --workers 3 --repetitions 3
+python -m tools.benchmark_png_array --audit docs/assets/png_array_decoding/formal
+```
+
+Reproduction requires the existing fixture and the optional `images` extra.
+The CPU-only evidence audit reads source bytes without executing the archived
+launcher or source capsule and needs neither the inputs nor Pillow.
