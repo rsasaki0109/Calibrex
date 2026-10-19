@@ -77,3 +77,30 @@ Raw input files are read in place, with no download or dataset copy. A run needs
 It freezes one source tree shared by the workers. CPU-only audits validate
 schemas, hashes, full work and results without importing optional accelerators
 or executing archived Python.
+
+## Maintained CPU backend measurement
+
+Six fresh workers from committed source
+`bb90e12f2fa2b811a10ad92dfe222aaffef7831f` measured:
+
+| Implementation | Whole-worker median |
+| --- | ---: |
+| Production NumPy, three preparation workers | 51.174 s |
+| Compiled benchmark control, three preparation workers | 23.452 s |
+| Production Numba, three preparation workers | 23.724 s |
+
+The maintained CPU path is **2.157x against production NumPy** and **0.989x
+against the compiled benchmark control**, reaching that control's performance
+level through the maintained Python and A2D2 APIs. All prepared-frame bits and
+all six complete quality payloads match. Native default serialization is
+unchanged. The six observations come from an unreserved host, with two per
+implementation, and establish no portable latency guarantee.
+
+The [indexed archives](../assets/online_edge_cpu/README.md) retain all six
+workers, full results/configs, source and tool snapshots, schemas, receipt and
+logs. The first image-JIT cohort remains separate: its 55.588 s NumPy, 26.107 s
+compiled-control and 26.036 s production medians yielded 2.135x and 1.003x.
+These cohorts are neither pooled nor multiplied. The selected runtime avoids
+image JIT compilation and shares per-objective pose preparation; the measurements
+support maintained CPU-backend adoption at the compiled control's performance
+level.

@@ -6,7 +6,9 @@
   spilloff. Preserve ordered transforms, reductions, tracking, holdout and
   curvature without global patches. Use separable image neighborhoods and
   support ordered preparation workers. Add a cold-worker comparison that
-  reuses existing KITTI inputs and bounds evidence storage.
+  reuses existing KITTI inputs and bounds evidence storage. The maintained CPU
+  path measured 51.174 s to 23.724 s (2.157x) against production NumPy, with
+  complete parity, matching the existing compiled benchmark control's level.
 
 - Add opt-in CUDA image spilloff and guarded rolling-grid evaluation for the
   Levinson–Thrun camera–LiDAR tracker. Retain native ambiguous comparisons,
