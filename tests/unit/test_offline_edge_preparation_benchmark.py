@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import math
+import tarfile
+from pathlib import Path
 
 import pytest
 from tools import benchmark_offline_edge_preparation as bench
@@ -155,3 +159,36 @@ def test_missing_attempts_source_and_saved_summary_are_rejected(cohort, change):
         bench.write(cohort / "summary.json", summary)
     with pytest.raises(ValueError):
         bench.audit(cohort)
+
+
+def test_published_archive_replays_both_cohorts_and_rejects_quality_changes(tmp_path):
+    folder = Path(__file__).resolve().parents[2] / "docs/assets/offline_edge_preparation"
+    inventory = bench.base.read(folder / "inventory.json")
+    path = folder / "complete-evidence.tar.gz"
+    assert bench.base.sha(path) == inventory["archive"]["sha256"]
+    with tarfile.open(path, "r:gz") as archive:
+        index_data = archive.extractfile("index.json").read()
+        assert hashlib.sha256(index_data).hexdigest() == inventory["index_sha256"]
+        index = json.loads(index_data)
+        assert len(index["files"]) == inventory["indexed_files"]
+        assert len(archive.getmembers()) == len(index["files"]) + 1
+        assert set(archive.getnames()) == set(index["files"]) | {"index.json"}
+        for name, metadata in index["files"].items():
+            member = archive.getmember(name)
+            assert member.isfile()
+            data = archive.extractfile(member).read()
+            assert len(data) == metadata["bytes"]
+            assert hashlib.sha256(data).hexdigest() == metadata["sha256"]
+        archive.extractall(tmp_path, filter="data")
+    formal = bench.audit(tmp_path / "formal")
+    initial = bench.audit(tmp_path / "initial")
+    assert formal == bench.base.read(folder / "summary.json")
+    assert initial["ratios"] == inventory["cohorts"]["initial"]["ratios"]
+    worker = "01-parallel"
+    result_path = tmp_path / "formal" / worker / "result.json"
+    value = bench.base.read(result_path)
+    value["objective"]["estimate"] = math.nextafter(value["objective"]["estimate"], math.inf)
+    bench.write(result_path, value)
+    _rebind(tmp_path / "formal", worker)
+    with pytest.raises(ValueError, match="quality"):
+        bench.audit(tmp_path / "formal")
