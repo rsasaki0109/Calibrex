@@ -101,6 +101,7 @@ def audit_archive(path: Path, temporary_root: Path, *, bind_commit: str | None =
             ):
                 raise ValueError("later Git content differs from measured bytes")
             result["provenance"]["post_run_git_content_binding"] = commit
+            result["provenance"]["git_content_normalization"] = "utf-8-universal-newlines"
         result["provenance"].update(
             archive_sha256=benchmark.sha(path),
             index_sha256=benchmark.sha(folder / "index.json"),

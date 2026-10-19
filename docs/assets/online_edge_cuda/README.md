@@ -22,9 +22,14 @@ separately. Earlier development screens are not pooled with this cohort.
 This is a **working-copy source snapshot**, with `source_commit: null` and
 base revision `cdd95486a0540a91c3d1378e1f8e2ef6b38a2b97`. All 400
 package modules and seven benchmark tool/schema files are frozen by content.
-The record makes no committed-source or SOTA claim. A later Git content
-binding can verify these original bytes without rewriting the original
-lineage or measurements.
+The record makes no committed-source or SOTA claim. The
+[post-run Git content binding](git-content-binding.json) verifies the frozen
+package and toolchain against commit
+`4406195f9dd2e6e86a746eeac733b82364c8c90a`, without rewriting the original
+lineage or measurements. The later benchmark export correction is not part of
+the measured toolchain.
+Bindings compare UTF-8 text after universal-newline normalization, matching
+the source snapshot and Python's source parsing. Binary content is unchanged.
 
 ```bash
 python tools/audit_online_edge_cuda_archive.py \
@@ -37,6 +42,9 @@ Python or import CuPy/Calibrex. It rejects unsafe paths, duplicate files,
 unindexed content and external schema references. With `--bind-commit REF`, it
 also checks every package module and benchmark tool against that later Git
 revision; the output labels this as a post-run content binding.
+
+To reproduce the saved binding, add
+`--bind-commit 4406195f9dd2e6e86a746eeac733b82364c8c90a` to the audit command.
 
 Reproduction uses the benchmark driver described in
 [the execution guide](../../benchmarks/online_edge_cuda.md). The input is the

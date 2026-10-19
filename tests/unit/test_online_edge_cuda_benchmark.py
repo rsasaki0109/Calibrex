@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import copy
 import importlib.util
+import io
 import json
+import tarfile
 from dataclasses import fields
 from pathlib import Path
 
@@ -17,6 +19,24 @@ from calibrex.core.geometry import SE3
 from calibrex.solvers import levinson_thrun_online_solver as online
 
 SCHEMAS = Path(__file__).resolve().parents[2] / "tools/schemas"
+
+
+def test_git_archive_normalizes_text_and_preserves_binary(monkeypatch):
+    payload = io.BytesIO()
+    with tarfile.open(fileobj=payload, mode="w") as archive:
+        for name, data in {
+            "src/calibrex/example.py": b"s = '\\r\\n'\r\n",
+            "src/calibrex/example.json": b"{\r\n}\r\n",
+            "src/calibrex/example.bin": b"\x00\r\n",
+        }.items():
+            info = tarfile.TarInfo(name)
+            info.size = len(data)
+            archive.addfile(info, io.BytesIO(data))
+    monkeypatch.setattr(bench.subprocess, "check_output", lambda *args: payload.getvalue())
+    value = bench._git_files("test", ("src/calibrex",))
+    assert value["src/calibrex/example.py"] == b"s = '\\r\\n'\n"
+    assert value["src/calibrex/example.json"] == b"{\n}\n"
+    assert value["src/calibrex/example.bin"] == b"\x00\r\n"
 
 
 def _artifact():

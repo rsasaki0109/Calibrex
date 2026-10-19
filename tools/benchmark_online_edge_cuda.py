@@ -69,7 +69,10 @@ def _git_files(commit: str, paths: tuple[str, ...]) -> dict[str, bytes]:
             if member.isfile():
                 content = archive.extractfile(member)
                 assert content is not None
-                files[member.name] = content.read()
+                data = content.read()
+                if member.name.endswith((".py", ".json")):
+                    data = data.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n").encode()
+                files[member.name] = data
         return files
 
 
@@ -322,12 +325,11 @@ def run(args: argparse.Namespace) -> dict:
         ):
             raise ValueError("commit benchmark tools before measuring")
     _freeze(folder / "source", commit)
-    if args.working_copy:
-        for path in (folder / "source/src").rglob("*.py"):
-            path.write_bytes(path.read_text(encoding="utf-8").encode())
-        (folder / "source/manifest.json").write_text(
-            json.dumps(_manifest(folder / "source/src"), indent=2) + "\n", encoding="utf-8"
-        )
+    for path in (folder / "source/src").rglob("*.py"):
+        path.write_bytes(path.read_text(encoding="utf-8").encode())
+    (folder / "source/manifest.json").write_text(
+        json.dumps(_manifest(folder / "source/src"), indent=2) + "\n", encoding="utf-8"
+    )
     for name, data in frozen.items():
         target = folder / "toolchain" / name
         target.parent.mkdir(parents=True, exist_ok=True)
