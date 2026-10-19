@@ -1,4 +1,4 @@
-"""Cold-process public API contracts frozen from commit 08452aa1."""
+"""Cold-process contracts from 08452aa1 plus explicitly declared API additions."""
 
 from __future__ import annotations
 
@@ -41,6 +41,7 @@ EXPORTS = {
         "KITTIRawDataset": "calibrex.data.kitti",
         "LuminanceImage": "calibrex.data.kitti",
         "read_png_luminance": "calibrex.data.kitti",
+        "read_png_luminance_array": "calibrex.data.kitti",
         "KITTI_RAW_0005_BENCHMARK_FRAME_IDS": "calibrex.data.kitti_benchmark",
         "KITTIBenchmarkInputManifest": "calibrex.data.kitti_benchmark",
         "build_kitti_raw_0005_benchmark_input": "calibrex.data.kitti_benchmark",
