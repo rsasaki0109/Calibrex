@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 
 from calibrex.data import kitti
-from calibrex.data.pillow_png_adapter import _decode_luminance_rows
+from calibrex.data.pillow_png_adapter import _decode_luminance_array, _decode_luminance_rows
 
 
 def _chunk(kind: bytes, payload: bytes) -> bytes:
@@ -94,6 +94,11 @@ def test_compiled_png_matches_native_for_every_color_and_filter(
     native = kitti._decode_png_luminance(_png(17, 11, channels, compressed))
     assert native is not None
     assert _decode_luminance_rows(compressed, raw, 17, 11, channels) == native.rows
+    array = _decode_luminance_array(compressed, raw, 17, 11, channels)
+    assert array is not None
+    assert array.dtype == np.float64
+    assert array.flags.c_contiguous
+    np.testing.assert_array_equal(array.view(np.uint64), np.asarray(native.rows).view(np.uint64))
     # Include invisible alpha and byte overflow: no integer luminance rounding.
     first = pixels[0, 0].tolist()
     expected = (
@@ -226,3 +231,49 @@ def test_original_crc_and_trailing_stream_acceptance_stay_native() -> None:
     native = kitti._unfilter_png_luminance(raw, 1, 4, 3)
     assert native is not None
     assert _decode_luminance_rows(compressed, raw, 1, 4, 3) == native.rows
+
+
+@pytest.mark.parametrize("compiled", [False, True])
+def test_array_reader_preserves_pixels_and_caller_ownership(
+    tmp_path: Path,
+    large_png: tuple[bytes, kitti.LuminanceImage],
+    compiled: bool,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from calibrex.data import read_png_luminance_array
+
+    png, expected = large_png
+    if not compiled:
+        monkeypatch.setattr(
+            "calibrex.data.pillow_png_adapter._decode_luminance_array", lambda *_args: None
+        )
+    path = tmp_path / "camera.png"
+    path.write_bytes(png)
+    actual = read_png_luminance_array(path)
+    assert actual is not None
+    assert actual.shape == (expected.height, expected.width)
+    assert actual.dtype == np.float64
+    assert actual.flags.c_contiguous and actual.flags.writeable
+    native = np.asarray(expected.rows)
+    np.testing.assert_array_equal(actual.view(np.uint64), native.view(np.uint64))
+    actual[:] = -1.0
+    second = read_png_luminance_array(path)
+    assert second is not None
+    np.testing.assert_array_equal(second.view(np.uint64), native.view(np.uint64))
+    assert kitti.read_png_luminance(path) == expected
+
+
+@pytest.mark.parametrize("invalid", ["missing", "header", "filter", "short", "zlib", "depth"])
+def test_array_reader_has_the_same_rejection_boundary(tmp_path: Path, invalid: str) -> None:
+    path = tmp_path / "invalid.png"
+    if invalid != "missing":
+        raw = (b"\0" + bytes(256 * 3)) * 256
+        if invalid == "filter":
+            raw = b"\5" + raw[1:]
+        elif invalid == "short":
+            raw = raw[:-1]
+        compressed = b"invalid" if invalid == "zlib" else zlib.compress(raw)
+        payload = _png(256, 256, 3, compressed, bit_depth=16 if invalid == "depth" else 8)
+        path.write_bytes(b"invalid" if invalid == "header" else payload)
+    assert kitti.read_png_luminance(path) is None
+    assert kitti.read_png_luminance_array(path) is None

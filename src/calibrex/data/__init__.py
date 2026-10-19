@@ -22,7 +22,12 @@ if TYPE_CHECKING:
         read_ethz_robot_arm_hand_eye_motions,
     )
     from calibrex.data.inspect import DatasetInspection, inspect_dataset
-    from calibrex.data.kitti import KITTIRawDataset, LuminanceImage, read_png_luminance
+    from calibrex.data.kitti import (
+        KITTIRawDataset,
+        LuminanceImage,
+        read_png_luminance,
+        read_png_luminance_array,
+    )
     from calibrex.data.kitti_benchmark import (
         KITTI_RAW_0005_BENCHMARK_FRAME_IDS,
         KITTIBenchmarkInputManifest,
@@ -65,6 +70,7 @@ _EXPORT_MODULES = {
     "KITTIRawDataset": "calibrex.data.kitti",
     "LuminanceImage": "calibrex.data.kitti",
     "read_png_luminance": "calibrex.data.kitti",
+    "read_png_luminance_array": "calibrex.data.kitti",
     "KITTI_RAW_0005_BENCHMARK_FRAME_IDS": "calibrex.data.kitti_benchmark",
     "KITTIBenchmarkInputManifest": "calibrex.data.kitti_benchmark",
     "build_kitti_raw_0005_benchmark_input": "calibrex.data.kitti_benchmark",
@@ -137,6 +143,7 @@ __all__ = [
     "read_a2d2_lidar_points_reflectivity",
     "read_ethz_robot_arm_hand_eye_motions",
     "read_png_luminance",
+    "read_png_luminance_array",
     "read_tum_depth_png",
     "sample_tum_depth_points",
     "verify_kitti_benchmark_input",

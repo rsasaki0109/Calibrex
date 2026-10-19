@@ -10,6 +10,11 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from math import acos, atan2, cos, floor, log, pi, radians, sin, sqrt, tan
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import numpy as np
+    from numpy.typing import NDArray
 
 from calibrex.core.evidence import (
     CorrespondenceArtifact,
@@ -1482,7 +1487,50 @@ def read_png_luminance(path: str | Path) -> LuminanceImage | None:
     return decoded
 
 
+def read_png_luminance_array(path: str | Path) -> NDArray[np.float64] | None:
+    """Decode native-valued luminance into a C-contiguous ``(height, width)`` array.
+
+    Uses the same supported encodings, input validation, alpha policy and
+    optional Pillow boundary as :func:`read_png_luminance`. Array consumers
+    avoid creating and immediately converting Python objects for every pixel.
+    The returned array belongs to the caller; no image or array cache is kept.
+    """
+    import numpy as np
+
+    try:
+        data = Path(path).read_bytes()
+    except OSError:
+        return None
+    stream = _png_luminance_stream(data)
+    if stream is None:
+        return None
+    compressed, raw, width, height, channels = stream
+    if width * height >= 65536:
+        from calibrex.data.pillow_png_adapter import _decode_luminance_array
+
+        luminance = _decode_luminance_array(compressed, raw, width, height, channels)
+        if luminance is not None:
+            return luminance
+    decoded = _unfilter_png_luminance(raw, width, height, channels)
+    return None if decoded is None else np.asarray(decoded.rows, dtype=np.float64)
+
+
 def _decode_png_luminance(data: bytes) -> LuminanceImage | None:
+    stream = _png_luminance_stream(data)
+    if stream is None:
+        return None
+    compressed, raw, width, height, channels = stream
+    if width * height >= 65536:
+        from calibrex.data.pillow_png_adapter import _decode_luminance_rows
+
+        rows = _decode_luminance_rows(compressed, raw, width, height, channels)
+        if rows is not None:
+            return LuminanceImage(width=width, height=height, rows=rows)
+    return _unfilter_png_luminance(raw, width, height, channels)
+
+
+def _png_luminance_stream(data: bytes) -> tuple[bytes, bytes, int, int, int] | None:
+    """Validate the common header and selected compressed stream once."""
     if not data.startswith(b"\x89PNG\r\n\x1a\n"):
         return None
     offset = 8
@@ -1526,13 +1574,7 @@ def _decode_png_luminance(data: bytes) -> LuminanceImage | None:
         raw = zlib.decompress(compressed)
     except zlib.error:
         return None
-    if width * height >= 65536:
-        from calibrex.data.pillow_png_adapter import _decode_luminance_rows
-
-        rows = _decode_luminance_rows(compressed, raw, width, height, channels)
-        if rows is not None:
-            return LuminanceImage(width=width, height=height, rows=rows)
-    return _unfilter_png_luminance(raw, width, height, channels)
+    return compressed, raw, width, height, channels
 
 
 def _unfilter_png_luminance(
