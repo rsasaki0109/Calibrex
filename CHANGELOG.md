@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add an opt-in Numba CPU path for online camera–LiDAR projection and image
+  spilloff. Preserve ordered transforms, reductions, tracking, holdout and
+  curvature without global patches. Use separable image neighborhoods and
+  support ordered preparation workers. Add a cold-worker comparison that
+  reuses existing KITTI inputs and bounds evidence storage.
+
 - Add opt-in CUDA image spilloff and guarded rolling-grid evaluation for the
   Levinson–Thrun camera–LiDAR tracker. Retain native ambiguous comparisons,
   finalists, holdout controls and curvature, and preserve default CPU result

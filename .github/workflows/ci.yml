@@ -240,6 +240,10 @@ jobs:
           tests/unit/test_borer_depth_to_depth_solver.py
           tests/unit/test_borer_six_dof_solver.py
           tests/unit/test_lazy_runtime_loading.py
+          tests/unit/test_numba_online_edge_adapter.py
+          tests/unit/test_online_edge_cpu_benchmark.py
+          tests/unit/test_levinson_online_preparation.py
+          tests/unit/test_levinson_thrun_online_solver.py
 
   calibration-action:
     runs-on: ubuntu-latest

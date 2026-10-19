@@ -11,7 +11,7 @@ from __future__ import annotations
 import itertools
 import math
 from collections import deque
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from dataclasses import asdict, dataclass, replace
 from typing import Literal, Protocol, TypeAlias
 
@@ -29,7 +29,7 @@ FloatArray: TypeAlias = NDArray[np.float64]
 LevinsonStatus = Literal["tracked", "monitored", "insufficient_observations"]
 CameraProjectionKind = Literal["pinhole", "opencv_fisheye"]
 CameraAxes = Literal["optical_z", "forward_x_left_y_up_z"]
-OnlineEdgeBackend = Literal["numpy", "cuda"]
+OnlineEdgeBackend = Literal["numpy", "numba", "cuda"]
 _GridOffset: TypeAlias = tuple[int, int, int, int, int, int]
 DOF_NAMES = ("x", "y", "z", "roll", "pitch", "yaw")
 
@@ -133,6 +133,11 @@ class LevinsonObjectiveEvaluation:
     frame_count: int
 
 
+_ObjectiveEvaluator: TypeAlias = Callable[
+    [Sequence[LevinsonOnlineFrame], SE3], LevinsonObjectiveEvaluation
+]
+
+
 @dataclass(frozen=True)
 class LevinsonOnlineStep:
     """One rolling train-window monitor and optional tracking decision."""
@@ -190,6 +195,22 @@ class OnlineEdgeExecution:
     max_scratch_bytes: int
 
 
+@dataclass(frozen=True)
+class OnlineCpuExecution:
+    """Optional compiled CPU software lineage and complete evaluation counts."""
+
+    backend: Literal["numba"]
+    runtime: str
+    kernel_sha256: str
+    policy: str
+    objective_evaluations: int
+    point_rows: int
+    grid_calls: int
+    grid_pose_evaluations: int
+    numba_frame_pose_evaluations: int
+    native_frame_pose_evaluations: int
+
+
 class _RawGridScorer(Protocol):
     def raw_scores(
         self,
@@ -214,7 +235,7 @@ class LevinsonThrunOnlineResult:
     holdout_evaluation: LevinsonObjectiveEvaluation
     probes: tuple[LevinsonKnownBadProbe, ...]
     curvature: NumericalCurvatureEvaluation | None
-    execution: OnlineEdgeExecution | None = None
+    execution: OnlineEdgeExecution | OnlineCpuExecution | None = None
 
     def as_dict(self) -> dict[str, object]:
         """Return a schema-safe result with primary-paper provenance."""
@@ -262,8 +283,8 @@ class LevinsonThrunOnlineSolver:
     """Monitor and greedily track local camera--LiDAR calibration drift."""
 
     def __init__(self, *, evaluation_backend: OnlineEdgeBackend = "numpy") -> None:
-        if evaluation_backend not in {"numpy", "cuda"}:
-            raise ValueError("online edge evaluation backend must be numpy or cuda")
+        if evaluation_backend not in {"numpy", "numba", "cuda"}:
+            raise ValueError("online edge evaluation backend must be numpy, numba or cuda")
         self.evaluation_backend = evaluation_backend
 
     def solve(
@@ -275,6 +296,20 @@ class LevinsonThrunOnlineSolver:
         solver_options = options or LevinsonThrunOnlineOptions()
         if self.evaluation_backend == "numpy":
             return self._solve(frames, initial_transform, solver_options, None)
+        if self.evaluation_backend == "numba":
+            try:
+                from calibrex.solvers.numba_online_edge_adapter import NumbaOnlineEdgeRuntime
+            except ImportError as exc:
+                raise ValueError("Numba online edge evaluation requires calibrex[numba]") from exc
+            cpu_runtime = NumbaOnlineEdgeRuntime()
+            result = self._solve(
+                frames,
+                initial_transform,
+                solver_options,
+                cpu_runtime,
+                evaluator=cpu_runtime.evaluate,
+            )
+            return replace(result, execution=cpu_runtime.execution())
         try:
             from calibrex.solvers.cuda_online_edge_adapter import CudaOnlineEdgeRuntime
         except ImportError as exc:
@@ -289,7 +324,10 @@ class LevinsonThrunOnlineSolver:
         initial_transform: SE3,
         solver_options: LevinsonThrunOnlineOptions,
         scorer: _RawGridScorer | None,
+        *,
+        evaluator: _ObjectiveEvaluator | None = None,
     ) -> LevinsonThrunOnlineResult:
+        evaluate = evaluate_levinson_objective if evaluator is None else evaluator
         ordered = list(frames)
         train_indices, holdout_indices = split_indices(
             len(ordered), solver_options.holdout_ratio, seed=solver_options.split_seed
@@ -317,17 +355,16 @@ class LevinsonThrunOnlineSolver:
                 transform,
                 solver_options,
                 scorer=scorer,
+                evaluator=evaluate,
             )
             timeline.append(step)
 
-        train_evaluation = evaluate_levinson_objective(train, transform)
-        holdout_evaluation = evaluate_levinson_objective(holdout, transform)
-        probes = _known_bad_probes(holdout, transform, solver_options)
+        train_evaluation = evaluate(train, transform)
+        holdout_evaluation = evaluate(holdout, transform)
+        probes = _known_bad_probes(holdout, transform, solver_options, evaluator=evaluate)
         curvature = evaluate_numerical_curvature(
             lambda values: (
-                -evaluate_levinson_objective(
-                    holdout, _transform_from_parameters(values)
-                ).normalized_objective
+                -evaluate(holdout, _transform_from_parameters(values)).normalized_objective
             ),
             _parameters_from_transform(transform),
             (
@@ -375,6 +412,12 @@ def levinson_edge_response(
     """
 
     image = _edge_response_input(luminance, alpha, gamma, max_radius)
+    if evaluation_backend == "numba":
+        try:
+            from calibrex.solvers.numba_online_edge_adapter import numba_edge_response
+        except ImportError as exc:
+            raise ValueError("Numba online edge evaluation requires calibrex[numba]") from exc
+        return numba_edge_response(image, alpha=alpha, gamma=gamma, max_radius=max_radius)
     if evaluation_backend == "cuda":
         try:
             from calibrex.solvers.cuda_online_edge_adapter import cuda_edge_response
@@ -382,7 +425,7 @@ def levinson_edge_response(
             raise ValueError("CUDA online edge evaluation requires calibrex[cuda]") from exc
         return cuda_edge_response(image, alpha=alpha, gamma=gamma, max_radius=max_radius)
     if evaluation_backend != "numpy":
-        raise ValueError("online edge evaluation backend must be numpy or cuda")
+        raise ValueError("online edge evaluation backend must be numpy, numba or cuda")
     edge = _maximum_neighbor_difference(image)
     spread = edge.copy()
     frontier = edge.copy()
@@ -482,7 +525,9 @@ def _evaluate_online_step(
     options: LevinsonThrunOnlineOptions,
     *,
     scorer: _RawGridScorer | None = None,
+    evaluator: _ObjectiveEvaluator | None = None,
 ) -> tuple[LevinsonOnlineStep, SE3]:
+    evaluate = evaluate_levinson_objective if evaluator is None else evaluator
     center = np.asarray(_parameters_from_transform(transform), dtype=float)
     translation_step = options.translation_grid_step_m
     rotation_step = math.radians(options.rotation_grid_step_deg)
@@ -496,7 +541,7 @@ def _evaluate_online_step(
             rotation_step,
         )
     )
-    center_evaluation = evaluate_levinson_objective(window, transform)
+    center_evaluation = evaluate(window, transform)
     candidates: list[tuple[float, tuple[int, int, int, int, int, int], SE3]] = []
     worse_count = 0
     grid = _candidate_grid(center, steps, transform)
@@ -514,7 +559,7 @@ def _evaluate_online_step(
             score = center_evaluation.raw_objective
         else:
             score = (
-                evaluate_levinson_objective(window, candidate_transform).raw_objective
+                evaluate(window, candidate_transform).raw_objective
                 if scores is None
                 else next(scores)
             )
@@ -570,9 +615,12 @@ def _known_bad_probes(
     holdout: Sequence[LevinsonOnlineFrame],
     transform: SE3,
     options: LevinsonThrunOnlineOptions,
+    *,
+    evaluator: _ObjectiveEvaluator | None = None,
 ) -> tuple[LevinsonKnownBadProbe, ...]:
+    evaluate = evaluate_levinson_objective if evaluator is None else evaluator
     center = np.asarray(_parameters_from_transform(transform), dtype=float)
-    baseline = evaluate_levinson_objective(holdout, transform).normalized_objective
+    baseline = evaluate(holdout, transform).normalized_objective
     probes: list[LevinsonKnownBadProbe] = []
     for index, dof in enumerate(DOF_NAMES):
         amount = (
@@ -583,9 +631,7 @@ def _known_bad_probes(
         for sign in (-1.0, 1.0):
             candidate = center.copy()
             candidate[index] += sign * amount
-            score = evaluate_levinson_objective(
-                holdout, _transform_from_parameters(candidate)
-            ).normalized_objective
+            score = evaluate(holdout, _transform_from_parameters(candidate)).normalized_objective
             drop = baseline - score
             probes.append(
                 LevinsonKnownBadProbe(

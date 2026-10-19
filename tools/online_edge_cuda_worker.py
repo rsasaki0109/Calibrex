@@ -16,7 +16,7 @@ from pathlib import Path
 from threading import Lock
 
 VARIANT = sys.argv[1]
-assert VARIANT in {"numpy", "fused", "cuda"}
+assert VARIANT in {"numpy", "fused", "numba", "cuda"}
 OUT = Path(sys.argv[2]).resolve()
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = Path(sys.argv[3]).resolve()
@@ -95,7 +95,7 @@ def main() -> None:
         "provenance": provenance,
     }
     config["preparation_workers"] = 3
-    config["edge_evaluation_backend"] = "cuda" if VARIANT == "cuda" else "numpy"
+    config["edge_evaluation_backend"] = VARIANT if VARIANT in {"numba", "cuda"} else "numpy"
     config["grid_evaluation_backend"] = config["edge_evaluation_backend"]
     (result_folder / "config.json").write_text(
         json.dumps(config, indent=2, allow_nan=False) + "\n", encoding="utf-8"
@@ -163,7 +163,7 @@ def main() -> None:
         receipt["frame_indices"],
         load,
         workers=3,
-        evaluation_backend="cuda" if VARIANT == "cuda" else "numpy",
+        evaluation_backend=config["edge_evaluation_backend"],
         gamma=0.98**4,
         max_radius=32,
     )
@@ -189,9 +189,7 @@ def main() -> None:
             raise ValueError("compiled CPU control source differs")
         install(online)
     online.evaluate_levinson_objective = evaluate
-    solver = online.LevinsonThrunOnlineSolver(
-        evaluation_backend="cuda" if VARIANT == "cuda" else "numpy"
-    )
+    solver = online.LevinsonThrunOnlineSolver(evaluation_backend=config["grid_evaluation_backend"])
     raw_grid_evaluations = 0
     if VARIANT == "fused":
         control = NativeRawGridControl(online)
@@ -201,6 +199,10 @@ def main() -> None:
         raw_grid_evaluations = control.pose_evaluations
     else:
         result = solver.solve(frames, transform, settings)
+    if VARIANT == "numba":
+        execution = result.execution
+        assert isinstance(execution, online.OnlineCpuExecution)
+        calls, point_rows = execution.objective_evaluations, execution.point_rows
     (result_folder / "result.json").write_text(
         json.dumps(
             {"result": result.as_dict(), "provenance": provenance}, indent=2, allow_nan=False
@@ -237,7 +239,7 @@ def main() -> None:
     record["cuda_driver_cache_disabled"] = (
         os.environ["CUDA_CACHE_DISABLE"] == "1" if VARIANT == "cuda" else None
     )
-    if VARIANT == "fused":
+    if VARIANT in {"fused", "numba"}:
         import numba
 
         record["software"]["numba"] = numba.__version__
@@ -256,6 +258,10 @@ def main() -> None:
     record["image_kernel_sha256"] = None
     if VARIANT == "cuda":
         from calibrex.solvers.cuda_online_edge_adapter import IMAGE_KERNEL_SHA256
+
+        record["image_kernel_sha256"] = IMAGE_KERNEL_SHA256
+    elif VARIANT == "numba":
+        from calibrex.solvers.numba_online_edge_adapter import IMAGE_KERNEL_SHA256
 
         record["image_kernel_sha256"] = IMAGE_KERNEL_SHA256
     import jsonschema

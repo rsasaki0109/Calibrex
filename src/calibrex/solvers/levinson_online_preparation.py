@@ -52,15 +52,21 @@ def prepare_levinson_online_frames(
     """
     if isinstance(workers, bool) or not isinstance(workers, int) or not 1 <= workers <= 32:
         raise ValueError("preparation workers must be an integer between 1 and 32")
-    if evaluation_backend not in {"numpy", "cuda"}:
-        raise ValueError("online edge evaluation backend must be numpy or cuda")
+    if evaluation_backend not in {"numpy", "numba", "cuda"}:
+        raise ValueError("online edge evaluation backend must be numpy, numba or cuda")
     _validate_edge_parameters(alpha, gamma, max_radius)
 
     def load(item: _Item) -> tuple[LevinsonOnlineImage, FloatArray | None]:
         data = loader(item)
         edge = (
-            levinson_edge_response(data.luminance, alpha=alpha, gamma=gamma, max_radius=max_radius)
-            if evaluation_backend == "numpy"
+            levinson_edge_response(
+                data.luminance,
+                alpha=alpha,
+                gamma=gamma,
+                max_radius=max_radius,
+                evaluation_backend=evaluation_backend,
+            )
+            if evaluation_backend != "cuda"
             else None
         )
         return data, edge
