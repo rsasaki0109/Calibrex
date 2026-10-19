@@ -151,7 +151,9 @@ def _evaluation_backend(options: dict[str, Any]) -> OnlineEdgeBackend:
         return "numpy"
     if value == "cuda":
         return "cuda"
-    raise ValueError("online edge evaluation_backend must be numpy or cuda")
+    if value == "numba":
+        return "numba"
+    raise ValueError("online edge evaluation_backend must be numpy, numba or cuda")
 
 
 def _load_a2d2_frames(
@@ -242,7 +244,7 @@ def _load_a2d2_frames(
         {
             **(
                 {"edge_evaluation_backend": evaluation_backend}
-                if evaluation_backend == "cuda"
+                if evaluation_backend != "numpy"
                 else {}
             ),
             **({"preparation_workers": workers} if workers != 1 else {}),

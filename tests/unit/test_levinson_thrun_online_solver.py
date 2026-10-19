@@ -31,7 +31,7 @@ def test_default_backend_does_not_import_cuda() -> None:
             "result = LevinsonThrunOnlineSolver().solve([], SE3.identity()); "
             "assert result.status == 'insufficient_observations'; "
             "assert result.execution is None; assert 'execution' not in result.as_dict(); "
-            "assert 'cupy' not in sys.modules; "
+            "assert 'cupy' not in sys.modules; assert 'numba' not in sys.modules; "
             "assert 'calibrex.solvers.cuda_online_edge_adapter' not in sys.modules",
         ],
         check=True,
@@ -40,10 +40,18 @@ def test_default_backend_does_not_import_cuda() -> None:
 
 
 def test_invalid_backend_is_rejected() -> None:
-    with pytest.raises(ValueError, match="numpy or cuda"):
+    with pytest.raises(ValueError, match=r"numpy.*cuda"):
         LevinsonThrunOnlineSolver(evaluation_backend="unknown")
-    with pytest.raises(ValueError, match="numpy or cuda"):
+    with pytest.raises(ValueError, match=r"numpy.*cuda"):
         levinson_edge_response(np.zeros((3, 3)), evaluation_backend="unknown")
+
+
+def test_requested_numba_requires_optional_adapter(monkeypatch) -> None:
+    monkeypatch.setitem(sys.modules, "calibrex.solvers.numba_online_edge_adapter", None)
+    with pytest.raises(ValueError, match=r"requires calibrex\[numba\]"):
+        LevinsonThrunOnlineSolver(evaluation_backend="numba").solve([], SE3.identity())
+    with pytest.raises(ValueError, match=r"requires calibrex\[numba\]"):
+        levinson_edge_response(np.zeros((3, 3)), evaluation_backend="numba")
 
 
 def test_requested_cuda_requires_optional_adapter(monkeypatch) -> None:

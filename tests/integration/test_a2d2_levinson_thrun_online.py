@@ -27,12 +27,14 @@ requires_a2d2_pair = pytest.mark.skipif(
 
 
 @requires_a2d2_pair
-@pytest.mark.parametrize("backend,workers", [("numpy", 1), ("numpy", 3), ("cuda", 3)])
+@pytest.mark.parametrize("backend,workers", [("numpy", 1), ("numpy", 3), ("numba", 3), ("cuda", 3)])
 def test_native_levinson_pipeline_records_honest_inconclusive_evidence(
     tmp_path: Path,
     backend: str,
     workers: int,
 ) -> None:
+    if backend == "numba":
+        pytest.importorskip("numba")
     if backend == "cuda":
         cp = pytest.importorskip("cupy")
         try:
@@ -76,3 +78,8 @@ def test_native_levinson_pipeline_records_honest_inconclusive_evidence(
         assert provenance["extraction"]["edge_evaluation_backend"] == "cuda"
         assert levinson["execution"]["cuda_frame_pose_evaluations"] == 0
         assert levinson["execution"]["native_frame_pose_evaluations"] == 728
+    if backend == "numba":
+        assert provenance["extraction"]["edge_evaluation_backend"] == "numba"
+        assert levinson["execution"]["backend"] == "numba"
+        assert levinson["execution"]["numba_frame_pose_evaluations"] == 0
+        assert levinson["execution"]["native_frame_pose_evaluations"] > 728

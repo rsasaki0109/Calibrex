@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+from collections.abc import Callable
 from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -29,7 +30,14 @@ def _local_references(value: object) -> None:
             _local_references(child)
 
 
-def audit_archive(path: Path, temporary_root: Path, *, bind_commit: str | None = None) -> dict:
+def audit_archive(
+    path: Path,
+    temporary_root: Path,
+    *,
+    bind_commit: str | None = None,
+    _audit: Callable[[Path], dict] | None = None,
+    _toolchain: tuple[str, ...] | None = None,
+) -> dict:
     """Verify the index, all complete artifacts, and an optional later Git binding."""
     import jsonschema
 
@@ -79,7 +87,8 @@ def audit_archive(path: Path, temporary_root: Path, *, bind_commit: str | None =
                 raise ValueError(f"evidence digest mismatch: {relative}")
         for schema in (folder / "schemas").glob("*.json"):
             _local_references(benchmark.read(schema))
-        result = benchmark.audit(folder)
+        checker = benchmark.audit if _audit is None else _audit
+        result = checker(folder)
         protocol = benchmark.read(folder / "protocol.json")
         if index["provenance"]["protocol_sha256"] != benchmark.sha(folder / "protocol.json"):
             raise ValueError("evidence index lineage differs")
@@ -88,7 +97,8 @@ def audit_archive(path: Path, temporary_root: Path, *, bind_commit: str | None =
                 ["git", "rev-parse", "--verify", "--end-of-options", bind_commit + "^{commit}"],
                 text=True,
             ).strip()
-            expected = benchmark._git_files(commit, ("src/calibrex", *benchmark.TOOLCHAIN))
+            toolchain = benchmark.TOOLCHAIN if _toolchain is None else _toolchain
+            expected = benchmark._git_files(commit, ("src/calibrex", *toolchain))
             actual = benchmark._verify_sources(folder / "source")
             from_git = {
                 name.removeprefix("src/"): hashlib.sha256(data).hexdigest()
