@@ -82,3 +82,27 @@ CPU pilot measured 1.86x including cold compilation. The initial large-input
 CUDA pilot measured 2.19x against prior NumPy but only 1.84x against input reuse.
 These cohorts remain separate from the resident-runtime comparison; none is a
 speed claim for the complete raw-sensor calibration stack.
+
+## Measured resident runtime
+
+The final frozen-source cohort passes both declared gates:
+
+| Implementation | Whole-worker median |
+| --- | ---: |
+| Prior NumPy | 144.719 s |
+| NumPy with validated-input reuse | 123.017 s |
+| Resident CUDA with pose batches | 42.552 s |
+
+This is 3.401x against the prior implementation
+and 2.891x against the input-reusing CPU
+control. Both CUDA workers retain all 2,568 logical evaluations with 236 kernel
+launches and zero CPU fallbacks. All 48 complete artifacts, traces, acceptance
+and quality aggregates match exactly under the declared normalization. This
+measurement concerns eight probabilistic fits; it does not time feature
+extraction, D2D initialization or the full raw-sensor calibration stack.
+
+The [indexed complete evidence archive](../assets/probabilistic_cuda_refinement/README.md)
+includes every worker, source snapshot and earlier pilot summary, with a
+CPU-only audit and independently verified Git source bindings. The two
+whole-worker observations are retained for each implementation; no observations
+are pooled across earlier pilots or removed as warmup.
