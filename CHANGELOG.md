@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Avoid discarded geometric Jacobians in sparse screw trajectory objective
+  scoring and use exact fixed-size FP64 cross products in the SE(3) Jacobian.
+  Preserve full derivatives in linearization and covariance. Three paired
+  synthetic LiDAR–IMU recovery calls measured a 2.367x complete-API speedup;
+  three paired fits with spent public GLIM geometry measured 3.143x.
+  Fresh-worker ratios are 2.204x and 2.879x. Retain all complete inputs,
+  trajectories, calibration covariance, controls and unchanged policy failures,
+  with exact pair equality and a CPU-only archive auditor.
+
 - Prepare offline camera–LiDAR edge images and LiDAR discontinuities in bounded,
   ordered CPU workers with `EdgeAlignmentOptions(preparation_workers=8)`.
   Preserve default single-worker behavior, frame selection, all fits and controls.
