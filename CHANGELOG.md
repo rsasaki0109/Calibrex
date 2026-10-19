@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Prepare offline camera–LiDAR edge images and LiDAR discontinuities in bounded,
+  ordered CPU workers with `EdgeAlignmentOptions(preparation_workers=8)`.
+  Preserve default single-worker behavior, frame selection, all fits and controls.
+  Over 48 spent public KITTI pairs, three fresh workers per variant measured
+  preparation 5.203 s to 1.341 s (3.881x), complete estimation API 6.543 s to
+  2.522 s (2.595x), and the larger fresh-worker scope 13.822 s to 9.156 s (1.510x).
+  Retain both complete six-worker cohorts, the initial Git line-ending audit
+  failure and its correction, and CPU-only record replay.
+
 - Share native point rotations within the optional Numba online camera–LiDAR
   grid and evaluate bounded chunks in up to four CPU workers. Preserve all
   candidate scores, tracking and diagnostics. Against the previous maintained
