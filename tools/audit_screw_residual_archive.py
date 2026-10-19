@@ -10,7 +10,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from tools import benchmark_screw_residual_evaluation as bench  # noqa: E402
-from tools.audit_online_edge_cuda_archive import audit_archive  # noqa: E402
+from tools.audit_online_edge_cuda_archive import (  # noqa: E402
+    _local_references,
+    audit_archive,
+)
 
 
 def record_schema() -> dict:
@@ -138,6 +141,7 @@ def audit(path: Path, temporary_root: Path) -> dict:
     """Verify a bounded, digest-indexed archive and recompute every gate."""
 
     def check(folder: Path) -> dict:
+        _local_references(json.loads((folder / "result.schema.json").read_bytes()))
         validate_records(folder)
         result = bench.audit(folder)
         saved = json.loads((folder / "summary.json").read_bytes())

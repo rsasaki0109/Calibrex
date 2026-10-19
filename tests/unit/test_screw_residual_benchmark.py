@@ -174,3 +174,17 @@ def test_archive_rejects_forged_summary_with_matching_index(tmp_path: Path) -> N
     _bundle(folder, target)
     with pytest.raises(ValueError, match="published summary differs"):
         archive.audit(target, tmp_path / "audit")
+
+
+@pytest.mark.parametrize("keyword", ["$ref", "$dynamicRef"])
+def test_archive_rejects_external_artifact_schema_references(
+    tmp_path: Path,
+    keyword: str,
+) -> None:
+    folder = tmp_path / "cohort"
+    _cohort(folder)
+    _put(folder / "result.schema.json", {keyword: "https://example.invalid/forbidden.json"})
+    target = tmp_path / "evidence.tar.gz"
+    _bundle(folder, target)
+    with pytest.raises(ValueError, match="archive schemas must use local references"):
+        archive.audit(target, tmp_path / "audit")
