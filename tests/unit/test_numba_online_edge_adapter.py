@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import subprocess
+import sys
 from dataclasses import replace
 
 import numpy as np
@@ -13,6 +15,35 @@ from tests.unit.test_levinson_thrun_online_solver import _frames_for_truths, _op
 from calibrex.core.geometry import SE3
 from calibrex.solvers import levinson_thrun_online_solver as online
 from calibrex.solvers import numba_online_edge_adapter as adapter
+
+
+def test_cpu_backend_and_images_work_with_cuda_imports_blocked():
+    script = """
+import sys
+from importlib.abc import MetaPathFinder
+class Block(MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname.split('.')[0] == 'cupy':
+            raise ModuleNotFoundError(fullname)
+sys.meta_path.insert(0, Block())
+import numpy as np
+from calibrex.core.geometry import SE3
+from calibrex.solvers.levinson_thrun_online_solver import (
+    LevinsonThrunOnlineSolver, levinson_edge_response,
+)
+result = LevinsonThrunOnlineSolver(evaluation_backend='numba').solve([], SE3.identity())
+assert result.execution.backend == 'numba'
+image = np.arange(16.0).reshape(4, 4)
+actual = levinson_edge_response(image, evaluation_backend='numba', max_radius=3)
+native = levinson_edge_response(image, max_radius=3)
+np.testing.assert_array_equal(actual.view(np.uint64), native.view(np.uint64))
+assert 'cupy' not in sys.modules
+assert 'calibrex.solvers.cuda_online_edge_adapter' not in sys.modules
+"""
+    value = subprocess.run(
+        [sys.executable, "-c", script], capture_output=True, text=True, timeout=30, check=False
+    )
+    assert value.returncode == 0, value.stdout + value.stderr
 
 
 @pytest.mark.parametrize("shape", [(1, 1), (3, 17), (48, 64)])

@@ -62,48 +62,29 @@ def _interpolate(
     return response[:count], weights[:count]
 
 
-@njit(cache=False, nogil=True, fastmath=False)  # type: ignore[untyped-decorator]
 def _image_response(image: FloatArray, alpha: float, gamma: float, radius: int) -> FloatArray:
-    height, width = image.shape
-    edge = np.empty_like(image)
-    for row in range(height):
-        for column in range(width):
-            value = 0.0
-            for dy in range(-1, 2):
-                y = min(max(row + dy, 0), height - 1)
-                for dx in range(-1, 2):
-                    x = min(max(column + dx, 0), width - 1)
-                    value = max(value, abs(image[row, column] - image[y, x]))
-            edge[row, column] = value
+    from calibrex.solvers.levinson_thrun_online_solver import _maximum_neighbor_difference
+
+    edge = _maximum_neighbor_difference(image)
     spread = edge.copy()
     previous = edge.copy()
     horizontal = np.empty_like(image)
     next_frontier = np.empty_like(image)
     for _ in range(radius):
-        for row in range(height):
-            for column in range(width):
-                horizontal[row, column] = max(
-                    previous[row, max(column - 1, 0)],
-                    previous[row, column],
-                    previous[row, min(column + 1, width - 1)],
-                )
-        for row in range(height):
-            for column in range(width):
-                value = gamma * max(
-                    horizontal[max(row - 1, 0), column],
-                    horizontal[row, column],
-                    horizontal[min(row + 1, height - 1), column],
-                )
-                next_frontier[row, column] = value
-                spread[row, column] = max(spread[row, column], value)
+        np.copyto(horizontal, previous)
+        np.maximum(horizontal[:, 1:], previous[:, :-1], out=horizontal[:, 1:])
+        np.maximum(horizontal[:, :-1], previous[:, 1:], out=horizontal[:, :-1])
+        np.copyto(next_frontier, horizontal)
+        np.maximum(next_frontier[1:], horizontal[:-1], out=next_frontier[1:])
+        np.maximum(next_frontier[:-1], horizontal[1:], out=next_frontier[:-1])
+        np.multiply(gamma, next_frontier, out=next_frontier)
+        np.maximum(spread, next_frontier, out=spread)
         previous, next_frontier = next_frontier, previous
     return alpha * edge + (1.0 - alpha) * spread
 
 
 KERNEL_SHA256 = hashlib.sha256(inspect.getsource(_interpolate.py_func).encode()).hexdigest()
-IMAGE_KERNEL_SHA256 = hashlib.sha256(
-    inspect.getsource(_image_response.py_func).encode()
-).hexdigest()
+IMAGE_KERNEL_SHA256 = hashlib.sha256(inspect.getsource(_image_response).encode()).hexdigest()
 
 
 def numba_edge_response(
@@ -144,9 +125,14 @@ class NumbaOnlineEdgeRuntime:
         if frame.camera.projection != "pinhole":
             self._counts["native_frame_pose_evaluations"] += 1
             return _project_response(frame, pose)
-        translated = frame.lidar_points @ _rotation_matrix(pose).T + np.asarray(
-            pose.translation_m, dtype=float
+        return self._project_prepared(
+            frame, _rotation_matrix(pose), np.asarray(pose.translation_m, dtype=float)
         )
+
+    def _project_prepared(
+        self, frame: LevinsonOnlineFrame, rotation: FloatArray, translation: FloatArray
+    ) -> tuple[FloatArray, FloatArray]:
+        translated = frame.lidar_points @ rotation.T + translation
         camera = frame.camera
         result: tuple[FloatArray, FloatArray] = _interpolate(
             translated,
@@ -166,8 +152,13 @@ class NumbaOnlineEdgeRuntime:
     ) -> LevinsonObjectiveEvaluation:
         self._counts["objective_evaluations"] += 1
         raw, total_weight, projected_count = 0.0, 0.0, 0
+        rotation = _rotation_matrix(pose)
+        translation = np.asarray(pose.translation_m, dtype=float)
         for frame in frames:
-            response, weights = self.project(frame, pose)
+            if frame.camera.projection == "pinhole":
+                response, weights = self._project_prepared(frame, rotation, translation)
+            else:
+                response, weights = self.project(frame, pose)
             self._counts["point_rows"] += len(frame.lidar_points)
             raw += float(response @ weights)
             if statistics:

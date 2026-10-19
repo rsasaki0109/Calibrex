@@ -110,7 +110,7 @@ def kernel_digests(source: Path) -> dict[str, str]:
     values = {}
     for node in ast.parse(text).body:
         if isinstance(node, ast.FunctionDef) and node.name in {"_interpolate", "_image_response"}:
-            start = min(node.lineno, *(item.lineno for item in node.decorator_list)) - 1
+            start = min([node.lineno, *(item.lineno for item in node.decorator_list)]) - 1
             values[node.name] = hashlib.sha256(
                 "".join(lines[start : node.end_lineno]).encode()
             ).hexdigest()

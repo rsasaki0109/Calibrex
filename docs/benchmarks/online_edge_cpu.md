@@ -33,8 +33,10 @@ projector.
 Image spilloff uses horizontal and vertical maximum filters instead of stacking
 nine shifted images. Every radius still applies exactly one multiplication by
 gamma before updating the spread. It retains the native FP64 operation sequence.
-The image kernel releases the GIL, allowing independent preparation workers to
-compute concurrently while preserving frame order.
+NumPy image operations release the GIL, allowing independent preparation workers
+to compute concurrently while preserving frame order. This image path needs no
+image JIT compilation. Each objective also prepares its rotation and translation
+once, reusing those exact values across frames.
 
 No global solver functions are patched. Compiled code uses `cache=False`, and
 the runtime retains no input/result array cache. Temporary arrays scale with
