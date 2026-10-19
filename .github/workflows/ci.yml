@@ -150,7 +150,7 @@ jobs:
           python-version: "3.12"
       - name: Install
         run: python -m pip install -e ".[dev]"
-      - name: Test browser, cache, reports and bag conversion on Windows
+      - name: Test browser, reports and dataset tools on Windows
         run: >-
           python -m pytest
           tests/unit/test_check_browser.py
@@ -160,6 +160,9 @@ jobs:
           tests/unit/test_rosbag2_writer.py
           tests/unit/test_kitti_raw_to_rosbag2.py
           tests/unit/test_kitti360_to_rosbag2.py
+          tests/unit/test_kitti_drive_fetch.py
+          tests/unit/test_kitti_zip_metadata.py
+          tests/unit/test_kitti360_archive_metadata.py
 
   schema-compat:
     runs-on: ubuntu-latest
