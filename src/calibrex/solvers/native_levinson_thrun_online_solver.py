@@ -20,13 +20,17 @@ from calibrex.data.a2d2 import read_a2d2_lidar_boundary_points
 from calibrex.data.inspect import DatasetInspection
 from calibrex.data.kitti import read_png_luminance
 from calibrex.solvers.base import SolverAdapter, SolverAdapterResult
+from calibrex.solvers.levinson_online_preparation import (
+    LevinsonOnlineImage,
+    prepare_levinson_online_frames,
+)
 from calibrex.solvers.levinson_thrun_online_solver import (
     LevinsonCameraModel,
     LevinsonOnlineFrame,
     LevinsonThrunOnlineOptions,
     LevinsonThrunOnlineResult,
     LevinsonThrunOnlineSolver,
-    levinson_edge_response,
+    OnlineEdgeBackend,
 )
 
 NATIVE_LEVINSON_THRUN_ONLINE_BACKEND = "native_levinson_thrun_online"
@@ -46,9 +50,7 @@ _PINNED_SHA256 = {
     "20180810150607_lidar_frontleft_000000061.npz": (
         "fee0b3ef3f347e422ee38c01fe41b2722b1148a076062b9c4a0df9a42dd24f91"
     ),
-    "cams_lidars.json": (
-        "ffec04167050b9c0397121720b8f0bad2cacee83d03c1b7e864619394629c8d2"
-    ),
+    "cams_lidars.json": ("ffec04167050b9c0397121720b8f0bad2cacee83d03c1b7e864619394629c8d2"),
 }
 
 
@@ -67,8 +69,9 @@ class NativeLevinsonThrunOnlineSolver(SolverAdapter):
         factor = _factor(config)
         options = factor.options if factor is not None else {}
         try:
+            evaluation_backend = _evaluation_backend(options)
             frames, input_files, extraction = _load_a2d2_frames(
-                Path(config.dataset.path), options
+                Path(config.dataset.path), options, evaluation_backend=evaluation_backend
             )
         except (KeyError, OSError, ValueError) as exc:
             return SolverAdapterResult(
@@ -85,30 +88,18 @@ class NativeLevinsonThrunOnlineSolver(SolverAdapter):
             holdout_ratio=config.evaluation.holdout_ratio,
             split_seed=config.solver.seed or 0,
             tracking_enabled=bool(options.get("tracking_enabled", True)),
-            translation_grid_step_m=_float_option(
-                options, "translation_grid_step_m", 0.01
-            ),
-            rotation_grid_step_deg=_float_option(
-                options, "rotation_grid_step_deg", 0.05
-            ),
+            translation_grid_step_m=_float_option(options, "translation_grid_step_m", 0.01),
+            rotation_grid_step_deg=_float_option(options, "rotation_grid_step_deg", 0.05),
             min_projected_points=_int_option(options, "min_projected_points", 16),
-            known_bad_translation_m=_float_option(
-                options, "known_bad_translation_m", 0.1
-            ),
-            known_bad_rotation_deg=_float_option(
-                options, "known_bad_rotation_deg", 0.25
-            ),
+            known_bad_translation_m=_float_option(options, "known_bad_translation_m", 0.1),
+            known_bad_rotation_deg=_float_option(options, "known_bad_rotation_deg", 0.25),
         )
-        result = LevinsonThrunOnlineSolver().solve(
+        result = LevinsonThrunOnlineSolver(evaluation_backend=evaluation_backend).solve(
             frames, _initial_transform(options), solver_options
         )
         public_default_window_complete = window_size >= 9 and len(frames) >= 12
         preregistered = True
-        status = (
-            "inconclusive"
-            if result.status != "insufficient_observations"
-            else result.status
-        )
+        status = "inconclusive" if result.status != "insufficient_observations" else result.status
         warnings = [
             "A2D2 clouds are pre-registered into the camera view; monitoring is not "
             "independent extrinsic accuracy evidence",
@@ -154,8 +145,20 @@ class NativeLevinsonThrunOnlineSolver(SolverAdapter):
         )
 
 
+def _evaluation_backend(options: dict[str, Any]) -> OnlineEdgeBackend:
+    value = options.get("evaluation_backend", "numpy")
+    if value == "numpy":
+        return "numpy"
+    if value == "cuda":
+        return "cuda"
+    raise ValueError("online edge evaluation_backend must be numpy or cuda")
+
+
 def _load_a2d2_frames(
-    dataset_path: Path, options: dict[str, Any]
+    dataset_path: Path,
+    options: dict[str, Any],
+    *,
+    evaluation_backend: OnlineEdgeBackend = "numpy",
 ) -> tuple[list[LevinsonOnlineFrame], list[Path], dict[str, object]]:
     calibration_path = dataset_path / str(options.get("calibration_file", "cams_lidars.json"))
     calibration = read_mapping(calibration_path)
@@ -202,38 +205,47 @@ def _load_a2d2_frames(
     gamma_full_resolution = _float_option(options, "edge_gamma", 0.98)
     gamma_downsampled = gamma_full_resolution**downsample
     max_radius = _int_option(options, "edge_max_radius_downsampled", 32)
-    frames: list[LevinsonOnlineFrame] = []
-    input_files: list[Path] = [calibration_path]
-    boundary_counts: dict[str, int] = {}
-    for frame_id in frame_ids:
+    workers = _int_option(options, "preparation_workers", 1)
+
+    def load(frame_id: str) -> LevinsonOnlineImage:
         decoded = read_png_luminance(images[frame_id])
         if decoded is None:
             raise ValueError(f"unsupported A2D2 PNG: {images[frame_id]}")
         luminance = np.asarray(decoded.rows, dtype=float)
         reduced = _block_mean(luminance, downsample)
-        points = read_a2d2_lidar_boundary_points(
-            clouds[frame_id], max_points=max_points
+        points = read_a2d2_lidar_boundary_points(clouds[frame_id], max_points=max_points)
+        return LevinsonOnlineImage(
+            frame_id,
+            reduced,
+            np.asarray(points, dtype=float),
+            np.ones(len(points), dtype=float),
+            camera,
         )
-        boundary_counts[frame_id] = len(points)
-        frames.append(
-            LevinsonOnlineFrame(
-                frame_id=frame_id,
-                edge_response=levinson_edge_response(
-                    reduced,
-                    alpha=1.0 / 3.0,
-                    gamma=gamma_downsampled,
-                    max_radius=max_radius,
-                ),
-                lidar_points=np.asarray(points, dtype=float),
-                discontinuity_weights=np.ones(len(points), dtype=float),
-                camera=camera,
-            )
-        )
-        input_files.extend((images[frame_id], clouds[frame_id]))
+
+    frames = prepare_levinson_online_frames(
+        frame_ids,
+        load,
+        workers=workers,
+        evaluation_backend=evaluation_backend,
+        gamma=gamma_downsampled,
+        max_radius=max_radius,
+    )
+    input_files = [calibration_path]
+    boundary_counts = {}
+    for frame in frames:
+        input_files.extend((images[frame.frame_id], clouds[frame.frame_id]))
+        boundary_counts[frame.frame_id] = len(frame.lidar_points)
+
     return (
         frames,
         input_files,
         {
+            **(
+                {"edge_evaluation_backend": evaluation_backend}
+                if evaluation_backend == "cuda"
+                else {}
+            ),
+            **({"preparation_workers": workers} if workers != 1 else {}),
             "camera_name": camera_name,
             "frame_ids": frame_ids,
             "boundary_point_counts": boundary_counts,
@@ -331,9 +343,7 @@ def _provenance(
         "public_evidence_claim": "inconclusive_window_and_independent_accuracy",
         "extraction": extraction,
         "metrics_origin": "recomputed",
-        "data_verified": all(
-            item["digest_matches_pinned_sample"] is True for item in raw_inputs
-        ),
+        "data_verified": all(item["digest_matches_pinned_sample"] is True for item in raw_inputs),
         "raw_input_files": raw_inputs,
         "implementation_origin": "independent equations-based implementation; no external code",
         "license_boundary": "Calibrex Apache-2.0 core; A2D2 inputs CC BY-ND 4.0",

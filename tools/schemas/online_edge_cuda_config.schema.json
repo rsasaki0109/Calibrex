@@ -1,0 +1,298 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "options",
+    "provenance",
+    "image_downsample",
+    "edge_max_radius",
+    "edge_gamma",
+    "discontinuity_min_jump_m",
+    "discontinuity_exponent",
+    "max_points_per_frame",
+    "minimum_ring_fraction",
+    "frame_indices",
+    "extraction",
+    "initial_transform",
+    "edge_evaluation_backend",
+    "grid_evaluation_backend",
+    "preparation_workers"
+  ],
+  "properties": {
+    "options": {
+      "properties": {
+        "window_size": {
+          "default": 9,
+          "title": "Window Size",
+          "type": "integer"
+        },
+        "min_train_frames": {
+          "default": 9,
+          "title": "Min Train Frames",
+          "type": "integer"
+        },
+        "min_holdout_frames": {
+          "default": 3,
+          "title": "Min Holdout Frames",
+          "type": "integer"
+        },
+        "holdout_ratio": {
+          "default": 0.2,
+          "title": "Holdout Ratio",
+          "type": "number"
+        },
+        "split_seed": {
+          "default": 0,
+          "title": "Split Seed",
+          "type": "integer"
+        },
+        "tracking_enabled": {
+          "default": true,
+          "title": "Tracking Enabled",
+          "type": "boolean"
+        },
+        "translation_grid_step_m": {
+          "default": 0.01,
+          "title": "Translation Grid Step M",
+          "type": "number"
+        },
+        "rotation_grid_step_deg": {
+          "default": 0.05,
+          "title": "Rotation Grid Step Deg",
+          "type": "number"
+        },
+        "correct_fraction_mean": {
+          "default": 0.997,
+          "title": "Correct Fraction Mean",
+          "type": "number"
+        },
+        "correct_fraction_sigma": {
+          "default": 0.014,
+          "title": "Correct Fraction Sigma",
+          "type": "number"
+        },
+        "incorrect_fraction_mean": {
+          "default": 0.505,
+          "title": "Incorrect Fraction Mean",
+          "type": "number"
+        },
+        "incorrect_fraction_sigma": {
+          "default": 0.14,
+          "title": "Incorrect Fraction Sigma",
+          "type": "number"
+        },
+        "calibrated_probability_threshold": {
+          "default": 0.5,
+          "title": "Calibrated Probability Threshold",
+          "type": "number"
+        },
+        "min_projected_points": {
+          "default": 16,
+          "title": "Min Projected Points",
+          "type": "integer"
+        },
+        "known_bad_translation_m": {
+          "default": 0.1,
+          "title": "Known Bad Translation M",
+          "type": "number"
+        },
+        "known_bad_rotation_deg": {
+          "default": 0.25,
+          "title": "Known Bad Rotation Deg",
+          "type": "number"
+        },
+        "known_bad_score_margin": {
+          "default": 1e-06,
+          "title": "Known Bad Score Margin",
+          "type": "number"
+        },
+        "curvature_translation_step_m": {
+          "default": 0.01,
+          "title": "Curvature Translation Step M",
+          "type": "number"
+        },
+        "curvature_rotation_step_deg": {
+          "default": 0.1,
+          "title": "Curvature Rotation Step Deg",
+          "type": "number"
+        },
+        "rank_tolerance": {
+          "default": 1e-06,
+          "title": "Rank Tolerance",
+          "type": "number"
+        }
+      },
+      "title": "LevinsonThrunOnlineOptions",
+      "type": "object"
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "created_at",
+        "source_commit",
+        "source_manifest_sha256",
+        "acquisition_receipt_sha256",
+        "launcher_sha256",
+        "scope",
+        "protocol_sha256",
+        "variant",
+        "base_git_commit",
+        "source_kind"
+      ],
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source_commit": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "acquisition_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "launcher_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "protocol_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "variant": {
+          "enum": [
+            "numpy",
+            "fused",
+            "cuda"
+          ]
+        },
+        "base_git_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "source_kind": {
+          "enum": [
+            "git-commit",
+            "working-copy"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "source_kind": {
+                "const": "git-commit"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source_commit": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "source_kind": {
+                "const": "working-copy"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source_commit": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "image_downsample": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "edge_max_radius": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "edge_gamma": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "exclusiveMaximum": 1
+    },
+    "discontinuity_min_jump_m": {
+      "type": "number",
+      "minimum": 0
+    },
+    "discontinuity_exponent": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "max_points_per_frame": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "minimum_ring_fraction": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "frame_indices": {
+      "type": "array",
+      "minItems": 48,
+      "maxItems": 48,
+      "uniqueItems": true,
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "extraction": {
+      "type": "string",
+      "minLength": 1
+    },
+    "initial_transform": {
+      "type": "string",
+      "minLength": 1
+    },
+    "edge_evaluation_backend": {
+      "enum": [
+        "numpy",
+        "cuda"
+      ]
+    },
+    "grid_evaluation_backend": {
+      "enum": [
+        "numpy",
+        "cuda"
+      ]
+    },
+    "preparation_workers": {
+      "const": 3
+    }
+  }
+}

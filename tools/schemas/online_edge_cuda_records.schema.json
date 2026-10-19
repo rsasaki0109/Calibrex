@@ -1,0 +1,698 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Frozen online edge performance records",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "protocol"
+        },
+        "source_commit": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "toolchain_sha256": {
+          "type": "object",
+          "minProperties": 7,
+          "maxProperties": 7,
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "order": {
+          "const": [
+            "numpy",
+            "fused",
+            "cuda",
+            "cuda",
+            "fused",
+            "numpy"
+          ]
+        },
+        "blas_threads": {
+          "const": 1
+        },
+        "warmups": {
+          "const": 0
+        },
+        "host_reserved": {
+          "const": false
+        },
+        "whole_worker_gate": {
+          "const": 2.0
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "created_at": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_commit": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "base_git_commit": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "source_kind": {
+              "enum": [
+                "git-commit",
+                "working-copy"
+              ]
+            }
+          },
+          "required": [
+            "created_at",
+            "source_commit",
+            "base_git_commit",
+            "source_kind"
+          ],
+          "additionalProperties": true,
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "source_kind": {
+                    "const": "git-commit"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "source_commit": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{40}$"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "source_kind": {
+                    "const": "working-copy"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "source_commit": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "preparation_workers": {
+          "const": 3
+        },
+        "base_git_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "source_kind": {
+          "enum": [
+            "git-commit",
+            "working-copy"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "source_commit",
+        "source_manifest_sha256",
+        "toolchain_sha256",
+        "receipt_sha256",
+        "order",
+        "blas_threads",
+        "warmups",
+        "host_reserved",
+        "whole_worker_gate",
+        "provenance",
+        "preparation_workers",
+        "base_git_commit",
+        "source_kind"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "source_kind": {
+                "const": "git-commit"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source_commit": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "source_kind": {
+                "const": "working-copy"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source_commit": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "attempts"
+        },
+        "observations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "variant": {
+                "enum": [
+                  "numpy",
+                  "fused",
+                  "cuda"
+                ]
+              },
+              "worker": {
+                "type": "string",
+                "minLength": 1
+              },
+              "seconds": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "exit_code": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "variant",
+              "worker",
+              "seconds",
+              "exit_code"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "created_at": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_commit": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "base_git_commit": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "source_kind": {
+              "enum": [
+                "git-commit",
+                "working-copy"
+              ]
+            }
+          },
+          "required": [
+            "created_at",
+            "source_commit",
+            "base_git_commit",
+            "source_kind"
+          ],
+          "additionalProperties": true,
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "source_kind": {
+                    "const": "git-commit"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "source_commit": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{40}$"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "source_kind": {
+                    "const": "working-copy"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "source_commit": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "observations",
+        "provenance"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "comparison"
+        },
+        "complete_results_exact": {
+          "const": true
+        },
+        "prepared_snapshots_exact": {
+          "const": true
+        },
+        "observation_count": {
+          "const": 6
+        },
+        "whole_worker_median_seconds": {
+          "type": "object",
+          "properties": {
+            "numpy": {
+              "type": "number",
+              "minimum": 0
+            },
+            "fused": {
+              "type": "number",
+              "minimum": 0
+            },
+            "cuda": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "numpy",
+            "fused",
+            "cuda"
+          ],
+          "additionalProperties": false
+        },
+        "ratios": {
+          "type": "object",
+          "properties": {
+            "numpy": {
+              "type": "number",
+              "minimum": 0
+            },
+            "fused": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "numpy",
+            "fused"
+          ],
+          "additionalProperties": false
+        },
+        "passes_gate": {
+          "type": "boolean"
+        },
+        "source_binding_git_verified": {
+          "type": "boolean"
+        },
+        "result_sha256": {
+          "type": "object",
+          "minProperties": 12,
+          "maxProperties": 12,
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "created_at": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_commit": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "base_git_commit": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "source_kind": {
+              "enum": [
+                "git-commit",
+                "working-copy"
+              ]
+            }
+          },
+          "required": [
+            "created_at",
+            "source_commit",
+            "base_git_commit",
+            "source_kind"
+          ],
+          "additionalProperties": true,
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "source_kind": {
+                    "const": "git-commit"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "source_commit": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{40}$"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "source_kind": {
+                    "const": "working-copy"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "source_commit": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "complete_results_exact",
+        "prepared_snapshots_exact",
+        "observation_count",
+        "whole_worker_median_seconds",
+        "ratios",
+        "passes_gate",
+        "source_binding_git_verified",
+        "result_sha256",
+        "provenance"
+      ],
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "properties": {
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "elapsed_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "preparation_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "solve_and_save_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "frame_points": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "frame_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "points": {
+                "const": 2000
+              },
+              "rings": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "fraction_on_ring": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": [
+              "frame_id",
+              "points",
+              "rings",
+              "fraction_on_ring"
+            ],
+            "additionalProperties": false
+          },
+          "minItems": 48,
+          "maxItems": 48
+        },
+        "evaluations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "point_rows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "timeline_steps": {
+          "const": 30
+        },
+        "functions": {
+          "const": []
+        },
+        "prepared_capture_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "result_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "config_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "imported_source_sha256": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "image_kernel_sha256": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "software": {
+          "type": "object",
+          "required": [
+            "python",
+            "numpy"
+          ],
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "cuda_cache_empty": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "cuda_driver_cache_disabled": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "created_at": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_commit": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{40}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "base_git_commit": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            "source_kind": {
+              "enum": [
+                "git-commit",
+                "working-copy"
+              ]
+            }
+          },
+          "required": [
+            "created_at",
+            "source_commit",
+            "base_git_commit",
+            "source_kind"
+          ],
+          "additionalProperties": true,
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "source_kind": {
+                    "const": "git-commit"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "source_commit": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{40}$"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "source_kind": {
+                    "const": "working-copy"
+                  }
+                }
+              },
+              "then": {
+                "properties": {
+                  "source_commit": {
+                    "type": "null"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "native_raw_grid_pose_evaluations": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "scope",
+        "elapsed_seconds",
+        "preparation_seconds",
+        "solve_and_save_seconds",
+        "frame_points",
+        "evaluations",
+        "point_rows",
+        "timeline_steps",
+        "functions",
+        "prepared_capture_sha256",
+        "result_sha256",
+        "config_sha256",
+        "imported_source_sha256",
+        "image_kernel_sha256",
+        "software",
+        "cuda_cache_empty",
+        "cuda_driver_cache_disabled",
+        "provenance",
+        "native_raw_grid_pose_evaluations"
+      ],
+      "additionalProperties": false
+    }
+  ]
+}

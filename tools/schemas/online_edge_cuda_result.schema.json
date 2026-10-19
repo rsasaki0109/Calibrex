@@ -1,0 +1,688 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "LevinsonKnownBadProbe": {
+      "properties": {
+        "dof": {
+          "enum": [
+            "x",
+            "y",
+            "z",
+            "roll",
+            "pitch",
+            "yaw"
+          ],
+          "title": "Dof",
+          "type": "string"
+        },
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        },
+        "unit": {
+          "enum": [
+            "m",
+            "deg"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "normalized_objective": {
+          "title": "Normalized Objective",
+          "type": "number"
+        },
+        "score_drop": {
+          "title": "Score Drop",
+          "type": "number"
+        },
+        "detectable": {
+          "title": "Detectable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "dof",
+        "amount",
+        "unit",
+        "normalized_objective",
+        "score_drop",
+        "detectable"
+      ],
+      "title": "LevinsonKnownBadProbe",
+      "type": "object"
+    },
+    "LevinsonObjectiveEvaluation": {
+      "properties": {
+        "raw_objective": {
+          "title": "Raw Objective",
+          "type": "number"
+        },
+        "normalized_objective": {
+          "title": "Normalized Objective",
+          "type": "number"
+        },
+        "projected_point_count": {
+          "title": "Projected Point Count",
+          "type": "integer"
+        },
+        "total_discontinuity_weight": {
+          "title": "Total Discontinuity Weight",
+          "type": "number"
+        },
+        "frame_count": {
+          "title": "Frame Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "raw_objective",
+        "normalized_objective",
+        "projected_point_count",
+        "total_discontinuity_weight",
+        "frame_count"
+      ],
+      "title": "LevinsonObjectiveEvaluation",
+      "type": "object"
+    },
+    "LevinsonOnlineStep": {
+      "properties": {
+        "frame_id": {
+          "title": "Frame Id",
+          "type": "string"
+        },
+        "train_window_frame_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Train Window Frame Ids",
+          "type": "array"
+        },
+        "center_objective": {
+          "title": "Center Objective",
+          "type": "number"
+        },
+        "best_objective": {
+          "title": "Best Objective",
+          "type": "number"
+        },
+        "worsening_fraction": {
+          "title": "Worsening Fraction",
+          "type": "number"
+        },
+        "calibrated_probability": {
+          "title": "Calibrated Probability",
+          "type": "number"
+        },
+        "classified_calibrated": {
+          "title": "Classified Calibrated",
+          "type": "boolean"
+        },
+        "update_applied": {
+          "title": "Update Applied",
+          "type": "boolean"
+        },
+        "selected_grid_offset": {
+          "maxItems": 6,
+          "minItems": 6,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Selected Grid Offset",
+          "type": "array"
+        },
+        "transform_camera_lidar": {
+          "$ref": "#/$defs/SE3"
+        },
+        "projected_point_count": {
+          "title": "Projected Point Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "frame_id",
+        "train_window_frame_ids",
+        "center_objective",
+        "best_objective",
+        "worsening_fraction",
+        "calibrated_probability",
+        "classified_calibrated",
+        "update_applied",
+        "selected_grid_offset",
+        "transform_camera_lidar",
+        "projected_point_count"
+      ],
+      "title": "LevinsonOnlineStep",
+      "type": "object"
+    },
+    "NumericalCurvatureEvaluation": {
+      "properties": {
+        "parameter_dimension": {
+          "title": "Parameter Dimension",
+          "type": "integer"
+        },
+        "objective_at_center": {
+          "title": "Objective At Center",
+          "type": "number"
+        },
+        "finite_difference_steps": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Finite Difference Steps",
+          "type": "array"
+        },
+        "hessian": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Hessian",
+          "type": "array"
+        },
+        "eigenvalues": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Eigenvalues",
+          "type": "array"
+        },
+        "rank": {
+          "title": "Rank",
+          "type": "integer"
+        },
+        "positive_eigenvalue_count": {
+          "title": "Positive Eigenvalue Count",
+          "type": "integer"
+        },
+        "negative_eigenvalue_count": {
+          "title": "Negative Eigenvalue Count",
+          "type": "integer"
+        },
+        "near_zero_eigenvalue_count": {
+          "title": "Near Zero Eigenvalue Count",
+          "type": "integer"
+        },
+        "positive_condition_number": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Positive Condition Number"
+        },
+        "evaluation_count": {
+          "title": "Evaluation Count",
+          "type": "integer"
+        },
+        "rank_tolerance": {
+          "title": "Rank Tolerance",
+          "type": "number"
+        },
+        "diagnostic_kind": {
+          "const": "central_difference_objective_hessian_not_covariance"
+        }
+      },
+      "required": [
+        "parameter_dimension",
+        "objective_at_center",
+        "finite_difference_steps",
+        "hessian",
+        "eigenvalues",
+        "rank",
+        "positive_eigenvalue_count",
+        "negative_eigenvalue_count",
+        "near_zero_eigenvalue_count",
+        "positive_condition_number",
+        "evaluation_count",
+        "rank_tolerance",
+        "diagnostic_kind"
+      ],
+      "title": "NumericalCurvatureEvaluation",
+      "type": "object"
+    },
+    "SE3": {
+      "properties": {
+        "translation_m": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Translation M",
+          "type": "array"
+        },
+        "rotation_quat_xyzw": {
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        }
+      },
+      "required": [
+        "translation_m",
+        "rotation_quat_xyzw"
+      ],
+      "title": "SE3",
+      "type": "object"
+    },
+    "OnlineEdgeExecution": {
+      "properties": {
+        "backend": {
+          "const": "cuda",
+          "title": "Backend",
+          "type": "string"
+        },
+        "runtime": {
+          "title": "Runtime",
+          "type": "string"
+        },
+        "kernel_sha256": {
+          "title": "Kernel Sha256",
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "capture_sha256": {
+          "title": "Capture Sha256",
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "policy": {
+          "title": "Policy",
+          "type": "string"
+        },
+        "grid_calls": {
+          "title": "Grid Calls",
+          "type": "integer",
+          "minimum": 0
+        },
+        "grid_pose_evaluations": {
+          "title": "Grid Pose Evaluations",
+          "type": "integer",
+          "minimum": 0
+        },
+        "cuda_frame_pose_evaluations": {
+          "title": "Cuda Frame Pose Evaluations",
+          "type": "integer",
+          "minimum": 0
+        },
+        "native_frame_pose_evaluations": {
+          "title": "Native Frame Pose Evaluations",
+          "type": "integer",
+          "minimum": 0
+        },
+        "projection_kernel_launches": {
+          "title": "Projection Kernel Launches",
+          "type": "integer",
+          "minimum": 0
+        },
+        "score_readback_bytes": {
+          "title": "Score Readback Bytes",
+          "type": "integer",
+          "minimum": 0
+        },
+        "image_upload_bytes": {
+          "title": "Image Upload Bytes",
+          "type": "integer",
+          "minimum": 0
+        },
+        "geometry_upload_bytes": {
+          "title": "Geometry Upload Bytes",
+          "type": "integer",
+          "minimum": 0
+        },
+        "pose_upload_bytes": {
+          "title": "Pose Upload Bytes",
+          "type": "integer",
+          "minimum": 0
+        },
+        "native_resolved_poses": {
+          "title": "Native Resolved Poses",
+          "type": "integer",
+          "minimum": 0
+        },
+        "native_boundary_poses": {
+          "title": "Native Boundary Poses",
+          "type": "integer",
+          "minimum": 0
+        },
+        "native_comparison_poses": {
+          "title": "Native Comparison Poses",
+          "type": "integer",
+          "minimum": 0
+        },
+        "native_winner_poses": {
+          "title": "Native Winner Poses",
+          "type": "integer",
+          "minimum": 0
+        },
+        "device_snapshot_limit_bytes": {
+          "title": "Device Snapshot Limit Bytes",
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_device_snapshot_bytes": {
+          "title": "Max Device Snapshot Bytes",
+          "type": "integer",
+          "minimum": 0
+        },
+        "owned_device_limit_bytes": {
+          "title": "Owned Device Limit Bytes",
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_scratch_bytes": {
+          "title": "Max Scratch Bytes",
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "backend",
+        "runtime",
+        "kernel_sha256",
+        "capture_sha256",
+        "policy",
+        "grid_calls",
+        "grid_pose_evaluations",
+        "cuda_frame_pose_evaluations",
+        "native_frame_pose_evaluations",
+        "projection_kernel_launches",
+        "score_readback_bytes",
+        "image_upload_bytes",
+        "geometry_upload_bytes",
+        "pose_upload_bytes",
+        "native_resolved_poses",
+        "native_boundary_poses",
+        "native_comparison_poses",
+        "native_winner_poses",
+        "device_snapshot_limit_bytes",
+        "max_device_snapshot_bytes",
+        "owned_device_limit_bytes",
+        "max_scratch_bytes"
+      ],
+      "title": "OnlineEdgeExecution",
+      "type": "object",
+      "additionalProperties": false
+    }
+  },
+  "type": "object",
+  "required": [
+    "result",
+    "provenance"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "result": {
+      "properties": {
+        "status": {
+          "enum": [
+            "tracked",
+            "monitored",
+            "insufficient_observations"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "initial_transform_camera_lidar": {
+          "$ref": "#/$defs/SE3"
+        },
+        "final_transform_camera_lidar": {
+          "$ref": "#/$defs/SE3"
+        },
+        "train_frame_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Train Frame Ids",
+          "type": "array"
+        },
+        "holdout_frame_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Holdout Frame Ids",
+          "type": "array"
+        },
+        "timeline": {
+          "items": {
+            "$ref": "#/$defs/LevinsonOnlineStep"
+          },
+          "title": "Timeline",
+          "type": "array"
+        },
+        "train_evaluation": {
+          "$ref": "#/$defs/LevinsonObjectiveEvaluation"
+        },
+        "holdout_evaluation": {
+          "$ref": "#/$defs/LevinsonObjectiveEvaluation"
+        },
+        "curvature": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NumericalCurvatureEvaluation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "known_bad_probes": {
+          "items": {
+            "$ref": "#/$defs/LevinsonKnownBadProbe"
+          },
+          "title": "Probes",
+          "type": "array"
+        },
+        "method": {
+          "const": "levinson_thrun_online_edge_grid/v0.1"
+        },
+        "paper_doi": {
+          "const": "10.15607/RSS.2013.IX.029"
+        },
+        "paper_url": {
+          "const": "https://roboticsproceedings.org/rss09/p29.pdf"
+        },
+        "frame_convention": {
+          "const": "p_camera = R_camera_lidar p_lidar + t_camera_lidar"
+        },
+        "paper_equations": {
+          "const": {
+            "image_edge_spilloff": 1,
+            "near_depth_discontinuity": 2,
+            "rolling_objective": 3,
+            "calibrated_probability": 4
+          }
+        },
+        "grid_contract": {
+          "const": "radius-one Cartesian grid: 3^6 = 729 candidates"
+        },
+        "holdout_specialization": {
+          "const": "seeded frame-level shadow holdout never participates in tracking updates"
+        },
+        "curvature_claim": {
+          "const": "negative-objective numerical Hessian; not covariance"
+        },
+        "execution": {
+          "$ref": "#/$defs/OnlineEdgeExecution"
+        }
+      },
+      "required": [
+        "status",
+        "reason",
+        "initial_transform_camera_lidar",
+        "final_transform_camera_lidar",
+        "train_frame_ids",
+        "holdout_frame_ids",
+        "timeline",
+        "train_evaluation",
+        "holdout_evaluation",
+        "known_bad_probes",
+        "curvature",
+        "method",
+        "paper_doi",
+        "paper_url",
+        "frame_convention",
+        "paper_equations",
+        "grid_contract",
+        "holdout_specialization",
+        "curvature_claim"
+      ],
+      "title": "LevinsonThrunOnlineResult",
+      "type": "object",
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "created_at",
+        "source_commit",
+        "source_manifest_sha256",
+        "acquisition_receipt_sha256",
+        "launcher_sha256",
+        "scope",
+        "protocol_sha256",
+        "variant",
+        "base_git_commit",
+        "source_kind"
+      ],
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "source_commit": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "acquisition_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "launcher_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "protocol_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "variant": {
+          "enum": [
+            "numpy",
+            "fused",
+            "cuda"
+          ]
+        },
+        "base_git_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "source_kind": {
+          "enum": [
+            "git-commit",
+            "working-copy"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "source_kind": {
+                "const": "git-commit"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source_commit": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{40}$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "source_kind": {
+                "const": "working-copy"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source_commit": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

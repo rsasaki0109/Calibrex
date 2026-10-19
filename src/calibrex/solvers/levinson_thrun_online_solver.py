@@ -11,9 +11,9 @@ from __future__ import annotations
 import itertools
 import math
 from collections import deque
-from collections.abc import Sequence
-from dataclasses import dataclass
-from typing import Literal, TypeAlias
+from collections.abc import Iterator, Sequence
+from dataclasses import asdict, dataclass, replace
+from typing import Literal, Protocol, TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
@@ -29,6 +29,8 @@ FloatArray: TypeAlias = NDArray[np.float64]
 LevinsonStatus = Literal["tracked", "monitored", "insufficient_observations"]
 CameraProjectionKind = Literal["pinhole", "opencv_fisheye"]
 CameraAxes = Literal["optical_z", "forward_x_left_y_up_z"]
+OnlineEdgeBackend = Literal["numpy", "cuda"]
+_GridOffset: TypeAlias = tuple[int, int, int, int, int, int]
 DOF_NAMES = ("x", "y", "z", "roll", "pitch", "yaw")
 
 
@@ -161,6 +163,43 @@ class LevinsonKnownBadProbe:
 
 
 @dataclass(frozen=True)
+class OnlineEdgeExecution:
+    """Software lineage and bounded noncenter-grid execution counters."""
+
+    backend: Literal["cuda"]
+    runtime: str
+    kernel_sha256: str
+    capture_sha256: str
+    policy: str
+    grid_calls: int
+    grid_pose_evaluations: int
+    cuda_frame_pose_evaluations: int
+    native_frame_pose_evaluations: int
+    projection_kernel_launches: int
+    score_readback_bytes: int
+    image_upload_bytes: int
+    geometry_upload_bytes: int
+    pose_upload_bytes: int
+    native_resolved_poses: int
+    native_boundary_poses: int
+    native_comparison_poses: int
+    native_winner_poses: int
+    device_snapshot_limit_bytes: int
+    max_device_snapshot_bytes: int
+    owned_device_limit_bytes: int
+    max_scratch_bytes: int
+
+
+class _RawGridScorer(Protocol):
+    def raw_scores(
+        self,
+        frames: Sequence[LevinsonOnlineFrame],
+        poses: Sequence[SE3],
+        center: LevinsonObjectiveEvaluation,
+    ) -> list[float]: ...
+
+
+@dataclass(frozen=True)
 class LevinsonThrunOnlineResult:
     """Online monitor/tracker result with leakage-free final evidence."""
 
@@ -175,11 +214,12 @@ class LevinsonThrunOnlineResult:
     holdout_evaluation: LevinsonObjectiveEvaluation
     probes: tuple[LevinsonKnownBadProbe, ...]
     curvature: NumericalCurvatureEvaluation | None
+    execution: OnlineEdgeExecution | None = None
 
     def as_dict(self) -> dict[str, object]:
         """Return a schema-safe result with primary-paper provenance."""
 
-        return {
+        result: dict[str, object] = {
             "status": self.status,
             "reason": self.reason,
             "initial_transform_camera_lidar": self.initial_transform_camera_lidar.as_dict(),
@@ -213,10 +253,18 @@ class LevinsonThrunOnlineResult:
             ),
             "curvature_claim": "negative-objective numerical Hessian; not covariance",
         }
+        if self.execution is not None:
+            result["execution"] = asdict(self.execution)
+        return result
 
 
 class LevinsonThrunOnlineSolver:
     """Monitor and greedily track local camera--LiDAR calibration drift."""
+
+    def __init__(self, *, evaluation_backend: OnlineEdgeBackend = "numpy") -> None:
+        if evaluation_backend not in {"numpy", "cuda"}:
+            raise ValueError("online edge evaluation backend must be numpy or cuda")
+        self.evaluation_backend = evaluation_backend
 
     def solve(
         self,
@@ -225,6 +273,23 @@ class LevinsonThrunOnlineSolver:
         options: LevinsonThrunOnlineOptions | None = None,
     ) -> LevinsonThrunOnlineResult:
         solver_options = options or LevinsonThrunOnlineOptions()
+        if self.evaluation_backend == "numpy":
+            return self._solve(frames, initial_transform, solver_options, None)
+        try:
+            from calibrex.solvers.cuda_online_edge_adapter import CudaOnlineEdgeRuntime
+        except ImportError as exc:
+            raise ValueError("CUDA online edge evaluation requires calibrex[cuda]") from exc
+        runtime = CudaOnlineEdgeRuntime(frames)
+        result = self._solve(runtime.frames, initial_transform, solver_options, runtime)
+        return replace(result, execution=runtime.execution())
+
+    def _solve(
+        self,
+        frames: Sequence[LevinsonOnlineFrame],
+        initial_transform: SE3,
+        solver_options: LevinsonThrunOnlineOptions,
+        scorer: _RawGridScorer | None,
+    ) -> LevinsonThrunOnlineResult:
         ordered = list(frames)
         train_indices, holdout_indices = split_indices(
             len(ordered), solver_options.holdout_ratio, seed=solver_options.split_seed
@@ -248,7 +313,10 @@ class LevinsonThrunOnlineSolver:
             if len(train_window) < solver_options.window_size:
                 continue
             step, transform = _evaluate_online_step(
-                list(train_window), transform, solver_options
+                list(train_window),
+                transform,
+                solver_options,
+                scorer=scorer,
             )
             timeline.append(step)
 
@@ -256,9 +324,11 @@ class LevinsonThrunOnlineSolver:
         holdout_evaluation = evaluate_levinson_objective(holdout, transform)
         probes = _known_bad_probes(holdout, transform, solver_options)
         curvature = evaluate_numerical_curvature(
-            lambda values: -evaluate_levinson_objective(
-                holdout, _transform_from_parameters(values)
-            ).normalized_objective,
+            lambda values: (
+                -evaluate_levinson_objective(
+                    holdout, _transform_from_parameters(values)
+                ).normalized_objective
+            ),
             _parameters_from_transform(transform),
             (
                 solver_options.curvature_translation_step_m,
@@ -295,6 +365,7 @@ def levinson_edge_response(
     alpha: float = 1.0 / 3.0,
     gamma: float = 0.98,
     max_radius: int = 64,
+    evaluation_backend: OnlineEdgeBackend = "numpy",
 ) -> FloatArray:
     """Compute the Eq.1 edge image and bounded inverse-distance spilloff.
 
@@ -303,11 +374,15 @@ def levinson_edge_response(
     is at most ``gamma**65`` relative to a source edge.
     """
 
-    image = np.asarray(luminance, dtype=float)
-    if image.ndim != 2 or not np.all(np.isfinite(image)):
-        raise ValueError("luminance must be a finite 2D array")
-    if not 0.0 <= alpha <= 1.0 or not 0.0 < gamma < 1.0 or max_radius < 0:
-        raise ValueError("edge response parameters are invalid")
+    image = _edge_response_input(luminance, alpha, gamma, max_radius)
+    if evaluation_backend == "cuda":
+        try:
+            from calibrex.solvers.cuda_online_edge_adapter import cuda_edge_response
+        except ImportError as exc:
+            raise ValueError("CUDA online edge evaluation requires calibrex[cuda]") from exc
+        return cuda_edge_response(image, alpha=alpha, gamma=gamma, max_radius=max_radius)
+    if evaluation_backend != "numpy":
+        raise ValueError("online edge evaluation backend must be numpy or cuda")
     edge = _maximum_neighbor_difference(image)
     spread = edge.copy()
     frontier = edge.copy()
@@ -315,6 +390,21 @@ def levinson_edge_response(
         frontier = gamma * _maximum_3x3(frontier)
         spread = np.maximum(spread, frontier)
     return alpha * edge + (1.0 - alpha) * spread
+
+
+def _validate_edge_parameters(alpha: float, gamma: float, max_radius: int) -> None:
+    if not 0.0 <= alpha <= 1.0 or not 0.0 < gamma < 1.0 or max_radius < 0:
+        raise ValueError("edge response parameters are invalid")
+
+
+def _edge_response_input(
+    luminance: FloatArray, alpha: float, gamma: float, max_radius: int
+) -> FloatArray:
+    image = np.asarray(luminance, dtype=float)
+    if image.ndim != 2 or not np.all(np.isfinite(image)):
+        raise ValueError("luminance must be a finite 2D array")
+    _validate_edge_parameters(alpha, gamma, max_radius)
+    return image
 
 
 def extract_near_depth_discontinuities(
@@ -375,15 +465,11 @@ def calibrated_probability(
     x = min(1.0, max(0.0, float(worsening_fraction)))
     correct = math.exp(
         -0.5
-        * ((x - solver_options.correct_fraction_mean) / solver_options.correct_fraction_sigma)
-        ** 2
+        * ((x - solver_options.correct_fraction_mean) / solver_options.correct_fraction_sigma) ** 2
     )
     incorrect = math.exp(
         -0.5
-        * (
-            (x - solver_options.incorrect_fraction_mean)
-            / solver_options.incorrect_fraction_sigma
-        )
+        * ((x - solver_options.incorrect_fraction_mean) / solver_options.incorrect_fraction_sigma)
         ** 2
     )
     denominator = correct + incorrect
@@ -394,6 +480,8 @@ def _evaluate_online_step(
     window: Sequence[LevinsonOnlineFrame],
     transform: SE3,
     options: LevinsonThrunOnlineOptions,
+    *,
+    scorer: _RawGridScorer | None = None,
 ) -> tuple[LevinsonOnlineStep, SE3]:
     center = np.asarray(_parameters_from_transform(transform), dtype=float)
     translation_step = options.translation_grid_step_m
@@ -411,21 +499,25 @@ def _evaluate_online_step(
     center_evaluation = evaluate_levinson_objective(window, transform)
     candidates: list[tuple[float, tuple[int, int, int, int, int, int], SE3]] = []
     worse_count = 0
-    for raw_offset in itertools.product((-1, 0, 1), repeat=6):
-        offset = (
-            int(raw_offset[0]),
-            int(raw_offset[1]),
-            int(raw_offset[2]),
-            int(raw_offset[3]),
-            int(raw_offset[4]),
-            int(raw_offset[5]),
-        )
+    grid = _candidate_grid(center, steps, transform)
+    scores: Iterator[float] | None = None
+    if scorer is not None:
+        prepared_grid = tuple(grid)
+        poses = tuple(pose for offset, pose in prepared_grid if offset != (0, 0, 0, 0, 0, 0))
+        evaluated = scorer.raw_scores(window, poses, center_evaluation)
+        if len(evaluated) != len(poses):
+            raise ValueError("online grid score batch has an incorrect length")
+        scores = iter(evaluated)
+        grid = iter(prepared_grid)
+    for offset, candidate_transform in grid:
         if offset == (0, 0, 0, 0, 0, 0):
             score = center_evaluation.raw_objective
-            candidate_transform = transform
         else:
-            candidate_transform = _transform_from_parameters(center + np.asarray(offset) * steps)
-            score = evaluate_levinson_objective(window, candidate_transform).raw_objective
+            score = (
+                evaluate_levinson_objective(window, candidate_transform).raw_objective
+                if scores is None
+                else next(scores)
+            )
             worse_count += int(score < center_evaluation.raw_objective)
         candidates.append((score, offset, candidate_transform))
     best_score, best_offset, best_transform = max(candidates, key=lambda item: item[0])
@@ -457,6 +549,21 @@ def _evaluate_online_step(
         ),
         output_transform,
     )
+
+
+def _candidate_grid(
+    center: FloatArray,
+    steps: FloatArray,
+    transform: SE3,
+) -> Iterator[tuple[_GridOffset, SE3]]:
+    for raw in itertools.product((-1, 0, 1), repeat=6):
+        offset = (int(raw[0]), int(raw[1]), int(raw[2]), int(raw[3]), int(raw[4]), int(raw[5]))
+        pose = (
+            transform
+            if offset == (0, 0, 0, 0, 0, 0)
+            else _transform_from_parameters(center + np.asarray(offset) * steps)
+        )
+        yield offset, pose
 
 
 def _known_bad_probes(
@@ -497,9 +604,8 @@ def _project_response(
     frame: LevinsonOnlineFrame, transform_camera_lidar: SE3
 ) -> tuple[FloatArray, FloatArray]:
     rotation = _rotation_matrix(transform_camera_lidar)
-    translated = (
-        frame.lidar_points @ rotation.T
-        + np.asarray(transform_camera_lidar.translation_m, dtype=float)
+    translated = frame.lidar_points @ rotation.T + np.asarray(
+        transform_camera_lidar.translation_m, dtype=float
     )
     if frame.camera.axes == "forward_x_left_y_up_z":
         points = np.column_stack((-translated[:, 1], -translated[:, 2], translated[:, 0]))
@@ -517,20 +623,13 @@ def _project_response(
         theta = np.arctan(radius)
         k1, k2, k3, k4 = frame.camera.distortion
         theta2 = theta * theta
-        distorted = theta * (
-            1.0 + theta2 * (k1 + theta2 * (k2 + theta2 * (k3 + theta2 * k4)))
-        )
+        distorted = theta * (1.0 + theta2 * (k1 + theta2 * (k2 + theta2 * (k3 + theta2 * k4))))
         scale = np.divide(distorted, radius, out=np.ones_like(radius), where=radius > 1e-12)
         x *= scale
         y *= scale
     u = frame.camera.fx * x + frame.camera.cx
     v = frame.camera.fy * y + frame.camera.cy
-    inside = (
-        (u >= 0.0)
-        & (v >= 0.0)
-        & (u < frame.camera.width - 1)
-        & (v < frame.camera.height - 1)
-    )
+    inside = (u >= 0.0) & (v >= 0.0) & (u < frame.camera.width - 1) & (v < frame.camera.height - 1)
     u, v, weights = u[inside], v[inside], weights[inside]
     if not u.size:
         return np.empty(0), np.empty(0)
@@ -555,9 +654,7 @@ def _maximum_neighbor_difference(image: FloatArray) -> FloatArray:
         for column_shift in range(3):
             if row_shift == 1 and column_shift == 1:
                 continue
-            neighbor = padded[
-                row_shift : row_shift + height, column_shift : column_shift + width
-            ]
+            neighbor = padded[row_shift : row_shift + height, column_shift : column_shift + width]
             result = np.maximum(result, np.abs(image - neighbor))
     return result
 
