@@ -27,7 +27,7 @@ compensated, which limits how small a rotation error can be resolved.
 from __future__ import annotations
 
 import math
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Generator, Sequence
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Literal, TypeAlias
@@ -245,8 +245,15 @@ class EdgeAlignmentOptions:
     # observed at the current optimum. Unobserved axes do not veto it. None retains
     # the v2 adoption rule; 3.5 is a development proposal, not a validated default.
     start_scan_min_control_t: float | None = None
+    preparation_workers: int = 1
 
     def __post_init__(self) -> None:
+        if (
+            isinstance(self.preparation_workers, bool)
+            or not isinstance(self.preparation_workers, int)
+            or not 1 <= self.preparation_workers <= 32
+        ):
+            raise ValueError("edge preparation workers must be an integer between 1 and 32")
         if len(self.rotation_levels_deg) != len(self.translation_levels_m):
             raise ValueError("rotation and translation search levels must match")
         if self.blocks < 3 or self.min_frames < self.blocks:
@@ -584,6 +591,63 @@ def _body_frame_diagnosis(
     ]
 
 
+_EdgeInputs: TypeAlias = tuple[Float32Array, int, Float32Array, Float32Array, int, float] | None
+
+
+def _prepare_edge_inputs(frame: CameraLidarFrame, options: EdgeAlignmentOptions) -> _EdgeInputs:
+    response = image_edge_response(
+        frame.image,
+        max_width=options.image_max_width,
+        gamma=options.spill_gamma,
+        radius=options.spill_radius_px,
+        background_sigma=options.edge_background_sigma_px,
+    )
+    if response is None:
+        return None
+    points, weights, rings, on_beam = lidar_depth_edges(
+        frame.points,
+        min_jump_m=options.min_jump_m,
+        exponent=options.jump_exponent,
+        max_points=options.max_edge_points_per_frame,
+        min_ring_fraction=options.min_ring_fraction,
+        unstructured=options.unstructured_lidar,
+    )
+    edge, scale = response
+    return edge, scale, points, weights, rings, on_beam
+
+
+def _ordered_edge_inputs(
+    frames: Sequence[CameraLidarFrame], options: EdgeAlignmentOptions
+) -> Generator[_EdgeInputs, None, None]:
+    workers = min(options.preparation_workers, len(frames))
+    if workers <= 1:
+        for frame in frames:
+            yield _prepare_edge_inputs(frame, options)
+        return
+    from collections import deque
+    from concurrent.futures import Future, ThreadPoolExecutor
+    from itertools import islice
+
+    executor = ThreadPoolExecutor(max_workers=workers, thread_name_prefix="calibrex-offline-edge")
+    remaining = iter(frames)
+    pending: deque[Future[_EdgeInputs]] = deque()
+    try:
+        pending.extend(
+            executor.submit(_prepare_edge_inputs, frame, options)
+            for frame in islice(remaining, workers)
+        )
+        while pending:
+            result = pending.popleft().result()
+            yield result
+            # Limit retained futures/results to the worker count. Do not queue
+            # the complete recording while earlier frames are being consumed.
+            next_frame = next(remaining, None)
+            if next_frame is not None:
+                pending.append(executor.submit(_prepare_edge_inputs, next_frame, options))
+    finally:
+        executor.shutdown(wait=True, cancel_futures=True)
+
+
 def prepare_frames(
     frames: Sequence[CameraLidarFrame],
     camera: EdgeCamera,
@@ -598,72 +662,61 @@ def prepare_frames(
     rotation = candidate[:3, :3]
     translation = candidate[:3, 3]
     last_view: Float32Array | None = None
-    for index, frame in enumerate(frames):
-        emit_tick(index + 1, len(frames))
-        response = image_edge_response(
-            frame.image,
-            max_width=options.image_max_width,
-            gamma=options.spill_gamma,
-            radius=options.spill_radius_px,
-            background_sigma=options.edge_background_sigma_px,
-        )
-        if response is None:
-            dropped.append(f"t={frame.time_s:.1f}s: the image has no edges")
-            continue
-        edge, scale = response
-        points, weights, rings, on_beam = lidar_depth_edges(
-            frame.points,
-            min_jump_m=options.min_jump_m,
-            exponent=options.jump_exponent,
-            max_points=options.max_edge_points_per_frame,
-            min_ring_fraction=options.min_ring_fraction,
-            unstructured=options.unstructured_lidar,
-        )
-        if points.shape[0] == 0:
-            dropped.append(
-                f"t={frame.time_s:.1f}s: no beam structure in the cloud ({rings} elevation "
-                f"clusters, {on_beam:.0%} of points on a beam)"
-            )
-            continue
-        camera_points = points.astype(np.float64) @ rotation.T + translation
-        u, v, valid = camera.project(camera_points)
-        margin = options.image_margin_px
-        height, width = frame.image.shape
-        inside = (
-            valid
-            & (u > -margin)
-            & (v > -margin)
-            & (u < width - 1 + margin)
-            & (v < height - 1 + margin)
-        )
-        if int(inside.sum()) < options.min_edge_points_per_frame:
-            dropped.append(
-                f"t={frame.time_s:.1f}s: only {int(inside.sum())} LiDAR edge points "
-                "fall in the image under the candidate"
-            )
-            continue
-        view = frame.image[::4, ::4].astype(np.float32)
-        if options.repeated_view_change is not None and rings > 0 and last_view is not None:
-            change = float(np.mean(np.abs(view - last_view))) / 255.0
-            if view.shape == last_view.shape and change < options.repeated_view_change:
+    pending = _ordered_edge_inputs(frames, options)
+    try:
+        for index, (frame, inputs) in enumerate(zip(frames, pending, strict=True)):
+            emit_tick(index + 1, len(frames))
+            if inputs is None:
+                dropped.append(f"t={frame.time_s:.1f}s: the image has no edges")
+                continue
+            edge, scale, points, weights, rings, on_beam = inputs
+            if points.shape[0] == 0:
                 dropped.append(
-                    f"t={frame.time_s:.1f}s: repeats the last kept view (image change "
-                    f"{change:.3f} < {options.repeated_view_change:g}; a spinning LiDAR at a "
-                    "standing rig adds no view)"
+                    f"t={frame.time_s:.1f}s: no beam structure in the cloud ({rings} elevation "
+                    f"clusters, {on_beam:.0%} of points on a beam)"
                 )
                 continue
-        last_view = view
-        prepared.append(
-            PreparedFrame(
-                time_s=frame.time_s,
-                gap_s=frame.gap_s,
-                edge=edge,
-                scale=scale,
-                points=points[inside],
-                weights=weights[inside],
-                rings=rings,
+            camera_points = points.astype(np.float64) @ rotation.T + translation
+            u, v, valid = camera.project(camera_points)
+            margin = options.image_margin_px
+            height, width = frame.image.shape
+            inside = (
+                valid
+                & (u > -margin)
+                & (v > -margin)
+                & (u < width - 1 + margin)
+                & (v < height - 1 + margin)
             )
-        )
+            if int(inside.sum()) < options.min_edge_points_per_frame:
+                dropped.append(
+                    f"t={frame.time_s:.1f}s: only {int(inside.sum())} LiDAR edge points "
+                    "fall in the image under the candidate"
+                )
+                continue
+            view = frame.image[::4, ::4].astype(np.float32)
+            if options.repeated_view_change is not None and rings > 0 and last_view is not None:
+                change = float(np.mean(np.abs(view - last_view))) / 255.0
+                if view.shape == last_view.shape and change < options.repeated_view_change:
+                    dropped.append(
+                        f"t={frame.time_s:.1f}s: repeats the last kept view (image change "
+                        f"{change:.3f} < {options.repeated_view_change:g}; a spinning LiDAR at a "
+                        "standing rig adds no view)"
+                    )
+                    continue
+            last_view = view
+            prepared.append(
+                PreparedFrame(
+                    time_s=frame.time_s,
+                    gap_s=frame.gap_s,
+                    edge=edge,
+                    scale=scale,
+                    points=points[inside],
+                    weights=weights[inside],
+                    rings=rings,
+                )
+            )
+    finally:
+        pending.close()
     return prepared, dropped
 
 
