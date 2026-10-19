@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Add opt-in CUDA image spilloff and guarded rolling-grid evaluation for the
+  Levinson–Thrun camera–LiDAR tracker. Retain native ambiguous comparisons,
+  finalists, holdout controls and curvature, and preserve default CPU result
+  serialization. Replace dense beam assignment with exact sorted-neighbor
+  lookup. Overlap CUDA initialization with ordered CPU preparation, with
+  optional parallel loading. Add complete-worker CPU/CUDA comparison and
+  CPU-only audit tools.
+
 - Redact Windows drive and UNC paths in check and estimate HTML reports on
   either platform, and write rosbag2 metadata with LF line endings on every
   platform. Keep cache-home and SQLite filename tests portable, and compare

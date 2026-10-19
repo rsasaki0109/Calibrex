@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import math
+import subprocess
+import sys
 
 import numpy as np
+import pytest
 from numpy.typing import NDArray
 
 from calibrex.core.geometry import SE3, quaternion_xyzw_from_rotation_matrix
@@ -16,6 +19,39 @@ from calibrex.solvers.levinson_thrun_online_solver import (
     extract_near_depth_discontinuities,
     levinson_edge_response,
 )
+
+
+def test_default_backend_does_not_import_cuda() -> None:
+    subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import sys; from calibrex.solvers.levinson_thrun_online_solver import "
+            "LevinsonThrunOnlineSolver; from calibrex.core.geometry import SE3; "
+            "result = LevinsonThrunOnlineSolver().solve([], SE3.identity()); "
+            "assert result.status == 'insufficient_observations'; "
+            "assert result.execution is None; assert 'execution' not in result.as_dict(); "
+            "assert 'cupy' not in sys.modules; "
+            "assert 'calibrex.solvers.cuda_online_edge_adapter' not in sys.modules",
+        ],
+        check=True,
+        capture_output=True,
+    )
+
+
+def test_invalid_backend_is_rejected() -> None:
+    with pytest.raises(ValueError, match="numpy or cuda"):
+        LevinsonThrunOnlineSolver(evaluation_backend="unknown")
+    with pytest.raises(ValueError, match="numpy or cuda"):
+        levinson_edge_response(np.zeros((3, 3)), evaluation_backend="unknown")
+
+
+def test_requested_cuda_requires_optional_adapter(monkeypatch) -> None:
+    monkeypatch.setitem(sys.modules, "calibrex.solvers.cuda_online_edge_adapter", None)
+    with pytest.raises(ValueError, match=r"requires calibrex\[cuda\]"):
+        LevinsonThrunOnlineSolver(evaluation_backend="cuda").solve([], SE3.identity())
+    with pytest.raises(ValueError, match=r"requires calibrex\[cuda\]"):
+        levinson_edge_response(np.zeros((3, 3)), evaluation_backend="cuda")
 
 
 def test_levinson_image_and_lidar_preprocessing_contract() -> None:
@@ -72,9 +108,9 @@ def test_levinson_tracker_recovers_local_six_dof_offset() -> None:
 
     assert result.status == "tracked"
     assert any(step.update_applied for step in result.timeline)
-    assert math.dist(
-        result.final_transform_camera_lidar.translation_m, truth.translation_m
-    ) <= 0.011
+    assert (
+        math.dist(result.final_transform_camera_lidar.translation_m, truth.translation_m) <= 0.011
+    )
     assert _rotation_error_deg(result.final_transform_camera_lidar, truth) <= 0.11
     assert result.holdout_evaluation.normalized_objective > initial_score.normalized_objective
     assert sum(probe.detectable for probe in result.probes) >= 8
@@ -84,9 +120,7 @@ def test_levinson_monitor_rejects_sudden_miscalibration_without_tracking() -> No
     nominal = SE3.identity()
     shifted = _transform(0.1, 0.0, 0.0, 0.0, 0.0, 0.25)
     frames = _frames_for_truths([nominal] * 10 + [shifted] * 10)
-    result = LevinsonThrunOnlineSolver().solve(
-        frames, nominal, _options(tracking_enabled=False)
-    )
+    result = LevinsonThrunOnlineSolver().solve(frames, nominal, _options(tracking_enabled=False))
 
     before = [
         step.calibrated_probability
@@ -105,8 +139,7 @@ def test_levinson_monitor_rejects_sudden_miscalibration_without_tracking() -> No
 
 def test_levinson_tracker_follows_gradual_rotational_drift() -> None:
     truths = [
-        _transform(0.0, 0.0, 0.0, 0.02 * index, -0.02 * index, 0.02 * index)
-        for index in range(18)
+        _transform(0.0, 0.0, 0.0, 0.02 * index, -0.02 * index, 0.02 * index) for index in range(18)
     ]
     frames = _frames_for_truths(truths)
 
@@ -114,9 +147,7 @@ def test_levinson_tracker_follows_gradual_rotational_drift() -> None:
         frames, SE3.identity(), _options(tracking_enabled=True)
     )
 
-    truth_by_frame = {
-        frame.frame_id: truth for frame, truth in zip(frames, truths, strict=True)
-    }
+    truth_by_frame = {frame.frame_id: truth for frame, truth in zip(frames, truths, strict=True)}
     tracked_errors = [
         _rotation_error_deg(step.transform_camera_lidar, truth_by_frame[step.frame_id])
         for step in result.timeline
@@ -221,9 +252,7 @@ def _transform(
             (-sp, cp * sr, cp * cr),
         )
     )
-    return SE3(
-        (x, y, z), quaternion_xyzw_from_rotation_matrix(rotation.reshape(-1))
-    )
+    return SE3((x, y, z), quaternion_xyzw_from_rotation_matrix(rotation.reshape(-1)))
 
 
 def _rotation_error_deg(left: SE3, right: SE3) -> float:

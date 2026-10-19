@@ -357,6 +357,29 @@ def _ring_centers(elevation_deg: FloatArray) -> FloatArray:
     return np.asarray(merged, dtype=np.float64)
 
 
+def _nearest_ring_indices(elevation: FloatArray, centers: FloatArray) -> NDArray[np.intp]:
+    """Preserve dense argmin's first-index ties with two sorted neighbors.
+
+    Recovered beam centers are separated by more than 0.12 degrees. The much
+    weaker spacing/range guard below also keeps rounded-distance ties from
+    extending beyond the two adjacent centers. Unusual inputs retain argmin.
+    """
+    if (
+        not np.all(np.isfinite(elevation))
+        or not np.all(np.isfinite(centers))
+        or np.max(np.abs(elevation), initial=0.0) > 180.0
+        or np.max(np.abs(centers), initial=0.0) > 180.0
+        or not np.all(np.diff(centers) > 1e-9)
+    ):
+        return np.abs(elevation[:, None] - centers[None, :]).argmin(axis=1)
+    insertion = np.searchsorted(centers, elevation, side="left")
+    left = np.maximum(insertion - 1, 0)
+    right = np.minimum(insertion, len(centers) - 1)
+    left_distance = np.abs(elevation - centers[left])
+    right_distance = np.abs(elevation - centers[right])
+    return np.where(left_distance <= right_distance, left, right)
+
+
 def lidar_depth_edges(
     points: Float32Array,
     *,
@@ -392,7 +415,7 @@ def lidar_depth_edges(
             xyz, ranges, min_jump_m=min_jump_m, exponent=exponent, max_points=max_points
         )
         return edge_points, weights, 0, 0.0
-    ring = np.abs(elevation[:, None] - centers[None, :]).argmin(axis=1)
+    ring = _nearest_ring_indices(elevation, centers)
     on_beam = float(np.mean(np.abs(elevation - centers[ring]) < 0.08))
     if on_beam < min_ring_fraction:
         if not unstructured:

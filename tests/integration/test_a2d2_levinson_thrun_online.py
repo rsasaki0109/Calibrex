@@ -27,12 +27,25 @@ requires_a2d2_pair = pytest.mark.skipif(
 
 
 @requires_a2d2_pair
+@pytest.mark.parametrize("backend,workers", [("numpy", 1), ("numpy", 3), ("cuda", 3)])
 def test_native_levinson_pipeline_records_honest_inconclusive_evidence(
     tmp_path: Path,
+    backend: str,
+    workers: int,
 ) -> None:
+    if backend == "cuda":
+        cp = pytest.importorskip("cupy")
+        try:
+            if cp.cuda.runtime.getDeviceCount() < 1:
+                pytest.skip("requires a CUDA device")
+        except cp.cuda.runtime.CUDARuntimeError:
+            pytest.skip("requires a CUDA device")
     payload = yaml.safe_load(_CONFIG.read_text(encoding="utf-8"))
     payload["dataset"]["path"] = str(_DATASET)
     payload["project"]["output_dir"] = str(tmp_path / "outputs")
+    options = payload["pipeline"]["factors"]["lidar_camera_depth_edge_alignment"]["options"]
+    options["evaluation_backend"] = backend
+    options["preparation_workers"] = workers
     config_path = tmp_path / "config.yaml"
     config_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
 
@@ -57,3 +70,9 @@ def test_native_levinson_pipeline_records_honest_inconclusive_evidence(
     assert len(provenance["raw_input_files"]) == 5
     assert provenance["data_verified"] is True
     assert all(item["sha256"] for item in provenance["raw_input_files"])
+    if workers != 1:
+        assert provenance["extraction"]["preparation_workers"] == workers
+    if backend == "cuda":
+        assert provenance["extraction"]["edge_evaluation_backend"] == "cuda"
+        assert levinson["execution"]["cuda_frame_pose_evaluations"] == 0
+        assert levinson["execution"]["native_frame_pose_evaluations"] == 728
