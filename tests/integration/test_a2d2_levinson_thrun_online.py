@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
+import numpy as np
 import pytest
 import yaml
 
@@ -83,3 +85,40 @@ def test_native_levinson_pipeline_records_honest_inconclusive_evidence(
         assert levinson["execution"]["backend"] == "numba"
         assert levinson["execution"]["numba_frame_pose_evaluations"] == 0
         assert levinson["execution"]["native_frame_pose_evaluations"] > 728
+
+
+@requires_a2d2_pair
+def test_array_loading_preserves_the_complete_public_calibration(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from tools.benchmark_png_luminance import comparable
+
+    from calibrex.data.kitti import read_png_luminance
+    from calibrex.solvers import native_levinson_thrun_online_solver as adapter
+
+    payload = yaml.safe_load(_CONFIG.read_text(encoding="utf-8"))
+    payload["dataset"]["path"] = str(_DATASET)
+    options = payload["pipeline"]["factors"]["lidar_camera_depth_edge_alignment"]["options"]
+    options["evaluation_backend"] = "numpy"
+    options["preparation_workers"] = 3
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+    original = adapter.read_png_luminance_array
+
+    def rows_control(path: str | Path):
+        image = read_png_luminance(path)
+        return None if image is None else np.asarray(image.rows, dtype=np.float64)
+
+    monkeypatch.setattr(adapter, "read_png_luminance_array", rows_control)
+    baseline_path = tmp_path / "rows"
+    baseline = run_calibration(config_path, CalibrationRunOptions(output_dir=baseline_path))
+    monkeypatch.setattr(adapter, "read_png_luminance_array", original)
+    candidate_path = tmp_path / "array"
+    candidate = run_calibration(config_path, CalibrationRunOptions(output_dir=candidate_path))
+    assert baseline is not None and candidate is not None
+    # Normalize only run/source metadata and declared output paths; JSON keeps
+    # signed zero and every serialized float in all metrics/controls/provenance.
+    first = comparable(baseline.model_dump(mode="json"), str(baseline_path))
+    second = comparable(candidate.model_dump(mode="json"), str(candidate_path))
+    assert json.dumps(first, sort_keys=True) == json.dumps(second, sort_keys=True)
