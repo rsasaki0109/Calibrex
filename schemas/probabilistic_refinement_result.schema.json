@@ -332,6 +332,82 @@
       "title": "ProbabilisticRefinementEvaluationArtifact",
       "type": "object"
     },
+    "ProbabilisticRefinementExecution": {
+      "additionalProperties": false,
+      "description": "Optional accelerator lineage; numerical estimator options stay separate.",
+      "properties": {
+        "backend": {
+          "const": "cuda",
+          "title": "Backend",
+          "type": "string"
+        },
+        "calls": {
+          "minimum": 0,
+          "title": "Calls",
+          "type": "integer"
+        },
+        "cuda_calls": {
+          "minimum": 0,
+          "title": "Cuda Calls",
+          "type": "integer"
+        },
+        "download_bytes": {
+          "minimum": 0,
+          "title": "Download Bytes",
+          "type": "integer"
+        },
+        "kernel_launches": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Kernel Launches",
+          "type": "integer"
+        },
+        "kernel_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Kernel Sha256",
+          "type": "string"
+        },
+        "math_policy": {
+          "const": "fp64_no_fmad_numpy_reductions",
+          "default": "fp64_no_fmad_numpy_reductions",
+          "title": "Math Policy",
+          "type": "string"
+        },
+        "numpy_fallback_calls": {
+          "minimum": 0,
+          "title": "Numpy Fallback Calls",
+          "type": "integer"
+        },
+        "pose_upload_bytes": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Pose Upload Bytes",
+          "type": "integer"
+        },
+        "runtime": {
+          "minLength": 1,
+          "title": "Runtime",
+          "type": "string"
+        },
+        "upload_bytes": {
+          "minimum": 0,
+          "title": "Upload Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "backend",
+        "runtime",
+        "kernel_sha256",
+        "calls",
+        "cuda_calls",
+        "numpy_fallback_calls",
+        "upload_bytes",
+        "download_bytes"
+      ],
+      "title": "ProbabilisticRefinementExecution",
+      "type": "object"
+    },
     "ProbabilisticRefinementIterationArtifact": {
       "additionalProperties": false,
       "description": "One retained bounded pose candidate.",
@@ -434,6 +510,17 @@
         "created_at": {
           "title": "Created At",
           "type": "string"
+        },
+        "execution": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProbabilisticRefinementExecution"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "generator": {
           "title": "Generator",

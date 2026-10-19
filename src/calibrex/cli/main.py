@@ -1938,6 +1938,10 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     probabilistic_multiframe.add_argument("--output", type=Path, required=True)
     probabilistic_multiframe.add_argument("--result-id")
+    probabilistic_multiframe.add_argument(
+        "--evaluation-backend", choices=("numpy", "cuda"), default="numpy",
+        help="point evaluation runtime; CUDA keeps native NumPy reductions",
+    )
     probabilistic_multiframe.add_argument("--minimum-confidence", type=float, default=0.25)
     probabilistic_multiframe.add_argument("--holdout-ratio", type=float, default=0.25)
     probabilistic_multiframe.add_argument("--split-seed", type=int, default=0)
@@ -2155,6 +2159,10 @@ def _build_parser() -> argparse.ArgumentParser:
         help="comma-separated deterministic frame-split seeds",
     )
     probabilistic_ablation.add_argument("--bootstrap-samples", type=_positive_int, default=2000)
+    probabilistic_ablation.add_argument(
+        "--evaluation-backend", choices=("numpy", "cuda"), default="numpy",
+        help="CUDA reuses verified input snapshots across all ablation fits",
+    )
     probabilistic_ablation.add_argument("--json", action="store_true")
     probabilistic_ablation.set_defaults(func=_cmd_camera_lidar_benchmark_probabilistic_ablation)
     probabilistic_falsification = camera_lidar_subcommands.add_parser(
@@ -6861,6 +6869,8 @@ def _cmd_camera_lidar_refine_probabilistic_multiframe(
             "--split-seed",
             str(args.split_seed),
         ]
+        if args.evaluation_backend != "numpy":
+            command.extend(["--evaluation-backend", args.evaluation_backend])
         if args.initial_trace is not None:
             command.extend(["--initial-trace", str(args.initial_trace)])
         if args.confidence_calibration is not None:
@@ -6872,6 +6882,7 @@ def _cmd_camera_lidar_refine_probabilistic_multiframe(
             confidence_calibration_path=args.confidence_calibration,
             result_id=args.result_id,
             options=options,
+            evaluation_backend=args.evaluation_backend,
             command=command,
         )
         result.save(args.output)
@@ -7266,6 +7277,8 @@ def _cmd_camera_lidar_benchmark_probabilistic_ablation(
         f"{args.definition_output} --output {args.output} "
         f"--split-seeds {args.split_seeds}"
     )
+    if args.evaluation_backend != "numpy":
+        command += f" --evaluation-backend {args.evaluation_backend}"
     if args.initial_trace is not None:
         command += f" --initial-trace {args.initial_trace}"
     try:
@@ -7277,6 +7290,7 @@ def _cmd_camera_lidar_benchmark_probabilistic_ablation(
             command=command,
             split_seeds=seeds,
             bootstrap_samples=args.bootstrap_samples,
+            evaluation_backend=args.evaluation_backend,
         )
         definition.save(args.definition_output)
         benchmark.save(args.output)

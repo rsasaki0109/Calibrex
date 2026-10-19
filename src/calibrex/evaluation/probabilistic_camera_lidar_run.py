@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import math
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from calibrex.core.camera_lidar_artifacts import (
+    CameraLidarCalibrationProblem,
     load_calibration_candidate_trace,
     load_camera_lidar_problem,
 )
@@ -15,6 +16,7 @@ from calibrex.core.camera_lidar_confidence_calibration import (
     load_camera_lidar_confidence_calibration,
 )
 from calibrex.core.probabilistic_correspondence import (
+    ProbabilisticCorrespondenceArtifact,
     ProbabilisticRefinementAcceptanceArtifact,
     ProbabilisticRefinementEvaluationArtifact,
     ProbabilisticRefinementIterationArtifact,
@@ -28,13 +30,66 @@ from calibrex.evaluation.camera_lidar_confidence_calibration import (
     refinement_options_from_camera_lidar_confidence_calibration,
 )
 from calibrex.solvers.probabilistic_camera_lidar_refiner import (
+    PoseEvaluationBackend,
     ProbabilisticCameraLidarRefinementOptions,
     ProbabilisticCameraLidarRefinementResult,
     ProbabilisticCameraLidarRefiner,
     ProbabilisticPoseEvaluation,
 )
 
+if TYPE_CHECKING:
+    from calibrex.solvers.cuda_probabilistic_camera_lidar_adapter import (
+        CudaProbabilisticPoseRuntime,
+    )
+
+
 PROBABILISTIC_CAMERA_LIDAR_RUN_VERSION = "0.3"
+
+
+@dataclass(frozen=True)
+class _RefinementInputs:
+    """Private, validated snapshot owned by one artifact run or ablation call.
+
+    Calibrex consumers only read these models. No caller-owned model is cached,
+    and file digests are checked before and after every use.
+    """
+
+    correspondence_file: Path
+    problem_file: Path
+    correspondence: ProbabilisticCorrespondenceArtifact
+    problem: CameraLidarCalibrationProblem
+    correspondence_digest: str
+    problem_digest: str
+
+    def verify(self) -> None:
+        if (
+            sha256_path(self.correspondence_file) != self.correspondence_digest
+            or sha256_path(self.problem_file) != self.problem_digest
+        ):
+            raise ValueError("probabilistic refinement inputs changed during this run")
+
+
+def _load_refinement_inputs(
+    correspondence_path: str | Path,
+    initialization_problem_path: str | Path,
+) -> _RefinementInputs:
+    correspondence_file = Path(correspondence_path).absolute()
+    problem_file = Path(initialization_problem_path).absolute()
+    if not correspondence_file.is_file() or not problem_file.is_file():
+        raise ValueError("probabilistic refinement inputs must be readable files")
+    correspondence_digest = sha256_path(correspondence_file)
+    problem_digest = sha256_path(problem_file)
+    assert correspondence_digest is not None and problem_digest is not None
+    inputs = _RefinementInputs(
+        correspondence_file,
+        problem_file,
+        load_probabilistic_correspondence(correspondence_file),
+        load_camera_lidar_problem(problem_file),
+        correspondence_digest,
+        problem_digest,
+    )
+    inputs.verify()
+    return inputs
 
 
 def run_probabilistic_camera_lidar_refinement(
@@ -45,34 +100,53 @@ def run_probabilistic_camera_lidar_refinement(
     confidence_calibration_path: str | Path | None = None,
     result_id: str | None = None,
     options: ProbabilisticCameraLidarRefinementOptions | None = None,
+    evaluation_backend: PoseEvaluationBackend = "numpy",
     command: list[str] | None = None,
 ) -> ProbabilisticRefinementResultArtifact:
     """Run refinement from a problem pose or validated D2D output trace."""
+    return _run_refinement_inputs(
+        _load_refinement_inputs(correspondence_path, initialization_problem_path),
+        initialization_trace_path=initialization_trace_path,
+        confidence_calibration_path=confidence_calibration_path,
+        result_id=result_id,
+        options=options,
+        evaluation_backend=evaluation_backend,
+        command=command,
+    )
 
-    correspondence_file = Path(correspondence_path)
-    problem_file = Path(initialization_problem_path)
-    correspondence = load_probabilistic_correspondence(correspondence_file)
-    problem = load_camera_lidar_problem(problem_file)
+
+def _run_refinement_inputs(
+    inputs: _RefinementInputs,
+    *,
+    initialization_trace_path: str | Path | None = None,
+    confidence_calibration_path: str | Path | None = None,
+    result_id: str | None = None,
+    options: ProbabilisticCameraLidarRefinementOptions | None = None,
+    evaluation_backend: PoseEvaluationBackend = "numpy",
+    command: list[str] | None = None,
+    runtime: CudaProbabilisticPoseRuntime | None = None,
+) -> ProbabilisticRefinementResultArtifact:
+    inputs.verify()
+    correspondence = inputs.correspondence
+    problem = inputs.problem
+    correspondence_digest = inputs.correspondence_digest
+    problem_digest = inputs.problem_digest
     if correspondence.dataset_id != problem.dataset_id:
         raise ValueError(
             "probabilistic correspondence and initialization problem dataset IDs differ"
         )
-    correspondence_digest = sha256_path(correspondence_file)
-    problem_digest = sha256_path(problem_file)
-    if correspondence_digest is None or problem_digest is None:
-        raise ValueError("probabilistic refinement inputs must be readable files")
     problem_frame_ids = {item.frame_id for item in problem.observations}
     correspondence_frame_ids = {item.frame_id for item in correspondence.frames}
     missing = sorted(correspondence_frame_ids - problem_frame_ids)
     if missing:
         raise ValueError(
-            "correspondence frames are absent from initialization problem: "
-            + ", ".join(missing)
+            "correspondence frames are absent from initialization problem: " + ", ".join(missing)
         )
     frames = tuple(correspondence.frames)
-    if len({item.camera_frame for item in frames}) != 1 or len(
-        {item.lidar_frame for item in frames}
-    ) != 1:
+    if (
+        len({item.camera_frame for item in frames}) != 1
+        or len({item.lidar_frame for item in frames}) != 1
+    ):
         raise ValueError("all correspondence frames must share camera/LiDAR IDs")
     camera_frame = frames[0].camera_frame
     lidar_frame = frames[0].lidar_frame
@@ -98,51 +172,33 @@ def run_probabilistic_camera_lidar_refinement(
             raise ValueError(
                 "legacy support-only confidence calibrations cannot be used at runtime"
             )
-        locked_calibration_options = (
-            confidence_calibration.locked_refinement_options
-        )
-        if (
-            confidence_calibration.status != "locked"
-            or locked_calibration_options is None
-        ):
-            raise ValueError(
-                "confidence calibration was rejected on development geometry"
-            )
+        locked_calibration_options = confidence_calibration.locked_refinement_options
+        if confidence_calibration.status != "locked" or locked_calibration_options is None:
+            raise ValueError("confidence calibration was rejected on development geometry")
         confidence_calibration_digest = sha256_path(confidence_calibration_file)
         if confidence_calibration_digest is None:
             raise ValueError("confidence calibration lock must be a readable file")
         confidence_calibration_id = confidence_calibration.calibration_id
         if correspondence.provider != confidence_calibration.provider:
-            raise ValueError(
-                "correspondence provider identity differs from confidence calibration"
-            )
+            raise ValueError("correspondence provider identity differs from confidence calibration")
         if problem.dataset_id == confidence_calibration.dataset_id:
             if (
                 problem_digest != confidence_calibration.problem_sha256
-                or correspondence_digest
-                != confidence_calibration.correspondence_artifact_sha256
+                or correspondence_digest != confidence_calibration.correspondence_artifact_sha256
             ):
-                raise ValueError(
-                    "development inputs differ from confidence calibration sources"
-                )
-        elif (
-            problem.dataset_id
-            not in confidence_calibration.evaluation_dataset_ids_excluded
-        ):
+                raise ValueError("development inputs differ from confidence calibration sources")
+        elif problem.dataset_id not in confidence_calibration.evaluation_dataset_ids_excluded:
             raise ValueError(
-                "target dataset is neither the development source nor a locked "
-                "evaluation dataset"
+                "target dataset is neither the development source nor a locked evaluation dataset"
             )
         split_seed = (
             options.split_seed
             if options is not None
             else locked_calibration_options.evaluation_split_seeds[0]
         )
-        locked_options = (
-            refinement_options_from_camera_lidar_confidence_calibration(
-                confidence_calibration,
-                split_seed=split_seed,
-            )
+        locked_options = refinement_options_from_camera_lidar_confidence_calibration(
+            confidence_calibration,
+            split_seed=split_seed,
         )
         if options is not None and options != locked_options:
             raise ValueError("runtime refinement options differ from confidence lock")
@@ -161,24 +217,23 @@ def run_probabilistic_camera_lidar_refinement(
         if initialization_trace_digest is None:
             raise ValueError("initialization trace must be a readable file")
         if trace.problem_sha256 != problem_digest:
-            raise ValueError(
-                "initialization trace problem digest does not match the problem"
-            )
+            raise ValueError("initialization trace problem digest does not match the problem")
         expected = problem.initial_transform_camera_lidar
         output = trace.output_transform_camera_lidar
         if output.parent != expected.parent or output.child != expected.child:
-            raise ValueError(
-                "initialization trace transform frames do not match the problem"
-            )
+            raise ValueError("initialization trace transform frames do not match the problem")
         initialization_trace_id = trace.trace_id
         initialization_trace_status = trace.status
         initialization_trace_hit = trace.outcome.hit
         initial_transform = output.as_se3()
-    result = ProbabilisticCameraLidarRefiner().solve(
-        frames,
-        initial_transform,
-        settings,
-    )
+    refiner = ProbabilisticCameraLidarRefiner(evaluation_backend=evaluation_backend)
+    if runtime is not None:
+        if evaluation_backend != "cuda":
+            raise ValueError("a CUDA pose runtime requires the CUDA evaluation backend")
+        result = refiner._solve_in_runtime(frames, initial_transform, settings, runtime)
+    else:
+        result = refiner.solve(frames, initial_transform, settings)
+    inputs.verify()
     return _artifact(
         correspondence.artifact_id,
         problem.problem_id,
@@ -190,16 +245,13 @@ def run_probabilistic_camera_lidar_refinement(
         initialization_trace_id=initialization_trace_id,
         initialization_trace_status=initialization_trace_status,
         initialization_trace_hit=initialization_trace_hit,
-        result_id=result_id
-        or f"{correspondence.artifact_id}-{problem.problem_id}-refinement",
+        result_id=result_id or f"{correspondence.artifact_id}-{problem.problem_id}-refinement",
         correspondence_sha256=correspondence_digest,
         problem_sha256=problem_digest,
         initialization_trace_sha256=initialization_trace_digest,
         confidence_calibration_id=confidence_calibration_id,
         confidence_calibration_path=(
-            str(confidence_calibration_file)
-            if confidence_calibration_file is not None
-            else None
+            str(confidence_calibration_file) if confidence_calibration_file is not None else None
         ),
         confidence_calibration_sha256=confidence_calibration_digest,
         command=command or [],
@@ -287,34 +339,18 @@ def _artifact(
         ),
         train_frame_ids=list(result.train_frame_ids),
         holdout_frame_ids=list(result.holdout_frame_ids),
-        initial_train_evaluation=_evaluation(
-            result.initial_train_evaluation
-        ),
-        candidate_train_evaluation=_evaluation(
-            result.candidate_train_evaluation
-        ),
+        initial_train_evaluation=_evaluation(result.initial_train_evaluation),
+        candidate_train_evaluation=_evaluation(result.candidate_train_evaluation),
         final_train_evaluation=_evaluation(result.final_train_evaluation),
-        initial_holdout_evaluation=_evaluation(
-            result.initial_holdout_evaluation
-        ),
-        candidate_holdout_evaluation=_evaluation(
-            result.candidate_holdout_evaluation
-        ),
-        final_holdout_evaluation=_evaluation(
-            result.final_holdout_evaluation
-        ),
-        acceptance=ProbabilisticRefinementAcceptanceArtifact(
-            **asdict(result.acceptance)
-        ),
+        initial_holdout_evaluation=_evaluation(result.initial_holdout_evaluation),
+        candidate_holdout_evaluation=_evaluation(result.candidate_holdout_evaluation),
+        final_holdout_evaluation=_evaluation(result.final_holdout_evaluation),
+        acceptance=ProbabilisticRefinementAcceptanceArtifact(**asdict(result.acceptance)),
         trace=[
             ProbabilisticRefinementIterationArtifact(
                 evaluation=item.evaluation,
-                delta_rotation_deg_xyz=list(
-                    item.delta_rotation_deg_xyz
-                ),
-                delta_translation_m_xyz=list(
-                    item.delta_translation_m_xyz
-                ),
+                delta_rotation_deg_xyz=list(item.delta_rotation_deg_xyz),
+                delta_translation_m_xyz=list(item.delta_translation_m_xyz),
                 objective=item.objective,
                 accepted=item.accepted,
             )
@@ -329,6 +365,7 @@ def _artifact(
             generator_version=PROBABILISTIC_CAMERA_LIDAR_RUN_VERSION,
             git_commit=git_commit(),
             command=command,
+            execution=result.execution,
             correspondence_artifact_sha256=correspondence_sha256,
             initialization_problem_sha256=problem_sha256,
             initialization_trace_sha256=initialization_trace_sha256,

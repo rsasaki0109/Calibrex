@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Complete probabilistic ablation publication inventory",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "calibrex.probabilistic_ablation_publication/v1"
+    },
+    "files": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$"
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "generator": {
+          "const": "tools/audit_probabilistic_refinement_ablation.py"
+        },
+        "generator_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "recorded_at": {
+          "type": "string"
+        },
+        "protocol_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_sha256",
+        "recorded_at",
+        "protocol_sha256"
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "files",
+    "provenance"
+  ]
+}
