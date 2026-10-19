@@ -40,7 +40,8 @@ once, reusing those exact values across frames.
 
 No global solver functions are patched. Compiled code uses `cache=False`, and
 the runtime retains no input/result array cache. Temporary arrays scale with
-one frame's points or image. As for NumPy execution, callers must leave input
+one frame's points or image; grid buffers have a separate bound below. As for
+NumPy execution, callers must leave input
 arrays unchanged during a synchronous solve. Optional execution metadata records
 software versions, kernel identity and all grid/full evaluation counts. Default
 CPU serialization and registered schemas retain their existing definitions.
@@ -104,3 +105,68 @@ These cohorts are neither pooled nor multiplied. The selected runtime avoids
 image JIT compilation and shares per-objective pose preparation; the measurements
 support maintained CPU-backend adoption at the compiled control's performance
 level.
+
+## Rotation sharing in the maintained CPU grid
+
+Runtime `v0.2` shares bit-identical native rotation matrices within each raw
+candidate call. A regular 728-candidate grid needs 27 rotated point clouds per
+frame. Ordered chunks of at most 64 poses interpolate in up to four GIL-releasing
+workers, capped by the reported CPU count. Each candidate retains the native
+NumPy dot product and each frame is added in its original order. Full statistics,
+centers, final train/holdout, controls and curvature use the same compiled kernel
+with their existing native transforms and reductions.
+
+Numeric grid buffers are limited to 64 MiB, including rotated points, one native
+matrix-product temporary, pose metadata and all active interpolation chunks.
+Buffers are released before preparing the next frame. This is a buffer bound,
+not a limit on process memory or JIT compiler memory. Oversized frames and
+unsupported projections use single-pose evaluation. Calls with fewer than 64
+or more than 729 poses, or with entirely distinct rotations, also retain the
+single-pose path. Worker exceptions propagate and all workers are shut down.
+Execution counts continue to record every logically evaluated point and pose.
+
+The [complete indexed evidence](../assets/online_grid_reuse/README.md) compares
+the maintained Numba implementation at `b7d6203fa3024a78b6693e7536329b75d2b1dc6e`
+with `c2e694e106ebdfec290538b7fd018f45c17ead7f`. Both use the typed PNG array reader,
+the same preparation, all 48 existing KITTI pairs, all 30 updates, 21,958
+objectives, 395,476,000 logical point rows, holdout controls and curvature.
+
+| Timing scope | Previous CPU | Shared rotations | Ratio |
+| --- | ---: | ---: | ---: |
+| Complete `solve` API, including first projection JIT and diagnostics | 22.019 s | 5.965 s | **3.692x** |
+| Per-worker median of all 30 online updates | 0.681927 s | 0.126579 s | **5.387x** |
+| First online update, including projection JIT | 2.420839 s | 2.167978 s | 1.117x |
+| Sum of all 30 online updates | 21.913 s | 5.836 s | 3.755x |
+| Complete fresh worker, including imports, preparation, saves and validation | 32.604 s | 16.220 s | 2.010x |
+
+Each cell is the median of three fresh workers. Update medians retain the first
+update; no warmup is removed. The first update benefits less because compilation
+dominates it. Timing wrappers only bracket the original functions. All six
+complete quality payloads match as canonical JSON bytes, including signed zeros,
+and all prepared-frame snapshots match. The host was unreserved, with one BLAS
+thread. These are performance diagnostics on already-spent data, without a new
+accuracy claim or portable latency guarantee.
+
+The predeclared gate was 2x for the complete `solve` API against the maintained
+CPU control. The cold-worker result is reported separately. Earlier experimental
+cohorts keep their original verdicts; their results are not pooled with this
+cohort or multiplied by these ratios.
+
+```bash
+python tools/benchmark_online_grid_reuse.py \
+  --baseline b7d6203fa3024a78b6693e7536329b75d2b1dc6e \
+  --fixture /path/to/existing/kitti-subset --receipt /path/to/fetch-48.json \
+  --output outputs/online-grid-reuse-comparison
+python tools/benchmark_online_grid_reuse.py \
+  --audit outputs/online-grid-reuse-comparison --verify-git
+python tools/audit_online_grid_reuse_archive.py \
+  docs/assets/online_grid_reuse/complete-evidence.tar.gz --verify-git
+```
+
+Commit source and timing tools before running. The driver freezes both maintained
+source trees and one common toolchain, fixes baseline/candidate/candidate/baseline/
+baseline/candidate order, and retains every attempt and log. It reuses inputs in
+place, requires 20 GiB free, and limits evidence to 64 MiB. The archive auditor
+checks safe paths, schemas, every indexed byte, source identities, complete work,
+timing boundaries and parity without executing archived Python or importing
+Calibrex, Numba or CuPy.

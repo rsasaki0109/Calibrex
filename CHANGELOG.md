@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Share native point rotations within the optional Numba online camera–LiDAR
+  grid and evaluate bounded chunks in up to four CPU workers. Preserve all
+  candidate scores, tracking and diagnostics. Against the previous maintained
+  CPU backend, 48 public KITTI pairs measured complete solve time 22.019 s to
+  5.965 s (3.692x), median updates 0.682 s to 0.127 s (5.387x), and fresh-worker
+  time 32.604 s to 16.220 s (2.010x). Retain all six exact-result observations,
+  both source snapshots, and CPU-only archive auditing.
+
 - Add a typed PNG luminance array reader that avoids Python pixel tuples for
   array consumers, preserving the existing rows API and validation. Connect it
   to online A2D2 preparation and KITTI workers. On 48 public KITTI images, the
