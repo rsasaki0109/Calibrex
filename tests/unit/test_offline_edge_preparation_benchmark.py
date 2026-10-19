@@ -12,7 +12,7 @@ from tools import benchmark_offline_edge_preparation as bench
 def cohort(tmp_path):
     source = tmp_path / "source/src/calibrex/__init__.py"
     source.parent.mkdir(parents=True)
-    source.write_text("# synthetic source, never executed\n", encoding="utf-8")
+    source.write_bytes(b"# synthetic source, never executed\r\n")
     manifest = bench.base._manifest(tmp_path / "source/src")
     bench.write(tmp_path / "source/manifest.json", manifest)
     tool_hashes = {}
@@ -102,6 +102,15 @@ def test_complete_cpu_only_replay(cohort):
     assert result["ratios"]["estimate"] == 2.0
     bench.write(cohort / "summary.json", result)
     assert bench.audit(cohort) == result
+
+
+def test_git_verification_normalizes_only_source_line_endings(cohort, monkeypatch):
+    source = cohort / "source/src/calibrex/__init__.py"
+    files = {"src/calibrex/__init__.py": source.read_bytes().replace(b"\r\n", b"\n")}
+    files.update({name: (cohort / "toolchain" / name).read_bytes() for name in bench.TOOLCHAIN})
+    files[bench.RESULT_SCHEMA] = (cohort / "result.schema.json").read_bytes()
+    monkeypatch.setattr(bench.base, "_git_files", lambda *args: files)
+    assert bench.audit(cohort, verify_git=True)["passes_estimate_gate"] is True
 
 
 @pytest.mark.parametrize("change", ["quality", "prepared", "work", "imports", "timing"])

@@ -198,7 +198,13 @@ def audit(folder: Path, *, verify_git: bool = False) -> dict:
             for name, data in frozen.items()
             if name.startswith("src/") and name.endswith(".py")
         }
-        if expected != manifest:
+        normalized = {
+            name: hashlib.sha256(
+                (folder / "source/src" / name).read_text(encoding="utf-8").encode()
+            ).hexdigest()
+            for name in manifest
+        }
+        if expected != normalized:
             raise ValueError("Git source differs")
         for name in (*TOOLCHAIN, RESULT_SCHEMA):
             path = folder / ("result.schema.json" if name == RESULT_SCHEMA else "toolchain/" + name)
@@ -303,6 +309,11 @@ def run(args: argparse.Namespace) -> dict:
     base.verify_fixture(args.fixture, base.read(args.receipt))
     folder.mkdir()
     base._freeze(folder / "source", commit)
+    # Git archive honors Windows checkout line endings. Bind the canonical
+    # Python text, as the existing online benchmark drivers do.
+    for path in (folder / "source/src").rglob("*.py"):
+        path.write_bytes(path.read_text(encoding="utf-8").encode())
+    write(folder / "source/manifest.json", base._manifest(folder / "source/src"))
     for name in TOOLCHAIN:
         path = folder / "toolchain" / name
         path.parent.mkdir(parents=True, exist_ok=True)
