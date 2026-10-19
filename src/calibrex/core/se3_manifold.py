@@ -152,6 +152,19 @@ def se3_adjoint(
     )
 
 
+def _cross3(left: FloatArray, right: FloatArray) -> FloatArray:
+    """Cross two fixed FP64 three-vectors without broadcasting."""
+
+    return np.asarray(
+        (
+            left[1] * right[2] - left[2] * right[1],
+            left[2] * right[0] - left[0] * right[2],
+            left[0] * right[1] - left[1] * right[0],
+        ),
+        dtype=float,
+    )
+
+
 def se3_left_jacobian(
     translation: FloatArray, rotation_vector: FloatArray
 ) -> NDArray[np.float64]:
@@ -174,17 +187,17 @@ def se3_left_jacobian(
         b = (angle - math.sin(angle)) / angle**3
         a_prime = (angle * math.sin(angle) - 2.0 + 2.0 * math.cos(angle)) / angle**3
         b_prime = (angle * (1.0 - math.cos(angle)) - 3.0 * (angle - math.sin(angle))) / angle**4
-        cross_w_v = np.cross(w, v)
-        cross_w_cross = np.cross(w, cross_w_v)
+        cross_w_v = _cross3(w, v)
+        cross_w_cross = _cross3(w, cross_w_v)
         d_v: NDArray[np.float64] = np.zeros((3, 3), dtype=float)
         for j in range(3):
             unit = np.zeros(3)
             unit[j] = 1.0
             d_v[:, j] = (
                 -a_prime * w[j] / angle * cross_w_v
-                - a * np.cross(unit, v)
+                - a * _cross3(unit, v)
                 + b_prime * w[j] / angle * cross_w_cross
-                + b * (np.cross(unit, cross_w_v) + np.cross(w, np.cross(unit, v)))
+                + b * (_cross3(unit, cross_w_v) + _cross3(w, _cross3(unit, v)))
             )
         q_block = rotation.T @ d_v
     return np.block(

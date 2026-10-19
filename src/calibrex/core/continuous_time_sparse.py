@@ -943,6 +943,25 @@ def fit_continuous_trajectory(
     )
 
 
+def _evaluate_point(
+    knots: list[SE3],
+    timestamps: tuple[float, ...],
+    interval: int,
+    timestamp_sec: float,
+    point_body: tuple[float, float, float],
+    target_world: tuple[float, float, float],
+) -> tuple[FloatArray, SE3, float]:
+    """Evaluate a point without derivatives; shared by scoring and linearization."""
+
+    alpha = _alpha(timestamps, interval, timestamp_sec)
+    left = knots[interval]
+    right = knots[interval + 1]
+    pose = _interpolate(left, right, alpha)
+    residual = np.asarray(pose.transform_point(point_body), dtype=float)
+    residual -= np.asarray(target_world, dtype=float)
+    return residual, pose, alpha
+
+
 def _point_residual(
     knots: list[SE3],
     timestamps: tuple[float, ...],
@@ -951,25 +970,24 @@ def _point_residual(
     point_body: tuple[float, float, float],
     target_world: tuple[float, float, float],
 ) -> tuple[FloatArray, NDArray[np.float64], NDArray[np.float64]]:
-    alpha = _alpha(timestamps, interval, timestamp_sec)
-    left = knots[interval]
-    right = knots[interval + 1]
-    pose = _interpolate(left, right, alpha)
-    residual = np.asarray(pose.transform_point(point_body), dtype=float)
-    residual -= np.asarray(target_world, dtype=float)
+    residual, pose, alpha = _evaluate_point(
+        knots, timestamps, interval, timestamp_sec, point_body, target_world
+    )
     point_jacobian = point_transform_jacobian(pose, np.asarray(point_body))
     jacobian_left, jacobian_right = interpolate_screw_jacobians(
-        left, right, alpha
+        knots[interval], knots[interval + 1], alpha
     )
     return residual, point_jacobian @ jacobian_left, point_jacobian @ jacobian_right
 
 
-def _point_to_plane_residual(
+def _evaluate_plane(
     knots: list[SE3],
     timestamps: tuple[float, ...],
     interval: int,
     measurement: TrajectoryPointToPlaneMeasurement,
-) -> tuple[FloatArray, NDArray[np.float64], NDArray[np.float64]]:
+) -> tuple[FloatArray, SE3, FloatArray, float]:
+    """Evaluate a signed distance with the original transform and dot order."""
+
     alpha = _alpha(timestamps, interval, measurement.timestamp_sec)
     left = knots[interval]
     right = knots[interval + 1]
@@ -979,11 +997,23 @@ def _point_to_plane_residual(
     normal = np.asarray(measurement.plane_normal_world, dtype=float)
     normal = normal / float(np.linalg.norm(normal))
     residual = np.asarray([float(normal @ (world - plane_point))], dtype=float)
+    return residual, pose, normal, alpha
+
+
+def _point_to_plane_residual(
+    knots: list[SE3],
+    timestamps: tuple[float, ...],
+    interval: int,
+    measurement: TrajectoryPointToPlaneMeasurement,
+) -> tuple[FloatArray, NDArray[np.float64], NDArray[np.float64]]:
+    residual, pose, normal, alpha = _evaluate_plane(knots, timestamps, interval, measurement)
     point_jacobian = point_transform_jacobian(
         pose, np.asarray(measurement.point_body_m)
     )
     signed_jacobian = normal.reshape(1, 3) @ point_jacobian
-    jacobian_left, jacobian_right = interpolate_screw_jacobians(left, right, alpha)
+    jacobian_left, jacobian_right = interpolate_screw_jacobians(
+        knots[interval], knots[interval + 1], alpha
+    )
     return residual, signed_jacobian @ jacobian_left, signed_jacobian @ jacobian_right
 
 
@@ -1523,6 +1553,26 @@ def _rotation_matrix(pose: SE3) -> NDArray[np.float64]:
     return rotation_vector_to_matrix(so3_log(np.asarray(pose.rotation_quat_xyzw)))
 
 
+def _evaluate_anchor(
+    knots: list[SE3],
+    timestamps: tuple[float, ...],
+    interval: int,
+    timestamp_sec: float,
+    anchor: tuple[float, float, float],
+    pose: SE3,
+) -> tuple[FloatArray, SE3, float]:
+    """Evaluate a pose anchor without interpolation or point Jacobians."""
+
+    alpha = _alpha(timestamps, interval, timestamp_sec)
+    left = knots[interval]
+    right = knots[interval + 1]
+    interpolated = _interpolate(left, right, alpha)
+    target = pose.transform_point(anchor)
+    residual = np.asarray(interpolated.transform_point(anchor), dtype=float)
+    residual -= np.asarray(target, dtype=float)
+    return residual, interpolated, alpha
+
+
 def _anchor_residual(
     knots: list[SE3],
     timestamps: tuple[float, ...],
@@ -1531,16 +1581,12 @@ def _anchor_residual(
     anchor: tuple[float, float, float],
     pose: SE3,
 ) -> tuple[FloatArray, NDArray[np.float64], NDArray[np.float64]]:
-    alpha = _alpha(timestamps, interval, timestamp_sec)
-    left = knots[interval]
-    right = knots[interval + 1]
-    interpolated = _interpolate(left, right, alpha)
-    target = pose.transform_point(anchor)
-    residual = np.asarray(interpolated.transform_point(anchor), dtype=float)
-    residual -= np.asarray(target, dtype=float)
+    residual, interpolated, alpha = _evaluate_anchor(
+        knots, timestamps, interval, timestamp_sec, anchor, pose
+    )
     point_jacobian = point_transform_jacobian(interpolated, np.asarray(anchor))
     jacobian_left, jacobian_right = interpolate_screw_jacobians(
-        left, right, alpha
+        knots[interval], knots[interval + 1], alpha
     )
     return residual, point_jacobian @ jacobian_left, point_jacobian @ jacobian_right
 
@@ -1639,7 +1685,7 @@ def _objective(
     objective = 0.0
     for index, (interval, point_body) in enumerate(point_rows):
         point_measurement = problem.point_measurements[index]
-        residual, _left, _right = _point_residual(
+        residual, _pose, _alpha_value = _evaluate_point(
             knots,
             problem.knot_timestamps,
             interval,
@@ -1649,7 +1695,7 @@ def _objective(
         )
         objective += point_measurement.weight * float(np.sum(residual * residual))
     for interval, plane_measurement in plane_rows:
-        residual, _left, _right = _point_to_plane_residual(
+        residual, _pose, _normal, _alpha_value = _evaluate_plane(
             knots,
             problem.knot_timestamps,
             interval,
@@ -1660,7 +1706,7 @@ def _objective(
         pose_measurement = problem.pose_measurements[index]
         weight = pose_measurement.weight
         for anchor in _ANCHOR_POINTS:
-            residual, _left, _right = _anchor_residual(
+            residual, _pose, _alpha_value = _evaluate_anchor(
                 knots,
                 problem.knot_timestamps,
                 interval,
