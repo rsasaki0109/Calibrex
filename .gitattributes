@@ -312,3 +312,7 @@ docs/assets/screw_gyro_jacobians/input-comparison.json -text whitespace=blank-at
 # Retain original producer and complete prior-information comparison bytes.
 docs/assets/prior_information_whitening/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 docs/assets/prior_information_whitening/*.tar.gz -text
+
+# Preserve the complete final-gradient comparison and original producer bytes.
+docs/assets/screw_final_gradient/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/screw_final_gradient/*.tar.gz -text

@@ -1,0 +1,201 @@
+"""Retain all paired native outcomes and preceding diagnostics in a small archive."""
+from __future__ import annotations
+
+import gzip
+import hashlib
+import io
+import json
+import subprocess
+import tarfile
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+import jsonschema
+from pydantic import BaseModel, ConfigDict
+
+ROOT = Path(__file__).resolve().parents[2]
+OUT = Path(__file__).resolve().parent
+DEST = ROOT / 'docs/assets/screw_final_gradient'
+BASE = '1e6da103bf1d268d6469cb60dce269099dae53ea'
+SOURCE = 'aa4a0c24069020624e4d6bb8c519c2d9d9838fcd'
+SEEDS = (20261010, 20261011, 20261012)
+
+
+def encoded(value: Any) -> bytes:
+    return (json.dumps(value, indent=2, allow_nan=False) + '\n').encode()
+
+
+def sha(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def read(path: Path) -> Any:
+    return json.loads(path.read_bytes())
+
+
+def write(path: Path, raw: bytes) -> None:
+    assert not path.exists(), path
+    path.write_bytes(raw)
+
+
+class Strict(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
+
+class Pair(Strict):
+    seed: int
+    input_sha256: str
+    same_inputs_and_options: bool
+    other_fit_fields_exactly_equal: bool
+    native_metrics_exactly_equal: bool
+    final_normal_and_gradient_exactly_equal: bool
+    previous_reported_gradient: float
+    current_reported_gradient: float
+    actual_final_gradient: float
+    current_reports_final_gradient: bool
+    fit_status: str
+    iterations: int
+    previous_assemblies: int
+    current_assemblies: int
+    policy_status: str
+    controls_detected: int
+    current_artifact: str
+    current_artifact_sha256: str
+
+
+class Member(Strict):
+    name: str
+    size_bytes: int
+    sha256: str
+
+
+class Receipt(Strict):
+    baseline_commit: str
+    source_commit: str
+    normalized_source_modules: int
+    changed_source_modules: list[str]
+    source_manifest_sha256: str
+    cohort_generator_sha256: str
+    archive_sha256: str
+    archive_bytes: int
+    archive_members: list[Member]
+    pairs: list[Pair]
+    baseline_tests: dict[str, int]
+    current_tests: dict[str, int]
+    historical_directories: list[str]
+    scope: str
+    limits: list[str]
+    provenance: dict[str, Any]
+
+
+def main() -> None:
+    assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip() == SOURCE
+    before = read(OUT / 'baseline/source-manifest.json')
+    after = read(OUT / 'current/source-manifest.json')
+    actual = {p.relative_to(ROOT).as_posix(): sha(p.read_bytes().replace(b'\r\n', b'\n'))
+              for p in (ROOT / 'src/calibrex').rglob('*.py')}
+    assert actual == after and len(after) == len(before) == 401
+    changed = sorted(p for p in before if before[p] != after[p])
+    assert changed == ['src/calibrex/core/continuous_time_sparse.py']
+    pairs = []
+    native_files = {}
+    for seed in SEEDS:
+        a, b = (OUT / stage / f'seed-{seed}' for stage in ('baseline', 'current'))
+        input_a, input_b = read(a / 'input.json'), read(b / 'input.json')
+        inputs_equal = all(input_a[k] == input_b[k] for k in ('problem', 'options'))
+        old_fit, new_fit = read(a / 'fit.json')['payload'], read(b / 'fit.json')['payload']
+        old_gradient = old_fit.pop('gradient_norm')
+        new_gradient = new_fit.pop('gradient_norm')
+        old_native, new_native = read(a / 'native.json'), read(b / 'native.json')
+        del old_native['provenance'], new_native['provenance']
+        old_model, new_model = read(a / 'model.json'), read(b / 'model.json')
+        name = f'seed-{seed}.json'
+        raw = (b / 'native.json').read_bytes()
+        native_files[name] = raw
+        pair = Pair(
+            seed=seed, input_sha256=sha(encoded({k: input_a[k] for k in ('problem', 'options')})),
+            same_inputs_and_options=inputs_equal, other_fit_fields_exactly_equal=old_fit == new_fit,
+            native_metrics_exactly_equal=old_native == new_native,
+            final_normal_and_gradient_exactly_equal=all(old_model[k] == new_model[k] for k in ('normal', 'half_gradient')),
+            previous_reported_gradient=old_gradient, current_reported_gradient=new_gradient,
+            actual_final_gradient=new_model['final_gradient_norm'],
+            current_reports_final_gradient=new_gradient == new_model['final_gradient_norm'],
+            fit_status=new_fit['status'], iterations=new_fit['iterations'],
+            previous_assemblies=old_model['assembly_count'], current_assemblies=new_model['assembly_count'],
+            policy_status=new_native['policy_status'], controls_detected=sum(c['detected'] for c in new_native['controls']),
+            current_artifact=name, current_artifact_sha256=sha(raw),
+        )
+        assert all(getattr(pair, field) for field in ('same_inputs_and_options', 'other_fit_fields_exactly_equal',
+                   'native_metrics_exactly_equal', 'final_normal_and_gradient_exactly_equal', 'current_reports_final_gradient'))
+        assert pair.policy_status == 'pass' and pair.controls_detected == 32
+        assert pair.current_assemblies <= pair.previous_assemblies
+        pairs.append(pair)
+    old_tests, new_tests = (read(OUT / f'{stage}-tests.json') for stage in ('baseline', 'current'))
+    assert old_tests['counts'] == {'tests': 24, 'failures': 15, 'errors': 0, 'skipped': 0}
+    assert new_tests['counts'] == {'tests': 24, 'failures': 0, 'errors': 0, 'skipped': 0}
+    test_bytes = (ROOT / 'tests/unit/test_continuous_time_final_gradient.py').read_bytes().replace(b'\r\n', b'\n')
+    assert sha(test_bytes) == old_tests['provenance']['test_source_sha256'] == new_tests['provenance']['test_source_sha256']
+    contents = {'maintained-test.py.txt': test_bytes}
+
+    def collect(directory: Path, prefix: str) -> None:
+        for path in sorted(directory.rglob('*')):
+            relative = path.relative_to(directory)
+            if not path.is_file() or any('tmp' in part or part == '__pycache__' for part in relative.parts):
+                continue
+            if relative.as_posix() == 'package.log':
+                continue
+            name = prefix + '/' + relative.as_posix()
+            assert name not in contents
+            contents[name] = path.read_bytes()
+
+    collect(OUT, 'development')
+    historical = ['convergence-report-audit-v1', 'convergence-report-audit-v2',
+                  'convergence-stopping-tests-draft-v1', 'convergence-window-model-audit-v1',
+                  'convergence-report-efficient-candidate-v1', 'convergence-report-efficient-candidate-v2']
+    for name in historical:
+        collect(ROOT / 'outputs' / name, 'history/' + name)
+    for name in ('prior-information-followup-addendum-v2.json', 'prior-information-followup-addendum-v2.schema.json'):
+        contents['history/' + name] = (ROOT / 'outputs' / name).read_bytes()
+    stream = io.BytesIO()
+    with gzip.GzipFile(fileobj=stream, mode='wb', filename='', mtime=0) as compressed:
+        with tarfile.open(fileobj=compressed, mode='w', format=tarfile.PAX_FORMAT) as archive:
+            for name, data in sorted(contents.items()):
+                info = tarfile.TarInfo(name)
+                info.size = len(data)
+                archive.addfile(info, io.BytesIO(data))
+    archive_bytes = stream.getvalue()
+    record = Receipt(
+        baseline_commit=BASE, source_commit=SOURCE, normalized_source_modules=401,
+        changed_source_modules=changed, source_manifest_sha256=sha((OUT / 'current/source-manifest.json').read_bytes()),
+        cohort_generator_sha256=sha((OUT / 'run.py').read_bytes()), archive_sha256=sha(archive_bytes),
+        archive_bytes=len(archive_bytes), archive_members=[Member(name=name, size_bytes=len(data), sha256=sha(data)) for name, data in sorted(contents.items())],
+        pairs=pairs, baseline_tests=old_tests['counts'], current_tests=new_tests['counts'], historical_directories=historical,
+        scope='Final-state weighted normal-gradient reporting only, on three already-spent synthetic seeds.',
+        limits=['No stopping criterion, residual, accepted state, covariance, iteration limit or quality gate changed.',
+                'Every native case still stops with a final raw gradient above the configured gradient threshold; small accepted damped steps remain a separate stop reason.',
+                'Mixed physical units make a single raw gradient norm insufficient for a general calibration-reliability claim.',
+                'Native assembly counts remain 22/24/30; the change does not establish a runtime speedup.',
+                'Historical failed aggregation and unadopted stopping tests/prototypes are retained and clearly separate from the 24 maintained reporting tests.',
+                'No independent accuracy, timing or SOTA claim.'],
+        provenance={'source_commit': SOURCE, 'created_at': datetime.now(timezone.utc).isoformat(),
+                    'generator': Path(__file__).name, 'launcher_sha256': sha(Path(__file__).read_bytes()),
+                    'role': 'complete spent-development comparison'},
+    ).model_dump(mode='json')
+    jsonschema.validate(record, Receipt.model_json_schema())
+    DEST.mkdir(exist_ok=False)
+    for name, raw in native_files.items():
+        write(DEST / name, raw)
+    write(DEST / 'source-manifest.json', (OUT / 'current/source-manifest.json').read_bytes())
+    write(DEST / 'generator.py.txt', (OUT / 'run.py').read_bytes())
+    write(DEST / 'package.py.txt', Path(__file__).read_bytes())
+    write(DEST / 'complete-development.tar.gz', archive_bytes)
+    write(DEST / 'receipt.schema.json', encoded(Receipt.model_json_schema()))
+    write(DEST / 'receipt.json', encoded(record))
+    print(json.dumps({'archive_members': len(contents), 'archive_bytes': len(archive_bytes),
+                      'total_public_bytes': sum(p.stat().st_size for p in DEST.iterdir()),
+                      'pairs': [p.model_dump() for p in pairs]}, indent=2), flush=True)
+
+
+if __name__ == '__main__':
+    main()
