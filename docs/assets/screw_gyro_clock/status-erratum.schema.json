@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Screw gyro clock status erratum",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "supersedes",
+    "case",
+    "initial_ci_failures",
+    "new_optimizer_steps",
+    "original_archive_and_outcomes_unchanged",
+    "quality_gates_and_stopping_unchanged",
+    "test_contract_correction",
+    "limits",
+    "provenance"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "slac.screw_gyro_clock_status_erratum/v1"
+    },
+    "supersedes": {
+      "type": "object"
+    },
+    "case": {
+      "type": "object"
+    },
+    "initial_ci_failures": {
+      "type": "array"
+    },
+    "new_optimizer_steps": {
+      "type": "integer"
+    },
+    "original_archive_and_outcomes_unchanged": {
+      "type": "boolean"
+    },
+    "quality_gates_and_stopping_unchanged": {
+      "type": "boolean"
+    },
+    "test_contract_correction": {
+      "type": "string"
+    },
+    "limits": {
+      "type": "string"
+    },
+    "provenance": {
+      "type": "object"
+    }
+  }
+}

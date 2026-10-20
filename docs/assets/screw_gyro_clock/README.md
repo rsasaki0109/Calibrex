@@ -23,8 +23,18 @@ batch cohort; both source capsules establish their binding to the baseline.
 All three quality policies pass and all 32 signed controls are detected per
 case. These are spent development outcomes, without a speed, independent
 accuracy or general convergence claim. Raw final gradients remain above the
-configured stopping threshold. The middle case's iteration-limit result is
-retained, without reruns or retuned gates.
+configured stopping threshold. The middle case stops early at 32 of its
+configured 60 iterations with `max_iterations`; the frozen solver also uses
+that status for damping exhaustion. This path is inferred from its control
+flow, without a captured damping trace.
+
+The [status erratum](status-erratum.json) and [schema](status-erratum.schema.json)
+supersede the original summary's misleading `candidate_iteration_limit_cases`
+key and the initial prose. The archive, summary, native outcomes and all their
+digests stay unchanged. The [producer](status-erratum-producer.py.txt) binds the
+saved fit/options/source and the initial failed CI job excerpts. Quality-policy
+passes and solver convergence remain separate; no reruns, retuned gates or
+numerical edits were used to resolve that test assumption.
 
 See the [full comparison, boundary convention and CLI replay](../../benchmarks/screw_gyro_clock.md).
 To replay an original producer, copy `generator.py.txt` from the archive to

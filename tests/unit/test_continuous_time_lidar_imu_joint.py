@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -12,16 +14,43 @@ from calibrex.core.continuous_time_lidar_imu_joint import (
     ContinuousTimeLidarImuJointArtifact,
 )
 from calibrex.core.validation import validate_file
+from calibrex.evaluation import continuous_time_lidar_imu_joint as joint
 from calibrex.evaluation.continuous_time_lidar_imu_joint import (
     run_synthetic_lidar_imu_joint_recovery,
 )
 
 
+@dataclass(frozen=True)
+class _Recovery:
+    artifact: ContinuousTimeLidarImuJointArtifact
+    fit_status: str
+    iterations: int
+    max_iterations: int
+
+
 @pytest.fixture(scope="module", params=["screw_linear", "cubic_bspline"])
-def artifact(request: pytest.FixtureRequest) -> ContinuousTimeLidarImuJointArtifact:
-    result = run_synthetic_lidar_imu_joint_recovery(seed=20261010, trajectory=request.param)
+def recovery(request: pytest.FixtureRequest) -> _Recovery:
+    name = ("fit_continuous_trajectory" if request.param == "screw_linear"
+            else "fit_bspline_lidar_imu")
+    original = getattr(joint, name)
+    observed: list[tuple[str, int, int]] = []
+
+    def fit(problem: Any, options: Any) -> Any:
+        fitted = original(problem, options)
+        observed.append((fitted.status, fitted.iterations, options.max_iterations))
+        return fitted
+
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(joint, name, fit)
+        result = run_synthetic_lidar_imu_joint_recovery(seed=20261010, trajectory=request.param)
     assert result.interpolation == request.param
-    return result
+    assert len(observed) == 1
+    return _Recovery(result, *observed[0])
+
+
+@pytest.fixture(scope="module")
+def artifact(recovery: _Recovery) -> ContinuousTimeLidarImuJointArtifact:
+    return recovery.artifact
 
 
 def test_joint_recovery_passes_with_provenance_and_valid_schema(
@@ -33,9 +62,36 @@ def test_joint_recovery_passes_with_provenance_and_valid_schema(
     assert validate_file(output, kind="continuous-time-lidar-imu-joint").valid
     assert artifact.policy_status == "pass", artifact.policy_reason
     assert artifact.data_source == "synthetic"
-    assert artifact.fit_status == "converged"
     assert artifact.provenance.seed == 20261010
     assert artifact.provenance.generator.endswith("continuous_time_lidar_imu_joint")
+
+
+def test_recovery_retains_actual_optimizer_status_and_iteration_budget(recovery: _Recovery) -> None:
+    artifact = recovery.artifact
+    assert artifact.fit_status == recovery.fit_status
+    assert artifact.iterations == recovery.iterations
+    assert artifact.fit_status in ("converged", "max_iterations")
+    assert 1 <= artifact.iterations <= recovery.max_iterations == 60
+    # A quality-policy pass is not a stationarity certificate. In particular,
+    # the native fitter also uses max_iterations for early damping exhaustion.
+
+
+@pytest.mark.parametrize("status,expected", [
+    ("converged", "pass"), ("max_iterations", "pass"), ("singular_system", "fail"),
+])
+def test_quality_policy_keeps_fit_status_separate_from_error_and_holdout_gates(
+    artifact: ContinuousTimeLidarImuJointArtifact, status: str, expected: str,
+) -> None:
+    policy, reason = joint._policy(
+        fit_status=status, parameters=artifact.parameters,
+        holdout_gyro=artifact.holdout_gyro_rmse, oracle_gyro=artifact.oracle_holdout_gyro_rmse,
+        holdout_accel=artifact.holdout_accel_rmse_m_s2,
+        oracle_accel=artifact.oracle_holdout_accel_rmse_m_s2,
+        controls=artifact.controls, separability=artifact.separability,
+    )
+    assert policy == expected
+    if status == "singular_system":
+        assert "singular" in reason
 
 
 def test_every_block_is_estimated_jointly_within_budget(

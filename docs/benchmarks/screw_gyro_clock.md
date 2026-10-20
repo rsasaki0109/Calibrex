@@ -56,8 +56,12 @@ outcome is retained.
 | 20261011 | converged / 23 | **max_iterations / 32** | 0.043092 → 0.042580 | pass / 32 of 32 |
 | 20261012 | converged / 29 | converged / 19 | 0.074092 → 0.039789 | pass / 32 of 32 |
 
-The middle case reaches its unchanged iteration limit. Quality-policy passes
-refer to the declared holdout and control checks; they do not assert optimizer
+The middle case stops after 32 iterations with `max_iterations`, before the
+configured budget of 60. In this solver, that status also covers early damping
+exhaustion: unsuccessful steps increase damping until it exceeds `1e12`.
+The stopping path is inferred from the frozen control flow and returned status;
+no per-iteration damping trace was captured. Quality-policy passes refer to the
+declared error, holdout and control checks; they do not assert optimizer
 stationarity. All final raw gradients exceed the configured `1e-8` threshold,
 and the existing small accepted-step criterion can still label a fit converged.
 
@@ -71,6 +75,24 @@ Gyro holdout RMSE increases slightly in all three cases; other accuracy changes
 and iteration counts are mixed. Full covariance, all metrics, final normal
 models and signed controls remain in the
 [complete development evidence](../assets/screw_gyro_clock/README.md).
+
+## Status correction and CI
+
+The original archive and `summary.json` are retained byte-for-byte. Its
+`candidate_iteration_limit_cases` key incorrectly described seed 20261011 as
+exhausting its iteration budget. The [schema-validated erratum](../assets/screw_gyro_clock/status-erratum.json)
+supersedes that interpretation and binds the saved options, fit, source and
+initial CI failures. No numerical result, stopping threshold or quality gate
+was changed for this correction.
+
+The initial full Python 3.11 and 3.12 CI jobs each reported 5295 passes,
+104 skips and one failure: a legacy test required `converged` although the
+quality policy passed and the actual fit returned `max_iterations`. The joint
+recovery tests now check exact propagation of the real fitter status and
+iteration count, retain all error/holdout/control gates and reject singular
+fits. Controlled stopping tests distinguish budget exhaustion from early
+damping exhaustion and require both to remain nonconverged. Platform-dependent
+termination is disclosed rather than relabelled or rerun for a preferred result.
 
 ## Reproduce and remaining work
 

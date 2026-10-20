@@ -1,0 +1,81 @@
+{
+  "schema_version": "slac.screw_gyro_clock_status_erratum/v1",
+  "supersedes": {
+    "archive_sha256": "5a79db53d3988d122b2639699225be6f3869cf6b8300cb7793312efebb8d4a9d",
+    "summary_sha256": "af685f5599c7c543fc7192d4a8799f86eeb3c7b98e062bf4f92219e0ab91aa67",
+    "summary_pointer": "/candidate_iteration_limit_cases",
+    "historical_value": [
+      20261011
+    ],
+    "interpretation": "This field names a nonconverged fit, not a consumed iteration budget."
+  },
+  "case": {
+    "seed": 20261011,
+    "fit_status": "max_iterations",
+    "observed_iterations": 32,
+    "configured_max_iterations": 60,
+    "budget_exhausted": false,
+    "inferred_termination": "damping_limit",
+    "basis": "Before the budget, the frozen loop can retain max_iterations only when unsuccessful steps raise damping above 1e12. No per-iteration damping trace was captured.",
+    "saved_options": {
+      "max_iterations": 60,
+      "initial_damping": 0.001,
+      "convergence_gradient_norm": 1e-08,
+      "convergence_step_norm": 1e-09,
+      "damping_scale_down": 0.5,
+      "damping_scale_up": 10.0
+    }
+  },
+  "initial_ci_failures": [
+    {
+      "python": "3.11",
+      "run_id": 39498015286,
+      "job_id": 118888012307,
+      "url": "https://github.com/rsasaki0109/Calibrex/actions/runs/39498015286/job/118888012307",
+      "check_head": "f0d8d3d2767964178108faa95d1d341cccfac423",
+      "failed": 1,
+      "passed": 5295,
+      "skipped": 104,
+      "failed_assertion": "artifact.fit_status == 'converged'",
+      "observed_status": "max_iterations",
+      "observed_quality_policy": "pass",
+      "excerpt": "initial-ci-python311.txt",
+      "excerpt_sha256": "29ba09ea84b700d317d41c4750526f5053a4d145dc6be75372becfe5c76717fb",
+      "retrieved_log_sha256": "774ed65179bff119f57fde303edae2784ff0bcb723866b9f5b491bc05e158393"
+    },
+    {
+      "python": "3.12",
+      "run_id": 39498087831,
+      "job_id": 118888257666,
+      "url": "https://github.com/rsasaki0109/Calibrex/actions/runs/39498087831/job/118888257666",
+      "check_head": "f0d8d3d2767964178108faa95d1d341cccfac423",
+      "failed": 1,
+      "passed": 5295,
+      "skipped": 104,
+      "failed_assertion": "artifact.fit_status == 'converged'",
+      "observed_status": "max_iterations",
+      "observed_quality_policy": "pass",
+      "excerpt": "initial-ci-python312.txt",
+      "excerpt_sha256": "aaf16490f7e099a1c3d402f4fa692e66e5833493c10c87da58d4185ef325246c",
+      "retrieved_log_sha256": "3392669ccd7f682fdc40dd271885309abd81a0504141bbc76f7ee67d52debc44"
+    }
+  ],
+  "new_optimizer_steps": 0,
+  "original_archive_and_outcomes_unchanged": true,
+  "quality_gates_and_stopping_unchanged": true,
+  "test_contract_correction": "Validate actual fitter status and iteration propagation separately from error, holdout and signed-control quality gates; singular fits fail. Controlled stopping tests retain max_iterations for both budget and early damping exhaustion.",
+  "limits": "This erratum does not establish stationarity, change the historical fit status, or make a convergence or speed claim. CI outcomes are platform-specific and were not a new development cohort.",
+  "provenance": {
+    "created_at": "2026-10-20T21:43:11.490827+00:00",
+    "producer_sha256": "53184c498ceda1ab5b744e34cd7eef82ac6f864b3b9b10cfb7ca5833abd82247",
+    "numerical_source": "3c2998cf84cbd1916a313ead72269c4e62cc5695",
+    "initial_ci_check_head": "f0d8d3d2767964178108faa95d1d341cccfac423",
+    "archive_member_sha256": {
+      "candidate/seed-20261011/input.json": "23a6cc535ca7af43e6603b7caf9174df4b8cdba71fd3e42952e36049bbd825b8",
+      "candidate/seed-20261011/fit.json": "1a38f032777c668d7d1d35889e9caa4d53046af04ae67409152bbea210565c1c",
+      "candidate/seed-20261011/native.json": "cb00164b19a1ccec4915212102dd1bab08991d69daa3a1cea0397b22bebdb47b",
+      "factors/candidate/src/calibrex/core/continuous_time_sparse.py": "ac5dd8e5646e7fcc66edab7354e0b8bfafd7ff3ec670b8fb9a1a0bafec6168e2"
+    },
+    "role": "Post hoc interpretation correction from immutable spent-development records and initial CI logs; no calibration replay."
+  }
+}

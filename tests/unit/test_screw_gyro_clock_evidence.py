@@ -57,7 +57,7 @@ def evidence() -> dict[str, bytes]:
 @pytest.mark.parametrize("seed,iterations,status", [
     (20261010, 20, "converged"), (20261011, 32, "max_iterations"), (20261012, 19, "converged"),
 ])
-def test_native_outcomes_remain_complete_including_the_iteration_limit(
+def test_native_outcomes_remain_complete_including_the_nonconverged_fit(
     evidence: dict[str, bytes], seed: int, iterations: int, status: str,
 ) -> None:
     path = _ASSETS / f"seed-{seed}.json"
@@ -136,6 +136,8 @@ def test_final_model_retains_the_reported_gradient(evidence: dict[str, bytes], s
 
 def test_summary_records_each_metric_and_remaining_limits(evidence: dict[str, bytes]) -> None:
     summary = json.loads(evidence["summary.json"])
+    # This historical key misidentifies early damping exhaustion as a budget
+    # limit. The original archive is immutable; the erratum below supersedes it.
     assert summary["candidate_iteration_limit_cases"] == [20261011]
     for case in summary["cases"]:
         seed = case["seed"]
@@ -161,3 +163,53 @@ def test_initial_failures_and_original_producers_are_retained(evidence: dict[str
     protocol = json.loads(evidence["candidate/protocol.json"])
     assert protocol["provenance"]["launcher_sha256"] == _sha(evidence["generator.py.txt"])
     assert protocol["provenance"]["source_commit"] == _SOURCE
+
+
+def test_status_erratum_corrects_budget_without_rewriting_originals(
+    evidence: dict[str, bytes],
+) -> None:
+    erratum = json.loads((_ASSETS / "status-erratum.json").read_bytes())
+    jsonschema.validate(
+        erratum, json.loads((_ASSETS / "status-erratum.schema.json").read_bytes()),
+    )
+    original = json.loads(evidence["summary.json"])
+    assert erratum["supersedes"]["archive_sha256"] == _ARCHIVE_SHA
+    assert erratum["supersedes"]["summary_sha256"] == _sha(evidence["summary.json"])
+    assert erratum["supersedes"]["summary_pointer"] == "/candidate_iteration_limit_cases"
+    assert erratum["supersedes"]["historical_value"] == original["candidate_iteration_limit_cases"]
+    case = erratum["case"]
+    options = json.loads(evidence["candidate/seed-20261011/input.json"])["options"]
+    fitted = json.loads(evidence["candidate/seed-20261011/fit.json"])["payload"]
+    assert case["saved_options"] == options
+    assert case["configured_max_iterations"] == options["max_iterations"] == 60
+    assert case["observed_iterations"] == fitted["iterations"] == 32
+    assert case["fit_status"] == fitted["status"] == "max_iterations"
+    assert not case["budget_exhausted"]
+    assert case["inferred_termination"] == "damping_limit"
+    assert "No per-iteration damping trace" in case["basis"]
+    for name, digest in erratum["provenance"]["archive_member_sha256"].items():
+        assert digest == _sha(evidence[name])
+    code = evidence["factors/candidate/src/calibrex/core/continuous_time_sparse.py"]
+    assert b"if damping > 1.0e12:" in code
+    assert erratum["new_optimizer_steps"] == 0
+    assert erratum["original_archive_and_outcomes_unchanged"]
+    assert erratum["quality_gates_and_stopping_unchanged"]
+    assert erratum["provenance"]["numerical_source"] == _SOURCE
+    assert erratum["provenance"]["producer_sha256"] == _sha(
+        (_ASSETS / "status-erratum-producer.py.txt").read_bytes(),
+    )
+
+
+@pytest.mark.parametrize("version", ["3.11", "3.12"])
+def test_initial_ci_failures_are_retained_separately_from_quality_passes(version: str) -> None:
+    erratum = json.loads((_ASSETS / "status-erratum.json").read_bytes())
+    assert len(erratum["initial_ci_failures"]) == 2
+    failure = next(row for row in erratum["initial_ci_failures"] if row["python"] == version)
+    raw = (_ASSETS / failure["excerpt"]).read_bytes()
+    assert _sha(raw) == failure["excerpt_sha256"]
+    assert b"assert 'max_iterations' == 'converged'" in raw
+    assert b"1 failed, 5295 passed, 104 skipped" in raw
+    assert failure["failed"] == 1 and failure["passed"] == 5295 and failure["skipped"] == 104
+    assert failure["observed_status"] == "max_iterations"
+    assert failure["observed_quality_policy"] == "pass"
+    assert failure["url"].endswith(f"/{failure['run_id']}/job/{failure['job_id']}")

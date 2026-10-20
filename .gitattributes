@@ -332,3 +332,6 @@ docs/assets/screw_batched_evaluation/*.md text eol=lf
 # Bind the complete gyro clock development and original producer bytes.
 docs/assets/screw_gyro_clock/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 docs/assets/screw_gyro_clock/*.md text eol=lf
+
+# CI failure excerpts retain original timestamped blank-line whitespace.
+docs/assets/screw_gyro_clock/initial-ci-*.txt -text whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

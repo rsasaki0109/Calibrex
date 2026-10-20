@@ -99,8 +99,11 @@ piecewise screw angular velocity instead of a sampled rate whose 1 ms stencil
 could cross a knot. Its declared clock-side convention is checked against
 closed-form rotations and independent one-sided residual differences. All
 63 saved-state gyro factors preserve residual and nonclock-block bits.
-The three current development policies pass, but one fit reaches its unchanged
-32-iteration limit and accuracy changes are mixed; this is a derivative fix,
+The three current development policies pass, but one fit stops after 32 of its
+configured 60 iterations with `max_iterations` (early damping exhaustion,
+inferred from the frozen control flow). The original limit description is
+superseded by a [status erratum](../assets/screw_gyro_clock/status-erratum.json).
+Accuracy changes are mixed; this is a derivative fix,
 without a general convergence or speed claim. At segment boundaries the model
 can have different one-sided derivatives, so central differences are not a
 smooth clock oracle. Global clock-domain constraints and feasible stepping

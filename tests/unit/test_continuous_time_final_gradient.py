@@ -166,3 +166,12 @@ def test_final_model_is_refreshed_only_after_state_changes(
         # reporting correction must disclose its large final gradient.
         assert result.max_step_translation_m < settings.convergence_step_norm
         assert result.gradient_norm > 1.0
+    if mode in ("iteration_limit", "rejected", "accepted_then_rejected"):
+        assert result.status == "max_iterations"
+        assert result.iterations == budget
+    if mode == "damping_limit":
+        # An unsuccessful damped step must not be called convergence or
+        # confused with consuming the configured iteration budget.
+        assert result.status == "max_iterations"
+        assert result.iterations == 1 < budget
+        assert result.gradient_norm > settings.convergence_gradient_norm
