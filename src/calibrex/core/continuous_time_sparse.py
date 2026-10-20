@@ -27,6 +27,11 @@ and pose factors touch the two knots bracketing their timestamp; IMU factors
 touch the knots of both endpoints plus the optional bias and clock offset.
 Gauss--Newton with Levenberg--Marquardt damping solves the linear system on
 the manifold.
+
+Every measurement ``weight`` is scalar square-root information, typically
+``1 / sigma``. Both the normal equations and the acceptance objective use
+the whitened residual ``weight * residual``. Marginalization priors already
+store information and contribute ``delta.T @ information @ delta``.
 """
 
 from __future__ import annotations
@@ -66,7 +71,7 @@ FitStatus = Literal["converged", "max_iterations", "singular_system"]
 
 @dataclass(frozen=True)
 class TrajectoryPointMeasurement:
-    """A body-frame point observed at a timestamp against a world target."""
+    """A body-frame point against a world target; ``weight`` is inverse sigma."""
 
     measurement_id: str
     timestamp_sec: float
@@ -92,7 +97,7 @@ class TrajectoryPointMeasurement:
 
 @dataclass(frozen=True)
 class TrajectoryPointToPlaneMeasurement:
-    """A body-frame LiDAR return against a world plane at a timestamp."""
+    """A LiDAR return against a world plane; ``weight`` is inverse distance sigma."""
 
     measurement_id: str
     timestamp_sec: float
@@ -123,7 +128,7 @@ class TrajectoryPointToPlaneMeasurement:
 
 @dataclass(frozen=True)
 class TrajectoryPoseMeasurement:
-    """A measured world pose at a timestamp."""
+    """A measured world pose; ``weight`` whitens each of its four anchor residuals."""
 
     measurement_id: str
     timestamp_sec: float
@@ -155,7 +160,7 @@ class TrajectoryImuGyroSample:
 
 @dataclass(frozen=True)
 class TrajectoryImuPreintegrationMeasurement:
-    """Gyro samples spanning two timestamps for a rotation pre-integration."""
+    """Gyro pre-integration; ``weight`` is inverse rotation-residual sigma."""
 
     measurement_id: str
     gyro_samples: tuple[TrajectoryImuGyroSample, ...]
@@ -187,7 +192,7 @@ class TrajectoryImuPreintegrationMeasurement:
 
 @dataclass(frozen=True)
 class TrajectoryImuLeverArmMeasurement:
-    """Gravity-compensated specific force used to observe the IMU lever arm."""
+    """Specific force observing the IMU lever arm; ``weight`` is inverse acceleration sigma."""
 
     measurement_id: str
     timestamp_sec: float
@@ -366,7 +371,7 @@ def fit_continuous_trajectory(
     problem: ContinuousTimeTrajectoryFitProblem,
     options: ContinuousTimeTrajectoryFitOptions | None = None,
 ) -> ContinuousTimeTrajectoryFitResult:
-    """Solve the sparse manifold least-squares trajectory fit."""
+    """Minimize ``sum(||weight * residual||^2)`` plus information-form priors."""
 
     settings = options or ContinuousTimeTrajectoryFitOptions()
     timestamps = problem.knot_timestamps
@@ -1693,7 +1698,7 @@ def _objective(
             point_body,
             point_measurement.target_world_m,
         )
-        objective += point_measurement.weight * float(np.sum(residual * residual))
+        objective += point_measurement.weight**2 * float(np.sum(residual * residual))
     for interval, plane_measurement in plane_rows:
         residual, _pose, _normal, _alpha_value = _evaluate_plane(
             knots,
@@ -1701,7 +1706,7 @@ def _objective(
             interval,
             plane_measurement,
         )
-        objective += plane_measurement.weight * float(residual[0] * residual[0])
+        objective += plane_measurement.weight**2 * float(residual[0] * residual[0])
     for index, (interval, pose) in enumerate(pose_rows):
         pose_measurement = problem.pose_measurements[index]
         weight = pose_measurement.weight
@@ -1714,7 +1719,7 @@ def _objective(
                 anchor,
                 pose,
             )
-            objective += weight * float(np.sum(residual * residual))
+            objective += weight**2 * float(np.sum(residual * residual))
     for imu_measurement in imu_rows:
         try:
             residual, _knots, _bias, _clock, _scale = _imu_preintegration_residual(
@@ -1728,7 +1733,7 @@ def _objective(
             )
         except ValueError:
             return math.inf
-        objective += imu_measurement.weight * float(np.sum(residual * residual))
+        objective += imu_measurement.weight**2 * float(np.sum(residual * residual))
     for lever_measurement in lever_rows:
         try:
             residual, _lever, _clock, _accel, _gravity, _scale = _lever_arm_residual(
@@ -1744,7 +1749,7 @@ def _objective(
             )
         except ValueError:
             return math.inf
-        objective += lever_measurement.weight * float(np.sum(residual * residual))
+        objective += lever_measurement.weight**2 * float(np.sum(residual * residual))
     for prior in problem.knot_marginalization_priors:
         delta = se3_log(prior.anchor_pose, knots[prior.knot_index])
         objective += float(delta.T @ prior.information @ delta)
