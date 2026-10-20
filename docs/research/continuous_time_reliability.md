@@ -156,8 +156,13 @@ removes repeated integration and discarded derivatives while preserving all
 three complete development outcomes exactly. Its complete-API paired median
 is 1.452x and misses the declared 2x target. This incremental CPU cleanup does
 not address normalized stopping, clock sensitivity or independent reliability.
-The next execution candidates are structural batching of trajectory and
-measurement work; their complete processing latency still needs measurement.
+The subsequent [batched trajectory and plane evaluation](../benchmarks/screw_batched_evaluation.md)
+measures complete-API paired medians of 2.023x for the same spent synthetic
+cases and 4.709x for spent public GLIM geometry against the preceding maintained
+implementation. Complete input/results remain equal; fresh-worker ratios are
+1.462x and 2.189x. One joint pair is 1.641x, so the near-threshold joint median
+does not establish a universal 2x improvement. This execution work creates
+compute headroom while the numerical reliability questions remain open.
 
 After the derivative audit, compare the maintained single-start fitter with
 bounded multiple starts and empirical uncertainty using identical inputs and

@@ -50,12 +50,15 @@ from numpy.typing import NDArray
 from scipy.sparse import csc_matrix
 from scipy.sparse.linalg import spsolve
 
+from calibrex.core._se3_batch import _point_jacobians, _sample_segment, _transform_points
 from calibrex.core.continuous_time_marginalization import (
     KnotMarginalizationPrior,
     marginalization_prior_blocks,
 )
 from calibrex.core.geometry import SE3
 from calibrex.core.se3_manifold import (
+    _cross3,
+    _rotation_log,
     _ScrewSegment,
     interpolate_screw_jacobians,
     point_transform_jacobian,
@@ -74,6 +77,16 @@ FloatArray: TypeAlias = NDArray[np.float64]
 FitStatus = Literal["converged", "max_iterations", "singular_system"]
 
 
+@dataclass(frozen=True)
+class _BodyStencil:
+    times: tuple[float, float, float]
+    poses: tuple[SE3, SE3, SE3]
+    log_plus: FloatArray
+    log_minus: FloatArray
+    acceleration_world: FloatArray
+    motion: tuple[FloatArray, FloatArray, FloatArray, FloatArray]
+
+
 class _ScrewInterpolation:
     """Borrow fixed-state samples during one objective or model evaluation.
 
@@ -90,6 +103,7 @@ class _ScrewInterpolation:
         self.motion: dict[
             bytes, tuple[FloatArray, FloatArray, FloatArray, FloatArray]
         ] = {}
+        self.stencils: dict[bytes, _BodyStencil] = {}
 
     def _segment(self, interval: int) -> _ScrewSegment:
         if interval not in self._segments:
@@ -112,6 +126,37 @@ class _ScrewInterpolation:
                 array.setflags(write=False)
             self._jacobians[key] = pair
         return self._jacobians[key]
+
+    def prepare(self, requests: list[tuple[int, float, bool]]) -> None:
+        """Batch known queries; scalar fallbacks remain lazy for other times."""
+        pending: dict[tuple[int, bytes], tuple[float, bool]] = {}
+        for interval, alpha, jacobians in requests:
+            key = (interval, pack("!d", alpha))
+            if key in pending:
+                pending[key] = alpha, jacobians or pending[key][1]
+            elif key not in self._poses or (jacobians and key not in self._jacobians):
+                pending[key] = alpha, jacobians
+        groups: dict[tuple[int, bool], list[tuple[tuple[int, bytes], float]]] = {}
+        for key, (alpha, jacobians) in pending.items():
+            groups.setdefault((key[0], jacobians), []).append((key, alpha))
+        for (interval, jacobians), samples in groups.items():
+            if len(samples) < 8:
+                for _key, alpha in samples:
+                    self.pose(interval, alpha)
+                    if jacobians:
+                        self.jacobians(interval, alpha)
+                continue
+            for offset in range(0, len(samples), 256):
+                chunk = samples[offset:offset + 256]
+                alphas = np.asarray([alpha for _key, alpha in chunk], dtype=float)
+                poses, pair = _sample_segment(self._segment(interval), alphas, jacobians=jacobians)
+                for i, ((key, _alpha_value), pose) in enumerate(zip(chunk, poses, strict=True)):
+                    self._poses.setdefault(key, pose)
+                    if pair is not None:
+                        blocks = pair[0][i], pair[1][i]
+                        for array in blocks:
+                            array.setflags(write=False)
+                        self._jacobians[key] = blocks
 
 
 @dataclass(frozen=True)
@@ -417,6 +462,138 @@ _ANCHOR_POINTS: tuple[tuple[float, float, float], ...] = (
 )
 
 
+class _PlaneBatch:
+    """Snapshot constant plane data; evaluate the original factor order in batches."""
+
+    def __init__(
+        self, timestamps: tuple[float, ...],
+        rows: list[tuple[int, TrajectoryPointToPlaneMeasurement]],
+    ) -> None:
+        self.intervals = tuple(interval for interval, _measurement in rows)
+        self.alphas = np.asarray([
+            _alpha(timestamps, interval, measurement.timestamp_sec)
+            for interval, measurement in rows
+        ], dtype=float)
+        self.points = np.asarray([
+            m.point_body_m for _interval, m in rows
+        ], dtype=float).reshape(-1, 3)
+        self.targets = np.asarray([
+            m.plane_point_world_m for _interval, m in rows
+        ], dtype=float).reshape(-1, 3)
+        normals = np.asarray([m.plane_normal_world for _interval, m in rows], dtype=float)
+        self.normals = np.asarray([
+            normal / float(np.linalg.norm(normal)) for normal in normals
+        ], dtype=float).reshape(-1, 3)
+        for array in (self.alphas, self.points, self.targets, self.normals):
+            array.setflags(write=False)
+
+    def prepare(self, interpolation: _ScrewInterpolation | None, *, jacobians: bool) -> None:
+        if interpolation is not None:
+            interpolation.prepare([
+                (interval, float(alpha), jacobians)
+                for interval, alpha in zip(self.intervals, self.alphas, strict=True)
+            ])
+
+    def values(
+        self, knots: list[SE3], interpolation: _ScrewInterpolation | None,
+    ) -> tuple[FloatArray, list[SE3]]:
+        poses = [_interpolate_segment(knots, interval, float(alpha), interpolation)
+                 for interval, alpha in zip(self.intervals, self.alphas, strict=True)]
+        residuals = np.empty(len(poses), dtype=float)
+        for offset in range(0, len(poses), 256):
+            stop = offset + 256
+            world = _transform_points(poses[offset:stop], self.points[offset:stop])
+            residuals[offset:stop] = [
+                float(normal @ (point - target))
+                for normal, point, target in zip(
+                    self.normals[offset:stop], world, self.targets[offset:stop], strict=True,
+                )
+            ]
+        return residuals, poses
+
+    def linearize(
+        self, knots: list[SE3], interpolation: _ScrewInterpolation | None,
+    ) -> tuple[FloatArray, FloatArray, FloatArray]:
+        residuals, poses = self.values(knots, interpolation)
+        if not poses:
+            return residuals, np.empty((0, 1, 6)), np.empty((0, 1, 6))
+        left = np.empty((len(poses), 1, 6), dtype=float)
+        right = np.empty_like(left)
+        for offset in range(0, len(poses), 256):
+            stop = offset + 256
+            signed = self.normals[offset:stop, None, :] @ _point_jacobians(
+                poses[offset:stop], self.points[offset:stop],
+            )
+            pairs = [_interpolation_jacobians(knots, interval, float(alpha), interpolation)
+                     for interval, alpha in zip(
+                         self.intervals[offset:stop], self.alphas[offset:stop], strict=True,
+                     )]
+            left[offset:stop] = signed @ np.asarray([pair[0] for pair in pairs])
+            right[offset:stop] = signed @ np.asarray([pair[1] for pair in pairs])
+        return residuals, left, right
+
+
+def _plane_batch(
+    timestamps: tuple[float, ...], rows: list[tuple[int, TrajectoryPointToPlaneMeasurement]],
+) -> _PlaneBatch | None:
+    return _PlaneBatch(timestamps, rows) if len(rows) >= 8 else None
+
+
+def _prepare_evaluation(
+    interpolation: _ScrewInterpolation | None,
+    problem: ContinuousTimeTrajectoryFitProblem,
+    point_rows: list[tuple[int, tuple[float, float, float]]],
+    plane_rows: list[tuple[int, TrajectoryPointToPlaneMeasurement]],
+    pose_rows: list[tuple[int, SE3]],
+    imu_rows: list[TrajectoryImuPreintegrationMeasurement],
+    lever_rows: list[TrajectoryImuLeverArmMeasurement],
+    clock_offset: float,
+    *,
+    jacobians: bool,
+) -> None:
+    if interpolation is None:
+        return
+    timestamps = problem.knot_timestamps
+    requests: list[tuple[int, float, bool]] = []
+
+    def request(time: float, derivative: bool) -> None:
+        interval = _interval_index(timestamps, time)
+        if interval is not None:
+            requests.append((interval, _alpha(timestamps, interval, time), derivative))
+        # Invalid shifted times still reach the original factor's error path.
+
+    for index, (interval, _point) in enumerate(point_rows):
+        time = problem.point_measurements[index].timestamp_sec
+        requests.append((interval, _alpha(timestamps, interval, time), jacobians))
+    for interval, measurement in plane_rows:
+        requests.append((
+            interval, _alpha(timestamps, interval, measurement.timestamp_sec), jacobians,
+        ))
+    for index, (interval, _pose) in enumerate(pose_rows):
+        time = problem.pose_measurements[index].timestamp_sec
+        requests.append((interval, _alpha(timestamps, interval, time), jacobians))
+    for gyro in imu_rows:
+        for time in (gyro.start_time_sec, gyro.end_time_sec):
+            body_time = _imu_body_time(time, clock_offset)
+            request(body_time, jacobians)
+            if jacobians:
+                limited = min(max(body_time, timestamps[0]), timestamps[-1] - 1.0e-3)
+                request(limited, False)
+                request(limited + 1.0e-3, False)
+    for lever in lever_rows:
+        offsets = (clock_offset, clock_offset + 1.0e-6) if jacobians else (clock_offset,)
+        for index, offset in enumerate(offsets):
+            try:
+                times = _body_motion_sample_times(
+                    timestamps, _imu_body_time(lever.timestamp_sec, offset), 1.0e-3,
+                )
+            except ValueError:
+                continue
+            for time in times:
+                request(time, jacobians and index == 0)
+    interpolation.prepare(requests)
+
+
 def fit_continuous_trajectory(
     problem: ContinuousTimeTrajectoryFitProblem,
     options: ContinuousTimeTrajectoryFitOptions | None = None,
@@ -502,6 +679,7 @@ def fit_continuous_trajectory(
 
     damping = settings.initial_damping
     gradient_norm = math.inf
+    plane_batch = _plane_batch(timestamps, plane_rows)
     objective = _objective(
         problem,
         point_rows,
@@ -518,6 +696,7 @@ def fit_continuous_trajectory(
         gyro_scale,
         accel_scale,
         imu_rotation=_imu_rotation_matrix(imu_rotation_vector),
+        plane_batch=plane_batch,
     )
     best_objective = objective
     best_knots = list(knots)
@@ -569,6 +748,10 @@ def fit_continuous_trajectory(
         list[tuple[int, int, NDArray[np.float64]]], FloatArray, FloatArray, csc_matrix
     ]:
         interpolation = _ScrewInterpolation(knots)
+        _prepare_evaluation(
+            interpolation, problem, point_rows, plane_rows, pose_rows, imu_rows, lever_rows,
+            clock_offset, jacobians=True,
+        )
         imu_rotation = _imu_rotation_matrix(imu_rotation_vector)
         blocks: list[tuple[int, int, NDArray[np.float64]]] = []
         residuals: list[float] = []
@@ -590,15 +773,17 @@ def fit_continuous_trajectory(
             blocks.append((row_offset, 6 * interval, jacobian_left))
             blocks.append((row_offset, 6 * (interval + 1), jacobian_right))
             row_offset += 3
-        for interval, plane_measurement in plane_rows:
-            residual, jacobian_left, jacobian_right = _point_to_plane_residual(
-                knots,
-                timestamps,
-                interval,
-                plane_measurement,
-                interpolation=interpolation,
-            )
-            residuals.append(float(residual[0]))
+        plane_values = plane_batch.linearize(knots, interpolation) if plane_batch else None
+        for index, (interval, plane_measurement) in enumerate(plane_rows):
+            if plane_values is None:
+                residual, jacobian_left, jacobian_right = _point_to_plane_residual(
+                    knots, timestamps, interval, plane_measurement, interpolation=interpolation,
+                )
+                value = float(residual[0])
+            else:
+                value = float(plane_values[0][index])
+                jacobian_left, jacobian_right = plane_values[1][index], plane_values[2][index]
+            residuals.append(value)
             weights.append(plane_measurement.weight)
             blocks.append((row_offset, 6 * interval, jacobian_left))
             blocks.append((row_offset, 6 * (interval + 1), jacobian_right))
@@ -841,6 +1026,7 @@ def fit_continuous_trajectory(
             candidate_gyro_scale,
             candidate_accel_scale,
             imu_rotation=_imu_rotation_matrix(candidate_imu_rotation),
+            plane_batch=plane_batch,
         )
         knot_delta = np.asarray(delta[: 6 * knot_count], dtype=float).reshape(-1, 6)
         step_translation = float(np.max(np.abs(knot_delta[:, :3]))) if knot_delta.size else 0.0
@@ -1127,6 +1313,17 @@ def point_to_plane_rmse(
     if not measurements:
         return None
     poses = list(knots)
+    if len(measurements) >= 8:
+        rows = []
+        for measurement in measurements:
+            interval = _interval_index(timestamps, measurement.timestamp_sec)
+            if interval is None:
+                raise ValueError(
+                    f"point-to-plane measurement {measurement.measurement_id!r} is "
+                    "outside the knot domain"
+                )
+            rows.append((interval, measurement))
+        return _point_to_plane_rmse(rows, timestamps, poses)
     interpolation = _ScrewInterpolation(poses)
     squared = 0.0
     for measurement in measurements:
@@ -1361,8 +1558,8 @@ def _evaluate_lever_arm(
     scale = np.asarray(accel_scale, dtype=float).reshape(3)
     kinematic = (
         accel_origin
-        + np.cross(alpha, lever)
-        + np.cross(omega, np.cross(omega, lever))
+        + _cross3(alpha, lever)
+        + _cross3(omega, _cross3(omega, lever))
         - rotation.T @ gravity
     )
     if imu_rotation is not None:
@@ -1405,36 +1602,35 @@ def _lever_arm_knot_jacobians(
 
     epsilon = 1.0e-3
     body_time = _imu_body_time(measurement.timestamp_sec, clock_offset_sec)
-    center_time, minus_time, plus_time = _body_motion_sample_times(timestamps, body_time, epsilon)
+    stencil = _body_stencil(
+        knots, timestamps, body_time, epsilon=epsilon, interpolation=interpolation,
+    )
+    center_time, minus_time, plus_time = stencil.times
 
-    def sample(time: float) -> tuple[SE3, dict[int, NDArray[np.float64]]]:
+    def sample(time: float) -> dict[int, NDArray[np.float64]]:
         interval = _interval_index(timestamps, time)
         assert interval is not None  # The shared stencil lies inside the knot domain.
         left, right = _interpolation_jacobians(
             knots, interval, _alpha(timestamps, interval, time), interpolation,
         )
-        pose = _interpolated_pose_at(knots, timestamps, time, interpolation=interpolation)
-        return pose, {interval: left, interval + 1: right}
+        return {interval: left, interval + 1: right}
 
-    center, center_blocks = sample(center_time)
-    minus, minus_blocks = sample(minus_time)
-    plus, plus_blocks = sample(plus_time)
-    rc, rm, rp = (_rotation_matrix(pose) for pose in (center, minus, plus))
-    log_plus = se3_log(center, plus)[3:]
-    log_minus = se3_log(minus, center)[3:]
-    omega = log_plus / epsilon
+    center_blocks, minus_blocks, plus_blocks = (
+        sample(time) for time in (center_time, minus_time, plus_time)
+    )
+    _center, minus, plus = stencil.poses
+    omega, _angular_acceleration, acceleration_body, rc = stencil.motion
+    rm, rp = _rotation_matrix(minus), _rotation_matrix(plus)
+    log_plus, log_minus = stencil.log_plus, stencil.log_minus
     # This historical helper implements the right Exp differential (I - a[w]
     # + b[w]^2). Its inverse at +phi differentiates Log under a right update.
     log_jac_plus = so3_left_jacobian_inverse(log_plus) / epsilon
     log_jac_minus = so3_left_jacobian_inverse(log_minus) / epsilon
     relative_plus = rc.T @ rp
     relative_minus = rm.T @ rc
-    pc, pm, pp = (np.asarray(pose.translation_m) for pose in (center, minus, plus))
-    acceleration_world = (pp - 2.0 * pc + pm) / (epsilon * epsilon)
-    acceleration_body = rc.T @ acceleration_world
     gravity_body = rc.T @ gravity_world_m_s2
     lever = np.asarray(lever_arm, dtype=float).reshape(3)
-    centrifugal = -skew(np.cross(omega, lever)) - skew(omega) @ skew(lever)
+    centrifugal = -skew(_cross3(omega, lever)) - skew(omega) @ skew(lever)
     output_frame = np.diag(accel_scale) @ _rotation_or_identity(imu_rotation).T
     blocks: list[tuple[int, NDArray[np.float64]]] = []
     zero = np.zeros((6, 6), dtype=float)
@@ -1466,14 +1662,32 @@ def _body_motion(
     key = pack("!dd", timestamp_sec, epsilon)
     if interpolation is not None and key in interpolation.motion:
         return interpolation.motion[key]
+    return _body_stencil(
+        knots, timestamps, timestamp_sec, epsilon=epsilon, interpolation=interpolation,
+    ).motion
+
+
+def _body_stencil(
+    knots: list[SE3],
+    timestamps: tuple[float, ...],
+    timestamp_sec: float,
+    *,
+    epsilon: float,
+    interpolation: _ScrewInterpolation | None,
+) -> _BodyStencil:
+    key = pack("!dd", timestamp_sec, epsilon)
+    if interpolation is not None and key in interpolation.stencils:
+        return interpolation.stencils[key]
     center_time, minus_time, plus_time = _body_motion_sample_times(
         timestamps, timestamp_sec, epsilon,
     )
     pose = _interpolated_pose_at(knots, timestamps, center_time, interpolation=interpolation)
     pose_minus = _interpolated_pose_at(knots, timestamps, minus_time, interpolation=interpolation)
     pose_plus = _interpolated_pose_at(knots, timestamps, plus_time, interpolation=interpolation)
-    omega = se3_log(pose, pose_plus)[3:] / epsilon
-    omega_minus = se3_log(pose_minus, pose)[3:] / epsilon
+    log_plus = _rotation_log(pose, pose_plus)
+    log_minus = _rotation_log(pose_minus, pose)
+    omega = log_plus / epsilon
+    omega_minus = log_minus / epsilon
     alpha = (omega - omega_minus) / epsilon
     origin = np.asarray(pose.translation_m, dtype=float)
     origin_minus = np.asarray(pose_minus.translation_m, dtype=float)
@@ -1482,11 +1696,16 @@ def _body_motion(
     rotation = _rotation_matrix(pose)
     accel_body = rotation.T @ accel_world
     result = omega, alpha, accel_body, rotation
+    stencil = _BodyStencil(
+        (center_time, minus_time, plus_time), (pose, pose_minus, pose_plus),
+        log_plus, log_minus, accel_world, result,
+    )
     if interpolation is not None:
-        for array in result:
+        for array in (*result, log_plus, log_minus, accel_world):
             array.setflags(write=False)
         interpolation.motion[key] = result
-    return result
+        interpolation.stencils[key] = stencil
+    return stencil
 
 
 def predicted_imu_specific_force(
@@ -1516,8 +1735,8 @@ def predicted_imu_specific_force(
     scale = np.asarray(accel_scale, dtype=float).reshape(3)
     kinematic = (
         accel_origin
-        + np.cross(alpha, lever)
-        + np.cross(omega, np.cross(omega, lever))
+        + _cross3(alpha, lever)
+        + _cross3(omega, _cross3(omega, lever))
         - rotation.T @ gravity
     )
     imu_rotation = _optional_imu_rotation(imu_rotation_vector_rad)
@@ -1774,8 +1993,8 @@ def _lever_arm_rotation_jacobian(
     scale = np.asarray(accel_scale, dtype=float).reshape(3)
     kinematic = (
         accel_origin
-        + np.cross(alpha, lever)
-        + np.cross(omega, np.cross(omega, lever))
+        + _cross3(alpha, lever)
+        + _cross3(omega, _cross3(omega, lever))
         - rotation.T @ gravity
     )
     return np.asarray(np.diag(scale) @ skew(imu_rotation.T @ kinematic), dtype=float)
@@ -1798,7 +2017,7 @@ def _angular_rate_at(
         knots, timestamps, limited + epsilon,
         interpolation=interpolation,
     )
-    return se3_log(pose, pose_plus)[3:] / epsilon
+    return _rotation_log(pose, pose_plus) / epsilon
 
 
 def _interpolate_rotation_blocks(
@@ -2039,8 +2258,13 @@ def _objective(
     accel_scale: FloatArray,
     *,
     imu_rotation: NDArray[np.float64] | None = None,
+    plane_batch: _PlaneBatch | None = None,
 ) -> float:
     interpolation = _ScrewInterpolation(knots)
+    _prepare_evaluation(
+        interpolation, problem, point_rows, plane_rows, pose_rows, imu_rows, lever_rows,
+        clock_offset_sec, jacobians=False,
+    )
     objective = 0.0
     for index, (interval, point_body) in enumerate(point_rows):
         point_measurement = problem.point_measurements[index]
@@ -2054,15 +2278,19 @@ def _objective(
             interpolation=interpolation,
         )
         objective += point_measurement.weight**2 * float(np.sum(residual * residual))
-    for interval, plane_measurement in plane_rows:
-        residual, _pose, _normal, _alpha_value = _evaluate_plane(
-            knots,
-            problem.knot_timestamps,
-            interval,
-            plane_measurement,
-            interpolation=interpolation,
-        )
-        objective += plane_measurement.weight**2 * float(residual[0] * residual[0])
+    if plane_batch is None:
+        plane_batch = _plane_batch(problem.knot_timestamps, plane_rows)
+    plane_values = plane_batch.values(knots, interpolation)[0] if plane_batch else None
+    for index, (interval, plane_measurement) in enumerate(plane_rows):
+        if plane_values is None:
+            residual, _pose, _normal, _alpha_value = _evaluate_plane(
+                knots, problem.knot_timestamps, interval, plane_measurement,
+                interpolation=interpolation,
+            )
+            value = residual[0]
+        else:
+            value = plane_values[index]
+        objective += plane_measurement.weight**2 * float(value * value)
     for index, (interval, pose) in enumerate(pose_rows):
         pose_measurement = problem.pose_measurements[index]
         weight = pose_measurement.weight
@@ -2149,6 +2377,14 @@ def _point_to_plane_rmse(
     if not plane_rows:
         return None
     interpolation = _ScrewInterpolation(knots)
+    batch = _plane_batch(timestamps, plane_rows)
+    if batch is not None:
+        batch.prepare(interpolation, jacobians=False)
+        values, _poses = batch.values(knots, interpolation)
+        squared = 0.0
+        for value in values:
+            squared += float(value * value)
+        return math.sqrt(squared / len(plane_rows))
     squared = 0.0
     for interval, measurement in plane_rows:
         residual, _pose, _normal, _fraction = _evaluate_plane(

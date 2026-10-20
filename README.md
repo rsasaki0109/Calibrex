@@ -820,6 +820,7 @@ Tests fail if the committed evidence card drifts from its validated source.
 - [Documentation site](https://rsasaki0109.github.io/Calibrex/)
 - [The workflow: estimate, check, drift](docs/tutorials/workflow.md)
 - [SOTA leaderboard](docs/benchmarks/sota_leaderboard.md)
+- [Batched trajectory evaluation: measured CPU API ratios and complete evidence](docs/benchmarks/screw_batched_evaluation.md)
 - [LiDAR-IMU shared-rotation performance](docs/benchmarks/lidar_imu_shared_rotations.md)
 - [CUDA odometry in joint LiDAR-IMU calibration](docs/benchmarks/cuda_joint_lidar_imu.md)
 - [CUDA spatial pruning and bulk tree capture](docs/benchmarks/cuda_spatial_pruning.md)

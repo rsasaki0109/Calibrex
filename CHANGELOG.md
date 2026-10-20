@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Batch fixed-state screw interpolation and point-to-plane evaluation; share
+  accelerometer stencils and avoid unused translation logarithms. Preserve
+  complete results, covariance, stopping and schemas. Against the previous
+  maintained implementation, twelve fresh CPU workers measure paired median
+  complete-API ratios of 2.023x for spent synthetic LiDAR–IMU recovery and
+  4.709x for public GLIM geometry, with exact complete pair equality.
+  Fresh-worker ratios are 1.462x and 2.189x; one joint API pair is 1.641x.
+  Retain every observation and CPU-only evidence replay.
+
 - Share one gyro integral across residual and mounting-rotation derivatives;
   avoid discarded IMU derivatives and perturbed clock samples when scoring.
   Preserve complete inputs, fitted results, covariance, stopping and schemas.

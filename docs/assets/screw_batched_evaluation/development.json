@@ -1,0 +1,70 @@
+{
+  "source_commits": {
+    "baseline": "5278168adbe8d1cffc4abbcd13800d901d0139e7",
+    "candidate": "df4144a4d135dea3b0863847f26bc778b56fc719"
+  },
+  "source_modules": {
+    "baseline": 401,
+    "candidate": 402
+  },
+  "test_source_sha256": "0e38867ff85220d1f4b1ae45cb53995f86fef60243e1ebef3b45aa8602f0aa1c",
+  "checks": [
+    {
+      "name": "smoke-v1",
+      "tests": 223,
+      "failure": 45,
+      "error": 0,
+      "skipped": 0
+    },
+    {
+      "name": "smoke-v2",
+      "tests": 223,
+      "failure": 0,
+      "error": 0,
+      "skipped": 0
+    },
+    {
+      "name": "new-tests-v1",
+      "tests": 42,
+      "failure": 0,
+      "error": 0,
+      "skipped": 0
+    },
+    {
+      "name": "targeted-v1",
+      "tests": 421,
+      "failure": 0,
+      "error": 0,
+      "skipped": 0
+    }
+  ],
+  "attempts": [
+    "The first packaging snapshot captured an empty log while the schema checker was still running. That unpublished snapshot is preserved in outputs/screw-batch-packaging-attempt-v1; this archive binds completed logs.",
+    "An extra schema compatibility check against unreleased main found 411 pre-existing development-artifact versions outside the runtime registry. The maintained released-tag check passed without schema or acknowledgment changes.",
+    "The first strict documentation build began before the evidence README existed and failed on that missing link. The README was added before the final build.",
+    "The first smoke run exposed a local name shadowing the interpolation alpha helper. The corrected smoke run and final 421-test run passed. The failed run is retained.",
+    "One frozen complete performance cohort was run; all twelve workers and outputs are retained. No timing observations were discarded or repeated to improve the ratio."
+  ],
+  "implementation": [
+    "Batch fixed-state screw samples by interval in chunks of at most 256 queries.",
+    "Snapshot constant plane inputs once per fit and batch transforms and support blocks.",
+    "Reuse accelerometer motion stencils and evaluate rotation-only Log where translation is discarded.",
+    "Retain scalar libm/norm operations, sequential objective reductions, quaternion normalization, clock differences, covariance, stopping criteria and all public schemas."
+  ],
+  "limits": [
+    "Already-spent development inputs; no independent accuracy, reliability or SOTA claim.",
+    "The unreserved host has timing variation: one joint pair is 1.641x despite the 2.023x paired median.",
+    "Fresh-worker ratios are smaller than API ratios; process/import/output overhead remains.",
+    "CPU batching does not add GPU execution or repair mixed-unit stopping and clock sensitivity."
+  ],
+  "provenance": {
+    "created_at": "2026-10-20T15:30:42.140759+00:00",
+    "source_commits": {
+      "baseline": "5278168adbe8d1cffc4abbcd13800d901d0139e7",
+      "candidate": "df4144a4d135dea3b0863847f26bc778b56fc719"
+    },
+    "producer_sha256": "8bd007823bbbbc06278360899b9f1363555879edd35782ca138dbabd4d9b8502",
+    "protocol_sha256": "2fb0e548e8a9e1a52251fcd5a2c18987e3ef962a5cd7e6f08147ae2e7661a431",
+    "scope": "First complete twelve-worker spent-development cohort; no independent accuracy claim"
+  }
+}
