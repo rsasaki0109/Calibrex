@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Include analytic trajectory-knot derivatives in native `screw_linear`
+  accelerometer factors, including all supports of their discrete kinematic
+  stencil across segment boundaries. Apply accelerometer scale to lever-arm
+  derivatives after mounting rotation. Check all-knot finite differences,
+  nonunit scales, endpoint clamping, dense nonuniform knots, actual sparse
+  assembly and weighted objective gradients. Preserve residual values,
+  convergence settings and serialized schemas.
+
 - Make the native `screw_linear` trajectory acceptance objective use squared
   measurement weights, matching its existing inverse-sigma normal equations
   and covariance. Cover all five measurement families, diagonal information

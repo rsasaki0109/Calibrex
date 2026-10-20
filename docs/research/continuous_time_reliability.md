@@ -56,12 +56,28 @@ independent finite differences for every state block it depends on. Include
 nonidentity poses, nonunit scales, mounting rotation, nonzero clock offset,
 segment boundaries, and correlated information priors.
 
-The accelerometer residual depends on trajectory knots through body kinematics,
-while its current linearization inserts calibration blocks only. Its knot
-derivatives and the whitening of correlated priors remain explicit follow-up
-work. Measurement-weight tests alone establish a narrower property. Stalled
-line searches must retain their failure status when the undamped model still
-has a significant gradient or step.
+The accelerometer linearization now includes analytic trajectory-knot blocks
+through its existing discrete body kinematics. Predictions and derivatives
+share the same clamped three-sample stencil. Each sample contributes both of
+its supporting knots; a stencil can touch three knots across a segment boundary
+or as many as six on a dense nonuniform grid. Lever-arm derivatives also include
+the diagonal accelerometer scale after the mounting rotation.
+
+Independent checks perturb every knot, including inactive knots, at ten fixed
+timestamps covering both ends and both sides of a knot boundary. Other tests
+cover nonunit scales with and without mounting rotation, a dense nonuniform
+grid, the actual fitter's sparse assembly, weighted objective gradients, and
+a trajectory update driven by acceleration with all calibration states fixed.
+This establishes the knot and lever derivatives of the current residual model.
+
+The clock derivative still uses a forward time difference. At a stencil crossing
+a segment boundary, the model can have different one-sided time derivatives;
+a central difference there is not a smooth derivative oracle. Clock and gyro
+derivatives, correlated-prior whitening, and convergence remain audit work.
+The native `converged` label can come from a small damped accepted step rather
+than the gradient threshold. Audit the undamped model before interpreting that
+label as stationarity. Stalled line searches must retain their failure status
+when the undamped model still has a significant gradient or step.
 
 ## 3. Fixed-budget comparison
 

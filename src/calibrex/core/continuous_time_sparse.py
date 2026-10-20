@@ -16,15 +16,17 @@ A shared IMU clock offset maps IMU timestamps to body time as
 ``t_body = t_imu - tau``.  Accelerometer bias and world-frame gravity enter
 the specific-force residual as ``a_kin + b - R^T g``.  Optional diagonal
 gyro and accelerometer scale factors apply as ``s_g * (omega - b)`` and
-``s_a * a_kin - R^T g + b``.  An optional IMU mounting rotation ``R_body_imu``
+``s_a * (a_kin - R^T g) + b``.  An optional IMU mounting rotation ``R_body_imu``
 maps IMU-frame vectors into the body frame: gyro readings are
 ``R_body_imu^T omega_body`` and specific force is
 ``s_a * (R_body_imu^T (a_kin - R^T g)) + b``, with gyro and accelerometer
 biases and scales in the IMU frame.  Without it the IMU axes are the body axes.
 
 The normal equations are assembled as a sparse block matrix.  Point, plane,
-and pose factors touch the two knots bracketing their timestamp; IMU factors
+and pose factors touch the two knots bracketing their timestamp; gyro factors
 touch the knots of both endpoints plus the optional bias and clock offset.
+Accelerometer factors touch the union of knots supporting all three samples
+of the discrete body-motion stencil, plus their optional calibration states.
 Gauss--Newton with Levenberg--Marquardt damping solves the linear system on
 the manifold.
 
@@ -658,6 +660,17 @@ def fit_continuous_trajectory(
                 blocks.append((row_offset, gravity_offset, jacobian_gravity))
             if estimate_accel_scale:
                 blocks.append((row_offset, accel_scale_offset, jacobian_accel_scale))
+            for knot_index, jacobian in _lever_arm_knot_jacobians(
+                knots,
+                timestamps,
+                lever_measurement,
+                lever_arm,
+                clock_offset,
+                gravity,
+                accel_scale,
+                imu_rotation=imu_rotation,
+            ):
+                blocks.append((row_offset, 6 * knot_index, jacobian))
             row_offset += 3
         for prior in problem.knot_marginalization_priors:
             if prior.knot_index < 0 or prior.knot_index >= knot_count:
@@ -1238,6 +1251,7 @@ def _lever_arm_kinematics_residual(
         kinematic = imu_rotation.T @ kinematic
         jacobian_lever = imu_rotation.T @ jacobian_lever
         jacobian_gravity = -np.diag(scale) @ imu_rotation.T @ rotation.T
+    jacobian_lever = scale[:, None] * jacobian_lever
     predicted = scale * kinematic + accel_bias
     residual = predicted - np.asarray(measurement.accel_body_m_s2, dtype=float)
     jacobian_accel: NDArray[np.float64] = np.eye(3, dtype=float)
@@ -1251,6 +1265,87 @@ def _lever_arm_kinematics_residual(
     )
 
 
+def _body_motion_sample_times(
+    timestamps: tuple[float, ...], timestamp_sec: float, epsilon: float,
+) -> tuple[float, float, float]:
+    """Share the clamped discrete stencil between predictions and derivatives."""
+
+    if timestamps[-1] - timestamps[0] <= 4.0 * epsilon:
+        raise ValueError("knot domain is too short for lever-arm kinematics")
+    limited = min(max(timestamp_sec, timestamps[0] + 2.0 * epsilon), timestamps[-1] - 2.0 * epsilon)
+    return limited, limited - epsilon, limited + epsilon
+
+
+def _lever_arm_knot_jacobians(
+    knots: list[SE3],
+    timestamps: tuple[float, ...],
+    measurement: TrajectoryImuLeverArmMeasurement,
+    lever_arm: FloatArray,
+    clock_offset_sec: float,
+    gravity_world_m_s2: FloatArray,
+    accel_scale: FloatArray,
+    *,
+    imu_rotation: NDArray[np.float64] | None = None,
+) -> list[tuple[int, NDArray[np.float64]]]:
+    """Differentiate the existing discrete specific-force model w.r.t. knots.
+
+    Each sampled pose has a right-tangent derivative with respect to its two
+    supporting knots. Chain those through the same rotation logs and second
+    position difference as ``_body_motion``. A stencil crossing a segment
+    boundary needs contributions from both segments, even at an exact knot.
+    """
+
+    epsilon = 1.0e-3
+    body_time = _imu_body_time(measurement.timestamp_sec, clock_offset_sec)
+    center_time, minus_time, plus_time = _body_motion_sample_times(timestamps, body_time, epsilon)
+
+    def sample(time: float) -> tuple[SE3, dict[int, NDArray[np.float64]]]:
+        interval = _interval_index(timestamps, time)
+        assert interval is not None  # The shared stencil lies inside the knot domain.
+        left, right = interpolate_screw_jacobians(
+            knots[interval], knots[interval + 1], _alpha(timestamps, interval, time),
+        )
+        return interpolate_pose_at(knots, timestamps, time), {interval: left, interval + 1: right}
+
+    center, center_blocks = sample(center_time)
+    minus, minus_blocks = sample(minus_time)
+    plus, plus_blocks = sample(plus_time)
+    rc, rm, rp = (_rotation_matrix(pose) for pose in (center, minus, plus))
+    log_plus = se3_log(center, plus)[3:]
+    log_minus = se3_log(minus, center)[3:]
+    omega = log_plus / epsilon
+    # This historical helper implements the right Exp differential (I - a[w]
+    # + b[w]^2). Its inverse at +phi differentiates Log under a right update.
+    log_jac_plus = so3_left_jacobian_inverse(log_plus) / epsilon
+    log_jac_minus = so3_left_jacobian_inverse(log_minus) / epsilon
+    relative_plus = rc.T @ rp
+    relative_minus = rm.T @ rc
+    pc, pm, pp = (np.asarray(pose.translation_m) for pose in (center, minus, plus))
+    acceleration_world = (pp - 2.0 * pc + pm) / (epsilon * epsilon)
+    acceleration_body = rc.T @ acceleration_world
+    gravity_body = rc.T @ gravity_world_m_s2
+    lever = np.asarray(lever_arm, dtype=float).reshape(3)
+    centrifugal = -skew(np.cross(omega, lever)) - skew(omega) @ skew(lever)
+    output_frame = np.diag(accel_scale) @ _rotation_or_identity(imu_rotation).T
+    blocks: list[tuple[int, NDArray[np.float64]]] = []
+    zero = np.zeros((6, 6), dtype=float)
+    for index in sorted(center_blocks.keys() | minus_blocks.keys() | plus_blocks.keys()):
+        jc = center_blocks.get(index, zero)
+        jm = minus_blocks.get(index, zero)
+        jp = plus_blocks.get(index, zero)
+        d_omega = log_jac_plus @ (jp[3:] - relative_plus.T @ jc[3:])
+        d_omega_minus = log_jac_minus @ (jc[3:] - relative_minus.T @ jm[3:])
+        d_alpha = (d_omega - d_omega_minus) / epsilon
+        d_acc_world = (rp @ jp[:3] - 2.0 * rc @ jc[:3] + rm @ jm[:3]) / (epsilon * epsilon)
+        d_acc_body = skew(acceleration_body) @ jc[3:] + rc.T @ d_acc_world
+        d_kinematic = (
+            d_acc_body - skew(lever) @ d_alpha + centrifugal @ d_omega
+            - skew(gravity_body) @ jc[3:]
+        )
+        blocks.append((index, output_frame @ d_kinematic))
+    return blocks
+
+
 def _body_motion(
     knots: list[SE3],
     timestamps: tuple[float, ...],
@@ -1258,13 +1353,12 @@ def _body_motion(
     *,
     epsilon: float = 1.0e-3,
 ) -> tuple[FloatArray, FloatArray, FloatArray, NDArray[np.float64]]:
-    span = timestamps[-1] - timestamps[0]
-    limited = min(max(timestamp_sec, timestamps[0] + 2.0 * epsilon), timestamps[-1] - 2.0 * epsilon)
-    if span <= 4.0 * epsilon:
-        raise ValueError("knot domain is too short for lever-arm kinematics")
-    pose = interpolate_pose_at(knots, timestamps, limited)
-    pose_minus = interpolate_pose_at(knots, timestamps, limited - epsilon)
-    pose_plus = interpolate_pose_at(knots, timestamps, limited + epsilon)
+    center_time, minus_time, plus_time = _body_motion_sample_times(
+        timestamps, timestamp_sec, epsilon,
+    )
+    pose = interpolate_pose_at(knots, timestamps, center_time)
+    pose_minus = interpolate_pose_at(knots, timestamps, minus_time)
+    pose_plus = interpolate_pose_at(knots, timestamps, plus_time)
     omega = se3_log(pose, pose_plus)[3:] / epsilon
     omega_minus = se3_log(pose_minus, pose)[3:] / epsilon
     alpha = (omega - omega_minus) / epsilon
