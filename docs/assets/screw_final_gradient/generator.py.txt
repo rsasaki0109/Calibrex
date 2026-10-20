@@ -1,0 +1,206 @@
+"""Capture a complete three-seed native CLI cohort without changing fit mathematics."""
+from __future__ import annotations
+
+import argparse
+import contextlib
+import dataclasses
+import hashlib
+import importlib.metadata
+import inspect
+import json
+import platform
+import subprocess
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Annotated, Any, get_type_hints
+
+import jsonschema
+import numpy as np
+from pydantic import BaseModel, ConfigDict, Field, create_model
+
+from calibrex.cli.main import main as cli_main
+from calibrex.core import continuous_time_sparse as sparse
+from calibrex.core.geometry import SE3
+from calibrex.core.validation import validate_file
+from calibrex.evaluation import continuous_time_lidar_imu_joint as evaluation
+
+ROOT = Path(__file__).resolve().parents[2]
+OUT = Path(__file__).resolve().parent
+SEEDS = (20261010, 20261011, 20261012)
+
+
+def encoded(value: Any) -> bytes:
+    return (json.dumps(value, indent=2, allow_nan=False) + '\n').encode()
+
+
+def sha(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def write(path: Path, value: Any) -> None:
+    assert not path.exists(), path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(encoded(value))
+
+
+class Strict(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
+
+class Prior(Strict):
+    knot_index: int
+    anchor_pose: SE3
+    information: Annotated[list[list[float]], Field(min_length=6, max_length=6)]
+
+
+fields = {name: (annotation, ...) for name, annotation in get_type_hints(sparse.ContinuousTimeTrajectoryFitProblem).items()}
+fields['knot_marginalization_priors'] = (tuple[Prior, ...], ...)
+ProblemSnapshot = create_model('ProblemSnapshot', __config__=ConfigDict(extra='forbid'), **fields)
+
+
+class Input(Strict):
+    problem: ProblemSnapshot
+    options: sparse.ContinuousTimeTrajectoryFitOptions
+    provenance: dict[str, Any]
+
+
+class Fit(Strict):
+    payload: sparse.ContinuousTimeTrajectoryFitResult
+    provenance: dict[str, Any]
+
+
+class Model(Strict):
+    normal: list[list[float]]
+    half_gradient: list[float]
+    final_gradient_norm: float
+    assembly_count: int
+    provenance: dict[str, Any]
+
+
+class Outcome(Strict):
+    seed: int
+    command: list[str]
+    returncode: int | None
+    error: str | None
+    fit_status: str | None
+    iterations: int | None
+    reported_gradient_norm: float | None
+    final_gradient_norm: float | None
+    assembly_count: int
+    policy_status: str | None
+    controls_detected: int | None
+    provenance: dict[str, Any]
+
+
+class Receipt(Strict):
+    outcomes: list[Outcome]
+    source_unchanged: bool
+    provenance: dict[str, Any]
+
+
+def checked(path: Path, value: Any, model: type[BaseModel]) -> None:
+    jsonschema.validate(value, model.model_json_schema())
+    write(path, value)
+
+
+def manifest() -> dict[str, str]:
+    return {p.relative_to(ROOT).as_posix(): sha(p.read_bytes().replace(b'\r\n', b'\n'))
+            for p in sorted((ROOT / 'src/calibrex').rglob('*.py'))}
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--stage', choices=['baseline', 'current'], required=True)
+    parser.add_argument('--source', required=True)
+    args = parser.parse_args()
+    assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip() == args.source
+    before = manifest()
+    assert len(before) == 401
+    directory = OUT / args.stage
+    directory.mkdir(exist_ok=False)
+    write(directory / 'source-manifest.json', before)
+    provenance = {'source_commit': args.source, 'source_manifest_sha256': sha(encoded(before)),
+                  'created_at': datetime.now(timezone.utc).isoformat(), 'generator': Path(__file__).name,
+                  'launcher_sha256': sha(Path(__file__).read_bytes()), 'stage': args.stage,
+                  'runtime': {'python': platform.python_version(), **{p: importlib.metadata.version(p) for p in ('numpy', 'scipy', 'pydantic', 'jsonschema')}},
+                  'role': 'already-spent synthetic development',
+                  'scope': 'Maintained CLI entry point with pass-through fit and sparse-assembly recording in this process. No residual/Jacobian/state/stopping override; no timing or independent accuracy claim.'}
+    write(directory / 'protocol.json', {'seeds': list(SEEDS), 'trajectory': 'screw_linear', 'provenance': provenance})
+    for name, model in [('input', Input), ('fit', Fit), ('model', Model), ('outcome', Outcome), ('receipt', Receipt)]:
+        write(directory / (name + '.schema.json'), model.model_json_schema())
+    original_fit = evaluation.fit_continuous_trajectory
+    original_assembly = sparse._assemble_sparse_jacobian
+    outcomes = []
+    for seed in SEEDS:
+        location = directory / f'seed-{seed}'
+        location.mkdir(exist_ok=False)
+        origin = dict(provenance, seed=seed)
+        captures = []
+        assemblies = []
+
+        def assembly(blocks: Any, *, residual_count: int, parameter_count: int) -> Any:
+            matrix = original_assembly(blocks, residual_count=residual_count, parameter_count=parameter_count)
+            caller = inspect.currentframe().f_back
+            assert caller.f_code.co_name == '_linearize'
+            state = caller.f_locals
+            weighted = matrix.multiply(state['weight_array'][:, None])
+            normal = (weighted.T @ weighted).toarray()
+            gradient = np.asarray(weighted.T @ (state['weight_array'] * state['residual_array'])).ravel()
+            assemblies.append((normal, gradient))
+            return matrix
+
+        def fit(problem: sparse.ContinuousTimeTrajectoryFitProblem,
+                options: sparse.ContinuousTimeTrajectoryFitOptions | None = None) -> sparse.ContinuousTimeTrajectoryFitResult:
+            settings = options or sparse.ContinuousTimeTrajectoryFitOptions()
+            checked(location / 'input.json', json.loads(encoded({'problem': dataclasses.asdict(problem), 'options': dataclasses.asdict(settings), 'provenance': origin})), Input)
+            result = original_fit(problem, settings)
+            checked(location / 'fit.json', json.loads(encoded({'payload': dataclasses.asdict(result), 'provenance': origin})), Fit)
+            normal, gradient = assemblies[-1]
+            checked(location / 'model.json', {'normal': normal.tolist(), 'half_gradient': gradient.tolist(),
+                    'final_gradient_norm': float(np.max(np.abs(gradient))), 'assembly_count': len(assemblies), 'provenance': origin}, Model)
+            captures.append(result)
+            return result
+
+        artifact_path = location / 'native.json'
+        command = ['calibrex', 'trajectory', 'recover-lidar-imu-joint', '--trajectory', 'screw_linear',
+                   '--seed', str(seed), '--output', artifact_path.relative_to(ROOT).as_posix(), '--json']
+        code = None
+        error = None
+        policy = None
+        controls = None
+        evaluation.fit_continuous_trajectory = fit
+        sparse._assemble_sparse_jacobian = assembly
+        try:
+            with (location / 'stdout.log').open('w', encoding='utf-8') as stdout, (location / 'stderr.log').open('w', encoding='utf-8') as stderr:
+                with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                    code = cli_main(command[1:])
+            assert len(captures) == 1
+            assert code == 0
+            artifact_path.write_bytes(artifact_path.read_bytes().replace(b'\r\n', b'\n'))
+            assert validate_file(artifact_path, kind='continuous-time-lidar-imu-joint').valid
+            native = json.loads(artifact_path.read_bytes())
+            policy = native['policy_status']
+            controls = sum(c['detected'] for c in native['controls'])
+        except Exception as caught:
+            error = f'{type(caught).__name__}: {caught}'
+        finally:
+            evaluation.fit_continuous_trajectory = original_fit
+            sparse._assemble_sparse_jacobian = original_assembly
+        result = captures[0] if captures else None
+        outcome = Outcome(seed=seed, command=command, returncode=code, error=error,
+                          fit_status=result.status if result else None, iterations=result.iterations if result else None,
+                          reported_gradient_norm=result.gradient_norm if result else None,
+                          final_gradient_norm=float(np.max(np.abs(assemblies[-1][1]))) if assemblies else None,
+                          assembly_count=len(assemblies), policy_status=policy, controls_detected=controls,
+                          provenance=origin).model_dump(mode='json')
+        checked(location / 'outcome.json', outcome, Outcome)
+        outcomes.append(outcome)
+        print(json.dumps(outcome), flush=True)
+    receipt = Receipt(outcomes=outcomes, source_unchanged=manifest() == before, provenance=provenance).model_dump(mode='json')
+    checked(directory / 'receipt.json', receipt, Receipt)
+    assert receipt['source_unchanged']
+    assert all(row['returncode'] == 0 and row['error'] is None and row['policy_status'] == 'pass' and row['controls_detected'] == 32 for row in outcomes)
+
+
+if __name__ == '__main__':
+    main()

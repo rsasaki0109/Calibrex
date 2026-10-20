@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Report the native sparse trajectory gradient at the returned state. Reuse the
+  last linearization while its state is current, refreshing it after an accepted
+  update or state restoration and sharing it with covariance. Keep stopping
+  criteria, accepted states, covariance and schemas unchanged. Retain all three
+  paired spent LiDAR-IMU development cases: every other fit field and native
+  metric matches exactly, with all 32 controls detected in each case. Native
+  assembly counts are unchanged; no timing or independent accuracy claim.
+
 - Correct native trajectory information-prior whitening so the weighted
   residuals and normal equations match the declared information quadratic.
   Preserve zero and weak information without adding a positive floor. Validate

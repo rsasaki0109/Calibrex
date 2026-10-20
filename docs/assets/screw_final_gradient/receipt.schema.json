@@ -1,0 +1,236 @@
+{
+  "$defs": {
+    "Member": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "size_bytes": {
+          "title": "Size Bytes",
+          "type": "integer"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "size_bytes",
+        "sha256"
+      ],
+      "title": "Member",
+      "type": "object"
+    },
+    "Pair": {
+      "additionalProperties": false,
+      "properties": {
+        "seed": {
+          "title": "Seed",
+          "type": "integer"
+        },
+        "input_sha256": {
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "same_inputs_and_options": {
+          "title": "Same Inputs And Options",
+          "type": "boolean"
+        },
+        "other_fit_fields_exactly_equal": {
+          "title": "Other Fit Fields Exactly Equal",
+          "type": "boolean"
+        },
+        "native_metrics_exactly_equal": {
+          "title": "Native Metrics Exactly Equal",
+          "type": "boolean"
+        },
+        "final_normal_and_gradient_exactly_equal": {
+          "title": "Final Normal And Gradient Exactly Equal",
+          "type": "boolean"
+        },
+        "previous_reported_gradient": {
+          "title": "Previous Reported Gradient",
+          "type": "number"
+        },
+        "current_reported_gradient": {
+          "title": "Current Reported Gradient",
+          "type": "number"
+        },
+        "actual_final_gradient": {
+          "title": "Actual Final Gradient",
+          "type": "number"
+        },
+        "current_reports_final_gradient": {
+          "title": "Current Reports Final Gradient",
+          "type": "boolean"
+        },
+        "fit_status": {
+          "title": "Fit Status",
+          "type": "string"
+        },
+        "iterations": {
+          "title": "Iterations",
+          "type": "integer"
+        },
+        "previous_assemblies": {
+          "title": "Previous Assemblies",
+          "type": "integer"
+        },
+        "current_assemblies": {
+          "title": "Current Assemblies",
+          "type": "integer"
+        },
+        "policy_status": {
+          "title": "Policy Status",
+          "type": "string"
+        },
+        "controls_detected": {
+          "title": "Controls Detected",
+          "type": "integer"
+        },
+        "current_artifact": {
+          "title": "Current Artifact",
+          "type": "string"
+        },
+        "current_artifact_sha256": {
+          "title": "Current Artifact Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seed",
+        "input_sha256",
+        "same_inputs_and_options",
+        "other_fit_fields_exactly_equal",
+        "native_metrics_exactly_equal",
+        "final_normal_and_gradient_exactly_equal",
+        "previous_reported_gradient",
+        "current_reported_gradient",
+        "actual_final_gradient",
+        "current_reports_final_gradient",
+        "fit_status",
+        "iterations",
+        "previous_assemblies",
+        "current_assemblies",
+        "policy_status",
+        "controls_detected",
+        "current_artifact",
+        "current_artifact_sha256"
+      ],
+      "title": "Pair",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "baseline_commit": {
+      "title": "Baseline Commit",
+      "type": "string"
+    },
+    "source_commit": {
+      "title": "Source Commit",
+      "type": "string"
+    },
+    "normalized_source_modules": {
+      "title": "Normalized Source Modules",
+      "type": "integer"
+    },
+    "changed_source_modules": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Changed Source Modules",
+      "type": "array"
+    },
+    "source_manifest_sha256": {
+      "title": "Source Manifest Sha256",
+      "type": "string"
+    },
+    "cohort_generator_sha256": {
+      "title": "Cohort Generator Sha256",
+      "type": "string"
+    },
+    "archive_sha256": {
+      "title": "Archive Sha256",
+      "type": "string"
+    },
+    "archive_bytes": {
+      "title": "Archive Bytes",
+      "type": "integer"
+    },
+    "archive_members": {
+      "items": {
+        "$ref": "#/$defs/Member"
+      },
+      "title": "Archive Members",
+      "type": "array"
+    },
+    "pairs": {
+      "items": {
+        "$ref": "#/$defs/Pair"
+      },
+      "title": "Pairs",
+      "type": "array"
+    },
+    "baseline_tests": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Baseline Tests",
+      "type": "object"
+    },
+    "current_tests": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Current Tests",
+      "type": "object"
+    },
+    "historical_directories": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Historical Directories",
+      "type": "array"
+    },
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "limits": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limits",
+      "type": "array"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    }
+  },
+  "required": [
+    "baseline_commit",
+    "source_commit",
+    "normalized_source_modules",
+    "changed_source_modules",
+    "source_manifest_sha256",
+    "cohort_generator_sha256",
+    "archive_sha256",
+    "archive_bytes",
+    "archive_members",
+    "pairs",
+    "baseline_tests",
+    "current_tests",
+    "historical_directories",
+    "scope",
+    "limits",
+    "provenance"
+  ],
+  "title": "Receipt",
+  "type": "object"
+}

@@ -128,6 +128,27 @@ cross-knot information blocks; those approximations need a separate audit.
 Aggregate sliding-window result fields also copy some batch statistics, so
 development comparisons retain actual per-window fitter results and objectives.
 
+The sparse fitter now reports its weighted normal-gradient norm at the returned
+state. Previously, the last accepted update could leave that field describing
+the preceding state. Its final gradient and covariance now share a current
+linearization. When the last model still describes the returned state, it is
+reused; after an accepted update or restoration it is refreshed. Stopping rules,
+iteration limits, accepted states and serialized schemas remain unchanged.
+
+The [complete final-gradient comparison](../assets/screw_final_gradient/README.md)
+retains three paired native CLI cases, their full problems/options, fitted
+states, covariance, final normal models and controls, together with the earlier
+failed harness and private prototypes. Every fit payload field except the
+reported gradient, and every native metric, matches exactly. All three policies
+pass with all 32 signed controls detected. Assembly counts remain 22/24/30;
+these records establish reporting correctness rather than a runtime speedup.
+
+The final raw gradients in those cases exceed the configured gradient threshold
+despite the existing `converged` label: a small accepted damped step is still a
+separate stop reason. Reporting this quantity correctly makes that limit
+visible; normalized stopping in mixed physical units and nonsmooth clock
+behavior require separate work before the fixed-budget reliability study.
+
 ## 3. Fixed-budget comparison
 
 After the derivative audit, compare the maintained single-start fitter with
