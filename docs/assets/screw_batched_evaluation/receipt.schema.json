@@ -1,0 +1,44 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "archive",
+    "bytes",
+    "sha256",
+    "indexed_files",
+    "index_sha256",
+    "summary_sha256",
+    "source_modules",
+    "source_commits",
+    "provenance"
+  ],
+  "properties": {
+    "archive": {
+      "type": "string"
+    },
+    "bytes": {
+      "type": "integer"
+    },
+    "sha256": {
+      "type": "string"
+    },
+    "indexed_files": {
+      "type": "integer"
+    },
+    "index_sha256": {
+      "type": "string"
+    },
+    "summary_sha256": {
+      "type": "string"
+    },
+    "source_modules": {
+      "type": "object"
+    },
+    "source_commits": {
+      "type": "object"
+    },
+    "provenance": {
+      "type": "object"
+    }
+  }
+}

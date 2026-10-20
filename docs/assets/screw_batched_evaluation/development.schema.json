@@ -1,0 +1,40 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source_commits",
+    "source_modules",
+    "test_source_sha256",
+    "checks",
+    "attempts",
+    "implementation",
+    "limits",
+    "provenance"
+  ],
+  "properties": {
+    "source_commits": {
+      "type": "object"
+    },
+    "source_modules": {
+      "type": "object"
+    },
+    "test_source_sha256": {
+      "type": "string"
+    },
+    "checks": {
+      "type": "array"
+    },
+    "attempts": {
+      "type": "array"
+    },
+    "implementation": {
+      "type": "array"
+    },
+    "limits": {
+      "type": "array"
+    },
+    "provenance": {
+      "type": "object"
+    }
+  }
+}
