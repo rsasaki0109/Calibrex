@@ -39,7 +39,7 @@ store information and contribute ``delta.T @ information @ delta``.
 from __future__ import annotations
 
 import math
-from bisect import bisect_left
+from bisect import bisect_left, bisect_right
 from dataclasses import dataclass
 from itertools import pairwise
 from struct import pack
@@ -576,10 +576,6 @@ def _prepare_evaluation(
         for time in (gyro.start_time_sec, gyro.end_time_sec):
             body_time = _imu_body_time(time, clock_offset)
             request(body_time, jacobians)
-            if jacobians:
-                limited = min(max(body_time, timestamps[0]), timestamps[-1] - 1.0e-3)
-                request(limited, False)
-                request(limited + 1.0e-3, False)
     for lever in lever_rows:
         offsets = (clock_offset, clock_offset + 1.0e-6) if jacobians else (clock_offset,)
         for index, offset in enumerate(offsets):
@@ -1859,8 +1855,16 @@ def _linearize_imu_preintegration(
     jacobian_end_rot = so3_left_jacobian_inverse(residual)
     jacobian_bias = -log_jacobian @ jacobian_right_bias
     jacobian_scale = -log_jacobian @ jacobian_right_scale
-    omega_start = _angular_rate_at(knots, timestamps, start_time, interpolation=interpolation)
-    omega_end = _angular_rate_at(knots, timestamps, end_time, interpolation=interpolation)
+    # A positive clock update moves both endpoints to the left in body time.
+    # At the first domain endpoint only the opposite clock side is feasible;
+    # select that same side for both endpoints, including internal knot ties.
+    side: Literal["left", "right"] = "right" if start_time == timestamps[0] else "left"
+    omega_start = _angular_rate_at(
+        knots, timestamps, start_time, side=side, interpolation=interpolation,
+    )
+    omega_end = _angular_rate_at(
+        knots, timestamps, end_time, side=side, interpolation=interpolation,
+    )
     jacobian_clock = (
         jacobian_start_rot @ (-omega_start) + jacobian_end_rot @ (-omega_end)
     ).reshape(3, 1)
@@ -2005,19 +2009,25 @@ def _angular_rate_at(
     timestamps: tuple[float, ...],
     timestamp_sec: float,
     *,
-    epsilon: float = 1.0e-3,
+    side: Literal["left", "right"] = "left",
     interpolation: _ScrewInterpolation | None = None,
 ) -> FloatArray:
-    limited = min(
-        max(timestamp_sec, timestamps[0]),
-        timestamps[-1] - epsilon,
+    """Return the interval's body angular velocity, with explicit knot limits.
+
+    Screw rotation is ``R_left Exp(alpha * w)``, so its body rate is exactly
+    ``w / dt``. At a knot, ``left`` is the positive-clock limit; domain endpoints
+    use their single inward interval. No finite time stencil or knot snapping
+    is used, including for representable times immediately beside a knot.
+    """
+    if not timestamps[0] <= timestamp_sec <= timestamps[-1]:
+        raise ValueError("timestamp is outside the knot domain")
+    search = bisect_left if side == "left" else bisect_right
+    interval = max(0, min(search(timestamps, timestamp_sec) - 1, len(timestamps) - 2))
+    rotation_vector = (
+        _rotation_log(knots[interval], knots[interval + 1])
+        if interpolation is None else interpolation._segment(interval).u[3:]
     )
-    pose = _interpolated_pose_at(knots, timestamps, limited, interpolation=interpolation)
-    pose_plus = _interpolated_pose_at(
-        knots, timestamps, limited + epsilon,
-        interpolation=interpolation,
-    )
-    return _rotation_log(pose, pose_plus) / epsilon
+    return rotation_vector / (timestamps[interval + 1] - timestamps[interval])
 
 
 def _interpolate_rotation_blocks(

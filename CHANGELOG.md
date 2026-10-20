@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Differentiate native screw gyro clock offsets with exact interval angular
+  velocity and explicit one-sided knot limits, replacing the 1 ms sampled
+  rate. Preserve residuals, all nonclock blocks, stopping and schemas. Retain
+  all three spent development cases: policies and all 32 controls pass, while
+  iterations change from 21/23/29 to 20/32/19 and the middle case stops early
+  with `max_iterations` before its configured budget of 60. A status erratum
+  corrects the initial limit description without changing stored outcomes. No speed or general convergence improvement is claimed.
+
 - Batch fixed-state screw interpolation and point-to-plane evaluation; share
   accelerometer stencils and avoid unused translation logarithms. Preserve
   complete results, covariance, stopping and schemas. Against the previous

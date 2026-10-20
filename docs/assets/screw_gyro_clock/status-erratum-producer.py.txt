@@ -1,0 +1,125 @@
+"""Append a status interpretation erratum; retain the original measured archive."""
+from __future__ import annotations
+
+import hashlib
+import json
+import tarfile
+from datetime import datetime, timezone
+from pathlib import Path
+
+import jsonschema
+
+ROOT = Path.cwd()
+ASSETS = ROOT / "docs/assets/screw_gyro_clock"
+SOURCE = "3c2998cf84cbd1916a313ead72269c4e62cc5695"
+HEAD = "f0d8d3d2767964178108faa95d1d341cccfac423"
+
+
+def sha(raw: bytes) -> str:
+    return hashlib.sha256(raw).hexdigest()
+
+
+def main() -> None:
+    archive_path = ASSETS / "complete-development.tar.gz"
+    receipt = json.loads((ASSETS / "receipt.json").read_bytes())
+    assert sha(archive_path.read_bytes()) == receipt["sha256"]
+    assert sha((ASSETS / "summary.json").read_bytes()) == receipt["summary_sha256"]
+    with tarfile.open(archive_path) as archive:
+        def raw(name: str) -> bytes:
+            member = archive.extractfile(name)
+            assert member is not None
+            return member.read()
+
+        saved_options = json.loads(raw("candidate/seed-20261011/input.json"))["options"]
+        fitted = json.loads(raw("candidate/seed-20261011/fit.json"))["payload"]
+        code_path = "src/calibrex/core/continuous_time_sparse.py"
+        code = raw("factors/candidate/" + code_path)
+        assert saved_options["max_iterations"] == 60
+        assert (fitted["status"], fitted["iterations"]) == ("max_iterations", 32)
+        assert b"if damping > 1.0e12:" in code
+        assert b'status: FitStatus = "max_iterations"' in code
+        bindings = {name: sha(raw(name)) for name in (
+            "candidate/seed-20261011/input.json", "candidate/seed-20261011/fit.json",
+            "candidate/seed-20261011/native.json", "factors/candidate/" + code_path,
+        )}
+
+    failures = []
+    for version, run, job, name in (
+        ("3.11", 39498015286, 118888012307, "gyro-clock-ci-failed-job-logs-v1.txt"),
+        ("3.12", 39498087831, 118888257666, "gyro-clock-ci-failure-python312-v1.log"),
+    ):
+        path = ROOT / "outputs" / name
+        log = path.read_text(encoding="utf-8-sig")
+        start = log.index(" =================================== FAILURES")
+        start = log.rfind("\n", 0, start) + 1
+        marker = "1 failed, 5295 passed, 104 skipped"
+        end = log.index("\n", log.index(marker)) + 1
+        excerpt = log[start:end].encode("utf-8")
+        excerpt_name = "initial-ci-python" + version.replace(".", "") + ".txt"
+        (ASSETS / excerpt_name).write_bytes(excerpt)
+        assert "assert artifact.fit_status == \"converged\"".replace("\\", "") in log
+        assert "assert 'max_iterations' == 'converged'" in log
+        failures.append({
+            "python": version, "run_id": run, "job_id": job,
+            "url": f"https://github.com/rsasaki0109/Calibrex/actions/runs/{run}/job/{job}",
+            "check_head": HEAD, "failed": 1, "passed": 5295, "skipped": 104,
+            "failed_assertion": "artifact.fit_status == 'converged'",
+            "observed_status": "max_iterations", "observed_quality_policy": "pass",
+            "excerpt": excerpt_name, "excerpt_sha256": sha(excerpt),
+            "retrieved_log_sha256": sha(path.read_bytes()),
+        })
+
+    result = {
+        "schema_version": "slac.screw_gyro_clock_status_erratum/v1",
+        "supersedes": {
+            "archive_sha256": receipt["sha256"],
+            "summary_sha256": receipt["summary_sha256"],
+            "summary_pointer": "/candidate_iteration_limit_cases",
+            "historical_value": [20261011],
+            "interpretation": "This field names a nonconverged fit, not a consumed iteration budget.",
+        },
+        "case": {
+            "seed": 20261011, "fit_status": fitted["status"],
+            "observed_iterations": fitted["iterations"],
+            "configured_max_iterations": saved_options["max_iterations"],
+            "budget_exhausted": False, "inferred_termination": "damping_limit",
+            "basis": "Before the budget, the frozen loop can retain max_iterations only when unsuccessful steps raise damping above 1e12. No per-iteration damping trace was captured.",
+            "saved_options": saved_options,
+        },
+        "initial_ci_failures": failures,
+        "new_optimizer_steps": 0,
+        "original_archive_and_outcomes_unchanged": True,
+        "quality_gates_and_stopping_unchanged": True,
+        "test_contract_correction": "Validate actual fitter status and iteration propagation separately from error, holdout and signed-control quality gates; singular fits fail. Controlled stopping tests retain max_iterations for both budget and early damping exhaustion.",
+        "limits": "This erratum does not establish stationarity, change the historical fit status, or make a convergence or speed claim. CI outcomes are platform-specific and were not a new development cohort.",
+        "provenance": {
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "producer_sha256": sha(Path(__file__).read_bytes()),
+            "numerical_source": SOURCE, "initial_ci_check_head": HEAD,
+            "archive_member_sha256": bindings,
+            "role": "Post hoc interpretation correction from immutable spent-development records and initial CI logs; no calibration replay.",
+        },
+    }
+    schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "Screw gyro clock status erratum", "type": "object",
+        "required": list(result), "additionalProperties": False,
+        "properties": {key: {"type": "boolean" if isinstance(value, bool) else
+                             "integer" if isinstance(value, int) else
+                             "array" if isinstance(value, list) else
+                             "object" if isinstance(value, dict) else "string"}
+                       for key, value in result.items()},
+    }
+    schema["properties"]["schema_version"] = {"const": result["schema_version"]}
+    jsonschema.Draft202012Validator.check_schema(schema)
+    jsonschema.validate(result, schema)
+    for name, value in (("status-erratum.json", result), ("status-erratum.schema.json", schema)):
+        target = ASSETS / name
+        assert not target.exists()
+        target.write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps({"seed": 20261011, "iterations": 32, "max_iterations": 60,
+                      "ci_failures_retained": len(failures), "new_optimizer_steps": 0}))
+
+
+if __name__ == "__main__":
+    main()
