@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Correct native trajectory information-prior whitening so the weighted
+  residuals and normal equations match the declared information quadratic.
+  Preserve zero and weak information without adding a positive floor. Validate
+  finite real 6x6 information, symmetry and positive semidefiniteness after
+  diagonal scaling. Keep prior centering, Log derivatives, solver settings and
+  serialized schemas unchanged.
+
 - Correct native `screw_linear` gyro factor Jacobians for left/right SO(3)
   logarithm perturbations and the exponential differential of integrated
   increments. Include diagonal gyro scale in bias derivatives. Check nonzero
