@@ -13,8 +13,10 @@ import shutil
 import statistics
 import subprocess
 import sys
+import tarfile
+import tempfile
 import time
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -23,6 +25,70 @@ from tools import benchmark_screw_residual_evaluation as previous  # noqa: E402
 
 TOOLS = (*previous.TOOLS, "tools/benchmark_screw_imu_evaluation.py")
 FILES = {"result.json", "fit-input.json", "fit-result.json", "measurement.json"}
+_RESERVED = {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(10)),
+             *(f"LPT{i}" for i in range(10))}
+
+
+def _unpack_archive(path: Path, directory: Path) -> None:
+    """Read regular indexed files only; never import or execute archived code."""
+    import hashlib
+
+    with tarfile.open(path, "r:gz") as archive:
+        members = archive.getmembers()
+        names = [member.name for member in members]
+        if len(set(names)) != len(names) or "index.json" not in names:
+            raise ValueError("duplicate member or missing index")
+        if sum(member.size for member in members) > 64 * 1024**2:
+            raise ValueError("archive exceeds unpacked size limit")
+        for member in members:
+            name = PurePosixPath(member.name)
+            if (not member.isfile() or name.is_absolute() or ".." in name.parts
+                    or "\\" in member.name or ":" in member.name
+                    or name.as_posix() != member.name
+                    or any(part.endswith((".", " ")) for part in name.parts)
+                    or any(part.split(".")[0].upper() in _RESERVED for part in name.parts)
+                    or member.size > 4 * 1024**2):
+                raise ValueError("unsafe archive member")
+        index_file = archive.extractfile("index.json")
+        assert index_file is not None
+        index = json.loads(index_file.read())
+        if set(index["files"]) != set(names) - {"index.json"}:
+            raise ValueError("index coverage differs")
+        for member in members:
+            file = archive.extractfile(member)
+            assert file is not None
+            raw = file.read()
+            if member.name != "index.json" and index["files"][member.name] != {
+                "bytes": len(raw), "sha256": hashlib.sha256(raw).hexdigest(),
+            }:
+                raise ValueError("archive member differs from index")
+            target = directory / member.name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(raw)
+
+
+def audit_archive(path: Path, *, temporary_directory: Path | None = None) -> dict[str, Any]:
+    """Replay bindings and whole-result equality on a CPU without calibration runs."""
+    with tempfile.TemporaryDirectory(dir=temporary_directory) as temporary:
+        directory = Path(temporary)
+        _unpack_archive(path, directory)
+        import jsonschema
+
+        for index, variant in enumerate(previous.ORDER):
+            worker = directory / f"joint-{index:02d}-{variant}"
+            inputs = json.loads((worker / "fit-input.json").read_bytes())
+            fitted = json.loads((worker / "fit-result.json").read_bytes())
+            origin = fitted.pop("provenance")
+            jsonschema.validate(inputs, json.loads(
+                (directory / "input-payload.schema.json").read_bytes()))
+            jsonschema.validate({"payload": fitted, "provenance": origin}, json.loads(
+                (directory / "fit-payload.schema.json").read_bytes()))
+        result = audit(directory)
+        retained = json.loads((directory / "summary.json").read_bytes())
+        jsonschema.validate(retained, json.loads((directory / "summary.schema.json").read_bytes()))
+        if previous.quality(result) != previous.quality(retained):
+            raise ValueError("retained summary differs from complete replay")
+        return result
 
 
 def audit(folder: Path, *, verify_git: bool = False) -> dict[str, Any]:
@@ -196,11 +262,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", type=Path, required=True)
+    target = parser.add_mutually_exclusive_group(required=True)
+    target.add_argument("--output", type=Path)
+    target.add_argument("--archive", type=Path)
     parser.add_argument("--baseline-commit", default="0f76b0ec6bda2d975ea58d4b4bbd52d174892dae")
     parser.add_argument("--audit", action="store_true")
     args = parser.parse_args()
-    result = audit(args.output) if args.audit else run(args)
+    result = (audit_archive(args.archive) if args.archive else
+              audit(args.output) if args.audit else run(args))
     print(json.dumps(result, indent=2, allow_nan=False))
     return 0 if result["meets_2x_api_target"] else 2
 

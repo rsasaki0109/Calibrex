@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "pairs",
+    "paired_median_api_ratio",
+    "paired_median_fit_ratio",
+    "paired_median_fresh_worker_ratio",
+    "median_seconds",
+    "all_complete_inputs_and_outcomes_equal",
+    "meets_2x_api_target",
+    "provenance"
+  ],
+  "properties": {
+    "pairs": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "required": [
+          "seed",
+          "api_ratio",
+          "fit_ratio",
+          "fresh_worker_ratio"
+        ],
+        "properties": {
+          "seed": {
+            "type": "integer"
+          },
+          "api_ratio": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "fit_ratio": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "fresh_worker_ratio": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          }
+        }
+      }
+    },
+    "paired_median_api_ratio": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "paired_median_fit_ratio": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "paired_median_fresh_worker_ratio": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "median_seconds": {
+      "type": "object"
+    },
+    "all_complete_inputs_and_outcomes_equal": {
+      "type": "boolean"
+    },
+    "meets_2x_api_target": {
+      "type": "boolean"
+    },
+    "provenance": {
+      "type": "object"
+    }
+  }
+}
