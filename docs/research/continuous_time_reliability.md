@@ -151,6 +151,14 @@ behavior require separate work before the fixed-budget reliability study.
 
 ## 3. Fixed-budget comparison
 
+The [shared IMU execution comparison](../benchmarks/screw_imu_evaluation.md)
+removes repeated integration and discarded derivatives while preserving all
+three complete development outcomes exactly. Its complete-API paired median
+is 1.452x and misses the declared 2x target. This incremental CPU cleanup does
+not address normalized stopping, clock sensitivity or independent reliability.
+The next execution candidates are structural batching of trajectory and
+measurement work; their complete processing latency still needs measurement.
+
 After the derivative audit, compare the maintained single-start fitter with
 bounded multiple starts and empirical uncertainty using identical inputs and
 total compute budgets. Freeze the cases, budgets, seeds, solver settings,

@@ -622,13 +622,7 @@ def fit_continuous_trajectory(
                 blocks.append((row_offset, 6 * (interval + 1), jacobian_right))
                 row_offset += 3
         for imu_measurement in imu_rows:
-            (
-                residual,
-                knot_blocks,
-                jacobian_bias,
-                jacobian_clock,
-                jacobian_gyro_scale,
-            ) = _imu_preintegration_residual(
+            factor = _linearize_imu_preintegration(
                 knots,
                 timestamps,
                 imu_measurement,
@@ -637,34 +631,27 @@ def fit_continuous_trajectory(
                 gyro_scale,
                 imu_rotation=imu_rotation,
                 interpolation=interpolation,
+                rotation_jacobian=estimate_imu_rot,
             )
-            residuals.extend(float(value) for value in residual)
+            residuals.extend(float(value) for value in factor.residual)
             weights.extend([imu_measurement.weight] * 3)
             if estimate_imu_rot:
+                assert factor.jacobian_rotation is not None
                 blocks.append(
                     (
                         row_offset,
                         imu_rotation_offset,
-                        _imu_preintegration_rotation_jacobian(
-                            knots,
-                            timestamps,
-                            imu_measurement,
-                            gyro_bias,
-                            clock_offset,
-                            gyro_scale,
-                            _rotation_or_identity(imu_rotation),
-                            interpolation=interpolation,
-                        ),
+                        factor.jacobian_rotation,
                     )
                 )
-            for knot_index, jacobian in knot_blocks:
+            for knot_index, jacobian in factor.knot_blocks:
                 blocks.append((row_offset, 6 * knot_index, jacobian))
             if estimate_bias:
-                blocks.append((row_offset, 6 * knot_count, jacobian_bias))
+                blocks.append((row_offset, 6 * knot_count, factor.jacobian_bias))
             if estimate_clock:
-                blocks.append((row_offset, clock_offset_index, jacobian_clock))
+                blocks.append((row_offset, clock_offset_index, factor.jacobian_clock))
             if estimate_gyro_scale:
-                blocks.append((row_offset, gyro_scale_offset, jacobian_gyro_scale))
+                blocks.append((row_offset, gyro_scale_offset, factor.jacobian_scale))
             row_offset += 3
         for lever_measurement in lever_rows:
             (
@@ -1178,16 +1165,19 @@ def imu_preintegration_rmse(
     scale = np.asarray(gyro_scale, dtype=float)
     imu_rotation = _optional_imu_rotation(imu_rotation_vector_rad)
     squared = 0.0
+    poses = list(knots)
+    interpolation = _ScrewInterpolation(poses)
     for measurement in measurements:
-        residual, _knots, _bias, _clock, _scale = _imu_preintegration_residual(
-            list(knots),
+        residual = _evaluate_imu_preintegration(
+            poses,
             timestamps,
             measurement,
             bias,
             clock_offset_sec,
             scale,
             imu_rotation=imu_rotation,
-        )
+            interpolation=interpolation,
+        ).residual
         squared += float(np.sum(residual * residual))
     return math.sqrt(squared / (3 * len(measurements)))
 
@@ -1218,9 +1208,11 @@ def imu_lever_arm_rmse(
     scale = np.asarray(accel_scale, dtype=float)
     imu_rotation = _optional_imu_rotation(imu_rotation_vector_rad)
     squared = 0.0
+    poses = list(knots)
+    interpolation = _ScrewInterpolation(poses)
     for measurement in measurements:
-        residual, _lever, _clock, _accel, _gravity, _scale = _lever_arm_residual(
-            list(knots),
+        residual, _kinematic, _omega, _alpha, _rotation = _evaluate_lever_arm(
+            poses,
             timestamps,
             measurement,
             lever,
@@ -1229,6 +1221,7 @@ def imu_lever_arm_rmse(
             gravity,
             scale,
             imu_rotation=imu_rotation,
+            interpolation=interpolation,
         )
         squared += float(np.sum(residual * residual))
     return math.sqrt(squared / (3 * len(measurements)))
@@ -1278,7 +1271,7 @@ def _lever_arm_residual(
         )
     )
     epsilon = 1.0e-6
-    perturbed, _lever, _accel, _gravity, _scale = _lever_arm_kinematics_residual(
+    perturbed, _kinematic, _omega, _alpha, _rotation = _evaluate_lever_arm(
         knots,
         timestamps,
         measurement,
@@ -1320,6 +1313,43 @@ def _lever_arm_kinematics_residual(
     NDArray[np.float64],
     NDArray[np.float64],
 ]:
+    residual, kinematic, omega, alpha, rotation = _evaluate_lever_arm(
+        knots, timestamps, measurement, lever_arm, clock_offset_sec,
+        accel_bias_body_m_s2, gravity_world_m_s2, accel_scale,
+        imu_rotation=imu_rotation, interpolation=interpolation,
+    )
+    scale = np.asarray(accel_scale, dtype=float).reshape(3)
+    jacobian_lever = skew(alpha) + skew(omega) @ skew(omega)
+    jacobian_gravity = -np.diag(scale) @ rotation.T
+    if imu_rotation is not None:
+        jacobian_lever = imu_rotation.T @ jacobian_lever
+        jacobian_gravity = -np.diag(scale) @ imu_rotation.T @ rotation.T
+    jacobian_lever = scale[:, None] * jacobian_lever
+    jacobian_accel: NDArray[np.float64] = np.eye(3, dtype=float)
+    jacobian_accel_scale = np.diag(kinematic)
+    return (
+        residual,
+        jacobian_lever,
+        jacobian_accel,
+        jacobian_gravity,
+        jacobian_accel_scale,
+    )
+
+
+def _evaluate_lever_arm(
+    knots: list[SE3],
+    timestamps: tuple[float, ...],
+    measurement: TrajectoryImuLeverArmMeasurement,
+    lever_arm: FloatArray,
+    clock_offset_sec: float,
+    accel_bias_body_m_s2: FloatArray,
+    gravity_world_m_s2: FloatArray,
+    accel_scale: FloatArray,
+    *,
+    imu_rotation: NDArray[np.float64] | None = None,
+    interpolation: _ScrewInterpolation | None = None,
+) -> tuple[FloatArray, FloatArray, FloatArray, FloatArray, FloatArray]:
+    """Evaluate the force without derivatives or a perturbed clock sample."""
     body_time = _imu_body_time(measurement.timestamp_sec, clock_offset_sec)
     omega, alpha, accel_origin, rotation = _body_motion(
         knots, timestamps, body_time,
@@ -1335,24 +1365,11 @@ def _lever_arm_kinematics_residual(
         + np.cross(omega, np.cross(omega, lever))
         - rotation.T @ gravity
     )
-    jacobian_lever = skew(alpha) + skew(omega) @ skew(omega)
-    jacobian_gravity = -np.diag(scale) @ rotation.T
     if imu_rotation is not None:
         kinematic = imu_rotation.T @ kinematic
-        jacobian_lever = imu_rotation.T @ jacobian_lever
-        jacobian_gravity = -np.diag(scale) @ imu_rotation.T @ rotation.T
-    jacobian_lever = scale[:, None] * jacobian_lever
     predicted = scale * kinematic + accel_bias
     residual = predicted - np.asarray(measurement.accel_body_m_s2, dtype=float)
-    jacobian_accel: NDArray[np.float64] = np.eye(3, dtype=float)
-    jacobian_accel_scale = np.diag(kinematic)
-    return (
-        residual,
-        jacobian_lever,
-        jacobian_accel,
-        jacobian_gravity,
-        jacobian_accel_scale,
-    )
+    return residual, kinematic, omega, alpha, rotation
 
 
 def _body_motion_sample_times(
@@ -1509,6 +1526,56 @@ def predicted_imu_specific_force(
     return scale * kinematic + accel_bias
 
 
+@dataclass(frozen=True)
+class _ImuPreintegrationValue:
+    residual: FloatArray
+    delta_imu: FloatArray
+    delta_body: FloatArray
+    rotation_start: FloatArray
+    rotation_end: FloatArray
+
+
+@dataclass(frozen=True)
+class _ImuPreintegrationLinearization:
+    residual: FloatArray
+    knot_blocks: list[tuple[int, FloatArray]]
+    jacobian_bias: FloatArray
+    jacobian_clock: FloatArray
+    jacobian_scale: FloatArray
+    jacobian_rotation: FloatArray | None
+
+
+def _evaluate_imu_preintegration(
+    knots: list[SE3],
+    timestamps: tuple[float, ...],
+    measurement: TrajectoryImuPreintegrationMeasurement,
+    gyro_bias: FloatArray,
+    clock_offset_sec: float,
+    gyro_scale: FloatArray,
+    *,
+    imu_rotation: NDArray[np.float64] | None = None,
+    interpolation: _ScrewInterpolation | None = None,
+    delta_imu: FloatArray | None = None,
+) -> _ImuPreintegrationValue:
+    """Evaluate the rotation error, optionally borrowing this factor's integral."""
+    start_time = _imu_body_time(measurement.start_time_sec, clock_offset_sec)
+    end_time = _imu_body_time(measurement.end_time_sec, clock_offset_sec)
+    start = _interpolated_pose_at(knots, timestamps, start_time, interpolation=interpolation)
+    end = _interpolated_pose_at(knots, timestamps, end_time, interpolation=interpolation)
+    rotation_start = _rotation_matrix(start)
+    rotation_end = _rotation_matrix(end)
+    if delta_imu is None:
+        delta_imu = _integrate_gyro_rotation(measurement.gyro_samples, gyro_bias, gyro_scale)
+    delta_body = delta_imu
+    if imu_rotation is not None:
+        delta_body = imu_rotation @ delta_imu @ imu_rotation.T
+    rotation_error = delta_body.T @ rotation_start.T @ rotation_end
+    residual = rotation_matrix_to_rotation_vector(rotation_error)
+    return _ImuPreintegrationValue(
+        residual, delta_imu, delta_body, rotation_start, rotation_end,
+    )
+
+
 def _imu_preintegration_residual(
     knots: list[SE3],
     timestamps: tuple[float, ...],
@@ -1526,25 +1593,46 @@ def _imu_preintegration_residual(
     NDArray[np.float64],
     NDArray[np.float64],
 ]:
+    factor = _linearize_imu_preintegration(
+        knots, timestamps, measurement, gyro_bias, clock_offset_sec, gyro_scale,
+        imu_rotation=imu_rotation, interpolation=interpolation,
+    )
+    return (
+        factor.residual, factor.knot_blocks, factor.jacobian_bias,
+        factor.jacobian_clock, factor.jacobian_scale,
+    )
+
+
+def _linearize_imu_preintegration(
+    knots: list[SE3],
+    timestamps: tuple[float, ...],
+    measurement: TrajectoryImuPreintegrationMeasurement,
+    gyro_bias: FloatArray,
+    clock_offset_sec: float = 0.0,
+    gyro_scale: FloatArray | None = None,
+    *,
+    imu_rotation: NDArray[np.float64] | None = None,
+    interpolation: _ScrewInterpolation | None = None,
+    rotation_jacobian: bool = False,
+) -> _ImuPreintegrationLinearization:
+    """Prepare every requested block from one factor-local gyro integral."""
     scale = np.ones(3, dtype=float) if gyro_scale is None else np.asarray(
         gyro_scale, dtype=float
     ).reshape(3)
     start_time = _imu_body_time(measurement.start_time_sec, clock_offset_sec)
     end_time = _imu_body_time(measurement.end_time_sec, clock_offset_sec)
-    start = _interpolated_pose_at(knots, timestamps, start_time, interpolation=interpolation)
-    end = _interpolated_pose_at(knots, timestamps, end_time, interpolation=interpolation)
-    rotation_start = _rotation_matrix(start)
-    rotation_end = _rotation_matrix(end)
-    delta_rotation, jacobian_right_bias, jacobian_right_scale = _integrate_gyro(
+    delta_imu, jacobian_right_bias, jacobian_right_scale = _integrate_gyro(
         measurement.gyro_samples, gyro_bias, scale
     )
+    value = _evaluate_imu_preintegration(
+        knots, timestamps, measurement, gyro_bias, clock_offset_sec, scale,
+        imu_rotation=imu_rotation, interpolation=interpolation, delta_imu=delta_imu,
+    )
+    delta_rotation, residual = value.delta_body, value.residual
     if imu_rotation is not None:
         # Gyro increments are in the IMU frame; conjugate them into the body frame.
-        delta_rotation = imu_rotation @ delta_rotation @ imu_rotation.T
         jacobian_right_bias = imu_rotation @ jacobian_right_bias
         jacobian_right_scale = imu_rotation @ jacobian_right_scale
-    rotation_error = delta_rotation.T @ rotation_start.T @ rotation_end
-    residual = rotation_matrix_to_rotation_vector(rotation_error)
     # The historically named V(phi) implements the right Exp differential.
     # Log(exp(a) exp(r)) uses V(-r)^-1; Log(exp(r) exp(a)) uses V(r)^-1.
     log_jacobian = so3_left_jacobian_inverse(-residual)
@@ -1577,7 +1665,26 @@ def _imu_preintegration_residual(
             combined[knot_index] = combined[knot_index] + jacobian
         else:
             combined[knot_index] = jacobian
-    return residual, sorted(combined.items()), jacobian_bias, jacobian_clock, jacobian_scale
+    jacobian_rotation = None
+    if rotation_jacobian:
+        mounting = _rotation_or_identity(imu_rotation)
+        mounting_log = log_jacobian
+        if imu_rotation is None:
+            # The previous separate mounting helper explicitly conjugated by I.
+            # Retain its signed-zero behavior while reusing the same integral.
+            mounted_delta = mounting @ delta_imu @ mounting.T
+            mounted_residual = rotation_matrix_to_rotation_vector(
+                mounted_delta.T @ value.rotation_start.T @ value.rotation_end
+            )
+            mounting_log = so3_left_jacobian_inverse(-mounted_residual)
+        jacobian_rotation = np.asarray(
+            -mounting_log @ mounting @ (delta_imu.T - np.eye(3, dtype=float)),
+            dtype=float,
+        )
+    return _ImuPreintegrationLinearization(
+        residual, sorted(combined.items()), jacobian_bias, jacobian_clock,
+        jacobian_scale, jacobian_rotation,
+    )
 
 
 def _imu_body_time(imu_time_sec: float, clock_offset_sec: float) -> float:
@@ -1624,7 +1731,7 @@ def _imu_preintegration_rotation_jacobian(
     is ``J_l^{-1}(r)`` (``log(exp(a) exp(r)) ~= r + J(-r) a``).
     """
 
-    residual, _knots, _bias, _clock, _scale = _imu_preintegration_residual(
+    factor = _linearize_imu_preintegration(
         knots,
         timestamps,
         measurement,
@@ -1633,15 +1740,10 @@ def _imu_preintegration_rotation_jacobian(
         gyro_scale,
         imu_rotation=imu_rotation,
         interpolation=interpolation,
+        rotation_jacobian=True,
     )
-    delta_imu, _jacobian_bias, _jacobian_scale = _integrate_gyro(
-        measurement.gyro_samples, gyro_bias, gyro_scale
-    )
-    log_jacobian = so3_left_jacobian_inverse(-residual)
-    return np.asarray(
-        -log_jacobian @ imu_rotation @ (delta_imu.T - np.eye(3, dtype=float)),
-        dtype=float,
-    )
+    assert factor.jacobian_rotation is not None
+    return factor.jacobian_rotation
 
 
 def _lever_arm_rotation_jacobian(
@@ -1717,6 +1819,25 @@ def _interpolate_rotation_blocks(
         (interval, selector @ jacobian_left),
         (interval + 1, selector @ jacobian_right),
     ]
+
+
+def _integrate_gyro_rotation(
+    samples: tuple[TrajectoryImuGyroSample, ...],
+    gyro_bias: FloatArray,
+    gyro_scale: FloatArray,
+) -> FloatArray:
+    """Keep the original product order without storing or differentiating increments."""
+    scale = np.asarray(gyro_scale, dtype=float).reshape(3)
+    bias = np.asarray(gyro_bias, dtype=float).reshape(3)
+    delta_rotation: FloatArray = np.eye(3, dtype=float)
+    for left, right in pairwise(samples):
+        dt = right.timestamp_sec - left.timestamp_sec
+        raw = np.asarray(left.omega_body_rad_s, dtype=float) - bias
+        omega = scale * raw
+        phi = omega * dt
+        rotation = rotation_vector_to_matrix(phi)
+        delta_rotation = delta_rotation @ rotation
+    return delta_rotation
 
 
 def _integrate_gyro(
@@ -1958,7 +2079,7 @@ def _objective(
             objective += weight**2 * float(np.sum(residual * residual))
     for imu_measurement in imu_rows:
         try:
-            residual, _knots, _bias, _clock, _scale = _imu_preintegration_residual(
+            residual = _evaluate_imu_preintegration(
                 knots,
                 problem.knot_timestamps,
                 imu_measurement,
@@ -1967,13 +2088,13 @@ def _objective(
                 gyro_scale,
                 imu_rotation=imu_rotation,
                 interpolation=interpolation,
-            )
+            ).residual
         except ValueError:
             return math.inf
         objective += imu_measurement.weight**2 * float(np.sum(residual * residual))
     for lever_measurement in lever_rows:
         try:
-            residual, _lever, _clock, _accel, _gravity, _scale = _lever_arm_residual(
+            residual, _kinematic, _omega, _alpha, _rotation = _evaluate_lever_arm(
                 knots,
                 problem.knot_timestamps,
                 lever_measurement,

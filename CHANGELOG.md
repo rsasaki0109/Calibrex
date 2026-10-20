@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Share one gyro integral across residual and mounting-rotation derivatives;
+  avoid discarded IMU derivatives and perturbed clock samples when scoring.
+  Preserve complete inputs, fitted results, covariance, stopping and schemas.
+  Retain all six synthetic joint-recovery workers: 1.452x paired median for
+  the complete CPU API, 1.292x including worker startup/output. The declared
+  2x whole-API target was missed; this is an incremental execution cleanup.
+
 - Reuse fixed-state screw interval preparation, poses, Jacobians and IMU body
   samples; share exponentials and avoid discarded geometric RMSE derivatives.
   Preserve exact complete results, covariance, stopping and schemas. Paired
