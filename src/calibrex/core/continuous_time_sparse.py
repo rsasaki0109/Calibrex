@@ -42,6 +42,7 @@ import math
 from bisect import bisect_left
 from dataclasses import dataclass
 from itertools import pairwise
+from struct import pack
 from typing import Literal, TypeAlias
 
 import numpy as np
@@ -55,6 +56,7 @@ from calibrex.core.continuous_time_marginalization import (
 )
 from calibrex.core.geometry import SE3
 from calibrex.core.se3_manifold import (
+    _ScrewSegment,
     interpolate_screw_jacobians,
     point_transform_jacobian,
     rotation_matrix_to_rotation_vector,
@@ -70,6 +72,46 @@ from calibrex.core.se3_manifold import (
 FloatArray: TypeAlias = NDArray[np.float64]
 
 FitStatus = Literal["converged", "max_iterations", "singular_system"]
+
+
+class _ScrewInterpolation:
+    """Borrow fixed-state samples during one objective or model evaluation.
+
+    Snapshot the immutable poses; never retain this workspace across updates.
+    Objective-only samples prepare no Jacobians. Arrays remain private and
+    read-only, so sharing a sample cannot modify another factor's derivative.
+    """
+
+    def __init__(self, knots: list[SE3]) -> None:
+        self.knots = tuple(knots)
+        self._segments: dict[int, _ScrewSegment] = {}
+        self._poses: dict[tuple[int, bytes], SE3] = {}
+        self._jacobians: dict[tuple[int, bytes], tuple[FloatArray, FloatArray]] = {}
+        self.motion: dict[
+            bytes, tuple[FloatArray, FloatArray, FloatArray, FloatArray]
+        ] = {}
+
+    def _segment(self, interval: int) -> _ScrewSegment:
+        if interval not in self._segments:
+            self._segments[interval] = _ScrewSegment(
+                self.knots[interval], self.knots[interval + 1]
+            )
+        return self._segments[interval]
+
+    def pose(self, interval: int, alpha: float) -> SE3:
+        key = (interval, pack("!d", alpha))  # Preserve the sign of zero, too.
+        if key not in self._poses:
+            self._poses[key] = self._segment(interval).pose(alpha)
+        return self._poses[key]
+
+    def jacobians(self, interval: int, alpha: float) -> tuple[FloatArray, FloatArray]:
+        key = (interval, pack("!d", alpha))
+        if key not in self._jacobians:
+            pair = self._segment(interval).jacobians(alpha)
+            for array in pair:
+                array.setflags(write=False)
+            self._jacobians[key] = pair
+        return self._jacobians[key]
 
 
 @dataclass(frozen=True)
@@ -526,6 +568,7 @@ def fit_continuous_trajectory(
     ) -> tuple[
         list[tuple[int, int, NDArray[np.float64]]], FloatArray, FloatArray, csc_matrix
     ]:
+        interpolation = _ScrewInterpolation(knots)
         imu_rotation = _imu_rotation_matrix(imu_rotation_vector)
         blocks: list[tuple[int, int, NDArray[np.float64]]] = []
         residuals: list[float] = []
@@ -540,6 +583,7 @@ def fit_continuous_trajectory(
                 measurement.timestamp_sec,
                 point_body,
                 measurement.target_world_m,
+                interpolation=interpolation,
             )
             residuals.extend(float(value) for value in residual)
             weights.extend([measurement.weight] * 3)
@@ -552,6 +596,7 @@ def fit_continuous_trajectory(
                 timestamps,
                 interval,
                 plane_measurement,
+                interpolation=interpolation,
             )
             residuals.append(float(residual[0]))
             weights.append(plane_measurement.weight)
@@ -569,6 +614,7 @@ def fit_continuous_trajectory(
                     pose_measurement.timestamp_sec,
                     anchor,
                     pose,
+                    interpolation=interpolation,
                 )
                 residuals.extend(float(value) for value in residual)
                 weights.extend([weight] * 3)
@@ -590,6 +636,7 @@ def fit_continuous_trajectory(
                 clock_offset,
                 gyro_scale,
                 imu_rotation=imu_rotation,
+                interpolation=interpolation,
             )
             residuals.extend(float(value) for value in residual)
             weights.extend([imu_measurement.weight] * 3)
@@ -606,6 +653,7 @@ def fit_continuous_trajectory(
                             clock_offset,
                             gyro_scale,
                             _rotation_or_identity(imu_rotation),
+                            interpolation=interpolation,
                         ),
                     )
                 )
@@ -636,6 +684,7 @@ def fit_continuous_trajectory(
                 gravity,
                 accel_scale,
                 imu_rotation=imu_rotation,
+                interpolation=interpolation,
             )
             residuals.extend(float(value) for value in residual)
             weights.extend([lever_measurement.weight] * 3)
@@ -653,6 +702,7 @@ def fit_continuous_trajectory(
                             gravity,
                             accel_scale,
                             _rotation_or_identity(imu_rotation),
+                            interpolation=interpolation,
                         ),
                     )
                 )
@@ -675,6 +725,7 @@ def fit_continuous_trajectory(
                 gravity,
                 accel_scale,
                 imu_rotation=imu_rotation,
+                interpolation=interpolation,
             ):
                 blocks.append((row_offset, 6 * knot_index, jacobian))
             row_offset += 3
@@ -984,13 +1035,13 @@ def _evaluate_point(
     timestamp_sec: float,
     point_body: tuple[float, float, float],
     target_world: tuple[float, float, float],
+    *,
+    interpolation: _ScrewInterpolation | None = None,
 ) -> tuple[FloatArray, SE3, float]:
     """Evaluate a point without derivatives; shared by scoring and linearization."""
 
     alpha = _alpha(timestamps, interval, timestamp_sec)
-    left = knots[interval]
-    right = knots[interval + 1]
-    pose = _interpolate(left, right, alpha)
+    pose = _interpolate_segment(knots, interval, alpha, interpolation)
     residual = np.asarray(pose.transform_point(point_body), dtype=float)
     residual -= np.asarray(target_world, dtype=float)
     return residual, pose, alpha
@@ -1003,14 +1054,15 @@ def _point_residual(
     timestamp_sec: float,
     point_body: tuple[float, float, float],
     target_world: tuple[float, float, float],
+    *,
+    interpolation: _ScrewInterpolation | None = None,
 ) -> tuple[FloatArray, NDArray[np.float64], NDArray[np.float64]]:
     residual, pose, alpha = _evaluate_point(
-        knots, timestamps, interval, timestamp_sec, point_body, target_world
+        knots, timestamps, interval, timestamp_sec, point_body, target_world,
+        interpolation=interpolation,
     )
     point_jacobian = point_transform_jacobian(pose, np.asarray(point_body))
-    jacobian_left, jacobian_right = interpolate_screw_jacobians(
-        knots[interval], knots[interval + 1], alpha
-    )
+    jacobian_left, jacobian_right = _interpolation_jacobians(knots, interval, alpha, interpolation)
     return residual, point_jacobian @ jacobian_left, point_jacobian @ jacobian_right
 
 
@@ -1019,13 +1071,13 @@ def _evaluate_plane(
     timestamps: tuple[float, ...],
     interval: int,
     measurement: TrajectoryPointToPlaneMeasurement,
+    *,
+    interpolation: _ScrewInterpolation | None = None,
 ) -> tuple[FloatArray, SE3, FloatArray, float]:
     """Evaluate a signed distance with the original transform and dot order."""
 
     alpha = _alpha(timestamps, interval, measurement.timestamp_sec)
-    left = knots[interval]
-    right = knots[interval + 1]
-    pose = _interpolate(left, right, alpha)
+    pose = _interpolate_segment(knots, interval, alpha, interpolation)
     world = np.asarray(pose.transform_point(measurement.point_body_m), dtype=float)
     plane_point = np.asarray(measurement.plane_point_world_m, dtype=float)
     normal = np.asarray(measurement.plane_normal_world, dtype=float)
@@ -1039,15 +1091,18 @@ def _point_to_plane_residual(
     timestamps: tuple[float, ...],
     interval: int,
     measurement: TrajectoryPointToPlaneMeasurement,
+    *,
+    interpolation: _ScrewInterpolation | None = None,
 ) -> tuple[FloatArray, NDArray[np.float64], NDArray[np.float64]]:
-    residual, pose, normal, alpha = _evaluate_plane(knots, timestamps, interval, measurement)
+    residual, pose, normal, alpha = _evaluate_plane(
+        knots, timestamps, interval, measurement,
+        interpolation=interpolation,
+    )
     point_jacobian = point_transform_jacobian(
         pose, np.asarray(measurement.point_body_m)
     )
     signed_jacobian = normal.reshape(1, 3) @ point_jacobian
-    jacobian_left, jacobian_right = interpolate_screw_jacobians(
-        knots[interval], knots[interval + 1], alpha
-    )
+    jacobian_left, jacobian_right = _interpolation_jacobians(knots, interval, alpha, interpolation)
     return residual, signed_jacobian @ jacobian_left, signed_jacobian @ jacobian_right
 
 
@@ -1058,11 +1113,21 @@ def interpolate_pose_at(
 ) -> SE3:
     """Interpolate a screw-linear pose at ``timestamp_sec``."""
 
+    return _interpolated_pose_at(knots, timestamps, timestamp_sec)
+
+
+def _interpolated_pose_at(
+    knots: tuple[SE3, ...] | list[SE3],
+    timestamps: tuple[float, ...],
+    timestamp_sec: float,
+    *,
+    interpolation: _ScrewInterpolation | None = None,
+) -> SE3:
     interval = _interval_index(timestamps, timestamp_sec)
     if interval is None:
         raise ValueError("timestamp is outside the knot domain")
     alpha = _alpha(timestamps, interval, timestamp_sec)
-    return _interpolate(knots[interval], knots[interval + 1], alpha)
+    return _interpolate_segment(knots, interval, alpha, interpolation)
 
 
 def point_to_plane_rmse(
@@ -1178,6 +1243,7 @@ def _lever_arm_residual(
     accel_scale: FloatArray | None = None,
     *,
     imu_rotation: NDArray[np.float64] | None = None,
+    interpolation: _ScrewInterpolation | None = None,
 ) -> tuple[
     FloatArray,
     NDArray[np.float64],
@@ -1206,6 +1272,7 @@ def _lever_arm_residual(
             gravity,
             scale,
             imu_rotation=imu_rotation,
+            interpolation=interpolation,
         )
     )
     epsilon = 1.0e-6
@@ -1219,6 +1286,7 @@ def _lever_arm_residual(
         gravity,
         scale,
         imu_rotation=imu_rotation,
+        interpolation=interpolation,
     )
     jacobian_clock = ((perturbed - residual) / epsilon).reshape(3, 1)
     return (
@@ -1242,6 +1310,7 @@ def _lever_arm_kinematics_residual(
     accel_scale: FloatArray,
     *,
     imu_rotation: NDArray[np.float64] | None = None,
+    interpolation: _ScrewInterpolation | None = None,
 ) -> tuple[
     FloatArray,
     NDArray[np.float64],
@@ -1250,7 +1319,10 @@ def _lever_arm_kinematics_residual(
     NDArray[np.float64],
 ]:
     body_time = _imu_body_time(measurement.timestamp_sec, clock_offset_sec)
-    omega, alpha, accel_origin, rotation = _body_motion(knots, timestamps, body_time)
+    omega, alpha, accel_origin, rotation = _body_motion(
+        knots, timestamps, body_time,
+        interpolation=interpolation,
+    )
     lever = np.asarray(lever_arm, dtype=float).reshape(3)
     accel_bias = np.asarray(accel_bias_body_m_s2, dtype=float).reshape(3)
     gravity = np.asarray(gravity_world_m_s2, dtype=float).reshape(3)
@@ -1302,6 +1374,7 @@ def _lever_arm_knot_jacobians(
     accel_scale: FloatArray,
     *,
     imu_rotation: NDArray[np.float64] | None = None,
+    interpolation: _ScrewInterpolation | None = None,
 ) -> list[tuple[int, NDArray[np.float64]]]:
     """Differentiate the existing discrete specific-force model w.r.t. knots.
 
@@ -1318,10 +1391,11 @@ def _lever_arm_knot_jacobians(
     def sample(time: float) -> tuple[SE3, dict[int, NDArray[np.float64]]]:
         interval = _interval_index(timestamps, time)
         assert interval is not None  # The shared stencil lies inside the knot domain.
-        left, right = interpolate_screw_jacobians(
-            knots[interval], knots[interval + 1], _alpha(timestamps, interval, time),
+        left, right = _interpolation_jacobians(
+            knots, interval, _alpha(timestamps, interval, time), interpolation,
         )
-        return interpolate_pose_at(knots, timestamps, time), {interval: left, interval + 1: right}
+        pose = _interpolated_pose_at(knots, timestamps, time, interpolation=interpolation)
+        return pose, {interval: left, interval + 1: right}
 
     center, center_blocks = sample(center_time)
     minus, minus_blocks = sample(minus_time)
@@ -1368,13 +1442,17 @@ def _body_motion(
     timestamp_sec: float,
     *,
     epsilon: float = 1.0e-3,
+    interpolation: _ScrewInterpolation | None = None,
 ) -> tuple[FloatArray, FloatArray, FloatArray, NDArray[np.float64]]:
+    key = pack("!dd", timestamp_sec, epsilon)
+    if interpolation is not None and key in interpolation.motion:
+        return interpolation.motion[key]
     center_time, minus_time, plus_time = _body_motion_sample_times(
         timestamps, timestamp_sec, epsilon,
     )
-    pose = interpolate_pose_at(knots, timestamps, center_time)
-    pose_minus = interpolate_pose_at(knots, timestamps, minus_time)
-    pose_plus = interpolate_pose_at(knots, timestamps, plus_time)
+    pose = _interpolated_pose_at(knots, timestamps, center_time, interpolation=interpolation)
+    pose_minus = _interpolated_pose_at(knots, timestamps, minus_time, interpolation=interpolation)
+    pose_plus = _interpolated_pose_at(knots, timestamps, plus_time, interpolation=interpolation)
     omega = se3_log(pose, pose_plus)[3:] / epsilon
     omega_minus = se3_log(pose_minus, pose)[3:] / epsilon
     alpha = (omega - omega_minus) / epsilon
@@ -1384,7 +1462,12 @@ def _body_motion(
     accel_world = (origin_plus - 2.0 * origin + origin_minus) / (epsilon * epsilon)
     rotation = _rotation_matrix(pose)
     accel_body = rotation.T @ accel_world
-    return omega, alpha, accel_body, rotation
+    result = omega, alpha, accel_body, rotation
+    if interpolation is not None:
+        for array in result:
+            array.setflags(write=False)
+        interpolation.motion[key] = result
+    return result
 
 
 def predicted_imu_specific_force(
@@ -1433,6 +1516,7 @@ def _imu_preintegration_residual(
     gyro_scale: FloatArray | None = None,
     *,
     imu_rotation: NDArray[np.float64] | None = None,
+    interpolation: _ScrewInterpolation | None = None,
 ) -> tuple[
     FloatArray,
     list[tuple[int, NDArray[np.float64]]],
@@ -1445,8 +1529,8 @@ def _imu_preintegration_residual(
     ).reshape(3)
     start_time = _imu_body_time(measurement.start_time_sec, clock_offset_sec)
     end_time = _imu_body_time(measurement.end_time_sec, clock_offset_sec)
-    start = interpolate_pose_at(knots, timestamps, start_time)
-    end = interpolate_pose_at(knots, timestamps, end_time)
+    start = _interpolated_pose_at(knots, timestamps, start_time, interpolation=interpolation)
+    end = _interpolated_pose_at(knots, timestamps, end_time, interpolation=interpolation)
     rotation_start = _rotation_matrix(start)
     rotation_end = _rotation_matrix(end)
     delta_rotation, jacobian_right_bias, jacobian_right_scale = _integrate_gyro(
@@ -1466,8 +1550,8 @@ def _imu_preintegration_residual(
     jacobian_end_rot = so3_left_jacobian_inverse(residual)
     jacobian_bias = -log_jacobian @ jacobian_right_bias
     jacobian_scale = -log_jacobian @ jacobian_right_scale
-    omega_start = _angular_rate_at(knots, timestamps, start_time)
-    omega_end = _angular_rate_at(knots, timestamps, end_time)
+    omega_start = _angular_rate_at(knots, timestamps, start_time, interpolation=interpolation)
+    omega_end = _angular_rate_at(knots, timestamps, end_time, interpolation=interpolation)
     jacobian_clock = (
         jacobian_start_rot @ (-omega_start) + jacobian_end_rot @ (-omega_end)
     ).reshape(3, 1)
@@ -1476,12 +1560,14 @@ def _imu_preintegration_residual(
         timestamps,
         start_time,
         jacobian_start_rot,
+        interpolation=interpolation,
     )
     end_blocks = _interpolate_rotation_blocks(
         knots,
         timestamps,
         end_time,
         jacobian_end_rot,
+        interpolation=interpolation,
     )
     combined: dict[int, NDArray[np.float64]] = {}
     for knot_index, jacobian in (*knot_blocks, *end_blocks):
@@ -1525,6 +1611,8 @@ def _imu_preintegration_rotation_jacobian(
     clock_offset_sec: float,
     gyro_scale: FloatArray,
     imu_rotation: NDArray[np.float64],
+    *,
+    interpolation: _ScrewInterpolation | None = None,
 ) -> NDArray[np.float64]:
     """Jacobian of the pre-integration residual for ``R_body_imu exp(delta)``.
 
@@ -1542,6 +1630,7 @@ def _imu_preintegration_rotation_jacobian(
         clock_offset_sec,
         gyro_scale,
         imu_rotation=imu_rotation,
+        interpolation=interpolation,
     )
     delta_imu, _jacobian_bias, _jacobian_scale = _integrate_gyro(
         measurement.gyro_samples, gyro_bias, gyro_scale
@@ -1562,6 +1651,8 @@ def _lever_arm_rotation_jacobian(
     gravity_world_m_s2: FloatArray,
     accel_scale: FloatArray,
     imu_rotation: NDArray[np.float64],
+    *,
+    interpolation: _ScrewInterpolation | None = None,
 ) -> NDArray[np.float64]:
     """Jacobian of the specific-force residual for ``R_body_imu exp(delta)``.
 
@@ -1570,7 +1661,10 @@ def _lever_arm_rotation_jacobian(
     """
 
     body_time = _imu_body_time(measurement.timestamp_sec, clock_offset_sec)
-    omega, alpha, accel_origin, rotation = _body_motion(knots, timestamps, body_time)
+    omega, alpha, accel_origin, rotation = _body_motion(
+        knots, timestamps, body_time,
+        interpolation=interpolation,
+    )
     lever = np.asarray(lever_arm, dtype=float).reshape(3)
     gravity = np.asarray(gravity_world_m_s2, dtype=float).reshape(3)
     scale = np.asarray(accel_scale, dtype=float).reshape(3)
@@ -1589,13 +1683,17 @@ def _angular_rate_at(
     timestamp_sec: float,
     *,
     epsilon: float = 1.0e-3,
+    interpolation: _ScrewInterpolation | None = None,
 ) -> FloatArray:
     limited = min(
         max(timestamp_sec, timestamps[0]),
         timestamps[-1] - epsilon,
     )
-    pose = interpolate_pose_at(knots, timestamps, limited)
-    pose_plus = interpolate_pose_at(knots, timestamps, limited + epsilon)
+    pose = _interpolated_pose_at(knots, timestamps, limited, interpolation=interpolation)
+    pose_plus = _interpolated_pose_at(
+        knots, timestamps, limited + epsilon,
+        interpolation=interpolation,
+    )
     return se3_log(pose, pose_plus)[3:] / epsilon
 
 
@@ -1604,14 +1702,14 @@ def _interpolate_rotation_blocks(
     timestamps: tuple[float, ...],
     timestamp_sec: float,
     jacobian_rotation: NDArray[np.float64],
+    *,
+    interpolation: _ScrewInterpolation | None = None,
 ) -> list[tuple[int, NDArray[np.float64]]]:
     interval = _interval_index(timestamps, timestamp_sec)
     if interval is None:
         raise ValueError("timestamp is outside the knot domain")
     alpha = _alpha(timestamps, interval, timestamp_sec)
-    jacobian_left, jacobian_right = interpolate_screw_jacobians(
-        knots[interval], knots[interval + 1], alpha
-    )
+    jacobian_left, jacobian_right = _interpolation_jacobians(knots, interval, alpha, interpolation)
     selector = jacobian_rotation @ np.eye(6, dtype=float)[3:, :]
     return [
         (interval, selector @ jacobian_left),
@@ -1675,13 +1773,13 @@ def _evaluate_anchor(
     timestamp_sec: float,
     anchor: tuple[float, float, float],
     pose: SE3,
+    *,
+    interpolation: _ScrewInterpolation | None = None,
 ) -> tuple[FloatArray, SE3, float]:
     """Evaluate a pose anchor without interpolation or point Jacobians."""
 
     alpha = _alpha(timestamps, interval, timestamp_sec)
-    left = knots[interval]
-    right = knots[interval + 1]
-    interpolated = _interpolate(left, right, alpha)
+    interpolated = _interpolate_segment(knots, interval, alpha, interpolation)
     target = pose.transform_point(anchor)
     residual = np.asarray(interpolated.transform_point(anchor), dtype=float)
     residual -= np.asarray(target, dtype=float)
@@ -1695,19 +1793,41 @@ def _anchor_residual(
     timestamp_sec: float,
     anchor: tuple[float, float, float],
     pose: SE3,
+    *,
+    interpolation: _ScrewInterpolation | None = None,
 ) -> tuple[FloatArray, NDArray[np.float64], NDArray[np.float64]]:
     residual, interpolated, alpha = _evaluate_anchor(
-        knots, timestamps, interval, timestamp_sec, anchor, pose
+        knots, timestamps, interval, timestamp_sec, anchor, pose, interpolation=interpolation
     )
     point_jacobian = point_transform_jacobian(interpolated, np.asarray(anchor))
-    jacobian_left, jacobian_right = interpolate_screw_jacobians(
-        knots[interval], knots[interval + 1], alpha
-    )
+    jacobian_left, jacobian_right = _interpolation_jacobians(knots, interval, alpha, interpolation)
     return residual, point_jacobian @ jacobian_left, point_jacobian @ jacobian_right
 
 
 def _interpolate(left: SE3, right: SE3, alpha: float) -> SE3:
     return se3_exp(left, alpha * se3_log(left, right))
+
+
+def _interpolate_segment(
+    knots: tuple[SE3, ...] | list[SE3],
+    interval: int,
+    alpha: float,
+    interpolation: _ScrewInterpolation | None,
+) -> SE3:
+    if interpolation is not None:
+        return interpolation.pose(interval, alpha)
+    return _interpolate(knots[interval], knots[interval + 1], alpha)
+
+
+def _interpolation_jacobians(
+    knots: list[SE3],
+    interval: int,
+    alpha: float,
+    interpolation: _ScrewInterpolation | None,
+) -> tuple[FloatArray, FloatArray]:
+    if interpolation is not None:
+        return interpolation.jacobians(interval, alpha)
+    return interpolate_screw_jacobians(knots[interval], knots[interval + 1], alpha)
 
 
 def _alpha(
@@ -1797,6 +1917,7 @@ def _objective(
     *,
     imu_rotation: NDArray[np.float64] | None = None,
 ) -> float:
+    interpolation = _ScrewInterpolation(knots)
     objective = 0.0
     for index, (interval, point_body) in enumerate(point_rows):
         point_measurement = problem.point_measurements[index]
@@ -1807,6 +1928,7 @@ def _objective(
             point_measurement.timestamp_sec,
             point_body,
             point_measurement.target_world_m,
+            interpolation=interpolation,
         )
         objective += point_measurement.weight**2 * float(np.sum(residual * residual))
     for interval, plane_measurement in plane_rows:
@@ -1815,6 +1937,7 @@ def _objective(
             problem.knot_timestamps,
             interval,
             plane_measurement,
+            interpolation=interpolation,
         )
         objective += plane_measurement.weight**2 * float(residual[0] * residual[0])
     for index, (interval, pose) in enumerate(pose_rows):
@@ -1828,6 +1951,7 @@ def _objective(
                 pose_measurement.timestamp_sec,
                 anchor,
                 pose,
+                interpolation=interpolation,
             )
             objective += weight**2 * float(np.sum(residual * residual))
     for imu_measurement in imu_rows:
@@ -1840,6 +1964,7 @@ def _objective(
                 clock_offset_sec,
                 gyro_scale,
                 imu_rotation=imu_rotation,
+                interpolation=interpolation,
             )
         except ValueError:
             return math.inf
@@ -1856,6 +1981,7 @@ def _objective(
                 gravity,
                 accel_scale,
                 imu_rotation=imu_rotation,
+                interpolation=interpolation,
             )
         except ValueError:
             return math.inf

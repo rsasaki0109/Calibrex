@@ -266,27 +266,39 @@ def interpolate_screw_jacobians(
     derivative of ``P`` with respect to the left and right knot perturbations.
     """
 
-    u = se3_log(left, right)
-    v_u = u[:3]
-    w_u = u[3:]
-    exp_u_rotation, exp_u_translation = se3_exp_local(v_u, w_u)
-    scaled = alpha * u
-    v_scaled = scaled[:3]
-    w_scaled = scaled[3:]
-    exp_scaled_rotation, exp_scaled_translation = se3_exp_local(v_scaled, w_scaled)
+    return _ScrewSegment(left, right).jacobians(alpha)
 
-    v_scaled_se3 = se3_left_jacobian(v_scaled, w_scaled)
-    v_u_se3 = se3_left_jacobian(v_u, w_u)
-    adjoint_exp_u = se3_adjoint(exp_u_rotation, exp_u_translation)
-    adjoint_exp_scaled = se3_adjoint(
-        exp_scaled_rotation, exp_scaled_translation
-    )
 
-    right_jacobian = alpha * (v_scaled_se3 @ np.linalg.inv(v_u_se3))
-    left_jacobian = np.linalg.inv(adjoint_exp_scaled) - alpha * (
-        v_scaled_se3 @ np.linalg.inv(v_u_se3) @ np.linalg.inv(adjoint_exp_u)
-    )
-    return left_jacobian, right_jacobian
+class _ScrewSegment:
+    """Prepare one fixed knot pair, retaining the original FP64 arithmetic."""
+
+    def __init__(self, left: SE3, right: SE3) -> None:
+        self.left = left
+        self.u = se3_log(left, right)
+        self._jacobian_factors: tuple[FloatArray, FloatArray] | None = None
+
+    def pose(self, alpha: float) -> SE3:
+        return se3_exp(self.left, alpha * self.u)
+
+    def jacobians(self, alpha: float) -> tuple[FloatArray, FloatArray]:
+        if self._jacobian_factors is None:
+            v_u, w_u = self.u[:3], self.u[3:]
+            rotation, translation = se3_exp_local(v_u, w_u)
+            self._jacobian_factors = (
+                np.linalg.inv(se3_left_jacobian(v_u, w_u)),
+                np.linalg.inv(se3_adjoint(rotation, translation)),
+            )
+        inverse_u, inverse_adjoint_u = self._jacobian_factors
+        scaled = alpha * self.u
+        v_scaled, w_scaled = scaled[:3], scaled[3:]
+        rotation, translation = se3_exp_local(v_scaled, w_scaled)
+        scaled_jacobian = se3_left_jacobian(v_scaled, w_scaled)
+        product = scaled_jacobian @ inverse_u
+        right_jacobian = alpha * product
+        left_jacobian = np.linalg.inv(se3_adjoint(rotation, translation)) - alpha * (
+            product @ inverse_adjoint_u
+        )
+        return left_jacobian, right_jacobian
 
 
 def _matrix_pose(transform: SE3) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
