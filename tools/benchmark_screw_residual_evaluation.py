@@ -409,7 +409,7 @@ def run(args: argparse.Namespace) -> dict:
         "host_reserved": False,
         "warmups": 0,
         "provenance": provenance(
-            scope="Frozen before timing; no cache/iteration/quality changes; all attempts retained",
+            scope="Frozen before timing; no iteration/quality changes; all attempts retained",
         ),
     }
     write(folder / "protocol.json", protocol)

@@ -1,0 +1,76 @@
+{
+  "cases": {
+    "joint": {
+      "paired_median_api_ratio": 2.225345840158884,
+      "paired_median_fresh_worker_ratio": 1.995312320322623,
+      "passes_api_gate": true,
+      "pairs": [
+        {
+          "api_ratio": 2.225345840158884,
+          "fresh_worker_ratio": 1.9333788121657909,
+          "quality_sha256": "6f68eefda905210c8971246d6dc26a905746e53f7f6b995fe8071d7cf85bb2d4"
+        },
+        {
+          "api_ratio": 2.5711548460011673,
+          "fresh_worker_ratio": 2.2068135951275294,
+          "quality_sha256": "e65c2afa430b4dfd1de4d951834415d0ec4b6053c9d4f6af287ac378f7d5e0d8"
+        },
+        {
+          "api_ratio": 2.2206095202883254,
+          "fresh_worker_ratio": 1.995312320322623,
+          "quality_sha256": "f3a846368197eecb01fec30040f795ee4af1364ebcd856dbafa866e3f86cd3e6"
+        }
+      ],
+      "medians_seconds": {
+        "baseline": {
+          "api_seconds": 46.286686999956146,
+          "fresh_worker_seconds": 51.93770090001635
+        },
+        "candidate": {
+          "api_seconds": 18.002294600009918,
+          "fresh_worker_seconds": 23.53515539993532
+        }
+      },
+      "complete_input_and_result_bits_equal": true
+    },
+    "geometry": {
+      "paired_median_api_ratio": 1.900181804917188,
+      "paired_median_fresh_worker_ratio": 1.687314107384273,
+      "passes_api_gate": false,
+      "pairs": [
+        {
+          "api_ratio": 1.9280426805492175,
+          "fresh_worker_ratio": 1.687314107384273,
+          "quality_sha256": "399029807c70d1690ab30298d3c2899cdcb4723a5e5e73b09ef4ff8e2c8aa961"
+        },
+        {
+          "api_ratio": 1.77897093207857,
+          "fresh_worker_ratio": 1.604750462460202,
+          "quality_sha256": "399029807c70d1690ab30298d3c2899cdcb4723a5e5e73b09ef4ff8e2c8aa961"
+        },
+        {
+          "api_ratio": 1.900181804917188,
+          "fresh_worker_ratio": 1.693017350204626,
+          "quality_sha256": "399029807c70d1690ab30298d3c2899cdcb4723a5e5e73b09ef4ff8e2c8aa961"
+        }
+      ],
+      "medians_seconds": {
+        "baseline": {
+          "api_seconds": 36.10791440005414,
+          "fresh_worker_seconds": 42.48431700002402
+        },
+        "candidate": {
+          "api_seconds": 19.00234719994478,
+          "fresh_worker_seconds": 25.093846200034022
+        }
+      },
+      "complete_input_and_result_bits_equal": true
+    }
+  },
+  "provenance": {
+    "created_at": "2026-10-20T10:05:50.397823+00:00",
+    "protocol_sha256": "20effa07a58ea8fc4aa36c2683230c50cbaf89109755176f6b0f5cda7e8ef7bf",
+    "attempts_sha256": "457715fdba480e8deb5d099cfb5b4cc5a9ed03eb1cd34d42f7b65a7ff3db6ec8",
+    "scope": "Complete sparse fits and synthetic joint recovery; assigned public-geometry times; no accuracy claim"
+  }
+}
