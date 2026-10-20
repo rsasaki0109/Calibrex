@@ -308,3 +308,7 @@ docs/assets/screw_accelerometer_jacobians/*.txt -text
 # Preserve the original source and input-comparison bytes of the gyro audit.
 docs/assets/screw_gyro_jacobians/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 docs/assets/screw_gyro_jacobians/input-comparison.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+
+# Retain original producer and complete prior-information comparison bytes.
+docs/assets/prior_information_whitening/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/prior_information_whitening/*.tar.gz -text

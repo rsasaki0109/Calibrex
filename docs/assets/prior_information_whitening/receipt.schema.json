@@ -1,0 +1,436 @@
+{
+  "$defs": {
+    "ArchiveMember": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "size_bytes": {
+          "title": "Size Bytes",
+          "type": "integer"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "size_bytes",
+        "sha256"
+      ],
+      "title": "ArchiveMember",
+      "type": "object"
+    },
+    "NativeOutcome": {
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "returncode": {
+          "title": "Returncode",
+          "type": "integer"
+        },
+        "artifact": {
+          "title": "Artifact",
+          "type": "string"
+        },
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "policy_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Policy Status"
+        },
+        "batch_fit_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Batch Fit Status"
+        },
+        "sliding_fit_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sliding Fit Status"
+        },
+        "known_bad_rmse_delta_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Known Bad Rmse Delta M"
+        }
+      },
+      "required": [
+        "command",
+        "returncode",
+        "artifact"
+      ],
+      "title": "NativeOutcome",
+      "type": "object"
+    },
+    "Phase": {
+      "additionalProperties": false,
+      "properties": {
+        "phase": {
+          "title": "Phase",
+          "type": "integer"
+        },
+        "fit_status": {
+          "title": "Fit Status",
+          "type": "string"
+        },
+        "iterations": {
+          "title": "Iterations",
+          "type": "integer"
+        },
+        "stored_final_objective": {
+          "title": "Stored Final Objective",
+          "type": "number"
+        },
+        "recomputed_objective": {
+          "title": "Recomputed Objective",
+          "type": "number"
+        },
+        "prior_count": {
+          "title": "Prior Count",
+          "type": "integer"
+        },
+        "input_matches_historical": {
+          "title": "Input Matches Historical",
+          "type": "boolean"
+        },
+        "result_matches_historical": {
+          "title": "Result Matches Historical",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "phase",
+        "fit_status",
+        "iterations",
+        "stored_final_objective",
+        "recomputed_objective",
+        "prior_count",
+        "input_matches_historical",
+        "result_matches_historical"
+      ],
+      "title": "Phase",
+      "type": "object"
+    },
+    "Provenance": {
+      "additionalProperties": false,
+      "properties": {
+        "source_commit": {
+          "title": "Source Commit",
+          "type": "string"
+        },
+        "source_manifest_sha256": {
+          "title": "Source Manifest Sha256",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "launcher_sha256": {
+          "title": "Launcher Sha256",
+          "type": "string"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "runtime": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Runtime",
+          "type": "object"
+        },
+        "seed": {
+          "title": "Seed",
+          "type": "integer"
+        },
+        "role": {
+          "title": "Role",
+          "type": "string"
+        },
+        "scope": {
+          "title": "Scope",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_commit",
+        "source_manifest_sha256",
+        "generator",
+        "launcher_sha256",
+        "created_at",
+        "runtime",
+        "seed",
+        "role",
+        "scope"
+      ],
+      "title": "Provenance",
+      "type": "object"
+    },
+    "WindowOutcome": {
+      "additionalProperties": false,
+      "properties": {
+        "outcome": {
+          "title": "Outcome",
+          "type": "string"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error"
+        },
+        "phases": {
+          "items": {
+            "$ref": "#/$defs/Phase"
+          },
+          "title": "Phases",
+          "type": "array"
+        },
+        "batch_fit_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Batch Fit Status"
+        },
+        "sliding_fit_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sliding Fit Status"
+        },
+        "existing_unit_gate_pass": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Existing Unit Gate Pass"
+        },
+        "direct_api_result_identical": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Direct Api Result Identical"
+        },
+        "max_overlap_translation_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Overlap Translation M"
+        },
+        "max_overlap_rotation_rad": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Overlap Rotation Rad"
+        },
+        "max_truth_translation_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Truth Translation M"
+        },
+        "max_truth_rotation_rad": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Truth Rotation Rad"
+        },
+        "aggregate_stored_objective": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Aggregate Stored Objective"
+        }
+      },
+      "required": [
+        "outcome",
+        "phases"
+      ],
+      "title": "WindowOutcome",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "provenance": {
+      "$ref": "#/$defs/Provenance"
+    },
+    "baseline_source_commit": {
+      "title": "Baseline Source Commit",
+      "type": "string"
+    },
+    "source_unchanged": {
+      "title": "Source Unchanged",
+      "type": "boolean"
+    },
+    "current_source_manifest_sha256": {
+      "title": "Current Source Manifest Sha256",
+      "type": "string"
+    },
+    "baseline_source_manifest_sha256": {
+      "title": "Baseline Source Manifest Sha256",
+      "type": "string"
+    },
+    "changed_source_modules": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Changed Source Modules",
+      "type": "array"
+    },
+    "window": {
+      "$ref": "#/$defs/WindowOutcome"
+    },
+    "native": {
+      "$ref": "#/$defs/NativeOutcome"
+    },
+    "archive_sha256": {
+      "title": "Archive Sha256",
+      "type": "string"
+    },
+    "archive_members": {
+      "items": {
+        "$ref": "#/$defs/ArchiveMember"
+      },
+      "title": "Archive Members",
+      "type": "array"
+    },
+    "historical_attempts_retained": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Historical Attempts Retained",
+      "type": "array"
+    },
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    }
+  },
+  "required": [
+    "provenance",
+    "baseline_source_commit",
+    "source_unchanged",
+    "current_source_manifest_sha256",
+    "baseline_source_manifest_sha256",
+    "changed_source_modules",
+    "window",
+    "native",
+    "archive_sha256",
+    "archive_members",
+    "historical_attempts_retained",
+    "scope"
+  ],
+  "title": "Receipt",
+  "type": "object"
+}

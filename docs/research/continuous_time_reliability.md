@@ -97,12 +97,36 @@ The accelerometer clock derivative still uses a forward time difference.
 Gyro clock derivatives use a sampled angular rate, whose stencil can cross a
 knot. At segment boundaries the model can have different one-sided time
 derivatives; a central difference there is not a smooth derivative oracle.
-Clock behavior at boundaries, correlated-prior whitening, and convergence
-remain audit work.
+Clock behavior at boundaries and convergence remain audit work.
 The native `converged` label can come from a small damped accepted step rather
 than the gradient threshold. Audit the undamped model before interpreting that
 label as stationarity. Stalled line searches must retain their failure status
 when the undamped model still has a significant gradient or step.
+
+Information-prior whitening now uses rows of the square root, so its residual
+norm and normal equations match `delta.T @ information @ delta`. Diagonal
+equilibration makes validation independent of global scale and coordinate
+units. Real finite 6x6 matrices must have a nonnegative diagonal, exact zero
+rows/columns at zero diagonal entries, and a symmetric positive-semidefinite
+normalized matrix. Symmetry and spectral checks allow 60 machine epsilons times
+the respective normalized norm. Only tiny negative spectral roundoff is
+projected; positive weak information is retained without a floor. A negative
+diagonal is rejected rather than implicitly repaired.
+
+The [complete prior-information development records](../assets/prior_information_whitening/README.md)
+retain both historical attempts and the current production result. On the
+same-input window fixture, the prior-bearing fit changes from 26 to 7 iterations
+with smaller overlap errors; the overall maximum translation error is unchanged.
+A separate native holdout/control fixture still passes. All current API inputs,
+per-window results, schemas and original source bindings are retained. These
+are correctness/development records, without a timing or independent accuracy
+claim.
+
+This correction preserves the existing zero-centered prior. The current
+window-packing helpers still discard a nonzero marginalized gradient and
+cross-knot information blocks; those approximations need a separate audit.
+Aggregate sliding-window result fields also copy some batch statistics, so
+development comparisons retain actual per-window fitter results and objectives.
 
 ## 3. Fixed-budget comparison
 
