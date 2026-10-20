@@ -43,7 +43,11 @@ def test_prior_at_anchor_has_declared_information(name: str) -> None:
         np.testing.assert_array_equal(jacobian, np.zeros((6, 6)))
     if name == "rank_two":
         for null in (np.array([2.0, -1.0, -1.0, 0.0, 0.0, 0.0]), np.eye(6)[5]):
-            np.testing.assert_allclose(jacobian @ null, np.zeros(6), atol=1e-7, rtol=0)
+            # A spectral square root has sqrt(eps) uncertainty in a null direction.
+            # Bound its energy using the same entrywise Gram roundoff contract.
+            null_residual = jacobian @ null
+            energy_bound = 128 * np.finfo(float).eps * (np.sqrt(np.diag(info)) @ np.abs(null)) ** 2
+            assert float(null_residual @ null_residual) <= energy_bound
 
 
 @pytest.mark.parametrize("name", _INFORMATION)

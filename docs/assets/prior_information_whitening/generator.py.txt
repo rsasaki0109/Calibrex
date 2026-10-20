@@ -1,0 +1,412 @@
+"""Retain a complete fixed-source prior-whitening development comparison."""
+from __future__ import annotations
+
+import argparse
+import dataclasses
+import gzip
+import hashlib
+import importlib.metadata
+import io
+import json
+import os
+import platform
+import subprocess
+import sys
+import tarfile
+import traceback
+import types
+from datetime import datetime, timezone
+from pathlib import Path, PurePosixPath
+from typing import Annotated, Any, Literal, get_type_hints
+
+import jsonschema
+import numpy as np
+from pydantic import BaseModel, ConfigDict, Field, create_model
+
+from calibrex.core import continuous_time_sliding_window_fit as sliding
+from calibrex.core import continuous_time_sparse as sparse
+from calibrex.core.geometry import SE3
+from calibrex.core.se3_manifold import se3_exp, se3_log
+from calibrex.core.validation import validate_file
+from calibrex.evaluation.continuous_time_lidar_point_to_plane import _measurements, _truth_knots
+
+ROOT = Path(__file__).resolve().parents[2]
+OUT = Path(__file__).resolve().parent
+SOURCE = 'ac7f90b6f584d23928a4ff56ed6ee1661e5f14b5'
+BASELINE = '8861ed65ebbcffb13a182ac4cd549db88ef763f2'
+
+
+def sha(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def array_json(value: Any) -> Any:
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    raise TypeError(type(value).__name__)
+
+
+def encoded(value: Any) -> bytes:
+    return (json.dumps(value, indent=2, allow_nan=False, default=array_json) + '\n').encode()
+
+
+def decoded(value: Any) -> Any:
+    return json.loads(encoded(value))
+
+
+def write(path: Path, value: Any) -> None:
+    assert not path.exists(), path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(encoded(value))
+
+
+def source_manifest() -> dict[str, str]:
+    return {p.relative_to(ROOT).as_posix(): sha(p.read_bytes().replace(b'\r\n', b'\n'))
+            for p in sorted((ROOT / 'src/calibrex').rglob('*.py'))}
+
+
+Vector6 = Annotated[list[float], Field(min_length=6, max_length=6)]
+
+
+class PriorSnapshot(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    knot_index: int
+    anchor_pose: SE3
+    information: Annotated[list[Vector6], Field(min_length=6, max_length=6)]
+
+
+_fields = {name: (annotation, ...) for name, annotation in
+           get_type_hints(sparse.ContinuousTimeTrajectoryFitProblem).items()}
+_fields['knot_marginalization_priors'] = (tuple[PriorSnapshot, ...], ...)
+ProblemSnapshot = create_model('ProblemSnapshot', __config__=ConfigDict(extra='forbid'), **_fields)
+
+
+class Provenance(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    source_commit: str
+    source_manifest_sha256: str
+    generator: str
+    launcher_sha256: str
+    created_at: str
+    runtime: dict[str, str]
+    seed: int
+    role: str
+    scope: str
+
+
+class FitInput(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    problem: ProblemSnapshot
+    options: sparse.ContinuousTimeTrajectoryFitOptions
+
+
+class InputRecord(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    payload: FitInput
+    provenance: Provenance
+
+
+class FitRecord(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    payload: sparse.ContinuousTimeTrajectoryFitResult
+    provenance: Provenance
+
+
+class SlidingRecord(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    payload: sliding.SlidingWindowTrajectoryFitResult
+    provenance: Provenance
+
+
+class Phase(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    phase: int
+    fit_status: str
+    iterations: int
+    stored_final_objective: float
+    recomputed_objective: float
+    prior_count: int
+    input_matches_historical: bool
+    result_matches_historical: bool
+
+
+class WindowOutcome(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    outcome: str
+    error: str | None = None
+    phases: list[Phase]
+    batch_fit_status: str | None = None
+    sliding_fit_status: str | None = None
+    existing_unit_gate_pass: bool | None = None
+    direct_api_result_identical: bool | None = None
+    max_overlap_translation_m: float | None = None
+    max_overlap_rotation_rad: float | None = None
+    max_truth_translation_m: float | None = None
+    max_truth_rotation_rad: float | None = None
+    aggregate_stored_objective: float | None = None
+
+
+class WindowRecord(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    outcome: WindowOutcome
+    provenance: Provenance
+
+
+class NormalInput(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    hessian: Annotated[list[Vector6], Field(min_length=6, max_length=6)]
+    gradient: Vector6
+    retained_knot_count: Literal[1]
+    start_knot_index: int
+
+
+class NormalRecord(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    inputs: list[NormalInput]
+    provenance: Provenance
+
+
+class NativeOutcome(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    command: list[str]
+    returncode: int
+    artifact: str
+    artifact_sha256: str | None = None
+    policy_status: str | None = None
+    batch_fit_status: str | None = None
+    sliding_fit_status: str | None = None
+    known_bad_rmse_delta_m: float | None = None
+
+
+class ArchiveMember(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    name: str
+    size_bytes: int
+    sha256: str
+
+
+class Receipt(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    provenance: Provenance
+    baseline_source_commit: str
+    source_unchanged: bool
+    current_source_manifest_sha256: str
+    baseline_source_manifest_sha256: str
+    changed_source_modules: list[str]
+    window: WindowOutcome
+    native: NativeOutcome
+    archive_sha256: str
+    archive_members: list[ArchiveMember]
+    historical_attempts_retained: list[str]
+    scope: str
+
+
+def historical_data(path: Path | None) -> dict[str, bytes]:
+    if path is not None:
+        with tarfile.open(path, 'r:gz') as archive:
+            return {m.name: archive.extractfile(m).read() for m in archive.getmembers()
+                    if m.isfile() and m.name.startswith('historical/')}
+    folder = ROOT / 'outputs/prior-window-weighting-screen-v1'
+    entries = {'historical/window/' + p.relative_to(folder).as_posix(): p.read_bytes()
+               for p in sorted(folder.rglob('*')) if p.is_file() and '__pycache__' not in p.parts}
+    for name, original in (
+        ('factor.py.txt', 'outputs/prior-equilibrated-policy-audit-v1/probe.py'),
+        ('blocks.py.txt', 'outputs/prior-production-screen-v1/probe.py')):
+        entries['historical/helpers/' + name] = (ROOT / original).read_bytes()
+    entries['historical/baseline-marginalization.py.txt'] = subprocess.check_output(
+        ['git', 'show', BASELINE + ':src/calibrex/core/continuous_time_marginalization.py'], cwd=ROOT)
+    return entries
+
+
+def clone(function: Any, namespace: dict[str, Any]) -> Any:
+    result = types.FunctionType(function.__code__, namespace, argdefs=function.__defaults__)
+    result.__kwdefaults__ = function.__kwdefaults__
+    return result
+
+
+def score(problem: Any, result: Any) -> float:
+    times = problem.knot_timestamps
+    return sparse._objective(problem,
+        [(sparse._interval_index(times, m.timestamp_sec), m.point_body_m) for m in problem.point_measurements],
+        [(sparse._interval_index(times, m.timestamp_sec), m) for m in problem.point_to_plane_measurements],
+        [(sparse._interval_index(times, m.timestamp_sec), m.pose_world_body) for m in problem.pose_measurements],
+        [], [], list(result.knot_poses), np.zeros(3), np.zeros(3), 0.0,
+        np.zeros(3), np.zeros(3), np.ones(3), np.ones(3))
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--output-dir', type=Path, default=Path('docs/assets/prior_information_whitening'))
+    parser.add_argument('--historical-archive', type=Path)
+    parser.add_argument('--check-models', action='store_true')
+    args = parser.parse_args()
+    schemas = {'input': InputRecord.model_json_schema(), 'fit-result': FitRecord.model_json_schema(),
+               'sliding-result': SlidingRecord.model_json_schema(), 'receipt': Receipt.model_json_schema(),
+               'window-outcome': WindowRecord.model_json_schema(), 'retained-normal-inputs': NormalRecord.model_json_schema()}
+    if args.check_models:
+        print('All six snapshot/receipt schemas build without running a fit', flush=True)
+        return
+    assert subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip() == SOURCE
+    assert not subprocess.check_output(['git', 'diff', SOURCE, '--', 'src/calibrex'], cwd=ROOT)
+    public = (ROOT / args.output_dir).resolve()
+    assert public.is_relative_to(ROOT) and public != ROOT
+    public.mkdir(parents=True, exist_ok=False)
+    current = OUT / 'current'
+    current.mkdir(exist_ok=False)
+    manifest = source_manifest()
+    assert len(manifest) == 401
+    baseline_manifest_path = ROOT / 'docs/assets/screw_gyro_jacobians/source-manifest.json'
+    baseline_manifest_bytes = baseline_manifest_path.read_bytes()
+    baseline_manifest = json.loads(baseline_manifest_bytes)
+    changed = sorted(name for name in manifest if manifest[name] != baseline_manifest[name])
+    assert changed == ['src/calibrex/core/continuous_time_marginalization.py']
+    manifest_bytes = encoded(manifest)
+    (public / 'source-manifest.json').write_bytes(manifest_bytes)
+    launcher = Path(__file__).read_bytes()
+    (public / 'generator.py.txt').write_bytes(launcher)
+    runtime = {'python': platform.python_version(), **{name: importlib.metadata.version(name)
+               for name in ('numpy', 'scipy', 'pydantic')}}
+    base = Provenance(source_commit=SOURCE, source_manifest_sha256=sha(manifest_bytes),
+        generator=Path(__file__).relative_to(ROOT).as_posix(), launcher_sha256=sha(launcher),
+        created_at=datetime.now(timezone.utc).isoformat(), runtime=runtime, seed=7, role='cohort',
+        scope='Spent synthetic development; fixed production source; no independent accuracy or timing claim')
+    historical = historical_data(args.historical_archive)
+    old = json.loads(historical['historical/window/outcomes.json'])
+    assert old['provenance']['source_commit'] == BASELINE and old['payload']['source_unchanged'] is True
+    assert [r['provenance']['implementation'] for r in old['payload']['outcomes']] == ['production', 'candidate']
+    assert sha(historical['historical/helpers/factor.py.txt']) == old['provenance']['factor_source_sha256']
+    assert sha(historical['historical/helpers/blocks.py.txt']) == old['provenance']['block_source_sha256']
+    assert sha(historical['historical/baseline-marginalization.py.txt'].replace(b'\r\n', b'\n')) == baseline_manifest[changed[0]]
+    for name, schema in schemas.items():
+        if name != 'receipt':
+            write(current / (name + '.schema.json'), schema)
+
+    def save_record(path: Path, payload: Any, role: str, schema: str) -> dict[str, Any]:
+        record = {'payload': decoded(dataclasses.asdict(payload) if dataclasses.is_dataclass(payload) else payload),
+                  'provenance': base.model_copy(update={'role': role}).model_dump()}
+        jsonschema.validate(record, schemas[schema])
+        write(path, record)
+        return record
+
+    phases: list[Phase] = []
+    captures: list[dict[str, Any]] = []
+    window: WindowOutcome
+    try:
+        times = tuple(float(i) for i in range(6))
+        truth = _truth_knots(times)
+        rng = np.random.default_rng(7)
+        samples = [(float(rng.uniform(0.05, 4.95)), int(i % 3)) for i in range(90)]
+        measurements = _measurements(truth, times, samples, rng, prefix='train')
+        initial = tuple(se3_exp(knot, np.array([0.02, -0.01, 0.01, 0.0, 0.0, 0.01])) for knot in truth)
+        problem = sparse.ContinuousTimeTrajectoryFitProblem(times, initial, point_to_plane_measurements=measurements)
+        options = sparse.ContinuousTimeTrajectoryFitOptions(max_iterations=80)
+        save_record(current / 'input.json', {'problem': dataclasses.asdict(problem),
+                    'options': dataclasses.asdict(options)}, 'window-input', 'input')
+
+        def fit_and_retain(local_problem: Any, local_options: Any) -> Any:
+            index = len(phases)
+            folder = current / f'phase-{index}'
+            inputs = save_record(folder / 'input.json', {'problem': dataclasses.asdict(local_problem),
+                'options': dataclasses.asdict(local_options)}, f'phase-{index}-input', 'input')
+            result = sparse.fit_continuous_trajectory(local_problem, local_options)
+            output = save_record(folder / 'fit-result.json', result, f'phase-{index}-result', 'fit-result')
+            previous_input = json.loads(historical[f'historical/window/production/phase-{index}/input.json'])
+            previous_result = json.loads(historical[f'historical/window/production/phase-{index}/fit-result.json'])
+            phases.append(Phase(phase=index, fit_status=result.status, iterations=result.iterations,
+                stored_final_objective=result.final_objective, recomputed_objective=score(local_problem, result),
+                prior_count=len(local_problem.knot_marginalization_priors),
+                input_matches_historical=inputs['payload'] == previous_input['payload'],
+                result_matches_historical=output['payload'] == previous_result['payload']))
+            return result
+
+        def capture_split(hessian: Any, gradient: Any, **kwargs: Any) -> Any:
+            captures.append({'hessian': hessian.tolist(), 'gradient': gradient.tolist(),
+                'retained_knot_count': kwargs['retained_knot_count'],
+                'start_knot_index': kwargs['start_knot_index']})
+            return sliding.split_retained_information(hessian, gradient, **kwargs)
+
+        recording_fit = clone(sliding.fit_sliding_window_trajectory, dict(vars(sliding),
+            fit_continuous_trajectory=fit_and_retain, split_retained_information=capture_split))
+        result = recording_fit(problem, window_knot_counts=(4, 3), overlap_knot_count=1, options=options)
+        recorded = save_record(current / 'sliding-result.json', result, 'recorded-api-result', 'sliding-result')
+        # An actual uninstrumented API call verifies that recording is transparent.
+        direct = sliding.fit_sliding_window_trajectory(problem, window_knot_counts=(4, 3),
+                                                       overlap_knot_count=1, options=options)
+        direct_record = save_record(current / 'direct-api-result.json', direct, 'direct-api-result', 'sliding-result')
+        translations = [np.linalg.norm(np.array(a.translation_m) - np.array(b.translation_m))
+                        for a, b in zip(truth, result.sliding_result.knot_poses, strict=True)]
+        rotations = [np.linalg.norm(se3_log(a, b)[3:]) for a, b in zip(truth, result.sliding_result.knot_poses, strict=True)]
+        window = WindowOutcome(outcome='complete', phases=phases,
+            batch_fit_status=result.batch_result.status, sliding_fit_status=result.sliding_result.status,
+            existing_unit_gate_pass=result.batch_result.status == 'converged' and result.max_overlap_translation_error_m < 0.05,
+            direct_api_result_identical=recorded['payload'] == direct_record['payload'],
+            max_overlap_translation_m=result.max_overlap_translation_error_m,
+            max_overlap_rotation_rad=result.max_overlap_rotation_error_rad,
+            max_truth_translation_m=float(max(translations)), max_truth_rotation_rad=float(max(rotations)),
+            aggregate_stored_objective=result.sliding_result.final_objective)
+    except Exception as error:
+        (OUT / 'window-error.log').write_text(traceback.format_exc(), encoding='utf-8')
+        window = WindowOutcome(outcome='exception', error=repr(error), phases=phases)
+    window_record = {'outcome': window.model_dump(), 'provenance': base.model_dump()}
+    normal_record = {'inputs': captures, 'provenance': base.model_dump()}
+    jsonschema.validate(window_record, schemas['window-outcome'])
+    jsonschema.validate(normal_record, schemas['retained-normal-inputs'])
+    write(current / 'window-outcome.json', window_record)
+    write(current / 'retained-normal-inputs.json', normal_record)
+
+    native_path = public / 'native-seed-20260820.json'
+    cli = Path(sys.executable).with_name('calibrex.exe' if os.name == 'nt' else 'calibrex')
+    command = ['trajectory', 'recover-sliding-window', '--seed', '20260820', '--output',
+               native_path.relative_to(ROOT).as_posix(), '--json']
+    process = subprocess.run([str(cli), *command], cwd=ROOT, capture_output=True)
+    (OUT / 'native-stdout.log').write_bytes(process.stdout)
+    (OUT / 'native-stderr.log').write_bytes(process.stderr)
+    native = NativeOutcome(command=['calibrex', *command], returncode=process.returncode,
+                           artifact=native_path.relative_to(ROOT).as_posix())
+    if native_path.exists():
+        native_path.write_bytes(native_path.read_bytes().replace(b'\r\n', b'\n'))
+        assert validate_file(native_path, kind='continuous-time-sliding-window').valid
+        value = json.loads(native_path.read_bytes())
+        assert value['provenance']['git_commit'] == SOURCE[:8] and value['seed'] == 20260820
+        native = native.model_copy(update={'artifact_sha256': sha(native_path.read_bytes()),
+            'policy_status': value['policy_status'], 'batch_fit_status': value['batch_fit_status'],
+            'sliding_fit_status': value['sliding_fit_status'], 'known_bad_rmse_delta_m': value['known_bad_rmse_delta_m']})
+    assert manifest == source_manifest()
+    assert launcher == Path(__file__).read_bytes()
+    entries = dict(historical)
+    entries.update({'current/' + p.relative_to(current).as_posix(): p.read_bytes()
+                    for p in sorted(current.rglob('*')) if p.is_file()})
+    entries.update({'meta/current-source-manifest.json': manifest_bytes,
+        'meta/baseline-source-manifest.json': baseline_manifest_bytes,
+        'meta/generator.py.txt': launcher})
+    if native_path.exists():
+        entries['current/native-seed-20260820.json'] = native_path.read_bytes()
+    archive_path = public / 'complete-development.tar.gz'
+    with archive_path.open('xb') as raw, gzip.GzipFile(fileobj=raw, mode='wb', filename='', mtime=0) as compressed:
+        with tarfile.open(fileobj=compressed, mode='w') as archive:
+            for name, data in sorted(entries.items()):
+                assert not name.startswith('/') and '..' not in PurePosixPath(name).parts
+                member = tarfile.TarInfo(name)
+                member.size, member.mtime, member.mode = len(data), 0, 0o644
+                archive.addfile(member, io.BytesIO(data))
+    receipt = Receipt(provenance=base, baseline_source_commit=BASELINE, source_unchanged=True,
+        current_source_manifest_sha256=sha(manifest_bytes), baseline_source_manifest_sha256=sha(baseline_manifest_bytes),
+        changed_source_modules=changed, window=window, native=native, archive_sha256=sha(archive_path.read_bytes()),
+        archive_members=[ArchiveMember(name=name, size_bytes=len(data), sha256=sha(data))
+                         for name, data in sorted(entries.items())], historical_attempts_retained=['production', 'candidate'],
+        scope='Complete fixed-source development, historical baseline and earlier private candidate retained. The current production result is separate. One correlated unit fixture and one native holdout/control fixture; no independent accuracy, timing or universal convergence claim.')
+    write(public / 'receipt.json', receipt.model_dump())
+    write(public / 'receipt.schema.json', schemas['receipt'])
+    jsonschema.validate(receipt.model_dump(), schemas['receipt'])
+    print(json.dumps({'window': window.model_dump(), 'native': native.model_dump(),
+        'archive_members': len(entries), 'archive_bytes': archive_path.stat().st_size,
+        'archive_sha256': receipt.archive_sha256}), flush=True)
+    if not (window.outcome == 'complete' and window.existing_unit_gate_pass and window.direct_api_result_identical
+            and all(p.input_matches_historical for p in phases) and len(phases) == 3
+            and all(p.result_matches_historical for p in phases[:2])
+            and process.returncode == 0 and native.policy_status == 'pass'):
+        raise SystemExit(2)
+
+
+if __name__ == '__main__':
+    main()

@@ -113,6 +113,15 @@ the respective normalized norm. Only tiny negative spectral roundoff is
 projected; positive weak information is retained without a floor. A negative
 diagonal is rejected rather than implicitly repaired.
 
+The [complete prior-information development records](../assets/prior_information_whitening/README.md)
+retain both historical attempts and the current production result. On the
+same-input window fixture, the prior-bearing fit changes from 26 to 7 iterations
+with smaller overlap errors; the overall maximum translation error is unchanged.
+A separate native holdout/control fixture still passes. All current API inputs,
+per-window results, schemas and original source bindings are retained. These
+are correctness/development records, without a timing or independent accuracy
+claim.
+
 This correction preserves the existing zero-centered prior. The current
 window-packing helpers still discard a nonzero marginalized gradient and
 cross-knot information blocks; those approximations need a separate audit.
