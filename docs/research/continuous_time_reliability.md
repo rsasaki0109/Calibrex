@@ -77,10 +77,28 @@ passes, with all signed controls retained. Some rotation maxima increase;
 these records establish development impact rather than independent accuracy
 or a general convergence improvement.
 
-The clock derivative still uses a forward time difference. At a stencil crossing
-a segment boundary, the model can have different one-sided time derivatives;
-a central difference there is not a smooth derivative oracle. Clock and gyro
-derivatives, correlated-prior whitening, and convergence remain audit work.
+Gyro factors now distinguish the left and right SO(3) log differentials of
+the rotation-error product. Pre-integration chains the right Exp differential
+of each increment through subsequent rotations, including diagonal gyro scale
+in bias derivatives. Tests use nonzero residuals, nonidentity mounting rotation,
+nonunit scales, nonuniform sample times, zero and small increments, the actual
+sparse assembly, weighted objective gradients and known constant-bias recovery.
+The historical `so3_left_jacobian` helper implements the right Exp differential;
+its formula and existing SE(3) retraction are preserved.
+
+The [complete gyro development records](../assets/screw_gyro_jacobians/README.md)
+retain all three spent seeds, exact problem/options equality and old/current
+residual/rotation equality on ten fixtures. All three policy outcomes remain
+passes, with every signed control detected. Iterations change from 29/22/25
+to 21/23/29; small accuracy changes are mixed. These are derivative-correctness
+checks and development evidence, without a general speed or accuracy claim.
+
+The accelerometer clock derivative still uses a forward time difference.
+Gyro clock derivatives use a sampled angular rate, whose stencil can cross a
+knot. At segment boundaries the model can have different one-sided time
+derivatives; a central difference there is not a smooth derivative oracle.
+Clock behavior at boundaries, correlated-prior whitening, and convergence
+remain audit work.
 The native `converged` label can come from a small damped accepted step rather
 than the gradient threshold. Audit the undamped model before interpreting that
 label as stationarity. Stalled line searches must retain their failure status

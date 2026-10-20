@@ -1,0 +1,64 @@
+"""Check generated inputs/options against the complete archived development fits."""
+from __future__ import annotations
+
+import dataclasses
+import hashlib
+import json
+import subprocess
+from datetime import datetime, timezone
+from pathlib import Path
+
+from calibrex.evaluation import continuous_time_lidar_imu_joint as evaluation
+
+ROOT = Path(__file__).resolve().parents[2]
+OUT = Path(__file__).resolve().parent
+SOURCE = "8a6b69d84c13003cceddc3c4921985424068f442"
+assert subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip() == SOURCE
+
+
+class Captured(Exception):
+    pass
+
+
+def canonical(data):
+    return json.dumps({k: data[k] for k in ("problem", "options")},
+                      sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
+
+
+rows = []
+for seed in (20261010, 20261011, 20261012):
+    data = {}
+
+    def capture(problem, options):
+        data.update(problem=dataclasses.asdict(problem), options=dataclasses.asdict(options))
+        raise Captured
+
+    evaluation.fit_continuous_trajectory = capture
+    try:
+        evaluation.run_synthetic_lidar_imu_joint_recovery(seed=seed, trajectory="screw_linear")
+    except Captured:
+        pass
+    assert data
+    previous = ROOT / f"outputs/joint-knot-derivative-screen-v1/seed-{seed}/fit-input.json"
+    prior = json.loads(previous.read_text(encoding="utf-8"))
+    current_bytes, previous_bytes = canonical(data), canonical(prior)
+    assert current_bytes == previous_bytes, f"generated input changed for {seed}"
+    data["provenance"] = {
+        "source_commit": SOURCE, "seed": seed,
+        "generator": "outputs/gyro-jacobian-development-v1/verify_inputs.py",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    path = OUT / f"seed-{seed}-input.json"
+    assert not path.exists()
+    path.write_text(json.dumps(data, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+    rows.append({"seed": seed, "canonical_input_options_sha256": hashlib.sha256(current_bytes).hexdigest(),
+                 "identical_to_archived_development_input": True})
+
+result = {"cases": rows, "scope": "Input equality only; no fit executed or accuracy/timing claim",
+          "provenance": {"source_commit": SOURCE, "created_at": datetime.now(timezone.utc).isoformat(),
+             "generator": "outputs/gyro-jacobian-development-v1/verify_inputs.py",
+             "launcher_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest()}}
+path = OUT / "input-comparison.json"
+assert not path.exists()
+path.write_text(json.dumps(result, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+print(json.dumps(result, indent=2), flush=True)

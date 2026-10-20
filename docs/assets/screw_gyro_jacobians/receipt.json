@@ -1,0 +1,76 @@
+{
+  "created_at": "2026-10-20T04:42:06.906476+00:00",
+  "source_commit": "8a6b69d84c13003cceddc3c4921985424068f442",
+  "source_manifest_sha256": "226f84e4496e8361362d02ef60f7429047a827c9adec157b73861e417af5c573",
+  "launcher_sha256": "8b754767942aeb56a2574c11ba9d58cb152813056b2d11ee67b41d11d69392a4",
+  "scope": "Already-spent synthetic development; concurrent host activity; no timing or independent accuracy claim",
+  "source_unchanged": true,
+  "outcomes": [
+    {
+      "seed": 20261010,
+      "command": [
+        "calibrex",
+        "trajectory",
+        "recover-lidar-imu-joint",
+        "--seed",
+        "20261010",
+        "--trajectory",
+        "screw_linear",
+        "--output",
+        "docs/assets/screw_gyro_jacobians/seed-20261010.json",
+        "--json"
+      ],
+      "returncode": 0,
+      "artifact": "docs/assets/screw_gyro_jacobians/seed-20261010.json",
+      "artifact_sha256": "2457f2389af7597c3b6052189c76a5c9befa6052e63316f5ba8b57f4252138dc",
+      "fit_status": "converged",
+      "iterations": 21,
+      "policy_status": "pass",
+      "policy_reason": "joint LiDAR-IMU recovery meets every error budget within 4 sigma, holdout RMSE stays within 1.5x the truth calibration, and all 32 signed controls are detected; every block pair stays below the entanglement threshold"
+    },
+    {
+      "seed": 20261011,
+      "command": [
+        "calibrex",
+        "trajectory",
+        "recover-lidar-imu-joint",
+        "--seed",
+        "20261011",
+        "--trajectory",
+        "screw_linear",
+        "--output",
+        "docs/assets/screw_gyro_jacobians/seed-20261011.json",
+        "--json"
+      ],
+      "returncode": 0,
+      "artifact": "docs/assets/screw_gyro_jacobians/seed-20261011.json",
+      "artifact_sha256": "91dc8458687ec5af2cc7111e759b4e95943e4eb424a2a8f591c3974ebf86ea6b",
+      "fit_status": "converged",
+      "iterations": 23,
+      "policy_status": "pass",
+      "policy_reason": "joint LiDAR-IMU recovery meets every error budget within 4 sigma, holdout RMSE stays within 1.5x the truth calibration, and all 32 signed controls are detected; every block pair stays below the entanglement threshold"
+    },
+    {
+      "seed": 20261012,
+      "command": [
+        "calibrex",
+        "trajectory",
+        "recover-lidar-imu-joint",
+        "--seed",
+        "20261012",
+        "--trajectory",
+        "screw_linear",
+        "--output",
+        "docs/assets/screw_gyro_jacobians/seed-20261012.json",
+        "--json"
+      ],
+      "returncode": 0,
+      "artifact": "docs/assets/screw_gyro_jacobians/seed-20261012.json",
+      "artifact_sha256": "eac4cc41fdd682b204e8eda1cbe5732804efc003c98af26a00cf77899c88bda5",
+      "fit_status": "converged",
+      "iterations": 29,
+      "policy_status": "pass",
+      "policy_reason": "joint LiDAR-IMU recovery meets every error budget within 4 sigma, holdout RMSE stays within 1.5x the truth calibration, and all 32 signed controls are detected; every block pair stays below the entanglement threshold"
+    }
+  ]
+}

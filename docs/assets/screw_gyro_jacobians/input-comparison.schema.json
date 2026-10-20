@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Frozen gyro development input comparison",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["cases", "scope", "provenance"],
+  "properties": {
+    "scope": {"type": "string"},
+    "cases": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["seed", "canonical_input_options_sha256", "identical_to_archived_development_input"],
+        "properties": {
+          "seed": {"type": "integer"},
+          "canonical_input_options_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+          "identical_to_archived_development_input": {"type": "boolean"}
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_commit", "created_at", "generator", "launcher_sha256"],
+      "properties": {
+        "source_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "created_at": {"type": "string", "format": "date-time"},
+        "generator": {"type": "string"},
+        "launcher_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    }
+  }
+}

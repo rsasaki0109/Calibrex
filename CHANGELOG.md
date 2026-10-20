@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Correct native `screw_linear` gyro factor Jacobians for left/right SO(3)
+  logarithm perturbations and the exponential differential of integrated
+  increments. Include diagonal gyro scale in bias derivatives. Check nonzero
+  residuals, mounting rotation, nonuniform sample times, zero and small motion,
+  actual sparse assembly, weighted gradients and known constant-bias recovery.
+  Keep residual values, sampling, convergence settings and schemas unchanged.
+  Retain all three spent development outcomes and exact residual/rotation
+  parity on ten fixtures; all quality gates pass, with mixed iteration counts.
+
 - Include analytic trajectory-knot derivatives in native `screw_linear`
   accelerometer factors, including all supports of their discrete kinematic
   stencil across segment boundaries. Apply accelerometer scale to lever-arm

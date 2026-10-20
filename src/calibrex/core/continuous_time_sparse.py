@@ -62,6 +62,7 @@ from calibrex.core.se3_manifold import (
     se3_exp,
     se3_log,
     skew,
+    so3_left_jacobian,
     so3_left_jacobian_inverse,
     so3_log,
 )
@@ -1443,9 +1444,11 @@ def _imu_preintegration_residual(
         jacobian_right_scale = imu_rotation @ jacobian_right_scale
     rotation_error = delta_rotation.T @ rotation_start.T @ rotation_end
     residual = rotation_matrix_to_rotation_vector(rotation_error)
-    log_jacobian = so3_left_jacobian_inverse(residual)
+    # The historically named V(phi) implements the right Exp differential.
+    # Log(exp(a) exp(r)) uses V(-r)^-1; Log(exp(r) exp(a)) uses V(r)^-1.
+    log_jacobian = so3_left_jacobian_inverse(-residual)
     jacobian_start_rot = -log_jacobian @ delta_rotation.T
-    jacobian_end_rot = so3_left_jacobian_inverse(-residual)
+    jacobian_end_rot = so3_left_jacobian_inverse(residual)
     jacobian_bias = -log_jacobian @ jacobian_right_bias
     jacobian_scale = -log_jacobian @ jacobian_right_scale
     omega_start = _angular_rate_at(knots, timestamps, start_time)
@@ -1606,6 +1609,13 @@ def _integrate_gyro(
     gyro_bias: FloatArray,
     gyro_scale: FloatArray | None = None,
 ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+    """Return the gyro product and its right-tangent bias/scale derivatives.
+
+    An interval contributes ``Exp(phi)`` with ``phi = scale * (raw - bias) * dt``.
+    Chain the right Exp differential through each following rotation. The bias
+    perturbation includes the diagonal scale in the IMU frame.
+    """
+
     scale = np.ones(3, dtype=float) if gyro_scale is None else np.asarray(
         gyro_scale, dtype=float
     ).reshape(3)
@@ -1627,23 +1637,14 @@ def _integrate_gyro(
         raws.append(raw)
         delta_rotation = delta_rotation @ rotation
     jacobian_bias: NDArray[np.float64] = np.zeros((3, 3), dtype=float)
-    suffix: NDArray[np.float64] = np.eye(3, dtype=float)
-    for rotation, phi, dt in zip(
-        reversed(rotations), reversed(phis), reversed(dts), strict=True
-    ):
-        right_jacobian_inverse = so3_left_jacobian_inverse(-phi)
-        jacobian_bias = jacobian_bias + suffix.T @ (right_jacobian_inverse * (-dt))
-        suffix = rotation @ suffix
     jacobian_scale: NDArray[np.float64] = np.zeros((3, 3), dtype=float)
-    suffix = np.eye(3, dtype=float)
+    suffix: NDArray[np.float64] = np.eye(3, dtype=float)
     for rotation, phi, dt, raw in zip(
         reversed(rotations), reversed(phis), reversed(dts), reversed(raws), strict=True
     ):
-        right_jacobian_inverse = so3_left_jacobian_inverse(-phi)
-        for axis in range(3):
-            tangent: NDArray[np.float64] = np.zeros(3, dtype=float)
-            tangent[axis] = raw[axis] * dt
-            jacobian_scale[:, axis] += suffix.T @ (right_jacobian_inverse @ tangent)
+        right_exp_derivative = suffix.T @ so3_left_jacobian(phi)
+        jacobian_bias += right_exp_derivative @ np.diag(-scale * dt)
+        jacobian_scale += right_exp_derivative @ np.diag(raw * dt)
         suffix = rotation @ suffix
     return delta_rotation, jacobian_bias, jacobian_scale
 

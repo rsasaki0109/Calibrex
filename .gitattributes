@@ -304,3 +304,7 @@ docs/assets/screw_residual_evaluation/*.md text eol=lf
 
 # Bind the original accelerometer development launcher bytes on every platform.
 docs/assets/screw_accelerometer_jacobians/*.txt -text
+
+# Preserve the original source and input-comparison bytes of the gyro audit.
+docs/assets/screw_gyro_jacobians/*.txt -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+docs/assets/screw_gyro_jacobians/input-comparison.json -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

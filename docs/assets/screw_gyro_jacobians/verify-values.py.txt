@@ -1,0 +1,94 @@
+"""Bind exact gyro residual/rotation parity to the old and frozen new source."""
+from __future__ import annotations
+
+import hashlib
+import importlib.util
+import json
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+import numpy as np
+from pydantic import BaseModel, ConfigDict
+
+from calibrex.core import continuous_time_sparse as sparse
+from calibrex.core.se3_manifold import rotation_vector_to_matrix
+
+ROOT = Path(__file__).resolve().parents[2]
+OUT = Path(__file__).resolve().parent
+SOURCE = "8a6b69d84c13003cceddc3c4921985424068f442"
+BASE = "b733880e017877ed106ee80c4d7a6cfe2abe2bf2"
+
+
+def load(name, path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def sha(data):
+    return hashlib.sha256(data).hexdigest()
+
+
+class Case(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    mounted: bool
+    body_window: tuple[float, float]
+    baseline_residual: list[float]
+    current_residual: list[float]
+    baseline_integrated_rotation: list[list[float]]
+    current_integrated_rotation: list[list[float]]
+    identical: bool
+
+
+class Record(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    scope: str
+    cases: list[Case]
+    provenance: dict[str, object]
+
+
+assert subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip() == SOURCE
+raw = subprocess.check_output(["git", "show", f"{BASE}:src/calibrex/core/continuous_time_sparse.py"], cwd=ROOT)
+old_path = OUT / "baseline-source.py"
+assert not old_path.exists()
+old_path.write_bytes(raw)
+baseline = load("private_pre_gyro_jacobians", old_path)
+fixture_path = ROOT / "tests/unit/test_screw_gyro_jacobians.py"
+fixture = load("private_gyro_fixture", fixture_path)
+before = sha(Path(sparse.__file__).read_bytes())
+timestamps, knots = fixture._fixture()
+cases = []
+for mounted in (False, True):
+    mounting = rotation_vector_to_matrix(fixture._MOUNTING) if mounted else None
+    for window in fixture._WINDOWS:
+        measurement = fixture._measurement(window)
+        values, rotations = [], []
+        for implementation in (baseline, sparse):
+            values.append(implementation._imu_preintegration_residual(
+                knots, timestamps, measurement, fixture._BIAS, fixture._CLOCK,
+                fixture._SCALE, imu_rotation=mounting)[0])
+            rotations.append(implementation._integrate_gyro(
+                measurement.gyro_samples, fixture._BIAS, fixture._SCALE)[0])
+        same = np.array_equal(values[0], values[1]) and np.array_equal(rotations[0], rotations[1])
+        cases.append(Case(mounted=mounted, body_window=window,
+            baseline_residual=values[0].tolist(), current_residual=values[1].tolist(),
+            baseline_integrated_rotation=rotations[0].tolist(),
+            current_integrated_rotation=rotations[1].tolist(), identical=same))
+assert all(case.identical for case in cases)
+assert before == sha(Path(sparse.__file__).read_bytes())
+record = Record(scope="Exact model-value parity on ten declared development fixtures; derivatives intentionally differ; no accuracy/timing claim",
+    cases=cases, provenance={"created_at": datetime.now(timezone.utc).isoformat(),
+        "source_commit": SOURCE, "baseline_commit": BASE,
+        "baseline_source_git_blob_sha256": sha(raw), "current_source_raw_sha256": before,
+        "fixture_source_sha256": sha(fixture_path.read_bytes()),
+        "generator": "outputs/gyro-jacobian-development-v1/verify_values.py",
+        "launcher_sha256": sha(Path(__file__).read_bytes())})
+assert not (OUT / "value-parity.json").exists()
+(OUT / "value-parity.json").write_bytes((record.model_dump_json(indent=2) + "\n").encode())
+(OUT / "value-parity.schema.json").write_bytes((json.dumps(Record.model_json_schema(), indent=2) + "\n").encode())
+print("All ten baseline/current residuals and integrated rotations are exactly equal", flush=True)
