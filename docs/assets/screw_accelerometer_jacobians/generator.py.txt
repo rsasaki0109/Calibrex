@@ -1,0 +1,93 @@
+"""Keep every spent development outcome from the frozen production source."""
+from __future__ import annotations
+
+import hashlib
+import json
+import os
+import subprocess
+from datetime import datetime, timezone
+from pathlib import Path
+
+from pydantic import BaseModel, ConfigDict
+
+ROOT = Path(__file__).resolve().parents[2]
+OUT = Path(__file__).resolve().parent
+PUBLIC = ROOT / "docs/assets/screw_accelerometer_jacobians"
+SOURCE = "11cd1ca4e71779505ba071711eb2486b8f4f90d8"
+
+
+class Outcome(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    seed: int
+    command: list[str]
+    returncode: int
+    artifact: str
+    artifact_sha256: str
+    fit_status: str
+    iterations: int
+    policy_status: str
+    policy_reason: str
+
+
+class Receipt(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    created_at: str
+    source_commit: str
+    source_manifest_sha256: str
+    launcher_sha256: str
+    scope: str
+    source_unchanged: bool
+    outcomes: list[Outcome]
+
+
+def sha(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def manifest() -> dict[str, str]:
+    return {
+        path.relative_to(ROOT).as_posix(): sha(path.read_text(encoding="utf-8").encode("utf-8"))
+        for path in sorted((ROOT / "src/calibrex").rglob("*.py"))
+    }
+
+
+assert subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip() == SOURCE
+subprocess.run(["git", "diff", "--exit-code", SOURCE, "--", "src"], cwd=ROOT, check=True)
+before = manifest()
+manifest_bytes = (json.dumps(before, sort_keys=True, indent=2) + "\n").encode("utf-8")
+assert not (OUT / "receipt.json").exists()
+(OUT / "source-manifest.json").write_bytes(manifest_bytes)
+PUBLIC.mkdir(parents=True, exist_ok=True)
+outcomes = []
+env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", OPENBLAS_NUM_THREADS="1",
+           MKL_NUM_THREADS="1", OMP_NUM_THREADS="1")
+for seed in (20261010, 20261011, 20261012):
+    artifact = PUBLIC / f"seed-{seed}.json"
+    assert not artifact.exists(), f"refusing to overwrite {artifact}"
+    command = ["calibrex", "trajectory", "recover-lidar-imu-joint", "--seed", str(seed),
+               "--trajectory", "screw_linear", "--output", artifact.relative_to(ROOT).as_posix(), "--json"]
+    print(f"Starting spent development seed {seed}", flush=True)
+    with (OUT / f"seed-{seed}.log").open("w", encoding="utf-8") as log:
+        run = subprocess.run([str(ROOT / ".venv/Scripts/calibrex.exe"), *command[1:]],
+                             cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT)
+    assert run.returncode in (0, 2), f"worker error for seed {seed}: {run.returncode}"
+    data = json.loads(artifact.read_text(encoding="utf-8"))
+    assert data["seed"] == seed and data["provenance"]["git_commit"] == SOURCE[:8]
+    outcomes.append(Outcome(seed=seed, command=command, returncode=run.returncode,
+        artifact=artifact.relative_to(ROOT).as_posix(), artifact_sha256=sha(artifact.read_bytes()),
+        fit_status=data["fit_status"], iterations=data["iterations"],
+        policy_status=data["policy_status"], policy_reason=data["policy_reason"]))
+    print(outcomes[-1].model_dump_json(), flush=True)
+    assert before == manifest(), "source changed during a development fit"
+
+from calibrex.core.validation import validate_file
+
+for outcome in outcomes:
+    assert validate_file(ROOT / outcome.artifact, kind="continuous-time-lidar-imu-joint").valid
+receipt = Receipt(created_at=datetime.now(timezone.utc).isoformat(), source_commit=SOURCE,
+    source_manifest_sha256=sha(manifest_bytes), launcher_sha256=sha(Path(__file__).read_bytes()),
+    scope="Already-spent synthetic development; concurrent host activity; no timing or independent accuracy claim",
+    source_unchanged=before == manifest(), outcomes=outcomes)
+(OUT / "receipt.json").write_text(receipt.model_dump_json(indent=2) + "\n", encoding="utf-8")
+(OUT / "receipt.schema.json").write_text(json.dumps(Receipt.model_json_schema(), indent=2) + "\n", encoding="utf-8")
+print("All three complete native outcomes retained and schema-validated", flush=True)

@@ -8,7 +8,9 @@
   derivatives after mounting rotation. Check all-knot finite differences,
   nonunit scales, endpoint clamping, dense nonuniform knots, actual sparse
   assembly and weighted objective gradients. Preserve residual values,
-  convergence settings and serialized schemas.
+  convergence settings and serialized schemas. Retain every outcome on the
+  three spent development seeds: policy changes from two passes and one
+  failure to three passes, while some rotation maxima increase slightly.
 
 - Make the native `screw_linear` trajectory acceptance objective use squared
   measurement weights, matching its existing inverse-sigma normal equations

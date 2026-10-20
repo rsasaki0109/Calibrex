@@ -70,6 +70,13 @@ grid, the actual fitter's sparse assembly, weighted objective gradients, and
 a trajectory update driven by acceleration with all calibration states fixed.
 This establishes the knot and lever derivatives of the current residual model.
 
+The [three retained development outcomes](../assets/screw_accelerometer_jacobians/README.md)
+use the same already-read synthetic seeds and options as the measurement-loss
+records. Their policy counts change from two passes and one failure to three
+passes, with all signed controls retained. Some rotation maxima increase;
+these records establish development impact rather than independent accuracy
+or a general convergence improvement.
+
 The clock derivative still uses a forward time difference. At a stencil crossing
 a segment boundary, the model can have different one-sided time derivatives;
 a central difference there is not a smooth derivative oracle. Clock and gyro
