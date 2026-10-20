@@ -1,0 +1,102 @@
+{
+  "$defs": {
+    "Case": {
+      "additionalProperties": false,
+      "properties": {
+        "mounted": {
+          "title": "Mounted",
+          "type": "boolean"
+        },
+        "body_window": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Body Window",
+          "type": "array"
+        },
+        "baseline_residual": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Baseline Residual",
+          "type": "array"
+        },
+        "current_residual": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Current Residual",
+          "type": "array"
+        },
+        "baseline_integrated_rotation": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Baseline Integrated Rotation",
+          "type": "array"
+        },
+        "current_integrated_rotation": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Current Integrated Rotation",
+          "type": "array"
+        },
+        "identical": {
+          "title": "Identical",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "mounted",
+        "body_window",
+        "baseline_residual",
+        "current_residual",
+        "baseline_integrated_rotation",
+        "current_integrated_rotation",
+        "identical"
+      ],
+      "title": "Case",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "cases": {
+      "items": {
+        "$ref": "#/$defs/Case"
+      },
+      "title": "Cases",
+      "type": "array"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    }
+  },
+  "required": [
+    "scope",
+    "cases",
+    "provenance"
+  ],
+  "title": "Record",
+  "type": "object"
+}

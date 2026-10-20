@@ -86,6 +86,13 @@ sparse assembly, weighted objective gradients and known constant-bias recovery.
 The historical `so3_left_jacobian` helper implements the right Exp differential;
 its formula and existing SE(3) retraction are preserved.
 
+The [complete gyro development records](../assets/screw_gyro_jacobians/README.md)
+retain all three spent seeds, exact problem/options equality and old/current
+residual/rotation equality on ten fixtures. All three policy outcomes remain
+passes, with every signed control detected. Iterations change from 29/22/25
+to 21/23/29; small accuracy changes are mixed. These are derivative-correctness
+checks and development evidence, without a general speed or accuracy claim.
+
 The accelerometer clock derivative still uses a forward time difference.
 Gyro clock derivatives use a sampled angular rate, whose stencil can cross a
 knot. At segment boundaries the model can have different one-sided time
