@@ -1,0 +1,188 @@
+{
+  "cases": [
+    {
+      "seed": 20261010,
+      "complete_inputs_equal": true,
+      "baseline": {
+        "holdout_gyro_rmse": 0.0004883022684225619,
+        "holdout_accel_rmse_m_s2": 0.02957727643848794,
+        "max_trajectory_translation_error_m": 0.005859982705080204,
+        "max_trajectory_rotation_error_deg": 0.16357197323856096,
+        "status": "converged",
+        "iterations": 21,
+        "final_objective": 584.0655945249424,
+        "gradient_norm": 0.0035687526031153993,
+        "imu_clock_offset_sec": 0.006373324920527442
+      },
+      "candidate": {
+        "holdout_gyro_rmse": 0.0004883025190319505,
+        "holdout_accel_rmse_m_s2": 0.029577275285431404,
+        "max_trajectory_translation_error_m": 0.005859983082221521,
+        "max_trajectory_rotation_error_deg": 0.16357196925650286,
+        "status": "converged",
+        "iterations": 20,
+        "final_objective": 584.0655945031982,
+        "gradient_norm": 0.029754797423521495,
+        "imu_clock_offset_sec": 0.006373324441406445
+      },
+      "policies": [
+        "pass",
+        "pass"
+      ],
+      "detected_controls": [
+        32,
+        32
+      ]
+    },
+    {
+      "seed": 20261011,
+      "complete_inputs_equal": true,
+      "baseline": {
+        "holdout_gyro_rmse": 0.0003411624629971039,
+        "holdout_accel_rmse_m_s2": 0.028846300605895797,
+        "max_trajectory_translation_error_m": 0.006994565126131018,
+        "max_trajectory_rotation_error_deg": 0.09725147417707707,
+        "status": "converged",
+        "iterations": 23,
+        "final_objective": 530.4864518361547,
+        "gradient_norm": 0.043091746348522975,
+        "imu_clock_offset_sec": 0.006878391067674662
+      },
+      "candidate": {
+        "holdout_gyro_rmse": 0.00034116332322718423,
+        "holdout_accel_rmse_m_s2": 0.028846300413730853,
+        "max_trajectory_translation_error_m": 0.006994564493744472,
+        "max_trajectory_rotation_error_deg": 0.09725147831903044,
+        "status": "max_iterations",
+        "iterations": 32,
+        "final_objective": 530.4864518349028,
+        "gradient_norm": 0.042579642202497325,
+        "imu_clock_offset_sec": 0.006878388337353245
+      },
+      "policies": [
+        "pass",
+        "pass"
+      ],
+      "detected_controls": [
+        32,
+        32
+      ]
+    },
+    {
+      "seed": 20261012,
+      "complete_inputs_equal": true,
+      "baseline": {
+        "holdout_gyro_rmse": 0.00042308415612247845,
+        "holdout_accel_rmse_m_s2": 0.030402798256940495,
+        "max_trajectory_translation_error_m": 0.0063439900612855555,
+        "max_trajectory_rotation_error_deg": 0.12609761187438126,
+        "status": "converged",
+        "iterations": 29,
+        "final_objective": 557.7626147084346,
+        "gradient_norm": 0.07409171476355425,
+        "imu_clock_offset_sec": 0.006961079478828876
+      },
+      "candidate": {
+        "holdout_gyro_rmse": 0.0004230842996251252,
+        "holdout_accel_rmse_m_s2": 0.030402798394054627,
+        "max_trajectory_translation_error_m": 0.006343990130224194,
+        "max_trajectory_rotation_error_deg": 0.1260976376259471,
+        "status": "converged",
+        "iterations": 19,
+        "final_objective": 557.7626147499145,
+        "gradient_norm": 0.03978864161440754,
+        "imu_clock_offset_sec": 0.006961078585575501
+      },
+      "policies": [
+        "pass",
+        "pass"
+      ],
+      "detected_controls": [
+        32,
+        32
+      ]
+    }
+  ],
+  "factor_parity": {
+    "all_residual_and_nonclock_blocks_bit_equal": true,
+    "changed_clock_blocks": 63,
+    "gyro_factors": 63,
+    "new_optimizer_steps": 0,
+    "provenance": {
+      "baseline_archive_sha256": "63dcfad9fe6d363a298e298212be10678f2fab59b7800d685dc9b184f9e4e8c1",
+      "created_at": "2026-10-20T20:56:24.293763+00:00",
+      "producer_sha256": "41888c71be4b7ac5346bf18248189ae356f3124210c82f4d4335254235a5891c",
+      "scope": "All three spent seeds and three saved states per seed; no solves",
+      "source_commits": {
+        "baseline": "c8001467f88eee880c6f21169ba858c572bdb068",
+        "candidate": "3c2998cf84cbd1916a313ead72269c4e62cc5695"
+      }
+    },
+    "saved_states": 9
+  },
+  "checks": [
+    {
+      "name": "baseline-tests-v1",
+      "tests": 75,
+      "failure": 44,
+      "error": 0,
+      "skipped": 0
+    },
+    {
+      "name": "candidate-tests-v1",
+      "tests": 299,
+      "failure": 0,
+      "error": 0,
+      "skipped": 0
+    },
+    {
+      "name": "new-tests-v2",
+      "tests": 79,
+      "failure": 0,
+      "error": 0,
+      "skipped": 0
+    },
+    {
+      "name": "baseline-tests-v2",
+      "tests": 79,
+      "failure": 47,
+      "error": 0,
+      "skipped": 0
+    },
+    {
+      "name": "targeted-v2",
+      "tests": 405,
+      "failure": 0,
+      "error": 0,
+      "skipped": 0
+    }
+  ],
+  "all_complete_inputs_equal": true,
+  "all_policy_checks_pass": true,
+  "candidate_iteration_limit_cases": [
+    20261011
+  ],
+  "attempts": [
+    "The first targeted command named two nonexistent test files and collected no cases; its log is retained. The corrected command passes 405 tests.",
+    "The first Ruff check found formatting issues in the new tests; the corrected source passes.",
+    "One complete current three-seed CLI cohort was run. All outcomes, including seed 20261011 reaching 32 iterations, are retained. No stopping or quality gate was retuned."
+  ],
+  "limits": [
+    "A one-sided factor derivative does not implement a constrained optimizer. Global clock-domain bounds and feasible stepping remain separate work.",
+    "A factor spanning both domain endpoints admits no nonzero in-domain clock shift; these tests make no clock-identifiability claim for that case.",
+    "Accelerometer clock finite differences, mixed-unit stopping and prior packing remain unchanged.",
+    "Quality-policy passes do not assert stationarity. Final gradients remain above the configured threshold; changes in accuracy and iterations are mixed.",
+    "Stored baseline observations are reused, not remeasured. No new speed or independent accuracy claim is made."
+  ],
+  "provenance": {
+    "created_at": "2026-10-20T20:59:03.142038+00:00",
+    "source_commits": {
+      "baseline": "c8001467f88eee880c6f21169ba858c572bdb068",
+      "candidate": "3c2998cf84cbd1916a313ead72269c4e62cc5695"
+    },
+    "baseline_original_numerical_source": "df4144a4d135dea3b0863847f26bc778b56fc719",
+    "baseline_archive_sha256": "63dcfad9fe6d363a298e298212be10678f2fab59b7800d685dc9b184f9e4e8c1",
+    "producer_sha256": "f1f17505df14ff5216c515a435de102af91e8a15f75953f8ef114f2b09285575",
+    "scope": "One complete three-seed spent-development cohort; frozen old records reused; no speed, independent accuracy or general convergence claim"
+  }
+}

@@ -94,10 +94,17 @@ to 21/23/29; small accuracy changes are mixed. These are derivative-correctness
 checks and development evidence, without a general speed or accuracy claim.
 
 The accelerometer clock derivative still uses a forward time difference.
-Gyro clock derivatives use a sampled angular rate, whose stencil can cross a
-knot. At segment boundaries the model can have different one-sided time
-derivatives; a central difference there is not a smooth derivative oracle.
-Clock behavior at boundaries and convergence remain audit work.
+The [gyro clock derivative](../benchmarks/screw_gyro_clock.md) now uses exact
+piecewise screw angular velocity instead of a sampled rate whose 1 ms stencil
+could cross a knot. Its declared clock-side convention is checked against
+closed-form rotations and independent one-sided residual differences. All
+63 saved-state gyro factors preserve residual and nonclock-block bits.
+The three current development policies pass, but one fit reaches its unchanged
+32-iteration limit and accuracy changes are mixed; this is a derivative fix,
+without a general convergence or speed claim. At segment boundaries the model
+can have different one-sided derivatives, so central differences are not a
+smooth clock oracle. Global clock-domain constraints and feasible stepping
+remain separate audit work.
 The native `converged` label can come from a small damped accepted step rather
 than the gradient threshold. Audit the undamped model before interpreting that
 label as stationarity. Stalled line searches must retain their failure status
