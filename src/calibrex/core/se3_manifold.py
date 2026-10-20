@@ -255,6 +255,13 @@ def se3_log(origin: SE3, target: SE3) -> FloatArray:
     return np.concatenate([v, w])
 
 
+def _rotation_log(origin: SE3, target: SE3) -> FloatArray:
+    """Keep the rotation part of Log without its discarded translation solve."""
+    origin_rotation, _origin_translation = _matrix_pose(origin)
+    target_rotation, _target_translation = _matrix_pose(target)
+    return rotation_matrix_to_rotation_vector(origin_rotation.T @ target_rotation)
+
+
 def point_transform_jacobian(transform: SE3, point: FloatArray) -> NDArray[np.float64]:
     """Return the 3x6 Jacobian of ``T * p`` w.r.t. a right perturbation."""
 
@@ -307,7 +314,7 @@ class _ScrewSegment:
             self._origin_translation + self._origin_rotation @ translation,
         )
 
-    def jacobians(self, alpha: float) -> tuple[FloatArray, FloatArray]:
+    def _factors(self) -> tuple[FloatArray, FloatArray]:
         if self._jacobian_factors is None:
             v_u, w_u = self.u[:3], self.u[3:]
             rotation, translation = se3_exp_local(v_u, w_u)
@@ -315,7 +322,10 @@ class _ScrewSegment:
                 np.linalg.inv(se3_left_jacobian(v_u, w_u)),
                 np.linalg.inv(se3_adjoint(rotation, translation)),
             )
-        inverse_u, inverse_adjoint_u = self._jacobian_factors
+        return self._jacobian_factors
+
+    def jacobians(self, alpha: float) -> tuple[FloatArray, FloatArray]:
+        inverse_u, inverse_adjoint_u = self._factors()
         scaled, rotation, translation, v_block = self._sample(alpha)
         v_scaled, w_scaled = scaled[:3], scaled[3:]
         scaled_jacobian = _se3_jacobian_from_exp(v_scaled, w_scaled, rotation, v_block)
