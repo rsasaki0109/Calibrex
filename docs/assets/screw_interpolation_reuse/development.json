@@ -1,0 +1,88 @@
+{
+  "source_commits": {
+    "baseline": "297acf16310500c1a6644a584e15e7b9ec28cf27",
+    "first": "2e5da540f1b81b22d8dff900bb1201289fa4a8f7",
+    "final": "c017754233f22bdd921f0b6f76a9d333bbc1f686"
+  },
+  "test_source_sha256": {
+    "first": "75641f13ad5a9e25cf5d5fabe5038c7fee781090e2ee3f75632c4a99f9f8ea71",
+    "final": "2e793c30d8f627d40edd3701c429242fbdd279594f54f513b896486a7a594d6f"
+  },
+  "checks": [
+    {
+      "name": "screen-v1",
+      "tests": 148,
+      "failure": 0,
+      "error": 0,
+      "skipped": 0
+    },
+    {
+      "name": "reuse-tests-v1",
+      "tests": 45,
+      "failure": 1,
+      "error": 0,
+      "skipped": 0
+    },
+    {
+      "name": "reuse-tests-v2",
+      "tests": 51,
+      "failure": 0,
+      "error": 0,
+      "skipped": 0
+    },
+    {
+      "name": "reuse-tests-v3",
+      "tests": 52,
+      "failure": 0,
+      "error": 0,
+      "skipped": 0
+    },
+    {
+      "name": "targeted-v1",
+      "tests": 200,
+      "failure": 0,
+      "error": 0,
+      "skipped": 0
+    },
+    {
+      "name": "shared-exp-tests-v1",
+      "tests": 200,
+      "failure": 0,
+      "error": 0,
+      "skipped": 0
+    },
+    {
+      "name": "reuse-tests-v4",
+      "tests": 62,
+      "failure": 0,
+      "error": 0,
+      "skipped": 0
+    },
+    {
+      "name": "targeted-v2",
+      "tests": 210,
+      "failure": 0,
+      "error": 0,
+      "skipped": 0
+    }
+  ],
+  "selection": "The first complete cohort missed the unchanged 2x geometry API gate. The same spent inputs and frozen gate were retained while sharing exponentials, using fixed matrix assembly and dropping discarded geometric RMSE derivatives.",
+  "harness_attempts": [
+    "The initial lazy-pose test incorrectly rejected the existing 3x3 Log inverse; the corrected test permits those inverses and rejects 6x6 derivative preparation.",
+    "The first offline mypy attempt could not access its existing cache under the sandbox; the approved offline retry passed 401 modules.",
+    "The first packaging attempt explicitly stopped at the missed adoption gate and wrote no public asset.",
+    "A profiling launcher named profile.py shadowed the standard library before fitting. Renaming it allowed one exact complete-fit diagnostic profile."
+  ],
+  "limits": [
+    "Both cohorts use already-spent development data; selection is post hoc.",
+    "Profile cumulative times overlap and contain instrumentation overhead; they are not performance observations.",
+    "There are no discarded timing attempts, retuned gates, precision changes or independent accuracy claims."
+  ],
+  "provenance": {
+    "created_at": "2026-10-20T10:27:16.095328+00:00",
+    "source_commit": "c017754233f22bdd921f0b6f76a9d333bbc1f686",
+    "baseline_commit": "297acf16310500c1a6644a584e15e7b9ec28cf27",
+    "packaging_source_sha256": "a58e1765c9085162cef298445e36c28a2a1ba62abe024de646f109c6bb5970c4",
+    "scope": "Two complete spent-development cohorts, including the missed initial gate; no independent accuracy claim"
+  }
+}

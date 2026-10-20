@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Reuse fixed-state screw interval preparation, poses, Jacobians and IMU body
+  samples; share exponentials and avoid discarded geometric RMSE derivatives.
+  Preserve exact complete results, covariance, stopping and schemas. Paired
+  complete APIs measured 2.395x for synthetic LiDAR–IMU recovery and
+  2.765x for spent public GLIM geometry. Retain both complete cohorts,
+  including the first geometry attempt that missed the unchanged 2x gate,
+  all 32 detected controls per joint case, and CPU-only archive replay.
+
 - Report the native sparse trajectory gradient at the returned state. Reuse the
   last linearization while its state is current, refreshing it after an accepted
   update or state restoration and sharing it with covariance. Keep stopping
