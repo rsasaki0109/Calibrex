@@ -87,7 +87,7 @@ the pytest cache before collecting tests. This keeps optional CUDA tests inside
 the checkout's writable area, including restricted Windows environments where
 writing to the default home cache can stall. Use `-o cache_dir=outputs/test-cache`
 to choose the pytest cache location. An explicit `CUPY_CACHE_DIR` takes priority.
-The benchmark tools manage their own per-worker caches; ordinary Calibrex runs
+Tools that choose a per-worker cache keep that setting. Ordinary Calibrex runs
 keep CuPy's normal cache configuration.
 
 For CUDA runs outside pytest, set a writable cache before starting Python:
