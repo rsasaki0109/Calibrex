@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Make the native `screw_linear` trajectory acceptance objective use squared
+  measurement weights, matching its existing inverse-sigma normal equations
+  and covariance. Cover all five measurement families, diagonal information
+  priors, a finite-difference gradient, and closed-form heterogeneous-weight
+  fits. Keep convergence thresholds and artifact schemas unchanged. Record the
+  research direction for reliability under a fixed compute budget.
+
 - Avoid discarded geometric Jacobians in sparse screw trajectory objective
   scoring and use exact fixed-size FP64 cross products in the SE(3) Jacobian.
   Preserve full derivatives in linearization and covariance. Three paired

@@ -1,18 +1,28 @@
 # Development Roadmap
 
 This document is the current development decision for Calibrex as of
-2026-10-10. Earlier revisions were dated 2026-08-19, 2026-08-20 and
-2026-09-27. It reconciles the implemented code, the older ADR direction,
+2026-10-20. Earlier revisions were dated 2026-08-19, 2026-08-20,
+2026-09-27 and 2026-10-10. It reconciles the implemented code, the older ADR direction,
 public-data evidence, and relevant research/OSS. It is a planning inventory,
 not a claim that every listed method is production-ready.
 [ADR 0010](adr/0010-v0-5-reconcile-v0-4-and-operational-trust.md) records why
 the v0.4 pillars close and what v0.5 carries forward.
 
-**Strategic direction (2026-08-19):** Calibrex is positioned as a practical
-calibration tool first, and a research evidence framework second.  New work is
-evaluated against two questions: "Does this let a user with a real rosbag
-produce a trusted result more easily?" and "Does this let a developer trust the
-result more deeply?"  Both matter, but user-facing friction comes first.
+**Strategic direction (2026-10-20):** Calibrex develops multi-sensor calibration
+methods, establishes their effectiveness and limits through reproducible
+experiments, and delivers them as usable OSS. Research and practical use are
+both central objectives. This updates the 2026-08-19 priority order. New work
+must state its research question or user problem, its strongest maintained
+comparison, and the evidence that would falsify its benefit.
+
+The next focused research question is: **how much calibration reliability can
+we obtain within a declared compute budget?** CPU/GPU acceleration can fund
+multiple initializations, failure detection, and empirical uncertainty. Measure
+their effect on successful calibration and honest abstention alongside complete
+processing time and resource use. The
+[continuous-time reliability plan](research/continuous_time_reliability.md)
+starts with the native screw fitter's measurement-loss consistency, then audits
+state derivatives before comparing reliability under fixed budgets.
 
 Calibrex remains an evidence framework rather than a solver collection. A new
 method is complete only when its inputs and results are typed and

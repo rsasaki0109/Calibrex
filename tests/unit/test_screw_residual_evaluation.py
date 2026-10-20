@@ -52,7 +52,7 @@ def test_se3_jacobian_bits_match_general_cross(
 
 
 @pytest.mark.parametrize("alpha", [0.0, 1.0e-13, 0.4, 1.0 - 1.0e-13, 1.0])
-def test_objective_preserves_mixed_factor_bits_without_jacobians(
+def test_objective_scores_weighted_mixed_factors_without_jacobians(
     alpha: float,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -98,10 +98,10 @@ def test_objective_preserves_mixed_factor_bits_without_jacobians(
         for anchor in sparse._ANCHOR_POINTS
     ]
     expected = 0.0
-    expected += point.weight * float(np.sum(point_residual * point_residual))
-    expected += plane.weight * float(plane_residual[0] * plane_residual[0])
+    expected += point.weight**2 * float(np.sum(point_residual * point_residual))
+    expected += plane.weight**2 * float(plane_residual[0] * plane_residual[0])
     for residual in anchors:
-        expected += pose.weight * float(np.sum(residual * residual))
+        expected += pose.weight**2 * float(np.sum(residual * residual))
 
     def unused(*args: object, **kwargs: object) -> None:
         raise AssertionError("scoring must not compute geometric Jacobians")
