@@ -42,6 +42,13 @@ the same. Convergence thresholds, iteration limits, holdouts, and quality gates
 stay fixed. Existing speed measurements remain bound to their recorded source;
 new numerical behavior needs its own evidence.
 
+The [three retained development runs](../assets/screw_weighted_objective/README.md)
+record the corrected source on already-read synthetic seeds, including the
+remaining gyro-holdout failure. The quality-policy outcome remains two passes
+and one failure. Convergence changes in both directions, so these runs support
+the narrow measurement-loss correction rather than a general convergence or
+accuracy improvement.
+
 ## 2. Complete state derivatives
 
 Before claiming a reliable joint optimizer, check every residual family against
@@ -63,6 +70,11 @@ bounded multiple starts and empirical uncertainty using identical inputs and
 total compute budgets. Freeze the cases, budgets, seeds, solver settings,
 selection rule, and quality gates before measurement. Compare against the
 strongest maintained CPU and GPU paths available for the same task.
+
+Evaluate multiple starts and uncertainty estimation separately and together.
+Selection, stopping, and uncertainty estimation use training data; the method
+cannot inspect holdout scores when selecting a result. Execution-only speed
+comparisons require the same objective and numerical quality contract.
 
 Report all attempts, including failures:
 
