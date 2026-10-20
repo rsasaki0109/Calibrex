@@ -19,6 +19,7 @@ right-trivialized and verified against finite differences in the test suite.
 from __future__ import annotations
 
 import math
+from struct import pack
 from typing import TypeAlias
 
 import numpy as np
@@ -144,12 +145,18 @@ def se3_adjoint(
 
     matrix = np.asarray(rotation, dtype=float).reshape(3, 3)
     t = np.asarray(translation, dtype=float).reshape(3)
-    return np.block(
-        [
-            [matrix, skew(t) @ matrix],
-            [np.zeros((3, 3), dtype=float), matrix],
-        ]
-    )
+    return _se3_blocks(matrix, skew(t) @ matrix, matrix)
+
+
+def _se3_blocks(
+    top_left: FloatArray, top_right: FloatArray, bottom_right: FloatArray,
+) -> FloatArray:
+    """Assemble fixed 3x3 blocks without general nested-array dispatch."""
+    result = np.zeros((6, 6), dtype=float)
+    result[:3, :3] = top_left
+    result[:3, 3:] = top_right
+    result[3:, 3:] = bottom_right
+    return result
 
 
 def _cross3(left: FloatArray, right: FloatArray) -> FloatArray:
@@ -177,9 +184,16 @@ def se3_left_jacobian(
 
     v = np.asarray(translation, dtype=float).reshape(3)
     w = np.asarray(rotation_vector, dtype=float).reshape(3)
-    angle = float(np.linalg.norm(w))
     v_block = so3_left_jacobian(w)
     rotation = rotation_vector_to_matrix(w)
+    return _se3_jacobian_from_exp(v, w, rotation, v_block)
+
+
+def _se3_jacobian_from_exp(
+    v: FloatArray, w: FloatArray, rotation: FloatArray, v_block: FloatArray,
+) -> FloatArray:
+    """Use the same rotation and V block as the associated exponential."""
+    angle = float(np.linalg.norm(w))
     if angle < 1.0e-12:
         q_block = 0.5 * skew(v)
     else:
@@ -200,12 +214,7 @@ def se3_left_jacobian(
                 + b * (_cross3(unit, cross_w_v) + _cross3(w, _cross3(unit, v)))
             )
         q_block = rotation.T @ d_v
-    return np.block(
-        [
-            [rotation.T @ v_block, q_block],
-            [np.zeros((3, 3), dtype=float), v_block],
-        ]
-    )
+    return _se3_blocks(rotation.T @ v_block, q_block, v_block)
 
 
 def se3_left_jacobian_inverse(
@@ -275,10 +284,28 @@ class _ScrewSegment:
     def __init__(self, left: SE3, right: SE3) -> None:
         self.left = left
         self.u = se3_log(left, right)
+        self._origin_rotation, self._origin_translation = _matrix_pose(left)
         self._jacobian_factors: tuple[FloatArray, FloatArray] | None = None
+        self._sample_key: bytes | None = None
+        self._sample_values: tuple[FloatArray, FloatArray, FloatArray, FloatArray] | None = None
+
+    def _sample(self, alpha: float) -> tuple[FloatArray, FloatArray, FloatArray, FloatArray]:
+        key = pack("!d", alpha)
+        if key != self._sample_key:
+            scaled = alpha * self.u
+            rotation = rotation_vector_to_matrix(scaled[3:])
+            v_block = so3_left_jacobian(scaled[3:])
+            self._sample_values = scaled, rotation, v_block @ scaled[:3], v_block
+            self._sample_key = key
+        assert self._sample_values is not None
+        return self._sample_values
 
     def pose(self, alpha: float) -> SE3:
-        return se3_exp(self.left, alpha * self.u)
+        _scaled, rotation, translation, _v_block = self._sample(alpha)
+        return _pose_from_matrix(
+            self._origin_rotation @ rotation,
+            self._origin_translation + self._origin_rotation @ translation,
+        )
 
     def jacobians(self, alpha: float) -> tuple[FloatArray, FloatArray]:
         if self._jacobian_factors is None:
@@ -289,10 +316,9 @@ class _ScrewSegment:
                 np.linalg.inv(se3_adjoint(rotation, translation)),
             )
         inverse_u, inverse_adjoint_u = self._jacobian_factors
-        scaled = alpha * self.u
+        scaled, rotation, translation, v_block = self._sample(alpha)
         v_scaled, w_scaled = scaled[:3], scaled[3:]
-        rotation, translation = se3_exp_local(v_scaled, w_scaled)
-        scaled_jacobian = se3_left_jacobian(v_scaled, w_scaled)
+        scaled_jacobian = _se3_jacobian_from_exp(v_scaled, w_scaled, rotation, v_block)
         product = scaled_jacobian @ inverse_u
         right_jacobian = alpha * product
         left_jacobian = np.linalg.inv(se3_adjoint(rotation, translation)) - alpha * (

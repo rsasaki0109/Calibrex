@@ -1139,6 +1139,8 @@ def point_to_plane_rmse(
 
     if not measurements:
         return None
+    poses = list(knots)
+    interpolation = _ScrewInterpolation(poses)
     squared = 0.0
     for measurement in measurements:
         interval = _interval_index(timestamps, measurement.timestamp_sec)
@@ -1147,8 +1149,8 @@ def point_to_plane_rmse(
                 f"point-to-plane measurement {measurement.measurement_id!r} is "
                 "outside the knot domain"
             )
-        residual, _left, _right = _point_to_plane_residual(
-            list(knots), timestamps, interval, measurement
+        residual, _pose, _normal, _fraction = _evaluate_plane(
+            poses, timestamps, interval, measurement, interpolation=interpolation,
         )
         squared += float(residual[0] * residual[0])
     return math.sqrt(squared / len(measurements))
@@ -1999,17 +2001,19 @@ def _point_rmse(
 ) -> float | None:
     if not point_rows:
         return None
+    interpolation = _ScrewInterpolation(knots)
     squared = 0.0
     count = 0
     for index, (interval, point_body) in enumerate(point_rows):
         measurement = problem.point_measurements[index]
-        residual, _left, _right = _point_residual(
+        residual, _pose, _fraction = _evaluate_point(
             knots,
             problem.knot_timestamps,
             interval,
             measurement.timestamp_sec,
             point_body,
             measurement.target_world_m,
+            interpolation=interpolation,
         )
         squared += float(np.sum(residual * residual))
         count += 3
@@ -2023,10 +2027,11 @@ def _point_to_plane_rmse(
 ) -> float | None:
     if not plane_rows:
         return None
+    interpolation = _ScrewInterpolation(knots)
     squared = 0.0
     for interval, measurement in plane_rows:
-        residual, _left, _right = _point_to_plane_residual(
-            knots, timestamps, interval, measurement
+        residual, _pose, _normal, _fraction = _evaluate_plane(
+            knots, timestamps, interval, measurement, interpolation=interpolation,
         )
         squared += float(residual[0] * residual[0])
     return math.sqrt(squared / len(plane_rows))
@@ -2039,18 +2044,20 @@ def _pose_rmse(
 ) -> float | None:
     if not pose_rows:
         return None
+    interpolation = _ScrewInterpolation(knots)
     squared = 0.0
     count = 0
     for index, (interval, pose) in enumerate(pose_rows):
         measurement = problem.pose_measurements[index]
         for anchor in _ANCHOR_POINTS:
-            residual, _left, _right = _anchor_residual(
+            residual, _pose, _fraction = _evaluate_anchor(
                 knots,
                 problem.knot_timestamps,
                 interval,
                 measurement.timestamp_sec,
                 anchor,
                 pose,
+                interpolation=interpolation,
             )
             squared += float(np.sum(residual * residual))
             count += 3

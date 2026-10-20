@@ -147,6 +147,71 @@ def test_reuse_keys_keep_signed_zero_distinct() -> None:
         assert workspace.pose(0, alpha) == sparse._interpolate(knots[0], knots[1], alpha)
 
 
+@pytest.mark.parametrize("angle", [-math.pi, -1e-8, 0.0, 1e-13, 0.7, math.pi])
+def test_fixed_matrix_assembly_matches_general_blocks_in_every_bit(
+    angle: float, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rng = np.random.default_rng(20261020)
+    cases = [(rng.normal(size=3), np.array([angle, -0.0, 0.0])) for _ in range(12)]
+    actual = [(manifold.se3_left_jacobian(v, w), manifold.se3_adjoint(
+        manifold.rotation_vector_to_matrix(w), v,
+    )) for v, w in cases]
+
+    def general(a: NDArray[np.float64], b: NDArray[np.float64], c: NDArray[np.float64]):
+        return np.block([[a, b], [np.zeros((3, 3), dtype=float), c]])
+
+    monkeypatch.setattr(manifold, "_se3_blocks", general)
+    for (v, w), (jacobian, adjoint) in zip(cases, actual, strict=True):
+        _bits(jacobian, manifold.se3_left_jacobian(v, w))
+        _bits(adjoint, manifold.se3_adjoint(manifold.rotation_vector_to_matrix(w), v))
+
+
+@pytest.mark.parametrize("kind", ["point", "plane", "pose", "public_plane"])
+def test_geometric_rmse_preserves_values_without_discarded_derivatives(
+    kind: str, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    knots, timestamps, time, interval = _knots(), (0.0, 1.0, 2.0, 3.0), 0.4, 0
+    point = sparse.TrajectoryPointMeasurement("point", time, (0.2, 0.3, 0.4), (0.1, 0.0, 0.3))
+    plane = sparse.TrajectoryPointToPlaneMeasurement(
+        "plane", time, point.point_body_m, point.target_world_m, (0.1, 0.2, 1.0),
+    )
+    pose = sparse.TrajectoryPoseMeasurement("pose", time, knots[2])
+    problem = sparse.ContinuousTimeTrajectoryFitProblem(
+        timestamps, tuple(knots), point_measurements=(point,),
+        point_to_plane_measurements=(plane,), pose_measurements=(pose,),
+    )
+    if kind == "point":
+        residuals = sparse._point_residual(
+            knots, timestamps, interval, time, point.point_body_m, point.target_world_m,
+        )[0]
+    elif kind in ("plane", "public_plane"):
+        residuals = sparse._point_to_plane_residual(knots, timestamps, interval, plane)[0]
+    else:
+        residuals = np.concatenate([sparse._anchor_residual(
+            knots, timestamps, interval, time, anchor, pose.pose_world_body,
+        )[0] for anchor in sparse._ANCHOR_POINTS])
+    # Preserve the original per-anchor reduction order, too.
+    squared = (sum(float(np.sum(r * r)) for r in residuals.reshape(-1, 3))
+               if kind == "pose" else float(np.sum(residuals * residuals)))
+    expected = math.sqrt(squared / len(residuals))
+
+    def unused(*args: object, **kwargs: object) -> None:
+        raise AssertionError("RMSE must not construct a derivative")
+
+    monkeypatch.setattr(manifold, "_se3_jacobian_from_exp", unused)
+    monkeypatch.setattr(sparse, "point_transform_jacobian", unused)
+    if kind == "point":
+        actual = sparse._point_rmse(problem, [(interval, point.point_body_m)], knots)
+    elif kind == "pose":
+        actual = sparse._pose_rmse(problem, [(interval, pose.pose_world_body)], knots)
+    elif kind == "public_plane":
+        actual = sparse.point_to_plane_rmse((plane,), timestamps, tuple(knots))
+    else:
+        actual = sparse._point_to_plane_rmse([(interval, plane)], timestamps, knots)
+    assert actual is not None
+    _bits(np.array([actual]), np.array([expected]))
+
+
 @pytest.mark.parametrize("window", [(0.2, 0.8), (1.0, 2.0), (2.1, 2.8)])
 @pytest.mark.parametrize("mounted", [False, True])
 def test_shared_gyro_samples_preserve_boundary_and_nonunit_scale_bits(
