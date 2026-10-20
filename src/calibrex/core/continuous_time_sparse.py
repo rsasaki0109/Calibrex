@@ -333,7 +333,12 @@ class ContinuousTimeTrajectoryFitOptions:
 
 @dataclass(frozen=True)
 class ContinuousTimeTrajectoryFitResult:
-    """Optimized knots and convergence evidence for one fit."""
+    """Optimized knots and convergence evidence for one fit.
+
+    ``gradient_norm`` is the infinity norm of the final weighted normal
+    right-hand side, half the squared-objective gradient at the returned state.
+    A small accepted step is a separate existing convergence criterion.
+    """
 
     status: FitStatus
     iterations: int
@@ -700,6 +705,7 @@ def fit_continuous_trajectory(
         )
         return blocks, residual_array, weight_array, jacobian
 
+    linearization_is_current = False
     for iteration in range(settings.max_iterations):
         iterations = iteration + 1
         blocks, residual_array, weight_array, jacobian = _linearize(
@@ -717,6 +723,7 @@ def fit_continuous_trajectory(
         normal = weighted_jacobian.T @ weighted_jacobian
         rhs = weighted_jacobian.T @ (weight_array * residual_array)
         gradient_norm = float(np.max(np.abs(rhs)))
+        linearization_is_current = True
 
         if gradient_norm < settings.convergence_gradient_norm:
             status = "converged"
@@ -807,6 +814,7 @@ def fit_continuous_trajectory(
         if candidate_objective < objective:
             objective = candidate_objective
             knots = candidate
+            linearization_is_current = False
             gyro_bias = candidate_bias
             lever_arm = candidate_lever
             clock_offset = candidate_clock
@@ -842,6 +850,7 @@ def fit_continuous_trajectory(
 
     if status != "converged" and best_objective < objective:
         knots = best_knots
+        linearization_is_current = False
         gyro_bias = best_bias
         lever_arm = best_lever
         clock_offset = best_clock
@@ -855,7 +864,9 @@ def fit_continuous_trajectory(
     calibration_covariance: tuple[tuple[float, ...], ...] | None = None
     residual_variance: float | None = None
     layout = _calibration_layout(problem)
-    if layout and status != "singular_system":
+    if linearization_is_current:
+        final_residuals, final_weights, final_jacobian = residual_array, weight_array, jacobian
+    else:
         _final_blocks, final_residuals, final_weights, final_jacobian = _linearize(
             knots,
             gyro_bias,
@@ -867,6 +878,10 @@ def fit_continuous_trajectory(
             accel_scale,
             imu_rotation_vector,
         )
+        final_weighted_jacobian = final_jacobian.multiply(final_weights[:, None])
+        final_rhs = final_weighted_jacobian.T @ (final_weights * final_residuals)
+        gradient_norm = float(np.max(np.abs(final_rhs)))
+    if layout and status != "singular_system":
         covariance, residual_variance = _marginal_calibration_covariance(
             final_jacobian, final_residuals, final_weights, knot_count
         )
