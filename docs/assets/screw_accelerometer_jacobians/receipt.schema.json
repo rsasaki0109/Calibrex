@@ -1,0 +1,106 @@
+{
+  "$defs": {
+    "Outcome": {
+      "additionalProperties": false,
+      "properties": {
+        "seed": {
+          "title": "Seed",
+          "type": "integer"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "returncode": {
+          "title": "Returncode",
+          "type": "integer"
+        },
+        "artifact": {
+          "title": "Artifact",
+          "type": "string"
+        },
+        "artifact_sha256": {
+          "title": "Artifact Sha256",
+          "type": "string"
+        },
+        "fit_status": {
+          "title": "Fit Status",
+          "type": "string"
+        },
+        "iterations": {
+          "title": "Iterations",
+          "type": "integer"
+        },
+        "policy_status": {
+          "title": "Policy Status",
+          "type": "string"
+        },
+        "policy_reason": {
+          "title": "Policy Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "seed",
+        "command",
+        "returncode",
+        "artifact",
+        "artifact_sha256",
+        "fit_status",
+        "iterations",
+        "policy_status",
+        "policy_reason"
+      ],
+      "title": "Outcome",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "created_at": {
+      "title": "Created At",
+      "type": "string"
+    },
+    "source_commit": {
+      "title": "Source Commit",
+      "type": "string"
+    },
+    "source_manifest_sha256": {
+      "title": "Source Manifest Sha256",
+      "type": "string"
+    },
+    "launcher_sha256": {
+      "title": "Launcher Sha256",
+      "type": "string"
+    },
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "source_unchanged": {
+      "title": "Source Unchanged",
+      "type": "boolean"
+    },
+    "outcomes": {
+      "items": {
+        "$ref": "#/$defs/Outcome"
+      },
+      "title": "Outcomes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "created_at",
+    "source_commit",
+    "source_manifest_sha256",
+    "launcher_sha256",
+    "scope",
+    "source_unchanged",
+    "outcomes"
+  ],
+  "title": "Receipt",
+  "type": "object"
+}
