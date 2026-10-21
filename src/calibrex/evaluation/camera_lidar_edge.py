@@ -30,7 +30,7 @@ import math
 from collections.abc import Callable, Generator, Sequence
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Literal, TypeAlias, TypeVar
+from typing import Any, Literal, TypeAlias, TypedDict, TypeVar
 
 import numpy as np
 from numpy.typing import NDArray
@@ -621,6 +621,16 @@ def _body_frame_diagnosis(
 _EdgeInputs: TypeAlias = tuple[Float32Array, int, Float32Array, Float32Array, int, float] | None
 
 
+class _PreparationKeywords(TypedDict, total=False):
+    preparation_cache: EdgePreparationCache
+
+
+def _preparation_keywords(cache: EdgePreparationCache | None) -> _PreparationKeywords:
+    # Existing input recorders forward solver keywords into schema-bound snapshots.
+    # An unused runtime cache must not add a field to those recorded keyword sets.
+    return {} if cache is None else {"preparation_cache": cache}
+
+
 def _depth_edge_inputs(
     frame: CameraLidarFrame,
     options: EdgeAlignmentOptions,
@@ -1115,7 +1125,7 @@ def _estimate_workflow(
 ) -> _EdgeWorkflow[CameraLidarEdgeArtifact]:
     opts = options or EdgeAlignmentOptions()
     prepared, dropped = prepare_frames(
-        frames, camera, candidate, opts, preparation_cache=preparation_cache
+        frames, camera, candidate, opts, **_preparation_keywords(preparation_cache)
     )
     limitations = list(LIMITATIONS)
     limitations.insert(
@@ -1690,5 +1700,5 @@ def run_ros2_camera_lidar_edge(
         reference_label=inputs.reference,
         start_note=note,
         motion_compensation=motion_summary,
-        preparation_cache=preparation_cache,
+        **_preparation_keywords(preparation_cache),
     )

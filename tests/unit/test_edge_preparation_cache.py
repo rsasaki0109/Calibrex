@@ -261,6 +261,27 @@ def test_complete_selection_recomputed_for_new_camera_and_candidate(workers, uns
     assert cache.diagnostics.hits > 0
 
 
+def test_default_estimator_preserves_an_existing_preparation_observer(monkeypatch):
+    from tests.unit.camera_lidar_scene import true_transform
+
+    truth = true_transform()
+    frames = _frames(truth, 2)
+    original = edge.prepare_frames
+    observed = []
+
+    def observe(raw_frames, camera, candidate, options):
+        observed.append(candidate.copy())
+        return original(raw_frames, camera, candidate, options)
+
+    monkeypatch.setattr(edge, "prepare_frames", observe)
+    result = edge.estimate_from_frames(
+        frames, CAMERA, truth, options=FAST, provenance=_provenance()
+    )
+    assert result.solver_status == "insufficient_samples"
+    assert len(observed) == 1
+    np.testing.assert_array_equal(observed[0], truth)
+
+
 @pytest.mark.parametrize("translation", [False, True])
 def test_whole_artifact_and_every_score_keep_original_candidate_budgets(monkeypatch, translation):
     from tests.unit.camera_lidar_scene import perturbed, true_transform
