@@ -107,7 +107,7 @@ class EdgePreparationCache:
     ) -> _Value:
         with self._lock:
             epoch = self._epoch
-        if self._max_bytes == 0 or array.dtype.hasobject:
+        if self._max_bytes == 0 or type(array) is not np.ndarray or array.dtype.hasobject:
             with self._lock:
                 self._bypasses += 1
             return compute()

@@ -161,6 +161,26 @@ def test_modifying_the_last_input_element_invalidates_only_that_stage(changed):
     assert cache.diagnostics.hits - before.hits == 1
 
 
+@pytest.mark.parametrize("prime_plain", [False, True])
+def test_array_subclass_metadata_keeps_original_preprocessing_semantics(prime_plain):
+    from tests.unit.camera_lidar_scene import true_transform
+
+    frame = _frames(true_transform(), 1)[0]
+    options = edge.EdgeAlignmentOptions(image_max_width=160)
+    cache = EdgePreparationCache()
+    plain = edge._prepare_edge_inputs(frame, options)
+    if prime_plain:
+        edge._prepare_edge_inputs(frame, options, cache)
+    for offset in (0, 1):
+        mask = np.zeros(frame.image.shape, dtype=bool)
+        mask[offset::2, ::2] = True
+        masked = replace(frame, image=np.ma.array(frame.image, mask=mask))
+        expected = edge._prepare_edge_inputs(masked, options)
+        assert expected[0].tobytes() != plain[0].tobytes()
+        _assert_inputs_equal(edge._prepare_edge_inputs(masked, options, cache), expected)
+    assert cache.diagnostics.bypasses == 2
+
+
 def test_clear_prevents_an_inflight_computation_from_repopulating():
     cache = EdgePreparationCache()
     raw = np.ones(3)

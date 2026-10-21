@@ -2153,7 +2153,9 @@ The experimental WebGPU API also accepts `preparation_cache`. The CLI retains
 its existing behavior. Returned arrays are independent writable copies. The
 budget covers retained arrays plus a conservative metadata charge; caller arrays,
 returned copies and computations in flight are outside it. Zero disables reuse,
-oversize entries are bypassed, and `clear()` prevents computations already in
+oversize entries are bypassed, and array subclasses retain their original
+uncached preprocessing so that extra semantics such as masks are preserved.
+`clear()` prevents computations already in
 flight from repopulating entries. Diagnostic counters remain cumulative.
 
 Measure three distinct candidates with the unchanged full estimator:
