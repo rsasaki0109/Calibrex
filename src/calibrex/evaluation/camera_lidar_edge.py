@@ -292,6 +292,8 @@ class EdgeAlignmentOptions:
 
 # --------------------------------------------------------------------------- inputs
 
+_MIN_IMAGE_GRADIENT: float = 4.0
+
 
 def image_edge_response(
     gray: NDArray[np.uint8],
@@ -309,6 +311,22 @@ def image_edge_response(
     part. ``None`` when the image carries no edges (flat or saturated).
     """
 
+    result = _image_edge_response_with_gradient(
+        gray, max_width=max_width, gamma=gamma, radius=radius, background_sigma=background_sigma
+    )
+    return None if result is None else (result[0], result[1])
+
+
+def _image_edge_response_with_gradient(
+    gray: NDArray[np.uint8],
+    *,
+    max_width: int,
+    gamma: float,
+    radius: int,
+    background_sigma: float | None = None,
+) -> tuple[Float32Array, int, float] | None:
+    """Keep the pre-normalization percentile beside the unchanged response."""
+
     factor = max(1, math.ceil(gray.shape[1] / max_width))
     image = gray.astype(np.float32)
     if factor > 1:
@@ -319,7 +337,7 @@ def image_edge_response(
     image = ndimage.gaussian_filter(image, 1.0)
     magnitude = np.hypot(ndimage.sobel(image, axis=1), ndimage.sobel(image, axis=0))
     scale = float(np.percentile(magnitude, 99.0))
-    if scale < 4.0:  # under about one gray level of gradient: nothing to align
+    if scale < _MIN_IMAGE_GRADIENT:  # under about one gray level: nothing to align
         return None
     edge = np.minimum(magnitude / scale, 1.0).astype(np.float32)
     # The spill is computed on 2x2 max-pooled edges (half the radius, gamma squared per step):
@@ -338,7 +356,7 @@ def image_edge_response(
     response = edge / 3.0 + spread * (2.0 / 3.0)
     if background_sigma is not None:
         response = response - ndimage.gaussian_filter(response, background_sigma)
-    return response.astype(np.float32), factor
+    return response.astype(np.float32), factor, scale
 
 
 def _edge_spill(pooled: Float32Array, step: np.float32, iterations: int) -> Float32Array:
@@ -621,6 +639,132 @@ def _body_frame_diagnosis(
 _EdgeInputs: TypeAlias = tuple[Float32Array, int, Float32Array, Float32Array, int, float] | None
 
 
+def _certifiable_image_factor(gray: NDArray[np.uint8], options: EdgeAlignmentOptions) -> int | None:
+    """Restrict the non-flat certificate to bounded ordinary image operations."""
+
+    if (
+        type(gray) is not np.ndarray
+        or gray.dtype != np.uint8
+        or gray.ndim != 2
+        or type(options.image_max_width) is not int
+        or options.image_max_width <= 0
+        or type(options.spill_radius_px) is not int
+        or not 1 <= options.spill_radius_px <= 2048
+        or not isinstance(options.spill_gamma, (int, float, np.floating))
+        or not math.isfinite(options.spill_gamma)
+        or not 0.0 <= options.spill_gamma <= 1.0
+    ):
+        return None
+    sigma = options.edge_background_sigma_px
+    if sigma is not None and (
+        not isinstance(sigma, (int, float, np.floating))
+        or not math.isfinite(sigma)
+        or not 0.0 <= sigma <= 256.0
+    ):
+        return None
+    factor = max(1, math.ceil(gray.shape[1] / options.image_max_width))
+    # Integer block sums and power-of-two division are exact in float32 here:
+    # even 128*128*255 is below 2**24. Retain the old path for other downscales.
+    if factor not in (1, 2, 4, 8, 16, 32, 64, 128) or min(gray.shape) // factor < 2:
+        return None
+    return int(factor)
+
+
+@dataclass
+class _RepeatedImageCertificate:
+    """Per-run evidence that a likely repeated view cannot be a flat image.
+
+    Gaussian smoothing with nonnegative unit-sum weights is contractive. Each
+    Sobel component has L1 norm 8; the magnitude and its percentile therefore
+    change by at most 16 times the largest raw pixel change. The extra 0.25
+    margin exceeds float32 rounding in these bounded uint8 operations. Only
+    certify a percentile strictly above the existing flat-image threshold.
+
+    Selection still checks the cloud, candidate visibility, beam structure and
+    actual repeated-view threshold in their original order. Own one raw-image
+    snapshot so later caller mutation cannot change the reference pixels.
+    """
+
+    previous_pixels: NDArray[np.int16] | None = None
+    previous_view: Float32Array | None = None
+    previous_percentile: float | None = None
+    previous_factor: int | None = None
+    current_percentile: float | None = None
+    current_pixels: NDArray[np.int16] | None = None
+    current_factor: int | None = None
+
+    def certified_factor(
+        self, gray: NDArray[np.uint8], options: EdgeAlignmentOptions
+    ) -> int | None:
+        if (
+            options.repeated_view_change is None
+            or self.previous_pixels is None
+            or self.previous_view is None
+            or self.previous_percentile is None
+            or gray.shape != self.previous_pixels.shape
+        ):
+            return None
+        factor = _certifiable_image_factor(gray, options)
+        if factor is None or factor != self.previous_factor:
+            return None
+        view = gray[::4, ::4].astype(np.float32)
+        change = float(np.mean(np.abs(view - self.previous_view))) / 255.0
+        if not change < options.repeated_view_change:
+            return None
+        pixels = gray.astype(np.int16)
+        delta = int(np.max(np.abs(pixels - self.previous_pixels)))
+        if self.previous_percentile - 16.0 * delta - 0.25 > _MIN_IMAGE_GRADIENT:
+            self.current_pixels = pixels
+            self.current_factor = factor
+            return factor
+        return None
+
+    def capture(
+        self,
+        gray: NDArray[np.uint8],
+        factor: int,
+        percentile: float,
+        options: EdgeAlignmentOptions,
+    ) -> None:
+        """Bind the gradient to owned pixels before yielding to progress callbacks."""
+
+        self.current_percentile = percentile
+        self.current_factor = _certifiable_image_factor(gray, options)
+        self.current_pixels = (
+            gray.astype(np.int16, copy=True) if self.current_factor == factor else None
+        )
+
+    def remember(self, view: Float32Array) -> None:
+        if self.current_pixels is None or self.current_percentile is None:
+            self.previous_pixels = None
+            self.previous_view = None
+            self.previous_percentile = None
+            self.previous_factor = None
+            return
+        self.previous_pixels = self.current_pixels
+        self.previous_view = view
+        self.previous_percentile = self.current_percentile
+        self.previous_factor = self.current_factor
+
+    def resolve_image(self, options: EdgeAlignmentOptions) -> tuple[Float32Array, int]:
+        """A callback can change the view test; complete its original image in that case."""
+
+        if self.current_pixels is None:
+            raise RuntimeError("a deferred image has no owned reference pixels")
+        response = _image_edge_response_with_gradient(
+            self.current_pixels.astype(np.uint8),
+            max_width=options.image_max_width,
+            gamma=options.spill_gamma,
+            radius=options.spill_radius_px,
+            background_sigma=options.edge_background_sigma_px,
+        )
+        if response is None:
+            raise RuntimeError("a certified image unexpectedly has no edges")
+        image, factor, self.current_percentile = response
+        self.current_factor = factor
+        return image, factor
+
+
 class _PreparationKeywords(TypedDict, total=False):
     preparation_cache: EdgePreparationCache
 
@@ -666,9 +810,25 @@ def _prepare_edge_inputs(
     frame: CameraLidarFrame,
     options: EdgeAlignmentOptions,
     preparation_cache: EdgePreparationCache | None = None,
+    *,
+    _image_certificate: _RepeatedImageCertificate | None = None,
 ) -> _EdgeInputs:
-    def compute() -> tuple[Float32Array, int] | None:
-        return image_edge_response(
+    depth_inputs: tuple[Float32Array, Float32Array, int, float] | None = None
+    if _image_certificate is not None:
+        _image_certificate.current_percentile = None
+        _image_certificate.current_pixels = None
+        _image_certificate.current_factor = None
+        factor = _image_certificate.certified_factor(frame.image, options)
+        if factor is not None:
+            depth_inputs = _depth_edge_inputs(frame, options, preparation_cache)
+            if depth_inputs[2] > 0:
+                # With unchanged inputs this non-flat, repeated spinning-LiDAR
+                # view is rejected. Keep the depth/visibility reasons ahead of
+                # the view test; owned pixels can resolve a changed callback view.
+                return np.empty((0, 0), dtype=np.float32), factor, *depth_inputs
+
+    def compute() -> tuple[Float32Array, int, float] | None:
+        return _image_edge_response_with_gradient(
             frame.image,
             max_width=options.image_max_width,
             gamma=options.spill_gamma,
@@ -680,7 +840,7 @@ def _prepare_edge_inputs(
         compute()
         if preparation_cache is None
         else preparation_cache._get_or_compute(
-            "image-edge-response/v1",
+            "image-edge-response/v2",
             frame.image,
             (
                 options.image_max_width,
@@ -693,8 +853,12 @@ def _prepare_edge_inputs(
     )
     if response is None:
         return None
-    points, weights, rings, on_beam = _depth_edge_inputs(frame, options, preparation_cache)
-    edge, scale = response
+    edge, scale, gradient = response
+    if _image_certificate is not None:
+        _image_certificate.capture(frame.image, scale, gradient, options)
+    if depth_inputs is None:
+        depth_inputs = _depth_edge_inputs(frame, options, preparation_cache)
+    points, weights, rings, on_beam = depth_inputs
     return edge, scale, points, weights, rings, on_beam
 
 
@@ -702,8 +866,14 @@ def _ordered_edge_inputs(
     frames: Sequence[CameraLidarFrame],
     options: EdgeAlignmentOptions,
     preparation_cache: EdgePreparationCache | None = None,
+    *,
+    _image_certificate: _RepeatedImageCertificate | None = None,
 ) -> Generator[_EdgeInputs, None, None]:
     def prepare(frame: CameraLidarFrame, selected: EdgeAlignmentOptions) -> _EdgeInputs:
+        if _image_certificate is not None and selected.preparation_workers == 1:
+            return _prepare_edge_inputs(
+                frame, selected, preparation_cache, _image_certificate=_image_certificate
+            )
         if preparation_cache is None:
             return _prepare_edge_inputs(frame, selected)
         return _prepare_edge_inputs(frame, selected, preparation_cache)
@@ -722,8 +892,7 @@ def _ordered_edge_inputs(
     pending: deque[Future[_EdgeInputs]] = deque()
     try:
         pending.extend(
-            executor.submit(prepare, frame, options)
-            for frame in islice(remaining, workers)
+            executor.submit(prepare, frame, options) for frame in islice(remaining, workers)
         )
         while pending:
             result = pending.popleft().result()
@@ -753,7 +922,14 @@ def prepare_frames(
     rotation = candidate[:3, :3]
     translation = candidate[:3, 3]
     last_view: Float32Array | None = None
-    pending = _ordered_edge_inputs(frames, options, preparation_cache)
+    certificate = (
+        _RepeatedImageCertificate()
+        if options.preparation_workers == 1 and options.repeated_view_change is not None
+        else None
+    )
+    pending = _ordered_edge_inputs(
+        frames, options, preparation_cache, _image_certificate=certificate
+    )
     try:
         for index, (frame, inputs) in enumerate(zip(frames, pending, strict=True)):
             emit_tick(index + 1, len(frames))
@@ -794,7 +970,13 @@ def prepare_frames(
                         "standing rig adds no view)"
                     )
                     continue
+            if edge.size == 0:
+                if certificate is None:
+                    raise RuntimeError("a deferred image has no preparation state")
+                edge, scale = certificate.resolve_image(options)
             last_view = view
+            if certificate is not None:
+                certificate.remember(view)
             prepared.append(
                 PreparedFrame(
                     time_s=frame.time_s,

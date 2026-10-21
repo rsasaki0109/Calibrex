@@ -33,15 +33,19 @@ def raw_fixture(tmp_path):
     return path
 
 
-def test_generated_schema_matches_the_report_model():
+@pytest.mark.parametrize("cached", [False, True])
+def test_generated_schema_matches_the_report_model(cached):
     root = Path(__file__).resolve().parents[2]
-    schema = json.loads(
-        (root / "tools/schemas/browser_edge_preparation_probe.schema.json").read_text()
-    )
-    assert schema == probe.PreparationReuseBenchmark.model_json_schema()
+    name = "browser_edge_preparation_probe_v2" if cached else "browser_edge_preparation_probe"
+    schema = json.loads((root / f"tools/schemas/{name}.schema.json").read_text())
+    model = probe.PreparationCachedBaselineBenchmark if cached else probe.PreparationReuseBenchmark
+    assert schema == model.model_json_schema()
 
 
-def test_cpu_probe_retains_insufficient_artifacts_and_never_accesses_gpu(raw_fixture, tmp_path):
+@pytest.mark.parametrize("baseline_cached", [False, True])
+def test_cpu_probe_retains_insufficient_artifacts_and_never_accesses_gpu(
+    raw_fixture, tmp_path, baseline_cached
+):
     baseline = tmp_path / "baseline.py"
     baseline.write_bytes(Path(edge.__file__).read_bytes())
 
@@ -50,7 +54,8 @@ def test_cpu_probe_retains_insufficient_artifacts_and_never_accesses_gpu(raw_fix
             raise AssertionError("CPU preparation requested a GPU")
 
     # These are unit-control identities, not exported benchmark results.
-    result = probe.PreparationReuseRun.model_validate(
+    model = probe.PreparationCachedBaselineRun if baseline_cached else probe.PreparationReuseRun
+    result = model.model_validate(
         asyncio.run(
             probe.measure(
                 str(raw_fixture),
@@ -58,6 +63,7 @@ def test_cpu_probe_retains_insufficient_artifacts_and_never_accesses_gpu(raw_fix
                 source_head="a" * 40,
                 baseline_source_head="b" * 40,
                 baseline_path=str(baseline),
+                baseline_cache_enabled=baseline_cached,
             )
         )
     )
@@ -65,6 +71,12 @@ def test_cpu_probe_retains_insufficient_artifacts_and_never_accesses_gpu(raw_fix
     assert len(result.attempts) == 3
     assert result.baseline_replay.pose_counts == result.reuse_replay.pose_counts == [0, 0, 0]
     for attempt in result.attempts:
+        if baseline_cached:
+            assert attempt.baseline.diagnostics.max_bytes == attempt.reuse.diagnostics.max_bytes
+            assert attempt.baseline.diagnostics.misses == 4
+            assert attempt.baseline.diagnostics.hits == 8
+        else:
+            assert attempt.baseline.diagnostics is None
         assert attempt.reuse.diagnostics.hits == 8
         assert attempt.reuse.diagnostics.misses == 4
         assert attempt.reuse.diagnostics.retained_bytes <= attempt.reuse.diagnostics.max_bytes
@@ -85,6 +97,21 @@ def test_probe_rejects_a_changed_baseline_artifact(raw_fixture, tmp_path):
                 source_head="a" * 40,
                 baseline_source_head="b" * 40,
                 baseline_path=str(baseline),
+            )
+        )
+
+
+def test_cached_comparison_requires_an_explicit_baseline_cache_api(tmp_path):
+    baseline = tmp_path / "no_cache_api.py"
+    baseline.write_text("def estimate_from_frames(*args, **kwargs): return None\n")
+    with pytest.raises(ValueError, match="baseline does not support a preparation cache"):
+        asyncio.run(
+            probe.measure(
+                "not-loaded.npz",
+                source_head="a" * 40,
+                baseline_source_head="b" * 40,
+                baseline_path=str(baseline),
+                baseline_cache_enabled=True,
             )
         )
 
