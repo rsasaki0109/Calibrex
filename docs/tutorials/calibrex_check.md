@@ -2033,13 +2033,96 @@ and readback. Python/package startup is recorded separately. Image decoding,
 frame preparation and a complete calibration are outside these timings. Reported
 GPU buffer allocation is not driver or process peak memory. Float32 score
 agreement does not prove identical search decisions near ties; using this API in
-the production solver still needs decision and end-to-end validation.
+the production solver still needs decision and end-to-end validation. The
+experimental complete-estimator API below performs CPU confirmation and retains
+the ordinary CPU check as the default.
 
 Each new output directory preserves failed attempts. `report.json` records source,
 wheel and fixture hashes and embedded fixture provenance; validate it with
 `tools/schemas/browser_webgpu_edge_probe.schema.json`. The probe serves only its
 frozen inputs on loopback and closes its server and Worker when finished. Adapter
 names and driver details are never recorded.
+
+### Experimental WebGPU calibration
+
+`estimate_from_frames_webgpu` runs the offline estimator from synchronized raw
+images and point clouds to the existing `slac.camera_lidar_edge/v0.1` artifact:
+
+```python
+from js import CalibrexEdgeGpu
+from calibrex.solvers.browser_webgpu_edge_adapter import estimate_from_frames_webgpu
+
+artifact = await estimate_from_frames_webgpu(
+    raw_frames, camera, candidate_transform,
+    runtime=CalibrexEdgeGpu, options=options, provenance=provenance,
+)
+```
+
+The CPU and asynchronous drivers use one search/evidence workflow. Each
+coordinate neighborhood and each axis profile can be evaluated as a batch;
+dependent line-search moves remain sequential. Images and points stay in one
+resident frame family, and frame masks select the original jackknife folds
+without reuploading the images. This path supports at most 64 prepared frames
+and the buffer limits above; unsupported inputs fail explicitly. Frame
+selection, search bounds and budgets, profile-start adoption, jackknife fits,
+held-out controls and the uncertainty floors retain their existing rules.
+
+GPU values screen candidates using the batch probe's fixed precision criterion
+(`2e-6 + 2e-5 * abs(CPU score)`). Every possible winner within the resulting
+intervals is checked with the original CPU objective, in original order, so
+first-occurrence ties are retained. The selected score, scalar search steps and
+all held-out control scores use CPU arithmetic. A checked candidate outside its
+precision interval aborts the run. These intervals are an empirical screen,
+not a universal bound on every device or unseen input; full decision parity
+still needs validation on the intended workload.
+
+The artifact records work counts, the precision criterion, allocation and timing
+diagnostics under `options.experimental_scoring`, along with backend lineage and
+its precision limitation. The ordinary result schema is unchanged. GPU errors
+propagate, cancellation releases owned resources, and insufficient samples
+return an inconclusive artifact before acquiring a device. The check page and
+CLI continue to use their synchronous CPU estimators.
+
+CPU image preparation also uses a rounded max-frontier identity: composing wider
+maximum filters reduces the default twenty spill filters to five. Every
+float32 multiplication is retained in order, preserving the original pixels;
+replacing those multiplications with a power would change rounding. The
+Gaussian filters, image scaling and background subtraction are unchanged.
+
+Run the complete-estimator development probe from a checkout:
+
+```bash
+python tools/build_browser_wheel.py
+python tools/prepare_browser_webgpu_calibration_fixtures.py --out outputs/calibration-fixtures
+node tools/benchmark_browser_webgpu_edge.mjs --calibration \
+  --fixture outputs/calibration-fixtures/synthetic-raw-12-rotation.npz \
+  --fixture outputs/calibration-fixtures/synthetic-raw-12-six-dof.npz \
+  --fixture outputs/calibration-fixtures/synthetic-raw-48-rotation.npz \
+  --out outputs/calibration-probe --chrome /path/to/chrome
+```
+
+The generator reuses the repository's distinct ray-cast test scenes, with raw
+images, clouds and provenance in pickle-free NPZ files. It downloads no data and
+makes no real-data accuracy claim. The default selection policy is applied to
+both estimators, including its ordinary rejection of repeated views.
+
+Report version `calibrex.browser_webgpu_calibration_probe/v0.2` separates ordinary
+API timings from instrumented decision replays. Both include preparation, all
+search starts, jackknife, controls and artifact construction, with a new GPU
+context on every GPU run. It retains complete artifacts and compares decision
+traces, candidate budgets and all calibration fields, excluding only declared
+backend diagnostics and lineage. Three paired repeats alternate CPU/GPU order;
+initial API-session timings include setup but need not have an empty driver
+cache. Runtime/package startup and NPZ loading are reported separately, and bag
+decoding is outside this probe. `--profile-cpu` adds an auxiliary profile outside
+the measured runs. The report schema is
+`tools/schemas/browser_webgpu_calibration_probe.schema.json`; regenerate it with
+`python tools/browser_webgpu_calibration_probe.py --schema PATH`.
+
+Small batches can lose to the CPU because initialization and readback dominate.
+Even eliminating repeated uploads does not establish a useful whole-estimator
+gain. This API remains opt-in for development; the objective-only batch ratios
+above must not be presented as complete calibration speedups.
 
 ## Artifact
 
