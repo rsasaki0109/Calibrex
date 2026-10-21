@@ -84,6 +84,7 @@ from calibrex.core.progress import progress_sink
 from calibrex.core.provenance import git_commit
 from calibrex.data.livox_ros2 import ScanStore
 from calibrex.data.rosbag2 import list_rosbag2_connections, resolve_storage
+from calibrex.evaluation.edge_preparation_cache import EdgePreparationCache
 
 INVERTED_CONVENTION_PAIRS = frozenset(
     {
@@ -212,6 +213,10 @@ class CheckRunOptions:
     """Memory for reusing decoded LiDAR scans across passes; 0 re-reads the bag every pass."""
     camera_lidar_start_scan_min_control_t: float | None = None
     """Extra held-out control margin for adopting camera-LiDAR fits from distant starts."""
+    edge_preparation_cache: EdgePreparationCache | None = field(
+        default=None, repr=False, compare=False
+    )
+    """Caller-owned preprocessing reuse; candidate checks and evidence are rerun."""
 
     def __post_init__(self) -> None:
         margin = self.camera_lidar_start_scan_min_control_t
@@ -468,6 +473,7 @@ def _run_pairs(
         cache=EstimatorCache(run.cache_dir) if run.cache_dir is not None else None,
         bag_sha256=bag_sha256,
         scan_store=ScanStore(run.scan_memory_mb << 20) if run.scan_memory_mb > 0 else None,
+        edge_preparation_cache=run.edge_preparation_cache,
     )
     results: list[CheckPairRecord] = []
     to_run = sum(1 for record in plan if _will_run(record, run, topics))

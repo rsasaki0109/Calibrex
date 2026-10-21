@@ -59,6 +59,7 @@ from calibrex.data.ros2_camera_lidar import (
     load_camera_lidar_frames,
 )
 from calibrex.evaluation.camera_lidar_motion import LidarMotion, move_frames_to_image_time
+from calibrex.evaluation.edge_preparation_cache import EdgePreparationCache
 
 FloatArray: TypeAlias = NDArray[np.float64]
 Float32Array: TypeAlias = NDArray[np.float32]
@@ -620,35 +621,87 @@ def _body_frame_diagnosis(
 _EdgeInputs: TypeAlias = tuple[Float32Array, int, Float32Array, Float32Array, int, float] | None
 
 
-def _prepare_edge_inputs(frame: CameraLidarFrame, options: EdgeAlignmentOptions) -> _EdgeInputs:
-    response = image_edge_response(
-        frame.image,
-        max_width=options.image_max_width,
-        gamma=options.spill_gamma,
-        radius=options.spill_radius_px,
-        background_sigma=options.edge_background_sigma_px,
+def _depth_edge_inputs(
+    frame: CameraLidarFrame,
+    options: EdgeAlignmentOptions,
+    preparation_cache: EdgePreparationCache | None,
+) -> tuple[Float32Array, Float32Array, int, float]:
+    def compute() -> tuple[Float32Array, Float32Array, int, float]:
+        return lidar_depth_edges(
+            frame.points,
+            min_jump_m=options.min_jump_m,
+            exponent=options.jump_exponent,
+            max_points=options.max_edge_points_per_frame,
+            min_ring_fraction=options.min_ring_fraction,
+            unstructured=options.unstructured_lidar,
+        )
+
+    if preparation_cache is None:
+        return compute()
+    return preparation_cache._get_or_compute(
+        "lidar-depth-edges/v1",
+        frame.points,
+        (
+            options.min_jump_m,
+            options.jump_exponent,
+            options.max_edge_points_per_frame,
+            options.min_ring_fraction,
+            options.unstructured_lidar,
+        ),
+        compute,
+    )
+
+
+def _prepare_edge_inputs(
+    frame: CameraLidarFrame,
+    options: EdgeAlignmentOptions,
+    preparation_cache: EdgePreparationCache | None = None,
+) -> _EdgeInputs:
+    def compute() -> tuple[Float32Array, int] | None:
+        return image_edge_response(
+            frame.image,
+            max_width=options.image_max_width,
+            gamma=options.spill_gamma,
+            radius=options.spill_radius_px,
+            background_sigma=options.edge_background_sigma_px,
+        )
+
+    response = (
+        compute()
+        if preparation_cache is None
+        else preparation_cache._get_or_compute(
+            "image-edge-response/v1",
+            frame.image,
+            (
+                options.image_max_width,
+                options.spill_gamma,
+                options.spill_radius_px,
+                options.edge_background_sigma_px,
+            ),
+            compute,
+        )
     )
     if response is None:
         return None
-    points, weights, rings, on_beam = lidar_depth_edges(
-        frame.points,
-        min_jump_m=options.min_jump_m,
-        exponent=options.jump_exponent,
-        max_points=options.max_edge_points_per_frame,
-        min_ring_fraction=options.min_ring_fraction,
-        unstructured=options.unstructured_lidar,
-    )
+    points, weights, rings, on_beam = _depth_edge_inputs(frame, options, preparation_cache)
     edge, scale = response
     return edge, scale, points, weights, rings, on_beam
 
 
 def _ordered_edge_inputs(
-    frames: Sequence[CameraLidarFrame], options: EdgeAlignmentOptions
+    frames: Sequence[CameraLidarFrame],
+    options: EdgeAlignmentOptions,
+    preparation_cache: EdgePreparationCache | None = None,
 ) -> Generator[_EdgeInputs, None, None]:
+    def prepare(frame: CameraLidarFrame, selected: EdgeAlignmentOptions) -> _EdgeInputs:
+        if preparation_cache is None:
+            return _prepare_edge_inputs(frame, selected)
+        return _prepare_edge_inputs(frame, selected, preparation_cache)
+
     workers = min(options.preparation_workers, len(frames))
     if workers <= 1:
         for frame in frames:
-            yield _prepare_edge_inputs(frame, options)
+            yield prepare(frame, options)
         return
     from collections import deque
     from concurrent.futures import Future, ThreadPoolExecutor
@@ -659,7 +712,7 @@ def _ordered_edge_inputs(
     pending: deque[Future[_EdgeInputs]] = deque()
     try:
         pending.extend(
-            executor.submit(_prepare_edge_inputs, frame, options)
+            executor.submit(prepare, frame, options)
             for frame in islice(remaining, workers)
         )
         while pending:
@@ -669,7 +722,7 @@ def _ordered_edge_inputs(
             # the complete recording while earlier frames are being consumed.
             next_frame = next(remaining, None)
             if next_frame is not None:
-                pending.append(executor.submit(_prepare_edge_inputs, next_frame, options))
+                pending.append(executor.submit(prepare, next_frame, options))
     finally:
         executor.shutdown(wait=True, cancel_futures=True)
 
@@ -679,6 +732,8 @@ def prepare_frames(
     camera: EdgeCamera,
     candidate: FloatArray,
     options: EdgeAlignmentOptions,
+    *,
+    preparation_cache: EdgePreparationCache | None = None,
 ) -> tuple[list[PreparedFrame], list[str]]:
     """Edge images and in-view edge points of every usable frame, and why others were dropped."""
 
@@ -688,7 +743,7 @@ def prepare_frames(
     rotation = candidate[:3, :3]
     translation = candidate[:3, 3]
     last_view: Float32Array | None = None
-    pending = _ordered_edge_inputs(frames, options)
+    pending = _ordered_edge_inputs(frames, options, preparation_cache)
     try:
         for index, (frame, inputs) in enumerate(zip(frames, pending, strict=True)):
             emit_tick(index + 1, len(frames))
@@ -1017,11 +1072,14 @@ def estimate_from_frames(
     reference_label: str | None = None,
     start_note: str | None = None,
     motion_compensation: CameraLidarEdgeMotion | None = None,
+    preparation_cache: EdgePreparationCache | None = None,
 ) -> CameraLidarEdgeArtifact:
     """Estimate ``T_camera_lidar`` from synchronized frames, starting at ``candidate``.
 
     ``motion_compensation`` records how the frames' points were moved to the image time
     (see :mod:`calibrex.evaluation.camera_lidar_motion`); ``None`` means not at all.
+    A caller-owned ``preparation_cache`` can reuse image/depth edges when checking
+    another candidate; selection, search and evidence still run for that candidate.
     """
 
     return _drive_edge_workflow(
@@ -1036,6 +1094,7 @@ def estimate_from_frames(
             reference_label=reference_label,
             start_note=start_note,
             motion_compensation=motion_compensation,
+            preparation_cache=preparation_cache,
         )
     )
 
@@ -1052,9 +1111,12 @@ def _estimate_workflow(
     reference_label: str | None = None,
     start_note: str | None = None,
     motion_compensation: CameraLidarEdgeMotion | None = None,
+    preparation_cache: EdgePreparationCache | None = None,
 ) -> _EdgeWorkflow[CameraLidarEdgeArtifact]:
     opts = options or EdgeAlignmentOptions()
-    prepared, dropped = prepare_frames(frames, camera, candidate, opts)
+    prepared, dropped = prepare_frames(
+        frames, camera, candidate, opts, preparation_cache=preparation_cache
+    )
     limitations = list(LIMITATIONS)
     limitations.insert(
         1,
@@ -1560,6 +1622,8 @@ def run_ros2_camera_lidar_edge(
     bag: str | Path,
     inputs: CameraLidarRunInputs,
     options: EdgeAlignmentOptions | None = None,
+    *,
+    preparation_cache: EdgePreparationCache | None = None,
 ) -> CameraLidarEdgeArtifact:
     """Read synchronized frames from a bag and estimate ``T_camera_lidar`` from the candidate."""
 
@@ -1626,4 +1690,5 @@ def run_ros2_camera_lidar_edge(
         reference_label=inputs.reference,
         start_note=note,
         motion_compensation=motion_summary,
+        preparation_cache=preparation_cache,
     )

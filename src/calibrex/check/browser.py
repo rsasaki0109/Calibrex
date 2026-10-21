@@ -16,6 +16,7 @@ import shlex
 import tempfile
 import time
 from collections.abc import Callable, Sequence
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, Literal
 
@@ -30,6 +31,7 @@ from calibrex.check.runner import (
 )
 from calibrex.core.calibration_check import CheckPairRecord
 from calibrex.core.exceptions import CalibrexError, DatasetError
+from calibrex.evaluation.edge_preparation_cache import EdgePreparationCache
 
 STORAGE_SUFFIXES = (".db3", ".mcap")
 
@@ -347,7 +349,12 @@ def run_command(
     return shlex.join(argv)
 
 
-def run_request_json(request_json: str, emit: EventSink | None = None) -> str:
+def run_request_json(
+    request_json: str,
+    emit: EventSink | None = None,
+    *,
+    preparation_cache: EdgePreparationCache | None = None,
+) -> str:
     """Run the pair estimators of one request (``check`` or ``estimate``) and return JSON.
 
     The request is the plan request of :func:`plan_request_json` plus ``mode``
@@ -357,6 +364,10 @@ def run_request_json(request_json: str, emit: EventSink | None = None) -> str:
     "seconds"}`` or ``{"ok": false, "error"}``. ``files`` maps an export name
     (``frames.yaml``) to its text. A pair that cannot run reports itself in the
     artifact (skipped or inconclusive); it does not fail the call.
+
+    ``preparation_cache`` belongs to the caller. A persistent browser Worker can
+    reuse image/depth edges across requests while recomputing every candidate
+    check. It is bounded in memory and never stores a bag or calibration result.
     """
 
     try:
@@ -394,7 +405,10 @@ def run_request_json(request_json: str, emit: EventSink | None = None) -> str:
         started = time.monotonic()
         with tempfile.TemporaryDirectory(prefix="calibrex_browser_") as work:
             work_dir = Path(work)
-            run = run_options_from_request(request, work_dir)
+            run = replace(
+                run_options_from_request(request, work_dir),
+                edge_preparation_cache=preparation_cache,
+            )
             if mode == "check":
                 from calibrex.check.browser_parallel import closure_input_from_result
 
@@ -456,6 +470,8 @@ def run_request_json(request_json: str, emit: EventSink | None = None) -> str:
                         if item.is_file()
                     },
                 }
+        if preparation_cache is not None:
+            reply["edge_preparation_cache"] = preparation_cache.diagnostics.model_dump(mode="json")
     except CalibrexError as error:
         return json.dumps({"ok": False, "error": str(error)})
     except Exception as error:  # corrupt files raise sqlite, yaml or pydantic errors
