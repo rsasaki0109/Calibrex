@@ -31,6 +31,7 @@ from collections.abc import Callable, Generator, Sequence
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Literal, TypeAlias, TypedDict, TypeVar
+from weakref import WeakKeyDictionary
 
 import numpy as np
 from numpy.typing import NDArray
@@ -1070,11 +1071,109 @@ class EdgeObjective:
         return float(response @ self._weights[inside]) / self._total_weight
 
 
+class _FixedEdgeObjective(EdgeObjective):
+    """Owned, read-only numeric snapshots for one internal calibration workflow."""
+
+    def __init__(
+        self, frames: Sequence[PreparedFrame], camera: EdgeCamera, start: FloatArray
+    ) -> None:
+        super().__init__(frames, camera, start)
+        for value in vars(self).values():
+            if isinstance(value, np.ndarray):
+                value.setflags(write=False)
+        self._sealed = True
+
+    def __setattr__(self, name: str, value: object) -> None:
+        if getattr(self, "_sealed", False):
+            raise AttributeError("internal calibration objective is read-only")
+        super().__setattr__(name, value)
+
+    def __delattr__(self, name: str) -> None:
+        if getattr(self, "_sealed", False):
+            raise AttributeError("internal calibration objective is read-only")
+        super().__delattr__(name)
+
+
+def _fixed_objective(
+    frames: Sequence[PreparedFrame], camera: EdgeCamera, start: FloatArray
+) -> EdgeObjective:
+    # A custom projection or mutable coefficient list remains an ordinary objective.
+    if (
+        type(camera) is EdgeCamera
+        and type(camera.distortion_model) is str
+        and type(camera.distortion) is tuple
+        and all(
+            type(value) in (int, float)
+            for value in (camera.fx, camera.fy, camera.cx, camera.cy, *camera.distortion)
+        )
+    ):
+        return _FixedEdgeObjective(frames, camera, start)
+    return EdgeObjective(frames, camera, start)
+
+
+class _EdgeScoreMemo:
+    """Bounded exact six-double keys; weak references never own objectives.
+
+    Only internal read-only snapshots qualify. Caller-owned objectives and
+    non-native float64 poses use the original method on every call.
+    """
+
+    def __init__(self, max_entries: int = 1024) -> None:
+        self.max_entries = max_entries
+        self._values: WeakKeyDictionary[EdgeObjective, dict[bytes, float]] = WeakKeyDictionary()
+        self.entries = 0
+        self.hits = 0
+        self.misses = 0
+
+    def clear(self) -> None:
+        self._values.clear()
+        self.entries = 0
+
+    def _compute(self, objective: EdgeObjective, theta: FloatArray) -> float:
+        self.misses += 1
+        return objective.score(theta)
+
+    def score(self, objective: EdgeObjective, theta: FloatArray) -> float:
+        if (
+            type(objective) is not _FixedEdgeObjective
+            or self.max_entries <= 0
+            or theta.shape != (6,)
+            or theta.dtype != np.dtype(np.float64)
+        ):
+            return self._compute(objective, theta)
+        try:
+            key = theta.tobytes(order="C")
+            values = self._values.get(objective)
+            if values is not None and key in values:
+                value = values[key]
+                self.hits += 1
+                return value
+        except MemoryError:
+            self.clear()
+            return self._compute(objective, theta)
+        value = self._compute(objective, theta)
+        if not math.isfinite(value):
+            return value
+        try:
+            if self.entries >= self.max_entries:
+                self.clear()
+                values = None
+            if values is None:
+                values = {}
+                self._values[objective] = values
+            values[key] = value
+            self.entries += 1
+        except MemoryError:
+            self.clear()
+        return value
+
+
 @dataclass(frozen=True)
 class _EdgeScoreRequest:
     """One scalar or an independent, ordered set of maximum candidates.
 
-    The synchronous driver evaluates every pose in its original order. An async
+    The synchronous driver requests every pose in its original order, reusing
+    exact scores only for internal read-only snapshots. An async
     driver can batch the candidates, but must return the selected index and its
     confirmed score. Consecutive line-search moves remain separate requests.
     """
@@ -1083,8 +1182,11 @@ class _EdgeScoreRequest:
     theta: FloatArray
     select_maximum: bool = False
 
-    def evaluate(self) -> float | tuple[int, float]:
-        values = [self.objective.score(pose) for pose in self.theta]
+    def evaluate(self, memo: _EdgeScoreMemo | None = None) -> float | tuple[int, float]:
+        values = [
+            self.objective.score(pose) if memo is None else memo.score(self.objective, pose)
+            for pose in self.theta
+        ]
         if self.select_maximum:
             index = int(np.argmax(values))
             return index, values[index]
@@ -1101,17 +1203,21 @@ def _drive_edge_workflow(
     *,
     observer: Callable[[_EdgeScoreRequest, _EdgeReply], None] | None = None,
 ) -> _EdgeReturn:
+    memo = _EdgeScoreMemo()
     try:
         request = next(workflow)
         while True:
-            reply = request.evaluate()
+            reply = request.evaluate(memo)
             if observer is not None:
                 observer(request, reply)
             request = workflow.send(reply)
     except StopIteration as done:
         return done.value  # type: ignore[no-any-return]
     finally:
-        workflow.close()
+        try:
+            workflow.close()
+        finally:
+            memo.clear()
 
 
 def _edge_score(objective: EdgeObjective, theta: FloatArray) -> _EdgeWorkflow[float]:
@@ -1272,6 +1378,9 @@ def estimate_from_frames(
     (see :mod:`calibrex.evaluation.camera_lidar_motion`); ``None`` means not at all.
     A caller-owned ``preparation_cache`` can reuse image/depth edges when checking
     another candidate; selection, search and evidence still run for that candidate.
+    Internal read-only objectives reuse exact pose scores during this workflow,
+    with at most 1024 entries. Search order, tie breaking and evidence are retained;
+    scores expire on completion or error and never cross calibration calls.
     """
 
     return _drive_edge_workflow(
@@ -1370,14 +1479,14 @@ def _estimate_workflow(
             provenance=provenance,
         )
 
-    objective = EdgeObjective(prepared, camera, candidate)
+    objective = _fixed_objective(prepared, camera, candidate)
     zero_theta = np.zeros(6)
     start_score = yield from _edge_score(objective, zero_theta)
     emit_stage("camera-lidar: maximising the edge-alignment objective")
     theta, score = yield from _fit_workflow(objective, zero_theta, opts)
     blocks = _block_slices(len(prepared), opts.blocks)
     block_objectives = [
-        EdgeObjective([prepared[i] for i in block], camera, candidate) for block in blocks
+        _fixed_objective([prepared[i] for i in block], camera, candidate) for block in blocks
     ]
     std_floor = 0.5 * np.array(
         [opts.rotation_levels_deg[-1]] * 3 + [opts.translation_levels_m[-1]] * 3
@@ -1560,7 +1669,7 @@ def _evidence_workflow(
         emit_stage(f"camera-lidar: jackknife fit {index + 1}/{len(blocks)}")
         held = set(block)
         kept = [prepared[i] for i in range(len(prepared)) if i not in held]
-        fold = EdgeObjective(kept, camera, candidate)
+        fold = _fixed_objective(kept, camera, candidate)
         fold_theta, _ = yield from _fit_workflow(
             fold, theta, options, first_level=options.jackknife_first_level
         )
