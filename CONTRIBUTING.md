@@ -82,6 +82,23 @@ autoloading, so the suite also runs in a shell where ROS is sourced; if
 Calibrex itself misbehaves there, `calibrex doctor` reports ROS paths on
 `sys.path` and any dependency resolved from outside the active environment.
 
+When `CUPY_CACHE_DIR` is unset, the test suite places CuPy's compiled kernels in
+the pytest cache before collecting tests. This keeps optional CUDA tests inside
+the checkout's writable area, including restricted Windows environments where
+writing to the default home cache can stall. Use `-o cache_dir=outputs/test-cache`
+to choose the pytest cache location. An explicit `CUPY_CACHE_DIR` takes priority.
+Tools that choose a per-worker cache keep that setting. Ordinary Calibrex runs
+keep CuPy's normal cache configuration.
+
+For CUDA runs outside pytest, set a writable cache before starting Python:
+
+```powershell
+$env:CUPY_CACHE_DIR = Join-Path (Get-Location) 'outputs/cupy-cache'
+python -c "import cupy as cp; print(cp.arange(4).sum().item())"
+```
+
+In a POSIX shell, use `export CUPY_CACHE_DIR="$PWD/outputs/cupy-cache"`.
+
 ## Releases
 
 Release tags use `v*`, for example `v0.1.0-alpha.1`. A tag or manual release
