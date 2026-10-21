@@ -143,12 +143,18 @@ def test_cli_keeps_current_fit_and_separates_both_rules_in_the_cache(
 
     current_controls = [control(t) for t in (0.4, 3.0, 1.0, 0.1, 0.1, 0.1)]
     far_controls = [control(t) for t in (2.65, 3.25, 1.23, 0.1, 0.1, 0.1)]
-    monkeypatch.setattr(edge, "_profile_start", lambda *_: np.ones(6))
+
+    def completed(value: Any):
+        if False:
+            yield
+        return value
+
+    monkeypatch.setattr(edge, "_profile_workflow", lambda *_: completed(np.ones(6)))
     monkeypatch.setattr(edge, "_profile_starts", lambda *_: [np.ones(6)])
     monkeypatch.setattr(
         edge,
-        "fit_extrinsic",
-        lambda _, start, opts: (current if not start.any() else far, 1.0),
+        "_fit_workflow",
+        lambda _, start, opts: completed((current if not start.any() else far, 1.0)),
     )
 
     def evidence(*args: Any) -> tuple[np.ndarray, np.ndarray, list[CameraLidarEdgeControl]]:
@@ -156,7 +162,7 @@ def test_cli_keeps_current_fit_and_separates_both_rules_in_the_cache(
         controls = current_controls if theta is current else far_controls
         return np.tile(theta, (6, 1)), np.full(6, 0.025), controls
 
-    monkeypatch.setattr(edge, "_evidence", evidence)
+    monkeypatch.setattr(edge, "_evidence_workflow", lambda *args: completed(evidence(*args)))
     for index, (margin, hit, verdict) in enumerate(
         [
             (None, False, "fail"),
