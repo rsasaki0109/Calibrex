@@ -97,10 +97,12 @@ async function boot() {
     pyodide = await loadPyodide();
     log("Loading NumPy, SciPy, Pydantic, PyYAML…");
     await pyodide.loadPackage(["numpy", "scipy", "pydantic", "pyyaml", "sqlite3", "micropip"]);
-    const manifest = await (await fetch("wheels/manifest.json")).json();
+    const manifest = await (await fetch("wheels/manifest.json", { cache: "no-store" })).json();
     log("Installing Calibrex " + manifest.version + "…");
     const micropip = pyodide.pyimport("micropip");
-    await micropip.install(new URL("wheels/" + manifest.wheel, location.href).href, { deps: false });
+    const wheelURL = new URL("wheels/" + manifest.wheel, location.href);
+    wheelURL.searchParams.set("sha256", manifest.sha256 || manifest.version);
+    await micropip.install(wheelURL.href, { deps: false });
     await pyodide.runPythonAsync(`
 import json
 from calibrex.evaluation.imu_trajectory import run_imu_trajectory_calibration, calibration_summary

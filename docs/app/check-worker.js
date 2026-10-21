@@ -34,9 +34,11 @@ const ready = (async () => {
     log("Loading NumPy, SciPy, Pydantic, PyYAML, SQLite…");
     // zstandard lets the MCAP reader open zstd-compressed chunks (the ros2 bag default).
     await pyodide.loadPackage(["numpy", "scipy", "pydantic", "pyyaml", "sqlite3", "zstandard", "micropip"]);
-    const manifest = await (await fetch(new URL("wheels/manifest.json", self.location.href))).json();
+    const manifest = await (await fetch(new URL("wheels/manifest.json", self.location.href), { cache: "no-store" })).json();
     log("Installing Calibrex " + manifest.version + "…");
-    await pyodide.pyimport("micropip").install(new URL("wheels/" + manifest.wheel, self.location.href).href, { deps: false });
+    const wheelURL = new URL("wheels/" + manifest.wheel, self.location.href);
+    wheelURL.searchParams.set("sha256", manifest.sha256 || "worker-protocol-1");
+    await pyodide.pyimport("micropip").install(wheelURL.href, { deps: false });
     await pyodide.runPythonAsync(`
 import json
 from calibrex.check.browser import plan_request_json, run_request_json

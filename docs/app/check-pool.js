@@ -95,7 +95,8 @@
   }
 
   class CheckWorkerPool {
-    constructor({ factory = () => new Worker("check-worker.js"), log = () => {},
+    // A protocol cache key bypasses workers cached before request IDs were introduced.
+    constructor({ factory = () => new Worker("check-worker.js?protocol=1"), log = () => {},
       ready = () => {}, failed = () => {}, progress = () => {}, baseURL = globalThis.location?.href,
       fetcher = globalThis.fetch?.bind(globalThis) } = {}) {
       this.factory = factory;

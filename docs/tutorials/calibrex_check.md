@@ -1890,6 +1890,9 @@ Limits that apply to all of them:
   requested/used workers, runtime count, the worker assigned to each partition,
   partitions, timings, scan-cache budgets and allocated Wasm linear memory (not peak RSS).
   Cancel or failure of an active pair check terminates all runtimes belonging to the run.
+  The wheel builder records its content digest for a URL cache key; both browser pages
+  fetch a fresh manifest. A protocol cache key on Worker URLs keeps older workers without
+  request IDs from being reused after deployment.
 - **Not available.** ROS 1 `.bag` files, `lz4`-compressed MCAP chunks and the verdict options
   (`--k`, floors); `--topic-kind` is the Topic kinds box and `--camera` the Camera field. If a
   pair gives no result in the browser the page shows the exact
