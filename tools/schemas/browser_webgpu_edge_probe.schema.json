@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Experimental browser WebGPU edge batch development report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "status", "provenance", "runs", "logs", "errors", "checks"],
+  "properties": {
+    "schema_version": {"const": "calibrex.browser_webgpu_edge_probe/v0.1"},
+    "status": {"enum": ["RUNNING", "PASS", "FAIL", "TIMEOUT"]},
+    "provenance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["created_at", "command", "source_head", "sources", "pyodide_version", "whole_calibration_claim"],
+      "properties": {
+        "created_at": {"type": "string", "format": "date-time"},
+        "command": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+        "source_head": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "sources": {"$ref": "#/$defs/hashes"},
+        "pyodide_version": {"const": "0.27.2"},
+        "whole_calibration_claim": {"const": false},
+        "browser_version": {"type": "string"}
+      }
+    },
+    "runs": {"type": "array", "items": {"$ref": "#/$defs/run"}},
+    "logs": {"type": "array", "items": {"type": "string"}},
+    "errors": {"type": "array", "items": {"type": "string"}},
+    "checks": {"type": "object"}
+  },
+  "$defs": {
+    "hashes": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{64}$"}},
+    "comparison": {
+      "type": "object", "additionalProperties": false,
+      "required": ["parity", "max_absolute_error", "cpu_argmax", "gpu_argmax", "cpu_top_gap"],
+      "properties": {
+        "parity": {"type": "boolean"},
+        "max_absolute_error": {"type": "number", "minimum": 0},
+        "cpu_argmax": {"type": "integer", "minimum": 0, "maximum": 728},
+        "gpu_argmax": {"type": "integer", "minimum": 0, "maximum": 728},
+        "cpu_top_gap": {"type": "number", "minimum": 0}
+      }
+    },
+    "attempt": {
+      "type": "object", "additionalProperties": false,
+      "required": ["repetition", "order", "cpu_seconds", "gpu_seconds", "cpu_comparison", "gpu_comparison", "ratio"],
+      "properties": {
+        "repetition": {"type": "integer", "minimum": 0},
+        "order": {"enum": [["cpu", "gpu"], ["gpu", "cpu"]]},
+        "cpu_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "gpu_seconds": {"type": "number", "exclusiveMinimum": 0},
+        "cpu_comparison": {"$ref": "#/$defs/comparison"},
+        "gpu_comparison": {"$ref": "#/$defs/comparison"},
+        "ratio": {"type": "number", "exclusiveMinimum": 0}
+      }
+    },
+    "run": {
+      "type": "object", "additionalProperties": false,
+      "required": ["fixture_provenance", "status", "frames", "points", "poses", "image_pixels", "absolute_tolerance", "relative_tolerance", "cpu_setup_seconds", "gpu_setup_seconds", "cpu_first_seconds", "gpu_first_seconds", "first_comparison", "attempts", "cold_batch_ratio", "resident_median_ratio", "allocated_gpu_bytes", "fallback_adapter", "scope", "cpu_first_scores", "gpu_first_scores", "fixture_index", "fixture"],
+      "properties": {
+        "fixture_provenance": {
+          "type": "object", "additionalProperties": false,
+          "required": ["schema_version", "created_at", "source_head", "generator", "sources", "accuracy_claim", "origin"],
+          "properties": {
+            "schema_version": {"const": "calibrex.browser_webgpu_edge_fixture/v0.1"},
+            "created_at": {"type": "string", "format": "date-time"},
+            "source_head": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+            "generator": {"type": "string", "minLength": 1},
+            "sources": {"$ref": "#/$defs/hashes"},
+            "accuracy_claim": {"const": false},
+            "origin": {"type": "object", "required": ["kind"], "properties": {"kind": {"type": "string"}}}
+          }
+        },
+        "status": {"enum": ["PASS", "FAIL"]},
+        "frames": {"type": "integer", "minimum": 1},
+        "points": {"type": "integer", "minimum": 1},
+        "poses": {"const": 729},
+        "image_pixels": {"type": "integer", "minimum": 1},
+        "absolute_tolerance": {"const": 0.000002},
+        "relative_tolerance": {"const": 0.00002},
+        "cpu_setup_seconds": {"type": "number", "minimum": 0},
+        "gpu_setup_seconds": {"type": "number", "minimum": 0},
+        "cpu_first_seconds": {"type": "number", "minimum": 0},
+        "gpu_first_seconds": {"type": "number", "minimum": 0},
+        "first_comparison": {"$ref": "#/$defs/comparison"},
+        "attempts": {"type": "array", "minItems": 3, "items": {"$ref": "#/$defs/attempt"}},
+        "cold_batch_ratio": {"type": "number", "exclusiveMinimum": 0},
+        "resident_median_ratio": {"type": "number", "exclusiveMinimum": 0},
+        "allocated_gpu_bytes": {"type": "integer", "minimum": 1},
+        "fallback_adapter": {"type": ["boolean", "null"]},
+        "scope": {"type": "string", "minLength": 1},
+        "cpu_first_scores": {"type": "array", "minItems": 729, "maxItems": 729, "items": {"type": "number"}},
+        "gpu_first_scores": {"type": "array", "minItems": 729, "maxItems": 729, "items": {"type": "number"}},
+        "fixture_index": {"type": "integer", "minimum": 0},
+        "fixture": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

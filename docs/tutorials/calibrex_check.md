@@ -1962,6 +1962,85 @@ node tools/check_browser_check_page.mjs --bag my_bag/metadata.yaml --bag my_bag/
 calibrex check my_bag --vehicle-frame base_link --max-duration-s 15 --no-cache --output native.json
 ```
 
+### Experimental WebGPU objective batches
+
+`docs/app/edge-gpu.js` and
+`calibrex.solvers.browser_webgpu_edge_adapter.BrowserWebGpuEdgeObjective` provide
+an explicit asynchronous development API for the offline camera–LiDAR edge
+objective. The check page still runs its existing CPU estimators. This API scores
+supplied candidate poses; it does not run the search, jackknife, held-out controls,
+or produce a calibration verdict.
+
+The adapter uploads every prepared image, point and weight once, evaluates all
+candidate poses in order, and reads back one score per pose. Projection supports
+pinhole, radial–tangential (including the rational denominator), and equidistant
+distortion. The fixed denominator counts points outside the image as zero,
+matching `EdgeObjective`. Batches larger than 64 poses are split without dropping
+work. The portable limits are 128 MiB per storage buffer and 256 MiB of owned GPU
+buffers; oversized inputs fail explicitly.
+
+Load `edge-gpu.js` in the Pyodide Worker, then use the injected JavaScript runtime:
+
+```python
+from js import CalibrexEdgeGpu
+from calibrex.solvers.browser_webgpu_edge_adapter import BrowserWebGpuEdgeObjective
+
+gpu = await BrowserWebGpuEdgeObjective.create(
+    prepared_frames, camera, candidate_transform, runtime=CalibrexEdgeGpu,
+)
+try:
+    scores = await gpu.score_many(candidate_corrections)  # N by 6, degrees/metres
+finally:
+    gpu.close()
+```
+
+The boundary is asynchronous because WebGPU readback returns a Promise; it cannot
+be substituted directly into a synchronous SciPy callback. This path uses no
+shared memory or cross-origin isolation. It requires a browser with WebGPU in a
+secure context (HTTPS or localhost). Missing GPU support, device loss, validation
+errors, and timeouts propagate as errors; there is no hidden CPU fallback.
+Closing an objective releases its device and buffers. See the
+[WebGPU readback API](https://developer.mozilla.org/en-US/docs/Web/API/GPUBuffer/mapAsync)
+and [pinned Pyodide buffer API](https://pyodide.org/en/0.27.2/usage/type-conversions.html#buffers).
+
+Run the reproducible developer probe with an existing Playwright installation
+and Chrome executable:
+
+```bash
+python tools/build_browser_wheel.py
+python tools/prepare_browser_webgpu_edge_fixtures.py --out outputs/edge-fixtures
+node tools/benchmark_browser_webgpu_edge.mjs \
+  --fixture outputs/edge-fixtures/synthetic-48-frames.npz \
+  --fixture outputs/edge-fixtures/synthetic-radtan.npz \
+  --fixture outputs/edge-fixtures/synthetic-equidistant.npz \
+  --out outputs/edge-probe --chrome /path/to/chrome
+```
+
+`--playwright-module` accepts an import specifier for an existing installation.
+The fixture builder optionally accepts `--a2d2-root PATH` to an **already spent**
+local A2D2 camera/LiDAR cache and adds `a2d2-spent.npz`. It prepares all matched
+frames with the existing online input adapter, converts its camera axes to
+optical axes, and freezes float32 inputs for both controls. Those registered
+camera-view points cannot establish independent extrinsic accuracy. Nothing is
+downloaded by the fixture builder. The bundled KITTI illustration has flat
+images and is unsuitable for this objective benchmark.
+
+The probe compares all 729 six-axis candidates against the same Pyodide NumPy
+implementation, with absolute/relative score tolerances of `2e-6`/`2e-5` fixed in
+the probe. It retains every score, the first batch including setup/upload/shader
+compilation, and three alternating CPU/GPU repetitions including pose transfer
+and readback. Python/package startup is recorded separately. Image decoding,
+frame preparation and a complete calibration are outside these timings. Reported
+GPU buffer allocation is not driver or process peak memory. Float32 score
+agreement does not prove identical search decisions near ties; using this API in
+the production solver still needs decision and end-to-end validation.
+
+Each new output directory preserves failed attempts. `report.json` records source,
+wheel and fixture hashes and embedded fixture provenance; validate it with
+`tools/schemas/browser_webgpu_edge_probe.schema.json`. The probe serves only its
+frozen inputs on loopback and closes its server and Worker when finished. Adapter
+names and driver details are never recorded.
+
 ## Artifact
 
 `--output` writes `slac.calibration_check/v0.1`: the bag path with a digest
