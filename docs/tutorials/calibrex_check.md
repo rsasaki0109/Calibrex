@@ -2229,6 +2229,29 @@ schema with `python tools/browser_edge_preparation_probe.py --baseline-cache
 --schema PATH`. The original mode and v0.1 schema remain available. The timing
 scope and separate exact decision replays are the same as above.
 
+### Request metadata and report loading
+
+Each browser plan, check or estimate request reuses one parsed rosbag metadata document
+when its freshly read content matches. The scope owns a copy and limits its
+retained entry to 1 MiB, including the text and parsed object graph. Every return
+value is independent, including nested collections. The entry is released when
+the request finishes or fails; large or unusual documents use ordinary parsing.
+
+The metadata file is read on every access, so same-size edits and restored file
+timestamps are observed. Bag digests continue to read the actual input. This
+request scope and the caller-owned image/depth cache have separate lifetimes;
+calibration results, options and provenance retain their existing schemas.
+
+Visualization exports load their renderer when it is first requested. A browser
+check HTML report loads its own renderer and dependencies. Existing imports such
+as `from calibrex.visualization import render_html_report` return the original
+functions with their signatures and type hints.
+
+Evaluate these changes with complete Worker requests, including bag reads,
+calibration and report generation. Keep package startup separate and record it
+too. The calibration API probe above omits metadata planning and HTML imports,
+so it does not measure the complete effect of these request-level changes.
+
 ## Artifact
 
 `--output` writes `slac.calibration_check/v0.1`: the bag path with a digest

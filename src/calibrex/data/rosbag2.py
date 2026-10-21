@@ -37,7 +37,11 @@ import io
 import math
 import sqlite3
 import struct
+import sys
 from collections.abc import Callable, Iterable, Iterator
+from contextlib import contextmanager
+from contextvars import ContextVar
+from copy import deepcopy
 from dataclasses import dataclass, field
 from itertools import pairwise
 from pathlib import Path
@@ -681,8 +685,108 @@ def _pick_storage_file(
     return matches[0]
 
 
+_METADATA_PARSE_MAX_BYTES = 1024 * 1024
+
+
+def _metadata_entry_fits(value: object, max_bytes: int) -> bool:
+    """Bound one ordinary parsed object graph, including keys and shared objects."""
+
+    pending = [value]
+    seen: set[int] = set()
+    remaining = max_bytes
+    while pending:
+        current = pending.pop()
+        identity = id(current)
+        if identity in seen:
+            continue
+        seen.add(identity)
+        if type(current) not in (
+            dict,
+            list,
+            tuple,
+            set,
+            frozenset,
+            str,
+            bytes,
+            int,
+            float,
+            bool,
+            type(None),
+        ):
+            return False
+        try:
+            remaining -= sys.getsizeof(current)
+        except (TypeError, NotImplementedError):
+            return False
+        if remaining < 0:
+            return False
+        if isinstance(current, dict):
+            pending.extend(current.keys())
+            pending.extend(current.values())
+        elif isinstance(current, (list, tuple, set, frozenset)):
+            pending.extend(current)
+    return True
+
+
+@dataclass(slots=True)
+class _MetadataReadCache:
+    max_bytes: int
+    entry: tuple[str, dict[str, Any]] | None = None
+
+    def remember(self, text: str, parsed: dict[str, Any]) -> None:
+        try:
+            if type(text) is not str or len(text) > self.max_bytes:
+                return
+            if not _metadata_entry_fits((text, parsed), self.max_bytes):
+                return
+            # The caller owns the first return value too: retain an independent copy.
+            owned = (text, deepcopy(parsed))
+            if _metadata_entry_fits(owned, self.max_bytes):
+                self.entry = owned
+        except (MemoryError, RecursionError):
+            # A valid YAML alias graph need not be suitable for recursive copying.
+            self.entry = None
+
+
+_METADATA_READ_CACHE: ContextVar[_MetadataReadCache | None] = ContextVar(
+    "calibrex_metadata_read_cache", default=None
+)
+
+
+@contextmanager
+def _metadata_read_scope() -> Iterator[None]:
+    """Reuse one bounded parsed document during a single request, then release it."""
+
+    cache = _MetadataReadCache(max_bytes=_METADATA_PARSE_MAX_BYTES)
+    token = _METADATA_READ_CACHE.set(cache)
+    try:
+        yield
+    finally:
+        cache.entry = None
+        _METADATA_READ_CACHE.reset(token)
+
+
 def _load_metadata(metadata_path: Path) -> dict[str, Any]:
-    raw = yaml.safe_load(metadata_path.read_text(encoding="utf-8"))
+    # Read on every call, including hits: same-size edits and restored mtimes must
+    # be observed. Bag digests continue to read the actual file independently.
+    text = metadata_path.read_text(encoding="utf-8")
+    cache = _METADATA_READ_CACHE.get()
+    if cache is not None:
+        entry = cache.entry
+        if entry is not None and type(text) is str and entry[0] == text:
+            try:
+                return deepcopy(entry[1])
+            except (MemoryError, RecursionError):
+                entry = None
+        cache.entry = None
+    parsed = _parse_metadata(text, metadata_path)
+    if cache is not None:
+        cache.remember(text, parsed)
+    return parsed
+
+
+def _parse_metadata(text: str, metadata_path: Path) -> dict[str, Any]:
+    raw = yaml.safe_load(text)
     if not isinstance(raw, dict):
         msg = f"malformed rosbag2 metadata.yaml: {metadata_path}"
         raise DatasetError(msg)

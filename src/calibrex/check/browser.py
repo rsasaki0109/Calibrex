@@ -31,6 +31,7 @@ from calibrex.check.runner import (
 )
 from calibrex.core.calibration_check import CheckPairRecord
 from calibrex.core.exceptions import CalibrexError, DatasetError
+from calibrex.data.rosbag2 import _metadata_read_scope
 from calibrex.evaluation.edge_preparation_cache import EdgePreparationCache
 
 STORAGE_SUFFIXES = (".db3", ".mcap")
@@ -198,6 +199,7 @@ def plan_bag_for_browser(
     }
 
 
+@_metadata_read_scope()
 def plan_request_json(request_json: str) -> str:
     """Run one plan request given as JSON and return the outcome as JSON.
 
@@ -349,6 +351,7 @@ def run_command(
     return shlex.join(argv)
 
 
+@_metadata_read_scope()
 def run_request_json(
     request_json: str,
     emit: EventSink | None = None,
@@ -368,6 +371,8 @@ def run_request_json(
     ``preparation_cache`` belongs to the caller. A persistent browser Worker can
     reuse image/depth edges across requests while recomputing every candidate
     check. It is bounded in memory and never stores a bag or calibration result.
+    A separate request-local metadata scope reuses one parsed document up to
+    1 MiB while reading its content on every access; it expires on return/error.
     """
 
     try:
