@@ -8,7 +8,8 @@
 // mounts files and forwards the progress events of the run.
 //
 // Protocol, page -> worker:
-//   {type: "plan" | "run", bag: {files: File[]} | {urls: string[]}, tf: File[], request: {...}}
+//   {id, type: "plan" | "run", bag: {files: File[]} | {blobs: [...]}, tf: File[], request: {...}}
+//   {id, type: "merge", request: {...}, shards: [...]}
 //   (a "run" request adds mode "check" | "estimate", pairs, max_duration_s)
 // worker -> page:
 //   {type: "log", text}  {type: "ready"}  {type: "result", kind, payload}  {type: "failed", text}
@@ -39,6 +40,7 @@ const ready = (async () => {
     await pyodide.runPythonAsync(`
 import json
 from calibrex.check.browser import plan_request_json, run_request_json
+from calibrex.check.browser_parallel import merge_check_shards_json
 `);
     postMessage({ type: "ready", version: manifest.version });
   } catch (error) {
@@ -104,13 +106,22 @@ async function fetchBlobs(urls) {
 
 onmessage = async (event) => {
   const message = event.data;
-  if (message.type !== "plan" && message.type !== "run") return;
+  if (!["plan", "run", "merge"].includes(message.type)) return;
   const kind = message.type;
   try {
     await ready;
     unmountAll();
+    if (kind === "merge") {
+      pyodide.globals.set("request_json", JSON.stringify(message.request));
+      pyodide.globals.set("shards_json", JSON.stringify(message.shards));
+      const payload = JSON.parse(await pyodide.runPythonAsync("merge_check_shards_json(request_json, shards_json)"));
+      payload.allocated_wasm_bytes = pyodide._module?.HEAP8?.byteLength ?? null;
+      postMessage({ type: "result", id: message.id, kind, payload });
+      return;
+    }
     // Bag: loose File objects (user files, read lazily) or fetched blobs (the sample).
-    const bag = message.bag.urls ? { blobs: await fetchBlobs(message.bag.urls) } : { files: message.bag.files };
+    const bag = message.bag.urls ? { blobs: await fetchBlobs(message.bag.urls) }
+      : message.bag.blobs ? { blobs: message.bag.blobs } : { files: message.bag.files };
     mountFiles("/bag", bag);
     // Each calibration file gets its own mount, so equal names (calib.yaml) cannot collide.
     const tfPaths = message.tf.map((file, index) => {
@@ -130,15 +141,16 @@ onmessage = async (event) => {
     }));
     let output;
     if (kind === "run") {
-      pyodide.globals.set("emit_event", (text) => postMessage({ type: "progress", event: JSON.parse(text) }));
+      pyodide.globals.set("emit_event", (text) => postMessage({ type: "progress", id: message.id, event: JSON.parse(text) }));
       output = JSON.parse(await pyodide.runPythonAsync("run_request_json(request_json, emit_event)"));
     } else {
       output = JSON.parse(await pyodide.runPythonAsync("plan_request_json(request_json)"));
     }
     output.seconds = (performance.now() - started) / 1000;
-    postMessage({ type: "result", kind, payload: output });
+    output.allocated_wasm_bytes = pyodide._module?.HEAP8?.byteLength ?? null;
+    postMessage({ type: "result", id: message.id, kind, payload: output });
   } catch (error) {
-    postMessage({ type: "result", kind, payload: { ok: false, error: String(error).split("\n").slice(-2).join(" ") } });
+    postMessage({ type: "result", id: message.id, kind, payload: { ok: false, error: String(error).split("\n").slice(-2).join(" ") } });
   } finally {
     if (pyodide) unmountAll();
   }

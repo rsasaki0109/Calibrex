@@ -1864,15 +1864,32 @@ and `opencv-python` 4.10, so every pair can run; the table lists the practical l
 
 Limits that apply to all of them:
 
-- **Memory.** WebAssembly is 32-bit, so a tab has 4 GB at most. The browser run reuses decoded
-  scans up to 512 MB (`ScanStore`; the CLI default is 2 GB), and the bag is never loaded
+- **Memory.** Each Python WebAssembly runtime has a 32-bit address space. The browser run
+  reuses decoded scans up to 512 MiB in total (`ScanStore`; the CLI default is 2 GiB),
+  split into 256 MiB per worker when two are requested. Two workers each load Python and its
+  packages and each have a separate read-ahead cache (up to 32 MiB). The bag is never loaded
   whole: sqlite and the MCAP reader pull it through WORKERFS, 1 MiB at a time.
 - **Streaming.** Every estimator reads the bag as a stream and stops at the duration cap; with
   a cap of 0 the whole bag is read, which can take very long.
 - **Speed.** Wasm runs the numeric code about 2x slower than native. Run the whole bag with
   the CLI.
-- **No cache, no threads.** The estimator cache is off in the browser and nothing runs in
-  parallel.
+- **CPU parallelism.** Check mode offers one worker (the default, lower memory) or two
+  independent Python workers. Dependent pairs stay together: `gnss-imu` with selected
+  `imu-lidar`/`gnss-lidar` inputs, and `camera-focal` with `camera-imu`. Vehicle pairs that
+  reuse LiDAR odometry also stay together. Rig closure and rotation attribution are rebuilt
+  from all original float64 estimates. No sensor frames are dropped or duration caps changed.
+  Estimate mode and checks with only one independent group use one worker. This works on
+  GitHub Pages without special response headers. It does not enable Python threads or GPU
+  computation. The estimator disk cache remains off.
+  While the second worker prepares, the first starts a pair group. Whichever becomes free
+  first takes the other group, so a short check need not wait for Python to start a second
+  time. An idle second runtime may finish loading for a later check; if its startup fails,
+  the first worker continues. Choose two workers for longer or repeated checks with multiple
+  independent groups. Reported wall time includes any additional startup the check waited
+  for, file access and report assembly. `execution` in the page's run payload records
+  requested/used workers, runtime count, the worker assigned to each partition,
+  partitions, timings, scan-cache budgets and allocated Wasm linear memory (not peak RSS).
+  Cancel or failure of an active pair check terminates all runtimes belonging to the run.
 - **Not available.** ROS 1 `.bag` files, `lz4`-compressed MCAP chunks and the verdict options
   (`--k`, floors); `--topic-kind` is the Topic kinds box and `--camera` the Camera field. If a
   pair gives no result in the browser the page shows the exact

@@ -127,6 +127,13 @@
           <input id="run-cap" type="number" min="0" step="1" value="60">
         </label>
       </div>
+      <label class="field">CPU workers (Check mode)
+        <span class="hint">Two workers can run independent pair groups together. Each loads its own Python runtime, using more memory and adding startup time. The decoded-scan cache stays within 512 MiB in total. Estimate mode uses one worker.</span>
+        <select id="run-workers">
+          <option value="1">1 — lower memory</option>
+          <option value="2">2 — parallel pair checks</option>
+        </select>
+      </label>
       <label class="field">Camera (optional)
         <span class="hint">For the camera pairs: the image topic or frame to use (<code>--camera</code>), when the bag has several cameras. Empty uses the first camera of each pair.</span>
         <input id="run-camera" type="text" placeholder="/cam0/image_raw" autocomplete="off" spellcheck="false">
@@ -170,6 +177,7 @@
   </section>
 </main>
 
+<script src="check-pool.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const BAG_FILE = /\.(db3|mcap)$/i;
@@ -214,16 +222,19 @@ function formatSize(bytes) {
 // ---------------------------------------------------------------- the worker
 let worker = null;
 function startWorker() {
-  worker = new Worker("check-worker.js");
-  worker.onmessage = (event) => {
-    const message = event.data;
-    if (message.type === "log") log(message.text);
-    else if (message.type === "ready") { ready = true; version = message.version; log("Ready."); refresh(); }
-    else if (message.type === "failed") log(message.text);
-    else if (message.type === "progress") onProgress(message.event);
-    else if (message.type === "result") (message.kind === "run" ? finishRun : finish)(message.payload);
-  };
-  worker.onerror = (event) => log("Worker error: " + (event.message || "unknown"));
+  const pool = new CalibrexCheckWorkers.CheckWorkerPool({
+    log,
+    ready: (loadedVersion) => {
+      if (worker !== pool) return;
+      ready = true; version = loadedVersion; log("Ready."); refresh();
+    },
+    failed: (error) => {
+      if (worker !== pool) return;
+      ready = false; log("Worker error: " + error.message); refresh();
+    },
+    progress: (event) => { if (worker === pool) onProgress(event); },
+  });
+  worker = pool;
 }
 startWorker();
 
@@ -234,6 +245,11 @@ function refresh() {
   $("run").disabled = !ready || busy || !hasInput;
   $("run").textContent = ready ? "Plan the check" : "Loading Python…";
   $("run-estimators").disabled = !ready || busy || !lastPlan;
+  for (const id of ["pick-files", "pick-folder", "pick-tf", "bag-files", "bag-folder", "tf-files",
+    "clear", "vehicle-frame", "frame-map", "topic-kind", "run-mode", "run-cap", "run-camera", "run-pairs"]) {
+    $(id).disabled = busy;
+  }
+  $("run-workers").disabled = busy || runMode === "estimate";
   const chip = (file, kind, index) => `<li><code>${escapeHtml(file.name)}</code> <span class="size">${formatSize(file.size)}</span>` +
     `<button class="x" type="button" data-kind="${kind}" data-index="${index}" aria-label="Remove ${escapeHtml(file.name)}">×</button></li>`;
   $("bag-list").innerHTML = useSample
@@ -296,6 +312,7 @@ for (const type of ["dragenter", "dragover"]) drop.addEventListener(type, (event
 for (const type of ["dragleave", "drop"]) drop.addEventListener(type, () => drop.classList.remove("over"));
 drop.addEventListener("drop", async (event) => {
   event.preventDefault();
+  if (busy) return;
   const items = [...(event.dataTransfer.items || [])].filter((item) => item.kind === "file");
   const entries = items.map((item) => (item.webkitGetAsEntry ? item.webkitGetAsEntry() : null));
   if (entries.every(Boolean) && entries.length) {
@@ -312,7 +329,7 @@ window.addEventListener("drop", (event) => event.preventDefault());
 
 document.addEventListener("click", (event) => {
   const button = event.target.closest("button.x");
-  if (!button) return;
+  if (!button || busy) return;
   if (button.dataset.kind === "sample") useSample = false;
   else if (button.dataset.kind === "tf") tfFiles.splice(Number(button.dataset.index), 1);
   else { bagFiles.splice(Number(button.dataset.index), 1); if (!bagFiles.length) folderName = null; }
@@ -343,16 +360,22 @@ function request() {
   };
 }
 
-function plan() {
+async function plan() {
   busy = true; refresh();
   $("error").hidden = true;
   log(useSample ? "Planning the sample bag…" : "Planning " + bagFiles.map((file) => file.name).join(", ") + "…");
-  worker.postMessage({
+  const pool = worker;
+  try {
+    const payload = await pool.plan({
     type: "plan",
     bag: useSample ? { urls: SAMPLE.urls } : { files: bagFiles },
     tf: useSample ? [] : tfFiles,
     request: request(),
-  });
+    });
+    if (worker === pool) finish(payload);
+  } catch (error) {
+    if (worker === pool) finish({ ok: false, error: error.message });
+  }
 }
 $("run").addEventListener("click", plan);
 $("sample").addEventListener("click", () => {
@@ -392,12 +415,12 @@ function renderPairChoices() {
     return `<label class="choice"><input type="checkbox" name="pair" value="${name}" ${estimable && !camera ? "checked" : ""} ${estimable ? "" : "disabled"}> <span class="mono">${name}</span>${note}${why}</label>`;
   }).join("");
 }
-$("run-mode").addEventListener("change", () => { runMode = $("run-mode").value; if (lastPlan) renderPairChoices(); });
+$("run-mode").addEventListener("change", () => { runMode = $("run-mode").value; if (lastPlan) renderPairChoices(); refresh(); });
 
 const fmtDur = (seconds) => { const total = Math.max(Math.round(seconds), 0); return total < 60 ? total + " s" : Math.floor(total / 60) + " min " + String(total % 60).padStart(2, "0") + " s"; };
 let progressState = null;
 function resetProgress() {
-  progressState = { total: 0, finished: 0, label: "", index: 0 };
+  progressState = { total: 0, finished: 0, label: "", index: 0, workers: {} };
   $("progress").hidden = false;
   $("bar-pairs").style.width = "0%"; $("bar-scan").style.width = "0%";
   $("prog-line").textContent = "Starting…"; $("prog-detail").textContent = ""; $("prog-done").innerHTML = "";
@@ -405,15 +428,18 @@ function resetProgress() {
 function onProgress(event) {
   if (!progressState) return;
   const state = progressState;
+  const current = state.workers[event.worker || 1] ||= { stage: "" };
+  const prefix = event.worker ? `Worker ${event.worker}: ` : "";
   const done = (text, status) => { $("prog-done").insertAdjacentHTML("beforeend", `<li><span class="pill ${status}">${escapeHtml(status)}</span> ${escapeHtml(text)}</li>`); };
   if (event.event === "run_started") { state.total = event.total_pairs; $("prog-line").textContent = state.total + " pair(s) to run"; }
   else if (event.event === "pair_started") {
-    state.label = event.label; state.index = event.index;
-    $("prog-line").textContent = `pair ${event.index}/${event.total}: ${event.label}`;
+    current.label = event.label; current.stage = "";
+    $("prog-line").textContent = `${state.finished}/${state.total} finished; ${prefix}${event.label}`;
     $("bar-scan").style.width = "0%"; $("prog-detail").textContent = "starting";
-  } else if (event.event === "stage") { state.stage = event.text; $("prog-detail").textContent = event.text; }
+  } else if (event.event === "stage") { current.stage = event.text; $("prog-detail").textContent = prefix + event.text; }
   else if (event.event === "tick") {
-    let text = (state.stage || "") + " [";
+    $("prog-line").textContent = `${state.finished}/${state.total} finished; ${prefix}${current.label || ""}`;
+    let text = prefix + current.stage + " [";
     if (event.total) { const pct = Math.min(100, 100 * event.done / event.total); $("bar-scan").style.width = pct + "%";
       const eta = event.done > 0 && event.total > event.done ? event.elapsed_s * (event.total - event.done) / event.done : null;
       text += `${event.done}/${event.total} msgs (${pct.toFixed(0)}%), ${fmtDur(event.elapsed_s)}` + (eta !== null ? `, eta ${fmtDur(eta)}` : ""); }
@@ -431,7 +457,7 @@ function onProgress(event) {
   } else if (event.event === "run_finished") { $("bar-pairs").style.width = "100%"; $("prog-line").textContent = "Finished"; $("prog-detail").textContent = ""; }
 }
 
-function startRun() {
+async function startRun() {
   const pairs = [...document.querySelectorAll("#run-pairs input[name=pair]:checked")].map((box) => box.value);
   if (!pairs.length) { $("run-error").hidden = false; $("run-error").textContent = "Select at least one pair."; return; }
   const cap = Number($("run-cap").value);
@@ -439,16 +465,25 @@ function startRun() {
   $("run-error").hidden = true; $("run-results").hidden = true;
   $("run-cancel").hidden = false;
   resetProgress();
-  worker.postMessage({
+  const pool = worker;
+  try {
+    const payload = await pool.run({
     type: "run",
     bag: useSample ? { urls: SAMPLE.urls } : { files: bagFiles },
     tf: useSample ? [] : tfFiles,
     request: { ...request(), mode: runMode, pairs, max_duration_s: cap > 0 ? cap : null, camera: $("run-camera").value.trim() || null },
-  });
+    }, Number($("run-workers").value), lastPlan.pairs);
+    if (worker === pool) finishRun(payload);
+  } catch (error) {
+    if (worker === pool) {
+      finishRun({ ok: false, error: error.message });
+      ready = false; startWorker(); refresh();
+    }
+  }
 }
 $("run-estimators").addEventListener("click", startRun);
 $("run-cancel").addEventListener("click", () => {
-  worker.terminate(); ready = false; busy = false; startWorker();
+  worker.close(); ready = false; busy = false; startWorker();
   $("run-cancel").hidden = true; $("progress").hidden = true;
   $("run-error").hidden = false; $("run-error").textContent = "Cancelled. Python is restarting (cached, a few seconds); the plan above is kept.";
   refresh();
@@ -466,6 +501,7 @@ function finishRun(payload) {
   if (!payload.ok) { $("run-error").hidden = false; $("run-error").textContent = payload.error; $("progress").hidden = true; log("Run failed: " + payload.error); return; }
   lastRun = payload;
   log("Run finished in " + payload.seconds.toFixed(1) + " s.");
+  if (payload.execution) log(`Used ${payload.execution.workers} CPU worker(s); wall time includes worker startup, file access and report assembly.`);
   const artifact = payload.artifact;
   const isCheck = payload.mode === "check";
   $("run-results").hidden = false;
