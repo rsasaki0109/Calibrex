@@ -43,6 +43,8 @@ const ready = (async () => {
 import json
 from calibrex.check.browser import plan_request_json, run_request_json
 from calibrex.check.browser_parallel import merge_check_shards_json
+from calibrex.evaluation.edge_preparation_cache import EdgePreparationCache
+edge_preparation_cache = EdgePreparationCache(max_bytes=128 * 1024 * 1024)
 `);
     postMessage({ type: "ready", version: manifest.version });
   } catch (error) {
@@ -144,7 +146,7 @@ onmessage = async (event) => {
     let output;
     if (kind === "run") {
       pyodide.globals.set("emit_event", (text) => postMessage({ type: "progress", id: message.id, event: JSON.parse(text) }));
-      output = JSON.parse(await pyodide.runPythonAsync("run_request_json(request_json, emit_event)"));
+      output = JSON.parse(await pyodide.runPythonAsync("run_request_json(request_json, emit_event, preparation_cache=edge_preparation_cache)"));
     } else {
       output = JSON.parse(await pyodide.runPythonAsync("plan_request_json(request_json)"));
     }

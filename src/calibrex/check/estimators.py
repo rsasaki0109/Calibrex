@@ -49,6 +49,7 @@ from calibrex.core.calibration_check import (
 )
 from calibrex.core.progress import emit_stage
 from calibrex.data.ros_cdr import AUTOWARE_VELOCITY_REPORT_TYPES
+from calibrex.evaluation.edge_preparation_cache import EdgePreparationCache
 
 if TYPE_CHECKING:
     from calibrex.core.camera_lidar_edge import CameraLidarEdgeArtifact
@@ -154,6 +155,9 @@ class RunControls:
     memo: dict[tuple[object, ...], Any] = field(default_factory=dict)
     """Per-run results shared by pairs (the LiDAR odometry of the vehicle pairs)."""
     camera_lidar_start_scan_min_control_t: float | None = None
+    edge_preparation_cache: EdgePreparationCache | None = field(
+        default=None, repr=False, compare=False
+    )
 
 
 @dataclass(frozen=True)
@@ -2346,6 +2350,11 @@ def run_camera_lidar(ctx: PairContext) -> EstimatorRun:
                 else None,
             ),
             options,
+            **(
+                {"preparation_cache": ctx.controls.edge_preparation_cache}
+                if ctx.controls.edge_preparation_cache is not None
+                else {}
+            ),
         ),
         rebase=lambda hit: hit,
     )

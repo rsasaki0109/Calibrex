@@ -1,0 +1,1232 @@
+{
+  "$defs": {
+    "CameraLidarEdgeArtifact": {
+      "additionalProperties": false,
+      "description": "Evidence for one targetless camera-LiDAR extrinsic estimate.",
+      "properties": {
+        "schema_version": {
+          "const": "slac.camera_lidar_edge/v0.1",
+          "default": "slac.camera_lidar_edge/v0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "method": {
+          "const": "edge_alignment/v0.1",
+          "default": "edge_alignment/v0.1",
+          "title": "Method",
+          "type": "string"
+        },
+        "solver_status": {
+          "enum": [
+            "converged",
+            "max_iterations",
+            "insufficient_samples"
+          ],
+          "title": "Solver Status",
+          "type": "string"
+        },
+        "policy_status": {
+          "enum": [
+            "pass",
+            "warn",
+            "fail",
+            "inconclusive"
+          ],
+          "title": "Policy Status",
+          "type": "string"
+        },
+        "policy_reasons": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Policy Reasons",
+          "type": "array"
+        },
+        "calibrated_dofs": {
+          "items": {
+            "enum": [
+              "roll",
+              "pitch",
+              "yaw",
+              "x",
+              "y",
+              "z"
+            ],
+            "type": "string"
+          },
+          "title": "Calibrated Dofs",
+          "type": "array"
+        },
+        "transform": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CameraLidarEdgeTransform"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "start_transform": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CameraLidarEdgeTransform"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "dofs": {
+          "items": {
+            "$ref": "#/$defs/CameraLidarEdgeDofRecord"
+          },
+          "title": "Dofs",
+          "type": "array"
+        },
+        "objective": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CameraLidarEdgeObjective"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "samples": {
+          "$ref": "#/$defs/CameraLidarEdgeSamples"
+        },
+        "motion_compensation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CameraLidarEdgeMotion"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "jackknife_fits": {
+          "minimum": 0,
+          "title": "Jackknife Fits",
+          "type": "integer"
+        },
+        "camera": {
+          "additionalProperties": true,
+          "title": "Camera",
+          "type": "object"
+        },
+        "options": {
+          "additionalProperties": true,
+          "title": "Options",
+          "type": "object"
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "provenance": {
+          "$ref": "#/$defs/CameraLidarEdgeProvenance"
+        }
+      },
+      "required": [
+        "solver_status",
+        "policy_status",
+        "policy_reasons",
+        "calibrated_dofs",
+        "dofs",
+        "samples",
+        "jackknife_fits",
+        "options",
+        "provenance"
+      ],
+      "title": "CameraLidarEdgeArtifact",
+      "type": "object"
+    },
+    "CameraLidarEdgeControl": {
+      "additionalProperties": false,
+      "description": "Held-out objective drop after shifting one DoF of the fit in both directions.",
+      "properties": {
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        },
+        "unit": {
+          "enum": [
+            "deg",
+            "m"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "held_out_blocks": {
+          "minimum": 0,
+          "title": "Held Out Blocks",
+          "type": "integer"
+        },
+        "detected_blocks": {
+          "minimum": 0,
+          "title": "Detected Blocks",
+          "type": "integer"
+        },
+        "mean_objective_drop": {
+          "title": "Mean Objective Drop",
+          "type": "number"
+        },
+        "min_t_statistic": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "smaller of the two directions' one-sided t statistics of the per-block objective drops",
+          "title": "Min T Statistic"
+        },
+        "detected": {
+          "title": "Detected",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "amount",
+        "unit",
+        "held_out_blocks",
+        "detected_blocks",
+        "mean_objective_drop",
+        "detected"
+      ],
+      "title": "CameraLidarEdgeControl",
+      "type": "object"
+    },
+    "CameraLidarEdgeDofRecord": {
+      "additionalProperties": false,
+      "description": "One DoF of ``T_camera_lidar`` with its uncertainty and evidence.",
+      "properties": {
+        "name": {
+          "enum": [
+            "roll",
+            "pitch",
+            "yaw",
+            "x",
+            "y",
+            "z"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "unit": {
+          "enum": [
+            "deg",
+            "m"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        },
+        "delta_from_start": {
+          "description": "estimate minus the start (candidate) in the DoF's unit; rotation DoFs are the rotation vector of the left correction in the camera frame",
+          "title": "Delta From Start",
+          "type": "number"
+        },
+        "std_jackknife": {
+          "minimum": 0.0,
+          "title": "Std Jackknife",
+          "type": "number"
+        },
+        "std_reported": {
+          "minimum": 0.0,
+          "title": "Std Reported",
+          "type": "number"
+        },
+        "status": {
+          "enum": [
+            "estimated",
+            "unobservable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "at_search_bound": {
+          "default": false,
+          "title": "At Search Bound",
+          "type": "boolean"
+        },
+        "reference_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Value"
+        },
+        "error_to_reference": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error To Reference"
+        },
+        "known_bad_control": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CameraLidarEdgeControl"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "name",
+        "unit",
+        "value",
+        "delta_from_start",
+        "std_jackknife",
+        "std_reported",
+        "status"
+      ],
+      "title": "CameraLidarEdgeDofRecord",
+      "type": "object"
+    },
+    "CameraLidarEdgeMotion": {
+      "additionalProperties": false,
+      "description": "How the LiDAR points were moved to the image time with the rig's measured motion.",
+      "properties": {
+        "source_topic": {
+          "title": "Source Topic",
+          "type": "string"
+        },
+        "kind": {
+          "description": "twist: an odometry or twist topic (rotation and translation); gyro: an IMU (rotation only)",
+          "enum": [
+            "twist",
+            "gyro"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "per_point_time": {
+          "description": "whether each point was moved by its own measurement time (otherwise by the scan's reference time)",
+          "title": "Per Point Time",
+          "type": "boolean"
+        },
+        "frames_moved": {
+          "minimum": 0,
+          "title": "Frames Moved",
+          "type": "integer"
+        },
+        "frames_without_motion": {
+          "description": "frames kept as recorded because no motion sample was near",
+          "minimum": 0,
+          "title": "Frames Without Motion",
+          "type": "integer"
+        },
+        "median_rotation_deg": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "rotation applied at the scan's reference time",
+          "title": "Median Rotation Deg"
+        },
+        "max_rotation_deg": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Rotation Deg"
+        },
+        "median_translation_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "translation applied at the scan's reference time",
+          "title": "Median Translation M"
+        },
+        "max_translation_m": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Translation M"
+        }
+      },
+      "required": [
+        "source_topic",
+        "kind",
+        "per_point_time",
+        "frames_moved",
+        "frames_without_motion"
+      ],
+      "title": "CameraLidarEdgeMotion",
+      "type": "object"
+    },
+    "CameraLidarEdgeObjective": {
+      "additionalProperties": false,
+      "description": "The edge-alignment objective at the start and at the estimate.",
+      "properties": {
+        "start": {
+          "title": "Start",
+          "type": "number"
+        },
+        "estimate": {
+          "title": "Estimate",
+          "type": "number"
+        },
+        "gain": {
+          "title": "Gain",
+          "type": "number"
+        }
+      },
+      "required": [
+        "start",
+        "estimate",
+        "gain"
+      ],
+      "title": "CameraLidarEdgeObjective",
+      "type": "object"
+    },
+    "CameraLidarEdgeProvenance": {
+      "additionalProperties": false,
+      "description": "Inputs and generator lineage.",
+      "properties": {
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Git Commit"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "dataset_family": {
+          "title": "Dataset Family",
+          "type": "string"
+        },
+        "sequence_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Sequence Ids",
+          "type": "array"
+        },
+        "image_topic": {
+          "title": "Image Topic",
+          "type": "string"
+        },
+        "lidar_topic": {
+          "title": "Lidar Topic",
+          "type": "string"
+        },
+        "input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "input_digest_scope": {
+          "title": "Input Digest Scope",
+          "type": "string"
+        },
+        "dataset_license": {
+          "title": "Dataset License",
+          "type": "string"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "generator",
+        "generator_version",
+        "dataset_family",
+        "sequence_ids",
+        "image_topic",
+        "lidar_topic",
+        "input_sha256",
+        "input_digest_scope",
+        "dataset_license"
+      ],
+      "title": "CameraLidarEdgeProvenance",
+      "type": "object"
+    },
+    "CameraLidarEdgeSamples": {
+      "additionalProperties": false,
+      "description": "The synchronized frames the estimate rests on.",
+      "properties": {
+        "frames": {
+          "minimum": 0,
+          "title": "Frames",
+          "type": "integer"
+        },
+        "edge_points": {
+          "minimum": 0,
+          "title": "Edge Points",
+          "type": "integer"
+        },
+        "blocks": {
+          "minimum": 0,
+          "title": "Blocks",
+          "type": "integer"
+        },
+        "median_abs_time_gap_s": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Median Abs Time Gap S"
+        },
+        "max_abs_time_gap_s": {
+          "anyOf": [
+            {
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Abs Time Gap S"
+        },
+        "first_frame_time_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "First Frame Time S"
+        },
+        "last_frame_time_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Frame Time S"
+        },
+        "median_rings": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Median Rings"
+        }
+      },
+      "required": [
+        "frames",
+        "edge_points",
+        "blocks"
+      ],
+      "title": "CameraLidarEdgeSamples",
+      "type": "object"
+    },
+    "CameraLidarEdgeTransform": {
+      "additionalProperties": false,
+      "description": "``T_camera_lidar`` as translation and quaternion.",
+      "properties": {
+        "parent_frame": {
+          "title": "Parent Frame",
+          "type": "string"
+        },
+        "child_frame": {
+          "title": "Child Frame",
+          "type": "string"
+        },
+        "translation_m": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Translation M",
+          "type": "array"
+        },
+        "rotation_quat_xyzw": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Rotation Quat Xyzw",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parent_frame",
+        "child_frame",
+        "translation_m",
+        "rotation_quat_xyzw"
+      ],
+      "title": "CameraLidarEdgeTransform",
+      "type": "object"
+    },
+    "EdgePreparationCacheDiagnostics": {
+      "additionalProperties": false,
+      "description": "Cumulative reuse counters; retained bytes include an entry metadata charge.",
+      "properties": {
+        "schema_version": {
+          "const": "calibrex.edge_preparation_cache_diagnostics/v0.1",
+          "default": "calibrex.edge_preparation_cache_diagnostics/v0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "max_bytes": {
+          "minimum": 0,
+          "title": "Max Bytes",
+          "type": "integer"
+        },
+        "retained_bytes": {
+          "minimum": 0,
+          "title": "Retained Bytes",
+          "type": "integer"
+        },
+        "entries": {
+          "minimum": 0,
+          "title": "Entries",
+          "type": "integer"
+        },
+        "hits": {
+          "minimum": 0,
+          "title": "Hits",
+          "type": "integer"
+        },
+        "misses": {
+          "minimum": 0,
+          "title": "Misses",
+          "type": "integer"
+        },
+        "evictions": {
+          "minimum": 0,
+          "title": "Evictions",
+          "type": "integer"
+        },
+        "bypasses": {
+          "minimum": 0,
+          "title": "Bypasses",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "max_bytes",
+        "retained_bytes",
+        "entries",
+        "hits",
+        "misses",
+        "evictions",
+        "bypasses"
+      ],
+      "title": "EdgePreparationCacheDiagnostics",
+      "type": "object"
+    },
+    "PreparationReuseRun": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "const": "PASS",
+          "title": "Status",
+          "type": "string"
+        },
+        "fixture": {
+          "default": "",
+          "title": "Fixture",
+          "type": "string"
+        },
+        "fixture_index": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Fixture Index",
+          "type": "integer"
+        },
+        "input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "input_provenance": {
+          "additionalProperties": true,
+          "title": "Input Provenance",
+          "type": "object"
+        },
+        "input_load_seconds": {
+          "minimum": 0,
+          "title": "Input Load Seconds",
+          "type": "number"
+        },
+        "frames": {
+          "minimum": 1,
+          "title": "Frames",
+          "type": "integer"
+        },
+        "raw_points": {
+          "minimum": 0,
+          "title": "Raw Points",
+          "type": "integer"
+        },
+        "estimate_translation": {
+          "title": "Estimate Translation",
+          "type": "boolean"
+        },
+        "candidate_offsets_deg": {
+          "items": {
+            "maxItems": 3,
+            "minItems": 3,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Candidate Offsets Deg",
+          "type": "array"
+        },
+        "attempts": {
+          "items": {
+            "$ref": "#/$defs/_Attempt"
+          },
+          "minItems": 3,
+          "title": "Attempts",
+          "type": "array"
+        },
+        "baseline_replay": {
+          "$ref": "#/$defs/_Replay"
+        },
+        "reuse_replay": {
+          "$ref": "#/$defs/_Replay"
+        },
+        "every_score_and_decision_equal": {
+          "const": true,
+          "title": "Every Score And Decision Equal",
+          "type": "boolean"
+        },
+        "paired_median_cold_ratio": {
+          "exclusiveMinimum": 0,
+          "title": "Paired Median Cold Ratio",
+          "type": "number"
+        },
+        "paired_median_warm_ratio": {
+          "exclusiveMinimum": 0,
+          "title": "Paired Median Warm Ratio",
+          "type": "number"
+        },
+        "paired_median_three_request_ratio": {
+          "exclusiveMinimum": 0,
+          "title": "Paired Median Three Request Ratio",
+          "type": "number"
+        },
+        "baseline_source_head": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Baseline Source Head",
+          "type": "string"
+        },
+        "source_head": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Source Head",
+          "type": "string"
+        },
+        "scope": {
+          "title": "Scope",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "input_sha256",
+        "input_provenance",
+        "input_load_seconds",
+        "frames",
+        "raw_points",
+        "estimate_translation",
+        "candidate_offsets_deg",
+        "attempts",
+        "baseline_replay",
+        "reuse_replay",
+        "every_score_and_decision_equal",
+        "paired_median_cold_ratio",
+        "paired_median_warm_ratio",
+        "paired_median_three_request_ratio",
+        "baseline_source_head",
+        "source_head",
+        "scope"
+      ],
+      "title": "PreparationReuseRun",
+      "type": "object"
+    },
+    "_Attempt": {
+      "additionalProperties": false,
+      "properties": {
+        "repetition": {
+          "minimum": 0,
+          "title": "Repetition",
+          "type": "integer"
+        },
+        "order": {
+          "items": {
+            "enum": [
+              "baseline",
+              "reuse"
+            ],
+            "type": "string"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Order",
+          "type": "array"
+        },
+        "baseline": {
+          "$ref": "#/$defs/_Sequence"
+        },
+        "reuse": {
+          "$ref": "#/$defs/_Sequence"
+        },
+        "complete_artifacts_equal": {
+          "const": true,
+          "title": "Complete Artifacts Equal",
+          "type": "boolean"
+        },
+        "cold_ratio": {
+          "exclusiveMinimum": 0,
+          "title": "Cold Ratio",
+          "type": "number"
+        },
+        "warm_ratios": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Warm Ratios",
+          "type": "array"
+        },
+        "three_request_ratio": {
+          "exclusiveMinimum": 0,
+          "title": "Three Request Ratio",
+          "type": "number"
+        }
+      },
+      "required": [
+        "repetition",
+        "order",
+        "baseline",
+        "reuse",
+        "complete_artifacts_equal",
+        "cold_ratio",
+        "warm_ratios",
+        "three_request_ratio"
+      ],
+      "title": "_Attempt",
+      "type": "object"
+    },
+    "_Call": {
+      "additionalProperties": false,
+      "properties": {
+        "seconds": {
+          "exclusiveMinimum": 0,
+          "title": "Seconds",
+          "type": "number"
+        },
+        "artifact": {
+          "$ref": "#/$defs/CameraLidarEdgeArtifact"
+        }
+      },
+      "required": [
+        "seconds",
+        "artifact"
+      ],
+      "title": "_Call",
+      "type": "object"
+    },
+    "_Provenance": {
+      "additionalProperties": false,
+      "properties": {
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "source_head": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Source Head",
+          "type": "string"
+        },
+        "source_worktree_dirty": {
+          "title": "Source Worktree Dirty",
+          "type": "boolean"
+        },
+        "baseline_source_head": {
+          "pattern": "^[0-9a-f]{40}$",
+          "title": "Baseline Source Head",
+          "type": "string"
+        },
+        "baseline_source_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Baseline Source Sha256",
+          "type": "string"
+        },
+        "sources": {
+          "additionalProperties": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Sources",
+          "type": "object"
+        },
+        "whole_calibration_claim": {
+          "const": false,
+          "title": "Whole Calibration Claim",
+          "type": "boolean"
+        },
+        "pyodide_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pyodide Version"
+        },
+        "browser_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Browser Version"
+        }
+      },
+      "required": [
+        "created_at",
+        "command",
+        "source_head",
+        "source_worktree_dirty",
+        "baseline_source_head",
+        "baseline_source_sha256",
+        "sources",
+        "whole_calibration_claim"
+      ],
+      "title": "_Provenance",
+      "type": "object"
+    },
+    "_Replay": {
+      "additionalProperties": false,
+      "properties": {
+        "artifacts": {
+          "items": {
+            "$ref": "#/$defs/CameraLidarEdgeArtifact"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Artifacts",
+          "type": "array"
+        },
+        "decisions": {
+          "items": {
+            "items": {
+              "maxItems": 4,
+              "minItems": 4,
+              "prefixItems": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "items": {
+                    "items": {
+                      "type": "number"
+                    },
+                    "type": "array"
+                  },
+                  "type": "array"
+                },
+                {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "maxItems": 2,
+                      "minItems": 2,
+                      "prefixItems": [
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ],
+                      "type": "array"
+                    }
+                  ]
+                }
+              ],
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Decisions",
+          "type": "array"
+        },
+        "decision_sha256": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Decision Sha256",
+          "type": "array"
+        },
+        "pose_counts": {
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Pose Counts",
+          "type": "array"
+        }
+      },
+      "required": [
+        "artifacts",
+        "decisions",
+        "decision_sha256",
+        "pose_counts"
+      ],
+      "title": "_Replay",
+      "type": "object"
+    },
+    "_Sequence": {
+      "additionalProperties": false,
+      "properties": {
+        "calls": {
+          "items": {
+            "$ref": "#/$defs/_Call"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Calls",
+          "type": "array"
+        },
+        "init_seconds": {
+          "minimum": 0,
+          "title": "Init Seconds",
+          "type": "number"
+        },
+        "clear_seconds": {
+          "minimum": 0,
+          "title": "Clear Seconds",
+          "type": "number"
+        },
+        "seconds": {
+          "exclusiveMinimum": 0,
+          "title": "Seconds",
+          "type": "number"
+        },
+        "diagnostics": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EdgePreparationCacheDiagnostics"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "calls",
+        "init_seconds",
+        "clear_seconds",
+        "seconds",
+        "diagnostics"
+      ],
+      "title": "_Sequence",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "calibrex.browser_edge_preparation_probe/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "RUNNING",
+        "PASS",
+        "FAIL",
+        "TIMEOUT"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/_Provenance"
+    },
+    "runs": {
+      "items": {
+        "$ref": "#/$defs/PreparationReuseRun"
+      },
+      "title": "Runs",
+      "type": "array"
+    },
+    "logs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Logs",
+      "type": "array"
+    },
+    "errors": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Errors",
+      "type": "array"
+    },
+    "checks": {
+      "additionalProperties": true,
+      "title": "Checks",
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "status",
+    "provenance",
+    "runs",
+    "logs",
+    "errors",
+    "checks"
+  ],
+  "title": "PreparationReuseBenchmark",
+  "type": "object"
+}

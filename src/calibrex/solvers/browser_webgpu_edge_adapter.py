@@ -37,6 +37,7 @@ from calibrex.evaluation.camera_lidar_edge import (
     _estimate_workflow,
     _rotation_from_vector,
 )
+from calibrex.evaluation.edge_preparation_cache import EdgePreparationCache
 
 
 def pack_edge_objective(objective: EdgeObjective) -> dict[str, Any]:
@@ -317,6 +318,7 @@ async def estimate_from_frames_webgpu(
     reference_label: str | None = None,
     start_note: str | None = None,
     motion_compensation: CameraLidarEdgeMotion | None = None,
+    preparation_cache: EdgePreparationCache | None = None,
 ) -> CameraLidarEdgeArtifact:
     """Run the complete offline estimator with explicit experimental WebGPU screening.
 
@@ -343,6 +345,7 @@ async def estimate_from_frames_webgpu(
             reference_label=reference_label,
             start_note=start_note,
             motion_compensation=motion_compensation,
+            preparation_cache=preparation_cache,
         ),
         driver,
     )

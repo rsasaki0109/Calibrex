@@ -2124,6 +2124,69 @@ Even eliminating repeated uploads does not establish a useful whole-estimator
 gain. This API remains opt-in for development; the objective-only batch ratios
 above must not be presented as complete calibration speedups.
 
+### Rechecking Camera-LiDAR candidates
+
+The browser Worker keeps a 128 MiB LRU of image and LiDAR depth edges. Rechecking
+the same recording with another TF candidate can reuse this preprocessing. The
+first request starts empty. Every input array byte, shape, dtype, layout and
+preprocessing setting is bound to its key; changed images, points or settings
+are recomputed. Camera intrinsics, candidate visibility, repeated-view selection,
+every search start, jackknife and held-out control run again. The cache holds no
+calibration result and writes no files. It disappears with the Worker.
+
+Native callers can explicitly share the same bounded cache:
+
+```python
+from calibrex.evaluation.camera_lidar_edge import estimate_from_frames
+from calibrex.evaluation.edge_preparation_cache import EdgePreparationCache
+
+cache = EdgePreparationCache(max_bytes=128 * 1024 * 1024)
+for candidate in candidate_transforms:
+    artifact = estimate_from_frames(
+        raw_frames, camera, candidate, options=options, provenance=provenance,
+        preparation_cache=cache,
+    )
+cache.clear()
+```
+
+The experimental WebGPU API also accepts `preparation_cache`. The CLI retains
+its existing behavior. Returned arrays are independent writable copies. The
+budget covers retained arrays plus a conservative metadata charge; caller arrays,
+returned copies and computations in flight are outside it. Zero disables reuse,
+oversize entries are bypassed, and array subclasses retain their original
+uncached preprocessing so that extra semantics such as masks are preserved.
+`clear()` prevents computations already in
+flight from repopulating entries. Diagnostic counters remain cumulative.
+
+Measure three distinct candidates with the unchanged full estimator:
+
+```bash
+node tools/benchmark_browser_webgpu_edge.mjs --preparation-reuse \
+  --baseline-ref d050acca2ded92938ceacf0149a053917e21f54c \
+  --fixture outputs/calibration-fixtures/synthetic-raw-12-rotation.npz \
+  --fixture outputs/calibration-fixtures/synthetic-raw-12-six-dof.npz \
+  --fixture outputs/calibration-fixtures/synthetic-raw-48-rotation.npz \
+  --out outputs/preparation-probe --chrome /path/to/chrome
+```
+
+Build the browser wheel and the raw fixtures with the commands above first.
+This CPU probe uses one Worker and needs neither a GPU nor cross-origin
+isolation. Three alternating pairs each start with a new empty cache and report
+the first request, the next two reused requests and their three-request sum.
+Cache construction and final clear are included in the sum. Ordinary API timings
+include all preparation, search, jackknife, controls and artifact validation;
+inter-call reporting, imports, runtime startup, NPZ loading and bag decoding
+are outside those intervals. Separate untimed replays compare every objective
+array, pose, score and decision against the captured baseline module. Complete
+artifacts differ only in the independently checked source commit. Every attempt
+and synthetic-input lineage is retained; this makes no real-data accuracy claim.
+
+Validate `report.json` with
+`tools/schemas/browser_edge_preparation_probe.schema.json`. Regenerate this
+schema with `python tools/browser_edge_preparation_probe.py --schema PATH`.
+The same Python tool accepts `--out NEW_DIR --fixture PATH` for a native CPU
+comparison against the specified `--baseline-ref`.
+
 ## Artifact
 
 `--output` writes `slac.calibration_check/v0.1`: the bag path with a digest
