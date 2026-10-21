@@ -16,12 +16,14 @@ const fixtures = argv.flatMap((value, at) => value === "--fixture" ? [argv[at + 
 const out = option("--out");
 const calibration = argv.includes("--calibration");
 const preparationReuse = argv.includes("--preparation-reuse");
+const baselineCache = argv.includes("--baseline-cache");
+if (baselineCache && !preparationReuse) throw new Error("--baseline-cache requires --preparation-reuse");
 if (preparationReuse && calibration) throw new Error("choose --preparation-reuse or --calibration");
 const fullWorkflow = calibration || preparationReuse;
 const profileCpu = argv.includes("--profile-cpu");
 if (profileCpu && !calibration) throw new Error("--profile-cpu requires --calibration");
 const probePath = preparationReuse ? "tools/browser_edge_preparation_probe.py" : calibration ? "tools/browser_webgpu_calibration_probe.py" : "tools/browser_webgpu_edge_probe.py";
-const schemaPath = preparationReuse ? "tools/schemas/browser_edge_preparation_probe.schema.json" : calibration ? "tools/schemas/browser_webgpu_calibration_probe.schema.json" : "tools/schemas/browser_webgpu_edge_probe.schema.json";
+const schemaPath = preparationReuse ? (baselineCache ? "tools/schemas/browser_edge_preparation_probe_v2.schema.json" : "tools/schemas/browser_edge_preparation_probe.schema.json") : calibration ? "tools/schemas/browser_webgpu_calibration_probe.schema.json" : "tools/schemas/browser_webgpu_edge_probe.schema.json";
 if (!out || !fixtures.length || !option("--chrome")) throw new Error("--out NEW_DIR, --fixture NPZ and --chrome PATH are required");
 if (existsSync(out)) throw new Error("output already exists; preserve earlier attempts and choose a new directory");
 mkdirSync(out, { recursive: true });
@@ -41,11 +43,12 @@ const snapshots = new Map(sources.map((path) => [path, readFileSync(path)]));
 const sourceHashes = Object.fromEntries([...snapshots].map(([path, data]) => [path, hash(data)]));
 assert.equal(sourceHashes["docs/app/wheels/" + manifest.wheel], manifest.sha256, "wheel differs from its manifest");
 const report = {
-  schema_version: preparationReuse ? "calibrex.browser_edge_preparation_probe/v0.1" : calibration ? "calibrex.browser_webgpu_calibration_probe/v0.2" : "calibrex.browser_webgpu_edge_probe/v0.1", status: "RUNNING",
+  schema_version: preparationReuse ? (baselineCache ? "calibrex.browser_edge_preparation_probe/v0.2" : "calibrex.browser_edge_preparation_probe/v0.1") : calibration ? "calibrex.browser_webgpu_calibration_probe/v0.2" : "calibrex.browser_webgpu_edge_probe/v0.1", status: "RUNNING",
   provenance: { created_at: new Date().toISOString(), command: process.argv,
     source_head: execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim(),
     ...(fullWorkflow ? {source_worktree_dirty: Boolean(execFileSync("git", ["status", "--porcelain", "--untracked-files=normal"], {encoding:"utf8"}).trim())} : {}),
     ...(preparationReuse ? {baseline_source_head:baselineHead, baseline_source_sha256:hash(baselineBytes)} : {}),
+    ...(baselineCache ? {baseline_cache_enabled:true} : {}),
     sources: sourceHashes, pyodide_version: "0.27.2", whole_calibration_claim: false },
   runs: [], logs: [], errors: [], checks: {},
 };
@@ -70,6 +73,7 @@ const content = new Map([
 if (preparationReuse) content.set("/baseline_edge.py", ["text/plain", baselineBytes]);
 const measurementKeywords = (fullWorkflow ? ", source_head='" + report.provenance.source_head + "'" : "")
   + (preparationReuse ? ", baseline_source_head='" + baselineHead + "'" : "")
+  + (baselineCache ? ", baseline_cache_enabled=True" : "")
   + (profileCpu ? ", profile_cpu=True" : "");
 const worker = `
 importScripts("/edge-gpu.js", "https://cdn.jsdelivr.net/pyodide/v0.27.2/full/pyodide.js");

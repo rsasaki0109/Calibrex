@@ -6,6 +6,7 @@ import argparse
 import asyncio
 import hashlib
 import importlib.util
+import inspect
 import json
 import shutil
 import subprocess
@@ -111,6 +112,26 @@ class PreparationReuseBenchmark(StrictModel):
     checks: dict[str, Any]
 
 
+class PreparationCachedBaselineRun(PreparationReuseRun):
+    baseline_cache_enabled: Literal[True] = True
+
+
+class _CachedBaselineProvenance(_Provenance):
+    baseline_cache_enabled: Literal[True] = True
+
+
+class PreparationCachedBaselineBenchmark(StrictModel):
+    """Compare preparation changes with equal cache capacity in both implementations."""
+
+    schema_version: Literal["calibrex.browser_edge_preparation_probe/v0.2"]
+    status: Literal["RUNNING", "PASS", "FAIL", "TIMEOUT"]
+    provenance: _CachedBaselineProvenance
+    runs: list[PreparationCachedBaselineRun]
+    logs: list[str]
+    errors: list[str]
+    checks: dict[str, Any]
+
+
 class _Trace:
     def __init__(self) -> None:
         self.keys: weakref.WeakKeyDictionary[Any, str] = weakref.WeakKeyDictionary()
@@ -163,11 +184,14 @@ async def measure(
     source_head: str,
     baseline_source_head: str,
     baseline_path: str = "/baseline_edge.py",
+    baseline_cache_enabled: bool = False,
 ) -> dict[str, Any]:
     """Time ordinary complete APIs; replay all objective arrays/decisions separately."""
     del runtime  # This CPU probe never requests a GPU or a second worker.
     if repetitions < 3:
         raise ValueError("at least three alternating paired repeats are required")
+    if type(baseline_cache_enabled) is not bool:
+        raise ValueError("baseline_cache_enabled must be a boolean")
     for head in (source_head, baseline_source_head):
         if len(head) != 40 or any(c not in "0123456789abcdef" for c in head):
             raise ValueError("full source commits are required")
@@ -177,6 +201,11 @@ async def measure(
     baseline = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = baseline
     spec.loader.exec_module(baseline)
+    if (
+        baseline_cache_enabled
+        and "preparation_cache" not in inspect.signature(baseline.estimate_from_frames).parameters
+    ):
+        raise ValueError("the selected baseline does not support a preparation cache")
     began = time.perf_counter()
     input_bytes = Path(path).read_bytes()
     with np.load(path, allow_pickle=False) as data:
@@ -232,7 +261,7 @@ async def measure(
         module, head = (edge, source_head) if reuse else (baseline, baseline_source_head)
         camera, options, provenance = settings(module, head)
         began = time.perf_counter()
-        cache = EdgePreparationCache() if reuse else None
+        cache = EdgePreparationCache() if reuse or baseline_cache_enabled else None
         init_seconds = time.perf_counter() - began
         calls = []
         for candidate in candidates:
@@ -292,7 +321,7 @@ async def measure(
     def replay(reuse: bool) -> _Replay:
         module, head = (edge, source_head) if reuse else (baseline, baseline_source_head)
         camera, options, provenance = settings(module, head)
-        cache = EdgePreparationCache() if reuse else None
+        cache = EdgePreparationCache() if reuse or baseline_cache_enabled else None
         artifacts, decisions, counts, digests = [], [], [], []
         try:
             for candidate in candidates:
@@ -331,7 +360,8 @@ async def measure(
         zip(original_replay.artifacts, current_replay.artifacts, strict=True)
     ):
         assert _payload(a, baseline_source_head) == _payload(b, source_head) == reference[index]
-    result = PreparationReuseRun(
+    run_model = PreparationCachedBaselineRun if baseline_cache_enabled else PreparationReuseRun
+    result = run_model(
         status="PASS",
         input_sha256=digest,
         input_provenance=lineage,
@@ -359,6 +389,11 @@ async def measure(
             "separately. NPZ loading, imports, runtime startup and bag decoding excluded. "
             "Separate decision replays are untimed. No GPU or cross-origin isolation required; "
             "no real-data accuracy claim."
+            + (
+                " Both implementations use fresh caches of equal 128 MiB capacity."
+                if baseline_cache_enabled
+                else " The frozen baseline has no runtime preparation cache."
+            )
         ),
     )
     return result.model_dump(mode="json")
@@ -370,11 +405,19 @@ def main() -> None:
     parser.add_argument("--out", type=Path)
     parser.add_argument("--fixture", type=Path, action="append", default=[])
     parser.add_argument("--baseline-ref", default="d050acca2ded92938ceacf0149a053917e21f54c")
+    parser.add_argument(
+        "--baseline-cache",
+        action="store_true",
+        help="give the frozen baseline the same 128 MiB cache; emits the v0.2 report",
+    )
     args = parser.parse_args()
+    report_model = (
+        PreparationCachedBaselineBenchmark if args.baseline_cache else PreparationReuseBenchmark
+    )
     if args.schema:
         args.schema.parent.mkdir(parents=True, exist_ok=True)
         args.schema.write_text(
-            json.dumps(PreparationReuseBenchmark.model_json_schema(), indent=2) + "\n",
+            json.dumps(report_model.model_json_schema(), indent=2) + "\n",
             encoding="utf-8",
         )
         return
@@ -400,10 +443,15 @@ def main() -> None:
             target = args.out / "sources" / name
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(source, target)
-    report = PreparationReuseBenchmark(
-        schema_version="calibrex.browser_edge_preparation_probe/v0.1",
+    provenance_model = _CachedBaselineProvenance if args.baseline_cache else _Provenance
+    report = report_model(
+        schema_version=(
+            "calibrex.browser_edge_preparation_probe/v0.2"
+            if args.baseline_cache
+            else "calibrex.browser_edge_preparation_probe/v0.1"
+        ),
         status="RUNNING",
-        provenance=_Provenance(
+        provenance=provenance_model(
             created_at=datetime.now(timezone.utc).isoformat(),
             command=sys.argv,
             source_head=head,
@@ -429,13 +477,15 @@ def main() -> None:
     save()
     try:
         for i, fixture in enumerate(args.fixture):
-            run = PreparationReuseRun.model_validate(
+            run_model = PreparationCachedBaselineRun if args.baseline_cache else PreparationReuseRun
+            run = run_model.model_validate(
                 asyncio.run(
                     measure(
                         str(fixture),
                         source_head=head,
                         baseline_source_head=baseline_head,
                         baseline_path=str(baseline_path.resolve()),
+                        baseline_cache_enabled=args.baseline_cache,
                     )
                 )
             )

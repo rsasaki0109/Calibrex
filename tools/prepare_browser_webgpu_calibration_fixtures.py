@@ -14,7 +14,7 @@ from typing import Any
 import numpy as np
 
 
-def prepare(output: Path) -> None:
+def prepare(output: Path, *, include_stationary_control: bool = False) -> None:
     """Render distinct synchronized scenes and preserve their generator lineage."""
 
     if output.exists():
@@ -75,6 +75,50 @@ def prepare(output: Path) -> None:
             payload[f"points_{i}"] = points
         name = f"synthetic-raw-{count}-{'six-dof' if translation else 'rotation'}.npz"
         np.savez_compressed(output / name, **payload)
+    if include_stationary_control:
+        record = {
+            **lineage,
+            "frames": 48,
+            "estimate_translation": False,
+            "origin": {
+                "kind": "synthetic_stationary_scan_noise_control",
+                "seeds": list(range(8)),
+                "noise_seed": 10429,
+                "scans_per_layout": 6,
+                "description": (
+                    "Eight rendered layouts with six distinct image/cloud observations each. "
+                    "Low gray/range noise within a layout exercises repeated-view rejection; "
+                    "48 distinct raw inputs, no real-data accuracy claim."
+                ),
+            },
+        }
+        payload = {
+            "frames": 48,
+            "intrinsics": np.array([FOCAL, FOCAL, CX, CY]),
+            "candidate": perturbed(truth, (0.8, -1.2, 0.0)),
+            "estimate_translation": False,
+            "provenance_json": json.dumps(record, sort_keys=True),
+        }
+        rng = np.random.default_rng(10429)
+        image_hashes, point_hashes = set(), set()
+        for layout in range(8):
+            for scan in range(6):
+                index = 6 * layout + scan
+                image, points = raw[layout][0].copy(), raw[layout][1].copy()
+                if scan:
+                    image = np.clip(
+                        image.astype(np.int16)
+                        + rng.integers(-1, 2, size=image.shape, dtype=np.int16),
+                        0,
+                        255,
+                    ).astype(np.uint8)
+                    points = np.asarray(points * np.float32(1.0 + scan * 0.0001), dtype=np.float32)
+                image_hashes.add(hashlib.sha256(image.tobytes()).hexdigest())
+                point_hashes.add(hashlib.sha256(points.tobytes()).hexdigest())
+                payload[f"image_{index}"] = image
+                payload[f"points_{index}"] = points
+        assert len(image_hashes) == len(point_hashes) == 48
+        np.savez_compressed(output / "synthetic-raw-48-stationary-control.npz", **payload)
     for source in sources:
         (output / (source.name + ".txt")).write_bytes(source.read_bytes())
 
@@ -82,4 +126,6 @@ def prepare(output: Path) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True)
-    prepare(parser.parse_args().out)
+    parser.add_argument("--stationary-control", action="store_true")
+    args = parser.parse_args()
+    prepare(args.out, include_stationary_control=args.stationary_control)

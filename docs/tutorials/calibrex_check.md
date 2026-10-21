@@ -2187,6 +2187,48 @@ schema with `python tools/browser_edge_preparation_probe.py --schema PATH`.
 The same Python tool accepts `--out NEW_DIR --fixture PATH` for a native CPU
 comparison against the specified `--baseline-ref`.
 
+### Image preparation for repeated views
+
+Serial preparation can omit image filtering when a near-identical image is
+certifiably non-flat and its spinning-LiDAR view is rejected. The cloud, candidate
+visibility and repeated-view checks retain their order and rejection reasons.
+Solid-state views still receive the complete response when retained. Uncertain
+images and native parallel preparation follow the complete image path.
+
+The certificate uses every raw pixel, the last kept image's gradient percentile,
+and a conservative bound for the existing Gaussian/Sobel operations. It applies
+to ordinary uint8 images and exact power-of-two block downscales; unusual arrays
+or filter settings keep the full calculation. Gaussian intermediate precision is
+documented in the [SciPy filter notes](https://docs.scipy.org/doc/scipy/reference/generated/scipy.ndimage.gaussian_filter.html#notes).
+The run owns the previous reference and current working image snapshots, and
+the gradient percentile accompanies a cached response. Calibration artifacts and options
+retain their existing schemas.
+
+An optional synthetic control contains 48 distinct observations at eight stable
+layouts, with small image/range noise within each layout. It exercises rejection
+of near-identical views. Moving recordings, or isolated large pixel changes,
+may receive no reduction. Generate this control and compare the previous
+implementation with the same 128 MiB cache in both versions:
+
+```bash
+python tools/prepare_browser_webgpu_calibration_fixtures.py \
+  --out outputs/repeated-view-fixtures --stationary-control
+node tools/benchmark_browser_webgpu_edge.mjs --preparation-reuse --baseline-cache \
+  --baseline-ref 4251f9b974ffcd0886388f193ca7330043e5203a \
+  --fixture outputs/repeated-view-fixtures/synthetic-raw-12-rotation.npz \
+  --fixture outputs/repeated-view-fixtures/synthetic-raw-48-rotation.npz \
+  --fixture outputs/repeated-view-fixtures/synthetic-raw-48-stationary-control.npz \
+  --out outputs/repeated-view-probe --chrome /path/to/chrome
+```
+
+The native Python probe also accepts `--baseline-cache`. This mode requires a
+baseline that explicitly supports the runtime cache, records that both sides
+use it, and emits `calibrex.browser_edge_preparation_probe/v0.2`. Validate it with
+`tools/schemas/browser_edge_preparation_probe_v2.schema.json`; generate that
+schema with `python tools/browser_edge_preparation_probe.py --baseline-cache
+--schema PATH`. The original mode and v0.1 schema remain available. The timing
+scope and separate exact decision replays are the same as above.
+
 ## Artifact
 
 `--output` writes `slac.calibration_check/v0.1`: the bag path with a digest
