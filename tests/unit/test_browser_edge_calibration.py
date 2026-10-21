@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 from tests.unit.camera_lidar_scene import perturbed, true_transform
 from tests.unit.test_camera_lidar_edge import CAMERA, FAST, _frames, _provenance
+from tools.browser_webgpu_calibration_probe import _Trace
 
 from calibrex.core.camera_lidar_edge import camera_lidar_edge_json_schema
 from calibrex.evaluation import camera_lidar_edge as edge
@@ -63,6 +64,18 @@ def test_complete_async_workflow_retains_cpu_artifact_and_every_pose(monkeypatch
     provenance = _provenance()
     original_score = edge.EdgeObjective.score
     cpu_calls = []
+    cpu_trace, gpu_trace = _Trace(), _Trace()
+    cpu_drive = edge._drive_edge_workflow
+    gpu_drive = gpu._drive_browser_edge_workflow
+
+    def observe_cpu(workflow, **kwargs):
+        return cpu_drive(workflow, observer=cpu_trace, **kwargs)
+
+    async def observe_gpu(workflow, driver, **kwargs):
+        return await gpu_drive(workflow, driver, observer=gpu_trace, **kwargs)
+
+    monkeypatch.setattr(edge, "_drive_edge_workflow", observe_cpu)
+    monkeypatch.setattr(gpu, "_drive_browser_edge_workflow", observe_gpu)
 
     def count(self, theta):
         cpu_calls.append(theta.copy())
@@ -72,7 +85,9 @@ def test_complete_async_workflow_retains_cpu_artifact_and_every_pose(monkeypatch
     cpu = edge.estimate_from_frames(
         frames, CAMERA, candidate, options=options, provenance=provenance
     )
-    count_before = len(cpu_calls)
+    cpu_evaluations = len(cpu_calls)
+    # Reused scores still represent the same ordered logical pose requests.
+    assert 0 < cpu_evaluations < cpu_trace.poses
 
     async def score_many(self, theta):
         # Mock transport only; actual WGSL arithmetic has a separate browser probe.
@@ -93,10 +108,11 @@ def test_complete_async_workflow_retains_cpu_artifact_and_every_pose(monkeypatch
     jsonschema.validate(actual, camera_lidar_edge_json_schema())
     diagnostic = actual["options"].pop("experimental_scoring")
     jsonschema.validate(diagnostic, gpu.BrowserWebGpuEdgeDiagnostics.model_json_schema())
-    assert diagnostic["gpu_candidate_scores"] + diagnostic["cpu_scalar_scores"] == count_before
+    assert gpu_trace.records == cpu_trace.records
+    assert diagnostic["gpu_candidate_scores"] + diagnostic["cpu_scalar_scores"] == cpu_trace.poses
     assert (
         diagnostic["cpu_confirmed_candidates"] + diagnostic["cpu_scalar_scores"]
-        == len(cpu_calls) - count_before
+        == len(cpu_calls) - cpu_evaluations
     )
     assert diagnostic["objectives_uploaded"] == runtime.context.uploads
     assert diagnostic["gpu_batches"] > 20
