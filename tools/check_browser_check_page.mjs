@@ -11,8 +11,9 @@
 //        [--bag PATH ...] [--tf FILE ...] [--vehicle-frame base_link] \
 //        [--topic-kind TOPIC=wheel ...] [--camera TOPIC] \
 //        [--run [--cap 60] [--pairs lidar-vehicle,imu-vehicle] [--mode check|estimate]]
+//        [--workers 1|2]
 //
-// Without --bag it clicks "Try a sample bag" and asserts the plan (8 pairs can be checked, 4
+// Without --bag it clicks "Try a sample bag" and asserts the plan (10 pairs can be checked, 5
 // skipped), then screenshots the page in light and dark themes and at phone width. With --bag
 // (files of a rosbag2: metadata.yaml and the .db3/.mcap) it uploads them through the file
 // picker, which hands the worker real File objects, so a multi-GB bag exercises WORKERFS lazy
@@ -41,6 +42,7 @@ const runPairs = option("--pairs");
 const topicKinds = many("--topic-kind");
 const cameraOption = option("--camera");
 const runModeOption = option("--mode", "check");
+const workerCount = option("--workers", "1");
 const timeoutMs = Number(option("--timeout-ms", "900000"));
 mkdirSync(out, { recursive: true });
 
@@ -76,6 +78,7 @@ async function waitResult() {
 // Press "Run in the browser" and wait for the result; returns what the page shows and its payload.
 async function runInPage(mode, capSeconds, pairs) {
   await page.select("#run-mode", mode);
+  if (mode === "check") await page.select("#run-workers", workerCount);
   await page.$eval("#run-cap", (element, value) => { element.value = value; }, String(capSeconds));
   if (pairs) {
     await page.$$eval("#run-pairs input[name=pair]", (boxes, wanted) => {
@@ -119,7 +122,7 @@ if (bagFiles.length === 0) {
     console.log(JSON.stringify(result, null, 1));
     const planned = result.pairs.filter((row) => row.includes("can be checked")).length;
     const skipped = result.pairs.filter((row) => row.includes("skipped")).length;
-    if (planned !== 8 || skipped !== 4) fail(`expected 8 planned and 4 skipped pairs, got ${planned} and ${skipped}`);
+    if (planned !== 10 || skipped !== 5) fail(`expected 10 planned and 5 skipped pairs, got ${planned} and ${skipped}`);
     if (!result.command.startsWith("calibrex check check_sample")) fail("unexpected command " + result.command);
     await page.screenshot({ path: out + "/sample_desktop.png", fullPage: true });
     // Re-plan the sample as a ground vehicle: the vehicle pairs become plannable.

@@ -261,12 +261,15 @@ def build_calibration_check(
     wired_pairs: frozenset[str] = ALL_WIRED_PAIRS,
     run: CheckRunOptions | None = None,
     progress: Callable[[str], None] | CheckProgress = _quiet,
+    on_pair_result: Callable[[CheckPairRecord, EstimatorRun | None], None] | None = None,
 ) -> CalibrationCheckArtifact:
     """Read candidate extrinsics, classify topics and plan the pair checks.
 
     With ``run`` the native estimator of every wired, selected pair is executed
     and the candidate is judged against it (see :mod:`calibrex.check.verdict`);
     without it the result is a plan (every runnable pair ``planned``).
+    ``on_pair_result`` observes completed pairs and their native estimate, when
+    available; browser workers use it to transport the inputs of rig closure.
     """
 
     bag_path = Path(bag)
@@ -314,6 +317,7 @@ def build_calibration_check(
             progress=as_progress(progress),
             bag_sha256=input_sha256,
             frame_tree=tree,
+            on_pair_result=on_pair_result,
         )
         closure_edges = _closure_edges(pairs, run_memo)
         closures = build_closure_report(pairs, closure_edges, run.verdict)
@@ -444,6 +448,7 @@ def _run_pairs(
     progress: CheckProgress,
     bag_sha256: str = "",
     frame_tree: StaticFrameTree | None = None,
+    on_pair_result: Callable[[CheckPairRecord, EstimatorRun | None], None] | None = None,
 ) -> tuple[list[CheckPairRecord], dict[tuple[object, ...], Any]]:
     selected = set(run.pairs) if run.pairs is not None else None
     controls = RunControls(
@@ -512,6 +517,11 @@ def _run_pairs(
                 position=(started_pairs, to_run),
             )
         )
+        if on_pair_result is not None:
+            on_pair_result(
+                results[-1],
+                controls.memo.get((estimators.PAIR_RUN_KEY, record.pair, tuple(record.frames))),
+            )
     progress.run_finished()
     return results, controls.memo
 

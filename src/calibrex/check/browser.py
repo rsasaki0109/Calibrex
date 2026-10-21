@@ -19,6 +19,7 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any, Literal
 
+from calibrex.check.estimators import EstimatorRun
 from calibrex.check.progress import CheckProgress
 from calibrex.check.roles import parse_topic_kinds
 from calibrex.check.runner import (
@@ -27,6 +28,7 @@ from calibrex.check.runner import (
     format_check_table,
     parse_frame_map,
 )
+from calibrex.core.calibration_check import CheckPairRecord
 from calibrex.core.exceptions import CalibrexError, DatasetError
 
 STORAGE_SUFFIXES = (".db3", ".mcap")
@@ -394,6 +396,15 @@ def run_request_json(request_json: str, emit: EventSink | None = None) -> str:
             work_dir = Path(work)
             run = run_options_from_request(request, work_dir)
             if mode == "check":
+                from calibrex.check.browser_parallel import closure_input_from_result
+
+                closure_inputs: list[dict[str, Any]] = []
+
+                def collect(record: CheckPairRecord, outcome: EstimatorRun | None) -> None:
+                    value = closure_input_from_result(record, outcome)
+                    if value is not None:
+                        closure_inputs.append(value)
+
                 artifact = build_calibration_check(
                     bag,
                     tf_files=tf_files,
@@ -403,16 +414,23 @@ def run_request_json(request_json: str, emit: EventSink | None = None) -> str:
                     command=recorded,
                     run=run,
                     progress=progress,
+                    on_pair_result=collect if request.get("parallel_shard") else None,
                 )
                 artifact = _with_labels(artifact, label, labels, "candidate_sources")
                 from calibrex.visualization.check_report import render_check_html
 
                 reply: dict[str, Any] = {
                     "artifact": artifact.model_dump(mode="json", exclude_none=True),
-                    "text": format_check_table(artifact),
-                    "html": render_check_html(artifact),
                     "files": {},
                 }
+                if request.get("parallel_shard"):
+                    from calibrex.check.browser_parallel import shard_metadata
+
+                    reply.update(closure_inputs=closure_inputs, **shard_metadata(request))
+                else:
+                    reply.update(
+                        text=format_check_table(artifact), html=render_check_html(artifact)
+                    )
             else:
                 from calibrex.check.estimate import build_bag_estimate, format_estimate_text
 

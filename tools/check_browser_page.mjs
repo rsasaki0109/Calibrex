@@ -46,5 +46,5 @@ const plan = JSON.parse(await pyodide.runPythonAsync("plan_request_json(request_
 if (!plan.ok) { console.error("FAIL check plan", plan.error); process.exit(1); }
 const planned = plan.artifact.pairs.filter((pair) => pair.status === "planned").length;
 console.log("check plan of", readdirSync(sampleDir).join(","), "->", planned, "planned,", plan.artifact.summary.skipped_by_reason);
-if (planned !== 8) { console.error("FAIL expected 8 planned pairs"); process.exit(1); }
+if (planned !== 10) { console.error("FAIL expected 10 planned pairs"); process.exit(1); }
 // A result that is not "pass" on the synthetic example is a regression.
