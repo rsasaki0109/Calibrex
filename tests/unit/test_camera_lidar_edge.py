@@ -437,10 +437,19 @@ def test_rejected_far_fit_retains_current_transform_and_ordinary_evidence(
     far = np.array([-1.5, -0.15, -5.3, 0.0, 0.0, 0.0])
     current_controls = [_control(0.4), _control(3.0), _control(1.0)] + [_control(None)] * 3
     far_controls = [_control(far_control_t), _control(4.0), _control(1.23)] + [_control(None)] * 3
-    monkeypatch.setattr(edge, "_profile_start", lambda *_: np.ones(6))
+
+    def completed(value):
+        # Substitute completed workflow steps; retain the adoption-policy test.
+        if False:
+            yield
+        return value
+
+    monkeypatch.setattr(edge, "_profile_workflow", lambda *_: completed(np.ones(6)))
     monkeypatch.setattr(edge, "_profile_starts", lambda *_: [np.ones(6)])
     monkeypatch.setattr(
-        edge, "fit_extrinsic", lambda _, start, opts: (current if not start.any() else far, 1.0)
+        edge,
+        "_fit_workflow",
+        lambda _, start, opts: completed((current if not start.any() else far, 1.0)),
     )
 
     def evidence(*args: object) -> tuple[np.ndarray, np.ndarray, list[CameraLidarEdgeControl]]:
@@ -448,7 +457,7 @@ def test_rejected_far_fit_retains_current_transform_and_ordinary_evidence(
         controls = current_controls if theta is current else far_controls
         return np.tile(theta, (4, 1)), np.full(6, 0.025), controls
 
-    monkeypatch.setattr(edge, "_evidence", evidence)
+    monkeypatch.setattr(edge, "_evidence_workflow", lambda *args: completed(evidence(*args)))
     truth = true_transform()
     artifact = estimate_from_frames(
         _frames(truth, count=8),

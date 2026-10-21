@@ -40,6 +40,10 @@ fn projection_atan(radius: f32) -> f32 {
 
 fn response(index: u32, pose_index: u32) -> f32 {
   let s = samples[index];
+  if (camera.flags.y != 0u) {
+    let mask = select(camera.flags.z, camera.flags.w, s.image.w >= 32u);
+    if (((mask >> (s.image.w & 31u)) & 1u) == 0u) { return 0.0; }
+  }
   let p = poses[pose_index];
   let v = vec4f(s.point.xyz, 1.0);
   let moved = vec3f(dot(p.r0, v), dot(p.r1, v), dot(p.r2, v));
@@ -150,8 +154,9 @@ fn reduce(@builtin(workgroup_id) group: vec3u, @builtin(local_invocation_index) 
   }
 
   class EdgeBatch {
-    constructor(device, input, count, timeoutMs) {
+    constructor(device, input, count, timeoutMs, owner = null) {
       this.device = device;
+      this.owner = owner;
       this.totalWeight = input.totalWeight;
       this.count = count;
       this.groups = Math.ceil(count / GROUP);
@@ -160,16 +165,29 @@ fn reduce(@builtin(workgroup_id) group: vec3u, @builtin(local_invocation_index) 
       this.closed = false;
       this.busy = false;
       this.failure = null;
-      device.lost.then(() => {
+      this.selectionKey = null;
+      this.frameWeights = new Float64Array(64);
+      this.groupedInput = true;
+      const words = new Uint32Array(input.samples.buffer, input.samples.byteOffset, input.samples.length);
+      for (let at = 0; at < input.samples.length; at += 12) {
+        if (words[at + 7] >= 64) this.groupedInput = false;
+        else this.frameWeights[words[at + 7]] += input.samples[at + 3];
+      }
+      owner?.sessions.add(this);
+      if (!owner) device.lost.then(() => {
         if (!this.closed) { this.failure = new Error("WebGPU edge device was lost"); this.destroy(); }
       });
-      device.addEventListener?.("uncapturederror", (event) => {
+      if (!owner) device.addEventListener?.("uncapturederror", (event) => {
         event.preventDefault();
         if (!this.closed) { this.failure = new Error("WebGPU edge uncaptured device error"); this.destroy(); }
       });
       const make = (size, usage) => {
         const buffer = device.createBuffer({ size: Math.max(4, size), usage });
         this.buffers.push(buffer);
+        if (owner) {
+          owner.allocatedBytes += buffer.size;
+          owner.peakAllocatedBytes = Math.max(owner.peakAllocatedBytes, owner.allocatedBytes);
+        }
         return buffer;
       };
       const upload = (data, usage) => {
@@ -184,35 +202,60 @@ fn reduce(@builtin(workgroup_id) group: vec3u, @builtin(local_invocation_index) 
       new Float32Array(parameters, 0, 12).set(input.camera.subarray(0, 12));
       new Uint32Array(parameters, 48, 8).set([count, this.groups, 0, input.camera[12], input.camera[13], 0, 0, 0]);
       const cameraBuffer = upload(new Uint8Array(parameters), GPUBufferUsage.UNIFORM);
+      this.cameraBuffer = cameraBuffer;
       this.partialBuffer = make(CAPACITY * this.groups * 4, GPUBufferUsage.STORAGE);
       this.scoreBuffer = make(CAPACITY * 4, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
       this.readBuffer = make(CAPACITY * 4, GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
-      const layout = device.createBindGroupLayout({ entries: [
+      const layout = owner?.bindingLayout || device.createBindGroupLayout({ entries: [
         ...[0, 1, 2].map((binding) => ({ binding, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } })),
         { binding: 3, visibility: GPUShaderStage.COMPUTE, buffer: { type: "uniform" } },
         ...[4, 5].map((binding) => ({ binding, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } })),
       ] });
-      this.layout = device.createPipelineLayout({ bindGroupLayouts: [layout] });
+      this.layout = owner?.layout || device.createPipelineLayout({ bindGroupLayouts: [layout] });
+      if (owner) { owner.bindingLayout = layout; owner.layout = this.layout; }
       this.bindings = device.createBindGroup({ layout, entries: [pointBuffer, imageBuffer, this.poseBuffer, cameraBuffer, this.partialBuffer, this.scoreBuffer]
         .map((buffer, binding) => ({ binding, resource: { buffer } })) });
       this.allocatedBytes = this.buffers.reduce((sum, buffer) => sum + buffer.size, 0);
     }
 
     async initialize() {
-      const module = this.device.createShaderModule({ code: shader });
-      [this.projectPipeline, this.reducePipeline] = await Promise.all(["project", "reduce"].map((entryPoint) =>
-        this.device.createComputePipelineAsync({ layout: this.layout, compute: { module, entryPoint } })));
+      let pipelines = this.owner?.pipelines;
+      if (!pipelines) {
+        const module = this.device.createShaderModule({ code: shader });
+        pipelines = Promise.all(["project", "reduce"].map((entryPoint) =>
+          this.device.createComputePipelineAsync({ layout: this.layout, compute: { module, entryPoint } })));
+        if (this.owner) this.owner.pipelines = pipelines;
+      }
+      [this.projectPipeline, this.reducePipeline] = await pipelines;
     }
 
-    async scoreMany(rows) {
+    async scoreMany(rows, selection = null) {
       if (this.closed || this.failure) throw this.failure || new Error("WebGPU edge objective is closed");
-      if (this.busy) throw new Error("overlapping WebGPU edge batches are not supported");
+      if (this.busy || this.owner?.busy) throw new Error("overlapping WebGPU edge batches are not supported");
       if (!(rows instanceof Float32Array) || rows.length % 12 || !rows.every(Number.isFinite)) {
         throw new TypeError("poses must be finite Float32Array rows of 3 by 4 matrices");
       }
+      let denominator = this.totalWeight;
+      if (selection) {
+        const { low, high, totalWeight } = selection;
+        if (!this.groupedInput || ![low, high].every((x) => Number.isInteger(x) && x >= 0 && x <= 0xffffffff) || !Number.isFinite(totalWeight) || totalWeight <= 0) throw new RangeError("invalid WebGPU frame selection");
+        let sum = 0;
+        for (let frame = 0; frame < 64; frame++) {
+          if (((frame < 32 ? low : high) >>> (frame & 31)) & 1) sum += this.frameWeights[frame];
+        }
+        if (Math.abs(sum - totalWeight) > Math.max(1e-12, sum * 1e-12)) throw new RangeError("subset denominator differs from selected frame weights");
+        denominator = totalWeight;
+      }
       const output = new Float64Array(rows.length / 12);
       this.busy = true;
+      if (this.owner) this.owner.busy = true;
       try {
+        const key = selection ? selection.low + ":" + selection.high : null;
+        if (key !== this.selectionKey) {
+          this.device.queue.writeBuffer(this.cameraBuffer, 68,
+            new Uint32Array(selection ? [1, selection.low, selection.high] : [0, 0, 0]));
+          this.selectionKey = key;
+        }
         for (let from = 0; from < output.length; from += CAPACITY) {
           if (this.closed || this.failure) throw this.failure || new Error("WebGPU edge objective is closed");
           const size = Math.min(CAPACITY, output.length - from);
@@ -232,7 +275,7 @@ fn reduce(@builtin(workgroup_id) group: vec3u, @builtin(local_invocation_index) 
             this.device.queue.submit([encoder.finish()]);
             await withTimeout(this.readBuffer.mapAsync(GPUMapMode.READ, 0, size * 4), this.timeoutMs);
             const values = new Float32Array(this.readBuffer.getMappedRange(0, size * 4));
-            for (let index = 0; index < size; index++) output[from + index] = values[index] / this.totalWeight;
+            for (let index = 0; index < size; index++) output[from + index] = values[index] / denominator;
             this.readBuffer.unmap();
             const errorPromise = this.device.popErrorScope();
             scopeOpen = false;
@@ -246,18 +289,25 @@ fn reduce(@builtin(workgroup_id) group: vec3u, @builtin(local_invocation_index) 
         return output;
       } catch (error) {
         this.failure = error;
-        this.destroy();
+        if (this.owner) this.owner.fail(error);
+        else this.destroy();
         throw error;
-      } finally { this.busy = false; }
+      } finally { this.busy = false; if (this.owner) this.owner.busy = false; }
     }
 
     scoreFromPython(rows) { return this.scoreMany(copyPythonArray(rows)); }
+    scoreSubsetFromPython(rows, low, high, totalWeight) {
+      return this.scoreMany(copyPythonArray(rows), {low, high, totalWeight});
+    }
 
     destroy() {
       if (this.closed) return;
       this.closed = true;
       for (const buffer of this.buffers) buffer.destroy();
-      this.device.destroy();
+      if (this.owner) {
+        this.owner.sessions.delete(this);
+        this.owner.allocatedBytes -= this.buffers.reduce((sum, buffer) => sum + buffer.size, 0);
+      } else this.device.destroy();
     }
   }
 
@@ -295,14 +345,75 @@ fn reduce(@builtin(workgroup_id) group: vec3u, @builtin(local_invocation_index) 
     }
   }
 
-  function createFromPython(payload, options) {
+  function unpackPythonInput(payload) {
     const input = { totalWeight: payload.get("totalWeight") };
     for (const key of ["samples", "images", "camera"]) {
       const proxy = payload.get(key);
       try { input[key] = copyPythonArray(proxy); }
       finally { proxy.destroy(); }
     }
-    return create(input, options);
+    return input;
   }
-  globalThis.CalibrexEdgeGpu = { create, createFromPython };
+  function createFromPython(payload, options) { return create(unpackPythonInput(payload), options); }
+
+  // One device and pipeline pair for a complete asynchronous calibration. The
+  // caller releases objective buffers before uploading the next fold. A shared
+  // budget covers all live objectives; failures close the entire owned context.
+  async function createContext({ gpu = globalThis.navigator?.gpu, timeoutMs = 15000, maxResidentBytes = 256 * MIB } = {}) {
+    if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || !Number.isFinite(maxResidentBytes) || maxResidentBytes <= 0) throw new RangeError("invalid WebGPU resource limits");
+    if (!gpu) throw new Error("WebGPU is unavailable");
+    const adapter = await withTimeout(gpu.requestAdapter({ powerPreference: "high-performance" }), timeoutMs);
+    if (!adapter) throw new Error("WebGPU adapter is unavailable");
+    const pending = adapter.requestDevice();
+    let device;
+    try { device = await withTimeout(pending, timeoutMs); }
+    catch (error) { pending.then((late) => late.destroy(), () => {}); throw error; }
+    const context = {
+      device, timeoutMs, maxResidentBytes, sessions: new Set(), allocatedBytes: 0, peakAllocatedBytes: 0,
+      closed: false, busy: false, failure: null,
+      fallbackAdapter: adapter.info?.isFallbackAdapter ?? null,
+      async create(input) {
+        if (this.closed) throw this.failure || new Error("WebGPU edge context is closed");
+        if (this.busy) throw new Error("overlapping WebGPU edge operations are not supported");
+        const count = validateInput(input), groups = Math.ceil(count / GROUP);
+        const largest = Math.max(input.samples.byteLength, input.images.byteLength, CAPACITY * groups * 4, CAPACITY * 48);
+        const bytes = input.samples.byteLength + input.images.byteLength + CAPACITY * groups * 4 + CAPACITY * (48 + 8) + 80;
+        if (bytes + this.allocatedBytes > maxResidentBytes) throw new RangeError("WebGPU edge resident memory budget exceeded");
+        if (largest > Math.min(adapter.limits.maxStorageBufferBindingSize, 128 * MIB) || groups > 65535) throw new RangeError("WebGPU edge input exceeds portable device limits");
+        this.busy = true;
+        device.pushErrorScope("validation");
+        let scopeOpen = true;
+        try {
+          const session = new EdgeBatch(device, input, count, timeoutMs, this);
+          await withTimeout(session.initialize(), timeoutMs);
+          const errorPromise = device.popErrorScope(); scopeOpen = false;
+          const error = await withTimeout(errorPromise, timeoutMs);
+          if (error) throw new Error("WebGPU edge initialization failed: " + error.message);
+          if (this.closed || session.closed) throw this.failure || new Error("WebGPU edge context is closed");
+          session.fallbackAdapter = this.fallbackAdapter;
+          return session;
+        } catch (error) { this.fail(error); throw error; }
+        finally { if (scopeOpen) device.popErrorScope().catch(() => {}); this.busy = false; }
+      },
+      createFromPython(payload) { return this.create(unpackPythonInput(payload)); },
+      fail(error) {
+        this.failure = error;
+        for (const session of this.sessions) session.failure = error;
+        this.destroy();
+      },
+      destroy() {
+        if (this.closed) return;
+        this.closed = true;
+        for (const session of [...this.sessions]) session.destroy();
+        device.destroy();
+      },
+    };
+    device.lost.then(() => { if (!context.closed) context.fail(new Error("WebGPU edge device was lost")); });
+    device.addEventListener?.("uncapturederror", (event) => {
+      event.preventDefault();
+      if (!context.closed) context.fail(new Error("WebGPU edge uncaptured device error"));
+    });
+    return context;
+  }
+  globalThis.CalibrexEdgeGpu = { create, createFromPython, createContext };
 })();

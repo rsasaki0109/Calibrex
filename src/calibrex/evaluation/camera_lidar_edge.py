@@ -30,7 +30,7 @@ import math
 from collections.abc import Callable, Generator, Sequence
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Literal, TypeAlias
+from typing import Any, Literal, TypeAlias, TypeVar
 
 import numpy as np
 from numpy.typing import NDArray
@@ -325,12 +325,8 @@ def image_edge_response(
     # it is a smooth, slowly varying field and this is four times cheaper per step.
     pooled = edge[: edge.shape[0] // 2 * 2, : edge.shape[1] // 2 * 2]
     pooled = pooled.reshape(pooled.shape[0] // 2, 2, pooled.shape[1] // 2, 2).max(axis=(1, 3))
-    spread_small = pooled.copy()
-    front = pooled.copy()
     step = np.float32(gamma * gamma)
-    for _ in range(max(1, radius // 2)):
-        front = step * ndimage.maximum_filter(front, size=3)
-        np.maximum(spread_small, front, out=spread_small)
+    spread_small = _edge_spill(pooled, step, max(1, radius // 2))
     spread = np.repeat(np.repeat(spread_small, 2, axis=0), 2, axis=1)
     padded = np.pad(
         spread,
@@ -342,6 +338,36 @@ def image_edge_response(
     if background_sigma is not None:
         response = response - ndimage.gaussian_filter(response, background_sigma)
     return response.astype(np.float32), factor
+
+
+def _edge_spill(pooled: Float32Array, step: np.float32, iterations: int) -> Float32Array:
+    """The same rounded max-filter frontier with logarithmically many filters.
+
+    Write F for one 3x3 maximum followed by one float32 multiplication. Both
+    operations commute with maximum, and square maximum filters compose by
+    adding radii (including at reflected boundaries). If S_a = max(F^0..F^a),
+    then max(S_a, F^b(S_a)) covers every exponent 0..a+b whenever b <= a+1.
+    Grow by 1, 2, 4, ... and the remainder. Each skipped filter is replaced by
+    a wider one, but every float32 multiplication is retained, in order: using
+    step**b would change rounding. Default twenty iterations need five filters.
+    """
+
+    spread = pooled.copy()
+    if not np.isfinite(step) or not np.all(np.isfinite(pooled)):
+        front = pooled.copy()
+        for _ in range(iterations):
+            front = step * ndimage.maximum_filter(front, size=3)
+            np.maximum(spread, front, out=spread)
+        return spread
+    done = 0
+    while done < iterations:
+        width = min(done + 1, iterations - done)
+        front = ndimage.maximum_filter(spread, size=2 * width + 1)
+        for _ in range(width):
+            np.multiply(step, front, out=front)
+        np.maximum(spread, front, out=spread)
+        done += width
+    return spread
 
 
 def _ring_centers(elevation_deg: FloatArray) -> FloatArray:
@@ -742,6 +768,8 @@ class EdgeObjective:
     ) -> None:
         if not frames:
             raise ValueError("an objective needs at least one frame")
+        self._source_frames = tuple(frames)
+        self._source_start = start.copy()
         self.camera = camera
         rotation, translation = start[:3, :3], start[:3, 3]
         self._points = np.concatenate(
@@ -795,6 +823,62 @@ class EdgeObjective:
         return float(response @ self._weights[inside]) / self._total_weight
 
 
+@dataclass(frozen=True)
+class _EdgeScoreRequest:
+    """One scalar or an independent, ordered set of maximum candidates.
+
+    The synchronous driver evaluates every pose in its original order. An async
+    driver can batch the candidates, but must return the selected index and its
+    confirmed score. Consecutive line-search moves remain separate requests.
+    """
+
+    objective: EdgeObjective
+    theta: FloatArray
+    select_maximum: bool = False
+
+    def evaluate(self) -> float | tuple[int, float]:
+        values = [self.objective.score(pose) for pose in self.theta]
+        if self.select_maximum:
+            index = int(np.argmax(values))
+            return index, values[index]
+        return float(values[0])
+
+
+_EdgeReturn = TypeVar("_EdgeReturn")
+_EdgeReply: TypeAlias = float | tuple[int, float]
+_EdgeWorkflow: TypeAlias = Generator[_EdgeScoreRequest, _EdgeReply, _EdgeReturn]
+
+
+def _drive_edge_workflow(
+    workflow: _EdgeWorkflow[_EdgeReturn],
+    *,
+    observer: Callable[[_EdgeScoreRequest, _EdgeReply], None] | None = None,
+) -> _EdgeReturn:
+    try:
+        request = next(workflow)
+        while True:
+            reply = request.evaluate()
+            if observer is not None:
+                observer(request, reply)
+            request = workflow.send(reply)
+    except StopIteration as done:
+        return done.value  # type: ignore[no-any-return]
+    finally:
+        workflow.close()
+
+
+def _edge_score(objective: EdgeObjective, theta: FloatArray) -> _EdgeWorkflow[float]:
+    reply = yield _EdgeScoreRequest(objective, theta[np.newaxis, :])
+    assert isinstance(reply, float)
+    return reply
+
+
+def _edge_maximum(objective: EdgeObjective, theta: FloatArray) -> _EdgeWorkflow[tuple[int, float]]:
+    reply = yield _EdgeScoreRequest(objective, theta, select_maximum=True)
+    assert isinstance(reply, tuple)
+    return reply
+
+
 def search(
     objective: EdgeObjective,
     start: FloatArray,
@@ -805,8 +889,21 @@ def search(
 ) -> tuple[FloatArray, float]:
     """Coordinate search over ``axes``, coarse to fine, inside the bounds."""
 
+    return _drive_edge_workflow(
+        _search_workflow(objective, start, options, axes=axes, first_level=first_level)
+    )
+
+
+def _search_workflow(
+    objective: EdgeObjective,
+    start: FloatArray,
+    options: EdgeAlignmentOptions,
+    *,
+    axes: Sequence[int],
+    first_level: int = 0,
+) -> _EdgeWorkflow[tuple[FloatArray, float]]:
     theta = start.astype(np.float64).copy()
-    best = objective.score(theta)
+    best = yield from _edge_score(objective, theta)
     bounds = np.array([options.rotation_bound_deg] * 3 + [options.translation_bound_m] * 3)
     levels = list(zip(options.rotation_levels_deg, options.translation_levels_m, strict=True))
     for rotation_step, translation_step in levels[first_level:]:
@@ -814,7 +911,7 @@ def search(
         for _move in range(options.max_moves_per_level):
             # Steepest coordinate move: coarse steps on weakly constrained axes must not run
             # ahead of the strongly constrained ones, or the search drifts along valleys.
-            top: tuple[float, FloatArray] | None = None
+            trials: list[FloatArray] = []
             previous = theta
             for axis in axes:
                 for sign in (-1.0, 1.0):
@@ -822,19 +919,20 @@ def search(
                     trial[axis] += sign * steps[axis]
                     if abs(trial[axis]) > bounds[axis]:
                         continue
-                    value = objective.score(trial)
-                    if top is None or value > top[0]:
-                        top = (value, trial)
-            if top is None or top[0] <= best + options.min_gain:
+                    trials.append(trial)
+            if not trials:
                 break
-            best, theta = top
+            index, value = yield from _edge_maximum(objective, np.asarray(trials))
+            if value <= best + options.min_gain:
+                break
+            best, theta = value, trials[index]
             # Keep going in the direction that worked while it keeps improving.
             direction = theta - previous
             while True:
                 trial = theta + direction
                 if np.any(np.abs(trial) > bounds):
                     break
-                value = objective.score(trial)
+                value = yield from _edge_score(objective, trial)
                 if value <= best + options.min_gain:
                     break
                 best, theta = value, trial
@@ -856,10 +954,26 @@ def fit_extrinsic(
     right for the estimated rotation".
     """
 
-    theta, _ = search(objective, start, options, axes=(0, 1, 2), first_level=first_level)
+    return _drive_edge_workflow(_fit_workflow(objective, start, options, first_level=first_level))
+
+
+def _fit_workflow(
+    objective: EdgeObjective,
+    start: FloatArray,
+    options: EdgeAlignmentOptions,
+    *,
+    first_level: int = 0,
+) -> _EdgeWorkflow[tuple[FloatArray, float]]:
+    theta, _ = yield from _search_workflow(
+        objective, start, options, axes=(0, 1, 2), first_level=first_level
+    )
     if not options.estimate_translation:
-        return theta, objective.score(theta)
-    return search(objective, theta, options, axes=(3, 4, 5), first_level=first_level)
+        return theta, (yield from _edge_score(objective, theta))
+    return (
+        yield from _search_workflow(
+            objective, theta, options, axes=(3, 4, 5), first_level=first_level
+        )
+    )
 
 
 # ---------------------------------------------------------------------- the estimate
@@ -910,6 +1024,35 @@ def estimate_from_frames(
     (see :mod:`calibrex.evaluation.camera_lidar_motion`); ``None`` means not at all.
     """
 
+    return _drive_edge_workflow(
+        _estimate_workflow(
+            frames,
+            camera,
+            candidate,
+            options=options,
+            provenance=provenance,
+            parent_frame=parent_frame,
+            child_frame=child_frame,
+            reference_label=reference_label,
+            start_note=start_note,
+            motion_compensation=motion_compensation,
+        )
+    )
+
+
+def _estimate_workflow(
+    frames: Sequence[CameraLidarFrame],
+    camera: EdgeCamera,
+    candidate: FloatArray,
+    *,
+    options: EdgeAlignmentOptions | None = None,
+    provenance: CameraLidarEdgeProvenance,
+    parent_frame: str = "camera",
+    child_frame: str = "lidar",
+    reference_label: str | None = None,
+    start_note: str | None = None,
+    motion_compensation: CameraLidarEdgeMotion | None = None,
+) -> _EdgeWorkflow[CameraLidarEdgeArtifact]:
     opts = options or EdgeAlignmentOptions()
     prepared, dropped = prepare_frames(frames, camera, candidate, opts)
     limitations = list(LIMITATIONS)
@@ -975,9 +1118,9 @@ def estimate_from_frames(
 
     objective = EdgeObjective(prepared, camera, candidate)
     zero_theta = np.zeros(6)
-    start_score = objective.score(zero_theta)
+    start_score = yield from _edge_score(objective, zero_theta)
     emit_stage("camera-lidar: maximising the edge-alignment objective")
-    theta, score = fit_extrinsic(objective, zero_theta, opts)
+    theta, score = yield from _fit_workflow(objective, zero_theta, opts)
     blocks = _block_slices(len(prepared), opts.blocks)
     block_objectives = [
         EdgeObjective([prepared[i] for i in block], camera, candidate) for block in blocks
@@ -985,25 +1128,25 @@ def estimate_from_frames(
     std_floor = 0.5 * np.array(
         [opts.rotation_levels_deg[-1]] * 3 + [opts.translation_levels_m[-1]] * 3
     )
-    fit_array, jackknife, controls = _evidence(
+    fit_array, jackknife, controls = yield from _evidence_workflow(
         prepared, camera, candidate, theta, blocks, block_objectives, opts
     )
     start_reason: str | None = None
     observed = _observed_rotation_axes(theta, jackknife, controls, std_floor, opts)
     candidate_observed = len(observed)
     tried = [theta[:3].copy()]
-    for scan_start in _profile_starts(_profile_start(objective, opts)):
+    for scan_start in _profile_starts((yield from _profile_workflow(objective, opts))):
         emit_stage(
             "camera-lidar: searching from the profile maxima "
             f"({', '.join(f'{v:+.1f}' for v in scan_start[:3])} deg)"
         )
-        widened, widened_score = fit_extrinsic(objective, scan_start, opts)
+        widened, widened_score = yield from _fit_workflow(objective, scan_start, opts)
         if any(
             np.all(np.abs(widened[:3] - seen) <= opts.rotation_levels_deg[-1]) for seen in tried
         ):
             continue  # an optimum already weighed
         tried.append(widened[:3].copy())
-        widened_evidence = _evidence(
+        widened_evidence = yield from _evidence_workflow(
             prepared, camera, candidate, widened, blocks, block_objectives, opts
         )
         widened_observed = _observed_rotation_axes(
@@ -1144,13 +1287,27 @@ def _evidence(
 ) -> tuple[FloatArray, FloatArray, list[CameraLidarEdgeControl]]:
     """Leave-one-block-out fits around ``theta``, their jackknife std and the controls."""
 
+    return _drive_edge_workflow(
+        _evidence_workflow(prepared, camera, candidate, theta, blocks, block_objectives, options)
+    )
+
+
+def _evidence_workflow(
+    prepared: Sequence[PreparedFrame],
+    camera: EdgeCamera,
+    candidate: FloatArray,
+    theta: FloatArray,
+    blocks: Sequence[range],
+    block_objectives: Sequence[EdgeObjective],
+    options: EdgeAlignmentOptions,
+) -> _EdgeWorkflow[tuple[FloatArray, FloatArray, list[CameraLidarEdgeControl]]]:
     fits: list[FloatArray] = []
     for index, block in enumerate(blocks):
         emit_stage(f"camera-lidar: jackknife fit {index + 1}/{len(blocks)}")
         held = set(block)
         kept = [prepared[i] for i in range(len(prepared)) if i not in held]
         fold = EdgeObjective(kept, camera, candidate)
-        fold_theta, _ = fit_extrinsic(
+        fold_theta, _ = yield from _fit_workflow(
             fold, theta, options, first_level=options.jackknife_first_level
         )
         fits.append(fold_theta)
@@ -1165,7 +1322,11 @@ def _evidence(
     jackknife = np.sqrt(
         (count - 1) / count * np.sum((components - components.mean(axis=0)) ** 2, axis=0)
     )
-    return fit_array, jackknife, _controls(block_objectives, fit_array, options)
+    return (
+        fit_array,
+        jackknife,
+        (yield from _controls_workflow(block_objectives, fit_array, options)),
+    )
 
 
 def _observed_rotation_axes(
@@ -1190,6 +1351,12 @@ def _observed_rotation_axes(
 def _profile_start(objective: EdgeObjective, options: EdgeAlignmentOptions) -> FloatArray | None:
     """Per rotation axis, the maximum of the objective profile through the candidate."""
 
+    return _drive_edge_workflow(_profile_workflow(objective, options))
+
+
+def _profile_workflow(
+    objective: EdgeObjective, options: EdgeAlignmentOptions
+) -> _EdgeWorkflow[FloatArray | None]:
     if options.start_scan_deg is None:
         return None
     emit_stage("camera-lidar: profiling the objective along each rotation axis")
@@ -1200,12 +1367,10 @@ def _profile_start(objective: EdgeObjective, options: EdgeAlignmentOptions) -> F
     )
     start = np.zeros(6)
     for axis in range(3):
-        values = []
-        for offset in offsets:
-            theta = np.zeros(6)
-            theta[axis] = offset
-            values.append(objective.score(theta))
-        start[axis] = float(offsets[int(np.argmax(values))])
+        poses = np.zeros((len(offsets), 6))
+        poses[:, axis] = offsets
+        index, _score = yield from _edge_maximum(objective, poses)
+        start[axis] = float(offsets[index])
     return start
 
 
@@ -1281,7 +1446,15 @@ def _controls(
     blocks; the control is detected when both directions reach ``min_control_t``.
     """
 
-    base = [objective.score(fit) for objective, fit in zip(block_objectives, fits, strict=True)]
+    return _drive_edge_workflow(_controls_workflow(block_objectives, fits, options))
+
+
+def _controls_workflow(
+    block_objectives: Sequence[EdgeObjective], fits: FloatArray, options: EdgeAlignmentOptions
+) -> _EdgeWorkflow[list[CameraLidarEdgeControl]]:
+    base = []
+    for objective, fit in zip(block_objectives, fits, strict=True):
+        base.append((yield from _edge_score(objective, fit)))
     count = len(block_objectives)
     result: list[CameraLidarEdgeControl] = []
     for axis in range(6):
@@ -1291,7 +1464,7 @@ def _controls(
             for row, sign in enumerate((-1.0, 1.0)):
                 shifted = fit.copy()
                 shifted[axis] += sign * amount
-                drops[row, block] = base[block] - objective.score(shifted)
+                drops[row, block] = base[block] - (yield from _edge_score(objective, shifted))
         means = drops.mean(axis=1)
         errors = drops.std(axis=1, ddof=1) / math.sqrt(count)
         statistics = np.where(errors > 0.0, means / np.where(errors > 0.0, errors, 1.0), 0.0)
