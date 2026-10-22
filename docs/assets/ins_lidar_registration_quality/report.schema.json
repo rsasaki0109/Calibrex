@@ -1,0 +1,44 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "calibrex.ins_registration_quality_development/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "case_id": {
+      "title": "Case Id",
+      "type": "string"
+    },
+    "failed_registration_edges": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Failed Registration Edges",
+      "type": "array"
+    },
+    "results": {
+      "additionalProperties": true,
+      "title": "Results",
+      "type": "object"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    }
+  },
+  "required": [
+    "scope",
+    "case_id",
+    "failed_registration_edges",
+    "results",
+    "provenance"
+  ],
+  "title": "Report",
+  "type": "object"
+}

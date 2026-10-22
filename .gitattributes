@@ -338,3 +338,6 @@ docs/assets/screw_gyro_clock/*.md text eol=lf
 
 # CI failure excerpts retain original timestamped blank-line whitespace.
 docs/assets/screw_gyro_clock/initial-ci-*.txt -text whitespace=-blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+
+# Preserve the byte-bound post hoc INS-LiDAR comparison artifacts.
+docs/assets/ins_lidar_registration_quality/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

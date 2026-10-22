@@ -200,6 +200,14 @@ isolated. Use these spent windows to study informative motion, registration
 stability and a declared data-sufficiency policy. A new claim needs new held-out
 recordings and a new registration; no v1 gate or verdict may be relaxed.
 
+The [post hoc registration-quality comparison](research/ins_lidar_registration_quality.md)
+excludes four motions crossing the two unconverged scan registrations in 0071.
+It still observes zero rotation axes; uncertainty changes are small. The new
+`exclude_failed_registrations` option remains opt-in (default false), and this
+negative development result does not revise the v1 audit. Study errors in the
+remaining motions and block stability next; do not treat this filter as a
+demonstrated calibration improvement.
+
 The published protocol replays the six achieved and two contradicted gates
 without sensor data. No calibration rerun is needed to reproduce the verdict.
 
