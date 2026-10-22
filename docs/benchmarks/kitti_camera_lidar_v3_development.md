@@ -176,17 +176,71 @@ with all six actual injections, exact image/point/time round trips, corruption,
 recipe migration, parity mismatches and preservation of solver/missing-input
 failures. No synthetic metrics are used as the 55-drive development measurements.
 
+## Native spent-data pilot, 2026-10-23
+
+The first real capture/replay pilot completed on **one of 55** spent drives,
+`2011_09_26_0005`. Its 154 frames were fetched using the original archive's
+size/ETag and the published calibration ZIP hash. The selected streams required
+432,575,704 bytes, below the 512 MiB acquisition cap. No new evaluation data
+was read. The pilot's source is `c43cc7df`; it is development, not an audit.
+
+The first attempt at `3c3e1234` stopped before estimation in all seven checks:
+the capture guard compared the rounded calibration matrix directly with its
+quaternion-serialized TF representation. On the real baseline their maximum
+matrix-element difference is `2.280962807521547e-8`, above the guard's `1e-8`.
+The [original failure](../assets/kitti_camera_lidar_v3/native_pilot_0005/attempt_1/report.json)
+and all seven failed-check receipts remain published.
+
+Conversion now also records `camera.t_imu_velo`. The replay tool reconstructs
+both TF edges using the converter's quaternion serialization before composing
+the reference. The original `camera.t_cam_velo`, candidate guard tolerance,
+estimator, scoring rules and audit gates are unchanged. A rounded calibration
+without the extra provenance requires bag regeneration; legacy exact-rigid
+snapshots remain readable. Regressions check decimal-rounded calibration,
+all seven candidate/injection identities and refusal of a wrong candidate.
+
+The retry verified all **468** retained members against their size/CRC and used
+zero additional download bytes. It generated a new bag and separate output
+directory, preserving the failed attempt. Seven real checks and fourteen
+re-estimations completed. Every current-rule replay matched the captured
+numerical evidence within `1e-9` and the native verdicts. The
+[paired report](../assets/kitti_camera_lidar_v3/native_pilot_0005/attempt_2/comparison/comparison.json)
+deliberately says `incomplete`, with no audit thresholds.
+
+| Measure on 0005 only | Current rule | Proposed 3.5 margin |
+| --- | ---: | ---: |
+| Baseline judged axes | 3/3 | 3/3 |
+| Baseline flagged | no | no |
+| Maximum judged baseline error | 0.1000 deg | 0.1000 deg |
+| Maximum judged turned-run error | 0.1009 deg | 0.1009 deg |
+| 1 deg turns flagged | 3/3 | 3/3 |
+| 3 deg turns flagged | 3/3 | 3/3 |
+| Turned axes incorrectly judged right | 0/6 | 0/6 |
+
+Coverage change is zero percentage points. There is **no measured improvement
+on this drive**; it validates the real comparison pipeline. It cannot resolve
+the v2 failures on other recordings or replace the all-55 denominator above.
+
+Separate [failure](../assets/kitti_camera_lidar_v3/native_pilot_0005/attempt_1/manifest.json)
+and [retry](../assets/kitti_camera_lidar_v3/native_pilot_0005/attempt_2/manifest.json)
+manifests pin all public receipts and exact producer/source capsules by SHA-256.
+Snapshot JSONs pin each private NPZ input; images, clouds, bags and NPZ files
+are not republished. The retry's roughly 0.7 GB of exact input arrays stays
+local for subsequent comparisons. Report schemas and committed integrity tests
+check the failure/retry chain, native/replay parity and source bindings.
+
 ## Work still required before pre-registration
 
 The [2026-10-23 local recheck](kitti360_camera_lidar_v3_access.md) verified
 official KITTI-360 access and exact metadata ranges for 21 archives.
 Published-pose and opt-in raw-OXTS conversion each passed on three frames from
 spent 0000 and 0002. The earlier cloud HTTP 403 is historical evidence.
-No local 55-drive replay inputs have been found; conversion checks are not
-calibration measurements.
+The 0005 native pilot above provides the first real replay inputs; the other
+54 spent drives still need capture and paired comparison. KITTI-360 conversion
+checks are not calibration measurements.
 
-Before step 3 can finish, regenerate estimator inputs from the 55 spent raw
-drives, compare both rules on the same inputs, then confirm via the real
+Before step 3 can finish, regenerate the remaining estimator inputs from the
+55 spent raw drives, compare both rules on the same inputs, then confirm via the real
 driver. Record every measure in the table above, including coverage loss and
 missed turns. Validate any additional converter behavior on spent data.
 

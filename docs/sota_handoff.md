@@ -220,10 +220,16 @@ v1 failed the same way, one notch lower.
 margin well above the bound (for example `t` >= 3.5), or agree with the candidate
 optimum on the axes both observe. Weigh coverage: v2 already judges about 80 % of axes.
 
-**Development data.** Every KITTI raw drive (55, all spent). Saving the baseline
-estimator's inputs and re-estimating them in memory screened rules in minutes; the
-scripts were scratch-only, so rebuild them. Then confirm with real runs through the
-driver.
+**Development data.** Every KITTI raw drive (55, all spent). The existing
+`tools/kitti_camera_lidar_v3_replay.py` captures seven real checks per drive and
+compares both rules on identical saved inputs. The
+[2026-10-23 native pilot](benchmarks/kitti_camera_lidar_v3_development.md#native-spent-data-pilot-2026-10-23)
+completed 0005 with exact replay parity and no difference between rules. An
+initial rounded-calibration guard failure is retained; the retry reconstructs
+the converter's quaternion TF edges without relaxing its tolerance. **1/55 is
+not a completed development comparison or evidence of improvement.** Capture
+the remaining 54, retain failures, then confirm the selected rule through the
+real driver. Preserve the local NPZ inputs and check free space before batches.
 
 **Evaluation candidates.** KITTI-360 (another car, sensor set and calibration) is the
 natural choice: sequences 0004-0007, 0009 and 0010, subject to completing the exposure
