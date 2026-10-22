@@ -1,0 +1,86 @@
+"""Publish numerical probes and byte-pinned sources, without sensor payloads."""
+import hashlib
+import json
+import shutil
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+ROOT = Path(__file__).resolve().parents[1]
+PRIVATE = ROOT / "outputs/camera-lidar-conditional-axis-batch-v1"
+PUBLIC = ROOT / "docs/assets/kitti_camera_lidar_v3/conditional_axis_probe"
+PREVIOUS = ROOT / "docs/assets/kitti_camera_lidar_v3/native_development_20110928_0002/attempt_1"
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+class Strict(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class Run(Strict):
+    drive: str
+    run: str
+    report: str
+    report_sha256: str
+    elapsed_s: float = Field(ge=0)
+
+
+class Batch(Strict):
+    schema_version: Literal["calibrex.camera_lidar_conditional_axis_batch/v0.1"]
+    status: Literal["complete_diagnostic_only"]
+    runs: list[Run] = Field(min_length=14, max_length=14)
+    errors: dict
+    provenance: dict
+
+
+class File(Strict):
+    path: str
+    bytes: int = Field(ge=0)
+    sha256: str = Field(pattern="^[0-9a-f]{64}$")
+
+
+class Manifest(Strict):
+    schema_version: Literal["calibrex.conditional_axis_publication/v0.1"]
+    provenance: dict
+    files: list[File]
+
+
+batch = Batch.model_validate_json((PRIVATE / "report.json").read_bytes())
+assert not batch.errors
+assert batch.provenance["generator_sha256"] == sha(ROOT / "outputs/camera-lidar-conditional-axis-batch-v1.py")
+for source, digest in batch.provenance["frozen_sources_sha256"].items():
+    name = "replay" if Path(source).name == "kitti_camera_lidar_v3_replay.py" else "estimator"
+    if "axis_probe" in source:
+        assert digest == sha(PRIVATE / "probe-source.py.txt")
+    else:
+        assert digest == sha(PREVIOUS / f"{name}-source.py.txt")
+PUBLIC.mkdir(exist_ok=False)
+shutil.copyfile(PRIVATE / "report.json", PUBLIC / "report.json")
+(PUBLIC / "report.schema.json").write_text(json.dumps(Batch.model_json_schema(), indent=2), encoding="utf-8")
+schema = (PRIVATE / batch.runs[0].report).parent / "report.schema.json"
+shutil.copyfile(schema, PUBLIC / "probe.schema.json")
+for run in batch.runs:
+    source = PRIVATE / run.report
+    assert source.resolve().is_relative_to(PRIVATE.resolve()) and sha(source) == run.report_sha256
+    assert (source.parent / "report.schema.json").read_bytes() == schema.read_bytes()
+    target = PUBLIC / run.report
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(source, target)
+shutil.copyfile(PRIVATE / "probe-source.py.txt", PUBLIC / "probe-source.py.txt")
+shutil.copyfile(ROOT / "outputs/camera-lidar-conditional-axis-batch-v1.py", PUBLIC / "producer-source.py.txt")
+shutil.copyfile(Path(__file__), PUBLIC / "publication-source.py.txt")
+(PUBLIC / "manifest.schema.json").write_text(json.dumps(Manifest.model_json_schema(), indent=2), encoding="utf-8")
+manifest = Manifest(
+    schema_version="calibrex.conditional_axis_publication/v0.1",
+    provenance={
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "generator_sha256": sha(Path(__file__)), "sensor_payload_published": False,
+        "shared_source_capsules": "../native_development_20110928_0002/attempt_1/{replay,estimator}-source.py.txt",
+    },
+    files=[File(path=p.relative_to(PUBLIC).as_posix(), bytes=p.stat().st_size, sha256=sha(p))
+           for p in sorted(PUBLIC.rglob("*")) if p.is_file()],
+)
+(PUBLIC / "manifest.json").write_text(manifest.model_dump_json(indent=2), encoding="utf-8")
+print(len(manifest.files), "files", sum(f.bytes for f in manifest.files), "bytes")

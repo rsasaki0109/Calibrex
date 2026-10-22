@@ -1,0 +1,206 @@
+{
+  "$defs": {
+    "AxisProbe": {
+      "additionalProperties": false,
+      "properties": {
+        "axis": {
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Axis",
+          "type": "integer"
+        },
+        "correction_deg": {
+          "title": "Correction Deg",
+          "type": "number"
+        },
+        "conditional_std_deg": {
+          "minimum": 0,
+          "title": "Conditional Std Deg",
+          "type": "number"
+        },
+        "conditional_control": {
+          "$ref": "#/$defs/CameraLidarEdgeControl"
+        },
+        "at_search_bound": {
+          "title": "At Search Bound",
+          "type": "boolean"
+        },
+        "nuisance": {
+          "items": {
+            "$ref": "#/$defs/NuisanceProbe"
+          },
+          "title": "Nuisance",
+          "type": "array"
+        },
+        "nuisance_correction_span_deg": {
+          "minimum": 0,
+          "title": "Nuisance Correction Span Deg",
+          "type": "number"
+        },
+        "reference_error_deg": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Error Deg"
+        }
+      },
+      "required": [
+        "axis",
+        "correction_deg",
+        "conditional_std_deg",
+        "conditional_control",
+        "at_search_bound",
+        "nuisance",
+        "nuisance_correction_span_deg"
+      ],
+      "title": "AxisProbe",
+      "type": "object"
+    },
+    "CameraLidarEdgeControl": {
+      "additionalProperties": false,
+      "description": "Held-out objective drop after shifting one DoF of the fit in both directions.",
+      "properties": {
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        },
+        "unit": {
+          "enum": [
+            "deg",
+            "m"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "held_out_blocks": {
+          "minimum": 0,
+          "title": "Held Out Blocks",
+          "type": "integer"
+        },
+        "detected_blocks": {
+          "minimum": 0,
+          "title": "Detected Blocks",
+          "type": "integer"
+        },
+        "mean_objective_drop": {
+          "title": "Mean Objective Drop",
+          "type": "number"
+        },
+        "min_t_statistic": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "smaller of the two directions' one-sided t statistics of the per-block objective drops",
+          "title": "Min T Statistic"
+        },
+        "detected": {
+          "title": "Detected",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "amount",
+        "unit",
+        "held_out_blocks",
+        "detected_blocks",
+        "mean_objective_drop",
+        "detected"
+      ],
+      "title": "CameraLidarEdgeControl",
+      "type": "object"
+    },
+    "NuisanceProbe": {
+      "additionalProperties": false,
+      "properties": {
+        "fixed_axis": {
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Fixed Axis",
+          "type": "integer"
+        },
+        "fixed_offset_deg": {
+          "title": "Fixed Offset Deg",
+          "type": "number"
+        },
+        "active_correction_deg": {
+          "title": "Active Correction Deg",
+          "type": "number"
+        }
+      },
+      "required": [
+        "fixed_axis",
+        "fixed_offset_deg",
+        "active_correction_deg"
+      ],
+      "title": "NuisanceProbe",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "calibrex.camera_lidar_conditional_axis_probe/v0.1",
+      "default": "calibrex.camera_lidar_conditional_axis_probe/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "running",
+        "complete",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Error"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    },
+    "probes": {
+      "items": {
+        "$ref": "#/$defs/AxisProbe"
+      },
+      "title": "Probes",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "status",
+    "provenance"
+  ],
+  "title": "ProbeReport",
+  "type": "object"
+}

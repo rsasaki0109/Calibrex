@@ -265,6 +265,16 @@ different start/axis evidence rule on cached spent inputs before spending
 disk and bandwidth on the remaining batch. Do not simply relax the two-axis
 requirement: the earlier 0056 single-axis false estimate motivated that guard.
 
+The [conditional-axis probe](benchmarks/kitti_camera_lidar_v3_development.md#conditional-axis-development-probe)
+then ran all 14 cached inputs (42 one-axis fits). It recovers pitch +3 on
+0002 with +0.15 deg active-axis reference error and t=3.3036, but a conditional
+std of 0.0417 deg hides a 7.8 deg nuisance-sweep span. All 18 fits meeting the
+ordinary conditional evidence conditions have active-axis error at most 0.15
+deg, yet these separate fits are not joint observability, native verdicts or
+a promoted method. The tool and byte-bound batch are available for research;
+account for uncertain nuisance axes before adoption. No fresh data was read;
+capture progress stays 2/55 and 53 remain.
+
 **Evaluation candidates.** KITTI-360 (another car, sensor set and calibration) is the
 natural choice: sequences 0004-0007, 0009 and 0010, subject to completing the exposure
 audit. Sequence 0003 is spent: the research plan already records a development capture.

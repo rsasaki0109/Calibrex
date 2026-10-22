@@ -326,6 +326,65 @@ different start-selection or axis-evidence rule on cached spent inputs, with
 coverage and injected-turn detection measured together. These traces establish
 a failure mechanism, not a new calibration method, new threshold or SOTA claim.
 
+## Conditional-axis development probe
+
+`tools/kitti_camera_lidar_axis_probe.py` tests a different search model: fit
+one rotation coordinate while fixing the other five coordinates at the supplied
+candidate. It profiles the existing range, refines the maximum, refits only
+that coordinate in each leave-one-block-out fold, and records its held-out
+control. It also repeats the full profile/refinement after fixing each other
+rotation coordinate at plus/minus the existing 2 deg control amount. No new
+confidence or sensitivity threshold is selected. This is a research diagnostic,
+not an estimator/check backend; separate coordinate fits are not composed into
+a calibration transform or native verdict.
+
+```bash
+python -m tools.kitti_camera_lidar_axis_probe SAVED_SNAPSHOT --output NEW_DIRECTORY
+```
+
+The [fixed batch](../assets/kitti_camera_lidar_v3/conditional_axis_probe/report.json)
+ran on all seven cached inputs from each of 0005 and 0002: **14 inputs, 42
+conditional-axis fits**, with no acquisition or estimation failures. The
+parent commit is `ca55d701`; the then-uncommitted tool is separately pinned by
+its exact source SHA-256 and capsule. Reference errors are computed after
+fitting, undoing the capture's recorded injection; no reference enters search
+or controls. The [manifest](../assets/kitti_camera_lidar_v3/conditional_axis_probe/manifest.json)
+binds reports, schemas and sources, about 140 KB excluding the manifest.
+Sensor payloads remain local. The batch producer asserts unchanged Git HEAD
+and source bytes through completion.
+
+| Conditional fit | Correction | Active-axis reference error | Conditional std | Control t | Nuisance correction span |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 0002, pitch +3, fit pitch | -2.85 deg | +0.15 deg | 0.0417 deg | 3.3036 | 7.80 deg |
+| 0002, yaw +3, fit yaw | -2.95 deg | +0.05 deg | 0.0417 deg | 0.8925 | 9.05 deg |
+| 0005, baseline, fit pitch | -0.10 deg | -0.10 deg | 0.0250 deg | see receipt | 5.65 deg |
+
+Using only the existing ordinary evidence conditions (detected control,
+conditional std at most 0.5 deg, no search bound), 15 of 21 conditional fits
+on 0005 and 3 of 21 on 0002 qualify. All 18 have active-axis reference errors
+at most 0.15 deg on these selected cached inputs. The near-inverse pitch
+correction is promising, but this is **not a measured gain in joint calibration
+accuracy or a new SOTA result**. A correct yaw correction with a failed control
+still supplies no evidence to report yaw. There is no native detection rate
+from these separate fits, and no new drive has been captured.
+
+The large nuisance spans show why conditional precision cannot establish
+joint observability: pitch +3 on 0002 has a conditional std of just 0.0417 deg
+yet its optimum moves across a 7.8 deg range when other axes are perturbed.
+Even accurate baseline pitch on 0005 spans 5.65 deg. These spans include full
+searches that may reach a bound; they are sensitivity probes, not uncertainty
+intervals. A coupled synthetic ridge likewise passes conditional controls and
+has 0.025 deg conditional std while the nuisance optimum spans 4 deg; the
+uncoupled synthetic case spans zero. Tests retain both cases to prevent
+mistaking conditional precision for joint identifiability.
+
+The next algorithmic question is how to preserve useful axis evidence while
+accounting for uncertain nuisance coordinates, with explicit coverage and
+injected-turn detection costs. Neither the single-axis fit nor a threshold
+on its nuisance span is promoted from these two recordings. The earlier 0056
+false optimum and the remaining 53-drive comparison still need to be covered
+before any adoption decision.
+
 ## Work still required before pre-registration
 
 The [2026-10-23 local recheck](kitti360_camera_lidar_v3_access.md) verified

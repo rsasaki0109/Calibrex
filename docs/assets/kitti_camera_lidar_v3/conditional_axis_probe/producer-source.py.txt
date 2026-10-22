@@ -1,0 +1,71 @@
+"""Fixed two-drive, all-seven-input post hoc diagnostic; no threshold selection."""
+import hashlib
+import json
+import shutil
+import subprocess
+import sys
+import time
+import traceback
+from datetime import datetime, timezone
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path[:0] = [str(ROOT), str(ROOT / "src")]
+from tools import kitti_camera_lidar_axis_probe as probe
+from tools import kitti_camera_lidar_v3_replay as replay
+from calibrex.evaluation import camera_lidar_edge as edge
+
+OUT = ROOT / "outputs/camera-lidar-conditional-axis-batch-v1"
+COMMIT = "ca55d701589f42b43c43065d2d074fea2464d6db"
+INPUTS = {
+    "2011_09_26_0005": ROOT / "outputs/camera-lidar-v3-spent-0005-v2/snapshots/2011_09_26_0005",
+    "2011_09_28_0002": ROOT / "outputs/camera-lidar-v3-spent-20110928-0002-v1/snapshots/2011_09_28_0002",
+}
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+assert subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip() == COMMIT
+OUT.mkdir(exist_ok=False)
+frozen = {str(p.relative_to(ROOT)): sha(p) for p in [Path(probe.__file__), Path(replay.__file__), Path(edge.__file__)]}
+for module, name in [(probe, "probe"), (replay, "replay"), (edge, "estimator")]:
+    shutil.copyfile(module.__file__, OUT / f"{name}-source.py.txt")
+report = {
+    "schema_version": "calibrex.camera_lidar_conditional_axis_batch/v0.1",
+    "status": "running", "runs": [], "errors": {},
+    "provenance": {
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "parent_commit": COMMIT, "uncommitted_probe_pinned_by_sha256": True,
+        "generator_sha256": sha(Path(__file__)), "frozen_sources_sha256": frozen,
+        "selection": "both cached spent drives, all seven existing inputs each; post hoc development",
+        "new_accuracy_claim": False, "new_evaluation_started": False,
+        "threshold_selection": False, "expected_inputs": 14,
+    },
+}
+
+
+def write():
+    (OUT / "report.json").write_text(json.dumps(report, indent=2, allow_nan=False), encoding="utf-8")
+
+
+write()
+for drive, root in INPUTS.items():
+    for run in replay.RUNS:
+        start = time.monotonic()
+        try:
+            relative = f"{drive}/{run}"
+            result = probe.probe_snapshot(root / run, OUT / relative)
+            assert result.status == "complete"
+            report["runs"].append({
+                "drive": drive, "run": run, "report": relative + "/report.json",
+                "report_sha256": sha(OUT / relative / "report.json"),
+                "elapsed_s": time.monotonic() - start,
+            })
+            print(drive, run, "PASS", round(time.monotonic() - start, 2), flush=True)
+        except Exception as exc:
+            report["errors"][f"{drive}/{run}"] = f"{type(exc).__name__}: {exc}"
+            traceback.print_exc()
+        write()
+assert all(sha(ROOT / name) == digest for name, digest in frozen.items()), "source mutated"
+assert subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip() == COMMIT
+report["status"] = "complete_diagnostic_only" if len(report["runs"]) == 14 and not report["errors"] else "failed"
+write()
+if report["status"] == "failed":
+    raise SystemExit(1)
