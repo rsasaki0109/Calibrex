@@ -548,6 +548,7 @@ def _camera_setup(
             "k": list(k),
             "rectified_baseline_m": [float(v) for v in baseline],
             "t_cam_velo": [[float(v) for v in row] for row in t_cam_velo],
+            "t_imu_velo": [[float(v) for v in row] for row in vendor],
             "convention": "tf imu_link->frame is T_imu_cam = T_imu_velo * inv(T_cam_velo); "
             "T_cam_velo = [I|baseline] * R_rect_00 * [R|T] of calib_velo_to_cam.txt",
         },

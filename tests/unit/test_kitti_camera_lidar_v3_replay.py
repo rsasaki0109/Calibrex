@@ -13,6 +13,8 @@ from tests.unit.test_camera_lidar_edge import CAMERA, _frames, _provenance
 from tests.unit.test_kitti_raw_to_rosbag2 import _write_sweep_stamps, add_camera, write_drive
 from tests.unit.test_score_hilti_camera_camera import _load
 
+from calibrex.check.tf_sources import load_bag_tf_static
+from calibrex.data.kitti_ins_lidar import se3_matrix
 from calibrex.data.kitti_raw_to_rosbag2 import convert_kitti_raw_to_rosbag2
 from calibrex.data.ros2_camera_lidar import CameraLidarFrame
 from calibrex.evaluation import camera_lidar_edge as edge
@@ -104,6 +106,49 @@ def _bag(tmp_path: Path) -> Path:
     bag = tmp_path / "bag"
     convert_kitti_raw_to_rosbag2(renamed, bag, camera="image_02", velodyne_time="azimuth")
     return bag
+
+
+def test_rounded_calibration_reference_matches_serialized_tf(tmp_path: Path) -> None:
+    source = write_drive(tmp_path / "synthetic", number=5)
+    add_camera(source)
+    _write_sweep_stamps(source)
+    source = source.rename(source.with_name("2011_09_26_drive_0005_sync"))
+    # Simulate published decimal precision, rather than exact-rigid test matrices.
+    for name in ("calib_imu_to_velo.txt", "calib_velo_to_cam.txt", "calib_cam_to_cam.txt"):
+        path = source.parent / name
+        rows = []
+        for row in path.read_text().splitlines():
+            key, values = row.split(":", 1)
+            if key in {"R", "R_rect_00"}:
+                values = " " + " ".join(f"{float(v):.6e}" for v in values.split())
+            rows.append(f"{key}:{values}")
+        path.write_text("\n".join(rows) + "\n")
+    result = convert_kitti_raw_to_rosbag2(
+        source, tmp_path / "bag", camera="image_02", velodyne_time="azimuth",
+    )
+    loaded = load_bag_tf_static(result.bag)
+    assert loaded is not None
+    edges = {edge.child: edge.transform for edge in loaded.edges}
+    candidate = se3_matrix(edges["cam2_optical"].inverse().compose(edges["velo_link"]))
+    reference = replay._reference(result.provenance, DRIVE)
+    np.testing.assert_allclose(reference, candidate, rtol=0, atol=1e-14)
+    raw = np.asarray(result.provenance["camera"]["t_cam_velo"])
+    assert np.max(np.abs(raw - candidate)) > 1e-8
+    for run, injection in replay.RUNS.items():
+        turned = candidate.copy()
+        if injection is not None:
+            axis, degrees = injection.split(":")
+            turn = Rotation.from_rotvec(np.radians(float(degrees)) * np.eye(3)["xyz".index(axis)])
+            turned[:3] = turn.as_matrix() @ turned[:3]
+        replay._check_candidate(turned, reference, run)
+        wrong = turned.copy()
+        wrong[0, 3] += 1e-5
+        with pytest.raises(ValueError, match="candidate differs"):
+            replay._check_candidate(wrong, reference, run)
+    legacy = result.provenance.copy()
+    legacy["camera"] = {k: v for k, v in legacy["camera"].items() if k != "t_imu_velo"}
+    with pytest.raises(ValueError, match="regenerate the bag"):
+        replay._reference(legacy, DRIVE)
 
 
 @pytest.fixture
