@@ -60,7 +60,13 @@ def run_boreas_ins_lidar_hand_eye(
     odometry = odometry_from_loader(
         lambda index: read_boreas_lidar_xyz(paths[index]), len(paths), opts.odometry, times_s=times
     )
-    motions = build_sensor_motions(times, odometry.poses, opts, id_prefix=root.name + "/")
+    motions = build_sensor_motions(
+        times, odometry.poses, opts, id_prefix=root.name + "/",
+        registration_valid=(
+            [item.converged for item in odometry.registrations]
+            if opts.exclude_failed_registrations else None
+        ),
+    )
     # evaluate_ins_lidar_hand_eye uses this reference transform only when
     # constructing the post-fit per-axis comparison; the solver never sees it.
     vendor = read_boreas_reference_extrinsic(calibration_path)

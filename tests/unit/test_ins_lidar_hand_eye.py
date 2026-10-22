@@ -150,6 +150,36 @@ def test_kitti_frames_are_associated_by_index_across_dropped_frames(tmp_path: Pa
     assert len(drive.input_sha256) == 64
 
 
+@pytest.mark.parametrize("exclude_failed, expected_count", [(True, 2), (False, 4)])
+def test_kitti_adapter_registration_filter_is_explicit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, exclude_failed: bool, expected_count: int,
+) -> None:
+    from calibrex.evaluation import ins_lidar_hand_eye as adapter
+    from calibrex.solvers.scan_to_scan_odometry import ScanOdometryResult, ScanRegistration
+
+    root = _write_fake_kitti_drive(tmp_path)
+    good = ScanRegistration(np.eye(4), True, 1, 300, 0.01, 1.0)
+    bad = ScanRegistration(np.eye(4), False, 30, 300, 0.01, 1.0)
+    monkeypatch.setattr(adapter, "odometry_from_loader", lambda *args, **kwargs: ScanOdometryResult(
+        (np.eye(4),) * 4, (good, bad, good),
+    ))
+    original = adapter.evaluate_ins_lidar_hand_eye
+    captured = []
+
+    def evaluate(reference, motions, options, **kwargs):
+        captured.extend(motions)
+        return original(reference, motions, options, **kwargs)
+
+    monkeypatch.setattr(adapter, "evaluate_ins_lidar_hand_eye", evaluate)
+    result = adapter.run_kitti_ins_lidar_hand_eye(
+        root, InsLidarRunOptions(step_frames=(1, 2), exclude_failed_registrations=exclude_failed),
+    )
+    assert len(captured) == expected_count
+    assert result.odometry.converged_registrations == 2
+    assert result.odometry.registration_count == 3
+    assert result.options["exclude_failed_registrations"] is exclude_failed
+
+
 @functools.cache
 def _planar_evaluation() -> Any:
     reference, motions = _FIXTURES.synthetic(planar=True, duration_s=60.0)

@@ -1,0 +1,103 @@
+{
+  "schema_version": "calibrex.ins_lidar_full_reference_motion/v0.1",
+  "scope": "POST HOC DEVELOPMENT ONLY. Compare the spent first-600 OXTS samples with the complete recording using all overlapping motion pairs at fixed frame lags. Only OXTS members acquired: no images or LiDAR points, no calibration fit. Rotation proxy omits LiDAR errors and nuisance coupling and is not an observability verdict. No v1 input, claim, threshold or audit changed.",
+  "case_id": "2011_09_29_0071",
+  "rows": [
+    {
+      "samples": 600,
+      "duration_s": 62.20199704170227,
+      "yaw_span_deg": 16.50960697935613,
+      "motion_steps_frames": [
+        5,
+        10,
+        20
+      ],
+      "mean_rotation_deg": [
+        0.9809689053484562,
+        1.8098919944716618,
+        3.0792544611890884
+      ],
+      "rotation_information_proxy_eigenvalues_rad2": [
+        [
+          0.000041811447075474145,
+          0.00043085958423669436,
+          0.0004372987451949674
+        ],
+        [
+          0.00008847757672684555,
+          0.001539437366503855,
+          0.0015638159601524182
+        ],
+        [
+          0.00016224004283546032,
+          0.004532070333684285,
+          0.004563900696255358
+        ]
+      ]
+    },
+    {
+      "samples": 1059,
+      "duration_s": 109.88608741760254,
+      "yaw_span_deg": 16.50960697935613,
+      "motion_steps_frames": [
+        5,
+        10,
+        20
+      ],
+      "mean_rotation_deg": [
+        0.7269287245338182,
+        1.3034623959940166,
+        2.1625493588502
+      ],
+      "rotation_information_proxy_eigenvalues_rad2": [
+        [
+          0.000046563523075488354,
+          0.00028124028862588923,
+          0.0002914056936057915
+        ],
+        [
+          0.00009126461897693615,
+          0.0009829114745309707,
+          0.0010148652975443737
+        ],
+        [
+          0.00014431996000090753,
+          0.0028543748340704696,
+          0.0028957982195206393
+        ]
+      ]
+    }
+  ],
+  "acquisition_summary": {
+    "url": "https://s3.eu-central-1.amazonaws.com/avg-kitti/raw_data/2011_09_29_drive_0071/2011_09_29_drive_0071_sync.zip",
+    "size_bytes": 4337332333,
+    "etag": "952567082c92df5f4f7d5e4ab508a9df-518",
+    "frames": {
+      "oxts": 1059
+    },
+    "archive_frames": {
+      "oxts": 1059
+    },
+    "fetched_bytes": 616615,
+    "member_count": 1061,
+    "members_sha256": "6e23b19738f04e2f2f1fbecaaa37e5a91e4546528056d5b3ee7b2800e4eb5c6e",
+    "crc_verified": true
+  },
+  "provenance": {
+    "source_commit": "0f45a2b26632df9064ca17d224f32ad800a15232",
+    "script_sha256": "b1041800ee2514982ff223bfab6225da196240a2918a204d9cdfe99fc3dca8e2",
+    "metadata_sha256": "212bf2d497955fe475cb99583c9e69402e65e3e1b5df230fb3f78e78fcbb78b0",
+    "created_at": "2026-10-22T14:45:23.149669+00:00",
+    "scope": "POST HOC DEVELOPMENT ONLY; the whole recording is already spent for INS-LiDAR.",
+    "streams": [
+      "oxts"
+    ],
+    "selected_payload_cap_bytes": 2097152,
+    "attempts": 1,
+    "dataset_license": "CC BY-NC-SA 3.0",
+    "new_accuracy_claim": false,
+    "acquisition_sha256": "85be71990b8a1f57c9c158263076a89041d9997e55a0414dcf6be646ba8a5749",
+    "input_manifest_sha256": "a149647f67baaec7b978ba99417bde8e13ae3ee15731bb21e76eca06c6b0ef77",
+    "original_first_600_packets_equal": true
+  }
+}

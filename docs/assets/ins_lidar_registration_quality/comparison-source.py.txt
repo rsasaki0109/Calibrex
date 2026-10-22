@@ -1,0 +1,100 @@
+"""Post hoc development ablation; one shared LiDAR-only odometry trajectory."""
+from pathlib import Path
+from datetime import datetime, timezone
+from dataclasses import replace
+import hashlib
+import json
+import subprocess
+import sys
+import time
+
+ROOT = Path(__file__).resolve().parents[1]
+SOURCE = ROOT / '.worktrees/ins-quality-dev'
+sys.path[:0] = [str(SOURCE / 'src'), str(SOURCE)]
+import numpy as np
+import scipy
+from pydantic import BaseModel, ConfigDict
+from calibrex.evaluation import ins_lidar_hand_eye as native
+
+OUT = ROOT / 'outputs/ins-registration-quality-development-v2'
+OUT.mkdir(exist_ok=False)
+def sha(path):
+    h = hashlib.sha256()
+    with path.open('rb') as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b''):
+            h.update(block)
+    return h.hexdigest()
+
+commit = subprocess.check_output(['git', '-C', str(SOURCE), 'rev-parse', 'HEAD'], text=True).strip()
+assert not subprocess.check_output(['git', '-C', str(SOURCE), 'status', '--porcelain', '--', 'src', 'tools'])
+assert Path(native.__file__).resolve().is_relative_to(SOURCE.resolve())
+case = '2011_09_29_0071'
+work = ROOT / 'outputs/ins-lidar-sota-evaluation-inputs-v1' / case
+receipt_path = work / 'acquisition.json'
+receipt = json.loads(receipt_path.read_text())
+sequence = work / receipt['sequence_dir']
+print('Verifying all spent inputs', flush=True)
+for row in receipt['files']:
+    path = work / row['path']
+    assert path.stat().st_size == row['bytes'] and sha(path) == row['sha256']
+original_odometry = native.odometry_from_loader
+cached = None
+cached_times = None
+def shared_odometry(loader, count, options, *, times_s):
+    global cached, cached_times
+    if cached is None:
+        start = time.monotonic()
+        cached = original_odometry(loader, count, options, times_s=times_s)
+        cached_times = list(times_s)
+        np.savez_compressed(OUT / 'odometry.npz', times_s=np.asarray(times_s),
+                            poses=np.asarray(cached.poses))
+        print(f'Odometry finished in {time.monotonic()-start:.1f}s', flush=True)
+    else:
+        assert list(times_s) == cached_times and count == len(cached.poses)
+    return cached
+native.odometry_from_loader = shared_odometry
+results = {}
+for label, exclude in [('baseline', False), ('filtered', True)]:
+    print(f'Fitting {label}', flush=True)
+    start = time.monotonic()
+    artifact = native.run_kitti_ins_lidar_hand_eye(
+        sequence, replace(native.InsLidarRunOptions(), exclude_failed_registrations=exclude),
+        max_frames=600, command=[Path(__file__).name, label, 'POST_HOC_DEVELOPMENT_ONLY',
+                                 'shared_lidar_only_odometry'],
+    )
+    artifact.save(OUT / f'{label}.yaml')
+    results[label] = {'artifact_sha256': sha(OUT / f'{label}.yaml'),
+                      'elapsed_s_including_input_hashing_and_first_odometry': time.monotonic()-start,
+                      'calibrated_dofs': artifact.calibrated_dofs,
+                      'train_motions': artifact.train.motion_count,
+                      'holdout_motions': artifact.holdout.motion_count}
+assert cached is not None
+failed = [i for i, registration in enumerate(cached.registrations) if not registration.converged]
+for row in receipt['files']:
+    assert sha(work / row['path']) == row['sha256']
+
+class Report(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    schema_version: str = 'calibrex.ins_registration_quality_development/v0.1'
+    scope: str
+    case_id: str
+    failed_registration_edges: list[int]
+    results: dict
+    provenance: dict
+
+report = Report(scope='POST HOC DEVELOPMENT ONLY on an already-spent first-600-scan window. '
+    'No new SOTA claim. Both fits share one unmodified LiDAR-only trajectory. Baseline '
+    'retains all registration edges; filtered excludes motions crossing unconverged edges. '
+    'No observability threshold was changed. Runtime is not a speed comparison.',
+    case_id=case, failed_registration_edges=failed, results=results,
+    provenance={'source_commit': commit, 'source_root': str(SOURCE),
+        'script_sha256': sha(Path(__file__)), 'receipt_sha256': sha(receipt_path),
+        'odometry_sha256': sha(OUT / 'odometry.npz'),
+        'original_audit_sha256': sha(ROOT / 'outputs/ins-lidar-sota-evaluation-audit-v1/ins_lidar_sota_audit.yaml'),
+        'created_at': datetime.now(timezone.utc).isoformat(), 'python': sys.version,
+        'numpy': np.__version__, 'scipy': scipy.__version__,
+        'inputs_verified_before_and_after': True, 'new_accuracy_claim': False})
+(OUT / 'report.json').write_text(report.model_dump_json(indent=2)+'\n', encoding='utf-8')
+(OUT / 'report.schema.json').write_text(json.dumps(Report.model_json_schema(), indent=2)+'\n', encoding='utf-8')
+print(report.model_dump_json(indent=2), flush=True)
+

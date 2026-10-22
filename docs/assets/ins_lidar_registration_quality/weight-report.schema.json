@@ -1,0 +1,31 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "calibrex.ins_lidar_translation_weight_study/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "cases": {
+      "additionalProperties": true,
+      "title": "Cases",
+      "type": "object"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    }
+  },
+  "required": [
+    "scope",
+    "cases",
+    "provenance"
+  ],
+  "title": "Report",
+  "type": "object"
+}

@@ -31,7 +31,11 @@ def test_real_registration_matches_cases_default_options_and_gates():
     reg = load_preregistration(REG, ROOT)
     assert reg.claim_text == CLAIM
     assert tuple((c.case_id, c.dataset_family, c.rig_id) for c in reg.evaluation) == EXPECTED_CASES
-    assert reg.run_recipe["options"] == json.loads(json.dumps(asdict(InsLidarRunOptions())))
+    defaults = asdict(InsLidarRunOptions())
+    # The additive research option must preserve the frozen v1 behavior.
+    # Do not rewrite the original registration to include post-audit options.
+    assert defaults.pop("exclude_failed_registrations") is False
+    assert reg.run_recipe["options"] == json.loads(json.dumps(defaults))
     assert reg.run_recipe["max_frames"] == reg.acquisition.max_frames == 600
     assert reg.run_recipe["kitti_streams"] == ["velodyne_points", "oxts"]
     assert reg.run_recipe["kitti_curl_retries"] == 0
