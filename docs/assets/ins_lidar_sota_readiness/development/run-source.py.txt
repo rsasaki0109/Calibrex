@@ -1,0 +1,98 @@
+"""Run one development evaluation only, from a detached frozen source checkout."""
+from dataclasses import asdict
+from datetime import datetime, timezone
+import hashlib
+import json
+from pathlib import Path
+import platform
+import subprocess
+import sys
+import time
+
+import numpy as np
+import scipy
+
+ROOT = Path(__file__).resolve().parents[1]
+SOURCE = ROOT / '.worktrees/ins-sota-dev'
+OUT = ROOT / 'outputs/boreas-ins-development-run-v1'
+HEAD = 'a795fb659cc13f12a803642677be01f7fadb012c'
+sha = lambda data: hashlib.sha256(data).hexdigest()
+
+
+def main():
+    import calibrex
+    from calibrex.evaluation.boreas_ins_lidar import run_boreas_ins_lidar_hand_eye
+    from calibrex.evaluation.ins_lidar_hand_eye import InsLidarRunOptions
+    from calibrex.evaluation import boreas_ins_lidar as backend
+    from calibrex.core.validation import validate_file
+    from tools.score_ins_lidar_sota import CaseSpec, score_artifacts
+
+    assert not OUT.exists()
+    assert Path(calibrex.__file__).resolve().is_relative_to(SOURCE.resolve())
+    assert subprocess.check_output(['git','rev-parse','HEAD'],cwd=SOURCE,text=True).strip() == HEAD
+    assert not subprocess.check_output(['git','status','--porcelain'],cwd=SOURCE,text=True).strip()
+    receipt_path = ROOT / 'outputs/boreas-ins-development-v1/receipt-recovered-v1.json'
+    receipt_bytes = receipt_path.read_bytes()
+    receipt = json.loads(receipt_bytes)
+    assert receipt['status'] == 'PASS'
+    assert receipt['recording_id'] == 'boreas-2020-11-26-13-58'
+    assert len(receipt['objects']) == 602
+    inputs_root = receipt_path.parent
+    for obj in receipt['objects']:
+        path = inputs_root / obj['path']
+        assert path.stat().st_size == obj['downloaded_bytes']
+        with path.open('rb') as stream:
+            h = hashlib.sha256()
+            while chunk := stream.read(1 << 20): h.update(chunk)
+        assert h.hexdigest() == obj['sha256']
+    for item in receipt['derived_files']:
+        data = (inputs_root/item['path']).read_bytes()
+        assert len(data) == item['bytes'] and sha(data) == item['sha256']
+    OUT.mkdir()
+    opts = InsLidarRunOptions()
+    report = {'schema_version':'calibrex.private_boreas_ins_development_run/v0.1','status':'RUNNING',
+        'provenance':{'created_at':datetime.now(timezone.utc).isoformat(),
+            'source_head':HEAD,'source_checkout':str(SOURCE),'imported_package':calibrex.__file__,
+            'generator_sha256':sha(Path(__file__).read_bytes()),'input_receipt_sha256':sha(receipt_bytes),
+            'python':platform.python_version(),'numpy':np.__version__,'scipy':scipy.__version__,
+            'scope':'Development only, not a pre-registered audit or an independent accuracy claim. Frozen default native trajectory hand-eye math with LiDAR-only odometry, first 600 metadata-selected development scans. A pass-through reader observer reports scan counts without changing returned arrays. Reference extrinsic used only for post-fit comparison.',
+            'accuracy_claim':False,'evaluation_objects_read':False},
+        'options':asdict(opts),'errors':[]}
+    save=lambda:(OUT/'report.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
+    save()
+    original_reader=backend.read_boreas_lidar_xyz
+    loaded=0
+    def observe_reader(path):
+        nonlocal loaded
+        value=original_reader(path)
+        loaded+=1
+        if loaded%50==0: print(json.dumps({'loaded_scans':loaded}),flush=True)
+        return value
+    try:
+        started=time.perf_counter()
+        backend.read_boreas_lidar_xyz=observe_reader
+        artifact=run_boreas_ins_lidar_hand_eye(inputs_root/receipt['recording_id'],opts,
+            max_frames=600,command=[sys.executable,*sys.argv])
+        assert loaded==600
+        report['elapsed_seconds']=time.perf_counter()-started
+        path=OUT/'development.yaml'
+        artifact.save(path)
+        validation=validate_file(path,kind='ins-lidar-hand-eye')
+        assert validation.valid,validation
+        spec=CaseSpec(case_id='boreas-development-first-600',dataset_family='boreas',
+            rig_id='boreas-platform',drive_ids=[receipt['recording_id']],
+            artifact_path=path.name,artifact_sha256=sha(path.read_bytes()))
+        report['scores']=score_artifacts([spec],OUT)
+        report['artifact']={'path':path.name,'sha256':spec.artifact_sha256}
+        report['status']='COMPLETE_DEVELOPMENT_ONLY'
+    except Exception as error:
+        report['status']='FAIL'
+        report['errors'].append({'type':type(error).__name__,'message':str(error)})
+        raise
+    finally:
+        backend.read_boreas_lidar_xyz=original_reader
+        save()
+    print(json.dumps({'status':report['status'],'seconds':report['elapsed_seconds'],'scores':report.get('scores',{}).get('families',{})}))
+
+
+if __name__=='__main__': main()

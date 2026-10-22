@@ -1,0 +1,257 @@
+{
+  "$defs": {
+    "ListingReceipt": {
+      "additionalProperties": false,
+      "properties": {
+        "url": {
+          "title": "Url",
+          "type": "string"
+        },
+        "bytes": {
+          "maximum": 2097152,
+          "minimum": 0,
+          "title": "Bytes",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "bytes",
+        "sha256"
+      ],
+      "title": "ListingReceipt",
+      "type": "object"
+    },
+    "MetadataProvenance": {
+      "additionalProperties": false,
+      "properties": {
+        "generator": {
+          "default": "tools.boreas_ins_lidar_metadata",
+          "title": "Generator",
+          "type": "string"
+        },
+        "created_at": {
+          "title": "Created At",
+          "type": "string"
+        },
+        "git_commit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Git Commit"
+        },
+        "source_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Sha256",
+          "type": "string"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Command",
+          "type": "array"
+        },
+        "bucket_url": {
+          "default": "https://boreas.s3.us-west-2.amazonaws.com/",
+          "title": "Bucket Url",
+          "type": "string"
+        },
+        "dataset_license": {
+          "default": "CC BY 4.0 (AWS Open Data Registry)",
+          "title": "Dataset License",
+          "type": "string"
+        },
+        "accuracy_claim": {
+          "const": false,
+          "default": false,
+          "title": "Accuracy Claim",
+          "type": "boolean"
+        },
+        "exposure_audit_complete": {
+          "const": false,
+          "default": false,
+          "title": "Exposure Audit Complete",
+          "type": "boolean"
+        },
+        "notice": {
+          "default": "Metadata readiness only. ETags pin object identity but are not SHA-256. Recording freshness requires a separate repository/history/local exposure audit. Do not run evaluation before frozen code and pre-registration are merged.",
+          "title": "Notice",
+          "type": "string"
+        }
+      },
+      "required": [
+        "created_at",
+        "git_commit",
+        "source_sha256",
+        "command"
+      ],
+      "title": "MetadataProvenance",
+      "type": "object"
+    },
+    "ObjectMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "title": "Key",
+          "type": "string"
+        },
+        "bytes": {
+          "minimum": 0,
+          "title": "Bytes",
+          "type": "integer"
+        },
+        "etag": {
+          "title": "Etag",
+          "type": "string"
+        },
+        "last_modified": {
+          "title": "Last Modified",
+          "type": "string"
+        }
+      },
+      "required": [
+        "key",
+        "bytes",
+        "etag",
+        "last_modified"
+      ],
+      "title": "ObjectMetadata",
+      "type": "object"
+    },
+    "RecordingMetadata": {
+      "additionalProperties": false,
+      "properties": {
+        "recording_id": {
+          "title": "Recording Id",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "development_candidate",
+            "evaluation_candidate"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "lidar": {
+          "items": {
+            "$ref": "#/$defs/ObjectMetadata"
+          },
+          "title": "Lidar",
+          "type": "array"
+        },
+        "reference_trajectory": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ObjectMetadata"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reference_calibration": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ObjectMetadata"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "selected_lidar_bytes": {
+          "minimum": 0,
+          "title": "Selected Lidar Bytes",
+          "type": "integer"
+        },
+        "missing_required": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Missing Required",
+          "type": "array"
+        }
+      },
+      "required": [
+        "recording_id",
+        "role",
+        "lidar",
+        "reference_trajectory",
+        "reference_calibration",
+        "selected_lidar_bytes",
+        "missing_required"
+      ],
+      "title": "RecordingMetadata",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "calibrex.boreas_ins_lidar_metadata/v0.1",
+      "default": "calibrex.boreas_ins_lidar_metadata/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/MetadataProvenance"
+    },
+    "selection_rule": {
+      "default": "First three lexicographically ordered original Boreas (2020/2021) recording prefixes: first development candidate, next two evaluation candidates. First 600 lexicographically ordered numeric-stem LiDAR .bin keys per recording; all selected recordings retained even if required files are missing. Names, sizes and ETags only; no sensor or calibration object bodies read.",
+      "title": "Selection Rule",
+      "type": "string"
+    },
+    "selected_frame_limit": {
+      "exclusiveMinimum": 0,
+      "maximum": 600,
+      "title": "Selected Frame Limit",
+      "type": "integer"
+    },
+    "recordings": {
+      "items": {
+        "$ref": "#/$defs/RecordingMetadata"
+      },
+      "title": "Recordings",
+      "type": "array"
+    },
+    "requests": {
+      "items": {
+        "$ref": "#/$defs/ListingReceipt"
+      },
+      "title": "Requests",
+      "type": "array"
+    },
+    "sensor_object_download_bytes": {
+      "const": 0,
+      "default": 0,
+      "title": "Sensor Object Download Bytes",
+      "type": "integer"
+    },
+    "calibration_object_download_bytes": {
+      "const": 0,
+      "default": 0,
+      "title": "Calibration Object Download Bytes",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "provenance",
+    "selected_frame_limit",
+    "recordings",
+    "requests"
+  ],
+  "title": "BoreasInsLidarMetadata",
+  "type": "object"
+}

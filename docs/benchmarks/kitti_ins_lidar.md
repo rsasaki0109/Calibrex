@@ -96,6 +96,10 @@ calibrex ins-lidar kitti \
 
 ## Limitations
 
+Cross-dataset audit preparation now adds a Boreas adapter and failure-aware
+per-axis scoring; see the [INS-LiDAR audit plan](../research/ins_lidar_sota_plan.md).
+This development work does not change the standing or the results above.
+
 - Velodyne sweeps are registered as rigid snapshots, without motion
   compensation within a sweep.
 - Drive `0001` has no OXTS timestamps. It is excluded rather than paired by

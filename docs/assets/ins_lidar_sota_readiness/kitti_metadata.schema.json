@@ -1,0 +1,155 @@
+{
+  "$defs": {
+    "SelectedArchive": {
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "title": "Case Id",
+          "type": "string"
+        },
+        "date": {
+          "pattern": "^\\d{4}_\\d{2}_\\d{2}$",
+          "title": "Date",
+          "type": "string"
+        },
+        "drive": {
+          "pattern": "^\\d{4}$",
+          "title": "Drive",
+          "type": "string"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        },
+        "size_bytes": {
+          "exclusiveMinimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        },
+        "etag": {
+          "title": "Etag",
+          "type": "string"
+        },
+        "archive_frames": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Archive Frames",
+          "type": "object"
+        },
+        "selected_frames": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Selected Frames",
+          "type": "object"
+        },
+        "selected_range_bytes": {
+          "minimum": 0,
+          "title": "Selected Range Bytes",
+          "type": "integer"
+        },
+        "selected_output_bytes_upper_bound": {
+          "minimum": 0,
+          "title": "Selected Output Bytes Upper Bound",
+          "type": "integer"
+        },
+        "selected_members_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Selected Members Sha256",
+          "type": "string"
+        },
+        "selected_members": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Selected Members",
+          "type": "array"
+        },
+        "source_metadata_path": {
+          "title": "Source Metadata Path",
+          "type": "string"
+        },
+        "source_metadata_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Metadata Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "case_id",
+        "date",
+        "drive",
+        "url",
+        "size_bytes",
+        "etag",
+        "archive_frames",
+        "selected_frames",
+        "selected_range_bytes",
+        "selected_output_bytes_upper_bound",
+        "selected_members_sha256",
+        "selected_members",
+        "source_metadata_path",
+        "source_metadata_sha256"
+      ],
+      "title": "SelectedArchive",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "calibrex.ins_lidar_kitti_inventory/v0.1",
+      "default": "calibrex.ins_lidar_kitti_inventory/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    },
+    "selection_rule": {
+      "default": "From the eighteen other-day KITTI raw archives inventoried for camera-LiDAR v2, select the first three chronological recording IDs with at least 600 archived Velodyne frames and 600 Velodyne/OXTS members in their first-600-index download metadata. Exclude spent INS-LiDAR development recordings. Inspect only live HEAD and ZIP central-directory metadata; retain all three even if a pin/budget fails.",
+      "title": "Selection Rule",
+      "type": "string"
+    },
+    "source_pool_metadata_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Source Pool Metadata Sha256",
+      "type": "object"
+    },
+    "eligible_recording_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Eligible Recording Ids",
+      "type": "array"
+    },
+    "selected": {
+      "items": {
+        "$ref": "#/$defs/SelectedArchive"
+      },
+      "title": "Selected",
+      "type": "array"
+    },
+    "sensor_member_download_bytes": {
+      "default": 0,
+      "maximum": 0,
+      "minimum": 0,
+      "title": "Sensor Member Download Bytes",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "provenance",
+    "source_pool_metadata_sha256",
+    "eligible_recording_ids",
+    "selected"
+  ],
+  "title": "KittiInsLidarInventory",
+  "type": "object"
+}

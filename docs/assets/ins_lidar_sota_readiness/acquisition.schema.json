@@ -1,0 +1,92 @@
+{
+  "$defs": {
+    "InputFile": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "bytes": {
+          "minimum": 0,
+          "title": "Bytes",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "bytes",
+        "sha256"
+      ],
+      "title": "InputFile",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "calibrex.ins_lidar_audit_acquisition/v0.1",
+      "default": "calibrex.ins_lidar_audit_acquisition/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "case_id": {
+      "title": "Case Id",
+      "type": "string"
+    },
+    "dataset_family": {
+      "enum": [
+        "kitti_raw",
+        "boreas"
+      ],
+      "title": "Dataset Family",
+      "type": "string"
+    },
+    "verified": {
+      "const": true,
+      "title": "Verified",
+      "type": "boolean"
+    },
+    "sequence_dir": {
+      "title": "Sequence Dir",
+      "type": "string"
+    },
+    "files": {
+      "items": {
+        "$ref": "#/$defs/InputFile"
+      },
+      "minItems": 1,
+      "title": "Files",
+      "type": "array"
+    },
+    "source_records": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Source Records",
+      "type": "array"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    }
+  },
+  "required": [
+    "case_id",
+    "dataset_family",
+    "verified",
+    "sequence_dir",
+    "files",
+    "source_records",
+    "provenance"
+  ],
+  "title": "AcquisitionReceipt",
+  "type": "object"
+}

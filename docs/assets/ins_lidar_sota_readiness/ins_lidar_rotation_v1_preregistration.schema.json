@@ -1,0 +1,252 @@
+{
+  "$defs": {
+    "AcquisitionPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "max_frames": {
+          "const": 600,
+          "default": 600,
+          "title": "Max Frames",
+          "type": "integer"
+        },
+        "minimum_free_disk_bytes": {
+          "const": 21474836480,
+          "default": 21474836480,
+          "title": "Minimum Free Disk Bytes",
+          "type": "integer"
+        },
+        "maximum_additional_raw_bytes": {
+          "const": 17179869184,
+          "default": 17179869184,
+          "title": "Maximum Additional Raw Bytes",
+          "type": "integer"
+        },
+        "object_attempts": {
+          "const": 2,
+          "default": 2,
+          "title": "Object Attempts",
+          "type": "integer"
+        },
+        "method_attempts": {
+          "const": 1,
+          "default": 1,
+          "title": "Method Attempts",
+          "type": "integer"
+        },
+        "method_timeout_seconds": {
+          "const": 1800,
+          "default": 1800,
+          "title": "Method Timeout Seconds",
+          "type": "integer"
+        },
+        "boreas_workers": {
+          "const": 4,
+          "default": 4,
+          "title": "Boreas Workers",
+          "type": "integer"
+        },
+        "max_point_object_bytes": {
+          "const": 16777216,
+          "default": 16777216,
+          "title": "Max Point Object Bytes",
+          "type": "integer"
+        },
+        "max_reference_object_bytes": {
+          "const": 134217728,
+          "default": 134217728,
+          "title": "Max Reference Object Bytes",
+          "type": "integer"
+        }
+      },
+      "title": "AcquisitionPolicy",
+      "type": "object"
+    },
+    "EvaluationCase": {
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "pattern": "^[a-zA-Z0-9_-]+$",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "dataset_family": {
+          "enum": [
+            "kitti_raw",
+            "boreas"
+          ],
+          "title": "Dataset Family",
+          "type": "string"
+        },
+        "rig_id": {
+          "title": "Rig Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "case_id",
+        "dataset_family",
+        "rig_id"
+      ],
+      "title": "EvaluationCase",
+      "type": "object"
+    },
+    "MetadataPin": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "MetadataPin",
+      "type": "object"
+    },
+    "Thresholds": {
+      "additionalProperties": false,
+      "properties": {
+        "maximum_reference_difference_deg": {
+          "const": 0.5,
+          "default": 0.5,
+          "title": "Maximum Reference Difference Deg",
+          "type": "number"
+        },
+        "maximum_unobserved_axis_fraction": {
+          "const": 0.5,
+          "default": 0.5,
+          "title": "Maximum Unobserved Axis Fraction",
+          "type": "number"
+        },
+        "maximum_control_miss_fraction": {
+          "const": 0.0,
+          "default": 0.0,
+          "title": "Maximum Control Miss Fraction",
+          "type": "number"
+        },
+        "maximum_failed_recording_fraction": {
+          "const": 0.0,
+          "default": 0.0,
+          "title": "Maximum Failed Recording Fraction",
+          "type": "number"
+        },
+        "minimum_dataset_families": {
+          "const": 2,
+          "default": 2,
+          "title": "Minimum Dataset Families",
+          "type": "integer"
+        },
+        "minimum_independent_rigs": {
+          "const": 2,
+          "default": 2,
+          "title": "Minimum Independent Rigs",
+          "type": "integer"
+        }
+      },
+      "title": "Thresholds",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "calibrex.ins_lidar_sota_preregistration/v0.1",
+      "default": "calibrex.ins_lidar_sota_preregistration/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "protocol_id": {
+      "const": "ins-lidar-rotation-kitti-boreas-v1",
+      "default": "ins-lidar-rotation-kitti-boreas-v1",
+      "title": "Protocol Id",
+      "type": "string"
+    },
+    "claim_text": {
+      "default": "On the four pre-registered KITTI raw and Boreas recording windows not previously read by Calibrex INS-LiDAR methods, LiDAR-only odometry followed by the default native joint trajectory hand-eye fit produces a scorable rotation estimate for every recording; every data-estimated rotation axis is within 0.5 deg of its dataset-provided reference calibration; at least half of the three rotation axes per recording are observed on average in each dataset family; and every observed-axis 1 deg held-out control is detected with delta chi-square at least 9. Dataset calibrations are reference estimates, not independent metrology. No translation, full-extrinsic or absolute clock-accuracy claim is made.",
+      "title": "Claim Text",
+      "type": "string"
+    },
+    "scope": {
+      "additionalProperties": true,
+      "title": "Scope",
+      "type": "object"
+    },
+    "frozen_code_commit": {
+      "pattern": "^[0-9a-f]{40}$",
+      "title": "Frozen Code Commit",
+      "type": "string"
+    },
+    "metadata": {
+      "additionalProperties": {
+        "$ref": "#/$defs/MetadataPin"
+      },
+      "propertyNames": {
+        "enum": [
+          "kitti_raw",
+          "boreas"
+        ]
+      },
+      "title": "Metadata",
+      "type": "object"
+    },
+    "evaluation": {
+      "items": {
+        "$ref": "#/$defs/EvaluationCase"
+      },
+      "title": "Evaluation",
+      "type": "array"
+    },
+    "calibration_archive_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Calibration Archive Sha256",
+      "type": "object"
+    },
+    "thresholds": {
+      "$ref": "#/$defs/Thresholds"
+    },
+    "acquisition": {
+      "$ref": "#/$defs/AcquisitionPolicy"
+    },
+    "development": {
+      "additionalProperties": true,
+      "title": "Development",
+      "type": "object"
+    },
+    "exposure": {
+      "additionalProperties": true,
+      "title": "Exposure",
+      "type": "object"
+    },
+    "run_recipe": {
+      "additionalProperties": true,
+      "title": "Run Recipe",
+      "type": "object"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    }
+  },
+  "required": [
+    "frozen_code_commit",
+    "metadata",
+    "evaluation",
+    "calibration_archive_sha256",
+    "development",
+    "exposure",
+    "run_recipe",
+    "provenance"
+  ],
+  "title": "InsLidarPreregistration",
+  "type": "object"
+}

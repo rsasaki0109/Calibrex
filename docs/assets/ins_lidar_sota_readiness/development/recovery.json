@@ -1,0 +1,56 @@
+{
+  "schema_version": "calibrex.private_development_download_recovery/v0.1",
+  "status": "PASS",
+  "provenance": {
+    "created_at": "2026-10-22T09:21:34.632405+00:00",
+    "generator_sha256": "3bb05f6ddd938b003d6f1cd0a5dc54a66ce5230dc17e224f50602e39cadaf528",
+    "original_failed_receipt_sha256": "be84b455b919a2312ccf4452a436db7763afc220ebacc4cf388ff154a5a8d23d",
+    "accuracy_claim": false,
+    "scope": "Retry exactly the four development scans whose original GET disconnected, with unchanged object keys/size/ETag; no method or evaluation rerun."
+  },
+  "missing_keys": [
+    "boreas-2020-11-26-13-58/lidar/1606417115547363.bin",
+    "boreas-2020-11-26-13-58/lidar/1606417116791992.bin",
+    "boreas-2020-11-26-13-58/lidar/1606417117206787.bin",
+    "boreas-2020-11-26-13-58/lidar/1606417117518067.bin"
+  ],
+  "recovered": [
+    {
+      "source_key": "boreas-2020-11-26-13-58/lidar/1606417115547363.bin",
+      "etag": "b788c49b05cb55429442da1c45bbca1f",
+      "full_bytes": 5169840,
+      "downloaded_bytes": 5169840,
+      "sha256": "f8797406c617eb0fa43b58b787749c0c642c83fa9475fbc216fd0852d470e70b",
+      "path": "boreas-2020-11-26-13-58/lidar/1606417115547363.bin",
+      "range": "complete object"
+    },
+    {
+      "source_key": "boreas-2020-11-26-13-58/lidar/1606417116791992.bin",
+      "etag": "b183e1bf8096f6b2c56be563a6e7c9e4",
+      "full_bytes": 5111472,
+      "downloaded_bytes": 5111472,
+      "sha256": "26b2e5070aa5093df703c013411b74bcbb811abc96df808d175004d067eb9d78",
+      "path": "boreas-2020-11-26-13-58/lidar/1606417116791992.bin",
+      "range": "complete object"
+    },
+    {
+      "source_key": "boreas-2020-11-26-13-58/lidar/1606417117206787.bin",
+      "etag": "40e3edc88fc5a07cc0039b42c3d489c9",
+      "full_bytes": 5087256,
+      "downloaded_bytes": 5087256,
+      "sha256": "8b36461e7b4d3e3ba1c6b0d4f3c76036dbbf6dc9274ee5302514a72e635b8b54",
+      "path": "boreas-2020-11-26-13-58/lidar/1606417117206787.bin",
+      "range": "complete object"
+    },
+    {
+      "source_key": "boreas-2020-11-26-13-58/lidar/1606417117518067.bin",
+      "etag": "5256e47b0c8c5bda885b1e983a4ce3f4",
+      "full_bytes": 5021280,
+      "downloaded_bytes": 5021280,
+      "sha256": "2c2a61db9e0a272ebfa162838e5bd44cec290ff6677ca5c9d8142c6911087f97",
+      "path": "boreas-2020-11-26-13-58/lidar/1606417117518067.bin",
+      "range": "complete object"
+    }
+  ],
+  "errors": []
+}

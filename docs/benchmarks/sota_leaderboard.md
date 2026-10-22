@@ -54,6 +54,12 @@ Three pairs have only refuted audits:
 
 Every other target pair has a native method but no audited claim yet.
 
+Work to add an `ins-lidar` claim is tracked in the
+[cross-dataset audit plan](../research/ins_lidar_sota_plan.md): metadata-only
+Boreas inventory, an independent INS input adapter and failure-aware scoring
+are prepared. Development and pre-registration must finish before evaluation;
+this preparation does not change the standings below.
+
 | Pair | Standing | Supported | Refuted | Incomplete | Target |
 | --- | --- | ---: | ---: | ---: | --- |
 | `camera` | no_claim | 0 | 0 | 0 | yes |
