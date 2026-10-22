@@ -1,10 +1,12 @@
-"""ROS-free conversion of KITTI-360 perspective images, raw scans and sparse poses.
+"""ROS-free conversion of KITTI-360 images, scans and declared motion inputs.
 
 The input is the official split directory layout. Images are already rectified;
 the selected camera's stereo baseline belongs in TF, not in CameraInfo twice.
 Per-point times are an explicitly declared clockwise azimuth model, not measured
 firing times. Published poses use image_00 timestamps and the GPS/IMU body frame;
 their finite-difference twists are approximate and are not independent INS evidence.
+The opt-in OXTS source uses packet timestamps and a recorded local Mercator origin,
+without consuming published image/LiDAR-optimized poses. It is not metrology.
 """
 
 from __future__ import annotations
@@ -18,7 +20,7 @@ import tempfile
 from datetime import datetime, timezone
 from itertools import pairwise
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal, TypeAlias
 
 import numpy as np
 from scipy.spatial.transform import Rotation
@@ -26,7 +28,13 @@ from scipy.spatial.transform import Rotation
 from calibrex import __version__
 from calibrex.core.exceptions import DatasetError
 from calibrex.core.provenance import git_commit
-from calibrex.data.kitti import read_calibration_file, read_timestamps
+from calibrex.data.kitti import (
+    kitti_oxts_pose_world_imu,
+    read_calibration_file,
+    read_oxts_packet,
+    read_timestamps,
+)
+from calibrex.data.kitti_ins_lidar import se3_matrix
 from calibrex.data.kitti_raw_to_rosbag2 import (
     BASE_FRAME,
     CAMERA_INFO_TOPIC,
@@ -60,6 +68,8 @@ from calibrex.data.rosbag2_writer import Rosbag2Writer
 
 ODOMETRY_TOPIC = "/kitti360/odometry"
 WORLD_FRAME = "kitti360_world"
+OXTS_WORLD_FRAME = "kitti360_oxts_world"
+Kitti360MotionSource: TypeAlias = Literal["published_poses", "oxts"]
 
 
 def _rigid(values: list[float], label: str) -> FloatArray:
@@ -125,6 +135,26 @@ def _poses(path: Path, start: int, stop: int | None) -> dict[int, FloatArray]:
     return selected
 
 
+def _oxts_poses(
+    folder: Path, start: int, stop: int | None,
+) -> tuple[dict[int, FloatArray], set[Path], Path]:
+    """Read selected OXTS packets with an explicitly recorded local origin."""
+    available = _files(folder / "data", ".txt", 0, None)
+    origin_path = next(iter(available.values()))
+    origin = read_oxts_packet(origin_path)
+    selected = {
+        index: path for index, path in available.items()
+        if index >= start and (stop is None or index < stop)
+    }
+    if not selected:
+        raise DatasetError(f"{folder}: no OXTS packets in selected frame window")
+    poses = {}
+    for index, path in selected.items():
+        matrix = se3_matrix(kitti_oxts_pose_world_imu(read_oxts_packet(path), origin))
+        poses[index] = _rigid(matrix[:3].reshape(-1).tolist(), str(path))
+    return poses, set(selected.values()) | {origin_path}, origin_path
+
+
 def _transform(child: str, matrix: FloatArray) -> Transform:
     return (IMU_FRAME, child, _vector(matrix[:3, 3]), _quat(matrix[:3, :3]))
 
@@ -146,8 +176,14 @@ def convert_kitti360_to_rosbag2(
     max_frames: int | None = None,
     command: list[str] | None = None,
     overwrite: bool = False,
+    motion_source: Kitti360MotionSource = "published_poses",
 ) -> KittiConversionResult:
     """Convert one sequence/window in the official KITTI-360 split layout.
+
+    ``oxts`` reads ``data_poses/SEQUENCE/oxts/{data,timestamps.txt}`` with
+    its own timestamps. The earliest supplied packet defines the translation
+    origin and is hashed even if outside the selected frame window. There is
+    no automatic fallback between the two motion sources.
 
     ``start_frame`` is inclusive; ``max_frames`` is the numeric frame window's
     length, not a count of existing files. Missing scans/images are recorded and
@@ -170,6 +206,7 @@ def convert_kitti360_to_rosbag2(
             max_frames,
             list(command or []),
             overwrite,
+            motion_source,
         )
     except (OSError, ValueError) as exc:
         raise DatasetError(f"KITTI-360 conversion failed: {exc}") from exc
@@ -187,11 +224,14 @@ def _convert(
     count: int | None,
     command: list[str],
     overwrite: bool,
+    motion_source: Kitti360MotionSource,
 ) -> KittiConversionResult:
     if not re.fullmatch(r"2013_05_28_drive_\d{4}_sync", sequence):
         raise DatasetError("sequence must be 2013_05_28_drive_NNNN_sync")
     if camera not in ("image_00", "image_01"):
         raise DatasetError("KITTI-360 perspective camera must be image_00 or image_01")
+    if motion_source not in ("published_poses", "oxts"):
+        raise DatasetError("motion_source must be published_poses or oxts")
     if timing not in ("none", "azimuth") or not math.isfinite(period) or period <= 0:
         raise DatasetError(
             "point time must be none or azimuth; scan period must be positive/finite"
@@ -212,12 +252,22 @@ def _convert(
         if not (output / "metadata.yaml").is_file():
             raise DatasetError("overwrite requires an existing rosbag2 metadata.yaml")
     camera_stamp = image_root / camera / "timestamps.txt"
-    body_stamp = image_root / "image_00" / "timestamps.txt"
+    oxts_root = root / "data_poses" / sequence / "oxts"
+    body_stamp = (
+        oxts_root / "timestamps.txt" if motion_source == "oxts"
+        else image_root / "image_00" / "timestamps.txt"
+    )
     lidar_stamp = lidar_root / "timestamps.txt"
     images_ns, body_ns, lidar_ns = (_timestamps(p) for p in (camera_stamp, body_stamp, lidar_stamp))
     images = _files(image_root / camera / "data_rect", ".png", start, stop)
     scans = _files(lidar_root / "data", ".bin", start, stop)
-    poses = _poses(pose_path, start, stop)
+    origin_path = None
+    if motion_source == "oxts":
+        poses, motion_inputs, origin_path = _oxts_poses(oxts_root, start, stop)
+    else:
+        poses = _poses(pose_path, start, stop)
+        motion_inputs = {pose_path}
+    world_frame = OXTS_WORLD_FRAME if motion_source == "oxts" else WORLD_FRAME
     for selected, stamps, label in (
         (images, images_ns, "image"),
         (scans, lidar_ns, "Velodyne"),
@@ -271,7 +321,7 @@ def _convert(
         camera_stamp,
         body_stamp,
         lidar_stamp,
-        pose_path,
+        *motion_inputs,
         perspective_path,
         cam_pose_path,
         cam_velo_path,
@@ -327,7 +377,7 @@ def _convert(
         },
         "frames": {
             "base_link": "defined as KITTI-360 GPS/IMU pose frame; imu_link is identical",
-            "world": WORLD_FRAME,
+            "world": world_frame,
         },
         "velodyne_time": {
             "mode": timing,
@@ -336,9 +386,20 @@ def _convert(
             "clockwise, forward-facing mid-sweep; modelled, not measured",
         },
         "motion": {
-            "source": "published sparse poses.txt (image/LiDAR/OXTS aided); "
-            "not independent INS evidence",
-            "timestamps": "image_00 timestamps by original frame ID; no interpolation",
+            "mode": motion_source,
+            "source": (
+                "raw OXTS GNSS/INS Mercator positions and attitudes; "
+                "not an image/LiDAR-optimized trajectory or independent metrology"
+                if motion_source == "oxts" else
+                "published sparse poses.txt (image/LiDAR/OXTS aided); "
+                "not independent INS evidence"
+            ),
+            "origin_packet": str(origin_path.relative_to(root)) if origin_path else None,
+            "timestamps": (
+                "OXTS packet timestamps by original frame ID; no interpolation"
+                if motion_source == "oxts" else
+                "image_00 timestamps by original frame ID; no interpolation"
+            ),
             "twist": "finite differences between neighboring selected poses in body frame; "
             "approximate interval averages; zero/unknown for a singleton",
             "twist_interval_s": [],
@@ -439,7 +500,7 @@ def _convert(
                     ODOMETRY_TOPIC,
                     stamp,
                     encode_odometry(
-                        frame_id=WORLD_FRAME,
+                        frame_id=world_frame,
                         child_frame_id=IMU_FRAME,
                         timestamp_ns=stamp,
                         position=_vector(pose[:3, 3]),
