@@ -44,7 +44,16 @@ def test_saved_partial_development_result_scores_only_observed_rotation():
 
 def test_missing_recording_stays_in_every_family_denominator():
     result = score_artifacts(
-        [spec(), spec(case_id="failed", artifact_path=None, artifact_sha256=None)], Path(".")
+        [
+            spec(),
+            spec(
+                case_id="failed",
+                drive_ids=["declared-missing-drive"],
+                artifact_path=None,
+                artifact_sha256=None,
+            ),
+        ],
+        Path("."),
     )
     family = result["families"]["kitti_raw"]
     assert family["recording_completion"] == 0.5
@@ -57,6 +66,12 @@ def test_missing_all_results_has_no_invented_zero_error_or_perfect_detection():
     family = result["families"]["kitti_raw"]
     assert family["maximum_reference_difference_deg"] is None
     assert family["control_miss_rate"] is None and family["axis_coverage"] == 0
+
+
+@pytest.mark.parametrize("change", [{}, {"drive_ids": ["another-name"]}])
+def test_case_aliases_cannot_inflate_independent_evidence(change):
+    with pytest.raises(ValueError, match="duplicate recording or artifact"):
+        score_artifacts([spec(), spec(case_id="alias", **change)], Path("."))
 
 
 def test_prior_assistance_cannot_count_as_native_observability():

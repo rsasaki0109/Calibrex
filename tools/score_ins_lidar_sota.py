@@ -24,9 +24,9 @@ class CaseSpec(BaseModel):
     """Frozen case identity. A missing method result remains in the denominator."""
 
     model_config = ConfigDict(extra="forbid")
-    case_id: str
-    dataset_family: str
-    rig_id: str
+    case_id: str = Field(min_length=1)
+    dataset_family: str = Field(min_length=1)
+    rig_id: str = Field(min_length=1)
     drive_ids: list[str] = Field(min_length=1)
     artifact_path: str | None = None
     artifact_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
@@ -62,6 +62,10 @@ def score_case(artifact: InsLidarHandEyeArtifact | None) -> dict[str, Any]:
         result["reasons"].append("missing or duplicate rotation records")
         return result
     observed = [d for d in records if d.status == "estimated"]
+    limit = artifact.options.get("observable_rotation_std_deg")
+    if not isinstance(limit, (int, float)) or not math.isfinite(limit) or limit <= 0:
+        result["reasons"].append("missing finite observability threshold")
+        return result
     for dof in observed:
         if dof.error_to_reference is None or not math.isfinite(dof.error_to_reference):
             result["reasons"].append(f"{dof.name}: missing finite reference difference")
@@ -69,7 +73,7 @@ def score_case(artifact: InsLidarHandEyeArtifact | None) -> dict[str, Any]:
         if dof.reference_value is None or not math.isfinite(dof.reference_value):
             result["reasons"].append(f"{dof.name}: missing finite reference value")
             return result
-        if not math.isfinite(dof.std_reported):
+        if not math.isfinite(dof.std_reported) or dof.std_reported > limit:
             result["reasons"].append(f"{dof.name}: non-finite uncertainty")
             return result
     result["completed"] = True
@@ -99,6 +103,10 @@ def score_artifacts(cases: list[CaseSpec], base_dir: Path) -> dict[str, Any]:
     """
     if not cases or len({c.case_id for c in cases}) != len(cases):
         raise ValueError("non-empty unique declared cases required")
+    identities = [(c.dataset_family, c.rig_id, tuple(c.drive_ids)) for c in cases]
+    digests = [c.artifact_sha256 for c in cases if c.artifact_sha256 is not None]
+    if len(set(identities)) != len(identities) or len(set(digests)) != len(digests):
+        raise ValueError("duplicate recording or artifact cannot count as another audit case")
     rows = []
     for case in cases:
         artifact = None

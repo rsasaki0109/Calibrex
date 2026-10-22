@@ -13,6 +13,8 @@ request, so all bytes come from that one object (S3 answers 412 to any other), a
 ``--size``/``--etag`` (a pre-registration's pin) a different archive is not fetched at
 all. The timestamp files are cut to ``--max-frames`` lines, so the result reads as a drive
 of that length. A drive shorter than ``--max-frames`` is fetched whole (those members).
+``--streams`` may restrict acquisition to the named streams; its default retains all
+three. ``--max-fetch-bytes`` rejects oversized selected ranges before payload requests.
 ``fetch.json`` records the archive's size and ETag, every range, the number of members
 and the SHA-256 of their list (name, size, CRC-32); ``--members`` writes the list::
 
@@ -32,6 +34,7 @@ import sys
 import time
 import zipfile
 import zlib
+from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
@@ -99,23 +102,41 @@ def frame_index(name: str) -> int | None:
     return int(stem) if stem.isdigit() else None
 
 
-def select(infos: list[zipfile.ZipInfo], prefix: str, max_frames: int) -> list[zipfile.ZipInfo]:
+def select(
+    infos: list[zipfile.ZipInfo],
+    prefix: str,
+    max_frames: int,
+    *,
+    streams: Sequence[str] = FRAME_STREAMS,
+) -> list[zipfile.ZipInfo]:
     """The members of the first ``max_frames`` frames and the streams' text files."""
 
+    selected_streams = _validated_streams(streams)
     chosen = []
     for info in infos:
         if not info.filename.startswith(prefix) or info.is_dir():
             continue
         relative = info.filename[len(prefix) :]
-        if relative in STREAM_FILES:
+        if relative in STREAM_FILES and relative.partition("/")[0] in selected_streams:
             chosen.append(info)
             continue
         stream, _, rest = relative.partition("/")
-        if stream in FRAME_STREAMS and rest.startswith("data/"):
+        if stream in selected_streams and rest.startswith("data/"):
             index = frame_index(rest)
             if index is not None and index < max_frames:
                 chosen.append(info)
     return chosen
+
+
+def _validated_streams(streams: Sequence[str]) -> tuple[str, ...]:
+    selected = tuple(streams)
+    if (
+        not selected
+        or len(set(selected)) != len(selected)
+        or not set(selected) <= set(FRAME_STREAMS)
+    ):
+        raise ValueError("streams must be unique members of image_02, velodyne_points and oxts")
+    return selected
 
 
 def spans(
@@ -175,9 +196,15 @@ def fetch_drive(
     max_frames: int,
     output_dir: Path,
     expected: tuple[int, str] | None = None,
+    *,
+    streams: Sequence[str] = FRAME_STREAMS,
+    max_fetch_bytes: int | None = None,
 ) -> dict[str, Any]:
     """Fetch the drive's head; ``expected`` is a pinned (size, ETag), checked before any range."""
 
+    selected_streams = _validated_streams(streams)
+    if max_fetch_bytes is not None and (type(max_fetch_bytes) is not int or max_fetch_bytes < 1):
+        raise ValueError("max_fetch_bytes must be positive")
     name = f"{date}_drive_{drive}"
     url = drive_url(date, drive)
     started = time.monotonic()
@@ -188,8 +215,13 @@ def fetch_drive(
         )
     infos = central_directory(url, size, etag)
     prefix = f"{date}/{name}_sync/"
-    chosen = select(infos, prefix, max_frames)
+    chosen = select(infos, prefix, max_frames, streams=selected_streams)
     ranges = spans(infos, chosen, size)
+    selected_bytes = sum(hi - lo + 1 for lo, hi in ranges)
+    if max_fetch_bytes is not None and selected_bytes > max_fetch_bytes:
+        raise ValueError(
+            f"selected ranges need {selected_bytes} bytes, above {max_fetch_bytes} cap"
+        )
     by_range: dict[int, list[zipfile.ZipInfo]] = {}
     for info in chosen:
         index = next(i for i, (lo, hi) in enumerate(ranges) if lo <= info.header_offset <= hi)
@@ -218,7 +250,7 @@ def fetch_drive(
             members.append({"name": info.filename, "bytes": info.file_size, "crc32": info.CRC})
     frames = {
         stream: sum(1 for m in members if f"/{stream}/data/" in m["name"])
-        for stream in FRAME_STREAMS
+        for stream in selected_streams
     }
     return {
         "url": url,
@@ -232,7 +264,7 @@ def fetch_drive(
                 for info in infos
                 if info.filename.startswith(f"{prefix}{stream}/data/") and not info.is_dir()
             )
-            for stream in FRAME_STREAMS
+            for stream in selected_streams
         },
         "ranges": [[lo, hi] for lo, hi in ranges],
         "fetched_bytes": fetched,
@@ -254,11 +286,21 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--etag", default=None, help="the pinned archive ETag")
     parser.add_argument("--record", type=Path, default=None, help="default OUTPUT_DIR/fetch.json")
     parser.add_argument("--members", type=Path, default=None, help="write the members' list here")
+    parser.add_argument("--streams", nargs="+", choices=FRAME_STREAMS, default=FRAME_STREAMS)
+    parser.add_argument("--max-fetch-bytes", type=int, default=None)
     args = parser.parse_args(argv)
     if (args.size is None) != (args.etag is None):
         parser.error("--size and --etag go together")
     expected = None if args.size is None else (args.size, args.etag)
-    record = fetch_drive(args.date, args.drive, args.max_frames, args.output_dir, expected)
+    record = fetch_drive(
+        args.date,
+        args.drive,
+        args.max_frames,
+        args.output_dir,
+        expected,
+        streams=args.streams,
+        max_fetch_bytes=args.max_fetch_bytes,
+    )
     members = record.pop("members")
     if args.members is not None:
         args.members.write_text(json.dumps(members, indent=1) + "\n", encoding="utf-8")

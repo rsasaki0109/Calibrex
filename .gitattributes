@@ -5,6 +5,9 @@
 # Windows core.autocrlf checkouts as well.
 *.json text eol=lf
 
+# INS-LiDAR readiness receipts and archived development source bind raw bytes.
+docs/assets/ins_lidar_sota_readiness/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+
 # Preserve the raw worker/source bytes bound by the PNG array evidence hashes.
 docs/assets/png_array_decoding/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
 
