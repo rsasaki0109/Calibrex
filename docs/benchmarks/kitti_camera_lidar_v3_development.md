@@ -5,6 +5,10 @@ proposal after [v2 was refuted, 8 of 9 gates](kitti_camera_lidar_v2_check.md).
 It is not a pre-registration or a new audit. The v2 verdict and thresholds stay
 as published. No new evaluation sensor data was read for this work.
 
+Real capture/replay progress is **2/55 spent drives**. The proposed margin has
+an observed detection regression on 0002 and remains opt-in; no new claim or
+default change is justified by these partial results.
+
 ## Proposed far-start adoption rule
 
 `EdgeAlignmentOptions(start_scan_min_control_t=3.5)` adds a control margin to
@@ -229,14 +233,69 @@ are not republished. The retry's roughly 0.7 GB of exact input arrays stays
 local for subsequent comparisons. Report schemas and committed integrity tests
 check the failure/retry chain, native/replay parity and source bindings.
 
+## Known-failure case, 2026-10-23
+
+The second native comparison used spent `2011_09_28_0002`, the recording behind
+v2's gate-failing far-start result. Source `46f4b53a` retained the same 600-frame
+recipe, frozen proposed margin `3.5` and original archive/calibration pins.
+This drive has 376 frames, all acquired for each required stream. Exact ranges
+fetched 995,875,492 bytes below the 2 GiB cap, and every member passed CRC.
+There were seven actual checks and fourteen paired re-estimations, without
+capture or replay failures. The current-rule evidence and native verdicts
+matched all seven captures. The
+[comparison](../assets/kitti_camera_lidar_v3/native_development_20110928_0002/attempt_1/comparison/comparison.json)
+is explicitly `incomplete`, with no audit thresholds.
+
+| Measure on 0002 only | Current rule | Proposed 3.5 margin |
+| --- | ---: | ---: |
+| Baseline judged axes | 1/3 | 1/3 |
+| Baseline flagged | no | no |
+| Maximum judged baseline error | 0.0500 deg | 0.0500 deg |
+| Maximum judged turned-run error | 1.5030 deg | 0.1000 deg |
+| 3 deg controls flagged, on baseline-judged axes | 1/1 | **0/1** |
+| 1 deg controls flagged, on baseline-judged axes | 1/1 | 1/1 |
+| Counted turned axes incorrectly judged right | 0/2 | 0/2 |
+
+This is a **tradeoff, not a demonstrated overall improvement**. The maximum
+error is over axes still judged; its decrease does not establish accurate
+calibration of unreported rotations. Baseline coverage changes by zero
+percentage points, but the proposed pitch +3 deg result becomes inconclusive
+with no judged rotation axes, losing the only counted 3 deg detection. The
+denominator is one because baseline 0002 judges pitch only, not all three axes.
+
+Two further runs through `calibrex check` from the same bag confirm the proposed
+rule, with cache disabled and `--camera-lidar-far-control-t 3.5`:
+
+- [yaw +3 deg](../assets/kitti_camera_lidar_v3/native_development_20110928_0002/confirmation_yaw3/report.json)
+  was selected before inspecting the new replay results because it caused the
+  published v2 error-gate failure;
+- [pitch +3 deg](../assets/kitti_camera_lidar_v3/native_development_20110928_0002/confirmation_pitch3/report.json)
+  is explicitly a **post hoc** selection after replay revealed the detection
+  regression.
+
+Both native runs match the replay's numerical evidence within `1e-9` and its
+axis/overall verdicts. Both are inconclusive with no judged rotation axes.
+Yaw is not a counted turn in the detection row because baseline yaw was not
+judged. The pitch regression therefore also exists through the real driver;
+it is not a replay-only discrepancy. No threshold was changed after observing
+these results, and the existing default stays unchanged.
+
+The public [attempt manifest](../assets/kitti_camera_lidar_v3/native_development_20110928_0002/attempt_1/manifest.json)
+and two confirmation manifests bind reports, schemas, logs and exact source
+capsules. Publication excludes images, clouds, bags and the private NPZ arrays.
+The full 55-drive development comparison still has **53 pending recordings**;
+these two deliberately selected probes cannot supply its aggregate detection,
+coverage or new audit gates. Inspect the detection/coverage cost on further
+spent recordings, including 0034, before considering adoption.
+
 ## Work still required before pre-registration
 
 The [2026-10-23 local recheck](kitti360_camera_lidar_v3_access.md) verified
 official KITTI-360 access and exact metadata ranges for 21 archives.
 Published-pose and opt-in raw-OXTS conversion each passed on three frames from
 spent 0000 and 0002. The earlier cloud HTTP 403 is historical evidence.
-The 0005 native pilot above provides the first real replay inputs; the other
-54 spent drives still need capture and paired comparison. KITTI-360 conversion
+The 0005 pilot and 0002 comparison provide real replay inputs; the other
+53 spent drives still need capture and paired comparison. KITTI-360 conversion
 checks are not calibration measurements.
 
 Before step 3 can finish, regenerate the remaining estimator inputs from the

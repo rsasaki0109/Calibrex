@@ -243,12 +243,16 @@ optimum on the axes both observe. Weigh coverage: v2 already judges about 80 % o
 `tools/kitti_camera_lidar_v3_replay.py` captures seven real checks per drive and
 compares both rules on identical saved inputs. The
 [2026-10-23 native pilot](benchmarks/kitti_camera_lidar_v3_development.md#native-spent-data-pilot-2026-10-23)
-completed 0005 with exact replay parity and no difference between rules. An
-initial rounded-calibration guard failure is retained; the retry reconstructs
-the converter's quaternion TF edges without relaxing its tolerance. **1/55 is
-not a completed development comparison or evidence of improvement.** Capture
-the remaining 54, retain failures, then confirm the selected rule through the
-real driver. Preserve the local NPZ inputs and check free space before batches.
+completed 0005 with exact replay parity and no difference between rules. The
+[0002 comparison](benchmarks/kitti_camera_lidar_v3_development.md#known-failure-case-2026-10-23)
+reduces maximum judged turned-run error from 1.503 to 0.100 deg, but loses the
+only counted 3 deg detection (1/1 to 0/1). Preselected yaw +3 and post hoc pitch
++3 native checks both confirm the proposed replay's inconclusive result with
+no judged rotation axes. Do not describe this as an overall improvement or
+promote 3.5 from these data. **2/55 is incomplete; 53 remain.** The original
+rounded-calibration guard failure is retained and its tolerance unchanged.
+Inspect the detection/coverage cost, including on spent 0034, and preserve
+the all-55 denominator and local NPZ inputs. Check free space before batches.
 
 **Evaluation candidates.** KITTI-360 (another car, sensor set and calibration) is the
 natural choice: sequences 0004-0007, 0009 and 0010, subject to completing the exposure

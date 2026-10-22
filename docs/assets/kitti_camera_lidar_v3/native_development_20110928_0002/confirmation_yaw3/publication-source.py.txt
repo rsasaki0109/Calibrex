@@ -1,0 +1,30 @@
+"""Publish the preselected native confirmation, excluding sensor payloads."""
+import hashlib,json,shutil
+from datetime import datetime,timezone
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1]
+SOURCE=ROOT/'outputs/camera-lidar-v3-0002-yaw3-confirm-v1'
+DEST=ROOT/'docs/assets/kitti_camera_lidar_v3/native_development_20110928_0002/confirmation_yaw3'
+report=json.loads((SOURCE/'report.json').read_text())
+assert report['status'] in {'PASS_SELECTED_CONTROL_ONLY','FAIL'}
+DEST.mkdir(parents=True,exist_ok=False)
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+for path in SOURCE.rglob('*'):
+    if path.is_file() and path.suffix in {'.json','.yaml','.log','.txt'}:
+        target=DEST/path.relative_to(SOURCE);target.parent.mkdir(parents=True,exist_ok=True)
+        shutil.copyfile(path,target)
+for source,target in [
+    (Path(__file__),'publication-source.py.txt'),
+    (ROOT/'outputs/camera-lidar-v3-0002-yaw3-confirm-v1.py','producer-source.py.txt'),
+    (ROOT/'tools/kitti_camera_lidar_v3_replay.py','replay-source.py.txt'),
+    (ROOT/'src/calibrex/evaluation/camera_lidar_edge.py','estimator-source.py.txt'),
+    (ROOT/'src/calibrex/cli/main.py','cli-source.py.txt')]:
+    shutil.copyfile(source,DEST/target)
+files=[{'path':p.relative_to(DEST).as_posix(),'bytes':p.stat().st_size,'sha256':sha(p)}
+       for p in sorted(DEST.rglob('*')) if p.is_file()]
+manifest={'schema_version':'calibrex.camera_lidar_v3_confirmation_publication/v0.1','files':files,
+    'provenance':{'created_at':datetime.now(timezone.utc).isoformat(),
+        'source_commit':report['provenance']['source_commit'],'generator_sha256':sha(Path(__file__)),
+        'policy':'Unmodified selected spent-data native confirmation and exact source capsules; no new audit or sensor payload publication.'}}
+(DEST/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
+print(len(files),sum(f['bytes'] for f in files),'bound bytes')
