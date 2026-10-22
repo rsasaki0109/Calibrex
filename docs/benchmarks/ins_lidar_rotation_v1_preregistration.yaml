@@ -1,0 +1,232 @@
+schema_version: calibrex.ins_lidar_sota_preregistration/v0.1
+protocol_id: ins-lidar-rotation-kitti-boreas-v1
+claim_text: On the four pre-registered KITTI raw and Boreas recording windows not
+  previously read by Calibrex INS-LiDAR methods, LiDAR-only odometry followed by the
+  default native joint trajectory hand-eye fit produces a scorable rotation estimate
+  for every recording; every data-estimated rotation axis is within 0.5 deg of its
+  dataset-provided reference calibration; at least half of the three rotation axes
+  per recording are observed on average in each dataset family; and every observed-axis
+  1 deg held-out control is detected with delta chi-square at least 9. Dataset calibrations
+  are reference estimates, not independent metrology. No translation, full-extrinsic
+  or absolute clock-accuracy claim is made.
+scope:
+  modalities:
+  - ins
+  - lidar
+  quantities:
+  - rotation
+  category: trajectory_hand_eye_per_axis
+frozen_code_commit: 2fe4a3a3795ad0dd842d64f4b436cb0a2132fbad
+metadata:
+  kitti_raw:
+    path: docs/assets/ins_lidar_sota_readiness/kitti_metadata.json
+    sha256: 212bf2d497955fe475cb99583c9e69402e65e3e1b5df230fb3f78e78fcbb78b0
+  boreas:
+    path: docs/assets/ins_lidar_sota_readiness/boreas_metadata.json
+    sha256: d420469ac870ec83fbb94f03c074793f1b8d1941204700a555b60f1ba3450467
+evaluation:
+- case_id: '2011_09_29_0071'
+  dataset_family: kitti_raw
+  rig_id: kitti-platform
+- case_id: '2011_09_30_0020'
+  dataset_family: kitti_raw
+  rig_id: kitti-platform
+- case_id: '2011_09_30_0027'
+  dataset_family: kitti_raw
+  rig_id: kitti-platform
+- case_id: boreas-2020-12-01-13-26
+  dataset_family: boreas
+  rig_id: boreas-platform
+calibration_archive_sha256:
+  '2011_09_29': 260fb836916ac3cbbab7104e253531239a0191b87c411fa60b99178abbb8c40d
+  '2011_09_30': 2ed01563b616baec14f25659671bd9a77810bd87752d709d184fe304ff7258e3
+thresholds:
+  maximum_reference_difference_deg: 0.5
+  maximum_unobserved_axis_fraction: 0.5
+  maximum_control_miss_fraction: 0.0
+  maximum_failed_recording_fraction: 0.0
+  minimum_dataset_families: 2
+  minimum_independent_rigs: 2
+acquisition:
+  max_frames: 600
+  minimum_free_disk_bytes: 21474836480
+  maximum_additional_raw_bytes: 17179869184
+  object_attempts: 2
+  method_attempts: 1
+  method_timeout_seconds: 1800
+  boreas_workers: 4
+  max_point_object_bytes: 16777216
+  max_reference_object_bytes: 134217728
+development:
+  current_genuine:
+    recording: boreas-2020-11-26-13-58
+    source_commit: a795fb659cc13f12a803642677be01f7fadb012c
+    artifact: docs/assets/ins_lidar_sota_readiness/development/development.yaml
+    artifact_sha256: ee4bfa85793eb93225bc89e6db75e4fddf50f1d340ecf52aa3806ec55190a754
+    report_sha256: 215f7ae06283da857a6d5f6e15553cb1601cf40811e53be99d3b55ac3c72e4c3
+    scores:
+      declared_recordings: 1
+      recording_completion: 1.0
+      axis_coverage: 0.6666666666666666
+      estimated_axes: 2
+      control_misses: 0
+      control_miss_rate: 0.0
+      maximum_reference_difference_deg: 0.19184132984568794
+    input_scope: First 600 listed scans, reference calibration, first 8 MiB INS CSV
+      clipped at last newline; then fixed +/-1s trajectory crop. Complete inputs verified
+      before fit.
+    failed_attempt: Four disconnected object downloads plus acquisition assertion
+      retained in acquisition-failed.json; exact four objects recovered before method;
+      no method retry.
+    full_artifact_status: inconclusive is expected for unobserved yaw/translation;
+      the proposed audit concerns only data-estimated rotation axes.
+  historical_genuine:
+    artifact: docs/assets/kitti_ins_lidar_2011_09_26.yaml
+    artifact_sha256: 75a5b4fda51896ac259ca809ac231a179ca8bfdc55234b0a95b89589c0265402
+    source_commit: 5e010f9
+    generator_version: 0.4.1
+    recordings:
+    - 2011_09_26_drive_0005_sync
+    - 2011_09_26_drive_0009_sync
+    maximum_reference_difference_deg: 0.12438429827378121
+    notice: Historical genuine calibration, not a fresh run of the current code. Threshold
+      derives from the current Boreas development fit.
+  threshold_derivation:
+    error: ceil((1.5 * 0.19184132984568794) / 0.25) * 0.25 = 0.5 deg
+    coverage: Development 2/3 axes; handoff rounding floor((2/3)/1.5/0.25)*0.25 =
+      0.25. We prespecify a stricter 0.5 coverage quality floor in each family.
+    controls: Zero misses allowed in these finite declared cases, stricter than the
+      handoff binomial allowance. Two development controls cannot establish population
+      sensitivity; no future 95% detection claim.
+    completion: All four declared recordings must be scorable; failures remain in
+      all denominators.
+  excluded_synthetic: 2011_09_30_0018 OXTS generated-motion performance controls spend
+    the INS reference but provide no independent accuracy/coverage/detection evidence.
+exposure:
+  complete: true
+  evaluation_sensor_objects_read_before_registration: false
+  pair: ins-lidar
+  spent_kitti:
+  - '2011_09_26_0005'
+  - '2011_09_26_0009'
+  - '2011_09_26_0014'
+  - '2011_09_26_0015'
+  - '2011_09_26_0022'
+  - '2011_09_30_0018'
+  spent_boreas:
+  - boreas-2020-11-26-13-58
+  cross_pair_reads: All three KITTI cases had first-600-frame Velodyne and OXTS read
+    by camera-lidar v2; these are disclosed and were not native INS-LiDAR evaluation.
+    Selection uses download metadata counts/order, not camera-lidar scores.
+  selection: First three chronological archives from the 18-case camera-lidar v2 metadata
+    pool having >=600 Velodyne frames and 600 downloaded Velodyne/OXTS frame indices,
+    excluding INS-spent data. Boreas first canonical recording is development; next
+    is evaluation; third lacks gps_post_process.csv and is retained as ineligible,
+    not replaced.
+  history: 'git log --all -S for selected raw/case IDs: only camera-lidar v2 preregistration/results
+    (8915381d,57f20fba). Boreas occurs only in this development branch. Existing hand-eye/trajectory-control
+    problem provenance identifies 2011_09_30_0018 only.'
+  odometry_aliases:
+    '05': 2011_09_30_0018 (spent)
+    '06': '2011_09_30_0020'
+    '07': '2011_09_30_0027'
+  odometry_mapping_source:
+    url: https://s3.eu-central-1.amazonaws.com/avg-kitti/devkit_odometry.zip
+    bytes: 16798
+    sha256: c4703456de60cdeaaec672381fbe169155ba4c2fcded102335b42cb07ff76758
+    scope: Only devkit readme inspected; no odometry sensor or pose archive read.
+  other_inputs: Boreas evaluation listing XML only; KITTI HEAD and ZIP central directories
+    only during this task. Calibration archive digests reused from camera-lidar registration;
+    evaluation calibration bodies not fetched during preparation.
+run_recipe:
+  options:
+    step_frames:
+    - 5
+    - 10
+    - 20
+    block_duration_s: 5.0
+    holdout_every: 3
+    rotation_control_deg: 1.0
+    translation_control_m: 0.1
+    time_control_s: 0.02
+    detection_delta_chi2: 9.0
+    holdout_rotation_limit_deg: 0.5
+    holdout_translation_limit_m: 0.3
+    solver:
+      estimate_time_offset: true
+      time_offset_bound_s: 0.2
+      estimate_reference_scale: true
+      reference_scale_bound: 0.1
+      rotation_sigma_rad: 0.0017453292519943296
+      translation_sigma_floor_m: 0.01
+      translation_sigma_per_m: 0.02
+      huber_threshold: 1.5
+      irls_iterations: 5
+      yaw_starts_deg:
+      - 0.0
+      - 90.0
+      - 180.0
+      - 270.0
+      axis_alignment_start: true
+      extra_starts: []
+      observable_rotation_std_deg: 0.1
+      observable_translation_std_m: 0.02
+      observable_time_offset_std_s: 0.005
+      observable_reference_scale_std: 0.005
+      anchor_sigma: 1000.0
+      priors: []
+    odometry:
+      voxel_size_m: 0.5
+      min_range_m: 3.0
+      max_range_m: 80.0
+      normal_neighbours: 10
+      max_planarity_ratio: 0.2
+      max_correspondence_m: 1.5
+      huber_delta_m: 0.1
+      max_iterations: 30
+      convergence_translation_m: 0.0001
+      convergence_rotation_rad: 1.0e-05
+      min_correspondences: 200
+      local_map_scans: 1
+      deskew_iterations: 1
+      geometry_quantum_m: 0.0
+      motion_translation_quantum_m: 0.0
+      motion_rotation_quantum_rad: 0.0
+      query_workers: 1
+  max_frames: 600
+  kitti_streams:
+  - velodyne_points
+  - oxts
+  boreas_reference: Full applanix/gps_post_process.csv, not lidar_poses.csv; crop
+    +/-1s around first 600 scans inside adapter.
+  odometry: LiDAR-only rigid scans, default registration; no reference/INS prior,
+    no per-point deskew.
+  runner: python tools/ins_lidar_sota_evaluate.py docs/benchmarks/ins_lidar_rotation_v1_preregistration.yaml
+    WORK RUNS
+  builder: python tools/build_ins_lidar_sota_audit.py RUNS/run.json docs/benchmarks/ins_lidar_rotation_v1_preregistration.yaml
+    AUDIT
+  source_guard: Merged main; src/tools identical to frozen code; registration on main;
+    no dirty source; metadata and all inputs digest checked.
+  retry_policy: At most two transport attempts per object or KITTI fetch, only for
+    external transport/OS failures. Identity/ETag/SHA/budget/scoring/algorithm failures
+    are not retryable. Every partial object and failed attempt is kept. Each method
+    executes at most once; failure, timeout or interrupted RUNNING consumes the attempt.
+    No replacement recordings.
+  publication: Retain every declared case and failed attempt; publish supported, refuted
+    or incomplete. No gate changes or selective reruns.
+  resource_policy: At most 16 GiB additional raw bytes even with two attempts; require
+    20 GiB free at each recording acquisition; no GPU requirement or performance claim.
+provenance:
+  generator: outputs/prepare-ins-sota-registration.py
+  generator_sha256: 025be12a85893760eca519fd2465b93dc60df5464c6b722664043bd0fe41936d
+  source_commit: 2fe4a3a3795ad0dd842d64f4b436cb0a2132fbad
+  created_at: '2026-10-22T10:41:45.422912+00:00'
+  development_files_sha256:
+    development.yaml: ee4bfa85793eb93225bc89e6db75e4fddf50f1d340ecf52aa3806ec55190a754
+    report.json: 215f7ae06283da857a6d5f6e15553cb1601cf40811e53be99d3b55ac3c72e4c3
+    acquisition-failed.json: be84b455b919a2312ccf4452a436db7763afc220ebacc4cf388ff154a5a8d23d
+    acquisition-recovered.json: dad6cf04596c52f3ac02ad18b185a9cdcaafcf102e5634fa1e497caaf4fdb6cf
+    recovery.json: c599484389bfe8bd4d4ed6ef9e402f983314c7ccb2cc89eaa45c5ffc239378c5
+    run-source.py.txt: 045b5662665603ea241f6ebc62bc9aba01f0f6f9ee9e14da032d2476027846ea
+  notice: Pre-registration, not an evaluation result. Must be merged before evaluation
+    reads any sensor input.

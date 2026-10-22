@@ -139,7 +139,9 @@ The camera-imu v3 audit did exactly this with the camera-camera runs.
 | --- | --- | --- |
 | KITTI raw | `camera-lidar` | **All** synced drives with at least 125 frames: the 36 of 2011_09_26, 2011_09_30_0018 and the 18 of v2 (2011_09_28, 2011_09_29, 2011_09_30, 2011_10_03). Shorter drives were never eligible. |
 | KITTI raw | `lidar-vehicle` | 2011_09_26 0005, 0009, 0014, 0015, 0022 (dev); 0027, 0028, 0035, 0039, 0046, 0051, 0057, 0059 (evaluation) |
-| KITTI raw | `ins-lidar`, `lidar-wheel_odometry`, `imu-vehicle` | 2011_09_26 0005, 0009, 0014, 0022 (tool runs, no audit) |
+| KITTI raw | `ins-lidar`, `lidar-wheel_odometry`, `imu-vehicle` | 2011_09_26 0005, 0009, 0014, 0015, 0022 (tool runs, including the 0015 round trip; no audit) |
+| KITTI raw | `ins-lidar` | 2011_09_30_0018 OXTS, read by the generated-motion trajectory hand-eye performance controls; not independent calibration evidence |
+| Boreas | `ins-lidar` development | boreas-2020-11-26-13-58 (INS prefix/calibration inspected and first-600-scan development acquisition; see the [audit plan](research/ins_lidar_sota_plan.md)) |
 | KITTI-360 | camera-LiDAR research | 2013_05_28_drive_0000, 0002 and 0003 (the [research plan](research/camera_lidar_sota_plan.md) records the materialized 0003 development capture; it was omitted from the original handoff) |
 | Hilti 2022 | `camera-imu` | exp01-07, exp11, exp14-16, exp18, exp21, exp23 (parts 0-2); exp09 and exp10 never run (size) |
 | Hilti 2022 | `camera-camera` | exp05, exp06, exp09, exp10, exp11, exp14, exp15, exp16, exp18, exp23 parts 0-2 (first 5 GB of each), plus development on exp01 and exp21 |
@@ -218,6 +220,16 @@ the `ins-lidar` claim below; neither path is authorized to begin evaluation yet.
   sequence, chosen by a rule from metadata.
 
 ### 2. ins-lidar first claim
+
+**Readiness update, 2026-10-22.** The [INS-LiDAR audit plan](research/ins_lidar_sota_plan.md)
+adds metadata-only Boreas access, an independent-Applanix input adapter and
+failure-aware per-axis scoring. KITTI 0015 and the OXTS of 2011_09_30_0018 are
+also spent, as corrected above. Boreas 2020-11-26 is development-only; 2020-12-01
+remains an unread evaluation candidate and 2020-12-04 lacks the required raw INS
+reference. There is no pre-registration or new audited claim yet. Preserve two
+dataset families and two platforms for this proposal; do not count different
+dates of one rig as independent rigs. Clock accuracy is not part of the first
+proposed rotation claim.
 
 The native trajectory hand-eye on KITTI 0005+0009 constrains roll, pitch and the clock
 offset, but not yaw or translation ([KITTI INS-LiDAR](benchmarks/kitti_ins_lidar.md)). A

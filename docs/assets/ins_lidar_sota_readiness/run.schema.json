@@ -1,0 +1,136 @@
+{
+  "$defs": {
+    "CaseSpec": {
+      "additionalProperties": false,
+      "description": "Frozen case identity. A missing method result remains in the denominator.",
+      "properties": {
+        "case_id": {
+          "minLength": 1,
+          "title": "Case Id",
+          "type": "string"
+        },
+        "dataset_family": {
+          "minLength": 1,
+          "title": "Dataset Family",
+          "type": "string"
+        },
+        "rig_id": {
+          "minLength": 1,
+          "title": "Rig Id",
+          "type": "string"
+        },
+        "drive_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Drive Ids",
+          "type": "array"
+        },
+        "artifact_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Path"
+        },
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        }
+      },
+      "required": [
+        "case_id",
+        "dataset_family",
+        "rig_id",
+        "drive_ids"
+      ],
+      "title": "CaseSpec",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "calibrex.ins_lidar_sota_run/v0.1",
+      "default": "calibrex.ins_lidar_sota_run/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "preregistration_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Preregistration Sha256",
+      "type": "string"
+    },
+    "frozen_code_commit": {
+      "pattern": "^[0-9a-f]{40}$",
+      "title": "Frozen Code Commit",
+      "type": "string"
+    },
+    "cases": {
+      "items": {
+        "$ref": "#/$defs/CaseSpec"
+      },
+      "title": "Cases",
+      "type": "array"
+    },
+    "input_data_verified": {
+      "default": false,
+      "title": "Input Data Verified",
+      "type": "boolean"
+    },
+    "input_receipts": {
+      "additionalProperties": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "title": "Input Receipts",
+      "type": "object"
+    },
+    "attempts": {
+      "additionalProperties": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Attempts",
+      "type": "object"
+    },
+    "acquisition_errors": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Acquisition Errors",
+      "type": "array"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    }
+  },
+  "required": [
+    "preregistration_sha256",
+    "frozen_code_commit",
+    "cases",
+    "input_receipts"
+  ],
+  "title": "RunManifest",
+  "type": "object"
+}
