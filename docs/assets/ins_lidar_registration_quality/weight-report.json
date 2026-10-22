@@ -1,0 +1,136 @@
+{
+  "schema_version": "calibrex.ins_lidar_translation_weight_study/v0.1",
+  "scope": "POST HOC DEVELOPMENT ONLY, spent KITTI 0071 first 600 scans. Two arms declared before fitting: existing noise model and translation sigma floor/per-m terms both multiplied by 10. Same cached LiDAR-only poses, data, block split, clock/scale nuisance settings, no priors, 0.1 degree observability ceiling, control threshold and holdout limits. This changes the statistical weighting and must not be interpreted as new evidence merely because a reported uncertainty changes. No new SOTA claim.",
+  "cases": {
+    "baseline": {
+      "translation_noise_multiplier": 1.0,
+      "artifact_sha256": "018d3e0ba6563e7b8d46ee8fe23d26ab14a75d66e860c8ad32aecc4b6dff5ae5",
+      "calibrated_dofs": [],
+      "rotation": [
+        {
+          "name": "roll",
+          "unit": "deg",
+          "value": -0.8451575409068529,
+          "std_analytic": 0.22533580315139332,
+          "std_jackknife": 0.3781741877531567,
+          "std_reported": 0.3781741877531567,
+          "status": "unobservable",
+          "reference_value": -0.8493269379538126,
+          "error_to_reference": 0.013378269322749485,
+          "known_bad_control": {
+            "amount": 1.0,
+            "unit": "deg",
+            "holdout_delta_chi2": -7.526186884551407,
+            "detected": false
+          }
+        },
+        {
+          "name": "pitch",
+          "unit": "deg",
+          "value": 0.6752171332787666,
+          "std_analytic": 0.22649479589109797,
+          "std_jackknife": 0.18150927280388382,
+          "std_reported": 0.22649479589109797,
+          "status": "unobservable",
+          "reference_value": 0.11664432400331386,
+          "error_to_reference": 0.5584558283003419,
+          "known_bad_control": {
+            "amount": 1.0,
+            "unit": "deg",
+            "holdout_delta_chi2": 86.57956797888346,
+            "detected": true
+          }
+        },
+        {
+          "name": "yaw",
+          "unit": "deg",
+          "value": -1.9325647562310353,
+          "std_analytic": 0.1485491035808697,
+          "std_jackknife": 1.225164335633841,
+          "std_reported": 1.225164335633841,
+          "status": "unobservable",
+          "reference_value": 0.04327600301885539,
+          "error_to_reference": -1.9758539204373637,
+          "known_bad_control": {
+            "amount": 1.0,
+            "unit": "deg",
+            "holdout_delta_chi2": -69.33682425232882,
+            "detected": false
+          }
+        }
+      ]
+    },
+    "translation_noise_x10": {
+      "translation_noise_multiplier": 10.0,
+      "artifact_sha256": "12eea3421676359cdc3691850dc6ae7dc903d78a422fe477c30fac886ee3d879",
+      "calibrated_dofs": [
+        "time_offset"
+      ],
+      "rotation": [
+        {
+          "name": "roll",
+          "unit": "deg",
+          "value": -0.8387305877465928,
+          "std_analytic": 0.13035115048992074,
+          "std_jackknife": 0.2897745001509338,
+          "std_reported": 0.2897745001509338,
+          "status": "unobservable",
+          "reference_value": -0.8493269379538126,
+          "error_to_reference": 0.010146629138791392,
+          "known_bad_control": {
+            "amount": 1.0,
+            "unit": "deg",
+            "holdout_delta_chi2": -12.499370162004311,
+            "detected": false
+          }
+        },
+        {
+          "name": "pitch",
+          "unit": "deg",
+          "value": -0.2224862266985966,
+          "std_analytic": 0.12891378899994999,
+          "std_jackknife": 0.6304686116581483,
+          "std_reported": 0.6304686116581483,
+          "status": "unobservable",
+          "reference_value": 0.11664432400331386,
+          "error_to_reference": -0.33914454851434583,
+          "known_bad_control": {
+            "amount": 1.0,
+            "unit": "deg",
+            "holdout_delta_chi2": 67.06700997145435,
+            "detected": true
+          }
+        },
+        {
+          "name": "yaw",
+          "unit": "deg",
+          "value": -0.19523895605579705,
+          "std_analytic": 0.32391601782295315,
+          "std_jackknife": 1.0555934923581134,
+          "std_reported": 1.0555934923581134,
+          "status": "unobservable",
+          "reference_value": 0.04327600301885539,
+          "error_to_reference": -0.23850447477431755,
+          "known_bad_control": {
+            "amount": 1.0,
+            "unit": "deg",
+            "holdout_delta_chi2": -3.184903788408178,
+            "detected": false
+          }
+        }
+      ]
+    }
+  },
+  "provenance": {
+    "source_commit": "0f45a2b26632df9064ca17d224f32ad800a15232",
+    "script_sha256": "2290e4434927e31222f24946ef85decb2145a0cad0a7d126df1ae6955bfdd105",
+    "baseline_sha256": "748d54c994908b97d464237236d934eb6e58522006f4534dedb50a995bdc022e",
+    "odometry_sha256": "6aefe4edb5fcaab7dcff267598df6a8adfb5aa715056b70145f5c40d90cfc459",
+    "input_sha256": "ce4ab3fb03435b771d7f7be4ee671f9060c374dc5e47f25725c0e2bc7aaf362a",
+    "receipt_sha256": "0e6f35b37e84c0e53fdbde3e5ec3e0f9e04cc0b62c83b50f4f0d70a94d1cdb2d",
+    "created_at": "2026-10-22T14:43:24.323047+00:00",
+    "numpy": "2.3.4",
+    "scipy": "1.17.1",
+    "new_accuracy_claim": false
+  }
+}

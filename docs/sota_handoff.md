@@ -200,6 +200,25 @@ isolated. Use these spent windows to study informative motion, registration
 stability and a declared data-sufficiency policy. A new claim needs new held-out
 recordings and a new registration; no v1 gate or verdict may be relaxed.
 
+The [post hoc registration-quality comparison](research/ins_lidar_registration_quality.md)
+excludes four motions crossing the two unconverged scan registrations in 0071.
+It still observes zero rotation axes; uncertainty changes are small. The new
+`exclude_failed_registrations` option remains opt-in (default false), and this
+negative development result does not revise the v1 audit. Study errors in the
+remaining motions and block stability next; do not treat this filter as a
+demonstrated calibration improvement.
+The follow-up reproduces all nine native jackknife fits: omitting block 7
+(35-40 s) changes the yaw component by 0.811 deg, although block 3 has the
+largest rotation residual. Residual ranking alone is not a justified block
+rejection policy; no such rule has been adopted.
+The subsequent two-arm translation-noise comparison reduces the unobserved
+yaw reference difference from 1.976 to 0.239 deg, but still has 1.056 deg
+uncertainty and fails the yaw control. Defaults are unchanged. An OXTS-only
+development acquisition of all 1059 samples finds the same 16.510 deg heading
+range as the first 600; no additional point clouds were acquired. These
+reference-only proxies do not decide observability or rule out a benefit from
+more samples. The complete 0071 OXTS recording is spent development data.
+
 The published protocol replays the six achieved and two contradicted gates
 without sensor data. No calibration rerun is needed to reproduce the verdict.
 

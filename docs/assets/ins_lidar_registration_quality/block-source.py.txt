@@ -1,0 +1,96 @@
+"""Post hoc block diagnostics on the saved, already-spent 0071 trajectory."""
+from pathlib import Path
+from datetime import datetime, timezone
+from dataclasses import replace
+import hashlib
+import json
+import subprocess
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+SOURCE = ROOT / '.worktrees/ins-quality-dev'
+sys.path[:0] = [str(SOURCE / 'src'), str(SOURCE)]
+import numpy as np
+from scipy.spatial.transform import Rotation
+from pydantic import BaseModel, ConfigDict
+from calibrex.core.ins_lidar_hand_eye import load_ins_lidar_hand_eye
+from calibrex.data.kitti_ins_lidar import load_kitti_ins_lidar_drive
+from calibrex.evaluation.ins_lidar_hand_eye import InsLidarRunOptions, build_sensor_motions
+from calibrex.solvers.trajectory_hand_eye_solver import (
+    ReferenceTrajectory, TrajectoryHandEyeSolver, covered_motions, motion_errors,
+)
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+OUT = ROOT / 'outputs/ins-lidar-block-diagnostics-v2'
+OUT.mkdir(exist_ok=False)
+PREVIOUS = ROOT / 'outputs/ins-registration-quality-development-v2'
+previous = json.loads((PREVIOUS / 'report.json').read_text())
+assert sha(PREVIOUS / 'odometry.npz') == previous['provenance']['odometry_sha256']
+receipt_path = ROOT / 'outputs/ins-lidar-sota-evaluation-inputs-v1/2011_09_29_0071/acquisition.json'
+receipt = json.loads(receipt_path.read_text())
+drive = load_kitti_ins_lidar_drive(receipt_path.parent / receipt['sequence_dir'])
+baseline = load_ins_lidar_hand_eye(PREVIOUS / 'baseline.yaml')
+assert hashlib.sha256(drive.input_sha256.encode('ascii')).hexdigest() == baseline.provenance.input_sha256
+cache = np.load(PREVIOUS / 'odometry.npz', allow_pickle=False)
+opts = InsLidarRunOptions()
+motions = build_sensor_motions(cache['times_s'].tolist(), cache['poses'], opts)
+reference = ReferenceTrajectory(drive.trajectory.times_s, drive.trajectory.poses)
+train = [m for m in motions if m.block in baseline.train_blocks]
+solver = TrajectoryHandEyeSolver()
+full = solver.solve(reference, train, opts.solver)
+assert full.status == 'converged' and full.transform is not None and full.start_rotation is not None
+assert baseline.transform is not None
+np.testing.assert_allclose(full.transform[:3, :3],
+    Rotation.from_quat(baseline.transform.rotation_quat_xyzw).as_matrix(), atol=1e-12, rtol=0)
+single_start = replace(opts.solver, yaw_starts_deg=(), extra_starts=(full.start_rotation,),
+                       axis_alignment_start=False)
+samples = []
+for block in baseline.train_blocks:
+    fit = solver.solve(reference, [m for m in train if m.block != block], single_start)
+    assert fit.status == 'converged' and fit.transform is not None
+    delta = np.rad2deg(Rotation.from_matrix(fit.transform[:3, :3] @ full.transform[:3, :3].T).as_rotvec())
+    samples.append({'omitted_block': block, 'left_rotation_delta_deg': delta.tolist(),
+                    'clock_offset_s': fit.time_offset_s, 'reference_scale': fit.reference_scale})
+values = np.array([row['left_rotation_delta_deg'] for row in samples])
+count = len(values)
+spread = np.sqrt((count-1)/count * np.sum((values-values.mean(axis=0))**2, axis=0))
+np.testing.assert_allclose(spread, [d.std_jackknife for d in baseline.dofs[:3]], rtol=1e-10)
+epoch = float(reference.times_s[0])
+rebased = reference.rebased(epoch)
+block_rows = []
+for block in sorted({m.block for m in motions}):
+    subset = [replace(m, start_s=m.start_s-epoch, end_s=m.end_s-epoch) for m in motions if m.block == block]
+    candidate_count = len(subset)
+    subset = covered_motions(rebased, subset, opts.solver)
+    def rms(transform):
+        errors = motion_errors(rebased, subset, transform, full.time_offset_s, full.reference_scale)
+        return float(np.rad2deg(np.sqrt(np.mean(np.sum(errors[:, :3]**2, axis=1)))))
+    block_rows.append({'block': block, 'split': 'train' if block in baseline.train_blocks else 'holdout',
+        'candidate_motion_count': candidate_count, 'covered_motion_count': len(subset), 'fit_rotation_rmse_deg': rms(full.transform),
+        'reference_extrinsic_rotation_rmse_deg': rms(drive.vendor_t_imu_lidar)})
+
+class Report(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    schema_version: str = 'calibrex.ins_lidar_block_diagnostics/v0.1'
+    scope: str
+    jackknife: list[dict]
+    reproduced_jackknife_std_deg: list[float]
+    blocks: list[dict]
+    provenance: dict
+
+report = Report(scope='POST HOC DEVELOPMENT ONLY on spent KITTI 0071. Reuses saved LiDAR-only '
+    'poses; no scan registration or acquisition. Native leave-one-training-block-out fits '
+    'are diagnostics, not a rule for removing blocks. Reference-extrinsic residuals use the '
+    'full fit clock/scale nuisance values for both transforms, not independent ground truth. '
+    'Native covered_motions excludes intervals whose offset bounds exceed the reference; counts are retained. Block labels and train/holdout split are unchanged. No SOTA gate or verdict changed.',
+    jackknife=samples, reproduced_jackknife_std_deg=spread.tolist(), blocks=block_rows,
+    provenance={'source_commit': subprocess.check_output(['git','-C',str(SOURCE),'rev-parse','HEAD'],text=True).strip(),
+        'script_sha256': sha(Path(__file__)), 'odometry_sha256': sha(PREVIOUS/'odometry.npz'),
+        'baseline_sha256': sha(PREVIOUS/'baseline.yaml'), 'input_sha256': baseline.provenance.input_sha256,
+        'receipt_sha256': sha(receipt_path), 'created_at': datetime.now(timezone.utc).isoformat(),
+        'numpy': np.__version__, 'new_accuracy_claim': False})
+(OUT/'report.json').write_text(report.model_dump_json(indent=2)+'\n',encoding='utf-8')
+(OUT/'report.schema.json').write_text(json.dumps(Report.model_json_schema(),indent=2)+'\n',encoding='utf-8')
+print(report.model_dump_json(indent=2))

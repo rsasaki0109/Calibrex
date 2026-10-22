@@ -72,6 +72,34 @@ def test_invalid_frame_budget_cannot_silently_change_the_experiment(tmp_path, ma
         adapter.run_boreas_ins_lidar_hand_eye(tmp_path, max_frames=max_frames)
 
 
+@pytest.mark.parametrize("exclude_failed, expected_count", [(True, 1), (False, 3)])
+def test_adapter_does_not_fit_motions_crossing_a_failed_registration(
+    tmp_path, monkeypatch, exclude_failed, expected_count,
+):
+    root = sequence(tmp_path)
+    registration = ScanRegistration(np.eye(4), True, 1, 300, 0.01, 1.0)
+    monkeypatch.setattr(adapter, "odometry_from_loader", lambda *args, **kwargs: ScanOdometryResult(
+        (np.eye(4),) * 3, (registration, replace(registration, converged=False)),
+    ))
+    original = adapter.evaluate_ins_lidar_hand_eye
+    captured = []
+
+    def evaluate(reference, motions, options, **kwargs):
+        captured.extend(motions)
+        return original(reference, motions, options, **kwargs)
+
+    monkeypatch.setattr(adapter, "evaluate_ins_lidar_hand_eye", evaluate)
+    result = adapter.run_boreas_ins_lidar_hand_eye(
+        root, adapter.InsLidarRunOptions(
+            step_frames=(1, 2), exclude_failed_registrations=exclude_failed,
+        ),
+    )
+    assert len(captured) == expected_count
+    assert captured[0].end_s - captured[0].start_s == 1.0
+    assert result.odometry.registration_count == 2
+    assert result.odometry.converged_registrations == 1
+
+
 def test_ins_reference_must_cover_scan_times_before_registration(tmp_path, monkeypatch):
     root = sequence(tmp_path)
     path = root / "applanix/gps_post_process.csv"

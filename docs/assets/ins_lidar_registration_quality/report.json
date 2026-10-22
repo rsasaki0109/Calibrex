@@ -1,0 +1,39 @@
+{
+  "schema_version": "calibrex.ins_registration_quality_development/v0.1",
+  "scope": "POST HOC DEVELOPMENT ONLY on an already-spent first-600-scan window. No new SOTA claim. Both fits share one unmodified LiDAR-only trajectory. Baseline retains all registration edges; filtered excludes motions crossing unconverged edges. No observability threshold was changed. Runtime is not a speed comparison.",
+  "case_id": "2011_09_29_0071",
+  "failed_registration_edges": [
+    283,
+    316
+  ],
+  "results": {
+    "baseline": {
+      "artifact_sha256": "748d54c994908b97d464237236d934eb6e58522006f4534dedb50a995bdc022e",
+      "elapsed_s_including_input_hashing_and_first_odometry": 73.60899999993853,
+      "calibrated_dofs": [],
+      "train_motions": 115,
+      "holdout_motions": 53
+    },
+    "filtered": {
+      "artifact_sha256": "238202534d1f63b1754fec4f812ba597aee17bb40423bc4764b4a2794abb5a7b",
+      "elapsed_s_including_input_hashing_and_first_odometry": 10.875,
+      "calibrated_dofs": [],
+      "train_motions": 112,
+      "holdout_motions": 52
+    }
+  },
+  "provenance": {
+    "source_commit": "a68644a82137b8bd0e0c7efee3fefd8bab40d455",
+    "source_root": "C:\\Users\\rsasa\\Workspace\\Calibrex\\.worktrees\\ins-quality-dev",
+    "script_sha256": "13949d26e90616530f9507c53bec7b2c7b25aad6da443bb75b683bf54b25e3fb",
+    "receipt_sha256": "0e6f35b37e84c0e53fdbde3e5ec3e0f9e04cc0b62c83b50f4f0d70a94d1cdb2d",
+    "odometry_sha256": "6aefe4edb5fcaab7dcff267598df6a8adfb5aa715056b70145f5c40d90cfc459",
+    "original_audit_sha256": "4dc9d02568fd60e804e85a773046315aef3586f5ae61d7c5e0cd3ab99619b625",
+    "created_at": "2026-10-22T14:12:19.138125+00:00",
+    "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+    "numpy": "2.3.4",
+    "scipy": "1.17.1",
+    "inputs_verified_before_and_after": true,
+    "new_accuracy_claim": false
+  }
+}

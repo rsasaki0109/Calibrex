@@ -344,3 +344,7 @@ docs/assets/kitti360_sota_readiness/** -text whitespace=-blank-at-eol,-blank-at-
 
 # Preserve native KITTI v3 pilot failures, retry reports and source bytes.
 docs/assets/kitti_camera_lidar_v3/native_pilot_0005/** -text whitespace=-blank-at-eol,-blank-at-eof,space-before-tab,cr-at-eol
+# Preserve the byte-bound post hoc INS-LiDAR comparison artifacts.
+docs/assets/ins_lidar_registration_quality/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+# The exact comparison producer has an additional terminal newline.
+docs/assets/ins_lidar_registration_quality/comparison-source.py.txt -text whitespace=-blank-at-eof,blank-at-eol,space-before-tab,cr-at-eol

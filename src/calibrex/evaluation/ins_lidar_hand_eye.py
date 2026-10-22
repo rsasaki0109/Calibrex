@@ -105,6 +105,8 @@ class InsLidarRunOptions:
     holdout_translation_limit_m: float = 0.3
     solver: TrajectoryHandEyeOptions = field(default_factory=TrajectoryHandEyeOptions)
     odometry: ScanOdometryOptions = field(default_factory=ScanOdometryOptions)
+    # Experimental: convergence alone is not a calibrated motion-quality test.
+    exclude_failed_registrations: bool = False
 
 
 @dataclass(frozen=True)
@@ -129,9 +131,27 @@ def build_sensor_motions(
     *,
     block_offset: int = 0,
     id_prefix: str = "",
+    registration_valid: Sequence[bool] | None = None,
 ) -> list[SensorMotion]:
-    """Build block-contained relative motions for every configured frame step."""
+    """Build block-contained motions, optionally excluding failed odometry edges.
 
+    ``registration_valid[i]`` describes the edge from pose i to pose i+1.
+    Every edge in a relative motion must be valid, including interior edges.
+    Later motions entirely after a failed edge remain usable: their common
+    accumulated pose prefix cancels in the relative transform. Omitting the
+    mask preserves the behavior for callers supplying trusted trajectories.
+    """
+
+    if len(frame_times_s) != len(sensor_poses):
+        raise ValueError("frame times and sensor poses must have equal length")
+    invalid_prefix = [0]
+    if registration_valid is not None:
+        if len(registration_valid) != max(0, len(frame_times_s) - 1):
+            raise ValueError("registration_valid must contain one boolean per pose edge")
+        for valid in registration_valid:
+            if not isinstance(valid, (bool, np.bool_)):
+                raise ValueError("registration_valid must contain booleans")
+            invalid_prefix.append(invalid_prefix[-1] + int(not valid))
     if not frame_times_s:
         return []
     start = float(frame_times_s[0])
@@ -144,6 +164,8 @@ def build_sensor_motions(
         for index in range(0, len(frame_times_s) - step, step):
             end = index + step
             if blocks[index] != blocks[end]:
+                continue
+            if registration_valid is not None and invalid_prefix[end] != invalid_prefix[index]:
                 continue
             motions.append(
                 SensorMotion(
@@ -261,6 +283,10 @@ def run_kitti_ins_lidar_hand_eye(
             opts,
             block_offset=position * 100_000,
             id_prefix=f"{drive.drive_dir.name}/",
+            registration_valid=(
+                [item.converged for item in odometry.registrations]
+                if opts.exclude_failed_registrations else None
+            ),
         )
         registrations += list(odometry.registrations)
         frame_count += len(frames)
@@ -326,6 +352,7 @@ def build_ins_lidar_artifact(
         dofs=list(evaluation.records),
         options={
             "step_frames": list(options.step_frames),
+            "exclude_failed_registrations": options.exclude_failed_registrations,
             "holdout_every": options.holdout_every,
             "rotation_control_deg": options.rotation_control_deg,
             "translation_control_m": options.translation_control_m,

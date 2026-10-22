@@ -1,0 +1,51 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "calibrex.ins_lidar_block_diagnostics/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "jackknife": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Jackknife",
+      "type": "array"
+    },
+    "reproduced_jackknife_std_deg": {
+      "items": {
+        "type": "number"
+      },
+      "title": "Reproduced Jackknife Std Deg",
+      "type": "array"
+    },
+    "blocks": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Blocks",
+      "type": "array"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    }
+  },
+  "required": [
+    "scope",
+    "jackknife",
+    "reproduced_jackknife_std_deg",
+    "blocks",
+    "provenance"
+  ],
+  "title": "Report",
+  "type": "object"
+}
