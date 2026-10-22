@@ -63,18 +63,25 @@ MAX_GAP_BYTES = 1 << 20  # members closer than this are fetched in one range
 WORKERS = 8  # ranges fetched at once
 
 
-def _curl(args: list[str]) -> bytes:
+def _curl(args: list[str], *, retries: int = 3) -> bytes:
+    if type(retries) is not int or not 0 <= retries <= 3:
+        raise ValueError("curl retries must be an integer from zero through three")
     result = subprocess.run(
-        ["curl", "-sSf", "--retry", "3", "-m", "900", *args], capture_output=True, check=False
+        ["curl", "-sSf", "--retry", str(retries), "-m", "900", *args],
+        capture_output=True,
+        check=False,
     )
     if result.returncode != 0:
         message = result.stderr.decode("utf-8", "replace").strip()
+        if retries == 0 and result.returncode == 22:
+            raise ValueError(f"HTTP request rejected without retry: {message}")
         raise OSError(f"curl exit {result.returncode}: {message}")
     return result.stdout
 
 
-def head(url: str) -> tuple[int, str]:
-    lines = _curl(["-I", url]).decode("utf-8", "replace").splitlines()
+def head(url: str, *, retries: int = 3) -> tuple[int, str]:
+    data = _curl(["-I", url]) if retries == 3 else _curl(["-I", url], retries=retries)
+    lines = data.decode("utf-8", "replace").splitlines()
     fields = {}
     for line in lines:
         key, _, value = line.partition(":")
@@ -82,19 +89,25 @@ def head(url: str) -> tuple[int, str]:
     return int(fields["content-length"]), fields["etag"].strip('"')
 
 
-def fetch_range(url: str, start: int, end: int, etag: str) -> bytes:
+def fetch_range(url: str, start: int, end: int, etag: str, *, retries: int = 3) -> bytes:
     """Bytes ``start`` to ``end`` of the object whose ETag is ``etag`` (412 from any other)."""
 
-    data = _curl(["-H", f'If-Match: "{etag}"', "-r", f"{start}-{end}", url])
+    args = ["-H", f'If-Match: "{etag}"', "-r", f"{start}-{end}", url]
+    data = _curl(args) if retries == 3 else _curl(args, retries=retries)
     if len(data) != end - start + 1:
         raise OSError(f"range {start}-{end}: got {len(data)} bytes")
     return data
 
 
-def central_directory(url: str, size: int, etag: str) -> list[zipfile.ZipInfo]:
+def central_directory(url: str, size: int, etag: str, *, retries: int = 3) -> list[zipfile.ZipInfo]:
     """The archive's members, read from its central directory only."""
 
-    return read_central_directory(size, lambda start, end: fetch_range(url, start, end, etag))
+    reader = (
+        (lambda start, end: fetch_range(url, start, end, etag))
+        if retries == 3
+        else (lambda start, end: fetch_range(url, start, end, etag, retries=retries))
+    )
+    return read_central_directory(size, reader)
 
 
 def frame_index(name: str) -> int | None:
@@ -199,21 +212,28 @@ def fetch_drive(
     *,
     streams: Sequence[str] = FRAME_STREAMS,
     max_fetch_bytes: int | None = None,
+    curl_retries: int = 3,
 ) -> dict[str, Any]:
     """Fetch the drive's head; ``expected`` is a pinned (size, ETag), checked before any range."""
 
     selected_streams = _validated_streams(streams)
+    if type(curl_retries) is not int or not 0 <= curl_retries <= 3:
+        raise ValueError("curl retries must be an integer from zero through three")
     if max_fetch_bytes is not None and (type(max_fetch_bytes) is not int or max_fetch_bytes < 1):
         raise ValueError("max_fetch_bytes must be positive")
     name = f"{date}_drive_{drive}"
     url = drive_url(date, drive)
     started = time.monotonic()
-    size, etag = head(url)
+    size, etag = head(url) if curl_retries == 3 else head(url, retries=curl_retries)
     if expected is not None and (size, etag) != tuple(expected):
         raise ValueError(
             f"size {size} and ETag {etag} differ from the pin {expected[0]} {expected[1]}"
         )
-    infos = central_directory(url, size, etag)
+    infos = (
+        central_directory(url, size, etag)
+        if curl_retries == 3
+        else central_directory(url, size, etag, retries=curl_retries)
+    )
     prefix = f"{date}/{name}_sync/"
     chosen = select(infos, prefix, max_frames, streams=selected_streams)
     ranges = spans(infos, chosen, size)
@@ -231,7 +251,12 @@ def fetch_drive(
 
     def get(item: tuple[int, tuple[int, int]]) -> tuple[int, bytes]:
         index, (lo, hi) = item
-        return index, fetch_range(url, lo, hi, etag)
+        data = (
+            fetch_range(url, lo, hi, etag)
+            if curl_retries == 3
+            else fetch_range(url, lo, hi, etag, retries=curl_retries)
+        )
+        return index, data
 
     with ThreadPoolExecutor(WORKERS) as pool:
         blobs = pool.map(get, enumerate(ranges))

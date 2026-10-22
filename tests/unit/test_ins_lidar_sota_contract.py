@@ -124,6 +124,26 @@ def test_download_pin_mismatch_is_not_retried(tmp_path, monkeypatch):
             "https://example.test/object", tmp_path / "object", size=3, etag="wrong", cap=4
         )
     assert len(calls) == 1
+    with pytest.raises(ValueError, match="non-retryable prior"):
+        acquire._download(
+            "https://example.test/object", tmp_path / "object", size=3, etag="wrong", cap=4
+        )
+    assert len(calls) == 1
+
+
+def test_kitti_curl_disables_hidden_retries_and_does_not_retry_http_rejection(monkeypatch):
+    from subprocess import CompletedProcess
+
+    commands = []
+
+    def curl(command, **kwargs):
+        commands.append(command)
+        return CompletedProcess(command, 22, b"", b"HTTP 412 precondition failed")
+
+    monkeypatch.setattr(acquire.kitti_drive_fetch.subprocess, "run", curl)
+    with pytest.raises(ValueError, match="without retry"):
+        acquire.kitti_drive_fetch._curl(["https://example.test"], retries=0)
+    assert commands[0][commands[0].index("--retry") + 1] == "0"
 
 
 @pytest.fixture

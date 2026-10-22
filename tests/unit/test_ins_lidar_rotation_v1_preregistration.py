@@ -34,6 +34,7 @@ def test_real_registration_matches_cases_default_options_and_gates():
     assert reg.run_recipe["options"] == json.loads(json.dumps(asdict(InsLidarRunOptions())))
     assert reg.run_recipe["max_frames"] == reg.acquisition.max_frames == 600
     assert reg.run_recipe["kitti_streams"] == ["velodyne_points", "oxts"]
+    assert reg.run_recipe["kitti_curl_retries"] == 0
     assert reg.acquisition.method_attempts == 1
     assert reg.acquisition.object_attempts == 2
     assert verify_raw_budget(reg, ROOT) <= 16 * 1024**3

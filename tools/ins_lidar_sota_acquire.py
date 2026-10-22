@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import http.client
 import io
 import json
 import shutil
@@ -39,6 +40,17 @@ def _json(path: Path, value: Any) -> None:
     with temporary.open("x", encoding="utf-8") as stream:
         stream.write(json.dumps(value, indent=2) + "\n")
     temporary.replace(path)
+
+
+def _retryable(error: Exception) -> bool:
+    if isinstance(error, urllib.error.HTTPError):
+        return error.code >= 500 or error.code == 429
+    return isinstance(error, (OSError, urllib.error.URLError, http.client.IncompleteRead))
+
+
+def _check_resume(history: list[dict[str, Any]]) -> None:
+    if history and history[-1]["status"] == "FAIL" and not history[-1].get("retryable", False):
+        raise ValueError("non-retryable prior acquisition failure; preserve its record")
 
 
 def _download(
@@ -80,6 +92,7 @@ def _download(
     if size is not None and size > cap:
         raise ValueError("object exceeds acquisition byte budget")
     history = json.loads(history_path.read_text()) if history_path.exists() else []
+    _check_resume(history)
     while len(history) < 2:
         number = len(history) + 1
         temporary = path.with_name(path.name + f".part-{number}")
@@ -127,11 +140,14 @@ def _download(
             _json(history_path, history)
             return receipt
         except Exception as error:
-            attempt.update(status="FAIL", error_type=type(error).__name__, error=str(error))
+            transient = _retryable(error)
+            attempt.update(
+                status="FAIL",
+                error_type=type(error).__name__,
+                error=str(error),
+                retryable=transient,
+            )
             _json(history_path, history)
-            transient = isinstance(error, (OSError, urllib.error.URLError, ConnectionError))
-            if isinstance(error, urllib.error.HTTPError):
-                transient = error.code >= 500 or error.code == 429
             if not transient or number == 2:
                 raise
             time.sleep(1)
@@ -235,6 +251,7 @@ def acquire_case(
         )
         failure_path = work / "fetch_attempts.json"
         attempts = json.loads(failure_path.read_text()) if failure_path.exists() else []
+        _check_resume(attempts)
         record = None
         successful = [a for a in attempts if a["status"] == "PASS"]
         if successful:
@@ -259,6 +276,7 @@ def acquire_case(
                     (candidate.size_bytes, candidate.etag),
                     streams=("velodyne_points", "oxts"),
                     max_fetch_bytes=min(2 * 1024**3, candidate.selected_range_bytes),
+                    curl_retries=0,
                 )
                 if (
                     kitti_drive_fetch.members_sha256(record["members"])
@@ -284,9 +302,15 @@ def acquire_case(
                 break
             except Exception as error:
                 record = None
-                attempt.update(status="FAIL", error_type=type(error).__name__, error=str(error))
+                transient = _retryable(error)
+                attempt.update(
+                    status="FAIL",
+                    error_type=type(error).__name__,
+                    error=str(error),
+                    retryable=transient,
+                )
                 _json(failure_path, attempts)
-                if not isinstance(error, OSError) or number == 2:
+                if not transient or number == 2:
                     raise
         if record is None:
             raise ValueError("KITTI fetch attempt budget exhausted")
