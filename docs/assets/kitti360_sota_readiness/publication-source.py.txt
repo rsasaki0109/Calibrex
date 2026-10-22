@@ -1,0 +1,117 @@
+"""Publish compact, byte-preserved conversion evidence; never open sensor data."""
+import hashlib
+import json
+import shutil
+from datetime import datetime, timezone
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+OUT = ROOT / "outputs"
+DEST = ROOT / "docs/assets/kitti360_sota_readiness"
+DEST.mkdir(exist_ok=False)
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def load(path):
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def write(name, value):
+    (DEST / name).write_text(json.dumps(value, indent=2, allow_nan=False) + "\n", encoding="utf-8")
+
+
+copies = {
+    "access-report.json": "kitti360-sota-access-recheck-20261023-v1/report.json",
+    "access-report.schema.json": "kitti360-sota-access-recheck-20261023-v1/report.schema.json",
+    "metadata-report.json": "kitti360-sota-inventory-20261023-v1/report.json",
+    "metadata-report.schema.json": "kitti360-sota-inventory-20261023-v1/report.schema.json",
+    "distribution-script-recovery.json": "kitti360-sota-inventory-20261023-v1/distribution-script-recovery.json",
+    "access-source.py.txt": "kitti360-sota-access-recheck-20261023-v1.py",
+    "inventory-source.py.txt": "kitti360-sota-inventory-20261023-v1.py",
+    "published-development-source.py.txt": "kitti360-converter-real-development-v1.py",
+    "raw-development-source.py.txt": "kitti360-raw-oxts-development-v1.py",
+    "publication-source.py.txt": "publish-kitti360-readiness-v1.py",
+}
+for mode, prefix in [("published", "kitti360-converter-real-development"),
+                     ("oxts", "kitti360-raw-oxts-development")]:
+    for sequence in ["0000", "0002"]:
+        for name in ["report.json", "report.schema.json"]:
+            copies[f"{mode}-{sequence}-{name}"] = f"{prefix}-{sequence}-v1/{name}"
+for target, source in copies.items():
+    shutil.copyfile(OUT / source, DEST / target)
+shutil.copyfile(ROOT / "tools/kitti360_archive_metadata.py", DEST / "metadata-tool-source.py.txt")
+shutil.copyfile(ROOT / "src/calibrex/data/kitti360_to_rosbag2.py", DEST / "oxts-converter-source.py.txt")
+
+archives = []
+catalog = {}
+batch = load(DEST / "metadata-report.json")
+for entry in batch["archives"] + [{"name": "poses"}]:
+    name = entry["name"]
+    if name == "0000-velodyne":
+        path = OUT / "kitti360-sota-access-recheck-20261023-v1/spent-0000-velodyne-metadata.json"
+    elif name == "poses":
+        path = OUT / "kitti360-sota-development-preflight-v1/poses-metadata.json"
+    else:
+        path = OUT / f"kitti360-sota-inventory-20261023-v1/{name}.json"
+    data = load(path)
+    assert data["metadata_only"] and data["verified_exact_http_ranges"]
+    if "inventory_sha256" in entry:
+        assert sha(path) == entry["inventory_sha256"]
+    archives.append({"name": name, "url": data["url"], "size_bytes": data["size_bytes"],
+                     "etag": data["etag"], "inventory_sha256": sha(path),
+                     "member_count": len(data["members"]), "provenance": data["provenance"]})
+    catalog[name] = data
+write("metadata-range-bindings.json", {
+    "schema_version": "calibrex.kitti360_metadata_range_bindings/v0.1",
+    "archives": archives,
+    "provenance": {"created_at": datetime.now(timezone.utc).isoformat(),
+                   "source_commit": "036c67ba7dc9eaba878d734430fbea6b8d70abbf",
+                   "generator_sha256": sha(Path(__file__)), "sensor_payload_bytes": 0,
+                   "evaluation_started": False, "exposure_audit_complete": False,
+                   "policy": "Exact ZIP metadata ranges only; full private inventories retained by SHA. No new evaluation."}})
+
+paired = []
+for sequence in ["0000", "0002", "0004", "0005", "0006", "0007", "0009", "0010"]:
+    def ids(kind, suffix):
+        return {int(Path(m["name"]).stem) for m in catalog[f"{sequence}-{kind}"]["members"]
+                if m["name"].endswith(suffix) and Path(m["name"]).stem.isdigit()}
+    image, lidar = ids("camera00", ".png"), ids("velodyne", ".bin")
+    paired.append({"sequence": sequence, "eligibility": "spent_development" if sequence in
+                   {"0000", "0002"} else "provisional_pending_exposure_audit",
+                   "image_count": len(image), "lidar_count": len(lidar),
+                   "image_first": min(image), "image_last": max(image),
+                   "lidar_first": min(lidar), "lidar_last": max(lidar),
+                   "common_count": len(image & lidar), "common_first": min(image & lidar)})
+write("paired-frame-counts.json", {"sequences": paired, "provenance": {
+    "generator_sha256": sha(Path(__file__)), "metadata_range_bindings_sha256":
+    sha(DEST / "metadata-range-bindings.json"), "sensor_payload_bytes": 0,
+    "excluded_spent_sequence": "0003", "evaluation_started": False}})
+
+files = [{"path": p.name, "bytes": p.stat().st_size, "sha256": sha(p)}
+         for p in sorted(DEST.iterdir())]
+manifest = {"schema_version": "calibrex.kitti360_readiness_publication/v0.1", "files": files,
+            "provenance": {"created_at": datetime.now(timezone.utc).isoformat(),
+                           "source_commit": "036c67ba7dc9eaba878d734430fbea6b8d70abbf",
+                           "generator_sha256": sha(Path(__file__)),
+                           "policy": "Unmodified reports and exact producer bytes. Sensor payloads, bags and external scripts stay private; no new accuracy claim."}}
+write("manifest.json", manifest)
+manifest_schema = {"$schema": "https://json-schema.org/draft/2020-12/schema", "type": "object",
+    "additionalProperties": False, "required": list(manifest), "properties": {
+        "schema_version": {"const": manifest["schema_version"]},
+        "files": {"type": "array", "minItems": len(files), "maxItems": len(files), "items": {
+            "type": "object", "additionalProperties": False,
+            "required": ["path", "bytes", "sha256"], "properties": {
+                "path": {"type": "string", "pattern": "^[a-z0-9.-]+$"},
+                "bytes": {"type": "integer", "minimum": 1},
+                "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}}}},
+        "provenance": {"type": "object", "additionalProperties": False,
+            "required": list(manifest["provenance"]), "properties": {
+                "created_at": {"type": "string", "format": "date-time"},
+                "source_commit": {"const": manifest["provenance"]["source_commit"]},
+                "generator_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+                "policy": {"const": manifest["provenance"]["policy"]}}}}}
+write("manifest.schema.json", manifest_schema)
+print(len(files), "bound files", sum(f["bytes"] for f in files), "bytes")

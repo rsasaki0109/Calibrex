@@ -230,31 +230,33 @@ natural choice: sequences 0004-0007, 0009 and 0010, subject to completing the ex
 audit. Sequence 0003 is spent: the research plan already records a development capture.
 The original handoff's claim that it was unread was incorrect.
 
-**Access check, 2026-10-15.** [Step 1 stopped before development](benchmarks/kitti360_camera_lidar_v3_access.md):
-the official archive HEAD request returned HTTP 403 in the managed environment;
-per-sequence bytes, ETags, member lists and Range support remain unverified. No
-evaluation ran. Resume metadata-only checks after access is configured, or consider
-the `ins-lidar` claim below; neither path is authorized to begin evaluation yet.
+**Access update, 2026-10-23.** The [local recheck](benchmarks/kitti360_camera_lidar_v3_access.md)
+verified exact official metadata ranges for 21 archives; the earlier cloud 403
+remains historical evidence. Published-pose and explicit raw-OXTS conversion
+both passed three-frame checks on spent 0000 and 0002. OXTS uses its own clock
+and recorded origin without consuming optimized published poses. Provisional
+candidate sensor contents remain unread; exposure auditing is incomplete and
+no evaluation has started. This is converter readiness, not accuracy evidence.
 
 **Work needed first.**
 
-- `calibrex convert` has `kitti-raw` only; KITTI-360 needs a converter (perspective
-  camera, Velodyne with per-point time, poses or OXTS, calibration files).
-- Check download access and sizes.
+- Capture and compare all 55 spent KITTI raw drives using the existing
+  `tools/kitti_camera_lidar_v3_replay.py`, then confirm via the real driver.
+- Complete exposure auditing and independent-platform research requirements;
+  KITTI-360 sequences alone do not add dataset families or rigs.
 - KITTI-360 has few, long sequences: pre-register several disjoint 60 s segments per
   sequence, chosen by a rule from metadata.
 
-### 2. ins-lidar first claim
+### 2. ins-lidar follow-up
 
-**Readiness update, 2026-10-22.** The [INS-LiDAR audit plan](research/ins_lidar_sota_plan.md)
-adds metadata-only Boreas access, an independent-Applanix input adapter and
-failure-aware per-axis scoring. KITTI 0015 and the OXTS of 2011_09_30_0018 are
-also spent, as corrected above. Boreas 2020-11-26 is development-only; 2020-12-01
-remains an unread evaluation candidate and 2020-12-04 lacks the required raw INS
-reference. There is no pre-registration or new audited claim yet. Preserve two
-dataset families and two platforms for this proposal; do not count different
-dates of one rig as independent rigs. Clock accuracy is not part of the first
-proposed rotation claim.
+**Audit update, 2026-10-22.** The [first rotation audit](benchmarks/ins_lidar_rotation_v1.md)
+is refuted (6/8), as described above. Boreas 2020-12-01 and KITTI 0071/0020/0027
+are now spent evaluation recordings, not unread candidates. The
+[audit plan](research/ins_lidar_sota_plan.md) retains the independent-Applanix
+adapter and failure-aware scoring. A follow-up needs development on spent
+recordings, new held-out data and a new pre-registration. Preserve two dataset
+families and two platforms; different dates of one rig are not independent
+rigs. Clock accuracy was outside the first rotation claim.
 
 The native trajectory hand-eye on KITTI 0005+0009 constrains roll, pitch and the clock
 offset, but not yaw or translation ([KITTI INS-LiDAR](benchmarks/kitti_ins_lidar.md)). A

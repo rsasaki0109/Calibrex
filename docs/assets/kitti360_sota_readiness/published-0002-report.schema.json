@@ -1,0 +1,83 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "calibrex.kitti360_real_conversion_development/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "title": "Status",
+      "type": "string"
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Error"
+    },
+    "sequence": {
+      "title": "Sequence",
+      "type": "string"
+    },
+    "selected_frame_ids": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Selected Frame Ids",
+      "type": "array"
+    },
+    "conversion": {
+      "additionalProperties": true,
+      "title": "Conversion",
+      "type": "object"
+    },
+    "topics": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Topics",
+      "type": "array"
+    },
+    "inputs": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Inputs",
+      "type": "array"
+    },
+    "ranges": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Ranges",
+      "type": "array"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    }
+  },
+  "required": [
+    "status",
+    "error",
+    "sequence",
+    "selected_frame_ids",
+    "conversion",
+    "topics",
+    "inputs",
+    "ranges",
+    "provenance"
+  ],
+  "title": "Report",
+  "type": "object"
+}

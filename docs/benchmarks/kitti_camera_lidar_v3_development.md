@@ -178,21 +178,21 @@ failures. No synthetic metrics are used as the 55-drive development measurements
 
 ## Work still required before pre-registration
 
-The official S3 host is still blocked by this environment (HTTP 403 on a
-metadata-only HEAD for a spent KITTI raw archive on 2026-10-15). No local replay
-inputs were found. Access findings and the KITTI-360 exposure correction are in
-[PR #235](https://github.com/rsasaki0109/Calibrex/pull/235); the synthetic-tested
-KITTI-360 converter is in
-[draft PR #236](https://github.com/rsasaki0109/Calibrex/pull/236).
+The [2026-10-23 local recheck](kitti360_camera_lidar_v3_access.md) verified
+official KITTI-360 access and exact metadata ranges for 21 archives.
+Published-pose and opt-in raw-OXTS conversion each passed on three frames from
+spent 0000 and 0002. The earlier cloud HTTP 403 is historical evidence.
+No local 55-drive replay inputs have been found; conversion checks are not
+calibration measurements.
 
 Before step 3 can finish, regenerate estimator inputs from the 55 spent raw
 drives, compare both rules on the same inputs, then confirm via the real
 driver. Record every measure in the table above, including coverage loss and
-missed turns. Confirm the KITTI-360 converter on spent 0000/0002 data.
+missed turns. Validate any additional converter behavior on spent data.
 
 Only then derive the v3 gates from the new development results using the
 [handoff rules](../sota_handoff.md#how-an-audit-is-run). Evaluation archive pins,
-disjoint 60 s interval selection and the preregistration remain pending metadata
-access and an exposure audit. KITTI-360 0003 was already read by earlier research
+disjoint 60 s interval selection and the preregistration remain pending a full
+exposure audit and development results. KITTI-360 0003 was already read by earlier research
 and must be excluded, as documented in PR #235. No v3 thresholds are frozen here,
 and no evaluation is authorized by this development page.

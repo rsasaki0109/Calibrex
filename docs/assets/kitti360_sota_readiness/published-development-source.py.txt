@@ -1,0 +1,132 @@
+"""Bounded real converter validation on spent 0000/0002; no calibration scoring."""
+from pathlib import Path
+from dataclasses import asdict
+from datetime import datetime,timezone
+import argparse,hashlib,json,struct,subprocess,sys,zlib
+ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT))
+from pydantic import BaseModel,ConfigDict
+from tools.kitti360_archive_metadata import MetadataReader
+from calibrex.data.kitti360_to_rosbag2 import convert_kitti360_to_rosbag2
+from calibrex.data.rosbag2 import list_rosbag2_connections
+
+parser=argparse.ArgumentParser()
+parser.add_argument('--sequence',choices=['0000','0002'],required=True)
+args=parser.parse_args()
+seq='2013_05_28_drive_'+args.sequence+'_sync'
+OUT=ROOT/('outputs/kitti360-converter-real-development-'+args.sequence+'-v1')
+OUT.mkdir(exist_ok=False)
+DATA=OUT/'dataset'
+META=ROOT/'outputs/kitti360-sota-inventory-20261023-v1'
+def sha(path):return hashlib.sha256(path.read_bytes()).hexdigest()
+def load(name):
+    path=META/(name+'.json')
+    if name=='0000-velodyne':
+        path=ROOT/'outputs/kitti360-sota-access-recheck-20261023-v1/spent-0000-velodyne-metadata.json'
+    if name=='poses':path=ROOT/'outputs/kitti360-sota-development-preflight-v1/poses-metadata.json'
+    data=json.loads(path.read_text())
+    assert data['metadata_only'] and data['verified_exact_http_ranges']
+    return data
+catalog={name:load(name) for name in ['calibration','perspective-timestamps','velodyne-timestamps',
+                                      'poses',args.sequence+'-camera00',args.sequence+'-velodyne']}
+provenance={'source_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
+    'generator_sha256':sha(Path(__file__)),'created_at':datetime.now(timezone.utc).isoformat(),
+    'policy':'Only spent 0000/0002; first three common image/scan/published-pose frame IDs. Exact selected member ranges, CRC and size verified; no retry or neighbor payload. Conversion only; no calibration accuracy claim.',
+    'uncompressed_input_cap_bytes':128*1024**2,'fresh_sensor_payload_bytes':0,
+    'dataset_license':'CC BY-NC-SA 3.0','new_accuracy_claim':False}
+(OUT/'plan.json').write_text(json.dumps(provenance,indent=2)+'\n',encoding='utf-8')
+readers={};receipts=[];selected=[];status='RUNNING';error=None;conversion={};topics=[]
+
+def acquire(name,member,relative):
+    global receipts
+    match=__import__('re').search(r'2013_05_28_drive_(\d{4})_sync',member['name'])
+    assert (name=='calibration' and match is None) or (match is not None and match[1]==args.sequence)
+    assert not member['is_directory'] and member['size_bytes']<=32*1024**2
+    assert sum(r['bytes'] for r in receipts)+member['size_bytes']<=provenance['uncompressed_input_cap_bytes']
+    metadata=catalog[name]
+    if name not in readers:
+        reader=MetadataReader(metadata['url'],timeout=30)
+        assert reader.size==metadata['size_bytes'] and reader.etag==metadata['etag']
+        readers[name]=reader
+    reader=readers[name]
+    offset=member['local_header_offset']
+    header=reader.read(offset,offset+29,'spent_development_local_header')
+    fields=struct.unpack('<4s5H3I2H',header)
+    assert fields[0]==b'PK\x03\x04' and not fields[2]&1
+    assert fields[3]==member['compression'] and fields[3] in (0,8)
+    name_len,extra_len=fields[-2:]
+    length=name_len+extra_len+member['compressed_bytes']
+    payload=reader.read(offset+30,offset+29+length,'spent_development_member')
+    filename=payload[:name_len].decode('utf-8' if fields[2]&2048 else 'cp437')
+    assert filename==member['name']
+    compressed=payload[name_len+extra_len:]
+    if fields[3]==0:content=compressed
+    else:
+        decoder=zlib.decompressobj(-15)
+        content=decoder.decompress(compressed,member['size_bytes']+1)
+        assert decoder.eof and not decoder.unused_data and not decoder.unconsumed_tail
+    assert len(content)==member['size_bytes']
+    assert zlib.crc32(content)&0xffffffff==int(member['crc32'],16)
+    target=DATA/relative
+    assert target.resolve().is_relative_to(DATA.resolve()) and not target.exists()
+    target.parent.mkdir(parents=True,exist_ok=True)
+    target.write_bytes(content)
+    receipts.append({'archive':name,'url':metadata['url'],'etag':metadata['etag'],
+        'member':member['name'],'path':relative,'bytes':len(content),'sha256':sha(target),'crc_verified':True})
+    (OUT/'acquisition-progress.json').write_text(json.dumps({'inputs':receipts,'provenance':provenance},indent=2)+'\n',encoding='utf-8')
+    return target
+
+try:
+    for file in ['perspective.txt','calib_cam_to_pose.txt','calib_cam_to_velo.txt']:
+        member=next(m for m in catalog['calibration']['members'] if m['name']=='calibration/'+file)
+        acquire('calibration',member,'calibration/'+file)
+    for name,ending,prefix in [('perspective-timestamps','/image_00/timestamps.txt','data_2d_raw'),
+                               ('velodyne-timestamps','/velodyne_points/timestamps.txt','data_3d_raw')]:
+        member=next(m for m in catalog[name]['members'] if m['name']==seq+ending)
+        acquire(name,member,prefix+'/'+seq+ending)
+    member=next(m for m in catalog['poses']['members'] if m['name']==seq+'/poses.txt')
+    pose_path=acquire('poses',member,'data_poses/'+seq+'/poses.txt')
+    pose_ids={int(line.split()[0]) for line in pose_path.read_text().splitlines() if line.strip()}
+    images={int(Path(m['name']).stem):m for m in catalog[args.sequence+'-camera00']['members']
+            if m['name'].endswith('.png') and '/image_00/data_rect/' in m['name']}
+    scans={int(Path(m['name']).stem):m for m in catalog[args.sequence+'-velodyne']['members']
+           if m['name'].endswith('.bin') and '/velodyne_points/data/' in m['name']}
+    selected=sorted(pose_ids&images.keys()&scans.keys())[:3]
+    assert len(selected)==3
+    for frame in selected:
+        acquire(args.sequence+'-camera00',images[frame],'data_2d_raw/'+images[frame]['name'])
+        acquire(args.sequence+'-velodyne',scans[frame],'data_3d_raw/'+scans[frame]['name'])
+    print('Acquired spent frames',selected,flush=True)
+    result=convert_kitti360_to_rosbag2(DATA,OUT/'bag',sequence=seq,camera='image_00',
+        start_frame=selected[0],max_frames=selected[-1]-selected[0]+1,
+        command=[Path(__file__).name,'--sequence',args.sequence,'DEVELOPMENT_CONVERSION_ONLY'])
+    conversion=json.loads(json.dumps(asdict(result),default=str))
+    topics=[{'topic':c.topic,'message_type':c.message_type,'count':count}
+            for c,count in list_rosbag2_connections(OUT/'bag')]
+    assert next(t['count'] for t in topics if t['message_type']=='sensor_msgs/msg/Image')==3
+    assert next(t['count'] for t in topics if t['message_type']=='sensor_msgs/msg/PointCloud2')==3
+    status='PASS'
+except Exception as exc:
+    status='FAIL';error=repr(exc)
+
+class Report(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+    schema_version:str='calibrex.kitti360_real_conversion_development/v0.1'
+    status:str
+    error:str|None
+    sequence:str
+    selected_frame_ids:list[int]
+    conversion:dict
+    topics:list[dict]
+    inputs:list[dict]
+    ranges:list[dict]
+    provenance:dict
+
+report=Report(status=status,error=error,sequence=seq,selected_frame_ids=selected,conversion=conversion,
+    topics=topics,inputs=receipts,ranges=[{'archive':name,'role':role,'start':start,'bytes':len(payload),
+        'sha256':hashlib.sha256(payload).hexdigest()} for name,reader in readers.items()
+        for role,start,payload in reader.parts],provenance=provenance)
+(OUT/'report.json').write_text(report.model_dump_json(indent=2)+'\n',encoding='utf-8')
+(OUT/'report.schema.json').write_text(json.dumps(Report.model_json_schema(),indent=2)+'\n',encoding='utf-8')
+print(status,error,'inputs',sum(r['bytes'] for r in receipts),flush=True)
+if status!='PASS':sys.exit(1)
