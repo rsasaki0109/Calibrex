@@ -83,6 +83,73 @@ comparisons, not independent accuracy or control measurements.
 - [Block report schema](../assets/ins_lidar_registration_quality/block-report.schema.json)
 - [Block diagnostic source](../assets/ins_lidar_registration_quality/block-source.py.txt)
 
+## Follow-up: translation weighting
+
+A two-arm development comparison uses the same saved first-600-scan trajectory:
+the original noise model, and one with both translation sigma terms multiplied
+by ten. Rotation noise, the 0.1 degree observability ceiling, train/holdout
+blocks, clock/scale settings, controls and policy limits stay fixed. No priors
+are added. Both arms run from isolated source `0f45a2b2`; the baseline again
+reproduces every original per-DoF record exactly.
+
+| Quantity | Original noise | Translation sigma x10 |
+| --- | ---: | ---: |
+| Estimated rotation axes | 0/3 | 0/3 |
+| Roll reported uncertainty (deg) | 0.378174 | 0.289775 |
+| Pitch reported uncertainty (deg) | 0.226495 | 0.630469 |
+| Yaw reported uncertainty (deg) | 1.225164 | 1.055593 |
+| Yaw difference to reference (deg) | -1.975854 | -0.238504 |
+| Yaw 1 deg control delta chi-square | -69.336824 | -3.184904 |
+
+The smaller yaw reference difference is accompanied by uncertainty above one
+degree and a failed held-out yaw control. Roll's control also fails. These
+unobservable axes are not scored accuracy successes, and the native default
+noise model is unchanged. The candidate reports a clock DoF, but this study
+makes no clock-accuracy claim. It does not show that translation weighting is
+the sole physical cause of the rotation failure, nor that this candidate
+generalizes beyond this spent recording.
+
+- [Weighting report](../assets/ins_lidar_registration_quality/weight-report.json)
+- [Weighting report schema](../assets/ins_lidar_registration_quality/weight-report.schema.json)
+- [Original-noise artifact](../assets/ins_lidar_registration_quality/weight-baseline.yaml)
+- [Translation-sigma-x10 artifact](../assets/ins_lidar_registration_quality/weight-translation-x10.yaml)
+- [Weighting comparison source](../assets/ins_lidar_registration_quality/weight-source.py.txt)
+
+## Follow-up: the rest of the recording
+
+An OXTS-only development acquisition reads all 1059 samples of the already-spent
+0071 recording. The archive size and ETag are checked against the existing pins;
+selected payload ranges are capped at 2 MiB, with one attempt and no curl
+retries. The actual **selected range payload** is 616615 bytes; archive metadata
+and HTTP overhead are additional. CRC checks pass and all first-600 packet
+SHA-256 values match the original acquired packets. No images or LiDAR points
+are acquired, and the original audit's input directory is unchanged.
+
+| Reference-only quantity | First 600 | All 1059 |
+| --- | ---: | ---: |
+| Duration (s) | 62.201997 | 109.886087 |
+| Unwrapped heading range (deg) | 16.509607 | 16.509607 |
+| Mean rotation over 10-frame pairs (deg) | 1.809892 | 1.303462 |
+
+These diagnostics use every overlapping pair at fixed lags of 5, 10 and 20
+frames, matching the earlier reference-only proxy rather than the native
+block-contained motion sample. The complete recording adds no heading range
+and has smaller mean rotations at all three lags. We therefore defer acquiring
+the extra 459 point clouds at this stage. More samples can still add information:
+these normalized rotation proxies omit LiDAR errors and nuisance coupling and
+do not prove that a longer fit cannot improve or decide observability.
+
+The full OXTS recording is development data. It cannot become a new held-out
+evaluation by choosing a different window. Raw OXTS packets stay outside Git;
+the published acquisition receipt, SHA-256 manifest and exact source bind the
+reference-only results.
+
+- [Full-reference report](../assets/ins_lidar_registration_quality/full-reference-report.json)
+- [Full-reference report schema](../assets/ins_lidar_registration_quality/full-reference-report.schema.json)
+- [Acquisition receipt](../assets/ins_lidar_registration_quality/full-reference-acquisition.json)
+- [Input SHA-256 manifest](../assets/ins_lidar_registration_quality/full-reference-input-sha256.json)
+- [Reference-only comparison source](../assets/ins_lidar_registration_quality/full-reference-source.py.txt)
+
 ## API and reproducibility
 
 The experimental policy is available through

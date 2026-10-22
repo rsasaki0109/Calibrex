@@ -1,0 +1,91 @@
+"""Bounded OXTS-only development acquisition on an already-spent recording."""
+from pathlib import Path
+from datetime import datetime, timezone
+import hashlib
+import json
+import subprocess
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+SOURCE = ROOT/'.worktrees/ins-stability-dev'
+sys.path[:0] = [str(SOURCE/'src'),str(SOURCE)]
+import numpy as np
+from scipy.spatial.transform import Rotation
+from pydantic import BaseModel, ConfigDict
+from tools.kitti_drive_fetch import fetch_drive
+from calibrex.data.kitti import read_oxts_packet, kitti_oxts_pose_world_imu, read_timestamps
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+OUT = ROOT/'outputs/ins-lidar-full-reference-motion-v1'
+OUT.mkdir(exist_ok=False)
+metadata_path = ROOT/'docs/assets/ins_lidar_sota_readiness/kitti_metadata.json'
+entry = next(x for x in json.loads(metadata_path.read_text())['selected']
+             if x['case_id']=='2011_09_29_0071')
+commit = subprocess.check_output(['git','-C',str(SOURCE),'rev-parse','HEAD'],text=True).strip()
+provenance = {'source_commit':commit,'script_sha256':sha(Path(__file__)),
+    'metadata_sha256':sha(metadata_path),'created_at':datetime.now(timezone.utc).isoformat(),
+    'scope':'POST HOC DEVELOPMENT ONLY; the whole recording is already spent for INS-LiDAR.',
+    'streams':['oxts'],'selected_payload_cap_bytes':2*1024**2,'attempts':1,
+    'dataset_license':'CC BY-NC-SA 3.0','new_accuracy_claim':False}
+(OUT/'plan.json').write_text(json.dumps(provenance,indent=2)+'\n',encoding='utf-8')
+try:
+    acquisition = fetch_drive(entry['date'],entry['drive'],entry['archive_frames']['oxts'],OUT/'data',
+        (entry['size_bytes'],entry['etag']),streams=('oxts',),max_fetch_bytes=2*1024**2,curl_retries=0)
+except Exception as error:
+    (OUT/'failure.json').write_text(json.dumps({'status':'FAIL','error':repr(error),
+        'provenance':provenance},indent=2)+'\n',encoding='utf-8')
+    raise
+(OUT/'acquisition.json').write_text(json.dumps({'record':acquisition,'provenance':provenance},
+    indent=2)+'\n',encoding='utf-8')
+sequence = OUT/'data'/entry['date']/(entry['date']+'_drive_'+entry['drive']+'_sync')
+files = sorted((sequence/'oxts/data').glob('*.txt'))
+assert len(files) == entry['archive_frames']['oxts']
+old_work = ROOT/'outputs/ins-lidar-sota-evaluation-inputs-v1'/entry['case_id']
+old_receipt = json.loads((old_work/'acquisition.json').read_text())
+old_sequence = old_work/old_receipt['sequence_dir']
+assert all(sha(path)==sha(old_sequence/'oxts/data'/path.name) for path in files[:600])
+assert not list((OUT/'data').rglob('*.bin'))
+packets = [read_oxts_packet(path) for path in files]
+rotations = Rotation.from_quat(np.array([
+    kitti_oxts_pose_world_imu(p,packets[0]).rotation_quat_xyzw for p in packets]))
+times = np.array([x.timestamp_ns*1e-9 for x in read_timestamps(sequence/'oxts/timestamps.txt')])
+rows = []
+for count in [600,len(files)]:
+    r = rotations[:count]
+    eigenvalues = []
+    means = []
+    for step in [5,10,20]:
+        vectors = (r[:-step].inv()*r[step:]).as_rotvec()
+        scatter = vectors.T@vectors/len(vectors)
+        eigenvalues.append(np.maximum(np.linalg.eigvalsh(np.trace(scatter)*np.eye(3)-scatter),0).tolist())
+        means.append(float(np.rad2deg(np.linalg.norm(vectors,axis=1)).mean()))
+    rows.append({'samples':count,'duration_s':float(times[count-1]-times[0]),
+        'yaw_span_deg':float(np.rad2deg(np.ptp(np.unwrap(r.as_euler('ZYX')[:,0])))),
+        'motion_steps_frames':[5,10,20],'mean_rotation_deg':means,
+        'rotation_information_proxy_eigenvalues_rad2':eigenvalues})
+manifest = {p.relative_to(OUT).as_posix():sha(p) for p in sorted((OUT/'data').rglob('*.txt'))}
+(OUT/'input-sha256.json').write_text(json.dumps({'files':manifest,'provenance':provenance},indent=2)+'\n',encoding='utf-8')
+
+class Report(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    schema_version: str = 'calibrex.ins_lidar_full_reference_motion/v0.1'
+    scope: str
+    case_id: str
+    rows: list[dict]
+    acquisition_summary: dict
+    provenance: dict
+
+report = Report(scope='POST HOC DEVELOPMENT ONLY. Compare the spent first-600 OXTS samples '
+    'with the complete recording using all overlapping motion pairs at fixed frame lags. '
+    'Only OXTS members acquired: no images or LiDAR points, no calibration fit. Rotation '
+    'proxy omits LiDAR errors and nuisance coupling and is not an observability verdict. '
+    'No v1 input, claim, threshold or audit changed.',case_id=entry['case_id'],rows=rows,
+    acquisition_summary={k:acquisition[k] for k in ['url','size_bytes','etag','frames',
+        'archive_frames','fetched_bytes','member_count','members_sha256','crc_verified']},
+    provenance={**provenance,'acquisition_sha256':sha(OUT/'acquisition.json'),
+        'input_manifest_sha256':sha(OUT/'input-sha256.json'),'original_first_600_packets_equal':True})
+(OUT/'report.json').write_text(report.model_dump_json(indent=2)+'\n',encoding='utf-8')
+(OUT/'report.schema.json').write_text(json.dumps(Report.model_json_schema(),indent=2)+'\n',encoding='utf-8')
+print(report.model_dump_json(indent=2))

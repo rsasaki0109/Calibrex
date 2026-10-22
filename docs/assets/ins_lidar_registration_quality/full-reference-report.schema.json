@@ -1,0 +1,45 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "calibrex.ins_lidar_full_reference_motion/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "scope": {
+      "title": "Scope",
+      "type": "string"
+    },
+    "case_id": {
+      "title": "Case Id",
+      "type": "string"
+    },
+    "rows": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Rows",
+      "type": "array"
+    },
+    "acquisition_summary": {
+      "additionalProperties": true,
+      "title": "Acquisition Summary",
+      "type": "object"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    }
+  },
+  "required": [
+    "scope",
+    "case_id",
+    "rows",
+    "acquisition_summary",
+    "provenance"
+  ],
+  "title": "Report",
+  "type": "object"
+}

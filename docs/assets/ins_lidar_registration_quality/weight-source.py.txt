@@ -1,0 +1,82 @@
+"""Post hoc two-arm weight diagnostic on an already-spent trajectory."""
+from pathlib import Path
+from datetime import datetime, timezone
+from dataclasses import replace
+import hashlib
+import json
+import subprocess
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+SOURCE = ROOT / '.worktrees/ins-stability-dev'
+sys.path[:0] = [str(SOURCE/'src'), str(SOURCE)]
+import numpy as np
+import scipy
+from pydantic import BaseModel, ConfigDict
+from calibrex.core.ins_lidar_hand_eye import load_ins_lidar_hand_eye
+from calibrex.data.kitti_ins_lidar import load_kitti_ins_lidar_drive
+from calibrex.evaluation.ins_lidar_hand_eye import (
+    InsLidarRunOptions, build_sensor_motions, evaluate_ins_lidar_hand_eye,
+    build_ins_lidar_artifact, KITTI_LIMITATIONS,
+)
+from calibrex.solvers.trajectory_hand_eye_solver import ReferenceTrajectory
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+OUT = ROOT/'outputs/ins-lidar-translation-weight-study-v1'
+OUT.mkdir(exist_ok=False)
+PREVIOUS = ROOT/'outputs/ins-registration-quality-development-v2'
+prior = json.loads((PREVIOUS/'report.json').read_text())
+baseline = load_ins_lidar_hand_eye(PREVIOUS/'baseline.yaml')
+assert sha(PREVIOUS/'odometry.npz') == prior['provenance']['odometry_sha256']
+receipt_path = ROOT/'outputs/ins-lidar-sota-evaluation-inputs-v1/2011_09_29_0071/acquisition.json'
+receipt = json.loads(receipt_path.read_text())
+drive = load_kitti_ins_lidar_drive(receipt_path.parent/receipt['sequence_dir'])
+assert hashlib.sha256(drive.input_sha256.encode('ascii')).hexdigest() == baseline.provenance.input_sha256
+cache = np.load(PREVIOUS/'odometry.npz', allow_pickle=False)
+reference = ReferenceTrajectory(drive.trajectory.times_s, drive.trajectory.poses)
+commit = subprocess.check_output(['git','-C',str(SOURCE),'rev-parse','HEAD'],text=True).strip()
+assert not subprocess.check_output(['git','-C',str(SOURCE),'status','--porcelain','--','src','tools'])
+rows = {}
+for label, multiplier in [('baseline',1.0), ('translation_noise_x10',10.0)]:
+    opts = InsLidarRunOptions()
+    opts = replace(opts, solver=replace(opts.solver,
+        translation_sigma_floor_m=opts.solver.translation_sigma_floor_m*multiplier,
+        translation_sigma_per_m=opts.solver.translation_sigma_per_m*multiplier))
+    motions = build_sensor_motions(cache['times_s'].tolist(), cache['poses'], opts)
+    evaluation = evaluate_ins_lidar_hand_eye(reference, motions, opts,
+                                            reference_transform=drive.vendor_t_imu_lidar)
+    artifact = build_ins_lidar_artifact(evaluation, opts, odometry=baseline.odometry,
+        provenance=baseline.provenance.model_copy(update={'generator':Path(__file__).name,
+            'git_commit':commit,'command':[Path(__file__).name,label,'POST_HOC_DEVELOPMENT_ONLY'],
+            'created_at':datetime.now(timezone.utc).isoformat()}),
+        reference_calibration=baseline.reference_calibration, limitations=KITTI_LIMITATIONS)
+    artifact.save(OUT/(label+'.yaml'))
+    if multiplier == 1:
+        assert [d.model_dump() for d in artifact.dofs] == [d.model_dump() for d in baseline.dofs]
+    rows[label] = {'translation_noise_multiplier':multiplier,
+        'artifact_sha256':sha(OUT/(label+'.yaml')), 'calibrated_dofs':artifact.calibrated_dofs,
+        'rotation':[d.model_dump(mode='json') for d in artifact.dofs[:3]]}
+
+class Report(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    schema_version: str = 'calibrex.ins_lidar_translation_weight_study/v0.1'
+    scope: str
+    cases: dict
+    provenance: dict
+
+report = Report(scope='POST HOC DEVELOPMENT ONLY, spent KITTI 0071 first 600 scans. '
+    'Two arms declared before fitting: existing noise model and translation sigma floor/per-m '
+    'terms both multiplied by 10. Same cached LiDAR-only poses, data, block split, clock/scale '
+    'nuisance settings, no priors, 0.1 degree observability ceiling, control threshold and '
+    'holdout limits. This changes the statistical weighting and must not be interpreted '
+    'as new evidence merely because a reported uncertainty changes. No new SOTA claim.',
+    cases=rows, provenance={'source_commit':commit,'script_sha256':sha(Path(__file__)),
+        'baseline_sha256':sha(PREVIOUS/'baseline.yaml'),'odometry_sha256':sha(PREVIOUS/'odometry.npz'),
+        'input_sha256':baseline.provenance.input_sha256,'receipt_sha256':sha(receipt_path),
+        'created_at':datetime.now(timezone.utc).isoformat(),'numpy':np.__version__,
+        'scipy':scipy.__version__,'new_accuracy_claim':False})
+(OUT/'report.json').write_text(report.model_dump_json(indent=2)+'\n',encoding='utf-8')
+(OUT/'report.schema.json').write_text(json.dumps(Report.model_json_schema(),indent=2)+'\n',encoding='utf-8')
+print(report.model_dump_json(indent=2))
