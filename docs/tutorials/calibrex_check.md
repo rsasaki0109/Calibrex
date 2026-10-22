@@ -2252,6 +2252,23 @@ calibration and report generation. Keep package startup separate and record it
 too. The calibration API probe above omits metadata planning and HTML imports,
 so it does not measure the complete effect of these request-level changes.
 
+### Exact score reuse during calibration
+
+The synchronous camera–LiDAR edge solver keeps at most 1024 exact pose scores
+within one workflow. Only internal objectives with owned, read-only numeric
+snapshots and an immutable standard camera qualify. Keys preserve every bit of
+all six float64 pose parameters; no rounding or score approximation is applied.
+The solver retains candidate order, first-occurrence ties, line-search steps,
+all jackknife fits and held-out controls. Caller-owned objectives and custom or
+mutable camera settings use their original scoring method.
+
+Weak references keep the cache from extending an objective's lifetime. Entries
+are released on completion or error and never cross calibration calls. Changed
+inputs and candidates therefore build fresh objectives. This scope is separate
+from the image/depth preparation cache and the browser metadata scope above.
+Measure complete Worker requests and startup as well as score-call reductions;
+fewer numeric evaluations alone do not establish an application speedup.
+
 ## Artifact
 
 `--output` writes `slac.calibration_check/v0.1`: the bag path with a digest
