@@ -341,3 +341,5 @@ docs/assets/screw_gyro_clock/initial-ci-*.txt -text whitespace=-blank-at-eol,bla
 
 # Preserve the byte-bound post hoc INS-LiDAR comparison artifacts.
 docs/assets/ins_lidar_registration_quality/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol
+# The exact comparison producer has an additional terminal newline.
+docs/assets/ins_lidar_registration_quality/comparison-source.py.txt -text whitespace=-blank-at-eof,blank-at-eol,space-before-tab,cr-at-eol
