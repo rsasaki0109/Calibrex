@@ -254,6 +254,17 @@ rounded-calibration guard failure is retained and its tolerance unchanged.
 Inspect the detection/coverage cost, including on spent 0034, and preserve
 the all-55 denominator and local NPZ inputs. Check free space before batches.
 
+The [post hoc start trace](benchmarks/kitti_camera_lidar_v3_development.md#why-a-scalar-adoption-margin-is-insufficient-on-these-probes)
+reproduces both selected controls under both rules with full evidence parity.
+Each has an unobservable candidate-start fit, a rejected one-observed-axis
+profile fit, then a two-observed-axis fit. The latter's minimum control t is
+2.6211 for pitch +3 versus 2.6493 for yaw +3: a scalar margin retaining the
+former also admits the latter's erroneous roll. The pitch fit also has an
+erroneous roll; keeping detection alone does not fix accuracy. Develop a
+different start/axis evidence rule on cached spent inputs before spending
+disk and bandwidth on the remaining batch. Do not simply relax the two-axis
+requirement: the earlier 0056 single-axis false estimate motivated that guard.
+
 **Evaluation candidates.** KITTI-360 (another car, sensor set and calibration) is the
 natural choice: sequences 0004-0007, 0009 and 0010, subject to completing the exposure
 audit. Sequence 0003 is spent: the research plan already records a development capture.

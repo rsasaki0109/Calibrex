@@ -288,6 +288,44 @@ these two deliberately selected probes cannot supply its aggregate detection,
 coverage or new audit gates. Inspect the detection/coverage cost on further
 spent recordings, including 0034, before considering adoption.
 
+## Why a scalar adoption margin is insufficient on these probes
+
+A [post hoc start trace](../assets/kitti_camera_lidar_v3/native_development_20110928_0002/start_trace/report.json)
+at source `49449c4d` re-estimated the saved pitch +3 and yaw +3 inputs under both
+existing rules, without downloading data or changing the estimator. Serial
+instrumentation recorded each distinct fit and adoption decision. All four
+outputs matched the earlier full numerical evidence, excluding provenance,
+within `1e-9`. The [publication manifest](../assets/kitti_camera_lidar_v3/native_development_20110928_0002/start_trace/manifest.json)
+binds the trace, artifacts and producer; estimator/replay source hashes resolve
+to the already published `attempt_1` capsules. NPZ inputs remain private.
+
+| Injected turn | Candidate-start correction, roll/pitch/yaw (deg) | Single-axis profile fit | Later multi-axis fit |
+| --- | --- | --- | --- |
+| Pitch +3 | (-0.90, +0.05, -0.10), no observed axes | (0, -2.85, 0), pitch observed, t=3.3816 | (-1.55, -3.05, -2.25), roll/pitch observed, minimum t=2.6211 |
+| Yaw +3 | (-1.95, +1.00, +0.05), no observed axes | (0, +0.05, -2.95), pitch observed, t=2.9194 | (-1.50, -0.15, -5.30), roll/pitch observed, minimum t=2.6493 |
+
+These are left-correction vectors relative to each injected candidate, not
+absolute calibration angles. For both inputs the existing minimum of two
+observed axes rejects the single-axis profile fit. The default then accepts
+the multi-axis fit; margin 3.5 rejects it and retains the unobservable
+candidate-start fit. The pitch-only profile fit is near the inverse injected
+turn, but the yaw profile fit still does **not** observe yaw: correcting an
+angle in a fit does not establish that the angle is measurable.
+
+For these two multi-axis fits, any scalar margin low enough to retain the
+pitch detection (`t <= 2.6211`) also admits the yaw run's erroneous roll fit
+(`t = 2.6493`). Raising only this threshold cannot retain that pitch detection
+while excluding that yaw-run fit. This statement concerns the traced candidate
+sets, not every possible estimator. The pitch multi-axis fit also reports an
+erroneous roll correction; retaining its detection alone would not fix accuracy.
+
+Simply allowing one observed axis is not justified either: earlier spent 0056
+showed a single-axis far optimum judging roll about 6.6 deg off, motivating the
+existing two-axis requirement. The next development task is to evaluate a
+different start-selection or axis-evidence rule on cached spent inputs, with
+coverage and injected-turn detection measured together. These traces establish
+a failure mechanism, not a new calibration method, new threshold or SOTA claim.
+
 ## Work still required before pre-registration
 
 The [2026-10-23 local recheck](kitti360_camera_lidar_v3_access.md) verified

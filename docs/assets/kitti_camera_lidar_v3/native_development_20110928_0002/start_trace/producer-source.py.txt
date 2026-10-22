@@ -1,0 +1,141 @@
+"""Post hoc trace of existing start adoption, using only pinned spent inputs.
+
+Instrumentation observes calls without changing the production decision or options.
+This producer runs serially: temporarily patched module globals are not thread safe.
+"""
+import hashlib
+import json
+import subprocess
+import sys
+import time
+import traceback
+from dataclasses import replace
+from datetime import datetime, timezone
+from pathlib import Path
+
+from pydantic import BaseModel, ConfigDict
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path[:0] = [str(ROOT), str(ROOT / "src")]
+from calibrex.evaluation import camera_lidar_edge as edge
+from tools import kitti_camera_lidar_v3_replay as replay
+
+BASE = ROOT / "outputs/camera-lidar-v3-spent-20110928-0002-v1"
+OUT = ROOT / "outputs/camera-lidar-v3-start-trace-v1"
+COMMIT = "49449c4dda75d16b53b7c50ca33eb165082e0f0d"
+
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+class Report(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_version: str = "calibrex.camera_lidar_start_trace/v0.1"
+    status: str
+    error: str | None = None
+    provenance: dict
+    runs: list[dict]
+
+
+assert subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip() == COMMIT
+OUT.mkdir(exist_ok=False)
+report = Report(status="RUNNING", runs=[], provenance={
+    "created_at": datetime.now(timezone.utc).isoformat(),
+    "git_commit": COMMIT,
+    "generator_sha256": sha(Path(__file__)),
+    "estimator_sha256": sha(Path(edge.__file__)),
+    "replay_sha256": sha(Path(replay.__file__)),
+    "parent_report_sha256": sha(BASE / "report.json"),
+    "analysis": "post hoc development; pitch+3 and yaw+3 selected after observed detection regression",
+    "drive": "2011_09_28_0002",
+    "spent_data_only": True,
+    "new_evaluation_started": False,
+    "new_accuracy_claim": False,
+    "instrumentation": "serial wrappers record arguments and original return values; restored in finally",
+})
+
+
+def write():
+    (OUT / "report.json").write_text(report.model_dump_json(indent=2), encoding="utf-8")
+
+
+(OUT / "report.schema.json").write_text(json.dumps(Report.model_json_schema(), indent=2), encoding="utf-8")
+write()
+try:
+    for run in ("inject_y+3", "inject_z+3"):
+        path = BASE / "snapshots/2011_09_28_0002" / run
+        meta, frames, camera, candidate, options = replay.load_snapshot(path)
+        for rule, margin in (("current", None), ("proposed", 3.5)):
+            trace = []
+            original_observed = edge._observed_rotation_axes
+            original_replaces = edge._replaces_current
+
+            def observed(theta, jackknife, controls, std_floor, opts):
+                result = original_observed(theta, jackknife, controls, std_floor, opts)
+                trace.append({
+                    "event": "fit", "theta": theta.tolist(),
+                    "jackknife": jackknife.tolist(), "std_floor": std_floor.tolist(),
+                    "observed": list(result),
+                    "controls": [control.model_dump(mode="json") for control in controls],
+                })
+                return result
+
+            def replaces(current, widened_observed, widened, controls, opts):
+                result = original_replaces(current, widened_observed, widened, controls, opts)
+                trace.append({
+                    "event": "adoption", "current_observed": list(current),
+                    "widened_observed": list(widened_observed),
+                    "widened": widened.tolist(), "accepted": result,
+                })
+                return result
+
+            started = time.monotonic()
+            edge._observed_rotation_axes = observed
+            edge._replaces_current = replaces
+            try:
+                artifact = edge.estimate_from_frames(
+                    frames, camera, candidate,
+                    options=replace(options, start_scan_min_control_t=margin),
+                    provenance=meta.input_provenance.model_copy(update={
+                        "generator": "camera-lidar-v3-start-trace-v1.py",
+                        "git_commit": COMMIT,
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                        "input_sha256": sha(path / "snapshot.json"),
+                        "input_digest_scope": "full snapshot JSON pins full NPZ SHA-256",
+                    }),
+                    parent_frame=meta.parent_frame, child_frame=meta.child_frame,
+                    reference_label=meta.reference_label, start_note=meta.start_note,
+                    motion_compensation=meta.motion_compensation,
+                )
+            finally:
+                edge._observed_rotation_axes = original_observed
+                edge._replaces_current = original_replaces
+            expected_path = BASE / f"comparison/2011_09_28_0002/{rule}/{run}.json"
+            expected = json.loads(expected_path.read_text())
+            actual = artifact.model_dump(mode="json", exclude={"provenance"})
+            expected.pop("provenance")
+            assert replay._same(actual, expected), (run, rule, "instrumentation changed result")
+            name = f"{run}-{rule}.json"
+            artifact.save(OUT / name)
+            report.runs.append({
+                "run": run, "rule": rule, "margin": margin,
+                "snapshot_sha256": sha(path / "snapshot.json"),
+                "arrays_sha256": meta.arrays_sha256,
+                "expected_artifact_sha256": sha(expected_path),
+                "artifact": name, "artifact_sha256": sha(OUT / name),
+                "full_evidence_parity_excluding_provenance": True,
+                "elapsed_s": time.monotonic() - started,
+                "trace": trace,
+            })
+            write()
+            print(run, rule, "PASS", len(trace), "events", flush=True)
+    report.status = "PASS_DIAGNOSTIC_ONLY"
+except Exception as exc:
+    report.status = "FAILED"
+    report.error = f"{type(exc).__name__}: {exc}"
+    traceback.print_exc()
+finally:
+    write()
+if report.status == "FAILED":
+    raise SystemExit(1)

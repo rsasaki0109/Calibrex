@@ -1,0 +1,36 @@
+"""Publish small numerical receipts; no image, cloud, NPZ or bag payloads."""
+import hashlib
+import json
+import shutil
+from datetime import datetime, timezone
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+PRIVATE = ROOT / "outputs/camera-lidar-v3-start-trace-v1"
+PUBLIC = ROOT / "docs/assets/kitti_camera_lidar_v3/native_development_20110928_0002/start_trace"
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+report = json.loads((PRIVATE / "report.json").read_text())
+assert report["status"] == "PASS_DIAGNOSTIC_ONLY" and len(report["runs"]) == 4
+assert report["provenance"]["generator_sha256"] == sha(ROOT / "outputs/camera-lidar-v3-start-trace-v1.py")
+previous = PUBLIC.parent / "attempt_1"
+for key, name in [("estimator_sha256", "estimator-source.py.txt"), ("replay_sha256", "replay-source.py.txt")]:
+    assert report["provenance"][key] == sha(previous / name)
+assert report["provenance"]["parent_report_sha256"] == sha(previous / "report.json")
+PUBLIC.mkdir(exist_ok=False)
+for source in PRIVATE.iterdir():
+    assert source.suffix == ".json" and source.is_file()
+    shutil.copyfile(source, PUBLIC / source.name)
+shutil.copyfile(ROOT / "outputs/camera-lidar-v3-start-trace-v1.py", PUBLIC / "producer-source.py.txt")
+shutil.copyfile(Path(__file__), PUBLIC / "publication-source.py.txt")
+manifest = {
+    "schema_version": "calibrex.camera_lidar_start_trace_publication/v0.1",
+    "provenance": {
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "generator_sha256": sha(Path(__file__)),
+        "source_capsules": "../attempt_1/{estimator,replay}-source.py.txt; hashes checked before publication",
+        "sensor_payload_published": False,
+    },
+    "files": [{"path": p.name, "bytes": p.stat().st_size, "sha256": sha(p)} for p in sorted(PUBLIC.iterdir())],
+}
+(PUBLIC / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+print(len(manifest["files"]), "files", sum(f["bytes"] for f in manifest["files"]), "bytes")

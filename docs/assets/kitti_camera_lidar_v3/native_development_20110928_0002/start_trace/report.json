@@ -1,0 +1,1237 @@
+{
+  "schema_version": "calibrex.camera_lidar_start_trace/v0.1",
+  "status": "PASS_DIAGNOSTIC_ONLY",
+  "error": null,
+  "provenance": {
+    "created_at": "2026-10-22T18:27:27.445493+00:00",
+    "git_commit": "49449c4dda75d16b53b7c50ca33eb165082e0f0d",
+    "generator_sha256": "45c61643987744de7edff2568eb2f82a39da9f7645456c6a559cef3862312f2d",
+    "estimator_sha256": "7aa3c100a8ce4a9ea4dbfbcf9d636fe17fb462d2041e1d6963bc09aa7fc94dcb",
+    "replay_sha256": "92211dbf5237b0c3ce4c02c0e08388e2909f8f9dc124d873828cc0a227ce5bdc",
+    "parent_report_sha256": "bb2239fdc027842ed07dc0dbc315de277c9c7866456a2084ed288aff1339ccb5",
+    "analysis": "post hoc development; pitch+3 and yaw+3 selected after observed detection regression",
+    "drive": "2011_09_28_0002",
+    "spent_data_only": true,
+    "new_evaluation_started": false,
+    "new_accuracy_claim": false,
+    "instrumentation": "serial wrappers record arguments and original return values; restored in finally"
+  },
+  "runs": [
+    {
+      "run": "inject_y+3",
+      "rule": "current",
+      "margin": null,
+      "snapshot_sha256": "d074836428ff6cbc1e638d3e4dac77f2f0429948c498cf213ae5c292bc7633bb",
+      "arrays_sha256": "706d68c395d33218e7ae7cb775ba1c24c26aacf341d66ee3894cbd355eb085b5",
+      "expected_artifact_sha256": "8f7544272038d4b844cb50e824fbba3c7d46891d8b5a455c4cc3cae9c5dd9ff4",
+      "artifact": "inject_y+3-current.json",
+      "artifact_sha256": "1950e8fef67f0585763634f2cda812ff389f4f31e98ebab23a333dab4bf5ec95",
+      "full_evidence_parity_excluding_provenance": true,
+      "elapsed_s": 3.9689999998081475,
+      "trace": [
+        {
+          "event": "fit",
+          "theta": [
+            -0.9,
+            0.05,
+            -0.1,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "jackknife": [
+            0.5515130702591433,
+            2.665168850185669,
+            1.82079042664931,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "std_floor": [
+            0.025,
+            0.025,
+            0.025,
+            0.0005,
+            0.0005,
+            0.0005
+          ],
+          "observed": [],
+          "controls": [
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 5,
+              "mean_objective_drop": 0.004760467982864701,
+              "min_t_statistic": 1.367803773725958,
+              "detected": false
+            },
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 1,
+              "mean_objective_drop": -0.0023729496856275795,
+              "min_t_statistic": -1.0916263718201416,
+              "detected": false
+            },
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 1,
+              "mean_objective_drop": -0.003575507931860197,
+              "min_t_statistic": -2.4986345868859434,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 1,
+              "mean_objective_drop": 0.00012546440925965963,
+              "min_t_statistic": 0.36955188843015585,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 1,
+              "mean_objective_drop": -9.822370088992624e-6,
+              "min_t_statistic": -0.01272227919333152,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 1,
+              "mean_objective_drop": 0.00010930828291797676,
+              "min_t_statistic": 0.41919696497914904,
+              "detected": false
+            }
+          ]
+        },
+        {
+          "event": "fit",
+          "theta": [
+            0.0,
+            -2.85,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "jackknife": [
+            1.310878628164247,
+            0.20833333333333334,
+            1.951495153294861,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "std_floor": [
+            0.025,
+            0.025,
+            0.025,
+            0.0005,
+            0.0005,
+            0.0005
+          ],
+          "observed": [
+            1
+          ],
+          "controls": [
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 3,
+              "mean_objective_drop": -0.0025422490190471453,
+              "min_t_statistic": -0.4044134220655142,
+              "detected": false
+            },
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 5,
+              "mean_objective_drop": 0.012416162115579407,
+              "min_t_statistic": 3.381571685183629,
+              "detected": true
+            },
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 3,
+              "mean_objective_drop": 0.0021033821390453616,
+              "min_t_statistic": 0.5293990532113794,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 3,
+              "mean_objective_drop": 0.001972462268390238,
+              "min_t_statistic": 1.4878724892146606,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 1,
+              "mean_objective_drop": 0.00023337421958221846,
+              "min_t_statistic": 0.39265449012474046,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 1,
+              "mean_objective_drop": -0.001113394066973337,
+              "min_t_statistic": -1.1743592686071815,
+              "detected": false
+            }
+          ]
+        },
+        {
+          "event": "adoption",
+          "current_observed": [],
+          "widened_observed": [
+            1
+          ],
+          "widened": [
+            0.0,
+            -2.85,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "accepted": false
+        },
+        {
+          "event": "fit",
+          "theta": [
+            -1.55,
+            -3.0500000000000003,
+            -2.25,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "jackknife": [
+            0.041666666666666706,
+            0.07682953714410713,
+            0.08539125638299667,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "std_floor": [
+            0.025,
+            0.025,
+            0.025,
+            0.0005,
+            0.0005,
+            0.0005
+          ],
+          "observed": [
+            0,
+            1
+          ],
+          "controls": [
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 6,
+              "mean_objective_drop": 0.02310339943143479,
+              "min_t_statistic": 2.621130200574456,
+              "detected": true
+            },
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 5,
+              "mean_objective_drop": 0.012577779688893016,
+              "min_t_statistic": 2.9866775901408613,
+              "detected": true
+            },
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 3,
+              "mean_objective_drop": 0.00522908828574969,
+              "min_t_statistic": 1.0418940653817044,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 3,
+              "mean_objective_drop": 0.0010712666091828086,
+              "min_t_statistic": 1.4003831699006601,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 3,
+              "mean_objective_drop": 0.0009503724431931688,
+              "min_t_statistic": 1.605862260846539,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 2,
+              "mean_objective_drop": -0.0001367467985257121,
+              "min_t_statistic": -0.709265653705497,
+              "detected": false
+            }
+          ]
+        },
+        {
+          "event": "adoption",
+          "current_observed": [],
+          "widened_observed": [
+            0,
+            1
+          ],
+          "widened": [
+            -1.55,
+            -3.0500000000000003,
+            -2.25,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "accepted": true
+        }
+      ]
+    },
+    {
+      "run": "inject_y+3",
+      "rule": "proposed",
+      "margin": 3.5,
+      "snapshot_sha256": "d074836428ff6cbc1e638d3e4dac77f2f0429948c498cf213ae5c292bc7633bb",
+      "arrays_sha256": "706d68c395d33218e7ae7cb775ba1c24c26aacf341d66ee3894cbd355eb085b5",
+      "expected_artifact_sha256": "75f5fcab79af93dec7536d9d40217c71f5c2058bb2264d8ce8dba9df48f7e368",
+      "artifact": "inject_y+3-proposed.json",
+      "artifact_sha256": "4cfaa0cf5130e0d60266e8b67a623c6aeef44f405260f1401fc86e2e92f18837",
+      "full_evidence_parity_excluding_provenance": true,
+      "elapsed_s": 4.391000000061467,
+      "trace": [
+        {
+          "event": "fit",
+          "theta": [
+            -0.9,
+            0.05,
+            -0.1,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "jackknife": [
+            0.5515130702591433,
+            2.665168850185669,
+            1.82079042664931,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "std_floor": [
+            0.025,
+            0.025,
+            0.025,
+            0.0005,
+            0.0005,
+            0.0005
+          ],
+          "observed": [],
+          "controls": [
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 5,
+              "mean_objective_drop": 0.004760467982864701,
+              "min_t_statistic": 1.367803773725958,
+              "detected": false
+            },
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 1,
+              "mean_objective_drop": -0.0023729496856275795,
+              "min_t_statistic": -1.0916263718201416,
+              "detected": false
+            },
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 1,
+              "mean_objective_drop": -0.003575507931860197,
+              "min_t_statistic": -2.4986345868859434,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 1,
+              "mean_objective_drop": 0.00012546440925965963,
+              "min_t_statistic": 0.36955188843015585,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 1,
+              "mean_objective_drop": -9.822370088992624e-6,
+              "min_t_statistic": -0.01272227919333152,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 1,
+              "mean_objective_drop": 0.00010930828291797676,
+              "min_t_statistic": 0.41919696497914904,
+              "detected": false
+            }
+          ]
+        },
+        {
+          "event": "fit",
+          "theta": [
+            0.0,
+            -2.85,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "jackknife": [
+            1.310878628164247,
+            0.20833333333333334,
+            1.951495153294861,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "std_floor": [
+            0.025,
+            0.025,
+            0.025,
+            0.0005,
+            0.0005,
+            0.0005
+          ],
+          "observed": [
+            1
+          ],
+          "controls": [
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 3,
+              "mean_objective_drop": -0.0025422490190471453,
+              "min_t_statistic": -0.4044134220655142,
+              "detected": false
+            },
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 5,
+              "mean_objective_drop": 0.012416162115579407,
+              "min_t_statistic": 3.381571685183629,
+              "detected": true
+            },
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 3,
+              "mean_objective_drop": 0.0021033821390453616,
+              "min_t_statistic": 0.5293990532113794,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 3,
+              "mean_objective_drop": 0.001972462268390238,
+              "min_t_statistic": 1.4878724892146606,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 1,
+              "mean_objective_drop": 0.00023337421958221846,
+              "min_t_statistic": 0.39265449012474046,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 1,
+              "mean_objective_drop": -0.001113394066973337,
+              "min_t_statistic": -1.1743592686071815,
+              "detected": false
+            }
+          ]
+        },
+        {
+          "event": "adoption",
+          "current_observed": [],
+          "widened_observed": [
+            1
+          ],
+          "widened": [
+            0.0,
+            -2.85,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "accepted": false
+        },
+        {
+          "event": "fit",
+          "theta": [
+            -1.55,
+            -3.0500000000000003,
+            -2.25,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "jackknife": [
+            0.041666666666666706,
+            0.07682953714410713,
+            0.08539125638299667,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "std_floor": [
+            0.025,
+            0.025,
+            0.025,
+            0.0005,
+            0.0005,
+            0.0005
+          ],
+          "observed": [
+            0,
+            1
+          ],
+          "controls": [
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 6,
+              "mean_objective_drop": 0.02310339943143479,
+              "min_t_statistic": 2.621130200574456,
+              "detected": true
+            },
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 5,
+              "mean_objective_drop": 0.012577779688893016,
+              "min_t_statistic": 2.9866775901408613,
+              "detected": true
+            },
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 3,
+              "mean_objective_drop": 0.00522908828574969,
+              "min_t_statistic": 1.0418940653817044,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 3,
+              "mean_objective_drop": 0.0010712666091828086,
+              "min_t_statistic": 1.4003831699006601,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 3,
+              "mean_objective_drop": 0.0009503724431931688,
+              "min_t_statistic": 1.605862260846539,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 2,
+              "mean_objective_drop": -0.0001367467985257121,
+              "min_t_statistic": -0.709265653705497,
+              "detected": false
+            }
+          ]
+        },
+        {
+          "event": "adoption",
+          "current_observed": [],
+          "widened_observed": [
+            0,
+            1
+          ],
+          "widened": [
+            -1.55,
+            -3.0500000000000003,
+            -2.25,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "accepted": false
+        }
+      ]
+    },
+    {
+      "run": "inject_z+3",
+      "rule": "current",
+      "margin": null,
+      "snapshot_sha256": "460f1c1a79604cc830e00d59d0e9ecbc792eedd5f3de7af115df0c37b02f7cfa",
+      "arrays_sha256": "91e827d29af351b034b932557193a701b695ad9dff72ebe670ef8592f4ef495c",
+      "expected_artifact_sha256": "1522a92f7e6a0e446668d8920c0bb32f0ab189240ce829ff9287482419afec23",
+      "artifact": "inject_z+3-current.json",
+      "artifact_sha256": "f9e6b78d958dd497761d460f3bf28b1caa551f4e142a006077877b0897dd5599",
+      "full_evidence_parity_excluding_provenance": true,
+      "elapsed_s": 4.733999999938533,
+      "trace": [
+        {
+          "event": "fit",
+          "theta": [
+            -1.95,
+            1.0,
+            0.05,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "jackknife": [
+            0.041666666666666706,
+            0.1003466214899359,
+            0.3270236145058098,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "std_floor": [
+            0.025,
+            0.025,
+            0.025,
+            0.0005,
+            0.0005,
+            0.0005
+          ],
+          "observed": [],
+          "controls": [
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 3,
+              "mean_objective_drop": 0.006033003762561363,
+              "min_t_statistic": 1.2980980798208277,
+              "detected": false
+            },
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 4,
+              "mean_objective_drop": 0.0048723316938475945,
+              "min_t_statistic": 1.3809485915583923,
+              "detected": false
+            },
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 1,
+              "mean_objective_drop": 0.0005705071790541808,
+              "min_t_statistic": 0.1019135379829564,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 1,
+              "mean_objective_drop": 0.00024979379560727326,
+              "min_t_statistic": 0.4521568710080436,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 2,
+              "mean_objective_drop": 0.0005522669625621963,
+              "min_t_statistic": 0.22917249212820634,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 0,
+              "mean_objective_drop": -0.0008385802640209246,
+              "min_t_statistic": -1.6073214384588814,
+              "detected": false
+            }
+          ]
+        },
+        {
+          "event": "fit",
+          "theta": [
+            0.0,
+            0.05,
+            -2.9499999999999997,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "jackknife": [
+            1.2360330811826106,
+            0.17078251276599335,
+            2.0780767016108377,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "std_floor": [
+            0.025,
+            0.025,
+            0.025,
+            0.0005,
+            0.0005,
+            0.0005
+          ],
+          "observed": [
+            1
+          ],
+          "controls": [
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 3,
+              "mean_objective_drop": -0.0012309316414743372,
+              "min_t_statistic": -0.17533812628865486,
+              "detected": false
+            },
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 5,
+              "mean_objective_drop": 0.012148994178336049,
+              "min_t_statistic": 2.9194282819710744,
+              "detected": true
+            },
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 3,
+              "mean_objective_drop": 0.002285934342614766,
+              "min_t_statistic": 0.5746993982774489,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 2,
+              "mean_objective_drop": 0.002030220024888466,
+              "min_t_statistic": 1.3563177727776594,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 2,
+              "mean_objective_drop": 0.002785921306521244,
+              "min_t_statistic": 1.169216056856953,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 1,
+              "mean_objective_drop": -0.0011697522866134797,
+              "min_t_statistic": -1.1973221579295328,
+              "detected": false
+            }
+          ]
+        },
+        {
+          "event": "adoption",
+          "current_observed": [],
+          "widened_observed": [
+            1
+          ],
+          "widened": [
+            0.0,
+            0.05,
+            -2.9499999999999997,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "accepted": false
+        },
+        {
+          "event": "fit",
+          "theta": [
+            -1.5,
+            -0.15,
+            -5.3,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "jackknife": [
+            0.041666666666666706,
+            0.04166666666666667,
+            0.09128709291752736,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "std_floor": [
+            0.025,
+            0.025,
+            0.025,
+            0.0005,
+            0.0005,
+            0.0005
+          ],
+          "observed": [
+            0,
+            1
+          ],
+          "controls": [
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 6,
+              "mean_objective_drop": 0.023350515419988296,
+              "min_t_statistic": 2.649341460141496,
+              "detected": true
+            },
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 6,
+              "mean_objective_drop": 0.01303117688622823,
+              "min_t_statistic": 3.252265261180375,
+              "detected": true
+            },
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 4,
+              "mean_objective_drop": 0.005678536325782537,
+              "min_t_statistic": 1.231049021682128,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 3,
+              "mean_objective_drop": 0.000757328137864491,
+              "min_t_statistic": 1.5881018910571538,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 3,
+              "mean_objective_drop": 0.0013599923278973757,
+              "min_t_statistic": 1.2760940231784843,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 2,
+              "mean_objective_drop": -0.00001789797059937569,
+              "min_t_statistic": -0.120900150381151,
+              "detected": false
+            }
+          ]
+        },
+        {
+          "event": "adoption",
+          "current_observed": [],
+          "widened_observed": [
+            0,
+            1
+          ],
+          "widened": [
+            -1.5,
+            -0.15,
+            -5.3,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "accepted": true
+        }
+      ]
+    },
+    {
+      "run": "inject_z+3",
+      "rule": "proposed",
+      "margin": 3.5,
+      "snapshot_sha256": "460f1c1a79604cc830e00d59d0e9ecbc792eedd5f3de7af115df0c37b02f7cfa",
+      "arrays_sha256": "91e827d29af351b034b932557193a701b695ad9dff72ebe670ef8592f4ef495c",
+      "expected_artifact_sha256": "c4092f8441e96187d969983cf028559d986e996081cac2832ba3c85532f52828",
+      "artifact": "inject_z+3-proposed.json",
+      "artifact_sha256": "e7290ea3d26477e383a55e42ff86ee6c259fa1992d408fcd550ca471ea7488dd",
+      "full_evidence_parity_excluding_provenance": true,
+      "elapsed_s": 4.016000000061467,
+      "trace": [
+        {
+          "event": "fit",
+          "theta": [
+            -1.95,
+            1.0,
+            0.05,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "jackknife": [
+            0.041666666666666706,
+            0.1003466214899359,
+            0.3270236145058098,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "std_floor": [
+            0.025,
+            0.025,
+            0.025,
+            0.0005,
+            0.0005,
+            0.0005
+          ],
+          "observed": [],
+          "controls": [
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 3,
+              "mean_objective_drop": 0.006033003762561363,
+              "min_t_statistic": 1.2980980798208277,
+              "detected": false
+            },
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 4,
+              "mean_objective_drop": 0.0048723316938475945,
+              "min_t_statistic": 1.3809485915583923,
+              "detected": false
+            },
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 1,
+              "mean_objective_drop": 0.0005705071790541808,
+              "min_t_statistic": 0.1019135379829564,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 1,
+              "mean_objective_drop": 0.00024979379560727326,
+              "min_t_statistic": 0.4521568710080436,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 2,
+              "mean_objective_drop": 0.0005522669625621963,
+              "min_t_statistic": 0.22917249212820634,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 0,
+              "mean_objective_drop": -0.0008385802640209246,
+              "min_t_statistic": -1.6073214384588814,
+              "detected": false
+            }
+          ]
+        },
+        {
+          "event": "fit",
+          "theta": [
+            0.0,
+            0.05,
+            -2.9499999999999997,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "jackknife": [
+            1.2360330811826106,
+            0.17078251276599335,
+            2.0780767016108377,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "std_floor": [
+            0.025,
+            0.025,
+            0.025,
+            0.0005,
+            0.0005,
+            0.0005
+          ],
+          "observed": [
+            1
+          ],
+          "controls": [
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 3,
+              "mean_objective_drop": -0.0012309316414743372,
+              "min_t_statistic": -0.17533812628865486,
+              "detected": false
+            },
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 5,
+              "mean_objective_drop": 0.012148994178336049,
+              "min_t_statistic": 2.9194282819710744,
+              "detected": true
+            },
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 3,
+              "mean_objective_drop": 0.002285934342614766,
+              "min_t_statistic": 0.5746993982774489,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 2,
+              "mean_objective_drop": 0.002030220024888466,
+              "min_t_statistic": 1.3563177727776594,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 2,
+              "mean_objective_drop": 0.002785921306521244,
+              "min_t_statistic": 1.169216056856953,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 1,
+              "mean_objective_drop": -0.0011697522866134797,
+              "min_t_statistic": -1.1973221579295328,
+              "detected": false
+            }
+          ]
+        },
+        {
+          "event": "adoption",
+          "current_observed": [],
+          "widened_observed": [
+            1
+          ],
+          "widened": [
+            0.0,
+            0.05,
+            -2.9499999999999997,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "accepted": false
+        },
+        {
+          "event": "fit",
+          "theta": [
+            -1.5,
+            -0.15,
+            -5.3,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "jackknife": [
+            0.041666666666666706,
+            0.04166666666666667,
+            0.09128709291752736,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "std_floor": [
+            0.025,
+            0.025,
+            0.025,
+            0.0005,
+            0.0005,
+            0.0005
+          ],
+          "observed": [
+            0,
+            1
+          ],
+          "controls": [
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 6,
+              "mean_objective_drop": 0.023350515419988296,
+              "min_t_statistic": 2.649341460141496,
+              "detected": true
+            },
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 6,
+              "mean_objective_drop": 0.01303117688622823,
+              "min_t_statistic": 3.252265261180375,
+              "detected": true
+            },
+            {
+              "amount": 2.0,
+              "unit": "deg",
+              "held_out_blocks": 6,
+              "detected_blocks": 4,
+              "mean_objective_drop": 0.005678536325782537,
+              "min_t_statistic": 1.231049021682128,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 3,
+              "mean_objective_drop": 0.000757328137864491,
+              "min_t_statistic": 1.5881018910571538,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 3,
+              "mean_objective_drop": 0.0013599923278973757,
+              "min_t_statistic": 1.2760940231784843,
+              "detected": false
+            },
+            {
+              "amount": 0.05,
+              "unit": "m",
+              "held_out_blocks": 6,
+              "detected_blocks": 2,
+              "mean_objective_drop": -0.00001789797059937569,
+              "min_t_statistic": -0.120900150381151,
+              "detected": false
+            }
+          ]
+        },
+        {
+          "event": "adoption",
+          "current_observed": [],
+          "widened_observed": [
+            0,
+            1
+          ],
+          "widened": [
+            -1.5,
+            -0.15,
+            -5.3,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "accepted": false
+        }
+      ]
+    }
+  ]
+}
