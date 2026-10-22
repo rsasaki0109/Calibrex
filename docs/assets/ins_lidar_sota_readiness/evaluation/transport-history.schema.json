@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "records",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "calibrex.ins_lidar_transport_history/v0.1"
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "generator",
+        "source_sha256",
+        "frozen_code_commit"
+      ],
+      "properties": {
+        "generator": {
+          "type": "string"
+        },
+        "source_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "frozen_code_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      }
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "path",
+          "source_sha256",
+          "records"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "source_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "records": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "schema_version": "calibrex.ins_lidar_audit_scores/v0.1",
+  "provenance": {
+    "generator": "tools.build_ins_lidar_sota_audit",
+    "frozen_code_commit": "5cc11d43e313bec6d29f3de5e549493eee594352",
+    "source_sha256": {
+      "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\ins-lidar-sota-evaluation-runs-v1\\run.json": "98f13081fcb0b8ea0e73fa1febb59b294afa8dfd42c1d28b1ab70550e18a9b2c",
+      "C:\\Users\\rsasa\\Workspace\\Calibrex\\.worktrees\\ins-sota-eval\\docs\\benchmarks\\ins_lidar_rotation_v1_preregistration.yaml": "5f25021348dfb4b496db31391b22127158a5b608e4a470129d5fc168b3c1a42f"
+    },
+    "data_verified": true
+  },
+  "cases": [
+    {
+      "case": {
+        "case_id": "2011_09_29_0071",
+        "dataset_family": "kitti_raw",
+        "rig_id": "kitti-platform",
+        "drive_ids": [
+          "2011_09_29_drive_0071_sync"
+        ],
+        "artifact_path": "2011_09_29_0071.yaml",
+        "artifact_sha256": "c238dde74579a449a4bb2cf74ee8cb1449214036d90b41558a6c4193175c128b"
+      },
+      "completed": true,
+      "rotation_axes": 3,
+      "estimated_axes": 0,
+      "errors_deg": [],
+      "control_misses": 0,
+      "reasons": []
+    },
+    {
+      "case": {
+        "case_id": "2011_09_30_0020",
+        "dataset_family": "kitti_raw",
+        "rig_id": "kitti-platform",
+        "drive_ids": [
+          "2011_09_30_drive_0020_sync"
+        ],
+        "artifact_path": "2011_09_30_0020.yaml",
+        "artifact_sha256": "08c44ad350746f0541e541a8fd57b43ae5dd0b79e7fe8ac25be76d872e7399ff"
+      },
+      "completed": true,
+      "rotation_axes": 3,
+      "estimated_axes": 2,
+      "errors_deg": [
+        0.13080812600906438,
+        0.2857285446678126
+      ],
+      "control_misses": 0,
+      "reasons": []
+    },
+    {
+      "case": {
+        "case_id": "2011_09_30_0027",
+        "dataset_family": "kitti_raw",
+        "rig_id": "kitti-platform",
+        "drive_ids": [
+          "2011_09_30_drive_0027_sync"
+        ],
+        "artifact_path": "2011_09_30_0027.yaml",
+        "artifact_sha256": "7fb7a33be15a0d804667afa63f123caefcf2fecdfc75ea36dd6f956767b640cb"
+      },
+      "completed": true,
+      "rotation_axes": 3,
+      "estimated_axes": 3,
+      "errors_deg": [
+        0.11092833586666061,
+        0.06605231397226337,
+        0.157742712987742
+      ],
+      "control_misses": 0,
+      "reasons": []
+    },
+    {
+      "case": {
+        "case_id": "boreas-2020-12-01-13-26",
+        "dataset_family": "boreas",
+        "rig_id": "boreas-platform",
+        "drive_ids": [
+          "boreas-2020-12-01-13-26"
+        ],
+        "artifact_path": "boreas-2020-12-01-13-26.yaml",
+        "artifact_sha256": "bae6ea8a3855c2f5dd85c001a622c5cd1288ed74acebd04a9e58768e3f649336"
+      },
+      "completed": true,
+      "rotation_axes": 3,
+      "estimated_axes": 3,
+      "errors_deg": [
+        0.054828993584361496,
+        0.05018125978452989,
+        0.13214083787317063
+      ],
+      "control_misses": 0,
+      "reasons": []
+    }
+  ],
+  "families": {
+    "boreas": {
+      "declared_recordings": 1,
+      "recording_completion": 1.0,
+      "axis_coverage": 1.0,
+      "estimated_axes": 3,
+      "control_misses": 0,
+      "control_miss_rate": 0.0,
+      "maximum_reference_difference_deg": 0.13214083787317063
+    },
+    "kitti_raw": {
+      "declared_recordings": 3,
+      "recording_completion": 1.0,
+      "axis_coverage": 0.5555555555555556,
+      "estimated_axes": 5,
+      "control_misses": 0,
+      "control_miss_rate": 0.0,
+      "maximum_reference_difference_deg": 0.2857285446678126
+    }
+  },
+  "declared_dataset_families": 2,
+  "declared_independent_rigs": 2
+}

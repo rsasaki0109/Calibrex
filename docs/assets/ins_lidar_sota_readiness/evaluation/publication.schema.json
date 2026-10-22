@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "verdict",
+    "files",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "calibrex.ins_lidar_evidence_publication/v0.1"
+    },
+    "verdict": {
+      "enum": [
+        "supported",
+        "refuted",
+        "incomplete"
+      ]
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "generator",
+        "source_sha256",
+        "frozen_code_commit"
+      ],
+      "properties": {
+        "generator": {
+          "type": "string"
+        },
+        "source_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "frozen_code_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      }
+    },
+    "files": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sha256",
+          "bytes"
+        ],
+        "properties": {
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

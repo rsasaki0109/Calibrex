@@ -1,0 +1,109 @@
+schema_version: slac.sota_audit_result/v0.1
+audit_id: ins-lidar-rotation-kitti-boreas-v1-audit
+protocol_id: ins-lidar-rotation-kitti-boreas-v1
+scope:
+  modalities:
+  - ins
+  - lidar
+  quantities:
+  - rotation
+  category: trajectory_hand_eye_per_axis
+claim_text: On the four pre-registered KITTI raw and Boreas recording windows not
+  previously read by Calibrex INS-LiDAR methods, LiDAR-only odometry followed by the
+  default native joint trajectory hand-eye fit produces a scorable rotation estimate
+  for every recording; every data-estimated rotation axis is within 0.5 deg of its
+  dataset-provided reference calibration; at least half of the three rotation axes
+  per recording are observed on average in each dataset family; and every observed-axis
+  1 deg held-out control is detected with delta chi-square at least 9. Dataset calibrations
+  are reference estimates, not independent metrology. No translation, full-extrinsic
+  or absolute clock-accuracy claim is made.
+verdict: refuted
+achieved_dataset_families:
+- boreas
+- kitti_raw
+achieved_independent_rig_count: 2
+minimum_dataset_families: 2
+minimum_independent_rigs: 2
+requirements:
+- requirement_id: kitti_raw-completion
+  required: true
+  status: contradicted
+  observed_value: 0.3333333333333333
+  threshold: 0.0
+  reason: observed 0.333333333333 does not meet less_equal 0
+  evidence_path: C:\Users\rsasa\Workspace\Calibrex\outputs\ins-lidar-sota-evaluation-audit-v1\kitti_raw_rotation_reference_difference_deg.yaml
+  evidence_sha256: 27da09b6debf4e1b0936049c77584208007a4240ab3086e01d8f97314a02ae02
+- requirement_id: kitti_raw-agreement
+  required: true
+  status: achieved
+  observed_value: 0.2857285446678126
+  threshold: 0.5
+  reason: observed 0.285728544668 meets less_equal 0.5
+  evidence_path: C:\Users\rsasa\Workspace\Calibrex\outputs\ins-lidar-sota-evaluation-audit-v1\kitti_raw_rotation_reference_difference_deg.yaml
+  evidence_sha256: 27da09b6debf4e1b0936049c77584208007a4240ab3086e01d8f97314a02ae02
+- requirement_id: kitti_raw-coverage
+  required: true
+  status: achieved
+  observed_value: 0.4444444444444445
+  threshold: 0.5
+  reason: observed 0.444444444444 meets less_equal 0.5
+  evidence_path: C:\Users\rsasa\Workspace\Calibrex\outputs\ins-lidar-sota-evaluation-audit-v1\kitti_raw_unobserved_rotation_fraction.yaml
+  evidence_sha256: c5ad8fa6351a20fdbc66edc8fd8bf6b5dd1cc65ac89350be1e86fb469de29fdb
+- requirement_id: kitti_raw-controls
+  required: true
+  status: contradicted
+  observed_value: 1.0
+  threshold: 0.0
+  reason: observed 1 does not meet less_equal 0
+  evidence_path: C:\Users\rsasa\Workspace\Calibrex\outputs\ins-lidar-sota-evaluation-audit-v1\kitti_raw_missed_observed_control_fraction.yaml
+  evidence_sha256: 0418cfefdd837ce7c5c78191d128c9a150d176099fa115f5d02decb70ae37385
+- requirement_id: boreas-completion
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: C:\Users\rsasa\Workspace\Calibrex\outputs\ins-lidar-sota-evaluation-audit-v1\boreas_rotation_reference_difference_deg.yaml
+  evidence_sha256: 40bea3c5fc7c881e5d58215b68e94f521d81ffeb139cd2405d742d2c7875a9e9
+- requirement_id: boreas-agreement
+  required: true
+  status: achieved
+  observed_value: 0.13214083787317063
+  threshold: 0.5
+  reason: observed 0.132140837873 meets less_equal 0.5
+  evidence_path: C:\Users\rsasa\Workspace\Calibrex\outputs\ins-lidar-sota-evaluation-audit-v1\boreas_rotation_reference_difference_deg.yaml
+  evidence_sha256: 40bea3c5fc7c881e5d58215b68e94f521d81ffeb139cd2405d742d2c7875a9e9
+- requirement_id: boreas-coverage
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.5
+  reason: observed 0 meets less_equal 0.5
+  evidence_path: C:\Users\rsasa\Workspace\Calibrex\outputs\ins-lidar-sota-evaluation-audit-v1\boreas_unobserved_rotation_fraction.yaml
+  evidence_sha256: 8d758a704dddc5f1807eb96ecd0fe270706f6daea2ddaed39244a5e815841320
+- requirement_id: boreas-controls
+  required: true
+  status: achieved
+  observed_value: 0.0
+  threshold: 0.0
+  reason: observed 0 meets less_equal 0
+  evidence_path: C:\Users\rsasa\Workspace\Calibrex\outputs\ins-lidar-sota-evaluation-audit-v1\boreas_missed_observed_control_fraction.yaml
+  evidence_sha256: 244edc5196f704b3cec680ae93fd771ce67702ed80b0d51ac7c61dad89da3cd0
+summary: At least one frozen required numerical or integrity gate is contradicted;
+  the declared SOTA claim is not supported.
+provenance:
+  generator: calibrex.evaluation.sota_audit
+  generator_version: 0.5.1
+  git_commit: e2ac3e20
+  command: []
+  source_sha256:
+    protocol: e09d5baa313fe841fbe556360966136871096b9ee17f3bb7eb813e86aec1ffe9
+    kitti_raw-completion: 27da09b6debf4e1b0936049c77584208007a4240ab3086e01d8f97314a02ae02
+    kitti_raw-agreement: 27da09b6debf4e1b0936049c77584208007a4240ab3086e01d8f97314a02ae02
+    kitti_raw-coverage: c5ad8fa6351a20fdbc66edc8fd8bf6b5dd1cc65ac89350be1e86fb469de29fdb
+    kitti_raw-controls: 0418cfefdd837ce7c5c78191d128c9a150d176099fa115f5d02decb70ae37385
+    boreas-completion: 40bea3c5fc7c881e5d58215b68e94f521d81ffeb139cd2405d742d2c7875a9e9
+    boreas-agreement: 40bea3c5fc7c881e5d58215b68e94f521d81ffeb139cd2405d742d2c7875a9e9
+    boreas-coverage: 8d758a704dddc5f1807eb96ecd0fe270706f6daea2ddaed39244a5e815841320
+    boreas-controls: 244edc5196f704b3cec680ae93fd771ce67702ed80b0d51ac7c61dad89da3cd0
+  created_at: '2026-10-22T12:15:50.791107+00:00'

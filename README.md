@@ -321,7 +321,7 @@ audit marks `supported`. The claim, scoring, held-out data, and thresholds are
 committed **before** the held-out data is scored, each piece of evidence is a
 digest-pinned artifact, and refuted audits stay on the
 [SOTA leaderboard](docs/benchmarks/sota_leaderboard.md). Standings as of
-2026-10-15:
+2026-10-22:
 
 | Pair | Standing | Scope of the audited claim | Details |
 |---|:---:|---|---|
@@ -331,9 +331,10 @@ digest-pinned artifact, and refuted audits stay on the
 | `camera-imu` | supported 1, refuted 2 | Hilti 2022 forward cameras (cam0, cam1) against Kalibr, third round (7/7 gates): on five unseen recordings every axis the method judged was within 0.53 deg and every clock offset within 0.47 ms. The first two rounds (6/7, 5/7) required every axis constrained and stay listed. | [Hilti camera-IMU](docs/benchmarks/hilti_camera_imu.md#pre-registered-audit-v3-supported-7-of-7-gates) |
 | `camera-camera` | refuted | Hilti 2022 against Kalibr: refuted 4/6. Every scored pair was within 0.33 deg, but a 1 deg turn of a camera was flagged in only 70 percent of the trials. | [Hilti camera SOTA audits](docs/benchmarks/hilti_camera_sota.md#camera-camera-refuted-4-of-6-gates) |
 | `camera-lidar` | refuted 2 | `calibrex check`'s per-axis verdicts against KITTI's calibration. v2: refuted 8/9 on 18 unseen drives of four other days. It never flagged a day's calibration, every judged axis was within 0.45 deg, and all 72 turns about judged axes were flagged; one turned run judged an axis 1.503 deg off (gate 1.5). v1: refuted 5/9 on 23 drives of 2011_09_26, where it flagged KITTI's calibration on three. | [v2](docs/benchmarks/kitti_camera_lidar_v2_check.md#results-refuted-8-of-9-gates), [v1](docs/benchmarks/kitti_camera_lidar_check.md#results-refuted-5-of-9-gates) |
-| the other five target pairs | no_claim | Native methods exist, but no audited claim yet. | [Leaderboard](docs/benchmarks/sota_leaderboard.md) |
+| `ins-lidar` | refuted | KITTI + Boreas, 6/8 gates: eight estimated rotation axes within 0.286 deg and all eight 1 deg controls detected, but one KITTI recording has no observable rotation axis. | [INS-LiDAR rotation audit](docs/benchmarks/ins_lidar_rotation_v1.md) |
+| the other four target pairs | no_claim | Native methods exist, but no audited claim yet. | [Leaderboard](docs/benchmarks/sota_leaderboard.md) |
 
-A `supported` standing is scoped to one dataset family and one comparison; it
+A `supported` standing is scoped to its declared data, reference and quantities; it
 is not a general accuracy claim. Held-out data is reserved per pair, and a
 spent split cannot be reused for a second claim. The machine-readable
 standings are in
@@ -357,7 +358,7 @@ standing on the [leaderboard](docs/benchmarks/sota_leaderboard.md).
 | GNSS ↔ IMU | `calibrex gnss-imu compose` (from `calibrex gnss-lidar rtk-slam` and IMU-LiDAR) | RTK-SLAM | no_claim |
 | IMU ↔ LiDAR | `calibrex imu-lidar livox`, `livox-translation`, `trajectory` | RTK-SLAM, Zenodo MID360 driving | **supported** (2) / refuted (1) |
 | IMU ↔ vehicle | `calibrex imu-vehicle kitti` | KITTI raw | no_claim |
-| INS ↔ LiDAR | `calibrex ins-lidar kitti` | KITTI raw | no_claim |
+| INS ↔ LiDAR | `calibrex ins-lidar kitti` | KITTI raw + Boreas audit | refuted |
 | LiDAR ↔ LiDAR | `calibrex lidar-lidar ros2` | NTU VIRAL | refuted |
 | LiDAR ↔ vehicle | `calibrex lidar-vehicle kitti` | KITTI raw | **supported** (1) |
 | LiDAR ↔ wheel odometry | `calibrex lidar-wheel trajectory`, `kitti` | KITTI raw (OXTS stands in for wheels) | no_claim |

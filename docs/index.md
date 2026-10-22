@@ -172,7 +172,8 @@ pre-registered audit marks `supported`. Refuted audits are listed too.
 | `lidar-lidar` | <span class="cx-pill refuted">refuted</span> | NTU VIRAL, 2/4 gates |
 | `camera-camera` | <span class="cx-pill refuted">refuted</span> | Hilti 2022 against Kalibr, 4/6 gates |
 | `camera-lidar` | <span class="cx-pill refuted">refuted</span> | KITTI check verdicts: v2 8/9 gates on 18 unseen drives of four days (no calibration flagged; one turned-run axis 1.503 deg off, gate 1.5), v1 5/9 |
-| `camera`, `gnss-imu`, `imu-vehicle`, `ins-lidar`, `lidar-wheel_odometry` | <span class="cx-pill no_claim">no_claim</span> | Native method, no audited claim yet |
+| `ins-lidar` | <span class="cx-pill refuted">refuted</span> | [KITTI + Boreas, 6/8 gates](benchmarks/ins_lidar_rotation_v1.md): estimated axes agree, but one recording has no observable rotation |
+| `camera`, `gnss-imu`, `imu-vehicle`, `lidar-wheel_odometry` | <span class="cx-pill no_claim">no_claim</span> | Native method, no audited claim yet |
 
 [Full leaderboard and protocols :material-arrow-right:](benchmarks/sota_leaderboard.md){ .md-button }
 

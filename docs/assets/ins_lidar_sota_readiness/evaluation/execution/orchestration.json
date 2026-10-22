@@ -1,0 +1,47 @@
+{
+  "schema_version": "calibrex.ins_lidar_orchestration/v0.1",
+  "status": "COMPLETE_EVIDENCE",
+  "transitions": [
+    {
+      "status": "WAITING_FOR_CI",
+      "at": "2026-10-22T11:18:56.265914+00:00"
+    },
+    {
+      "status": "CI_PASSED",
+      "at": "2026-10-22T11:33:28.678817+00:00"
+    },
+    {
+      "status": "REGISTRATION_MERGED",
+      "at": "2026-10-22T11:33:32.593277+00:00"
+    },
+    {
+      "status": "EVALUATING",
+      "at": "2026-10-22T11:33:36.792478+00:00"
+    },
+    {
+      "status": "BUILDING_AUDIT",
+      "at": "2026-10-22T12:15:20.904541+00:00"
+    },
+    {
+      "status": "COMPLETE_EVIDENCE",
+      "at": "2026-10-22T12:15:50.839233+00:00"
+    }
+  ],
+  "provenance": {
+    "generator": "run-ins-lidar-sota-pipeline.py",
+    "source_sha256": "6b283924a2176c7f084e58e0a3d7810d410a72d73235caeac96b02010fa61200",
+    "pr_head": "ace307a644cc6feba4df65ac220c72dcb8e7318d",
+    "frozen_code_commit": "5cc11d43e313bec6d29f3de5e549493eee594352",
+    "created_at": "2026-10-22T11:18:56.265914+00:00"
+  },
+  "ci_run_ids": [
+    39766765910,
+    39766758777,
+    39766765968
+  ],
+  "merged_main": "e2ac3e20e9e3bcc0aa0aeaa3f93f2a25c374292f",
+  "source_checkout": "C:\\Users\\rsasa\\Workspace\\Calibrex\\.worktrees\\ins-sota-eval",
+  "evaluation_returncode": 0,
+  "audit_returncode": 2,
+  "audit_path": "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\ins-lidar-sota-evaluation-audit-v1\\ins_lidar_sota_audit.yaml"
+}

@@ -6,7 +6,7 @@ standing per sensor pair, and the target pairs that have no audited claim yet.
 
 ## Current standings
 
-As of 2026-10-15, **three pairs have supported SOTA claims**:
+As of 2026-10-22, **three pairs have supported SOTA claims**:
 
 - **`imu-lidar`** (Livox MID360, against LI-Init):
   - rotation and clock offset;
@@ -30,7 +30,7 @@ See [MID360 IMU-LiDAR Calibration](mid360_imu_lidar.md),
 and [Hilti 2022 Camera-IMU Rotation](hilti_camera_imu.md) for the scope of each claim
 and what it does not claim.
 
-Three pairs have only refuted audits:
+Four pairs have only refuted audits:
 
 - **`lidar-lidar`**: 2 of 4 gates
   ([NTU VIRAL LiDAR-LiDAR](ntu_viral_lidar_lidar.md#pre-registered-audit-refuted)).
@@ -52,13 +52,13 @@ Three pairs have only refuted audits:
     - On 3 of 23 unseen 2011_09_26 drives the check flagged KITTI's calibration, judging
       an axis up to 9.6 deg off.
 
-Every other target pair has a native method but no audited claim yet.
+- **`ins-lidar`**: first rotation audit **refuted, 6/8 gates**
+  ([KITTI + Boreas](ins_lidar_rotation_v1.md)). Eight estimated axes agree within
+  0.286 deg and all eight observed 1 deg controls pass. One KITTI recording has no
+  observable rotation, failing the all-recordings and empty-control gates.
 
-Work to add an `ins-lidar` claim is tracked in the
-[cross-dataset audit plan](../research/ins_lidar_sota_plan.md): metadata-only
-Boreas inventory, an independent INS input adapter and failure-aware scoring
-are prepared. Development and pre-registration must finish before evaluation;
-this preparation does not change the standings below.
+Seven pairs now have an audit; supported pairs remain three. Every other target
+pair has a native method but no audited claim yet.
 
 | Pair | Standing | Supported | Refuted | Incomplete | Target |
 | --- | --- | ---: | ---: | ---: | --- |
@@ -69,7 +69,7 @@ this preparation does not change the standings below.
 | `gnss-imu` | no_claim | 0 | 0 | 0 | yes |
 | `imu-lidar` | supported | 2 | 1 | 0 | yes |
 | `imu-vehicle` | no_claim | 0 | 0 | 0 | yes |
-| `ins-lidar` | no_claim | 0 | 0 | 0 | yes |
+| `ins-lidar` | refuted | 0 | 1 | 0 | yes |
 | `lidar-lidar` | refuted | 0 | 1 | 0 | yes |
 | `lidar-vehicle` | supported | 1 | 0 | 0 | yes |
 | `lidar-wheel_odometry` | no_claim | 0 | 0 | 0 | yes |
@@ -85,6 +85,7 @@ this preparation does not change the standings below.
 | `imu-lidar` | targetless_imu_lidar | rotation, translation, time_offset | refuted | 0/8 | `mid360-imu-lidar-extrinsic-vs-li-init-v1` |
 | `imu-lidar` | targetless_imu_lidar | rotation, translation, time_offset | supported | 4/4 | `mid360-imu-lidar-extrinsic-vs-li-init-v2` |
 | `imu-lidar` | targetless_imu_lidar | rotation, time_offset | supported | 4/4 | `mid360-imu-lidar-rotation-vs-li-init-v1` |
+| `ins-lidar` | trajectory_hand_eye_per_axis | rotation | refuted | 6/8 | `ins-lidar-rotation-kitti-boreas-v1` |
 | `lidar-lidar` | targetless_lidar_lidar | rotation, translation | refuted | 2/4 | `ntu-lidar-lidar-v1` |
 | `lidar-vehicle` | targetless_lidar_vehicle | rotation | supported | 3/3 | `kitti-lidar-vehicle-v1` |
 

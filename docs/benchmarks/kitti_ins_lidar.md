@@ -96,17 +96,18 @@ calibrex ins-lidar kitti \
 
 ## Limitations
 
-Cross-dataset audit preparation now adds a Boreas adapter and failure-aware
-per-axis scoring; see the [INS-LiDAR audit plan](../research/ins_lidar_sota_plan.md).
-This development work does not change the standing or the results above.
+The subsequent [KITTI + Boreas rotation audit](ins_lidar_rotation_v1.md) is
+**refuted, 6/8 gates**. Its eight estimated axes agree with the references, but
+one KITTI recording has no observed rotation. It does not change the historical
+development results above or justify a full-extrinsic claim.
 
 - Velodyne sweeps are registered as rigid snapshots, without motion
   compensation within a sweep.
 - Drive `0001` has no OXTS timestamps. It is excluded rather than paired by
   position.
-- Two drives from one day are one rig and one dataset family. A SOTA claim
-  needs at least two dataset families, so the
-  [SOTA leaderboard](sota_leaderboard.md) keeps `ins-lidar` at `no_claim`.
+- Two drives from one day are one rig and one dataset family. The new audit
+  supplies two families and two platforms, but fails the scorable-recording and
+  control-integrity gates; the [standing](sota_leaderboard.md) is `refuted`.
 - For weakly constrained DoFs, the analytic std varies by up to about 20 %
   between numerically equivalent runs, because Huber weights can switch for
   residuals near the threshold. The jackknife and the larger-of rule absorb

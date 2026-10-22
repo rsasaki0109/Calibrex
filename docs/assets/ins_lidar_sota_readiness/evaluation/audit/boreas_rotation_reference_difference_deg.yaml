@@ -1,0 +1,139 @@
+schema_version: slac.benchmark/v0.1
+benchmark_id: ins-lidar-rotation-kitti-boreas-v1-boreas-rotation_reference_difference_deg
+title: 'INS-LiDAR boreas: rotation_reference_difference_deg'
+protocol:
+  protocol_id: ins-lidar-rotation-kitti-boreas-v1
+  dataset_id: boreas
+  dataset_source_sha256: 98f13081fcb0b8ea0e73fa1febb59b294afa8dfd42c1d28b1ab70550e18a9b2c
+  data_license: CC BY 4.0
+  split_policy: One recording per split; fit_count/holdout_count count run-level cases.
+    Actual train/holdout blocks remain in the pinned native artifacts.
+  splits:
+  - split_id: boreas-2020-12-01-13-26
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 9c7b903c0ec319ffd0c79b381f984ee69ec6943057ea0c016172d7638b2bc4df
+    holdout_ids_sha256: d0fcd8ae469684a24f1d53f07c90bce48b6812f49b006f82ce8458cf6df30205
+  initial_estimate_policy: Native defaults; no INS or reference-extrinsic odometry
+    prior
+  tuning_policy: Method and gates frozen before evaluation; no tuning on these cases
+  failure_policy: All cases retained. No estimate fails agreement; missing results
+    have zero coverage and control-miss fraction one.
+metrics:
+- name: rotation_reference_difference_deg
+  label: rotation_reference_difference_deg
+  unit: deg
+  display_scale: 1.0
+  direction: lower
+  primary: true
+  interpretation: Lower is better; dataset calibration is a reference estimate.
+methods:
+- method_id: reference_zero_anchor
+  label: Mathematical zero anchor (not an empirical calibration method)
+  implementation: imported
+  tool_name: dataset_reference_zero
+- method_id: calibrex_native_trajectory_hand_eye
+  label: Native joint trajectory hand-eye
+  implementation: calibrex_native
+  tool_name: calibrex
+trials:
+- method_id: reference_zero_anchor
+  split_id: boreas-2020-12-01-13-26
+  status: success
+  metrics:
+    rotation_reference_difference_deg: 0.0
+  provenance:
+    command: frozen INS-LiDAR audit case
+    config_sha256: 98f13081fcb0b8ea0e73fa1febb59b294afa8dfd42c1d28b1ab70550e18a9b2c
+    input_sha256: 98f13081fcb0b8ea0e73fa1febb59b294afa8dfd42c1d28b1ab70550e18a9b2c
+    notes: []
+- method_id: calibrex_native_trajectory_hand_eye
+  split_id: boreas-2020-12-01-13-26
+  status: success
+  metrics:
+    rotation_reference_difference_deg: 0.13214083787317063
+  provenance:
+    command: frozen INS-LiDAR audit case
+    config_sha256: 98f13081fcb0b8ea0e73fa1febb59b294afa8dfd42c1d28b1ab70550e18a9b2c
+    input_sha256: 98f13081fcb0b8ea0e73fa1febb59b294afa8dfd42c1d28b1ab70550e18a9b2c
+    notes: []
+method_summaries:
+  reference_zero_anchor:
+    method_id: reference_zero_anchor
+    trial_count: 1
+    success_count: 1
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      rotation_reference_difference_deg:
+        metric: rotation_reference_difference_deg
+        distribution:
+          count: 1
+          mean: 0.0
+          median: 0.0
+          standard_deviation: 0.0
+          minimum: 0.0
+          maximum: 0.0
+          p90: 0.0
+          p95: 0.0
+          mean_ci95_low: 0.0
+          mean_ci95_high: 0.0
+        rank: 1
+  calibrex_native_trajectory_hand_eye:
+    method_id: calibrex_native_trajectory_hand_eye
+    trial_count: 1
+    success_count: 1
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      rotation_reference_difference_deg:
+        metric: rotation_reference_difference_deg
+        distribution:
+          count: 1
+          mean: 0.13214083787317063
+          median: 0.13214083787317063
+          standard_deviation: 0.0
+          minimum: 0.13214083787317063
+          maximum: 0.13214083787317063
+          p90: 0.13214083787317063
+          p95: 0.13214083787317063
+          mean_ci95_low: 0.13214083787317063
+          mean_ci95_high: 0.13214083787317063
+        rank: 2
+paired_comparisons:
+- reference_method_id: reference_zero_anchor
+  candidate_method_id: calibrex_native_trajectory_hand_eye
+  metric: rotation_reference_difference_deg
+  direction: lower
+  paired_count: 1
+  raw_delta_mean: 0.13214083787317063
+  improvement_mean: -0.13214083787317063
+  improvement_ci95_low: -0.13214083787317063
+  improvement_ci95_high: -0.13214083787317063
+reference_method_id: reference_zero_anchor
+bootstrap_samples: 2000
+bootstrap_seed: 0
+limitations:
+- The zero anchor is not an empirical competitor or a targetless method.
+- Only estimated rotation axes are gated; coverage retains all axes and cases.
+- Different KITTI dates share one platform; Boreas supplies the second platform.
+- No absolute clock, translation, full-extrinsic or general superiority claim.
+provenance:
+  generator: tools.build_ins_lidar_sota_audit
+  generator_version: 0.5.1
+  generated_at: '2026-10-22T12:15:50.641697+00:00'
+  git_commit: 5cc11d43e313bec6d29f3de5e549493eee594352
+  command: python tools/build_ins_lidar_sota_audit.py RUN PREREG OUT
+  source_artifacts:
+    C:\Users\rsasa\Workspace\Calibrex\outputs\ins-lidar-sota-evaluation-runs-v1\run.json: 98f13081fcb0b8ea0e73fa1febb59b294afa8dfd42c1d28b1ab70550e18a9b2c
+    C:\Users\rsasa\Workspace\Calibrex\.worktrees\ins-sota-eval\docs\benchmarks\ins_lidar_rotation_v1_preregistration.yaml: 5f25021348dfb4b496db31391b22127158a5b608e4a470129d5fc168b3c1a42f
+  data_verified: true

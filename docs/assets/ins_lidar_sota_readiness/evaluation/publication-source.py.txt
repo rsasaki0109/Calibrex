@@ -1,0 +1,122 @@
+"""Copy completed, immutable audit evidence; never run or change a calibration."""
+from pathlib import Path
+from datetime import datetime, timezone
+import argparse
+import hashlib
+import json
+import shutil
+import sys
+import jsonschema
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from calibrex.core.sota_audit import load_sota_audit_result
+from tools.ins_lidar_sota_protocol import EXPECTED_CASES, RunManifest
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+def main():
+    p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument('runs',type=Path)
+    p.add_argument('audit',type=Path)
+    p.add_argument('destination',type=Path)
+    p.add_argument('--work-dir',type=Path,required=True)
+    a=p.parse_args()
+    manifest=RunManifest.model_validate_json((a.runs/'run.json').read_text())
+    verdict=load_sota_audit_result(a.audit/'ins_lidar_sota_audit.yaml')
+    pipeline=ROOT/'outputs/ins-lidar-sota-pipeline-v1'
+    state=json.loads((pipeline/'state.json').read_text())
+    assert state['status']=='COMPLETE_EVIDENCE'
+    assert state['provenance']['source_sha256']==sha(ROOT/'outputs/run-ins-lidar-sota-pipeline.py')
+    if a.destination.exists():
+        raise ValueError('evidence destination already exists; never overwrite')
+    assert tuple((c.case_id,c.dataset_family,c.rig_id) for c in manifest.cases)==EXPECTED_CASES
+    copied={}
+    digest={'type':'string','pattern':'^[0-9a-f]{64}$'}
+    provenance={'type':'object','required':['generator','source_sha256','frozen_code_commit'],
+                'properties':{'generator':{'type':'string'},'source_sha256':digest,
+                              'frozen_code_commit':{'type':'string','pattern':'^[0-9a-f]{40}$'}}}
+    history_schema={'$schema':'https://json-schema.org/draft/2020-12/schema',
+        'type':'object','additionalProperties':False,
+        'required':['schema_version','records','provenance'],
+        'properties':{'schema_version':{'const':'calibrex.ins_lidar_transport_history/v0.1'},
+            'provenance':provenance,'records':{'type':'array','items':{'type':'object',
+                'additionalProperties':False,'required':['case_id','path','source_sha256','records'],
+                'properties':{'case_id':{'type':'string'},'path':{'type':'string'},
+                    'source_sha256':digest,'records':{'type':'array','items':{'type':'object'}}}}}}}
+    publication_schema={'$schema':'https://json-schema.org/draft/2020-12/schema',
+        'type':'object','additionalProperties':False,
+        'required':['schema_version','verdict','files','provenance'],
+        'properties':{'schema_version':{'const':'calibrex.ins_lidar_evidence_publication/v0.1'},
+            'verdict':{'enum':['supported','refuted','incomplete']},'provenance':provenance,
+            'files':{'type':'object','additionalProperties':{'type':'object',
+                'additionalProperties':False,'required':['sha256','bytes'],
+                'properties':{'sha256':digest,'bytes':{'type':'integer','minimum':0}}}}}}
+    def copy(source,relative):
+        dest=a.destination/relative
+        dest.parent.mkdir(parents=True,exist_ok=True)
+        shutil.copyfile(source,dest)
+        assert sha(source)==sha(dest)
+        copied[relative]={'sha256':sha(dest),'bytes':dest.stat().st_size}
+    copy(a.runs/'run.json','runs/run.json')
+    copy(pipeline/'state.json','execution/orchestration.json')
+    copy(pipeline/'execution-environment.json','execution/environment.json')
+    copy(pipeline/'audit.log','execution/audit.log')
+    copy(pipeline/'evaluate.log','execution/evaluate.log')
+    copy(pipeline/'ci-proof.json','execution/ci-proof.json')
+    copy(pipeline/'ci-proof.schema.json','execution/ci-proof.schema.json')
+    copy(ROOT/'outputs/collect-ins-lidar-ci-proof.py','execution/ci-proof-source.py.txt')
+    copy(ROOT/'outputs/run-ins-lidar-sota-pipeline.py','execution/orchestration-source.py.txt')
+    copy(Path(__file__),'publication-source.py.txt')
+    header=ROOT/'outputs/ins-lidar-sota-headers-v1.json'
+    if header.exists():copy(header,'execution/header-preflight.json')
+    for case in manifest.cases:
+        if case.artifact_path:
+            path=(a.runs/case.artifact_path).resolve()
+            assert path.parent==a.runs.resolve()
+            assert sha(path)==case.artifact_sha256
+            copy(path,'runs/'+path.name)
+        log=a.runs/(case.case_id+'.log')
+        if log.exists(): copy(log,'runs/'+log.name)
+    transport=[]
+    for case in manifest.cases:
+        case_id=case.case_id
+        work=a.work_dir/case_id
+        info=manifest.input_receipts.get(case_id)
+        if info is not None:
+            assert Path(info['work_dir']).resolve()==work.resolve()
+            receipt=Path(info['path'])
+            assert sha(receipt)==info['sha256']
+            copy(receipt,'inputs/'+case_id+'/acquisition.json')
+        histories=sorted(work.rglob('*.attempts.json'))
+        if (work/'fetch_attempts.json').exists(): histories.append(work/'fetch_attempts.json')
+        for path in histories:
+            transport.append({'case_id':case_id,'path':path.relative_to(work).as_posix(),
+                              'source_sha256':sha(path),'records':json.loads(path.read_text())})
+    for path in sorted(a.audit.iterdir()):
+        if path.is_file(): copy(path,'audit/'+path.name)
+    history={'schema_version':'calibrex.ins_lidar_transport_history/v0.1',
+             'records':transport,'provenance':{'generator':str(Path(__file__).name),
+             'source_sha256':sha(Path(__file__)),'frozen_code_commit':manifest.frozen_code_commit,
+             'created_at':datetime.now(timezone.utc).isoformat()}}
+    jsonschema.validate(history,history_schema)
+    (a.destination/'transport-history.json').write_text(json.dumps(history,indent=2)+'\n',encoding='utf-8')
+    copied['transport-history.json']={'sha256':sha(a.destination/'transport-history.json'),
+                                     'bytes':(a.destination/'transport-history.json').stat().st_size}
+    for name,schema in [('transport-history',history_schema),('publication',publication_schema)]:
+        jsonschema.Draft202012Validator.check_schema(schema)
+        path=a.destination/(name+'.schema.json')
+        path.write_text(json.dumps(schema,indent=2)+'\n',encoding='utf-8')
+        copied[path.name]={'sha256':sha(path),'bytes':path.stat().st_size}
+    publication={'schema_version':'calibrex.ins_lidar_evidence_publication/v0.1',
+        'verdict':verdict.verdict,'files':copied,'provenance':{
+            'generator':str(Path(__file__).name),'source_sha256':sha(Path(__file__)),
+            'frozen_code_commit':manifest.frozen_code_commit,
+            'created_at':datetime.now(timezone.utc).isoformat(),
+            'notice':'Copies preserve exact original bytes. Raw sensor payloads remain outside Git. Transport records retain failed acquisition attempts; no method rerun or gate change.'}}
+    jsonschema.validate(publication,publication_schema)
+    (a.destination/'publication.json').write_text(json.dumps(publication,indent=2)+'\n',encoding='utf-8')
+    print(json.dumps({'verdict':verdict.verdict,'files':len(copied),'bytes':sum(v['bytes'] for v in copied.values())}))
+
+if __name__=='__main__':main()

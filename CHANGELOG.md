@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Record the first pre-registered INS-LiDAR rotation audit across KITTI and
+  Boreas: **refuted, 6/8 gates**. All four fits completed and all eight estimated
+  axes agree within 0.286 deg, with eight detected 1 deg controls. One KITTI
+  recording estimates no rotation axis, failing completeness and empty-control
+  integrity. Preserve all cases, source/input pins, receipts and audit evidence;
+  add the independent Boreas adapter and failure-aware frozen tooling. Seven
+  pairs now have an audit; supported pairs remain three. No gate was relaxed.
+
 - Differentiate native screw gyro clock offsets with exact interval angular
   velocity and explicit one-sided knot limits, replacing the 1 ms sampled
   rate. Preserve residuals, all nonclock blocks, stopping and schemas. Retain

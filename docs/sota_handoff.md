@@ -9,7 +9,8 @@ This page hands the pre-registered SOTA audit work to the next agent. It covers:
 - the next candidates.
 
 Read [`AGENTS.md`](https://github.com/rsasaki0109/Calibrex/blob/main/AGENTS.md) and the
-[SOTA leaderboard](benchmarks/sota_leaderboard.md) first. State as of 2026-10-15, `main` at `d586141`.
+[SOTA leaderboard](benchmarks/sota_leaderboard.md) first. State as of 2026-10-22;
+the INS-LiDAR audit evaluated merged `main` at `e2ac3e20`.
 
 ## Goal and the one rule
 
@@ -37,7 +38,8 @@ pre-registered audit marks `supported`. Five things follow from that:
 | `camera-lidar` | refuted | KITTI check v1 (5/9), v2 (8/9) | [v2](benchmarks/kitti_camera_lidar_v2_check.md), [v1](benchmarks/kitti_camera_lidar_check.md) |
 | `camera-camera` | refuted | Hilti (4/6): accurate, but a 1 deg turn was flagged in only 70 % of trials | [Hilti camera SOTA](benchmarks/hilti_camera_sota.md) |
 | `lidar-lidar` | refuted | NTU VIRAL (2/4): accurate, but does not beat scan-to-scan; cross-recording consistency 1.143 against 1.0 | [NTU VIRAL](benchmarks/ntu_viral_lidar_lidar.md) |
-| `camera`, `gnss-imu`, `imu-vehicle`, `ins-lidar`, `lidar-wheel_odometry` | no claim | native methods exist; no audit yet | [estimate on real data](benchmarks/estimate_real_data.md) |
+| `ins-lidar` | refuted | KITTI + Boreas rotation v1 (6/8); one recording has no observable rotation | [INS-LiDAR rotation](benchmarks/ins_lidar_rotation_v1.md) |
+| `camera`, `gnss-imu`, `imu-vehicle`, `lidar-wheel_odometry` | no claim | native methods exist; no audit yet | [estimate on real data](benchmarks/estimate_real_data.md) |
 
 ## How an audit is run
 
@@ -110,6 +112,7 @@ calibrex sota leaderboard \
   docs/assets/mid360_imu_lidar_sota_audit.yaml \
   docs/assets/ntu_viral_lidar_lidar_sota_audit.yaml \
   docs/assets/kitti_lidar_vehicle_sota_audit.yaml \
+  docs/assets/ins_lidar_sota_readiness/evaluation/audit/ins_lidar_sota_audit.yaml \
   --output docs/assets/sota_leaderboard.json \
   --target-pair camera-lidar --target-pair lidar-lidar --target-pair imu-lidar \
   --target-pair camera-imu --target-pair camera --target-pair camera-camera \
@@ -141,7 +144,9 @@ The camera-imu v3 audit did exactly this with the camera-camera runs.
 | KITTI raw | `lidar-vehicle` | 2011_09_26 0005, 0009, 0014, 0015, 0022 (dev); 0027, 0028, 0035, 0039, 0046, 0051, 0057, 0059 (evaluation) |
 | KITTI raw | `ins-lidar`, `lidar-wheel_odometry`, `imu-vehicle` | 2011_09_26 0005, 0009, 0014, 0015, 0022 (tool runs, including the 0015 round trip; no audit) |
 | KITTI raw | `ins-lidar` | 2011_09_30_0018 OXTS, read by the generated-motion trajectory hand-eye performance controls; not independent calibration evidence |
+| KITTI raw | `ins-lidar` evaluation v1 | 2011_09_29_0071, 2011_09_30_0020, 2011_09_30_0027 (first 600 scans and matching OXTS; alias 06 = 0020, alias 07 = 0027) |
 | Boreas | `ins-lidar` development | boreas-2020-11-26-13-58 (INS prefix/calibration inspected and first-600-scan development acquisition; see the [audit plan](research/ins_lidar_sota_plan.md)) |
+| Boreas | `ins-lidar` evaluation v1 | boreas-2020-12-01-13-26 (first 600 scans, full gps_post_process.csv and calibration; only the fixed +/-1 s reference window enters fitting) |
 | KITTI-360 | camera-LiDAR research | 2013_05_28_drive_0000, 0002 and 0003 (the [research plan](research/camera_lidar_sota_plan.md) records the materialized 0003 development capture; it was omitted from the original handoff) |
 | Hilti 2022 | `camera-imu` | exp01-07, exp11, exp14-16, exp18, exp21, exp23 (parts 0-2); exp09 and exp10 never run (size) |
 | Hilti 2022 | `camera-camera` | exp05, exp06, exp09, exp10, exp11, exp14, exp15, exp16, exp18, exp23 parts 0-2 (first 5 GB of each), plus development on exp01 and exp21 |
@@ -177,6 +182,26 @@ The v2 camera-lidar runs also read the Velodyne and OXTS of the first 600 frames
   revisited after a run; a new version with new evaluation data is the only way on.
 
 ## Next candidates
+
+### INS-LiDAR after the first audit
+
+The first two-family, two-platform rotation audit is [refuted, 6/8](benchmarks/ins_lidar_rotation_v1.md).
+All eight estimated rotation axes agree within 0.286 deg and all eight observed
+controls pass, but KITTI 0071 has no observable rotation. Its zero-axis case is
+a failed scorable recording and gets the frozen worst-case control fraction of
+one. Do not reinterpret `recording_completion=1.0` in the descriptive scorer as
+nonempty rotation availability: all four artifacts completed, but only three
+provide any calibrated rotation.
+
+Post hoc inspection finds uncertainties of 0.378/0.226/1.225 deg against the
+0.1 deg ceiling. The unobserved pitch/yaw differ by 0.558/1.976 deg; promoting
+them would not establish reliable calibration. The physical cause is not yet
+isolated. Use these spent windows to study informative motion, registration
+stability and a declared data-sufficiency policy. A new claim needs new held-out
+recordings and a new registration; no v1 gate or verdict may be relaxed.
+
+The published protocol replays the six achieved and two contradicted gates
+without sensor data. No calibration rerun is needed to reproduce the verdict.
 
 ### 1. camera-lidar v3 (closest to supported)
 

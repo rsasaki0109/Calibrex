@@ -1,12 +1,14 @@
 # INS-LiDAR per-axis audit preparation
 
-The next proposed standings expansion is `ins-lidar`, using KITTI and Boreas.
+This page records preparation of the `ins-lidar` audit using KITTI and Boreas.
 This page records development and audit preparation. The separate
 [pre-registration](../benchmarks/ins_lidar_rotation_v1_preregistration.yaml)
 fixes the proposed evaluation contract and must be merged before evaluation.
-There is **no audit result or new supported claim yet**. The supported sensor pairs on the
-[leaderboard](../benchmarks/sota_leaderboard.md) remain unchanged until the
-frozen audit produces its verdict.
+The completed [first audit](../benchmarks/ins_lidar_rotation_v1.md) is now
+**refuted, 6/8 gates**. This page preserves the development and selection record;
+the three supported sensor pairs on the [leaderboard](../benchmarks/sota_leaderboard.md)
+remain unchanged. The frozen registration and original development evidence
+have not been revised after evaluation.
 
 ## Proposed claim scope
 
@@ -137,13 +139,17 @@ aliases 06 and 07 map to the selected 0020 and 0027 raw drives; alias 05 maps to
 the excluded, spent 0018. The mapping was checked against the official devkit
 readme; its archive URL and digest are in the registration.
 
-## Remaining gates before evaluation
+## Completed evaluation
 
-1. Finish validation, freeze the source code, and commit the binding registration
-   separately. Merge it before evaluation. Acquisition checks two complete
-   attempts against a 16 GiB raw-data cap and a 20 GiB free-disk floor.
-2. Run the frozen evaluation once from `main`. Every method case has one attempt;
-   failed or interrupted methods remain failures. Only bounded transport retries
-   are automatic. Publish supported, refuted or incomplete without changing gates.
-3. Regenerate the standings from the audit artifacts. Change the supported-pair
-   count only when the audit engine supports the claim.
+Code was frozen at `5cc11d43e313bec6d29f3de5e549493eee594352` and the binding
+registration committed separately, then merged in PR #301 before sensor
+acquisition. Evaluation ran once from merged `main` at `e2ac3e20`, with no method
+reruns or acquisition retries. The 16 GiB raw-data cap and 20 GiB free-disk floor
+were preserved.
+
+All four commands completed. Eight axes were estimated, with maximum reference
+difference 0.285729 deg and all eight observed controls detected. KITTI 0071
+provided no observable rotation, so completeness and empty-control integrity
+fail. The [result page](../benchmarks/ins_lidar_rotation_v1.md) publishes all cases
+and the immutable 6/8 refuted verdict. All four windows are now spent for
+INS-LiDAR evaluation; they are available for development, not a second claim.

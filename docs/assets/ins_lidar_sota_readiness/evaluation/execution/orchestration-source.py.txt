@@ -1,0 +1,111 @@
+"""Wait for exact-head CI, merge registration, then invoke frozen evaluation once.
+
+This wrapper only orchestrates Git and the committed commands. It never chooses
+recordings, changes options, computes calibration scores, or retries a method.
+"""
+from pathlib import Path
+from datetime import datetime, timezone
+import hashlib
+import json
+import os
+import subprocess
+import sys
+import time
+
+ROOT=Path(__file__).resolve().parents[1]
+SOURCE=ROOT/'.worktrees/ins-sota-eval'
+PYTHON=ROOT/'.venv/Scripts/python.exe'
+EXPECTED_HEAD='ace307a644cc6feba4df65ac220c72dcb8e7318d'
+FROZEN='5cc11d43e313bec6d29f3de5e549493eee594352'
+REPO='rsasaki0109/Calibrex'
+REG='docs/benchmarks/ins_lidar_rotation_v1_preregistration.yaml'
+BASE=ROOT/'outputs/ins-lidar-sota-pipeline-v1'
+WORK=ROOT/'outputs/ins-lidar-sota-evaluation-inputs-v1'
+RUNS=ROOT/'outputs/ins-lidar-sota-evaluation-runs-v1'
+AUDIT=ROOT/'outputs/ins-lidar-sota-evaluation-audit-v1'
+
+def command(args,cwd=ROOT,**kwargs):
+    return subprocess.check_output([str(x) for x in args],cwd=cwd,text=True,**kwargs).strip()
+
+def main():
+    BASE.mkdir(exist_ok=False)
+    state={'schema_version':'calibrex.ins_lidar_orchestration/v0.1',
+        'status':'WAITING_FOR_CI','transitions':[],
+        'provenance':{'generator':str(Path(__file__).name),
+            'source_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+            'pr_head':EXPECTED_HEAD,'frozen_code_commit':FROZEN,
+            'created_at':datetime.now(timezone.utc).isoformat()}}
+    def update(status,**data):
+        state.update(status=status,**data)
+        state['transitions'].append({'status':status,'at':datetime.now(timezone.utc).isoformat()})
+        temp=BASE/'state.json.writing'
+        temp.write_text(json.dumps(state,indent=2)+'\n',encoding='utf-8')
+        temp.replace(BASE/'state.json')
+        print(json.dumps({'status':status,**data}),flush=True)
+    try:
+        update('WAITING_FOR_CI')
+        runs=[39766765910,39766758777,39766765968]
+        while True:
+            checks=[json.loads(command(['gh','run','view',str(r),'--repo',REPO,
+                '--json','headSha,status,conclusion'])) for r in runs]
+            assert all(c['headSha']==EXPECTED_HEAD for c in checks)
+            if any(c['status']=='completed' and c['conclusion']!='success' for c in checks):
+                raise RuntimeError('Exact-head CI did not succeed: '+json.dumps(checks))
+            if all(c['status']=='completed' for c in checks):break
+            time.sleep(45)
+        pr=json.loads(command(['gh','pr','view','301','--repo',REPO,
+            '--json','headRefOid,state']))
+        assert pr['headRefOid']==EXPECTED_HEAD and pr['state']=='OPEN'
+        assert command(['git','rev-parse','HEAD'])==EXPECTED_HEAD
+        assert not command(['git','status','--porcelain'])
+        assert not RUNS.exists() and not WORK.exists() and not AUDIT.exists()
+        update('CI_PASSED',ci_run_ids=runs)
+        command(['gh','pr','merge','301','--repo',REPO,'--merge','--match-head-commit',EXPECTED_HEAD])
+        update('REGISTRATION_MERGED')
+        command(['git','fetch','origin','main'])
+        command(['git','switch','main'])
+        command(['git','merge','--ff-only','origin/main'])
+        merged=command(['git','rev-parse','HEAD'])
+        assert not command(['git','diff',FROZEN,merged,'--','src','tools'])
+        command(['git','-C',str(SOURCE),'checkout','--detach',merged])
+        assert not command(['git','-C',str(SOURCE),'status','--porcelain'])
+        env=os.environ.copy()
+        env['PYTHONPATH']=str(SOURCE/'src')+os.pathsep+str(SOURCE)
+        env['PYTHONDONTWRITEBYTECODE']='1'
+        env['PYTHONUNBUFFERED']='1'
+        preflight="""import json,sys,numpy,scipy,pydantic
+from pathlib import Path
+import calibrex
+from tools.ins_lidar_sota_evaluate import verify_registered_main,verify_raw_budget
+root=Path.cwd()
+assert Path(calibrex.__file__).resolve().is_relative_to((root/'src').resolve())
+r,h=verify_registered_main(root/'docs/benchmarks/ins_lidar_rotation_v1_preregistration.yaml',root)
+print(json.dumps({'status':'PASS','source_head':h,'frozen_code_commit':r.frozen_code_commit,
+'imported_package':calibrex.__file__,'python':sys.version.split()[0],
+'numpy':numpy.__version__,'scipy':scipy.__version__,'pydantic':pydantic.__version__,
+'maximum_raw_bytes_including_retries':verify_raw_budget(r,root),
+'provenance':{'generator':'run-ins-lidar-sota-pipeline.py preflight',
+'scope':'No sensor object or calibration payload read by preflight'}}))
+"""
+        pre=json.loads(command([PYTHON,'-X','utf8','-c',preflight],cwd=SOURCE,env=env))
+        assert pre['source_head']==merged and pre['frozen_code_commit']==FROZEN
+        (BASE/'execution-environment.json').write_text(json.dumps(pre,indent=2)+'\n',encoding='utf-8')
+        update('EVALUATING',merged_main=merged,source_checkout=str(SOURCE))
+        evaluate=[str(PYTHON),'-X','utf8',str(SOURCE/'tools/ins_lidar_sota_evaluate.py'),
+            str(SOURCE/REG),str(WORK),str(RUNS)]
+        with (BASE/'evaluate.log').open('xb') as log:
+            result=subprocess.run(evaluate,cwd=SOURCE,env=env,stdout=log,stderr=subprocess.STDOUT)
+        assert result.returncode in (0,2),f'evaluator exited {result.returncode}; do not retry'
+        update('BUILDING_AUDIT',evaluation_returncode=result.returncode)
+        build=[str(PYTHON),'-X','utf8',str(SOURCE/'tools/build_ins_lidar_sota_audit.py'),
+            str(RUNS/'run.json'),str(SOURCE/REG),str(AUDIT)]
+        with (BASE/'audit.log').open('xb') as log:
+            result=subprocess.run(build,cwd=SOURCE,env=env,stdout=log,stderr=subprocess.STDOUT)
+        assert result.returncode in (0,2),f'audit builder exited {result.returncode}; preserve evidence'
+        update('COMPLETE_EVIDENCE',audit_returncode=result.returncode,
+               audit_path=str(AUDIT/'ins_lidar_sota_audit.yaml'))
+    except BaseException as error:
+        update('STOPPED_PRESERVING_EVIDENCE',error_type=type(error).__name__,error=str(error))
+        raise
+
+if __name__=='__main__':main()
