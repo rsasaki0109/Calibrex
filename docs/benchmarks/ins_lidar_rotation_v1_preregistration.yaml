@@ -16,7 +16,7 @@ scope:
   quantities:
   - rotation
   category: trajectory_hand_eye_per_axis
-frozen_code_commit: 2fe4a3a3795ad0dd842d64f4b436cb0a2132fbad
+frozen_code_commit: 5cc11d43e313bec6d29f3de5e549493eee594352
 metadata:
   kitti_raw:
     path: docs/assets/ins_lidar_sota_readiness/kitti_metadata.json
@@ -197,6 +197,7 @@ run_recipe:
   kitti_streams:
   - velodyne_points
   - oxts
+  kitti_curl_retries: 0
   boreas_reference: Full applanix/gps_post_process.csv, not lidar_poses.csv; crop
     +/-1s around first 600 scans inside adapter.
   odometry: LiDAR-only rigid scans, default registration; no reference/INS prior,
@@ -207,20 +208,21 @@ run_recipe:
     AUDIT
   source_guard: Merged main; src/tools identical to frozen code; registration on main;
     no dirty source; metadata and all inputs digest checked.
-  retry_policy: At most two transport attempts per object or KITTI fetch, only for
-    external transport/OS failures. Identity/ETag/SHA/budget/scoring/algorithm failures
-    are not retryable. Every partial object and failed attempt is kept. Each method
-    executes at most once; failure, timeout or interrupted RUNNING consumes the attempt.
-    No replacement recordings.
+  retry_policy: At most two transport attempts per Boreas object or whole KITTI fetch,
+    only for external transport/OS failures. KITTI curl internal retries are disabled;
+    HTTP rejection is terminal for a KITTI fetch. Identity/ETag/SHA/budget/scoring/algorithm
+    failures are not retryable, including on resume. Boreas partial objects and every
+    failed object/fetch attempt record are kept. Each method executes at most once;
+    failure, timeout or interrupted RUNNING consumes the attempt. No replacement recordings.
   publication: Retain every declared case and failed attempt; publish supported, refuted
     or incomplete. No gate changes or selective reruns.
   resource_policy: At most 16 GiB additional raw bytes even with two attempts; require
     20 GiB free at each recording acquisition; no GPU requirement or performance claim.
 provenance:
   generator: outputs/prepare-ins-sota-registration.py
-  generator_sha256: 025be12a85893760eca519fd2465b93dc60df5464c6b722664043bd0fe41936d
-  source_commit: 2fe4a3a3795ad0dd842d64f4b436cb0a2132fbad
-  created_at: '2026-10-22T10:41:45.422912+00:00'
+  generator_sha256: 603e2c5620ea152bf7b20fdb137b2884dc3e2c85746addcda9c78b466b744469
+  source_commit: 5cc11d43e313bec6d29f3de5e549493eee594352
+  created_at: '2026-10-22T10:53:19.716729+00:00'
   development_files_sha256:
     development.yaml: ee4bfa85793eb93225bc89e6db75e4fddf50f1d340ecf52aa3806ec55190a754
     report.json: 215f7ae06283da857a6d5f6e15553cb1601cf40811e53be99d3b55ac3c72e4c3
