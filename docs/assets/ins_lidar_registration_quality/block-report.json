@@ -1,0 +1,218 @@
+{
+  "schema_version": "calibrex.ins_lidar_block_diagnostics/v0.1",
+  "scope": "POST HOC DEVELOPMENT ONLY on spent KITTI 0071. Reuses saved LiDAR-only poses; no scan registration or acquisition. Native leave-one-training-block-out fits are diagnostics, not a rule for removing blocks. Reference-extrinsic residuals use the full fit clock/scale nuisance values for both transforms, not independent ground truth. Native covered_motions excludes intervals whose offset bounds exceed the reference; counts are retained. Block labels and train/holdout split are unchanged. No SOTA gate or verdict changed.",
+  "jackknife": [
+    {
+      "omitted_block": 0,
+      "left_rotation_delta_deg": [
+        -0.21185294301957078,
+        0.02548251907233362,
+        0.2759589819854998
+      ],
+      "clock_offset_s": -0.007008956311472279,
+      "reference_scale": 0.9963119353848308
+    },
+    {
+      "omitted_block": 1,
+      "left_rotation_delta_deg": [
+        0.15948303025334745,
+        0.11944314189057276,
+        -0.5886056669151847
+      ],
+      "clock_offset_s": -0.008856950412618097,
+      "reference_scale": 0.9907157259220628
+    },
+    {
+      "omitted_block": 3,
+      "left_rotation_delta_deg": [
+        0.1347619295703008,
+        0.09014729557042475,
+        -0.018357407845122603
+      ],
+      "clock_offset_s": -0.008657998768796893,
+      "reference_scale": 0.9866406468352636
+    },
+    {
+      "omitted_block": 4,
+      "left_rotation_delta_deg": [
+        0.1748892550964192,
+        -0.022842458929372943,
+        -0.17031704806020348
+      ],
+      "clock_offset_s": -0.008277854212297472,
+      "reference_scale": 0.9877116258973943
+    },
+    {
+      "omitted_block": 6,
+      "left_rotation_delta_deg": [
+        -0.1456136323252624,
+        -0.047350371770754955,
+        0.5312297705485953
+      ],
+      "clock_offset_s": -0.00786889787156394,
+      "reference_scale": 1.0011295571889078
+    },
+    {
+      "omitted_block": 7,
+      "left_rotation_delta_deg": [
+        -0.11924005432003941,
+        0.010028465173244025,
+        0.8110985997211169
+      ],
+      "clock_offset_s": -0.0037955417383881292,
+      "reference_scale": 1.00565234983702
+    },
+    {
+      "omitted_block": 9,
+      "left_rotation_delta_deg": [
+        -0.03366537626944505,
+        0.004967020349817656,
+        0.3519066228937264
+      ],
+      "clock_offset_s": -0.010845058224090869,
+      "reference_scale": 0.9804507411616132
+    },
+    {
+      "omitted_block": 10,
+      "left_rotation_delta_deg": [
+        -0.0826041106027499,
+        -0.08996239238929046,
+        -0.401120757502666
+      ],
+      "clock_offset_s": 0.0076644116962270815,
+      "reference_scale": 1.0003396955653865
+    },
+    {
+      "omitted_block": 12,
+      "left_rotation_delta_deg": [
+        0.004864821321579536,
+        -0.05625667740413804,
+        -0.21965870137490626
+      ],
+      "clock_offset_s": -0.00682313298701993,
+      "reference_scale": 0.9974812211576278
+    }
+  ],
+  "reproduced_jackknife_std_deg": [
+    0.37817418775315675,
+    0.18150927280388382,
+    1.225164335633841
+  ],
+  "blocks": [
+    {
+      "block": 0,
+      "split": "train",
+      "candidate_motion_count": 15,
+      "covered_motion_count": 12,
+      "fit_rotation_rmse_deg": 0.125836190742926,
+      "reference_extrinsic_rotation_rmse_deg": 0.11969558017957359
+    },
+    {
+      "block": 1,
+      "split": "train",
+      "candidate_motion_count": 14,
+      "covered_motion_count": 14,
+      "fit_rotation_rmse_deg": 0.11205882265425889,
+      "reference_extrinsic_rotation_rmse_deg": 0.108224505422039
+    },
+    {
+      "block": 2,
+      "split": "holdout",
+      "candidate_motion_count": 14,
+      "covered_motion_count": 14,
+      "fit_rotation_rmse_deg": 0.1540954101966359,
+      "reference_extrinsic_rotation_rmse_deg": 0.13922629181075707
+    },
+    {
+      "block": 3,
+      "split": "train",
+      "candidate_motion_count": 14,
+      "covered_motion_count": 14,
+      "fit_rotation_rmse_deg": 0.2145788888121962,
+      "reference_extrinsic_rotation_rmse_deg": 0.2146039515447256
+    },
+    {
+      "block": 4,
+      "split": "train",
+      "candidate_motion_count": 15,
+      "covered_motion_count": 15,
+      "fit_rotation_rmse_deg": 0.19587291707070878,
+      "reference_extrinsic_rotation_rmse_deg": 0.19865414446010424
+    },
+    {
+      "block": 5,
+      "split": "holdout",
+      "candidate_motion_count": 12,
+      "covered_motion_count": 12,
+      "fit_rotation_rmse_deg": 0.10212353475979236,
+      "reference_extrinsic_rotation_rmse_deg": 0.10045045034689619
+    },
+    {
+      "block": 6,
+      "split": "train",
+      "candidate_motion_count": 14,
+      "covered_motion_count": 14,
+      "fit_rotation_rmse_deg": 0.1179478090747561,
+      "reference_extrinsic_rotation_rmse_deg": 0.11785299361940609
+    },
+    {
+      "block": 7,
+      "split": "train",
+      "candidate_motion_count": 15,
+      "covered_motion_count": 15,
+      "fit_rotation_rmse_deg": 0.11806052645788057,
+      "reference_extrinsic_rotation_rmse_deg": 0.10640679892415848
+    },
+    {
+      "block": 8,
+      "split": "holdout",
+      "candidate_motion_count": 13,
+      "covered_motion_count": 13,
+      "fit_rotation_rmse_deg": 0.1957961716880492,
+      "reference_extrinsic_rotation_rmse_deg": 0.17657348507779766
+    },
+    {
+      "block": 9,
+      "split": "train",
+      "candidate_motion_count": 15,
+      "covered_motion_count": 15,
+      "fit_rotation_rmse_deg": 0.13815437868058422,
+      "reference_extrinsic_rotation_rmse_deg": 0.14068238791875354
+    },
+    {
+      "block": 10,
+      "split": "train",
+      "candidate_motion_count": 12,
+      "covered_motion_count": 12,
+      "fit_rotation_rmse_deg": 0.1480561237607167,
+      "reference_extrinsic_rotation_rmse_deg": 0.13145385546089736
+    },
+    {
+      "block": 11,
+      "split": "holdout",
+      "candidate_motion_count": 14,
+      "covered_motion_count": 14,
+      "fit_rotation_rmse_deg": 0.08343423378959815,
+      "reference_extrinsic_rotation_rmse_deg": 0.08329836747476128
+    },
+    {
+      "block": 12,
+      "split": "train",
+      "candidate_motion_count": 4,
+      "covered_motion_count": 4,
+      "fit_rotation_rmse_deg": 0.10238523330864571,
+      "reference_extrinsic_rotation_rmse_deg": 0.10363526497057712
+    }
+  ],
+  "provenance": {
+    "source_commit": "a68644a82137b8bd0e0c7efee3fefd8bab40d455",
+    "script_sha256": "cf0b95cbf037c0c9891b1f6a852f5b37cbf34a0f1fec739aeb35a2fdd7dbbbd0",
+    "odometry_sha256": "6aefe4edb5fcaab7dcff267598df6a8adfb5aa715056b70145f5c40d90cfc459",
+    "baseline_sha256": "748d54c994908b97d464237236d934eb6e58522006f4534dedb50a995bdc022e",
+    "input_sha256": "ce4ab3fb03435b771d7f7be4ee671f9060c374dc5e47f25725c0e2bc7aaf362a",
+    "receipt_sha256": "0e6f35b37e84c0e53fdbde3e5ec3e0f9e04cc0b62c83b50f4f0d70a94d1cdb2d",
+    "created_at": "2026-10-22T14:23:17.865440+00:00",
+    "numpy": "2.3.4",
+    "new_accuracy_claim": false
+  }
+}

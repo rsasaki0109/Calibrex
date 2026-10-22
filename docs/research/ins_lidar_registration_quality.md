@@ -48,6 +48,41 @@ registrations are unaffected by earlier initialization errors. Further work
 needs to examine motion errors and stability across time blocks, including
 coupling with the clock and reference-scale nuisance parameters.
 
+## Follow-up: block stability
+
+A second post hoc diagnostic reuses the saved trajectory and reproduces all
+nine native leave-one-training-block-out fits. Their rotation spread reproduces
+the original jackknife standard deviations: **0.378174 / 0.181509 / 1.225164 deg**.
+Pitch's reported uncertainty remains the larger analytic value, 0.226495 deg.
+The largest absolute yaw component of a leave-one-block-out rotation change is
+0.811099 deg when block 7 (35 to 40 seconds after the first scan) is omitted.
+These changes are components of a left rotation perturbation in the parent
+frame, not differences between Euler angles.
+
+| Omitted training block | Yaw component of rotation change (deg) | Full-fit block rotation RMSE (deg) |
+| --- | ---: | ---: |
+| 1 (5 to 10 s) | -0.588606 | 0.112059 |
+| 6 (30 to 35 s) | +0.531230 | 0.117948 |
+| 7 (35 to 40 s) | +0.811099 | 0.118061 |
+
+Block 3 has the largest rotation RMSE, 0.214579 deg, but omitting it changes
+the yaw component by only -0.018357 deg. Thus residual magnitude alone does
+not identify influential intervals. This does not label block 7 as corrupted
+or authorize dropping it: weak information, model errors and nuisance-parameter
+coupling remain possible explanations. No new rejection rule was selected.
+
+Per-block residuals use the native `covered_motions` rule. The initial block has
+15 candidate motions and 12 covered motions; both counts are retained. An
+initial diagnostic without this coverage check failed at interpolation and is
+retained locally with its source and failure record. The final diagnostic does
+not change the original train/holdout split. Residuals at the reference extrinsic
+use the full fit's clock and scale nuisance values, so they are explanatory
+comparisons, not independent accuracy or control measurements.
+
+- [Block diagnostic report](../assets/ins_lidar_registration_quality/block-report.json)
+- [Block report schema](../assets/ins_lidar_registration_quality/block-report.schema.json)
+- [Block diagnostic source](../assets/ins_lidar_registration_quality/block-source.py.txt)
+
 ## API and reproducibility
 
 The experimental policy is available through

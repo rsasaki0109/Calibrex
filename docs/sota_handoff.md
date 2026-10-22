@@ -207,6 +207,10 @@ It still observes zero rotation axes; uncertainty changes are small. The new
 negative development result does not revise the v1 audit. Study errors in the
 remaining motions and block stability next; do not treat this filter as a
 demonstrated calibration improvement.
+The follow-up reproduces all nine native jackknife fits: omitting block 7
+(35-40 s) changes the yaw component by 0.811 deg, although block 3 has the
+largest rotation residual. Residual ranking alone is not a justified block
+rejection policy; no such rule has been adopted.
 
 The published protocol replays the six achieved and two contradicted gates
 without sensor data. No calibration rerun is needed to reproduce the verdict.
