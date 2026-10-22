@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "runs",
+    "registration_pr",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "calibrex.ins_lidar_ci_proof/v0.1"
+    },
+    "runs": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "required": [
+          "headSha",
+          "status",
+          "conclusion",
+          "database_id"
+        ],
+        "properties": {
+          "headSha": {
+            "const": "ace307a644cc6feba4df65ac220c72dcb8e7318d"
+          },
+          "status": {
+            "const": "completed"
+          },
+          "conclusion": {
+            "const": "success"
+          }
+        }
+      }
+    },
+    "registration_pr": {
+      "type": "object",
+      "required": [
+        "state",
+        "headRefOid",
+        "mergeCommit"
+      ],
+      "properties": {
+        "state": {
+          "const": "MERGED"
+        },
+        "headRefOid": {
+          "const": "ace307a644cc6feba4df65ac220c72dcb8e7318d"
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "generator",
+        "source_sha256",
+        "frozen_code_commit"
+      ]
+    }
+  }
+}

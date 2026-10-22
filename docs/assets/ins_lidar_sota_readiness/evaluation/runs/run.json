@@ -1,0 +1,153 @@
+{
+  "schema_version": "calibrex.ins_lidar_sota_run/v0.1",
+  "preregistration_sha256": "5f25021348dfb4b496db31391b22127158a5b608e4a470129d5fc168b3c1a42f",
+  "frozen_code_commit": "5cc11d43e313bec6d29f3de5e549493eee594352",
+  "cases": [
+    {
+      "case_id": "2011_09_29_0071",
+      "dataset_family": "kitti_raw",
+      "rig_id": "kitti-platform",
+      "drive_ids": [
+        "2011_09_29_drive_0071_sync"
+      ],
+      "artifact_path": "2011_09_29_0071.yaml",
+      "artifact_sha256": "c238dde74579a449a4bb2cf74ee8cb1449214036d90b41558a6c4193175c128b"
+    },
+    {
+      "case_id": "2011_09_30_0020",
+      "dataset_family": "kitti_raw",
+      "rig_id": "kitti-platform",
+      "drive_ids": [
+        "2011_09_30_drive_0020_sync"
+      ],
+      "artifact_path": "2011_09_30_0020.yaml",
+      "artifact_sha256": "08c44ad350746f0541e541a8fd57b43ae5dd0b79e7fe8ac25be76d872e7399ff"
+    },
+    {
+      "case_id": "2011_09_30_0027",
+      "dataset_family": "kitti_raw",
+      "rig_id": "kitti-platform",
+      "drive_ids": [
+        "2011_09_30_drive_0027_sync"
+      ],
+      "artifact_path": "2011_09_30_0027.yaml",
+      "artifact_sha256": "7fb7a33be15a0d804667afa63f123caefcf2fecdfc75ea36dd6f956767b640cb"
+    },
+    {
+      "case_id": "boreas-2020-12-01-13-26",
+      "dataset_family": "boreas",
+      "rig_id": "boreas-platform",
+      "drive_ids": [
+        "boreas-2020-12-01-13-26"
+      ],
+      "artifact_path": "boreas-2020-12-01-13-26.yaml",
+      "artifact_sha256": "bae6ea8a3855c2f5dd85c001a622c5cd1288ed74acebd04a9e58768e3f649336"
+    }
+  ],
+  "input_data_verified": true,
+  "input_receipts": {
+    "2011_09_29_0071": {
+      "path": "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\ins-lidar-sota-evaluation-inputs-v1\\2011_09_29_0071\\acquisition.json",
+      "sha256": "0e6f35b37e84c0e53fdbde3e5ec3e0f9e04cc0b62c83b50f4f0d70a94d1cdb2d",
+      "work_dir": "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\ins-lidar-sota-evaluation-inputs-v1\\2011_09_29_0071"
+    },
+    "2011_09_30_0020": {
+      "path": "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\ins-lidar-sota-evaluation-inputs-v1\\2011_09_30_0020\\acquisition.json",
+      "sha256": "a19e1cf510815f752b5677f1185d00cc8af045b677966434c4031b855fa7b510",
+      "work_dir": "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\ins-lidar-sota-evaluation-inputs-v1\\2011_09_30_0020"
+    },
+    "2011_09_30_0027": {
+      "path": "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\ins-lidar-sota-evaluation-inputs-v1\\2011_09_30_0027\\acquisition.json",
+      "sha256": "92faa0ff4f4d9f3327e0650db438c6a40bd0d6725733b5ef4d741fcf24bf9e44",
+      "work_dir": "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\ins-lidar-sota-evaluation-inputs-v1\\2011_09_30_0027"
+    },
+    "boreas-2020-12-01-13-26": {
+      "path": "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\ins-lidar-sota-evaluation-inputs-v1\\boreas-2020-12-01-13-26\\acquisition.json",
+      "sha256": "c38e4c3d3b1cd36c2ee105533549e77a6492712e2b91d1fda0cd70b211981077",
+      "work_dir": "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\ins-lidar-sota-evaluation-inputs-v1\\boreas-2020-12-01-13-26"
+    }
+  },
+  "attempts": {
+    "2011_09_29_0071": {
+      "status": "PASS",
+      "command": [
+        "C:\\Users\\rsasa\\Workspace\\Calibrex\\.venv\\Scripts\\python.exe",
+        "-X",
+        "utf8",
+        "C:\\Users\\rsasa\\Workspace\\Calibrex\\.worktrees\\ins-sota-eval\\tools\\ins_lidar_sota_evaluate.py",
+        "C:\\Users\\rsasa\\Workspace\\Calibrex\\.worktrees\\ins-sota-eval\\docs\\benchmarks\\ins_lidar_rotation_v1_preregistration.yaml",
+        "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\ins-lidar-sota-evaluation-inputs-v1\\2011_09_29_0071",
+        "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\ins-lidar-sota-evaluation-runs-v1\\2011_09_29_0071.yaml",
+        "--worker-index",
+        "0"
+      ],
+      "started_at": "2026-10-22T11:39:08.454924+00:00",
+      "returncode": 0,
+      "finished_at": "2026-10-22T11:40:59.223722+00:00"
+    },
+    "2011_09_30_0020": {
+      "status": "PASS",
+      "command": [
+        "C:\\Users\\rsasa\\Workspace\\Calibrex\\.venv\\Scripts\\python.exe",
+        "-X",
+        "utf8",
+        "C:\\Users\\rsasa\\Workspace\\Calibrex\\.worktrees\\ins-sota-eval\\tools\\ins_lidar_sota_evaluate.py",
+        "C:\\Users\\rsasa\\Workspace\\Calibrex\\.worktrees\\ins-sota-eval\\docs\\benchmarks\\ins_lidar_rotation_v1_preregistration.yaml",
+        "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\ins-lidar-sota-evaluation-inputs-v1\\2011_09_30_0020",
+        "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\ins-lidar-sota-evaluation-runs-v1\\2011_09_30_0020.yaml",
+        "--worker-index",
+        "1"
+      ],
+      "started_at": "2026-10-22T11:46:28.506402+00:00",
+      "returncode": 0,
+      "finished_at": "2026-10-22T11:48:29.771827+00:00"
+    },
+    "2011_09_30_0027": {
+      "status": "PASS",
+      "command": [
+        "C:\\Users\\rsasa\\Workspace\\Calibrex\\.venv\\Scripts\\python.exe",
+        "-X",
+        "utf8",
+        "C:\\Users\\rsasa\\Workspace\\Calibrex\\.worktrees\\ins-sota-eval\\tools\\ins_lidar_sota_evaluate.py",
+        "C:\\Users\\rsasa\\Workspace\\Calibrex\\.worktrees\\ins-sota-eval\\docs\\benchmarks\\ins_lidar_rotation_v1_preregistration.yaml",
+        "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\ins-lidar-sota-evaluation-inputs-v1\\2011_09_30_0027",
+        "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\ins-lidar-sota-evaluation-runs-v1\\2011_09_30_0027.yaml",
+        "--worker-index",
+        "2"
+      ],
+      "started_at": "2026-10-22T11:53:53.951843+00:00",
+      "returncode": 0,
+      "finished_at": "2026-10-22T11:55:29.141648+00:00"
+    },
+    "boreas-2020-12-01-13-26": {
+      "status": "PASS",
+      "command": [
+        "C:\\Users\\rsasa\\Workspace\\Calibrex\\.venv\\Scripts\\python.exe",
+        "-X",
+        "utf8",
+        "C:\\Users\\rsasa\\Workspace\\Calibrex\\.worktrees\\ins-sota-eval\\tools\\ins_lidar_sota_evaluate.py",
+        "C:\\Users\\rsasa\\Workspace\\Calibrex\\.worktrees\\ins-sota-eval\\docs\\benchmarks\\ins_lidar_rotation_v1_preregistration.yaml",
+        "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\ins-lidar-sota-evaluation-inputs-v1\\boreas-2020-12-01-13-26",
+        "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\ins-lidar-sota-evaluation-runs-v1\\boreas-2020-12-01-13-26.yaml",
+        "--worker-index",
+        "3"
+      ],
+      "started_at": "2026-10-22T12:10:58.509331+00:00",
+      "returncode": 0,
+      "finished_at": "2026-10-22T12:14:52.894431+00:00"
+    }
+  },
+  "provenance": {
+    "generator": "tools.ins_lidar_sota_evaluate",
+    "source_head": "e2ac3e20e9e3bcc0aa0aeaa3f93f2a25c374292f",
+    "python": "3.12.10",
+    "created_at": "2026-10-22T11:33:38.354824+00:00",
+    "command": [
+      "C:\\Users\\rsasa\\Workspace\\Calibrex\\.venv\\Scripts\\python.exe",
+      "C:\\Users\\rsasa\\Workspace\\Calibrex\\.worktrees\\ins-sota-eval\\tools\\ins_lidar_sota_evaluate.py",
+      "C:\\Users\\rsasa\\Workspace\\Calibrex\\.worktrees\\ins-sota-eval\\docs\\benchmarks\\ins_lidar_rotation_v1_preregistration.yaml",
+      "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\ins-lidar-sota-evaluation-inputs-v1",
+      "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\ins-lidar-sota-evaluation-runs-v1"
+    ]
+  }
+}

@@ -1,0 +1,215 @@
+schema_version: slac.ins_lidar_hand_eye/v0.1
+method: joint_trajectory_hand_eye/v0.1
+solver_status: converged
+policy_status: warn
+policy_reasons:
+- time_offset is reported as estimated but a known-bad 0.02 s shift is not detected
+  on held-out blocks (delta chi-square -84.9 < 9)
+- 'not constrained by the data or a prior, so not calibrated: roll, x, y, z'
+calibrated_dofs:
+- pitch
+- yaw
+- time_offset
+- reference_scale
+transform:
+  parent_frame: ins
+  child_frame: lidar
+  translation_m:
+  - 0.8001893294193783
+  - -0.29377699560797443
+  - 1.5922490039276123
+  rotation_quat_xyzw:
+  - -0.008667569627090728
+  - -0.00010743453159670105
+  - -0.0021179292933548506
+  - 0.9999601872425169
+time_offset_s: -0.00910214900052568
+reference_scale: 1.0040582067000097
+dofs:
+- name: roll
+  unit: deg
+  value: -0.9932144730326938
+  std_analytic: 0.017023072684863548
+  std_jackknife: 1.535791847189609
+  std_reported: 1.535791847189609
+  status: unobservable
+  reference_value: -0.8493269379538126
+  error_to_reference: -0.14411538624995376
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 21.985079498904497
+    detected: true
+- name: pitch
+  unit: deg
+  value: -0.01441419206492907
+  std_analytic: 0.017509392727814415
+  std_jackknife: 0.0735107967038414
+  std_reported: 0.0735107967038414
+  status: estimated
+  reference_value: 0.11664432400331386
+  error_to_reference: -0.13080812600906438
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 501.60289568920007
+    detected: true
+- name: yaw
+  unit: deg
+  value: -0.24258118237269793
+  std_analytic: 0.03300271660767109
+  std_jackknife: 0.049554026695008135
+  std_reported: 0.049554026695008135
+  status: estimated
+  reference_value: 0.04327600301885539
+  error_to_reference: -0.2857285446678126
+  known_bad_control:
+    amount: 1.0
+    unit: deg
+    holdout_delta_chi2: 422.47216753739826
+    detected: true
+- name: x
+  unit: m
+  value: 0.8001893294193783
+  std_analytic: 0.017250061884763662
+  std_jackknife: 0.10476307411002213
+  std_reported: 0.10476307411002213
+  status: unobservable
+  reference_value: 0.8105439720319256
+  error_to_reference: -0.010354642612547371
+  known_bad_control:
+    amount: 0.1
+    unit: m
+    holdout_delta_chi2: -3.2464157722224627
+    detected: false
+- name: y
+  unit: m
+  value: -0.29377699560797443
+  std_analytic: 0.03188406927753153
+  std_jackknife: 0.28186816818697885
+  std_reported: 0.28186816818697885
+  status: unobservable
+  reference_value: -0.30705437225086085
+  error_to_reference: 0.013277376642886418
+  known_bad_control:
+    amount: 0.1
+    unit: m
+    holdout_delta_chi2: 6.674446420943923
+    detected: false
+- name: z
+  unit: m
+  value: 1.5922490039276123
+  std_analytic: 0.418021168156443
+  std_jackknife: 0.2683684272689858
+  std_reported: 0.418021168156443
+  status: unobservable
+  reference_value: 0.8027239945583536
+  error_to_reference: 0.7895250093692586
+  known_bad_control:
+    amount: 0.1
+    unit: m
+    holdout_delta_chi2: -0.3650888661679801
+    detected: false
+- name: time_offset
+  unit: s
+  value: -0.00910214900052568
+  std_analytic: 0.0008579861539241731
+  std_jackknife: 0.003255589606370171
+  std_reported: 0.003255589606370171
+  status: estimated
+  known_bad_control:
+    amount: 0.02
+    unit: s
+    holdout_delta_chi2: -84.92396983940603
+    detected: false
+- name: reference_scale
+  unit: ratio
+  value: 1.0040582067000097
+  std_analytic: 0.0005833591328285642
+  std_jackknife: 0.0011089063150187943
+  std_reported: 0.0011089063150187943
+  status: estimated
+options:
+  step_frames:
+  - 5
+  - 10
+  - 20
+  holdout_every: 3
+  rotation_control_deg: 1.0
+  translation_control_m: 0.1
+  time_control_s: 0.02
+  detection_delta_chi2: 9.0
+  estimate_time_offset: true
+  estimate_reference_scale: true
+  rotation_sigma_rad: 0.0017453292519943296
+  translation_sigma_floor_m: 0.01
+  translation_sigma_per_m: 0.02
+  observable_rotation_std_deg: 0.1
+  observable_translation_std_m: 0.02
+  observable_time_offset_std_s: 0.005
+  priors: []
+odometry:
+  frame_count: 600
+  missing_frames: []
+  registration_count: 599
+  converged_registrations: 599
+  median_correspondences: 8972.0
+  median_registration_rmse_m: 0.11214475426674894
+block_duration_s: 5.0
+train_blocks:
+- 0
+- 1
+- 3
+- 4
+- 6
+- 7
+- 9
+- 10
+- 12
+holdout_blocks:
+- 2
+- 5
+- 8
+- 11
+jackknife_fits: 9
+train:
+  motion_count: 114
+  rotation_rmse_deg: 0.16376210062881652
+  translation_rmse_m: 0.050866209471368856
+  rotation_median_deg: 0.10508657844019949
+  translation_median_m: 0.03457272230354744
+holdout:
+  motion_count: 54
+  rotation_rmse_deg: 0.14364275476228605
+  translation_rmse_m: 0.0594891444180106
+  rotation_median_deg: 0.10357890160053138
+  translation_median_m: 0.03944936708786749
+reference_calibration: KITTI calib_imu_to_velo.txt (inverted to T_imu_velo)
+limitations:
+- Velodyne sweeps are registered as rigid snapshots; motion within a sweep is not
+  compensated.
+- The KITTI calib_imu_to_velo reference is itself an estimate, not independent metrology;
+  differences to it are not accuracy errors.
+- OXTS positions come from a Mercator projection of GNSS/INS output and their timestamps
+  are logging times; a reference scale and clock offset are estimated as nuisance
+  parameters for that reason.
+- Vehicle motion is close to planar, so the translation along the vertical rotation
+  axis cannot be observed without a prior.
+provenance:
+  generator: calibrex.evaluation.ins_lidar_hand_eye
+  generator_version: 0.5.1
+  git_commit: e2ac3e20
+  command:
+  - C:\Users\rsasa\Workspace\Calibrex\.venv\Scripts\python.exe
+  - C:\Users\rsasa\Workspace\Calibrex\.worktrees\ins-sota-eval\tools\ins_lidar_sota_evaluate.py
+  - C:\Users\rsasa\Workspace\Calibrex\.worktrees\ins-sota-eval\docs\benchmarks\ins_lidar_rotation_v1_preregistration.yaml
+  - C:\Users\rsasa\Workspace\Calibrex\outputs\ins-lidar-sota-evaluation-inputs-v1\2011_09_30_0020
+  - C:\Users\rsasa\Workspace\Calibrex\outputs\ins-lidar-sota-evaluation-runs-v1\2011_09_30_0020.yaml
+  - --worker-index
+  - '1'
+  dataset_family: kitti_raw
+  drive_ids:
+  - 2011_09_30_drive_0020_sync
+  input_sha256: d353dc00af3c7c53769c2229ed7117c72fabb8214ad9d6712eeaef0089daef44
+  dataset_license: CC BY-NC-SA 3.0
+  created_at: '2026-10-22T11:48:23.853867+00:00'

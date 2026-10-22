@@ -1,0 +1,191 @@
+schema_version: slac.benchmark/v0.1
+benchmark_id: ins-lidar-rotation-kitti-boreas-v1-kitti_raw-unobserved_rotation_fraction
+title: 'INS-LiDAR kitti_raw: unobserved_rotation_fraction'
+protocol:
+  protocol_id: ins-lidar-rotation-kitti-boreas-v1
+  dataset_id: kitti_raw
+  dataset_source_sha256: 98f13081fcb0b8ea0e73fa1febb59b294afa8dfd42c1d28b1ab70550e18a9b2c
+  data_license: CC BY-NC-SA 3.0
+  split_policy: One recording per split; fit_count/holdout_count count run-level cases.
+    Actual train/holdout blocks remain in the pinned native artifacts.
+  splits:
+  - split_id: '2011_09_29_0071'
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: f6c52bbdf838d0fc2c7eb90a665ec607bb1bef0943bb00faca618d352d62ef14
+    holdout_ids_sha256: b11fb6c84dce2ff683657a7f550536ebc285598e1ac2d1e2a43beb38b65ddd29
+  - split_id: '2011_09_30_0020'
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: 0ba48da8092aa7472c9c49792687d53bc7b2a1b659b5a38baf1540f4bf12be77
+    holdout_ids_sha256: a9465cf40a14ab59c789e9c096f2832342bf4db43a69cd1abc2ea84fe85d674b
+  - split_id: '2011_09_30_0027'
+    seed: 0
+    fit_count: 1
+    holdout_count: 1
+    fit_ids_sha256: bae6597a597c3745bc75d09d960175b4ad981de0d66405785530198943be78a7
+    holdout_ids_sha256: 1619ae4a09994dd8a1fda9f01d8c3860059b4bc33b5da9aa3c35fcaaa611e663
+  initial_estimate_policy: Native defaults; no INS or reference-extrinsic odometry
+    prior
+  tuning_policy: Method and gates frozen before evaluation; no tuning on these cases
+  failure_policy: All cases retained. No estimate fails agreement; missing results
+    have zero coverage and control-miss fraction one.
+metrics:
+- name: unobserved_rotation_fraction
+  label: unobserved_rotation_fraction
+  unit: ratio
+  display_scale: 1.0
+  direction: lower
+  primary: true
+  interpretation: Lower is better; dataset calibration is a reference estimate.
+methods:
+- method_id: reference_zero_anchor
+  label: Mathematical zero anchor (not an empirical calibration method)
+  implementation: imported
+  tool_name: dataset_reference_zero
+- method_id: calibrex_native_trajectory_hand_eye
+  label: Native joint trajectory hand-eye
+  implementation: calibrex_native
+  tool_name: calibrex
+trials:
+- method_id: reference_zero_anchor
+  split_id: '2011_09_29_0071'
+  status: success
+  metrics:
+    unobserved_rotation_fraction: 0.0
+  provenance:
+    command: frozen INS-LiDAR audit case
+    config_sha256: 98f13081fcb0b8ea0e73fa1febb59b294afa8dfd42c1d28b1ab70550e18a9b2c
+    input_sha256: 98f13081fcb0b8ea0e73fa1febb59b294afa8dfd42c1d28b1ab70550e18a9b2c
+    notes: []
+- method_id: calibrex_native_trajectory_hand_eye
+  split_id: '2011_09_29_0071'
+  status: success
+  metrics:
+    unobserved_rotation_fraction: 1.0
+  provenance:
+    command: frozen INS-LiDAR audit case
+    config_sha256: 98f13081fcb0b8ea0e73fa1febb59b294afa8dfd42c1d28b1ab70550e18a9b2c
+    input_sha256: 98f13081fcb0b8ea0e73fa1febb59b294afa8dfd42c1d28b1ab70550e18a9b2c
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: '2011_09_30_0020'
+  status: success
+  metrics:
+    unobserved_rotation_fraction: 0.0
+  provenance:
+    command: frozen INS-LiDAR audit case
+    config_sha256: 98f13081fcb0b8ea0e73fa1febb59b294afa8dfd42c1d28b1ab70550e18a9b2c
+    input_sha256: 98f13081fcb0b8ea0e73fa1febb59b294afa8dfd42c1d28b1ab70550e18a9b2c
+    notes: []
+- method_id: calibrex_native_trajectory_hand_eye
+  split_id: '2011_09_30_0020'
+  status: success
+  metrics:
+    unobserved_rotation_fraction: 0.33333333333333337
+  provenance:
+    command: frozen INS-LiDAR audit case
+    config_sha256: 98f13081fcb0b8ea0e73fa1febb59b294afa8dfd42c1d28b1ab70550e18a9b2c
+    input_sha256: 98f13081fcb0b8ea0e73fa1febb59b294afa8dfd42c1d28b1ab70550e18a9b2c
+    notes: []
+- method_id: reference_zero_anchor
+  split_id: '2011_09_30_0027'
+  status: success
+  metrics:
+    unobserved_rotation_fraction: 0.0
+  provenance:
+    command: frozen INS-LiDAR audit case
+    config_sha256: 98f13081fcb0b8ea0e73fa1febb59b294afa8dfd42c1d28b1ab70550e18a9b2c
+    input_sha256: 98f13081fcb0b8ea0e73fa1febb59b294afa8dfd42c1d28b1ab70550e18a9b2c
+    notes: []
+- method_id: calibrex_native_trajectory_hand_eye
+  split_id: '2011_09_30_0027'
+  status: success
+  metrics:
+    unobserved_rotation_fraction: 0.0
+  provenance:
+    command: frozen INS-LiDAR audit case
+    config_sha256: 98f13081fcb0b8ea0e73fa1febb59b294afa8dfd42c1d28b1ab70550e18a9b2c
+    input_sha256: 98f13081fcb0b8ea0e73fa1febb59b294afa8dfd42c1d28b1ab70550e18a9b2c
+    notes: []
+method_summaries:
+  reference_zero_anchor:
+    method_id: reference_zero_anchor
+    trial_count: 3
+    success_count: 3
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      unobserved_rotation_fraction:
+        metric: unobserved_rotation_fraction
+        distribution:
+          count: 3
+          mean: 0.0
+          median: 0.0
+          standard_deviation: 0.0
+          minimum: 0.0
+          maximum: 0.0
+          p90: 0.0
+          p95: 0.0
+          mean_ci95_low: 0.0
+          mean_ci95_high: 0.0
+        rank: 1
+  calibrex_native_trajectory_hand_eye:
+    method_id: calibrex_native_trajectory_hand_eye
+    trial_count: 3
+    success_count: 3
+    failure_count: 0
+    failure_rate: 0.0
+    runtime_seconds:
+      count: 0
+    peak_memory_mb:
+      count: 0
+    metrics:
+      unobserved_rotation_fraction:
+        metric: unobserved_rotation_fraction
+        distribution:
+          count: 3
+          mean: 0.4444444444444445
+          median: 0.33333333333333337
+          standard_deviation: 0.41573970964154905
+          minimum: 0.0
+          maximum: 1.0
+          p90: 0.8666666666666667
+          p95: 0.9333333333333332
+          mean_ci95_low: 0.0
+          mean_ci95_high: 1.0
+        rank: 2
+paired_comparisons:
+- reference_method_id: reference_zero_anchor
+  candidate_method_id: calibrex_native_trajectory_hand_eye
+  metric: unobserved_rotation_fraction
+  direction: lower
+  paired_count: 3
+  raw_delta_mean: 0.4444444444444445
+  improvement_mean: -0.4444444444444445
+  improvement_ci95_low: -1.0
+  improvement_ci95_high: 0.0
+reference_method_id: reference_zero_anchor
+bootstrap_samples: 2000
+bootstrap_seed: 0
+limitations:
+- The zero anchor is not an empirical competitor or a targetless method.
+- Only estimated rotation axes are gated; coverage retains all axes and cases.
+- Different KITTI dates share one platform; Boreas supplies the second platform.
+- No absolute clock, translation, full-extrinsic or general superiority claim.
+provenance:
+  generator: tools.build_ins_lidar_sota_audit
+  generator_version: 0.5.1
+  generated_at: '2026-10-22T12:15:50.578351+00:00'
+  git_commit: 5cc11d43e313bec6d29f3de5e549493eee594352
+  command: python tools/build_ins_lidar_sota_audit.py RUN PREREG OUT
+  source_artifacts:
+    C:\Users\rsasa\Workspace\Calibrex\outputs\ins-lidar-sota-evaluation-runs-v1\run.json: 98f13081fcb0b8ea0e73fa1febb59b294afa8dfd42c1d28b1ab70550e18a9b2c
+    C:\Users\rsasa\Workspace\Calibrex\.worktrees\ins-sota-eval\docs\benchmarks\ins_lidar_rotation_v1_preregistration.yaml: 5f25021348dfb4b496db31391b22127158a5b608e4a470129d5fc168b3c1a42f
+  data_verified: true

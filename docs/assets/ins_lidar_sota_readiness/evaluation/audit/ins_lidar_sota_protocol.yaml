@@ -1,0 +1,145 @@
+schema_version: slac.sota_audit_protocol/v0.1
+protocol_id: ins-lidar-rotation-kitti-boreas-v1
+scope:
+  modalities:
+  - ins
+  - lidar
+  quantities:
+  - rotation
+  category: trajectory_hand_eye_per_axis
+claim_text: On the four pre-registered KITTI raw and Boreas recording windows not
+  previously read by Calibrex INS-LiDAR methods, LiDAR-only odometry followed by the
+  default native joint trajectory hand-eye fit produces a scorable rotation estimate
+  for every recording; every data-estimated rotation axis is within 0.5 deg of its
+  dataset-provided reference calibration; at least half of the three rotation axes
+  per recording are observed on average in each dataset family; and every observed-axis
+  1 deg held-out control is detected with delta chi-square at least 9. Dataset calibrations
+  are reference estimates, not independent metrology. No translation, full-extrinsic
+  or absolute clock-accuracy claim is made.
+minimum_dataset_families: 2
+minimum_independent_rigs: 2
+requirements:
+- requirement_id: kitti_raw-completion
+  phase: phase2
+  description: 'kitti_raw: completion under the frozen per-axis contract'
+  dataset_family: kitti_raw
+  independent_rig: true
+  rig_id: kitti-platform
+  evidence_path: kitti_raw_rotation_reference_difference_deg.yaml
+  evidence_sha256: 27da09b6debf4e1b0936049c77584208007a4240ab3086e01d8f97314a02ae02
+  method_id: calibrex_native_trajectory_hand_eye
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: kitti_raw-agreement
+  phase: phase2
+  description: 'kitti_raw: agreement under the frozen per-axis contract'
+  dataset_family: kitti_raw
+  independent_rig: true
+  rig_id: kitti-platform
+  evidence_path: kitti_raw_rotation_reference_difference_deg.yaml
+  evidence_sha256: 27da09b6debf4e1b0936049c77584208007a4240ab3086e01d8f97314a02ae02
+  method_id: calibrex_native_trajectory_hand_eye
+  metric: rotation_reference_difference_deg
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.5
+  required: true
+- requirement_id: kitti_raw-coverage
+  phase: phase2
+  description: 'kitti_raw: coverage under the frozen per-axis contract'
+  dataset_family: kitti_raw
+  independent_rig: true
+  rig_id: kitti-platform
+  evidence_path: kitti_raw_unobserved_rotation_fraction.yaml
+  evidence_sha256: c5ad8fa6351a20fdbc66edc8fd8bf6b5dd1cc65ac89350be1e86fb469de29fdb
+  method_id: calibrex_native_trajectory_hand_eye
+  metric: unobserved_rotation_fraction
+  statistic: metric_mean
+  comparison: less_equal
+  threshold: 0.5
+  required: true
+- requirement_id: kitti_raw-controls
+  phase: phase2
+  description: 'kitti_raw: controls under the frozen per-axis contract'
+  dataset_family: kitti_raw
+  independent_rig: true
+  rig_id: kitti-platform
+  evidence_path: kitti_raw_missed_observed_control_fraction.yaml
+  evidence_sha256: 0418cfefdd837ce7c5c78191d128c9a150d176099fa115f5d02decb70ae37385
+  method_id: calibrex_native_trajectory_hand_eye
+  metric: missed_observed_control_fraction
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: boreas-completion
+  phase: phase2
+  description: 'boreas: completion under the frozen per-axis contract'
+  dataset_family: boreas
+  independent_rig: true
+  rig_id: boreas-platform
+  evidence_path: boreas_rotation_reference_difference_deg.yaml
+  evidence_sha256: 40bea3c5fc7c881e5d58215b68e94f521d81ffeb139cd2405d742d2c7875a9e9
+  method_id: calibrex_native_trajectory_hand_eye
+  statistic: failure_rate
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+- requirement_id: boreas-agreement
+  phase: phase2
+  description: 'boreas: agreement under the frozen per-axis contract'
+  dataset_family: boreas
+  independent_rig: true
+  rig_id: boreas-platform
+  evidence_path: boreas_rotation_reference_difference_deg.yaml
+  evidence_sha256: 40bea3c5fc7c881e5d58215b68e94f521d81ffeb139cd2405d742d2c7875a9e9
+  method_id: calibrex_native_trajectory_hand_eye
+  metric: rotation_reference_difference_deg
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.5
+  required: true
+- requirement_id: boreas-coverage
+  phase: phase2
+  description: 'boreas: coverage under the frozen per-axis contract'
+  dataset_family: boreas
+  independent_rig: true
+  rig_id: boreas-platform
+  evidence_path: boreas_unobserved_rotation_fraction.yaml
+  evidence_sha256: 8d758a704dddc5f1807eb96ecd0fe270706f6daea2ddaed39244a5e815841320
+  method_id: calibrex_native_trajectory_hand_eye
+  metric: unobserved_rotation_fraction
+  statistic: metric_mean
+  comparison: less_equal
+  threshold: 0.5
+  required: true
+- requirement_id: boreas-controls
+  phase: phase2
+  description: 'boreas: controls under the frozen per-axis contract'
+  dataset_family: boreas
+  independent_rig: true
+  rig_id: boreas-platform
+  evidence_path: boreas_missed_observed_control_fraction.yaml
+  evidence_sha256: 244edc5196f704b3cec680ae93fd771ce67702ed80b0d51ac7c61dad89da3cd0
+  method_id: calibrex_native_trajectory_hand_eye
+  metric: missed_observed_control_fraction
+  statistic: metric_maximum
+  comparison: less_equal
+  threshold: 0.0
+  required: true
+provenance:
+  generator: tools.build_ins_lidar_sota_audit
+  generator_version: 0.5.1
+  git_commit: 5cc11d43e313bec6d29f3de5e549493eee594352
+  command:
+  - python
+  - tools/build_ins_lidar_sota_audit.py
+  - C:\Users\rsasa\Workspace\Calibrex\outputs\ins-lidar-sota-evaluation-runs-v1\run.json
+  - C:\Users\rsasa\Workspace\Calibrex\.worktrees\ins-sota-eval\docs\benchmarks\ins_lidar_rotation_v1_preregistration.yaml
+  - C:\Users\rsasa\Workspace\Calibrex\outputs\ins-lidar-sota-evaluation-audit-v1
+  source_sha256:
+    C:\Users\rsasa\Workspace\Calibrex\outputs\ins-lidar-sota-evaluation-runs-v1\run.json: 98f13081fcb0b8ea0e73fa1febb59b294afa8dfd42c1d28b1ab70550e18a9b2c
+    C:\Users\rsasa\Workspace\Calibrex\.worktrees\ins-sota-eval\docs\benchmarks\ins_lidar_rotation_v1_preregistration.yaml: 5f25021348dfb4b496db31391b22127158a5b608e4a470129d5fc168b3c1a42f
+  created_at: '2026-10-22T12:15:50.682163+00:00'

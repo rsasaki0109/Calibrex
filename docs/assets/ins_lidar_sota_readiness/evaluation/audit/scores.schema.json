@@ -1,0 +1,267 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "provenance",
+    "cases",
+    "families",
+    "declared_dataset_families",
+    "declared_independent_rigs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "calibrex.ins_lidar_audit_scores/v0.1"
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "generator",
+        "frozen_code_commit",
+        "source_sha256",
+        "data_verified"
+      ]
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case",
+          "completed",
+          "rotation_axes",
+          "estimated_axes",
+          "errors_deg",
+          "control_misses",
+          "reasons"
+        ],
+        "properties": {
+          "case": {
+            "additionalProperties": false,
+            "description": "Frozen case identity. A missing method result remains in the denominator.",
+            "properties": {
+              "case_id": {
+                "minLength": 1,
+                "title": "Case Id",
+                "type": "string"
+              },
+              "dataset_family": {
+                "minLength": 1,
+                "title": "Dataset Family",
+                "type": "string"
+              },
+              "rig_id": {
+                "minLength": 1,
+                "title": "Rig Id",
+                "type": "string"
+              },
+              "drive_ids": {
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1,
+                "title": "Drive Ids",
+                "type": "array"
+              },
+              "artifact_path": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Artifact Path"
+              },
+              "artifact_sha256": {
+                "anyOf": [
+                  {
+                    "pattern": "^[0-9a-f]{64}$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Artifact Sha256"
+              }
+            },
+            "required": [
+              "case_id",
+              "dataset_family",
+              "rig_id",
+              "drive_ids"
+            ],
+            "title": "CaseSpec",
+            "type": "object"
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "rotation_axes": {
+            "const": 3
+          },
+          "estimated_axes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3
+          },
+          "errors_deg": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "control_misses": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "families": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "boreas",
+        "kitti_raw"
+      ],
+      "properties": {
+        "boreas": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "declared_recordings",
+            "recording_completion",
+            "axis_coverage",
+            "estimated_axes",
+            "control_misses",
+            "control_miss_rate",
+            "maximum_reference_difference_deg"
+          ],
+          "properties": {
+            "declared_recordings": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "recording_completion": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "axis_coverage": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "estimated_axes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "control_misses": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "control_miss_rate": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "maximum_reference_difference_deg": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        },
+        "kitti_raw": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "declared_recordings",
+            "recording_completion",
+            "axis_coverage",
+            "estimated_axes",
+            "control_misses",
+            "control_miss_rate",
+            "maximum_reference_difference_deg"
+          ],
+          "properties": {
+            "declared_recordings": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "recording_completion": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "axis_coverage": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "estimated_axes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "control_misses": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "control_miss_rate": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "maximum_reference_difference_deg": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "declared_dataset_families": {
+      "const": 2
+    },
+    "declared_independent_rigs": {
+      "const": 2
+    }
+  }
+}

@@ -1,0 +1,46 @@
+"""Retain the exact-head CI and merge metadata used before sensor evaluation."""
+import hashlib
+import json
+from pathlib import Path
+import subprocess
+from datetime import datetime, timezone
+import jsonschema
+
+ROOT=Path(__file__).resolve().parents[1]
+HEAD='ace307a644cc6feba4df65ac220c72dcb8e7318d'
+FROZEN='5cc11d43e313bec6d29f3de5e549493eee594352'
+def gh(*args):
+    return json.loads(subprocess.check_output(['gh',*args],cwd=ROOT,text=True))
+rows=[]
+for run in [39766765910,39766758777,39766765968]:
+    row=gh('run','view',str(run),'--repo','rsasaki0109/Calibrex','--json',
+           'headSha,status,conclusion,event,createdAt,updatedAt,url,jobs')
+    assert row['headSha']==HEAD and row['status']=='completed' and row['conclusion']=='success'
+    row['database_id']=run
+    row['jobs']=[{k:j[k] for k in ['name','status','conclusion','startedAt','completedAt']}
+                 for j in row['jobs']]
+    rows.append(row)
+pr=gh('pr','view','301','--repo','rsasaki0109/Calibrex','--json',
+      'state,headRefOid,mergedAt,mergeCommit,url')
+assert pr['state']=='MERGED' and pr['headRefOid']==HEAD
+result={'schema_version':'calibrex.ins_lidar_ci_proof/v0.1','runs':rows,'registration_pr':pr,
+        'provenance':{'generator':Path(__file__).name,
+            'source_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+            'frozen_code_commit':FROZEN,'created_at':datetime.now(timezone.utc).isoformat(),
+            'notice':'Read-only record of checks and merge; no method invocation or scoring.'}}
+schema={'$schema':'https://json-schema.org/draft/2020-12/schema','type':'object',
+        'additionalProperties':False,'required':list(result),
+        'properties':{'schema_version':{'const':result['schema_version']},
+            'runs':{'type':'array','minItems':3,'maxItems':3,'items':{'type':'object',
+                    'required':['headSha','status','conclusion','database_id'],
+                    'properties':{'headSha':{'const':HEAD},'status':{'const':'completed'},
+                                  'conclusion':{'const':'success'}}}},
+            'registration_pr':{'type':'object','required':['state','headRefOid','mergeCommit'],
+                'properties':{'state':{'const':'MERGED'},'headRefOid':{'const':HEAD}}},
+            'provenance':{'type':'object','required':['generator','source_sha256','frozen_code_commit']}}}
+jsonschema.validate(result,schema)
+base=ROOT/'outputs/ins-lidar-sota-pipeline-v1'
+for name,value in [('ci-proof.json',result),('ci-proof.schema.json',schema)]:
+    with (base/name).open('x',encoding='utf-8') as stream:
+        stream.write(json.dumps(value,indent=2)+'\n')
+print(json.dumps({'status':'PASS','head':HEAD,'merge':pr['mergeCommit']['oid'],'runs':len(rows)}))
