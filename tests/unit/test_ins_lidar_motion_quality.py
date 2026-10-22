@@ -54,3 +54,7 @@ def test_empty_and_single_frame_tracks_have_no_edges():
     assert build_sensor_motions([0.0], [np.eye(4)], options, registration_valid=[]) == []
     with pytest.raises(ValueError, match="equal length"):
         build_sensor_motions([0.0], [], options)
+
+
+def test_registration_filter_remains_an_opt_in_development_policy():
+    assert InsLidarRunOptions().exclude_failed_registrations is False

@@ -103,9 +103,10 @@ class InsLidarRunOptions:
     detection_delta_chi2: float = 9.0
     holdout_rotation_limit_deg: float = 0.5
     holdout_translation_limit_m: float = 0.3
-    exclude_failed_registrations: bool = True
     solver: TrajectoryHandEyeOptions = field(default_factory=TrajectoryHandEyeOptions)
     odometry: ScanOdometryOptions = field(default_factory=ScanOdometryOptions)
+    # Experimental: convergence alone is not a calibrated motion-quality test.
+    exclude_failed_registrations: bool = False
 
 
 @dataclass(frozen=True)
@@ -351,6 +352,7 @@ def build_ins_lidar_artifact(
         dofs=list(evaluation.records),
         options={
             "step_frames": list(options.step_frames),
+            "exclude_failed_registrations": options.exclude_failed_registrations,
             "holdout_every": options.holdout_every,
             "rotation_control_deg": options.rotation_control_deg,
             "translation_control_m": options.translation_control_m,
