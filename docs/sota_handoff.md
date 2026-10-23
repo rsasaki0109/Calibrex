@@ -285,6 +285,17 @@ an accurate-calibration guarantee or a promoted method. Probe broader nuisance
 basins before setting new gates. All outputs and this counterexample are retained;
 the pooled conditional initialization means these are not nested validation folds.
 
+The follow-up opt-in `--multi-start` uses source `24543be7`, fixed before all
+14 cached inputs were re-run. Training-only nuisance profiles plus their
+individual/combined starts retain the original local optimum on ties. Paired
+baseline/direct evidence matches within `1e-9`. The only changed detection is
+the known 0002 roll +3 false control: t falls from 3.158 to 1.732 and fails the
+unchanged 2.5 threshold. All 0005 flags stay unchanged. Profiled controls now
+detect 20/42 instead of 21/42, with zero on 0002 and pitch +3 still missed.
+This exposes a selected ambiguity; it does not correct the saved fits, provide
+native verdicts, recover useful coverage, or justify promotion. Both batches
+and their source capsules are preserved. Capture progress remains 2/55.
+
 **Evaluation candidates.** KITTI-360 (another car, sensor set and calibration) is the
 natural choice: sequences 0004-0007, 0009 and 0010, subject to completing the exposure
 audit. Sequence 0003 is spent: the research plan already records a development capture.

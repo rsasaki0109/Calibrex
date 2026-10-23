@@ -79,11 +79,60 @@ control statistics, and nuisance refitting when the tested shift exceeds the
 fit bound. Published-evidence tests verify every digest, input binding and
 the real-data counterexample.
 
+## Multiple nuisance starts
+
+`--multi-start` retains the original local nuisance fit and additionally
+profiles each of the other rotation coordinates over the existing configured
+range and step. It refines starts at each individual profile maximum and their
+combination, removing duplicate starts. Only a strictly higher **training**
+objective replaces the original local result; ties retain it. These finite
+starts do not establish a global optimum. The unshifted baseline and direct
+controls retain their original searches.
+
+Synthetic tests demonstrate escape from a separated nuisance peak and retention
+of the local solution on a flat tie. The held-out isolation test runs under
+both modes, including controls whose tested coordinate exceeds the fit bound.
+The default remains local; the additional starts are a research opt-in.
+
+The follow-up fixed source at `24543be7` before re-running **all 14 cached
+inputs**. Every run completed and verified parity with the previous baseline
+fold poses, direct shifts and direct-control evidence within `1e-9`. The
+[paired batch](../assets/kitti_camera_lidar_v3/profiled_controls_multistart/report.json)
+binds each previous local report by SHA-256. The
+[publication manifest](../assets/kitti_camera_lidar_v3/profiled_controls_multistart/manifest.json)
+binds all new receipts and source bytes, about 550 KB excluding the manifest;
+no sensor payload is republished. Source bytes and Git HEAD stayed fixed.
+
+| Drive | Direct controls detected | Local profiled | Multiple-start profiled |
+| --- | ---: | ---: | ---: |
+| 2011_09_26_0005 | 20/21 | 20/21 | 20/21 |
+| 2011_09_28_0002 | 5/21 | 1/21 | 0/21 |
+| Total | 25/42 | 21/42 | 20/42 |
+
+The **only changed detection** between local and multiple-start profiling is
+the known 0002 roll +3 false control. Its t statistic falls from
+`3.1576336192396854` to `1.7323722509750514`, below the unchanged 2.5 threshold.
+Its baseline-fold poses and approximately 1.5 deg maximum absolute roll
+reference error are unchanged: the new search exposes ambiguity rather than
+correcting the fit. The other 41 control detection flags are unchanged,
+including every flag on 0005.
+
+This is progress on the selected false-confidence case, **not a demonstrated
+overall calibration improvement**. No control passes on 0002, and pitch +3
+remains undetected. These are control outcomes at refitted fold poses, not
+native verdicts or observed-axis coverage. Neither method is promoted from
+this deliberately selected two-drive development set, and no threshold was
+retuned after the comparison. Tests bind every paired input, assert unchanged
+baseline/direct evidence, and retain both the removed false control and the
+still-missed pitch control.
+
 ## Decision
 
 Do not promote this control or tune a new threshold from these two drives.
-The next development question is whether broader nuisance searches expose
-the remaining wrong basin while preserving useful axis coverage and turn
-detection. Any alternative must also address the earlier 0056 false optimum
+Broader nuisance searches expose the selected wrong basin but do not restore
+useful pitch detection on 0002. The next development question is how to change
+the evidence or search model while retaining turn sensitivity, rather than
+treating additional abstention as accurate calibration. Any alternative must
+also address the earlier 0056 false optimum
 and the remaining spent-data comparisons. Capture progress stays **2/55**;
 53 drives, exposure auditing and a separate frozen preregistration remain.
