@@ -1,0 +1,77 @@
+"""Confirm the preselected v2 gate-failing yaw+3 case through the real driver."""
+import hashlib,json,subprocess,sys,time,traceback
+from contextlib import redirect_stderr,redirect_stdout
+from datetime import datetime,timezone
+from pathlib import Path
+from pydantic import BaseModel,ConfigDict
+ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT));sys.path.insert(0,str(ROOT/'src'))
+from calibrex.cli.main import main
+from calibrex.core.camera_lidar_edge import load_camera_lidar_edge
+from tools import kitti_camera_lidar_v3_replay as replay
+BASE=ROOT/'outputs/camera-lidar-v3-spent-20110928-0002-v1'
+OUT=ROOT/'outputs/camera-lidar-v3-0002-yaw3-confirm-v1'
+RUN='inject_z+3'
+class Report(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+    schema_version:str='calibrex.camera_lidar_v3_native_confirmation/v0.1'
+    status:str
+    error:str|None
+    details:dict
+    provenance:dict
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+commit=subprocess.check_output(['git','-C',str(ROOT),'rev-parse','HEAD'],text=True).strip()
+assert commit=='46f4b53a427656a2c8b5a358be0945bbf706d1ca'
+completed=json.loads((BASE/'report.json').read_text())
+assert completed['status']=='PASS_PILOT_ONLY'
+comparison=json.loads((BASE/'comparison/comparison.json').read_text())
+assert comparison['errors']=={}
+OUT.mkdir(exist_ok=False)
+report=Report(status='RUNNING',error=None,details={},provenance={
+    'created_at':datetime.now(timezone.utc).isoformat(),'source_commit':commit,
+    'generator_sha256':sha(Path(__file__)),'drive':'2011_09_28_0002','run':RUN,
+    'selection':'Preselected known v2 gate-failing yaw+3 control, before reading new replay outcomes.',
+    'replay_tool_sha256':sha(ROOT/'tools/kitti_camera_lidar_v3_replay.py'),
+    'estimator_sha256':sha(ROOT/'src/calibrex/evaluation/camera_lidar_edge.py'),
+    'cli_sha256':sha(ROOT/'src/calibrex/cli/main.py'),
+    'paired_report_sha256':sha(BASE/'report.json'),'comparison_sha256':sha(BASE/'comparison/comparison.json'),
+    'new_accuracy_claim':False,'development_only':True,'new_evaluation_started':False})
+start=time.monotonic()
+try:
+    command=['check',str(BASE/'bag'),'--pairs','camera-lidar','--no-cache','--fail-on','never',
+        '--camera-lidar-far-control-t','3.5','--tf',str(BASE/'snapshots/2011_09_28_0002'/f'{RUN}_frames.yaml'),
+        '--output',str(OUT/'check.json'),'--evidence-dir',str(OUT/'evidence')]
+    report.details['command']=command
+    with (OUT/'check.log').open('w',encoding='utf-8') as log,redirect_stdout(log),redirect_stderr(log):
+        code=main(command)
+    assert code==0,f'Native check exit {code}'
+    payload=json.loads((OUT/'check.json').read_text())
+    pair=next(p for p in payload['pairs'] if p['pair']=='camera-lidar')
+    assert pair.get('reason_code')!='estimator_error',pair.get('reason')
+    artifacts=list((OUT/'evidence').glob('*.yaml'))
+    assert len(artifacts)==1,artifacts
+    actual=load_camera_lidar_edge(artifacts[0])
+    expected_path=BASE/f'comparison/2011_09_28_0002/proposed/{RUN}.json'
+    expected=load_camera_lidar_edge(expected_path)
+    assert replay._same(actual.model_dump(exclude={'provenance'}),expected.model_dump(exclude={'provenance'})), 'Native proposed evidence differs from paired replay'
+    snapshot=json.loads((BASE/f'snapshots/2011_09_28_0002/{RUN}/snapshot.json').read_text())
+    import numpy as np
+    array_path=BASE/f'snapshots/2011_09_28_0002/{RUN}/arrays.npz'
+    assert sha(array_path)==snapshot['arrays_sha256']
+    with np.load(array_path,allow_pickle=False) as arrays:
+        judged=replay._run_input(expected,arrays['candidate'])
+    assert pair['verdict']==judged.verdict
+    assert {a['name']:a['status'] for a in pair['axes'] if a['name'] in {'roll','pitch','yaw'}}==judged.judged
+    report.details.update({'check_sha256':sha(OUT/'check.json'),'expected_artifact_sha256':sha(expected_path),
+        'actual_artifact_sha256':sha(artifacts[0]),'verdict':pair['verdict'],'judged':judged.judged,
+        'numerical_parity_atol':1e-9,'replay_verdict_parity':True})
+    report.status='PASS_SELECTED_CONTROL_ONLY'
+except Exception as exc:
+    report.status='FAIL';report.error=f'{type(exc).__name__}: {exc}'
+    (OUT/'failure.txt').write_text(traceback.format_exc(),encoding='utf-8')
+finally:
+    report.details['wall_s']=time.monotonic()-start
+    (OUT/'report.json').write_text(report.model_dump_json(indent=2),encoding='utf-8')
+    (OUT/'report.schema.json').write_text(json.dumps(Report.model_json_schema(),indent=2),encoding='utf-8')
+print(report.status,report.error,flush=True)
+sys.exit(0 if report.status=='PASS_SELECTED_CONTROL_ONLY' else 1)

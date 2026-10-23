@@ -1,0 +1,465 @@
+{
+  "schema_version": "calibrex.kitti360_real_oxts_development/v0.1",
+  "status": "PASS",
+  "error": null,
+  "sequence": "2013_05_28_drive_0000_sync",
+  "selected_frame_ids": [
+    0,
+    1,
+    2
+  ],
+  "conversion": {
+    "bag": "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\kitti360-raw-oxts-development-0000-v1\\bag",
+    "provenance_path": "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\kitti360-raw-oxts-development-0000-v1\\bag\\calibrex_conversion.json",
+    "message_counts": {
+      "/tf_static": 1,
+      "/camera/image_raw": 3,
+      "/camera/camera_info": 3,
+      "/velodyne_points": 3,
+      "/kitti360/odometry": 3
+    },
+    "provenance": {
+      "schema_version": "calibrex.rosbag_conversion/v0.1",
+      "generator": "calibrex convert kitti-360",
+      "generator_version": "0.5.1",
+      "git_commit": "036c67ba",
+      "command": [
+        "kitti360-raw-oxts-development-v1.py",
+        "--sequence",
+        "0000",
+        "DEVELOPMENT_RAW_OXTS_CONVERSION_ONLY"
+      ],
+      "created_at": "2026-10-22T15:58:06.435508+00:00",
+      "source": {
+        "dataset_family": "kitti_360",
+        "sequence": "2013_05_28_drive_0000_sync",
+        "license": "CC BY-NC-SA 3.0",
+        "input_sha256": "9828118aa497103ad03f07ffbd744c891f8083dc4277928f65fd3aa18376b7f2",
+        "files_sha256": {
+          "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\kitti360-raw-oxts-development-0000-v1\\dataset\\calibration\\calib_cam_to_pose.txt": "54e6673be14d2cc451ddeb4fdbebae114a440b353a3c095cdc5ba8d83e205e66",
+          "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\kitti360-raw-oxts-development-0000-v1\\dataset\\calibration\\calib_cam_to_velo.txt": "5137daa06c0a3ad63c2727ac5da954a08ac0bc2a38c6877a0de02917c1d5537a",
+          "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\kitti360-raw-oxts-development-0000-v1\\dataset\\calibration\\perspective.txt": "b7428b22f3c00a5ca4e028d4e4de5f7204d29960e15d7a819dd04f587253ec81",
+          "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\kitti360-raw-oxts-development-0000-v1\\dataset\\data_2d_raw\\2013_05_28_drive_0000_sync\\image_00\\data_rect\\0000000000.png": "2416c3fdccd112058f6eb4b7de586e8db6cfbaffba99a075fccb1e72baaa7b18",
+          "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\kitti360-raw-oxts-development-0000-v1\\dataset\\data_2d_raw\\2013_05_28_drive_0000_sync\\image_00\\data_rect\\0000000001.png": "fe93c4f751597b220212085c079e991dfb73358bb0f6cf7850a350b1c91dc284",
+          "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\kitti360-raw-oxts-development-0000-v1\\dataset\\data_2d_raw\\2013_05_28_drive_0000_sync\\image_00\\data_rect\\0000000002.png": "86bbe1f62c66a1bec0ace3a26e4c0c79137ee3540c39dbd7469cba3e7884ec88",
+          "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\kitti360-raw-oxts-development-0000-v1\\dataset\\data_2d_raw\\2013_05_28_drive_0000_sync\\image_00\\timestamps.txt": "f27acb8e31d8336139bdd14e48acbc4907b2bb62be42dde38571679c0d840b4e",
+          "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\kitti360-raw-oxts-development-0000-v1\\dataset\\data_3d_raw\\2013_05_28_drive_0000_sync\\velodyne_points\\data\\0000000000.bin": "e5b576cf00c91232ddb3a33a9fecc195b4b7089e3ad1722b551dcb3fa7ba658c",
+          "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\kitti360-raw-oxts-development-0000-v1\\dataset\\data_3d_raw\\2013_05_28_drive_0000_sync\\velodyne_points\\data\\0000000001.bin": "d7e9472d58314ef50c09e25a4e1b52d5e1647d5765765703ea26c97eed23d5e0",
+          "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\kitti360-raw-oxts-development-0000-v1\\dataset\\data_3d_raw\\2013_05_28_drive_0000_sync\\velodyne_points\\data\\0000000002.bin": "bc4b4d5cd199a0fc638200e34e17050ea2d4e9684eaaafeef6599a4d7f88a7cd",
+          "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\kitti360-raw-oxts-development-0000-v1\\dataset\\data_3d_raw\\2013_05_28_drive_0000_sync\\velodyne_points\\timestamps.txt": "dade3cff9e1968d22649fb6abffd95930dec2fcd7a20c2bc08b84a94fe1f1003",
+          "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\kitti360-raw-oxts-development-0000-v1\\dataset\\data_poses\\2013_05_28_drive_0000_sync\\oxts\\data\\0000000000.txt": "556dc96769df300c9139e0002270954038af20cf5f86420c3c9d881e3dacadc2",
+          "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\kitti360-raw-oxts-development-0000-v1\\dataset\\data_poses\\2013_05_28_drive_0000_sync\\oxts\\data\\0000000001.txt": "3fd080a14040dd3c803b00e1df0b7a35bb4e3f5963762c216e0a490da2ab784f",
+          "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\kitti360-raw-oxts-development-0000-v1\\dataset\\data_poses\\2013_05_28_drive_0000_sync\\oxts\\data\\0000000002.txt": "92598b83f40248301488346924cb07c9dbb21c9e91ffe699c299a06636991972",
+          "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\kitti360-raw-oxts-development-0000-v1\\dataset\\data_poses\\2013_05_28_drive_0000_sync\\oxts\\timestamps.txt": "6f546385c00b600d4fd550e79d180d7bde41dcbde1e6f6dad0a37c684dd8e3d3"
+        }
+      },
+      "selection": {
+        "start_frame": 0,
+        "stop_frame_exclusive": 3,
+        "image_ids": [
+          0,
+          1,
+          2
+        ],
+        "velodyne_ids": [
+          0,
+          1,
+          2
+        ],
+        "pose_ids": [
+          0,
+          1,
+          2
+        ],
+        "image_without_scan_ids": [],
+        "scan_without_image_ids": []
+      },
+      "camera": {
+        "directory": "image_00",
+        "rectified": true,
+        "k": [
+          552.554261,
+          0.0,
+          682.049453,
+          0.0,
+          552.554261,
+          238.769549,
+          0.0,
+          0.0,
+          1.0
+        ],
+        "image_size_px": [
+          1408,
+          376
+        ],
+        "t_camera_velodyne": [
+          [
+            0.04361185361505855,
+            -0.9990378964145559,
+            -0.00450446890035056,
+            0.2631825581687184
+          ],
+          [
+            -0.09121385160267215,
+            0.000507848385768071,
+            -0.995830966176499,
+            -0.10306495154844308
+          ],
+          [
+            0.9948760901498741,
+            0.04384113792593417,
+            -0.09110474955581109,
+            -0.8295212095326371
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ],
+        "convention": "T_pose_rect = T_pose_camera * inverse(R_rect_selected); CameraInfo P=[K|0], stereo baseline represented once in TF"
+      },
+      "frames": {
+        "base_link": "defined as KITTI-360 GPS/IMU pose frame; imu_link is identical",
+        "world": "kitti360_oxts_world"
+      },
+      "velodyne_time": {
+        "mode": "azimuth",
+        "scan_period_s": 0.1,
+        "model": "-atan2(y,x)/(2*pi)*scan_period_s relative to header; clockwise, forward-facing mid-sweep; modelled, not measured"
+      },
+      "motion": {
+        "mode": "oxts",
+        "source": "raw OXTS GNSS/INS Mercator positions and attitudes; not an image/LiDAR-optimized trajectory or independent metrology",
+        "origin_packet": "data_poses\\2013_05_28_drive_0000_sync\\oxts\\data\\0000000000.txt",
+        "timestamps": "OXTS packet timestamps by original frame ID; no interpolation",
+        "twist": "finite differences between neighboring selected poses in body frame; approximate interval averages; zero/unknown for a singleton",
+        "twist_interval_s": [
+          0.11001854300000001,
+          0.10006608,
+          0.10006608
+        ],
+        "scan_motion_compensation": false
+      },
+      "message_counts": {
+        "/tf_static": 1,
+        "/camera/image_raw": 3,
+        "/camera/camera_info": 3,
+        "/velodyne_points": 3,
+        "/kitti360/odometry": 3
+      }
+    }
+  },
+  "topics": [
+    {
+      "topic": "/camera/camera_info",
+      "message_type": "sensor_msgs/msg/CameraInfo",
+      "count": 3
+    },
+    {
+      "topic": "/camera/image_raw",
+      "message_type": "sensor_msgs/msg/Image",
+      "count": 3
+    },
+    {
+      "topic": "/kitti360/odometry",
+      "message_type": "nav_msgs/msg/Odometry",
+      "count": 3
+    },
+    {
+      "topic": "/tf_static",
+      "message_type": "tf2_msgs/msg/TFMessage",
+      "count": 1
+    },
+    {
+      "topic": "/velodyne_points",
+      "message_type": "sensor_msgs/msg/PointCloud2",
+      "count": 3
+    }
+  ],
+  "inputs": [
+    {
+      "archive": "calibration",
+      "url": "https://s3.eu-central-1.amazonaws.com/avg-projects/KITTI-360/384509ed5413ccc81328cf8c55cc6af078b8c444/calibration.zip",
+      "etag": "\"c9ca3554cde68c9b5e66484efb9dfda8\"",
+      "member": "calibration/perspective.txt",
+      "path": "calibration/perspective.txt",
+      "bytes": 1171,
+      "sha256": "b7428b22f3c00a5ca4e028d4e4de5f7204d29960e15d7a819dd04f587253ec81",
+      "crc_verified": true,
+      "reused_from": "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\kitti360-converter-real-development-0000-v1\\dataset\\calibration\\perspective.txt"
+    },
+    {
+      "archive": "calibration",
+      "url": "https://s3.eu-central-1.amazonaws.com/avg-projects/KITTI-360/384509ed5413ccc81328cf8c55cc6af078b8c444/calibration.zip",
+      "etag": "\"c9ca3554cde68c9b5e66484efb9dfda8\"",
+      "member": "calibration/calib_cam_to_pose.txt",
+      "path": "calibration/calib_cam_to_pose.txt",
+      "bytes": 687,
+      "sha256": "54e6673be14d2cc451ddeb4fdbebae114a440b353a3c095cdc5ba8d83e205e66",
+      "crc_verified": true,
+      "reused_from": "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\kitti360-converter-real-development-0000-v1\\dataset\\calibration\\calib_cam_to_pose.txt"
+    },
+    {
+      "archive": "calibration",
+      "url": "https://s3.eu-central-1.amazonaws.com/avg-projects/KITTI-360/384509ed5413ccc81328cf8c55cc6af078b8c444/calibration.zip",
+      "etag": "\"c9ca3554cde68c9b5e66484efb9dfda8\"",
+      "member": "calibration/calib_cam_to_velo.txt",
+      "path": "calibration/calib_cam_to_velo.txt",
+      "bytes": 167,
+      "sha256": "5137daa06c0a3ad63c2727ac5da954a08ac0bc2a38c6877a0de02917c1d5537a",
+      "crc_verified": true,
+      "reused_from": "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\kitti360-converter-real-development-0000-v1\\dataset\\calibration\\calib_cam_to_velo.txt"
+    },
+    {
+      "archive": "perspective-timestamps",
+      "url": "https://s3.eu-central-1.amazonaws.com/avg-projects/KITTI-360/data_2d_raw/data_timestamps_perspective.zip",
+      "etag": "\"1aa6604d64126c8b12e23e984aba42c7\"",
+      "member": "2013_05_28_drive_0000_sync/image_00/timestamps.txt",
+      "path": "data_2d_raw/2013_05_28_drive_0000_sync/image_00/timestamps.txt",
+      "bytes": 345540,
+      "sha256": "f27acb8e31d8336139bdd14e48acbc4907b2bb62be42dde38571679c0d840b4e",
+      "crc_verified": true,
+      "reused_from": "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\kitti360-converter-real-development-0000-v1\\dataset\\data_2d_raw\\2013_05_28_drive_0000_sync\\image_00\\timestamps.txt"
+    },
+    {
+      "archive": "velodyne-timestamps",
+      "url": "https://s3.eu-central-1.amazonaws.com/avg-projects/KITTI-360/data_3d_raw/data_timestamps_velodyne.zip",
+      "etag": "\"d1c5540691a5756a9a021d5e889e7c7a\"",
+      "member": "2013_05_28_drive_0000_sync/velodyne_points/timestamps.txt",
+      "path": "data_3d_raw/2013_05_28_drive_0000_sync/velodyne_points/timestamps.txt",
+      "bytes": 345540,
+      "sha256": "dade3cff9e1968d22649fb6abffd95930dec2fcd7a20c2bc08b84a94fe1f1003",
+      "crc_verified": true,
+      "reused_from": "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\kitti360-converter-real-development-0000-v1\\dataset\\data_3d_raw\\2013_05_28_drive_0000_sync\\velodyne_points\\timestamps.txt"
+    },
+    {
+      "archive": "oxts",
+      "url": "https://s3.eu-central-1.amazonaws.com/avg-projects/KITTI-360/89a6bae3c8a6f789e12de4807fc1e8fdcf182cf4/data_poses_oxts.zip",
+      "etag": "\"f20f3bc8a4fcdfed17faf73e0e39b7e8-5\"",
+      "member": "data_poses/2013_05_28_drive_0000_sync/oxts/timestamps.txt",
+      "path": "data_poses/2013_05_28_drive_0000_sync/oxts/timestamps.txt",
+      "bytes": 345540,
+      "sha256": "6f546385c00b600d4fd550e79d180d7bde41dcbde1e6f6dad0a37c684dd8e3d3",
+      "crc_verified": true
+    },
+    {
+      "archive": "oxts",
+      "url": "https://s3.eu-central-1.amazonaws.com/avg-projects/KITTI-360/89a6bae3c8a6f789e12de4807fc1e8fdcf182cf4/data_poses_oxts.zip",
+      "etag": "\"f20f3bc8a4fcdfed17faf73e0e39b7e8-5\"",
+      "member": "data_poses/2013_05_28_drive_0000_sync/oxts/data/0000000000.txt",
+      "path": "data_poses/2013_05_28_drive_0000_sync/oxts/data/0000000000.txt",
+      "bytes": 460,
+      "sha256": "556dc96769df300c9139e0002270954038af20cf5f86420c3c9d881e3dacadc2",
+      "crc_verified": true
+    },
+    {
+      "archive": "oxts",
+      "url": "https://s3.eu-central-1.amazonaws.com/avg-projects/KITTI-360/89a6bae3c8a6f789e12de4807fc1e8fdcf182cf4/data_poses_oxts.zip",
+      "etag": "\"f20f3bc8a4fcdfed17faf73e0e39b7e8-5\"",
+      "member": "data_poses/2013_05_28_drive_0000_sync/oxts/data/0000000001.txt",
+      "path": "data_poses/2013_05_28_drive_0000_sync/oxts/data/0000000001.txt",
+      "bytes": 446,
+      "sha256": "3fd080a14040dd3c803b00e1df0b7a35bb4e3f5963762c216e0a490da2ab784f",
+      "crc_verified": true
+    },
+    {
+      "archive": "oxts",
+      "url": "https://s3.eu-central-1.amazonaws.com/avg-projects/KITTI-360/89a6bae3c8a6f789e12de4807fc1e8fdcf182cf4/data_poses_oxts.zip",
+      "etag": "\"f20f3bc8a4fcdfed17faf73e0e39b7e8-5\"",
+      "member": "data_poses/2013_05_28_drive_0000_sync/oxts/data/0000000002.txt",
+      "path": "data_poses/2013_05_28_drive_0000_sync/oxts/data/0000000002.txt",
+      "bytes": 438,
+      "sha256": "92598b83f40248301488346924cb07c9dbb21c9e91ffe699c299a06636991972",
+      "crc_verified": true
+    },
+    {
+      "archive": "0000-camera00",
+      "url": "https://s3.eu-central-1.amazonaws.com/avg-projects/KITTI-360/data_2d_raw/2013_05_28_drive_0000_sync_image_00.zip",
+      "etag": "\"0518beec86b9c8d81eec27ae8de2cafc-1153\"",
+      "member": "2013_05_28_drive_0000_sync/image_00/data_rect/0000000000.png",
+      "path": "data_2d_raw/2013_05_28_drive_0000_sync/image_00/data_rect/0000000000.png",
+      "bytes": 985984,
+      "sha256": "2416c3fdccd112058f6eb4b7de586e8db6cfbaffba99a075fccb1e72baaa7b18",
+      "crc_verified": true
+    },
+    {
+      "archive": "0000-velodyne",
+      "url": "https://s3.eu-central-1.amazonaws.com/avg-projects/KITTI-360/data_3d_raw/2013_05_28_drive_0000_sync_velodyne.zip",
+      "etag": "\"442445fbe3558db8ffc5738a50fdef43-1916\"",
+      "member": "2013_05_28_drive_0000_sync/velodyne_points/data/0000000000.bin",
+      "path": "data_3d_raw/2013_05_28_drive_0000_sync/velodyne_points/data/0000000000.bin",
+      "bytes": 1678320,
+      "sha256": "e5b576cf00c91232ddb3a33a9fecc195b4b7089e3ad1722b551dcb3fa7ba658c",
+      "crc_verified": true
+    },
+    {
+      "archive": "0000-camera00",
+      "url": "https://s3.eu-central-1.amazonaws.com/avg-projects/KITTI-360/data_2d_raw/2013_05_28_drive_0000_sync_image_00.zip",
+      "etag": "\"0518beec86b9c8d81eec27ae8de2cafc-1153\"",
+      "member": "2013_05_28_drive_0000_sync/image_00/data_rect/0000000001.png",
+      "path": "data_2d_raw/2013_05_28_drive_0000_sync/image_00/data_rect/0000000001.png",
+      "bytes": 985548,
+      "sha256": "fe93c4f751597b220212085c079e991dfb73358bb0f6cf7850a350b1c91dc284",
+      "crc_verified": true,
+      "reused_from": "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\kitti360-converter-real-development-0000-v1\\dataset\\data_2d_raw\\2013_05_28_drive_0000_sync\\image_00\\data_rect\\0000000001.png"
+    },
+    {
+      "archive": "0000-velodyne",
+      "url": "https://s3.eu-central-1.amazonaws.com/avg-projects/KITTI-360/data_3d_raw/2013_05_28_drive_0000_sync_velodyne.zip",
+      "etag": "\"442445fbe3558db8ffc5738a50fdef43-1916\"",
+      "member": "2013_05_28_drive_0000_sync/velodyne_points/data/0000000001.bin",
+      "path": "data_3d_raw/2013_05_28_drive_0000_sync/velodyne_points/data/0000000001.bin",
+      "bytes": 1677056,
+      "sha256": "d7e9472d58314ef50c09e25a4e1b52d5e1647d5765765703ea26c97eed23d5e0",
+      "crc_verified": true,
+      "reused_from": "C:\\Users\\rsasa\\Workspace\\Calibrex\\outputs\\kitti360-converter-real-development-0000-v1\\dataset\\data_3d_raw\\2013_05_28_drive_0000_sync\\velodyne_points\\data\\0000000001.bin"
+    },
+    {
+      "archive": "0000-camera00",
+      "url": "https://s3.eu-central-1.amazonaws.com/avg-projects/KITTI-360/data_2d_raw/2013_05_28_drive_0000_sync_image_00.zip",
+      "etag": "\"0518beec86b9c8d81eec27ae8de2cafc-1153\"",
+      "member": "2013_05_28_drive_0000_sync/image_00/data_rect/0000000002.png",
+      "path": "data_2d_raw/2013_05_28_drive_0000_sync/image_00/data_rect/0000000002.png",
+      "bytes": 985023,
+      "sha256": "86bbe1f62c66a1bec0ace3a26e4c0c79137ee3540c39dbd7469cba3e7884ec88",
+      "crc_verified": true
+    },
+    {
+      "archive": "0000-velodyne",
+      "url": "https://s3.eu-central-1.amazonaws.com/avg-projects/KITTI-360/data_3d_raw/2013_05_28_drive_0000_sync_velodyne.zip",
+      "etag": "\"442445fbe3558db8ffc5738a50fdef43-1916\"",
+      "member": "2013_05_28_drive_0000_sync/velodyne_points/data/0000000002.bin",
+      "path": "data_3d_raw/2013_05_28_drive_0000_sync/velodyne_points/data/0000000002.bin",
+      "bytes": 1669568,
+      "sha256": "bc4b4d5cd199a0fc638200e34e17050ea2d4e9684eaaafeef6599a4d7f88a7cd",
+      "crc_verified": true
+    }
+  ],
+  "ranges": [
+    {
+      "archive": "oxts",
+      "role": "spent_development_local_header",
+      "start": 3954110,
+      "bytes": 30,
+      "sha256": "df5310aa22516a5ddc7f91e1db230f17ce351c1b1dd62c48267bb5136e8c73af"
+    },
+    {
+      "archive": "oxts",
+      "role": "spent_development_member",
+      "start": 3954140,
+      "bytes": 84097,
+      "sha256": "c673079b99c13447729dccad05f6807ab2e5defd372cfe4b4638e00f33e22fb2"
+    },
+    {
+      "archive": "oxts",
+      "role": "spent_development_local_header",
+      "start": 713,
+      "bytes": 30,
+      "sha256": "996aa4a98a97b078d5c095b5896795606cbebdb9c51a1da6f64511d96ba69361"
+    },
+    {
+      "archive": "oxts",
+      "role": "spent_development_member",
+      "start": 743,
+      "bytes": 325,
+      "sha256": "09c3ebc88a082e992e9f54307821bfe31aa10304a2ede47c0c5c0c89127cef1b"
+    },
+    {
+      "archive": "oxts",
+      "role": "spent_development_local_header",
+      "start": 1414,
+      "bytes": 30,
+      "sha256": "065494a171f56c87cf0f15601b32e257b9bfe5af4f13d8446740cb1095ef73ef"
+    },
+    {
+      "archive": "oxts",
+      "role": "spent_development_member",
+      "start": 1444,
+      "bytes": 314,
+      "sha256": "6c7d75d9e4aabde6a1126e6338dc3ec89ae041d1a74bde0e217c791ef2053617"
+    },
+    {
+      "archive": "oxts",
+      "role": "spent_development_local_header",
+      "start": 2101,
+      "bytes": 30,
+      "sha256": "87929319728f680770fb7cfef2f76bde1dbf3d2586134147663ef63d657d8618"
+    },
+    {
+      "archive": "oxts",
+      "role": "spent_development_member",
+      "start": 2131,
+      "bytes": 314,
+      "sha256": "1500afaab62ba01b5952117f69aa9fae56b60bd54fb7e0c1a79447f4049c2570"
+    },
+    {
+      "archive": "0000-camera00",
+      "role": "spent_development_local_header",
+      "start": 965218,
+      "bytes": 30,
+      "sha256": "db5e74e37614f654d222250a765c2c3614b4544a9a75652824ef238f97f42952"
+    },
+    {
+      "archive": "0000-camera00",
+      "role": "spent_development_member",
+      "start": 965248,
+      "bytes": 986106,
+      "sha256": "0e026bad6b24f51f882949c72747692177a5f20bbdffd6480ec5990df0ee581f"
+    },
+    {
+      "archive": "0000-camera00",
+      "role": "spent_development_local_header",
+      "start": 4863917,
+      "bytes": 30,
+      "sha256": "2d9eee902a1eed13979c0fd80a4dd3fd18c238f83a9274c93c6547f1a09b9d83"
+    },
+    {
+      "archive": "0000-camera00",
+      "role": "spent_development_member",
+      "start": 4863947,
+      "bytes": 985123,
+      "sha256": "78e972938d85cd128ce873036802bb6608c19cc313e24cf0ab5b07727753e542"
+    },
+    {
+      "archive": "0000-velodyne",
+      "role": "spent_development_local_header",
+      "start": 1228678,
+      "bytes": 30,
+      "sha256": "648cd70c932f9c685e8df53c9aeffe0ee9eab07f0d22bc0b08596de765b5c31c"
+    },
+    {
+      "archive": "0000-velodyne",
+      "role": "spent_development_member",
+      "start": 1228708,
+      "bytes": 1249851,
+      "sha256": "22173a10964dec20d76392dab9ea0f34e12398979b9138880d9437f46e2efbad"
+    },
+    {
+      "archive": "0000-velodyne",
+      "role": "spent_development_local_header",
+      "start": 6181355,
+      "bytes": 30,
+      "sha256": "409965234f095cb46fa70e21ed30905714c37e2b351e128feb97f2b1c6769609"
+    },
+    {
+      "archive": "0000-velodyne",
+      "role": "spent_development_member",
+      "start": 6181385,
+      "bytes": 1244167,
+      "sha256": "3973fd89e980ba641f6c52e98b06059dc115c623f4a7e398cceda56607fe2d13"
+    }
+  ],
+  "provenance": {
+    "source_commit": "036c67ba7dc9eaba878d734430fbea6b8d70abbf",
+    "generator_sha256": "d8a396fd649167014f5097f5fd2dd88c822ee5a9a8be90c2309e4f1fa3dfaf75",
+    "created_at": "2026-10-22T15:56:38.117499+00:00",
+    "policy": "Only spent 0000/0002; first three common image/scan/OXTS IDs, own OXTS timestamps, earliest supplied OXTS packet as origin. Reuse checksum-verified existing inputs; otherwise exact member ranges. No optimized poses, retry or neighbor payload. Conversion only; no accuracy claim.",
+    "uncompressed_input_cap_bytes": 134217728,
+    "fresh_sensor_payload_bytes": 0,
+    "dataset_license": "CC BY-NC-SA 3.0",
+    "new_accuracy_claim": false,
+    "converter_source_sha256": "d2b8232c8c5b2d3b0e3ee5f8243144321367798fbac46c639d2cb11e036cd765"
+  }
+}

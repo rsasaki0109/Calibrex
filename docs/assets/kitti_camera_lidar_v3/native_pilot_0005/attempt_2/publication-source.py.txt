@@ -1,0 +1,52 @@
+"""Package a completed spent-drive pilot without publishing sensor arrays."""
+import hashlib
+import json
+import shutil
+from datetime import datetime, timezone
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+SOURCE = ROOT / 'outputs/camera-lidar-v3-spent-0005-v2'
+DEST = ROOT / 'docs/assets/kitti_camera_lidar_v3/native_pilot_0005/attempt_2'
+
+def digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+report = json.loads((SOURCE / 'report.json').read_text(encoding='utf-8'))
+assert report['status'] in {'PASS_PILOT_ONLY', 'FAIL'}
+DEST.mkdir(parents=True, exist_ok=False)
+for name in ['report.json', 'report.schema.json', 'fetch.json', 'failure.txt']:
+    if (SOURCE / name).is_file():
+        shutil.copyfile(SOURCE / name, DEST / name)
+for source, target in [
+    (ROOT / 'outputs/camera-lidar-v3-spent-pilot-v2.py', 'producer-source.py.txt'),
+    (Path(__file__), 'publication-source.py.txt'),
+    (ROOT / 'tools/kitti_camera_lidar_v3_replay.py', 'replay-source.py.txt'),
+    (ROOT / 'tools/kitti_drive_fetch.py', 'fetch-source.py.txt'),
+    (ROOT / 'src/calibrex/data/kitti_raw_to_rosbag2.py', 'converter-source.py.txt'),
+    (ROOT / 'src/calibrex/evaluation/camera_lidar_edge.py', 'estimator-source.py.txt'),
+    (SOURCE / 'bag/calibrex_conversion.json', 'conversion.json'),
+]:
+    if source.is_file():
+        shutil.copyfile(source, DEST / target)
+for base, allowed in [
+    (SOURCE / 'snapshots/2011_09_26_0005', {'.json', '.log', '.yaml'}),
+    (SOURCE / 'comparison', {'.json'}),
+]:
+    if not base.exists():
+        continue
+    prefix = 'capture' if base.name == '2011_09_26_0005' else 'comparison'
+    for path in base.rglob('*'):
+        if path.is_file() and path.suffix in allowed:
+            target = DEST / prefix / path.relative_to(base)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(path, target)
+files = [{'path': p.relative_to(DEST).as_posix(), 'bytes': p.stat().st_size, 'sha256': digest(p)}
+         for p in sorted(DEST.rglob('*')) if p.is_file()]
+manifest = {'schema_version': 'calibrex.camera_lidar_v3_pilot_publication/v0.1', 'files': files,
+            'provenance': {'created_at': datetime.now(timezone.utc).isoformat(),
+                           'source_commit': report['provenance']['source_commit'],
+                           'generator_sha256': digest(Path(__file__)),
+                           'policy': 'Unmodified spent-data reports and exact source capsules. No images, point clouds, NPZ inputs, bags or archive payloads. Incomplete 55-drive development; no accuracy claim.'}}
+(DEST / 'manifest.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
+print(len(files), sum(f['bytes'] for f in files), 'bound bytes')

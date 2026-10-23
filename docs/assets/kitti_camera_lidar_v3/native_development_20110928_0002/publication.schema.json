@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Camera-LiDAR spent development publication manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "files", "provenance"],
+  "properties": {
+    "schema_version": {
+      "enum": [
+        "calibrex.camera_lidar_v3_pilot_publication/v0.1",
+        "calibrex.camera_lidar_v3_confirmation_publication/v0.1"
+      ]
+    },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "bytes", "sha256"],
+        "properties": {
+          "path": {"type": "string", "minLength": 1},
+          "bytes": {"type": "integer", "minimum": 0},
+          "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["created_at", "source_commit", "generator_sha256", "policy"],
+      "properties": {
+        "created_at": {"type": "string", "format": "date-time"},
+        "source_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+        "generator_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "policy": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

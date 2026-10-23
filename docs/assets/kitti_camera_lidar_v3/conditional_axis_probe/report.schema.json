@@ -1,0 +1,80 @@
+{
+  "$defs": {
+    "Run": {
+      "additionalProperties": false,
+      "properties": {
+        "drive": {
+          "title": "Drive",
+          "type": "string"
+        },
+        "run": {
+          "title": "Run",
+          "type": "string"
+        },
+        "report": {
+          "title": "Report",
+          "type": "string"
+        },
+        "report_sha256": {
+          "title": "Report Sha256",
+          "type": "string"
+        },
+        "elapsed_s": {
+          "minimum": 0,
+          "title": "Elapsed S",
+          "type": "number"
+        }
+      },
+      "required": [
+        "drive",
+        "run",
+        "report",
+        "report_sha256",
+        "elapsed_s"
+      ],
+      "title": "Run",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "calibrex.camera_lidar_conditional_axis_batch/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "const": "complete_diagnostic_only",
+      "title": "Status",
+      "type": "string"
+    },
+    "runs": {
+      "items": {
+        "$ref": "#/$defs/Run"
+      },
+      "maxItems": 14,
+      "minItems": 14,
+      "title": "Runs",
+      "type": "array"
+    },
+    "errors": {
+      "additionalProperties": true,
+      "title": "Errors",
+      "type": "object"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "status",
+    "runs",
+    "errors",
+    "provenance"
+  ],
+  "title": "Batch",
+  "type": "object"
+}

@@ -239,41 +239,74 @@ v1 failed the same way, one notch lower.
 margin well above the bound (for example `t` >= 3.5), or agree with the candidate
 optimum on the axes both observe. Weigh coverage: v2 already judges about 80 % of axes.
 
-**Development data.** Every KITTI raw drive (55, all spent). Saving the baseline
-estimator's inputs and re-estimating them in memory screened rules in minutes; the
-scripts were scratch-only, so rebuild them. Then confirm with real runs through the
-driver.
+**Development data.** Every KITTI raw drive (55, all spent). The existing
+`tools/kitti_camera_lidar_v3_replay.py` captures seven real checks per drive and
+compares both rules on identical saved inputs. The
+[2026-10-23 native pilot](benchmarks/kitti_camera_lidar_v3_development.md#native-spent-data-pilot-2026-10-23)
+completed 0005 with exact replay parity and no difference between rules. The
+[0002 comparison](benchmarks/kitti_camera_lidar_v3_development.md#known-failure-case-2026-10-23)
+reduces maximum judged turned-run error from 1.503 to 0.100 deg, but loses the
+only counted 3 deg detection (1/1 to 0/1). Preselected yaw +3 and post hoc pitch
++3 native checks both confirm the proposed replay's inconclusive result with
+no judged rotation axes. Do not describe this as an overall improvement or
+promote 3.5 from these data. **2/55 is incomplete; 53 remain.** The original
+rounded-calibration guard failure is retained and its tolerance unchanged.
+Inspect the detection/coverage cost, including on spent 0034, and preserve
+the all-55 denominator and local NPZ inputs. Check free space before batches.
+
+The [post hoc start trace](benchmarks/kitti_camera_lidar_v3_development.md#why-a-scalar-adoption-margin-is-insufficient-on-these-probes)
+reproduces both selected controls under both rules with full evidence parity.
+Each has an unobservable candidate-start fit, a rejected one-observed-axis
+profile fit, then a two-observed-axis fit. The latter's minimum control t is
+2.6211 for pitch +3 versus 2.6493 for yaw +3: a scalar margin retaining the
+former also admits the latter's erroneous roll. The pitch fit also has an
+erroneous roll; keeping detection alone does not fix accuracy. Develop a
+different start/axis evidence rule on cached spent inputs before spending
+disk and bandwidth on the remaining batch. Do not simply relax the two-axis
+requirement: the earlier 0056 single-axis false estimate motivated that guard.
+
+The [conditional-axis probe](benchmarks/kitti_camera_lidar_v3_development.md#conditional-axis-development-probe)
+then ran all 14 cached inputs (42 one-axis fits). It recovers pitch +3 on
+0002 with +0.15 deg active-axis reference error and t=3.3036, but a conditional
+std of 0.0417 deg hides a 7.8 deg nuisance-sweep span. All 18 fits meeting the
+ordinary conditional evidence conditions have active-axis error at most 0.15
+deg, yet these separate fits are not joint observability, native verdicts or
+a promoted method. The tool and byte-bound batch are available for research;
+account for uncertain nuisance axes before adoption. No fresh data was read;
+capture progress stays 2/55 and 53 remain.
 
 **Evaluation candidates.** KITTI-360 (another car, sensor set and calibration) is the
 natural choice: sequences 0004-0007, 0009 and 0010, subject to completing the exposure
 audit. Sequence 0003 is spent: the research plan already records a development capture.
 The original handoff's claim that it was unread was incorrect.
 
-**Access check, 2026-10-15.** [Step 1 stopped before development](benchmarks/kitti360_camera_lidar_v3_access.md):
-the official archive HEAD request returned HTTP 403 in the managed environment;
-per-sequence bytes, ETags, member lists and Range support remain unverified. No
-evaluation ran. Resume metadata-only checks after access is configured, or consider
-the `ins-lidar` claim below; neither path is authorized to begin evaluation yet.
+**Access update, 2026-10-23.** The [local recheck](benchmarks/kitti360_camera_lidar_v3_access.md)
+verified exact official metadata ranges for 21 archives; the earlier cloud 403
+remains historical evidence. Published-pose and explicit raw-OXTS conversion
+both passed three-frame checks on spent 0000 and 0002. OXTS uses its own clock
+and recorded origin without consuming optimized published poses. Provisional
+candidate sensor contents remain unread; exposure auditing is incomplete and
+no evaluation has started. This is converter readiness, not accuracy evidence.
 
 **Work needed first.**
 
-- `calibrex convert` has `kitti-raw` only; KITTI-360 needs a converter (perspective
-  camera, Velodyne with per-point time, poses or OXTS, calibration files).
-- Check download access and sizes.
+- Capture and compare all 55 spent KITTI raw drives using the existing
+  `tools/kitti_camera_lidar_v3_replay.py`, then confirm via the real driver.
+- Complete exposure auditing and independent-platform research requirements;
+  KITTI-360 sequences alone do not add dataset families or rigs.
 - KITTI-360 has few, long sequences: pre-register several disjoint 60 s segments per
   sequence, chosen by a rule from metadata.
 
-### 2. ins-lidar first claim
+### 2. ins-lidar follow-up
 
-**Readiness update, 2026-10-22.** The [INS-LiDAR audit plan](research/ins_lidar_sota_plan.md)
-adds metadata-only Boreas access, an independent-Applanix input adapter and
-failure-aware per-axis scoring. KITTI 0015 and the OXTS of 2011_09_30_0018 are
-also spent, as corrected above. Boreas 2020-11-26 is development-only; 2020-12-01
-remains an unread evaluation candidate and 2020-12-04 lacks the required raw INS
-reference. There is no pre-registration or new audited claim yet. Preserve two
-dataset families and two platforms for this proposal; do not count different
-dates of one rig as independent rigs. Clock accuracy is not part of the first
-proposed rotation claim.
+**Audit update, 2026-10-22.** The [first rotation audit](benchmarks/ins_lidar_rotation_v1.md)
+is refuted (6/8), as described above. Boreas 2020-12-01 and KITTI 0071/0020/0027
+are now spent evaluation recordings, not unread candidates. The
+[audit plan](research/ins_lidar_sota_plan.md) retains the independent-Applanix
+adapter and failure-aware scoring. A follow-up needs development on spent
+recordings, new held-out data and a new pre-registration. Preserve two dataset
+families and two platforms; different dates of one rig are not independent
+rigs. Clock accuracy was outside the first rotation claim.
 
 The native trajectory hand-eye on KITTI 0005+0009 constrains roll, pitch and the clock
 offset, but not yaw or translation ([KITTI INS-LiDAR](benchmarks/kitti_ins_lidar.md)). A

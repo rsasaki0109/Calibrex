@@ -1,0 +1,46 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "calibrex.camera_lidar_start_trace/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "title": "Status",
+      "type": "string"
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Error"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    },
+    "runs": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Runs",
+      "type": "array"
+    }
+  },
+  "required": [
+    "status",
+    "provenance",
+    "runs"
+  ],
+  "title": "Report",
+  "type": "object"
+}

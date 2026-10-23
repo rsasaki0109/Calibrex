@@ -1,0 +1,44 @@
+{
+  "schema_version": "calibrex.camera_lidar_v3_spent_pilot/v0.1",
+  "status": "FAIL",
+  "stage": "capture",
+  "error": "AssertionError: Native capture failed; see retained per-run logs",
+  "details": {
+    "archive_pin": {
+      "url": "https://s3.eu-central-1.amazonaws.com/avg-kitti/raw_data/2011_09_26_drive_0005/2011_09_26_drive_0005_sync.zip",
+      "size_bytes": 645940900,
+      "etag": "6a880679a3e3eda8a0ef83abc5354eb1-78"
+    },
+    "calibration": {
+      "url": "https://s3.eu-central-1.amazonaws.com/avg-kitti/raw_data/2011_09_26_calib.zip",
+      "sha256": "e0108cfd000cf802c14ed94fba38601185c792e5640abba015a34b7a85b812e0"
+    },
+    "fetch_sha256": "a2f0be2e9cfbae27d3312b0139a30784b6ebb47804f3401a70d8c72fc2dcacfe",
+    "fetched_bytes": 432575704,
+    "frames": {
+      "image_02": 154,
+      "velodyne_points": 154,
+      "oxts": 154
+    },
+    "conversion_sha256": "86101f3789eab0232f99dc00e71118481669107e0725308fcb911bb9a5215f47",
+    "capture_exit_code": 1,
+    "wall_s": 480.8120000001509
+  },
+  "provenance": {
+    "source_commit": "3c3e123427c6976974faa72cbd1f4347201ffb3a",
+    "producer_sha256": "6b00ac1fe0b6d48b132a944760a3f6a032222c1fc721fce9181bbc7df00c3f3f",
+    "created_at": "2026-10-22T16:33:38.687832+00:00",
+    "python": "3.12.10",
+    "development_only": true,
+    "new_evaluation_started": false,
+    "new_accuracy_claim": false,
+    "drive": "2011_09_26_0005",
+    "max_frames": 600,
+    "fetch_cap_bytes": 536870912,
+    "frozen_modules_sha256": {
+      "tools/kitti_drive_fetch.py": "00599f17ca56ad6b116ba21fe11482084008ed9cbc697cdc976f72b24a659c01",
+      "tools/kitti_camera_lidar_v3_replay.py": "a5f2000a01eaeaef07100241e47b642da02eb7a5cc5f5cedb6384c17c777a343",
+      "src/calibrex/evaluation/camera_lidar_edge.py": "7aa3c100a8ce4a9ea4dbfbcf9d636fe17fb462d2041e1d6963bc09aa7fc94dcb"
+    }
+  }
+}

@@ -1,0 +1,78 @@
+"""Official distribution scripts and a spent-sequence metadata-only access recheck."""
+from pathlib import Path, PurePosixPath
+from datetime import datetime, timezone
+from io import BytesIO
+import hashlib
+import json
+import subprocess
+import sys
+from urllib.request import Request, urlopen
+from zipfile import ZipFile
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT))
+from pydantic import BaseModel, ConfigDict
+from tools.kitti360_archive_metadata import inventory
+
+OUT = ROOT/'outputs/kitti360-sota-access-recheck-20261023-v1'
+OUT.mkdir(exist_ok=False)
+commit = subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
+results = []
+base = 'https://s3.eu-central-1.amazonaws.com/avg-projects/KITTI-360/'
+scripts_base = base+'a1d81d9f7fc7195c937f9ad12e2a2c66441ecb4e/'
+for name in ['download_2d_perspective.zip','download_3d_velodyne.zip']:
+    url = scripts_base+name
+    row = {'kind':'official_distribution_script','url':url,'sensor_payload_bytes':0}
+    try:
+        with urlopen(Request(url,headers={'Accept-Encoding':'identity'}),timeout=30) as response:
+            assert response.status==200
+            size = response.headers.get('Content-Length')
+            assert size is None or int(size)<=2*1024**2
+            payload = response.read(2*1024**2+1)
+            assert len(payload)<=2*1024**2
+            row['headers'] = dict(response.headers)
+        (OUT/name).write_bytes(payload)
+        row.update(status='PASS',bytes=len(payload),sha256=hashlib.sha256(payload).hexdigest(),scripts=[])
+        with ZipFile(BytesIO(payload)) as archive:
+            for member in archive.infolist():
+                if member.is_dir():
+                    continue
+                assert member.file_size<=65536 and len(archive.infolist())<=20
+                assert member.filename.endswith(('.sh','.txt','.bat'))
+                content = archive.read(member)
+                target = OUT/PurePosixPath(member.filename).name
+                assert not target.exists()
+                target.write_bytes(content)
+                row['scripts'].append({'name':target.name,'sha256':hashlib.sha256(content).hexdigest()})
+    except Exception as error:
+        row.update(status='FAIL',error=repr(error))
+    results.append(row)
+url = base+'data_3d_raw/2013_05_28_drive_0000_sync_velodyne.zip'
+row = {'kind':'spent_0000_metadata_only','url':url,'sensor_payload_bytes':0}
+try:
+    data = inventory(url,timeout=30)
+    path = OUT/'spent-0000-velodyne-metadata.json'
+    path.write_text(json.dumps(data,indent=2,allow_nan=False)+'\n',encoding='utf-8')
+    row.update(status='PASS',size_bytes=data['size_bytes'],etag=data['etag'],
+        member_count=len(data['members']),verified_exact_http_ranges=data['verified_exact_http_ranges'],
+        metadata_sha256=hashlib.sha256(path.read_bytes()).hexdigest())
+except Exception as error:
+    row.update(status='FAIL',error=repr(error))
+results.append(row)
+
+class Report(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+    schema_version: str='calibrex.kitti360_access_recheck/v0.1'
+    results: list[dict]
+    provenance: dict
+
+report = Report(results=results,provenance={'source_commit':commit,
+    'source_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+    'metadata_tool_sha256':hashlib.sha256((ROOT/'tools/kitti360_archive_metadata.py').read_bytes()).hexdigest(),
+    'created_at':datetime.now(timezone.utc).isoformat(),
+    'official_link_source':'https://www.cvlibs.net/datasets/kitti-360/download.php',
+    'policy':'Read official distribution script ZIPs and exact ZIP metadata for spent 0000 only; no member sensor payload, no new evaluation or calibration run.',
+    'sensor_payload_bytes':0,'new_accuracy_claim':False})
+(OUT/'report.json').write_text(report.model_dump_json(indent=2)+'\n',encoding='utf-8')
+(OUT/'report.schema.json').write_text(json.dumps(Report.model_json_schema(),indent=2)+'\n',encoding='utf-8')
+print(report.model_dump_json(indent=2))

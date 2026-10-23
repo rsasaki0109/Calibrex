@@ -1081,6 +1081,10 @@ def _build_parser() -> argparse.ArgumentParser:
         help="declared period for the azimuth model, not measured firing times (default: 0.1)",
     )
     convert_360.add_argument("--start-frame", type=int, default=0)
+    convert_360.add_argument(
+        "--motion-source", choices=("published_poses", "oxts"), default="published_poses",
+        help="published sparse poses (default) or raw OXTS with its own packet timestamps",
+    )
     convert_360.add_argument("--max-frames", type=_positive_int, default=None)
     convert_360.add_argument("--output", type=Path, required=True)
     convert_360.add_argument("--overwrite", action="store_true")
@@ -5325,6 +5329,7 @@ def _cmd_convert_kitti360(args: argparse.Namespace) -> int:
         start_frame=args.start_frame,
         max_frames=args.max_frames,
         overwrite=args.overwrite,
+        motion_source=args.motion_source,
         command=["calibrex", *args.invoked_argv],
     )
     payload = {

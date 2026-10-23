@@ -1,0 +1,108 @@
+"""Inventory official archive metadata only; do not acquire any sensor members."""
+from pathlib import Path
+from datetime import datetime, timezone
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from zipfile import ZipFile
+import hashlib
+import json
+import re
+import subprocess
+import sys
+
+ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT))
+from pydantic import BaseModel, ConfigDict
+from tools.kitti360_archive_metadata import inventory
+OUT=ROOT/'outputs/kitti360-sota-inventory-20261023-v1'
+OUT.mkdir(exist_ok=False)
+PREVIOUS=ROOT/'outputs/kitti360-sota-access-recheck-20261023-v1'
+def sha(path): return hashlib.sha256(path.read_bytes()).hexdigest()
+
+script_zip=PREVIOUS/'download_2d_perspective.zip'
+assert sha(script_zip)=='d3f75f0cf593d33be09daa9db2052e618341297082d93bdeccde0c24b60262a5'
+with ZipFile(script_zip) as archive:
+    assert archive.testzip() is None
+    perspective=archive.read('download_2d_perspective.sh').decode('utf-8')
+    ignored=[i.filename for i in archive.infolist() if not i.filename.endswith('.sh') and not i.is_dir()]
+velodyne=(PREVIOUS/'download_3d_velodyne.sh').read_text()
+ids=sorted(set(re.findall(r'2013_05_28_drive_(\d{4})_sync',perspective)))
+assert ids==sorted(set(re.findall(r'2013_05_28_drive_(\d{4})_sync',velodyne)))
+assert ids==['0000','0002','0003','0004','0005','0006','0007','0009','0010']
+base='https://s3.eu-central-1.amazonaws.com/avg-projects/KITTI-360/'
+assert base+'data_2d_raw/${zip_file}' in perspective
+assert 'zip_file=${sequence}_image_${camera}.zip' in perspective
+assert base+'data_3d_raw/${zip_file}' in velodyne
+assert 'zip_file=${sequence}_velodyne.zip' in velodyne
+recovery={'status':'PASS_OFFLINE_RECOVERY','reason':'Initial extraction refused ancillary ZIP metadata; the saved ZIP and selected scripts pass CRC and identity checks. No redownload.',
+    'ignored_members':ignored,'provenance':{'prior_report_sha256':sha(PREVIOUS/'report.json'),
+    'script_zip_sha256':sha(script_zip),'sensor_payload_bytes':0}}
+(OUT/'distribution-script-recovery.json').write_text(json.dumps(recovery,indent=2)+'\n',encoding='utf-8')
+jobs=[]
+for seq in ids:
+    if seq=='0003': continue
+    prefix='2013_05_28_drive_'+seq+'_sync'
+    for kind,relative in [('camera00','data_2d_raw/'+prefix+'_image_00.zip'),
+                          ('velodyne','data_3d_raw/'+prefix+'_velodyne.zip')]:
+        jobs.append((seq+'-'+kind,base+relative))
+for name,relative in [
+    ('perspective-timestamps','data_2d_raw/data_timestamps_perspective.zip'),
+    ('velodyne-timestamps','data_3d_raw/data_timestamps_velodyne.zip'),
+    ('calibration','384509ed5413ccc81328cf8c55cc6af078b8c444/calibration.zip'),
+    ('oxts','89a6bae3c8a6f789e12de4807fc1e8fdcf182cf4/data_poses_oxts.zip')]:
+    jobs.append((name,base+relative))
+commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
+provenance={'source_commit':commit,'source_sha256':sha(Path(__file__)),
+    'metadata_tool_sha256':sha(ROOT/'tools/kitti360_archive_metadata.py'),
+    'official_page':'https://www.cvlibs.net/datasets/kitti-360/download.php',
+    'created_at':datetime.now(timezone.utc).isoformat(),'sensor_payload_bytes':0,
+    'exposure_audit_complete':False,'evaluation_started':False,'new_accuracy_claim':False,
+    'workers':3,'official_scripts_sha256':{'perspective':sha(PREVIOUS/'download_2d_perspective.sh'),
+    'velodyne':sha(PREVIOUS/'download_3d_velodyne.sh')},
+    'policy':'0000/0002 are development only; 0003 is spent and excluded. Others are provisional candidates pending exposure audit. One dataset family and one platform; recordings do not add rigs. Exact ZIP directory/end-record ranges only.'}
+
+def run(job):
+    name,url=job
+    try:
+        if name=='0000-velodyne':
+            path=PREVIOUS/'spent-0000-velodyne-metadata.json'
+            data=json.loads(path.read_text())
+            original=json.loads((PREVIOUS/'report.json').read_text())
+            assert sha(path)==next(r['metadata_sha256'] for r in original['results'] if r['kind']=='spent_0000_metadata_only')
+        else:
+            data=inventory(url,timeout=30)
+            path=OUT/(name+'.json')
+            path.write_text(json.dumps(data,indent=2,allow_nan=False)+'\n',encoding='utf-8')
+        assert data['metadata_only'] and data['verified_exact_http_ranges'] and data['url']==url
+        frames={}
+        for member in data['members']:
+            path_name=member['name']
+            if (path_name.endswith('.png') or path_name.endswith('.bin')) and not member['is_directory']:
+                match=re.search(r'2013_05_28_drive_(\d{4})_sync/',path_name)
+                if match: frames[match[1]]=frames.get(match[1],0)+1
+        return {'name':name,'url':url,'status':'PASS','size_bytes':data['size_bytes'],
+            'etag':data['etag'],'members':len(data['members']),'sequence_ids':data['sequence_ids'],
+            'frame_counts':frames,'inventory_sha256':sha(path),
+            'metadata_bytes':sum(r['end']-r['start']+1 for r in data['provenance']['ranges']),
+            'sensor_payload_bytes':0,'sample_member_names':[m['name'] for m in data['members'][:3]]}
+    except Exception as error:
+        return {'name':name,'url':url,'status':'FAIL','error':repr(error),'sensor_payload_bytes':0}
+
+class Report(BaseModel):
+    model_config=ConfigDict(extra='forbid')
+    schema_version: str='calibrex.kitti360_sota_metadata_readiness/v0.1'
+    status: str
+    archives: list[dict]
+    provenance: dict
+
+rows=[]
+with ThreadPoolExecutor(max_workers=3) as pool:
+    for future in as_completed([pool.submit(run,job) for job in jobs]):
+        row=future.result()
+        rows.append(row)
+        print(row['name'],row['status'],flush=True)
+        (OUT/'progress.json').write_text(json.dumps({'archives':rows,'provenance':provenance},indent=2)+'\n',encoding='utf-8')
+report=Report(status='METADATA_COMPLETE' if all(r['status']=='PASS' for r in rows) else 'INCOMPLETE',
+    archives=sorted(rows,key=lambda r:r['name']),provenance=provenance)
+(OUT/'report.json').write_text(report.model_dump_json(indent=2)+'\n',encoding='utf-8')
+(OUT/'report.schema.json').write_text(json.dumps(Report.model_json_schema(),indent=2)+'\n',encoding='utf-8')
+print(report.status,len(rows),'archives; sensor payload = 0',flush=True)

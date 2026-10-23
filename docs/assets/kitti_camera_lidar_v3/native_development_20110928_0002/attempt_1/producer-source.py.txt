@@ -1,0 +1,117 @@
+"""One spent-drive native capture/replay pilot, with retained failure provenance."""
+import hashlib
+import json
+import os
+import platform
+import subprocess
+import sys
+import time
+import traceback
+import urllib.request
+import zipfile
+import shutil
+from datetime import datetime, timezone
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / 'src'))
+from tools import kitti_drive_fetch as fetch
+from tools import kitti_camera_lidar_v3_replay as replay
+from calibrex.data.kitti_raw_to_rosbag2 import convert_kitti_raw_to_rosbag2
+from pydantic import BaseModel, ConfigDict
+
+class Report(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    schema_version: str = 'calibrex.camera_lidar_v3_spent_pilot/v0.1'
+    status: str
+    stage: str
+    error: str | None
+    details: dict
+    provenance: dict
+
+OUT = ROOT / 'outputs/camera-lidar-v3-spent-20110928-0002-v1'
+OUT.mkdir(exist_ok=False)
+START = time.monotonic()
+COMMIT = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
+assert COMMIT == '46f4b53a427656a2c8b5a358be0945bbf706d1ca'
+assert '2011_09_28_0002' in replay.spent_drives()
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+report = Report(status='RUNNING', stage='preflight', error=None, details={}, provenance={
+    'source_commit': COMMIT, 'producer_sha256': sha(Path(__file__)),
+    'created_at': datetime.now(timezone.utc).isoformat(), 'python': platform.python_version(),
+    'development_only': True, 'new_evaluation_started': False, 'new_accuracy_claim': False,
+    'drive': '2011_09_28_0002', 'max_frames': 600, 'fetch_cap_bytes': 2147483648,
+    'frozen_modules_sha256': {name: sha(ROOT / name) for name in [
+        'tools/kitti_drive_fetch.py', 'tools/kitti_camera_lidar_v3_replay.py',
+        'src/calibrex/evaluation/camera_lidar_edge.py', 'src/calibrex/data/kitti_raw_to_rosbag2.py']},
+})
+
+def save():
+    (OUT / 'report.json').write_text(report.model_dump_json(indent=2), encoding='utf-8')
+    (OUT / 'report.schema.json').write_text(json.dumps(Report.model_json_schema(), indent=2), encoding='utf-8')
+    print(report.stage, report.status, flush=True)
+
+try:
+    assert shutil.disk_usage(ROOT).free >= 12 * 1024**3, 'Need 12 GiB free before acquisition'
+    save()
+    url = fetch.drive_url('2011_09_28', '0002')
+    size, etag = fetch.head(url, retries=0)
+    assert (size, etag) == (1458258535, '57c9f403568ce97a5aeb70180b029c93-174')
+    report.details['archive_pin'] = {'url': url, 'size_bytes': size, 'etag': etag}
+    report.stage = 'calibration'
+    save()
+    calibration_url = fetch.S3 + '/2011_09_28_calib.zip'
+    with urllib.request.urlopen(calibration_url, timeout=60) as response:
+        data = response.read(1048577)
+    assert len(data) <= 1048576
+    assert hashlib.sha256(data).hexdigest() == '510b643c00adb7bc6b39616f1ed9b83cd0d689620d52ef5bc43ec019da6030d1'
+    (OUT / 'calibration.zip').write_bytes(data)
+    calibration = OUT / 'calibration'
+    with zipfile.ZipFile(OUT / 'calibration.zip') as archive:
+        assert archive.testzip() is None
+        for name in ['calib_cam_to_cam.txt', 'calib_imu_to_velo.txt', 'calib_velo_to_cam.txt']:
+            content = archive.read('2011_09_28/' + name)
+            calibration.mkdir(exist_ok=True)
+            (calibration / name).write_bytes(content)
+    report.details['calibration'] = {'url': calibration_url, 'sha256': sha(OUT / 'calibration.zip')}
+    report.stage = 'fetch'
+    save()
+    acquired = fetch.fetch_drive('2011_09_28', '0002', 600, OUT / 'raw',
+        expected=(size, etag), max_fetch_bytes=2147483648, curl_retries=0)
+    (OUT / 'fetch.json').write_text(json.dumps(acquired, indent=2), encoding='utf-8')
+    report.details['fetch_sha256'] = sha(OUT / 'fetch.json')
+    report.details['fetched_bytes'] = acquired['fetched_bytes']
+    report.details['frames'] = acquired['frames']
+    report.stage = 'convert'
+    save()
+    converted = convert_kitti_raw_to_rosbag2(
+        OUT / 'raw/2011_09_28/2011_09_28_drive_0002_sync', OUT / 'bag',
+        calibration_dir=calibration, camera='image_02', velodyne_time='azimuth',
+        command=[sys.executable, str(Path(__file__)), 'SPENT_DEVELOPMENT_ONLY'])
+    report.details['conversion_sha256'] = sha(converted.provenance_path)
+    report.stage = 'capture'
+    save()
+    code = replay.capture_drive(OUT / 'bag', '2011_09_28_0002',
+        OUT / 'snapshots/2011_09_28_0002')
+    report.details['capture_exit_code'] = code
+    assert code == 0, 'Native capture failed; see retained per-run logs'
+    report.stage = 'compare'
+    save()
+    result = replay.compare_drives(OUT / 'snapshots', OUT / 'comparison',
+        drives=['2011_09_28_0002'], margin=3.5)
+    report.details['comparison_sha256'] = sha(OUT / 'comparison/comparison.json')
+    report.details['comparison_status'] = result['status']
+    report.details['comparison_errors'] = result['errors']
+    assert not result['errors'], result['errors']
+    assert result['status'] == 'incomplete', 'A one-drive pilot must never count as 55-drive completion'
+    report.stage = 'complete'
+    report.status = 'PASS_PILOT_ONLY'
+except Exception as exc:
+    report.status = 'FAIL'
+    report.error = f'{type(exc).__name__}: {exc}'
+    (OUT / 'failure.txt').write_text(traceback.format_exc(), encoding='utf-8')
+finally:
+    report.details['wall_s'] = time.monotonic() - START
+    save()
+sys.exit(0 if report.status == 'PASS_PILOT_ONLY' else 1)

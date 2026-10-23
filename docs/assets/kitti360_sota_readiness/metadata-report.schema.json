@@ -1,0 +1,34 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "calibrex.kitti360_sota_metadata_readiness/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "title": "Status",
+      "type": "string"
+    },
+    "archives": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Archives",
+      "type": "array"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    }
+  },
+  "required": [
+    "status",
+    "archives",
+    "provenance"
+  ],
+  "title": "Report",
+  "type": "object"
+}

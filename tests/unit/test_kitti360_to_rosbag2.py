@@ -33,6 +33,20 @@ from calibrex.data.rosbag2 import (
 )
 
 SEQUENCE = "2013_05_28_drive_0000_sync"
+
+
+def _oxts_fixture(root: Path) -> Path:
+    folder = root / "data_poses" / SEQUENCE / "oxts"
+    (folder / "data").mkdir(parents=True)
+    stamps = []
+    for index in range(6):
+        values = [49.0, 8.4 + index * 1e-6, 110.0, 0.0, 0.0, 0.1, *([0.0] * 24)]
+        (folder / "data" / f"{index:010d}.txt").write_text(
+            " ".join(map(str, values)) + "\n", encoding="utf-8",
+        )
+        stamps.append(f"2013-05-28 00:00:00.{index * 100000000 + 2000000:09d}")
+    (folder / "timestamps.txt").write_text("\n".join(stamps) + "\n", encoding="utf-8")
+    return folder
 CAM0 = np.eye(4)
 CAM0[:3, :3] = Rotation.from_euler("xyz", [0.2, -0.3, 0.1]).as_matrix()
 CAM0[:3, 3] = [0.7, -0.1, 0.2]
@@ -99,6 +113,57 @@ def _messages(bag: Path, topic: str, kind: str) -> list:
         decode_rosbag2_message(topic, kind, stamp, payload)
         for _conn, stamp, payload in iter_topic_messages(bag, topic)
     ]
+
+
+def test_raw_oxts_uses_own_clock_and_hashes_the_origin_outside_the_window(tmp_path: Path) -> None:
+    root, bag = tmp_path / "dataset", tmp_path / "bag"
+    _fixture(root)
+    oxts = _oxts_fixture(root)
+    optimized = root / "data_poses" / SEQUENCE / "poses.txt"
+    optimized.write_text("must not be read for raw OXTS\n", encoding="utf-8")
+    with pytest.raises(DatasetError, match="expected frame ID"):
+        convert_kitti360_to_rosbag2(root, tmp_path / "published", sequence=SEQUENCE)
+    result = convert_kitti360_to_rosbag2(
+        root, bag, sequence=SEQUENCE, motion_source="oxts", start_frame=1, max_frames=3,
+    )
+    rows = _messages(bag, ODOMETRY_TOPIC, "nav_msgs/msg/Odometry")
+    stamps = read_timestamps(oxts / "timestamps.txt")
+    assert [r.timestamp_ns for r in rows] == [stamps[i].timestamp_ns for i in (1, 2, 3)]
+    assert all(r.frame_id == "kitti360_oxts_world" for r in rows)
+    assert rows[0].position[0] > 0  # Origin is packet 0, not selected packet 1.
+    info = _messages(bag, CAMERA_INFO_TOPIC, "sensor_msgs/msg/CameraInfo")
+    assert info[0].timestamp_ns != rows[0].timestamp_ns
+    assert result.provenance["motion"]["mode"] == "oxts"
+    assert result.provenance["motion"]["origin_packet"].endswith("0000000000.txt")
+    files = result.provenance["source"]["files_sha256"]
+    assert str(optimized) not in files
+    assert str(oxts / "data/0000000000.txt") in files
+    assert str(oxts / "data/0000000003.txt") in files
+    assert str(oxts / "data/0000000005.txt") not in files
+
+
+def test_raw_oxts_never_falls_back_to_available_published_poses(tmp_path: Path) -> None:
+    root = tmp_path / "dataset"
+    _fixture(root)
+    with pytest.raises(DatasetError, match="oxts"):
+        convert_kitti360_to_rosbag2(root, tmp_path / "bag", sequence=SEQUENCE, motion_source="oxts")
+    assert not (tmp_path / "bag").exists()
+
+
+def test_cli_records_the_raw_motion_source(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str],
+) -> None:
+    root, bag = tmp_path / "dataset", tmp_path / "bag"
+    _fixture(root)
+    _oxts_fixture(root)
+    assert main([
+        "convert", "kitti-360", str(root), "--sequence", SEQUENCE,
+        "--motion-source", "oxts", "--output", str(bag), "--json",
+    ]) == 0
+    assert json.loads(capsys.readouterr().out)["bag"] == str(bag.resolve())
+    provenance = json.loads((bag / CONVERSION_FILENAME).read_text())
+    assert provenance["motion"]["mode"] == "oxts"
+    assert "--motion-source" in provenance["command"]
 
 
 @pytest.mark.parametrize("camera", ["image_00", "image_01"])

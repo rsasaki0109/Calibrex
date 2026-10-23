@@ -1,0 +1,109 @@
+"""One spent-drive native capture/replay pilot, with retained failure provenance."""
+import hashlib
+import json
+import os
+import platform
+import subprocess
+import sys
+import time
+import traceback
+import urllib.request
+import zipfile
+import zlib
+from datetime import datetime, timezone
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / 'src'))
+from tools import kitti_drive_fetch as fetch
+from tools import kitti_camera_lidar_v3_replay as replay
+from calibrex.data.kitti_raw_to_rosbag2 import convert_kitti_raw_to_rosbag2
+from pydantic import BaseModel, ConfigDict
+
+class Report(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    schema_version: str = 'calibrex.camera_lidar_v3_spent_pilot/v0.1'
+    status: str
+    stage: str
+    error: str | None
+    details: dict
+    provenance: dict
+
+PREVIOUS = ROOT / 'outputs/camera-lidar-v3-spent-0005-v1'
+OUT = ROOT / 'outputs/camera-lidar-v3-spent-0005-v2'
+OUT.mkdir(exist_ok=False)
+START = time.monotonic()
+COMMIT = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
+assert COMMIT.startswith('c43cc7df')
+assert '2011_09_26_0005' in replay.spent_drives()
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+report = Report(status='RUNNING', stage='preflight', error=None, details={}, provenance={
+    'source_commit': COMMIT, 'producer_sha256': sha(Path(__file__)),
+    'created_at': datetime.now(timezone.utc).isoformat(), 'python': platform.python_version(),
+    'development_only': True, 'new_evaluation_started': False, 'new_accuracy_claim': False,
+    'drive': '2011_09_26_0005', 'max_frames': 600, 'fetch_cap_bytes': 536870912,
+    'frozen_modules_sha256': {name: sha(ROOT / name) for name in [
+        'tools/kitti_drive_fetch.py', 'tools/kitti_camera_lidar_v3_replay.py',
+        'src/calibrex/evaluation/camera_lidar_edge.py', 'src/calibrex/data/kitti_raw_to_rosbag2.py']},
+})
+
+def save():
+    (OUT / 'report.json').write_text(report.model_dump_json(indent=2), encoding='utf-8')
+    (OUT / 'report.schema.json').write_text(json.dumps(Report.model_json_schema(), indent=2), encoding='utf-8')
+    print(report.stage, report.status, flush=True)
+
+try:
+    save()
+    previous = json.loads((PREVIOUS / 'report.json').read_text())
+    assert previous['status'] == 'FAIL' and previous['stage'] == 'capture'
+    assert sha(PREVIOUS / 'fetch.json') == previous['details']['fetch_sha256']
+    acquired = json.loads((PREVIOUS / 'fetch.json').read_text())
+    report.details['prior_report_sha256'] = sha(PREVIOUS / 'report.json')
+    report.details['archive_pin'] = previous['details']['archive_pin']
+    report.details['calibration'] = previous['details']['calibration']
+    calibration = PREVIOUS / 'calibration'
+    assert sha(PREVIOUS / 'calibration.zip') == report.details['calibration']['sha256']
+    for item in acquired['members']:
+        path = PREVIOUS / 'raw' / item['name']
+        assert path.resolve().is_relative_to((PREVIOUS / 'raw').resolve())
+        content = path.read_bytes()
+        assert len(content) == item['bytes'] and zlib.crc32(content) == item['crc32'], item['name']
+    (OUT / 'fetch.json').write_bytes((PREVIOUS / 'fetch.json').read_bytes())
+    report.details['fetch_sha256'] = sha(OUT / 'fetch.json')
+    report.details['fetched_bytes'] = 0
+    report.details['reused_acquisition_bytes'] = acquired['fetched_bytes']
+    report.details['reused_members_crc_verified'] = len(acquired['members'])
+    report.details['frames'] = acquired['frames']
+    report.stage = 'convert'
+    save()
+    converted = convert_kitti_raw_to_rosbag2(
+        PREVIOUS / 'raw/2011_09_26/2011_09_26_drive_0005_sync', OUT / 'bag',
+        calibration_dir=calibration, camera='image_02', velodyne_time='azimuth',
+        command=[sys.executable, str(Path(__file__)), 'SPENT_DEVELOPMENT_ONLY'])
+    report.details['conversion_sha256'] = sha(converted.provenance_path)
+    report.stage = 'capture'
+    save()
+    code = replay.capture_drive(OUT / 'bag', '2011_09_26_0005',
+        OUT / 'snapshots/2011_09_26_0005')
+    report.details['capture_exit_code'] = code
+    assert code == 0, 'Native capture failed; see retained per-run logs'
+    report.stage = 'compare'
+    save()
+    result = replay.compare_drives(OUT / 'snapshots', OUT / 'comparison',
+        drives=['2011_09_26_0005'], margin=3.5)
+    report.details['comparison_sha256'] = sha(OUT / 'comparison/comparison.json')
+    report.details['comparison_status'] = result['status']
+    report.details['comparison_errors'] = result['errors']
+    assert not result['errors'], result['errors']
+    assert result['status'] == 'incomplete', 'A one-drive pilot must never count as 55-drive completion'
+    report.stage = 'complete'
+    report.status = 'PASS_PILOT_ONLY'
+except Exception as exc:
+    report.status = 'FAIL'
+    report.error = f'{type(exc).__name__}: {exc}'
+    (OUT / 'failure.txt').write_text(traceback.format_exc(), encoding='utf-8')
+finally:
+    report.details['wall_s'] = time.monotonic() - START
+    save()
+sys.exit(0 if report.status == 'PASS_PILOT_ONLY' else 1)

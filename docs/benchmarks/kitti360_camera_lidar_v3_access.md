@@ -1,4 +1,109 @@
-# KITTI-360 camera-LiDAR v3: access check
+# KITTI-360 camera-LiDAR v3: access and conversion readiness
+
+**Current status, 2026-10-23: official access verified from local Windows;
+spent-data conversion validated; no v3 pre-registration or evaluation.**
+Camera-LiDAR v2 remains **refuted (8/9)**. These checks establish input
+readiness, not calibration accuracy or SOTA. The dated cloud failure below is
+preserved as history and does not describe current local access.
+
+## Local recheck, 2026-10-23
+
+The official [download page](https://www.cvlibs.net/datasets/kitti-360/download.php)
+links the distribution-script ZIPs. They were inspected, never executed;
+no account, interactive login or credentials were used. The scripts specify
+rectified perspective archives as `data_2d_raw/SEQUENCE_image_00.zip` and
+point clouds as `data_3d_raw/SEQUENCE_velodyne.zip` under the official S3 base.
+
+Twenty archives passed metadata inventory: camera and Velodyne for the eight
+sequences below, calibration, OXTS and the two timestamp archives. A separate
+published-poses archive also passed: **21 archives total**. Every metadata GET
+required the pinned ETag, HTTP 206, exact Content-Range and exact body length.
+Only ZIP end records and central directories were read at this stage;
+sensor payload bytes were **zero**, including for provisional candidates.
+
+| Sequence | Rectified images | Point clouds | First common ID | Eligibility |
+| --- | ---: | ---: | ---: | --- |
+| `0000` | 11,518 | 11,518 | 0 | spent; development only |
+| `0002` | 14,607 | 14,849 | 4391 | spent; development only |
+| `0004` | 11,587 | 11,587 | 0 | provisional candidate |
+| `0005` | 6,743 | 6,743 | 0 | provisional candidate |
+| `0006` | 9,699 | 9,699 | 0 | provisional candidate |
+| `0007` | 3,396 | 3,396 | 0 | provisional candidate |
+| `0009` | 14,056 | 14,056 | 0 | provisional candidate |
+| `0010` | 3,836 | 3,836 | 0 | provisional candidate |
+
+`0003` remains spent and excluded. The six provisional candidates' sensor
+contents have not been opened in this work. Their exposure audit is incomplete;
+member counts alone do not select 60-second evaluation intervals.
+
+The original [access report](../assets/kitti360_sota_readiness/access-report.json)
+retains a failed ancillary-member assertion while extracting the perspective
+script ZIP. Both selected scripts had already been extracted. The saved ZIP
+passed an offline CRC/identity check; its `README.md` was ignored in the separate
+[recovery receipt](../assets/kitti360_sota_readiness/distribution-script-recovery.json).
+There was no redownload and the failed report was not rewritten as a pass.
+
+### Real conversion on spent data
+
+Source `7f652896` validated the existing published-pose converter. Source
+`036c67ba7dc9eaba878d734430fbea6b8d70abbf` added and validated explicit
+`--motion-source oxts`. The default remains `published_poses`.
+
+| Motion source | Sequence | Selected frame IDs | Result |
+| --- | --- | --- | --- |
+| published poses | `0000` | 1, 9, 14 | PASS |
+| published poses | `0002` | 4391, 4392, 4393 | PASS |
+| raw OXTS | `0000` | 0, 1, 2 | PASS |
+| raw OXTS | `0002` | 4391, 4392, 4393 | PASS |
+
+Each bag was reopened and contained three images, three camera-info messages,
+three point clouds, three odometry messages and one static-TF message. Selected
+official members were acquired through exact pinned ranges and verified for
+size and CRC. Each run had a 128 MiB uncompressed input cap; hash-verified files
+were reused for OXTS checks. This stage **did read spent sensor payloads**;
+fresh candidate payload bytes stayed zero. These tiny checks do not establish
+full-sequence completeness, motion observability or calibration quality.
+
+OXTS mode uses its own packet timestamps and records the earliest supplied
+packet as its local Mercator origin, including its hash when outside the frame
+window. It uses `kitti360_oxts_world` and does not read or hash optimized
+`poses.txt`. Missing OXTS is an error, without automatic fallback. This avoids
+using image/LiDAR-optimized poses as independent motion evidence; raw GNSS/INS
+is still not metrology. Twists remain finite-difference approximations and point
+times remain a declared azimuth model. Frame 4391 is where `0002` images and
+point clouds start; published pose rows themselves start at frame 1.
+
+```bash
+calibrex convert kitti-360 DATASET_ROOT --sequence 2013_05_28_drive_0000_sync \
+  --output BAG --motion-source oxts --start-frame 0 --max-frames 3
+```
+
+### Evidence and remaining work
+
+The [manifest](../assets/kitti360_sota_readiness/manifest.json) binds unmodified
+reports, schemas and exact producer/source capsules by SHA-256 and byte count.
+The [range bindings](../assets/kitti360_sota_readiness/metadata-range-bindings.json)
+include all 21 archive sizes/ETags, inventory hashes, code identity and each
+metadata range's offsets/hash. Full inventories stay local (about 62 MB);
+the public bundle is about 0.22 MB. Images, point clouds, bags and third-party
+distribution scripts are not republished. Reports retain machine-local paths
+as provenance, not portable download locations. The
+[frame summary](../assets/kitti360_sota_readiness/paired-frame-counts.json)
+uses archive member names only.
+
+Generate the [55 spent-drive comparison](kitti_camera_lidar_v3_development.md),
+confirm the selected rule through real checks, and derive gates from those
+development results. Complete exposure auditing and freeze metadata-based
+interval selection, timestamp-boundary checks, reference hashes and failure
+policy. KITTI-360 is one dataset family and one platform; separate sequences
+do not establish independent rigs. Preserve the research plan's broader
+comparison requirements. Freeze code and open a separate pre-registration PR
+for review before reading new evaluation sensor contents.
+
+## Historical report, 2026-10-15
+
+The following is the original cloud access report. Its pending/blocked status
+is historical; the local results above supersede it.
 
 **Status: official archive access still blocked; no pre-registration.** On
 2026-10-15, this managed environment could not reach the official archive host:

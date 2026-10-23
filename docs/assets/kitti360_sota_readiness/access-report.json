@@ -1,0 +1,83 @@
+{
+  "schema_version": "calibrex.kitti360_access_recheck/v0.1",
+  "results": [
+    {
+      "kind": "official_distribution_script",
+      "url": "https://s3.eu-central-1.amazonaws.com/avg-projects/KITTI-360/a1d81d9f7fc7195c937f9ad12e2a2c66441ecb4e/download_2d_perspective.zip",
+      "sensor_payload_bytes": 0,
+      "headers": {
+        "x-amz-request-id": "3DSYFHZEQ4PB8M5T",
+        "x-amz-id-2": "Bi9WuLKt9kvQUskqvGWA5jly4d5CYOT3DPc3/rZx+a9Y9QcH8sLO2EkT1a2X3kNVy3yfFpFd/NiOTvr5wz6UcR6xfM8Rx6vG",
+        "Content-Length": "1583",
+        "Accept-Ranges": "bytes",
+        "Date": "Thu, 22 Oct 2026 15:15:06 GMT",
+        "Server": "AmazonS3",
+        "Last-Modified": "Fri, 09 Apr 2021 01:00:03 GMT",
+        "ETag": "\"4b035e6166e72e962af18d64e7ed80a9\"",
+        "Content-Type": "application/zip",
+        "Connection": "close"
+      },
+      "status": "FAIL",
+      "bytes": 1583,
+      "sha256": "d3f75f0cf593d33be09daa9db2052e618341297082d93bdeccde0c24b60262a5",
+      "scripts": [
+        {
+          "name": "download_2d_perspective.sh",
+          "sha256": "1e095171cde29540493c4cc293ba5e1a44486774e88feca425cd490984f33e85"
+        },
+        {
+          "name": "download_2d_perspective_unrectified.sh",
+          "sha256": "531337cd6591473840d7ddc6f070c26242ca6a29248a4c60b8b71415ff638c57"
+        }
+      ],
+      "error": "AssertionError()"
+    },
+    {
+      "kind": "official_distribution_script",
+      "url": "https://s3.eu-central-1.amazonaws.com/avg-projects/KITTI-360/a1d81d9f7fc7195c937f9ad12e2a2c66441ecb4e/download_3d_velodyne.zip",
+      "sensor_payload_bytes": 0,
+      "headers": {
+        "x-amz-id-2": "5g5Bco2Fa8H922n5/GJCcMtPBD1zzEGZHwIJQgrxrFP7smdZfdVcNGGUFceigZ5tfumpyOzT2LyIlobV2U3IMaVR9/LsybhQ",
+        "x-amz-request-id": "E0VC7A3ZZGJKWRNR",
+        "Server": "AmazonS3",
+        "Date": "Thu, 22 Oct 2026 15:15:08 GMT",
+        "Last-Modified": "Fri, 23 Oct 2020 01:00:03 GMT",
+        "ETag": "\"d75a37b65c325f26433ee268664b9440\"",
+        "Accept-Ranges": "bytes",
+        "Content-Type": "application/zip",
+        "Content-Length": "542",
+        "Connection": "close"
+      },
+      "status": "PASS",
+      "bytes": 542,
+      "sha256": "420fe3d4dd1854dd044ab669475e706664a0703e77512c9658e24ba93e8ccae9",
+      "scripts": [
+        {
+          "name": "download_3d_velodyne.sh",
+          "sha256": "3e9f6ecc6f402776b71f13e7454e897dc0c11d4ab19c7f7571a8c9e7b7c137c5"
+        }
+      ]
+    },
+    {
+      "kind": "spent_0000_metadata_only",
+      "url": "https://s3.eu-central-1.amazonaws.com/avg-projects/KITTI-360/data_3d_raw/2013_05_28_drive_0000_sync_velodyne.zip",
+      "sensor_payload_bytes": 0,
+      "status": "PASS",
+      "size_bytes": 16071413502,
+      "etag": "\"442445fbe3558db8ffc5738a50fdef43-1916\"",
+      "member_count": 11519,
+      "verified_exact_http_ranges": true,
+      "metadata_sha256": "5f42bb572a874af27faebecbf9afd26af29b33c6eca6ed1504255c7bf6a34ab0"
+    }
+  ],
+  "provenance": {
+    "source_commit": "7f6528963bdaa02ab497e639702dc0df27b02b1f",
+    "source_sha256": "d922566172d5b8048374afc4cfbed1f673d1b6fa0c7be2878ac2d7aa0259fa30",
+    "metadata_tool_sha256": "eb102a0f4e1e4988456d5e517bb9bb98071da5865d78bc0b594658516d521dce",
+    "created_at": "2026-10-22T15:15:13.107690+00:00",
+    "official_link_source": "https://www.cvlibs.net/datasets/kitti-360/download.php",
+    "policy": "Read official distribution script ZIPs and exact ZIP metadata for spent 0000 only; no member sensor payload, no new evaluation or calibration run.",
+    "sensor_payload_bytes": 0,
+    "new_accuracy_claim": false
+  }
+}

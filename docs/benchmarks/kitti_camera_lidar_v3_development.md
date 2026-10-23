@@ -5,6 +5,10 @@ proposal after [v2 was refuted, 8 of 9 gates](kitti_camera_lidar_v2_check.md).
 It is not a pre-registration or a new audit. The v2 verdict and thresholds stay
 as published. No new evaluation sensor data was read for this work.
 
+Real capture/replay progress is **2/55 spent drives**. The proposed margin has
+an observed detection regression on 0002 and remains opt-in; no new claim or
+default change is justified by these partial results.
+
 ## Proposed far-start adoption rule
 
 `EdgeAlignmentOptions(start_scan_min_control_t=3.5)` adds a control margin to
@@ -176,23 +180,229 @@ with all six actual injections, exact image/point/time round trips, corruption,
 recipe migration, parity mismatches and preservation of solver/missing-input
 failures. No synthetic metrics are used as the 55-drive development measurements.
 
+## Native spent-data pilot, 2026-10-23
+
+The first real capture/replay pilot completed on **one of 55** spent drives,
+`2011_09_26_0005`. Its 154 frames were fetched using the original archive's
+size/ETag and the published calibration ZIP hash. The selected streams required
+432,575,704 bytes, below the 512 MiB acquisition cap. No new evaluation data
+was read. The pilot's source is `c43cc7df`; it is development, not an audit.
+
+The first attempt at `3c3e1234` stopped before estimation in all seven checks:
+the capture guard compared the rounded calibration matrix directly with its
+quaternion-serialized TF representation. On the real baseline their maximum
+matrix-element difference is `2.280962807521547e-8`, above the guard's `1e-8`.
+The [original failure](../assets/kitti_camera_lidar_v3/native_pilot_0005/attempt_1/report.json)
+and all seven failed-check receipts remain published.
+
+Conversion now also records `camera.t_imu_velo`. The replay tool reconstructs
+both TF edges using the converter's quaternion serialization before composing
+the reference. The original `camera.t_cam_velo`, candidate guard tolerance,
+estimator, scoring rules and audit gates are unchanged. A rounded calibration
+without the extra provenance requires bag regeneration; legacy exact-rigid
+snapshots remain readable. Regressions check decimal-rounded calibration,
+all seven candidate/injection identities and refusal of a wrong candidate.
+
+The retry verified all **468** retained members against their size/CRC and used
+zero additional download bytes. It generated a new bag and separate output
+directory, preserving the failed attempt. Seven real checks and fourteen
+re-estimations completed. Every current-rule replay matched the captured
+numerical evidence within `1e-9` and the native verdicts. The
+[paired report](../assets/kitti_camera_lidar_v3/native_pilot_0005/attempt_2/comparison/comparison.json)
+deliberately says `incomplete`, with no audit thresholds.
+
+| Measure on 0005 only | Current rule | Proposed 3.5 margin |
+| --- | ---: | ---: |
+| Baseline judged axes | 3/3 | 3/3 |
+| Baseline flagged | no | no |
+| Maximum judged baseline error | 0.1000 deg | 0.1000 deg |
+| Maximum judged turned-run error | 0.1009 deg | 0.1009 deg |
+| 1 deg turns flagged | 3/3 | 3/3 |
+| 3 deg turns flagged | 3/3 | 3/3 |
+| Turned axes incorrectly judged right | 0/6 | 0/6 |
+
+Coverage change is zero percentage points. There is **no measured improvement
+on this drive**; it validates the real comparison pipeline. It cannot resolve
+the v2 failures on other recordings or replace the all-55 denominator above.
+
+Separate [failure](../assets/kitti_camera_lidar_v3/native_pilot_0005/attempt_1/manifest.json)
+and [retry](../assets/kitti_camera_lidar_v3/native_pilot_0005/attempt_2/manifest.json)
+manifests pin all public receipts and exact producer/source capsules by SHA-256.
+Snapshot JSONs pin each private NPZ input; images, clouds, bags and NPZ files
+are not republished. The retry's roughly 0.7 GB of exact input arrays stays
+local for subsequent comparisons. Report schemas and committed integrity tests
+check the failure/retry chain, native/replay parity and source bindings.
+
+## Known-failure case, 2026-10-23
+
+The second native comparison used spent `2011_09_28_0002`, the recording behind
+v2's gate-failing far-start result. Source `46f4b53a` retained the same 600-frame
+recipe, frozen proposed margin `3.5` and original archive/calibration pins.
+This drive has 376 frames, all acquired for each required stream. Exact ranges
+fetched 995,875,492 bytes below the 2 GiB cap, and every member passed CRC.
+There were seven actual checks and fourteen paired re-estimations, without
+capture or replay failures. The current-rule evidence and native verdicts
+matched all seven captures. The
+[comparison](../assets/kitti_camera_lidar_v3/native_development_20110928_0002/attempt_1/comparison/comparison.json)
+is explicitly `incomplete`, with no audit thresholds.
+
+| Measure on 0002 only | Current rule | Proposed 3.5 margin |
+| --- | ---: | ---: |
+| Baseline judged axes | 1/3 | 1/3 |
+| Baseline flagged | no | no |
+| Maximum judged baseline error | 0.0500 deg | 0.0500 deg |
+| Maximum judged turned-run error | 1.5030 deg | 0.1000 deg |
+| 3 deg controls flagged, on baseline-judged axes | 1/1 | **0/1** |
+| 1 deg controls flagged, on baseline-judged axes | 1/1 | 1/1 |
+| Counted turned axes incorrectly judged right | 0/2 | 0/2 |
+
+This is a **tradeoff, not a demonstrated overall improvement**. The maximum
+error is over axes still judged; its decrease does not establish accurate
+calibration of unreported rotations. Baseline coverage changes by zero
+percentage points, but the proposed pitch +3 deg result becomes inconclusive
+with no judged rotation axes, losing the only counted 3 deg detection. The
+denominator is one because baseline 0002 judges pitch only, not all three axes.
+
+Two further runs through `calibrex check` from the same bag confirm the proposed
+rule, with cache disabled and `--camera-lidar-far-control-t 3.5`:
+
+- [yaw +3 deg](../assets/kitti_camera_lidar_v3/native_development_20110928_0002/confirmation_yaw3/report.json)
+  was selected before inspecting the new replay results because it caused the
+  published v2 error-gate failure;
+- [pitch +3 deg](../assets/kitti_camera_lidar_v3/native_development_20110928_0002/confirmation_pitch3/report.json)
+  is explicitly a **post hoc** selection after replay revealed the detection
+  regression.
+
+Both native runs match the replay's numerical evidence within `1e-9` and its
+axis/overall verdicts. Both are inconclusive with no judged rotation axes.
+Yaw is not a counted turn in the detection row because baseline yaw was not
+judged. The pitch regression therefore also exists through the real driver;
+it is not a replay-only discrepancy. No threshold was changed after observing
+these results, and the existing default stays unchanged.
+
+The public [attempt manifest](../assets/kitti_camera_lidar_v3/native_development_20110928_0002/attempt_1/manifest.json)
+and two confirmation manifests bind reports, schemas, logs and exact source
+capsules. Publication excludes images, clouds, bags and the private NPZ arrays.
+The full 55-drive development comparison still has **53 pending recordings**;
+these two deliberately selected probes cannot supply its aggregate detection,
+coverage or new audit gates. Inspect the detection/coverage cost on further
+spent recordings, including 0034, before considering adoption.
+
+## Why a scalar adoption margin is insufficient on these probes
+
+A [post hoc start trace](../assets/kitti_camera_lidar_v3/native_development_20110928_0002/start_trace/report.json)
+at source `49449c4d` re-estimated the saved pitch +3 and yaw +3 inputs under both
+existing rules, without downloading data or changing the estimator. Serial
+instrumentation recorded each distinct fit and adoption decision. All four
+outputs matched the earlier full numerical evidence, excluding provenance,
+within `1e-9`. The [publication manifest](../assets/kitti_camera_lidar_v3/native_development_20110928_0002/start_trace/manifest.json)
+binds the trace, artifacts and producer; estimator/replay source hashes resolve
+to the already published `attempt_1` capsules. NPZ inputs remain private.
+
+| Injected turn | Candidate-start correction, roll/pitch/yaw (deg) | Single-axis profile fit | Later multi-axis fit |
+| --- | --- | --- | --- |
+| Pitch +3 | (-0.90, +0.05, -0.10), no observed axes | (0, -2.85, 0), pitch observed, t=3.3816 | (-1.55, -3.05, -2.25), roll/pitch observed, minimum t=2.6211 |
+| Yaw +3 | (-1.95, +1.00, +0.05), no observed axes | (0, +0.05, -2.95), pitch observed, t=2.9194 | (-1.50, -0.15, -5.30), roll/pitch observed, minimum t=2.6493 |
+
+These are left-correction vectors relative to each injected candidate, not
+absolute calibration angles. For both inputs the existing minimum of two
+observed axes rejects the single-axis profile fit. The default then accepts
+the multi-axis fit; margin 3.5 rejects it and retains the unobservable
+candidate-start fit. The pitch-only profile fit is near the inverse injected
+turn, but the yaw profile fit still does **not** observe yaw: correcting an
+angle in a fit does not establish that the angle is measurable.
+
+For these two multi-axis fits, any scalar margin low enough to retain the
+pitch detection (`t <= 2.6211`) also admits the yaw run's erroneous roll fit
+(`t = 2.6493`). Raising only this threshold cannot retain that pitch detection
+while excluding that yaw-run fit. This statement concerns the traced candidate
+sets, not every possible estimator. The pitch multi-axis fit also reports an
+erroneous roll correction; retaining its detection alone would not fix accuracy.
+
+Simply allowing one observed axis is not justified either: earlier spent 0056
+showed a single-axis far optimum judging roll about 6.6 deg off, motivating the
+existing two-axis requirement. The next development task is to evaluate a
+different start-selection or axis-evidence rule on cached spent inputs, with
+coverage and injected-turn detection measured together. These traces establish
+a failure mechanism, not a new calibration method, new threshold or SOTA claim.
+
+## Conditional-axis development probe
+
+`tools/kitti_camera_lidar_axis_probe.py` tests a different search model: fit
+one rotation coordinate while fixing the other five coordinates at the supplied
+candidate. It profiles the existing range, refines the maximum, refits only
+that coordinate in each leave-one-block-out fold, and records its held-out
+control. It also repeats the full profile/refinement after fixing each other
+rotation coordinate at plus/minus the existing 2 deg control amount. No new
+confidence or sensitivity threshold is selected. This is a research diagnostic,
+not an estimator/check backend; separate coordinate fits are not composed into
+a calibration transform or native verdict.
+
+```bash
+python -m tools.kitti_camera_lidar_axis_probe SAVED_SNAPSHOT --output NEW_DIRECTORY
+```
+
+The [fixed batch](../assets/kitti_camera_lidar_v3/conditional_axis_probe/report.json)
+ran on all seven cached inputs from each of 0005 and 0002: **14 inputs, 42
+conditional-axis fits**, with no acquisition or estimation failures. The
+parent commit is `ca55d701`; the then-uncommitted tool is separately pinned by
+its exact source SHA-256 and capsule. Reference errors are computed after
+fitting, undoing the capture's recorded injection; no reference enters search
+or controls. The [manifest](../assets/kitti_camera_lidar_v3/conditional_axis_probe/manifest.json)
+binds reports, schemas and sources, about 140 KB excluding the manifest.
+Sensor payloads remain local. The batch producer asserts unchanged Git HEAD
+and source bytes through completion.
+
+| Conditional fit | Correction | Active-axis reference error | Conditional std | Control t | Nuisance correction span |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 0002, pitch +3, fit pitch | -2.85 deg | +0.15 deg | 0.0417 deg | 3.3036 | 7.80 deg |
+| 0002, yaw +3, fit yaw | -2.95 deg | +0.05 deg | 0.0417 deg | 0.8925 | 9.05 deg |
+| 0005, baseline, fit pitch | -0.10 deg | -0.10 deg | 0.0250 deg | see receipt | 5.65 deg |
+
+Using only the existing ordinary evidence conditions (detected control,
+conditional std at most 0.5 deg, no search bound), 15 of 21 conditional fits
+on 0005 and 3 of 21 on 0002 qualify. All 18 have active-axis reference errors
+at most 0.15 deg on these selected cached inputs. The near-inverse pitch
+correction is promising, but this is **not a measured gain in joint calibration
+accuracy or a new SOTA result**. A correct yaw correction with a failed control
+still supplies no evidence to report yaw. There is no native detection rate
+from these separate fits, and no new drive has been captured.
+
+The large nuisance spans show why conditional precision cannot establish
+joint observability: pitch +3 on 0002 has a conditional std of just 0.0417 deg
+yet its optimum moves across a 7.8 deg range when other axes are perturbed.
+Even accurate baseline pitch on 0005 spans 5.65 deg. These spans include full
+searches that may reach a bound; they are sensitivity probes, not uncertainty
+intervals. A coupled synthetic ridge likewise passes conditional controls and
+has 0.025 deg conditional std while the nuisance optimum spans 4 deg; the
+uncoupled synthetic case spans zero. Tests retain both cases to prevent
+mistaking conditional precision for joint identifiability.
+
+The next algorithmic question is how to preserve useful axis evidence while
+accounting for uncertain nuisance coordinates, with explicit coverage and
+injected-turn detection costs. Neither the single-axis fit nor a threshold
+on its nuisance span is promoted from these two recordings. The earlier 0056
+false optimum and the remaining 53-drive comparison still need to be covered
+before any adoption decision.
+
 ## Work still required before pre-registration
 
-The official S3 host is still blocked by this environment (HTTP 403 on a
-metadata-only HEAD for a spent KITTI raw archive on 2026-10-15). No local replay
-inputs were found. Access findings and the KITTI-360 exposure correction are in
-[PR #235](https://github.com/rsasaki0109/Calibrex/pull/235); the synthetic-tested
-KITTI-360 converter is in
-[draft PR #236](https://github.com/rsasaki0109/Calibrex/pull/236).
+The [2026-10-23 local recheck](kitti360_camera_lidar_v3_access.md) verified
+official KITTI-360 access and exact metadata ranges for 21 archives.
+Published-pose and opt-in raw-OXTS conversion each passed on three frames from
+spent 0000 and 0002. The earlier cloud HTTP 403 is historical evidence.
+The 0005 pilot and 0002 comparison provide real replay inputs; the other
+53 spent drives still need capture and paired comparison. KITTI-360 conversion
+checks are not calibration measurements.
 
-Before step 3 can finish, regenerate estimator inputs from the 55 spent raw
-drives, compare both rules on the same inputs, then confirm via the real
+Before step 3 can finish, regenerate the remaining estimator inputs from the
+55 spent raw drives, compare both rules on the same inputs, then confirm via the real
 driver. Record every measure in the table above, including coverage loss and
-missed turns. Confirm the KITTI-360 converter on spent 0000/0002 data.
+missed turns. Validate any additional converter behavior on spent data.
 
 Only then derive the v3 gates from the new development results using the
 [handoff rules](../sota_handoff.md#how-an-audit-is-run). Evaluation archive pins,
-disjoint 60 s interval selection and the preregistration remain pending metadata
-access and an exposure audit. KITTI-360 0003 was already read by earlier research
+disjoint 60 s interval selection and the preregistration remain pending a full
+exposure audit and development results. KITTI-360 0003 was already read by earlier research
 and must be excluded, as documented in PR #235. No v3 thresholds are frozen here,
 and no evaluation is authorized by this development page.

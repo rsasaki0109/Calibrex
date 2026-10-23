@@ -100,7 +100,31 @@ def _reference(conversion: dict[str, Any], drive: str) -> np.ndarray:
     reference = np.asarray(conversion["camera"]["t_cam_velo"], dtype=np.float64)
     if reference.shape != (4, 4) or not np.isfinite(reference).all():
         raise ValueError("conversion must record a finite 4x4 reference transform")
-    return reference
+    if not np.allclose(reference[3], [0, 0, 0, 1], rtol=0, atol=1e-12):
+        raise ValueError("conversion reference must have a homogeneous last row")
+    vendor_values = conversion["camera"].get("t_imu_velo")
+    if vendor_values is None:
+        if not np.allclose(reference[:3, :3].T @ reference[:3, :3], np.eye(3),
+                           rtol=0, atol=1e-10):
+            raise ValueError("rounded calibration needs t_imu_velo provenance; regenerate the bag")
+        return reference  # legacy exact-rigid snapshots remain readable
+    vendor = np.asarray(vendor_values, dtype=np.float64)
+    if (vendor.shape != (4, 4) or not np.isfinite(vendor).all()
+            or not np.allclose(vendor[3], [0, 0, 0, 1], rtol=0, atol=1e-12)):
+        raise ValueError("conversion must record a finite homogeneous t_imu_velo")
+    for matrix in (reference, vendor):
+        rotation = matrix[:3, :3]
+        if (not np.allclose(rotation.T @ rotation, np.eye(3), rtol=0, atol=1e-5)
+                or not math.isclose(float(np.linalg.det(rotation)), 1.0, abs_tol=1e-5)):
+            raise ValueError("conversion calibration must be a proper near-rigid transform")
+    # Match the converter's two independently quaternion-serialized TF edges.
+    # Projecting T_cam_velo alone loses the translation change from inverting
+    # the rounded camera edge. Keep the candidate guard's 1e-8 tolerance intact.
+    imu_camera = vendor @ np.linalg.inv(reference)
+    vendor = vendor.copy()
+    for matrix in (vendor, imu_camera):
+        matrix[:3, :3] = Rotation.from_matrix(matrix[:3, :3]).as_matrix()
+    return np.linalg.inv(imu_camera) @ vendor
 
 
 def _check_candidate(candidate: np.ndarray, reference: np.ndarray, run: str) -> None:
