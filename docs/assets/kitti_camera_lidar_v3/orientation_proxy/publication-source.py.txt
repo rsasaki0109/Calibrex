@@ -1,0 +1,68 @@
+"""Publish the complete preselected six-input orientation comparison, no image tensors."""
+import hashlib
+import json
+import shutil
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Literal
+from pydantic import BaseModel, ConfigDict, Field
+
+ROOT = Path(__file__).resolve().parents[1]
+PRIVATE = ROOT / "outputs/camera-lidar-orientation-batch-v1"
+PUBLIC = ROOT / "docs/assets/kitti_camera_lidar_v3/orientation_proxy"
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+class File(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    path: str
+    bytes: int = Field(ge=0)
+    sha256: str = Field(pattern="^[0-9a-f]{64}$")
+
+
+class Manifest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_version: Literal["calibrex.orientation_probe_publication/v0.1"]
+    provenance: dict
+    files: list[File]
+
+
+batch = json.loads((PRIVATE / "report.json").read_text())
+assert batch["status"] == "complete_diagnostic_only" and len(batch["runs"]) == 6 and not batch["errors"]
+assert batch["provenance"]["generator_sha256"] == sha(ROOT / "outputs/camera-lidar-orientation-batch-v1.py")
+confirmation_root = ROOT / "outputs/orientation-default-parity-v1"
+confirmation = json.loads((confirmation_root / "confirmation.json").read_text())
+assert confirmation["status"] == "pass" and confirmation["error"] is None
+assert confirmation["provenance"]["generator_sha256"] == sha(ROOT / "outputs/orientation-default-parity-v1.py")
+for name, source in batch["provenance"]["sources"].items():
+    assert source["sha256"] == sha(PRIVATE / f"{name}-source.py.txt")
+PUBLIC.mkdir(exist_ok=False)
+for name in ["report.json", "report.schema.json", *[f"{n}-source.py.txt" for n in batch["provenance"]["sources"]]]:
+    shutil.copyfile(PRIVATE / name, PUBLIC / name)
+schema = (PRIVATE / batch["runs"][0]["report"]).parent / "report.schema.json"
+shutil.copyfile(schema, PUBLIC / "profile.schema.json")
+for record in batch["runs"]:
+    source = PRIVATE / record["report"]
+    assert source.resolve().is_relative_to(PRIVATE.resolve())
+    assert sha(source) == record["report_sha256"]
+    assert (source.parent / "report.schema.json").read_bytes() == schema.read_bytes()
+    target = PUBLIC / record["report"]
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(source, target)
+shutil.copyfile(ROOT / "outputs/camera-lidar-orientation-batch-v1.py", PUBLIC / "producer-source.py.txt")
+shutil.copyfile(Path(__file__), PUBLIC / "publication-source.py.txt")
+target = PUBLIC / "default_confirmation"
+target.mkdir()
+for name in ("confirmation.json", "confirmation.schema.json"):
+    shutil.copyfile(confirmation_root / name, target / name)
+for name in ("report.json", "report.schema.json"):
+    shutil.copyfile(confirmation_root / "scalar" / name, target / name)
+shutil.copyfile(ROOT / "outputs/orientation-default-parity-v1.py", target / "producer-source.py.txt")
+(PUBLIC / "manifest.schema.json").write_text(json.dumps(Manifest.model_json_schema(), indent=2), encoding="utf-8")
+manifest = Manifest(schema_version="calibrex.orientation_probe_publication/v0.1", provenance={
+    "created_at": datetime.now(timezone.utc).isoformat(), "generator_sha256": sha(Path(__file__)),
+    "sensor_payload_published": False, "analysis": "post hoc preselected spent-data development",
+}, files=[File(path=p.relative_to(PUBLIC).as_posix(), bytes=p.stat().st_size, sha256=sha(p))
+          for p in sorted(PUBLIC.rglob("*")) if p.is_file()])
+(PUBLIC / "manifest.json").write_text(manifest.model_dump_json(indent=2), encoding="utf-8")
+print(len(manifest.files), "files", sum(f.bytes for f in manifest.files), "bytes")

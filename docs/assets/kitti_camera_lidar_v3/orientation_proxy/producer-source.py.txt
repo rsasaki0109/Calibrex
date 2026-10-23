@@ -1,0 +1,112 @@
+"""Preselected six-input orientation probe; two independent CPU workers, no benchmark claim."""
+import os
+for name in ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS"):
+    os.environ[name] = "1"
+
+import hashlib
+import json
+import shutil
+import subprocess
+import sys
+import time
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Literal
+from pydantic import BaseModel, ConfigDict
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path[:0] = [str(ROOT), str(ROOT / "src")]
+from tools import kitti_camera_lidar_profile_probe as probe
+from tools import kitti_camera_lidar_orientation as orientation
+from tools import kitti_camera_lidar_axis_probe as conditional
+from tools import kitti_camera_lidar_v3_replay as replay
+from calibrex.evaluation import camera_lidar_edge as edge
+
+OUT = ROOT / "outputs/camera-lidar-orientation-batch-v1"
+OLD = ROOT / "docs/assets/kitti_camera_lidar_v3/conditional_axis_probe"
+BASELINE = ROOT / "docs/assets/kitti_camera_lidar_v3/profiled_controls_multistart"
+RUNS = ("baseline", "inject_y+3", "inject_x+3")
+INPUTS = {
+    "2011_09_26_0005": ROOT / "outputs/camera-lidar-v3-spent-0005-v2/snapshots/2011_09_26_0005",
+    "2011_09_28_0002": ROOT / "outputs/camera-lidar-v3-spent-20110928-0002-v1/snapshots/2011_09_28_0002",
+}
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+class Batch(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_version: Literal["calibrex.camera_lidar_orientation_batch/v0.1"] = "calibrex.camera_lidar_orientation_batch/v0.1"
+    status: Literal["running", "complete_diagnostic_only", "failed"]
+    runs: list[dict]
+    errors: dict[str, str]
+    provenance: dict
+
+
+def run_case(drive, run):
+    relative = f"{drive}/{run}"
+    started = time.monotonic()
+    result = probe.profile_snapshot(INPUTS[drive] / run, OLD / relative / "report.json",
+                                    OUT / relative, multi_start=True, azimuth_orientation=True)
+    assert result.status == "complete" and result.provenance["spatial_weights"] == "original"
+    assert result.provenance["orientation_model"] == "projected_azimuth_gradient"
+    prior_path = BASELINE / relative / "report.json"
+    prior = probe.ProfileReport.model_validate_json(prior_path.read_bytes())
+    for key in ("snapshot_sha256", "arrays_sha256", "conditional_report_sha256", "options"):
+        assert result.provenance[key] == prior.provenance[key]
+    return {"drive": drive, "run": run, "report": relative + "/report.json",
+            "report_sha256": sha(OUT / relative / "report.json"),
+            "scalar_report_sha256": sha(prior_path), "input_and_options_parity": True,
+            "elapsed_s": time.monotonic() - started}
+
+
+def main():
+    commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    assert commit.startswith("c237f78d")
+    OUT.mkdir(exist_ok=False)
+    sources = {}
+    for module, name in [(probe, "profile"), (orientation, "orientation"), (conditional, "conditional"),
+                         (replay, "replay"), (edge, "estimator")]:
+        path = Path(module.__file__)
+        sources[name] = {"path": str(path.relative_to(ROOT)), "sha256": sha(path)}
+        shutil.copyfile(path, OUT / f"{name}-source.py.txt")
+    report = Batch(status="running", runs=[], errors={}, provenance={
+        "created_at": datetime.now(timezone.utc).isoformat(), "git_commit": commit,
+        "generator_sha256": sha(Path(__file__)), "sources": sources,
+        "selection": "post hoc spent development; baseline, pitch+3 and roll+3 on each cached drive, fixed before launch",
+        "expected_inputs": 6, "expected_axis_controls": 18,
+        "new_accuracy_claim": False, "new_evaluation_started": False, "threshold_selection": False,
+        "source_committed_before_experiment": True,
+        "orientation_model": "projected_azimuth_gradient", "spatial_weights": "original",
+        "execution": {"workers": 2, "blas_threads_per_worker": 1,
+                       "timing_scope": "execution receipt only; not a speed comparison"},
+    })
+
+    def write():
+        (OUT / "report.json").write_text(report.model_dump_json(indent=2), encoding="utf-8")
+
+    (OUT / "report.schema.json").write_text(json.dumps(Batch.model_json_schema(), indent=2), encoding="utf-8")
+    write()
+    order = [(drive, run) for drive in INPUTS for run in RUNS]
+    with ProcessPoolExecutor(max_workers=2) as executor:
+        pending = {executor.submit(run_case, drive, run): (drive, run) for drive, run in order}
+        for future in as_completed(pending):
+            drive, run = pending[future]
+            try:
+                result = future.result()
+                report.runs.append(result)
+                report.runs.sort(key=lambda r: order.index((r["drive"], r["run"])))
+                print(drive, run, "PASS", round(result["elapsed_s"], 2), flush=True)
+            except Exception as exc:
+                report.errors[f"{drive}/{run}"] = f"{type(exc).__name__}: {exc}"
+                print(drive, run, report.errors[f"{drive}/{run}"], flush=True)
+            write()
+    assert all(sha(ROOT / source["path"]) == source["sha256"] for source in sources.values())
+    assert subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip() == commit
+    report.status = "complete_diagnostic_only" if len(report.runs) == 6 and not report.errors else "failed"
+    write()
+    return 1 if report.status == "failed" else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

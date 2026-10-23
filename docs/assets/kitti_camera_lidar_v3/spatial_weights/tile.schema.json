@@ -1,0 +1,62 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "time_s": {
+      "title": "Time S",
+      "type": "number"
+    },
+    "point_counts": {
+      "items": {
+        "type": "integer"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "title": "Point Counts",
+      "type": "array"
+    },
+    "original_weight": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "title": "Original Weight",
+      "type": "array"
+    },
+    "balanced_weight": {
+      "items": {
+        "type": "number"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "title": "Balanced Weight",
+      "type": "array"
+    },
+    "outside_point_count": {
+      "minimum": 0,
+      "title": "Outside Point Count",
+      "type": "integer"
+    },
+    "outside_original_weight": {
+      "minimum": 0,
+      "title": "Outside Original Weight",
+      "type": "number"
+    },
+    "outside_balanced_weight": {
+      "minimum": 0,
+      "title": "Outside Balanced Weight",
+      "type": "number"
+    }
+  },
+  "required": [
+    "time_s",
+    "point_counts",
+    "original_weight",
+    "balanced_weight",
+    "outside_point_count",
+    "outside_original_weight",
+    "outside_balanced_weight"
+  ],
+  "title": "TileSupport",
+  "type": "object"
+}

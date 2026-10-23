@@ -385,6 +385,11 @@ on its nuisance span is promoted from these two recordings. The earlier 0056
 false optimum and the remaining 53-drive comparison still need to be covered
 before any adoption decision.
 
+The follow-up [nuisance-profiled control experiment](kitti_camera_lidar_profile_controls.md)
+refits other rotation axes on training blocks before scoring fixed held-out
+poses. All 14 inputs completed, but controls alone still pass a wrong roll
+basin. Neither diagnostic is promoted as a calibration method.
+
 ## Work still required before pre-registration
 
 The [2026-10-23 local recheck](kitti360_camera_lidar_v3_access.md) verified

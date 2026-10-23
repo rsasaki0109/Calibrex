@@ -1,0 +1,58 @@
+"""Confirm the objective factory still reproduces an existing scalar diagnostic."""
+import hashlib
+import json
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Literal
+from pydantic import BaseModel, ConfigDict
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path[:0] = [str(ROOT), str(ROOT / "src")]
+from tools import kitti_camera_lidar_profile_probe as probe
+from tools import kitti_camera_lidar_v3_replay as replay
+
+OUT = ROOT / "outputs/orientation-default-parity-v1"
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+class Confirmation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_version: Literal["calibrex.orientation_default_parity/v0.1"] = "calibrex.orientation_default_parity/v0.1"
+    status: Literal["running", "pass", "failed"]
+    error: str | None = None
+    provenance: dict
+
+
+commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+assert commit.startswith("c237f78d")
+OUT.mkdir(exist_ok=False)
+expected_path = ROOT / "docs/assets/kitti_camera_lidar_v3/profiled_controls_multistart/2011_09_26_0005/baseline/report.json"
+report = Confirmation(status="running", provenance={
+    "created_at": datetime.now(timezone.utc).isoformat(), "git_commit": commit,
+    "generator_sha256": sha(Path(__file__)), "profile_source_sha256": sha(Path(probe.__file__)),
+    "expected_report_sha256": sha(expected_path), "numerical_parity_atol": 1e-9,
+    "selection": "existing spent 0005 baseline; default orientation/spatial flags, multi-start enabled",
+    "new_evaluation_started": False, "new_accuracy_claim": False,
+})
+(OUT / "confirmation.schema.json").write_text(json.dumps(Confirmation.model_json_schema(), indent=2), encoding="utf-8")
+try:
+    result = probe.profile_snapshot(
+        ROOT / "outputs/camera-lidar-v3-spent-0005-v2/snapshots/2011_09_26_0005/baseline",
+        ROOT / "docs/assets/kitti_camera_lidar_v3/conditional_axis_probe/2011_09_26_0005/baseline/report.json",
+        OUT / "scalar", multi_start=True,
+    )
+    expected = probe.ProfileReport.model_validate_json(expected_path.read_bytes())
+    assert replay._same(result.model_dump(exclude={"provenance"}), expected.model_dump(exclude={"provenance"}))
+    assert result.provenance["orientation_model"] == "none" and result.provenance["spatial_weights"] == "original"
+    report.provenance["actual_report_sha256"] = sha(OUT / "scalar/report.json")
+    assert report.provenance["profile_source_sha256"] == sha(Path(probe.__file__))
+    assert subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip() == commit
+    report.status = "pass"
+except Exception as exc:
+    report.status, report.error = "failed", f"{type(exc).__name__}: {exc}"
+    raise
+finally:
+    (OUT / "confirmation.json").write_text(report.model_dump_json(indent=2), encoding="utf-8")
+print("PASS default scalar evidence parity", flush=True)

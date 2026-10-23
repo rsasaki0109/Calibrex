@@ -275,6 +275,48 @@ a promoted method. The tool and byte-bound batch are available for research;
 account for uncertain nuisance axes before adoption. No fresh data was read;
 capture progress stays 2/55 and 53 remain.
 
+The [training-only nuisance-profiled controls](benchmarks/kitti_camera_lidar_profile_controls.md)
+use committed source `7a6ea534` and all 14 cached inputs. At the same refitted
+fold poses, direct/profiled controls detect 25/42 versus 21/42 axes (control
+outcomes only, no std/coverage/verdict gate). Four 0002 pitch controls lose
+detection, but its roll +3 still passes with profiled t=3.158 and about 1.5 deg
+maximum absolute roll reference error among the saved fold fits. This is not
+an accurate-calibration guarantee or a promoted method. Probe broader nuisance
+basins before setting new gates. All outputs and this counterexample are retained;
+the pooled conditional initialization means these are not nested validation folds.
+
+The follow-up opt-in `--multi-start` uses source `24543be7`, fixed before all
+14 cached inputs were re-run. Training-only nuisance profiles plus their
+individual/combined starts retain the original local optimum on ties. Paired
+baseline/direct evidence matches within `1e-9`. The only changed detection is
+the known 0002 roll +3 false control: t falls from 3.158 to 1.732 and fails the
+unchanged 2.5 threshold. All 0005 flags stay unchanged. Profiled controls now
+detect 20/42 instead of 21/42, with zero on 0002 and pitch +3 still missed.
+This exposes a selected ambiguity; it does not correct the saved fits, provide
+native verdicts, recover useful coverage, or justify promotion. Both batches
+and their source capsules are preserved. Capture progress remains 2/55.
+
+The [fixed 2x2 spatial-weight ablation](benchmarks/kitti_camera_lidar_spatial_weights.md)
+preserves frame totals and candidate-outside support, but does not restore
+0002 pitch detection. Detected multiple-start controls fall from 20/42 to
+12/42 (0005: 20 to 12; 0002: zero in both). Do not adopt it or relax thresholds
+from this negative result. Source `50c77d37` first failed on all 14 inputs
+because it rejected the intentionally retained image margin; that attempt is
+preserved. The fix at `67ff8c5d` was frozen before the complete fourteen-input
+retry, which binds the original failed report and unchanged inputs/settings.
+This is control evidence, not a native coverage or accuracy claim; 53 drives
+and the separate pre-registration remain pending.
+
+The [projected-azimuth orientation proxy](benchmarks/kitti_camera_lidar_orientation.md)
+was frozen at `c237f78d` before six selected inputs (baseline, pitch +3 and roll
++3 on each cached drive), using two independent workers. It compares image
+gradients to a scan-direction proxy, not actual boundary normals. Scalar/proxy
+controls detect 8/18 versus 0/18; 0002 pitch stays missed. Do not adopt or tune
+this proxy from the result. All six outputs and a separate default scalar-mode
+replay are retained; the latter matches previous numerical evidence excluding
+provenance within `1e-9`. No new drive, fresh evaluation, SOTA gate or default
+changes; capture progress remains 2/55.
+
 **Evaluation candidates.** KITTI-360 (another car, sensor set and calibration) is the
 natural choice: sequences 0004-0007, 0009 and 0010, subject to completing the exposure
 audit. Sequence 0003 is spent: the research plan already records a development capture.

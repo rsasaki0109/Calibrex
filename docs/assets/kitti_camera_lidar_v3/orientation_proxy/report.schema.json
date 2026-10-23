@@ -1,0 +1,48 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "calibrex.camera_lidar_orientation_batch/v0.1",
+      "default": "calibrex.camera_lidar_orientation_batch/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "running",
+        "complete_diagnostic_only",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "runs": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Runs",
+      "type": "array"
+    },
+    "errors": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Errors",
+      "type": "object"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    }
+  },
+  "required": [
+    "status",
+    "runs",
+    "errors",
+    "provenance"
+  ],
+  "title": "Batch",
+  "type": "object"
+}

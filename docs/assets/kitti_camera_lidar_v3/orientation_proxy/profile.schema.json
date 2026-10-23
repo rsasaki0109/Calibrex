@@ -1,0 +1,216 @@
+{
+  "$defs": {
+    "CameraLidarEdgeControl": {
+      "additionalProperties": false,
+      "description": "Held-out objective drop after shifting one DoF of the fit in both directions.",
+      "properties": {
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        },
+        "unit": {
+          "enum": [
+            "deg",
+            "m"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "held_out_blocks": {
+          "minimum": 0,
+          "title": "Held Out Blocks",
+          "type": "integer"
+        },
+        "detected_blocks": {
+          "minimum": 0,
+          "title": "Detected Blocks",
+          "type": "integer"
+        },
+        "mean_objective_drop": {
+          "title": "Mean Objective Drop",
+          "type": "number"
+        },
+        "min_t_statistic": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "smaller of the two directions' one-sided t statistics of the per-block objective drops",
+          "title": "Min T Statistic"
+        },
+        "detected": {
+          "title": "Detected",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "amount",
+        "unit",
+        "held_out_blocks",
+        "detected_blocks",
+        "mean_objective_drop",
+        "detected"
+      ],
+      "title": "CameraLidarEdgeControl",
+      "type": "object"
+    },
+    "ProfileAxis": {
+      "additionalProperties": false,
+      "properties": {
+        "axis": {
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Axis",
+          "type": "integer"
+        },
+        "direct_control": {
+          "$ref": "#/$defs/CameraLidarEdgeControl"
+        },
+        "profiled_control": {
+          "$ref": "#/$defs/CameraLidarEdgeControl"
+        },
+        "folds": {
+          "items": {
+            "$ref": "#/$defs/ProfileFold"
+          },
+          "title": "Folds",
+          "type": "array"
+        }
+      },
+      "required": [
+        "axis",
+        "direct_control",
+        "profiled_control",
+        "folds"
+      ],
+      "title": "ProfileAxis",
+      "type": "object"
+    },
+    "ProfileFold": {
+      "additionalProperties": false,
+      "properties": {
+        "base_theta": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 6,
+          "minItems": 6,
+          "title": "Base Theta",
+          "type": "array"
+        },
+        "shifted_theta": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Shifted Theta",
+          "type": "array"
+        },
+        "profiled_theta": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "title": "Profiled Theta",
+          "type": "array"
+        },
+        "direct_drops": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Direct Drops",
+          "type": "array"
+        },
+        "profiled_drops": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Profiled Drops",
+          "type": "array"
+        },
+        "nuisance_at_bound": {
+          "title": "Nuisance At Bound",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "base_theta",
+        "shifted_theta",
+        "profiled_theta",
+        "direct_drops",
+        "profiled_drops",
+        "nuisance_at_bound"
+      ],
+      "title": "ProfileFold",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "calibrex.camera_lidar_profile_probe/v0.1",
+      "default": "calibrex.camera_lidar_profile_probe/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "running",
+        "complete",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "error": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Error"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    },
+    "axes": {
+      "items": {
+        "$ref": "#/$defs/ProfileAxis"
+      },
+      "title": "Axes",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "status",
+    "provenance"
+  ],
+  "title": "ProfileReport",
+  "type": "object"
+}

@@ -1,0 +1,195 @@
+"""Post hoc conditional-axis probes on previously captured spent KITTI inputs.
+
+This is a diagnostic, not a calibration/check backend. Each fit fixes the other
+five coordinates at the candidate. Conditional controls and jackknife precision
+do not establish joint observability. Nuisance sweeps expose that limitation.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+from collections.abc import Sequence
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, Literal
+
+import numpy as np
+from pydantic import Field
+from scipy.spatial.transform import Rotation
+
+from calibrex.core.camera_lidar_edge import CameraLidarEdgeControl
+from calibrex.core.provenance import git_commit
+from calibrex.core.result import StrictModel
+from calibrex.evaluation import camera_lidar_edge as edge
+
+
+class NuisanceProbe(StrictModel):
+    fixed_axis: int = Field(ge=0, le=2)
+    fixed_offset_deg: float
+    active_correction_deg: float
+
+
+class AxisProbe(StrictModel):
+    axis: int = Field(ge=0, le=2)
+    correction_deg: float
+    conditional_std_deg: float = Field(ge=0)
+    conditional_control: CameraLidarEdgeControl
+    at_search_bound: bool
+    nuisance: list[NuisanceProbe]
+    nuisance_correction_span_deg: float = Field(ge=0)
+    reference_error_deg: float | None = None
+
+
+class ProbeReport(StrictModel):
+    schema_version: Literal["calibrex.camera_lidar_conditional_axis_probe/v0.1"] = (
+        "calibrex.camera_lidar_conditional_axis_probe/v0.1"
+    )
+    status: Literal["running", "complete", "failed"]
+    error: str | None = None
+    provenance: dict[str, Any]
+    probes: list[AxisProbe] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=lambda: [
+        "Conditional fits hold other coordinates fixed; precision is not joint observability.",
+        "Nuisance sweeps are sensitivity probes, not a calibrated uncertainty interval.",
+        "Dataset calibration is a reference, not ground truth; this is post hoc spent-data work.",
+        "No native verdict, adoption gate, audit threshold or default estimator is changed.",
+    ])
+
+
+def probe_axis(
+    objective: edge.EdgeObjective,
+    training: Sequence[edge.EdgeObjective],
+    held_out: Sequence[edge.EdgeObjective],
+    axis: int,
+    options: edge.EdgeAlignmentOptions,
+) -> AxisProbe:
+    """Fit one rotation coordinate, refit it per fold, then sweep fixed nuisance axes."""
+    if axis not in (0, 1, 2) or len(training) != len(held_out) or len(training) < 3:
+        raise ValueError("need one rotation axis and at least three paired folds")
+    if options.start_scan_deg is None:
+        raise ValueError("conditional probes require an explicit profile range")
+    offsets = np.arange(-options.start_scan_deg,
+                        options.start_scan_deg + 0.5 * options.start_scan_step_deg,
+                        options.start_scan_step_deg)
+
+    def fit(fixed: np.ndarray) -> np.ndarray:
+        poses = np.repeat(fixed[None, :], len(offsets), axis=0)
+        poses[:, axis] = offsets
+        best, _ = edge._drive_edge_workflow(edge._edge_maximum(objective, poses))
+        theta, _ = edge.search(objective, poses[best], options, axes=(axis,))
+        return theta
+
+    theta = fit(np.zeros(6))
+    fits = np.array([edge.search(fold, theta, options, axes=(axis,),
+                                 first_level=options.jackknife_first_level)[0]
+                     for fold in training])
+    values = fits[:, axis]
+    std = float(np.sqrt((len(values) - 1) / len(values)
+                        * np.sum((values - values.mean()) ** 2)))
+    # Other axes' controls are deliberately not reported as observability evidence.
+    control = edge._controls(held_out, fits, options)[axis]
+    nuisance = []
+    for fixed_axis in range(3):
+        if fixed_axis == axis:
+            continue
+        for sign in (-1, 1):
+            fixed = np.zeros(6)
+            fixed[fixed_axis] = sign * options.rotation_control_deg
+            fitted = fit(fixed)
+            nuisance.append(NuisanceProbe(
+                fixed_axis=fixed_axis, fixed_offset_deg=float(fixed[fixed_axis]),
+                active_correction_deg=float(fitted[axis]),
+            ))
+    corrections = [float(theta[axis]), *(p.active_correction_deg for p in nuisance)]
+    return AxisProbe(
+        axis=axis, correction_deg=float(theta[axis]),
+        conditional_std_deg=max(std, 0.5 * options.rotation_levels_deg[-1]),
+        conditional_control=control,
+        at_search_bound=bool(abs(theta[axis]) >= options.rotation_bound_deg - 1e-9),
+        nuisance=nuisance, nuisance_correction_span_deg=max(corrections) - min(corrections),
+    )
+
+
+def _sha(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def probe_snapshot(snapshot: Path, output: Path) -> ProbeReport:
+    """Verify a spent snapshot and write bounded numerical receipts, preserving failures."""
+    from tools import kitti_camera_lidar_v3_replay as replay
+
+    if (output.resolve().is_relative_to(snapshot.resolve())
+            or snapshot.resolve().is_relative_to(output.resolve())):
+        raise ValueError("output must be separate from the source snapshot")
+    # Verify spent identity and all input bytes before estimation or output creation.
+    meta, frames, camera, candidate, options = replay.load_snapshot(snapshot)
+    output.mkdir(parents=True, exist_ok=False)
+    report = ProbeReport(status="running", provenance={
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "git_commit": git_commit(), "generator_sha256": _sha(Path(__file__)),
+        "estimator_sha256": _sha(Path(edge.__file__)),
+        "replay_sha256": _sha(Path(replay.__file__)),
+        "snapshot_sha256": _sha(snapshot / "snapshot.json"),
+        "arrays_sha256": meta.arrays_sha256, "drive": meta.drive, "run": meta.run,
+        "options": options.as_dict(), "analysis": "post hoc development",
+        "new_accuracy_claim": False, "new_evaluation_started": False,
+        "nuisance_offset_source": "existing rotation_control_deg; no new tuned margin",
+        "reference_scope": "candidate with recorded injection undone; used only after fitting",
+    })
+
+    def write() -> None:
+        (output / "report.json").write_text(report.model_dump_json(indent=2), encoding="utf-8")
+
+    (output / "report.schema.json").write_text(
+        json.dumps(ProbeReport.model_json_schema(), indent=2), encoding="utf-8")
+    write()
+    try:
+        prepared, dropped = edge.prepare_frames(frames, camera, candidate, options)
+        report.provenance.update({"prepared_frames": len(prepared), "dropped": dropped})
+        if len(prepared) < options.min_frames:
+            raise ValueError("not enough prepared frames")
+        objective = edge._fixed_objective(prepared, camera, candidate)
+        blocks = edge._block_slices(len(prepared), options.blocks)
+        held_out = [edge._fixed_objective([prepared[i] for i in block], camera, candidate)
+                    for block in blocks]
+        training = [edge._fixed_objective(
+            [frame for i, frame in enumerate(prepared) if i not in block], camera, candidate,
+        ) for block in blocks]
+        for axis in range(3):
+            report.probes.append(probe_axis(objective, training, held_out, axis, options))
+            write()
+        reference = candidate[:3, :3].copy()
+        spec = replay.RUNS[meta.run]
+        if spec is not None:
+            name, angle = spec.split(":")
+            vector = np.zeros(3)
+            vector[("x", "y", "z").index(name)] = np.radians(float(angle))
+            reference = Rotation.from_rotvec(-vector).as_matrix() @ reference
+        for probe in report.probes:
+            correction = np.zeros(3)
+            correction[probe.axis] = np.radians(probe.correction_deg)
+            estimate = Rotation.from_rotvec(correction).as_matrix() @ candidate[:3, :3]
+            residual = np.degrees(Rotation.from_matrix(estimate @ reference.T).as_rotvec())
+            probe.reference_error_deg = float(residual[probe.axis])
+        report.status = "complete"
+    except Exception as exc:
+        report.status = "failed"
+        report.error = f"{type(exc).__name__}: {exc}"
+        raise
+    finally:
+        write()
+    return report
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("snapshot", type=Path)
+    parser.add_argument("--output", type=Path, required=True)
+    args = parser.parse_args(argv)
+    probe_snapshot(args.snapshot, args.output)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
