@@ -174,11 +174,14 @@ def _sha(path: Path) -> str:
 def profile_snapshot(
     snapshot: Path, conditional_report: Path, output: Path, *, multi_start: bool = False,
     spatial_balance: bool = False,
+    azimuth_orientation: bool = False,
 ) -> ProfileReport:
     """Verify a previously captured input and conditional receipt; retain partial failures."""
     from tools import kitti_camera_lidar_axis_probe as conditional
     from tools import kitti_camera_lidar_v3_replay as replay
 
+    if spatial_balance and azimuth_orientation:
+        raise ValueError("choose one objective ablation at a time")
     if (output.resolve().is_relative_to(snapshot.resolve())
             or snapshot.resolve().is_relative_to(output.resolve())
             or conditional_report.resolve().is_relative_to(output.resolve())):
@@ -206,6 +209,7 @@ def profile_snapshot(
         "nuisance_search": "profile_multistart" if multi_start else "local",
         "nuisance_selection": "maximum training objective; original local fit retained on ties",
         "spatial_weights": "candidate_fixed_2x2" if spatial_balance else "original",
+        "orientation_model": "projected_azimuth_gradient" if azimuth_orientation else "none",
     })
 
     def write() -> None:
@@ -229,12 +233,41 @@ def profile_snapshot(
                 "tile_support": [support.model_dump(mode="json") for _, support in balanced],
                 "spatial_scope": "per-frame fixed preprocessing on train and held-out frames",
             })
+        orientation_features = None
+        if azimuth_orientation:
+            from tools import kitti_camera_lidar_orientation as oriented
+
+            images = {frame.time_s: frame.image for frame in frames}
+            if len(images) != len(frames):
+                raise ValueError("orientation image lookup requires unique frame timestamps")
+            orientation_features = []
+            for frame in prepared:
+                feature, factor = oriented.prepare_orientation_image(images[frame.time_s], options)
+                if factor != frame.scale:
+                    raise ValueError("orientation image scale differs from prepared frame")
+                orientation_features.append(feature)
+            report.provenance.update({
+                "orientation_source_sha256": _sha(Path(oriented.__file__)),
+                "orientation_scope": "projected azimuth proxy from compensated point coordinates",
+                "orientation_limit": "scan direction is not a recovered physical boundary normal",
+                "orientation_penalty": "attenuate nonnegative response; retain background penalty",
+                "orientation_support": "organized frames and undistorted pinhole only",
+                "orientation_unknown": "flat gradients or zero projected direction are neutral",
+                "orientation_confidence": "existing scalar 99th-percentile gradient normalization",
+            })
+
+        def objective_for(indices: Sequence[int]) -> edge.EdgeObjective:
+            selected = [prepared[i] for i in indices]
+            if orientation_features is not None:
+                return oriented.OrientationObjective(
+                    selected, camera, candidate, [orientation_features[i] for i in indices],
+                )
+            return edge._fixed_objective(selected, camera, candidate)
+
         blocks = edge._block_slices(len(prepared), options.blocks)
-        held = [edge._fixed_objective([prepared[i] for i in block], camera, candidate)
-                for block in blocks]
-        training = [edge._fixed_objective(
-            [frame for i, frame in enumerate(prepared) if i not in block], camera, candidate,
-        ) for block in blocks]
+        held = [objective_for(block) for block in blocks]
+        training = [objective_for([i for i in range(len(prepared)) if i not in block])
+                    for block in blocks]
         for p in previous.probes:
             report.axes.append(profile_axis(training, held, p.axis, p.correction_deg, options,
                                             multi_start=multi_start))
@@ -257,9 +290,12 @@ def main(argv: list[str] | None = None) -> int:
                         help="also refine training-only nuisance profile maxima")
     parser.add_argument("--spatial-balance", action="store_true",
                         help="use fixed candidate-image 2x2 tile weights (research only)")
+    parser.add_argument("--azimuth-orientation", action="store_true",
+                        help="penalize gradient/azimuth-direction mismatch (research only)")
     args = parser.parse_args(argv)
     profile_snapshot(args.snapshot, args.conditional_report, args.output,
-                     multi_start=args.multi_start, spatial_balance=args.spatial_balance)
+                     multi_start=args.multi_start, spatial_balance=args.spatial_balance,
+                     azimuth_orientation=args.azimuth_orientation)
     return 0
 
 
