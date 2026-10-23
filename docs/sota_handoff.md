@@ -307,6 +307,16 @@ retry, which binds the original failed report and unchanged inputs/settings.
 This is control evidence, not a native coverage or accuracy claim; 53 drives
 and the separate pre-registration remain pending.
 
+The [projected-azimuth orientation proxy](benchmarks/kitti_camera_lidar_orientation.md)
+was frozen at `c237f78d` before six selected inputs (baseline, pitch +3 and roll
++3 on each cached drive), using two independent workers. It compares image
+gradients to a scan-direction proxy, not actual boundary normals. Scalar/proxy
+controls detect 8/18 versus 0/18; 0002 pitch stays missed. Do not adopt or tune
+this proxy from the result. All six outputs and a separate default scalar-mode
+replay are retained; the latter matches previous numerical evidence excluding
+provenance within `1e-9`. No new drive, fresh evaluation, SOTA gate or default
+changes; capture progress remains 2/55.
+
 **Evaluation candidates.** KITTI-360 (another car, sensor set and calibration) is the
 natural choice: sequences 0004-0007, 0009 and 0010, subject to completing the exposure
 audit. Sequence 0003 is spent: the research plan already records a development capture.

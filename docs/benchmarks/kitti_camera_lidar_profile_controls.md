@@ -128,6 +128,12 @@ still-missed pitch control.
 
 ## Decision
 
+The [projected-azimuth orientation probe](kitti_camera_lidar_orientation.md)
+adds a signed-safe image-gradient compatibility penalty. On six preselected
+cached inputs it loses all eight previously detected scalar controls and does
+not recover pitch on 0002. The proxy is not adopted; the separate default-mode
+replay retains the previous full scalar numerical evidence within `1e-9`.
+
 The follow-up [fixed spatial-weight experiment](kitti_camera_lidar_spatial_weights.md)
 keeps frame totals and margin-point weights while balancing candidate-inside
 2x2 tiles. It does not recover 0002 pitch detection and reduces detected 0005

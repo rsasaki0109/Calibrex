@@ -1,0 +1,102 @@
+{
+  "schema_version": "calibrex.camera_lidar_orientation_batch/v0.1",
+  "status": "complete_diagnostic_only",
+  "runs": [
+    {
+      "drive": "2011_09_26_0005",
+      "run": "baseline",
+      "report": "2011_09_26_0005/baseline/report.json",
+      "report_sha256": "ce598608a6623995c14ec379c5e99135e154e3da221fa78f1457734ecb1cdd02",
+      "scalar_report_sha256": "91c7d6b82b1f5afb35536abd2bf69e53d021ebf9db8cbe40daa3f12646d4db76",
+      "input_and_options_parity": true,
+      "elapsed_s": 153.2029999999795
+    },
+    {
+      "drive": "2011_09_26_0005",
+      "run": "inject_y+3",
+      "report": "2011_09_26_0005/inject_y+3/report.json",
+      "report_sha256": "4fa798e7390864f04a654fde843955e0a6d5b17cd61bf444dd2cc2151c227b04",
+      "scalar_report_sha256": "54e4ac37667fe16ddc47368dffa8e4481a41e022bcc184da303c172a6a8d7bd9",
+      "input_and_options_parity": true,
+      "elapsed_s": 152.48399999993853
+    },
+    {
+      "drive": "2011_09_26_0005",
+      "run": "inject_x+3",
+      "report": "2011_09_26_0005/inject_x+3/report.json",
+      "report_sha256": "62ac642cd911d96f1e2cd35fe906529eaeea82a2d12ab5a93e6e2698d1b76c20",
+      "scalar_report_sha256": "086a19f30af6d1ed4bc0b8ca81927d0d81a0de81d178c5857478ec4b8ca990c0",
+      "input_and_options_parity": true,
+      "elapsed_s": 136.64100000006147
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "run": "baseline",
+      "report": "2011_09_28_0002/baseline/report.json",
+      "report_sha256": "2ad43afbd8b9e2b7c7ad44a362310d820ea72edfee5abeca1822d75f463b3894",
+      "scalar_report_sha256": "56cabaec497aa2d22c34d17c9bbd3c9316d1c9d7480ae4652a42f57d7e3aa013",
+      "input_and_options_parity": true,
+      "elapsed_s": 28.531000000191852
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "run": "inject_y+3",
+      "report": "2011_09_28_0002/inject_y+3/report.json",
+      "report_sha256": "727b7b813f210a30e00c1f3bc2b72a3188b3098d7f7718277b6d78826399edf4",
+      "scalar_report_sha256": "db62781f0f0d5230ae9a9536c1a205e5dcc2dc7502c91d3e4ffb5981741336f8",
+      "input_and_options_parity": true,
+      "elapsed_s": 29.062999999849126
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "run": "inject_x+3",
+      "report": "2011_09_28_0002/inject_x+3/report.json",
+      "report_sha256": "8823a6e41d090248b8b3b0a8a932f88fd233bd4bab529df3d26bb2a8a98ceefb",
+      "scalar_report_sha256": "f32b59ab695100f0e39b22612ac7d38cbae6f95a9f371bf5e08f17c4f9f87a44",
+      "input_and_options_parity": true,
+      "elapsed_s": 26.094000000040978
+    }
+  ],
+  "errors": {},
+  "provenance": {
+    "created_at": "2026-10-23T03:16:03.806066+00:00",
+    "git_commit": "c237f78d015fbf7729702cc64b54dd0e436b8591",
+    "generator_sha256": "3d9719cf46299dc5af49f499ea098f7e170fad84624abe77ba21055eab96878f",
+    "sources": {
+      "profile": {
+        "path": "tools\\kitti_camera_lidar_profile_probe.py",
+        "sha256": "d51f1aa7eb67ce05b2bf8ca603b14ca4d27e05cd2a3370ab8e77b78d7e13e523"
+      },
+      "orientation": {
+        "path": "tools\\kitti_camera_lidar_orientation.py",
+        "sha256": "6da60a8603602cda0276ee304bf05c55f636e67e8818d595629ada283f6a877f"
+      },
+      "conditional": {
+        "path": "tools\\kitti_camera_lidar_axis_probe.py",
+        "sha256": "00ac1bc67b00a21b7a5cccea3301c855d302ca68c2b205872dd8e690dad80ec6"
+      },
+      "replay": {
+        "path": "tools\\kitti_camera_lidar_v3_replay.py",
+        "sha256": "92211dbf5237b0c3ce4c02c0e08388e2909f8f9dc124d873828cc0a227ce5bdc"
+      },
+      "estimator": {
+        "path": "src\\calibrex\\evaluation\\camera_lidar_edge.py",
+        "sha256": "7aa3c100a8ce4a9ea4dbfbcf9d636fe17fb462d2041e1d6963bc09aa7fc94dcb"
+      }
+    },
+    "selection": "post hoc spent development; baseline, pitch+3 and roll+3 on each cached drive, fixed before launch",
+    "expected_inputs": 6,
+    "expected_axis_controls": 18,
+    "new_accuracy_claim": false,
+    "new_evaluation_started": false,
+    "threshold_selection": false,
+    "source_committed_before_experiment": true,
+    "orientation_model": "projected_azimuth_gradient",
+    "spatial_weights": "original",
+    "execution": {
+      "workers": 2,
+      "blas_threads_per_worker": 1,
+      "timing_scope": "execution receipt only; not a speed comparison"
+    }
+  }
+}
