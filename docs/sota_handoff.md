@@ -275,6 +275,16 @@ a promoted method. The tool and byte-bound batch are available for research;
 account for uncertain nuisance axes before adoption. No fresh data was read;
 capture progress stays 2/55 and 53 remain.
 
+The [training-only nuisance-profiled controls](benchmarks/kitti_camera_lidar_profile_controls.md)
+use committed source `7a6ea534` and all 14 cached inputs. At the same refitted
+fold poses, direct/profiled controls detect 25/42 versus 21/42 axes (control
+outcomes only, no std/coverage/verdict gate). Four 0002 pitch controls lose
+detection, but its roll +3 still passes with profiled t=3.158 and about 1.5 deg
+maximum absolute roll reference error among the saved fold fits. This is not
+an accurate-calibration guarantee or a promoted method. Probe broader nuisance
+basins before setting new gates. All outputs and this counterexample are retained;
+the pooled conditional initialization means these are not nested validation folds.
+
 **Evaluation candidates.** KITTI-360 (another car, sensor set and calibration) is the
 natural choice: sequences 0004-0007, 0009 and 0010, subject to completing the exposure
 audit. Sequence 0003 is spent: the research plan already records a development capture.

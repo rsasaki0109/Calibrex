@@ -22,6 +22,11 @@ def test_profiled_controls_separate_a_coupled_ridge_from_an_identifiable_axis(
     )
     assert result.direct_control.detected
     assert result.profiled_control.detected is detected
+    expected = edge._controls(
+        [_Ridge(coupling, w) for w in (0.8, 1, 1.2)],
+        np.array([f.base_theta for f in result.folds]), edge.EdgeAlignmentOptions(),
+    )[0]
+    assert result.direct_control.model_dump() == expected.model_dump()
     for fold in result.folds:
         for direct, profiled in zip(fold.shifted_theta, fold.profiled_theta, strict=True):
             assert direct[0] == profiled[0]  # Tested correction is never optimized away.
