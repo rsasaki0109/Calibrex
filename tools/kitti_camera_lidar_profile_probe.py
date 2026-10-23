@@ -173,6 +173,7 @@ def _sha(path: Path) -> str:
 
 def profile_snapshot(
     snapshot: Path, conditional_report: Path, output: Path, *, multi_start: bool = False,
+    spatial_balance: bool = False,
 ) -> ProfileReport:
     """Verify a previously captured input and conditional receipt; retain partial failures."""
     from tools import kitti_camera_lidar_axis_probe as conditional
@@ -204,6 +205,7 @@ def profile_snapshot(
         "start_scope": "previous full-input conditional correction; folds are local jackknife fits",
         "nuisance_search": "profile_multistart" if multi_start else "local",
         "nuisance_selection": "maximum training objective; original local fit retained on ties",
+        "spatial_weights": "candidate_fixed_2x2" if spatial_balance else "original",
     })
 
     def write() -> None:
@@ -217,6 +219,16 @@ def profile_snapshot(
         report.provenance.update({"prepared_frames": len(prepared), "dropped": dropped})
         if len(prepared) < options.min_frames:
             raise ValueError("not enough prepared frames")
+        if spatial_balance:
+            from tools import kitti_camera_lidar_spatial_weights as spatial
+
+            balanced = [spatial.balance_frame(frame, camera, candidate) for frame in prepared]
+            prepared = [frame for frame, _ in balanced]
+            report.provenance.update({
+                "spatial_source_sha256": _sha(Path(spatial.__file__)),
+                "tile_support": [support.model_dump(mode="json") for _, support in balanced],
+                "spatial_scope": "per-frame fixed preprocessing on train and held-out frames",
+            })
         blocks = edge._block_slices(len(prepared), options.blocks)
         held = [edge._fixed_objective([prepared[i] for i in block], camera, candidate)
                 for block in blocks]
@@ -243,9 +255,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--multi-start", action="store_true",
                         help="also refine training-only nuisance profile maxima")
+    parser.add_argument("--spatial-balance", action="store_true",
+                        help="use fixed candidate-image 2x2 tile weights (research only)")
     args = parser.parse_args(argv)
     profile_snapshot(args.snapshot, args.conditional_report, args.output,
-                     multi_start=args.multi_start)
+                     multi_start=args.multi_start, spatial_balance=args.spatial_balance)
     return 0
 
 
