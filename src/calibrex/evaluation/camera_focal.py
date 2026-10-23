@@ -139,6 +139,15 @@ def estimate_focal_scale(
             status="inconclusive",
             reasons=("too few intervals rotate fast enough about every camera axis",),
         )
+    if not np.all(np.isfinite(holdout_ratio)):
+        return FocalScaleResult(
+            ratio=ratio,
+            ratio_std=np.asarray(std, dtype=np.float64),
+            holdout_ratio=holdout_ratio,
+            intervals=len(camera),
+            status="inconclusive",
+            reasons=("too few held-out intervals rotate fast enough about every camera axis",),
+        )
     disagreement = np.abs(holdout_ratio - ratio) / np.maximum(std * math.sqrt(1.5), 1e-9)
     if np.any(disagreement > opts.max_holdout_sigma):
         status = "fail"
@@ -229,6 +238,8 @@ def run_camera_focal_check(
     The rotation, clock offset and gyro bias come from ``rotation_artifact``
     (digest ``rotation_artifact_sha256``); ``max_seconds`` limits the images
     tracked (the whole IMU stream is kept: only the tracked windows are read).
+    Raises ``ValueError`` if missing excitation leaves nonfinite evidence that
+    cannot be represented by the numeric fields of the artifact schema.
     """
 
     import hashlib
@@ -258,6 +269,10 @@ def run_camera_focal_check(
         np.asarray(rotation_artifact.gyro_bias_rps, dtype=np.float64),
         opts,
     )
+    if not np.all(np.isfinite(np.concatenate([
+        result.ratio, result.ratio_std, result.holdout_ratio,
+    ]))):
+        raise ValueError("camera focal evidence is incomplete: " + "; ".join(result.reasons))
     digest, _ = bag_input_digest([bag])
     return CameraFocalScaleArtifact(
         policy_status=result.status,  # type: ignore[arg-type]

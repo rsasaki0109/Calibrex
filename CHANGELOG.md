@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Return an inconclusive camera focal check when held-out rotations cannot
+  support every rate ratio. Missing held-out ratios previously bypassed the
+  disagreement gate through NaN comparisons. Reject nonfinite evidence before
+  constructing numeric artifacts; keep schemas and thresholds unchanged.
+
 - Record the first pre-registered INS-LiDAR rotation audit across KITTI and
   Boreas: **refuted, 6/8 gates**. All four fits completed and all eight estimated
   axes agree within 0.286 deg, with eight detected 1 deg controls. One KITTI
