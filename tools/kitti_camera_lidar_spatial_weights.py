@@ -15,6 +15,9 @@ class TileSupport(StrictModel):
     point_counts: list[int] = Field(min_length=4, max_length=4)
     original_weight: list[float] = Field(min_length=4, max_length=4)
     balanced_weight: list[float] = Field(min_length=4, max_length=4)
+    outside_point_count: int = Field(ge=0)
+    outside_original_weight: float = Field(ge=0)
+    outside_balanced_weight: float = Field(ge=0)
 
 
 def balance_frame(
@@ -25,6 +28,7 @@ def balance_frame(
     Tiles are assigned once at the candidate, before any optimization. Weights
     stay fixed when trial poses move points; no frame or tile is selected by a
     fitted score, held-out outcome, injection label or reference calibration.
+    Candidate-outside margin points retain their original weights and support.
     """
     if candidate.shape != (4, 4) or not np.all(np.isfinite(candidate)):
         raise ValueError("candidate must be a finite 4x4 matrix")
@@ -38,19 +42,24 @@ def balance_frame(
     u = (u - 0.5 * (frame.scale - 1)) / frame.scale
     v = (v - 0.5 * (frame.scale - 1)) / frame.scale
     height, width = frame.edge.shape
-    inside = (valid & np.isfinite(u) & np.isfinite(v)
-              & (u >= 0) & (v >= 0) & (u < width - 1) & (v < height - 1))
-    if not np.all(inside):
-        raise ValueError("prepared points must project inside the candidate image")
-    tile = (u >= width / 2).astype(np.int64) + 2 * (v >= height / 2).astype(np.int64)
+    if not np.all(valid & np.isfinite(u) & np.isfinite(v)):
+        raise ValueError("prepared points must have finite valid candidate projections")
+    inside = (u >= 0) & (v >= 0) & (u < width - 1) & (v < height - 1)
+    tile = ((u[inside] >= width / 2).astype(np.int64)
+            + 2 * (v[inside] >= height / 2).astype(np.int64))
     counts = np.bincount(tile, minlength=4)
-    mass = np.bincount(tile, weights=frame.weights.astype(np.float64), minlength=4)
+    mass = np.bincount(tile, weights=frame.weights[inside].astype(np.float64), minlength=4)
     occupied = int(np.count_nonzero(counts))
-    balanced = (frame.weights.astype(np.float64) / mass[tile]
-                * (mass.sum() / occupied)).astype(np.float32)
+    balanced = frame.weights.astype(np.float32, copy=True)
+    if occupied:
+        balanced[inside] = (frame.weights[inside].astype(np.float64) / mass[tile]
+                            * (mass.sum() / occupied)).astype(np.float32)
     balanced.setflags(write=False)
     return replace(frame, weights=balanced), TileSupport(
         time_s=frame.time_s, point_counts=counts.tolist(), original_weight=mass.tolist(),
-        balanced_weight=np.bincount(tile, weights=balanced.astype(np.float64),
+        balanced_weight=np.bincount(tile, weights=balanced[inside].astype(np.float64),
                                     minlength=4).tolist(),
+        outside_point_count=int((~inside).sum()),
+        outside_original_weight=float(frame.weights[~inside].sum(dtype=np.float64)),
+        outside_balanced_weight=float(balanced[~inside].sum(dtype=np.float64)),
     )

@@ -25,6 +25,7 @@ def test_equal_tile_mass_preserves_relative_weights_points_and_input() -> None:
     balanced, support = spatial.balance_frame(original, CAMERA, np.eye(4))
     assert support.point_counts == [2, 1, 1, 1]
     assert support.original_weight == [101, 2, 3, 4]
+    assert support.outside_point_count == 0
     assert support.balanced_weight == pytest.approx([27.5] * 4)
     assert balanced.weights.sum() == pytest.approx(original.weights.sum())
     assert balanced.weights[0] / balanced.weights[1] == pytest.approx(100)
@@ -61,5 +62,28 @@ def test_projection_support_and_image_scale_follow_objective_coordinates() -> No
     camera = edge.EdgeCamera(fx=2, fy=2, cx=4.5, cy=4.5)
     _, support = spatial.balance_frame(scaled, camera, np.eye(4))
     assert support.point_counts == [2, 1, 1, 1]
-    with pytest.raises(ValueError, match="inside"):
-        spatial.balance_frame(frame, edge.EdgeCamera(fx=1, fy=1, cx=20, cy=20), np.eye(4))
+    outside, support = spatial.balance_frame(
+        frame, edge.EdgeCamera(fx=1, fy=1, cx=20, cy=20), np.eye(4),
+    )
+    assert support.outside_point_count == 5 and support.point_counts == [0, 0, 0, 0]
+    assert support.outside_original_weight == support.outside_balanced_weight == 110
+    np.testing.assert_array_equal(outside.weights, frame.weights)
+    with pytest.raises(ValueError, match="finite valid"):
+        spatial.balance_frame(replace(frame, points=-frame.points), CAMERA, np.eye(4))
+
+
+def test_margin_points_keep_their_weights_and_can_enter_the_trial_image() -> None:
+    frame = _frame()
+    frame = replace(frame, points=np.vstack([frame.points, [-2.1, 0, 1]]).astype(np.float32),
+                    weights=np.append(frame.weights, np.float32(5)))
+    balanced, support = spatial.balance_frame(frame, CAMERA, np.eye(4))
+    assert support.outside_point_count == 1
+    assert support.outside_original_weight == support.outside_balanced_weight == 5
+    assert len(balanced.points) == len(frame.points) == 6
+    assert balanced.weights[-1] == frame.weights[-1] == 5
+    assert balanced.weights.sum() == pytest.approx(frame.weights.sum())
+    # A translation can bring that originally outside point into the image.
+    point_only = replace(balanced, points=balanced.points[-1:], weights=balanced.weights[-1:])
+    objective = edge.EdgeObjective([point_only], CAMERA, np.eye(4))
+    assert objective.score(np.zeros(6)) == 0
+    assert objective.score(np.array([0, 0, 0, 0.2, 0, 0])) > 0
