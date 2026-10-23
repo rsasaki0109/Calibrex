@@ -1,5 +1,6 @@
 """Nuisance-aware controls expose coupling; held-out scores never optimize poses."""
 import json
+from dataclasses import replace
 
 import jsonschema
 import numpy as np
@@ -45,7 +46,8 @@ def test_outside_bound_control_still_refits_bounded_nuisance_coordinates() -> No
     assert theta.tolist() == [14.0, 0, 0, 0, 0, 0]
 
 
-def test_held_out_objective_only_scores_the_five_final_poses_per_fold() -> None:
+@pytest.mark.parametrize("multi_start", [False, True])
+def test_held_out_objective_only_scores_the_five_final_poses_per_fold(multi_start: bool) -> None:
     class HeldOut(_Ridge):
         def __init__(self) -> None:
             super().__init__(1)
@@ -56,7 +58,8 @@ def test_held_out_objective_only_scores_the_five_final_poses_per_fold() -> None:
             return super().score(theta)
 
     held = [HeldOut() for _ in range(3)]
-    result = probe.profile_axis([_Ridge(1)] * 3, held, 0, 2.0, edge.EdgeAlignmentOptions())
+    result = probe.profile_axis([_Ridge(1)] * 3, held, 0, 2.0, edge.EdgeAlignmentOptions(),
+                                multi_start=multi_start)
     for objective, fold in zip(held, result.folds, strict=True):
         assert objective.calls == [fold.base_theta, *fold.shifted_theta, *fold.profiled_theta]
 
@@ -69,3 +72,39 @@ def test_invalid_fold_inputs_are_rejected() -> None:
     schema = probe.ProfileReport.model_json_schema()
     report = probe.ProfileReport(status="failed", error="kept", provenance={"test": True})
     jsonschema.validate(json.loads(report.model_dump_json()), schema)
+
+
+def test_training_profile_start_escapes_a_local_nuisance_peak() -> None:
+    class TwoPeaks(edge.EdgeObjective):
+        def __init__(self) -> None:
+            pass
+
+        def score(self, theta: np.ndarray) -> float:
+            return float(max(-theta[1] ** 2, 1.0 - 4 * (theta[1] - 4) ** 2)
+                         - theta[2] ** 2)
+
+    objective = TwoPeaks()
+    start = np.array([14.0, 0, 0, 0, 0, 0])
+    options = edge.EdgeAlignmentOptions()
+    local = probe.refit_nuisance(objective, start, 0, options)
+    wide = probe.refit_nuisance(objective, start, 0, options, multi_start=True)
+    assert local[1] == 0 and wide[1] == 4
+    assert local[0] == wide[0] == 14  # Tested shifts outside the bound remain fixed.
+    assert objective.score(wide) > objective.score(local)
+    assert start.tolist() == [14, 0, 0, 0, 0, 0]
+    with pytest.raises(ValueError, match="profile range"):
+        probe.refit_nuisance(objective, start, 0, replace(options, start_scan_deg=None),
+                             multi_start=True)
+
+
+def test_multistart_retains_original_local_solution_on_ties() -> None:
+    class Flat(edge.EdgeObjective):
+        def __init__(self) -> None:
+            pass
+
+        def score(self, theta: np.ndarray) -> float:
+            return 1.0
+
+    start = np.array([2.0, 1.5, -0.5, 0, 0, 0])
+    result = probe.refit_nuisance(Flat(), start, 0, edge.EdgeAlignmentOptions(), multi_start=True)
+    np.testing.assert_array_equal(result, start)

@@ -71,9 +71,11 @@ def _control(drops: np.ndarray, options: edge.EdgeAlignmentOptions) -> CameraLid
 
 def refit_nuisance(
     objective: edge.EdgeObjective, theta: np.ndarray, axis: int,
-    options: edge.EdgeAlignmentOptions,
+    options: edge.EdgeAlignmentOptions, *, multi_start: bool = False,
 ) -> np.ndarray:
-    """Keep the tested coordinate fixed even if its control is outside the fit bound."""
+    """Keep the tested coordinate fixed; optionally search training profile maxima too."""
+    if multi_start and options.start_scan_deg is None:
+        raise ValueError("multi-start nuisance search requires a profile range")
     class FixedAxisObjective(edge.EdgeObjective):
         def __init__(self) -> None:
             pass
@@ -85,10 +87,37 @@ def refit_nuisance(
 
     start = theta.copy()
     start[axis] = 0.0  # Dummy coordinate; only nuisance bounds constrain this search.
-    fitted, _ = edge.search(
-        FixedAxisObjective(), start, options, axes=tuple(i for i in range(3) if i != axis),
+    fixed_objective = FixedAxisObjective()
+    nuisance_axes = tuple(i for i in range(3) if i != axis)
+    fitted, best_score = edge.search(
+        fixed_objective, start, options, axes=nuisance_axes,
         first_level=options.jackknife_first_level,
     )
+    if multi_start:
+        assert options.start_scan_deg is not None
+        offsets = np.arange(-options.start_scan_deg,
+                            options.start_scan_deg + 0.5 * options.start_scan_step_deg,
+                            options.start_scan_step_deg)
+        starts = []
+        combined = start.copy()
+        for nuisance_axis in nuisance_axes:
+            poses = np.repeat(start[None, :], len(offsets), axis=0)
+            poses[:, nuisance_axis] = offsets
+            index, _ = edge._drive_edge_workflow(edge._edge_maximum(fixed_objective, poses))
+            starts.append(poses[index].copy())
+            combined[nuisance_axis] = poses[index, nuisance_axis]
+        starts.append(combined)
+        seen = {start.tobytes()}
+        for profile_start in starts:
+            if profile_start.tobytes() in seen:
+                continue
+            seen.add(profile_start.tobytes())
+            trial, score = edge.search(
+                fixed_objective, profile_start, options, axes=nuisance_axes,
+            )
+            # Keep the original local optimum on ties; held-out scores never select starts.
+            if score > best_score:
+                fitted, best_score = trial, score
     fitted[axis] = theta[axis]
     return fitted
 
@@ -96,6 +125,7 @@ def refit_nuisance(
 def profile_axis(
     training: Sequence[edge.EdgeObjective], held_out: Sequence[edge.EdgeObjective],
     axis: int, conditional_start_deg: float, options: edge.EdgeAlignmentOptions,
+    *, multi_start: bool = False,
 ) -> ProfileAxis:
     """Optimize on training only; score fixed poses on the held-out blocks."""
     if axis not in (0, 1, 2) or len(training) != len(held_out) or len(training) < 3:
@@ -115,7 +145,7 @@ def profile_axis(
         for sign in (-1, 1):
             shift = base.copy()
             shift[axis] += sign * options.rotation_control_deg
-            fitted = refit_nuisance(train, shift, axis, options)
+            fitted = refit_nuisance(train, shift, axis, options, multi_start=multi_start)
             shifted.append(shift)
             profiled.append(fitted)
         # No held-out score is consulted until all parameters of this fold are fixed.
@@ -141,7 +171,9 @@ def _sha(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def profile_snapshot(snapshot: Path, conditional_report: Path, output: Path) -> ProfileReport:
+def profile_snapshot(
+    snapshot: Path, conditional_report: Path, output: Path, *, multi_start: bool = False,
+) -> ProfileReport:
     """Verify a previously captured input and conditional receipt; retain partial failures."""
     from tools import kitti_camera_lidar_axis_probe as conditional
     from tools import kitti_camera_lidar_v3_replay as replay
@@ -170,6 +202,8 @@ def profile_snapshot(snapshot: Path, conditional_report: Path, output: Path) -> 
         "new_accuracy_claim": False, "new_evaluation_started": False,
         "fit_scope": "training frames only, fixed translation; held-out frames score fixed poses",
         "start_scope": "previous full-input conditional correction; folds are local jackknife fits",
+        "nuisance_search": "profile_multistart" if multi_start else "local",
+        "nuisance_selection": "maximum training objective; original local fit retained on ties",
     })
 
     def write() -> None:
@@ -190,7 +224,8 @@ def profile_snapshot(snapshot: Path, conditional_report: Path, output: Path) -> 
             [frame for i, frame in enumerate(prepared) if i not in block], camera, candidate,
         ) for block in blocks]
         for p in previous.probes:
-            report.axes.append(profile_axis(training, held, p.axis, p.correction_deg, options))
+            report.axes.append(profile_axis(training, held, p.axis, p.correction_deg, options,
+                                            multi_start=multi_start))
             write()
         report.status = "complete"
     except Exception as exc:
@@ -206,8 +241,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("snapshot", type=Path)
     parser.add_argument("--conditional-report", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--multi-start", action="store_true",
+                        help="also refine training-only nuisance profile maxima")
     args = parser.parse_args(argv)
-    profile_snapshot(args.snapshot, args.conditional_report, args.output)
+    profile_snapshot(args.snapshot, args.conditional_report, args.output,
+                     multi_start=args.multi_start)
     return 0
 
 
