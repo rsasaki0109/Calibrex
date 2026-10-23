@@ -1,0 +1,94 @@
+"""Run every cached development input from two spent drives; keep all outcomes."""
+import hashlib
+import json
+import shutil
+import subprocess
+import sys
+import time
+import traceback
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Literal
+from pydantic import BaseModel, ConfigDict
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path[:0] = [str(ROOT), str(ROOT / "src")]
+from tools import kitti_camera_lidar_profile_probe as probe
+from tools import kitti_camera_lidar_spatial_weights as spatial
+from tools import kitti_camera_lidar_axis_probe as conditional
+from tools import kitti_camera_lidar_v3_replay as replay
+from calibrex.evaluation import camera_lidar_edge as edge
+
+OUT = ROOT / "outputs/camera-lidar-profile-spatial-batch-v2"
+OLD = ROOT / "docs/assets/kitti_camera_lidar_v3/conditional_axis_probe"
+INPUTS = {
+    "2011_09_26_0005": ROOT / "outputs/camera-lidar-v3-spent-0005-v2/snapshots/2011_09_26_0005",
+    "2011_09_28_0002": ROOT / "outputs/camera-lidar-v3-spent-20110928-0002-v1/snapshots/2011_09_28_0002",
+}
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+assert commit.startswith("67ff8c5d")
+OUT.mkdir(exist_ok=False)
+
+
+class Batch(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_version: Literal["calibrex.camera_lidar_profile_batch/v0.1"] = "calibrex.camera_lidar_profile_batch/v0.1"
+    status: Literal["running", "complete_diagnostic_only", "failed"]
+    runs: list[dict]
+    errors: dict
+    provenance: dict
+
+
+sources = {}
+for module, name in [(spatial, "spatial"), (probe, "profile"), (conditional, "conditional"), (replay, "replay"), (edge, "estimator")]:
+    path = Path(module.__file__)
+    sources[name] = {"path": str(path.relative_to(ROOT)), "sha256": sha(path)}
+    shutil.copyfile(path, OUT / f"{name}-source.py.txt")
+report = Batch(status="running", runs=[], errors={}, provenance={
+    "created_at": datetime.now(timezone.utc).isoformat(), "git_commit": commit,
+    "generator_sha256": sha(Path(__file__)), "sources": sources,
+    "selection": "all seven cached inputs each on two spent KITTI drives; post hoc development",
+    "expected_inputs": 14, "expected_axis_controls": 42,
+    "new_accuracy_claim": False, "new_evaluation_started": False,
+    "threshold_selection": False, "source_committed_before_experiment": True,
+    "nuisance_search": "profile_multistart",
+    "spatial_weights": "candidate_fixed_2x2", "frame_mass_preserved": True,
+    "prior_failed_report_sha256": sha(ROOT / "outputs/camera-lidar-profile-spatial-batch-v1/report.json"),
+    "outside_margin_weights": "preserved unchanged; balance candidate-inside points only",
+})
+
+
+def write():
+    (OUT / "report.json").write_text(report.model_dump_json(indent=2), encoding="utf-8")
+
+
+(OUT / "report.schema.json").write_text(json.dumps(Batch.model_json_schema(), indent=2), encoding="utf-8")
+write()
+for drive, root in INPUTS.items():
+    for run in replay.RUNS:
+        start = time.monotonic()
+        relative = f"{drive}/{run}"
+        try:
+            result = probe.profile_snapshot(root / run, OLD / relative / "report.json", OUT / relative, multi_start=True, spatial_balance=True)
+            assert result.status == "complete"
+            local_path = ROOT / "docs/assets/kitti_camera_lidar_v3/profiled_controls_multistart" / relative / "report.json"
+            local = probe.ProfileReport.model_validate_json(local_path.read_bytes())
+            for field in ("snapshot_sha256", "arrays_sha256", "conditional_report_sha256", "options"):
+                assert result.provenance[field] == local.provenance[field]
+            assert result.provenance["spatial_weights"] == "candidate_fixed_2x2"
+            report.runs.append({"drive": drive, "run": run, "report": relative + "/report.json",
+                                "report_sha256": sha(OUT / relative / "report.json"),
+                                "unbalanced_report_sha256": sha(local_path), "input_and_options_parity": True,
+                                "elapsed_s": time.monotonic() - start})
+            print(relative, "PASS", round(time.monotonic() - start, 2), flush=True)
+        except Exception as exc:
+            report.errors[relative] = f"{type(exc).__name__}: {exc}"
+            traceback.print_exc()
+        write()
+assert all(sha(ROOT / source["path"]) == source["sha256"] for source in sources.values())
+assert subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip() == commit
+report.status = "complete_diagnostic_only" if len(report.runs) == 14 and not report.errors else "failed"
+write()
+if report.status == "failed":
+    raise SystemExit(1)

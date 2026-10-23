@@ -128,6 +128,12 @@ still-missed pitch control.
 
 ## Decision
 
+The follow-up [fixed spatial-weight experiment](kitti_camera_lidar_spatial_weights.md)
+keeps frame totals and margin-point weights while balancing candidate-inside
+2x2 tiles. It does not recover 0002 pitch detection and reduces detected 0005
+controls from 20/21 to 12/21. The initial margin-support implementation failure
+and complete retry are retained; this weighting proposal is not adopted.
+
 Do not promote this control or tune a new threshold from these two drives.
 Broader nuisance searches expose the selected wrong basin but do not restore
 useful pitch detection on 0002. The next development question is how to change

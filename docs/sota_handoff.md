@@ -296,6 +296,17 @@ This exposes a selected ambiguity; it does not correct the saved fits, provide
 native verdicts, recover useful coverage, or justify promotion. Both batches
 and their source capsules are preserved. Capture progress remains 2/55.
 
+The [fixed 2x2 spatial-weight ablation](benchmarks/kitti_camera_lidar_spatial_weights.md)
+preserves frame totals and candidate-outside support, but does not restore
+0002 pitch detection. Detected multiple-start controls fall from 20/42 to
+12/42 (0005: 20 to 12; 0002: zero in both). Do not adopt it or relax thresholds
+from this negative result. Source `50c77d37` first failed on all 14 inputs
+because it rejected the intentionally retained image margin; that attempt is
+preserved. The fix at `67ff8c5d` was frozen before the complete fourteen-input
+retry, which binds the original failed report and unchanged inputs/settings.
+This is control evidence, not a native coverage or accuracy claim; 53 drives
+and the separate pre-registration remain pending.
+
 **Evaluation candidates.** KITTI-360 (another car, sensor set and calibration) is the
 natural choice: sequences 0004-0007, 0009 and 0010, subject to completing the exposure
 audit. Sequence 0003 is spent: the research plan already records a development capture.

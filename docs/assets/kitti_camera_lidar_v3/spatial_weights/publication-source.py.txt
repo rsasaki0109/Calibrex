@@ -1,0 +1,77 @@
+"""Retain the failed spatial-input attempt and all numerical retry outcomes."""
+import hashlib
+import json
+import shutil
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Literal
+from pydantic import BaseModel, ConfigDict, Field
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path[:0] = [str(ROOT), str(ROOT / "src")]
+from tools.kitti_camera_lidar_spatial_weights import TileSupport
+
+PUBLIC = ROOT / "docs/assets/kitti_camera_lidar_v3/spatial_weights"
+sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()
+
+
+class File(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    path: str
+    bytes: int = Field(ge=0)
+    sha256: str = Field(pattern="^[0-9a-f]{64}$")
+
+
+class Manifest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    schema_version: Literal["calibrex.spatial_probe_publication/v0.1"]
+    provenance: dict
+    files: list[File]
+
+
+first = ROOT / "outputs/camera-lidar-profile-spatial-batch-v1"
+second = ROOT / "outputs/camera-lidar-profile-spatial-batch-v2"
+failed = json.loads((first / "report.json").read_text())
+retry = json.loads((second / "report.json").read_text())
+assert failed["status"] == "failed" and len(failed["errors"]) == 14 and not failed["runs"]
+assert retry["status"] == "complete_diagnostic_only" and len(retry["runs"]) == 14 and not retry["errors"]
+assert retry["provenance"]["prior_failed_report_sha256"] == sha(first / "report.json")
+assert retry["provenance"]["sources"]["spatial"]["sha256"] == sha(ROOT / "tools/kitti_camera_lidar_spatial_weights.py")
+PUBLIC.mkdir(exist_ok=False)
+for attempt, private, batch in [(1, first, failed), (2, second, retry)]:
+    destination = PUBLIC / f"attempt_{attempt}"
+    destination.mkdir()
+    producer = ROOT / f"outputs/camera-lidar-profile-spatial-batch-v{attempt}.py"
+    assert sha(producer) == batch["provenance"]["generator_sha256"]
+    for name in ("report.json", "report.schema.json"):
+        shutil.copyfile(private / name, destination / name)
+    for name, source in batch["provenance"]["sources"].items():
+        path = private / f"{name}-source.py.txt"
+        assert sha(path) == source["sha256"]
+        shutil.copyfile(path, destination / path.name)
+    shutil.copyfile(producer, destination / "producer-source.py.txt")
+    cases = list(batch["errors"]) if attempt == 1 else [r["report"].removesuffix("/report.json") for r in batch["runs"]]
+    schema = private / cases[0] / "report.schema.json"
+    shutil.copyfile(schema, destination / "profile.schema.json")
+    for case in cases:
+        path = private / case / "report.json"
+        assert path.resolve().is_relative_to(private.resolve())
+        assert (path.parent / "report.schema.json").read_bytes() == schema.read_bytes()
+        target = destination / case / "report.json"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(path, target)
+        if attempt == 2:
+            record = next(r for r in batch["runs"] if r["report"] == case + "/report.json")
+            assert sha(path) == record["report_sha256"]
+shutil.copyfile(Path(__file__), PUBLIC / "publication-source.py.txt")
+(PUBLIC / "tile.schema.json").write_text(json.dumps(TileSupport.model_json_schema(), indent=2), encoding="utf-8")
+(PUBLIC / "manifest.schema.json").write_text(json.dumps(Manifest.model_json_schema(), indent=2), encoding="utf-8")
+manifest = Manifest(schema_version="calibrex.spatial_probe_publication/v0.1", provenance={
+    "created_at": datetime.now(timezone.utc).isoformat(), "generator_sha256": sha(Path(__file__)),
+    "sensor_payload_published": False, "analysis": "post hoc spent-data development",
+    "failure_retained": True,
+}, files=[File(path=p.relative_to(PUBLIC).as_posix(), bytes=p.stat().st_size, sha256=sha(p))
+          for p in sorted(PUBLIC.rglob("*")) if p.is_file()])
+(PUBLIC / "manifest.json").write_text(manifest.model_dump_json(indent=2), encoding="utf-8")
+print(len(manifest.files), "files", sum(f.bytes for f in manifest.files), "bytes")
