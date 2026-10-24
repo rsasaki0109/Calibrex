@@ -35,6 +35,24 @@ against tolerances in Check mode, or measured values with 1σ uncertainty in
 Estimate mode. Unchecked and unobserved axes retain their reasons; prior values
 are not shown as measurements. The original JSON and HTML reports remain available.
 
+### Explore the real-data sample
+
+**Explore sample** opens the NTU VIRAL tnp_01 point-cloud comparison immediately,
+without waiting for Python. Drag to orbit, compare Before/After, move the reveal
+slider, or play a reveal. Cyan is the reference LiDAR map; orange is the second
+LiDAR. These are two saved transforms: an intentionally perturbed start and the
+Calibrex estimate from the full development recording. The reveal moves a divider;
+it does not show a live solve or optimizer iterations. The 19.1 → 4.4 cm residuals
+come from the full saved subset in the linked provenance manifest; the browser
+uses a reduced, ground-filtered display subset. NTU VIRAL data is CC BY-NC-SA 4.0.
+
+**Plan the tiny bag** is separate: its 2 s synthetic bag tests topic discovery and
+planning, and does not provide enough motion for a calibration. **Check your bag**
+opens the input flow for an actual browser run on your own recording.
+
+Rebuild the digest-bound display asset with
+`python tools/build_alignment_demo.py` (requires the development image dependencies).
+
 ### Inspect the rig in 3D
 
 The bag check page draws the candidate frame tree in an interactive 3D view.
