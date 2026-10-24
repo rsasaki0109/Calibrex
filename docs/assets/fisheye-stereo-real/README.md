@@ -64,3 +64,10 @@ fitted stereo transform and baseline. Raw photographs remain identical.
 The [generated receipt](../../app/samples/fisheye_real_demo.json) binds the
 generator, native implementation, original photographs and calibration to their
 SHA-256 values. Each frame is fetched only when selected in the browser.
+
+Before converting rectified floating-point intensities to shared display/matching
+8-bit pixels, the producer rounds to eight decimal places and clips to 0–255.
+This removes sub-1e-8 numerical differences near integral intensities across
+NumPy/SciPy paths, which otherwise change gradient thresholds and seeded patch
+selection. Camera maps and disparity/depth equations remain unchanged. Tests
+retain exact pixel and correspondence comparisons against the saved receipts.

@@ -9,8 +9,9 @@ separately.
 **Remaining basic demo categories: 0.** All seven additions are implemented and
 published. The limited-coverage / outlier / Huber live-fit controls are also
 published. The Camera–IMU clock-offset experiment is also published. Its
-rotation × time residual heatmap is merged and deployment is in progress.
-A measured high/low camera-rate window comparison is a separate addition under validation.
+rotation × time residual heatmap is also published.
+A measured high/low camera-rate window comparison is implemented in PR #317
+and pending publication.
 
 | Demo category | Delivered basic demo | Explicit limits |
 |---|---|---|

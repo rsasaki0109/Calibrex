@@ -17,6 +17,24 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
 from build_real_stereo_demo import ASSETS, build_frame  # noqa: E402
 
+from calibrex.evaluation import fisheye_stereo  # noqa: E402
+
+
+@pytest.mark.parametrize("roundoff", [-1e-11, 1e-11])
+def test_subpixel_roundoff_preserves_display_pixels_and_seeded_matches(
+    monkeypatch: pytest.MonkeyPatch, roundoff: float
+) -> None:
+    baseline = build_frame("000")
+    original = fisheye_stereo._resample
+
+    def perturbed(*args: object, **kwargs: object) -> np.ndarray:
+        return original(*args, **kwargs) + roundoff
+
+    monkeypatch.setattr(fisheye_stereo, "_resample", perturbed)
+    actual = build_frame("000")
+    for key in ("raw", "rectified", "depth", "matches", "correspondences"):
+        assert actual[key] == baseline[key]
+
 
 @pytest.mark.parametrize("model", ["mei", "ds"])
 def test_fitted_real_models_rectify_and_match_the_measured_images(model: str) -> None:
