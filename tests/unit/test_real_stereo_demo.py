@@ -37,9 +37,25 @@ def test_subpixel_roundoff_preserves_display_pixels_and_seeded_matches(
 
 
 @pytest.mark.parametrize("model", ["mei", "ds"])
-def test_fitted_real_models_rectify_and_match_the_measured_images(model: str) -> None:
-    saved = json.loads((ROOT / f"docs/app/samples/fisheye_real_{model}_000.json").read_text())
-    generated = build_frame("000", model)
+@pytest.mark.parametrize("frame", ["000", "014", "027"])
+def test_fitted_real_models_rectify_and_match_the_measured_images(model: str, frame: str) -> None:
+    path = ROOT / f"docs/app/samples/fisheye_real_{model}_{frame}.json"
+    index = json.loads((ROOT / "docs/app/samples/fisheye_real_demo.json").read_text())
+    assert index["models"][model] == ["000", "014", "027"]
+    assert (
+        hashlib.sha256(path.read_bytes()).hexdigest()
+        == index["model_frames"][model][frame]["sha256"]
+    )
+    saved = json.loads(path.read_text())
+    generated = build_frame(frame, model)
+    assert saved["frame"] == frame
+    assert saved["depth_truth"] is None
+    for key in ("raw", "rectified", "depth"):
+
+        def pixels(value: str) -> np.ndarray:
+            return np.asarray(Image.open(io.BytesIO(base64.b64decode(value.split(",", 1)[1]))))
+
+        np.testing.assert_array_equal(pixels(saved[key]), pixels(generated[key]))
     assert saved["camera_model"] == model
     assert saved["matches"] == generated["matches"]
     assert saved["fit_excluded_reprojection_px"] < 1

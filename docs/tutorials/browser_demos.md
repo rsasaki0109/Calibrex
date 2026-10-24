@@ -9,7 +9,7 @@ panels now cover the original five sensor-pair demos and six added explorations.
 | IMU–LiDAR | Play or stop the deskew recording | Real MID360 sweep |
 | Camera–IMU | Compare measured motion windows, explore rotation × time and inspect residuals | Measured Hilti camera/gyro series; saved baseline, fixed gyro bias |
 | Camera–LiDAR | Change six offsets and compare the projections | Real KITTI returns and photographs; manual experiment |
-| Fisheye stereo | Switch camera models and inspect linked match close-ups | Real images; supplied KB4 and newly fitted MEI/DS; no depth truth |
+| Fisheye stereo | Keep the photographed pair while switching models; orbit 3D and inspect matches | Real images; supplied KB4 and newly fitted MEI/DS; no depth truth |
 | Method comparison | Switch four native board methods | Shared ACFR fit/holdout split; separate targetless A2D2 evidence |
 | Robot hand–eye | Switch eight methods and inspect motion closure | Measured ETHZ poses; closure is not absolute accuracy |
 | GNSS tracks | Zoom receiver tracks and change a candidate lever arm | Measured comma2k19 fixes; fused path is not truth |
@@ -66,3 +66,10 @@ claim. **Focus selected match** reveals a selected point outside the range and
 centres the view on it. **Reset 3D view** fits the current depth range. Colours
 clip at 0.3–3 m, while coordinates keep their full values. The view shows sparse
 estimated matches, not a dense reconstruction or independently validated depth.
+
+All KB4 / MEI / Double Sphere models now support pairs `000`, `014` and `027`.
+Changing a model keeps the photographed pair selected; the saved rectification,
+match set, 3D view and close-ups update together. Raw photographs stay identical
+for that pair. Match counts and model-specific match sets do not establish a
+model accuracy ranking; there is no independent depth truth. The fit-level
+excluded-capture reprojection diagnostic is shared across that model’s pairs.
