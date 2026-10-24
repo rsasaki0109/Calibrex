@@ -8,8 +8,8 @@ separately.
 
 **Remaining basic demo categories: 0.** All seven additions are implemented and
 published. The limited-coverage / outlier / Huber live-fit controls are also
-published. The Camera–IMU clock-offset experiment is a separate tested addition
-whose publication is pending in its PR.
+published. The Camera–IMU clock-offset experiment is also published. Its
+rotation × time residual heatmap is a separate tested addition pending publication.
 
 | Demo category | Delivered basic demo | Explicit limits |
 |---|---|---|

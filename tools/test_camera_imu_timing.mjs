@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 import "../docs/app/camera-imu-timing.js";
-const {validate,evaluate,cumulativeAt}=globalThis.CalibrexTiming;
+const {validate,evaluate,cumulativeAt,rotateEvaluation,surface,surfacePoint}=globalThis.CalibrexTiming;
 const read=()=>JSON.parse(fs.readFileSync(new URL("../docs/app/samples/camera_imu_timing.json",import.meta.url),"utf8"));
 
 test("clock shifts match independent existing Python interval metrics on the same real samples",()=>{
@@ -32,4 +32,26 @@ test("sampled cumulative interpolation does not silently clamp unsupported times
   assert.throws(()=>validate({...d,imu_time_s:[...d.imu_time_s].reverse()}),/Invalid/);
   assert.throws(()=>validate({...d,camera_start_s:[-100,...d.camera_start_s.slice(1)]}),/extrapolation/);
   assert.throws(()=>validate({...d,camera_rate_dps:[[Infinity,0,0],...d.camera_rate_dps.slice(1)]}),/Invalid/);
+});
+test("camera-frame rotation and clock slices match native Python rotation order",()=>{
+  const data=validate(read()),before=JSON.stringify(data),profiles=Array.from({length:101},(_,i)=>evaluate(data,i-50));
+  for(const ref of data.rotation_references){
+    const result=rotateEvaluation(data,profiles[ref.shift_ms+50],ref.degrees,ref.axis);
+    assert.ok(Math.abs(result.rmse_dps-ref.rmse_dps)<1e-9);
+  }
+  for(const axis of [0,1,2]){
+    const map=surface(data,profiles,axis);
+    assert.equal(map.rows.length,41);assert.equal(map.rows[0].length,101);
+    for(const i of [0,10,20,30,40])for(const j of [0,25,50,75,100])assert.ok(Math.abs(map.rows[i][j]-rotateEvaluation(data,profiles[j],map.angles[i],axis).rmse_dps)<1e-9);
+    assert.ok(Math.abs(map.rows[20][50]-evaluate(data,0).rmse_dps)<1e-9);
+    assert.equal(map.minimum.rmse_dps,Math.min(...map.rows.flat()));
+    assert.equal(map.similar_count,map.rows.flat().filter(v=>v<=map.minimum.rmse_dps+.5).length);
+  }
+  assert.equal(JSON.stringify(data),before);
+  assert.throws(()=>rotateEvaluation(data,profiles[0],6,0),/Rotation/);
+  assert.throws(()=>rotateEvaluation(data,profiles[0],1,3),/Rotation/);
+  assert.deepEqual(surfacePoint(505,191),{shift_ms:0,rotation_deg:0});
+  assert.deepEqual(surfacePoint(70,26),{shift_ms:-50,rotation_deg:5});
+  assert.deepEqual(surfacePoint(940,356),{shift_ms:50,rotation_deg:-5});
+  assert.equal(surfacePoint(20,200),null);
 });
