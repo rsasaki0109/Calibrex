@@ -17,6 +17,13 @@ panels now cover the original five sensor-pair demos and six added explorations.
 | Radar tracks | Select a snapshot and change candidate yaw | Real processed CAN targets; reported relative speed, not raw Doppler |
 | Live calibration | Run, step, stop or reset a six-parameter fit | Actual browser updates on measured ACFR centres; holdout excluded from fitting |
 
+In **Live calibration**, switch **Observation condition** between full coverage,
+two measured captures, and four explicitly injected fit outliers. Compare
+**Least squares** with **Huber**, then run or single-step the fit. The rank warning
+blocks underconstrained geometry; the unchanged holdout curve shows how outlier
+bias differs from numerical convergence. These are controlled changes to a real
+board dataset, not simulated sensor recordings or a literal vehicle-motion test.
+
 The [source guide](../assets/evidence-demos/README.md) describes coordinate
 conventions, licenses, reproducible producers and the limits of each view.
 Each tab clearly distinguishes saved results, manual geometry and actual live

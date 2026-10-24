@@ -347,6 +347,12 @@ ul.tree .topics { color: var(--link); }
 .evidence-live-actions button,.evidence-retry { color: #e8f0fa; background: #18394c; border: 1px solid #487089; padding: 9px 12px; border-radius: 6px; font-size: 11px; }
 .evidence-retry { margin: 0 18px 18px; }
 .evidence-note { margin-top: 18px; }
+.evidence-stress { margin: 12px 18px; padding: 14px; border: 1px solid #34516a; border-radius: 8px; background: #132437; color: #b1c4d8; font-size: 12px; }
+.evidence-stress > label { display: block; margin-bottom: 10px; }
+.evidence-stress select { display: block; width: 100%; margin-top: 6px; background: #0c1d2e; color: #e8f0fa; border-color: #34516a; }
+.evidence-scenario-note { font-size: 11px; line-height: 1.8; margin: 12px 0; }
+.evidence-quality { color: #65e1cb; font-size: 11px; line-height: 1.8; margin: 0; }
+.evidence-quality[data-warning="true"] { color: #ffba74; }
 @media(max-width:600px) { .evidence-toolbar { display: block; } .evidence-toolbar select { display: block; width: 100%; margin: 8px 0 16px; } .evidence-toolbar .evidence-zoom { display: flex; } .evidence-plot,.evidence-history { width: calc(100% - 20px); margin: 10px; } .evidence-metrics { grid-column: 1/-1; } }
 .projection-toolbar select { width: auto; margin-left: 8px; background: #132437; color: #e8f0fa; border-color: #34516a; }
 .projection-toolbar > span { font-size: 10px; color: #91afc6; }
