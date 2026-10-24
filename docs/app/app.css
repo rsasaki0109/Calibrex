@@ -434,3 +434,16 @@ ul.tree .topics { color: var(--link); }
 .stereo-depth-row { display: grid; grid-template-columns: minmax(0,1fr) 1fr; gap: 20px; align-items: center; }
 .stereo-depth-row p { color: #9eb7ca; font-size: 12px; line-height: 1.7; max-width: 240px; }
 @media(max-width:600px) { .stereo-views { grid-template-columns: 1fr; } .stereo-depth-row { grid-template-columns: 1fr; gap: 0; } .stereo-depth-row p { max-width: none; font-size: 11px; } }
+
+.stereo-patch-header { display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px; margin:22px 0 12px; }
+.stereo-patch-header strong { color:#e5f2ff; font-size:15px; }
+.stereo-patch-header span { color:#91afc6; font:10px "JetBrains Mono",monospace; }
+.stereo-patches { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.stereo-views .stereo-patches figure { grid-column:auto; padding:12px; border:1px solid #34516a; border-radius:10px; background:#0b1928; }
+.stereo-patches figcaption { display:flex; flex-wrap:wrap; justify-content:space-between; gap:6px; }
+.stereo-patches figcaption b { color:#ffcb81; letter-spacing:.15em; }
+.stereo-patches figure:last-child figcaption b { color:#65e1cb; }
+.stereo-patches canvas { display:block; width:100%; max-width:330px; margin:auto; aspect-ratio:1; border-radius:4px; image-rendering:pixelated; }
+.stereo-patch-note { color:#9eb7ca; font-size:11px; line-height:1.7; }
+.stereo-previous { background:#1c394c; border:1px solid #53738b; color:#edf8ff; padding:8px 12px; border-radius:6px; cursor:pointer; }
+@media(max-width:600px) { .stereo-patches { gap:8px; } .stereo-patches figure { padding:6px; } .stereo-patches figcaption { font-size:8px; } }

@@ -34,6 +34,13 @@
     }
     return data;
   }
+  // Pixel coordinates refer to pixel centres; clip each view separately so a
+  // crop at the camera boundary never samples the other half of the pair.
+  function stereoCrop(point,width,height){
+    if(!Array.isArray(point)||point.length!==2||!point.every(Number.isFinite)||!Number.isInteger(width)||!Number.isInteger(height)||width<=0||height<=0||point[0]<0||point[0]>=width||point[1]<0||point[1]>=height)throw Error("Invalid stereo crop");
+    const [x,y]=point,x0=Math.floor(x)-20,y0=Math.floor(y)-20,sx=Math.max(0,x0),sy=Math.max(0,y0),sw=Math.min(width,x0+41)-sx,sh=Math.min(height,y0+41)-sy;
+    return {sx,sy,sw,sh,dx:sx-x0,dy:sy-y0,cx:x-x0+.5,cy:y-y0+.5,size:41};
+  }
   class MethodGallery {
     constructor(root,cloud){
       this.root=root;this.cloud=cloud;this.current="lidar";this.request=0;this.frameRequest=0;this.cache=new Map();this.evidence=new Map();
@@ -61,8 +68,10 @@
       }else if(method.id==="camera-lidar"){
         this.cameraLidar=new CalibrexCameraLidar.CameraLidarDemo(panel,url=>this.json(url));
       }else if(method.id==="stereo"){
-        panel.innerHTML=`<div class="method-media"><div class="cloud-topline"><span>REAL CAPTURE / NATIVE RECTIFICATION</span><span>KB4 · calibrated stereo rig</span></div><div class="stereo-picker"><label>Camera model <select class="stereo-model-select" aria-label="Real fisheye camera model"><option value="kb4">KB4 · upstream calibration</option><option value="mei">MEI · fit to measured corners</option><option value="ds">Double Sphere · fit to measured corners</option></select></label><label>Photographed pair <select class="stereo-frame-select" aria-label="Real fisheye stereo pair"><option value="000">Pair 000 · board in the room</option><option value="014">Pair 014 · board close up</option><option value="027">Pair 027 · board tilted</option></select></label></div><div class="stereo-views"><figure><figcaption>RAW · LEFT / RIGHT</figcaption><img class="stereo-raw" alt="Real photographed left and right fisheye images"></figure><figure><figcaption>RECTIFIED · EPIPOLAR GUIDES</figcaption><div class="stereo-overlay"><img class="stereo-rectified" alt="Native rectified images with horizontal guides"><svg class="stereo-pair-marker" aria-hidden="true"></svg></div></figure><figure class="stereo-depth-figure"><figcaption>SPARSE MATCHED DEPTH · NEAR <span class="depth-key"></span> FAR</figcaption><div class="stereo-depth-row"><div class="stereo-overlay stereo-depth-map"><img class="stereo-depth" alt="Depth from image patch matches; colored sparse samples"><svg class="stereo-depth-marker" aria-hidden="true"></svg></div><p>Click a depth dot to inspect its match in both rectified images.<br><br>Orange: ≤ 0.3 m<br>Cyan: ≥ 3.0 m<br>Colour clips at both ends<br><br>Use the point slider or arrow keys to explore every accepted match.</p></div></figure><div class="stereo-inspector"><div class="stereo-point-controls"><label for="stereo-point">Inspect match <output class="stereo-point-number"></output></label><input id="stereo-point" type="range" min="0" max="0" value="0" aria-label="Stereo match"><button type="button" class="stereo-next">Next match →</button></div><div class="stereo-measurements" aria-live="polite"></div><p class="stereo-equation"></p></div></div><p class="method-status" role="status">Loading photographed pair…</p></div><aside class="cloud-evidence"><div class="eyebrow">FISHEYE STEREO / REAL PHOTOGRAPHS</div><h2>Real lenses.<br>Real room.</h2><p class="cloud-description">Three photographed stereo pairs from OpenCV’s fisheye test data. KB4 uses the supplied calibration; MEI and Double Sphere use new fits to measured board corners. Native ZNCC patch matches estimate depth. MEI/DS currently show pair 000.</p><div class="stereo-stats"></div><p class="cloud-description">Estimated depth, without independent depth truth. Repeated board squares and occlusions can produce wrong matches. Treat these saved estimates as a visual demonstration. Depth is Z = fB/d.</p><a class="method-link" href="../tutorials/fisheye_stereo/">Models, API &amp; limitations ↗</a><a class="method-link" href="../assets/fisheye-stereo-real/">Photographs, calibration &amp; attribution ↗</a></aside>`;
+        panel.innerHTML=`<div class="method-media"><div class="cloud-topline"><span>REAL CAPTURE / NATIVE RECTIFICATION</span><span>KB4 · calibrated stereo rig</span></div><div class="stereo-picker"><label>Camera model <select class="stereo-model-select" aria-label="Real fisheye camera model"><option value="kb4">KB4 · upstream calibration</option><option value="mei">MEI · fit to measured corners</option><option value="ds">Double Sphere · fit to measured corners</option></select></label><label>Photographed pair <select class="stereo-frame-select" aria-label="Real fisheye stereo pair"><option value="000">Pair 000 · board in the room</option><option value="014">Pair 014 · board close up</option><option value="027">Pair 027 · board tilted</option></select></label></div><div class="stereo-views"><figure><figcaption>RAW · LEFT / RIGHT</figcaption><img class="stereo-raw" alt="Real photographed left and right fisheye images"></figure><figure><figcaption>RECTIFIED · EPIPOLAR GUIDES</figcaption><div class="stereo-overlay"><img class="stereo-rectified" alt="Native rectified images with horizontal guides"><svg class="stereo-pair-marker" aria-hidden="true"></svg></div></figure><figure class="stereo-depth-figure"><figcaption>SPARSE MATCHED DEPTH · NEAR <span class="depth-key"></span> FAR</figcaption><div class="stereo-depth-row"><div class="stereo-overlay stereo-depth-map"><img class="stereo-depth" alt="Depth from image patch matches; colored sparse samples"><svg class="stereo-depth-marker" aria-hidden="true"></svg></div><p>Click a depth dot to inspect its match in both rectified images.<br><br>Orange: ≤ 0.3 m<br>Cyan: ≥ 3.0 m<br>Colour clips at both ends<br><br>Use the point slider or arrow keys to explore every accepted match.</p></div></figure><div class="stereo-inspector"><div class="stereo-point-controls"><label for="stereo-point">Inspect match <output class="stereo-point-number"></output></label><input id="stereo-point" type="range" min="0" max="0" value="0" aria-label="Stereo match"><button type="button" class="stereo-previous">← Previous match</button><button type="button" class="stereo-next">Next match →</button></div><div class="stereo-patch-header"><strong>Look closer at the match</strong><span>41 × 41 px · linked views</span></div><div class="stereo-patches" hidden><figure><figcaption><b>LEFT</b><span class="stereo-left-coordinate"></span></figcaption><canvas class="stereo-left-patch" width="246" height="246" role="img" aria-label="Left correspondence close-up"></canvas></figure><figure><figcaption><b>RIGHT</b><span class="stereo-right-coordinate"></span></figcaption><canvas class="stereo-right-patch" width="246" height="246" role="img" aria-label="Right correspondence close-up"></canvas></figure></div><p class="stereo-patch-note">Crosses mark the saved correspondence; boxes show an 11 × 11 px neighbourhood. Compare texture on both sides: repeated squares can still give a wrong match. Saved epipolar guides remain visible. No new match or confidence score is computed.</p><div class="stereo-measurements" aria-live="polite"></div><p class="stereo-equation"></p></div></div><p class="method-status" role="status">Loading photographed pair…</p></div><aside class="cloud-evidence"><div class="eyebrow">FISHEYE STEREO / REAL PHOTOGRAPHS</div><h2>Real lenses.<br>Real room.</h2><p class="cloud-description">Three photographed stereo pairs from OpenCV’s fisheye test data. KB4 uses the supplied calibration; MEI and Double Sphere use new fits to measured board corners. Native ZNCC patch matches estimate depth. MEI/DS currently show pair 000.</p><div class="stereo-stats"></div><p class="cloud-description">Estimated depth, without independent depth truth. Repeated board squares and occlusions can produce wrong matches. Treat these saved estimates as a visual demonstration. Depth is Z = fB/d.</p><a class="method-link" href="../tutorials/fisheye_stereo/">Models, API &amp; limitations ↗</a><a class="method-link" href="../assets/fisheye-stereo-real/">Photographs, calibration &amp; attribution ↗</a></aside>`;
         panel.querySelector("#stereo-point").addEventListener("input",e=>this.inspectPoint(Number(e.target.value)));
+        panel.querySelector(".stereo-rectified").addEventListener("load",()=>this.drawStereoPatches());
+        panel.querySelector(".stereo-previous").addEventListener("click",()=>{if(this.stereoData)this.inspectPoint((this.pointIndex-1+this.stereoData.matches)%this.stereoData.matches);});
         panel.querySelector(".stereo-next").addEventListener("click",()=>{if(this.stereoData)this.inspectPoint((this.pointIndex+1)%this.stereoData.matches);});
         panel.querySelector(".stereo-depth-map").addEventListener("click",e=>{
           if(!this.stereoData)return;
@@ -121,7 +130,7 @@
     pause(panel){const img=panel.querySelector("img");img.hidden=true;img.removeAttribute("src");panel.querySelector(".method-poster").hidden=false;panel.querySelector("[data-replay]").textContent="Play replay";}
     async loadFrame(code){
       const panel=this.root.querySelector("#demo-panel-stereo"),seq=++this.frameRequest,status=panel.querySelector(".method-status");status.textContent="Loading photographed pair…";this.stereoData=null;panel.querySelector(".stereo-stats").textContent="";
-      panel.querySelector(".stereo-views").hidden=true;
+      panel.querySelector(".stereo-views").hidden=true;panel.querySelector(".stereo-patches").hidden=true;
       try{
         const index=await this.json("samples/fisheye_real_demo.json?v=stable-pixels-1"),model=panel.querySelector(".stereo-model-select").value;
         if(!["kb4","mei","ds"].includes(model)||!["000","014","027"].includes(code)||index.schema!=="calibrex.real_fisheye_stereo_demo/v1"||index.capture_kind!=="real"||!index.models[model]?.includes(code))throw Error("Unknown real stereo pair/model");
@@ -149,7 +158,24 @@
       panel.querySelector("#stereo-point").value=String(index);
       panel.querySelector(".stereo-point-number").textContent=`${index+1} / ${data.matches}`;
       panel.querySelector(".stereo-measurements").innerHTML=`<div><small>DISPARITY</small><strong>${p.disparity_px.toFixed(0)}<span> px</span></strong></div><div><small>ESTIMATED Z</small><strong>${p.depth_m.toFixed(2)}<span> m</span></strong></div><div><small>VERTICAL MISMATCH</small><strong>${Math.abs(ry-ly).toFixed(3)}<span> px</span></strong></div>`;
+      this.drawStereoPatches();
       panel.querySelector(".stereo-equation").textContent=`Z = f × B / d = ${data.focal_px.toFixed(1)} px × ${data.baseline_m.toFixed(4)} m / ${p.disparity_px.toFixed(0)} px = ${p.depth_m.toFixed(2)} m · rectified left-camera depth`;
+    }
+    drawStereoPatches(){
+      const data=this.stereoData;if(!data)return;
+      const panel=this.root.querySelector("#demo-panel-stereo"),image=panel.querySelector(".stereo-rectified"),[w,h]=data.image_size;
+      if(!image.complete||image.naturalWidth!==2*w||image.naturalHeight!==h||image.getAttribute("src")!==data.rectified)return;
+      const point=data.correspondences[this.pointIndex];if(!point)return;
+      for(const [side,offset,colour] of [["left",0,"#ffcb81"],["right",w,"#65e1cb"]]){
+        const p=point[side],g=stereoCrop(p,w,h),canvas=panel.querySelector(".stereo-"+side+"-patch"),ctx=canvas.getContext("2d");
+        ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle="#08121f";ctx.fillRect(0,0,246,246);ctx.scale(6,6);ctx.imageSmoothingEnabled=false;
+        ctx.drawImage(image,offset+g.sx,g.sy,g.sw,g.sh,g.dx,g.dy,g.sw,g.sh);
+        ctx.strokeStyle=colour;ctx.lineWidth=1/3;ctx.strokeRect(g.cx-5.5,g.cy-5.5,11,11);
+        ctx.lineWidth=1/6;ctx.beginPath();ctx.moveTo(g.cx-3,g.cy);ctx.lineTo(g.cx+3,g.cy);ctx.moveTo(g.cx,g.cy-3);ctx.lineTo(g.cx,g.cy+3);ctx.stroke();
+        panel.querySelector(".stereo-"+side+"-coordinate").textContent=`x ${p[0].toFixed(2)} · y ${p[1].toFixed(2)} px`;
+        canvas.setAttribute("aria-label",`${side} rectified display close-up, match ${this.pointIndex+1} of ${data.matches}, x ${p[0].toFixed(2)}, y ${p[1].toFixed(2)} pixels. Estimated depth ${point.depth_m.toFixed(2)} metres, without independent depth truth.`);
+      }
+      panel.querySelector(".stereo-patches").hidden=false;
     }
     async explore(){
       const id=this.current,panel=id==="lidar"?this.root.querySelector("#alignment-demo"):this.root.querySelector("#demo-panel-"+id);
@@ -161,5 +187,5 @@
       else if(id!=="stereo")this.play(METHODS.find(m=>m.id===id));
     }
   }
-  globalThis.CalibrexMethods={METHODS,validateStereo,MethodGallery};
+  globalThis.CalibrexMethods={METHODS,validateStereo,stereoCrop,MethodGallery};
 })();

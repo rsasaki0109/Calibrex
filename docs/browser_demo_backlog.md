@@ -10,8 +10,8 @@ separately.
 published. The limited-coverage / outlier / Huber live-fit controls are also
 published. The Camera–IMU clock-offset experiment is also published. Its
 rotation × time residual heatmap is also published.
-A measured high/low camera-rate window comparison is implemented in PR #317
-and pending publication.
+The measured high/low camera-rate window comparison is also published (#317).
+Linked stereo correspondence close-ups are a separate addition under validation.
 
 | Demo category | Delivered basic demo | Explicit limits |
 |---|---|---|

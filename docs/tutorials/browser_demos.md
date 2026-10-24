@@ -9,7 +9,7 @@ panels now cover the original five sensor-pair demos and six added explorations.
 | IMU–LiDAR | Play or stop the deskew recording | Real MID360 sweep |
 | Camera–IMU | Compare measured motion windows, explore rotation × time and inspect residuals | Measured Hilti camera/gyro series; saved baseline, fixed gyro bias |
 | Camera–LiDAR | Change six offsets and compare the projections | Real KITTI returns and photographs; manual experiment |
-| Fisheye stereo | Switch KB4 / MEI / Double Sphere and inspect a match | Real images; supplied KB4 and newly fitted MEI/DS; no depth truth |
+| Fisheye stereo | Switch camera models and inspect linked match close-ups | Real images; supplied KB4 and newly fitted MEI/DS; no depth truth |
 | Method comparison | Switch four native board methods | Shared ACFR fit/holdout split; separate targetless A2D2 evidence |
 | Robot hand–eye | Switch eight methods and inspect motion closure | Measured ETHZ poses; closure is not absolute accuracy |
 | GNSS tracks | Zoom receiver tracks and change a candidate lever arm | Measured comma2k19 fixes; fused path is not truth |
@@ -42,3 +42,11 @@ conventions, licenses, reproducible producers and the limits of each view.
 Each tab clearly distinguishes saved results, manual geometry and actual live
 optimization. The [backlog](../browser_demo_backlog.md) records the scope delivered
 for the seven requested additions.
+
+In **Fisheye stereo**, click a sparse depth dot or use the match slider and
+previous/next buttons. Both rectified display crops update together at a responsive
+magnification, with pixel coordinates, an 11×11 neighbourhood outline and the
+saved correspondence at the cross. The 41×41 context helps inspect repeated
+patterns. Saved epipolar guides remain visible; this does not recompute ZNCC
+or certify the match. Missing border context is padded rather than copied from
+the other camera. Estimated depth has no independent ground-truth validation.
