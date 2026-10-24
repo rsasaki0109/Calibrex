@@ -165,7 +165,7 @@ def build() -> None:
         "dataset": sources["dataset"],
         "camera_model": "kb4",
         "frames": {},
-        "models": {"kb4": ["000", "014", "027"], "mei": ["000"], "ds": ["000"]},
+        "models": {model: list(sources["frames"]) for model in ("kb4", "mei", "ds")},
         "model_frames": {},
         "matching": MATCH_OPTIONS,
         "method": "Native rectification and image-only ZNCC. No truth depths enter matching.",
@@ -204,17 +204,17 @@ def build() -> None:
             "vertical_median_px": data["vertical_median_px"],
         }
     for model in ("mei", "ds"):
-        data = build_frame("000", model)
-        path = OUTPUT / f"fisheye_real_{model}_000.json"
-        path.write_text(json.dumps(data, separators=(",", ":"), allow_nan=False) + "\n")
-        index["model_frames"][model] = {
-            "000": {
+        index["model_frames"][model] = {}
+        for frame in sources["frames"]:
+            data = build_frame(frame, model)
+            path = OUTPUT / f"fisheye_real_{model}_{frame}.json"
+            path.write_text(json.dumps(data, separators=(",", ":"), allow_nan=False) + "\n")
+            index["model_frames"][model][frame] = {
                 "url": path.name,
                 "sha256": digest(path),
                 "matches": data["matches"],
                 "vertical_median_px": data["vertical_median_px"],
             }
-        }
     (OUTPUT / "fisheye_real_demo.json").write_text(
         json.dumps(index, separators=(",", ":"), allow_nan=False) + "\n",
     )

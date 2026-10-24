@@ -51,9 +51,11 @@ test("the default fisheye gallery uses real photographs without fabricated depth
   assert.ok(!source.includes('this.json("samples/fisheye_stereo_demo.json")'));
 });
 test("MEI and Double Sphere use their own real-corner fits on the same photograph",()=>{
-  const index=read("fisheye_real_demo.json"),kb4=read(index.frames["000"].url);
-  for(const model of ["mei","ds"]){
-    const data=validateStereo(read(index.model_frames[model]["000"].url));
+  const index=read("fisheye_real_demo.json");
+  for(const model of ["mei","ds"])assert.deepEqual(index.models[model],["000","014","027"]);
+  for(const model of ["mei","ds"])for(const frame of ["000","014","027"]){
+    const kb4=read(index.frames[frame].url),data=validateStereo(read(index.model_frames[model][frame].url));
+    assert.equal(data.frame,frame);
     assert.equal(data.capture_kind,"real");assert.equal(data.camera_model,model);
     assert.equal(data.raw,kb4.raw);assert.notEqual(data.rectified,kb4.rectified);
     assert.equal(data.depth_truth,null);assert.ok(data.fit_excluded_reprojection_px<1);
