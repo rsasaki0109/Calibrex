@@ -92,6 +92,9 @@ class CheckProgress:
         self, label: str, status: str, runtime_s: float, from_cache: bool | None
     ) -> None: ...
 
+    def metric(self, name: str, value: float, unit: str, step: int) -> None:
+        """Optional solver diagnostic. Stream renderers ignore metrics by default."""
+
     def run_finished(self) -> None: ...
 
     def __call__(self, message: str) -> None:
@@ -104,6 +107,9 @@ class CheckProgress:
 
         if event.kind == "stage":
             self.stage(event.text)
+        elif event.kind == "metric":
+            if event.value is not None and event.step is not None:
+                self.metric(event.metric_name, event.value, event.unit, event.step)
         elif event.done is not None:
             self.tick(event.done, event.total)
 

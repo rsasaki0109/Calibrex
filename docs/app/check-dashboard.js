@@ -12,11 +12,25 @@
     reset() { this.workers = new Map(); }
     consume(event) {
       if (["run_started", "run_finished"].includes(event.event)) return;
+      if (event.event === "metric" && (!Number.isFinite(event.value) || event.value < 0 ||
+          !Number.isInteger(event.step) || event.step < 0)) return;
       const key = event.worker || 1;
       const w = this.workers.get(key) || { label: "Preparing", stage: "Starting Python", status: "running", points: [], history: [] };
       if (event.event === "pair_started") {
         w.label = event.label; w.stage = "Starting"; w.status = "running";
-        w.done = w.total = null; w.points = []; w.history = [];
+        w.done = w.total = null; w.points = []; w.history = []; w.metric = null; w.fits = 0;
+      } else if (event.event === "metric") {
+        if (event.step === 0) {
+          w.fits = (w.fits || 0) + 1;
+          w.metric = { name: event.name, unit: event.unit, points: [] };
+        }
+        const m = w.metric;
+        if (m && m.name === event.name && m.unit === event.unit &&
+            (!m.points.length || event.step > m.points.at(-1).step)) {
+          m.points.push({ step: event.step, value: event.value });
+          // Retain the initial value and recent iterations if a future solver runs longer.
+          if (m.points.length > 64) m.points.splice(1, 1);
+        }
       } else if (event.event === "stage") {
         w.stage = event.text; w.history.push(event.text); w.history = w.history.slice(-4);
         w.done = w.total = null; w.points = [];
@@ -46,9 +60,28 @@
           <svg class="activity-chart" viewBox="0 0 300 100" role="img" aria-label="Recent processed item counts in the current stage">
           <path d="M10 20H290 M10 52H290 M10 85H290" class="chart-grid"/>
           ${w.points.length > 1 ? `<polyline points="${points}"/>` : '<text x="10" y="55">Waiting for processing updates</text>'}</svg>
+          ${metricHTML(w.metric, w.fits)}
           <ol class="stage-trail">${w.history.map((s) => `<li>${esc(s)}</li>`).join("")}</ol></article>`;
       }).join("");
     }
+  }
+  function metricHTML(metric, fits) {
+    if (!metric?.points.length) return "";
+    const points = metric.points, first = points[0], last = points.at(-1);
+    const max = Math.max(...points.map((p) => p.value), Number.MIN_VALUE);
+    const coords = points.map((p) => `${35 + 250 * p.step / Math.max(1, last.step)},${85 - 65 * (p.value / max)}`).join(" ");
+    return `<section class="residual-panel" aria-label="Solver residual diagnostic">
+      <div class="dashboard-heading"><b>${esc(metric.name)}</b><span class="eyebrow">FIT ${fits}</span></div>
+      <p class="note">${esc(metric.unit)} · training data</p>
+      <div class="residual-values"><span>${number(first.value)} <small>initial</small></span><span>→</span><span>${number(last.value)} <small>latest</small></span></div>
+      <svg class="residual-chart" viewBox="0 0 300 115" role="img" aria-label="Training residual: initial ${number(first.value)}, latest ${number(last.value)}, ${last.step} IRLS rounds">
+        <path d="M35 20H285 M35 52H285 M35 85H285" class="chart-grid"/>
+        <text x="0" y="23">${number(max)}</text><text x="15" y="88">0</text>
+        <polyline points="${coords}"/>
+        <text x="35" y="107">initial</text><text x="205" y="107">round ${last.step}</text>
+      </svg>
+      <p class="note">Latest independent rotation fit, including uncertainty refits. Each fit starts a new curve. Training residuals can rise during robust reweighting; use held-out evidence for the verdict.</p>
+    </section>`;
   }
   function resultHTML(artifact, mode) {
     const check = mode === "check";

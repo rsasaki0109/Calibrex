@@ -30,6 +30,7 @@ from numpy.typing import NDArray
 from scipy.optimize import least_squares
 from scipy.spatial.transform import Rotation
 
+from calibrex.core.progress import emit_metric, progress_active
 from calibrex.solvers.gnss_lever_arm_solver import OdometryWindow, weighted_procrustes
 from calibrex.solvers.scan_to_scan_odometry import _PointRotationModel
 
@@ -421,7 +422,14 @@ def _irls(
     upper = np.array([np.inf] * 3 + [bound] + [np.inf] * 3)
     weights = np.ones(3 * len(intervals))
     variance = 1.0
-    for _ in range(max(opts.irls_iterations, 1)):
+    # The normalized data residual is already evaluated after every IRLS round.
+    # Report its unweighted RMS without changing weights, acceptance or stopping.
+    telemetry = progress_active()
+    metric_name = "Rotation training residual"
+    if telemetry:
+        initial = _residuals(gyro, intervals, base, params, opts)
+        emit_metric(metric_name, float(np.sqrt(np.mean(initial**2))), "noise-normalized RMS", 0)
+    for iteration in range(max(opts.irls_iterations, 1)):
         root = np.sqrt(weights)
 
         def residuals(
@@ -432,6 +440,11 @@ def _irls(
 
         params = least_squares(residuals, params, bounds=(lower, upper), x_scale="jac").x
         raw = _residuals(gyro, intervals, base, params, opts)
+        if telemetry:
+            emit_metric(
+                metric_name, float(np.sqrt(np.mean(raw**2))),
+                "noise-normalized RMS", iteration + 1,
+            )
         spread = max(1.4826 * float(np.median(np.abs(raw - np.median(raw)))), 1e-6)
         variance = spread**2
         scaled = np.abs(raw) / spread

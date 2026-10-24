@@ -24,7 +24,13 @@ plans, checks and estimates on your own rosbag2 in the browser; see
 The bag check page includes a live dashboard with a separate card for each CPU
 worker: current sensor pair, stage, recent processed-item counts and stage history.
 Counts restart on a new stage or pass and are activity indicators, not residuals
-or accuracy measurements. After a run, the axis explorer shows candidate errors
+or accuracy measurements. IMU rotation solves also emit a separate live curve of
+the noise-normalized training residual RMS, starting at initialization and then
+at each robust IRLS round. Each independent solve (including uncertainty refits)
+starts a new curve; curves are not joined across fits or workers. These residuals
+can increase during robust reweighting and are not a held-out accuracy verdict.
+Other solvers show processing activity without inventing a residual curve.
+After a run, the axis explorer shows candidate errors
 against tolerances in Check mode, or measured values with 1σ uncertainty in
 Estimate mode. Unchecked and unobserved axes retain their reasons; prior values
 are not shown as measurements. The original JSON and HTML reports remain available.

@@ -18,15 +18,20 @@ from typing import Literal
 
 @dataclass(frozen=True)
 class ProgressEvent:
-    """One progress report: a new ``stage`` or a ``tick`` of the current stage."""
+    """One progress report: a stage, an item count, or an opt-in solver diagnostic."""
 
-    kind: Literal["stage", "tick"]
+    kind: Literal["stage", "tick", "metric"]
     text: str = ""
     """Stage label (``stage`` events)."""
     done: int | None = None
     """Items processed so far in the current stage (``tick`` events)."""
     total: int | None = None
     """Items expected in the current stage, when known."""
+
+    metric_name: str = ""
+    value: float | None = None
+    unit: str = ""
+    step: int | None = None
 
 
 ProgressSink = Callable[[ProgressEvent], None]
@@ -59,3 +64,23 @@ def emit_tick(done: int, total: int | None = None) -> None:
     sink = _SINK.get()
     if sink is not None:
         sink(ProgressEvent("tick", done=done, total=total))
+
+
+def progress_active() -> bool:
+    """Whether a sink is installed, to avoid computing display-only diagnostics otherwise."""
+
+    return _SINK.get() is not None
+
+
+def emit_metric(name: str, value: float, unit: str, step: int) -> None:
+    """Report a finite diagnostic scalar; step zero starts a new independent fit.
+
+    Metrics describe the named solver's training residual, not held-out quality.
+    Missing or nonfinite diagnostics are omitted rather than serialized as NaN.
+    """
+
+    import math
+
+    sink = _SINK.get()
+    if sink is not None and math.isfinite(value):
+        sink(ProgressEvent("metric", metric_name=name, value=value, unit=unit, step=step))

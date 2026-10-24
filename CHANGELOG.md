@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Show real IMU rotation training residuals in the browser's live dashboard,
+  separated by worker and independent fit. Report initialization and each robust
+  IRLS round as opt-in progress diagnostics; calibration results, evidence schemas
+  and held-out verdicts remain unchanged.
+
 - Return an inconclusive camera focal check when held-out rotations cannot
   support every rate ratio. Missing held-out ratios previously bypassed the
   disagreement gate through NaN comparisons. Reject nonfinite evidence before
