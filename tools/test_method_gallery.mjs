@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 import "../docs/app/method-gallery.js";
-const {METHODS,validateStereo}=globalThis.CalibrexMethods;
+const {METHODS,validateStereo,stereoCrop}=globalThis.CalibrexMethods;
 const read=(p)=>JSON.parse(fs.readFileSync(new URL("../docs/app/samples/"+p,import.meta.url),"utf8"));
 
 test("gallery exposes eleven distinct demos and recorded sources remain attributable",()=>{
@@ -57,5 +57,31 @@ test("MEI and Double Sphere use their own real-corner fits on the same photograp
     assert.equal(data.raw,kb4.raw);assert.notEqual(data.rectified,kb4.rectified);
     assert.equal(data.depth_truth,null);assert.ok(data.fit_excluded_reprojection_px<1);
     assert.ok(data.matches>100);assert.ok(data.vertical_median_px<1);
+  }
+});
+
+
+test("stereo close-ups preserve subpixel centres and never cross a camera boundary",()=>{
+  for(const p of [[0,0],[10.25,3.75],[639.75,399.5],[320,200]]){
+    const g=stereoCrop(p,640,400);
+    assert.equal(g.size,41);
+    assert.ok(g.sx>=0&&g.sy>=0&&g.sx+g.sw<=640&&g.sy+g.sh<=400);
+    assert.ok(g.dx>=0&&g.dy>=0&&g.dx+g.sw<=41&&g.dy+g.sh<=41);
+    assert.equal(g.sx+g.cx-g.dx-.5,p[0]);
+    assert.equal(g.sy+g.cy-g.dy-.5,p[1]);
+  }
+  assert.deepEqual(stereoCrop([0,0],640,400),{sx:0,sy:0,sw:21,sh:21,dx:20,dy:20,cx:20.5,cy:20.5,size:41});
+  assert.equal(stereoCrop([639,399],640,400).sw,21);
+  for(const p of [[NaN,0],[-1,0],[640,0],[0,400],null,[1]])assert.throws(()=>stereoCrop(p,640,400),/Invalid/);
+  assert.throws(()=>stereoCrop([0,0],0,400),/Invalid/);
+  // Exercise every measured match, including fractional right-image rows.
+  const index=read("fisheye_real_demo.json");
+  for(const receipt of [...Object.values(index.frames),...Object.values(index.model_frames).flatMap(Object.values)]){
+    const data=read(receipt.url);
+    for(const p of data.correspondences)for(const side of ["left","right"]){
+      const g=stereoCrop(p[side],...data.image_size);
+      assert.ok(Math.abs(g.sx+g.cx-g.dx-.5-p[side][0])<1e-10);
+      assert.ok(Math.abs(g.sy+g.cy-g.dy-.5-p[side][1])<1e-10);
+    }
   }
 });
