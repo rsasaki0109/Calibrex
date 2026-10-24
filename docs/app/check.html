@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="app.css?v=a551c4884341">
+<link rel="stylesheet" href="app.css?v=79526e96c202">
 </head>
 <body class="bag-app sample-workspace">
 <header class="site-header">
@@ -27,12 +27,13 @@
 <main>
   <div class="intro sample-intro">
     <div><div class="eyebrow">CALIBREX / SENSOR CALIBRATION</div>
-      <h1>Two LiDARs.<br><span class="hero-accent">One sharp world.</span></h1></div>
-    <div class="sample-intro-copy"><p>See the alignment, then check your own robot. Explore a real recording below, or bring a bag to estimate and verify your sensor calibration.</p>
+      <h1>Your sensors.<br><span class="hero-accent">See what changes.</span></h1></div>
+    <div class="sample-intro-copy"><p>Compare point clouds, motion correction, camera projection and fisheye stereo. Explore a method below, then bring a bag to check your own rig.</p>
       <div class="actions"><button id="sample" class="primary big">Explore sample <span aria-hidden="true">↗</span></button><button id="open-bag" type="button">Check your bag</button></div>
       <span class="sample-privacy">Your files stay on your device.</span></div>
   </div>
 
+  <section id="method-gallery" class="method-gallery" aria-label="Calibration method demos"><div class="method-tabs" role="tablist" aria-label="Calibration method"></div><div class="method-panels">
   <section id="alignment-demo" class="alignment-demo" aria-label="Real-data point cloud alignment sample">
     <div class="cloud-main">
       <div class="cloud-topline"><span class="cloud-state" role="status">Loading real point clouds…</span><span>NTU VIRAL · tnp_01</span></div>
@@ -58,6 +59,7 @@
       <details class="cloud-about"><summary>What am I seeing?</summary><p>Two saved transforms, compared interactively. The reveal moves a divider; it is not a live solver or optimizer history. The start error is deliberately injected. The estimate comes from the full recording. Ground returns are hidden and points reduced for display; residuals use the full saved subset.</p><p><a href="../assets/lidar-lidar-snap/manifest.json">Source, metrics &amp; digests</a> · <a href="../assets/ntu_viral_lidar_lidar/tnp_01.yaml">Estimate artifact</a></p><p>NTU VIRAL tnp_01 · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a>.</p></details>
     </aside>
   </section>
+  </div></section>
   <div class="planning-sample"><p><b>Want to try bag discovery?</b> The tiny synthetic bag checks topic discovery and planning. It does not contain enough motion for a calibration.</p><button id="plan-sample" type="button">Plan the tiny bag</button></div>
 
   <section class="panel" aria-labelledby="inputs-title">
@@ -212,13 +214,14 @@
 <script src="check-dashboard.js"></script>
 <script src="rig-viewer.js"></script>
 <script src="alignment-demo.js"></script>
+<script src="method-gallery.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const alignmentDemo = new CalibrexAlignment.AlignmentDemo($("alignment-demo"));
 alignmentDemo.load().catch(() => {});
+const methodGallery = new CalibrexMethods.MethodGallery($("method-gallery"), alignmentDemo);
 $("sample").addEventListener("click", async () => {
-  $("alignment-demo").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
-  try { await alignmentDemo.load(); alignmentDemo.reveal(); } catch (_) { /* Error appears in the sample panel. */ }
+  try { await methodGallery.explore(); } catch (_) { /* The demo panel reports loading errors. */ }
 });
 $("open-bag").addEventListener("click", () => $("inputs-title").scrollIntoView({ behavior: "smooth", block: "start" }));
 const BAG_FILE = /\.(db3|mcap)$/i;

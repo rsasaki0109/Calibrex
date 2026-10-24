@@ -1,4 +1,4 @@
-"""Rectify an equidistant (Kannala-Brandt) fisheye stereo pair for stereo depth.
+"""Rectify KB4, unified/MEI and Double Sphere stereo pairs for stereo depth.
 
 :mod:`calibrex.evaluation.stereo_lidar_depth` needs a rectified pair: two pinhole cameras
 with the same orientation, side by side along x. Kalibr calibrates fisheye pairs (the
@@ -24,6 +24,7 @@ from numpy.lib.stride_tricks import sliding_window_view
 from numpy.typing import NDArray
 from scipy import ndimage
 
+from calibrex.evaluation.stereo_camera_models import DoubleSphereCamera, MeiCamera
 from calibrex.evaluation.stereo_lidar_depth import RectifiedStereo
 
 FloatArray: TypeAlias = NDArray[np.float64]
@@ -171,8 +172,16 @@ def rectify_fisheye_pair(
     camera's size, its mean focal length times ``focal_scale``, centred.
     """
 
-    rotation = np.asarray(right_from_left, dtype=np.float64)[:3, :3]
-    translation = np.asarray(right_from_left, dtype=np.float64)[:3, 3]
+    matrix = np.asarray(right_from_left, dtype=np.float64)
+    if not np.isfinite(focal_scale) or focal_scale <= 0:
+        raise ValueError("focal_scale must be finite and positive")
+    if matrix.shape != (4, 4) or not np.isfinite(matrix).all():
+        raise ValueError("stereo transform must be finite and 4x4")
+    rotation, translation = matrix[:3, :3], matrix[:3, 3]
+    if (not np.allclose(matrix[3], [0, 0, 0, 1], atol=1e-8, rtol=0)
+        or not np.allclose(rotation.T @ rotation, np.eye(3), atol=1e-5, rtol=0)
+        or not np.isclose(np.linalg.det(rotation), 1, atol=1e-5, rtol=0)):
+        raise ValueError("stereo transform must be rigid")
     right_centre = -rotation.T @ translation  # the right camera's centre in the left frame
     baseline = float(np.linalg.norm(right_centre))
     if baseline < 1.0e-6:
@@ -226,12 +235,12 @@ def _resample(image: FloatArray, coordinates: FloatArray) -> FloatArray:
 
 def read_kalibr_fisheye_pair(
     camchain: object, left: str = "cam0", right: str = "cam1"
-) -> tuple[EquidistantCamera, EquidistantCamera, FloatArray]:
-    """The two cameras of a Kalibr camchain and ``T_right_left`` (the right's ``T_cn_cnm1``).
+) -> tuple[StereoCamera, StereoCamera, FloatArray]:
+    """Read adjacent KB4, radtan/pinhole, unified/MEI or double-sphere cameras.
 
-    ``camchain`` is a path or the parsed mapping. Both cameras must use the pinhole
-    projection with the ``equidistant`` distortion, and ``right`` must follow ``left``
-    in the chain.
+    Kalibr intrinsics are [fx, fy, cx, cy] for pinhole,
+    [xi, fx, fy, cx, cy] for omni and [xi, alpha, fx, fy, cx, cy] for ds.
+    The returned transform maps left-frame points into the right frame.
     """
 
     from pathlib import Path
@@ -241,20 +250,61 @@ def read_kalibr_fisheye_pair(
     chain = (
         read_mapping(Path(camchain)) if isinstance(camchain, (str, Path)) else dict(camchain)  # type: ignore[call-overload]
     )
-    cameras = []
+    if left not in chain or right not in chain:
+        raise ValueError("both stereo cameras must occur in the camchain")
+    if (left.startswith("cam") and right.startswith("cam")
+        and left[3:].isdigit() and right[3:].isdigit()):
+        adjacent = int(right[3:]) == int(left[3:])+1
+    else:
+        names = list(chain)
+        adjacent = names.index(right) == names.index(left)+1
+    if not adjacent:
+        raise ValueError("right must immediately follow left in the Kalibr chain")
+    cameras: list[StereoCamera] = []
     for name in (left, right):
         entry = chain[name]
-        if entry.get("distortion_model") != "equidistant":
-            msg = f"{name}: distortion model {entry.get('distortion_model')!r}, not equidistant"
-            raise ValueError(msg)
-        fx, fy, cx, cy = (float(value) for value in entry["intrinsics"])
-        k1, k2, k3, k4 = (float(value) for value in entry["distortion_coeffs"])
-        width, height = (int(value) for value in entry["resolution"])
-        cameras.append(EquidistantCamera(fx, fy, cx, cy, (k1, k2, k3, k4), width, height))
+        model = entry.get("camera_model", "pinhole")
+        distortion = entry.get("distortion_model", "none")
+        values = tuple(float(v) for v in entry["intrinsics"])
+        coefficients = tuple(float(v) for v in entry.get("distortion_coeffs", ()))
+        width, height = (int(v) for v in entry["resolution"])
+        if model == "pinhole" and len(values) == 4:
+            fx, fy, cx, cy = values
+            if distortion == "equidistant" and len(coefficients) == 4:
+                cameras.append(EquidistantCamera(fx, fy, cx, cy, coefficients, width, height))
+            elif distortion == "radtan" and len(coefficients) in (4, 5):
+                cameras.append(RadtanCamera(fx, fy, cx, cy, coefficients, width, height))
+            elif distortion == "none" and not coefficients:
+                cameras.append(RadtanCamera(fx, fy, cx, cy, (), width, height))
+            else:
+                raise ValueError(f"{name}: unsupported pinhole distortion {distortion!r}")
+        elif model == "omni" and len(values) == 5:
+            xi, fx, fy, cx, cy = values
+            if distortion == "none" and not coefficients:
+                coefficients = (0.0, 0.0, 0.0, 0.0)
+            elif distortion != "radtan" or len(coefficients) != 4:
+                raise ValueError(f"{name}: omni requires none or four-coefficient radtan")
+            cameras.append(MeiCamera(fx, fy, cx, cy, xi, coefficients, width, height))
+        elif model == "ds" and len(values) == 6 and distortion == "none" and not coefficients:
+            xi, alpha, fx, fy, cx, cy = values
+            cameras.append(DoubleSphereCamera(fx, fy, cx, cy, xi, alpha, width, height))
+        else:
+            raise ValueError(f"{name}: unsupported camera model/intrinsics/distortion combination")
+        if not np.isfinite(values).all() or min(fx, fy) <= 0 or min(width, height) <= 1:
+            raise ValueError(f"{name}: invalid camera intrinsics or dimensions")
+        if not np.isfinite(coefficients).all():
+            raise ValueError(f"{name}: distortion must be finite")
     if "T_cn_cnm1" not in chain[right]:
-        msg = f"{right} has no T_cn_cnm1 to {left}"
-        raise ValueError(msg)
-    return cameras[0], cameras[1], np.asarray(chain[right]["T_cn_cnm1"], dtype=np.float64)
+        raise ValueError(f"{right} has no T_cn_cnm1 to {left}")
+    transform = np.asarray(chain[right]["T_cn_cnm1"], dtype=np.float64)
+    if transform.shape != (4, 4) or not np.isfinite(transform).all():
+        raise ValueError("stereo transform must be a finite 4x4 matrix")
+    rotation = transform[:3, :3]
+    if (not np.allclose(transform[3], [0, 0, 0, 1], atol=1e-8, rtol=0)
+        or not np.allclose(rotation.T @ rotation, np.eye(3), atol=1e-5, rtol=0)
+        or not np.isclose(np.linalg.det(rotation), 1.0, atol=1e-5, rtol=0)):
+        raise ValueError("stereo transform must be a rigid transform")
+    return cameras[0], cameras[1], transform
 
 
 VERTICAL_OFFSET_COLUMNS: tuple[str, ...] = (

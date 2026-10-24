@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Add a method demo gallery for LiDAR–LiDAR, IMU deskew, Camera–IMU,
+  Camera–LiDAR and fisheye stereo, with provenance and real/synthetic labels.
+- Support unified/MEI and Double Sphere cameras in native stereo rectification
+  and adjacent Kalibr pair loading alongside KB4 and pinhole/radtan. Add model
+  domain checks, wide-ray inverse tests and synthetic rectification/depth demos;
+  generic bag-check adapters retain their existing camera-model support.
+
 - Replace the misleading planning-only sample entry with an immediate real-data
   point-cloud comparison: NTU VIRAL before/after reveal, orbit, zoom and saved
   residual metrics. Keep the tiny synthetic bag as a clearly labelled planning
