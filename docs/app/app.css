@@ -371,6 +371,17 @@ ul.tree .topics { color: var(--link); }
 .timing-inspect input { flex: 1; min-width: 100px; accent-color: #65e1cb; }
 .timing-inspect output { display: block; font: 10px/1.8 "JetBrains Mono",monospace; color: #f8d288; padding-top: 12px; }
 .timing-retry { margin: 0 18px 18px; }
+.timing-rotation-controls { margin: 14px 18px; padding: 14px; border: 1px solid #34516a; border-radius: 8px; background: #132437; color: #b1c4d8; font-size: 12px; }
+.timing-rotation-controls label { display: block; margin-bottom: 12px; }
+.timing-rotation-controls select { width: auto; margin-left: 8px; background: #0c1d2e; color: #e8f0fa; border-color: #34516a; }
+.timing-rotation-controls input { display: block; width: 100%; margin-top: 14px; accent-color: #65e1cb; }
+.timing-rotation-controls output { display: inline-block; margin-right: 14px; color: #f8d288; font-family: "JetBrains Mono",monospace; }
+.timing-rotation-controls button { color: #d8edf9; background: #18394c; border: 1px solid #487089; padding: 7px 10px; border-radius: 5px; font-size: 11px; }
+.timing-surface { display: block; width: calc(100% - 36px); height: auto; margin: 8px 18px; border: 1px solid #34516a; border-radius: 8px; cursor: crosshair; }
+.timing-surface-legend { display: flex; align-items: center; gap: 10px; margin: 8px 18px; color: #91afc6; font: 10px/1.6 "JetBrains Mono",monospace; }
+.timing-surface-colours { flex: 1; height: 8px; border-radius: 4px; background: linear-gradient(90deg,rgb(20 45 75),rgb(240 140 40)); }
+.timing-surface-detail { color: #b1c4d8; font: 10px/1.8 "JetBrains Mono",monospace; }
+@media(max-width:600px) { .timing-surface { width: calc(100% - 20px); margin-left: 10px; margin-right: 10px; } }
 @media(max-width:600px) { .timing-rates,.timing-residuals,.timing-profile { width: calc(100% - 20px); margin-left: 10px; margin-right: 10px; } .timing-metrics { grid-column: 1/-1; } }
 @media(max-width:600px) { .evidence-toolbar { display: block; } .evidence-toolbar select { display: block; width: 100%; margin: 8px 0 16px; } .evidence-toolbar .evidence-zoom { display: flex; } .evidence-plot,.evidence-history { width: calc(100% - 20px); margin: 10px; } .evidence-metrics { grid-column: 1/-1; } }
 .projection-toolbar select { width: auto; margin-left: 8px; background: #132437; color: #e8f0fa; border-color: #34516a; }

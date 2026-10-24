@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from generate_camera_imu_lock_gif import Params, interval_rmse_dps, load_series
+from generate_camera_imu_lock_gif import Params, exp_so3, interval_rmse_dps, load_series
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "docs/assets/camera_imu_lock"
@@ -60,6 +60,24 @@ def build_data() -> dict[str, Any]:
         Path(__file__),
         ROOT / "tools/generate_camera_imu_lock_gif.py",
     ]
+    rotation_references = []
+    for axis in range(3):
+        for degrees in [-5, 2.5, 5]:
+            vector = np.zeros(3)
+            vector[axis] = np.deg2rad(degrees)
+            rotation = exp_so3(vector) @ series.r_est
+            for ms in [-50, 0, 50]:
+                rotation_references.append(
+                    {
+                        "axis": axis,
+                        "degrees": degrees,
+                        "shift_ms": ms,
+                        "rmse_dps": interval_rmse_dps(
+                            series,
+                            Params(rotation, series.dt_est_s + ms / 1000, series.bias_est_dps),
+                        ),
+                    }
+                )
     return {
         "schema": "calibrex.camera_imu_timing_demo/v1",
         "capture_kind": "real",
@@ -76,8 +94,12 @@ def build_data() -> dict[str, Any]:
         "fixed_gyro_bias_imu_dps": series.bias_est_dps.tolist(),
         "shift_range_ms": [-50, 50],
         "references": references,
+        "rotation_range_deg": [-5, 5],
+        "rotation_step_deg": 0.25,
+        "rotation_references": rotation_references,
         "method": (
-            "t_imu = t_camera + saved_offset + injected_shift; fixed saved rotation and bias. "
+            "t_imu = t_camera + saved_offset + injected_shift. "
+            "R_candidate = R_camera_axis(injected_angle) @ R_saved; fixed IMU-frame gyro bias. "
             "Interval means use linear interpolation of sampled trapezoidal cumulative "
             "gyro integrals. "
             "The same camera intervals are used at every shift; no extrapolation."

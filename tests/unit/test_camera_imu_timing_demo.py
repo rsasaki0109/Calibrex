@@ -9,6 +9,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from scipy.spatial.transform import Rotation
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
@@ -37,6 +38,22 @@ def test_measured_timing_asset_and_source_identity() -> None:
     assert len(saved["camera_start_s"]) == 59
     for path, value in saved["provenance"].items():
         assert hashlib.sha256((ROOT / path).read_bytes()).hexdigest() == value
+
+
+def test_rotation_references_use_camera_frame_left_multiplication() -> None:
+    saved = json.loads(OUTPUT.read_text())
+    series = load_series(SOURCE / "series.npz")
+    for ref in saved["rotation_references"]:
+        rotation = Rotation.from_euler("xyz"[ref["axis"]], ref["degrees"], degrees=True).as_matrix()
+        value = interval_rmse_dps(
+            series,
+            Params(
+                rotation @ series.r_est,
+                series.dt_est_s + ref["shift_ms"] / 1000,
+                series.bias_est_dps,
+            ),
+        )
+        assert ref["rmse_dps"] == pytest.approx(value, abs=1e-9)
 
 
 @pytest.mark.parametrize("shift_ms", [-50, -10, 0, 10, 50])
