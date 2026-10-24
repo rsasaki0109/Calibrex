@@ -1,22 +1,25 @@
 # Browser demo backlog
 
 This list tracks the seven demo categories discussed for the browser gallery.
-Count a category as complete only when its stated coverage is delivered; a
-projection playground alone does not complete an algorithm comparison.
+These are basic browser-demo categories, not claims of production calibration
+accuracy or support for every method. A projection playground alone does not
+complete an algorithm comparison. Implementation and publication are tracked
+separately.
 
-**Remaining categories: 7.**
+**Remaining basic demo categories: 0.** All seven additions are implemented and
+locally verified in the current PR; publication is pending.
 
-| Demo category | Remaining work | Delivered groundwork |
+| Demo category | Delivered basic demo | Explicit limits |
 |---|---|---|
-| Real MEI / Double Sphere fisheye | Recordings with matching real calibrations | Real KB4 stereo pairs, linked correspondence and depth inspection |
-| Camera–LiDAR method comparison | Compare actual board, edge and mutual-information method outputs | Real KITTI projection playground with manual 6-DoF offsets and vendor comparison |
-| GNSS alignment | Show antenna lever arm against map and trajectories | Native evaluation paths |
-| Radar calibration | Show Doppler, velocity and orientation evidence | Native evaluation paths |
-| Wheels / INS / vehicle frame | Show motion axes and alignment | Native evaluation paths |
-| Robot hand–eye | Show robot/camera motions and closure | Native AX=XB / AX=YB methods |
-| Live calibration progress | Display actual optimizer updates and residuals in the method demos | Saved real-data comparisons and a live manual projection viewer |
+| Real MEI / Double Sphere fisheye | New native fits to measured corners; real capture 000 rectification, matches and depth | KB4 initialization uses all captures; no independent metric depth truth |
+| Camera–LiDAR method comparison | Four ACFR native board methods on one split; separate real A2D2 edge/MI evidence | No cross-dataset ranking or independent extrinsic-accuracy claim |
+| GNSS alignment | Real QCOM/u-blox/fused tracks and candidate lever-arm geometry | Fusion is not independent truth; sliders do not estimate a lever arm |
+| Radar calibration | Real CAN Radar targets, reported relative speed and candidate yaw | Processed targets, not raw Doppler or a native ego-velocity/extrinsic fit |
+| Wheels / INS / vehicle frame | Four measured wheel-speed traces and fused camera FRD velocity axes | Camera frame is not asserted equal to vehicle; scale/time/alignment not separately identified |
+| Robot hand–eye | Eight native AX=XB methods on measured ETHZ motion blocks, linked closure origins | Closure is consistency, not absolute accuracy; AX=YB is a further extension |
+| Live calibration progress | Actual 6-DoF browser point fit, single-step/run/stop/reset and real residual history | Small measured-board example, separate from the full production solver |
 
-The gallery currently has five sensor-pair tabs. Tabs, algorithm families and
+The gallery now has eleven demo tabs. Tabs, algorithm families and
 this backlog's categories are different counts. A saved recording, manual
 projection or synthetic regression test must not be relabeled as live
 optimization or independent accuracy evidence.

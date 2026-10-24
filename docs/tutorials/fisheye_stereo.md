@@ -2,10 +2,16 @@
 
 The [browser demo](../app/check.html) shows **real photographed fisheye stereo**
 from OpenCV's `calib-3_stereo_from_JY` dataset. Select **Fisheye stereo**, then a
-photographed pair: the colour raw images, native KB4 rectification and sparse
+camera model and photographed pair: the colour raw images, native rectification and sparse
 matched depth appear together. The other tabs show recorded LiDAR–LiDAR, IMU
 deskew and Camera–IMU demonstrations, plus an
 [interactive real Camera–LiDAR projection](../assets/camera-lidar-live/README.md).
+
+KB4 uses the supplied calibration. MEI and Double Sphere use new native fits to
+the measured board-corner observations; capture `000` is available for both.
+Their parameters, fit-excluded right reprojection diagnostics and initialization
+limits are recorded in the [real-data receipt](../assets/fisheye-stereo-real/README.md).
+There is no independent depth truth for any of the three models.
 
 Click a depth dot, move the **Inspect match** slider (arrow keys supported), or
 select **Next match** to highlight the same correspondence in both rectified

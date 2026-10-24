@@ -24,7 +24,7 @@ right intrinsics, distortion, and right-from-left transform from
 Run `PYTHONPATH=src python tools/build_real_stereo_demo.py` from the repository
 root. The generator resizes the original 1280×800 images to 640×400, transforms
 intrinsics with the same pixel-centre convention, rectifies through Calibrex's
-native KB4 implementation, and runs its image-only ZNCC patch matcher. RGB is
+native camera implementations, and runs its image-only ZNCC patch matcher. RGB is
 preserved for display; matching uses grayscale. Board corner coordinates and
 known object geometry do not guide matching. There is no rendered scene.
 
@@ -42,9 +42,24 @@ changing the displayed point measurements.
 
 These photographs belong to the calibration dataset used to obtain the supplied
 reference parameters. This is a saved demonstration, **not a held-out benchmark
-or a live calibration run**. Only the recorded KB4 calibration is used; MEI and
-Double Sphere remain supported by the API and covered by synthetic unit tests.
-They are not presented as real calibrations of this rig.
+or a live calibration run**. KB4 uses the upstream calibration. **MEI and Double
+Sphere are newly fit to the measured board corners**, and their real-image
+rectification/depth demo uses capture `000`. They are not alternative labels on
+the KB4 projection.
+
+Run `PYTHONPATH=src python tools/fit_real_fisheye_models.py` to regenerate these
+model calibrations. The native projectors fit 27 captures jointly with board
+poses and the stereo transform. Every fifth capture is excluded from the final
+fit; those poses are estimated from left corners only before evaluating right
+reprojection. Full fitted board poses and split IDs are retained in
+`calibration_mei.json` and `calibration_ds.json`, so reported residuals can be
+recomputed from the original 2D/3D observations without rerunning optimization.
+
+The supplied all-capture KB4 calibration initializes intrinsics and board poses.
+Consequently these fit-excluded diagnostics are **not a fully independent
+benchmark**. No metric depth truth or general lens-accuracy claim is made. All
+models use a common output focal length for the comparison; each uses its own
+fitted stereo transform and baseline. Raw photographs remain identical.
 
 The [generated receipt](../../app/samples/fisheye_real_demo.json) binds the
 generator, native implementation, original photographs and calibration to their
