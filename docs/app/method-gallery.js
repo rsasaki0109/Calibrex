@@ -6,7 +6,7 @@
       description:"One MID360 sweep during a 180°/s turn. The IMU-LiDAR estimate compensates rotation using each point’s measurement time; translation is not compensated.",
       image:"../assets/mid360-deskew.gif",source:"../assets/mid360-deskew/manifest.json",dataset:"RTK-SLAM · construction_seq1",license:"CC BY 4.0",
       metric:"Local surface thickness · proxy, not accuracy",unit:"cm",before:"Raw sweep",after:"Gyro deskewed"},
-    {id:"camera-imu",label:"Camera ↔ IMU",tag:"Angular-rate alignment",title:"Make the rate curves agree.",
+    {id:"camera-imu",label:"Camera ↔ IMU",tag:"Interactive clock offset",title:"Make the rate curves agree.",
       description:"Camera-derived angular rates and gyro rates in the camera frame, on Hilti development data. Rotation, clock offset and bias move between a perturbed hypothesis and the saved estimate.",
       image:"../assets/camera-imu-lock.gif",source:"../assets/camera_imu_lock/series.provenance.json",dataset:"Hilti 2022 · exp21 / cam0",license:"Hilti SLAM Challenge 2022 terms",
       metric:"Displayed-interval angular-rate RMSE",unit:"deg/s",before:"Perturbed hypothesis",after:"Saved estimate"},
@@ -56,6 +56,8 @@
       panel.setAttribute("aria-labelledby","demo-tab-"+method.id);
       if(CalibrexEvidence.CODES.includes(method.id)){
         this.evidence.set(method.id,new CalibrexEvidence.EvidenceDemo(panel,url=>this.json(url),method.id));
+      }else if(method.id==="camera-imu"){
+        this.cameraImu=new CalibrexTiming.CameraImuTiming(panel,url=>this.json(url));
       }else if(method.id==="camera-lidar"){
         this.cameraLidar=new CalibrexCameraLidar.CameraLidarDemo(panel,url=>this.json(url));
       }else if(method.id==="stereo"){
@@ -101,6 +103,7 @@
       if(id==="lidar")return;
       if(this.evidence.has(id)){this.evidence.get(id).load();return;}
       if(id==="camera-lidar"){this.cameraLidar.load();return;}
+      if(id==="camera-imu"){this.cameraImu.load();return;}
       if(id==="stereo"){this.loadFrame(panel.querySelector(".stereo-frame-select").value);return;}
       try{
         let before,after;
@@ -154,6 +157,7 @@
       if(id==="lidar"){await this.cloud.load();if(this.current===id)this.cloud.reveal();}
       else if(this.evidence.has(id))return;
       else if(id==="camera-lidar")await this.cameraLidar.load();
+      else if(id==="camera-imu")await this.cameraImu.load();
       else if(id!=="stereo")this.play(METHODS.find(m=>m.id===id));
     }
   }

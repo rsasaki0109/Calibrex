@@ -7,7 +7,9 @@ complete an algorithm comparison. Implementation and publication are tracked
 separately.
 
 **Remaining basic demo categories: 0.** All seven additions are implemented and
-locally verified in the current PR; publication is pending.
+published. The limited-coverage / outlier / Huber live-fit controls are also
+published. The Camera–IMU clock-offset experiment is a separate tested addition
+whose publication is pending in its PR.
 
 | Demo category | Delivered basic demo | Explicit limits |
 |---|---|---|
