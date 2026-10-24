@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="app.css">
 </head>
-<body>
+<body class="bag-app">
 <header class="site-header">
   <div class="bar">
     <img src="../assets/brand/logo.svg" alt="">
@@ -26,7 +26,8 @@
 </header>
 <main>
   <div class="intro">
-    <h1>See what <code>calibrex check</code> can check on your own bag.</h1>
+    <div class="eyebrow">CALIBREX / CALIBRATION WORKSPACE</div>
+    <h1>Your sensors.<br><span class="hero-accent">In alignment.</span></h1>
     <p>Drop a ROS 2 bag and, if you have one, the calibration file your robot runs. Calibrex reads the transforms, classifies the sensor topics, and lists every sensor pair it could check, or why it could not.
       <a href="../tutorials/calibrex_check/">What the check does</a>.</p>
     <div class="pills">
@@ -35,6 +36,11 @@
     </div>
   </div>
 
+  <ol class="workflow-strip" aria-label="Calibration workflow">
+    <li><span>01</span><b>Bring your bag</b><small>Your files stay on your device</small></li>
+    <li><span>02</span><b>Watch the run</b><small>Follow each sensor pair</small></li>
+    <li><span>03</span><b>Read the evidence</b><small>Every axis, including the unknowns</small></li>
+  </ol>
   <div class="quick">
     <p><b>New here?</b> Plan a tiny synthetic bag (266&nbsp;KB, an IMU, two LiDARs, a camera, a GNSS receiver and <code>/tf_static</code>) and see the full result in a few seconds.</p>
     <button id="sample" class="primary big" disabled>Try a sample bag</button>
@@ -143,6 +149,11 @@
         <button id="run-estimators" class="primary" type="button">Run in the browser</button>
         <button id="run-cancel" type="button" hidden>Cancel</button>
       </div>
+      <section id="live-dashboard" hidden aria-label="Live calibration dashboard">
+        <div class="dashboard-heading"><h3>Inside the run</h3><span id="live-status" class="pill planned" role="status">Running</span></div>
+        <p class="note">Live processing activity. Counts reset for each stage; they do not measure calibration accuracy.</p>
+        <div id="live-workers" class="dashboard-grid"></div>
+      </section>
       <div id="progress" class="progress" hidden aria-live="polite">
         <div class="bar"><div id="bar-pairs"></div></div>
         <p id="prog-line" class="prog-line"></p>
@@ -154,6 +165,9 @@
       <div id="run-results" hidden>
         <h3 id="run-title">Result</h3>
         <div id="run-stats" class="stats"></div>
+        <div class="dashboard-heading"><h3>Axis explorer</h3><span class="eyebrow">EVIDENCE, AXIS BY AXIS</span></div>
+        <p id="axis-guide" class="note"></p>
+        <div id="axis-results" class="dashboard-grid"></div>
         <iframe id="run-report" class="report" title="Calibration check report" sandbox="" hidden></iframe>
         <details id="run-text-box" open><summary>Text summary</summary><pre id="run-text" class="textout"></pre></details>
         <div id="run-cli" class="callout" hidden></div>
@@ -178,6 +192,7 @@
 </main>
 
 <script src="check-pool.js"></script>
+<script src="check-dashboard.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const BAG_FILE = /\.(db3|mcap)$/i;
@@ -395,6 +410,7 @@ function finish(payload) {
   lastArtifact = payload.artifact;
   lastCommands = { command: payload.command, plan: payload.plan_command };
   lastPlan = payload.artifact;
+  $("live-dashboard").hidden = true; progressState = null;
   $("run-results").hidden = true; $("progress").hidden = true; $("run-error").hidden = true;
   render(payload.artifact, payload.command);
   renderPairChoices();
@@ -418,8 +434,12 @@ function renderPairChoices() {
 $("run-mode").addEventListener("change", () => { runMode = $("run-mode").value; if (lastPlan) renderPairChoices(); refresh(); });
 
 const fmtDur = (seconds) => { const total = Math.max(Math.round(seconds), 0); return total < 60 ? total + " s" : Math.floor(total / 60) + " min " + String(total % 60).padStart(2, "0") + " s"; };
+const liveDashboard = new CalibrexDashboard.LiveRun();
+function drawLive() { $("live-workers").innerHTML = liveDashboard.html(); }
 let progressState = null;
 function resetProgress() {
+  liveDashboard.reset(); drawLive(); $("live-dashboard").hidden = false;
+  $("live-status").textContent = "Running";
   progressState = { total: 0, finished: 0, label: "", index: 0, workers: {} };
   $("progress").hidden = false;
   $("bar-pairs").style.width = "0%"; $("bar-scan").style.width = "0%";
@@ -427,6 +447,7 @@ function resetProgress() {
 }
 function onProgress(event) {
   if (!progressState) return;
+  liveDashboard.consume(event); drawLive();
   const state = progressState;
   const current = state.workers[event.worker || 1] ||= { stage: "" };
   const prefix = event.worker ? `Worker ${event.worker}: ` : "";
@@ -483,6 +504,8 @@ async function startRun() {
 }
 $("run-estimators").addEventListener("click", startRun);
 $("run-cancel").addEventListener("click", () => {
+  $("live-status").textContent = "Cancelled"; liveDashboard.stop("cancelled"); drawLive();
+  progressState = null;
   worker.close(); ready = false; busy = false; startWorker();
   $("run-cancel").hidden = true; $("progress").hidden = true;
   $("run-error").hidden = false; $("run-error").textContent = "Cancelled. Python is restarting (cached, a few seconds); the plan above is kept.";
@@ -498,6 +521,9 @@ function download(name, text, type) {
 
 function finishRun(payload) {
   busy = false; $("run-cancel").hidden = true; refresh();
+  $("live-status").textContent = payload.ok ? "Finished" : "Failed";
+  liveDashboard.stop(payload.ok ? "finished" : "failed"); drawLive();
+  progressState = null;
   if (!payload.ok) { $("run-error").hidden = false; $("run-error").textContent = payload.error; $("progress").hidden = true; log("Run failed: " + payload.error); return; }
   lastRun = payload;
   log("Run finished in " + payload.seconds.toFixed(1) + " s.");
@@ -511,6 +537,10 @@ function finishRun(payload) {
     (isCheck ? `<div class="stat ${artifact.overall_verdict}"><div class="n verdict-${artifact.overall_verdict}">${escapeHtml(artifact.overall_verdict)}</div><div class="l">overall verdict</div></div>` : "") +
     counts.map(([status, count]) => `<div class="stat"><div class="n">${count}</div><div class="l">${escapeHtml(status)}</div></div>`).join("") +
     `<div class="stat"><div class="n">${payload.seconds.toFixed(0)} s</div><div class="l">in the browser</div></div>`;
+  $("axis-guide").textContent = isCheck
+    ? "Bars show absolute candidate error / tolerance: 1× is the pass limit, 2× the warn limit. A pass covers judged axes only."
+    : "Measured values with ±1σ uncertainty. Grey axes are NOT MEASURED; prior values are never presented as measurements.";
+  $("axis-results").innerHTML = CalibrexDashboard.resultHTML(artifact, payload.mode);
   const frame = $("run-report");
   frame.hidden = !payload.html;
   if (payload.html) frame.srcdoc = payload.html;

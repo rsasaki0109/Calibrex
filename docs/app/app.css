@@ -155,3 +155,65 @@ ul.tree .topics { color: var(--link); }
 .report { width: 100%; height: 720px; border: 1px solid var(--line); border-radius: 10px; background: #fff; margin-top: 10px; resize: vertical; }
 .textout { max-height: 480px; overflow: auto; font: 12.5px/1.45 "JetBrains Mono", ui-monospace, monospace; background: var(--code); padding: 12px; border-radius: 8px; }
 .codeline { overflow-x: auto; margin: 8px 0 0; }
+
+/* Calibration workspace: scoped to the bag page. */
+.bag-app { background-image: radial-gradient(ellipse at 85% 5%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 42%); }
+.bag-app main { max-width: 1160px; }
+.bag-app .site-header .bar { max-width: 1160px; height: auto; background: none; border-radius: 0; overflow: visible; }
+.bag-app .intro { padding: 42px 0 24px; position: relative; }
+.eyebrow { font: 600 11px/1.5 "JetBrains Mono", monospace; letter-spacing: .13em; color: var(--muted); }
+.bag-app .intro h1 { font-size: clamp(44px, 7vw, 80px); line-height: 1.03; letter-spacing: -.065em; margin: 18px 0 24px; }
+.hero-accent { color: var(--accent); }
+.bag-app .intro p { max-width: 620px; font-size: 16px; }
+.workflow-strip { list-style: none; padding: 0; margin: 0 0 26px; display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+.workflow-strip li { padding: 18px; display: grid; grid-template-columns: 34px 1fr; align-items: center; }
+.workflow-strip li + li { border-left: 1px solid var(--line); }
+.workflow-strip span { grid-row: span 2; color: var(--accent); font: 12px "JetBrains Mono", monospace; }
+.workflow-strip small { color: var(--muted); font-size: 12px; }
+.bag-app .panel { padding: 28px; border-radius: 18px; }
+.bag-app .dropzone { padding: 38px 20px; background-image: radial-gradient(var(--line) 1px, transparent 1px); background-size: 16px 16px; }
+.bag-app .quick { border-radius: 14px; }
+.dashboard-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.dashboard-heading h3, .dashboard-heading h4 { margin: 0; }
+#live-dashboard { margin-top: 24px; }
+.dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 16px; margin: 16px 0 24px; }
+.activity-card, .axis-card { min-width: 0; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); padding: 20px; }
+.activity-card { border-top: 3px solid var(--accent); }
+.activity-card h4 { margin: 12px 0 4px; font-size: 18px; overflow-wrap: anywhere; }
+.activity-stage { color: var(--muted); font-size: 13px; min-height: 42px; overflow-wrap: anywhere; }
+.activity-count { font: 500 27px/1.4 "JetBrains Mono", monospace; }
+.activity-count small { font: 12px Inter, sans-serif; color: var(--muted); }
+.activity-chart { width: 100%; height: 110px; margin-top: 12px; }
+.activity-chart polyline { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linejoin: round; }
+.chart-grid { stroke: var(--line); fill: none; }
+.activity-chart text { fill: var(--muted); font: 11px Inter, sans-serif; }
+.stage-trail { padding-left: 18px; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.stage-trail li:last-child { color: var(--text); }
+.pill.running, .pill.observed { color: var(--accent); border-color: var(--accent); }
+.pill.unknown { color: var(--muted); border-color: var(--line); }
+.axis-row { padding-top: 14px; --axis-color: var(--muted); }
+.axis-row.pass, .axis-row.observed { --axis-color: var(--pass); }
+.axis-row.warn { --axis-color: var(--warn); }
+.axis-row.fail { --axis-color: var(--fail); }
+.axis-label { display: flex; justify-content: space-between; gap: 10px; font: 12px "JetBrains Mono", monospace; }
+.axis-label span { text-align: right; }
+.axis-row small { color: var(--axis-color); font-size: 11px; display: block; margin-top: 5px; overflow-wrap: anywhere; }
+.axis-row.unknown { opacity: .8; }
+.axis-track { position: relative; height: 8px; background: var(--line); border-radius: 3px; margin: 8px 0; }
+.axis-track > div { background: var(--axis-color); height: 100%; border-radius: 3px; min-width: 2px; }
+.axis-track i { position: absolute; top: -3px; bottom: -3px; width: 1px; background: var(--muted); }
+.axis-track .limit-one { left: 33.333%; } .axis-track .limit-two { left: 66.667%; }
+@media (min-width: 850px) {
+  .bag-app .intro::after { content: ""; position: absolute; right: 18px; top: 55px; width: 220px; height: 220px; pointer-events: none; border: 1px solid var(--line); border-radius: 50%; background: radial-gradient(circle, var(--accent) 0 5px, transparent 6px 44px, var(--line) 45px 46px, transparent 47px 78px, var(--line) 79px 80px, transparent 81px), linear-gradient(90deg, transparent 49.7%, var(--line) 50%, transparent 50.3%), linear-gradient(transparent 49.7%, var(--line) 50%, transparent 50.3%); box-shadow: 0 0 70px color-mix(in srgb, var(--accent) 10%, transparent); }
+}
+@media (max-width: 600px) {
+  .workflow-strip { grid-template-columns: 1fr; }
+  .workflow-strip li + li { border-left: 0; border-top: 1px solid var(--line); }
+  .bag-app .panel { padding: 18px; }
+  .bag-app .intro { padding-top: 20px; }
+  .dashboard-heading .eyebrow { font-size: 9px; }
+  .bag-app .grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) { .bag-app *, .bag-app *::after { transition: none !important; scroll-behavior: auto !important; } }
+.skipped-results { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 12px; }
+.skipped-results summary { color: var(--muted); cursor: pointer; font-size: 13px; }
