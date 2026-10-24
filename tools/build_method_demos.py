@@ -133,6 +133,16 @@ def stereo_demo() -> dict[str, Any]:
             "median_relative_depth_error": float(np.median(relative[valid])),
             "baseline_m": rect.baseline_m,
             "focal_px": rect.fx,
+            "image_size": [width, height],
+            "correspondences": [
+                {
+                    "left": [float(s[2]), float(s[1])],
+                    "right": [float(s[2] - s[3]), float(s[1] + s[4])],
+                    "disparity_px": float(s[3]),
+                    "depth_m": float(z),
+                }
+                for s, z in zip(samples, depth, strict=True)
+            ],
         }
     return {
         "schema": "calibrex.fisheye_stereo_demo/v1",
@@ -186,7 +196,8 @@ if __name__ == "__main__":
         path = OUTPUT / f"fisheye_stereo_{code}.json"
         path.write_text(json.dumps(model, separators=(",", ":"), allow_nan=False) + "\n")
         stereo["models"][code] = {
-            k: v for k, v in model.items() if k not in ["raw", "rectified", "depth"]
+            k: v for k, v in model.items()
+            if k not in ["raw", "rectified", "depth", "correspondences"]
         }
         stereo["models"][code].update(
             {"url": path.name, "sha256": sha(str(path.relative_to(ROOT)))}

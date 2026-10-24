@@ -35,6 +35,16 @@ def test_gallery_sources_and_synthetic_stereo_matches() -> None:
                 Image.open(io.BytesIO(base64.b64decode(model[field].split(",", 1)[1]))).size == size
             )
         native = generated[code]
+        assert model["image_size"] == [320, 240]
+        assert len(model["correspondences"]) == model["matches"]
+        for point, actual in zip(model["correspondences"], native["correspondences"], strict=True):
+            assert point["left"] == pytest.approx(actual["left"])
+            assert point["right"] == pytest.approx(actual["right"])
+            assert point["depth_m"] == pytest.approx(actual["depth_m"])
+            assert point["left"][0] - point["right"][0] == pytest.approx(point["disparity_px"])
+            assert point["depth_m"] == pytest.approx(
+                model["focal_px"] * model["baseline_m"] / point["disparity_px"]
+            )
         assert native["matches"] > 20
         assert native["vertical_median_px"] < 0.2
         assert native["median_relative_depth_error"] < 0.03
