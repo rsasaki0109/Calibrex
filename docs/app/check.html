@@ -107,8 +107,9 @@
     <ul id="sources" class="sources"></ul>
     <p class="note">Candidate extrinsics are the transforms your robot deploys; <code>calibrex check</code> judges them against what the sensor data says.</p>
 
-    <h3>Frame tree</h3>
-    <div id="tree"></div>
+    <h3>Sensor rig</h3>
+    <div id="plan-rig" class="rig-viewer"></div>
+    <details class="opt"><summary>Frame tree details</summary><div id="tree"></div></details>
 
     <h3>Sensor pairs</h3>
     <div class="table-wrap"><table id="pairs"></table></div>
@@ -165,6 +166,8 @@
       <div id="run-results" hidden>
         <h3 id="run-title">Result</h3>
         <div id="run-stats" class="stats"></div>
+        <h3>Rig pose</h3>
+        <div id="result-rig" class="rig-viewer"></div>
         <div class="dashboard-heading"><h3>Axis explorer</h3><span class="eyebrow">EVIDENCE, AXIS BY AXIS</span></div>
         <p id="axis-guide" class="note"></p>
         <div id="axis-results" class="dashboard-grid"></div>
@@ -193,6 +196,7 @@
 
 <script src="check-pool.js"></script>
 <script src="check-dashboard.js"></script>
+<script src="rig-viewer.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const BAG_FILE = /\.(db3|mcap)$/i;
@@ -216,6 +220,7 @@ let folderName = null;   // bag directory name, when a folder was chosen or drop
 let useSample = false;
 let ready = false, busy = false, version = "";
 let lastArtifact = null, lastCommands = null, lastRun = null, lastPlan = null;
+let planRig = null, resultRig = null;
 // Pairs the estimators can run in the browser (numpy / scipy / the bag only); the camera pairs also
 // load OpenCV (opencv-python of Pyodide, about 50 MB) and are experimental here.
 const BROWSER_PAIRS = ["imu-lidar", "lidar-lidar", "lidar-vehicle", "imu-vehicle", "ins-lidar",
@@ -537,6 +542,8 @@ function finishRun(payload) {
     (isCheck ? `<div class="stat ${artifact.overall_verdict}"><div class="n verdict-${artifact.overall_verdict}">${escapeHtml(artifact.overall_verdict)}</div><div class="l">overall verdict</div></div>` : "") +
     counts.map(([status, count]) => `<div class="stat"><div class="n">${count}</div><div class="l">${escapeHtml(status)}</div></div>`).join("") +
     `<div class="stat"><div class="n">${payload.seconds.toFixed(0)} s</div><div class="l">in the browser</div></div>`;
+  resultRig ||= new CalibrexRig.RigViewer($("result-rig"));
+  resultRig.setArtifact(artifact);
   $("axis-guide").textContent = isCheck
     ? "Bars show absolute candidate error / tolerance: 1× is the pass limit, 2× the warn limit. A pass covers judged axes only."
     : "Measured values with ±1σ uncertainty. Grey axes are NOT MEASURED; prior values are never presented as measurements.";
@@ -612,11 +619,13 @@ function render(artifact, command) {
 }
 
 function renderTree(artifact) {
+  planRig ||= new CalibrexRig.RigViewer($("plan-rig"));
+  planRig.setArtifact(artifact);
   const tree = artifact.frame_tree;
   if (!tree.frames.length) { $("tree").innerHTML = `<p class="muted">No frames.</p>`; return; }
-  const children = {};
+  const children = Object.create(null);
   for (const edge of tree.edges) (children[edge.transform.parent_frame] = children[edge.transform.parent_frame] || []).push(edge);
-  const topicsOf = {};
+  const topicsOf = Object.create(null);
   for (const topic of artifact.topics) if (topic.mapped_frame && topic.role !== "tf_static") (topicsOf[topic.mapped_frame] = topicsOf[topic.mapped_frame] || []).push(topic.topic);
   const node = (frame, edge) => {
     const kids = (children[frame] || []).slice().sort((a, b) => a.transform.child_frame.localeCompare(b.transform.child_frame));

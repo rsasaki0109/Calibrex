@@ -35,6 +35,22 @@ against tolerances in Check mode, or measured values with 1σ uncertainty in
 Estimate mode. Unchecked and unobserved axes retain their reasons; prior values
 are not shown as measurements. The original JSON and HTML reports remain available.
 
+### Inspect the rig in 3D
+
+The bag check page draws the candidate frame tree in an interactive 3D view.
+Drag or use arrow keys to rotate, use +/− to zoom, select XY/XZ views, or choose a
+frame to inspect its position in the root frame and its local quaternion.
+The grid is a reference XY plane, not reconstructed point-cloud geometry.
+Positions share a metric scale; axis glyph lengths are illustrative.
+Disconnected trees have separate selectors: their relative placement is unknown.
+
+After Estimate, the viewer draws only frames in the exported tree. Amber dashed
+edges indicate axes filled from a prior, with **NOT MEASURED** shown in the
+selected frame's details. Descendant poses inherit that indication. Omitted
+frames and unexported pair placeholders are not drawn. A Check view remains a
+view of the deployed candidate, not a new estimate or an accuracy verdict.
+The viewer requires no WebGL, external 3D library or additional network request.
+
 ## Inputs
 
 | Input | Format |
