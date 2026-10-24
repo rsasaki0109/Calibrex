@@ -53,6 +53,18 @@ opens the input flow for an actual browser run on your own recording.
 Rebuild the digest-bound display asset with
 `python tools/build_alignment_demo.py` (requires the development image dependencies).
 
+### Switch calibration methods
+
+The sample gallery has five tabs: LiDAR–LiDAR point clouds, IMU–LiDAR deskew,
+Camera–IMU rate alignment, Camera–LiDAR projection, and fisheye stereo. Recorded
+visualizations have Play/Stop controls and use their original source metrics and
+licenses. Intermediate animation frames illustrate saved endpoint changes, not
+optimizer history. Automatic playback is disabled when reduced motion is requested.
+
+The [fisheye stereo demo](fisheye_stereo.md) switches between KB4, MEI and Double
+Sphere using native rectification and image matching on a known synthetic scene.
+This is a model/geometry check, clearly separated from the real-data recordings.
+
 ### Inspect the rig in 3D
 
 The bag check page draws the candidate frame tree in an interactive 3D view.
