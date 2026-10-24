@@ -45,3 +45,25 @@ test("estimate never shows unobserved prior values as measurements", () => {
   assert.ok(!html.includes("999"));
   assert.ok(html.includes("Turn about y"));
 });
+
+test("residual traces isolate fits and workers, preserve rising values and reject invalid data", () => {
+  const live = new LiveRun();
+  const metric = (worker, step, value) => live.consume({event: "metric", worker,
+    name: "Rotation training residual", unit: "noise-normalized RMS", step, value});
+  live.consume({event: "pair_started", worker: 1, label: "imu-lidar"});
+  live.consume({event: "pair_started", worker: 2, label: "camera-imu"});
+  metric(1, 0, 4); metric(2, 0, 10); metric(1, 1, 2); metric(1, 2, 3);
+  assert.deepEqual(live.workers.get(1).metric.points.map((p) => p.value), [4, 2, 3]);
+  metric(1, 3, NaN); metric(1, 3, Infinity); metric(1, 3, -1); metric(1, .5, 1);
+  assert.equal(live.workers.get(1).metric.points.length, 3);
+  metric(1, 0, 8); metric(1, 1, 5);
+  assert.equal(live.workers.get(1).fits, 2);
+  assert.deepEqual(live.workers.get(1).metric.points.map((p) => p.value), [8, 5]);
+  assert.deepEqual(live.workers.get(2).metric.points.map((p) => p.value), [10]);
+  const html = live.html();
+  assert.ok(html.includes("FIT 2"));
+  assert.ok(html.includes("Training residuals can rise"));
+  assert.ok(!html.includes("NaN"));
+  live.consume({event: "pair_started", worker: 1, label: "next"});
+  assert.equal(live.workers.get(1).metric, null);
+});

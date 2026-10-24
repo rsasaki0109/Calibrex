@@ -151,7 +151,7 @@
       </div>
       <section id="live-dashboard" hidden aria-label="Live calibration dashboard">
         <div class="dashboard-heading"><h3>Inside the run</h3><span id="live-status" class="pill planned" role="status">Running</span></div>
-        <p class="note">Live processing activity. Counts reset for each stage; they do not measure calibration accuracy.</p>
+        <p class="note">Live processing activity and available solver diagnostics. Item counts reset for each stage. Rotation residuals appear when the solver emits them; final verdicts use held-out evidence.</p>
         <div id="live-workers" class="dashboard-grid"></div>
       </section>
       <div id="progress" class="progress" hidden aria-live="polite">

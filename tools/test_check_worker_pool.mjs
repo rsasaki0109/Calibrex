@@ -233,3 +233,21 @@ test("a late idle startup failure does not disable a completed check or its prim
     assert.ok((await f.pool.run(message(), 1)).ok);
   } finally { f.pool.close(); }
 });
+
+test("parallel metric events keep solver steps and worker identity", async () => {
+  const f = fixture((worker, data, index) => {
+    if (data.type === "run") {
+      worker.emit({type: "progress", id: data.id, event: {event: "metric",
+        name: "Rotation training residual", value: 2 + index,
+        unit: "noise-normalized RMS", step: 0}});
+    }
+    worker.emit({type: "result", id: data.id,
+      payload: {ok: true, seconds: 1, allocated_wasm_bytes: 100, artifact: {}}});
+  });
+  try {
+    await f.pool.run(message(), 2);
+    const metrics = f.progress.filter((e) => e.event === "metric");
+    assert.deepEqual(metrics.map((e) => [e.worker, e.step, e.value]), [[1, 0, 2], [2, 0, 3]]);
+    assert.ok(metrics.every((e) => e.unit === "noise-normalized RMS"));
+  } finally { f.pool.close(); }
+});

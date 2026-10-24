@@ -284,6 +284,9 @@ class EventProgress(CheckProgress):
             elapsed_s=now - self._pair_started,
         )
 
+    def metric(self, name: str, value: float, unit: str, step: int) -> None:
+        self._send("metric", name=name, value=value, unit=unit, step=step)
+
     def pair_skipped(self, label: str, code: str, reason: str) -> None:
         self._send("pair_skipped", label=label, code=code, reason=reason)
 
