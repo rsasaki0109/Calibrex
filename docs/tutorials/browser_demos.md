@@ -50,3 +50,19 @@ saved correspondence at the cross. The 41×41 context helps inspect repeated
 patterns. Saved epipolar guides remain visible; this does not recompute ZNCC
 or certify the match. Missing border context is padded rather than copied from
 the other camera. Estimated depth has no independent ground-truth validation.
+
+The stereo **3D** view back-projects each saved match into the rectified left
+camera using `X = (u − (width−1)/2) Z / f`, `Y = (v − (height−1)/2) Z / f` and
+the existing `Z = fB/d`. Coordinates are metres, X right, Y down, Z forward;
+right-image vertical mismatch remains a separate diagnostic. The metric grid
+lies on the camera Y=0 plane; it is a coordinate guide, not an inferred floor. Drag or use orbit
+sliders to rotate the orthographic view. Click a point to select its image
+match; the match slider and previous/next buttons provide keyboard access.
+
+The default display includes Z ≤ 1 m. Choose Z ≤ 3 m or **All estimated depths**
+to include farther estimates; the count always reports points outside the
+display range. This is a display filter, not an outlier rejection or quality
+claim. **Focus selected match** reveals a selected point outside the range and
+centres the view on it. **Reset 3D view** fits the current depth range. Colours
+clip at 0.3–3 m, while coordinates keep their full values. The view shows sparse
+estimated matches, not a dense reconstruction or independently validated depth.

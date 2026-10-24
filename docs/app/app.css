@@ -447,3 +447,22 @@ ul.tree .topics { color: var(--link); }
 .stereo-patch-note { color:#9eb7ca; font-size:11px; line-height:1.7; }
 .stereo-previous { background:#1c394c; border:1px solid #53738b; color:#edf8ff; padding:8px 12px; border-radius:6px; cursor:pointer; }
 @media(max-width:600px) { .stereo-patches { gap:8px; } .stereo-patches figure { padding:6px; } .stereo-patches figcaption { font-size:8px; } }
+
+.stereo-cloud-panel { grid-column:1/-1; border:1px solid #34516a; border-radius:12px; overflow:hidden; background:#0b1a29; }
+.stereo-cloud-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:18px; }
+.stereo-cloud-heading h3 { margin:8px 0 0; color:#e7f4ff; font-size:22px; }
+.stereo-cloud-heading label { color:#abc4d8; font-size:11px; }
+.stereo-cloud-heading select { display:block; margin-top:6px; background:#142b3d; color:#e7f4ff; border:1px solid #34516a; border-radius:5px; padding:8px; }
+.stereo-cloud-canvas { display:block; width:100%; aspect-ratio:24/13; cursor:grab; touch-action:none; }
+.stereo-cloud-canvas:active { cursor:grabbing; }
+.stereo-cloud-controls { display:flex; flex-wrap:wrap; align-items:center; gap:14px; padding:16px 18px; }
+.stereo-cloud-controls label { flex:1 1 145px; font-size:11px; color:#abc4d8; }
+.stereo-cloud-controls input { display:block; width:100%; accent-color:#65e1cb; margin-top:8px; }
+.stereo-cloud-controls button { background:#1c394c; border:1px solid #53738b; color:#edf8ff; padding:8px 12px; border-radius:6px; cursor:pointer; }
+.stereo-cloud-view,.stereo-cloud-summary,.stereo-cloud-position,.stereo-cloud-note { display:block; padding:0 18px; font-size:11px; line-height:1.8; }
+.stereo-cloud-summary { color:#65e1cb; }
+.stereo-cloud-position { color:#ffcb81; font-family:"JetBrains Mono",monospace; }
+.stereo-cloud-note { color:#9eb7ca; margin-bottom:18px; }
+@media(max-width:600px) { .stereo-cloud-heading { padding:12px; } .stereo-cloud-heading h3 { font-size:18px; } .stereo-cloud-controls { padding:12px; gap:12px; } }
+
+.stereo-cloud-view { color:#9eb7ca; margin-top:0; }

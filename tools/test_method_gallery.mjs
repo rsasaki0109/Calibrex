@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
+import "../docs/app/stereo-cloud.js";
 import "../docs/app/method-gallery.js";
 const {METHODS,validateStereo,stereoCrop}=globalThis.CalibrexMethods;
 const read=(p)=>JSON.parse(fs.readFileSync(new URL("../docs/app/samples/"+p,import.meta.url),"utf8"));
@@ -84,4 +85,44 @@ test("stereo close-ups preserve subpixel centres and never cross a camera bounda
       assert.ok(Math.abs(g.sy+g.cy-g.dy-.5-p[side][1])<1e-10);
     }
   }
+});
+
+
+test("measured stereo cloud unprojects the rectified left camera without changing receipts",()=>{
+  const {unproject,bounds,project}=CalibrexStereoCloud;
+  const index=read("fisheye_real_demo.json");
+  for(const receipt of [...Object.values(index.frames),...Object.values(index.model_frames).flatMap(Object.values)]){
+    const data=read(receipt.url),before=JSON.stringify(data),points=unproject(data),[w,h]=data.image_size,f=data.focal_px;
+    assert.equal(points.length,data.matches);
+    assert.equal(JSON.stringify(data),before);
+    assert.ok(points.some(p=>p.z>3)); // far estimates remain, even if a display range hides them
+    for(const [i,p] of points.entries()){
+      const [x,y,z]=p.xyz,c=data.correspondences[i];
+      assert.equal(p.id,i);assert.equal(z,c.depth_m);
+      assert.ok(Math.abs(x/z*f+(w-1)/2-c.left[0])<1e-9);
+      assert.ok(Math.abs(y/z*f+(h-1)/2-c.left[1])<1e-9);
+      assert.ok(Math.abs((x-data.baseline_m)/z*f+(w-1)/2-c.right[0])<1e-9);
+    }
+    for(const limit of [1,3,Infinity])for(const [yaw,pitch] of [[0,0],[-25,15],[180,75],[-180,-75]]){
+      const view={...bounds(points,limit),yaw,pitch,zoom:1};
+      for(const p of points.filter(p=>p.z<=limit)){
+        const q=project(p.xyz,view);assert.ok(q.x>=0&&q.x<=960&&q.y>=0&&q.y<=520);
+      }
+    }
+  }
+  assert.throws(()=>unproject({image_size:[640,400],focal_px:0,correspondences:[]}),/Invalid/);
+  assert.throws(()=>unproject({image_size:[640,400],focal_px:250,correspondences:[{left:[20,30],depth_m:-1}]}),/Invalid/);
+});
+
+test("stereo cloud uses image-frame axis signs and frontmost picking for overlapping points",()=>{
+  const {project,pick}=CalibrexStereoCloud,view={center:[0,0,0],radius:1,yaw:0,pitch:0,zoom:1};
+  assert.deepEqual(project([0,0,0],view),{x:480,y:260,depth:0});
+  assert.ok(project([1,0,0],view).x>480);assert.ok(project([0,1,0],view).y>260);
+  assert.equal(project([0,0,1],view).depth,1);
+  assert.ok(project([0,0,1],{...view,yaw:90}).x>480);
+  const points=[{id:3,x:100,y:100,depth:2},{id:7,x:100,y:100,depth:1}];
+  assert.equal(pick(points,100,100,12),7);
+  assert.equal(pick(points.slice().reverse(),100,100,12),7);
+  assert.equal(pick(points,140,140,12),null);
+  assert.equal(pick(points,100,110,12),7);
 });
