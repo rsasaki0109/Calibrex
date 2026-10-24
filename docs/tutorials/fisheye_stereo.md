@@ -1,9 +1,10 @@
 # Fisheye stereo: rectify and recover depth
 
-The [browser demo](../app/check.html) compares **KB4, unified/MEI and Double Sphere**
-on a known synthetic scene. Select **Fisheye stereo**, then a model: the raw pair,
-native rectification and sparse matched depth are shown together. The other tabs
-show recorded LiDAR–LiDAR, IMU deskew, Camera–IMU and Camera–LiDAR demonstrations.
+The [browser demo](../app/check.html) shows **real photographed fisheye stereo**
+from OpenCV's `calib-3_stereo_from_JY` dataset. Select **Fisheye stereo**, then a
+photographed pair: the colour raw images, native KB4 rectification and sparse
+matched depth appear together. The other tabs show recorded LiDAR–LiDAR, IMU
+deskew, Camera–IMU and Camera–LiDAR demonstrations.
 
 Click a depth dot, move the **Inspect match** slider (arrow keys supported), or
 select **Next match** to highlight the same correspondence in both rectified
@@ -64,9 +65,30 @@ mask for their injective model domains; their inverse functions return NaN for
 invalid pixels. KB4 retains its existing forward-hemisphere validity convention.
 The rectified view is a common pinhole overlap, not a spherical depth map.
 
-## What the demo validates
+## What the real demo demonstrates
 
-The synthetic scene has surfaces at 3, 6 and 12 m and a 0.30 m baseline. Raw images
+The three indoor pairs use separate recorded left/right KB4 intrinsics and
+distortion with a baseline of approximately 99.4 mm. Native Calibrex rectification
+and image-only ZNCC matching produce the displayed results. No rendered images or
+known scene depth enter the real-data path. These are saved results, not live
+browser optimization. Source images, upstream calibration, attribution, processing
+and scale details are in the [real-data receipt](../assets/fisheye-stereo-real/README.md).
+
+There is **no independent depth truth**, so the real demo reports no depth
+accuracy percentage. Vertical mismatch is an image-space correspondence
+diagnostic. Repeated board patterns, weak texture and occlusions can yield wrong
+matches; no uniqueness or left/right consistency filter is applied. Colour clips
+to 0.3–3.0 m while the selected point's numerical depth remains unclipped. These
+are calibration-set photographs, not held-out accuracy measurements.
+
+Rebuild with `PYTHONPATH=src python tools/build_real_stereo_demo.py`. Its receipt
+binds original images, generator, native implementation and calibration with
+SHA-256; only the selected pair's display asset is fetched by the browser.
+
+## Synthetic model regression checks
+
+Separate synthetic fixtures test KB4, MEI and Double Sphere using surfaces at
+3, 6 and 12 m and a 0.30 m baseline. Raw images
 are rendered from each camera model, rectified by Calibrex, then passed to the
 native image patch matcher. True depths are used **after matching** to measure
 error, never to guide the correspondence search. Samples that pass matching are
@@ -78,6 +100,6 @@ still needed for new lenses, weak texture, limited overlap and poorly constraine
 extrinsics. Runtime support requires NumPy/SciPy; OpenCV is not required for this
 rectification path.
 
-Rebuild the demo with `python tools/build_method_demos.py`. The receipts bind the
+Rebuild those fixtures with `python tools/build_method_demos.py`. Their receipts bind the
 generator and native source files with SHA-256. The scene is synthetic, while the
 four other method demos retain their original real-data provenance and licenses.

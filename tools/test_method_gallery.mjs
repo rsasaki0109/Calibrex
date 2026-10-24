@@ -33,3 +33,19 @@ test("each native stereo profile has valid images and finite metric receipts",()
     assert.throws(()=>validateStereo({...model,correspondences:[]}),/Invalid/);
   }
 });
+test("the default fisheye gallery uses real photographs without fabricated depth truth",()=>{
+  const index=read("fisheye_real_demo.json");
+  assert.equal(index.capture_kind,"real");
+  assert.deepEqual(Object.keys(index.frames),["000","014","027"]);
+  for(const [frame,receipt] of Object.entries(index.frames)){
+    const data=validateStereo(read(receipt.url));
+    assert.equal(data.capture_kind,"real");assert.equal(data.frame,frame);
+    assert.equal(data.depth_truth,null);assert.equal(data.median_relative_depth_error,undefined);
+    assert.deepEqual(data.image_size,[640,400]);assert.ok(data.matches>100);
+    assert.ok(data.baseline_m>.099&&data.baseline_m<.100);
+    assert.throws(()=>validateStereo({...data,depth:"data:text/html;base64,SGVsbG8="}),/Invalid/);
+  }
+  const source=fs.readFileSync(new URL("../docs/app/method-gallery.js",import.meta.url),"utf8");
+  assert.ok(source.includes('this.json("samples/fisheye_real_demo.json")'));
+  assert.ok(!source.includes('this.json("samples/fisheye_stereo_demo.json")'));
+});
