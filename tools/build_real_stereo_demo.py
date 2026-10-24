@@ -104,6 +104,11 @@ def build_frame(frame: str, model: str = "kb4") -> dict[str, Any]:
         np.stack([resample(image[..., channel]) for channel in range(3)], axis=-1)
         for image, resample in zip(images, (rect.rectify_left, rect.rectify_right), strict=True)
     ]
+    # Equivalent BLAS/SciPy paths can put an integral intensity just below or above
+    # that integer. Truncating directly changes the grayscale gradient candidate
+    # pool, then every seeded random pick. Snap sub-1e-8 intensity roundoff before
+    # the shared display/matching conversion; keep the native geometric maps intact.
+    rectified = [np.uint8(np.clip(np.round(image, 8), 0, 255)) for image in rectified]
     gray = [
         np.asarray(Image.fromarray(np.uint8(image)).convert("L"), dtype=float)
         for image in rectified

@@ -15,6 +15,42 @@ SOURCE = ROOT / "docs/assets/camera_imu_lock"
 OUTPUT = ROOT / "docs/app/samples/camera_imu_timing.json"
 
 
+def motion_windows(data: dict[str, Any], count: int = 20) -> list[dict[str, Any]]:
+    """Select disjoint equal-count windows using only measured camera-rate RMS."""
+    rates = np.array(data["camera_rate_dps"])
+    candidates = [
+        (i, float(np.sqrt(np.mean(np.sum(rates[i : i + count] ** 2, axis=1)))))
+        for i in range(len(rates) - count + 1)
+    ]
+    pairs = [
+        (high[1] - low[1], high, low)
+        for high in candidates
+        for low in candidates
+        if abs(high[0] - low[0]) >= count
+    ]
+    if not pairs:
+        raise ValueError("Need two disjoint measured windows")
+    gap, high, low = max(pairs, key=lambda p: p[0])
+    if gap <= 1e-12:
+        raise ValueError("No measured angular-rate RMS contrast")
+    windows = []
+    for code, indices in [
+        ("all", list(range(len(rates)))),
+        ("higher", list(range(high[0], high[0] + count))),
+        ("lower", list(range(low[0], low[0] + count))),
+    ]:
+        windows.append(
+            {
+                "id": code,
+                "indices": indices,
+                "camera_rms_dps": float(np.sqrt(np.mean(np.sum(rates[indices] ** 2, axis=1)))),
+                "start_s": data["camera_start_s"][indices[0]],
+                "end_s": data["camera_end_s"][indices[-1]],
+            }
+        )
+    return windows
+
+
 def build_data() -> dict[str, Any]:
     """Keep one common camera interval set valid across all injected offsets."""
     series = load_series(SOURCE / "series.npz")
@@ -78,7 +114,7 @@ def build_data() -> dict[str, Any]:
                         ),
                     }
                 )
-    return {
+    data = {
         "schema": "calibrex.camera_imu_timing_demo/v1",
         "capture_kind": "real",
         "dataset": "Hilti 2022 exp21 / cam0 and alphasense IMU",
@@ -114,6 +150,45 @@ def build_data() -> dict[str, Any]:
             str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources
         },
     }
+    data["motion_windows"] = motion_windows(data)
+    data["window_selection"] = (
+        "Two disjoint contiguous 20-observation windows maximizing the difference in "
+        "measured camera angular-rate RMS; ties follow ascending candidate start order. "
+        "No gyro residual, saved calibration or heatmap minimum enters selection. "
+        "RMS amplitude is not a test of observability or calibration accuracy."
+    )
+    references = []
+    for window in data["motion_windows"]:
+        ids = window["indices"]
+        for axis in [0, 2]:
+            for angle, shift in [(-2.5, -25), (0, 0), (2.5, 25)]:
+                vector = np.zeros(3)
+                vector[axis] = np.deg2rad(angle)
+                rotation = exp_so3(vector) @ series.r_est
+                a = start[ids] + series.dt_est_s + shift / 1000
+                b = end[ids] + series.dt_est_s + shift / 1000
+                means = np.column_stack(
+                    [
+                        (
+                            np.interp(b, series.imu_t_s, series.gyro_cum_deg[:, k])
+                            - np.interp(a, series.imu_t_s, series.gyro_cum_deg[:, k])
+                        )
+                        / (b - a)
+                        for k in range(3)
+                    ]
+                )
+                error = (means - series.bias_est_dps) @ rotation.T - series.cam_rate_dps[keep][ids]
+                references.append(
+                    {
+                        "window": window["id"],
+                        "axis": axis,
+                        "degrees": angle,
+                        "shift_ms": shift,
+                        "rmse_dps": float(np.sqrt(np.mean(np.sum(error**2, axis=1)))),
+                    }
+                )
+    data["window_references"] = references
+    return data
 
 
 if __name__ == "__main__":

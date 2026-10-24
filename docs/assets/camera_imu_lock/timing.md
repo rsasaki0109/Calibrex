@@ -10,16 +10,38 @@ and vary −5 to +5 degrees around a selected camera-frame rotation axis. The ra
 plot compares camera-derived rates
 with gyro means over the **same camera intervals**; the next plot shows their
 selected-axis difference. The lower plot shows the three-axis residual RMSE
-over all 59 displayed intervals at the selected rotation. Its vertical scale and
+over the selected 59- or 20-observation window at the selected rotation. Its vertical scale and
 those of the two other plots stay fixed while either injection changes. Click
 the sensitivity curve to change time only; **Zero rotation** changes rotation
 only, and **Reset both** returns both injections to zero.
 
+## Measured motion windows
+
+Compare the full 59 exported observations with two non-overlapping, contiguous
+windows of 20 observations each. The producer chooses the pair with the largest
+difference in camera-derived three-axis angular-rate RMS, breaking ties by the
+first ascending pair of start indices. Gyro residuals and calibration estimates
+do not enter this selection. The higher-rate window is exported observations
+40–59 (34.15 deg/s RMS); the lower-rate window is observations 15–34
+(14.41 deg/s RMS). These identifiers refer to the exported subset.
+
+The two small heatmaps show both windows side by side. Selecting a window keeps
+the injected time and rotation unchanged and updates the main heatmap, curves,
+observation count, timestamp range and numerical interval inspection. Colour
+and curve scales remain shared across windows. Each window uses its fixed
+intervals throughout the ±50 ms range, without extrapolation.
+
+These are post-hoc development windows. Higher camera-rate RMS measures motion
+amplitude, potentially including tracking noise; it does not establish richer
+excitation, observability or accuracy. Equal counts do not make their motions,
+durations or noise identical. Comparing their residual minima or contour areas
+is not an independent accuracy ranking or uncertainty estimate.
+
 ## Rotation × time heatmap
 
 The heatmap evaluates 41 rotation angles (0.25° spacing) and 101 clock shifts
-(1 ms spacing). Every cell uses the same 59 measured camera intervals. The colour
-scale is shared by the X/Y/Z rotation slices. Clicking a cell updates both
+(1 ms spacing). Every cell uses the same measured camera intervals within the selected window.
+The colour scale is shared by all measured windows and X/Y/Z rotation slices. Clicking a cell updates both
 controls and the interval curves; equivalent keyboard access is available
 through the two sliders. The plot axis and injected rotation axis are independent.
 
@@ -72,3 +94,6 @@ candidate rotation `R_camera_axis × R_saved`. The fast surface calculation uses
 rotation-invariant vector energies and cross-moments; tests compare it with
 direct vector rotation and residual evaluation. All updates run locally after
 the measured series loads; no animation starts automatically.
+
+Window references also compare the browser against original IMU cumulative
+integrals and the saved bias/rotation, independently of camera-frame moments.

@@ -123,10 +123,10 @@
       const panel=this.root.querySelector("#demo-panel-stereo"),seq=++this.frameRequest,status=panel.querySelector(".method-status");status.textContent="Loading photographed pair…";this.stereoData=null;panel.querySelector(".stereo-stats").textContent="";
       panel.querySelector(".stereo-views").hidden=true;
       try{
-        const index=await this.json("samples/fisheye_real_demo.json?v=measured-models-1"),model=panel.querySelector(".stereo-model-select").value;
+        const index=await this.json("samples/fisheye_real_demo.json?v=stable-pixels-1"),model=panel.querySelector(".stereo-model-select").value;
         if(!["kb4","mei","ds"].includes(model)||!["000","014","027"].includes(code)||index.schema!=="calibrex.real_fisheye_stereo_demo/v1"||index.capture_kind!=="real"||!index.models[model]?.includes(code))throw Error("Unknown real stereo pair/model");
         const suffix=model==="kb4"?code:model+"_"+code;
-        const data=validateStereo(await this.json("samples/fisheye_real_"+suffix+".json"));if(seq!==this.frameRequest)return;
+        const data=validateStereo(await this.json("samples/fisheye_real_"+suffix+".json?v=stable-pixels-1"));if(seq!==this.frameRequest)return;
         if(data.camera_model!==model)throw Error("Mismatched stereo model");
         if(data.capture_kind!=="real"||data.frame!==code||data.depth_truth!==null)throw Error("Invalid real stereo receipt");
         for(const key of ["raw","rectified","depth"])panel.querySelector(".stereo-"+key).src=data[key];
