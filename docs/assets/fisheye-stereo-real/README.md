@@ -44,7 +44,13 @@ These photographs belong to the calibration dataset used to obtain the supplied
 reference parameters. This is a saved demonstration, **not a held-out benchmark
 or a live calibration run**. KB4 uses the upstream calibration. **MEI and Double
 Sphere are newly fit to the measured board corners**, and their real-image
-rectification/depth demo uses capture `000`. They are not alternative labels on
+rectification/depth demos use captures `000`, `014` and `027`. Switching
+models preserves the selected photographed pair, so all nine combinations use
+the same three raw image pairs. Each model retains its own fitted transform and
+baseline. Match sets are recomputed per model and need not identify the same
+scene points; their counts are not an accuracy ranking. The displayed
+fit-excluded reprojection value is an aggregate fit diagnostic, not a metric
+computed for the selected photograph. They are not alternative labels on
 the KB4 projection.
 
 Run `PYTHONPATH=src python tools/fit_real_fisheye_models.py` to regenerate these
