@@ -7,7 +7,7 @@ panels now cover the original five sensor-pair demos and six added explorations.
 |---|---|---|
 | LiDAR–LiDAR | Orbit the point clouds and slide the comparison | Saved NTU VIRAL alignment |
 | IMU–LiDAR | Play or stop the deskew recording | Real MID360 sweep |
-| Camera–IMU | Replay the angular-rate alignment | Real Hilti recording; saved estimate |
+| Camera–IMU | Inject ±50 ms, switch axes and inspect interval residuals | Measured Hilti camera/gyro series; saved rotation/bias fixed |
 | Camera–LiDAR | Change six offsets and compare the projections | Real KITTI returns and photographs; manual experiment |
 | Fisheye stereo | Switch KB4 / MEI / Double Sphere and inspect a match | Real images; supplied KB4 and newly fitted MEI/DS; no depth truth |
 | Method comparison | Switch four native board methods | Shared ACFR fit/holdout split; separate targetless A2D2 evidence |
@@ -23,6 +23,13 @@ two measured captures, and four explicitly injected fit outliers. Compare
 blocks underconstrained geometry; the unchanged holdout curve shows how outlier
 bias differs from numerical convergence. These are controlled changes to a real
 board dataset, not simulated sensor recordings or a literal vehicle-motion test.
+
+In **Camera–IMU**, the time slider changes only which IMU samples are averaged
+over the fixed camera intervals. The displayed offset convention and all 59
+intervals stay consistent across the range. The 3D residual profile, selected-axis
+curve and numerical interval inspection update together. See the
+[clock experiment guide](../assets/camera_imu_lock/timing.md) for integration,
+sign convention, source records and interpretation.
 
 The [source guide](../assets/evidence-demos/README.md) describes coordinate
 conventions, licenses, reproducible producers and the limits of each view.
