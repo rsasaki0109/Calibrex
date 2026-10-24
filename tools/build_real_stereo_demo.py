@@ -20,6 +20,7 @@ from calibrex.evaluation.fisheye_stereo import (
     rectify_fisheye_pair,
     vertical_offset_samples,
 )
+from calibrex.evaluation.stereo_camera_models import DoubleSphereCamera, MeiCamera
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / "docs/assets/fisheye-stereo-real"
@@ -40,10 +41,15 @@ def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def build_frame(frame: str) -> dict[str, Any]:
+def build_frame(frame: str, model: str = "kb4") -> dict[str, Any]:
     """Rectify and match one real pair using the upstream stereo calibration."""
     calibration = json.loads((ASSETS / "calibration.json").read_text())
+    fitted = (
+        None if model == "kb4" else json.loads((ASSETS / f"calibration_{model}.json").read_text())
+    )
     sources = json.loads((ASSETS / "sources.json").read_text())
+    if model not in ("kb4", "mei", "ds"):
+        raise ValueError("Unknown camera model")
     if frame not in sources["frames"]:
         raise ValueError("Unknown real stereo frame")
     width, height = (v // 2 for v in calibration["image_size"])
@@ -56,24 +62,52 @@ def build_frame(frame: str) -> dict[str, Any]:
         entry = calibration[side]
         # Pillow's resize maps pixel centres: u_small = (u_full + 0.5)/2 - 0.5.
         fx, fy, cx, cy = entry["intrinsics"]
-        cameras.append(EquidistantCamera(
-            fx / 2, fy / 2, (cx + 0.5) / 2 - 0.5, (cy + 0.5) / 2 - 0.5,
-            tuple(entry["distortion"]), width, height,
-        ))
+        if fitted is None:
+            cameras.append(
+                EquidistantCamera(
+                    fx / 2,
+                    fy / 2,
+                    (cx + 0.5) / 2 - 0.5,
+                    (cy + 0.5) / 2 - 0.5,
+                    tuple(entry["distortion"]),
+                    width,
+                    height,
+                )
+            )
+        else:
+            p = fitted["parameters_" + side]
+            intrinsic = [p[0] / 2, p[1] / 2, (p[2] + 0.5) / 2 - 0.5, (p[3] + 0.5) / 2 - 0.5]
+            cameras.append(
+                MeiCamera(*intrinsic, p[4], tuple(p[5:]), width, height)
+                if model == "mei"
+                else DoubleSphereCamera(*intrinsic, p[4], p[5], width, height)
+            )
         with Image.open(path) as image:
-            images.append(np.asarray(image.convert("RGB").resize(
-                (width, height), Image.Resampling.LANCZOS,
-            )))
+            images.append(
+                np.asarray(
+                    image.convert("RGB").resize(
+                        (width, height),
+                        Image.Resampling.LANCZOS,
+                    )
+                )
+            )
+    focal = sum(calibration["left"]["intrinsics"][:2]) / 4 * 0.9
+    transform = calibration["right_from_left"] if fitted is None else fitted["right_from_left"]
     rect = rectify_fisheye_pair(
-        cameras[0], cameras[1], np.asarray(calibration["right_from_left"]), focal_scale=0.9,
+        cameras[0],
+        cameras[1],
+        np.asarray(transform),
+        focal_scale=focal / (0.5 * (cameras[0].fx + cameras[0].fy)),
     )
     # Preserve photographed colour for display; matching sees luminance only.
     rectified = [
         np.stack([resample(image[..., channel]) for channel in range(3)], axis=-1)
         for image, resample in zip(images, (rect.rectify_left, rect.rectify_right), strict=True)
     ]
-    gray = [np.asarray(Image.fromarray(np.uint8(image)).convert("L"), dtype=float)
-            for image in rectified]
+    gray = [
+        np.asarray(Image.fromarray(np.uint8(image)).convert("L"), dtype=float)
+        for image in rectified
+    ]
     samples = vertical_offset_samples([(gray[0], gray[1])], **MATCH_OPTIONS)
     if len(samples) == 0:
         raise ValueError(f"No accepted matches: {frame}")
@@ -83,14 +117,16 @@ def build_frame(frame: str) -> dict[str, Any]:
     for sample, z in zip(samples, depth, strict=True):
         a = float(np.clip((z - 0.3) / 2.7, 0, 1))
         x, y = sample[2], sample[1]
-        draw.ellipse((x - 3, y - 3, x + 3, y + 3),
-                     fill=(int(255 * (1 - a)), int(130 + 100 * a), int(80 + 175 * a)))
+        draw.ellipse(
+            (x - 3, y - 3, x + 3, y + 3),
+            fill=(int(255 * (1 - a)), int(130 + 100 * a), int(80 + 175 * a)),
+        )
     pair = np.uint8(np.hstack(rectified))
     pair[20::40] = [60, 215, 180]
     return {
         "capture_kind": "real",
         "frame": frame,
-        "camera_model": "kb4",
+        "camera_model": model,
         "raw": png(np.hstack(images)),
         "rectified": png(pair),
         "depth": png(np.asarray(sparse)),
@@ -100,12 +136,18 @@ def build_frame(frame: str) -> dict[str, Any]:
         "focal_px": rect.fx,
         "image_size": [width, height],
         "correspondences": [
-            {"left": [float(s[2]), float(s[1])],
-             "right": [float(s[2] - s[3]), float(s[1] + s[4])],
-             "disparity_px": float(s[3]), "depth_m": float(z)}
+            {
+                "left": [float(s[2]), float(s[1])],
+                "right": [float(s[2] - s[3]), float(s[1] + s[4])],
+                "disparity_px": float(s[3]),
+                "depth_m": float(z),
+            }
             for s, z in zip(samples, depth, strict=True)
         ],
         "depth_truth": None,
+        "fit_excluded_reprojection_px": None
+        if fitted is None
+        else fitted["holdout_right_reprojection_rmse_px"],
     }
 
 
@@ -118,6 +160,8 @@ def build() -> None:
         "dataset": sources["dataset"],
         "camera_model": "kb4",
         "frames": {},
+        "models": {"kb4": ["000", "014", "027"], "mei": ["000"], "ds": ["000"]},
+        "model_frames": {},
         "matching": MATCH_OPTIONS,
         "method": "Native rectification and image-only ZNCC. No truth depths enter matching.",
         "limitations": (
@@ -132,10 +176,15 @@ def build() -> None:
         },
     }
     paths = [
-        Path(__file__), ROOT / "tools/build_method_demos.py",
+        Path(__file__),
+        ROOT / "tools/build_method_demos.py",
         ROOT / "src/calibrex/evaluation/fisheye_stereo.py",
         ROOT / "src/calibrex/evaluation/stereo_camera_models.py",
-        ASSETS / "calibration.json", ASSETS / "sources.json",
+        ASSETS / "calibration.json",
+        ASSETS / "sources.json",
+        ASSETS / "calibration_mei.json",
+        ASSETS / "calibration_ds.json",
+        ROOT / "tools/fit_real_fisheye_models.py",
         *(ASSETS / path for path in sources["files"]),
     ]
     index["provenance"]["sources"] = {str(p.relative_to(ROOT)): digest(p) for p in paths}
@@ -144,8 +193,22 @@ def build() -> None:
         path = OUTPUT / f"fisheye_real_{frame}.json"
         path.write_text(json.dumps(data, separators=(",", ":"), allow_nan=False) + "\n")
         index["frames"][frame] = {
-            "url": path.name, "sha256": digest(path), "matches": data["matches"],
+            "url": path.name,
+            "sha256": digest(path),
+            "matches": data["matches"],
             "vertical_median_px": data["vertical_median_px"],
+        }
+    for model in ("mei", "ds"):
+        data = build_frame("000", model)
+        path = OUTPUT / f"fisheye_real_{model}_000.json"
+        path.write_text(json.dumps(data, separators=(",", ":"), allow_nan=False) + "\n")
+        index["model_frames"][model] = {
+            "000": {
+                "url": path.name,
+                "sha256": digest(path),
+                "matches": data["matches"],
+                "vertical_median_px": data["vertical_median_px"],
+            }
         }
     (OUTPUT / "fisheye_real_demo.json").write_text(
         json.dumps(index, separators=(",", ":"), allow_nan=False) + "\n",

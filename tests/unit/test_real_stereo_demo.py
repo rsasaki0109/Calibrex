@@ -18,6 +18,19 @@ sys.path.insert(0, str(ROOT / "tools"))
 from build_real_stereo_demo import ASSETS, build_frame  # noqa: E402
 
 
+@pytest.mark.parametrize("model", ["mei", "ds"])
+def test_fitted_real_models_rectify_and_match_the_measured_images(model: str) -> None:
+    saved = json.loads((ROOT / f"docs/app/samples/fisheye_real_{model}_000.json").read_text())
+    generated = build_frame("000", model)
+    assert saved["camera_model"] == model
+    assert saved["matches"] == generated["matches"]
+    assert saved["fit_excluded_reprojection_px"] < 1
+    for point, actual in zip(saved["correspondences"], generated["correspondences"], strict=True):
+        assert point["left"] == pytest.approx(actual["left"])
+        assert point["right"] == pytest.approx(actual["right"])
+        assert point["depth_m"] == pytest.approx(actual["depth_m"])
+
+
 def test_real_stereo_provenance_and_calibration_source() -> None:
     index = json.loads((ROOT / "docs/app/samples/fisheye_real_demo.json").read_text())
     assert index["capture_kind"] == "real"

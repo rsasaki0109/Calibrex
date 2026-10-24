@@ -10,11 +10,17 @@
       description:"Camera-derived angular rates and gyro rates in the camera frame, on Hilti development data. Rotation, clock offset and bias move between a perturbed hypothesis and the saved estimate.",
       image:"../assets/camera-imu-lock.gif",source:"../assets/camera_imu_lock/series.provenance.json",dataset:"Hilti 2022 · exp21 / cam0",license:"Hilti SLAM Challenge 2022 terms",
       metric:"Displayed-interval angular-rate RMSE",unit:"deg/s",before:"Perturbed hypothesis",after:"Saved estimate"},
-    {id:"camera-lidar",label:"Camera ↔ LiDAR",tag:"Image projection",title:"Put the points on the objects.",
+    {id:"camera-lidar",label:"Camera ↔ LiDAR",tag:"Interactive projection",title:"Put the points on the objects.",
       description:"Two real KITTI camera-LiDAR checks: a +3° injected camera rotation and the vendor transform. Only roll and pitch are judged here; translation remains unchecked.",
       image:"../assets/calibrex-check-camera-lidar.gif",source:"../assets/calibrex_check_camera_lidar/provenance.json",dataset:"KITTI · drive 0005",license:"CC BY-NC-SA 3.0",
       metric:"Pitch error against the estimate",unit:"deg",before:"Injected rotation",after:"Vendor transform"},
     {id:"stereo",label:"Fisheye stereo",tag:"Real stereo photos"},
+    {id:"comparison",label:"Method comparison",tag:"4 board / 2 targetless"},
+    {id:"handeye",label:"Robot hand–eye",tag:"8 real-data methods"},
+    {id:"gnss",label:"GNSS tracks",tag:"Measured receiver fixes"},
+    {id:"vehicle",label:"Wheels / INS",tag:"4 measured wheel speeds"},
+    {id:"radar",label:"Radar tracks",tag:"Measured range & speed"},
+    {id:"live",label:"Live calibration",tag:"Actual optimizer updates"},
   ];
   const validPNG = (value) => typeof value==="string" && value.length<1800000 && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(value);
   function validateStereo(data){
@@ -30,7 +36,7 @@
   }
   class MethodGallery {
     constructor(root,cloud){
-      this.root=root;this.cloud=cloud;this.current="lidar";this.request=0;this.frameRequest=0;this.cache=new Map();
+      this.root=root;this.cloud=cloud;this.current="lidar";this.request=0;this.frameRequest=0;this.cache=new Map();this.evidence=new Map();
       this.panels=root.querySelector(".method-panels");this.tabs=root.querySelector(".method-tabs");
       for(const method of METHODS){
         const button=document.createElement("button");button.type="button";button.role="tab";button.id="demo-tab-"+method.id;button.dataset.method=method.id;
@@ -48,8 +54,12 @@
     panel(method){
       const panel=document.createElement("section");panel.id="demo-panel-"+method.id;panel.className="alignment-demo method-panel";panel.hidden=true;panel.role="tabpanel";
       panel.setAttribute("aria-labelledby","demo-tab-"+method.id);
-      if(method.id==="stereo"){
-        panel.innerHTML=`<div class="method-media"><div class="cloud-topline"><span>REAL CAPTURE / NATIVE RECTIFICATION</span><span>KB4 · calibrated stereo rig</span></div><div class="stereo-picker"><label>Photographed pair <select aria-label="Real fisheye stereo pair"><option value="000">Pair 000 · board in the room</option><option value="014">Pair 014 · board close up</option><option value="027">Pair 027 · board tilted</option></select></label></div><div class="stereo-views"><figure><figcaption>RAW · LEFT / RIGHT</figcaption><img class="stereo-raw" alt="Real photographed left and right fisheye images"></figure><figure><figcaption>RECTIFIED · EPIPOLAR GUIDES</figcaption><div class="stereo-overlay"><img class="stereo-rectified" alt="Native rectified images with horizontal guides"><svg class="stereo-pair-marker" aria-hidden="true"></svg></div></figure><figure class="stereo-depth-figure"><figcaption>SPARSE MATCHED DEPTH · NEAR <span class="depth-key"></span> FAR</figcaption><div class="stereo-depth-row"><div class="stereo-overlay stereo-depth-map"><img class="stereo-depth" alt="Depth from image patch matches; colored sparse samples"><svg class="stereo-depth-marker" aria-hidden="true"></svg></div><p>Click a depth dot to inspect its match in both rectified images.<br><br>Orange: ≤ 0.3 m<br>Cyan: ≥ 3.0 m<br>Colour clips at both ends<br><br>Use the point slider or arrow keys to explore every accepted match.</p></div></figure><div class="stereo-inspector"><div class="stereo-point-controls"><label for="stereo-point">Inspect match <output class="stereo-point-number"></output></label><input id="stereo-point" type="range" min="0" max="0" value="0" aria-label="Stereo match"><button type="button" class="stereo-next">Next match →</button></div><div class="stereo-measurements" aria-live="polite"></div><p class="stereo-equation"></p></div></div><p class="method-status" role="status">Loading photographed pair…</p></div><aside class="cloud-evidence"><div class="eyebrow">FISHEYE STEREO / REAL PHOTOGRAPHS</div><h2>Real lenses.<br>Real room.</h2><p class="cloud-description">Three photographed stereo pairs from OpenCV’s fisheye test data. Separate left/right KB4 calibrations straighten the images; native ZNCC patch matches estimate depth.</p><div class="stereo-stats"></div><p class="cloud-description">Estimated depth, without independent depth truth. Repeated board squares and occlusions can produce wrong matches. Treat these saved estimates as a visual demonstration. Depth is Z = fB/d.</p><a class="method-link" href="../tutorials/fisheye_stereo/">Models, API &amp; limitations ↗</a><a class="method-link" href="../assets/fisheye-stereo-real/">Photographs, calibration &amp; attribution ↗</a></aside>`;
+      if(CalibrexEvidence.CODES.includes(method.id)){
+        this.evidence.set(method.id,new CalibrexEvidence.EvidenceDemo(panel,url=>this.json(url),method.id));
+      }else if(method.id==="camera-lidar"){
+        this.cameraLidar=new CalibrexCameraLidar.CameraLidarDemo(panel,url=>this.json(url));
+      }else if(method.id==="stereo"){
+        panel.innerHTML=`<div class="method-media"><div class="cloud-topline"><span>REAL CAPTURE / NATIVE RECTIFICATION</span><span>KB4 · calibrated stereo rig</span></div><div class="stereo-picker"><label>Camera model <select class="stereo-model-select" aria-label="Real fisheye camera model"><option value="kb4">KB4 · upstream calibration</option><option value="mei">MEI · fit to measured corners</option><option value="ds">Double Sphere · fit to measured corners</option></select></label><label>Photographed pair <select class="stereo-frame-select" aria-label="Real fisheye stereo pair"><option value="000">Pair 000 · board in the room</option><option value="014">Pair 014 · board close up</option><option value="027">Pair 027 · board tilted</option></select></label></div><div class="stereo-views"><figure><figcaption>RAW · LEFT / RIGHT</figcaption><img class="stereo-raw" alt="Real photographed left and right fisheye images"></figure><figure><figcaption>RECTIFIED · EPIPOLAR GUIDES</figcaption><div class="stereo-overlay"><img class="stereo-rectified" alt="Native rectified images with horizontal guides"><svg class="stereo-pair-marker" aria-hidden="true"></svg></div></figure><figure class="stereo-depth-figure"><figcaption>SPARSE MATCHED DEPTH · NEAR <span class="depth-key"></span> FAR</figcaption><div class="stereo-depth-row"><div class="stereo-overlay stereo-depth-map"><img class="stereo-depth" alt="Depth from image patch matches; colored sparse samples"><svg class="stereo-depth-marker" aria-hidden="true"></svg></div><p>Click a depth dot to inspect its match in both rectified images.<br><br>Orange: ≤ 0.3 m<br>Cyan: ≥ 3.0 m<br>Colour clips at both ends<br><br>Use the point slider or arrow keys to explore every accepted match.</p></div></figure><div class="stereo-inspector"><div class="stereo-point-controls"><label for="stereo-point">Inspect match <output class="stereo-point-number"></output></label><input id="stereo-point" type="range" min="0" max="0" value="0" aria-label="Stereo match"><button type="button" class="stereo-next">Next match →</button></div><div class="stereo-measurements" aria-live="polite"></div><p class="stereo-equation"></p></div></div><p class="method-status" role="status">Loading photographed pair…</p></div><aside class="cloud-evidence"><div class="eyebrow">FISHEYE STEREO / REAL PHOTOGRAPHS</div><h2>Real lenses.<br>Real room.</h2><p class="cloud-description">Three photographed stereo pairs from OpenCV’s fisheye test data. KB4 uses the supplied calibration; MEI and Double Sphere use new fits to measured board corners. Native ZNCC patch matches estimate depth. MEI/DS currently show pair 000.</p><div class="stereo-stats"></div><p class="cloud-description">Estimated depth, without independent depth truth. Repeated board squares and occlusions can produce wrong matches. Treat these saved estimates as a visual demonstration. Depth is Z = fB/d.</p><a class="method-link" href="../tutorials/fisheye_stereo/">Models, API &amp; limitations ↗</a><a class="method-link" href="../assets/fisheye-stereo-real/">Photographs, calibration &amp; attribution ↗</a></aside>`;
         panel.querySelector("#stereo-point").addEventListener("input",e=>this.inspectPoint(Number(e.target.value)));
         panel.querySelector(".stereo-next").addEventListener("click",()=>{if(this.stereoData)this.inspectPoint((this.pointIndex+1)%this.stereoData.matches);});
         panel.querySelector(".stereo-depth-map").addEventListener("click",e=>{
@@ -60,7 +70,13 @@
           this.stereoData.correspondences.forEach((p,i)=>{const d=(p.left[0]-x)**2+(p.left[1]-y)**2;if(d<distance){nearest=i;distance=d;}});
           this.inspectPoint(nearest);
         });
-        panel.querySelector("select").addEventListener("change",(e)=>this.loadFrame(e.target.value));
+        panel.querySelector(".stereo-frame-select").addEventListener("change",e=>this.loadFrame(e.target.value));
+        panel.querySelector(".stereo-model-select").addEventListener("change",e=>{
+          const frame=panel.querySelector(".stereo-frame-select");
+          for(const option of frame.options)option.disabled=e.target.value!=="kb4"&&option.value!=="000";
+          if(frame.selectedOptions[0].disabled)frame.value="000";
+          this.loadFrame(frame.value);
+        });
       }else{
         panel.innerHTML=`<div class="method-media"><div class="cloud-topline"><span>REAL RECORDING / SAVED COMPARISON</span><span>${method.dataset}</span></div><div class="method-replay"><img hidden alt="${method.label} recorded evidence visualization"><div class="method-poster"><span>${method.tag}</span><strong>${method.title}</strong><p>Play the recorded data visualization.</p></div></div><div class="cloud-controls"><button type="button" data-replay>Play replay</button><span class="method-format">Recorded visualization · not live optimization</span></div><p class="method-status" role="status"></p></div><aside class="cloud-evidence"><div class="eyebrow">${method.label}</div><h2>${method.title}</h2><p class="cloud-description">${method.description}</p><div class="cloud-metric-label">${method.metric}</div><div class="cloud-metric"><span class="method-before">—</span><small>${method.unit}</small></div><span class="cloud-metric-caption">${method.before}</span><div class="cloud-metric cloud-metric-after"><span class="method-after">—</span><small>${method.unit}</small></div><span class="cloud-metric-caption">${method.after}</span><p class="cloud-source">${method.dataset}<br>${method.license}</p><p class="cloud-description">Saved endpoints. Intermediate frames illustrate parameter changes or overlays; they are not optimizer iterations or new check results.</p><a class="method-link" href="${method.source}">Source, metrics &amp; caveats ↗</a></aside>`;
         panel.querySelector("[data-replay]").addEventListener("click",()=>{if(panel.querySelector("img").hidden)this.play(method);else this.pause(panel);});
@@ -77,13 +93,15 @@
     }
     async select(id){
       const method=METHODS.find(m=>m.id===id);if(!method)return;
-      this.request++;const request=this.request;this.current=id;this.cloud.stop();
+      this.request++;const request=this.request;this.current=id;this.cloud.stop();this.evidence.forEach(d=>d.stop());
       for(const panel of this.panels.children){panel.hidden=panel.id!=="demo-panel-"+id && !(id==="lidar"&&panel.id==="alignment-demo");if(panel.hidden&&panel.querySelector("[data-replay]"))this.pause(panel);}
       for(const button of this.tabs.children){const selected=button.dataset.method===id;button.setAttribute("aria-selected",String(selected));button.tabIndex=selected?0:-1;}
       const panel=id==="lidar"?this.root.querySelector("#alignment-demo"):this.root.querySelector("#demo-panel-"+id);
       panel.setAttribute("aria-labelledby","demo-tab-"+id);panel.role="tabpanel";
       if(id==="lidar")return;
-      if(id==="stereo"){this.loadFrame(panel.querySelector("select").value);return;}
+      if(this.evidence.has(id)){this.evidence.get(id).load();return;}
+      if(id==="camera-lidar"){this.cameraLidar.load();return;}
+      if(id==="stereo"){this.loadFrame(panel.querySelector(".stereo-frame-select").value);return;}
       try{
         let before,after;
         if(id==="deskew"){const d=await this.json(method.source);before=d.metrics.thickness_raw_cm;after=d.metrics.thickness_deskewed_cm;}
@@ -102,16 +120,18 @@
       const panel=this.root.querySelector("#demo-panel-stereo"),seq=++this.frameRequest,status=panel.querySelector(".method-status");status.textContent="Loading photographed pair…";this.stereoData=null;panel.querySelector(".stereo-stats").textContent="";
       panel.querySelector(".stereo-views").hidden=true;
       try{
-        const index=await this.json("samples/fisheye_real_demo.json");
-        if(!["000","014","027"].includes(code)||index.schema!=="calibrex.real_fisheye_stereo_demo/v1"||index.capture_kind!=="real"||!index.frames[code])throw Error("Unknown real stereo pair");
-        const data=validateStereo(await this.json("samples/fisheye_real_"+code+".json"));if(seq!==this.frameRequest)return;
+        const index=await this.json("samples/fisheye_real_demo.json?v=measured-models-1"),model=panel.querySelector(".stereo-model-select").value;
+        if(!["kb4","mei","ds"].includes(model)||!["000","014","027"].includes(code)||index.schema!=="calibrex.real_fisheye_stereo_demo/v1"||index.capture_kind!=="real"||!index.models[model]?.includes(code))throw Error("Unknown real stereo pair/model");
+        const suffix=model==="kb4"?code:model+"_"+code;
+        const data=validateStereo(await this.json("samples/fisheye_real_"+suffix+".json"));if(seq!==this.frameRequest)return;
+        if(data.camera_model!==model)throw Error("Mismatched stereo model");
         if(data.capture_kind!=="real"||data.frame!==code||data.depth_truth!==null)throw Error("Invalid real stereo receipt");
         for(const key of ["raw","rectified","depth"])panel.querySelector(".stereo-"+key).src=data[key];
         panel.querySelector(".stereo-stats").textContent=`${data.matches} image matches\nMedian vertical mismatch: ${data.vertical_median_px.toFixed(3)} px\nCalibrated baseline: ${(1000*data.baseline_m).toFixed(1)} mm\nDepth accuracy: not measured`;
         this.stereoData=data;
         panel.querySelector("#stereo-point").max=String(data.matches-1);
         this.inspectPoint(0);
-        panel.querySelector(".stereo-views").hidden=false;status.textContent="Real OpenCV photographs · saved native rectification and sparse depth";
+        panel.querySelector(".stereo-views").hidden=false;status.textContent=model==="kb4"?"Real OpenCV photographs · saved native rectification and sparse depth":`Real OpenCV photographs · ${model.toUpperCase()} fitted to measured corners · fit-excluded right reprojection ${data.fit_excluded_reprojection_px.toFixed(3)} px · KB4 initialized the fit; this is not an independent benchmark`;
       }catch(error){if(seq===this.frameRequest)status.textContent=error.message;}
     }
     inspectPoint(index){
@@ -132,6 +152,8 @@
       const id=this.current,panel=id==="lidar"?this.root.querySelector("#alignment-demo"):this.root.querySelector("#demo-panel-"+id);
       panel.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"instant":"smooth",block:"start"});
       if(id==="lidar"){await this.cloud.load();if(this.current===id)this.cloud.reveal();}
+      else if(this.evidence.has(id))return;
+      else if(id==="camera-lidar")await this.cameraLidar.load();
       else if(id!=="stereo")this.play(METHODS.find(m=>m.id===id));
     }
   }

@@ -5,8 +5,8 @@ import "../docs/app/method-gallery.js";
 const {METHODS,validateStereo}=globalThis.CalibrexMethods;
 const read=(p)=>JSON.parse(fs.readFileSync(new URL("../docs/app/samples/"+p,import.meta.url),"utf8"));
 
-test("gallery exposes five distinct methods and recorded sources remain attributable",()=>{
-  assert.equal(METHODS.length,5);assert.equal(new Set(METHODS.map(m=>m.id)).size,5);
+test("gallery exposes eleven distinct demos and recorded sources remain attributable",()=>{
+  assert.equal(METHODS.length,11);assert.equal(new Set(METHODS.map(m=>m.id)).size,11);
   for(const m of METHODS.filter(m=>m.image)) {
     assert.ok(m.source.startsWith("../assets/"));assert.ok(m.license);assert.ok(m.dataset);
     assert.ok(fs.existsSync(new URL("../docs/"+m.image.slice(3),import.meta.url)));
@@ -46,6 +46,16 @@ test("the default fisheye gallery uses real photographs without fabricated depth
     assert.throws(()=>validateStereo({...data,depth:"data:text/html;base64,SGVsbG8="}),/Invalid/);
   }
   const source=fs.readFileSync(new URL("../docs/app/method-gallery.js",import.meta.url),"utf8");
-  assert.ok(source.includes('this.json("samples/fisheye_real_demo.json")'));
+  assert.ok(source.includes('this.json("samples/fisheye_real_demo.json?'));
   assert.ok(!source.includes('this.json("samples/fisheye_stereo_demo.json")'));
+});
+test("MEI and Double Sphere use their own real-corner fits on the same photograph",()=>{
+  const index=read("fisheye_real_demo.json"),kb4=read(index.frames["000"].url);
+  for(const model of ["mei","ds"]){
+    const data=validateStereo(read(index.model_frames[model]["000"].url));
+    assert.equal(data.capture_kind,"real");assert.equal(data.camera_model,model);
+    assert.equal(data.raw,kb4.raw);assert.notEqual(data.rectified,kb4.rectified);
+    assert.equal(data.depth_truth,null);assert.ok(data.fit_excluded_reprojection_px<1);
+    assert.ok(data.matches>100);assert.ok(data.vertical_median_px<1);
+  }
 });

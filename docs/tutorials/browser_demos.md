@@ -1,0 +1,24 @@
+# Explore the real-data demos
+
+Open the [browser gallery](../app/check.html) and select a method tab. Eleven
+panels now cover the original five sensor-pair demos and six added explorations.
+
+| Panel | What to try | Data and interpretation |
+|---|---|---|
+| LiDAR–LiDAR | Orbit the point clouds and slide the comparison | Saved NTU VIRAL alignment |
+| IMU–LiDAR | Play or stop the deskew recording | Real MID360 sweep |
+| Camera–IMU | Replay the angular-rate alignment | Real Hilti recording; saved estimate |
+| Camera–LiDAR | Change six offsets and compare the projections | Real KITTI returns and photographs; manual experiment |
+| Fisheye stereo | Switch KB4 / MEI / Double Sphere and inspect a match | Real images; supplied KB4 and newly fitted MEI/DS; no depth truth |
+| Method comparison | Switch four native board methods | Shared ACFR fit/holdout split; separate targetless A2D2 evidence |
+| Robot hand–eye | Switch eight methods and inspect motion closure | Measured ETHZ poses; closure is not absolute accuracy |
+| GNSS tracks | Zoom receiver tracks and change a candidate lever arm | Measured comma2k19 fixes; fused path is not truth |
+| Wheels / INS | Select each wheel or the body-axis view | Measured wheel speeds and fused camera FRD velocity |
+| Radar tracks | Select a snapshot and change candidate yaw | Real processed CAN targets; reported relative speed, not raw Doppler |
+| Live calibration | Run, step, stop or reset a six-parameter fit | Actual browser updates on measured ACFR centres; holdout excluded from fitting |
+
+The [source guide](../assets/evidence-demos/README.md) describes coordinate
+conventions, licenses, reproducible producers and the limits of each view.
+Each tab clearly distinguishes saved results, manual geometry and actual live
+optimization. The [backlog](../browser_demo_backlog.md) records the scope delivered
+for the seven requested additions.
