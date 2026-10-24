@@ -18,7 +18,7 @@
   class EvidenceDemo {
     constructor(panel,json,code){
       this.panel=panel;this.json=json;this.code=code;this.sequence=0;this.zoom=1;this.angle=-.4;this.pitch=.35;this.point=0;this.epoch=0;
-      panel.innerHTML=`<div class="method-media"><div class="cloud-topline"><span class="evidence-mode">MEASURED DATA / SAVED NATIVE RESULTS</span><span class="evidence-dataset"></span></div><div class="evidence-toolbar"><label>View <select aria-label="${code} demo view"></select></label><label class="evidence-zoom">Zoom <input type="range" min="1" max="12" step=".5" value="1" aria-label="${code} plot zoom"></label></div><h3 class="evidence-plot-title"></h3><canvas class="evidence-plot" width="960" height="440" role="img" aria-label="Measured data visualization"></canvas><div class="evidence-live-actions" hidden><button type="button" data-live="run">Run live fit</button><button type="button" data-live="step">One iteration</button><button type="button" data-live="stop">Stop</button><button type="button" data-live="reset">Reset perturbation</button></div><canvas class="evidence-history" width="960" height="180" role="img" aria-label="Actual fit and holdout residual history" hidden></canvas><div class="evidence-controls"><label class="evidence-point-label">Inspect observation <input type="range" min="0" max="0" value="0" aria-label="${code} observation"></label><output class="evidence-point-detail"></output></div><div class="evidence-extra"></div><div class="evidence-legend"></div><p class="method-status" role="status">Loading measured data…</p><button class="evidence-retry" type="button" hidden>Retry data</button></div><aside class="cloud-evidence"><div class="eyebrow">REAL OBSERVATIONS / EXPLORE THE EVIDENCE</div><h2></h2><div class="evidence-metrics"></div><p class="cloud-description evidence-note"></p><p class="cloud-source"></p><div class="evidence-targetless"></div><a class="method-link" href="../assets/evidence-demos/">Sources, methods &amp; limits ↗</a><a class="method-link" href="samples/evidence_demo_index.json">Byte-bound data receipt ↗</a></aside>`;
+      panel.innerHTML=`<div class="method-media"><div class="cloud-topline"><span class="evidence-mode">MEASURED DATA / SAVED NATIVE RESULTS</span><span class="evidence-dataset"></span></div><div class="evidence-toolbar"><label>View <select aria-label="${code} demo view"></select></label><label class="evidence-zoom">Zoom <input type="range" min="1" max="12" step=".5" value="1" aria-label="${code} plot zoom"></label></div><h3 class="evidence-plot-title"></h3><canvas class="evidence-plot" width="960" height="440" role="img" aria-label="Measured data visualization"></canvas><div class="evidence-stress" hidden><label>Observation condition <select aria-label="Live observation condition"><option value="normal">Full measured coverage</option><option value="limited">Limited coverage · 2 captures</option><option value="outliers">Inject 4 outliers · fit only</option></select></label><label>Loss <select aria-label="Live fitting loss"><option value="least_squares">Least squares</option><option value="huber">Huber · 0.05 m threshold</option></select></label><p class="evidence-scenario-note"></p><p class="evidence-quality" role="status"></p></div><div class="evidence-live-actions" hidden><button type="button" data-live="run">Run live fit</button><button type="button" data-live="step">One iteration</button><button type="button" data-live="stop">Stop</button><button type="button" data-live="reset">Reset perturbation</button></div><canvas class="evidence-history" width="960" height="180" role="img" aria-label="Actual fit and holdout residual history" hidden></canvas><div class="evidence-controls"><label class="evidence-point-label">Inspect observation <input type="range" min="0" max="0" value="0" aria-label="${code} observation"></label><output class="evidence-point-detail"></output></div><div class="evidence-extra"></div><div class="evidence-legend"></div><p class="method-status" role="status">Loading measured data…</p><button class="evidence-retry" type="button" hidden>Retry data</button></div><aside class="cloud-evidence"><div class="eyebrow">REAL OBSERVATIONS / EXPLORE THE EVIDENCE</div><h2></h2><div class="evidence-metrics"></div><p class="cloud-description evidence-note"></p><p class="cloud-source"></p><div class="evidence-targetless"></div><a class="method-link" href="../assets/evidence-demos/">Sources, methods &amp; limits ↗</a><a class="method-link" href="samples/evidence_demo_index.json">Byte-bound data receipt ↗</a></aside>`;
       this.canvas=panel.querySelector(".evidence-plot");this.context=this.canvas.getContext("2d");
       panel.querySelector("select").addEventListener("change",()=>this.select());
       panel.querySelector(".evidence-zoom input").addEventListener("input",e=>{this.zoom=Number(e.target.value);this.draw();});
@@ -28,9 +28,11 @@
       this.canvas.addEventListener("pointerdown",e=>{drag=[e.clientX,e.clientY];this.canvas.setPointerCapture(e.pointerId);});
       this.canvas.addEventListener("pointermove",e=>{if(!drag||this.view?.kind!=="cloud")return;this.angle+=(e.clientX-drag[0])*.008;this.pitch=Math.max(-1.4,Math.min(1.4,this.pitch+(e.clientY-drag[1])*.008));drag=[e.clientX,e.clientY];this.draw();});
       for(const event of ["pointerup","pointercancel","lostpointercapture"])this.canvas.addEventListener(event,()=>drag=null);
+      panel.querySelectorAll(".evidence-stress select").forEach(select=>select.addEventListener("change",()=>{this.stop();this.resetLive();this.draw();}));
       panel.querySelectorAll("[data-live]").forEach(button=>button.addEventListener("click",()=>{
         this.stop();const action=button.dataset.live;
-        if(action==="reset"){this.live=new CalibrexDemoSolver.LiveFit(this.data.live_problem);this.draw();}
+        if(action==="reset"){this.resetLive();this.draw();}
+        else if(action==="stop")panel.querySelector(".method-status").textContent=`Paused · ${this.live.iteration} actual iterations`;
         else if(action==="step")this.step();
         else if(action==="run"){const epoch=this.epoch;const tick=()=>{if(epoch!==this.epoch)return;if(this.step())this.timer=setTimeout(tick,60);};tick();}
       }));
@@ -55,8 +57,9 @@
     select(){
       this.stop();this.point=0;this.zoom=1;this.panel.querySelector(".evidence-zoom input").value="1";
       this.view=this.data.views.find(v=>v.id===this.panel.querySelector("select").value)||this.data.views[0];
-      if(this.code==="live")this.live=new CalibrexDemoSolver.LiveFit(this.data.live_problem);
+      if(this.code==="live")this.resetLive();
       this.panel.querySelector(".evidence-live-actions").hidden=this.code!=="live";
+      this.panel.querySelector(".evidence-stress").hidden=this.code!=="live";
       this.panel.querySelector(".evidence-history").hidden=this.code!=="live";
       this.panel.querySelector(".evidence-plot-title").textContent=this.code==="live"?"Measured board centres · actual current estimate":this.view.title;
       this.panel.querySelector(".evidence-note").textContent=this.code==="live"?"A small browser Gauss–Newton point fit runs on measured ACFR centres. Only fit observations enter the updates; held-out residuals are diagnostic. The start is a deliberately perturbed saved native Horn estimate. This live example is not the full production calibration pipeline.":this.view.note;
@@ -71,6 +74,16 @@
       }
       this.panel.querySelector(".method-status").textContent=this.code==="live"?"Ready · press Run live fit or One iteration":"Measured data loaded · drag 3D plots, zoom or inspect observations";
       this.draw();
+    }
+    resetLive(){
+      this.live=new CalibrexDemoSolver.LiveFit(this.data.live_problem,{
+        scenario:this.panel.querySelector('[aria-label="Live observation condition"]').value,
+        loss:this.panel.querySelector('[aria-label="Live fitting loss"]').value,
+      });
+      this.point=this.live.fitIndices[0];this.zoom=1;this.panel.querySelector(".evidence-zoom input").value="1";
+      const notes={normal:"All 32 measured fit centres and 8 untouched holdouts. The start is a deliberately perturbed native reference.",limited:"Only 2 distinct measured fit captures are retained; 30 are excluded. The 8 holdouts stay unchanged. Rotation around the line joining the two centres is unobservable, so updates are blocked.",outliers:"4 fit targets are deliberately shifted by (+0.60, −0.40, +0.50) m. These are injected errors, not original measurements. The 8 holdouts are unchanged. Compare least squares with Huber."};
+      this.panel.querySelector(".evidence-scenario-note").textContent=notes[this.live.scenario]+" Larger dots: active fit. Faded dots: excluded captures.";
+      this.panel.querySelector(".method-status").textContent="Ready · press Run live fit or One iteration";
     }
     addControl(root,label,min,max,step,apply){
       const el=document.createElement("label"),input=document.createElement("input"),out=document.createElement("output");el.textContent=label+" ";input.type="range";input.min=min;input.max=max;input.step=step;input.value="0";input.setAttribute("aria-label",label);out.textContent="0";
@@ -98,9 +111,12 @@
       }else{
         let clouds=this.view.clouds;
         if(this.code==="live"){
-          clouds=[{name:"Measured camera centres",points:this.data.live_problem.target},{name:"Current optimized LiDAR",points:this.live.points()}];
+          clouds=[{name:"Camera targets · injected errors marked red",points:this.live.targets},{name:"Current transformed LiDAR",points:this.live.points()}];
           const history=this.live.history,last=history.at(-1);
-          this.metricCards([{label:"Actual iteration",value:this.live.iteration},{label:"Fit centre RMSE",value:last.fit,unit:"m"},{label:"Held-out centre RMSE",value:last.holdout,unit:"m"}]);
+          this.metricCards([{label:"Actual iteration",value:this.live.iteration},{label:this.live.injectedIndices.length?"Fit RMSE · includes injected errors":"Fit centre RMSE",value:last.fit,unit:"m"},{label:"Untouched holdout RMSE",value:last.holdout,unit:"m"},{label:"Geometry rank · before damping",value:`${this.live.geometry.rank} / 6`},{label:"Active fit / untouched holdout",value:`${this.live.fitIndices.length} / ${this.live.holdIndices.length}`}]);
+          const quality=this.panel.querySelector(".evidence-quality");
+          quality.dataset.warning=String(this.live.geometry.rank<6||this.live.injectedIndices.length>0);
+          quality.textContent=this.live.geometry.rank<6?"Underconstrained: a unique 6-DoF fit is unavailable. No optimizer updates will run.":this.live.injectedIndices.length?"Injected outliers: numerical convergence can be biased. Compare the untouched holdout residuals.":"Geometry rank 6/6. This is a shape diagnostic, not an accuracy guarantee.";
           const c=this.panel.querySelector(".evidence-history"),hc=c.getContext("2d");hc.fillStyle="#091524";hc.fillRect(0,0,c.width,c.height);
           this.lines(hc,c.width,c.height,history.map(v=>v.iteration),[{name:"Fit",values:history.map(v=>v.fit)},{name:"Holdout",values:history.map(v=>v.holdout)}],false);
         }else if(this.code==="gnss"){
@@ -116,7 +132,7 @@
         this.scatter(rotated);
         clouds.forEach((c,i)=>{const e=textNode("span",c.name);e.style.color=COLOURS[i%COLOURS.length];legend.append(e);});
         const p=clouds[0].points[this.point];
-        this.panel.querySelector(".evidence-point-detail").textContent=`Observation ${this.point+1} / ${count} · ${p.slice(0,3).map(v=>v.toFixed(3)).join(", ")} m`+(p.length===4?` · reported relative speed ${p[3].toFixed(2)} m/s`:"");
+        this.panel.querySelector(".evidence-point-detail").textContent=`Observation ${this.point+1} / ${count} · ${p.slice(0,3).map(v=>v.toFixed(3)).join(", ")} m`+(p.length===4?` · reported relative speed ${p[3].toFixed(2)} m/s`:"")+(this.code==="live"?` · ${this.live.fitIndices.includes(this.point)?"FIT":this.live.holdIndices.includes(this.point)?"HOLDOUT":"EXCLUDED"}${this.live.injectedIndices.includes(this.point)?" · INJECTED ERROR":""}`:"");
       }
       if(this.code!=="live")this.metricCards(this.view.metrics);
       const slider=this.panel.querySelector(".evidence-point-label input");slider.max=String(count-1);slider.value=String(this.point);
@@ -142,11 +158,12 @@
       const scale=Math.min((w-100)/(hi[0]-lo[0]||1),(h-100)/(hi[1]-lo[1]||1))*this.zoom;
       const pixel=p=>{const q=project(p);return [w/2+(q[0]-centre[0])*scale,h/2-(q[1]-centre[1])*scale];};
       if(["comparison","handeye","live"].includes(this.code)){
-        ctx.strokeStyle="#ffba7466";for(let i=0;i<clouds[0].points.length;i++){const a=pixel(clouds[0].points[i]),b=pixel(clouds[1].points[i]);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();}
+        ctx.strokeStyle="#ffba7466";for(let i=0;i<clouds[0].points.length;i++){if(this.code==="live"&&!this.live.fitIndices.includes(i)&&!this.live.holdIndices.includes(i))continue;const a=pixel(clouds[0].points[i]),b=pixel(clouds[1].points[i]);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();}
       }
       clouds.forEach((c,k)=>{
         if(this.code==="gnss"){ctx.strokeStyle=COLOURS[k];ctx.lineWidth=2;ctx.beginPath();c.points.forEach((p,i)=>i?ctx.lineTo(...pixel(p)):ctx.moveTo(...pixel(p)));ctx.stroke();}
-        for(let i=0;i<c.points.length;i++){const p=c.points[i],q=pixel(p);ctx.fillStyle=radar?`hsl(${200-175*Math.max(0,Math.min(1,(p[3]+10)/20))} 90% 65%)`:COLOURS[k%COLOURS.length];ctx.beginPath();ctx.arc(q[0],q[1],radar?5:3.5,0,Math.PI*2);ctx.fill();}
+        for(let i=0;i<c.points.length;i++){const p=c.points[i],q=pixel(p);ctx.fillStyle=radar?`hsl(${200-175*Math.max(0,Math.min(1,(p[3]+10)/20))} 90% 65%)`:COLOURS[k%COLOURS.length];ctx.globalAlpha=this.code==="live"&&!this.live.fitIndices.includes(i)&&!this.live.holdIndices.includes(i)?.15:1;ctx.beginPath();ctx.arc(q[0],q[1],radar?5:this.code==="live"&&this.live.fitIndices.includes(i)?5:3.5,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+          if(this.code==="live"&&k===0&&this.live.injectedIndices.includes(i)){ctx.strokeStyle="#ff657f";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(q[0]-7,q[1]-7);ctx.lineTo(q[0]+7,q[1]+7);ctx.moveTo(q[0]-7,q[1]+7);ctx.lineTo(q[0]+7,q[1]-7);ctx.stroke();}}
       });
       const q=pixel(clouds[0].points[this.point]);ctx.strokeStyle="#fff";ctx.lineWidth=2;ctx.beginPath();ctx.arc(...q,9,0,Math.PI*2);ctx.stroke();
       ctx.fillStyle="#a7bfd4";ctx.font="13px monospace";ctx.fillText(`Horizontal extent ${(hi[0]-lo[0]).toFixed(2)} m · zoom ${this.zoom.toFixed(1)}×`,22,h-14);

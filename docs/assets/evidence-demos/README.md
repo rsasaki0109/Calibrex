@@ -82,6 +82,31 @@ switching panels stops the loop. No interpolated replay is labelled as an
 optimizer iteration. This small browser example is separate from the full native
 calibration pipeline; closure is not an independent accuracy claim.
 
+### Observation coverage and injected outliers
+
+The live panel has three reproducible conditions. **Full measured coverage** uses
+all 32 original fit captures. **Limited coverage** keeps only the two distinct
+fit centres with the smallest separation; the other 30 fit captures are excluded
+and the original eight holdouts remain unchanged. This models limited geometric
+coverage, not a literal straight-driving or IMU motion experiment. Two point
+correspondences leave rotation about their joining line unobservable. The
+undamped, centred rotational information block detects rank 5/6, and the browser
+blocks updates instead of letting damping produce a misleading fitted pose.
+
+**Inject 4 outliers** copies the target array and shifts every eighth fit target
+by `(+0.60, -0.40, +0.50) m`. The four changed targets are marked with red crosses.
+Original source measurements and all eight holdouts stay intact. Both least
+squares and Huber (`0.05 m` vector-residual threshold) start from the same
+perturbed native reference, which was computed from the clean 32-capture fit.
+This is a controlled robustness experiment, not a blind outlier benchmark.
+
+Huber weights use the 3D residual norm for each observation; a loss-reducing line
+search evaluates the same robust objective. The chart continues to show raw
+centre RMSE for fit and holdout, so the raw fit curve need not decrease under
+Huber. Numerical convergence, geometric rank and held-out residuals are distinct
+diagnostics. None is an absolute accuracy or covariance estimate. Resetting or
+changing either control stops a running fit and creates a fresh history.
+
 ## Sources, attribution and reproducibility
 
 * **ACFR:** [pinned measured VLP observations](https://github.com/acfr/cam_lidar_calibration/blob/ecda574ed902913fbc2ae50f92ad3356f318431c/data/vlp/poses.csv),
