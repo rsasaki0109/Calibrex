@@ -24,5 +24,12 @@ test("each native stereo profile has valid images and finite metric receipts",()
     assert.throws(()=>validateStereo({...model,raw:"javascript:alert(1)"}),/Invalid/);
     assert.throws(()=>validateStereo({...model,vertical_median_px:NaN}),/Invalid/);
     assert.throws(()=>validateStereo({...model,matches:-1}),/Invalid/);
+    assert.equal(model.correspondences.length,model.matches);
+    const point=model.correspondences[0];
+    for(const change of [
+      {left:[-1,20]}, {right:[320,20]}, {disparity_px:0},
+      {depth_m:point.depth_m+1}, {right:[point.right[0]+1,point.right[1]]},
+    ])assert.throws(()=>validateStereo({...model,correspondences:[{...point,...change},...model.correspondences.slice(1)]}),/Invalid/);
+    assert.throws(()=>validateStereo({...model,correspondences:[]}),/Invalid/);
   }
 });

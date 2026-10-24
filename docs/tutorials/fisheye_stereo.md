@@ -5,6 +5,13 @@ on a known synthetic scene. Select **Fisheye stereo**, then a model: the raw pai
 native rectification and sparse matched depth are shown together. The other tabs
 show recorded LiDAR–LiDAR, IMU deskew, Camera–IMU and Camera–LiDAR demonstrations.
 
+Click a depth dot, move the **Inspect match** slider (arrow keys supported), or
+select **Next match** to highlight the same correspondence in both rectified
+images. The inspector shows its measured disparity, vertical mismatch and
+estimated depth, including the numerical `Z = f × B / d` calculation. The dots
+and measurements come from the native image matcher; they are not scene-truth
+correspondences. Depth means Z in the rectified left camera, not ray distance.
+
 ## Supported stereo camera models
 
 | Kalibr `camera_model` | `distortion_model` | `intrinsics` order | Distortion coefficients |
