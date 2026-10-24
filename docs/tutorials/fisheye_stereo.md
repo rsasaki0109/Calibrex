@@ -4,7 +4,8 @@ The [browser demo](../app/check.html) shows **real photographed fisheye stereo**
 from OpenCV's `calib-3_stereo_from_JY` dataset. Select **Fisheye stereo**, then a
 photographed pair: the colour raw images, native KB4 rectification and sparse
 matched depth appear together. The other tabs show recorded LiDAR–LiDAR, IMU
-deskew, Camera–IMU and Camera–LiDAR demonstrations.
+deskew and Camera–IMU demonstrations, plus an
+[interactive real Camera–LiDAR projection](../assets/camera-lidar-live/README.md).
 
 Click a depth dot, move the **Inspect match** slider (arrow keys supported), or
 select **Next match** to highlight the same correspondence in both rectified
