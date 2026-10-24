@@ -381,6 +381,16 @@ ul.tree .topics { color: var(--link); }
 .timing-surface-legend { display: flex; align-items: center; gap: 10px; margin: 8px 18px; color: #91afc6; font: 10px/1.6 "JetBrains Mono",monospace; }
 .timing-surface-colours { flex: 1; height: 8px; border-radius: 4px; background: linear-gradient(90deg,rgb(20 45 75),rgb(240 140 40)); }
 .timing-surface-detail { color: #b1c4d8; font: 10px/1.8 "JetBrains Mono",monospace; }
+.timing-window-controls { margin: 14px 18px; padding: 14px; background: #132437; border: 1px solid #34516a; border-radius: 8px; color: #b1c4d8; font-size: 12px; }
+.timing-window-controls select { display: block; width: 100%; margin-top: 8px; background: #0c1d2e; border-color: #34516a; color: #e8f0fa; }
+.timing-window-controls p { margin: 10px 0 0; font-size: 11px; line-height: 1.8; }
+.timing-window-summary { color: #f8d288; font-family: "JetBrains Mono",monospace; }
+.timing-window-comparison { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; margin: 14px 18px; }
+.timing-window-comparison figure { margin: 0; min-width: 0; }
+.timing-window-comparison figcaption { color: #b1c4d8; font: 10px/1.8 "JetBrains Mono",monospace; margin-bottom: 8px; }
+.timing-window-comparison canvas { display: block; width: 100%; height: auto; border: 1px solid #34516a; border-radius: 8px; cursor: crosshair; }
+.timing-window-comparison button { margin-top: 8px; padding: 7px 10px; background: #18394c; border: 1px solid #487089; border-radius: 5px; color: #d8edf9; font-size: 11px; }
+@media(max-width:600px) { .timing-window-comparison { grid-template-columns: 1fr; margin-left: 10px; margin-right: 10px; } }
 @media(max-width:600px) { .timing-surface { width: calc(100% - 20px); margin-left: 10px; margin-right: 10px; } }
 @media(max-width:600px) { .timing-rates,.timing-residuals,.timing-profile { width: calc(100% - 20px); margin-left: 10px; margin-right: 10px; } .timing-metrics { grid-column: 1/-1; } }
 @media(max-width:600px) { .evidence-toolbar { display: block; } .evidence-toolbar select { display: block; width: 100%; margin: 8px 0 16px; } .evidence-toolbar .evidence-zoom { display: flex; } .evidence-plot,.evidence-history { width: calc(100% - 20px); margin: 10px; } .evidence-metrics { grid-column: 1/-1; } }

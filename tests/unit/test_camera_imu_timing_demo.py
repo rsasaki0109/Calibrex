@@ -13,7 +13,7 @@ from scipy.spatial.transform import Rotation
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tools"))
-from build_camera_imu_timing_demo import OUTPUT, SOURCE, build_data  # noqa: E402
+from build_camera_imu_timing_demo import OUTPUT, SOURCE, build_data, motion_windows  # noqa: E402
 from generate_camera_imu_lock_gif import Params, interval_rmse_dps, load_series  # noqa: E402
 
 
@@ -53,6 +53,52 @@ def test_rotation_references_use_camera_frame_left_multiplication() -> None:
                 series.bias_est_dps,
             ),
         )
+        assert ref["rmse_dps"] == pytest.approx(value, abs=1e-9)
+
+
+def test_motion_windows_are_selected_by_measured_amplitude_not_calibration_residuals() -> None:
+    data = json.loads(OUTPUT.read_text())
+    windows = motion_windows(data)
+    high, low = windows[1:]
+    assert len(high["indices"]) == len(low["indices"]) == 20
+    assert not set(high["indices"]) & set(low["indices"])
+    assert high["camera_rms_dps"] > low["camera_rms_dps"]
+    rates = np.array(data["camera_rate_dps"])
+    rms = [
+        float(np.sqrt(np.mean(np.sum(rates[i : i + 20] ** 2, axis=1))))
+        for i in range(len(rates) - 19)
+    ]
+    best = max(a - b for i, a in enumerate(rms) for j, b in enumerate(rms) if abs(i - j) >= 20)
+    assert high["camera_rms_dps"] - low["camera_rms_dps"] == pytest.approx(best)
+    for actual, saved in zip(windows, data["motion_windows"], strict=True):
+        assert actual["indices"] == saved["indices"]
+        assert actual["camera_rms_dps"] == pytest.approx(saved["camera_rms_dps"])
+
+
+def test_window_reference_metrics_reconstruct_original_imu_integration() -> None:
+    data = json.loads(OUTPUT.read_text())
+    series = load_series(SOURCE / "series.npz")
+    starts, ends = np.array(data["camera_start_s"]), np.array(data["camera_end_s"])
+    camera_rates = np.array(data["camera_rate_dps"])
+    for ref in data["window_references"]:
+        ids = next(w["indices"] for w in data["motion_windows"] if w["id"] == ref["window"])
+        a, b = (
+            starts[ids] + series.dt_est_s + ref["shift_ms"] / 1000,
+            ends[ids] + series.dt_est_s + ref["shift_ms"] / 1000,
+        )
+        means = np.column_stack(
+            [
+                (
+                    np.interp(b, series.imu_t_s, series.gyro_cum_deg[:, k])
+                    - np.interp(a, series.imu_t_s, series.gyro_cum_deg[:, k])
+                )
+                / (b - a)
+                for k in range(3)
+            ]
+        )
+        rotation = Rotation.from_euler("xyz"[ref["axis"]], ref["degrees"], degrees=True).as_matrix()
+        predicted = (means - series.bias_est_dps) @ (rotation @ series.r_est).T
+        value = np.sqrt(np.mean(np.sum((predicted - camera_rates[ids]) ** 2, axis=1)))
         assert ref["rmse_dps"] == pytest.approx(value, abs=1e-9)
 
 

@@ -7,7 +7,7 @@ panels now cover the original five sensor-pair demos and six added explorations.
 |---|---|---|
 | LiDAR–LiDAR | Orbit the point clouds and slide the comparison | Saved NTU VIRAL alignment |
 | IMU–LiDAR | Play or stop the deskew recording | Real MID360 sweep |
-| Camera–IMU | Explore rotation × time, click heatmap cells and inspect residuals | Measured Hilti camera/gyro series; saved baseline, fixed gyro bias |
+| Camera–IMU | Compare measured motion windows, explore rotation × time and inspect residuals | Measured Hilti camera/gyro series; saved baseline, fixed gyro bias |
 | Camera–LiDAR | Change six offsets and compare the projections | Real KITTI returns and photographs; manual experiment |
 | Fisheye stereo | Switch KB4 / MEI / Double Sphere and inspect a match | Real images; supplied KB4 and newly fitted MEI/DS; no depth truth |
 | Method comparison | Switch four native board methods | Shared ACFR fit/holdout split; separate targetless A2D2 evidence |
@@ -27,7 +27,10 @@ board dataset, not simulated sensor recordings or a literal vehicle-motion test.
 In **Camera–IMU**, the time slider changes which IMU samples are averaged
 over the fixed camera intervals, while the rotation slider injects one
 camera-frame rotation around the saved estimate. The displayed offset convention
-and all 59 intervals stay consistent across the range. The 3D residual heatmap,
+stays consistent across the range. Choose all 59 observations or either of two
+non-overlapping 20-observation windows selected by camera-rate RMS. Their
+side-by-side heatmaps share a colour scale; switching windows preserves the
+injected parameters. Higher RMS does not guarantee calibration accuracy. The 3D residual heatmap,
 time profile, selected-axis curves and numerical interval inspection update
 together. The near-minimum contour is not a statistical confidence region, and
 the grid minimum is not asserted to be calibration truth. See the
