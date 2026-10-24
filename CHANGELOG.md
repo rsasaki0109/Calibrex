@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Replace the misleading planning-only sample entry with an immediate real-data
+  point-cloud comparison: NTU VIRAL before/after reveal, orbit, zoom and saved
+  residual metrics. Keep the tiny synthetic bag as a clearly labelled planning
+  test. The display payload is reproducible and bound to source digests;
+  comparison playback is explicitly distinguished from a live solve.
+
+- Add an interactive, dependency-free 3D rig viewer to browser planning and
+  results. Compose frame transforms in their parent frames, inspect position
+  and quaternion, and rotate or zoom with pointer/keyboard controls. Keep
+  disconnected roots separate and label exported prior-filled axes and their
+  descendants as NOT MEASURED; omitted estimate frames are not drawn.
+
 - Show real IMU rotation training residuals in the browser's live dashboard,
   separated by worker and independent fit. Report initialization and each robust
   IRLS round as opt-in progress diagnostics; calibration results, evidence schemas

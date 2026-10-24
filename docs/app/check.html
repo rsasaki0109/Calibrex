@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="app.css">
 </head>
-<body class="bag-app">
+<body class="bag-app sample-workspace">
 <header class="site-header">
   <div class="bar">
     <img src="../assets/brand/logo.svg" alt="">
@@ -25,26 +25,40 @@
   </div>
 </header>
 <main>
-  <div class="intro">
-    <div class="eyebrow">CALIBREX / CALIBRATION WORKSPACE</div>
-    <h1>Your sensors.<br><span class="hero-accent">In alignment.</span></h1>
-    <p>Drop a ROS 2 bag and, if you have one, the calibration file your robot runs. Calibrex reads the transforms, classifies the sensor topics, and lists every sensor pair it could check, or why it could not.
-      <a href="../tutorials/calibrex_check/">What the check does</a>.</p>
-    <div class="pills">
-      <span class="privacy">Runs locally via <a href="https://pyodide.org">Pyodide</a>: files are read in place and never leave this page.</span>
-      <span class="privacy plan">Plan the check, then run the estimators here on a short slice of the bag, or on the whole bag with the CLI.</span>
-    </div>
+  <div class="intro sample-intro">
+    <div><div class="eyebrow">CALIBREX / SENSOR CALIBRATION</div>
+      <h1>Two LiDARs.<br><span class="hero-accent">One sharp world.</span></h1></div>
+    <div class="sample-intro-copy"><p>See the alignment, then check your own robot. Explore a real recording below, or bring a bag to estimate and verify your sensor calibration.</p>
+      <div class="actions"><button id="sample" class="primary big">Explore sample <span aria-hidden="true">↗</span></button><button id="open-bag" type="button">Check your bag</button></div>
+      <span class="sample-privacy">Your files stay on your device.</span></div>
   </div>
 
-  <ol class="workflow-strip" aria-label="Calibration workflow">
-    <li><span>01</span><b>Bring your bag</b><small>Your files stay on your device</small></li>
-    <li><span>02</span><b>Watch the run</b><small>Follow each sensor pair</small></li>
-    <li><span>03</span><b>Read the evidence</b><small>Every axis, including the unknowns</small></li>
-  </ol>
-  <div class="quick">
-    <p><b>New here?</b> Plan a tiny synthetic bag (266&nbsp;KB, an IMU, two LiDARs, a camera, a GNSS receiver and <code>/tf_static</code>) and see the full result in a few seconds.</p>
-    <button id="sample" class="primary big" disabled>Try a sample bag</button>
-  </div>
+  <section id="alignment-demo" class="alignment-demo" aria-label="Real-data point cloud alignment sample">
+    <div class="cloud-main">
+      <div class="cloud-topline"><span class="cloud-state" role="status">Loading real point clouds…</span><span>NTU VIRAL · tnp_01</span></div>
+      <div class="cloud-stage">
+        <canvas tabindex="0" role="img" aria-label="Two LiDAR point clouds, before and after calibration. Drag or use arrow keys to orbit. Use the comparison slider to reveal either saved transform."></canvas>
+        <div class="cloud-before-label cloud-view-label">BEFORE <span>Perturbed start</span></div>
+        <div class="cloud-after-label cloud-view-label">AFTER <span>Calibrex estimate</span></div>
+        <div class="cloud-divider" aria-hidden="true"><span>↔</span></div>
+        <div class="cloud-legend"><span><i class="cloud-ref"></i>LiDAR 1 · reference</span><span><i class="cloud-target"></i>LiDAR 2</span></div>
+        <span class="cloud-drag-hint">Drag to explore in 3D</span>
+      </div>
+      <div class="cloud-controls"><div class="cloud-toggle" role="group" aria-label="Comparison view"><button type="button" data-compare="100">Before</button><button type="button" data-compare="50" aria-pressed="true">Compare</button><button type="button" data-compare="0">After</button></div><button type="button" data-reveal>Play reveal</button><div class="cloud-camera-controls"><button type="button" data-cloud-zoom="in" aria-label="Zoom point cloud in">+</button><button type="button" data-cloud-zoom="out" aria-label="Zoom point cloud out">−</button><button type="button" data-cloud-reset>Reset view</button></div></div>
+      <label class="cloud-slider-label"><span>BEFORE</span><input type="range" min="0" max="100" value="50" aria-label="Reveal before and after point clouds"><span>AFTER</span></label>
+      <p class="cloud-error" role="alert" hidden></p>
+    </div>
+    <aside class="cloud-evidence">
+      <div class="eyebrow">THE DIFFERENCE YOU CAN SEE</div><h2>From double edges<br>to a shared map.</h2>
+      <p class="cloud-description">The same scene through two Ouster LiDARs. Cyan is the reference map. Orange is the second LiDAR, with its transform changed.</p>
+      <div class="cloud-metric-label">Median point-to-plane residual</div>
+      <div class="cloud-metric"><span class="cloud-before-value">—</span><small>cm</small><span class="cloud-metric-arrow">→</span></div><span class="cloud-metric-caption cloud-before-caption">deliberately perturbed start</span>
+      <div class="cloud-metric cloud-metric-after"><span class="cloud-after-value">—</span><small>cm</small></div><span class="cloud-metric-caption cloud-after-caption">saved Calibrex estimate</span>
+      <div class="cloud-source"><span class="cloud-point-count">—</span> display points<br>Real recording · development data</div>
+      <details class="cloud-about"><summary>What am I seeing?</summary><p>Two saved transforms, compared interactively. The reveal moves a divider; it is not a live solver or optimizer history. The start error is deliberately injected. The estimate comes from the full recording. Ground returns are hidden and points reduced for display; residuals use the full saved subset.</p><p><a href="../assets/lidar-lidar-snap/manifest.json">Source, metrics &amp; digests</a> · <a href="../assets/ntu_viral_lidar_lidar/tnp_01.yaml">Estimate artifact</a></p><p>NTU VIRAL tnp_01 · <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a>.</p></details>
+    </aside>
+  </section>
+  <div class="planning-sample"><p><b>Want to try bag discovery?</b> The tiny synthetic bag checks topic discovery and planning. It does not contain enough motion for a calibration.</p><button id="plan-sample" type="button">Plan the tiny bag</button></div>
 
   <section class="panel" aria-labelledby="inputs-title">
     <h2 id="inputs-title">Or plan your own bag</h2>
@@ -94,7 +108,7 @@
       <button id="run" class="primary" disabled>Plan the check</button>
       <button id="clear" type="button">Clear</button>
     </div>
-    <div id="log" role="status" aria-live="polite">Starting Python (about 30 MB the first time)…</div>
+    <div id="log" role="status" aria-live="polite">Choose a bag to begin. Python loads when you plan; the visual sample is ready independently.</div>
     <div id="error" class="error" role="alert" hidden></div>
   </section>
 
@@ -107,8 +121,9 @@
     <ul id="sources" class="sources"></ul>
     <p class="note">Candidate extrinsics are the transforms your robot deploys; <code>calibrex check</code> judges them against what the sensor data says.</p>
 
-    <h3>Frame tree</h3>
-    <div id="tree"></div>
+    <h3>Sensor rig</h3>
+    <div id="plan-rig" class="rig-viewer"></div>
+    <details class="opt"><summary>Frame tree details</summary><div id="tree"></div></details>
 
     <h3>Sensor pairs</h3>
     <div class="table-wrap"><table id="pairs"></table></div>
@@ -165,6 +180,8 @@
       <div id="run-results" hidden>
         <h3 id="run-title">Result</h3>
         <div id="run-stats" class="stats"></div>
+        <h3>Rig pose</h3>
+        <div id="result-rig" class="rig-viewer"></div>
         <div class="dashboard-heading"><h3>Axis explorer</h3><span class="eyebrow">EVIDENCE, AXIS BY AXIS</span></div>
         <p id="axis-guide" class="note"></p>
         <div id="axis-results" class="dashboard-grid"></div>
@@ -193,8 +210,17 @@
 
 <script src="check-pool.js"></script>
 <script src="check-dashboard.js"></script>
+<script src="rig-viewer.js"></script>
+<script src="alignment-demo.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
+const alignmentDemo = new CalibrexAlignment.AlignmentDemo($("alignment-demo"));
+alignmentDemo.load().catch(() => {});
+$("sample").addEventListener("click", async () => {
+  $("alignment-demo").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
+  try { await alignmentDemo.load(); alignmentDemo.reveal(); } catch (_) { /* Error appears in the sample panel. */ }
+});
+$("open-bag").addEventListener("click", () => $("inputs-title").scrollIntoView({ behavior: "smooth", block: "start" }));
 const BAG_FILE = /\.(db3|mcap)$/i;
 const SAMPLE = {
   label: "check_sample",
@@ -216,6 +242,7 @@ let folderName = null;   // bag directory name, when a folder was chosen or drop
 let useSample = false;
 let ready = false, busy = false, version = "";
 let lastArtifact = null, lastCommands = null, lastRun = null, lastPlan = null;
+let planRig = null, resultRig = null;
 // Pairs the estimators can run in the browser (numpy / scipy / the bag only); the camera pairs also
 // load OpenCV (opencv-python of Pyodide, about 50 MB) and are experimental here.
 const BROWSER_PAIRS = ["imu-lidar", "lidar-lidar", "lidar-vehicle", "imu-vehicle", "ins-lidar",
@@ -251,14 +278,13 @@ function startWorker() {
   });
   worker = pool;
 }
-startWorker();
 
 // ---------------------------------------------------------------- inputs
 function refresh() {
   const hasInput = useSample || bagFiles.length > 0;
-  $("sample").disabled = !ready || busy;
-  $("run").disabled = !ready || busy || !hasInput;
-  $("run").textContent = ready ? "Plan the check" : "Loading Python…";
+  $("plan-sample").disabled = busy;
+  $("run").disabled = busy || !hasInput;
+  $("run").textContent = busy && !ready ? "Starting Python…" : "Plan the check";
   $("run-estimators").disabled = !ready || busy || !lastPlan;
   for (const id of ["pick-files", "pick-folder", "pick-tf", "bag-files", "bag-folder", "tf-files",
     "clear", "vehicle-frame", "frame-map", "topic-kind", "run-mode", "run-cap", "run-camera", "run-pairs"]) {
@@ -379,8 +405,9 @@ async function plan() {
   busy = true; refresh();
   $("error").hidden = true;
   log(useSample ? "Planning the sample bag…" : "Planning " + bagFiles.map((file) => file.name).join(", ") + "…");
-  const pool = worker;
+  let pool = worker;
   try {
+    if (!pool || pool.closed) { startWorker(); pool = worker; }
     const payload = await pool.plan({
     type: "plan",
     bag: useSample ? { urls: SAMPLE.urls } : { files: bagFiles },
@@ -393,7 +420,7 @@ async function plan() {
   }
 }
 $("run").addEventListener("click", plan);
-$("sample").addEventListener("click", () => {
+$("plan-sample").addEventListener("click", () => {
   bagFiles = []; tfFiles = []; folderName = null; useSample = true;
   plan();
 });
@@ -537,6 +564,8 @@ function finishRun(payload) {
     (isCheck ? `<div class="stat ${artifact.overall_verdict}"><div class="n verdict-${artifact.overall_verdict}">${escapeHtml(artifact.overall_verdict)}</div><div class="l">overall verdict</div></div>` : "") +
     counts.map(([status, count]) => `<div class="stat"><div class="n">${count}</div><div class="l">${escapeHtml(status)}</div></div>`).join("") +
     `<div class="stat"><div class="n">${payload.seconds.toFixed(0)} s</div><div class="l">in the browser</div></div>`;
+  resultRig ||= new CalibrexRig.RigViewer($("result-rig"));
+  resultRig.setArtifact(artifact);
   $("axis-guide").textContent = isCheck
     ? "Bars show absolute candidate error / tolerance: 1× is the pass limit, 2× the warn limit. A pass covers judged axes only."
     : "Measured values with ±1σ uncertainty. Grey axes are NOT MEASURED; prior values are never presented as measurements.";
@@ -612,11 +641,13 @@ function render(artifact, command) {
 }
 
 function renderTree(artifact) {
+  planRig ||= new CalibrexRig.RigViewer($("plan-rig"));
+  planRig.setArtifact(artifact);
   const tree = artifact.frame_tree;
   if (!tree.frames.length) { $("tree").innerHTML = `<p class="muted">No frames.</p>`; return; }
-  const children = {};
+  const children = Object.create(null);
   for (const edge of tree.edges) (children[edge.transform.parent_frame] = children[edge.transform.parent_frame] || []).push(edge);
-  const topicsOf = {};
+  const topicsOf = Object.create(null);
   for (const topic of artifact.topics) if (topic.mapped_frame && topic.role !== "tf_static") (topicsOf[topic.mapped_frame] = topicsOf[topic.mapped_frame] || []).push(topic.topic);
   const node = (frame, edge) => {
     const kids = (children[frame] || []).slice().sort((a, b) => a.transform.child_frame.localeCompare(b.transform.child_frame));

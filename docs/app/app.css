@@ -224,3 +224,73 @@ ul.tree .topics { color: var(--link); }
 .residual-chart { width: 100%; height: 145px; }
 .residual-chart polyline { fill: none; stroke: var(--link); stroke-width: 2.5; stroke-linejoin: round; }
 .residual-chart text { fill: var(--muted); font: 9px "JetBrains Mono", monospace; }
+
+/* Frame geometry comes only from the artifact; the XY grid is a reference plane. */
+.rig-viewer { --rig-x: #ef4444; --rig-y: #22c55e; --rig-z: #3b82f6; margin: 12px 0 20px; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--bg); }
+.rig-toolbar { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; padding: 14px; border-bottom: 1px solid var(--line); }
+.rig-toolbar label { flex: 1 1 150px; min-width: 0; color: var(--muted); font-size: 11px; font-weight: 600; }
+.rig-toolbar select { display: block; margin-top: 4px; max-width: 100%; font-size: 12px; }
+.rig-buttons { display: flex; flex-wrap: wrap; gap: 4px; }
+.rig-buttons button { padding: 7px 10px; font-size: 12px; }
+.rig-stage { position: relative; }
+.rig-stage canvas { display: block; width: 100%; height: 390px; touch-action: none; cursor: grab; }
+.rig-stage canvas:active { cursor: grabbing; }
+.rig-stage canvas:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+.rig-legend { position: absolute; right: 14px; bottom: 12px; display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 11px; pointer-events: none; padding: 4px 8px; background: var(--bg); border-radius: 6px; }
+.rig-legend .rig-x { color: var(--rig-x); font-weight: 700; } .rig-legend .rig-y { color: var(--rig-y); font-weight: 700; } .rig-legend .rig-z { color: var(--rig-z); font-weight: 700; }
+.rig-viewer > p { margin: 0; padding: 10px 16px; overflow-wrap: anywhere; }
+.rig-viewer > .rig-detail { border-top: 1px solid var(--line); color: var(--text); font: 12px/1.6 "JetBrains Mono", monospace; }
+@media (max-width: 600px) { .rig-stage canvas { height: 320px; } .rig-legend { font-size: 10px; } }
+
+/* The sample is a real point-cloud comparison, visible before Python boots. */
+.sample-workspace .sample-intro { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 40px; padding: 30px 0 28px; }
+.sample-workspace .intro::after { display: none; }
+.sample-workspace .intro h1 { font-size: clamp(38px, 5vw, 62px); margin: 14px 0 0; }
+.sample-workspace .sample-intro-copy { max-width: 470px; justify-self: end; }
+.sample-workspace .sample-intro-copy p { font-size: 15px; line-height: 1.65; }
+.sample-privacy { display: block; color: var(--muted); font-size: 11px; margin-top: 12px; }
+.alignment-demo { display: grid; grid-template-columns: minmax(0, 1fr) 270px; border-radius: 18px; overflow: hidden; background: #080f1b; color: #e8f0fa; border: 1px solid #27374b; box-shadow: 0 24px 70px #06132524; scroll-margin-top: 16px; }
+.cloud-main { min-width: 0; }
+.cloud-topline { display: flex; justify-content: space-between; gap: 16px; padding: 16px 18px; color: #9db3c9; font: 10px/1.5 "JetBrains Mono", monospace; letter-spacing: .06em; border-bottom: 1px solid #263449; }
+.cloud-state { color: #55dfd2; }
+.cloud-stage { position: relative; height: 460px; background: radial-gradient(ellipse at center, #122436, #050b13); }
+.cloud-stage canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+.cloud-stage canvas:active { cursor: grabbing; }
+.cloud-stage canvas:focus-visible { outline: 2px solid #48dbef; outline-offset: -3px; }
+.cloud-view-label { position: absolute; top: 18px; color: #dce8f5; background: #091321d9; border: 1px solid #32465b; border-radius: 7px; padding: 7px 11px; font: 600 10px/1.5 "JetBrains Mono", monospace; pointer-events: none; }
+.cloud-view-label span { display: block; color: #93aabe; font: 11px/1.5 Inter, sans-serif; font-weight: 400; }
+.cloud-before-label { left: 18px; } .cloud-after-label { right: 18px; border-color: #286d65; }
+.cloud-divider { position: absolute; top: 0; bottom: 0; width: 1px; background: #ffffff90; pointer-events: none; }
+.cloud-divider > span { position: absolute; left: -17px; top: 46%; width: 35px; height: 35px; display: grid; place-items: center; border: 1px solid #d0dce9; background: #0d1928; color: #fff; border-radius: 50%; font-size: 18px; box-shadow: 0 0 24px #030b17; }
+.cloud-legend { position: absolute; bottom: 18px; left: 18px; display: flex; flex-wrap: wrap; gap: 14px; color: #bbcede; font-size: 10px; pointer-events: none; }
+.cloud-legend span { display: flex; align-items: center; gap: 5px; }
+.cloud-legend i { width: 6px; height: 6px; border-radius: 50%; }
+.cloud-ref { background: #48dbef; } .cloud-target { background: #ffb15b; }
+.cloud-drag-hint { position: absolute; right: 18px; bottom: 18px; font-size: 10px; color: #9bb4c9; pointer-events: none; }
+.cloud-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 14px 18px 8px; border-top: 1px solid #263449; }
+.cloud-controls button { background: #111f30; color: #becedf; border-color: #2c3e53; padding: 6px 10px; font-size: 11px; }
+.cloud-controls button:hover { color: #fff; border-color: #48dbef; }
+.cloud-toggle { display: flex; gap: 3px; }
+.cloud-toggle button[aria-pressed=true] { background: #1d4f56; border-color: #398b8c; color: #a5fff0; }
+.cloud-camera-controls { display: flex; gap: 4px; margin-left: auto; }
+.cloud-slider-label { display: flex; align-items: center; gap: 12px; padding: 8px 18px 18px; font: 9px "JetBrains Mono", monospace; color: #93aabe; }
+.cloud-slider-label input { flex: 1; min-width: 0; accent-color: #59dcca; cursor: ew-resize; }
+.cloud-evidence { padding: 24px; border-left: 1px solid #263449; background: linear-gradient(145deg,#142232,#0b1422); }
+.cloud-evidence .eyebrow { color: #839bb3; font-size: 8px; }
+.cloud-evidence h2 { font-size: 23px; line-height: 1.25; letter-spacing: -.04em; margin: 16px 0; }
+.cloud-description { color: #a4b9cc; font-size: 12px; line-height: 1.7; }
+.cloud-metric-label { margin-top: 22px; font-size: 11px; color: #acbfd2; }
+.cloud-metric { display: flex; gap: 5px; align-items: baseline; font-size: 34px; font-weight: 600; line-height: 1.2; letter-spacing: -.04em; margin-top: 12px; }
+.cloud-metric small { font-size: 14px; font-weight: 400; color: #98aec3; }
+.cloud-metric-arrow { color: #68889f; margin-left: auto; }
+.cloud-metric-after { color: #60e6ce; font-size: 54px; margin-top: 16px; }
+.cloud-metric-caption { color: #859db4; font-size: 10px; }
+.cloud-source { border-top: 1px solid #2b3b4e; margin-top: 22px; padding-top: 15px; font: 10px/1.7 "JetBrains Mono", monospace; color: #9ab0c5; }
+.cloud-about { margin-top: 15px; font-size: 10px; color: #a4b9cc; }
+.cloud-about summary { cursor: pointer; } .cloud-about a { color: #6fdfd1; }
+.cloud-error { color: #ffbb9d; font-size: 12px; padding: 14px 18px; }
+.planning-sample { display: flex; align-items: center; gap: 24px; padding: 18px 4px; color: var(--muted); font-size: 12px; }
+.planning-sample p { flex: 1; margin: 0; } .planning-sample button { font-size: 12px; white-space: nowrap; }
+@media (max-width: 850px) { .alignment-demo { grid-template-columns: minmax(0,1fr); } .cloud-evidence { border-left: 0; border-top: 1px solid #263449; display: grid; grid-template-columns: 1fr 1fr; gap: 0 20px; } .cloud-evidence > .eyebrow,.cloud-evidence h2,.cloud-description,.cloud-metric-label,.cloud-source,.cloud-about { grid-column: 1 / -1; } .cloud-metric-after { font-size: 34px; margin-top: 12px; } .cloud-evidence .cloud-metric-caption { grid-row: 6; } .cloud-metric-arrow { display: none; } }
+@media (max-width: 600px) { .sample-workspace .sample-intro { grid-template-columns: 1fr; gap: 20px; padding-top: 16px; } .sample-workspace .sample-intro-copy { justify-self: start; } .cloud-stage { height: 340px; } .cloud-topline { font-size: 8px; padding: 12px; } .cloud-drag-hint { display: none; } .cloud-controls { padding-left: 12px; padding-right: 12px; } .cloud-camera-controls { margin-left: 0; } .cloud-evidence { padding: 20px; } .planning-sample { flex-direction: column; align-items: start; gap: 12px; } .cloud-view-label { font-size: 9px; top: 12px; padding: 5px 8px; } .cloud-before-label { left: 12px; } .cloud-after-label { right: 12px; } }
+@media (max-width: 850px) { .cloud-evidence > .cloud-metric:not(.cloud-metric-after) { grid-column: 1; grid-row: 5; } .cloud-evidence > .cloud-metric-after { grid-column: 2; grid-row: 5; } .cloud-evidence > .cloud-before-caption { grid-column: 1; grid-row: 6; } .cloud-evidence > .cloud-after-caption { grid-column: 2; grid-row: 6; } }
