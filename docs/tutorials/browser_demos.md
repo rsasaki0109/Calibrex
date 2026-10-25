@@ -73,3 +73,16 @@ match set, 3D view and close-ups update together. Raw photographs stay identical
 for that pair. Match counts and model-specific match sets do not establish a
 model accuracy ranking; there is no independent depth truth. The fit-level
 excluded-capture reprojection diagnostic is shared across that model’s pairs.
+
+Enable **Compare all three models side by side** to load the current photograph
+for KB4, MEI and Double Sphere together. Each card shows the saved rectified left
+image, accepted-match count and median absolute vertical mismatch. **Inspect**
+selects that model in the linked image/3D inspector while keeping the photograph.
+
+Histograms share 0–3 px horizontal and 0–100% vertical scales, with equal 0.25 px
+bins and a denominator equal to that model’s own accepted-match count. Matches
+at ≥3 px are counted separately. The models generally accept different points;
+these plots do not rank independent depth accuracy. Raw photographs and output
+focal length are checked for consistency. Images and guides are saved results.
+The comparison loads only when enabled, clears old cards when changing pairs,
+and offers a separate retry if any model or image cannot load.
