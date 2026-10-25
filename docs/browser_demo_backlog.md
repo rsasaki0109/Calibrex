@@ -14,7 +14,8 @@ The measured high/low camera-rate window comparison is also published (#317).
 Linked stereo correspondence close-ups are also published (#318).
 The interactive sparse stereo 3D view is also published (#319).
 All three photographed pairs are published for KB4, MEI and DS (#320).
-An optional side-by-side model comparison is a separate addition under validation.
+The optional side-by-side fisheye model comparison is also published (#321).
+A linked ACFR observation-by-method residual matrix is a separate addition under validation.
 
 | Demo category | Delivered basic demo | Explicit limits |
 |---|---|---|

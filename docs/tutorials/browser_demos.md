@@ -10,7 +10,7 @@ panels now cover the original five sensor-pair demos and six added explorations.
 | Camera–IMU | Compare measured motion windows, explore rotation × time and inspect residuals | Measured Hilti camera/gyro series; saved baseline, fixed gyro bias |
 | Camera–LiDAR | Change six offsets and compare the projections | Real KITTI returns and photographs; manual experiment |
 | Fisheye stereo | Keep the photographed pair while switching models; orbit 3D and inspect matches | Real images; supplied KB4 and newly fitted MEI/DS; no depth truth |
-| Method comparison | Switch four native board methods | Shared ACFR fit/holdout split; separate targetless A2D2 evidence |
+| Method comparison | Inspect the shared-capture residual matrix and switch four native board methods | Shared ACFR fit/holdout split; separate targetless A2D2 evidence |
 | Robot hand–eye | Switch eight methods and inspect motion closure | Measured ETHZ poses; closure is not absolute accuracy |
 | GNSS tracks | Zoom receiver tracks and change a candidate lever arm | Measured comma2k19 fixes; fused path is not truth |
 | Wheels / INS | Select each wheel or the body-axis view | Measured wheel speeds and fused camera FRD velocity |
@@ -86,3 +86,17 @@ these plots do not rank independent depth accuracy. Raw photographs and output
 focal length are checked for consistency. Images and guides are saved results.
 The comparison loads only when enabled, clears old cards when changing pairs,
 and offers a separate retry if any model or image cannot load.
+
+In **Method comparison**, the ACFR matrix shows each of four native methods on
+the same eight held-out board captures, with one shared millimetre colour scale.
+Click a cell or use arrow keys to select its method and capture in the 3D plot.
+The observation slider and method selector preserve the selected capture; orbit
+and zoom stay aligned across methods. Matrix rows use the same 32-fit / 8-holdout
+split, checked against capture IDs and camera centres in the saved source.
+
+Cells show the norm of transformed-LiDAR minus camera centre, with signed XYZ
+components in the selected-cell readout. Row RMS is recomputed from displayed
+coordinates rounded to 1e-7 m; the side panel retains the saved native evaluation metric, formatted for
+display. This is a shared held-out consistency diagnostic, not independent
+extrinsic accuracy. A2D2 targetless objectives remain a separate dataset and
+metric. On narrow screens, scroll the matrix horizontally.
