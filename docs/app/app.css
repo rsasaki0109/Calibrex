@@ -466,3 +466,27 @@ ul.tree .topics { color: var(--link); }
 @media(max-width:600px) { .stereo-cloud-heading { padding:12px; } .stereo-cloud-heading h3 { font-size:18px; } .stereo-cloud-controls { padding:12px; gap:12px; } }
 
 .stereo-cloud-view { color:#9eb7ca; margin-top:0; }
+
+.stereo-comparison-panel { padding:0 18px 18px; }
+.stereo-comparison-toggle { display:flex; align-items:center; gap:10px; padding:14px; border:1px solid #34516a; border-radius:8px; background:#142b3d; color:#d9edff; font-size:12px; cursor:pointer; }
+.stereo-comparison-toggle input { accent-color:#65e1cb; }
+.stereo-comparison-heading h3 { color:#e5f3ff; margin:22px 0 8px; font-size:22px; }
+.stereo-comparison-heading p,.stereo-comparison-note { color:#9eb7ca; font-size:11px; line-height:1.8; }
+.stereo-comparison-status { color:#65e1cb; font-size:11px; line-height:1.8; }
+.stereo-comparison-cards { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.stereo-comparison-card { min-width:0; border:1px solid #34516a; border-radius:10px; overflow:hidden; padding:12px; background:linear-gradient(145deg,#142b3d,#0b1928); }
+.stereo-comparison-card.is-active { border-color:#65e1cb; }
+.stereo-comparison-card h4 { color:#e5f3ff; margin:0 0 12px; font-size:16px; }
+.stereo-comparison-card h4 small { display:block; font-size:10px; color:#9eb7ca; margin-top:6px; font-weight:400; }
+.stereo-comparison-image { display:block; width:100%; aspect-ratio:8/5; border-radius:4px; }
+.stereo-comparison-card dl { margin:14px 0; }
+.stereo-comparison-card dl div { margin:10px 0; }
+.stereo-comparison-card dt { color:#9eb7ca; font-size:10px; }
+.stereo-comparison-card dd { margin:5px 0; color:#ffcb81; font:22px "JetBrains Mono",monospace; }
+.stereo-comparison-card dd small { font-size:11px; }
+.stereo-comparison-histogram { display:flex; gap:2px; height:100px; align-items:flex-end; border-left:1px solid #34516a; border-bottom:1px solid #34516a; background:repeating-linear-gradient(to top,transparent 0,transparent 24px,#34516a55 24px,#34516a55 25px); }
+.stereo-comparison-histogram span { flex:1; min-width:0; background:linear-gradient(to top,#298e9d,#65e1cb); }
+.stereo-comparison-axis { display:flex; justify-content:space-between; color:#9eb7ca; font-size:9px; margin:6px 0; }
+.stereo-comparison-overflow { font-size:10px; color:#9eb7ca; }
+.stereo-comparison-card button,.stereo-comparison-retry { background:#1c394c; border:1px solid #53738b; color:#edf8ff; padding:8px 12px; border-radius:6px; cursor:pointer; font-size:11px; }
+@media(max-width:600px) { .stereo-comparison-panel { padding:0 10px 14px; } .stereo-comparison-cards { grid-template-columns:1fr; } }

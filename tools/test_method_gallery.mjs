@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 import "../docs/app/stereo-cloud.js";
+import "../docs/app/stereo-comparison.js";
 import "../docs/app/method-gallery.js";
 const {METHODS,validateStereo,stereoCrop}=globalThis.CalibrexMethods;
 const read=(p)=>JSON.parse(fs.readFileSync(new URL("../docs/app/samples/"+p,import.meta.url),"utf8"));
@@ -127,4 +128,28 @@ test("stereo cloud uses image-frame axis signs and frontmost picking for overlap
   assert.equal(pick(points.slice().reverse(),100,100,12),7);
   assert.equal(pick(points,140,140,12),null);
   assert.equal(pick(points,100,110,12),7);
+});
+
+
+test("parallel model diagnostics preserve every match with common bins and model-specific denominators",()=>{
+  const {mismatchProfile,comparisonProfiles}=CalibrexStereoComparison,index=read("fisheye_real_demo.json");
+  for(const code of ["000","014","027"]){
+    const data=[read(index.frames[code].url),read(index.model_frames.mei[code].url),read(index.model_frames.ds[code].url)],before=JSON.stringify(data);
+    const profiles=comparisonProfiles(data,code);
+    for(const [i,p] of profiles.entries()){
+      assert.equal(p.n,data[i].matches);
+      assert.equal(p.counts.reduce((s,n)=>s+n,0)+p.overflow,p.n);
+      assert.ok(Math.abs(p.percentages.reduce((s,n)=>s+n,0)+p.overflow_pct-100)<1e-9);
+      assert.ok(Math.abs(p.median_px-data[i].vertical_median_px)<1e-9);
+    }
+    assert.equal(JSON.stringify(data),before);
+    for(const change of [{frame:"000"===code?"014":"000"},{raw:data[0].raw+"x"},{focal_px:data[0].focal_px+1},{camera_model:"kb4"},{image_size:[320,200]}]){
+      assert.throws(()=>comparisonProfiles([data[0],{...data[1],...change},data[2]],code),/Mismatched/);
+    }
+    assert.throws(()=>comparisonProfiles(data.slice(1),code),/three/);
+  }
+  const p=mismatchProfile({matches:4,correspondences:[0,.25,-2.99,3].map(v=>({left:[0,0],right:[0,v]}))});
+  assert.equal(p.counts[0],1);assert.equal(p.counts[1],1);assert.equal(p.counts[11],1);assert.equal(p.overflow,1);assert.equal(p.overflow_pct,25);
+  assert.throws(()=>mismatchProfile({matches:0,correspondences:[]}),/Invalid/);
+  assert.throws(()=>mismatchProfile({matches:1,correspondences:[{left:[0,NaN],right:[0,0]}]}),/Invalid/);
 });
