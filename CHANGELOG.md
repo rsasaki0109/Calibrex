@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Guard screw-linear clock updates with a shared feasible time domain, retry
+  rejected coupled candidates with more damping, and record domain diagnostics.
+  Unify derivative sides across IMU factors and check both feasible sides before
+  certifying stationarity at exact gyro knot ties. Retain three paired synthetic
+  development runs and boundary/knot regression tests.
+
 - Add frozen empirical per-axis error intervals using a finite-sample order
   statistic on independent complete-pipeline recordings. Reject calibration/test
   overlap and incompatible scopes; abstain with insufficient data and retain

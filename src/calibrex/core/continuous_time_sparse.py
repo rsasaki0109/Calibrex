@@ -51,6 +51,7 @@ from scipy.sparse import csc_matrix
 from scipy.sparse.linalg import spsolve
 
 from calibrex.core._se3_batch import _point_jacobians, _sample_segment, _transform_points
+from calibrex.core.clock_domain import ClockDomainEvidence, ClockOffsetDomain
 from calibrex.core.continuous_time_marginalization import (
     KnotMarginalizationPrior,
     marginalization_prior_blocks,
@@ -557,6 +558,7 @@ def _prepare_evaluation(
     clock_offset: float,
     *,
     jacobians: bool,
+    clock_step: float = 1.0e-6,
 ) -> None:
     if interpolation is None:
         return
@@ -584,7 +586,7 @@ def _prepare_evaluation(
             body_time = _imu_body_time(time, clock_offset)
             request(body_time, jacobians)
     for lever in lever_rows:
-        offsets = (clock_offset, clock_offset + 1.0e-6) if jacobians else (clock_offset,)
+        offsets = (clock_offset, clock_offset + clock_step) if jacobians else (clock_offset,)
         for index, offset in enumerate(offsets):
             try:
                 times = _body_motion_sample_times(
@@ -680,6 +682,18 @@ def fit_continuous_trajectory(
             )
         lever_rows.append(lever_measurement)
 
+    clock_domain = None
+    rejected_clock_steps = 0
+    if estimate_clock:
+        observed_times = [m.start_time_sec for m in imu_rows]
+        observed_times.extend(m.end_time_sec for m in imu_rows)
+        observed_times.extend(m.timestamp_sec for m in lever_rows)
+        clock_domain = ClockOffsetDomain(
+            timestamps[0], timestamps[-1], min(observed_times), max(observed_times),
+        )
+        if not clock_domain.contains(clock_offset):
+            raise ValueError("initial IMU clock offset is outside the shared time domain")
+
     damping = settings.initial_damping
     gradient_norm = math.inf
     plane_batch = _plane_batch(timestamps, plane_rows)
@@ -748,13 +762,21 @@ def fit_continuous_trajectory(
         gyro_scale: FloatArray,
         accel_scale: FloatArray,
         imu_rotation_vector: FloatArray,
+        clock_step_override: float | None = None,
     ) -> tuple[
         list[tuple[int, int, NDArray[np.float64]]], FloatArray, FloatArray, csc_matrix
     ]:
         interpolation = _ScrewInterpolation(knots)
+        clock_step = (clock_domain.difference_step(clock_offset)
+                      if clock_domain is not None else 1.0e-6)
+        if clock_step_override is not None:
+            clock_step = clock_step_override
+        clock_side: Literal["left", "right"] | None = (
+            ("left" if clock_step > 0 else "right") if clock_domain is not None else None
+        )
         _prepare_evaluation(
             interpolation, problem, point_rows, plane_rows, pose_rows, imu_rows, lever_rows,
-            clock_offset, jacobians=True,
+            clock_offset, jacobians=True, clock_step=clock_step,
         )
         imu_rotation = _imu_rotation_matrix(imu_rotation_vector)
         blocks: list[tuple[int, int, NDArray[np.float64]]] = []
@@ -821,6 +843,7 @@ def fit_continuous_trajectory(
                 imu_rotation=imu_rotation,
                 interpolation=interpolation,
                 rotation_jacobian=estimate_imu_rot,
+                clock_side=clock_side,
             )
             residuals.extend(float(value) for value in factor.residual)
             weights.extend([imu_measurement.weight] * 3)
@@ -861,6 +884,7 @@ def fit_continuous_trajectory(
                 accel_scale,
                 imu_rotation=imu_rotation,
                 interpolation=interpolation,
+                clock_step=clock_step,
             )
             residuals.extend(float(value) for value in residual)
             weights.extend([lever_measurement.weight] * 3)
@@ -973,6 +997,19 @@ def fit_continuous_trajectory(
             status = "singular_system"
             termination = "singular_system"
             break
+
+        if clock_domain is not None and not clock_domain.contains(
+            clock_offset + float(delta[clock_offset_index])
+        ):
+            # Reject the complete coupled candidate before evaluating any factor.
+            # More damping may yield a feasible proposal; never clip timestamps.
+            rejected_clock_steps += 1
+            damping *= settings.damping_scale_up
+            if damping > 1.0e12:
+                status = "stalled"
+                termination = "clock_domain_limit"
+                break
+            continue
 
         candidate = [
             se3_exp(knot, delta[6 * i : 6 * i + 6]) for i, knot in enumerate(knots)
@@ -1124,12 +1161,45 @@ def fit_continuous_trajectory(
         float(np.linalg.norm(final_weights * final_residuals)),
     )
     stationary = scaled_gradient < settings.convergence_gradient_norm
+    opposite_gradient = None
+    if stationary and clock_domain is not None and any(
+        _imu_body_time(time, clock_offset) in timestamps[1:-1]
+        for measurement in imu_rows
+        for time in (measurement.start_time_sec, measurement.end_time_sec)
+    ):
+        # At an internal screw knot, one vanishing one-sided clock column can
+        # hide descent on the other side. Check both sides when both are feasible.
+        primary_step = clock_domain.difference_step(clock_offset)
+        direction: Literal[-1, 1] = -1 if primary_step > 0 else 1
+        if clock_domain.contains(math.nextafter(clock_offset, math.inf * direction)):
+            opposite_step = clock_domain.difference_step(clock_offset, direction=direction)
+            _other_blocks, other_residual, other_weights, other_jacobian = _linearize(
+                knots, gyro_bias, lever_arm, clock_offset, accel_bias, gravity,
+                gyro_scale, accel_scale, imu_rotation_vector,
+                clock_step_override=opposite_step,
+            )
+            other_weighted = other_jacobian.multiply(other_weights[:, None])
+            opposite_gradient = normalized_gradient_norm(
+                other_weighted.T @ (other_weights * other_residual),
+                np.asarray(other_weighted.power(2).sum(axis=0)).ravel(),
+                float(np.linalg.norm(other_weights * other_residual)),
+            )
+            stationary = opposite_gradient < settings.convergence_gradient_norm
+    if status == "converged" and not stationary:
+        status = "stalled"
+        termination = "stationarity_not_confirmed"
     if stationary and status != "singular_system":
         status = "converged"
         termination = "gradient_tolerance"
     diagnostics = FitDiagnostics(
         termination_reason=termination, normalized_gradient_norm=scaled_gradient,
         gradient_tolerance=settings.convergence_gradient_norm, stationary=stationary,
+        clock_domain=(ClockDomainEvidence(
+            lower_sec=clock_domain.lower, upper_sec=clock_domain.upper,
+            rejected_steps=rejected_clock_steps,
+            derivative_step_sec=clock_domain.difference_step(clock_offset),
+            opposite_gradient_norm=opposite_gradient,
+        ) if clock_domain is not None else None),
     )
     if layout and status != "singular_system":
         covariance, residual_variance = _marginal_calibration_covariance(
@@ -1463,6 +1533,7 @@ def _lever_arm_residual(
     *,
     imu_rotation: NDArray[np.float64] | None = None,
     interpolation: _ScrewInterpolation | None = None,
+    clock_step: float = 1.0e-6,
 ) -> tuple[
     FloatArray,
     NDArray[np.float64],
@@ -1494,7 +1565,7 @@ def _lever_arm_residual(
             interpolation=interpolation,
         )
     )
-    epsilon = 1.0e-6
+    epsilon = clock_step
     perturbed, _kinematic, _omega, _alpha, _rotation = _evaluate_lever_arm(
         knots,
         timestamps,
@@ -1860,6 +1931,7 @@ def _linearize_imu_preintegration(
     imu_rotation: NDArray[np.float64] | None = None,
     interpolation: _ScrewInterpolation | None = None,
     rotation_jacobian: bool = False,
+    clock_side: Literal["left", "right"] | None = None,
 ) -> _ImuPreintegrationLinearization:
     """Prepare every requested block from one factor-local gyro integral."""
     scale = np.ones(3, dtype=float) if gyro_scale is None else np.asarray(
@@ -1889,7 +1961,10 @@ def _linearize_imu_preintegration(
     # A positive clock update moves both endpoints to the left in body time.
     # At the first domain endpoint only the opposite clock side is feasible;
     # select that same side for both endpoints, including internal knot ties.
-    side: Literal["left", "right"] = "right" if start_time == timestamps[0] else "left"
+    side: Literal["left", "right"] = (
+        clock_side if clock_side is not None
+        else ("right" if start_time == timestamps[0] else "left")
+    )
     omega_start = _angular_rate_at(
         knots, timestamps, start_time, side=side, interpolation=interpolation,
     )

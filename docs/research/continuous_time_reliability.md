@@ -23,8 +23,13 @@ normalized final-state stopping diagnostics and explicit `stalled` outcomes for
 both native fitters. It retains 20 known-plane and five full-pipeline synthetic
 bag draws, including undercoverage and failed quality gates. The historical
 observations below describe the recorded source at each milestone; the P0 update
-supersedes their descriptions of current convergence labels. Clock-domain and
-marginalization audits remain open.
+supersedes their descriptions of current convergence labels.
+
+[Screw-linear clock-domain reliability](screw_clock_domain.md) adds a shared
+feasible interval, rejection before objective evaluation, consistent one-sided
+derivatives, and an opposite-side final gradient check at exact gyro knot ties.
+B-spline clock-domain, general nonsmooth stationarity, and marginalization audits
+remain open.
 
 ## Empirical interval follow-up
 

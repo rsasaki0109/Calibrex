@@ -1,5 +1,49 @@
 {
   "$defs": {
+    "ClockDomainEvidence": {
+      "additionalProperties": false,
+      "description": "Bounds and rejected candidates; not a constrained-optimality certificate.",
+      "properties": {
+        "derivative_step_sec": {
+          "title": "Derivative Step Sec",
+          "type": "number"
+        },
+        "lower_sec": {
+          "title": "Lower Sec",
+          "type": "number"
+        },
+        "opposite_gradient_norm": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Opposite Gradient Norm"
+        },
+        "rejected_steps": {
+          "minimum": 0,
+          "title": "Rejected Steps",
+          "type": "integer"
+        },
+        "upper_sec": {
+          "title": "Upper Sec",
+          "type": "number"
+        }
+      },
+      "required": [
+        "lower_sec",
+        "upper_sec",
+        "rejected_steps",
+        "derivative_step_sec"
+      ],
+      "title": "ClockDomainEvidence",
+      "type": "object"
+    },
     "ContinuousTimeImuPreintegrationProvenance": {
       "additionalProperties": false,
       "description": "Seeded synthetic recovery lineage.",
@@ -52,6 +96,17 @@
       "additionalProperties": false,
       "description": "Final-state evidence, not an observability or accuracy certificate.\n\nThe gradient is divided by each weighted Jacobian column norm and by\nmax(1, ||weighted residual||). This is invariant to independent linear\nchanges of parameter units, without adding information in weak directions.\nZero columns contribute zero (and must be assessed for observability\nseparately). The stationarity threshold is recorded with the measurement.",
       "properties": {
+        "clock_domain": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ClockDomainEvidence"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "gradient_tolerance": {
           "exclusiveMinimum": 0,
           "title": "Gradient Tolerance",
@@ -73,6 +128,7 @@
             "small_step",
             "small_cost_change",
             "damping_limit",
+            "clock_domain_limit",
             "iteration_limit",
             "singular_system"
           ],

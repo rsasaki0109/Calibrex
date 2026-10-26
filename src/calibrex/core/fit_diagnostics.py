@@ -8,6 +8,7 @@ import numpy as np
 from numpy.typing import NDArray
 from pydantic import Field
 
+from calibrex.core.clock_domain import ClockDomainEvidence
 from calibrex.core.result import StrictModel
 
 FitTermination = Literal[
@@ -16,6 +17,7 @@ FitTermination = Literal[
     "small_step",
     "small_cost_change",
     "damping_limit",
+    "clock_domain_limit",
     "iteration_limit",
     "singular_system",
 ]
@@ -35,6 +37,7 @@ class FitDiagnostics(StrictModel):
     normalized_gradient_norm: float = Field(ge=0, allow_inf_nan=False)
     gradient_tolerance: float = Field(gt=0, allow_inf_nan=False)
     stationary: bool
+    clock_domain: ClockDomainEvidence | None = None
 
 
 def normalized_gradient_norm(
