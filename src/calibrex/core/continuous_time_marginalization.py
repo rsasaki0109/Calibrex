@@ -29,6 +29,65 @@ class KnotMarginalizationPrior:
     gradient: FloatArray = field(default_factory=lambda: np.zeros(6, dtype=float))
 
 
+@dataclass(frozen=True)
+class JointKnotMarginalizationPrior:
+    """Retained joint quadratic in fixed anchor tangents, including cross blocks."""
+
+    knot_indices: tuple[int, ...]
+    anchor_poses: tuple[SE3, ...]
+    information: FloatArray
+    gradient: FloatArray
+
+    def __post_init__(self) -> None:
+        count = len(self.knot_indices)
+        if not count or len(self.anchor_poses) != count:
+            raise ValueError("joint prior needs matching nonempty knot indices and anchors")
+        if len(set(self.knot_indices)) != count or min(self.knot_indices) < 0:
+            raise ValueError("joint prior knot indices must be distinct and nonnegative")
+        if np.shape(self.information) != (6 * count, 6 * count):
+            raise ValueError("joint prior information size must match its knot count")
+        weight = _square_root_information(self.information, dimension=6 * count)
+        _prior_residual_offset(self, weight)
+
+
+def joint_marginalization_prior_residual(
+    prior: JointKnotMarginalizationPrior, knots: list[SE3],
+) -> FloatArray:
+    """Evaluate the full retained quadratic up to a constant independent of pose."""
+    if max(prior.knot_indices) >= len(knots):
+        raise ValueError("joint prior knot index is out of range")
+    delta = np.concatenate([
+        se3_log(anchor, knots[index])
+        for index, anchor in zip(prior.knot_indices, prior.anchor_poses, strict=True)
+    ])
+    weight = _square_root_information(prior.information, dimension=len(delta))
+    return weight @ delta + _prior_residual_offset(prior, weight)
+
+
+def joint_marginalization_prior_blocks(
+    prior: JointKnotMarginalizationPrior, knots: list[SE3],
+) -> tuple[FloatArray, list[tuple[int, FloatArray]]]:
+    """Whiten all knot columns together so cross-knot curvature is preserved."""
+    residual = joint_marginalization_prior_residual(prior, knots)
+    dimension = len(residual)
+    weight = _square_root_information(prior.information, dimension=dimension)
+    blocks: list[tuple[int, FloatArray]] = []
+    epsilon = 1.e-7
+    for local, (index, anchor) in enumerate(zip(
+        prior.knot_indices, prior.anchor_poses, strict=True,
+    )):
+        delta = se3_log(anchor, knots[index])
+        jacobian = np.zeros((6, 6), dtype=float)
+        for axis in range(6):
+            step = np.zeros(6, dtype=float)
+            step[axis] = epsilon
+            jacobian[:, axis] = (
+                se3_log(anchor, se3_exp(knots[index], step)) - delta
+            ) / epsilon
+        blocks.append((index, weight[:, 6 * local:6 * local + 6] @ jacobian))
+    return residual, blocks
+
+
 def schur_complement_normal(
     hessian: FloatArray,
     gradient: FloatArray,
@@ -124,7 +183,7 @@ def split_retained_information(
     return tuple(priors)
 
 
-def _square_root_information(information: FloatArray) -> FloatArray:
+def _square_root_information(information: FloatArray, *, dimension: int = 6) -> FloatArray:
     """Return W with W.T @ W equal to the declared information up to roundoff.
 
     Equilibrate by the positive diagonal before testing symmetry and the
@@ -135,12 +194,14 @@ def _square_root_information(information: FloatArray) -> FloatArray:
     """
 
     array = np.asarray(information)
-    if array.shape != (6, 6) or np.iscomplexobj(array):
-        raise ValueError("prior information must be a real 6x6 matrix")
+    if array.shape != (dimension, dimension) or np.iscomplexobj(array):
+        raise ValueError(f"prior information must be a real {dimension}x{dimension} matrix")
     try:
         matrix: FloatArray = np.asarray(array, dtype=float)
     except (TypeError, ValueError) as error:
-        raise ValueError("prior information must be a real finite 6x6 matrix") from error
+        raise ValueError(
+            f"prior information must be a real finite {dimension}x{dimension} matrix"
+        ) from error
     if not np.all(np.isfinite(matrix)):
         raise ValueError("prior information must be finite")
     diagonal = np.diag(matrix)
@@ -149,7 +210,7 @@ def _square_root_information(information: FloatArray) -> FloatArray:
     active = diagonal > 0.0
     if np.any(matrix[~active, :] != 0.0) or np.any(matrix[:, ~active] != 0.0):
         raise ValueError("zero prior information diagonal requires a zero row and column")
-    weight: FloatArray = np.zeros((6, 6), dtype=float)
+    weight: FloatArray = np.zeros((dimension, dimension), dtype=float)
     if not np.any(active):
         return weight
     scale = np.sqrt(diagonal[active])
@@ -200,22 +261,25 @@ def marginalization_prior_blocks(
     return weighted_residual, weighted_jacobian
 
 
-def _prior_residual_offset(prior: KnotMarginalizationPrior, weight: FloatArray) -> FloatArray:
+def _prior_residual_offset(
+    prior: KnotMarginalizationPrior | JointKnotMarginalizationPrior, weight: FloatArray,
+) -> FloatArray:
     """Find b with W.T b = g without suppressing weak coordinate information."""
+    dimension = weight.shape[0]
     gradient = np.asarray(prior.gradient)
-    if gradient.shape != (6,) or np.iscomplexobj(gradient):
-        raise ValueError("prior gradient must be a real finite six-vector")
+    if gradient.shape != (dimension,) or np.iscomplexobj(gradient):
+        raise ValueError("prior gradient must be real, finite, and match the information size")
     gradient = np.asarray(gradient, dtype=float)
     if not np.all(np.isfinite(gradient)):
         raise ValueError("prior gradient must be finite")
     if not np.any(gradient):
-        return np.zeros(6, dtype=float)
+        return np.zeros(dimension, dtype=float)
     scale = np.sqrt(np.diag(prior.information))
     active = scale > 0.
     if np.any(gradient[~active] != 0.):
         raise ValueError("prior gradient is outside the information range")
     if not np.any(active):
-        return np.zeros(6, dtype=float)
+        return np.zeros(dimension, dtype=float)
     matrix = weight[:, active].T / scale[active, None]
     target = gradient[active] / scale[active]
     if not np.all(np.isfinite(target)):

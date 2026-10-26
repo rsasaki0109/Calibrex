@@ -88,12 +88,28 @@ accepts the gradient-driven update, and cover weak information and nullspace
 gradients. Existing sliding-window holdout and known-bad controls remain checked.
 These are development tests, not an independent accuracy claim.
 
-The sliding-window representation still splits multiple retained knots into
-diagonal information blocks, dropping cross-knot curvature. It is therefore
-not an exact joint marginal prior for overlaps larger than one knot. Audits of
-that approximation, overlapping-factor reuse, gauge handling, and subsequent
-nonlinear relinearization remain open. Preserving a single-knot gradient does
-not establish batch equivalence for the full sliding-window pipeline.
+The follow-up joint prior stores all retained anchor poses, knot indices, the
+complete Schur information matrix, and its gradient. Its residual whitens the
+concatenated anchor-tangent displacements together, so columns for different
+knots retain their cross terms. Candidate scoring and both normal-equation
+builders use the same joint factor. Sliding-window transfer now uses this
+representation for every overlap size. The older single-knot API remains
+available, as does the explicitly approximate `split_retained_information`
+helper, which is no longer used by the sliding-window fitter.
+
+Tests compare a two-knot retained prior against the independently profiled full
+quadratic, verify the full-system optimum, and check both dense assembly and
+the nonlinear fit with deliberately reversed knot indices. Sliding-window
+checks cover one- and two-knot overlaps. Invalid index lists, shape mismatches,
+invalid information, and gradients outside the information range are rejected.
+These results establish preservation of the local quadratic at its anchors,
+not global nonlinear equivalence.
+
+Overlapping-factor reuse, gauge handling, and subsequent nonlinear
+relinearization remain open audit items. In particular, retaining the full
+Schur matrix does not prevent a later window from counting an already
+summarized overlapping measurement again. This change does not establish batch
+equivalence for the full sliding-window pipeline.
 
 ## Empirical interval follow-up
 

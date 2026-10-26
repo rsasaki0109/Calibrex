@@ -53,7 +53,10 @@ from scipy.sparse.linalg import spsolve
 from calibrex.core._se3_batch import _point_jacobians, _sample_segment, _transform_points
 from calibrex.core.clock_domain import ClockDomainEvidence, ClockOffsetDomain
 from calibrex.core.continuous_time_marginalization import (
+    JointKnotMarginalizationPrior,
     KnotMarginalizationPrior,
+    joint_marginalization_prior_blocks,
+    joint_marginalization_prior_residual,
     marginalization_prior_blocks,
     marginalization_prior_residual,
 )
@@ -339,6 +342,7 @@ class ContinuousTimeTrajectoryFitProblem:
     estimate_imu_rotation: bool = False
     knot_marginalization_priors: tuple[KnotMarginalizationPrior, ...] = ()
     interpolation: Literal["screw_linear"] = "screw_linear"
+    joint_knot_marginalization_priors: tuple[JointKnotMarginalizationPrior, ...] = ()
 
     def __post_init__(self) -> None:
         if len(self.knot_timestamps) < 2:
@@ -947,6 +951,14 @@ def fit_continuous_trajectory(
                     )
                 )
                 row_offset += 1
+
+        for joint_prior in problem.joint_knot_marginalization_priors:
+            prior_residual, prior_blocks = joint_marginalization_prior_blocks(joint_prior, knots)
+            residuals.extend(float(value) for value in prior_residual)
+            weights.extend([1.0] * len(prior_residual))
+            for index, block in prior_blocks:
+                blocks.append((row_offset, 6 * index, block))
+            row_offset += len(prior_residual)
 
         residual_array = np.asarray(residuals, dtype=float)
         weight_array = np.asarray(weights, dtype=float)
@@ -2457,6 +2469,9 @@ def _objective(
     for prior in problem.knot_marginalization_priors:
         residual = marginalization_prior_residual(prior, knots[prior.knot_index])
         objective += float(residual @ residual)
+    for joint_prior in problem.joint_knot_marginalization_priors:
+        residual = joint_marginalization_prior_residual(joint_prior, knots)
+        objective += float(residual @ residual)
     return objective
 
 
@@ -2635,6 +2650,13 @@ def build_dense_knot_normal_equations(
                 )
             )
             row_offset += 1
+    for joint_prior in problem.joint_knot_marginalization_priors:
+        prior_residual, prior_blocks = joint_marginalization_prior_blocks(joint_prior, knots)
+        residuals.extend(float(value) for value in prior_residual)
+        weights.extend([1.0] * len(prior_residual))
+        for index, block in prior_blocks:
+            blocks.append((row_offset, 6 * index, block))
+        row_offset += len(prior_residual)
     parameter_count = 6 * knot_count
     jacobian = _assemble_sparse_jacobian(
         blocks,

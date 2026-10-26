@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 from calibrex.cli.main import main
 from calibrex.core.continuous_time_marginalization import (
@@ -46,7 +47,8 @@ def test_schur_complement_matches_dense_inverse() -> None:
     assert np.allclose(marginal_gradient, expected_gradient, atol=1.0e-8)
 
 
-def test_sliding_window_matches_batch_overlap() -> None:
+@pytest.mark.parametrize("overlap", [1, 2])
+def test_sliding_window_matches_batch_overlap(overlap: int) -> None:
     from calibrex.evaluation.continuous_time_lidar_point_to_plane import (
         _measurements,
         _truth_knots,
@@ -67,8 +69,8 @@ def test_sliding_window_matches_batch_overlap() -> None:
     )
     result = fit_sliding_window_trajectory(
         problem,
-        window_knot_counts=(4, 3),
-        overlap_knot_count=1,
+        window_knot_counts=(4, 2 + overlap),
+        overlap_knot_count=overlap,
         options=ContinuousTimeTrajectoryFitOptions(max_iterations=80),
     )
     assert result.batch_result.status == "converged"

@@ -7,9 +7,8 @@ from dataclasses import dataclass
 import numpy as np
 
 from calibrex.core.continuous_time_marginalization import (
-    KnotMarginalizationPrior,
+    JointKnotMarginalizationPrior,
     marginalize_knot_prefix,
-    split_retained_information,
 )
 from calibrex.core.continuous_time_sparse import (
     ContinuousTimeTrajectoryFitOptions,
@@ -65,7 +64,7 @@ def fit_sliding_window_trajectory(
     sliding_knots = list(problem.initial_knot_poses)
     sliding_status: FitStatus = "max_iterations"
     sliding_iterations = 0
-    priors: tuple[KnotMarginalizationPrior, ...] = ()
+    priors: tuple[JointKnotMarginalizationPrior, ...] = ()
     start_index = 0
     for window_index, window_size in enumerate(window_knot_counts):
         end_index = start_index + window_size
@@ -96,7 +95,7 @@ def fit_sliding_window_trajectory(
             initial_knot_poses=window_initial,
             point_to_plane_measurements=window_measurements,
             pose_measurements=window_poses,
-            knot_marginalization_priors=(
+            joint_knot_marginalization_priors=(
                 priors
                 if apply_marginalization and bad_overlap_translation_m is None
                 else ()
@@ -126,13 +125,12 @@ def fit_sliding_window_trajectory(
                 window_result.knot_poses[eliminated + offset]
                 for offset in range(overlap_knot_count)
             )
-            priors = split_retained_information(
-                marginalized,
-                marginal_gradient,
-                retained_knot_count=overlap_knot_count,
+            priors = (JointKnotMarginalizationPrior(
+                knot_indices=tuple(range(overlap_knot_count)),
                 anchor_poses=anchor_poses,
-                start_knot_index=0,
-            )
+                information=0.5 * (marginalized + marginalized.T),
+                gradient=marginal_gradient,
+            ),)
             if corrupt_marginalization_translation_m is not None:
                 priors = _corrupt_priors(priors, corrupt_marginalization_translation_m)
         start_index += window_size - overlap_knot_count
@@ -231,25 +229,21 @@ def _overlap_errors(
 
 
 def _corrupt_priors(
-    priors: tuple[KnotMarginalizationPrior, ...],
+    priors: tuple[JointKnotMarginalizationPrior, ...],
     translation_m: tuple[float, float, float],
-) -> tuple[KnotMarginalizationPrior, ...]:
-    corrupted: list[KnotMarginalizationPrior] = []
+) -> tuple[JointKnotMarginalizationPrior, ...]:
+    corrupted: list[JointKnotMarginalizationPrior] = []
     shift = np.asarray(translation_m, dtype=float)
     for prior in priors:
-        anchor = prior.anchor_pose
-        translation = np.asarray(anchor.translation_m, dtype=float) + shift
-        corrupted.append(
-            KnotMarginalizationPrior(
-                knot_index=prior.knot_index,
-                anchor_pose=SE3(
-                    translation_m=_tuple3(translation),
-                    rotation_quat_xyzw=anchor.rotation_quat_xyzw,
-                ),
-                information=np.array(prior.information, copy=True),
-                gradient=np.array(prior.gradient, copy=True),
-            )
-        )
+        anchors = tuple(SE3(
+            translation_m=_tuple3(np.asarray(anchor.translation_m, dtype=float) + shift),
+            rotation_quat_xyzw=anchor.rotation_quat_xyzw,
+        ) for anchor in prior.anchor_poses)
+        corrupted.append(JointKnotMarginalizationPrior(
+            knot_indices=prior.knot_indices, anchor_poses=anchors,
+            information=np.array(prior.information, copy=True),
+            gradient=np.array(prior.gradient, copy=True),
+        ))
     return tuple(corrupted)
 
 

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Preserve cross-knot curvature and retained gradients with joint anchored
+  marginalization priors. Use the complete Schur prior in sliding-window fits
+  and include its coupled columns in both normal-equation builders and candidate
+  scoring. Keep the single-knot API and explicit block-diagonal helper available.
+
 - Preserve the retained normal-equation gradient in single-knot marginalization
   priors. Evaluate the same shifted residual in linearization and candidate
   scoring; reject gradients outside the information range. Use a linear solve
