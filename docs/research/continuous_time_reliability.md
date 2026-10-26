@@ -80,7 +80,8 @@ The offset solve scales by the information diagonal so weak coordinates are
 not silently removed because another coordinate has large units. Invalid or
 nonfinite gradients, including components outside the information range, are
 rejected. Schur elimination uses a linear solve rather than an explicit inverse;
-singular eliminated systems still fail instead of receiving artificial damping.
+coupled singular active systems remain unsupported. The exact zero-information
+exception described below adds no artificial damping.
 
 Regression tests compare the retained prior against independently profiled
 quadratic costs and the retained part of the full dense optimum, verify a fit
@@ -139,7 +140,7 @@ prior, raw pose observations in the overlap remain available. A three-window
 pose-only regression verifies that identical measurement IDs do not cause rows
 to be dropped and that the result reaches the supplied pose, away from the
 initial guess. Truly unobservable directions are not repaired by inventing a
-pose observation; singular elimination remains an error.
+pose observation; coupled singular active elimination remains unsupported.
 
 [Retained paired evidence](../assets/sliding_gauge_audit/manifest.json) uses the
 already-read seed 20260820 and unchanged thresholds. Baseline and current sliding
@@ -246,7 +247,7 @@ unchanged no-marginalization control still fails. The overall evaluation remains
 Tests verify recovery of an observed knot with an unobserved neighbor, unchanged
 unobserved state, explicit reporting at zero residual, and retention of weak
 positive information. This handles exact zero columns only: coupled null modes
-with nonzero columns, singular eliminated Schur blocks, and general nonlinear
+with nonzero columns, coupled singular eliminated Schur blocks, and general nonlinear
 observability remain separate issues. A stationary fit is not a claim that every
 coordinate was measured.
 
@@ -258,6 +259,30 @@ identity blocks at fractions zero and one. Interior fractions retain the
 original calculation; no tolerance-based snapping or weak-information cutoff is
 used. The multi-window regression verifies an unsupported knot remains unchanged
 and its freeze history is mapped to the correct global indices.
+
+## Eliminating entirely unobserved coordinates
+
+Schur elimination now handles an eliminated prefix containing exactly
+zero-information coordinates. Such a coordinate is omitted from the solve only
+if its complete normal-matrix row and column and its gradient entry are all
+exactly zero. Otherwise the normal equations are rejected instead of silently
+discarding coupling or a linear term. The retained quadratic receives the usual
+Schur contribution from the informative eliminated subblock; an entirely absent
+prefix leaves retained information and gradient unchanged.
+
+No positive diagonal floor, damping, or pseudoinverse rank cutoff is introduced.
+Even very small positive information is retained. Coupled singular active blocks
+are outside this change and remain unsupported; a singular solve may still raise
+`LinAlgError`. This extends the earlier zero-column update rule to removal of an
+unobserved old knot, rather than only retaining an unobserved overlap knot.
+
+Tests compare the result with independent least-squares elimination in residual
+space, including changes in the profiled objective; cover an entirely absent
+prefix and weak positive information; reject inconsistent coupling/gradient;
+and run two sliding windows where an unobserved old knot is removed while all
+observed knots recover their targets. The removed state keeps its initial value
+and remains identified as unobserved in the first window's evidence. This does
+not provide an estimate for that state or establish global observability.
 
 ## Empirical interval follow-up
 

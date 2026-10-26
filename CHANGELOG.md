@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Allow Schur elimination of exactly unobserved coordinates when their complete
+  rows, columns, and gradient entries are zero. Eliminate only the informative
+  subblock, preserving weak positive information without a pseudoinverse cutoff
+  or artificial prior. Reject inconsistent missing-information normal equations;
+  coupled singular active blocks remain unsupported.
+
 - Solve sparse trajectory updates only on columns with nonzero information,
   keeping exactly unobserved coordinates unchanged without adding priors or
   diagonal floors. Reassess the active columns every iteration and record the

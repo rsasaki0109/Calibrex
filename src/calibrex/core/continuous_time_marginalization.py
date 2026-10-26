@@ -93,9 +93,25 @@ def schur_complement_normal(
     gradient: FloatArray,
     eliminated_dim: int,
 ) -> tuple[FloatArray, FloatArray]:
-    """Return the Schur complement on retained variables after eliminating a prefix."""
+    """Eliminate a prefix, excluding exactly zero-information coordinates.
 
-    if eliminated_dim <= 0:
+    A zero-information coordinate can be omitted only if its whole row/column
+    and gradient are zero. No pseudoinverse cutoff, prior, or damping is added.
+    Coupled singular active blocks remain unsupported and may raise LinAlgError.
+    """
+
+    if np.iscomplexobj(hessian) or np.iscomplexobj(gradient):
+        raise ValueError("normal equations must be real")
+    hessian = np.asarray(hessian, dtype=float)
+    gradient = np.asarray(gradient, dtype=float)
+    if (hessian.ndim != 2 or hessian.shape[0] != hessian.shape[1]
+            or gradient.shape != (hessian.shape[0],)):
+        raise ValueError("normal equation dimensions must agree")
+    if not np.all(np.isfinite(hessian)) or not np.all(np.isfinite(gradient)):
+        raise ValueError("normal equations must be finite")
+    if eliminated_dim < 0:
+        raise ValueError("eliminated dimension must be nonnegative")
+    if eliminated_dim == 0:
         return np.array(hessian, copy=True), np.array(gradient, copy=True)
     if eliminated_dim >= hessian.shape[0]:
         raise ValueError("eliminated dimension must be smaller than the system size")
@@ -107,7 +123,24 @@ def schur_complement_normal(
     hrr = hessian[retained, retained]
     ge = gradient[eliminated]
     gr = gradient[retained]
-    solved = np.linalg.solve(hee, np.column_stack((her, ge)))
+    diagonal = np.diag(hee)
+    if np.any(diagonal < 0.):
+        raise ValueError("eliminated information diagonal must be nonnegative")
+    active = diagonal > 0.
+    missing = np.flatnonzero(~active)
+    if (np.any(hessian[missing, :] != 0.) or np.any(hessian[:, missing] != 0.)
+            or np.any(gradient[missing] != 0.)):
+        raise ValueError(
+            "zero-information eliminated coordinates require zero coupling and gradient"
+        )
+    if np.all(active):
+        solved = np.linalg.solve(hee, np.column_stack((her, ge)))
+    else:
+        solved = np.zeros((eliminated_dim, her.shape[1] + 1), dtype=float)
+        if np.any(active):
+            solved[active] = np.linalg.solve(
+                hee[np.ix_(active, active)], np.column_stack((her[active], ge[active])),
+            )
     marginalized = hrr - hre @ solved[:, :-1]
     marginal_gradient = gr - hre @ solved[:, -1]
     return marginalized, marginal_gradient
