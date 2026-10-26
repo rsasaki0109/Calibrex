@@ -9,7 +9,7 @@ import numpy as np
 
 from calibrex.core.continuous_time_marginalization import (
     JointKnotMarginalizationPrior,
-    marginalize_knot_prefix,
+    schur_complement_normal_with_evidence,
 )
 from calibrex.core.continuous_time_sparse import (
     ContinuousTimeTrajectoryFitOptions,
@@ -150,10 +150,11 @@ def fit_sliding_window_trajectory(
             eliminated = window_size - overlap_knot_count
             if eliminated <= 0:
                 raise ValueError("window must eliminate at least one knot")
-            marginalized, marginal_gradient = marginalize_knot_prefix(
-                hessian,
-                gradient,
-                eliminated_knot_count=eliminated,
+            marginalized, marginal_gradient, elimination = schur_complement_normal_with_evidence(
+                hessian, gradient, 6 * eliminated,
+            )
+            window_observability[-1] = window_observability[-1].model_copy(
+                update={"elimination": elimination},
             )
             anchor_poses = tuple(
                 window_result.knot_poses[eliminated + offset]

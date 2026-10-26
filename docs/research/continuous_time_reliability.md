@@ -80,8 +80,8 @@ The offset solve scales by the information diagonal so weak coordinates are
 not silently removed because another coordinate has large units. Invalid or
 nonfinite gradients, including components outside the information range, are
 rejected. Schur elimination uses a linear solve rather than an explicit inverse;
-coupled singular active systems remain unsupported. The exact zero-information
-exception described below adds no artificial damping.
+the exact-zero and range-checked coupled-nullspace extensions described below
+add no artificial damping.
 
 Regression tests compare the retained prior against independently profiled
 quadratic costs and the retained part of the full dense optimum, verify a fit
@@ -140,7 +140,7 @@ prior, raw pose observations in the overlap remain available. A three-window
 pose-only regression verifies that identical measurement IDs do not cause rows
 to be dropped and that the result reaches the supplied pose, away from the
 initial guess. Truly unobservable directions are not repaired by inventing a
-pose observation; coupled singular active elimination remains unsupported.
+pose observation; coupled singular elimination requires the range checks below.
 
 [Retained paired evidence](../assets/sliding_gauge_audit/manifest.json) uses the
 already-read seed 20260820 and unchanged thresholds. Baseline and current sliding
@@ -247,8 +247,8 @@ unchanged no-marginalization control still fails. The overall evaluation remains
 Tests verify recovery of an observed knot with an unobserved neighbor, unchanged
 unobserved state, explicit reporting at zero residual, and retention of weak
 positive information. This handles exact zero columns only: coupled null modes
-with nonzero columns, coupled singular eliminated Schur blocks, and general nonlinear
-observability remain separate issues. A stationary fit is not a claim that every
+with nonzero columns during optimization and general nonlinear observability
+remain separate issues. Coupled singular elimination is addressed below. A stationary fit is not a claim that every
 coordinate was measured.
 
 An additional regression exposed numerical cancellation at screw-interpolation
@@ -270,10 +270,10 @@ discarding coupling or a linear term. The retained quadratic receives the usual
 Schur contribution from the informative eliminated subblock; an entirely absent
 prefix leaves retained information and gradient unchanged.
 
-No positive diagonal floor, damping, or pseudoinverse rank cutoff is introduced.
-Even very small positive information is retained. Coupled singular active blocks
-are outside this change and remain unsupported; a singular solve may still raise
-`LinAlgError`. This extends the earlier zero-column update rule to removal of an
+This exact-zero path introduces no positive diagonal floor, damping, or rank
+cutoff; even very small positive coordinate information is retained. The coupled
+active-block extension below uses a recorded numerical rank threshold. The
+exact-zero rule extends the earlier update rule to removal of an
 unobserved old knot, rather than only retaining an unobserved overlap knot.
 
 Tests compare the result with independent least-squares elimination in residual
@@ -283,6 +283,42 @@ and run two sliding windows where an unobserved old knot is removed while all
 observed knots recover their targets. The removed state keeps its initial value
 and remains identified as unobserved in the first window's evidence. This does
 not provide an estimate for that state or establish global observability.
+
+## Coupled numerical nullspaces in Schur elimination
+
+The informative eliminated block is diagonally scaled before symmetric
+eigendecomposition. Its rank threshold is `60 * machine_epsilon *
+max(1, eliminated_dimension) * max(1, max(abs(eigenvalues)))`. Directions at or
+below that threshold are numerical null directions. Material negative
+eigenvalues or asymmetry are rejected. Full-rank blocks retain the direct solve.
+
+For a deficient block, retained coupling columns and the eliminated gradient
+must lie in its numerical range. Each nullspace projection is checked relative
+to the maximum absolute entry of its own scaled right-hand-side column, using
+tolerance `60 * machine_epsilon * max(1, eliminated_dimension)`. Inconsistent
+inputs raise `ValueError`; consistent inputs use the inverse restricted to the
+observed eigenspace. No damping, positive eigenvalue floor, or anchor is added.
+
+`schur_complement_normal_with_evidence` returns the retained quadratic and its
+elimination evidence; the original two-result API remains available. Sliding
+evidence records eliminated dimension, rank, exact-zero count, coupled nullity,
+rank threshold, range tolerance and maximum relative range error. The final
+window has no outgoing elimination evidence. Generator 0.6 includes the optional
+fields while keeping older artifacts readable.
+
+Tests compare results with independent residual-space projection and profiled
+costs, verify invariance to coordinate unit changes, reject incompatible coupling
+and gradients, and exercise a sliding problem with an old knot pair observed
+only through its midpoint. Its twelve eliminated coordinates have rank six;
+information about the retained states still carries forward without inventing
+information about each old knot individually.
+
+This is a finite-precision rank decision, not exact symbolic observability.
+Small positive eigen-directions below the threshold may be treated as numerical
+nullspace, but a material right-hand side in those directions is rejected rather
+than silently dropped. Weak independent coordinate information survives diagonal
+scaling. Nonlinear relinearization, optimization of coupled null modes, and
+interpretation of globally unobservable estimates remain open.
 
 ## Empirical interval follow-up
 

@@ -62,10 +62,11 @@ def test_tiny_positive_information_is_eliminated_without_a_cutoff():
     np.testing.assert_allclose(reduced_g, [2.])
 
 
-def test_coupled_singular_active_block_is_not_silently_regularized():
+def test_coupled_singular_active_block_adds_no_artificial_information():
     h = np.ones((3, 3))
-    with pytest.raises(np.linalg.LinAlgError):
-        schur_complement_normal(h, np.zeros(3), 2)
+    retained, gradient = schur_complement_normal(h, np.zeros(3), 2)
+    np.testing.assert_allclose(retained, np.zeros((1, 1)), atol=1e-14)
+    np.testing.assert_array_equal(gradient, np.zeros(1))
 
 
 def test_sliding_can_remove_an_unobserved_old_knot():

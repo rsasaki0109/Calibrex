@@ -210,10 +210,73 @@
       "title": "KnotInformationEvidence",
       "type": "object"
     },
+    "SchurEliminationEvidence": {
+      "additionalProperties": false,
+      "description": "Numerical elimination rank and range checks in diagonally scaled coordinates.",
+      "properties": {
+        "coupled_nullity": {
+          "minimum": 0,
+          "title": "Coupled Nullity",
+          "type": "integer"
+        },
+        "eigenvalue_threshold": {
+          "minimum": 0,
+          "title": "Eigenvalue Threshold",
+          "type": "number"
+        },
+        "eliminated_dimension": {
+          "minimum": 0,
+          "title": "Eliminated Dimension",
+          "type": "integer"
+        },
+        "max_relative_range_error": {
+          "minimum": 0,
+          "title": "Max Relative Range Error",
+          "type": "number"
+        },
+        "numerical_rank": {
+          "minimum": 0,
+          "title": "Numerical Rank",
+          "type": "integer"
+        },
+        "relative_range_tolerance": {
+          "exclusiveMinimum": 0,
+          "title": "Relative Range Tolerance",
+          "type": "number"
+        },
+        "zero_information_dimension": {
+          "minimum": 0,
+          "title": "Zero Information Dimension",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "eliminated_dimension",
+        "numerical_rank",
+        "zero_information_dimension",
+        "coupled_nullity",
+        "eigenvalue_threshold",
+        "relative_range_tolerance",
+        "max_relative_range_error"
+      ],
+      "title": "SchurEliminationEvidence",
+      "type": "object"
+    },
     "WindowObservabilityEvidence": {
       "additionalProperties": false,
       "description": "Separate measurement information from information inherited through priors.",
       "properties": {
+        "elimination": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SchurEliminationEvidence"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "frozen_parameters": {
           "items": {
             "type": "string"

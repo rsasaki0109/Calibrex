@@ -7,8 +7,10 @@ from typing import TypeAlias
 
 import numpy as np
 from numpy.typing import NDArray
+from pydantic import Field
 
 from calibrex.core.geometry import SE3
+from calibrex.core.result import StrictModel
 from calibrex.core.se3_manifold import se3_exp, se3_log
 
 FloatArray: TypeAlias = NDArray[np.float64]
@@ -88,18 +90,39 @@ def joint_marginalization_prior_blocks(
     return residual, blocks
 
 
+class SchurEliminationEvidence(StrictModel):
+    """Numerical elimination rank and range checks in diagonally scaled coordinates."""
+
+    eliminated_dimension: int = Field(ge=0)
+    numerical_rank: int = Field(ge=0)
+    zero_information_dimension: int = Field(ge=0)
+    coupled_nullity: int = Field(ge=0)
+    eigenvalue_threshold: float = Field(ge=0, allow_inf_nan=False)
+    relative_range_tolerance: float = Field(gt=0, allow_inf_nan=False)
+    max_relative_range_error: float = Field(ge=0, allow_inf_nan=False)
+
+
 def schur_complement_normal(
     hessian: FloatArray,
     gradient: FloatArray,
     eliminated_dim: int,
 ) -> tuple[FloatArray, FloatArray]:
-    """Eliminate a prefix, excluding exactly zero-information coordinates.
+    """Eliminate a prefix while checking numerical nullspace consistency."""
+    normal, rhs, _evidence = schur_complement_normal_with_evidence(
+        hessian, gradient, eliminated_dim,
+    )
+    return normal, rhs
 
-    A zero-information coordinate can be omitted only if its whole row/column
-    and gradient are zero. No pseudoinverse cutoff, prior, or damping is added.
-    Coupled singular active blocks remain unsupported and may raise LinAlgError.
+
+def schur_complement_normal_with_evidence(
+    hessian: FloatArray, gradient: FloatArray, eliminated_dim: int,
+) -> tuple[FloatArray, FloatArray, SchurEliminationEvidence]:
+    """Generalized Schur elimination with explicit scaled rank and range evidence.
+
+    Null directions may be removed only when both the retained coupling and the
+    eliminated gradient lie in the numerical range. No damping or prior is added.
     """
-
+    range_tolerance = _INFORMATION_ROUNDOFF * max(1, eliminated_dim)
     if np.iscomplexobj(hessian) or np.iscomplexobj(gradient):
         raise ValueError("normal equations must be real")
     hessian = np.asarray(hessian, dtype=float)
@@ -112,9 +135,16 @@ def schur_complement_normal(
     if eliminated_dim < 0:
         raise ValueError("eliminated dimension must be nonnegative")
     if eliminated_dim == 0:
-        return np.array(hessian, copy=True), np.array(gradient, copy=True)
+        evidence = SchurEliminationEvidence(
+            eliminated_dimension=0, numerical_rank=0, zero_information_dimension=0,
+            coupled_nullity=0, eigenvalue_threshold=0.,
+            relative_range_tolerance=range_tolerance, max_relative_range_error=0.,
+        )
+        return np.array(hessian, copy=True), np.array(gradient, copy=True), evidence
     if eliminated_dim >= hessian.shape[0]:
         raise ValueError("eliminated dimension must be smaller than the system size")
+    if not np.allclose(hessian, hessian.T, rtol=range_tolerance, atol=0.):
+        raise ValueError("normal information must be symmetric")
     retained = slice(eliminated_dim, None)
     eliminated = slice(None, eliminated_dim)
     hee = hessian[eliminated, eliminated]
@@ -133,17 +163,49 @@ def schur_complement_normal(
         raise ValueError(
             "zero-information eliminated coordinates require zero coupling and gradient"
         )
-    if np.all(active):
-        solved = np.linalg.solve(hee, np.column_stack((her, ge)))
-    else:
-        solved = np.zeros((eliminated_dim, her.shape[1] + 1), dtype=float)
-        if np.any(active):
-            solved[active] = np.linalg.solve(
-                hee[np.ix_(active, active)], np.column_stack((her[active], ge[active])),
-            )
+    solved = np.zeros((eliminated_dim, her.shape[1] + 1), dtype=float)
+    rank = 0
+    threshold = 0.
+    range_error = 0.
+    if np.any(active):
+        block = hee[np.ix_(active, active)]
+        scale = np.sqrt(diagonal[active])
+        normalized = block / scale[:, None] / scale[None, :]
+        if not np.all(np.isfinite(normalized)) or not np.allclose(
+            normalized, normalized.T, rtol=0., atol=range_tolerance,
+        ):
+            raise ValueError("eliminated information must be symmetric after scaling")
+        values, vectors = np.linalg.eigh(.5 * (normalized + normalized.T))
+        threshold = range_tolerance * max(float(np.max(np.abs(values))), 1.)
+        if values[0] < -threshold:
+            raise ValueError("eliminated information must be positive semidefinite")
+        observed = values > threshold
+        rank = int(np.count_nonzero(observed))
+        right = np.column_stack((her[active], ge[active]))
+        if np.all(observed):
+            solved[active] = np.linalg.solve(block, right)
+        else:
+            scaled_right = right / scale[:, None]
+            if not np.all(np.isfinite(scaled_right)):
+                raise ValueError("scaled eliminated right-hand side must be finite")
+            projections = vectors[:, ~observed].T @ scaled_right
+            denominators = np.maximum(np.max(np.abs(scaled_right), axis=0), 1.e-300)
+            range_error = float(np.max(np.abs(projections) / denominators[None, :]))
+            if range_error > range_tolerance:
+                raise ValueError("eliminated coupling or gradient is outside the numerical range")
+            basis = vectors[:, observed]
+            solved[active] = (
+                basis @ ((basis.T @ scaled_right) / values[observed, None])
+            ) / scale[:, None]
     marginalized = hrr - hre @ solved[:, :-1]
     marginal_gradient = gr - hre @ solved[:, -1]
-    return marginalized, marginal_gradient
+    return marginalized, marginal_gradient, SchurEliminationEvidence(
+        eliminated_dimension=eliminated_dim, numerical_rank=rank,
+        zero_information_dimension=int(np.count_nonzero(~active)),
+        coupled_nullity=int(np.count_nonzero(active)) - rank,
+        eigenvalue_threshold=threshold, relative_range_tolerance=range_tolerance,
+        max_relative_range_error=range_error,
+    )
 
 
 def marginalize_knot_prefix(

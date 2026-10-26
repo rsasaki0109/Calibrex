@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Support coupled numerical nullspaces in Schur elimination with diagonally
+  scaled rank and range checks. Reject retained coupling or gradients outside
+  the eliminated information range instead of silently projecting them away.
+  Keep full-rank solves and exact-zero handling, and record elimination rank,
+  thresholds and range errors in optional per-window evidence (generator 0.6).
+
 - Allow Schur elimination of exactly unobserved coordinates when their complete
   rows, columns, and gradient entries are zero. Eliminate only the informative
   subblock, preserving weak positive information without a pseudoinverse cutoff
