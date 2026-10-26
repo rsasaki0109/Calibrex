@@ -16,7 +16,6 @@ from calibrex.core.continuous_time_sparse import (
     ContinuousTimeTrajectoryFitResult,
     FitStatus,
     TrajectoryPointToPlaneMeasurement,
-    TrajectoryPoseMeasurement,
     _interval_index,
     build_dense_knot_normal_equations,
     fit_continuous_trajectory,
@@ -80,13 +79,11 @@ def fit_sliding_window_trajectory(
                 bad_overlap_translation_m,
             )
         use_priors = bool(priors) and apply_marginalization and bad_overlap_translation_m is None
-        window_poses = _window_pose_gauges(
-            window_initial,
-            window_timestamps,
-            start_index,
-            overlap_knot_count=overlap_knot_count,
-            is_first_window=window_index == 0,
-            has_marginalization_priors=use_priors,
+        window_poses = tuple(
+            pose for pose in problem.pose_measurements
+            if window_timestamps[0] <= pose.timestamp_sec <= window_timestamps[-1]
+            and (not use_priors or summarized_through is None
+                 or pose.timestamp_sec > summarized_through)
         )
         window_measurements = _window_point_to_plane_measurements(
             problem.point_to_plane_measurements,
@@ -172,30 +169,6 @@ def fit_sliding_window_trajectory(
         overlap_knot_count=overlap_knot_count,
         max_overlap_translation_error_m=max(translation_errors) if translation_errors else 0.0,
         max_overlap_rotation_error_rad=max(rotation_errors) if rotation_errors else 0.0,
-    )
-
-
-def _window_pose_gauges(
-    knots: tuple[SE3, ...],
-    timestamps: tuple[float, ...],
-    global_start_index: int,
-    *,
-    overlap_knot_count: int,
-    is_first_window: bool,
-    has_marginalization_priors: bool = False,
-) -> tuple[TrajectoryPoseMeasurement, ...]:
-    if not is_first_window and has_marginalization_priors:
-        return ()
-    gauge_index = 0 if is_first_window else overlap_knot_count
-    if gauge_index >= len(knots):
-        return ()
-    return (
-        TrajectoryPoseMeasurement(
-            measurement_id=f"window-gauge-{global_start_index + gauge_index:02d}",
-            timestamp_sec=timestamps[gauge_index],
-            pose_world_body=knots[gauge_index],
-            weight=100.0,
-        ),
     )
 
 

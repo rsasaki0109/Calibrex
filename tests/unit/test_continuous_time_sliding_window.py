@@ -89,9 +89,13 @@ def test_synthetic_sliding_window_recovery_holdout_and_known_bad_control(
     output = tmp_path / "recovery.yaml"
     artifact.save(output)
     assert validate_file(output, kind="continuous-time-sliding-window").valid
-    assert artifact.policy_status == "pass"
+    # Without fabricated initial-pose anchors, this development seed no longer
+    # demonstrates harm from skipping marginalization. Keep the failed gate.
+    assert artifact.policy_status == "fail"
+    assert "skipping marginalization" in artifact.policy_reason
     assert artifact.window_count == 2
-    assert artifact.known_bad_rmse_delta_m > 0.01
+    assert artifact.known_bad_rmse_delta_m <= 0.01
+    assert artifact.sliding_holdout_rmse_m < 0.08
     assert artifact.provenance.seed == 20260820
 
 
@@ -108,7 +112,7 @@ def test_cli_recover_sliding_window(tmp_path: Path) -> None:
             "--json",
         ]
     )
-    assert exit_code == 0
+    assert exit_code == 2
     assert validate_file(output).valid
 
 
@@ -149,6 +153,7 @@ def test_overlapping_observations_have_one_owner_when_summarized(monkeypatch, ap
                                                    convergence_gradient_norm=1e10),
     )
     windows = captured[1:]  # The first call is the separate batch reference.
+    assert all(not window.pose_measurements for window in windows)
     occurrences = [id(m) for window in windows for m in window.point_to_plane_measurements]
     if not apply_prior:
         assert len(occurrences) > len(measurements)
@@ -159,7 +164,7 @@ def test_overlapping_observations_have_one_owner_when_summarized(monkeypatch, ap
     assert min(m.timestamp_sec for m in windows[1].point_to_plane_measurements) > 3.
     assert min(m.timestamp_sec for m in windows[2].point_to_plane_measurements) > 5.
     # With fixed linearization anchors, repeated transfer must equal eliminating
-    # the same prefix from all original rows plus the one initial gauge.
+    # the same prefix from all original rows, without invented pose anchors.
     reference = replace(problem, pose_measurements=windows[0].pose_measurements)
     full_h, full_g = build_dense_knot_normal_equations(reference, list(truth))
     expected_h, expected_g = marginalize_knot_prefix(full_h, full_g, eliminated_knot_count=4)
@@ -217,3 +222,54 @@ def test_prior_only_problem_remains_valid_after_raw_rows_are_summarized():
     assert result.status == "converged"
     for knot in result.knot_poses:
         np.testing.assert_allclose(knot.translation_m, -gradient[:3], atol=1e-7)
+
+
+def test_explicit_pose_observations_are_transferred_once_without_initial_pose_bias(monkeypatch):
+    from calibrex.core import continuous_time_sliding_window_fit as module
+    from calibrex.core.continuous_time_sparse import TrajectoryPoseMeasurement
+    from calibrex.core.geometry import SE3
+
+    timestamps = tuple(float(i) for i in range(8))
+    target = SE3((.7, -.4, .2), (0., 0., 0., 1.))
+    rows = tuple(TrajectoryPoseMeasurement("shared-id", t, target) for t in timestamps)
+    problem = ContinuousTimeTrajectoryFitProblem(
+        knot_timestamps=timestamps, initial_knot_poses=(SE3.identity(),) * 8,
+        pose_measurements=rows,
+    )
+    captured = []
+    original = module.fit_continuous_trajectory
+
+    def fit(window, options):
+        captured.append(window)
+        return original(window, options)
+
+    monkeypatch.setattr(module, "fit_continuous_trajectory", fit)
+    result = module.fit_sliding_window_trajectory(
+        problem, window_knot_counts=(4, 4, 4), overlap_knot_count=2,
+    )
+    occurrences = [id(p) for window in captured[1:] for p in window.pose_measurements]
+    assert sorted(occurrences) == sorted(id(p) for p in rows)
+    assert result.sliding_result.status == "converged"
+    for knot in result.sliding_result.knot_poses:
+        np.testing.assert_allclose(knot.translation_m, target.translation_m, atol=1e-7)
+    assert result.max_overlap_translation_error_m < 1e-7
+
+
+def test_retained_gauge_audit_keeps_failed_control_and_source_bindings():
+    import hashlib
+    import json
+
+    root = Path(__file__).resolve().parents[2] / "docs/assets/sliding_gauge_audit"
+    manifest = json.loads((root / "manifest.json").read_text())
+    for name, digest in manifest["files"].items():
+        assert hashlib.sha256((root / name).read_bytes()).hexdigest() == digest
+    for version, expected in (("baseline", "pass"), ("current", "fail")):
+        path = root / version / "result.json"
+        assert validate_file(path).valid
+        result = json.loads(path.read_text())
+        assert result["seed"] == 20260820
+        assert result["policy_status"] == expected
+    sources = json.loads((root / "current/source_sha256.json").read_text())
+    for path in (root / "measured_source").rglob("*.txt"):
+        name = str(path.relative_to(root / "measured_source"))[:-4]
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == sources[name]

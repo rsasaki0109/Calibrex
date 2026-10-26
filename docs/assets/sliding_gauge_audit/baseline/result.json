@@ -1,0 +1,33 @@
+{
+  "batch_fit_status": "converged",
+  "batch_holdout_rmse_m": 0.014085965230583445,
+  "holdout_measurement_count": 27,
+  "interpolation": "screw_linear",
+  "knot_count": 6,
+  "known_bad_overlap_translation_error_m": 0.14214076286778302,
+  "known_bad_rmse_delta_m": 0.02234178209845233,
+  "known_bad_skip_marginalization": true,
+  "max_overlap_rotation_error_rad": 0.0,
+  "max_overlap_translation_error_m": 0.0,
+  "overlap_knot_count": 1,
+  "policy_reason": "sliding-window marginalization matches the converged batch overlap within budget, holdout RMSE stays tight, and skipping marginalization with a bad overlap seed increases overlap inconsistency and holdout error",
+  "policy_status": "pass",
+  "provenance": {
+    "command": [
+      "/workspace/work/evaluate_gauge.py",
+      "docs/assets/sliding_gauge_audit/baseline"
+    ],
+    "created_at": "2026-10-26T12:19:01.336970+00:00",
+    "generator": "calibrex.evaluation.continuous_time_sliding_window",
+    "generator_version": "0.1",
+    "git_commit": "2c72dcb4",
+    "seed": 20260820
+  },
+  "recovery_id": "ct-sliding-window-synthetic",
+  "schema_version": "slac.continuous_time_sliding_window/v0.1",
+  "seed": 20260820,
+  "sliding_fit_status": "converged",
+  "sliding_holdout_rmse_m": 0.021540923254411943,
+  "train_measurement_count": 63,
+  "window_count": 2
+}

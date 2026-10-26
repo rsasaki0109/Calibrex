@@ -113,18 +113,49 @@ This assigns observations by timestamp rather than measurement ID, so distinct
 rows sharing an ID remain distinct. The current implementation summarizes the
 entire fitted window; it does not retain old raw factors for relinearization.
 
-When the prior is deliberately omitted, raw overlap observations remain available
-and a local gauge is added. Invalid nonadvancing windows fail before any fit.
+When the prior is deliberately omitted, raw overlap observations remain available.
+Invalid nonadvancing windows fail before any fit.
 Trajectory problems with only prior factors are also accepted; this does not
 guarantee that new, unobserved knots are observable.
 
 Tests track all input occurrences over three windows, cover exact endpoints and
 their next representable timestamps, and verify no-prior controls. At fixed
 linearization anchors, the final sequential normal equations agree with Schur
-elimination from all original observations plus the same initial gauge. Existing
-synthetic holdout and known-bad checks remain in place. Gauge handling and
-subsequent nonlinear relinearization still need auditing: this local quadratic
-identity does not establish nonlinear batch equivalence for the full pipeline.
+elimination from all original observations at the same anchors. This local
+quadratic identity does not establish nonlinear batch equivalence.
+
+## Pose constraints and the gauge audit
+
+The sliding fitter previously inserted a weight-100 pose observation at an
+initial knot, despite fitting observations against planes in a fixed world
+frame, and ignored caller-supplied pose observations. This was a physical pose
+penalty, not merely a coordinate convention: it could bias observable motion
+toward the initial guess. It also made batch and window objectives differ.
+
+The fitter now adds no synthetic pose constraint. Explicit pose observations
+are routed into each window by timestamp, using the same once-only accounting
+as plane observations when an incoming Schur prior is present. Without that
+prior, raw pose observations in the overlap remain available. A three-window
+pose-only regression verifies that identical measurement IDs do not cause rows
+to be dropped and that the result reaches the supplied pose, away from the
+initial guess. Truly unobservable directions are not repaired by inventing a
+pose observation; singular elimination remains an error.
+
+[Retained paired evidence](../assets/sliding_gauge_audit/manifest.json) uses the
+already-read seed 20260820 and unchanged thresholds. Baseline and current sliding
+holdout RMSE are both 0.0215409 m. The no-marginalization control's excess RMSE
+changes from 0.0223418 m to approximately zero, so its gate now **fails**. The
+previous result did not isolate marginalization benefit from the inserted pose
+penalties. The generator is version 0.2 and the CLI retains this failure with
+exit code 2. Tests assert the failed gate; no thresholds or seeds were retuned.
+
+The evidence includes the exact runner, source hashes, and changed-source
+snapshots. Reproduce the baseline from the manifest's revision and the current
+run by overlaying the snapshots, then run the saved Python runner with a fresh
+output directory and `OPENBLAS_NUM_THREADS=1`. These are development findings,
+not an independent accuracy comparison. Nonlinear relinearization, broader
+factor support, and truthful aggregate sliding-result diagnostics remain open
+audit items.
 
 ## Empirical interval follow-up
 

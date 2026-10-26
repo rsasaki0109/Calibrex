@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Remove implicit initial-pose penalties from sliding-window fits against
+  world-frame planes. Preserve caller-supplied pose observations, admitting
+  each once when an incoming marginal prior is used. Retain the gauge audit's
+  paired seed: the unchanged no-marginalization control gate now fails, so the
+  synthetic recovery CLI reports failure rather than claiming demonstrated
+  marginalization benefit. Bump its generator version to 0.2.
+
 - Prevent repeated point-to-plane observations in sliding-window marginalization:
   an incoming prior replaces all rows through the preceding window endpoint,
   including that endpoint. Admit only later rows when the prior is used, while

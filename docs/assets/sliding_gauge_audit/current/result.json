@@ -1,0 +1,33 @@
+{
+  "batch_fit_status": "converged",
+  "batch_holdout_rmse_m": 0.014085965230583445,
+  "holdout_measurement_count": 27,
+  "interpolation": "screw_linear",
+  "knot_count": 6,
+  "known_bad_overlap_translation_error_m": 7.189235543175007e-10,
+  "known_bad_rmse_delta_m": -2.1359847918178687e-11,
+  "known_bad_skip_marginalization": true,
+  "max_overlap_rotation_error_rad": 0.0,
+  "max_overlap_translation_error_m": 0.0,
+  "overlap_knot_count": 1,
+  "policy_reason": "skipping marginalization with a bad overlap seed did not increase inconsistency enough (0.0000 m vs 0.0000 m)",
+  "policy_status": "fail",
+  "provenance": {
+    "command": [
+      "/workspace/work/evaluate_gauge.py",
+      "docs/assets/sliding_gauge_audit/current"
+    ],
+    "created_at": "2026-10-26T12:19:02.057146+00:00",
+    "generator": "calibrex.evaluation.continuous_time_sliding_window",
+    "generator_version": "0.2",
+    "git_commit": "2c72dcb4",
+    "seed": 20260820
+  },
+  "recovery_id": "ct-sliding-window-synthetic",
+  "schema_version": "slac.continuous_time_sliding_window/v0.1",
+  "seed": 20260820,
+  "sliding_fit_status": "converged",
+  "sliding_holdout_rmse_m": 0.021540923254411943,
+  "train_measurement_count": 63,
+  "window_count": 2
+}
