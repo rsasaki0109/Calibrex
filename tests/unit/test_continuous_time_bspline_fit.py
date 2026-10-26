@@ -334,7 +334,7 @@ def test_final_model_must_confirm_stationarity(monkeypatch: pytest.MonkeyPatch) 
     planes, gyro, accel = _measurements(path, np.random.default_rng(5))
     # A backend's iterative model can disagree with the final complete model.
     norms = iter([0., 1.])
-    monkeypatch.setattr(module, "normalized_gradient_norm", lambda *_: next(norms))
+    monkeypatch.setattr(module, "normalized_gradient_norm", lambda *_: next(norms, 1.))
     result = fit_bspline_lidar_imu(BSplineLidarImuProblem(path, planes, gyro, accel, TRUTH))
     assert result.status == "stalled"
     assert result.diagnostics is not None and not result.diagnostics.stationary

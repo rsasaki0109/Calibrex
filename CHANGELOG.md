@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Audit B-spline final stationarity with both feasible one-sided clock gradients
+  at exact internal IMU knot ties. Central-difference cancellation no longer
+  certifies convergence; report `stationarity_not_confirmed` when necessary.
+  Retain the existing optimization steps and covariance calculation.
+
 - Guard B-spline clock estimation with the common gyro/accelerometer time
   domain. Reject infeasible coupled updates before constructing candidates,
   retry with higher damping, and use inward finite differences at boundaries.

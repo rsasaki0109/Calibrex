@@ -346,10 +346,12 @@ def _fit_bspline_lidar_imu(
 
     def linearize(
         path: CubicBSplineTrajectory, values: LidarImuCalibration, *, imu_only: bool = False,
+        clock_direction: Literal[-1, 1] | None = None,
     ) -> tuple[csc_matrix, FloatArray]:
         selected = {k: v for k, v in families.items() if k != "plane"} if imu_only else families
         jacobian, residuals = _linearize(
             path, values, selected, estimate, cache=cache, plane_evaluator=plane_evaluator,
+            clock_direction=clock_direction,
         )
         if prior_magnitude is None:
             return jacobian, residuals
@@ -436,12 +438,45 @@ def _fit_bspline_lidar_imu(
                            else "small_step")
             break
 
-    jacobian, residuals = linearize(trajectory, calibration)
+    # Acceleration is continuous at cubic spline knots, but its clock derivative
+    # need not be. A central column can cancel opposing one-sided derivatives.
+    internal_knots = trajectory.start_time_sec + trajectory.knot_spacing_sec * np.arange(
+        1, trajectory.control_point_count - 3,
+    )
+    at_clock_knot = clock_domain is not None and any(
+        np.any(np.isin(family.body_times(calibration), internal_knots))
+        for family in families.values() if family.on_imu_clock
+    )
+    primary_direction: Literal[-1, 1] | None = None
+    if at_clock_knot and clock_domain is not None:
+        primary_direction = (1 if clock_domain.difference_step(
+            calibration.imu_clock_offset_sec,
+        ) > 0 else -1)
+    covariance_jacobian, residuals = linearize(trajectory, calibration)
+    jacobian = covariance_jacobian
+    if primary_direction is not None:
+        jacobian, residuals = linearize(
+            trajectory, calibration, clock_direction=primary_direction,
+        )
     scaled_gradient = normalized_gradient_norm(
         jacobian.T @ residuals, np.asarray(jacobian.power(2).sum(axis=0)).ravel(),
         float(np.linalg.norm(residuals)),
     )
     stationary = scaled_gradient < settings.gradient_tolerance
+    opposite_gradient = None
+    if primary_direction is not None and clock_domain is not None:
+        opposite_direction: Literal[-1, 1] = -1 if primary_direction == 1 else 1
+        offset = calibration.imu_clock_offset_sec
+        if clock_domain.contains(math.nextafter(offset, math.inf * opposite_direction)):
+            other_jacobian, other_residuals = linearize(
+                trajectory, calibration, clock_direction=opposite_direction,
+            )
+            opposite_gradient = normalized_gradient_norm(
+                other_jacobian.T @ other_residuals,
+                np.asarray(other_jacobian.power(2).sum(axis=0)).ravel(),
+                float(np.linalg.norm(other_residuals)),
+            )
+            stationary = stationary and opposite_gradient < settings.gradient_tolerance
     if status == "converged" and not stationary:
         status = "stalled"
         termination = "stationarity_not_confirmed"
@@ -455,12 +490,13 @@ def _fit_bspline_lidar_imu(
             lower_sec=clock_domain.lower, upper_sec=clock_domain.upper,
             rejected_steps=rejected_clock_steps,
             derivative_step_sec=clock_domain.difference_step(calibration.imu_clock_offset_sec),
+            opposite_gradient_norm=opposite_gradient,
         ) if clock_domain is not None else None),
     )
     names = tuple(
         f"{block}[{axis}]" for block in estimate for axis in range(_BLOCK_WIDTH[block])
     )
-    covariance, variance = _marginal_covariance(jacobian, residuals, control_columns)
+    covariance, variance = _marginal_covariance(covariance_jacobian, residuals, control_columns)
     return BSplineLidarImuFitResult(
         status=status,
         diagnostics=diagnostics,
@@ -896,12 +932,14 @@ def _linearize(
     estimate: tuple[CalibrationBlock, ...],
     *, cache: _EvaluationCache | None = None,
     plane_evaluator: _PlaneEvaluator | None = None,
+    clock_direction: Literal[-1, 1] | None = None,
 ) -> tuple[csc_matrix, FloatArray]:
     clock_domain = (_clock_domain(trajectory, families)
                     if "imu_clock_offset" in estimate else None)
-    clock_step = (clock_domain.difference_step(calibration.imu_clock_offset_sec)
-                  if clock_domain is not None else _EPSILON)
-    central_clock = clock_domain is not None and all(
+    clock_step = (clock_domain.difference_step(
+        calibration.imu_clock_offset_sec, direction=clock_direction,
+    ) if clock_domain is not None else _EPSILON)
+    central_clock = clock_direction is None and clock_domain is not None and all(
         clock_domain.contains(calibration.imu_clock_offset_sec + direction * _EPSILON)
         for direction in (-1, 1)
     )

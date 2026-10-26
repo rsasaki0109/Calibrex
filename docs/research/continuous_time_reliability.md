@@ -45,8 +45,26 @@ checks; this change makes no independent accuracy or speed claim. The guard
 uses strict trajectory bounds even though the spline evaluation API tolerates
 tiny timestamp overshoots. It does not change that API or implement a projected
 optimizer. Boundary optima may therefore still be reported as stalled.
-General nonsmooth stationarity (including B-spline accelerometer knot ties)
-and marginalization audits remain open.
+At exact internal B-spline IMU knot ties, the final stopping audit now uses a
+feasible one-sided clock column and checks the opposite side when feasible.
+Both full normalized gradients must meet the existing tolerance. The primary
+gradient is recorded in `normalized_gradient_norm` and the other in
+`clock_domain.opposite_gradient_norm`; the signed primary probe is recorded in
+`derivative_step_sec`. A central-difference convergence candidate that fails
+this audit becomes `stalled` / `stationarity_not_confirmed`.
+
+A deterministic regression constructs residuals orthogonal to the complete
+central Jacobian while retaining a nonzero one-sided clock gradient, with all
+trajectory control points free. An independent objective evaluation confirms a
+small positive clock shift reduces cost. The audit rejects convergence in this
+case and preserves convergence for zero-residual data. Optimization proposals
+and covariance retain their existing central-difference calculation in the
+interior; this audit does not establish covariance validity at a nonsmooth knot.
+
+This is a conservative check: both side gradients must vanish, so even a valid
+nonsmooth minimum can be reported as stalled. Only exact floating-point knot
+ties trigger it; nearby stencils crossing a knot are not covered by this audit.
+General nonsmooth stationarity and marginalization audits remain open.
 
 ## Empirical interval follow-up
 

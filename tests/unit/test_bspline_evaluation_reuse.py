@@ -394,3 +394,56 @@ def test_initial_clock_outside_shared_domain_is_rejected(problem):
     ))
     with pytest.raises(ValueError, match="outside the shared time domain"):
         fit.fit_bspline_lidar_imu(problem)
+
+
+def test_central_clock_cancellation_at_knot_is_not_convergence(problem):
+    # Construct residuals orthogonal to the entire central Jacobian, but not to
+    # the positive one-sided clock column. Control points remain free in the fit.
+    path, calibration = problem.initial_trajectory, problem.initial_calibration
+    families = fit._families(problem.planes, problem.gyro, problem.accel)
+    estimate = ("imu_clock_offset",)
+    central, original = fit._linearize(path, calibration, families, estimate)
+    positive, _ = fit._linearize(path, calibration, families, estimate, clock_direction=1)
+    matrix = central.toarray()
+    target = positive.toarray()[:, -1]
+    residual = target - matrix @ np.linalg.lstsq(matrix, target, rcond=1e-10)[0]
+    assert np.linalg.norm(residual) > 1.
+    residual *= -1. / np.linalg.norm(residual)
+    difference = original - residual
+    count = len(problem.planes.times_sec)
+    planes = replace(problem.planes, plane_points_world_m=(
+        problem.planes.plane_points_world_m
+        + difference[:count, None] * problem.planes.sigma_m * problem.planes.plane_normals_world
+    ))
+    gyro_count = problem.gyro.values.size
+    gyro = replace(problem.gyro, values=(problem.gyro.values
+        + difference[count:count + gyro_count].reshape(-1, 3) * problem.gyro.sigma))
+    accel = replace(problem.accel, values=(problem.accel.values
+        + difference[count + gyro_count:].reshape(-1, 3) * problem.accel.sigma))
+    problem = replace(problem, planes=planes, gyro=gyro, accel=accel, estimate=estimate)
+    families = fit._families(planes, gyro, accel)
+    jacobian, actual = fit._linearize(path, calibration, families, estimate)
+    central_gradient = fit.normalized_gradient_norm(
+        jacobian.T @ actual, np.asarray(jacobian.power(2).sum(axis=0)).ravel(),
+        float(np.linalg.norm(actual)),
+    )
+    assert central_gradient < 1e-6
+    # Verify actual descent independently of the stopping diagnostics.
+    shifted = calibration.stepped("imu_clock_offset", np.array([1e-8]))
+    assert fit._cost(path, shifted, families) < fit._cost(path, calibration, families)
+    result = fit.fit_bspline_lidar_imu(problem, fit.BSplineLidarImuFitOptions(
+        gradient_tolerance=1e-6,
+    ))
+    assert result.status == "stalled"
+    assert result.diagnostics.termination_reason == "stationarity_not_confirmed"
+    assert not result.diagnostics.stationary
+    assert result.diagnostics.normalized_gradient_norm > 1e-6
+    assert result.diagnostics.clock_domain.opposite_gradient_norm > 1e-6
+
+
+def test_exact_zero_residual_at_knot_remains_stationary(problem):
+    calibration = replace(problem.initial_calibration, gyro_bias_rad_s=np.zeros(3))
+    result = fit.fit_bspline_lidar_imu(replace(problem, initial_calibration=calibration))
+    assert result.status == "converged"
+    assert result.diagnostics.stationary
+    assert result.diagnostics.clock_domain.opposite_gradient_norm is not None
