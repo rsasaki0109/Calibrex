@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Prevent repeated point-to-plane observations in sliding-window marginalization:
+  an incoming prior replaces all rows through the preceding window endpoint,
+  including that endpoint. Admit only later rows when the prior is used, while
+  preserving raw overlap observations in no-prior controls. Validate advancing
+  windows before fitting and allow prior-only trajectory problems.
+
 - Preserve cross-knot curvature and retained gradients with joint anchored
   marginalization priors. Use the complete Schur prior in sliding-window fits
   and include its coupled columns in both normal-equation builders and candidate

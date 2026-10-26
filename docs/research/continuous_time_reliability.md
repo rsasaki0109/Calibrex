@@ -105,11 +105,26 @@ invalid information, and gradients outside the information range are rejected.
 These results establish preservation of the local quadratic at its anchors,
 not global nonlinear equivalence.
 
-Overlapping-factor reuse, gauge handling, and subsequent nonlinear
-relinearization remain open audit items. In particular, retaining the full
-Schur matrix does not prevent a later window from counting an already
-summarized overlapping measurement again. This change does not establish batch
-equivalence for the full sliding-window pipeline.
+The next follow-up removes overlapping point-to-plane factor reuse. Each
+outgoing Schur prior contains every raw row admitted through the window's final
+timestamp, including observations exactly at that endpoint. If the next window
+uses that prior, it admits only rows strictly later than the summarized endpoint.
+This assigns observations by timestamp rather than measurement ID, so distinct
+rows sharing an ID remain distinct. The current implementation summarizes the
+entire fitted window; it does not retain old raw factors for relinearization.
+
+When the prior is deliberately omitted, raw overlap observations remain available
+and a local gauge is added. Invalid nonadvancing windows fail before any fit.
+Trajectory problems with only prior factors are also accepted; this does not
+guarantee that new, unobserved knots are observable.
+
+Tests track all input occurrences over three windows, cover exact endpoints and
+their next representable timestamps, and verify no-prior controls. At fixed
+linearization anchors, the final sequential normal equations agree with Schur
+elimination from all original observations plus the same initial gauge. Existing
+synthetic holdout and known-bad checks remain in place. Gauge handling and
+subsequent nonlinear relinearization still need auditing: this local quadratic
+identity does not establish nonlinear batch equivalence for the full pipeline.
 
 ## Empirical interval follow-up
 

@@ -110,3 +110,110 @@ def test_cli_recover_sliding_window(tmp_path: Path) -> None:
     )
     assert exit_code == 0
     assert validate_file(output).valid
+
+
+@pytest.mark.parametrize("apply_prior", [True, False])
+def test_overlapping_observations_have_one_owner_when_summarized(monkeypatch, apply_prior):
+    from dataclasses import replace
+
+    from calibrex.core import continuous_time_sliding_window_fit as module
+    from calibrex.evaluation.continuous_time_lidar_point_to_plane import (
+        _measurements,
+        _truth_knots,
+    )
+
+    timestamps = tuple(float(i) for i in range(8))
+    truth = _truth_knots(timestamps)
+    rng = np.random.default_rng(43)
+    samples = [(float(t), int(i % 3)) for i, t in enumerate(np.linspace(0., 7., 281))]
+    measurements = _measurements(truth, timestamps, samples, rng, prefix="accounting")
+    # Distinct rows may share identifiers: accounting must retain both occurrences.
+    measurements = tuple(replace(m, measurement_id="shared-id") for m in measurements)
+    problem = ContinuousTimeTrajectoryFitProblem(
+        knot_timestamps=timestamps, initial_knot_poses=truth,
+        point_to_plane_measurements=measurements,
+    )
+    captured = []
+    original = module.fit_continuous_trajectory
+
+    def fit(window, options):
+        captured.append(window)
+        return original(window, options)
+
+    monkeypatch.setattr(module, "fit_continuous_trajectory", fit)
+    module.fit_sliding_window_trajectory(
+        problem, window_knot_counts=(4, 4, 4), overlap_knot_count=2,
+        apply_marginalization=apply_prior,
+        # Stop before updates to compare all quadratics at identical anchors.
+        options=ContinuousTimeTrajectoryFitOptions(max_iterations=1,
+                                                   convergence_gradient_norm=1e10),
+    )
+    windows = captured[1:]  # The first call is the separate batch reference.
+    occurrences = [id(m) for window in windows for m in window.point_to_plane_measurements]
+    if not apply_prior:
+        assert len(occurrences) > len(measurements)
+        assert all(not window.joint_knot_marginalization_priors for window in windows)
+        return
+    assert sorted(occurrences) == sorted(id(m) for m in measurements)
+    assert len(windows[1].joint_knot_marginalization_priors) == 1
+    assert min(m.timestamp_sec for m in windows[1].point_to_plane_measurements) > 3.
+    assert min(m.timestamp_sec for m in windows[2].point_to_plane_measurements) > 5.
+    # With fixed linearization anchors, repeated transfer must equal eliminating
+    # the same prefix from all original rows plus the one initial gauge.
+    reference = replace(problem, pose_measurements=windows[0].pose_measurements)
+    full_h, full_g = build_dense_knot_normal_equations(reference, list(truth))
+    expected_h, expected_g = marginalize_knot_prefix(full_h, full_g, eliminated_knot_count=4)
+    actual_h, actual_g = build_dense_knot_normal_equations(windows[-1], list(truth[4:]))
+    np.testing.assert_allclose(actual_h, expected_h, rtol=1e-6, atol=1e-5)
+    np.testing.assert_allclose(actual_g, expected_g, rtol=1e-6, atol=1e-7)
+
+
+def test_window_selector_keeps_new_row_just_after_summarized_endpoint():
+    from calibrex.core.continuous_time_sliding_window_fit import (
+        _window_point_to_plane_measurements,
+    )
+    from calibrex.core.continuous_time_sparse import TrajectoryPointToPlaneMeasurement
+
+    times = (3., float(np.nextafter(3., np.inf)), 4.)
+    rows = tuple(TrajectoryPointToPlaneMeasurement(
+        "same-id", t, (0., 0., 0.), (0., 0., 0.), (0., 0., 1.),
+    ) for t in times)
+    selected = _window_point_to_plane_measurements(
+        rows, (0., 1., 2., 3., 4.), 2., 4., summarized_through=3.,
+    )
+    assert selected == rows[1:]
+
+
+def test_nonadvancing_windows_fail_before_fitting(monkeypatch):
+    from calibrex.core import continuous_time_sliding_window_fit as module
+    from calibrex.core.continuous_time_sparse import TrajectoryPoseMeasurement
+    from calibrex.core.geometry import SE3
+
+    problem = ContinuousTimeTrajectoryFitProblem(
+        knot_timestamps=(0., 1., 2.), initial_knot_poses=(SE3.identity(),) * 3,
+        pose_measurements=(TrajectoryPoseMeasurement("anchor", 0., SE3.identity()),),
+    )
+    def forbidden(*args):
+        pytest.fail("invalid window layout must fail before any fit")
+    monkeypatch.setattr(module, "fit_continuous_trajectory", forbidden)
+    with pytest.raises(ValueError, match="extend beyond"):
+        module.fit_sliding_window_trajectory(problem, window_knot_counts=(2, 3),
+                                             overlap_knot_count=2)
+
+
+def test_prior_only_problem_remains_valid_after_raw_rows_are_summarized():
+    from calibrex.core.continuous_time_marginalization import JointKnotMarginalizationPrior
+    from calibrex.core.continuous_time_sparse import fit_continuous_trajectory
+    from calibrex.core.geometry import SE3
+
+    anchor = SE3.identity()
+    gradient = np.array([.1, -.2, .3, 0., 0., 0.] * 2)
+    prior = JointKnotMarginalizationPrior((0, 1), (anchor, anchor), np.eye(12), gradient)
+    problem = ContinuousTimeTrajectoryFitProblem(
+        knot_timestamps=(0., 1.), initial_knot_poses=(anchor, anchor),
+        joint_knot_marginalization_priors=(prior,),
+    )
+    result = fit_continuous_trajectory(problem)
+    assert result.status == "converged"
+    for knot in result.knot_poses:
+        np.testing.assert_allclose(knot.translation_m, -gradient[:3], atol=1e-7)

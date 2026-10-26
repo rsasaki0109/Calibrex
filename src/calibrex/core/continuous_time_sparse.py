@@ -364,6 +364,8 @@ class ContinuousTimeTrajectoryFitProblem:
             and not self.pose_measurements
             and not self.imu_preintegration_measurements
             and not self.imu_lever_arm_measurements
+            and not self.knot_marginalization_priors
+            and not self.joint_knot_marginalization_priors
         ):
             raise ValueError("trajectory fit requires at least one measurement")
         if not all(math.isfinite(value) for value in self.initial_gyro_bias_rad_s):

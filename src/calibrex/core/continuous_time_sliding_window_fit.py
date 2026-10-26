@@ -53,6 +53,8 @@ def fit_sliding_window_trajectory(
         raise ValueError("sliding-window fit requires at least two windows")
     if overlap_knot_count < 1:
         raise ValueError("overlap knot count must be at least one")
+    if any(size <= overlap_knot_count for size in window_knot_counts):
+        raise ValueError("every window must extend beyond the overlap")
     knot_count = len(problem.knot_timestamps)
     expected = sum(window_knot_counts) - overlap_knot_count * (
         len(window_knot_counts) - 1
@@ -66,6 +68,7 @@ def fit_sliding_window_trajectory(
     sliding_iterations = 0
     priors: tuple[JointKnotMarginalizationPrior, ...] = ()
     start_index = 0
+    summarized_through: float | None = None
     for window_index, window_size in enumerate(window_knot_counts):
         end_index = start_index + window_size
         window_timestamps = problem.knot_timestamps[start_index:end_index]
@@ -76,30 +79,28 @@ def fit_sliding_window_trajectory(
                 overlap_knot_count,
                 bad_overlap_translation_m,
             )
+        use_priors = bool(priors) and apply_marginalization and bad_overlap_translation_m is None
         window_poses = _window_pose_gauges(
             window_initial,
             window_timestamps,
             start_index,
             overlap_knot_count=overlap_knot_count,
             is_first_window=window_index == 0,
-            has_marginalization_priors=bool(priors) and apply_marginalization,
+            has_marginalization_priors=use_priors,
         )
         window_measurements = _window_point_to_plane_measurements(
             problem.point_to_plane_measurements,
             problem.knot_timestamps,
             window_timestamps[0],
             window_timestamps[-1],
+            summarized_through=summarized_through if use_priors else None,
         )
         window_problem = ContinuousTimeTrajectoryFitProblem(
             knot_timestamps=window_timestamps,
             initial_knot_poses=window_initial,
             point_to_plane_measurements=window_measurements,
             pose_measurements=window_poses,
-            joint_knot_marginalization_priors=(
-                priors
-                if apply_marginalization and bad_overlap_translation_m is None
-                else ()
-            ),
+            joint_knot_marginalization_priors=priors if use_priors else (),
         )
         window_result = fit_continuous_trajectory(window_problem, settings)
         sliding_knots[start_index:end_index] = list(window_result.knot_poses)
@@ -131,6 +132,7 @@ def fit_sliding_window_trajectory(
                 information=0.5 * (marginalized + marginalized.T),
                 gradient=marginal_gradient,
             ),)
+            summarized_through = window_timestamps[-1]
             if corrupt_marginalization_translation_m is not None:
                 priors = _corrupt_priors(priors, corrupt_marginalization_translation_m)
         start_index += window_size - overlap_knot_count
@@ -202,9 +204,14 @@ def _window_point_to_plane_measurements(
     full_timestamps: tuple[float, ...],
     window_start: float,
     window_end: float,
+    *, summarized_through: float | None = None,
 ) -> tuple[TrajectoryPointToPlaneMeasurement, ...]:
     selected: list[TrajectoryPointToPlaneMeasurement] = []
     for measurement in measurements:
+        # The incoming Schur prior contains every previously admitted row,
+        # including observations exactly on the previous window's endpoint.
+        if summarized_through is not None and measurement.timestamp_sec <= summarized_through:
+            continue
         if measurement.timestamp_sec < window_start or measurement.timestamp_sec > window_end:
             continue
         if _interval_index(full_timestamps, measurement.timestamp_sec) is None:
