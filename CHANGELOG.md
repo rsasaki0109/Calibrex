@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Exclude rows unrelated to eliminated variables and exactly absent columns from
+  residual-space rank decisions. Prevent zero-row padding from manufacturing
+  retained information while preserving unrelated observations and constant
+  costs. Generator 0.11 records total and involved residual row counts.
+
 - Replace the full residual-space SVD basis with thin SVD and implicit
   Householder projection during square-root marginalization. Avoid quadratic
   storage in residual rows at fixed column counts, preserving the rank rule

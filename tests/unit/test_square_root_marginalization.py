@@ -110,3 +110,42 @@ def test_implicit_projection_matches_full_basis_quadratic(rows, eliminated, coup
         assert np.linalg.norm(result.jacobian @ x + result.residual)**2 == pytest.approx(
             np.linalg.norm(reference_j @ x + reference_r)**2, rel=1e-12, abs=1e-12,
         )
+
+
+def test_unrelated_rows_and_absent_columns_cannot_change_elimination_rank():
+    j = np.array([[1., 1., 0.], [0., 1e-12, 1.]])
+    reference = marginalize_residual_prefix(j, np.zeros(2), 2)
+    assert reference.numerical_rank == 2
+    for absent_columns in (0, 100):
+        extended = np.column_stack((j[:, :2], np.zeros((2, absent_columns)), j[:, 2:]))
+        padded = np.vstack((extended, np.zeros((100, extended.shape[1]))))
+        # These rows constrain only the retained variable or contribute constants.
+        padded[2, -1] = 3.
+        r = np.zeros(len(padded))
+        r[2:4] = [2., 5.]
+        actual = marginalize_residual_prefix(padded, r, 2 + absent_columns)
+        assert actual.numerical_rank == reference.numerical_rank
+        assert actual.singular_value_threshold == reference.singular_value_threshold
+        assert actual.zero_information_dimension == absent_columns
+        assert actual.evidence().residual_row_count == 102
+        assert actual.evidence().elimination_row_count == 2
+        for x in (-2., 0., 1.):
+            assert np.linalg.norm(actual.jacobian[:, 0] * x + actual.residual)**2 == pytest.approx(
+                (3. * x + 2.)**2 + 25.,
+            )
+
+
+def test_row_permutations_preserve_profiled_cost_and_rank_with_unrelated_rows():
+    rng = np.random.default_rng(79)
+    j = rng.normal(size=(20, 5))
+    j[::2, :3] = 0.
+    r = rng.normal(size=20)
+    expected = marginalize_residual_prefix(j, r, 3)
+    order = rng.permutation(20)
+    actual = marginalize_residual_prefix(j[order], r[order], 3)
+    assert actual.numerical_rank == expected.numerical_rank
+    assert actual.elimination_row_count == expected.elimination_row_count == 10
+    for x in rng.normal(size=(5, 2)):
+        assert np.linalg.norm(actual.jacobian @ x + actual.residual)**2 == pytest.approx(
+            np.linalg.norm(expected.jacobian @ x + expected.residual)**2, rel=1e-12,
+        )

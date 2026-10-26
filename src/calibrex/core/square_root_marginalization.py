@@ -21,6 +21,8 @@ class SquareRootEliminationEvidence(StrictModel):
     singular_value_threshold: float = Field(ge=0, allow_inf_nan=False)
     retained_rows_before_compression: int | None = Field(default=None, ge=0)
     retained_rows_after_compression: int | None = Field(default=None, ge=0)
+    residual_row_count: int | None = Field(default=None, ge=0)
+    elimination_row_count: int | None = Field(default=None, ge=0)
 
 
 @dataclass(frozen=True)
@@ -37,6 +39,8 @@ class SquareRootMarginalizationResult:
     numerical_rank: int
     zero_information_dimension: int
     singular_value_threshold: float
+    residual_row_count: int | None = None
+    elimination_row_count: int | None = None
 
     def evidence(self) -> SquareRootEliminationEvidence:
         """Return schema-valid numerical rank evidence without factor arrays."""
@@ -44,6 +48,8 @@ class SquareRootMarginalizationResult:
             eliminated_dimension=self.eliminated_dimension, numerical_rank=self.numerical_rank,
             zero_information_dimension=self.zero_information_dimension,
             singular_value_threshold=self.singular_value_threshold,
+            residual_row_count=self.residual_row_count,
+            elimination_row_count=self.elimination_row_count,
         )
 
 
@@ -58,6 +64,8 @@ def marginalize_residual_prefix(
     retained columns and residuals. No normal matrix, damping, eigenvalue floor,
     or subtraction of two information matrices is used. Independent nonzero
     eliminated columns are normalized before the numerical rank decision.
+    Exactly absent eliminated columns and rows unrelated to eliminated variables
+    do not enter the rank decision; unrelated rows retain their original costs.
 
     A thin SVD and implicit Householder transformations avoid constructing a
     square residual-space basis. Storage is linear in rows for fixed columns.
@@ -79,25 +87,29 @@ def marginalize_residual_prefix(
     rank = 0
     threshold = 0.
     active = np.zeros(eliminated_dim, dtype=bool)
+    involved = np.any(eliminated != 0., axis=1)
     if rows and eliminated_dim:
         # Normalize in two stages to avoid overflow in squaring large entries
         # and underflow in squaring subnormal, but independent, columns.
         maxima = np.max(np.abs(eliminated), axis=0)
         active = maxima > 0.
         if np.any(active):
-            normalized = eliminated[:, active] / maxima[active]
+            normalized = eliminated[np.ix_(involved, active)] / maxima[active]
             normalized /= np.linalg.norm(normalized, axis=0)
             left, singular_values, _ = np.linalg.svd(normalized, full_matrices=False)
             threshold = (
-                60. * float(np.finfo(float).eps) * max(rows, eliminated_dim)
+                60. * float(np.finfo(float).eps) * max(normalized.shape)
                 * float(singular_values[0])
             )
             rank = int(np.count_nonzero(singular_values > threshold))
             if rank:
                 transformed = _complement_rows(
-                    left[:, :rank], np.column_stack((retained, rhs)),
+                    left[:, :rank], np.column_stack((retained[involved], rhs[involved])),
                 )
-                retained, rhs = transformed[:, :-1], transformed[:, -1]
+                # Unrelated rows are already in the complement. Preserve their
+                # retained observations and constant costs without projection.
+                retained = np.vstack((transformed[:, :-1], retained[~involved]))
+                rhs = np.concatenate((transformed[:, -1], rhs[~involved]))
     if not np.all(np.isfinite(retained)) or not np.all(np.isfinite(rhs)):
         raise ValueError("marginalized residual equations must be finite")
     return SquareRootMarginalizationResult(
@@ -105,6 +117,8 @@ def marginalize_residual_prefix(
         eliminated_dimension=int(eliminated_dim), numerical_rank=rank,
         zero_information_dimension=int(np.count_nonzero(~active)),
         singular_value_threshold=threshold,
+        residual_row_count=rows,
+        elimination_row_count=int(np.count_nonzero(involved)),
     )
 
 

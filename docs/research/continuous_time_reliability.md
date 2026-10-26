@@ -359,8 +359,11 @@ singular vectors. Raw QR stores their Householder reflectors, and LAPACK ORMQR
 applies the transpose orthogonal transform to retained columns and residuals.
 Rows after the observed rank form the retained factor; no square residual-space
 basis or explicit projection subtraction is constructed.
-The singular-value rank threshold is `60 * machine_epsilon * max(rows, n) *
-largest_singular_value`. The result records this threshold, numerical rank and
+The singular-value rank threshold is `60 * machine_epsilon *
+max(involved_rows, nonzero_eliminated_columns) * largest_singular_value`.
+Only rows with at least one exactly nonzero eliminated coefficient enter this
+decision; exactly absent eliminated columns are also excluded. The result records
+the total and involved row counts, this threshold, numerical rank and
 the number of exactly absent eliminated columns. Below-threshold singular
 directions are treated as null; this is a numerical rank approximation, not
 an exact symbolic guarantee, and differs from thresholding normal eigenvalues.
@@ -438,6 +441,19 @@ For `m` rows, `e` eliminated columns and `r` retained columns, storage is
 `O(m(e+r+1))`, avoiding the former `m` by `m` left singular-vector matrix when
 rows greatly exceed columns. This is a storage-complexity improvement, not a
 claim of end-to-end trajectory speedup or improved accuracy.
+
+Generator 0.11 excludes unrelated rows and absent columns from the rank decision
+and its dimension-dependent tolerance. Previously, adding 100 all-zero rows to
+`J=[[1,1,0],[0,1e-12,1]]`, eliminating its first two columns, changed numerical
+rank from two to one and manufactured unit retained information. The new method
+decomposes only the involved submatrix and appends unrelated retained observations
+and constant residuals unchanged. It never thresholds small nonzero coefficients
+to decide row involvement. Regression tests include unrelated measurements,
+constant costs, absent eliminated columns and row permutations. Evidence adds
+optional `residual_row_count` and `elimination_row_count` fields; the existing
+zero-information count identifies excluded columns. This fixes invariance to
+exactly unrelated padding, not sensitivity to all possible numerical scalings
+or transformations of a nearly singular system.
 
 The trajectory optimizer still forms normal equations for its own updates and
 diagnostics. Thus this change protects factor transfer at window boundaries,

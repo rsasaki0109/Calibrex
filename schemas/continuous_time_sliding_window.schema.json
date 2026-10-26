@@ -317,10 +317,36 @@
           "title": "Eliminated Dimension",
           "type": "integer"
         },
+        "elimination_row_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Elimination Row Count"
+        },
         "numerical_rank": {
           "minimum": 0,
           "title": "Numerical Rank",
           "type": "integer"
+        },
+        "residual_row_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Residual Row Count"
         },
         "retained_rows_after_compression": {
           "anyOf": [
