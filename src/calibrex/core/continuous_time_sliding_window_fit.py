@@ -134,6 +134,7 @@ def fit_sliding_window_trajectory(
         indices = tuple(range(start_index, end_index))
         window_observability.append(WindowObservabilityEvidence(
             window_index=window_index, global_knot_indices=list(indices),
+            projected_steps=list(window_result.projected_step_diagnostics),
             frozen_parameters=[
                 f"knot[{start_index + index // 6}]."
                 f"{('tx', 'ty', 'tz', 'rx', 'ry', 'rz')[index % 6]}"
@@ -219,6 +220,9 @@ def fit_sliding_window_trajectory(
         gradient_norm=float(np.linalg.norm(gradient, ord=np.inf)),
         nonzero_jacobian_blocks=block_count,
         frozen_parameter_indices=tuple(sorted(frozen_global_parameters)),
+        projected_step_diagnostics=tuple(
+            step for result in window_results for step in result.projected_step_diagnostics
+        ),
         diagnostics=FitDiagnostics(
             termination_reason=termination, normalized_gradient_norm=scaled_gradient,
             gradient_tolerance=settings.convergence_gradient_norm, stationary=stationary,

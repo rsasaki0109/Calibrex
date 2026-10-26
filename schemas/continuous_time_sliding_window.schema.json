@@ -210,6 +210,52 @@
       "title": "KnotInformationEvidence",
       "type": "object"
     },
+    "ProjectedStepEvidence": {
+      "additionalProperties": false,
+      "description": "Rank selection at one attempted linear update, before candidate acceptance.",
+      "properties": {
+        "eigenvalue_threshold": {
+          "minimum": 0,
+          "title": "Eigenvalue Threshold",
+          "type": "number"
+        },
+        "numerical_rank": {
+          "minimum": 0,
+          "title": "Numerical Rank",
+          "type": "integer"
+        },
+        "parameter_count": {
+          "minimum": 1,
+          "title": "Parameter Count",
+          "type": "integer"
+        },
+        "relative_null_gradient": {
+          "minimum": 0,
+          "title": "Relative Null Gradient",
+          "type": "number"
+        },
+        "relative_tolerance": {
+          "exclusiveMinimum": 0,
+          "title": "Relative Tolerance",
+          "type": "number"
+        },
+        "zero_information_count": {
+          "minimum": 0,
+          "title": "Zero Information Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "parameter_count",
+        "numerical_rank",
+        "zero_information_count",
+        "eigenvalue_threshold",
+        "relative_tolerance",
+        "relative_null_gradient"
+      ],
+      "title": "ProjectedStepEvidence",
+      "type": "object"
+    },
     "SchurEliminationEvidence": {
       "additionalProperties": false,
       "description": "Numerical elimination rank and range checks in diagonally scaled coordinates.",
@@ -293,6 +339,13 @@
         },
         "measurements": {
           "$ref": "#/$defs/KnotInformationEvidence"
+        },
+        "projected_steps": {
+          "items": {
+            "$ref": "#/$defs/ProjectedStepEvidence"
+          },
+          "title": "Projected Steps",
+          "type": "array"
         },
         "window_index": {
           "minimum": 0,
@@ -385,6 +438,11 @@
       ],
       "title": "Policy Status",
       "type": "string"
+    },
+    "project_observable_subspace": {
+      "default": false,
+      "title": "Project Observable Subspace",
+      "type": "boolean"
     },
     "provenance": {
       "$ref": "#/$defs/ContinuousTimeSlidingWindowProvenance"

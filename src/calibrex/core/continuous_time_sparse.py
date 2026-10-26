@@ -67,6 +67,7 @@ from calibrex.core.fit_diagnostics import (
     normalized_step_norm,
 )
 from calibrex.core.geometry import SE3
+from calibrex.core.observable_step import ProjectedStepEvidence, observable_subspace_step
 from calibrex.core.se3_manifold import (
     _cross3,
     _rotation_log,
@@ -420,6 +421,7 @@ class ContinuousTimeTrajectoryFitOptions:
     convergence_step_norm: float = 1.0e-9
     damping_scale_down: float = 0.5
     damping_scale_up: float = 10.0
+    project_observable_subspace: bool = False
 
     def __post_init__(self) -> None:
         if self.max_iterations < 1:
@@ -470,6 +472,7 @@ class ContinuousTimeTrajectoryFitResult:
     residual_variance: float | None = None
     diagnostics: FitDiagnostics | None = None
     frozen_parameter_indices: tuple[int, ...] = ()
+    projected_step_diagnostics: tuple[ProjectedStepEvidence, ...] = ()
 
 
 _ANCHOR_POINTS: tuple[tuple[float, float, float], ...] = (
@@ -974,6 +977,7 @@ def fit_continuous_trajectory(
         )
         return blocks, residual_array, weight_array, jacobian
 
+    projected_step_diagnostics: list[ProjectedStepEvidence] = []
     frozen_parameter_indices: set[int] = set()
     linearization_is_current = False
     for iteration in range(settings.max_iterations):
@@ -1009,7 +1013,12 @@ def fit_continuous_trajectory(
             normal, knot_count, parameter_count
         )
         try:
-            if np.all(active_columns):
+            if settings.project_observable_subspace:
+                delta, projection = observable_subspace_step(
+                    normal.toarray(), rhs, damping_matrix.toarray(),
+                )
+                projected_step_diagnostics.append(projection)
+            elif np.all(active_columns):
                 delta = spsolve(damping_matrix.tocsc(), -rhs)
             else:
                 # Exactly zero weighted Jacobian columns carry no information.
@@ -1312,6 +1321,7 @@ def fit_continuous_trajectory(
         gradient_norm=gradient_norm,
         nonzero_jacobian_blocks=len(blocks),
         frozen_parameter_indices=tuple(sorted(frozen_parameter_indices)),
+        projected_step_diagnostics=tuple(projected_step_diagnostics),
         imu_rotation_vector_rad=(
             (
                 float(imu_rotation_vector[0]),

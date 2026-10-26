@@ -320,6 +320,44 @@ than silently dropped. Weak independent coordinate information survives diagonal
 scaling. Nonlinear relinearization, optimization of coupled null modes, and
 interpretation of globally unobservable estimates remain open.
 
+## Opt-in updates in the observable subspace
+
+Set `ContinuousTimeTrajectoryFitOptions(project_observable_subspace=True)` to
+restrict native sparse updates to the measured numerical eigenspace. The synthetic
+CLI exposes `calibrex trajectory recover-sliding-window --output result.json
+--project-observable-subspace` and records the flag in provenance. The default
+remains the existing solve. The optional mode forms a dense diagonally scaled
+normal matrix, selects eigenvalues above `60 * machine_epsilon * parameter_count
+* max(1, max(abs(eigenvalues)))`, and checks the gradient against the numerical
+nullspace with relative tolerance `60 * machine_epsilon * parameter_count`.
+A material nullspace gradient raises an error rather than being silently dropped.
+
+The existing damping matrix is projected into the observed subspace. Its solve
+therefore cannot create a step in a local null direction, even if unequal damping
+would couple those directions in the unrestricted solve. Full-rank models retain
+the direct damped solve, and exactly zero-information coordinates receive zero
+increments. No observation or prior is added. The active eigenspace is recomputed
+at each iteration; the objective acceptance and stationarity checks are unchanged.
+
+`projected_step_diagnostics` records rank selection for each attempted update,
+including candidates that may subsequently be rejected. Sliding artifacts expose
+these records under each window's `projected_steps`. Generator 0.7 accepts the
+same opt-in mode and records it explicitly; old reports remain readable. Tests
+verify absence of null-direction motion, descent, coordinate-unit covariance
+when both the normal and damping matrices are transformed consistently,
+full-rank equivalence, inconsistent-gradient rejection, and a midpoint-only
+coupled-gauge trajectory across two windows. Default fits produce no projected
+step records.
+
+This is an experimental local solver mode with dense decomposition cost, not a
+runtime improvement or a global gauge-fixing method. Orthogonality is defined in
+the diagonally scaled tangent coordinates. The existing block damping convention
+is retained; this is not a claim of full-solver invariance to arbitrary units.
+Changing linearization points can
+change the local nullspace; nonlinear drift and global observability still need
+separate assessment. Small positive modes below the numerical threshold may be
+excluded only when the gradient passes the recorded range check.
+
 ## Empirical interval follow-up
 
 [Independent-recording error intervals](empirical_intervals.md) adds frozen

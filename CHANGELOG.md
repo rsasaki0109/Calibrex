@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add opt-in `project_observable_subspace` updates to the native sparse fitter.
+  Solve the damped model only within the diagonally scaled observed eigenspace;
+  reject a material gradient in numerical null directions. Record each attempted
+  projected step's rank, threshold and range check in window evidence. The
+  default solver is unchanged; synthetic generator 0.7 records the selected mode.
+
 - Support coupled numerical nullspaces in Schur elimination with diagonally
   scaled rank and range checks. Reject retained coupling or gradients outside
   the eliminated information range instead of silently projecting them away.

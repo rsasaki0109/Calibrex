@@ -37,6 +37,7 @@ def run_synthetic_sliding_window_recovery(
     seed: int = _SYNTHETIC_SEED,
     command: list[str] | None = None,
     recovery_id: str = "ct-sliding-window-synthetic",
+    project_observable_subspace: bool = False,
 ) -> ContinuousTimeSlidingWindowArtifact:
     """Recover a knot path with sliding-window marginalization and controls."""
 
@@ -66,7 +67,9 @@ def run_synthetic_sliding_window_recovery(
         initial_knot_poses=initial,
         point_to_plane_measurements=train,
     )
-    options = ContinuousTimeTrajectoryFitOptions(max_iterations=80)
+    options = ContinuousTimeTrajectoryFitOptions(
+        max_iterations=80, project_observable_subspace=project_observable_subspace,
+    )
     sliding = fit_sliding_window_trajectory(
         problem,
         window_knot_counts=_WINDOW_KNOT_COUNTS,
@@ -111,6 +114,7 @@ def run_synthetic_sliding_window_recovery(
     )
     return ContinuousTimeSlidingWindowArtifact(
         recovery_id=recovery_id,
+        project_observable_subspace=project_observable_subspace,
         interpolation="screw_linear",
         seed=seed,
         knot_count=len(truth),
@@ -134,7 +138,7 @@ def run_synthetic_sliding_window_recovery(
         policy_reason=policy_reason,
         provenance=ContinuousTimeSlidingWindowProvenance(
             generator=__name__,
-            generator_version="0.6",
+            generator_version="0.7",
             git_commit=git_commit(),
             command=command or [],
             seed=seed,
