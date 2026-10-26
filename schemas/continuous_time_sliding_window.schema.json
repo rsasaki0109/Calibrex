@@ -144,6 +144,103 @@
       ],
       "title": "FitDiagnostics",
       "type": "object"
+    },
+    "KnotInformationEvidence": {
+      "additionalProperties": false,
+      "description": "Numerical rank at a fixed linearization, not a global observability proof.",
+      "properties": {
+        "eigenvalue_threshold": {
+          "minimum": 0,
+          "title": "Eigenvalue Threshold",
+          "type": "number"
+        },
+        "nullspace_participation": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Nullspace Participation",
+          "type": "object"
+        },
+        "numerical_nullity": {
+          "minimum": 0,
+          "title": "Numerical Nullity",
+          "type": "integer"
+        },
+        "numerical_rank": {
+          "minimum": 0,
+          "title": "Numerical Rank",
+          "type": "integer"
+        },
+        "parameter_count": {
+          "minimum": 1,
+          "title": "Parameter Count",
+          "type": "integer"
+        },
+        "relative_eigenvalue_tolerance": {
+          "exclusiveMaximum": 1,
+          "exclusiveMinimum": 0,
+          "title": "Relative Eigenvalue Tolerance",
+          "type": "number"
+        },
+        "scaled_eigenvalues": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Scaled Eigenvalues",
+          "type": "array"
+        },
+        "zero_information_parameters": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Zero Information Parameters",
+          "type": "array"
+        }
+      },
+      "required": [
+        "parameter_count",
+        "numerical_rank",
+        "numerical_nullity",
+        "relative_eigenvalue_tolerance",
+        "eigenvalue_threshold",
+        "scaled_eigenvalues",
+        "zero_information_parameters",
+        "nullspace_participation"
+      ],
+      "title": "KnotInformationEvidence",
+      "type": "object"
+    },
+    "WindowObservabilityEvidence": {
+      "additionalProperties": false,
+      "description": "Separate measurement information from information inherited through priors.",
+      "properties": {
+        "global_knot_indices": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Global Knot Indices",
+          "type": "array"
+        },
+        "measurements": {
+          "$ref": "#/$defs/KnotInformationEvidence"
+        },
+        "window_index": {
+          "minimum": 0,
+          "title": "Window Index",
+          "type": "integer"
+        },
+        "with_marginal_prior": {
+          "$ref": "#/$defs/KnotInformationEvidence"
+        }
+      },
+      "required": [
+        "window_index",
+        "global_knot_indices",
+        "measurements",
+        "with_marginal_prior"
+      ],
+      "title": "WindowObservabilityEvidence",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -283,6 +380,13 @@
         "type": "string"
       },
       "title": "Window Fit Statuses",
+      "type": "array"
+    },
+    "window_observability": {
+      "items": {
+        "$ref": "#/$defs/WindowObservabilityEvidence"
+      },
+      "title": "Window Observability",
       "type": "array"
     }
   },

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add per-window local information diagnostics, separately for observations and
+  observations plus inherited marginal priors. Record scaled spectra, numerical
+  rank/nullity, exact zero-information coordinates, and coupled-nullspace
+  participation with global knot indices. Generator 0.4 exposes the synthetic
+  first window's unobserved terminal knot without adding artificial constraints.
+
 - Recompute sliding-trajectory costs, plane/pose errors, gradients, and final
   stationarity from its returned knots instead of copying batch diagnostics.
   Retain every window result, aggregate step maxima, and preserve earlier

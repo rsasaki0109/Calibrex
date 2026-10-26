@@ -10,6 +10,7 @@ from pydantic import Field
 
 from calibrex.core.fit_diagnostics import FitDiagnostics
 from calibrex.core.io import write_mapping
+from calibrex.core.knot_observability import WindowObservabilityEvidence
 from calibrex.core.result import StrictModel
 
 CONTINUOUS_TIME_SLIDING_WINDOW_SCHEMA_VERSION: Literal[
@@ -59,6 +60,7 @@ class ContinuousTimeSlidingWindowArtifact(StrictModel):
         Literal["converged", "max_iterations", "singular_system", "stalled"]
     ] = Field(default_factory=list)
     sliding_fit_diagnostics: FitDiagnostics | None = None
+    window_observability: list[WindowObservabilityEvidence] = Field(default_factory=list)
     provenance: ContinuousTimeSlidingWindowProvenance
 
     def save(self, path: str | Path) -> None:

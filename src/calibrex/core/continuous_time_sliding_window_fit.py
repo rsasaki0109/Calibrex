@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import numpy as np
 
@@ -26,6 +26,7 @@ from calibrex.core.continuous_time_sparse import (
 )
 from calibrex.core.fit_diagnostics import FitDiagnostics, FitTermination, normalized_gradient_norm
 from calibrex.core.geometry import SE3, _tuple3
+from calibrex.core.knot_observability import WindowObservabilityEvidence, analyze_knot_information
 from calibrex.core.se3_manifold import se3_log
 
 
@@ -40,6 +41,7 @@ class SlidingWindowTrajectoryFitResult:
     max_overlap_translation_error_m: float
     max_overlap_rotation_error_rad: float
     window_results: tuple[ContinuousTimeTrajectoryFitResult, ...] = ()
+    window_observability: tuple[WindowObservabilityEvidence, ...] = ()
 
 
 def fit_sliding_window_trajectory(
@@ -74,6 +76,7 @@ def fit_sliding_window_trajectory(
     batch_result = fit_continuous_trajectory(problem, settings)
     sliding_knots = list(problem.initial_knot_poses)
     window_results: list[ContinuousTimeTrajectoryFitResult] = []
+    window_observability: list[WindowObservabilityEvidence] = []
     sliding_iterations = 0
     priors: tuple[JointKnotMarginalizationPrior, ...] = ()
     start_index = 0
@@ -112,6 +115,24 @@ def fit_sliding_window_trajectory(
         window_result = fit_continuous_trajectory(window_problem, settings)
         sliding_knots[start_index:end_index] = list(window_result.knot_poses)
         window_results.append(window_result)
+        hessian, gradient = build_dense_knot_normal_equations(
+            window_problem, list(window_result.knot_poses),
+        )
+        if not window_problem.joint_knot_marginalization_priors:
+            measurement_information = hessian
+        elif window_measurements or window_poses:
+            measurement_problem = replace(window_problem, joint_knot_marginalization_priors=())
+            measurement_information, _ = build_dense_knot_normal_equations(
+                measurement_problem, list(window_result.knot_poses),
+            )
+        else:
+            measurement_information = np.zeros_like(hessian)
+        indices = tuple(range(start_index, end_index))
+        window_observability.append(WindowObservabilityEvidence(
+            window_index=window_index, global_knot_indices=list(indices),
+            measurements=analyze_knot_information(measurement_information, indices),
+            with_marginal_prior=analyze_knot_information(hessian, indices),
+        ))
         sliding_iterations += window_result.iterations
         if (
             apply_marginalization
@@ -120,10 +141,6 @@ def fit_sliding_window_trajectory(
             eliminated = window_size - overlap_knot_count
             if eliminated <= 0:
                 raise ValueError("window must eliminate at least one knot")
-            hessian, gradient = build_dense_knot_normal_equations(
-                window_problem,
-                list(window_result.knot_poses),
-            )
             marginalized, marginal_gradient = marginalize_knot_prefix(
                 hessian,
                 gradient,
@@ -205,6 +222,7 @@ def fit_sliding_window_trajectory(
     return SlidingWindowTrajectoryFitResult(
         batch_result=batch_result,
         window_results=tuple(window_results),
+        window_observability=tuple(window_observability),
         sliding_result=sliding_result,
         window_count=len(window_knot_counts),
         overlap_knot_count=overlap_knot_count,

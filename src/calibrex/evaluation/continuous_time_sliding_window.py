@@ -120,6 +120,7 @@ def run_synthetic_sliding_window_recovery(
         holdout_measurement_count=len(holdout),
         batch_fit_status=sliding.batch_result.status,
         sliding_fit_status=sliding.sliding_result.status,
+        window_observability=list(sliding.window_observability),
         window_fit_statuses=[result.status for result in sliding.window_results],
         sliding_fit_diagnostics=sliding.sliding_result.diagnostics,
         max_overlap_translation_error_m=sliding.max_overlap_translation_error_m,
@@ -133,7 +134,7 @@ def run_synthetic_sliding_window_recovery(
         policy_reason=policy_reason,
         provenance=ContinuousTimeSlidingWindowProvenance(
             generator=__name__,
-            generator_version="0.3",
+            generator_version="0.4",
             git_commit=git_commit(),
             command=command or [],
             seed=seed,

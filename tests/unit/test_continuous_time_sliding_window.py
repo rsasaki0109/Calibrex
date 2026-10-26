@@ -96,6 +96,14 @@ def test_synthetic_sliding_window_recovery_holdout_and_known_bad_control(
     assert artifact.window_fit_statuses == ["singular_system", "converged"]
     assert artifact.sliding_fit_status == "singular_system"
     assert not artifact.sliding_fit_diagnostics.stationary
+    first, second = artifact.window_observability
+    assert first.with_marginal_prior.numerical_rank == 18
+    assert first.with_marginal_prior.parameter_count == 24
+    assert first.with_marginal_prior.zero_information_parameters == [
+        f"knot[3].{axis}" for axis in ("tx", "ty", "tz", "rx", "ry", "rz")
+    ]
+    assert second.with_marginal_prior.numerical_rank == 18
+    assert second.with_marginal_prior.numerical_nullity == 0
     assert artifact.window_count == 2
     assert artifact.known_bad_rmse_delta_m <= 0.01
     assert artifact.sliding_holdout_rmse_m < 0.08

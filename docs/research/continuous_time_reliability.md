@@ -189,6 +189,38 @@ prior factors before fitting rather than reporting diagnostics for silently
 discarded inputs. Nonlinear relinearization and broader factor support remain
 open audit items.
 
+## Window information diagnostics
+
+Each window now reports local information at its final returned knots, both for
+its admitted observations alone and with the incoming marginal prior. Before
+eigendecomposition, the normal matrix is divided by the square roots of its
+positive diagonal entries on both axes. Zero-information coordinates remain
+zero. Numerical rank counts eigenvalues greater than `1e-10` times the largest
+scaled eigenvalue. The spectrum, relative tolerance and actual threshold are
+recorded so the numerical decision can be inspected.
+
+Exact zero diagonal columns identify coordinates with no local information;
+global knot indices and local translation/rotation axis names locate them.
+The diagonal of the numerical nullspace projector also records participation
+in coupled unobservable directions, even if every individual diagonal is
+positive. Participation is in the diagonally scaled tangent coordinates; it
+is not a calibration covariance or a physical uncertainty magnitude.
+
+Generator 0.4 diagnoses seed 20260820's first window as rank 18 of 24, with all
+six coordinates of global knot 3 exactly unobserved. The second window is rank
+18 of 18. This explains an information deficit behind the first singular solve,
+while preserving that failure and the original measurements. No prior, damping,
+or quality threshold is added to make the example pass.
+
+Tests cover exact missing columns, coupled relative-pose null modes, rank lifted
+by an absolute prior, independently rescaled coordinate units, weak but
+independent information, invalid matrices, and the schema-valid seeded report.
+This is a local numerical information assessment at one linearization, not a
+global nonlinear observability proof. Incoming priors can restore numerical
+rank without adding new measurements, which is why both information sources
+are reported separately. A full-rank report does not establish accuracy or
+rule out a separate numerical solver failure.
+
 ## Empirical interval follow-up
 
 [Independent-recording error intervals](empirical_intervals.md) adds frozen
