@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TypeAlias
 
 import numpy as np
@@ -17,7 +17,7 @@ _INFORMATION_ROUNDOFF: float = 60.0 * float(np.finfo(np.float64).eps)
 
 @dataclass(frozen=True)
 class KnotMarginalizationPrior:
-    """Zero-centered information prior on one window-local knot pose.
+    """Information prior on one window-local knot pose, in its anchor tangent.
 
     Weighting requires a real, finite, symmetric positive-semidefinite 6x6
     information matrix. A zero diagonal must have an exactly zero row/column.
@@ -26,6 +26,7 @@ class KnotMarginalizationPrior:
     knot_index: int
     anchor_pose: SE3
     information: FloatArray
+    gradient: FloatArray = field(default_factory=lambda: np.zeros(6, dtype=float))
 
 
 def schur_complement_normal(
@@ -47,9 +48,9 @@ def schur_complement_normal(
     hrr = hessian[retained, retained]
     ge = gradient[eliminated]
     gr = gradient[retained]
-    hee_inv = np.linalg.inv(hee)
-    marginalized = hrr - hre @ hee_inv @ her
-    marginal_gradient = gr - hre @ hee_inv @ ge
+    solved = np.linalg.solve(hee, np.column_stack((her, ge)))
+    marginalized = hrr - hre @ solved[:, :-1]
+    marginal_gradient = gr - hre @ solved[:, -1]
     return marginalized, marginal_gradient
 
 
@@ -77,7 +78,7 @@ def information_from_normal(
 ) -> KnotMarginalizationPrior:
     """Pack one retained information block at the supplied anchor.
 
-    The current prior representation does not encode the input gradient.
+    Preserve the linear term as well as the retained curvature.
     """
 
     if hessian.shape != (6, 6):
@@ -87,6 +88,7 @@ def information_from_normal(
         knot_index=knot_index,
         anchor_pose=anchor_pose,
         information=symmetrized,
+        gradient=np.array(gradient, dtype=float, copy=True),
     )
 
 
@@ -100,7 +102,7 @@ def split_retained_information(
 ) -> tuple[KnotMarginalizationPrior, ...]:
     """Pack per-knot diagonal information blocks.
 
-    The current representation drops cross-knot blocks and the input gradient.
+    This block-diagonal approximation drops cross-knot blocks, but keeps gradients.
     """
 
     if hessian.shape[0] != 6 * retained_knot_count:
@@ -181,7 +183,7 @@ def marginalization_prior_blocks(
     """Whiten the prior's Log residual and local Jacobian consistently.
 
     Invalid information raises ValueError. The finite-difference Log Jacobian
-    and the zero-centered prior model are unchanged.
+    is evaluated in the fixed anchor tangent.
     """
 
     weight = _square_root_information(prior.information)
@@ -194,5 +196,38 @@ def marginalization_prior_blocks(
         perturbed = se3_log(prior.anchor_pose, se3_exp(knot, step))
         jacobian[:, axis] = (perturbed - delta) / epsilon
     weighted_jacobian = weight @ jacobian
-    weighted_residual = weight @ delta
+    weighted_residual = weight @ delta + _prior_residual_offset(prior, weight)
     return weighted_residual, weighted_jacobian
+
+
+def _prior_residual_offset(prior: KnotMarginalizationPrior, weight: FloatArray) -> FloatArray:
+    """Find b with W.T b = g without suppressing weak coordinate information."""
+    gradient = np.asarray(prior.gradient)
+    if gradient.shape != (6,) or np.iscomplexobj(gradient):
+        raise ValueError("prior gradient must be a real finite six-vector")
+    gradient = np.asarray(gradient, dtype=float)
+    if not np.all(np.isfinite(gradient)):
+        raise ValueError("prior gradient must be finite")
+    if not np.any(gradient):
+        return np.zeros(6, dtype=float)
+    scale = np.sqrt(np.diag(prior.information))
+    active = scale > 0.
+    if np.any(gradient[~active] != 0.):
+        raise ValueError("prior gradient is outside the information range")
+    if not np.any(active):
+        return np.zeros(6, dtype=float)
+    matrix = weight[:, active].T / scale[active, None]
+    target = gradient[active] / scale[active]
+    if not np.all(np.isfinite(target)):
+        raise ValueError("scaled prior gradient must be finite")
+    offset = np.linalg.lstsq(matrix, target, rcond=_INFORMATION_ROUNDOFF)[0]
+    error = np.linalg.norm(matrix @ offset - target)
+    if error > _INFORMATION_ROUNDOFF * max(float(np.linalg.norm(target)), 1.e-300):
+        raise ValueError("prior gradient is outside the information range")
+    return offset
+
+
+def marginalization_prior_residual(prior: KnotMarginalizationPrior, knot: SE3) -> FloatArray:
+    """Evaluate the prior including its linear term and a fixed additive constant."""
+    weight = _square_root_information(prior.information)
+    return weight @ se3_log(prior.anchor_pose, knot) + _prior_residual_offset(prior, weight)

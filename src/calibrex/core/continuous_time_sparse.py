@@ -55,6 +55,7 @@ from calibrex.core.clock_domain import ClockDomainEvidence, ClockOffsetDomain
 from calibrex.core.continuous_time_marginalization import (
     KnotMarginalizationPrior,
     marginalization_prior_blocks,
+    marginalization_prior_residual,
 )
 from calibrex.core.fit_diagnostics import (
     FitDiagnostics,
@@ -2454,8 +2455,8 @@ def _objective(
             return math.inf
         objective += lever_measurement.weight**2 * float(np.sum(residual * residual))
     for prior in problem.knot_marginalization_priors:
-        delta = se3_log(prior.anchor_pose, knots[prior.knot_index])
-        objective += float(delta.T @ prior.information @ delta)
+        residual = marginalization_prior_residual(prior, knots[prior.knot_index])
+        objective += float(residual @ residual)
     return objective
 
 

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Preserve the retained normal-equation gradient in single-knot marginalization
+  priors. Evaluate the same shifted residual in linearization and candidate
+  scoring; reject gradients outside the information range. Use a linear solve
+  for Schur elimination. Multi-knot splitting remains a block-diagonal
+  approximation that drops cross-knot curvature.
+
 - Audit B-spline final stationarity with both feasible one-sided clock gradients
   at exact internal IMU knot ties. Central-difference cancellation no longer
   certifies convergence; report `stationarity_not_confirmed` when necessary.

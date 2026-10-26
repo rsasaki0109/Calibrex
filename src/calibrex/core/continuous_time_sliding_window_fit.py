@@ -247,6 +247,7 @@ def _corrupt_priors(
                     rotation_quat_xyzw=anchor.rotation_quat_xyzw,
                 ),
                 information=np.array(prior.information, copy=True),
+                gradient=np.array(prior.gradient, copy=True),
             )
         )
     return tuple(corrupted)

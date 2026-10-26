@@ -64,7 +64,36 @@ interior; this audit does not establish covariance validity at a nonsmooth knot.
 This is a conservative check: both side gradients must vanish, so even a valid
 nonsmooth minimum can be reported as stalled. Only exact floating-point knot
 ties trigger it; nearby stencils crossing a knot are not covered by this audit.
-General nonsmooth stationarity and marginalization audits remain open.
+General nonsmooth stationarity remains open.
+
+## Marginalization gradient audit
+
+The Schur routine computed both retained curvature and gradient, but conversion
+to knot priors discarded the gradient. Priors now store the anchor-tangent
+gradient (default zero for existing callers). Given information `H = W.T W`,
+the residual is `W Log(anchor, pose) + b`, with `W.T b = g`. Its squared norm
+retains `delta.T H delta + 2 g.T delta` up to an additive constant. Candidate
+scoring and both normal-equation builders use the same residual. This matters
+when the previous window stopped before reaching stationarity.
+
+The offset solve scales by the information diagonal so weak coordinates are
+not silently removed because another coordinate has large units. Invalid or
+nonfinite gradients, including components outside the information range, are
+rejected. Schur elimination uses a linear solve rather than an explicit inverse;
+singular eliminated systems still fail instead of receiving artificial damping.
+
+Regression tests compare the retained prior against independently profiled
+quadratic costs and the retained part of the full dense optimum, verify a fit
+accepts the gradient-driven update, and cover weak information and nullspace
+gradients. Existing sliding-window holdout and known-bad controls remain checked.
+These are development tests, not an independent accuracy claim.
+
+The sliding-window representation still splits multiple retained knots into
+diagonal information blocks, dropping cross-knot curvature. It is therefore
+not an exact joint marginal prior for overlaps larger than one knot. Audits of
+that approximation, overlapping-factor reuse, gauge handling, and subsequent
+nonlinear relinearization remain open. Preserving a single-knot gradient does
+not establish batch equivalence for the full sliding-window pipeline.
 
 ## Empirical interval follow-up
 
