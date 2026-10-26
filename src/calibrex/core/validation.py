@@ -131,6 +131,8 @@ ValidationKind = Literal[
     "continuous-time-lidar-imu-joint",
     "lidar-imu-bag-calibration",
     "uncertainty-coverage",
+    "empirical-interval-model",
+    "empirical-interval-evaluation",
     "continuous-time-sliding-window",
     "continuous-time-lidar-train-diagnostics",
     "continuous-time-lidar-ablation",

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Add frozen empirical per-axis error intervals using a finite-sample order
+  statistic on independent complete-pipeline recordings. Reject calibration/test
+  overlap and incompatible scopes; abstain with insufficient data and retain
+  failed attempts. Register model/evaluation schemas and retain the 20+10 bag
+  cohort, including three undercovered axes. Correct the P0 gravity comparison:
+  unaligned synthetic and odometry world frames cannot be compared component-wise.
+
 - Distinguish stalled continuous-time fits from stationary solutions in both
   screw-linear and B-spline solvers. Use unit-invariant gradient and step
   diagnostics, retain explicit termination reasons, extend result schemas with

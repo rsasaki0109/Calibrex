@@ -26,6 +26,15 @@ observations below describe the recorded source at each milestone; the P0 update
 supersedes their descriptions of current convergence labels. Clock-domain and
 marginalization audits remain open.
 
+## Empirical interval follow-up
+
+[Independent-recording error intervals](empirical_intervals.md) adds frozen
+finite-sample radii and separate evaluation, with explicit abstention and leakage
+checks. A 20-recording calibration cohort and ten evaluation recordings improve
+several relative-axis coverage counts, but three axes retain undercoverage. It
+also corrects the P0 synthetic-bag gravity comparison: the fitted and generator
+world frames were unaligned, so those component-wise rows are not admissible.
+
 ## 1. Consistent measurement loss
 
 The native `screw_linear` fitter uses scalar square-root information:

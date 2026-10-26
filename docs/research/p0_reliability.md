@@ -78,6 +78,13 @@ pilot, not a general coverage estimate. Per-axis Wilson intervals are not a
 simultaneous multiple-comparison guarantee. Formal intervals from stalled fits
 remain visible, not silently discarded or certified.
 
+## Gravity-frame correction (follow-up)
+
+The synthetic-bag gravity rows below compare different world frames and are
+not valid undercoverage evidence. See [the empirical-interval follow-up](empirical_intervals.md)
+for the correction. Historical artifacts are retained unchanged; sensor-relative
+rotation, lever arm, IMU bias and clock-offset comparisons remain applicable.
+
 ## Retained outcomes
 
 See [the evidence archive](../assets/p0_reliability/). It includes all 25 final
@@ -97,7 +104,8 @@ its Wilson intervals do not establish undercoverage. This does **not** validate
 95% coverage. There are 14 quality-policy passes and 6 failures, all retained.
 
 The full-bag cohort exposes overconfidence: rotation x and z, lever-arm y,
-accelerometer-bias z and every gravity axis cover truth in **0/5** cases.
+accelerometer-bias z cover truth in **0/5** cases. The historical gravity rows
+also computed 0/5, but that comparison is invalid because the world gauges differ.
 The 95% Wilson upper bound for 0/5 is approximately 0.434, well below 0.95.
 Clock offset covers truth in 2/5. This supports the existing warning that
 fixed-map covariance misses front-end/model error. No blanket covariance

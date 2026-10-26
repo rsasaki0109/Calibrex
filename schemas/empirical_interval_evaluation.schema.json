@@ -1,0 +1,219 @@
+{
+  "$defs": {
+    "EmpiricalIntervalCoverageAxis": {
+      "additionalProperties": false,
+      "description": "Paired marginal interval coverage, retaining unavailable fits in attempts.",
+      "properties": {
+        "all_attempt_coverage": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "All Attempt Coverage",
+          "type": "number"
+        },
+        "attempts": {
+          "minimum": 1,
+          "title": "Attempts",
+          "type": "integer"
+        },
+        "available": {
+          "minimum": 0,
+          "title": "Available",
+          "type": "integer"
+        },
+        "axis": {
+          "title": "Axis",
+          "type": "string"
+        },
+        "conditional_coverage": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Conditional Coverage"
+        },
+        "covered": {
+          "minimum": 0,
+          "title": "Covered",
+          "type": "integer"
+        },
+        "formal_covered": {
+          "minimum": 0,
+          "title": "Formal Covered",
+          "type": "integer"
+        },
+        "half_width": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Half Width"
+        },
+        "mean_formal_half_width": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mean Formal Half Width"
+        },
+        "shrunken_covered": {
+          "minimum": 0,
+          "title": "Shrunken Covered",
+          "type": "integer"
+        },
+        "verdict": {
+          "enum": [
+            "undercoverage",
+            "inconclusive"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        },
+        "wilson_95": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Wilson 95"
+        }
+      },
+      "required": [
+        "axis",
+        "attempts",
+        "available",
+        "covered",
+        "formal_covered",
+        "shrunken_covered",
+        "all_attempt_coverage",
+        "wilson_95",
+        "verdict"
+      ],
+      "title": "EmpiricalIntervalCoverageAxis",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A separate cohort evaluated using previously frozen intervals.",
+  "properties": {
+    "axes": {
+      "items": {
+        "$ref": "#/$defs/EmpiricalIntervalCoverageAxis"
+      },
+      "title": "Axes",
+      "type": "array"
+    },
+    "command": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Command",
+      "type": "array"
+    },
+    "control_width_scale": {
+      "exclusiveMaximum": 1,
+      "exclusiveMinimum": 0,
+      "title": "Control Width Scale",
+      "type": "number"
+    },
+    "evaluation_report_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Evaluation Report Sha256",
+      "type": "string"
+    },
+    "evaluation_seeds": {
+      "items": {
+        "type": "integer"
+      },
+      "minItems": 1,
+      "title": "Evaluation Seeds",
+      "type": "array"
+    },
+    "git_commit": {
+      "title": "Git Commit",
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "model_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Model Sha256",
+      "type": "string"
+    },
+    "nominal_coverage": {
+      "exclusiveMaximum": 1,
+      "exclusiveMinimum": 0,
+      "title": "Nominal Coverage",
+      "type": "number"
+    },
+    "schema_version": {
+      "const": "slac.empirical_interval_evaluation/v0.1",
+      "default": "slac.empirical_interval_evaluation/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "scope_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scope Sha256",
+      "type": "string"
+    },
+    "source_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Source Sha256",
+      "type": "object"
+    }
+  },
+  "required": [
+    "model_sha256",
+    "evaluation_report_sha256",
+    "scope_sha256",
+    "evaluation_seeds",
+    "nominal_coverage",
+    "control_width_scale",
+    "axes",
+    "command",
+    "source_sha256",
+    "git_commit",
+    "limitations"
+  ],
+  "title": "EmpiricalIntervalEvaluation",
+  "type": "object"
+}

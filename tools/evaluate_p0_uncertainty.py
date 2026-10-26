@@ -118,6 +118,9 @@ def main() -> None:
                 )
                 axes = []
                 for block in result.blocks:
+                    # Odometry world gravity is not aligned to the synthetic world.
+                    if block.name == "gravity":
+                        continue
                     error = np.asarray(block.estimate) - values[block.name]
                     if block.name == "imu_rotation":
                         error = (
@@ -160,8 +163,12 @@ def main() -> None:
         command=sys.argv,
         git_commit=commit,
         trials=trials,
-        axes=summarize_coverage(trials, AXES),
+        axes=summarize_coverage(
+            trials,
+            [a for a in AXES if args.producer != "synthetic_bag" or not a.startswith("gravity[")],
+        ),
         limitations=[
+            "Synthetic-bag gravity components are excluded because world gauges are unaligned.",
             "Development evidence on independent noise draws of one fixed synthetic "
             "trajectory, not public accuracy.",
             "Marginal Gaussian intervals; per-axis Wilson intervals are not "
