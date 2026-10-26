@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Solve sparse trajectory updates only on columns with nonzero information,
+  keeping exactly unobserved coordinates unchanged without adding priors or
+  diagonal floors. Reassess the active columns every iteration and record the
+  frozen coordinates in per-window evidence. Generator 0.5 solves the previously
+  singular development window but retains the failed no-marginalization control.
+  Make scalar and batched screw-interpolation endpoint Jacobians exactly zero
+  or identity to prevent roundoff from manufacturing information on absent knots.
+
 - Add per-window local information diagnostics, separately for observations and
   observations plus inherited marginal priors. Record scaled spectra, numerical
   rank/nullity, exact zero-information coordinates, and coupled-nullspace

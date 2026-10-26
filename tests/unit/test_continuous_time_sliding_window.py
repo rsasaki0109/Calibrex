@@ -89,19 +89,21 @@ def test_synthetic_sliding_window_recovery_holdout_and_known_bad_control(
     output = tmp_path / "recovery.yaml"
     artifact.save(output)
     assert validate_file(output, kind="continuous-time-sliding-window").valid
-    # Preserve the earlier singular window and the failed no-prior control;
-    # convergence of the last window alone cannot make the recovery pass.
+    # Zero-information coordinates remain frozen and reported. The separate
+    # no-prior control still fails; successful solves do not make it pass.
     assert artifact.policy_status == "fail"
-    assert "sliding fit status" in artifact.policy_reason
-    assert artifact.window_fit_statuses == ["singular_system", "converged"]
-    assert artifact.sliding_fit_status == "singular_system"
-    assert not artifact.sliding_fit_diagnostics.stationary
+    assert "skipping marginalization" in artifact.policy_reason
+    assert artifact.window_fit_statuses == ["converged", "converged"]
+    assert artifact.sliding_fit_status == "converged"
+    assert artifact.sliding_fit_diagnostics.stationary
     first, second = artifact.window_observability
     assert first.with_marginal_prior.numerical_rank == 18
     assert first.with_marginal_prior.parameter_count == 24
     assert first.with_marginal_prior.zero_information_parameters == [
         f"knot[3].{axis}" for axis in ("tx", "ty", "tz", "rx", "ry", "rz")
     ]
+    assert first.frozen_parameters == first.with_marginal_prior.zero_information_parameters
+    assert second.frozen_parameters == []
     assert second.with_marginal_prior.numerical_rank == 18
     assert second.with_marginal_prior.numerical_nullity == 0
     assert artifact.window_count == 2

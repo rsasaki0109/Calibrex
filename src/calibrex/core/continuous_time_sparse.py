@@ -439,6 +439,8 @@ class ContinuousTimeTrajectoryFitResult:
     ``gradient_norm`` is the infinity norm of the final weighted normal
     right-hand side, half the squared-objective gradient at the returned state.
     Small damped steps alone do not establish stationarity.
+    ``frozen_parameter_indices`` records columns with exactly zero information
+    at any iteration, not a claim that those coordinates remain unobservable.
     """
 
     status: FitStatus
@@ -467,6 +469,7 @@ class ContinuousTimeTrajectoryFitResult:
     calibration_covariance: tuple[tuple[float, ...], ...] | None = None
     residual_variance: float | None = None
     diagnostics: FitDiagnostics | None = None
+    frozen_parameter_indices: tuple[int, ...] = ()
 
 
 _ANCHOR_POINTS: tuple[tuple[float, float, float], ...] = (
@@ -971,6 +974,7 @@ def fit_continuous_trajectory(
         )
         return blocks, residual_array, weight_array, jacobian
 
+    frozen_parameter_indices: set[int] = set()
     linearization_is_current = False
     for iteration in range(settings.max_iterations):
         iterations = iteration + 1
@@ -988,6 +992,8 @@ def fit_continuous_trajectory(
         weighted_jacobian = jacobian.multiply(weight_array[:, None])
         normal = weighted_jacobian.T @ weighted_jacobian
         rhs = weighted_jacobian.T @ (weight_array * residual_array)
+        active_columns = normal.diagonal() > 0.
+        frozen_parameter_indices.update(int(i) for i in np.flatnonzero(~active_columns))
         gradient_norm = float(np.max(np.abs(rhs)))
         linearization_is_current = True
 
@@ -1003,7 +1009,14 @@ def fit_continuous_trajectory(
             normal, knot_count, parameter_count
         )
         try:
-            delta = spsolve(damping_matrix.tocsc(), -rhs)
+            if np.all(active_columns):
+                delta = spsolve(damping_matrix.tocsc(), -rhs)
+            else:
+                # Exactly zero weighted Jacobian columns carry no information.
+                # Keep their current values; do not add a prior or diagonal floor.
+                reduced = damping_matrix.tocsc()[active_columns, :][:, active_columns]
+                delta = np.zeros(parameter_count, dtype=float)
+                delta[active_columns] = spsolve(reduced, -rhs[active_columns])
         except RuntimeError:
             status = "singular_system"
             termination = "singular_system"
@@ -1298,6 +1311,7 @@ def fit_continuous_trajectory(
         max_step_rotation_deg=max_step_rotation_deg,
         gradient_norm=gradient_norm,
         nonzero_jacobian_blocks=len(blocks),
+        frozen_parameter_indices=tuple(sorted(frozen_parameter_indices)),
         imu_rotation_vector_rad=(
             (
                 float(imu_rotation_vector[0]),

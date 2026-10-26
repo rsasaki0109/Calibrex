@@ -114,6 +114,10 @@ def _sample_segment(
     product = jacobian @ inverse_u
     right = alphas[:, None, None] * product
     left = np.linalg.inv(adjoint) - alphas[:, None, None] * (product @ inverse_adjoint_u)
+    left[alphas == 0.] = np.eye(6)
+    right[alphas == 0.] = 0.
+    left[alphas == 1.] = 0.
+    right[alphas == 1.] = np.eye(6)
     return poses, (left, right)
 
 

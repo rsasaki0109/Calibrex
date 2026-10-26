@@ -221,6 +221,44 @@ rank without adding new measurements, which is why both information sources
 are reported separately. A full-rank report does not establish accuracy or
 rule out a separate numerical solver failure.
 
+## Updating the observed coordinates
+
+The sparse screw-linear solver now excludes exactly zero-information columns
+from its damped linear solve and inserts zero increments for those coordinates.
+The active columns are recomputed at every iteration; small positive information
+is never discarded by a rank threshold. This fixes an entirely unobserved knot
+making the whole linear solve singular. It adds neither an anchoring observation
+nor a positive information floor. Fully active systems retain the original solve.
+
+Fit results record the union of `frozen_parameter_indices` across iterations.
+Sliding evidence maps those indices to global knot/axis names in
+`frozen_parameters`; the aggregate result maps them to global parameter indices.
+These are historical local zero-column events. A coordinate may become observed
+in a later iteration or window, and its freezing is not permanent.
+
+On reused development seed 20260820, generator 0.5 reports both windows and the
+stitched trajectory stationary. The first window still has rank 18 of 24 and
+leaves knot 3 unchanged; its six missing coordinates are explicitly reported.
+Sliding holdout RMSE changes from approximately 0.02154 m to 0.01409 m, but the
+unchanged no-marginalization control still fails. The overall evaluation remains
+`fail`; this single development example is not an independent accuracy claim.
+
+Tests verify recovery of an observed knot with an unobserved neighbor, unchanged
+unobserved state, explicit reporting at zero residual, and retention of weak
+positive information. This handles exact zero columns only: coupled null modes
+with nonzero columns, singular eliminated Schur blocks, and general nonlinear
+observability remain separate issues. A stationary fit is not a claim that every
+coordinate was measured.
+
+An additional regression exposed numerical cancellation at screw-interpolation
+endpoints: the nominally absent knot could receive tiny spurious Jacobian entries,
+which the solver treated as information and amplified into a large update.
+Scalar and batched endpoint Jacobians now return their exact analytic zero and
+identity blocks at fractions zero and one. Interior fractions retain the
+original calculation; no tolerance-based snapping or weak-information cutoff is
+used. The multi-window regression verifies an unsupported knot remains unchanged
+and its freeze history is mapped to the correct global indices.
+
 ## Empirical interval follow-up
 
 [Independent-recording error intervals](empirical_intervals.md) adds frozen

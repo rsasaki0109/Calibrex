@@ -26,6 +26,7 @@ class KnotInformationEvidence(StrictModel):
 class WindowObservabilityEvidence(StrictModel):
     """Separate measurement information from information inherited through priors."""
 
+    frozen_parameters: list[str] = Field(default_factory=list)
     window_index: int = Field(ge=0)
     global_knot_indices: list[int]
     measurements: KnotInformationEvidence

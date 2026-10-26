@@ -134,7 +134,7 @@ def run_synthetic_sliding_window_recovery(
         policy_reason=policy_reason,
         provenance=ContinuousTimeSlidingWindowProvenance(
             generator=__name__,
-            generator_version="0.4",
+            generator_version="0.5",
             git_commit=git_commit(),
             command=command or [],
             seed=seed,

@@ -214,6 +214,13 @@
       "additionalProperties": false,
       "description": "Separate measurement information from information inherited through priors.",
       "properties": {
+        "frozen_parameters": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Frozen Parameters",
+          "type": "array"
+        },
         "global_knot_indices": {
           "items": {
             "type": "integer"

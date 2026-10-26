@@ -78,6 +78,7 @@ def fit_sliding_window_trajectory(
     window_results: list[ContinuousTimeTrajectoryFitResult] = []
     window_observability: list[WindowObservabilityEvidence] = []
     sliding_iterations = 0
+    frozen_global_parameters: set[int] = set()
     priors: tuple[JointKnotMarginalizationPrior, ...] = ()
     start_index = 0
     summarized_through: float | None = None
@@ -115,6 +116,9 @@ def fit_sliding_window_trajectory(
         window_result = fit_continuous_trajectory(window_problem, settings)
         sliding_knots[start_index:end_index] = list(window_result.knot_poses)
         window_results.append(window_result)
+        frozen_global_parameters.update(
+            6 * start_index + index for index in window_result.frozen_parameter_indices
+        )
         hessian, gradient = build_dense_knot_normal_equations(
             window_problem, list(window_result.knot_poses),
         )
@@ -130,6 +134,11 @@ def fit_sliding_window_trajectory(
         indices = tuple(range(start_index, end_index))
         window_observability.append(WindowObservabilityEvidence(
             window_index=window_index, global_knot_indices=list(indices),
+            frozen_parameters=[
+                f"knot[{start_index + index // 6}]."
+                f"{('tx', 'ty', 'tz', 'rx', 'ry', 'rz')[index % 6]}"
+                for index in window_result.frozen_parameter_indices
+            ],
             measurements=analyze_knot_information(measurement_information, indices),
             with_marginal_prior=analyze_knot_information(hessian, indices),
         ))
@@ -208,6 +217,7 @@ def fit_sliding_window_trajectory(
         max_step_rotation_deg=max(result.max_step_rotation_deg for result in window_results),
         gradient_norm=float(np.linalg.norm(gradient, ord=np.inf)),
         nonzero_jacobian_blocks=block_count,
+        frozen_parameter_indices=tuple(sorted(frozen_global_parameters)),
         diagnostics=FitDiagnostics(
             termination_reason=termination, normalized_gradient_norm=scaled_gradient,
             gradient_tolerance=settings.convergence_gradient_norm, stationary=stationary,
