@@ -153,9 +153,41 @@ The evidence includes the exact runner, source hashes, and changed-source
 snapshots. Reproduce the baseline from the manifest's revision and the current
 run by overlaying the snapshots, then run the saved Python runner with a fresh
 output directory and `OPENBLAS_NUM_THREADS=1`. These are development findings,
-not an independent accuracy comparison. Nonlinear relinearization, broader
-factor support, and truthful aggregate sliding-result diagnostics remain open
-audit items.
+not an independent accuracy comparison.
+
+## Sliding-result diagnostics
+
+The sliding result previously copied its objective, plane RMSE, gradient, step
+maxima and Jacobian block count from the batch reference, while reporting only
+the last window's status. It now reevaluates the original plane and pose
+observations at the stitched knots, without transferred priors (which already
+summarize those observations). The full weighted objective, raw gradient,
+normalized stationarity, plane/pose RMSE, and block count describe that returned
+trajectory. Step maxima aggregate accepted steps across all window fits;
+iteration counts remain summed. Every window result is retained separately.
+
+Overall status preserves earlier failures, in precedence order: singular system,
+iteration limit, then stalled. Only all-converged windows and a stationary
+stitched trajectory produce `converged`. The diagnostics' stationary flag
+describes the final global gradient independently of those historical failures.
+This does not certify observability or globally optimal nonlinear estimates.
+
+Recovery artifacts add optional `window_fit_statuses` and
+`sliding_fit_diagnostics`; old artifacts remain readable. Generator 0.3 also
+requires convergence of the sliding result before passing its quality policy.
+Seed 20260820 reveals window statuses `[singular_system, converged]` and a
+nonstationary stitched trajectory (normalized gradient approximately 0.142).
+The earlier failure is now visible even though the last window converges.
+The separate control failure recorded by generator 0.2 remains historical
+evidence; generator 0.3 reports the singular sliding status first.
+
+Tests deliberately alter the returned final knots, poison unrelated batch
+metrics, and vary earlier window statuses. They verify costs against direct
+pose residuals, gradients against the full normal equations, and preservation
+of the earlier failure. The wrapper rejects unrouted point, IMU, or caller
+prior factors before fitting rather than reporting diagnostics for silently
+discarded inputs. Nonlinear relinearization and broader factor support remain
+open audit items.
 
 ## Empirical interval follow-up
 

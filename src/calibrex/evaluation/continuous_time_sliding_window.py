@@ -102,6 +102,7 @@ def run_synthetic_sliding_window_recovery(
     )
     policy_status, policy_reason = _policy(
         batch_status=sliding.batch_result.status,
+        sliding_status=sliding.sliding_result.status,
         max_overlap_translation=sliding.max_overlap_translation_error_m,
         max_overlap_rotation=sliding.max_overlap_rotation_error_rad,
         sliding_holdout=sliding_holdout,
@@ -119,6 +120,8 @@ def run_synthetic_sliding_window_recovery(
         holdout_measurement_count=len(holdout),
         batch_fit_status=sliding.batch_result.status,
         sliding_fit_status=sliding.sliding_result.status,
+        window_fit_statuses=[result.status for result in sliding.window_results],
+        sliding_fit_diagnostics=sliding.sliding_result.diagnostics,
         max_overlap_translation_error_m=sliding.max_overlap_translation_error_m,
         max_overlap_rotation_error_rad=sliding.max_overlap_rotation_error_rad,
         batch_holdout_rmse_m=batch_holdout,
@@ -130,7 +133,7 @@ def run_synthetic_sliding_window_recovery(
         policy_reason=policy_reason,
         provenance=ContinuousTimeSlidingWindowProvenance(
             generator=__name__,
-            generator_version="0.2",
+            generator_version="0.3",
             git_commit=git_commit(),
             command=command or [],
             seed=seed,
@@ -156,6 +159,7 @@ def _max_overlap_translation_error(
 def _policy(
     *,
     batch_status: str,
+    sliding_status: str,
     max_overlap_translation: float,
     max_overlap_rotation: float,
     sliding_holdout: float,
@@ -166,6 +170,12 @@ def _policy(
         return (
             "fail",
             f"batch reference fit status {batch_status!r} is not converged",
+        )
+    if sliding_status != "converged":
+        return (
+            "fail",
+            f"sliding fit status {sliding_status!r} is not converged across all windows "
+            "and the stitched trajectory",
         )
     if max_overlap_translation >= 0.05:
         return (

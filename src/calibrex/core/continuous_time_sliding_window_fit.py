@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 import numpy as np
@@ -17,9 +18,13 @@ from calibrex.core.continuous_time_sparse import (
     FitStatus,
     TrajectoryPointToPlaneMeasurement,
     _interval_index,
+    _knot_normal_evidence,
+    _pose_rmse,
     build_dense_knot_normal_equations,
     fit_continuous_trajectory,
+    point_to_plane_rmse,
 )
+from calibrex.core.fit_diagnostics import FitDiagnostics, FitTermination, normalized_gradient_norm
 from calibrex.core.geometry import SE3, _tuple3
 from calibrex.core.se3_manifold import se3_log
 
@@ -34,6 +39,7 @@ class SlidingWindowTrajectoryFitResult:
     overlap_knot_count: int
     max_overlap_translation_error_m: float
     max_overlap_rotation_error_rad: float
+    window_results: tuple[ContinuousTimeTrajectoryFitResult, ...] = ()
 
 
 def fit_sliding_window_trajectory(
@@ -60,10 +66,14 @@ def fit_sliding_window_trajectory(
     )
     if expected != knot_count:
         raise ValueError("window knot counts do not cover the full knot span")
+    if (problem.point_measurements or problem.imu_preintegration_measurements
+            or problem.imu_lever_arm_measurements or problem.knot_marginalization_priors
+            or problem.joint_knot_marginalization_priors):
+        raise ValueError("sliding windows support only plane and pose observations")
     settings = options or ContinuousTimeTrajectoryFitOptions()
     batch_result = fit_continuous_trajectory(problem, settings)
     sliding_knots = list(problem.initial_knot_poses)
-    sliding_status: FitStatus = "max_iterations"
+    window_results: list[ContinuousTimeTrajectoryFitResult] = []
     sliding_iterations = 0
     priors: tuple[JointKnotMarginalizationPrior, ...] = ()
     start_index = 0
@@ -101,7 +111,7 @@ def fit_sliding_window_trajectory(
         )
         window_result = fit_continuous_trajectory(window_problem, settings)
         sliding_knots[start_index:end_index] = list(window_result.knot_poses)
-        sliding_status = window_result.status
+        window_results.append(window_result)
         sliding_iterations += window_result.iterations
         if (
             apply_marginalization
@@ -133,15 +143,41 @@ def fit_sliding_window_trajectory(
             if corrupt_marginalization_translation_m is not None:
                 priors = _corrupt_priors(priors, corrupt_marginalization_translation_m)
         start_index += window_size - overlap_knot_count
+    normal, gradient, objective, block_count = _knot_normal_evidence(problem, sliding_knots)
+    scaled_gradient = normalized_gradient_norm(gradient, normal.diagonal(), math.sqrt(objective))
+    stationary = scaled_gradient < settings.convergence_gradient_norm
+    statuses = {result.status for result in window_results}
+    sliding_status: FitStatus
+    termination: FitTermination
+    if "singular_system" in statuses:
+        sliding_status, termination = "singular_system", "singular_system"
+    elif "max_iterations" in statuses:
+        sliding_status, termination = "max_iterations", "iteration_limit"
+    elif "stalled" in statuses or not stationary:
+        sliding_status, termination = "stalled", "stationarity_not_confirmed"
+    else:
+        sliding_status, termination = "converged", "gradient_tolerance"
+    pose_rows = [
+        (_interval_index(problem.knot_timestamps, pose.timestamp_sec), pose.pose_world_body)
+        for pose in problem.pose_measurements
+    ]
+    if any(interval is None for interval, _pose in pose_rows):
+        raise ValueError("pose observation outside the knot domain")
+    final_pose_rmse = _pose_rmse(
+        problem, [(int(interval), pose) for interval, pose in pose_rows if interval is not None],
+        sliding_knots,
+    )
     sliding_result = ContinuousTimeTrajectoryFitResult(
         status=sliding_status,
         iterations=sliding_iterations,
         knot_poses=tuple(sliding_knots),
         initial_knot_poses=problem.initial_knot_poses,
-        final_objective=batch_result.final_objective,
+        final_objective=objective,
         final_point_rmse=None,
-        final_point_to_plane_rmse=batch_result.final_point_to_plane_rmse,
-        final_pose_rmse=None,
+        final_point_to_plane_rmse=point_to_plane_rmse(
+            problem.point_to_plane_measurements, problem.knot_timestamps, sliding_knots,
+        ),
+        final_pose_rmse=final_pose_rmse,
         final_imu_rotation_rmse_rad=None,
         final_lever_arm_rmse_m_s2=None,
         gyro_bias_rad_s=None,
@@ -151,10 +187,14 @@ def fit_sliding_window_trajectory(
         gravity_world_m_s2=None,
         gyro_scale=None,
         accel_scale=None,
-        max_step_translation_m=batch_result.max_step_translation_m,
-        max_step_rotation_deg=batch_result.max_step_rotation_deg,
-        gradient_norm=batch_result.gradient_norm,
-        nonzero_jacobian_blocks=batch_result.nonzero_jacobian_blocks,
+        max_step_translation_m=max(result.max_step_translation_m for result in window_results),
+        max_step_rotation_deg=max(result.max_step_rotation_deg for result in window_results),
+        gradient_norm=float(np.linalg.norm(gradient, ord=np.inf)),
+        nonzero_jacobian_blocks=block_count,
+        diagnostics=FitDiagnostics(
+            termination_reason=termination, normalized_gradient_norm=scaled_gradient,
+            gradient_tolerance=settings.convergence_gradient_norm, stationary=stationary,
+        ),
     )
     overlap_start = window_knot_counts[0] - overlap_knot_count
     translation_errors, rotation_errors = _overlap_errors(
@@ -164,6 +204,7 @@ def fit_sliding_window_trajectory(
     )
     return SlidingWindowTrajectoryFitResult(
         batch_result=batch_result,
+        window_results=tuple(window_results),
         sliding_result=sliding_result,
         window_count=len(window_knot_counts),
         overlap_knot_count=overlap_knot_count,

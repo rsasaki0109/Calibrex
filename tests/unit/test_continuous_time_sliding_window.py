@@ -89,10 +89,13 @@ def test_synthetic_sliding_window_recovery_holdout_and_known_bad_control(
     output = tmp_path / "recovery.yaml"
     artifact.save(output)
     assert validate_file(output, kind="continuous-time-sliding-window").valid
-    # Without fabricated initial-pose anchors, this development seed no longer
-    # demonstrates harm from skipping marginalization. Keep the failed gate.
+    # Preserve the earlier singular window and the failed no-prior control;
+    # convergence of the last window alone cannot make the recovery pass.
     assert artifact.policy_status == "fail"
-    assert "skipping marginalization" in artifact.policy_reason
+    assert "sliding fit status" in artifact.policy_reason
+    assert artifact.window_fit_statuses == ["singular_system", "converged"]
+    assert artifact.sliding_fit_status == "singular_system"
+    assert not artifact.sliding_fit_diagnostics.stationary
     assert artifact.window_count == 2
     assert artifact.known_bad_rmse_delta_m <= 0.01
     assert artifact.sliding_holdout_rmse_m < 0.08
@@ -273,3 +276,76 @@ def test_retained_gauge_audit_keeps_failed_control_and_source_bindings():
     for path in (root / "measured_source").rglob("*.txt"):
         name = str(path.relative_to(root / "measured_source"))[:-4]
         assert hashlib.sha256(path.read_bytes()).hexdigest() == sources[name]
+
+
+@pytest.mark.parametrize("early_status,expected", [
+    ("singular_system", "singular_system"), ("max_iterations", "max_iterations"),
+    ("stalled", "stalled"), ("converged", "stalled"),
+])
+def test_sliding_evidence_uses_returned_knots_and_retains_earlier_failures(
+    monkeypatch, early_status, expected,
+):
+    from dataclasses import replace
+
+    from calibrex.core import continuous_time_sliding_window_fit as module
+    from calibrex.core.continuous_time_sparse import TrajectoryPoseMeasurement
+    from calibrex.core.geometry import SE3
+
+    anchor = SE3.identity()
+    problem = ContinuousTimeTrajectoryFitProblem(
+        knot_timestamps=tuple(float(i) for i in range(6)), initial_knot_poses=(anchor,) * 6,
+        pose_measurements=tuple(TrajectoryPoseMeasurement("pose", float(i), anchor)
+                                for i in range(6)),
+    )
+    original = module.fit_continuous_trajectory
+    calls = 0
+
+    def fit(window, options):
+        nonlocal calls
+        calls += 1
+        result = original(window, options)
+        if calls == 1:
+            return replace(result, final_objective=12345., gradient_norm=12345.,
+                           max_step_translation_m=12345., nonzero_jacobian_blocks=12345)
+        if calls == 2:
+            return replace(result, status=early_status, max_step_translation_m=.7)
+        shifted = tuple(se3_exp(knot, np.array([.2, 0., 0., 0., 0., 0.]))
+                        for knot in result.knot_poses)
+        return replace(result, knot_poses=shifted, status="converged",
+                       max_step_translation_m=.4)
+
+    monkeypatch.setattr(module, "fit_continuous_trajectory", fit)
+    result = module.fit_sliding_window_trajectory(
+        problem, window_knot_counts=(4, 4), overlap_knot_count=2,
+    )
+    sliding = result.sliding_result
+    assert sliding.status == expected
+    assert [w.status for w in result.window_results] == [early_status, "converged"]
+    assert not sliding.diagnostics.stationary
+    # Four translated knots, each with four three-coordinate pose anchors.
+    assert sliding.final_objective == pytest.approx(4 * 4 * .2**2)
+    assert sliding.final_pose_rmse == pytest.approx(np.sqrt(4 * 4 * .2**2 / (6 * 12)))
+    assert sliding.final_point_to_plane_rmse is None
+    _, gradient = build_dense_knot_normal_equations(problem, list(sliding.knot_poses))
+    assert sliding.gradient_norm == pytest.approx(np.linalg.norm(gradient, ord=np.inf))
+    assert sliding.max_step_translation_m == .7
+    assert sliding.nonzero_jacobian_blocks == 6 * 4 * 2
+
+
+def test_sliding_rejects_unrouted_factor_families_before_batch_fit(monkeypatch):
+    from calibrex.core import continuous_time_sliding_window_fit as module
+    from calibrex.core.continuous_time_sparse import TrajectoryPointMeasurement
+    from calibrex.core.geometry import SE3
+
+    problem = ContinuousTimeTrajectoryFitProblem(
+        knot_timestamps=(0., 1., 2.), initial_knot_poses=(SE3.identity(),) * 3,
+        point_measurements=(TrajectoryPointMeasurement(
+            "point", .5, (0., 0., 0.), (0., 0., 0.),
+        ),),
+    )
+    def forbidden(*args):
+        pytest.fail("unsupported observations must not be silently discarded")
+    monkeypatch.setattr(module, "fit_continuous_trajectory", forbidden)
+    with pytest.raises(ValueError, match="only plane and pose"):
+        module.fit_sliding_window_trajectory(problem, window_knot_counts=(2, 2),
+                                             overlap_knot_count=1)

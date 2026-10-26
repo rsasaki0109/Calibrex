@@ -2561,6 +2561,15 @@ def build_dense_knot_normal_equations(
 ) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     """Return a dense knot-only normal system ``(H, g)`` at the current linearization."""
 
+    normal, gradient, _objective_value, _block_count = _knot_normal_evidence(problem, knots)
+    return normal, gradient
+
+
+def _knot_normal_evidence(
+    problem: ContinuousTimeTrajectoryFitProblem, knots: list[SE3],
+) -> tuple[NDArray[np.float64], NDArray[np.float64], float, int]:
+    """Return normal equations, squared residual cost and block count at fixed knots."""
+
     if (
         problem.estimate_gyro_bias
         or problem.estimate_lever_arm
@@ -2670,7 +2679,8 @@ def build_dense_knot_normal_equations(
     weighted_jacobian = jacobian.multiply(weight_array[:, None])
     normal = (weighted_jacobian.T @ weighted_jacobian).toarray()
     gradient = weighted_jacobian.T @ (weight_array * residual_array)
-    return normal, np.asarray(gradient, dtype=float).reshape(-1)
+    return (normal, np.asarray(gradient, dtype=float).reshape(-1),
+            float(np.sum((weight_array * residual_array) ** 2)), len(blocks))
 
 
 

@@ -8,6 +8,7 @@ from typing import Any, Literal
 
 from pydantic import Field
 
+from calibrex.core.fit_diagnostics import FitDiagnostics
 from calibrex.core.io import write_mapping
 from calibrex.core.result import StrictModel
 
@@ -54,6 +55,10 @@ class ContinuousTimeSlidingWindowArtifact(StrictModel):
     known_bad_skip_marginalization: bool
     policy_status: Literal["pass", "fail"]
     policy_reason: str
+    window_fit_statuses: list[
+        Literal["converged", "max_iterations", "singular_system", "stalled"]
+    ] = Field(default_factory=list)
+    sliding_fit_diagnostics: FitDiagnostics | None = None
     provenance: ContinuousTimeSlidingWindowProvenance
 
     def save(self, path: str | Path) -> None:

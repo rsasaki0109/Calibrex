@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Recompute sliding-trajectory costs, plane/pose errors, gradients, and final
+  stationarity from its returned knots instead of copying batch diagnostics.
+  Retain every window result, aggregate step maxima, and preserve earlier
+  failures in the overall status. Add optional per-window statuses and stitched
+  diagnostics to recovery artifacts. Generator 0.3 rejects nonconverged sliding
+  fits; the retained development seed exposes an earlier singular window.
+
 - Remove implicit initial-pose penalties from sliding-window fits against
   world-frame planes. Preserve caller-supplied pose observations, admitting
   each once when an incoming marginal prior is used. Retain the gauge audit's
