@@ -55,6 +55,7 @@ from calibrex.core.clock_domain import ClockDomainEvidence, ClockOffsetDomain
 from calibrex.core.continuous_time_marginalization import (
     JointKnotMarginalizationPrior,
     KnotMarginalizationPrior,
+    SquareRootKnotMarginalizationPrior,
     joint_marginalization_prior_blocks,
     joint_marginalization_prior_residual,
     marginalization_prior_blocks,
@@ -343,7 +344,9 @@ class ContinuousTimeTrajectoryFitProblem:
     estimate_imu_rotation: bool = False
     knot_marginalization_priors: tuple[KnotMarginalizationPrior, ...] = ()
     interpolation: Literal["screw_linear"] = "screw_linear"
-    joint_knot_marginalization_priors: tuple[JointKnotMarginalizationPrior, ...] = ()
+    joint_knot_marginalization_priors: tuple[
+        JointKnotMarginalizationPrior | SquareRootKnotMarginalizationPrior, ...
+    ] = ()
 
     def __post_init__(self) -> None:
         if len(self.knot_timestamps) < 2:
@@ -2594,6 +2597,26 @@ def _knot_normal_evidence(
 ) -> tuple[NDArray[np.float64], NDArray[np.float64], float, int]:
     """Return normal equations, squared residual cost and block count at fixed knots."""
 
+    jacobian, residual, block_count = _knot_residual_system(problem, knots)
+    normal = (jacobian.T @ jacobian).toarray()
+    gradient = np.asarray(jacobian.T @ residual, dtype=float).reshape(-1)
+    return normal, gradient, float(np.sum(residual ** 2)), block_count
+
+
+def build_dense_knot_residual_equations(
+    problem: ContinuousTimeTrajectoryFitProblem, knots: list[SE3],
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    """Return already weighted knot factors without forming normal equations."""
+    jacobian, residual, _blocks = _knot_residual_system(problem, knots)
+    return jacobian.toarray(), residual
+
+
+def _knot_residual_system(
+    problem: ContinuousTimeTrajectoryFitProblem, knots: list[SE3],
+) -> tuple[csc_matrix, NDArray[np.float64], int]:
+    """Assemble supported knot-only factors once for both representations."""
+    if problem.imu_preintegration_measurements or problem.imu_lever_arm_measurements:
+        raise ValueError("knot residual assembly does not support IMU factors")
     if (
         problem.estimate_gyro_bias
         or problem.estimate_lever_arm
@@ -2701,10 +2724,7 @@ def _knot_normal_evidence(
     residual_array = np.asarray(residuals, dtype=float)
     weight_array = np.asarray(weights, dtype=float)
     weighted_jacobian = jacobian.multiply(weight_array[:, None])
-    normal = (weighted_jacobian.T @ weighted_jacobian).toarray()
-    gradient = weighted_jacobian.T @ (weight_array * residual_array)
-    return (normal, np.asarray(gradient, dtype=float).reshape(-1),
-            float(np.sum((weight_array * residual_array) ** 2)), len(blocks))
+    return csc_matrix(weighted_jacobian), weight_array * residual_array, len(blocks)
 
 
 

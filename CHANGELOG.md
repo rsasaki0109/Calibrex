@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add experimental `--square-root-marginalization` sliding-window mode. Transfer
+  rectangular residual factors directly between anchored knot windows without
+  converting them back to information priors. Record separate SVD elimination
+  evidence and the selected mode in generator 0.8 artifacts. Keep normal Schur
+  elimination as the default and the existing failed control gate unchanged.
+
 - Add a dense residual-space marginalization reference API that retains weighted
   Jacobian and residual factors, avoiding cancellation from Schur subtraction.
   Record normalized-column SVD rank and threshold; test weak retained information,

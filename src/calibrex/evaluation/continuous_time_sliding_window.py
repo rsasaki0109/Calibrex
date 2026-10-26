@@ -38,6 +38,7 @@ def run_synthetic_sliding_window_recovery(
     command: list[str] | None = None,
     recovery_id: str = "ct-sliding-window-synthetic",
     project_observable_subspace: bool = False,
+    square_root_marginalization: bool = False,
 ) -> ContinuousTimeSlidingWindowArtifact:
     """Recover a knot path with sliding-window marginalization and controls."""
 
@@ -75,6 +76,7 @@ def run_synthetic_sliding_window_recovery(
         window_knot_counts=_WINDOW_KNOT_COUNTS,
         overlap_knot_count=_OVERLAP_KNOT_COUNT,
         options=options,
+        square_root_marginalization=square_root_marginalization,
         apply_marginalization=True,
     )
     known_bad = fit_sliding_window_trajectory(
@@ -82,6 +84,7 @@ def run_synthetic_sliding_window_recovery(
         window_knot_counts=_WINDOW_KNOT_COUNTS,
         overlap_knot_count=_OVERLAP_KNOT_COUNT,
         options=options,
+        square_root_marginalization=square_root_marginalization,
         apply_marginalization=False,
         bad_overlap_translation_m=_KNOWN_BAD_TRANSLATION_M,
     )
@@ -115,6 +118,7 @@ def run_synthetic_sliding_window_recovery(
     return ContinuousTimeSlidingWindowArtifact(
         recovery_id=recovery_id,
         project_observable_subspace=project_observable_subspace,
+        square_root_marginalization=square_root_marginalization,
         interpolation="screw_linear",
         seed=seed,
         knot_count=len(truth),
@@ -138,7 +142,7 @@ def run_synthetic_sliding_window_recovery(
         policy_reason=policy_reason,
         provenance=ContinuousTimeSlidingWindowProvenance(
             generator=__name__,
-            generator_version="0.7",
+            generator_version="0.8",
             git_commit=git_commit(),
             command=command or [],
             seed=seed,

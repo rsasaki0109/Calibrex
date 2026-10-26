@@ -52,8 +52,41 @@ class JointKnotMarginalizationPrior:
         _prior_residual_offset(self, weight)
 
 
+@dataclass(frozen=True)
+class SquareRootKnotMarginalizationPrior:
+    """Joint anchor-tangent factor retained without conversion to information."""
+
+    knot_indices: tuple[int, ...]
+    anchor_poses: tuple[SE3, ...]
+    jacobian: FloatArray
+    residual: FloatArray
+
+    def __post_init__(self) -> None:
+        count = len(self.knot_indices)
+        if (not count or len(self.anchor_poses) != count
+                or len(set(self.knot_indices)) != count or min(self.knot_indices) < 0):
+            raise ValueError(
+                "square-root prior needs matching distinct nonnegative knots and anchors"
+            )
+        j, r = np.asarray(self.jacobian), np.asarray(self.residual)
+        if (np.iscomplexobj(j) or np.iscomplexobj(r) or j.ndim != 2
+                or j.shape[1] != 6 * count or r.shape != (j.shape[0],)
+                or not np.all(np.isfinite(j)) or not np.all(np.isfinite(r))):
+            raise ValueError("square-root prior needs finite real matching factors")
+
+
+JointKnotPrior: TypeAlias = JointKnotMarginalizationPrior | SquareRootKnotMarginalizationPrior
+
+
+def _joint_factor(prior: JointKnotPrior) -> tuple[FloatArray, FloatArray]:
+    if isinstance(prior, SquareRootKnotMarginalizationPrior):
+        return prior.jacobian, prior.residual
+    weight = _square_root_information(prior.information, dimension=6 * len(prior.knot_indices))
+    return weight, _prior_residual_offset(prior, weight)
+
+
 def joint_marginalization_prior_residual(
-    prior: JointKnotMarginalizationPrior, knots: list[SE3],
+    prior: JointKnotPrior, knots: list[SE3],
 ) -> FloatArray:
     """Evaluate the full retained quadratic up to a constant independent of pose."""
     if max(prior.knot_indices) >= len(knots):
@@ -62,17 +95,16 @@ def joint_marginalization_prior_residual(
         se3_log(anchor, knots[index])
         for index, anchor in zip(prior.knot_indices, prior.anchor_poses, strict=True)
     ])
-    weight = _square_root_information(prior.information, dimension=len(delta))
-    return weight @ delta + _prior_residual_offset(prior, weight)
+    weight, offset = _joint_factor(prior)
+    return weight @ delta + offset
 
 
 def joint_marginalization_prior_blocks(
-    prior: JointKnotMarginalizationPrior, knots: list[SE3],
+    prior: JointKnotPrior, knots: list[SE3],
 ) -> tuple[FloatArray, list[tuple[int, FloatArray]]]:
     """Whiten all knot columns together so cross-knot curvature is preserved."""
     residual = joint_marginalization_prior_residual(prior, knots)
-    dimension = len(residual)
-    weight = _square_root_information(prior.information, dimension=dimension)
+    weight, _offset = _joint_factor(prior)
     blocks: list[tuple[int, FloatArray]] = []
     epsilon = 1.e-7
     for local, (index, anchor) in enumerate(zip(

@@ -6,6 +6,18 @@ from dataclasses import dataclass
 
 import numpy as np
 from numpy.typing import NDArray
+from pydantic import Field
+
+from calibrex.core.result import StrictModel
+
+
+class SquareRootEliminationEvidence(StrictModel):
+    """Rank decision for residual-space elimination, distinct from normal rank."""
+
+    eliminated_dimension: int = Field(ge=0)
+    numerical_rank: int = Field(ge=0)
+    zero_information_dimension: int = Field(ge=0)
+    singular_value_threshold: float = Field(ge=0, allow_inf_nan=False)
 
 
 @dataclass(frozen=True)
@@ -22,6 +34,14 @@ class SquareRootMarginalizationResult:
     numerical_rank: int
     zero_information_dimension: int
     singular_value_threshold: float
+
+    def evidence(self) -> SquareRootEliminationEvidence:
+        """Return schema-valid numerical rank evidence without factor arrays."""
+        return SquareRootEliminationEvidence(
+            eliminated_dimension=self.eliminated_dimension, numerical_rank=self.numerical_rank,
+            zero_information_dimension=self.zero_information_dimension,
+            singular_value_threshold=self.singular_value_threshold,
+        )
 
 
 def marginalize_residual_prefix(

@@ -308,6 +308,40 @@
       "title": "SchurEliminationEvidence",
       "type": "object"
     },
+    "SquareRootEliminationEvidence": {
+      "additionalProperties": false,
+      "description": "Rank decision for residual-space elimination, distinct from normal rank.",
+      "properties": {
+        "eliminated_dimension": {
+          "minimum": 0,
+          "title": "Eliminated Dimension",
+          "type": "integer"
+        },
+        "numerical_rank": {
+          "minimum": 0,
+          "title": "Numerical Rank",
+          "type": "integer"
+        },
+        "singular_value_threshold": {
+          "minimum": 0,
+          "title": "Singular Value Threshold",
+          "type": "number"
+        },
+        "zero_information_dimension": {
+          "minimum": 0,
+          "title": "Zero Information Dimension",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "eliminated_dimension",
+        "numerical_rank",
+        "zero_information_dimension",
+        "singular_value_threshold"
+      ],
+      "title": "SquareRootEliminationEvidence",
+      "type": "object"
+    },
     "WindowObservabilityEvidence": {
       "additionalProperties": false,
       "description": "Separate measurement information from information inherited through priors.",
@@ -346,6 +380,17 @@
           },
           "title": "Projected Steps",
           "type": "array"
+        },
+        "square_root_elimination": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SquareRootEliminationEvidence"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "window_index": {
           "minimum": 0,
@@ -486,6 +531,11 @@
       "minimum": 0.0,
       "title": "Sliding Holdout Rmse M",
       "type": "number"
+    },
+    "square_root_marginalization": {
+      "default": false,
+      "title": "Square Root Marginalization",
+      "type": "boolean"
     },
     "train_measurement_count": {
       "minimum": 1,

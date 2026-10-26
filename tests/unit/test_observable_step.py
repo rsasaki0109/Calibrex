@@ -92,7 +92,7 @@ def test_selected_mode_and_attempted_steps_survive_schema_serialization(tmp_path
     report.save(output)
     assert validate_file(output).valid
     assert report.project_observable_subspace
-    assert report.provenance.generator_version == "0.7"
+    assert report.provenance.generator_version == "0.8"
     assert all(window.projected_steps for window in report.window_observability)
     assert report.window_fit_statuses == ["converged", "converged"]
     assert report.policy_status == "fail"  # The independent control gate is unchanged.

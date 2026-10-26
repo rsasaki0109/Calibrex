@@ -2578,6 +2578,8 @@ def _build_parser() -> argparse.ArgumentParser:
     trajectory_window.add_argument("--output", type=Path, required=True)
     trajectory_window.add_argument("--seed", type=int, default=20260820)
     trajectory_window.add_argument("--recovery-id", default="ct-sliding-window-synthetic")
+    trajectory_window.add_argument("--square-root-marginalization", action="store_true",
+                                   help="Use experimental dense residual-space window priors")
     trajectory_window.add_argument("--project-observable-subspace", action="store_true",
                                    help="restrict updates to the numerical observed subspace")
     trajectory_window.add_argument("--json", action="store_true")
@@ -9026,6 +9028,8 @@ def _cmd_trajectory_recover_sliding_window(args: argparse.Namespace) -> int:
         "--seed",
         str(args.seed),
     ]
+    if args.square_root_marginalization:
+        command.append("--square-root-marginalization")
     if args.project_observable_subspace:
         command.append("--project-observable-subspace")
     try:
@@ -9034,6 +9038,7 @@ def _cmd_trajectory_recover_sliding_window(args: argparse.Namespace) -> int:
             command=command,
             recovery_id=args.recovery_id,
             project_observable_subspace=args.project_observable_subspace,
+            square_root_marginalization=args.square_root_marginalization,
         )
         artifact.save(args.output)
     except (OSError, ValueError) as exc:

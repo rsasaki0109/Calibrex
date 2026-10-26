@@ -10,6 +10,7 @@ from pydantic import Field
 from calibrex.core.continuous_time_marginalization import SchurEliminationEvidence
 from calibrex.core.observable_step import ProjectedStepEvidence
 from calibrex.core.result import StrictModel
+from calibrex.core.square_root_marginalization import SquareRootEliminationEvidence
 
 
 class KnotInformationEvidence(StrictModel):
@@ -30,6 +31,7 @@ class WindowObservabilityEvidence(StrictModel):
 
     projected_steps: list[ProjectedStepEvidence] = Field(default_factory=list)
     elimination: SchurEliminationEvidence | None = None
+    square_root_elimination: SquareRootEliminationEvidence | None = None
     frozen_parameters: list[str] = Field(default_factory=list)
     window_index: int = Field(ge=0)
     global_knot_indices: list[int]

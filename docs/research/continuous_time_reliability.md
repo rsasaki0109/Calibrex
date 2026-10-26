@@ -370,11 +370,45 @@ projection still has floating-point error when retained columns almost align
 with eliminated columns; the API does not promise exact recovery at all scales.
 
 This is a dense reference API with quadratic memory in the residual row count.
-The sliding-window fitter still uses its existing normal-equation Schur path.
-Integrating residual-space factors and retaining them across window boundaries
-requires separate work; converting the result back to normal matrices can lose
-weak information again. These development tests make no new trajectory accuracy
-or runtime claim.
+Converting its result back to normal matrices can lose weak information again.
+These development tests make no new trajectory accuracy or runtime claim.
+
+## Opt-in residual-space window priors
+
+`fit_sliding_window_trajectory(..., square_root_marginalization=True)` now uses
+the residual-space API at window boundaries. The default remains normal-equation
+Schur elimination. The CLI exposes the mode with:
+
+```sh
+calibrex trajectory recover-sliding-window --output result.json --square-root-marginalization
+```
+
+`SquareRootKnotMarginalizationPrior` retains a possibly rectangular weighted
+Jacobian and residual in fixed anchor tangents. Both candidate cost and the next
+window's linearization evaluate that factor directly, including constant cost
+rows, without reconstructing it from information and gradient. The shared knot
+factor assembler supplies weighted residual equations for outgoing elimination;
+unsupported IMU factors are rejected rather than silently omitted. Observation
+accounting, explicit pose constraints and known-bad controls remain unchanged.
+
+Generator 0.8 records the selected mode. Each outgoing window records
+`square_root_elimination` with eliminated dimension, numerical rank, exact-zero
+column count and singular-value threshold; normal-path `elimination` is absent
+for this mode. The final window has neither outgoing record. These optional
+schema fields keep old artifacts readable.
+
+Tests reproduce weak information `1e-18` lost by normal Schur subtraction and
+verify that its factor and linear term reach the next window. They also cover
+rectangular and zero-row priors, nonlinear tangent derivatives, three overlapping
+windows, and CLI provenance/schema validation. The reused synthetic development
+case converges but still fails the no-marginalization control gate; thresholds
+and seeds have not been retuned.
+
+This mode still uses a dense full residual-space SVD, and retained constant rows
+can accumulate across windows. The trajectory optimizer still forms normal
+equations for its own updates and diagnostics. Thus this change protects factor
+transfer at window boundaries, not every weak direction in optimization; it does
+not claim improved trajectory accuracy, runtime, or global gauge consistency.
 
 ## Opt-in updates in the observable subspace
 

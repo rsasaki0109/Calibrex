@@ -60,6 +60,7 @@ class ContinuousTimeSlidingWindowArtifact(StrictModel):
         Literal["converged", "max_iterations", "singular_system", "stalled"]
     ] = Field(default_factory=list)
     project_observable_subspace: bool = False
+    square_root_marginalization: bool = False
     sliding_fit_diagnostics: FitDiagnostics | None = None
     window_observability: list[WindowObservabilityEvidence] = Field(default_factory=list)
     provenance: ContinuousTimeSlidingWindowProvenance
