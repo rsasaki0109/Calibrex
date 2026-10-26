@@ -43,8 +43,8 @@ class ContinuousTimeSlidingWindowArtifact(StrictModel):
     overlap_knot_count: int = Field(ge=1)
     train_measurement_count: int = Field(ge=1)
     holdout_measurement_count: int = Field(ge=1)
-    batch_fit_status: Literal["converged", "max_iterations", "singular_system"]
-    sliding_fit_status: Literal["converged", "max_iterations", "singular_system"]
+    batch_fit_status: Literal["converged", "max_iterations", "singular_system", "stalled"]
+    sliding_fit_status: Literal["converged", "max_iterations", "singular_system", "stalled"]
     max_overlap_translation_error_m: float = Field(ge=0.0)
     max_overlap_rotation_error_rad: float = Field(ge=0.0)
     batch_holdout_rmse_m: float = Field(ge=0.0)

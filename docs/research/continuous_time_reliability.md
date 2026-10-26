@@ -16,6 +16,16 @@ The first study uses continuous-time LiDAR–IMU calibration. This plan orders
 development work; an independent accuracy claim requires a separate frozen
 protocol under the [SOTA audit rules](../sota_handoff.md).
 
+## P0 implementation update (2026-10-26)
+
+[Stationarity and independent uncertainty coverage](p0_reliability.md) implements
+normalized final-state stopping diagnostics and explicit `stalled` outcomes for
+both native fitters. It retains 20 known-plane and five full-pipeline synthetic
+bag draws, including undercoverage and failed quality gates. The historical
+observations below describe the recorded source at each milestone; the P0 update
+supersedes their descriptions of current convergence labels. Clock-domain and
+marginalization audits remain open.
+
 ## 1. Consistent measurement loss
 
 The native `screw_linear` fitter uses scalar square-root information:

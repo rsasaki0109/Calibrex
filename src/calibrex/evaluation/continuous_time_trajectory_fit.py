@@ -64,6 +64,7 @@ def run_continuous_time_trajectory_fit(
         trajectory_id=trajectory.trajectory_id,
         interpolation="screw_linear",
         status=result.status,
+        fit_diagnostics=result.diagnostics,
         iterations=result.iterations,
         final_objective=result.final_objective,
         final_point_rmse=result.final_point_rmse,

@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+- Distinguish stalled continuous-time fits from stationary solutions in both
+  screw-linear and B-spline solvers. Use unit-invariant gradient and step
+  diagnostics, retain explicit termination reasons, extend result schemas with
+  `stalled`, and warn for a nonstationary final bag fit. Historical results remain
+  readable. Add independent uncertainty-coverage evaluation with every failed
+  trial retained; 20 known-plane and five full-pipeline synthetic bag draws
+  expose fixed-map covariance undercoverage without retuning intervals.
+
 - Add a method demo gallery for LiDAR–LiDAR, IMU deskew, Camera–IMU,
   Camera–LiDAR and fisheye stereo, with provenance and real/synthetic labels.
 - Support unified/MEI and Double Sphere cameras in native stereo rectification

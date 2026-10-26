@@ -250,6 +250,11 @@ _ENTRY_SPECS: Final = (
         "calibrex.core.continuous_time_lidar_imu_joint:continuous_time_lidar_imu_joint_json_schema",
     ),
     _EntrySpec(
+        "uncertainty-coverage",
+        "calibrex.evaluation.uncertainty_coverage:UncertaintyCoverageReport",
+        "calibrex.evaluation.uncertainty_coverage:uncertainty_coverage_json_schema",
+    ),
+    _EntrySpec(
         "lidar-imu-bag-calibration",
         "calibrex.core.lidar_imu_bag_calibration:LidarImuBagCalibrationArtifact",
         "calibrex.core.lidar_imu_bag_calibration:lidar_imu_bag_calibration_json_schema",

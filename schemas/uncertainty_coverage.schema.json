@@ -1,0 +1,294 @@
+{
+  "$defs": {
+    "CoverageAxisObservation": {
+      "additionalProperties": false,
+      "description": "Error in the same tangent coordinates and units as the reported std.",
+      "properties": {
+        "axis": {
+          "title": "Axis",
+          "type": "string"
+        },
+        "error": {
+          "title": "Error",
+          "type": "number"
+        },
+        "std": {
+          "minimum": 0,
+          "title": "Std",
+          "type": "number"
+        }
+      },
+      "required": [
+        "axis",
+        "error",
+        "std"
+      ],
+      "title": "CoverageAxisObservation",
+      "type": "object"
+    },
+    "CoverageAxisSummary": {
+      "additionalProperties": false,
+      "description": "Both conditional coverage and all-attempt interval delivery are reported.",
+      "properties": {
+        "all_attempt_coverage": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "All Attempt Coverage",
+          "type": "number"
+        },
+        "attempts": {
+          "minimum": 1,
+          "title": "Attempts",
+          "type": "integer"
+        },
+        "available": {
+          "minimum": 0,
+          "title": "Available",
+          "type": "integer"
+        },
+        "axis": {
+          "title": "Axis",
+          "type": "string"
+        },
+        "conditional_coverage": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Conditional Coverage"
+        },
+        "covered": {
+          "minimum": 0,
+          "title": "Covered",
+          "type": "integer"
+        },
+        "mean_error": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Mean Error"
+        },
+        "mean_std": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Mean Std"
+        },
+        "rms_error": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Rms Error"
+        },
+        "shrunken_covered": {
+          "minimum": 0,
+          "title": "Shrunken Covered",
+          "type": "integer"
+        },
+        "verdict": {
+          "enum": [
+            "undercoverage",
+            "inconclusive"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        },
+        "wilson_95": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Wilson 95"
+        }
+      },
+      "required": [
+        "axis",
+        "attempts",
+        "available",
+        "covered",
+        "conditional_coverage",
+        "all_attempt_coverage",
+        "wilson_95",
+        "mean_error",
+        "rms_error",
+        "mean_std",
+        "shrunken_covered",
+        "verdict"
+      ],
+      "title": "CoverageAxisSummary",
+      "type": "object"
+    },
+    "CoverageTrial": {
+      "additionalProperties": false,
+      "description": "One independently generated recording; failed fits remain in the cohort.",
+      "properties": {
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "axes": {
+          "items": {
+            "$ref": "#/$defs/CoverageAxisObservation"
+          },
+          "title": "Axes",
+          "type": "array"
+        },
+        "failure": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Failure"
+        },
+        "fit_status": {
+          "title": "Fit Status",
+          "type": "string"
+        },
+        "policy_status": {
+          "title": "Policy Status",
+          "type": "string"
+        },
+        "seed": {
+          "title": "Seed",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "seed",
+        "fit_status",
+        "policy_status"
+      ],
+      "title": "CoverageTrial",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A reproducible development measurement, never an accuracy certificate.",
+  "properties": {
+    "axes": {
+      "items": {
+        "$ref": "#/$defs/CoverageAxisSummary"
+      },
+      "title": "Axes",
+      "type": "array"
+    },
+    "command": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Command",
+      "type": "array"
+    },
+    "control_std_scale": {
+      "exclusiveMaximum": 1,
+      "exclusiveMinimum": 0,
+      "title": "Control Std Scale",
+      "type": "number"
+    },
+    "git_commit": {
+      "title": "Git Commit",
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "nominal_coverage": {
+      "exclusiveMaximum": 1,
+      "exclusiveMinimum": 0,
+      "title": "Nominal Coverage",
+      "type": "number"
+    },
+    "producer": {
+      "enum": [
+        "known_planes",
+        "synthetic_bag"
+      ],
+      "title": "Producer",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "slac.uncertainty_coverage/v0.1",
+      "default": "slac.uncertainty_coverage/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Source Sha256",
+      "type": "object"
+    },
+    "trials": {
+      "items": {
+        "$ref": "#/$defs/CoverageTrial"
+      },
+      "title": "Trials",
+      "type": "array"
+    }
+  },
+  "required": [
+    "nominal_coverage",
+    "control_std_scale",
+    "producer",
+    "source_sha256",
+    "command",
+    "git_commit",
+    "trials",
+    "axes",
+    "limitations"
+  ],
+  "title": "UncertaintyCoverageReport",
+  "type": "object"
+}

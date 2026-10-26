@@ -167,6 +167,7 @@ def run_synthetic_imu_intrinsics_recovery(
         holdout_gyro_measurement_count=len(holdout_gyro),
         holdout_accel_measurement_count=len(holdout_accel),
         fit_status=result.status,
+        fit_diagnostics=result.diagnostics,
         gyro_scale_error=gyro_error,
         accel_scale_error=accel_error,
         train_imu_rotation_rmse_rad=train_imu_rmse,

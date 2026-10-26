@@ -294,3 +294,48 @@ def test_gravity_magnitude_prior_rejects_non_positive_values() -> None:
     planes, gyro, accel = _measurements(spline, np.random.default_rng(13))
     with pytest.raises(ValueError, match="gravity magnitude"):
         BSplineLidarImuProblem(spline, planes, gyro, accel, TRUTH, gravity_magnitude_m_s2=-1.0)
+
+
+def test_rejected_steps_are_stalled_not_converged(monkeypatch: pytest.MonkeyPatch) -> None:
+    from calibrex.core import continuous_time_bspline_fit as module
+
+    path = _truth_spline()
+    planes, gyro, accel = _measurements(path, np.random.default_rng(5))
+    initial = replace(TRUTH, gyro_bias_rad_s=TRUTH.gyro_bias_rad_s + 0.05)
+    problem = BSplineLidarImuProblem(path, planes, gyro, accel, initial)
+    # The candidate equals the current state, so no step can reduce the cost.
+    monkeypatch.setattr(module, "_apply_step", lambda trajectory, calibration, *_:
+                        (trajectory, calibration))
+    result = fit_bspline_lidar_imu(problem, BSplineLidarImuFitOptions(max_iterations=2))
+    assert result.status == "stalled"
+    assert result.diagnostics is not None
+    assert result.diagnostics.termination_reason == "damping_limit"
+    assert not result.diagnostics.stationary
+    assert result.final_cost == result.initial_cost
+
+
+def test_tiny_damped_spline_step_does_not_prove_stationarity() -> None:
+    path = _truth_spline()
+    planes, gyro, accel = _measurements(path, np.random.default_rng(5))
+    initial = replace(TRUTH, gyro_bias_rad_s=TRUTH.gyro_bias_rad_s + 0.05)
+    result = fit_bspline_lidar_imu(
+        BSplineLidarImuProblem(path, planes, gyro, accel, initial),
+        BSplineLidarImuFitOptions(initial_damping=1.e10, max_iterations=2),
+    )
+    assert result.status == "stalled"
+    assert result.diagnostics is not None and not result.diagnostics.stationary
+    assert result.diagnostics.termination_reason in ("small_step", "small_cost_change")
+
+
+def test_final_model_must_confirm_stationarity(monkeypatch: pytest.MonkeyPatch) -> None:
+    from calibrex.core import continuous_time_bspline_fit as module
+
+    path = _truth_spline()
+    planes, gyro, accel = _measurements(path, np.random.default_rng(5))
+    # A backend's iterative model can disagree with the final complete model.
+    norms = iter([0., 1.])
+    monkeypatch.setattr(module, "normalized_gradient_norm", lambda *_: next(norms))
+    result = fit_bspline_lidar_imu(BSplineLidarImuProblem(path, planes, gyro, accel, TRUTH))
+    assert result.status == "stalled"
+    assert result.diagnostics is not None and not result.diagnostics.stationary
+    assert result.diagnostics.termination_reason == "stationarity_not_confirmed"

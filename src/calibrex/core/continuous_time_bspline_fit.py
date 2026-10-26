@@ -51,6 +51,12 @@ from calibrex.core.continuous_time_bspline_derivatives import (
     _rotation_control_derivatives,
     _RotationDerivatives,
 )
+from calibrex.core.fit_diagnostics import (
+    FitDiagnostics,
+    FitTermination,
+    normalized_gradient_norm,
+    normalized_step_norm,
+)
 from calibrex.core.se3_manifold import (
     rotation_matrix_to_rotation_vector,
     rotation_vector_to_matrix,
@@ -195,8 +201,11 @@ class BSplineLidarImuFitOptions:
     relative_cost_tolerance: float = 1.0e-10
     step_tolerance: float = 1.0e-10
     plane_backend: Literal["numpy", "cuda"] = "numpy"
+    gradient_tolerance: float = 1.0e-8
 
     def __post_init__(self) -> None:
+        if not math.isfinite(self.gradient_tolerance) or self.gradient_tolerance <= 0:
+            raise ValueError("gradient_tolerance must be finite and positive")
         if self.plane_backend not in ("numpy", "cuda"):
             raise ValueError("spline plane backend must be numpy or cuda")
 
@@ -205,7 +214,7 @@ class BSplineLidarImuFitOptions:
 class BSplineLidarImuFitResult:
     """Fitted spline and calibration with convergence and covariance evidence."""
 
-    status: Literal["converged", "max_iterations", "singular_system"]
+    status: Literal["converged", "max_iterations", "singular_system", "stalled"]
     iterations: int
     trajectory: CubicBSplineTrajectory
     calibration: LidarImuCalibration
@@ -216,6 +225,7 @@ class BSplineLidarImuFitResult:
     calibration_parameter_names: tuple[str, ...]
     calibration_covariance: FloatArray
     residual_variance: float
+    diagnostics: FitDiagnostics | None = None
     execution_backend: str = "numpy"
     execution_statistics: dict[str, int] = field(default_factory=dict)
 
@@ -353,7 +363,8 @@ def _fit_bspline_lidar_imu(
         raise ValueError("initial residuals are not finite; check the time domain")
     initial_cost = cost
     damping = settings.initial_damping
-    status: Literal["converged", "max_iterations", "singular_system"] = "max_iterations"
+    status: Literal["converged", "max_iterations", "singular_system", "stalled"] = "max_iterations"
+    termination: FitTermination = "iteration_limit"
     iterations = 0
     for iteration in range(settings.max_iterations):
         iterations = iteration + 1
@@ -364,6 +375,11 @@ def _fit_bspline_lidar_imu(
         gradient = jacobian.T @ residuals
         if plane_evaluator is not None:
             normal, gradient = plane_evaluator.normal_system(trajectory, normal, gradient)
+        scaled_gradient = normalized_gradient_norm(gradient, normal.diagonal(), math.sqrt(cost))
+        if scaled_gradient < settings.gradient_tolerance:
+            status = "converged"
+            termination = "gradient_tolerance"
+            break
         scale = np.maximum(normal.diagonal(), 1.0e-12)
         accepted = False
         while damping < 1.0e12:
@@ -373,9 +389,11 @@ def _fit_bspline_lidar_imu(
                 )
             except RuntimeError:
                 status = "singular_system"
+                termination = "singular_system"
                 break
             if not np.all(np.isfinite(step)):
                 status = "singular_system"
+                termination = "singular_system"
                 break
             candidate_trajectory, candidate_calibration = _apply_step(
                 trajectory, calibration, step, estimate
@@ -387,24 +405,43 @@ def _fit_bspline_lidar_imu(
             damping *= 10.0
         if status == "singular_system" or not accepted:
             if not accepted and status != "singular_system":
-                status = "converged"
+                status = "stalled"
+                termination = "damping_limit"
             break
+        scaled_step = normalized_step_norm(step, normal.diagonal(), math.sqrt(cost))
         relative = (cost - candidate_cost) / max(cost, 1.0e-300)
         trajectory, calibration, cost = candidate_trajectory, candidate_calibration, candidate_cost
         damping = max(damping * 0.3, 1.0e-12)
-        if relative < settings.relative_cost_tolerance or float(
-            np.max(np.abs(step))
-        ) < settings.step_tolerance:
-            status = "converged"
+        if (relative < settings.relative_cost_tolerance
+                or scaled_step < settings.step_tolerance):
+            status = "stalled"
+            termination = ("small_cost_change" if relative < settings.relative_cost_tolerance
+                           else "small_step")
             break
 
     jacobian, residuals = linearize(trajectory, calibration)
+    scaled_gradient = normalized_gradient_norm(
+        jacobian.T @ residuals, np.asarray(jacobian.power(2).sum(axis=0)).ravel(),
+        float(np.linalg.norm(residuals)),
+    )
+    stationary = scaled_gradient < settings.gradient_tolerance
+    if status == "converged" and not stationary:
+        status = "stalled"
+        termination = "stationarity_not_confirmed"
+    if stationary and status != "singular_system" and settings.max_iterations > 0:
+        status = "converged"
+        termination = "gradient_tolerance"
+    diagnostics = FitDiagnostics(
+        termination_reason=termination, normalized_gradient_norm=scaled_gradient,
+        gradient_tolerance=settings.gradient_tolerance, stationary=stationary,
+    )
     names = tuple(
         f"{block}[{axis}]" for block in estimate for axis in range(_BLOCK_WIDTH[block])
     )
     covariance, variance = _marginal_covariance(jacobian, residuals, control_columns)
     return BSplineLidarImuFitResult(
         status=status,
+        diagnostics=diagnostics,
         iterations=iterations,
         trajectory=trajectory,
         calibration=calibration,

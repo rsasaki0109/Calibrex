@@ -8,6 +8,7 @@ from typing import Any, Literal
 
 from pydantic import Field
 
+from calibrex.core.fit_diagnostics import FitDiagnostics
 from calibrex.core.io import write_mapping
 from calibrex.core.result import StrictModel
 
@@ -115,7 +116,8 @@ class ContinuousTimeLidarImuJointArtifact(StrictModel):
     holdout_gyro_count: int = Field(ge=1)
     train_accel_count: int = Field(ge=1)
     holdout_accel_count: int = Field(ge=1)
-    fit_status: Literal["converged", "max_iterations", "singular_system"]
+    fit_status: Literal["converged", "max_iterations", "singular_system", "stalled"]
+    fit_diagnostics: FitDiagnostics | None = None
     iterations: int = Field(ge=1)
     max_trajectory_translation_error_m: float = Field(ge=0.0)
     max_trajectory_rotation_error_deg: float = Field(ge=0.0)

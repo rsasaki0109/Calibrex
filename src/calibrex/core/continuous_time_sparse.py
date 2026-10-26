@@ -55,6 +55,12 @@ from calibrex.core.continuous_time_marginalization import (
     KnotMarginalizationPrior,
     marginalization_prior_blocks,
 )
+from calibrex.core.fit_diagnostics import (
+    FitDiagnostics,
+    FitTermination,
+    normalized_gradient_norm,
+    normalized_step_norm,
+)
 from calibrex.core.geometry import SE3
 from calibrex.core.se3_manifold import (
     _cross3,
@@ -74,7 +80,7 @@ from calibrex.core.se3_manifold import (
 
 FloatArray: TypeAlias = NDArray[np.float64]
 
-FitStatus = Literal["converged", "max_iterations", "singular_system"]
+FitStatus = Literal["converged", "max_iterations", "singular_system", "stalled"]
 
 
 @dataclass(frozen=True)
@@ -424,7 +430,7 @@ class ContinuousTimeTrajectoryFitResult:
 
     ``gradient_norm`` is the infinity norm of the final weighted normal
     right-hand side, half the squared-objective gradient at the returned state.
-    A small accepted step is a separate existing convergence criterion.
+    Small damped steps alone do not establish stationarity.
     """
 
     status: FitStatus
@@ -452,6 +458,7 @@ class ContinuousTimeTrajectoryFitResult:
     calibration_parameter_names: tuple[str, ...] = ()
     calibration_covariance: tuple[tuple[float, ...], ...] | None = None
     residual_variance: float | None = None
+    diagnostics: FitDiagnostics | None = None
 
 
 _ANCHOR_POINTS: tuple[tuple[float, float, float], ...] = (
@@ -707,6 +714,7 @@ def fit_continuous_trajectory(
     max_step_translation = 0.0
     max_step_rotation_deg = 0.0
     status: FitStatus = "max_iterations"
+    termination: FitTermination = "iteration_limit"
     iterations = 0
     knot_count = len(knots)
     parameter_count = (
@@ -944,8 +952,12 @@ def fit_continuous_trajectory(
         gradient_norm = float(np.max(np.abs(rhs)))
         linearization_is_current = True
 
-        if gradient_norm < settings.convergence_gradient_norm:
+        scaled_gradient = normalized_gradient_norm(
+            rhs, normal.diagonal(), float(np.linalg.norm(weight_array * residual_array))
+        )
+        if scaled_gradient < settings.convergence_gradient_norm:
             status = "converged"
+            termination = "gradient_tolerance"
             break
 
         damping_matrix = normal + damping * _block_diagonal_scale(
@@ -955,9 +967,11 @@ def fit_continuous_trajectory(
             delta = spsolve(damping_matrix.tocsc(), -rhs)
         except RuntimeError:
             status = "singular_system"
+            termination = "singular_system"
             break
         if not np.all(np.isfinite(delta)):
             status = "singular_system"
+            termination = "singular_system"
             break
 
         candidate = [
@@ -1057,15 +1071,17 @@ def fit_continuous_trajectory(
             max_step_translation = max(max_step_translation, step_translation)
             max_step_rotation_deg = max(max_step_rotation_deg, step_rotation)
             damping = max(damping * settings.damping_scale_down, 1.0e-12)
-            if (
-                step_translation < settings.convergence_step_norm
-                and step_rotation_rad < settings.convergence_step_norm
-            ):
-                status = "converged"
+            if normalized_step_norm(
+                delta, normal.diagonal(), float(np.linalg.norm(weight_array * residual_array))
+            ) < settings.convergence_step_norm:
+                status = "stalled"
+                termination = "small_step"
                 break
         else:
             damping *= settings.damping_scale_up
             if damping > 1.0e12:
+                status = "stalled"
+                termination = "damping_limit"
                 break
 
     if status != "converged" and best_objective < objective:
@@ -1101,6 +1117,20 @@ def fit_continuous_trajectory(
         final_weighted_jacobian = final_jacobian.multiply(final_weights[:, None])
         final_rhs = final_weighted_jacobian.T @ (final_weights * final_residuals)
         gradient_norm = float(np.max(np.abs(final_rhs)))
+    final_weighted = final_jacobian.multiply(final_weights[:, None])
+    scaled_gradient = normalized_gradient_norm(
+        final_weighted.T @ (final_weights * final_residuals),
+        np.asarray(final_weighted.power(2).sum(axis=0)).ravel(),
+        float(np.linalg.norm(final_weights * final_residuals)),
+    )
+    stationary = scaled_gradient < settings.convergence_gradient_norm
+    if stationary and status != "singular_system":
+        status = "converged"
+        termination = "gradient_tolerance"
+    diagnostics = FitDiagnostics(
+        termination_reason=termination, normalized_gradient_norm=scaled_gradient,
+        gradient_tolerance=settings.convergence_gradient_norm, stationary=stationary,
+    )
     if layout and status != "singular_system":
         covariance, residual_variance = _marginal_calibration_covariance(
             final_jacobian, final_residuals, final_weights, knot_count
@@ -1136,6 +1166,7 @@ def fit_continuous_trajectory(
     )
     return ContinuousTimeTrajectoryFitResult(
         status=status,
+        diagnostics=diagnostics,
         iterations=iterations,
         knot_poses=tuple(knots),
         initial_knot_poses=problem.initial_knot_poses,

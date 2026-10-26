@@ -8,6 +8,7 @@ from typing import Any, Literal
 
 from pydantic import Field
 
+from calibrex.core.fit_diagnostics import FitDiagnostics
 from calibrex.core.io import write_mapping
 from calibrex.core.result import StrictModel
 
@@ -41,7 +42,8 @@ class ContinuousTimeImuLeverArmArtifact(StrictModel):
     knot_count: int = Field(ge=2)
     train_measurement_count: int = Field(ge=1)
     holdout_measurement_count: int = Field(ge=1)
-    fit_status: Literal["converged", "max_iterations", "singular_system"]
+    fit_status: Literal["converged", "max_iterations", "singular_system", "stalled"]
+    fit_diagnostics: FitDiagnostics | None = None
     max_knot_translation_error_m: float = Field(ge=0.0)
     lever_arm_error_m: float = Field(ge=0.0)
     train_lever_arm_rmse_m_s2: float = Field(ge=0.0)

@@ -142,6 +142,7 @@ def run_synthetic_imu_accel_bias_recovery(
         train_measurement_count=len(train),
         holdout_measurement_count=len(holdout),
         fit_status=result.status,
+        fit_diagnostics=result.diagnostics,
         max_knot_translation_error_m=max_translation_error,
         accel_bias_error_m_s2=bias_error,
         gravity_error_m_s2=gravity_error,

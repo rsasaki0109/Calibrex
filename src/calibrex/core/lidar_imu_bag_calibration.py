@@ -8,6 +8,7 @@ from typing import Any, Literal
 
 from pydantic import Field
 
+from calibrex.core.fit_diagnostics import FitDiagnostics
 from calibrex.core.io import write_mapping
 from calibrex.core.result import StrictModel
 
@@ -102,7 +103,8 @@ class LidarImuBagRound(StrictModel):
     round: int = Field(ge=0)
     map_planes: int = Field(ge=0)
     plane_returns: int = Field(ge=0)
-    fit_status: Literal["converged", "max_iterations", "singular_system"]
+    fit_status: Literal["converged", "max_iterations", "singular_system", "stalled"]
+    fit_diagnostics: FitDiagnostics | None = None
     iterations: int = Field(ge=1)
     rotation_change_deg: float = Field(ge=0.0)
 

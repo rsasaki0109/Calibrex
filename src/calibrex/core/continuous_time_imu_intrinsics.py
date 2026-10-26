@@ -8,6 +8,7 @@ from typing import Any, Literal
 
 from pydantic import Field
 
+from calibrex.core.fit_diagnostics import FitDiagnostics
 from calibrex.core.io import write_mapping
 from calibrex.core.result import StrictModel
 
@@ -43,7 +44,8 @@ class ContinuousTimeImuIntrinsicsArtifact(StrictModel):
     train_accel_measurement_count: int = Field(ge=1)
     holdout_gyro_measurement_count: int = Field(ge=1)
     holdout_accel_measurement_count: int = Field(ge=1)
-    fit_status: Literal["converged", "max_iterations", "singular_system"]
+    fit_status: Literal["converged", "max_iterations", "singular_system", "stalled"]
+    fit_diagnostics: FitDiagnostics | None = None
     gyro_scale_error: float = Field(ge=0.0)
     accel_scale_error: float = Field(ge=0.0)
     train_imu_rotation_rmse_rad: float = Field(ge=0.0)

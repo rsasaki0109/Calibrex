@@ -160,10 +160,11 @@ def test_final_model_is_refreshed_only_after_state_changes(
         )
     if mode in ("stationary", "gradient_stop"):
         assert result.status == "converged"
-        assert result.gradient_norm < settings.convergence_gradient_norm
+        assert result.diagnostics.stationary
     if mode == "accepted_small_step":
-        # A small accepted damped step remains an existing stop reason; this
-        # reporting correction must disclose its large final gradient.
+        # A tiny damped step with a large gradient is stagnation, not convergence.
+        assert result.status == "stalled"
+        assert result.diagnostics.termination_reason == "small_step"
         assert result.max_step_translation_m < settings.convergence_step_norm
         assert result.gradient_norm > 1.0
     if mode in ("iteration_limit", "rejected", "accepted_then_rejected"):
@@ -172,6 +173,7 @@ def test_final_model_is_refreshed_only_after_state_changes(
     if mode == "damping_limit":
         # An unsuccessful damped step must not be called convergence or
         # confused with consuming the configured iteration budget.
-        assert result.status == "max_iterations"
+        assert result.status == "stalled"
+        assert result.diagnostics.termination_reason == "damping_limit"
         assert result.iterations == 1 < budget
         assert result.gradient_norm > settings.convergence_gradient_norm

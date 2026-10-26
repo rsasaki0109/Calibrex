@@ -130,6 +130,7 @@ ValidationKind = Literal[
     "continuous-time-imu-intrinsics",
     "continuous-time-lidar-imu-joint",
     "lidar-imu-bag-calibration",
+    "uncertainty-coverage",
     "continuous-time-sliding-window",
     "continuous-time-lidar-train-diagnostics",
     "continuous-time-lidar-ablation",
