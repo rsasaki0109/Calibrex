@@ -460,6 +460,24 @@ diagnostics. Thus this change protects factor transfer at window boundaries,
 not every weak direction in optimization; it does not claim improved trajectory
 accuracy, measured runtime, or global gauge consistency.
 
+## Knot factor input and derivative audit
+
+The knot-factor input audit also checks that residual-space assembly and the
+native fitter describe the same weighted objective. A mixed development case
+combines point, plane and pose observations, unequal weights, a single-knot
+information prior, a reordered joint information prior and a rectangular
+square-root prior away from its anchors. Tests compare initial and final costs,
+the first optimizer normal gradient and diagonal, and central differences of
+every knot tangent coordinate. Valid-input calculations agree without changing
+weighting conventions.
+
+The audit found input-validation gaps: nonfinite interior knot timestamps could
+pass endpoint-only checks, dense assembly accepted extra knot states, and a
+single-knot prior beyond the window could raise an indexing error before the
+fitter's later validation. Timestamps must now all be finite, both dense builders
+require exactly one state per timestamp, and single-knot prior indices are
+checked before use. These are input-contract fixes, not new accuracy evidence.
+
 ## Opt-in updates in the observable subspace
 
 Set `ContinuousTimeTrajectoryFitOptions(project_observable_subspace=True)` to

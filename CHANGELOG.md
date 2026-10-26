@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Reject nonfinite interior knot timestamps, mismatched knot states in dense
+  factor assembly, and out-of-range single-knot priors before fit evaluation.
+  Audit mixed weighted observations and all supported knot prior representations
+  against the native fitter's objective, normal gradient and manifold derivatives.
+
 - Exclude rows unrelated to eliminated variables and exactly absent columns from
   residual-space rank decisions. Prevent zero-row padding from manufacturing
   retained information while preserving unrelated observations and constant

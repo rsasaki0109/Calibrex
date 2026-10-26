@@ -358,9 +358,7 @@ class ContinuousTimeTrajectoryFitProblem:
             for left, right in pairwise(self.knot_timestamps)
         ):
             raise ValueError("knot timestamps must be strictly increasing")
-        if not math.isfinite(self.knot_timestamps[0]) or not math.isfinite(
-            self.knot_timestamps[-1]
-        ):
+        if not all(math.isfinite(timestamp) for timestamp in self.knot_timestamps):
             raise ValueError("knot timestamps must be finite")
         if (
             not self.point_measurements
@@ -624,6 +622,9 @@ def fit_continuous_trajectory(
     settings = options or ContinuousTimeTrajectoryFitOptions()
     timestamps = problem.knot_timestamps
     knots = list(problem.initial_knot_poses)
+    if any(prior.knot_index < 0 or prior.knot_index >= len(knots)
+           for prior in problem.knot_marginalization_priors):
+        raise ValueError("marginalization prior knot index is out of range")
     gyro_bias = np.asarray(problem.initial_gyro_bias_rad_s, dtype=float)
     lever_arm = np.asarray(problem.initial_lever_arm_body_m, dtype=float)
     clock_offset = float(problem.initial_imu_clock_offset_sec)
@@ -2615,6 +2616,8 @@ def _knot_residual_system(
     problem: ContinuousTimeTrajectoryFitProblem, knots: list[SE3],
 ) -> tuple[csc_matrix, NDArray[np.float64], int]:
     """Assemble supported knot-only factors once for both representations."""
+    if len(knots) != len(problem.knot_timestamps):
+        raise ValueError("knot poses must match the knot timestamps")
     if problem.imu_preintegration_measurements or problem.imu_lever_arm_measurements:
         raise ValueError("knot residual assembly does not support IMU factors")
     if (
@@ -2694,6 +2697,8 @@ def _knot_residual_system(
             blocks.append((row_offset, 6 * (interval + 1), jacobian_right))
             row_offset += 3
     for prior in problem.knot_marginalization_priors:
+        if prior.knot_index < 0 or prior.knot_index >= knot_count:
+            raise ValueError("marginalization prior knot index is out of range")
         weighted_residual, weighted_jacobian = marginalization_prior_blocks(
             prior, knots[prior.knot_index]
         )
