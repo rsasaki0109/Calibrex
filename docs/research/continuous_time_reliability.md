@@ -28,8 +28,25 @@ supersedes their descriptions of current convergence labels.
 [Screw-linear clock-domain reliability](screw_clock_domain.md) adds a shared
 feasible interval, rejection before objective evaluation, consistent one-sided
 derivatives, and an opposite-side final gradient check at exact gyro knot ties.
-B-spline clock-domain, general nonsmooth stationarity, and marginalization audits
-remain open.
+The B-spline fitter now also intersects gyro and accelerometer time bounds,
+rejects infeasible coupled updates before constructing or evaluating candidates,
+and retries with higher damping. Central clock differences remain in the
+interior; near a boundary all IMU factors use the same feasible inward step,
+divided by its actual representable increment. Domain diagnostics use the
+existing optional `fit_diagnostics.clock_domain` fields. For central differences,
+`derivative_step_sec` denotes the positive probe increment, not the full stencil
+width. Zero-width domains require fixing the clock rather than estimating it.
+
+B-spline regression tests cover both boundaries with and without the evaluation
+cache, independent inward derivative comparisons, rejection before candidate
+construction, successful retries, invalid initial clocks, and fixed-clock fits.
+Existing synthetic joint-recovery and derivative tests remain the accuracy
+checks; this change makes no independent accuracy or speed claim. The guard
+uses strict trajectory bounds even though the spline evaluation API tolerates
+tiny timestamp overshoots. It does not change that API or implement a projected
+optimizer. Boundary optima may therefore still be reported as stalled.
+General nonsmooth stationarity (including B-spline accelerometer knot ties)
+and marginalization audits remain open.
 
 ## Empirical interval follow-up
 

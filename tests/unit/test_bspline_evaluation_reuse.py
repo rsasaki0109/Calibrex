@@ -284,3 +284,113 @@ def test_holdout_session_eviction_and_independent_measurements_remain_exact(
     assert not np.array_equal(train.residual("gyro", calibration),
                               session.residual("gyro", calibration))
     assert _controls(actual, calibration, 9.) == _controls(reference, calibration, 9.)
+
+
+@pytest.mark.parametrize("boundary", ["lower", "upper"])
+@pytest.mark.parametrize("cached", [False, True])
+def test_clock_boundary_probes_stay_in_shared_domain(problem, monkeypatch, boundary, cached):
+    # Keep this step-size comparison away from interior knots; the shared-work
+    # tests above separately exercise knot-crossing probes.
+    gyro_times, accel_times = problem.gyro.times_sec.copy(), problem.accel.times_sec.copy()
+    gyro_times[10:13] = accel_times[10:13] = [.12, .13, .14]
+    problem = replace(problem, gyro=replace(problem.gyro, times_sec=gyro_times),
+                      accel=replace(problem.accel, times_sec=accel_times))
+    path = problem.initial_trajectory
+    if boundary == "upper":
+        times = problem.gyro.times_sec.copy()
+        times[0] = path.start_time_sec
+        problem = replace(problem, gyro=replace(problem.gyro, times_sec=times))
+        direction = -1
+    else:
+        times = problem.accel.times_sec.copy()
+        times[-1] = path.end_time_sec
+        problem = replace(problem, accel=replace(problem.accel, times_sec=times))
+        direction = 1
+    original = fit._gather
+    probes = []
+
+    def gather(trajectory, times, **kwargs):
+        assert np.all(times >= trajectory.start_time_sec)
+        assert np.all(times <= trajectory.end_time_sec)
+        probes.append(times.copy())
+        return original(trajectory, times, **kwargs)
+
+    monkeypatch.setattr(fit, "_gather", gather)
+    families = fit._families(problem.planes, problem.gyro, problem.accel)
+    cache = fit._EvaluationCache(families) if cached else None
+    jacobian, residual = fit._linearize(
+        path, problem.initial_calibration, families, ("imu_clock_offset",), cache=cache,
+    )
+    # Independent inward difference at a smaller step checks sign and scale.
+    step = direction * 2e-7
+    moved = problem.initial_calibration.stepped("imu_clock_offset", np.array([step]))
+    shifted = fit.lidar_imu_residuals(path, moved, problem.planes, problem.gyro, problem.accel)
+    vector = np.concatenate([shifted[name].ravel() for name in families])
+    np.testing.assert_allclose(jacobian.toarray()[:, -1], (vector - residual) / step,
+                               rtol=2e-3, atol=.1)
+    assert probes
+    result = fit.fit_bspline_lidar_imu(problem, fit.BSplineLidarImuFitOptions(max_iterations=0))
+    assert np.sign(result.diagnostics.clock_domain.derivative_step_sec) == direction
+
+
+@pytest.mark.parametrize("estimate", [("imu_clock_offset",), fit.CALIBRATION_BLOCKS])
+def test_outside_clock_candidate_is_rejected_before_apply(problem, monkeypatch, estimate):
+    problem = replace(problem, estimate=estimate)
+    clock_column = 6 * problem.initial_trajectory.control_point_count + sum(
+        fit._BLOCK_WIDTH[block] for block in estimate[:estimate.index("imu_clock_offset")]
+    )
+    def solve(matrix, rhs):
+        step = np.zeros_like(rhs)
+        step[clock_column] = 100.
+        return step
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("out-of-domain candidate must be rejected before applying any update")
+
+    monkeypatch.setattr(fit, "spsolve", solve)
+    monkeypatch.setattr(fit, "_apply_step", forbidden)
+    result = fit.fit_bspline_lidar_imu(problem)
+    assert result.status == "stalled"
+    assert result.diagnostics.termination_reason == "clock_domain_limit"
+    assert result.diagnostics.clock_domain.rejected_steps > 1
+    assert result.final_cost == result.initial_cost
+
+
+def test_clock_domain_rejection_can_retry(problem, monkeypatch):
+    original = fit.spsolve
+    calls = 0
+
+    def solve(matrix, rhs):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            step = np.zeros_like(rhs)
+            step[6 * problem.initial_trajectory.control_point_count + 9] = 100.
+            return step
+        return original(matrix, rhs)
+
+    monkeypatch.setattr(fit, "spsolve", solve)
+    result = fit.fit_bspline_lidar_imu(problem, fit.BSplineLidarImuFitOptions(max_iterations=2))
+    assert calls > 1
+    assert result.diagnostics.clock_domain.rejected_steps >= 1
+    assert result.final_cost < result.initial_cost
+
+
+def test_zero_width_clock_domain_requires_fixed_clock(problem):
+    times = problem.gyro.times_sec.copy()
+    times[0], times[-1] = 0., problem.initial_trajectory.end_time_sec
+    problem = replace(problem, gyro=replace(problem.gyro, times_sec=times))
+    with pytest.raises(ValueError, match="positive-width"):
+        fit.fit_bspline_lidar_imu(problem)
+    result = fit.fit_bspline_lidar_imu(
+        replace(problem, estimate=("gyro_bias",)), fit.BSplineLidarImuFitOptions(max_iterations=0),
+    )
+    assert result.diagnostics.clock_domain is None
+
+
+def test_initial_clock_outside_shared_domain_is_rejected(problem):
+    problem = replace(problem, initial_calibration=replace(
+        problem.initial_calibration, imu_clock_offset_sec=10.,
+    ))
+    with pytest.raises(ValueError, match="outside the shared time domain"):
+        fit.fit_bspline_lidar_imu(problem)

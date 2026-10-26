@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Guard B-spline clock estimation with the common gyro/accelerometer time
+  domain. Reject infeasible coupled updates before constructing candidates,
+  retry with higher damping, and use inward finite differences at boundaries.
+  Record clock-domain diagnostics and reject zero-width estimation domains;
+  fixed-clock fitting remains supported.
+
 - Guard screw-linear clock updates with a shared feasible time domain, retry
   rejected coupled candidates with more damping, and record domain diagnostics.
   Unify derivative sides across IMU factors and check both feasible sides before

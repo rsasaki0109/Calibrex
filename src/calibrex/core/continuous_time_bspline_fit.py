@@ -18,7 +18,7 @@ bias when the attitude barely varies (a level platform that only turns about
 the vertical sees ``g_z`` and ``b_a,z`` only through their sum).  Each residual touches the four
 control points of its segment; their Jacobian uses the analytic position basis
 and SO(3) rotation/rate recursion. Only the clock-offset column retains central
-differences, including the segment selection on each side of a knot.
+differences where feasible, with inward one-sided differences at domain boundaries.
 The marginal covariance of the calibration blocks marginalizes the control
 points by Schur complement.
 """
@@ -37,6 +37,7 @@ from numpy.typing import NDArray
 from scipy.sparse import coo_matrix, csc_matrix, diags, vstack
 from scipy.sparse.linalg import spsolve
 
+from calibrex.core.clock_domain import ClockDomainEvidence, ClockOffsetDomain
 from calibrex.core.continuous_time_bspline import (
     BSplineStates,
     CubicBSplineTrajectory,
@@ -313,7 +314,15 @@ def _fit_bspline_lidar_imu(
     cache = _EvaluationCache(families)
     trajectory = problem.initial_trajectory
     calibration = problem.initial_calibration
+    clock_domain = (_clock_domain(trajectory, families)
+                    if "imu_clock_offset" in estimate else None)
+    if clock_domain is not None and not clock_domain.contains(calibration.imu_clock_offset_sec):
+        raise ValueError("initial IMU clock offset is outside the shared time domain")
+    rejected_clock_steps = 0
     control_columns = 6 * trajectory.control_point_count
+    clock_column = control_columns + sum(
+        _BLOCK_WIDTH[block] for block in estimate[:estimate.index("imu_clock_offset")]
+    ) if clock_domain is not None else 0
     calibration_columns = sum(_BLOCK_WIDTH[block] for block in estimate)
     parameter_count = control_columns + calibration_columns
 
@@ -382,6 +391,7 @@ def _fit_bspline_lidar_imu(
             break
         scale = np.maximum(normal.diagonal(), 1.0e-12)
         accepted = False
+        domain_rejected = False
         while damping < 1.0e12:
             try:
                 step = spsolve(
@@ -395,6 +405,13 @@ def _fit_bspline_lidar_imu(
                 status = "singular_system"
                 termination = "singular_system"
                 break
+            domain_rejected = clock_domain is not None and not clock_domain.contains(
+                calibration.imu_clock_offset_sec + float(step[clock_column])
+            )
+            if domain_rejected:
+                rejected_clock_steps += 1
+                damping *= 10.0
+                continue
             candidate_trajectory, candidate_calibration = _apply_step(
                 trajectory, calibration, step, estimate
             )
@@ -406,7 +423,7 @@ def _fit_bspline_lidar_imu(
         if status == "singular_system" or not accepted:
             if not accepted and status != "singular_system":
                 status = "stalled"
-                termination = "damping_limit"
+                termination = "clock_domain_limit" if domain_rejected else "damping_limit"
             break
         scaled_step = normalized_step_norm(step, normal.diagonal(), math.sqrt(cost))
         relative = (cost - candidate_cost) / max(cost, 1.0e-300)
@@ -434,6 +451,11 @@ def _fit_bspline_lidar_imu(
     diagnostics = FitDiagnostics(
         termination_reason=termination, normalized_gradient_norm=scaled_gradient,
         gradient_tolerance=settings.gradient_tolerance, stationary=stationary,
+        clock_domain=(ClockDomainEvidence(
+            lower_sec=clock_domain.lower, upper_sec=clock_domain.upper,
+            rejected_steps=rejected_clock_steps,
+            derivative_step_sec=clock_domain.difference_step(calibration.imu_clock_offset_sec),
+        ) if clock_domain is not None else None),
     )
     names = tuple(
         f"{block}[{axis}]" for block in estimate for axis in range(_BLOCK_WIDTH[block])
@@ -855,6 +877,18 @@ def _cost(
     return total
 
 
+def _clock_domain(
+    trajectory: CubicBSplineTrajectory, families: dict[str, _Family],
+) -> ClockOffsetDomain:
+    times = np.concatenate([family.times for family in families.values() if family.on_imu_clock])
+    if not times.size:
+        raise ValueError("IMU clock-offset estimation requires IMU measurements")
+    return ClockOffsetDomain(
+        trajectory.start_time_sec, trajectory.end_time_sec,
+        float(np.min(times)), float(np.max(times)),
+    )
+
+
 def _linearize(
     trajectory: CubicBSplineTrajectory,
     calibration: LidarImuCalibration,
@@ -863,6 +897,14 @@ def _linearize(
     *, cache: _EvaluationCache | None = None,
     plane_evaluator: _PlaneEvaluator | None = None,
 ) -> tuple[csc_matrix, FloatArray]:
+    clock_domain = (_clock_domain(trajectory, families)
+                    if "imu_clock_offset" in estimate else None)
+    clock_step = (clock_domain.difference_step(calibration.imu_clock_offset_sec)
+                  if clock_domain is not None else _EPSILON)
+    central_clock = clock_domain is not None and all(
+        clock_domain.contains(calibration.imu_clock_offset_sec + direction * _EPSILON)
+        for direction in (-1, 1)
+    )
     control_columns = 6 * trajectory.control_point_count
     parameter_count = control_columns + sum(_BLOCK_WIDTH[block] for block in estimate)
     rows: list[NDArray[np.int64]] = []
@@ -940,9 +982,9 @@ def _linearize(
                 continue
             for axis in range(_BLOCK_WIDTH[block]):
                 if block == "imu_clock_offset":
-                    step = np.array([_EPSILON])
+                    step = np.array([_EPSILON if central_clock else clock_step])
                     plus = calibration.stepped(block, step)
-                    minus = calibration.stepped(block, -step)
+                    minus = calibration.stepped(block, -step) if central_clock else calibration
                     if cache is None:
                         above = family.residual(_gather(trajectory, family.body_times(plus)), plus)
                         below = family.residual(
@@ -951,7 +993,9 @@ def _linearize(
                     else:
                         above = cache.residual(trajectory, plus, family)
                         below = cache.residual(trajectory, minus, family)
-                    derivative = (above - below) / (2.0 * _EPSILON)
+                    derivative = (above - below) / (
+                        plus.imu_clock_offset_sec - minus.imu_clock_offset_sec
+                    )
                 else:
                     derivative = calibration_derivatives[block][:, :, axis]
                 if np.any(derivative):
