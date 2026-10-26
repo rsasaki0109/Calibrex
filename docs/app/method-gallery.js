@@ -62,7 +62,7 @@
       const panel=document.createElement("section");panel.id="demo-panel-"+method.id;panel.className="alignment-demo method-panel";panel.hidden=true;panel.role="tabpanel";
       panel.setAttribute("aria-labelledby","demo-tab-"+method.id);
       if(CalibrexEvidence.CODES.includes(method.id)){
-        this.evidence.set(method.id,new CalibrexEvidence.EvidenceDemo(panel,url=>this.json(url),method.id));
+        this.evidence.set(method.id,new CalibrexEvidence.EvidenceDemo(panel,(url,refresh)=>{if(refresh)this.cache.delete(url);return this.json(url);},method.id));
       }else if(method.id==="camera-imu"){
         this.cameraImu=new CalibrexTiming.CameraImuTiming(panel,url=>this.json(url));
       }else if(method.id==="camera-lidar"){

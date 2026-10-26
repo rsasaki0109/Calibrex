@@ -18,12 +18,13 @@
   class EvidenceDemo {
     constructor(panel,json,code){
       this.panel=panel;this.json=json;this.code=code;this.sequence=0;this.zoom=1;this.angle=-.4;this.pitch=.35;this.point=0;this.epoch=0;
-      panel.innerHTML=`<div class="method-media"><div class="cloud-topline"><span class="evidence-mode">MEASURED DATA / SAVED NATIVE RESULTS</span><span class="evidence-dataset"></span></div><div class="evidence-toolbar"><label>View <select aria-label="${code} demo view"></select></label><label class="evidence-zoom">Zoom <input type="range" min="1" max="12" step=".5" value="1" aria-label="${code} plot zoom"></label></div><h3 class="evidence-plot-title"></h3><canvas class="evidence-plot" width="960" height="440" role="img" aria-label="Measured data visualization"></canvas><div class="evidence-stress" hidden><label>Observation condition <select aria-label="Live observation condition"><option value="normal">Full measured coverage</option><option value="limited">Limited coverage · 2 captures</option><option value="outliers">Inject 4 outliers · fit only</option></select></label><label>Loss <select aria-label="Live fitting loss"><option value="least_squares">Least squares</option><option value="huber">Huber · 0.05 m threshold</option></select></label><p class="evidence-scenario-note"></p><p class="evidence-quality" role="status"></p></div><div class="evidence-live-actions" hidden><button type="button" data-live="run">Run live fit</button><button type="button" data-live="step">One iteration</button><button type="button" data-live="stop">Stop</button><button type="button" data-live="reset">Reset perturbation</button></div><canvas class="evidence-history" width="960" height="180" role="img" aria-label="Actual fit and holdout residual history" hidden></canvas><div class="evidence-controls"><label class="evidence-point-label">Inspect observation <input type="range" min="0" max="0" value="0" aria-label="${code} observation"></label><output class="evidence-point-detail"></output></div><div class="evidence-extra"></div><div class="evidence-legend"></div><p class="method-status" role="status">Loading measured data…</p><button class="evidence-retry" type="button" hidden>Retry data</button></div><aside class="cloud-evidence"><div class="eyebrow">REAL OBSERVATIONS / EXPLORE THE EVIDENCE</div><h2></h2><div class="evidence-metrics"></div><p class="cloud-description evidence-note"></p><p class="cloud-source"></p><div class="evidence-targetless"></div><a class="method-link" href="../assets/evidence-demos/">Sources, methods &amp; limits ↗</a><a class="method-link" href="samples/evidence_demo_index.json">Byte-bound data receipt ↗</a></aside>`;
+      panel.innerHTML=`<div class="method-media"><div class="cloud-topline"><span class="evidence-mode">MEASURED DATA / SAVED NATIVE RESULTS</span><span class="evidence-dataset"></span></div><div class="evidence-toolbar"><label>View <select aria-label="${code} demo view"></select></label><label class="evidence-zoom">Zoom <input type="range" min="1" max="12" step=".5" value="1" aria-label="${code} plot zoom"></label></div><h3 class="evidence-plot-title"></h3><canvas class="evidence-plot" width="960" height="440" role="img" aria-label="Measured data visualization"></canvas><div class="evidence-stress" hidden><label>Observation condition <select aria-label="Live observation condition"><option value="normal">Full measured coverage</option><option value="limited">Limited coverage · 2 captures</option><option value="outliers">Inject 4 outliers · fit only</option></select></label><label>Loss <select aria-label="Live fitting loss"><option value="least_squares">Least squares</option><option value="huber">Huber · 0.05 m threshold</option></select></label><p class="evidence-scenario-note"></p><p class="evidence-quality" role="status"></p></div><div class="evidence-live-actions" hidden><button type="button" data-live="run">Run live fit</button><button type="button" data-live="step">One iteration</button><button type="button" data-live="stop">Stop</button><button type="button" data-live="reset">Reset perturbation</button></div><canvas class="evidence-history" width="960" height="180" role="img" aria-label="Actual fit and holdout residual history" hidden></canvas><div class="evidence-board-residuals" hidden></div><div class="evidence-controls"><label class="evidence-point-label">Inspect observation <input type="range" min="0" max="0" value="0" aria-label="${code} observation"></label><output class="evidence-point-detail"></output></div><div class="evidence-extra"></div><div class="evidence-legend"></div><p class="method-status" role="status">Loading measured data…</p><button class="evidence-retry" type="button" hidden>Retry data</button></div><aside class="cloud-evidence"><div class="eyebrow">REAL OBSERVATIONS / EXPLORE THE EVIDENCE</div><h2></h2><div class="evidence-metrics"></div><p class="cloud-description evidence-note"></p><p class="cloud-source"></p><div class="evidence-targetless"></div><a class="method-link" href="../assets/evidence-demos/">Sources, methods &amp; limits ↗</a><a class="method-link" href="samples/evidence_demo_index.json">Byte-bound data receipt ↗</a></aside>`;
+      if(code==="comparison")this.boardResiduals=new CalibrexBoardResiduals.BoardResiduals(panel.querySelector(".evidence-board-residuals"),(method,index)=>{panel.querySelector("select").value=method;this.point=index;this.select();});
       this.canvas=panel.querySelector(".evidence-plot");this.context=this.canvas.getContext("2d");
       panel.querySelector("select").addEventListener("change",()=>this.select());
       panel.querySelector(".evidence-zoom input").addEventListener("input",e=>{this.zoom=Number(e.target.value);this.draw();});
       panel.querySelector(".evidence-point-label input").addEventListener("input",e=>{this.point=Number(e.target.value);this.draw();});
-      panel.querySelector(".evidence-retry").addEventListener("click",()=>this.load());
+      panel.querySelector(".evidence-retry").addEventListener("click",()=>this.load(true));
       let drag;
       this.canvas.addEventListener("pointerdown",e=>{drag=[e.clientX,e.clientY];this.canvas.setPointerCapture(e.pointerId);});
       this.canvas.addEventListener("pointermove",e=>{if(!drag||this.view?.kind!=="cloud")return;this.angle+=(e.clientX-drag[0])*.008;this.pitch=Math.max(-1.4,Math.min(1.4,this.pitch+(e.clientY-drag[1])*.008));drag=[e.clientX,e.clientY];this.draw();});
@@ -38,14 +39,14 @@
       }));
     }
     stop(){this.epoch++;clearTimeout(this.timer);}
-    async load(){
-      this.stop();const seq=++this.sequence,panel=this.panel,code=this.code==="live"?"comparison":this.code;
+    async load(refresh=false){
+      this.stop();this.boardResiduals?.clear();const seq=++this.sequence,panel=this.panel,code=this.code==="live"?"comparison":this.code;
       panel.querySelector(".method-status").textContent="Loading measured data…";panel.querySelector(".evidence-retry").hidden=true;
       this.context.clearRect(0,0,this.canvas.width,this.canvas.height);this.view=null;
       try{
         if(!CODES.includes(this.code))throw Error("Unknown demo");
-        const data=validate(await this.json(`samples/evidence_${code}.json`),code);if(seq!==this.sequence)return;
-        this.data=data;const select=panel.querySelector("select");select.replaceChildren();
+        const data=validate(await this.json(`samples/evidence_${code}.json`,refresh),code);if(seq!==this.sequence)return;
+        this.data=data;this.boardResiduals?.setData(data);const select=panel.querySelector("select");select.replaceChildren();
         for(const view of this.code==="live"?[{id:"live",label:"6-DoF point least squares"}]:data.views){const o=textNode("option",view.label);o.value=view.id;select.append(o);}
         panel.querySelector("h2").textContent=this.code==="live"?"Actual iterations. Real observations.":data.title;
         panel.querySelector(".evidence-dataset").textContent=data.dataset;
@@ -55,8 +56,9 @@
       }catch(error){if(seq===this.sequence){panel.querySelector(".method-status").textContent=error.message;panel.querySelector(".evidence-retry").hidden=false;}}
     }
     select(){
-      this.stop();this.point=0;this.zoom=1;this.panel.querySelector(".evidence-zoom input").value="1";
+      const previousPoint=this.point,previousZoom=this.zoom;this.stop();this.point=0;this.zoom=1;this.panel.querySelector(".evidence-zoom input").value="1";
       this.view=this.data.views.find(v=>v.id===this.panel.querySelector("select").value)||this.data.views[0];
+      if(this.code==="comparison"){this.point=Math.min(previousPoint,this.view.clouds[0].points.length-1);this.zoom=previousZoom;this.panel.querySelector(".evidence-zoom input").value=String(this.zoom);}
       if(this.code==="live")this.resetLive();
       this.panel.querySelector(".evidence-live-actions").hidden=this.code!=="live";
       this.panel.querySelector(".evidence-stress").hidden=this.code!=="live";
@@ -135,6 +137,7 @@
         this.panel.querySelector(".evidence-point-detail").textContent=`Observation ${this.point+1} / ${count} · ${p.slice(0,3).map(v=>v.toFixed(3)).join(", ")} m`+(p.length===4?` · reported relative speed ${p[3].toFixed(2)} m/s`:"")+(this.code==="live"?` · ${this.live.fitIndices.includes(this.point)?"FIT":this.live.holdIndices.includes(this.point)?"HOLDOUT":"EXCLUDED"}${this.live.injectedIndices.includes(this.point)?" · INJECTED ERROR":""}`:"");
       }
       if(this.code!=="live")this.metricCards(this.view.metrics);
+      this.boardResiduals?.select(this.view.id,this.point);
       const slider=this.panel.querySelector(".evidence-point-label input");slider.max=String(count-1);slider.value=String(this.point);
       this.canvas.setAttribute("aria-label",`${this.view.title}. ${count} measured observations. Selected observation ${this.point+1}.`);
     }
@@ -152,7 +155,7 @@
         const x=Math.cos(this.angle)*p[0]+Math.sin(this.angle)*p[2],z=-Math.sin(this.angle)*p[0]+Math.cos(this.angle)*p[2];
         return [x,Math.cos(this.pitch)*p[1]-Math.sin(this.pitch)*z];
       };
-      const all=clouds.flatMap(c=>c.points.map(project)),xs=all.map(p=>p[0]),ys=all.map(p=>p[1]);
+      const all=(this.code==="comparison"?this.data.views.flatMap(v=>v.clouds):clouds).flatMap(c=>c.points.map(project)),xs=all.map(p=>p[0]),ys=all.map(p=>p[1]);
       const lo=[Math.min(...xs),Math.min(...ys)],hi=[Math.max(...xs),Math.max(...ys)];
       const selected=project(clouds[0].points[this.point]),centre=this.zoom>1?selected:[(lo[0]+hi[0])/2,(lo[1]+hi[1])/2];
       const scale=Math.min((w-100)/(hi[0]-lo[0]||1),(h-100)/(hi[1]-lo[1]||1))*this.zoom;

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 import "../docs/app/demo-solver.js";
+import "../docs/app/board-residuals.js";
 import "../docs/app/evidence-demos.js";
 const read=code=>JSON.parse(fs.readFileSync(new URL(`../docs/app/samples/evidence_${code}.json`,import.meta.url),"utf8"));
 const {validate}=globalThis.CalibrexEvidence;
@@ -65,4 +66,45 @@ test("outlier controls preserve sources and holdouts; Huber reduces clean holdou
   const robust=new LiveFit(altered,{scenario:"outliers",loss:"huber"});while(robust.step()){}
   assert.deepEqual(robust.state,fits[1].state);
   assert.throws(()=>new LiveFit(problem,{scenario:"unknown"}),/Unknown/);
+});
+
+
+test("board matrix binds shared held-out capture IDs and agrees with native full-precision RMSE",()=>{
+  const {residualMatrix}=CalibrexBoardResiduals,data=read("comparison"),before=JSON.stringify(data),m=residualMatrix(data);
+  assert.equal(m.rows.length,4);assert.equal(m.ids.length,8);assert.equal(m.fitCount,32);
+  assert.deepEqual(m.ids,data.views[0].result.holdout_frame_ids);
+  for(const [i,row] of m.rows.entries()){
+    // Each displayed coordinate was rounded to 1e-7 m: allow <0.0002 mm
+    // for the norm error across the two rounded 3D endpoints.
+    assert.ok(Math.abs(row.rmseMm-data.views[i].metrics[0].value*1000)<.0002);
+    assert.equal(row.cells.length,8);
+    row.cells.forEach((cell,j)=>{assert.equal(cell.id,m.ids[j]);assert.ok(Number.isFinite(cell.valueMm)&&cell.valueMm>=0);});
+  }
+  assert.equal(JSON.stringify(data),before);
+  const shifted=structuredClone(data),offset=[3,-8,12];
+  for(const view of shifted.views)for(const cloud of view.clouds)cloud.points=cloud.points.map(p=>p.map((v,k)=>v+offset[k]));
+  shifted.live_problem.target=shifted.live_problem.target.map(p=>p.map((v,k)=>v+offset[k]));
+  const other=residualMatrix(shifted);
+  m.rows.forEach((row,i)=>row.cells.forEach((c,j)=>assert.ok(Math.abs(c.valueMm-other.rows[i].cells[j].valueMm)<1e-8)));
+  const known=structuredClone(data),camera=known.views[0].clouds[0].points[0];
+  known.views[0].clouds[1].points[0]=camera.map((v,k)=>v+[.003,.004,0][k]);
+  assert.ok(Math.abs(residualMatrix(known).rows[0].cells[0].valueMm-5)<1e-9);
+});
+
+test("board matrix rejects reused fit captures, mismatched methods and mislabelled observations",()=>{
+  const {residualMatrix}=CalibrexBoardResiduals,original=read("comparison");
+  const changes=[
+    d=>d.views[1].result.holdout_frame_ids.reverse(),
+    d=>d.views[1].result.train_frame_ids.pop(),
+    d=>d.views[0].result.train_frame_ids.push(d.views[0].result.holdout_frame_ids[0]),
+    d=>d.live_problem.fit_ids.push(d.views[0].result.holdout_frame_ids[0]),
+    d=>d.views[1].clouds[0].points.reverse(),
+    d=>d.views[1].clouds[1].points.pop(),
+    d=>d.views[1].clouds[1].points[0][0]=NaN,
+    d=>d.views[1].id=d.views[0].id,
+    d=>d.views[1].id="",
+    d=>{for(const v of d.views){v.result.holdout_frame_ids.pop();for(const c of v.clouds)c.points.pop();}},
+  ];
+  for(const apply of changes){const data=structuredClone(original);apply(data);assert.throws(()=>residualMatrix(data),/Invalid|Mismatched|Capture/);}
+  assert.throws(()=>residualMatrix(read("handeye")),/Invalid/);
 });
