@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Compress outgoing residual-space window priors with QR of the augmented
+  Jacobian and residual, preserving constant cost and bounding stored rows by
+  retained variables plus one. Record before/after row counts in generator 0.9
+  evidence. Elimination itself still uses the dense residual-space SVD.
+
 - Add experimental `--square-root-marginalization` sliding-window mode. Transfer
   rectangular residual factors directly between anchored knot windows without
   converting them back to information priors. Record separate SVD elimination

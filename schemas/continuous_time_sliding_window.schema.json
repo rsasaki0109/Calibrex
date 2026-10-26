@@ -322,6 +322,32 @@
           "title": "Numerical Rank",
           "type": "integer"
         },
+        "retained_rows_after_compression": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retained Rows After Compression"
+        },
+        "retained_rows_before_compression": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retained Rows Before Compression"
+        },
         "singular_value_threshold": {
           "minimum": 0,
           "title": "Singular Value Threshold",

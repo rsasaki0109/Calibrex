@@ -31,7 +31,10 @@ from calibrex.core.fit_diagnostics import FitDiagnostics, FitTermination, normal
 from calibrex.core.geometry import SE3, _tuple3
 from calibrex.core.knot_observability import WindowObservabilityEvidence, analyze_knot_information
 from calibrex.core.se3_manifold import se3_log
-from calibrex.core.square_root_marginalization import marginalize_residual_prefix
+from calibrex.core.square_root_marginalization import (
+    compress_residual_factor,
+    marginalize_residual_prefix,
+)
 
 
 @dataclass(frozen=True)
@@ -165,12 +168,19 @@ def fit_sliding_window_trajectory(
                     window_problem, list(window_result.knot_poses),
                 )
                 factor = marginalize_residual_prefix(jacobian, residual, 6 * eliminated)
+                prior_jacobian, prior_residual = compress_residual_factor(
+                    factor.jacobian, factor.residual,
+                )
+                evidence = factor.evidence().model_copy(update={
+                    "retained_rows_before_compression": len(factor.residual),
+                    "retained_rows_after_compression": len(prior_residual),
+                })
                 window_observability[-1] = window_observability[-1].model_copy(
-                    update={"square_root_elimination": factor.evidence()},
+                    update={"square_root_elimination": evidence},
                 )
                 priors = (SquareRootKnotMarginalizationPrior(
                     knot_indices=tuple(range(overlap_knot_count)), anchor_poses=anchor_poses,
-                    jacobian=factor.jacobian, residual=factor.residual,
+                    jacobian=prior_jacobian, residual=prior_residual,
                 ),)
             else:
                 marginalized, marginal_gradient, elimination = (

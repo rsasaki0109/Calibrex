@@ -18,6 +18,8 @@ class SquareRootEliminationEvidence(StrictModel):
     numerical_rank: int = Field(ge=0)
     zero_information_dimension: int = Field(ge=0)
     singular_value_threshold: float = Field(ge=0, allow_inf_nan=False)
+    retained_rows_before_compression: int | None = Field(default=None, ge=0)
+    retained_rows_after_compression: int | None = Field(default=None, ge=0)
 
 
 @dataclass(frozen=True)
@@ -102,3 +104,30 @@ def marginalize_residual_prefix(
         zero_information_dimension=int(np.count_nonzero(~active)),
         singular_value_threshold=threshold,
     )
+
+
+def compress_residual_factor(
+    jacobian: NDArray[np.float64], residual: NDArray[np.float64],
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    """Bound factor rows by column count plus one, preserving constant cost.
+
+    Unpivoted QR of the augmented matrix ``[J, r]`` preserves
+    ``||J x + r||²`` without forming normal equations or discarding small positive
+    directions. Only R is constructed, avoiding a square residual-space Q.
+    This is a floating-point orthogonal transformation, not exact arithmetic.
+    """
+    if np.iscomplexobj(jacobian) or np.iscomplexobj(residual):
+        raise ValueError("residual equations must be real")
+    matrix = np.asarray(jacobian, dtype=float)
+    rhs = np.asarray(residual, dtype=float)
+    if matrix.ndim != 2 or rhs.shape != (matrix.shape[0],):
+        raise ValueError("residual equation dimensions must agree")
+    if not np.all(np.isfinite(matrix)) or not np.all(np.isfinite(rhs)):
+        raise ValueError("residual equations must be finite")
+    if matrix.shape[0] <= matrix.shape[1] + 1:
+        return np.array(matrix, copy=True), np.array(rhs, copy=True)
+    with np.errstate(over="ignore", invalid="ignore"):
+        triangular = np.linalg.qr(np.column_stack((matrix, rhs)), mode="r")
+    if not np.all(np.isfinite(triangular)):
+        raise ValueError("compressed residual equations must be finite")
+    return triangular[:, :-1].copy(), triangular[:, -1].copy()

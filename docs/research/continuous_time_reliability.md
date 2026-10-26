@@ -404,11 +404,30 @@ windows, and CLI provenance/schema validation. The reused synthetic development
 case converges but still fails the no-marginalization control gate; thresholds
 and seeds have not been retuned.
 
-This mode still uses a dense full residual-space SVD, and retained constant rows
-can accumulate across windows. The trajectory optimizer still forms normal
-equations for its own updates and diagnostics. Thus this change protects factor
-transfer at window boundaries, not every weak direction in optimization; it does
-not claim improved trajectory accuracy, runtime, or global gauge consistency.
+Generator 0.9 compresses each outgoing factor before storing its prior.
+`compress_residual_factor(J, r)` applies unpivoted QR to the augmented matrix
+`[J, r]`, requesting only R. For `n` retained variables, the result has at most
+`n + 1` rows. Including the residual column retains constant cost as well as
+curvature and gradient; dropping orthogonal residual rows would change candidate
+costs and normalized stationarity. No normal matrix or singular-value cutoff is
+used for compression, and no weak positive direction is intentionally removed.
+Short factors are copied unchanged. Optional evidence fields record
+`retained_rows_before_compression` and `retained_rows_after_compression`.
+
+Tests verify complete costs for full-rank and dependent factors, preservation
+of weak independent information and irreducible constant cost, bounded storage
+over repeated compression, and agreement with the uncompressed synthetic
+development control. This bounds inherited rows, including constant terms; it
+does not bound the new measurements admitted by a window. The elimination SVD
+still constructs a full residual-space basis and has quadratic memory in the
+current window's residual count. QR itself only constructs the triangular
+factor. Its finite-precision transformations can change rounding and subsequent
+rank decisions; evidence reports the thresholds actually used.
+
+The trajectory optimizer still forms normal equations for its own updates and
+diagnostics. Thus this change protects factor transfer at window boundaries,
+not every weak direction in optimization; it does not claim improved trajectory
+accuracy, measured runtime, or global gauge consistency.
 
 ## Opt-in updates in the observable subspace
 

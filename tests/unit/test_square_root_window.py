@@ -92,7 +92,7 @@ def test_cli_records_square_root_mode_rank_and_unchanged_failed_policy(tmp_path)
     result = json.loads(path.read_text())
     assert result['square_root_marginalization'] is True
     assert '--square-root-marginalization' in result['provenance']['command']
-    assert result['provenance']['generator_version'] == '0.8'
+    assert result['provenance']['generator_version'] == '0.9'
     assert result['window_observability'][0]['square_root_elimination']
     assert result['window_observability'][0].get('elimination') is None
     assert result['window_fit_statuses'] == ['converged', 'converged']
@@ -139,3 +139,24 @@ def test_zero_row_prior_can_be_evaluated_and_assembled():
     j, r = build_dense_knot_residual_equations(problem, list(problem.initial_knot_poses))
     assert j.shape == (0, 12)
     assert r.shape == (0,)
+
+
+def test_compressed_window_priors_match_uncompressed_development_control(monkeypatch):
+    import calibrex.core.continuous_time_sliding_window_fit as module
+    from calibrex.evaluation.continuous_time_sliding_window import (
+        run_synthetic_sliding_window_recovery,
+    )
+
+    compressed = run_synthetic_sliding_window_recovery(square_root_marginalization=True)
+    monkeypatch.setattr(module, 'compress_residual_factor', lambda j, r: (j.copy(), r.copy()))
+    uncompressed = run_synthetic_sliding_window_recovery(square_root_marginalization=True)
+    assert compressed.policy_status == uncompressed.policy_status == 'fail'
+    assert compressed.window_fit_statuses == uncompressed.window_fit_statuses
+    assert compressed.sliding_holdout_rmse_m == pytest.approx(
+        uncompressed.sliding_holdout_rmse_m, abs=1e-10,
+    )
+    for evidence in compressed.window_observability[:-1]:
+        record = evidence.square_root_elimination
+        assert record is not None
+        assert record.retained_rows_after_compression <= 7  # One retained 6-DoF knot.
+        assert record.retained_rows_before_compression > record.retained_rows_after_compression
