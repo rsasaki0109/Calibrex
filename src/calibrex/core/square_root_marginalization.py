@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 from pydantic import Field
+from scipy.linalg.lapack import dormqr
 
 from calibrex.core.result import StrictModel
 
@@ -58,8 +59,8 @@ def marginalize_residual_prefix(
     or subtraction of two information matrices is used. Independent nonzero
     eliminated columns are normalized before the numerical rank decision.
 
-    This dense reference API constructs a full residual-space orthogonal basis
-    (quadratic memory in the row count); it is intended for small systems.
+    A thin SVD and implicit Householder transformations avoid constructing a
+    square residual-space basis. Storage is linear in rows for fixed columns.
     """
     if np.iscomplexobj(jacobian) or np.iscomplexobj(residual):
         raise ValueError("residual equations must be real")
@@ -86,16 +87,17 @@ def marginalize_residual_prefix(
         if np.any(active):
             normalized = eliminated[:, active] / maxima[active]
             normalized /= np.linalg.norm(normalized, axis=0)
-            left, singular_values, _ = np.linalg.svd(normalized, full_matrices=True)
+            left, singular_values, _ = np.linalg.svd(normalized, full_matrices=False)
             threshold = (
                 60. * float(np.finfo(float).eps) * max(rows, eliminated_dim)
                 * float(singular_values[0])
             )
             rank = int(np.count_nonzero(singular_values > threshold))
-            complement = left[:, rank:]
-            with np.errstate(over="ignore", invalid="ignore"):
-                retained = complement.T @ retained
-                rhs = complement.T @ rhs
+            if rank:
+                transformed = _complement_rows(
+                    left[:, :rank], np.column_stack((retained, rhs)),
+                )
+                retained, rhs = transformed[:, :-1], transformed[:, -1]
     if not np.all(np.isfinite(retained)) or not np.all(np.isfinite(rhs)):
         raise ValueError("marginalized residual equations must be finite")
     return SquareRootMarginalizationResult(
@@ -104,6 +106,27 @@ def marginalize_residual_prefix(
         zero_information_dimension=int(np.count_nonzero(~active)),
         singular_value_threshold=threshold,
     )
+
+
+def _complement_rows(
+    basis: NDArray[np.float64], target: NDArray[np.float64],
+) -> NDArray[np.float64]:
+    """Apply Q.T implicitly and keep rows orthogonal to the supplied basis."""
+    rank = basis.shape[1]
+    if rank == basis.shape[0]:
+        return np.zeros((0, target.shape[1]), dtype=float)
+    reflectors, tau = np.linalg.qr(basis, mode="raw")
+    reflectors = np.array(reflectors.T, order="F", copy=True)
+    target = np.array(target, order="F", copy=True)
+    _unused, work, info = dormqr("L", "T", reflectors, tau, target, lwork=-1)
+    if info != 0:
+        raise ValueError("residual projection workspace query failed")
+    transformed, _work, info = dormqr(
+        "L", "T", reflectors, tau, target, lwork=max(1, int(work[0])), overwrite_c=1,
+    )
+    if info != 0:
+        raise ValueError("residual projection failed")
+    return np.asarray(transformed[rank:], dtype=float)
 
 
 def compress_residual_factor(

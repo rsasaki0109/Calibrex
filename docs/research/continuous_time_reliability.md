@@ -354,8 +354,11 @@ factor = marginalize_residual_prefix(
 ```
 
 The eliminated columns are independently normalized using a maximum-entry
-scaling followed by a Euclidean norm. A full SVD supplies an orthogonal basis;
-its residual-space complement acts directly on retained columns and residuals.
+scaling followed by a Euclidean norm. A thin SVD supplies the observed left
+singular vectors. Raw QR stores their Householder reflectors, and LAPACK ORMQR
+applies the transpose orthogonal transform to retained columns and residuals.
+Rows after the observed rank form the retained factor; no square residual-space
+basis or explicit projection subtraction is constructed.
 The singular-value rank threshold is `60 * machine_epsilon * max(rows, n) *
 largest_singular_value`. The result records this threshold, numerical rank and
 the number of exactly absent eliminated columns. Below-threshold singular
@@ -369,7 +372,8 @@ row. No positive floor or invented pose constraint is added. Orthogonal
 projection still has floating-point error when retained columns almost align
 with eliminated columns; the API does not promise exact recovery at all scales.
 
-This is a dense reference API with quadratic memory in the residual row count.
+For fixed column counts, this dense API now needs storage linear in the residual
+row count. It still stores dense input and output factors and is not streaming.
 Converting its result back to normal matrices can lose weak information again.
 These development tests make no new trajectory accuracy or runtime claim.
 
@@ -418,11 +422,22 @@ Tests verify complete costs for full-rank and dependent factors, preservation
 of weak independent information and irreducible constant cost, bounded storage
 over repeated compression, and agreement with the uncompressed synthetic
 development control. This bounds inherited rows, including constant terms; it
-does not bound the new measurements admitted by a window. The elimination SVD
-still constructs a full residual-space basis and has quadratic memory in the
-current window's residual count. QR itself only constructs the triangular
-factor. Its finite-precision transformations can change rounding and subsequent
-rank decisions; evidence reports the thresholds actually used.
+does not bound the new measurements admitted by a window. Compression QR only
+constructs the triangular factor. Its finite-precision transformations can change
+rounding and subsequent rank decisions; evidence reports the thresholds actually
+used.
+
+Generator 0.10 replaces full residual-space SVD projection with the thin-SVD and
+implicit Householder method above. Column normalization and the rank threshold
+formula remain unchanged. Different complement bases can change individual
+residual entries and rounding, so regression comparisons check the full profiled
+cost, retained shape and numerical rank rather than entrywise equality. Tests
+compare against the previous full-basis method for tall, wide and coupled-rank
+systems; weak-information, constant-cost and window-control tests still apply.
+For `m` rows, `e` eliminated columns and `r` retained columns, storage is
+`O(m(e+r+1))`, avoiding the former `m` by `m` left singular-vector matrix when
+rows greatly exceed columns. This is a storage-complexity improvement, not a
+claim of end-to-end trajectory speedup or improved accuracy.
 
 The trajectory optimizer still forms normal equations for its own updates and
 diagnostics. Thus this change protects factor transfer at window boundaries,

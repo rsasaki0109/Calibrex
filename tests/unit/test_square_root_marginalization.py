@@ -87,3 +87,26 @@ def test_elimination_spanning_all_rows_leaves_zero_cost():
 def test_invalid_input_is_rejected(j, r, dim):
     with pytest.raises(ValueError):
         marginalize_residual_prefix(j, r, dim)
+
+
+@pytest.mark.parametrize('rows, eliminated', [(4, 6), (30, 3), (300, 6)])
+@pytest.mark.parametrize('coupled', [False, True])
+def test_implicit_projection_matches_full_basis_quadratic(rows, eliminated, coupled):
+    rng = np.random.default_rng(591)
+    j, r = rng.normal(size=(rows, eliminated + 2)), rng.normal(size=rows)
+    if coupled:
+        j[:, eliminated - 1] = j[:, 0] + j[:, 1]
+    e = j[:, :eliminated].copy()
+    e /= np.max(np.abs(e), axis=0)
+    e /= np.linalg.norm(e, axis=0)
+    basis, values, _ = np.linalg.svd(e, full_matrices=True)
+    threshold = 60 * np.finfo(float).eps * max(rows, eliminated) * values[0]
+    rank = np.count_nonzero(values > threshold)
+    reference_j, reference_r = basis[:, rank:].T @ j[:, eliminated:], basis[:, rank:].T @ r
+    result = marginalize_residual_prefix(j, r, eliminated)
+    assert result.numerical_rank == rank
+    assert result.residual.shape == (rows - rank,)
+    for x in rng.normal(size=(5, 2)):
+        assert np.linalg.norm(result.jacobian @ x + result.residual)**2 == pytest.approx(
+            np.linalg.norm(reference_j @ x + reference_r)**2, rel=1e-12, abs=1e-12,
+        )

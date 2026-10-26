@@ -92,7 +92,7 @@ def test_cli_records_square_root_mode_rank_and_unchanged_failed_policy(tmp_path)
     result = json.loads(path.read_text())
     assert result['square_root_marginalization'] is True
     assert '--square-root-marginalization' in result['provenance']['command']
-    assert result['provenance']['generator_version'] == '0.9'
+    assert result['provenance']['generator_version'] == '0.10'
     assert result['window_observability'][0]['square_root_elimination']
     assert result['window_observability'][0].get('elimination') is None
     assert result['window_fit_statuses'] == ['converged', 'converged']

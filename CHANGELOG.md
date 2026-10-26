@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Replace the full residual-space SVD basis with thin SVD and implicit
+  Householder projection during square-root marginalization. Avoid quadratic
+  storage in residual rows at fixed column counts, preserving the rank rule
+  and complete profiled cost within floating-point accuracy (generator 0.10).
+
 - Compress outgoing residual-space window priors with QR of the augmented
   Jacobian and residual, preserving constant cost and bounding stored rows by
   retained variables plus one. Record before/after row counts in generator 0.9
