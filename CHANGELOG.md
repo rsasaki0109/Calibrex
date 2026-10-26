@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Compute Schur corrections in diagonally scaled coordinates, avoiding an
+  overflowing eliminated solution when the retained information and gradient
+  remain representable. Cover full-rank and coupled-nullspace systems with
+  subnormal weights; reject nonfinite retained results explicitly.
+
 - Add opt-in `project_observable_subspace` updates to the native sparse fitter.
   Solve the damped model only within the diagonally scaled observed eigenspace;
   reject a material gradient in numerical null directions. Record each attempted

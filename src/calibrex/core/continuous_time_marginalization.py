@@ -163,7 +163,7 @@ def schur_complement_normal_with_evidence(
         raise ValueError(
             "zero-information eliminated coordinates require zero coupling and gradient"
         )
-    solved = np.zeros((eliminated_dim, her.shape[1] + 1), dtype=float)
+    correction = np.zeros((hrr.shape[0], her.shape[1] + 1), dtype=float)
     rank = 0
     threshold = 0.
     range_error = 0.
@@ -182,23 +182,32 @@ def schur_complement_normal_with_evidence(
         observed = values > threshold
         rank = int(np.count_nonzero(observed))
         right = np.column_stack((her[active], ge[active]))
-        if np.all(observed):
-            solved[active] = np.linalg.solve(block, right)
-        else:
+        with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
             scaled_right = right / scale[:, None]
-            if not np.all(np.isfinite(scaled_right)):
-                raise ValueError("scaled eliminated right-hand side must be finite")
+            scaled_left = hre[:, active] / scale[None, :]
+        if not np.all(np.isfinite(scaled_right)) or not np.all(np.isfinite(scaled_left)):
+            raise ValueError("scaled eliminated right-hand side and coupling must be finite")
+        if np.all(observed):
+            solved = np.linalg.solve(normalized, scaled_right)
+        else:
             projections = vectors[:, ~observed].T @ scaled_right
             denominators = np.maximum(np.max(np.abs(scaled_right), axis=0), 1.e-300)
             range_error = float(np.max(np.abs(projections) / denominators[None, :]))
             if range_error > range_tolerance:
                 raise ValueError("eliminated coupling or gradient is outside the numerical range")
             basis = vectors[:, observed]
-            solved[active] = (
+            solved = (
                 basis @ ((basis.T @ scaled_right) / values[observed, None])
-            ) / scale[:, None]
-    marginalized = hrr - hre @ solved[:, :-1]
-    marginal_gradient = gr - hre @ solved[:, -1]
+            )
+        # Contract in scaled coordinates: unscaling the eliminated solution
+        # first can overflow even when the retained quadratic is representable.
+        with np.errstate(over="ignore", invalid="ignore"):
+            correction = scaled_left @ solved
+    with np.errstate(over="ignore", invalid="ignore"):
+        marginalized = hrr - correction[:, :-1]
+        marginal_gradient = gr - correction[:, -1]
+    if not np.all(np.isfinite(marginalized)) or not np.all(np.isfinite(marginal_gradient)):
+        raise ValueError("marginalized normal equations must be finite")
     return marginalized, marginal_gradient, SchurEliminationEvidence(
         eliminated_dimension=eliminated_dim, numerical_rank=rank,
         zero_information_dimension=int(np.count_nonzero(~active)),

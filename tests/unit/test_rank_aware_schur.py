@@ -61,6 +61,42 @@ def test_weak_coupled_positive_direction_with_material_rhs_is_not_silently_disca
         schur_complement_normal_with_evidence(h, np.array([1., -1., 0.]), 2)
 
 
+@pytest.mark.parametrize("eliminated_count", [1, 2])
+def test_subnormal_information_keeps_representable_schur_result(eliminated_count):
+    # The eliminated solution exceeds float64, but its contribution to the
+    # retained quadratic does not. Two identical columns exercise coupled nulls.
+    h = np.full((eliminated_count + 1, eliminated_count + 1), 1e-320)
+    h[-1, :-1] = h[:-1, -1] = 5e-161
+    h[-1, -1] = 1.
+    g = np.ones(eliminated_count + 1)
+    g[-1] = 0.
+    actual_h, actual_g, evidence = schur_complement_normal_with_evidence(
+        h, g, eliminated_count,
+    )
+    # Change units so that eliminated coordinates have unit information. This
+    # independent equivalent system has no overflowing solve intermediates.
+    units = np.ones(eliminated_count + 1)
+    units[:-1] = 1e160
+    reference_h, reference_g, _ = schur_complement_normal_with_evidence(
+        h * units[:, None] * units[None, :], g * units, eliminated_count,
+    )
+    np.testing.assert_allclose(actual_h, reference_h, rtol=1e-14)
+    np.testing.assert_allclose(actual_g, reference_g, rtol=1e-14)
+    # Analytic one-dimensional quotient, ordered to avoid intermediate overflow.
+    contribution = (h[0, -1] / np.sqrt(h[0, 0])) ** 2
+    np.testing.assert_allclose(actual_h, [[1. - contribution]], rtol=1e-14)
+    np.testing.assert_allclose(actual_g, [-contribution / h[0, -1]], rtol=1e-14)
+    assert evidence.numerical_rank == 1
+    assert evidence.coupled_nullity == eliminated_count - 1
+
+
+def test_nonrepresentable_retained_gradient_is_rejected():
+    # A valid SPD quadratic with finite inputs can still overflow its Schur RHS.
+    h = np.array([[1., 1e154], [1e154, 1.5e308]])
+    with pytest.raises(ValueError, match="marginalized normal equations must be finite"):
+        schur_complement_normal_with_evidence(h, np.array([1e200, 0.]), 1)
+
+
 def test_sliding_eliminates_coupled_unobservable_old_knots_without_a_pose_prior():
     from calibrex.core.continuous_time_sliding_window_fit import fit_sliding_window_trajectory
     from calibrex.core.continuous_time_sparse import (

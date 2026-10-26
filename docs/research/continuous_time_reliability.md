@@ -290,7 +290,8 @@ The informative eliminated block is diagonally scaled before symmetric
 eigendecomposition. Its rank threshold is `60 * machine_epsilon *
 max(1, eliminated_dimension) * max(1, max(abs(eigenvalues)))`. Directions at or
 below that threshold are numerical null directions. Material negative
-eigenvalues or asymmetry are rejected. Full-rank blocks retain the direct solve.
+eigenvalues or asymmetry are rejected. Full-rank blocks use a direct solve in
+these scaled coordinates.
 
 For a deficient block, retained coupling columns and the eliminated gradient
 must lie in its numerical range. Each nullspace projection is checked relative
@@ -319,6 +320,19 @@ nullspace, but a material right-hand side in those directions is rejected rather
 than silently dropped. Weak independent coordinate information survives diagonal
 scaling. Nonlinear relinearization, optimization of coupled null modes, and
 interpretation of globally unobservable estimates remain open.
+
+Both full-rank and rank-deficient elimination now contract the Schur correction
+in scaled coordinates. With eliminated scale matrix `D`, the computation uses
+`(H_re D^-1) solve(D^-1 H_ee D^-1, D^-1 [H_er, g_e])` (restricted to the
+observed eigenspace when needed). It never constructs the potentially overflowing
+unscaled eliminated solution. For example, `H=[[1e-320,5e-161],[5e-161,1]]` and
+`g=[1,0]` previously returned negative infinities, although retained curvature
+is approximately `0.75` and gradient approximately `-5e159`. Regression tests
+cover this case, duplicated eliminated columns, equivalent coordinate units,
+and explicit rejection when the retained result itself is nonfinite. These are
+development arithmetic tests, not new accuracy or performance evidence. This
+does not resolve subtractive cancellation in nearly zero retained curvature;
+residual-space square-root elimination remains separate work.
 
 ## Opt-in updates in the observable subspace
 
