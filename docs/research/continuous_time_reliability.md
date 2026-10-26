@@ -332,7 +332,49 @@ cover this case, duplicated eliminated columns, equivalent coordinate units,
 and explicit rejection when the retained result itself is nonfinite. These are
 development arithmetic tests, not new accuracy or performance evidence. This
 does not resolve subtractive cancellation in nearly zero retained curvature;
-residual-space square-root elimination remains separate work.
+residual-space elimination is available separately as described below.
+
+## Residual-space marginalization reference API
+
+`calibrex.core.square_root_marginalization.marginalize_residual_prefix(J, r, n)`
+accepts an already weighted Jacobian and residual and eliminates the first `n`
+columns. It returns a retained Jacobian and residual, including constant cost,
+so their squared norm represents the profiled least-squares objective. It does
+not create an information matrix or subtract Schur terms. For example:
+
+```python
+import numpy as np
+from calibrex.core.square_root_marginalization import marginalize_residual_prefix
+
+factor = marginalize_residual_prefix(
+    np.array([[1., 1.], [0., 1e-9]]), np.array([0., 1.]), 1,
+)
+# factor.jacobian.T @ factor.jacobian retains information 1e-18.
+# Forming J.T @ J before Schur subtraction loses that term entirely.
+```
+
+The eliminated columns are independently normalized using a maximum-entry
+scaling followed by a Euclidean norm. A full SVD supplies an orthogonal basis;
+its residual-space complement acts directly on retained columns and residuals.
+The singular-value rank threshold is `60 * machine_epsilon * max(rows, n) *
+largest_singular_value`. The result records this threshold, numerical rank and
+the number of exactly absent eliminated columns. Below-threshold singular
+directions are treated as null; this is a numerical rank approximation, not
+an exact symbolic guarantee, and differs from thresholding normal eigenvalues.
+
+Tests compare complete profiled costs against independent least-squares solves,
+including coupled nullspaces, preserve weak independent columns under extreme
+unit changes, and cover absent columns and elimination spanning every residual
+row. No positive floor or invented pose constraint is added. Orthogonal
+projection still has floating-point error when retained columns almost align
+with eliminated columns; the API does not promise exact recovery at all scales.
+
+This is a dense reference API with quadratic memory in the residual row count.
+The sliding-window fitter still uses its existing normal-equation Schur path.
+Integrating residual-space factors and retaining them across window boundaries
+requires separate work; converting the result back to normal matrices can lose
+weak information again. These development tests make no new trajectory accuracy
+or runtime claim.
 
 ## Opt-in updates in the observable subspace
 

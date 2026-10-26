@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add a dense residual-space marginalization reference API that retains weighted
+  Jacobian and residual factors, avoiding cancellation from Schur subtraction.
+  Record normalized-column SVD rank and threshold; test weak retained information,
+  coupled nullspaces and complete profiled cost. Sliding-window fitting continues
+  to use its existing normal-equation path.
+
 - Compute Schur corrections in diagonally scaled coordinates, avoiding an
   overflowing eliminated solution when the retained information and gradient
   remain representable. Cover full-rank and coupled-nullspace systems with
