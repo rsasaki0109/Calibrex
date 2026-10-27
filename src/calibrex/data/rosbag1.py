@@ -625,6 +625,10 @@ def _time_field_to_ns(value: bytes | None) -> int | None:
     if len(value) != 8:
         raise DatasetError("invalid ROS bag time header field length")
     secs, nsecs = struct.unpack("<II", value)
+    if nsecs >= 1_000_000_000:
+        raise DatasetError(
+            "invalid ROS bag time header field: nanoseconds must be below 1000000000"
+        )
     return int(secs) * 1_000_000_000 + int(nsecs)
 
 

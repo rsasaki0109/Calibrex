@@ -245,3 +245,40 @@ def test_public_reader_rejects_duplicate_record_header_fields(tmp_path, location
                     + record(chunk_header, message))
     with pytest.raises(DatasetError, match='duplicate ROS bag header field'):
         list(rosbag1.iter_messages(bag))
+
+
+@pytest.mark.parametrize('secs', [0, 2**32 - 1])
+@pytest.mark.parametrize('nsecs', [0, 999_999_999, 1_000_000_000, 2**32 - 1])
+def test_record_timestamp_range_is_validated_without_normalizing(secs, nsecs):
+    value = struct.pack('<II', secs, nsecs)
+    if nsecs < 1_000_000_000:
+        assert rosbag1._time_field_to_ns(value) == secs * 1_000_000_000 + nsecs
+    else:
+        with pytest.raises(DatasetError, match='nanoseconds must be below'):
+            rosbag1._time_field_to_ns(value)
+
+
+@pytest.mark.parametrize('compression', ['none', 'bz2', 'lz4'])
+@pytest.mark.parametrize('nsecs', [999_999_999, 1_000_000_000, 2**32 - 1])
+def test_public_reader_validates_record_time_in_all_chunk_formats(tmp_path, compression, nsecs):
+    conn = struct.pack('<I', 1)
+    connection = record(fields(op=bytes([rosbag1.OP_CONNECTION]), conn=conn, topic=b'/imu'),
+                        fields(type=b'sensor_msgs/Imu'))
+    message = record(fields(op=bytes([rosbag1.OP_MSG_DATA]), conn=conn,
+                            time=struct.pack('<II', 2, nsecs)), b'payload')
+    encoded = message
+    if compression == 'bz2':
+        encoded = bz2.compress(message)
+    elif compression == 'lz4':
+        encoded = pytest.importorskip('lz4.frame').compress(message)
+    chunk_header = fields(op=bytes([rosbag1.OP_CHUNK]), compression=compression.encode(),
+                          size=struct.pack('<I', len(message)))
+    bag = tmp_path / 'timestamp.bag'
+    bag.write_bytes(rosbag1.BAG_MAGIC + connection + record(chunk_header, encoded))
+    if nsecs < 1_000_000_000:
+        messages = list(rosbag1.iter_messages(bag))
+        assert len(messages) == 1
+        assert messages[0][1:] == (2_999_999_999, b'payload')
+    else:
+        with pytest.raises(DatasetError, match='nanoseconds must be below'):
+            list(rosbag1.iter_messages(bag))
