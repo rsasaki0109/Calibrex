@@ -126,6 +126,8 @@ MCAP chunk sizes and declared ROS 1 chunk sizes are checked against the actual
 expanded data, including explicit zero sizes, before their records are parsed.
 MCAP field lengths are also checked against the enclosing record, so short
 headers and payloads fail with a dataset read error.
+Outer MCAP payload reads use bounded blocks, including for `.mcap.zstd` streams,
+so declared lengths do not directly determine individual read allocations.
 ROS 1 inner record lengths are checked against the expanded chunk as well.
 
 `calibrex check my_bag/ --plan` prints which sensor pairs the bag can be checked for, and why the

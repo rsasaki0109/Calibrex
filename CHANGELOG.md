@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Read MCAP outer record payloads in bounded blocks so invalid uint64 lengths
+  produce `DatasetError` instead of oversized read requests or overflow errors,
+  including file-compressed MCAP streams. Validate short chunk timestamps before
+  unpacking them in the public message reader.
+
 - Bounds-check ROS 1 inner record headers and payloads against their expanded
   chunk. Report truncated length prefixes and oversized lengths as `DatasetError`;
   cover public reads through uncompressed, bz2 and LZ4 chunks.

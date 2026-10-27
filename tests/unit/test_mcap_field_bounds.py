@@ -1,4 +1,5 @@
 """MCAP field readers must respect enclosing record bounds."""
+import io
 import struct
 
 import pytest
@@ -69,3 +70,66 @@ def test_public_reader_rejects_length_mismatch_inside_complete_outer_record(tmp_
     bag.write_bytes(rosbag2.MCAP_MAGIC + b'\x06' + struct.pack('<Q', len(content)) + content)
     with pytest.raises(DatasetError, match='truncated MCAP record field'):
         list(rosbag2.iter_messages(bag))
+
+
+@pytest.mark.parametrize('length', [2**32, 2**63, 2**64 - 1])
+def test_stream_reader_bounds_read_requests_for_untrusted_record_length(length):
+    class BoundedStream(io.BytesIO):
+        def read(self, size=-1):
+            assert 0 <= size <= 1024 * 1024
+            return super().read(size)
+
+    source = BoundedStream(b'\xff' + struct.pack('<Q', length) + b'short')
+    with pytest.raises(DatasetError, match='truncated MCAP record content'):
+        list(rosbag2._iter_mcap_records(source))
+
+
+def test_stream_reader_preserves_large_records_empty_records_and_boundaries():
+    payload = b'x' * (2 * 1024 * 1024 + 1)
+    encoded = b'\xff' + struct.pack('<Q', len(payload)) + payload
+    empty = b'\xfe' + struct.pack('<Q', 0)
+    assert list(rosbag2._iter_mcap_records(io.BytesIO(empty + encoded + empty))) == [
+        (0xfe, b''), (0xff, payload), (0xfe, b'')]
+    with pytest.raises(DatasetError, match='truncated MCAP record content'):
+        list(rosbag2._iter_mcap_records(io.BytesIO(encoded[:-1])))
+
+
+def test_stream_reader_rejects_every_incomplete_outer_record_prefix():
+    encoded = b'\xff' + struct.pack('<Q', 7) + b'payload'
+    for end in range(1, len(encoded)):
+        with pytest.raises(DatasetError, match='truncated MCAP record'):
+            list(rosbag2._iter_mcap_records(io.BytesIO(encoded[:end])))
+
+
+@pytest.mark.parametrize('compressed', [False, True])
+@pytest.mark.parametrize('length', [2**32, 2**63, 2**64 - 1])
+def test_public_readers_reject_impossible_outer_length(tmp_path, compressed, length):
+    encoded = rosbag2.MCAP_MAGIC + b'\xff' + struct.pack('<Q', length) + b'short'
+    suffix = '.mcap'
+    if compressed:
+        encoded = pytest.importorskip('zstandard').ZstdCompressor().compress(encoded)
+        suffix += '.zstd'
+    bag = tmp_path / ('oversized' + suffix)
+    bag.write_bytes(encoded)
+    if compressed:
+        (tmp_path / 'metadata.yaml').write_text(
+            'rosbag2_bagfile_information:\n'
+            '  version: 5\n'
+            '  storage_identifier: mcap\n'
+            f'  relative_file_paths: [{bag.name}]\n'
+            '  compression_format: zstd\n'
+            '  compression_mode: file\n')
+        bag = tmp_path
+    with pytest.raises(DatasetError, match='truncated MCAP record content'):
+        list(rosbag2.iter_messages(bag))
+    with pytest.raises(DatasetError, match='truncated MCAP record content'):
+        rosbag2.list_rosbag2_connections(bag)
+
+
+def test_public_message_reader_checks_chunk_start_before_unpacking(tmp_path):
+    bag = tmp_path / 'short-chunk.mcap'
+    for length in range(8):
+        bag.write_bytes(rosbag2.MCAP_MAGIC + bytes([rosbag2.OP_CHUNK])
+                        + struct.pack('<Q', length) + b'\x00' * length)
+        with pytest.raises(DatasetError, match='truncated MCAP record field'):
+            list(rosbag2.iter_messages(bag))

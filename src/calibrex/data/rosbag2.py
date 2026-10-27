@@ -958,7 +958,7 @@ def _iter_mcap_messages(
             elif opcode == OP_CHUNK:
                 # Chunks may overlap in time: hold messages in a heap and release those
                 # older than the next chunk's start so the output stays time-ordered.
-                (chunk_start,) = struct.unpack_from("<Q", content, 0)
+                chunk_start, _ = _read_mcap_uint64(content, 0)
                 while ordered and ordered[0][0] < chunk_start:
                     yield heapq.heappop(ordered)[2:]
                 _compression, records = _parse_mcap_chunk(content)
@@ -1036,13 +1036,24 @@ def _iter_mcap_records(source: Any) -> Iterator[tuple[int, bytes]]:
             raise DatasetError(msg)
         opcode = header[0]
         (length,) = struct.unpack("<Q", header[1:9])
-        content = source.read(length)
-        if len(content) != length:
-            msg = "truncated MCAP record content"
-            raise DatasetError(msg)
+        content = _read_mcap_record_content(source, length)
         yield opcode, content
         if opcode == OP_FOOTER:
             break
+
+
+def _read_mcap_record_content(source: Any, length: int) -> bytes:
+    # The uint64 length is untrusted. Bound each allocation request, including
+    # for non-seekable decompression streams, without limiting valid record sizes.
+    parts: list[bytes] = []
+    remaining = length
+    while remaining:
+        part = source.read(min(remaining, 1024 * 1024))
+        if not part:
+            raise DatasetError("truncated MCAP record content")
+        parts.append(part)
+        remaining -= len(part)
+    return b"".join(parts)
 
 
 def _iter_mcap_record_bytes(buffer: bytes) -> Iterator[tuple[int, bytes]]:
