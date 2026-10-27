@@ -3,14 +3,13 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import importlib.machinery
-import importlib.util
 import json
 import platform
 import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+from types import ModuleType
 from typing import Any, Literal
 
 import numpy as np
@@ -51,12 +50,12 @@ def legacy_module() -> Any:
     """Load only the repository's archived source, never caller-provided Python."""
     path = ARCHIVE / 'profile-source.py.txt'
     name = '_calibrex_archived_profile_control'
-    loader = importlib.machinery.SourceFileLoader(name, str(path))
-    spec = importlib.util.spec_from_loader(name, loader)
-    assert spec is not None
-    module = importlib.util.module_from_spec(spec)
+    # Executing the trusted capsule directly avoids adding __pycache__ files to
+    # the byte-bound publication directory (SourceFileLoader writes them there).
+    module = ModuleType(name)
+    module.__file__ = str(path)
     sys.modules[name] = module
-    loader.exec_module(module)
+    exec(compile(path.read_bytes(), str(path), 'exec'), module.__dict__)
     return module
 
 

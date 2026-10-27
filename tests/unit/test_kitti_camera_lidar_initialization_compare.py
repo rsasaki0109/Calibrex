@@ -16,7 +16,9 @@ def test_gate_requires_all_fourteen_successful_distinct_inputs() -> None:
 
 
 def test_archived_module_is_the_fixed_repository_capsule() -> None:
+    before = set(compare.ARCHIVE.rglob("*"))
     archived = compare.legacy_module()
+    assert set(compare.ARCHIVE.rglob("*")) == before
     assert archived.__file__ == str(compare.ARCHIVE / 'profile-source.py.txt')
     assert archived.ProfileFold.model_fields.keys() == (
         compare.profile.ProfileFold.model_fields.keys() - {'training_start_theta'})
