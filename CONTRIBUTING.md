@@ -18,6 +18,20 @@ Core rules:
 - Follow [license boundary policy](docs/concepts/license_boundaries.md) for
   external tools and public datasets.
 
+## Compressed bag format tests
+
+The `compressed-bag-formats` CI job installs optional MCAP, LZ4 and Zstandard
+dependencies so their interoperability tests run rather than skip. Run it locally:
+
+```bash
+python -m pip install -e ".[dev,mcap,rosbag1-lz4,rosbag2-compression]"
+python -m pytest tests/unit/test_bag_formats.py tests/unit/test_rosbag2.py tests/unit/test_rosbag2_writer.py
+```
+
+These tests use synthetic fixtures and do not require ROS, GPU hardware or public
+dataset downloads. Missing-codec error tests simulate unavailable imports and
+therefore also run when the compression extras are installed.
+
 ## Schema Changes
 
 Every artifact kind is declared once in `src/calibrex/core/schema_registry.py`.

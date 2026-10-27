@@ -216,6 +216,24 @@ jobs:
           /tmp/calibrex-venv/bin/calibrex doctor --json > /tmp/doctor.json
           /tmp/calibrex-venv/bin/python -c "import json, sys; env = json.load(open('/tmp/doctor.json'))['environment']; print(env['python_path']); sys.exit(0 if env['core_ros_independent'] else 1)"
 
+  compressed-bag-formats:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install bag format and compression extras
+        run: python -m pip install -e ".[dev,mcap,rosbag1-lz4,rosbag2-compression]"
+      - name: Require compression adapters
+        run: python -c "import lz4.block, lz4.frame, mcap.writer, zstandard"
+      - name: Test compressed ROS bags and MCAP interoperability
+        run: >-
+          python -m pytest
+          tests/unit/test_bag_formats.py
+          tests/unit/test_rosbag2.py
+          tests/unit/test_rosbag2_writer.py
+
   opencv-adapter:
     runs-on: ubuntu-latest
     steps:

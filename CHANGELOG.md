@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Add CI coverage for optional MCAP, LZ4 and Zstandard bag interoperability.
+  Require the adapters before testing and simulate missing codecs independently
+  of installed extras, covering successful reads and missing-dependency errors
+  in the same environment.
+
 - Validate sliding-window fault-injection translations as exactly three finite
   real components before fitting. Prevent scalar/single-component broadcasting
   from silently changing controls; preserve intended anchor and overlap shifts
