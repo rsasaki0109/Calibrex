@@ -186,3 +186,31 @@ def test_training_only_snapshot_retains_failure_without_conditional_receipt(tmp_
     assert not any(item.startswith("Initialization uses") for item in report["limitations"])
     jsonschema.validate(report, json.loads((output / "report.schema.json").read_text()))
     assert (source / "arrays.npz").read_bytes() == before
+
+
+def test_training_only_snapshot_records_fold_starts_in_complete_report(tmp_path, monkeypatch):
+    source = tmp_path / "snapshot"
+    _snapshot(source)
+    # Exercise report/CLI wiring on analytic objectives, not real sensor evidence.
+    monkeypatch.setattr(probe.edge, "prepare_frames", lambda *a: ([object()] * 12, {}))
+    monkeypatch.setattr(probe.edge, "_fixed_objective", lambda *a: _Ridge(0))
+    output = tmp_path / "report"
+    report = probe.profile_snapshot(source, None, output, training_only_start=True)
+    assert report.status == "complete"
+    document = json.loads((output / "report.json").read_text())
+    assert [axis['axis'] for axis in document['axes']] == [0, 1, 2]
+    for axis in document['axes']:
+        assert all(len(fold['training_start_theta']) == 6 for fold in axis['folds'])
+    jsonschema.validate(document, json.loads((output / "report.schema.json").read_text()))
+
+
+def test_flat_training_profile_retains_zero_candidate():
+    class Flat(edge.EdgeObjective):
+        def __init__(self) -> None:
+            pass
+
+        def score(self, theta: np.ndarray) -> float:
+            return 1.0
+
+    start = probe.training_profile_start(Flat(), 2, edge.EdgeAlignmentOptions())
+    np.testing.assert_array_equal(start, np.zeros(6))
