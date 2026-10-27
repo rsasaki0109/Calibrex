@@ -1200,38 +1200,48 @@ def _lz4_decompress_message(data: bytes) -> bytes:
     return decompressed
 
 
+def _require_mcap_range(buffer: bytes, offset: int, size: int) -> None:
+    """Check declared fields before unpacking or silently shortening a slice."""
+    if offset < 0 or size < 0 or offset > len(buffer) or size > len(buffer) - offset:
+        raise DatasetError("truncated MCAP record field")
+
+
 def _read_mcap_uint16(buffer: bytes, offset: int) -> tuple[int, int]:
+    _require_mcap_range(buffer, offset, 2)
     (value,) = struct.unpack_from("<H", buffer, offset)
     return int(value), offset + 2
 
 
 def _read_mcap_uint32(buffer: bytes, offset: int) -> tuple[int, int]:
+    _require_mcap_range(buffer, offset, 4)
     (value,) = struct.unpack_from("<I", buffer, offset)
     return int(value), offset + 4
 
 
 def _read_mcap_uint64(buffer: bytes, offset: int) -> tuple[int, int]:
+    _require_mcap_range(buffer, offset, 8)
     (value,) = struct.unpack_from("<Q", buffer, offset)
     return int(value), offset + 8
 
 
 def _read_mcap_string(buffer: bytes, offset: int) -> tuple[str, int]:
-    (length,) = struct.unpack_from("<I", buffer, offset)
-    offset += 4
+    length, offset = _read_mcap_uint32(buffer, offset)
+    _require_mcap_range(buffer, offset, length)
     text = buffer[offset : offset + length].decode("utf-8", errors="replace")
     return text, offset + length
 
 
 def _read_mcap_length_prefixed_bytes(buffer: bytes, offset: int) -> tuple[bytes, int]:
-    (length,) = struct.unpack_from("<Q", buffer, offset)
-    offset += 8
+    length, offset = _read_mcap_uint64(buffer, offset)
+    _require_mcap_range(buffer, offset, length)
     payload = buffer[offset : offset + length]
     return payload, offset + length
 
 
 def _skip_mcap_string_map(buffer: bytes, offset: int) -> int:
-    (length,) = struct.unpack_from("<I", buffer, offset)
-    return offset + 4 + int(length)
+    length, offset = _read_mcap_uint32(buffer, offset)
+    _require_mcap_range(buffer, offset, length)
+    return offset + length
 
 
 def read_pointcloud2_messages(

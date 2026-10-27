@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Bounds-check MCAP integer, string, byte-array and metadata-map fields before
+  reading them. Reject incomplete headers and oversized declared payload lengths
+  as `DatasetError` instead of leaking unpacking errors or accepting short slices.
+
 - Verify declared MCAP and ROS 1 chunk sizes before parsing their records,
   including uncompressed/bz2 chunks and explicit zero sizes. Reject malformed
   ROS 1 size fields while preserving the existing absent-size compatibility path.
