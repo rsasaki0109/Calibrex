@@ -1267,7 +1267,8 @@ def _skip_mcap_string_map(buffer: bytes, offset: int) -> int:
     return offset + length
 
 
-def _require_cdr_connection(connection: Rosbag2Connection) -> None:
+def require_cdr_connection(connection: Rosbag2Connection) -> None:
+    """Reject non-CDR connections before passing their bytes to a ROS decoder."""
     _require_cdr_serialization(connection.topic, connection.serialization_format)
 
 
@@ -1290,7 +1291,7 @@ def read_pointcloud2_messages(
     for connection, timestamp_ns, data in iter_messages(path, topics=topics):
         if connection.message_type != POINTCLOUD2_TYPE:
             continue
-        _require_cdr_connection(connection)
+        require_cdr_connection(connection)
         yield decode_pointcloud2(connection.topic, timestamp_ns, data)
 
 
@@ -1306,7 +1307,7 @@ def read_image_messages(
     for connection, timestamp_ns, data in iter_messages(path, topics=topics):
         if connection.message_type != IMAGE_TYPE:
             continue
-        _require_cdr_connection(connection)
+        require_cdr_connection(connection)
         yield decode_image(
             connection.topic,
             timestamp_ns,
@@ -1326,7 +1327,7 @@ def read_camera_info_messages(
     for connection, timestamp_ns, data in iter_messages(path, topics=topics):
         if connection.message_type != CAMERA_INFO_TYPE:
             continue
-        _require_cdr_connection(connection)
+        require_cdr_connection(connection)
         yield decode_camera_info(connection.topic, timestamp_ns, data)
 
 
@@ -1341,7 +1342,7 @@ def read_radar_scan_messages(
     for connection, timestamp_ns, data in iter_messages(path, topics=topics):
         if connection.message_type != RADAR_SCAN_TYPE:
             continue
-        _require_cdr_connection(connection)
+        require_cdr_connection(connection)
         yield decode_radar_scan(connection.topic, timestamp_ns, data)
 
 
@@ -1366,7 +1367,7 @@ def read_lidar_messages(
     for connection, timestamp_ns, data in iter_messages(path, topics=topics):
         if connection.message_type not in LIDAR_MESSAGE_TYPES:
             continue
-        _require_cdr_connection(connection)
+        require_cdr_connection(connection)
         yield decode_lidar_message(connection.topic, connection.message_type, timestamp_ns, data)
 
 
@@ -1524,7 +1525,7 @@ def read_imu_messages(
     for connection, timestamp_ns, data in iter_messages(path, topics=topics):
         if connection.message_type != IMU_TYPE:
             continue
-        _require_cdr_connection(connection)
+        require_cdr_connection(connection)
         yield decode_imu(connection.topic, timestamp_ns, data)
 
 
@@ -1593,7 +1594,7 @@ def summarize_rosbag2(
         for connection, timestamp_ns, data in iter_messages(bag_path):
             if connection.message_type not in _INSPECT_MESSAGE_TYPES:
                 continue
-            _require_cdr_connection(connection)
+            require_cdr_connection(connection)
             topic = connection.topic
             counts[topic] = counts.get(topic, 0) + 1
             connections.setdefault(topic, connection)

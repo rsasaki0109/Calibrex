@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import math
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -16,6 +17,7 @@ from calibrex.core.geometry import SE3
 from calibrex.pipelines.online import (
     OnlineCalibrationRunOptions,
     _resolve_online_lidar_pair,
+    _select_rosbag2_capture_record_timestamps,
     run_online_calibration,
 )
 
@@ -414,6 +416,55 @@ def _run_session_on_bag(
         result.run.provenance,
         result,
     )
+
+
+@pytest.mark.parametrize('topic', ['/livox/lidar', '/avia/livox/lidar', '/odom'])
+@pytest.mark.parametrize('encoding', ['json', ''])
+def test_online_replay_rejects_non_cdr_before_calibration(tmp_path, topic, encoding):
+    bag = _build_moving_rig_bag(tmp_path / 'encoding.db3')
+    with sqlite3.connect(bag) as db:
+        db.execute('UPDATE topics SET serialization_format = ? WHERE name = ?',
+                   (encoding, topic))
+    # Payloads remain valid CDR, so a successful decode would hide the mismatch.
+    with pytest.raises(DatasetError, match='unsupported serialization format') as error:
+        _run_session_on_bag(tmp_path, bag, odometry_topic='/odom')
+    assert topic in str(error.value)
+
+
+@pytest.mark.parametrize('topic', ['/livox/lidar', '/avia/livox/lidar'])
+def test_capture_window_sampling_rejects_non_cdr_lidar(tmp_path, topic):
+    bag = _build_moving_rig_bag(tmp_path / 'sampling.db3')
+    with sqlite3.connect(bag) as db:
+        db.execute('UPDATE topics SET serialization_format = ? WHERE name = ?', ('json', topic))
+    with pytest.raises(DatasetError, match='unsupported serialization format') as error:
+        _select_rosbag2_capture_record_timestamps(
+            bag, source_topic='/livox/lidar', target_topic='/avia/livox/lidar',
+            source_point_time_field=None, target_point_time_field=None,
+            windows=((None, None),), max_source_messages=2, max_target_messages=2,
+        )
+    assert topic in str(error.value)
+
+
+@pytest.mark.parametrize('capture_windows', [None, ((None, None),)])
+def test_cross_segment_checks_reject_non_cdr_lidar(tmp_path, capture_windows):
+    from calibrex.evaluation.trajectory import TrajectoryEvidenceOptions
+    from calibrex.pipelines.online import (
+        _load_rosbag2_odometry_track,
+        collect_rosbag2_cross_segment_scans,
+    )
+
+    bag = _build_moving_rig_bag(tmp_path / 'cross-segment.db3')
+    track, _ = _load_rosbag2_odometry_track(bag, '/odom')
+    assert track is not None
+    with sqlite3.connect(bag) as db:
+        db.execute('UPDATE topics SET serialization_format = ? WHERE name = ?',
+                   ('json', '/livox/lidar'))
+    with pytest.raises(DatasetError, match='unsupported serialization format'):
+        collect_rosbag2_cross_segment_scans(
+            bag_path=bag, source_topic='/livox/lidar', odometry_track=track,
+            t_base_source=SE3.identity(), options=TrajectoryEvidenceOptions(),
+            extrapolation_tolerance_s=None, capture_windows=capture_windows,
+        )
 
 
 def test_rosbag2_online_odometry_extrapolation_gate_excludes_batches(tmp_path: Path) -> None:

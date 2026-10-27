@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Validate selected ROS 2 LiDAR and odometry connection formats before online
+  replay decoding, including capture-window sampling and cross-segment checks.
+  Non-CDR inputs now fail with a topic-specific error before calibration.
+
 - Check declared serialization before decoding capture-inventory samples, so
   non-CDR streams cannot gain supported decode status from CDR-shaped bytes.
   Add an optional serialization-format argument to the generic rosbag2 decoder,
