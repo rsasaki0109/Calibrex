@@ -128,6 +128,8 @@ Truncated frames and codec-reported corruption
 in Zstandard, LZ4 or ROS 1 bz2 chunks produce dataset read errors.
 MCAP chunk sizes and declared ROS 1 chunk sizes are checked against the actual
 expanded data, including explicit zero sizes, before their records are parsed.
+Nonzero MCAP chunk CRCs are verified against the expanded records; zero retains
+the format's checksum-omitted behavior.
 MCAP field lengths are also checked against the enclosing record, so short
 headers and payloads fail with a dataset read error.
 Outer MCAP payload reads use bounded blocks, including for `.mcap.zstd` streams,

@@ -38,6 +38,7 @@ import math
 import sqlite3
 import struct
 import sys
+import zlib
 from collections.abc import Callable, Iterable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -1115,13 +1116,15 @@ def _parse_mcap_chunk(content: bytes) -> tuple[str, bytes]:
     _start, offset = _read_mcap_uint64(content, offset)
     _end, offset = _read_mcap_uint64(content, offset)
     uncompressed_size, offset = _read_mcap_uint64(content, offset)
-    _crc, offset = _read_mcap_uint32(content, offset)
+    crc, offset = _read_mcap_uint32(content, offset)
     compression, offset = _read_mcap_string(content, offset)
     records, _offset = _read_mcap_length_prefixed_bytes(content, offset)
     if compression:
         records = _decompress_mcap_chunk(compression, records, int(uncompressed_size))
     if len(records) != uncompressed_size:
         raise DatasetError("MCAP chunk decompressed to an unexpected size")
+    if crc and zlib.crc32(records) != crc:
+        raise DatasetError("MCAP chunk CRC mismatch")
     return compression, records
 
 
