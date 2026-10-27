@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Bounds-check ROS 1 inner record headers and payloads against their expanded
+  chunk. Report truncated length prefixes and oversized lengths as `DatasetError`;
+  cover public reads through uncompressed, bz2 and LZ4 chunks.
+
 - Bounds-check MCAP integer, string, byte-array and metadata-map fields before
   reading them. Reject incomplete headers and oversized declared payload lengths
   as `DatasetError` instead of leaking unpacking errors or accepting short slices.

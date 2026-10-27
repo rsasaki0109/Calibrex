@@ -385,12 +385,20 @@ def _iter_inner_records(buffer: bytes) -> Iterator[tuple[dict[str, bytes], bytes
     offset = 0
     total = len(buffer)
     while offset < total:
+        if total - offset < 4:
+            raise DatasetError("truncated ROS bag inner record header length")
         (header_len,) = struct.unpack_from("<I", buffer, offset)
         offset += 4
+        if header_len > total - offset:
+            raise DatasetError("truncated ROS bag inner record header")
         header = buffer[offset : offset + header_len]
         offset += header_len
+        if total - offset < 4:
+            raise DatasetError("truncated ROS bag inner record data length")
         (data_len,) = struct.unpack_from("<I", buffer, offset)
         offset += 4
+        if data_len > total - offset:
+            raise DatasetError("truncated ROS bag inner record data")
         data = buffer[offset : offset + data_len]
         offset += data_len
         yield _read_header_fields(header), data
