@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Reject truncated ROS 1 Livox CustomMsg point sequences instead of returning
+  partial clouds. Use the serialized array length for decoded points and retain
+  `point_num` as producer metadata, matching the ROS 2 reader's behavior.
+
 - Validate ROS 1 PointCloud2, Livox CustomMsg and PoseStamped header nanoseconds
   before decoding sensor content. Reject values outside [0, 1e9), including empty
   Livox scans, while retaining zero-header fallback to the bag record time.

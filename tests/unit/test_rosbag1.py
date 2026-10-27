@@ -361,6 +361,47 @@ def test_bag_reader_rejects_bad_sensor_time_even_with_valid_record_time(tmp_path
         list(read_pointcloud2_messages(bag))
 
 
+def test_livox_rejects_every_incomplete_point_sequence():
+    payload = _serialize_livox_custommsg(
+        [(1.0, 2.0, 3.0, 10.0), (4.0, 5.0, 6.0, 20.0)],
+        frame_id='sensor', secs=2, nsecs=3)
+    points_start = len(payload) - 2 * 19
+    for end in range(points_start, len(payload)):
+        with pytest.raises(DatasetError, match=r'truncated .* point sequence'):
+            decode_livox_custommsg('/points', 0, payload[:end])
+    oversized = bytearray(payload)
+    struct.pack_into('<I', oversized, points_start - 4, 2**32 - 1)
+    with pytest.raises(DatasetError, match=r'truncated .* point sequence'):
+        decode_livox_custommsg('/points', 0, bytes(oversized))
+
+
+@pytest.mark.parametrize('point_num', [0, 1, 2, 3, 2**32 - 1])
+def test_livox_sequence_length_governs_points_independent_of_point_num(point_num):
+    payload = bytearray(_serialize_livox_custommsg(
+        [(1.0, 2.0, 3.0, 10.0), (4.0, 5.0, 6.0, 20.0)],
+        frame_id='sensor', secs=2, nsecs=3))
+    # Header (16 + frame length), then uint64 timebase, then point_num.
+    struct.pack_into('<I', payload, 16 + len('sensor') + 8, point_num)
+    message = decode_livox_custommsg('/points', 0, bytes(payload))
+    assert message.point_num == point_num
+    assert message.point_count == 2
+    assert message.xyz.tolist() == [[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]
+    assert message.offset_time_ns.tolist() == [0, 1000]
+
+
+def test_bag_reader_rejects_truncated_livox_points(tmp_path):
+    payload = _serialize_livox_custommsg([(1.0, 2.0, 3.0, 10.0)],
+                                         frame_id='sensor', secs=2, nsecs=3)[:-1]
+    inner = (_connection_record(1, '/points', 'livox_ros_driver/CustomMsg')
+             + _message_record(1, 2, 3, payload))
+    bag = tmp_path / 'short-livox.bag'
+    bag.write_bytes(BAG_MAGIC + _record(
+        {'op': b'\x05', 'compression': b'none', 'size': struct.pack('<I', len(inner))}, inner))
+    summary = summarize_rosbag1(bag)
+    assert summary.status == 'malformed'
+    assert 'truncated livox_ros_driver/CustomMsg point sequence' in summary.reason
+
+
 def test_rosbag1_records_normalize_ros_time(tmp_path: Path) -> None:
     bag = _sample_bag(tmp_path / "sample.bag")
     records = list(Rosbag1Reader(bag).records("/livox/lidar"))

@@ -1113,9 +1113,11 @@ def decode_livox_custommsg(topic: str, timestamp_ns: int, data: bytes) -> LivoxC
     offset += 1
     offset += 3  # uint8[3] reserved
     array_len, offset = _read_uint32(data, offset)
-    count = min(int(point_num), int(array_len))
-    available = max(0, (len(data) - offset) // _LIVOX_CUSTOM_POINT_STEP)
-    count = min(count, available)
+    # The serialized sequence length governs the array, as in the ROS 2 reader.
+    # point_num is retained as producer metadata, not used to truncate the data.
+    count = int(array_len)
+    if count * _LIVOX_CUSTOM_POINT_STEP > len(data) - offset:
+        raise DatasetError("truncated livox_ros_driver/CustomMsg point sequence")
     if count <= 0:
         empty = numpy_module.empty((0, 3), dtype=numpy_module.float64)
         header_stamp_ns = int(stamp_secs) * 1_000_000_000 + int(stamp_nsecs)
