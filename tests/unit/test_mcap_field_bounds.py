@@ -6,6 +6,7 @@ import pytest
 
 from calibrex.core.exceptions import DatasetError
 from calibrex.data import rosbag2
+from calibrex.data.ros_cdr_writer import encode_imu
 
 
 def chunk(payload=b'abc', declared_length=None):
@@ -200,3 +201,55 @@ def test_public_reader_preserves_unicode_names_and_binary_payload(tmp_path):
     assert messages[0][0].message_type == message_type
     assert messages[0][1:] == (10, payload)
     assert rosbag2.list_rosbag2_connections(bag)[0][0] == messages[0][0]
+
+
+@pytest.mark.parametrize('encoding', ['cdr', 'json', 'protobuf', '', 'CDR'])
+def test_mcap_encoding_is_preserved_and_checked_before_sensor_decoding(tmp_path, encoding):
+    schema = (struct.pack('<H', 1) + mcap_string(rosbag2.IMU_TYPE.encode())
+              + mcap_string(b'ros2msg') + struct.pack('<I', 0))
+    channel = (struct.pack('<HH', 1, 1) + mcap_string(b'/imu')
+               + mcap_string(encoding.encode()) + struct.pack('<I', 0))
+    # Even CDR-shaped bytes must not override an incompatible declared encoding.
+    payload = encode_imu(frame_id='imu', timestamp_ns=10,
+                         angular_velocity=(1.0, 2.0, 3.0),
+                         linear_acceleration=(0.0, 0.0, 9.8))
+    message = struct.pack('<HIQQ', 1, 0, 10, 10) + payload
+    bag = tmp_path / 'encoding.mcap'
+    bag.write_bytes(rosbag2.MCAP_MAGIC + mcap_record(rosbag2.OP_SCHEMA, schema)
+                    + mcap_record(rosbag2.OP_CHANNEL, channel)
+                    + mcap_record(rosbag2.OP_MESSAGE, message))
+    raw = list(rosbag2.iter_messages(bag))
+    assert raw[0][0].serialization_format == encoding
+    assert raw[0][2] == payload
+    assert rosbag2.list_rosbag2_connections(bag)[0][0].serialization_format == encoding
+    if encoding == 'cdr':
+        decoded = list(rosbag2.read_imu_messages(bag))
+        assert len(decoded) == 1
+        assert decoded[0].angular_velocity == (1.0, 2.0, 3.0)
+        assert rosbag2.summarize_rosbag2(bag).status != 'malformed'
+    else:
+        with pytest.raises(DatasetError, match='unsupported serialization format'):
+            list(rosbag2.read_imu_messages(bag))
+        summary = rosbag2.summarize_rosbag2(bag)
+        assert summary.status == 'malformed'
+        assert 'unsupported serialization format' in summary.reason
+        assert '/imu' in summary.reason
+
+
+@pytest.mark.parametrize('reader,message_type', [
+    (rosbag2.read_pointcloud2_messages, rosbag2.POINTCLOUD2_TYPE),
+    (rosbag2.read_lidar_messages, rosbag2.LIVOX_CUSTOMMSG_TYPE),
+    (rosbag2.read_image_messages, rosbag2.IMAGE_TYPE),
+    (rosbag2.read_camera_info_messages, rosbag2.CAMERA_INFO_TYPE),
+    (rosbag2.read_radar_scan_messages, rosbag2.RADAR_SCAN_TYPE),
+    (rosbag2.read_radar_messages, rosbag2.RADAR_SCAN_TYPE),
+    (rosbag2.read_imu_messages, rosbag2.IMU_TYPE),
+])
+def test_typed_readers_check_format_after_message_type_filter(monkeypatch, reader, message_type):
+    selected = rosbag2.Rosbag2Connection(1, '/sensor', message_type, 'json')
+    unrelated = rosbag2.Rosbag2Connection(2, '/other', 'custom/msg/Other', 'json')
+    monkeypatch.setattr(rosbag2, 'iter_messages', lambda *a, **kw: iter([(unrelated, 1, b'')]))
+    assert list(reader('unused')) == []
+    monkeypatch.setattr(rosbag2, 'iter_messages', lambda *a, **kw: iter([(selected, 1, b'')]))
+    with pytest.raises(DatasetError, match="unsupported serialization format 'json'"):
+        list(reader('unused'))

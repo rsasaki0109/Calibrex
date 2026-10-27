@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Preserve MCAP channel message encodings instead of labelling every payload CDR.
+  Typed rosbag2 sensor readers and inspection reject selected non-CDR sensor
+  messages before decoding; raw message iteration still returns their bytes.
+
 - Reject invalid UTF-8 in parsed MCAP string fields as `DatasetError` instead
   of silently replacing malformed bytes in schema names, topics, message
   encodings and compression labels. Preserve valid Unicode and binary payloads.
