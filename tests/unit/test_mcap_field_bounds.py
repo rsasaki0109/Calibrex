@@ -133,3 +133,70 @@ def test_public_message_reader_checks_chunk_start_before_unpacking(tmp_path):
                         + struct.pack('<Q', length) + b'\x00' * length)
         with pytest.raises(DatasetError, match='truncated MCAP record field'):
             list(rosbag2.iter_messages(bag))
+
+
+@pytest.mark.parametrize('encoded', [b'\xff', b'\x80', b'\xc0\xaf', b'\xe2\x82',
+                                    b'\xed\xa0\x80', b'\xf4\x90\x80\x80'])
+def test_string_fields_reject_invalid_utf8(encoded):
+    content = b'prefix' + struct.pack('<I', len(encoded)) + encoded
+    with pytest.raises(DatasetError, match='invalid UTF-8 in MCAP string field') as error:
+        rosbag2._read_mcap_string(content, 6)
+    assert isinstance(error.value.__cause__, UnicodeDecodeError)
+
+
+@pytest.mark.parametrize('text', ['', '/imu', '/センサー/位置', 'sensor/🛰', '\ufffd'])
+def test_string_fields_preserve_valid_unicode_and_byte_offsets(text):
+    encoded = text.encode('utf-8')
+    content = b'X' + struct.pack('<I', len(encoded)) + encoded + b'tail'
+    assert rosbag2._read_mcap_string(content, 1) == (text, 5 + len(encoded))
+
+
+def mcap_string(encoded):
+    return struct.pack('<I', len(encoded)) + encoded
+
+
+def mcap_record(opcode, content):
+    return bytes([opcode]) + struct.pack('<Q', len(content)) + content
+
+
+@pytest.mark.parametrize('field', ['schema_name', 'topic', 'encoding', 'compression'])
+def test_public_readers_reject_invalid_utf8_fields(tmp_path, field):
+    invalid = mcap_string(b'\xff')
+    if field == 'schema_name':
+        content = struct.pack('<H', 1) + invalid + mcap_string(b'ros2msg') + struct.pack('<I', 0)
+        opcode = rosbag2.OP_SCHEMA
+    elif field in ('topic', 'encoding'):
+        topic = invalid if field == 'topic' else mcap_string(b'/imu')
+        encoding = invalid if field == 'encoding' else mcap_string(b'cdr')
+        content = struct.pack('<HH', 1, 1) + topic + encoding + struct.pack('<I', 0)
+        opcode = rosbag2.OP_CHANNEL
+    else:
+        content = struct.pack('<QQQI', 0, 0, 0, 0) + invalid + struct.pack('<Q', 0)
+        opcode = rosbag2.OP_CHUNK
+    bag = tmp_path / 'invalid-string.mcap'
+    bag.write_bytes(rosbag2.MCAP_MAGIC + mcap_record(opcode, content))
+    with pytest.raises(DatasetError, match='invalid UTF-8 in MCAP string field'):
+        list(rosbag2.iter_messages(bag))
+    with pytest.raises(DatasetError, match='invalid UTF-8 in MCAP string field'):
+        rosbag2.list_rosbag2_connections(bag)
+
+
+def test_public_reader_preserves_unicode_names_and_binary_payload(tmp_path):
+    topic = '/センサー/位置'
+    message_type = '独自/msg/位置'
+    schema = (struct.pack('<H', 1) + mcap_string(message_type.encode('utf-8'))
+              + mcap_string(b'ros2msg') + struct.pack('<I', 0))
+    channel = (struct.pack('<HH', 1, 1) + mcap_string(topic.encode('utf-8'))
+               + mcap_string(b'cdr') + struct.pack('<I', 0))
+    payload = b'\xff\x80\x00'
+    message = struct.pack('<HIQQ', 1, 0, 10, 10) + payload
+    bag = tmp_path / 'unicode.mcap'
+    bag.write_bytes(rosbag2.MCAP_MAGIC + mcap_record(rosbag2.OP_SCHEMA, schema)
+                    + mcap_record(rosbag2.OP_CHANNEL, channel)
+                    + mcap_record(rosbag2.OP_MESSAGE, message))
+    messages = list(rosbag2.iter_messages(bag, topics={topic}))
+    assert len(messages) == 1
+    assert messages[0][0].topic == topic
+    assert messages[0][0].message_type == message_type
+    assert messages[0][1:] == (10, payload)
+    assert rosbag2.list_rosbag2_connections(bag)[0][0] == messages[0][0]

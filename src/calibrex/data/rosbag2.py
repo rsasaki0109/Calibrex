@@ -1247,7 +1247,10 @@ def _read_mcap_uint64(buffer: bytes, offset: int) -> tuple[int, int]:
 def _read_mcap_string(buffer: bytes, offset: int) -> tuple[str, int]:
     length, offset = _read_mcap_uint32(buffer, offset)
     _require_mcap_range(buffer, offset, length)
-    text = buffer[offset : offset + length].decode("utf-8", errors="replace")
+    try:
+        text = buffer[offset : offset + length].decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise DatasetError("invalid UTF-8 in MCAP string field") from exc
     return text, offset + length
 
 

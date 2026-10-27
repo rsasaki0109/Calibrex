@@ -132,6 +132,8 @@ Nonzero MCAP chunk CRCs are verified against the expanded records; zero retains
 the format's checksum-omitted behavior.
 MCAP field lengths are also checked against the enclosing record, so short
 headers and payloads fail with a dataset read error.
+Parsed MCAP string fields require valid UTF-8; malformed names are rejected
+instead of silently replacing their bytes. Message payloads remain binary.
 Outer MCAP payload reads use bounded blocks, including for `.mcap.zstd` streams,
 so declared lengths do not directly determine individual read allocations.
 ROS 1 inner record lengths are checked against the expanded chunk as well.

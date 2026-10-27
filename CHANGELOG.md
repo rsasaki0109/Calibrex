@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Reject invalid UTF-8 in parsed MCAP string fields as `DatasetError` instead
+  of silently replacing malformed bytes in schema names, topics, message
+  encodings and compression labels. Preserve valid Unicode and binary payloads.
+
 - Verify nonzero MCAP chunk CRCs against decompressed records before parsing,
   including uncompressed, LZ4 and Zstandard chunks. Preserve CRC-zero inputs
   and reject mismatches in message reads and scanned connection listings.
