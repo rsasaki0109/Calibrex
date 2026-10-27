@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Consume every Zstandard frame in compressed messages and MCAP chunks instead
+  of silently discarding bytes after the first frame. Preserve concatenated and
+  skippable frames; reject trailing garbage and incomplete or corrupt later frames.
+
 - Read MCAP outer record payloads in bounded blocks so invalid uint64 lengths
   produce `DatasetError` instead of oversized read requests or overflow errors,
   including file-compressed MCAP streams. Validate short chunk timestamps before

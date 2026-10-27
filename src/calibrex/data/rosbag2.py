@@ -1172,7 +1172,7 @@ def _zstd_decompress(data: bytes, size: int) -> bytes:
 
 
 def _zstd_decompress_payload(data: bytes, context: str) -> bytes:
-    """Decode a Zstandard frame, requiring completion even for unknown sizes."""
+    """Decode all Zstandard frames, requiring completion even for unknown sizes."""
     try:
         import zstandard
     except ImportError as exc:  # pragma: no cover - exercised via error path test
@@ -1181,14 +1181,19 @@ def _zstd_decompress_payload(data: bytes, context: str) -> bytes:
             "calibrex[rosbag2-compression]"
         )
         raise DatasetError(msg) from exc
-    decoder = zstandard.ZstdDecompressor().decompressobj()
-    try:
-        decompressed: bytes = decoder.decompress(data)
-    except zstandard.ZstdError as exc:
-        raise DatasetError(f"invalid zstd-compressed {context}") from exc
-    if not decoder.eof:
-        raise DatasetError(f"truncated zstd-compressed {context}")
-    return decompressed
+    parts: list[bytes] = []
+    remaining = data
+    while True:
+        decoder = zstandard.ZstdDecompressor().decompressobj()
+        try:
+            parts.append(decoder.decompress(remaining))
+        except zstandard.ZstdError as exc:
+            raise DatasetError(f"invalid zstd-compressed {context}") from exc
+        if not decoder.eof:
+            raise DatasetError(f"truncated zstd-compressed {context}")
+        remaining = decoder.unused_data
+        if not remaining:
+            return b"".join(parts)
 
 
 def _zstd_decompress_message(data: bytes) -> bytes:

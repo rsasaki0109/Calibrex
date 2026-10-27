@@ -119,8 +119,10 @@ the format is detected from the file:
 | ROS 2 MCAP (`.mcap`) | chunks `none`, `zstd` or `lz4` |
 | ROS 1 `.bag` | chunks `none`, `bz2` or `lz4` (`calibrex[rosbag1-lz4]` for `lz4`) |
 
-Zstandard message and chunk readers require a complete frame, even when its
-uncompressed size is unspecified. Truncated frames and codec-reported corruption
+Zstandard message and chunk readers consume and validate every frame, including
+concatenated and skippable frames, even when the uncompressed size is unspecified.
+They reject trailing garbage instead of ignoring it after the first frame.
+Truncated frames and codec-reported corruption
 in Zstandard, LZ4 or ROS 1 bz2 chunks produce dataset read errors.
 MCAP chunk sizes and declared ROS 1 chunk sizes are checked against the actual
 expanded data, including explicit zero sizes, before their records are parsed.
