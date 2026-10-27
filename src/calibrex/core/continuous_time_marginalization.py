@@ -154,7 +154,10 @@ def schur_complement_normal_with_evidence(
     Null directions may be removed only when both the retained coupling and the
     eliminated gradient lie in the numerical range. No damping or prior is added.
     """
-    range_tolerance = _INFORMATION_ROUNDOFF * max(1, eliminated_dim)
+    if (isinstance(eliminated_dim, (bool, np.bool_))
+            or not isinstance(eliminated_dim, (int, np.integer)) or eliminated_dim < 0):
+        raise ValueError("eliminated dimension must be a nonnegative integer")
+    eliminated_dim = int(eliminated_dim)
     if np.iscomplexobj(hessian) or np.iscomplexobj(gradient):
         raise ValueError("normal equations must be real")
     hessian = np.asarray(hessian, dtype=float)
@@ -164,8 +167,11 @@ def schur_complement_normal_with_evidence(
         raise ValueError("normal equation dimensions must agree")
     if not np.all(np.isfinite(hessian)) or not np.all(np.isfinite(gradient)):
         raise ValueError("normal equations must be finite")
-    if eliminated_dim < 0:
-        raise ValueError("eliminated dimension must be nonnegative")
+    if eliminated_dim and eliminated_dim >= hessian.shape[0]:
+        raise ValueError("eliminated dimension must be smaller than the system size")
+    range_tolerance = _INFORMATION_ROUNDOFF * max(1, eliminated_dim)
+    if not np.allclose(hessian, hessian.T, rtol=range_tolerance, atol=0.):
+        raise ValueError("normal information must be symmetric")
     if eliminated_dim == 0:
         evidence = SchurEliminationEvidence(
             eliminated_dimension=0, numerical_rank=0, zero_information_dimension=0,
@@ -173,10 +179,6 @@ def schur_complement_normal_with_evidence(
             relative_range_tolerance=range_tolerance, max_relative_range_error=0.,
         )
         return np.array(hessian, copy=True), np.array(gradient, copy=True), evidence
-    if eliminated_dim >= hessian.shape[0]:
-        raise ValueError("eliminated dimension must be smaller than the system size")
-    if not np.allclose(hessian, hessian.T, rtol=range_tolerance, atol=0.):
-        raise ValueError("normal information must be symmetric")
     retained = slice(eliminated_dim, None)
     eliminated = slice(None, eliminated_dim)
     hee = hessian[eliminated, eliminated]
@@ -257,10 +259,14 @@ def marginalize_knot_prefix(
 ) -> tuple[FloatArray, FloatArray]:
     """Marginalize out the first ``eliminated_knot_count`` knot poses (6 DoF each)."""
 
+    if (isinstance(eliminated_knot_count, (bool, np.bool_))
+            or not isinstance(eliminated_knot_count, (int, np.integer))
+            or eliminated_knot_count < 0):
+        raise ValueError("eliminated knot count must be a nonnegative integer")
     return schur_complement_normal(
         hessian,
         gradient,
-        6 * eliminated_knot_count,
+        6 * int(eliminated_knot_count),
     )
 
 

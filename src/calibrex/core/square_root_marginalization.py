@@ -78,9 +78,11 @@ def marginalize_residual_prefix(
         raise ValueError("residual equation dimensions must agree")
     if not np.all(np.isfinite(matrix)) or not np.all(np.isfinite(rhs)):
         raise ValueError("residual equations must be finite")
-    if (not isinstance(eliminated_dim, (int, np.integer))
+    if (isinstance(eliminated_dim, (bool, np.bool_))
+            or not isinstance(eliminated_dim, (int, np.integer))
             or not 0 <= eliminated_dim < matrix.shape[1]):
         raise ValueError("eliminated dimension must be a nonnegative integer below column count")
+    eliminated_dim = int(eliminated_dim)
     rows = matrix.shape[0]
     eliminated = matrix[:, :eliminated_dim]
     retained = matrix[:, eliminated_dim:]

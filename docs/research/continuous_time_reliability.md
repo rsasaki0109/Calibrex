@@ -478,6 +478,18 @@ fitter's later validation. Timestamps must now all be finite, both dense builder
 require exactly one state per timestamp, and single-knot prior indices are
 checked before use. These are input-contract fixes, not new accuracy evidence.
 
+## Marginalization input validation
+
+Marginalization APIs require actual nonnegative integer dimensions or knot
+counts, rejecting booleans, floating-point values and oversized requests before
+dimension arithmetic. NumPy integer scalars remain supported, with knot counts
+converted to Python integers before multiplication to avoid integer overflow.
+Normal-equation Schur input symmetry is checked even when no variables are
+eliminated. A valid zero-elimination call still returns independent copies,
+including empty normal equations. This closes input-validation bypasses; it
+does not add a full positive-semidefinite certification of retained normal
+blocks or alter the existing numerical rank rules.
+
 ## Solver option validation
 
 Solver options now reject nonfinite numerical settings before optimization.

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Require integer elimination dimensions and knot counts across marginalization
+  APIs, rejecting booleans and oversized requests before arithmetic. Validate
+  Schur input symmetry even for zero elimination; preserve valid no-op copies.
+
 - Validate native and B-spline solver settings before optimization: finite
   damping/tolerances, integer iteration budgets and non-reversing native damping
   scales. Preserve zero-iteration B-spline evaluation, zero B-spline stall
