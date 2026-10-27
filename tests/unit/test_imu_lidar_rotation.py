@@ -14,6 +14,7 @@ from calibrex.cli.main import main
 from calibrex.core.imu_lidar_rotation import ImuLidarRotationArtifact
 from calibrex.core.validation import validate_file
 from calibrex.data import livox_ros2
+from calibrex.data.rosbag2 import Rosbag2Connection
 from calibrex.evaluation.imu_lidar_rotation import (
     evaluate_imu_lidar_rotation,
     score_imu_lidar_candidate,
@@ -129,14 +130,23 @@ def test_livox_profiles_convert_absolute_point_times_and_g(
         angular_velocity=(0.0, 0.0, 0.1),
         linear_acceleration=(0.0, 0.0, 1.0),
     )
+    profile = livox_ros2.LIVOX_PROFILES["livox-ros-driver2"]
+    connections = {
+        profile.point_topic: Rosbag2Connection(
+            1, profile.point_topic, "sensor_msgs/msg/PointCloud2"
+        ),
+        profile.imu_topic: Rosbag2Connection(2, profile.imu_topic, "sensor_msgs/msg/Imu"),
+    }
     monkeypatch.setattr(
         livox_ros2,
         "iter_messages",
-        lambda bag, topics: iter([(None, header_ns, b""), (None, header_ns + 5_000_000, b"")]),
+        lambda bag, topics: iter(
+            (connections[topic], stamp, b"")
+            for topic in topics for stamp in (header_ns, header_ns + 5_000_000)
+        ),
     )
     monkeypatch.setattr(livox_ros2.ros_cdr, "decode_ros2_pointcloud2", lambda *a, **k: cloud)
     monkeypatch.setattr(livox_ros2.ros_cdr, "decode_ros2_imu", lambda *a, **k: imu)
-    profile = livox_ros2.LIVOX_PROFILES["livox-ros-driver2"]
 
     _, _, offsets = next(livox_ros2.iter_livox_points("bag", profile))
     samples = livox_ros2.load_livox_imu("bag", profile)
@@ -159,8 +169,11 @@ def test_generic_profile_reads_absolute_seconds_and_stops_at_max_seconds(
         )
         for stamp in stamps
     )
+    connection = Rosbag2Connection(1, "/hesai/pandar", "sensor_msgs/msg/PointCloud2")
     monkeypatch.setattr(
-        livox_ros2, "iter_messages", lambda bag, topics: iter([(None, s, b"") for s in stamps])
+        livox_ros2, "iter_messages", lambda bag, topics: iter(
+            (connection, s, b"") for s in stamps
+        )
     )
     monkeypatch.setattr(
         livox_ros2.ros_cdr, "decode_ros2_pointcloud2", lambda *a, **k: next(clouds)
