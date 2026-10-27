@@ -183,6 +183,17 @@ The v2 camera-lidar runs also read the Velodyne and OXTS of the first 600 frames
 
 ## Next candidates
 
+### Development restart, 2026-10-27
+
+The [training-only initialization work](research/camera_lidar_training_initialization.md)
+reproduces all twelve archived audit verdicts from their stored scores and adds
+an opt-in, per-fold training-only initialization mode to the camera–LiDAR profile
+probe. It removes the pooled conditional-start dependency; synthetic tests are
+not real-data accuracy evidence. All fourteen snapshot metadata files remain,
+but their local NPZ arrays are absent in this workspace. Restore and hash-check
+them before the fixed fourteen-input paired comparison. No new evaluation data,
+audit verdict, threshold or estimator default changes; capture remains 2/55.
+
 ### INS-LiDAR after the first audit
 
 The first two-family, two-platform rotation audit is [refuted, 6/8](benchmarks/ins_lidar_rotation_v1.md).
