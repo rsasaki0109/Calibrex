@@ -425,14 +425,18 @@ class ContinuousTimeTrajectoryFitOptions:
     project_observable_subspace: bool = False
 
     def __post_init__(self) -> None:
-        if self.max_iterations < 1:
-            raise ValueError("max_iterations must be at least one")
-        if self.initial_damping <= 0.0:
-            raise ValueError("initial_damping must be positive")
-        if self.convergence_gradient_norm <= 0.0:
-            raise ValueError("convergence_gradient_norm must be positive")
-        if self.convergence_step_norm <= 0.0:
-            raise ValueError("convergence_step_norm must be positive")
+        if (isinstance(self.max_iterations, (bool, np.bool_))
+                or not isinstance(self.max_iterations, (int, np.integer))
+                or self.max_iterations < 1):
+            raise ValueError("max_iterations must be an integer of at least one")
+        for name in ("initial_damping", "convergence_gradient_norm", "convergence_step_norm"):
+            value = getattr(self, name)
+            if not math.isfinite(value) or value <= 0.:
+                raise ValueError(f"{name} must be finite and positive")
+        if not math.isfinite(self.damping_scale_down) or not 0. < self.damping_scale_down <= 1.:
+            raise ValueError("damping_scale_down must be finite and in (0, 1]")
+        if not math.isfinite(self.damping_scale_up) or self.damping_scale_up < 1.:
+            raise ValueError("damping_scale_up must be finite and at least one")
 
 
 @dataclass(frozen=True)

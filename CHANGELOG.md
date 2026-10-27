@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Validate native and B-spline solver settings before optimization: finite
+  damping/tolerances, integer iteration budgets and non-reversing native damping
+  scales. Preserve zero-iteration B-spline evaluation, zero B-spline stall
+  tolerances and unit native damping multipliers.
+
 - Reject nonfinite interior knot timestamps, mismatched knot states in dense
   factor assembly, and out-of-range single-knot priors before fit evaluation.
   Audit mixed weighted observations and all supported knot prior representations

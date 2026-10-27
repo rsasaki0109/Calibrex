@@ -205,6 +205,16 @@ class BSplineLidarImuFitOptions:
     gradient_tolerance: float = 1.0e-8
 
     def __post_init__(self) -> None:
+        if (isinstance(self.max_iterations, (bool, np.bool_))
+                or not isinstance(self.max_iterations, (int, np.integer))
+                or self.max_iterations < 0):
+            raise ValueError("max_iterations must be a nonnegative integer")
+        if not math.isfinite(self.initial_damping) or self.initial_damping <= 0.:
+            raise ValueError("initial_damping must be finite and positive")
+        for name in ("relative_cost_tolerance", "step_tolerance"):
+            value = getattr(self, name)
+            if not math.isfinite(value) or value < 0.:
+                raise ValueError(f"{name} must be finite and nonnegative")
         if not math.isfinite(self.gradient_tolerance) or self.gradient_tolerance <= 0:
             raise ValueError("gradient_tolerance must be finite and positive")
         if self.plane_backend not in ("numpy", "cuda"):

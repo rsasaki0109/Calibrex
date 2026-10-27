@@ -478,6 +478,19 @@ fitter's later validation. Timestamps must now all be finite, both dense builder
 require exactly one state per timestamp, and single-knot prior indices are
 checked before use. These are input-contract fixes, not new accuracy evidence.
 
+## Solver option validation
+
+Solver options now reject nonfinite numerical settings before optimization.
+The native fitter requires a positive integer iteration budget, finite positive
+initial damping and convergence tolerances, a damping decrease in `(0, 1]`,
+and an increase of at least one. Unit multipliers remain valid for callers that
+keep damping fixed. B-spline fitting requires a nonnegative integer budget and
+finite positive damping and gradient tolerance; its cost-change and step stall
+tolerances may be zero to disable those stop conditions. The existing
+zero-iteration B-spline evaluation path is preserved. Boolean or fractional
+iteration counts are rejected. Tests cover invalid values and the retained
+boundary behaviors; default numerical settings are unchanged.
+
 ## Opt-in updates in the observable subspace
 
 Set `ContinuousTimeTrajectoryFitOptions(project_observable_subspace=True)` to
