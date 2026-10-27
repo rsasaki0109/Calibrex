@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Reject duplicate ROS 1 header field names instead of silently taking the last
+  value, including connection metadata and inner message records. Reject empty
+  field names while preserving unknown fields, empty values and binary values.
+
 - Report malformed ROS 1 header text as field-specific `DatasetError` with the
   original decoding cause. Reject invalid UTF-8 in message definitions instead
   of replacing bytes; preserve valid Unicode names and binary message payloads.

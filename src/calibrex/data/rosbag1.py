@@ -352,6 +352,10 @@ def _read_header_fields(header: bytes) -> dict[str, bytes]:
             msg = "malformed ROS bag header field (missing '=')"
             raise DatasetError(msg)
         name = _decode_header_text(chunk[:separator], "header field name", "ascii")
+        if not name:
+            raise DatasetError("malformed ROS bag header field (empty name)")
+        if name in fields:
+            raise DatasetError(f"duplicate ROS bag header field: {name!r}")
         fields[name] = chunk[separator + 1 :]
     return fields
 

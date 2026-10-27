@@ -204,3 +204,44 @@ def test_valid_unicode_header_text_and_binary_message_data_are_preserved(tmp_pat
     assert conn.message_definition == definition
     assert conn.md5sum == '*'
     assert (stamp, actual) == (2_000_000_003, payload)
+
+
+@pytest.mark.parametrize('second', [b'first', b'second'])
+def test_header_fields_reject_duplicate_names_even_with_identical_values(second):
+    content = fields(custom=b'first') + fields(custom=second)
+    with pytest.raises(DatasetError, match="duplicate ROS bag header field: 'custom'"):
+        rosbag1._read_header_fields(content)
+
+
+def test_header_field_names_are_required_but_values_remain_binary():
+    with pytest.raises(DatasetError, match='empty name'):
+        rosbag1._read_header_fields(struct.pack('<I', 2) + b'=x')
+    assert rosbag1._read_header_fields(b'') == {}
+    assert rosbag1._read_header_fields(fields(custom=b'\xff=bytes', empty=b'')) == {
+        'custom': b'\xff=bytes', 'empty': b''}
+
+
+@pytest.mark.parametrize('location', ['connection', 'connection_data', 'chunk', 'message'])
+@pytest.mark.parametrize('same_value', [False, True])
+def test_public_reader_rejects_duplicate_record_header_fields(tmp_path, location, same_value):
+    conn = struct.pack('<I', 1)
+    conn_header = fields(op=bytes([rosbag1.OP_CONNECTION]), conn=conn, topic=b'/imu')
+    conn_data = fields(type=b'sensor_msgs/Imu')
+    message_header = fields(op=bytes([rosbag1.OP_MSG_DATA]), conn=conn,
+                            time=struct.pack('<II', 2, 3))
+    if location == 'connection':
+        conn_header += fields(conn=conn if same_value else struct.pack('<I', 2))
+    elif location == 'connection_data':
+        conn_data += fields(type=b'sensor_msgs/Imu' if same_value else b'other/Type')
+    elif location == 'message':
+        message_header += fields(op=bytes([rosbag1.OP_MSG_DATA if same_value else 0xff]))
+    message = record(message_header, b'payload')
+    chunk_header = fields(op=bytes([rosbag1.OP_CHUNK]), compression=b'none',
+                          size=struct.pack('<I', len(message)))
+    if location == 'chunk':
+        chunk_header += fields(size=struct.pack('<I', len(message) if same_value else 0))
+    bag = tmp_path / 'duplicates.bag'
+    bag.write_bytes(rosbag1.BAG_MAGIC + record(conn_header, conn_data)
+                    + record(chunk_header, message))
+    with pytest.raises(DatasetError, match='duplicate ROS bag header field'):
+        list(rosbag1.iter_messages(bag))
