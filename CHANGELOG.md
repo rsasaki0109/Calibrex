@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Validate serialization in GNSS, vehicle-motion, static-TF and sensor-probing
+  inputs used by checks, plus camera–LiDAR frame pairing. Incompatible streams
+  fail before decoding or are marked unreadable by existing diagnostic handlers.
+
 - Check CDR serialization before camera/IMU, Livox and RTK-SLAM sensor adapters
   decode selected images, IMU samples or point clouds. Reject incompatible
   declarations even when their payload bytes happen to look like valid CDR.

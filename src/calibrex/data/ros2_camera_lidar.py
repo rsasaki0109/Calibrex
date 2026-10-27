@@ -35,7 +35,7 @@ from numpy.typing import NDArray
 from calibrex.core.progress import emit_tick
 from calibrex.data import ros_cdr
 from calibrex.data.ros2_camera_imu import GrayImage, to_gray
-from calibrex.data.rosbag2 import iter_messages
+from calibrex.data.rosbag2 import iter_messages, require_cdr_connection
 
 PointTimeEncoding = Literal["offset_s", "absolute_ns", "absolute_s"]
 ReferenceTimeRule: TypeAlias = Callable[[NDArray[np.float32], NDArray[np.float64] | None], float]
@@ -165,6 +165,7 @@ def load_camera_lidar_frames(
 
     for connection, timestamp_ns, payload in iter_messages(bag, topics={image_topic, lidar_topic}):
         if connection.topic == image_topic:
+            require_cdr_connection(connection)
             header = ros_cdr.decode_ros2_image(
                 image_topic, timestamp_ns, payload, include_data=False
             )
@@ -200,6 +201,7 @@ def load_camera_lidar_frames(
         )
         if not (take_regular or take_dense):
             continue
+        require_cdr_connection(connection)
         cloud = ros_cdr.decode_ros2_pointcloud2(
             lidar_topic, timestamp_ns, payload, point_time_field=point_time_field
         )

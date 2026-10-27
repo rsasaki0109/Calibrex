@@ -25,6 +25,7 @@ from calibrex.data.rosbag2 import (
     TF_MESSAGE_TYPE,
     Rosbag2Connection,
     iter_topic_messages,
+    require_cdr_connection,
 )
 from calibrex.data.velodyne_packets import (
     VELODYNE_SCAN_TYPE,
@@ -152,6 +153,7 @@ def read_header_frames(
         frame: str | None = None
         try:
             for _conn, timestamp_ns, data in iter_topic_messages(bag, record.topic, limit=1):
+                require_cdr_connection(_conn)
                 if record.role == "odometry":
                     frame = decode_ros2_odometry(record.topic, timestamp_ns, data).child_frame_id
                 else:
@@ -171,6 +173,7 @@ def velodyne_packets_reason(bag: str | Path, topic: str) -> str:
 
     try:
         for _conn, _timestamp_ns, data in iter_topic_messages(bag, topic, limit=1):
+            require_cdr_connection(_conn)
             scan = decode_velodyne_scan_packets(data)
             if not scan.packets:
                 break
@@ -217,6 +220,7 @@ def flag_unreadable_pointclouds(
         problem: str | None = None
         try:
             for _conn, _timestamp_ns, data in iter_topic_messages(bag, record.topic, limit=1):
+                require_cdr_connection(_conn)
                 problem = ros2_pointcloud2_payload_problem(data)
         except DatasetError as error:
             problem = f"the first message could not be read ({error})"

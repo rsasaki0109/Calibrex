@@ -49,6 +49,7 @@ from calibrex.core.calibration_check import (
 )
 from calibrex.core.progress import emit_stage
 from calibrex.data.ros_cdr import AUTOWARE_VELOCITY_REPORT_TYPES
+from calibrex.data.rosbag2 import require_cdr_connection
 from calibrex.evaluation.edge_preparation_cache import EdgePreparationCache
 
 if TYPE_CHECKING:
@@ -339,6 +340,7 @@ def detect_point_time(bag: Path, topic: str) -> tuple[str, PointTimeEncoding] | 
     from calibrex.data.rosbag2 import iter_topic_messages
 
     for _conn, timestamp_ns, payload in iter_topic_messages(bag, topic, limit=1):
+        require_cdr_connection(_conn)
         cloud = ros_cdr.decode_ros2_pointcloud2(topic, timestamp_ns, payload)
         names = {point_field.name for point_field in cloud.fields}
         for candidate in POINT_TIME_FIELD_CANDIDATES:
@@ -822,6 +824,7 @@ def camera_model_from_camera_info(bag: Path, topic: str, *, rectified: bool = Fa
     from calibrex.evaluation.visual_rotation import CameraModel
 
     for _conn, timestamp_ns, payload in iter_topic_messages(bag, topic, limit=1):
+        require_cdr_connection(_conn)
         info = ros_cdr.decode_ros2_camera_info(topic, timestamp_ns, payload)
         k = info.k
         if len(k) != 9 or not k[0] > 0.0 or not k[4] > 0.0:

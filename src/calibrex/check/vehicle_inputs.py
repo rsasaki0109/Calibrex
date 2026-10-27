@@ -28,6 +28,7 @@ from calibrex.data.rosbag2 import (
     TWIST_COVARIANCE_STAMPED_TYPE,
     TWIST_STAMPED_TYPE,
     iter_topic_messages,
+    require_cdr_connection,
 )
 from calibrex.solvers.scan_to_scan_odometry import (
     IncrementalScanOdometry,
@@ -130,6 +131,7 @@ def read_lidar_odometry(
     segments: list[tuple[int, int]] = []
     segment_start = 0
     for _conn, timestamp_ns, payload in iter_topic_messages(bag, topic):
+        require_cdr_connection(_conn)
         cloud = ros_cdr.decode_ros2_pointcloud2(topic, timestamp_ns, payload)
         time_s = cloud.timestamp_ns * 1.0e-9
         if max_duration_s is not None and times and time_s - times[0] > max_duration_s:
@@ -183,6 +185,7 @@ def read_twist_track(
     angular: list[tuple[float, ...]] = []
     frame = ""
     for _conn, timestamp_ns, payload in iter_topic_messages(bag, topic):
+        require_cdr_connection(_conn)
         if message_type == ODOMETRY_TYPE:
             odom = ros_cdr.decode_ros2_odometry(topic, timestamp_ns, payload)
             stamp, frame = odom.timestamp_ns, odom.child_frame_id
@@ -227,6 +230,7 @@ def read_ins_track(
     angular: list[tuple[float, ...]] = []
     child = ""
     for _conn, timestamp_ns, payload in iter_topic_messages(bag, topic):
+        require_cdr_connection(_conn)
         odom = ros_cdr.decode_ros2_odometry(topic, timestamp_ns, payload)
         time_s = odom.timestamp_ns * 1.0e-9
         if max_duration_s is not None and times and time_s - times[0] > max_duration_s:

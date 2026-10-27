@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import sqlite3
 from pathlib import Path
 
 import numpy as np
 import pytest
 
+from calibrex.core.exceptions import DatasetError
 from calibrex.data.ros2_camera_lidar import load_camera_lidar_frames
 from calibrex.data.ros_cdr_writer import POINT_FIELD_FLOAT32, encode_image, encode_pointcloud2
 from calibrex.data.rosbag2_writer import Rosbag2Writer
@@ -64,6 +66,16 @@ def bag(tmp_path_factory: pytest.TempPathFactory) -> Path:
 
 def _times(frames: list) -> list[float]:
     return [round(frame.time_s - 1.0, 3) for frame in frames]
+
+
+@pytest.mark.parametrize('topic', ['/image', '/points'])
+def test_frame_pairing_rejects_non_cdr_topics(tmp_path, topic):
+    bag = _write(tmp_path / 'non-cdr', moving=True)
+    with sqlite3.connect(next(bag.glob('*.db3'))) as db:
+        db.execute('UPDATE topics SET serialization_format = ? WHERE name = ?', ('json', topic))
+    with pytest.raises(DatasetError, match='unsupported serialization format') as error:
+        load_camera_lidar_frames(bag, '/image', '/points')
+    assert topic in str(error.value)
 
 
 def test_regular_spacing_without_the_short_recording_option(bag: Path) -> None:

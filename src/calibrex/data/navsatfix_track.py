@@ -37,7 +37,7 @@ import numpy as np
 
 from calibrex.data import ros_cdr
 from calibrex.data.ros_messages import NavSatFixMessage
-from calibrex.data.rosbag2 import iter_topic_messages
+from calibrex.data.rosbag2 import iter_topic_messages, require_cdr_connection
 from calibrex.data.rtk_slam import GnssTrack, geodetic_to_enu
 
 GBAS_STATUS = 2
@@ -169,6 +169,7 @@ def read_navsatfix_track(
 
     def messages() -> Iterable[NavSatFixMessage]:
         for _conn, timestamp_ns, payload in iter_topic_messages(bag, topic):
+            require_cdr_connection(_conn)
             yield ros_cdr.decode_ros2_navsatfix(topic, timestamp_ns, payload)
 
     return track_from_navsatfix(messages(), options, topic=topic, origin=origin)
