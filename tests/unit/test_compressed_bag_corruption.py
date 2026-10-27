@@ -74,6 +74,28 @@ def test_ros1_bz2_corruption_is_a_dataset_error():
         assert error.value.__cause__ is not None
 
 
+def test_ros1_bz2_consumes_and_validates_every_stream():
+    first = bz2.compress(b'first')
+    second = bz2.compress(b'second')
+    empty = bz2.compress(b'')
+    for encoded in (first + second, empty + first + empty + second + empty):
+        assert rosbag1._decompress_chunk('bz2', 11, encoded) == b'firstsecond'
+    assert rosbag1._decompress_chunk('bz2', 0, empty + empty) == b''
+    for end in range(len(second)):
+        with pytest.raises(DatasetError, match='bz2'):
+            rosbag1._decompress_chunk('bz2', 0, second[:end])
+        if end:
+            with pytest.raises(DatasetError, match='bz2'):
+                rosbag1._decompress_chunk('bz2', 5, first + second[:end])
+    # Flip a CRC byte in the second stream's block header.
+    corrupt = bytearray(second)
+    corrupt[10] ^= 1
+    for tail in (b'junk', b'\x00', bytes(corrupt)):
+        with pytest.raises(DatasetError, match='bz2') as error:
+            rosbag1._decompress_chunk('bz2', 5, first + tail)
+        assert error.value.__cause__ is not None
+
+
 @pytest.mark.parametrize('case', ['concatenated', 'checksum', 'junk', 'second_frame',
                                  'second_checksum'])
 @pytest.mark.parametrize('codec', ['zstd', 'lz4'])

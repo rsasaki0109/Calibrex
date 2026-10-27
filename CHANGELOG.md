@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Validate all bz2 streams in ROS 1 chunks instead of accepting trailing junk
+  after a valid stream. Preserve concatenated streams and compressed empty data;
+  reject missing compressed data and incomplete or corrupt later streams.
+
 - Validate every LZ4 frame in ROS 1 chunks, MCAP chunks and ROS 2 compressed
   messages. Decode concatenated and skippable frames, reject damaged trailing
   data, and retain MCAP raw-block compatibility and total-size validation.

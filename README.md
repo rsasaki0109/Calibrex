@@ -122,6 +122,8 @@ the format is detected from the file:
 Zstandard and LZ4 message and chunk readers consume and validate every frame, including
 concatenated and skippable frames, even when the uncompressed size is unspecified.
 They reject trailing garbage instead of ignoring it after the first frame.
+ROS 1 bz2 chunks likewise require complete streams and reject trailing garbage;
+concatenated streams and properly compressed empty data remain supported.
 Truncated frames and codec-reported corruption
 in Zstandard, LZ4 or ROS 1 bz2 chunks produce dataset read errors.
 MCAP chunk sizes and declared ROS 1 chunk sizes are checked against the actual

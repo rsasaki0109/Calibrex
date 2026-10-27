@@ -353,8 +353,17 @@ def _decompress_chunk(compression: str, size: int, data: bytes) -> bytes:
     if compression == "none":
         return data
     if compression == "bz2":
+        parts: list[bytes] = []
+        remaining = data
         try:
-            return bz2.decompress(data)
+            while True:
+                decoder = bz2.BZ2Decompressor()
+                parts.append(decoder.decompress(remaining))
+                if not decoder.eof:
+                    raise EOFError("incomplete bz2 stream")
+                remaining = decoder.unused_data
+                if not remaining:
+                    return b"".join(parts)
         except (OSError, ValueError, EOFError) as exc:
             raise DatasetError("invalid or truncated bz2-compressed ROS bag chunk") from exc
     if compression == "lz4":
