@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Validate MCAP channel metadata as complete UTF-8 key/value pairs within the
+  map's declared extent. Reject missing values, partial length prefixes and
+  oversized strings even when bytes remain elsewhere in the enclosing record.
+
 - Validate the entire required MCAP schema record layout, including its UTF-8
   encoding label and binary definition length. Reject truncated schema records
   both at the top level and inside chunks before registering their names.

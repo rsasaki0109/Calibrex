@@ -1267,6 +1267,12 @@ def _read_mcap_length_prefixed_bytes(buffer: bytes, offset: int) -> tuple[bytes,
 def _skip_mcap_string_map(buffer: bytes, offset: int) -> int:
     length, offset = _read_mcap_uint32(buffer, offset)
     _require_mcap_range(buffer, offset, length)
+    # Validate entries within the map's own boundary, not the enclosing record.
+    entries = buffer[offset : offset + length]
+    entry_offset = 0
+    while entry_offset < length:
+        _key, entry_offset = _read_mcap_string(entries, entry_offset)
+        _value, entry_offset = _read_mcap_string(entries, entry_offset)
     return offset + length
 
 

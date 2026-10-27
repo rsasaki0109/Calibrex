@@ -306,3 +306,44 @@ def test_schema_encoding_requires_utf8_but_definition_is_binary(tmp_path):
         list(rosbag2.iter_messages(bag))
     with pytest.raises(DatasetError, match='invalid UTF-8'):
         rosbag2.list_rosbag2_connections(bag)
+
+
+def test_metadata_map_validates_complete_pairs_and_preserves_end_offset():
+    pairs = (mcap_string('名前'.encode()) + mcap_string('値'.encode())
+             + mcap_string(b'') + mcap_string(b''))
+    content = b'prefix' + struct.pack('<I', len(pairs)) + pairs + b'trailing extension'
+    assert rosbag2._skip_mcap_string_map(content, 6) == 10 + len(pairs)
+    assert rosbag2._skip_mcap_string_map(struct.pack('<I', 0) + b'extension', 0) == 4
+
+
+def test_metadata_entries_cannot_read_beyond_the_declared_map_boundary():
+    pair = mcap_string(b'key') + mcap_string(b'value')
+    for end in range(1, len(pair)):
+        # The bytes physically exist, but are outside the declared map extent.
+        with pytest.raises(DatasetError, match='truncated MCAP record field'):
+            rosbag2._skip_mcap_string_map(struct.pack('<I', end) + pair, 0)
+    for entries in (struct.pack('<I', 2**32 - 1),
+                    mcap_string(b'key') + struct.pack('<I', 2**32 - 1)):
+        with pytest.raises(DatasetError, match='truncated MCAP record field'):
+            rosbag2._skip_mcap_string_map(struct.pack('<I', len(entries)) + entries, 0)
+
+
+@pytest.mark.parametrize('nested', [False, True])
+@pytest.mark.parametrize('entries,error', [
+    (mcap_string(b'key'), 'truncated MCAP record field'),
+    (mcap_string(b'key') + mcap_string(b'value') + b'\x00', 'truncated MCAP record field'),
+    (mcap_string(b'\xff') + mcap_string(b'value'), 'invalid UTF-8'),
+    (mcap_string(b'key') + mcap_string(b'\xff'), 'invalid UTF-8'),
+])
+def test_public_readers_reject_malformed_channel_metadata(tmp_path, nested, entries, error):
+    channel = (struct.pack('<HH', 1, 0) + mcap_string(b'/topic') + mcap_string(b'cdr')
+               + struct.pack('<I', len(entries)) + entries)
+    encoded = mcap_record(rosbag2.OP_CHANNEL, channel)
+    if nested:
+        encoded = mcap_record(rosbag2.OP_CHUNK, chunk(encoded))
+    bag = tmp_path / 'metadata.mcap'
+    bag.write_bytes(rosbag2.MCAP_MAGIC + encoded)
+    with pytest.raises(DatasetError, match=error):
+        list(rosbag2.iter_messages(bag))
+    with pytest.raises(DatasetError, match=error):
+        rosbag2.list_rosbag2_connections(bag)

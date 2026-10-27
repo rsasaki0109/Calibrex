@@ -56,7 +56,7 @@ def test_public_readers_validate_writer_chunk_crc(tmp_path, compression, enable_
                                       enable_crcs=enable_crcs)
         writer.start()
         schema = writer.register_schema('sensor_msgs/msg/Imu', 'ros2msg', b'')
-        channel = writer.register_channel('/imu', 'cdr', schema)
+        channel = writer.register_channel('/imu', 'cdr', schema, metadata={'名前': '値', '': ''})
         writer.add_message(channel, log_time=10, publish_time=10, data=b'payload')
         writer.finish()
     messages = list(rosbag2.iter_messages(bag))
