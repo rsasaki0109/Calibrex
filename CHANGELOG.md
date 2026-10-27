@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Bounds-check ROS 1 message integers, strings and PointCloud2 byte fields/data
+  before reading. Reject zero point strides explicitly instead of dividing by
+  zero; retain compatibility with an omitted trailing PointCloud2 `is_dense` byte.
+
 - Reject truncated ROS 1 Livox CustomMsg point sequences instead of returning
   partial clouds. Use the serialized array length for decoded points and retain
   `point_num` as producer metadata, matching the ROS 2 reader's behavior.

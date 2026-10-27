@@ -1236,16 +1236,24 @@ def decode_pointcloud2(
     for _ in range(field_count):
         name, offset = _read_string(data, offset)
         field_offset, offset = _read_uint32(data, offset)
+        if offset >= len(data):
+            raise DatasetError("truncated sensor_msgs/PointCloud2 field datatype")
         datatype = data[offset]
         offset += 1
         count, offset = _read_uint32(data, offset)
         fields.append(PointField(name=name, offset=field_offset, datatype=datatype, count=count))
 
+    if offset >= len(data):
+        raise DatasetError("truncated sensor_msgs/PointCloud2 endianness")
     is_bigendian = data[offset]
     offset += 1
     point_step, offset = _read_uint32(data, offset)
+    if point_step == 0:
+        raise DatasetError("sensor_msgs/PointCloud2 point_step must be positive")
     _row_step, offset = _read_uint32(data, offset)
     payload_len, offset = _read_uint32(data, offset)
+    if payload_len > len(data) - offset:
+        raise DatasetError("truncated sensor_msgs/PointCloud2 point data")
     payload = data[offset : offset + payload_len]
     offset += payload_len
     # Trailing is_dense byte is intentionally not required for decoding.
@@ -1708,12 +1716,16 @@ def _elementwise_max(
 
 
 def _read_uint32(data: bytes, offset: int) -> tuple[int, int]:
+    if offset < 0 or offset + 4 > len(data):
+        raise DatasetError("truncated ROS 1 uint32 field")
     (value,) = struct.unpack_from("<I", data, offset)
     return int(value), offset + 4
 
 
 def _read_string(data: bytes, offset: int) -> tuple[str, int]:
     length, offset = _read_uint32(data, offset)
+    if length > len(data) - offset:
+        raise DatasetError("truncated ROS 1 string field")
     text = data[offset : offset + length].decode("utf-8", errors="replace")
     return text, offset + length
 
