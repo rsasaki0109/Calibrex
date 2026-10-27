@@ -488,6 +488,8 @@ def _record_op(header: dict[str, bytes]) -> int:
     if op_bytes is None or len(op_bytes) < 1:
         msg = "ROS bag record header missing 'op' field"
         raise DatasetError(msg)
+    if len(op_bytes) != 1:
+        raise DatasetError("invalid ROS bag op header field length")
     return op_bytes[0]
 
 
@@ -588,23 +590,29 @@ def _parse_connection(header: dict[str, bytes], data: bytes) -> Rosbag1Connectio
 
 
 def _uint32(value: bytes | None) -> int | None:
-    if value is None or len(value) < 4:
+    if value is None:
         return None
-    return int(struct.unpack("<I", value[:4])[0])
+    if len(value) != 4:
+        raise DatasetError("invalid ROS bag uint32 header field length")
+    return int(struct.unpack("<I", value)[0])
 
 
 def _uint64(value: bytes | None) -> int | None:
     """Decode a little-endian unsigned 64-bit field when present."""
 
-    if value is None or len(value) < 8:
+    if value is None:
         return None
-    return int(struct.unpack("<Q", value[:8])[0])
+    if len(value) != 8:
+        raise DatasetError("invalid ROS bag uint64 header field length")
+    return int(struct.unpack("<Q", value)[0])
 
 
 def _time_field_to_ns(value: bytes | None) -> int | None:
-    if value is None or len(value) < 8:
+    if value is None:
         return None
-    secs, nsecs = struct.unpack("<II", value[:8])
+    if len(value) != 8:
+        raise DatasetError("invalid ROS bag time header field length")
+    secs, nsecs = struct.unpack("<II", value)
     return int(secs) * 1_000_000_000 + int(nsecs)
 
 

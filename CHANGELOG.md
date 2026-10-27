@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Require exact ROS 1 header widths for opcodes, connection IDs, index positions,
+  chunk counts and timestamps. Reject short or oversized present values instead
+  of treating them as missing or silently ignoring trailing bytes; keep absent
+  optional-field behavior unchanged.
+
 - Validate MCAP channel metadata as complete UTF-8 key/value pairs within the
   map's declared extent. Reject missing values, partial length prefixes and
   oversized strings even when bytes remain elsewhere in the enclosing record.

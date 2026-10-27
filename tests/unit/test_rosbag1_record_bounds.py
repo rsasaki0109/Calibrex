@@ -107,3 +107,44 @@ def test_public_reader_validates_whole_bz2_chunk(tmp_path, case):
     else:
         with pytest.raises(DatasetError, match='bz2'):
             list(rosbag1.iter_messages(bag))
+
+
+@pytest.mark.parametrize('reader,width', [
+    (rosbag1._uint32, 4), (rosbag1._uint64, 8), (rosbag1._time_field_to_ns, 8),
+])
+def test_numeric_header_fields_require_exact_width_when_present(reader, width):
+    assert reader(None) is None
+    assert reader(b'\x00' * width) == 0
+    for length in (*range(width), width + 1, width * 2):
+        with pytest.raises(DatasetError, match='header field length'):
+            reader(b'\x00' * length)
+    assert rosbag1._uint32(struct.pack('<I', 2**32 - 1)) == 2**32 - 1
+    assert rosbag1._uint64(struct.pack('<Q', 2**64 - 1)) == 2**64 - 1
+    assert rosbag1._time_field_to_ns(struct.pack('<II', 2, 3)) == 2_000_000_003
+
+
+@pytest.mark.parametrize('field,width', [
+    ('connection_id', 4), ('message_connection_id', 4), ('time', 8),
+    ('index_pos', 8), ('chunk_count', 4), ('op', 1),
+])
+@pytest.mark.parametrize('delta', [-1, 1])
+def test_public_reader_rejects_wrong_header_field_width(tmp_path, field, width, delta):
+    value = b'\x00' * (width + delta)
+    if field == 'connection_id':
+        header = fields(op=bytes([rosbag1.OP_CONNECTION]), conn=value, topic=b'/imu')
+        encoded = record(header, fields(type=b'sensor_msgs/Imu'))
+    elif field in ('message_connection_id', 'time'):
+        conn = value if field == 'message_connection_id' else struct.pack('<I', 1)
+        stamp = value if field == 'time' else struct.pack('<II', 2, 3)
+        inner = record(fields(op=bytes([rosbag1.OP_MSG_DATA]), conn=conn, time=stamp), b'payload')
+        encoded = record(fields(op=bytes([rosbag1.OP_CHUNK]), compression=b'none',
+                                size=struct.pack('<I', len(inner))), inner)
+    elif field == 'op':
+        encoded = record(fields(op=value), b'')
+    else:
+        header = {'op': bytes([rosbag1.OP_BAG_HEADER]), field: value}
+        encoded = record(fields(**header), b'')
+    bag = tmp_path / 'header.bag'
+    bag.write_bytes(rosbag1.BAG_MAGIC + encoded)
+    with pytest.raises(DatasetError, match=r'header.*(length|missing)'):
+        list(rosbag1.iter_messages(bag))
