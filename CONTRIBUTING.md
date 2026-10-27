@@ -41,6 +41,16 @@ It verifies that `cv2` imports before running the tests. Hilti calibration-file
 checks and PyTorch-dependent provider cases remain conditional on those separate
 resources; this job does not download recordings, model weights or PyTorch.
 
+## Numba adapter tests
+
+The `numba-adapter` CI job installs `.[dev,numba]` and requires a successful Numba
+import before running its tests. It covers compiled interpolation and LiDAR
+linearization, deskew, residual summaries, rig caching, ordered parallel execution,
+depth-to-depth and online-edge processing. The selected tests use synthetic
+fixtures and compare compiled results with reference paths; GPU hardware and
+recording downloads are not required. See the job's test list to reproduce the
+same coverage locally.
+
 ## Schema Changes
 
 Every artifact kind is declared once in `src/calibrex/core/schema_registry.py`.

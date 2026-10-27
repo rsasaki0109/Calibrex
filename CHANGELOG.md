@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Expand Numba adapter CI coverage to LiDAR deskew, residual summaries, rig
+  linearization caching, parallel summaries and online bag deskew. Require the
+  Numba import before tests so missing optional dependencies fail explicitly.
+
 - Expand the OpenCV CI job beyond hand-eye, visual rotation and focal tests to
   initialization, probabilistic PnP, fisheye and correspondence-provider coverage.
   Require a successful OpenCV import before tests to prevent silent adapter skips.
