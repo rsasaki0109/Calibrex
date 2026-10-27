@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Check that unit-test files using literal optional CPU `pytest.importorskip`
+  dependencies are registered in the matching extra-enabled CI job. Detect
+  missing test paths and coverage omissions without importing optional packages;
+  exclude files explicitly gated on CuPy at module scope.
+
 - Expand Numba adapter CI coverage to LiDAR deskew, residual summaries, rig
   linearization caching, parallel summaries and online bag deskew. Require the
   Numba import before tests so missing optional dependencies fail explicitly.

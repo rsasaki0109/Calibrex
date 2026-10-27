@@ -18,6 +18,21 @@ Core rules:
 - Follow [license boundary policy](docs/concepts/license_boundaries.md) for
   external tools and public datasets.
 
+## Optional adapter CI coverage
+
+`tests/unit/test_optional_adapter_ci_coverage.py` checks registration of optional
+CPU test files in CI without importing the adapters. A unit test containing a
+literal `pytest.importorskip` for `cv2`, `numba`, `lz4`, `zstandard` or `mcap`
+must be selected by its corresponding extra-enabled job in
+`.github/workflows/ci.yml`. Update that job when adding a dependent test file.
+Whole-file paths, directories and globs are supported; individual node selectors
+do not establish whole-file coverage. Missing paths also fail the check.
+
+Files gated by a top-level `pytest.importorskip("cupy")` are GPU-only and excluded
+from this CPU registration check. A per-test GPU skip does not exclude the whole
+file. This is a static guard for literal imports, not proof that every optional
+test executed; dynamic dependency checks and skip results still need review.
+
 ## Compressed bag format tests
 
 The `compressed-bag-formats` CI job installs optional MCAP, LZ4 and Zstandard
