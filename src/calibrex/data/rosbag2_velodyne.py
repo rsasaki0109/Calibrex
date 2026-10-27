@@ -20,7 +20,12 @@ import numpy as np
 
 from calibrex.core.exceptions import DatasetError
 from calibrex.data.ros_cdr_writer import encode_pointcloud2
-from calibrex.data.rosbag2 import IMAGE_TYPE, iter_messages, list_rosbag2_connections
+from calibrex.data.rosbag2 import (
+    IMAGE_TYPE,
+    iter_messages,
+    list_rosbag2_connections,
+    require_cdr_connection,
+)
 from calibrex.data.rosbag2_writer import Rosbag2Writer
 from calibrex.data.velodyne_packets import (
     VELODYNE_SCAN_TYPE,
@@ -104,6 +109,7 @@ def convert_velodyne_bag(
     are not copied, nor are ``drop_topics``; with ``max_duration_s`` only the
     first seconds are converted. ``calibration`` (the unit's own) is applied to
     HDL-64E and VLS-128 packets and ignored for the others.
+    Converted and copied topics must use CDR serialization; dropped topics are ignored.
     """
 
     connections = [connection for connection, _ in list_rosbag2_connections(source)]
@@ -124,6 +130,9 @@ def convert_velodyne_bag(
     }
     written = copied = dropped = 0
     first_ns: int | None = None
+    for connection in connections:
+        if connection.topic not in skipped:
+            require_cdr_connection(connection)
     with Rosbag2Writer(destination, overwrite=overwrite) as writer:
         for connection in connections:
             if connection.topic in cloud_topics:
@@ -136,6 +145,8 @@ def convert_velodyne_bag(
                 first_ns = timestamp_ns
             if max_duration_s is not None and timestamp_ns - first_ns > max_duration_s * 1e9:
                 break
+            if connection.topic not in skipped:
+                require_cdr_connection(connection)
             if connection.topic in cloud_topics:
                 writer.write(
                     cloud_topics[connection.topic],

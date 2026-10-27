@@ -30,7 +30,7 @@ from numpy.typing import NDArray
 
 from calibrex.core.exceptions import DatasetError
 from calibrex.data.ros_cdr import CdrReader
-from calibrex.data.rosbag2 import iter_messages, list_rosbag2_connections
+from calibrex.data.rosbag2 import iter_messages, list_rosbag2_connections, require_cdr_connection
 from calibrex.data.rosbag2_writer import Rosbag2Writer
 
 IMU_MESSAGE_TYPE = "sensor_msgs/msg/Imu"
@@ -151,6 +151,7 @@ def rotate_imu_in_bag(
     ``max_duration_s`` only messages within that many seconds of the first
     message are copied (to keep a copy of a large bag small; an estimator run
     with the same ``--max-duration-s`` sees the same data).
+    All output topics, including unchanged copies, must use CDR serialization.
     """
 
     matrix = np.asarray(rotation, dtype=float)
@@ -168,6 +169,8 @@ def rotate_imu_in_bag(
     angle = math.degrees(math.acos(max(-1.0, min(1.0, (float(np.trace(matrix)) - 1.0) / 2.0))))
     rotated = copied = 0
     first_ns: int | None = None
+    for connection in connections:
+        require_cdr_connection(connection)
     with Rosbag2Writer(destination, overwrite=overwrite) as writer:
         for connection in connections:
             latched = "durability: 1" in (connection.offered_qos_profiles or "")
@@ -177,6 +180,7 @@ def rotate_imu_in_bag(
                 first_ns = timestamp_ns
             if max_duration_s is not None and timestamp_ns - first_ns > max_duration_s * 1e9:
                 break  # messages arrive in timestamp order: nothing later is in range
+            require_cdr_connection(connection)
             if connection.topic in imu:
                 payload = rotate_imu_payload(payload, matrix)
                 rotated += 1

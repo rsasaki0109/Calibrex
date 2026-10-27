@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Reject non-CDR topics before creating or overwriting bags in timestamp-shift,
+  IMU-rotation and Velodyne conversion tools. Validate copied topics as well as
+  transformed ones to avoid relabelling bytes as CDR; excluded topics remain skippable.
+
 - Validate selected ROS 2 LiDAR and odometry connection formats before online
   replay decoding, including capture-window sampling and cross-segment checks.
   Non-CDR inputs now fail with a topic-specific error before calibration.
