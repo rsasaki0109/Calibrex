@@ -27,7 +27,7 @@ from numpy.typing import NDArray
 from calibrex.core.progress import emit_stage, emit_tick
 from calibrex.data import ros_cdr
 from calibrex.data.livox_profile_fields import LIVOX_PROFILE_FIELDS
-from calibrex.data.rosbag2 import iter_messages
+from calibrex.data.rosbag2 import iter_messages, require_cdr_connection
 
 FloatArray: TypeAlias = NDArray[np.float64]
 STANDARD_GRAVITY_MPS2 = 9.80665
@@ -90,7 +90,8 @@ def iter_livox_points(
 
     first_s: float | None = None
     messages = iter_messages(bag_dir, topics={profile.point_topic})
-    for scans_read, (_, timestamp_ns, payload) in enumerate(messages, start=1):
+    for scans_read, (connection, timestamp_ns, payload) in enumerate(messages, start=1):
+        require_cdr_connection(connection)
         cloud = ros_cdr.decode_ros2_pointcloud2(
             profile.point_topic,
             timestamp_ns,
@@ -210,7 +211,8 @@ def load_livox_imu(bag_dir: str | Path, profile: LivoxStreamProfile) -> ImuSampl
     times: list[float] = []
     gyro: list[tuple[float, float, float]] = []
     accel: list[tuple[float, float, float]] = []
-    for _, timestamp_ns, payload in iter_messages(bag_dir, topics={profile.imu_topic}):
+    for connection, timestamp_ns, payload in iter_messages(bag_dir, topics={profile.imu_topic}):
+        require_cdr_connection(connection)
         message = ros_cdr.decode_ros2_imu(profile.imu_topic, timestamp_ns, payload)
         times.append(message.timestamp_ns * 1.0e-9)
         gyro.append(message.angular_velocity)

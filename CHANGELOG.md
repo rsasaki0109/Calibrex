@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Check CDR serialization before camera/IMU, Livox and RTK-SLAM sensor adapters
+  decode selected images, IMU samples or point clouds. Reject incompatible
+  declarations even when their payload bytes happen to look like valid CDR.
+
 - Validate selected ROS 2 LiDAR connection formats before offline pair loading.
   Suppress the recording-motion recommendation when IMU serialization is not
   CDR, rather than deriving recording advice from an unsupported encoding.

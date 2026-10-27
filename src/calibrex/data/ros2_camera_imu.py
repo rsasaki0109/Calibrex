@@ -17,7 +17,7 @@ from numpy.typing import NDArray
 from calibrex.core.progress import emit_tick
 from calibrex.data import ros_cdr
 from calibrex.data.livox_ros2 import STANDARD_GRAVITY_MPS2, ImuSamples
-from calibrex.data.rosbag2 import iter_messages
+from calibrex.data.rosbag2 import iter_messages, require_cdr_connection
 
 GrayImage: TypeAlias = NDArray[np.uint8]
 _CHANNELS = {"mono8": 1, "mono16": 1, "rgb8": 3, "bgr8": 3, "rgba8": 4, "bgra8": 4}
@@ -65,7 +65,8 @@ def _read_ros2_imu(
     times: list[float] = []
     gyro: list[tuple[float, float, float]] = []
     accel: list[tuple[float, float, float]] = []
-    for _, timestamp_ns, payload in iter_messages(bag_dir, topics={topic}):
+    for connection, timestamp_ns, payload in iter_messages(bag_dir, topics={topic}):
+        require_cdr_connection(connection)
         message = ros_cdr.decode_ros2_imu(topic, timestamp_ns, payload)
         times.append(message.timestamp_ns * 1.0e-9)
         gyro.append(message.angular_velocity)
@@ -114,9 +115,11 @@ def iter_gray_images(
     """Yield ``(header time in s, gray image)`` for every ``stride``-th image."""
 
     first: float | None = None
-    for index, (_, timestamp_ns, payload) in enumerate(iter_messages(bag_dir, topics={topic})):
+    messages = iter_messages(bag_dir, topics={topic})
+    for index, (connection, timestamp_ns, payload) in enumerate(messages):
         if index % stride:
             continue
+        require_cdr_connection(connection)
         message = ros_cdr.decode_ros2_image(topic, timestamp_ns, payload)
         emit_tick(index + 1)
         time_s = message.timestamp_ns * 1.0e-9

@@ -26,7 +26,7 @@ import yaml
 from numpy.typing import NDArray
 
 from calibrex.data import ros_cdr
-from calibrex.data.rosbag2 import iter_messages
+from calibrex.data.rosbag2 import iter_messages, require_cdr_connection
 
 FloatArray: TypeAlias = NDArray[np.float64]
 
@@ -155,7 +155,8 @@ def iter_livox_scans(
     stamp, which lets odometry compensate motion within a sweep.
     """
 
-    for _, timestamp_ns, payload in iter_messages(bag_dir, topics={topic}):
+    for connection, timestamp_ns, payload in iter_messages(bag_dir, topics={topic}):
+        require_cdr_connection(connection)
         cloud = ros_cdr.decode_ros2_pointcloud2(
             topic, timestamp_ns, payload, point_time_field=point_time_field
         )
