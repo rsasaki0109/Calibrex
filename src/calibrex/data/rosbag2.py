@@ -1108,6 +1108,8 @@ def _parse_mcap_chunk(content: bytes) -> tuple[str, bytes]:
     records, _offset = _read_mcap_length_prefixed_bytes(content, offset)
     if compression:
         records = _decompress_mcap_chunk(compression, records, int(uncompressed_size))
+    if len(records) != uncompressed_size:
+        raise DatasetError("MCAP chunk decompressed to an unexpected size")
     return compression, records
 
 

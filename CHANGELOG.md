@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Verify declared MCAP and ROS 1 chunk sizes before parsing their records,
+  including uncompressed/bz2 chunks and explicit zero sizes. Reject malformed
+  ROS 1 size fields while preserving the existing absent-size compatibility path.
+
 - Reject incomplete Zstandard message/chunk frames instead of accepting partial
   decompression, including frames missing checksum bytes. Normalize codec errors
   from Zstandard, LZ4 and ROS 1 bz2 chunks to `DatasetError`, retaining their causes.

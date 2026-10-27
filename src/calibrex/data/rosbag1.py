@@ -519,8 +519,13 @@ def _iter_chunk_messages(
     topics: set[str] | None,
 ) -> Iterator[tuple[Rosbag1Connection, int, bytes]]:
     compression = chunk_header.get("compression", b"none").decode("ascii")
-    size = _uint32(chunk_header.get("size")) or 0
-    buffer = _decompress_chunk(compression, size, chunk_data)
+    raw_size = chunk_header.get("size")
+    if raw_size is not None and len(raw_size) != 4:
+        raise DatasetError("invalid ROS bag chunk size field")
+    declared_size = _uint32(raw_size)
+    buffer = _decompress_chunk(compression, declared_size or 0, chunk_data)
+    if declared_size is not None and len(buffer) != declared_size:
+        raise DatasetError("ROS bag chunk decompressed to an unexpected size")
     pending: list[tuple[int, int, bytes]] = []
     for header, data in _iter_inner_records(buffer):
         op = _record_op(header)

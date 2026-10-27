@@ -122,6 +122,8 @@ the format is detected from the file:
 Zstandard message and chunk readers require a complete frame, even when its
 uncompressed size is unspecified. Truncated frames and codec-reported corruption
 in Zstandard, LZ4 or ROS 1 bz2 chunks produce dataset read errors.
+MCAP chunk sizes and declared ROS 1 chunk sizes are checked against the actual
+expanded data, including explicit zero sizes, before their records are parsed.
 
 `calibrex check my_bag/ --plan` prints which sensor pairs the bag can be checked for, and why the
 others are skipped, without running an estimator. Vehicle pairs are opt-in with

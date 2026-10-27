@@ -1,6 +1,7 @@
 """Damaged compressed frames must never become successful partial bag reads."""
 import bz2
 import sqlite3
+import struct
 
 import pytest
 
@@ -94,3 +95,54 @@ def test_public_message_reader_rejects_truncated_checksum(tmp_path):
 ''')
     with pytest.raises(DatasetError, match='truncated zstd'):
         list(rosbag2.iter_messages(bag))
+
+
+@pytest.mark.parametrize('compression', ['', 'none', 'lz4', 'zstd'])
+@pytest.mark.parametrize('payload', [b'', b'chunk records'])
+def test_mcap_declared_chunk_size_is_checked_for_all_formats(compression, payload):
+    encoded = payload
+    if compression == 'lz4':
+        encoded = pytest.importorskip('lz4.frame').compress(payload)
+    elif compression == 'zstd':
+        encoded = pytest.importorskip('zstandard').ZstdCompressor().compress(payload)
+
+    def chunk(size):
+        name = compression.encode('ascii')
+        return (struct.pack('<QQQI', 0, 0, size, 0) + struct.pack('<I', len(name)) + name
+                + struct.pack('<Q', len(encoded)) + encoded)
+
+    assert rosbag2._parse_mcap_chunk(chunk(len(payload))) == (compression, payload)
+    for size in {0, len(payload) + 1, max(0, len(payload) - 1)} - {len(payload)}:
+        with pytest.raises(DatasetError, match='unexpected size'):
+            rosbag2._parse_mcap_chunk(chunk(size))
+
+
+@pytest.mark.parametrize('compression', ['none', 'bz2', 'lz4'])
+@pytest.mark.parametrize('empty', [False, True])
+def test_ros1_declared_chunk_size_is_checked_before_record_parsing(compression, empty):
+    # A well-formed unknown record is ignored by the message iterator.
+    header = struct.pack('<I', 4) + b'op=\xff'
+    payload = b'' if empty else struct.pack('<I', len(header)) + header + struct.pack('<I', 0)
+    encoded = payload
+    if compression == 'bz2':
+        encoded = bz2.compress(payload)
+    elif compression == 'lz4':
+        encoded = pytest.importorskip('lz4.frame').compress(payload)
+
+    def records(size):
+        fields = {'compression': compression.encode('ascii')}
+        if size is not None:
+            fields['size'] = struct.pack('<I', size)
+        return list(rosbag1._iter_chunk_messages(fields, encoded, {}, None))
+
+    assert records(len(payload)) == []
+    assert records(None) == []  # Preserve the existing missing-size compatibility path.
+    for size in {0, len(payload) + 1, max(0, len(payload) - 1)} - {len(payload)}:
+        with pytest.raises(DatasetError, match='unexpected size'):
+            records(size)
+
+
+@pytest.mark.parametrize('size', [b'', b'\x01', b'\x00' * 5])
+def test_malformed_ros1_size_fields_are_not_treated_as_absent(size):
+    with pytest.raises(DatasetError, match='size field'):
+        list(rosbag1._iter_chunk_messages({'compression': b'none', 'size': size}, b'', {}, None))
