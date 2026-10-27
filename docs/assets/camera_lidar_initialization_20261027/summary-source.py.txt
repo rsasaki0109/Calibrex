@@ -1,0 +1,70 @@
+"""Summarize the fixed comparison without selecting inputs or changing any gates."""
+import hashlib
+import json
+from pathlib import Path
+from typing import Any, Literal
+import jsonschema
+import numpy as np
+from scipy.spatial.transform import Rotation
+from pydantic import Field
+from calibrex.core.result import StrictModel
+from tools.kitti_camera_lidar_initialization_compare import DRIVES, ComparisonReport
+from tools.kitti_camera_lidar_profile_probe import ProfileReport
+from tools.kitti_camera_lidar_v3_replay import RUNS
+
+class Summary(StrictModel):
+    schema_version: Literal['calibrex.camera_lidar_initialization_summary/v0.1']='calibrex.camera_lidar_initialization_summary/v0.1'
+    provenance: dict[str, Any]
+    expected_inputs: int=14
+    expected_axis_controls: int=42
+    code_parity_matches: int
+    historical_parity_matches: int
+    arms: dict[str, Any]
+    controls: list[dict[str, Any]]=Field(default_factory=list)
+    limitations: list[str]=Field(default_factory=lambda: ['Same-input implementation control; historical NPZ and runtime not reproduced.', 'Control detections do not establish accuracy, native coverage or SOTA.', 'Reference errors describe training-fold baseline poses, not a final calibrated transform.', 'Correlated axes and injections are not independent recordings.'])
+
+base=Path('/workspace/work/camera-lidar-initialization-20261027')
+report=ComparisonReport.model_validate_json((base/'report.json').read_bytes())
+if report.status=='running':raise RuntimeError('batch still running')
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+references={}
+candidates={}
+for drive in DRIVES:
+    for run in RUNS:
+        p=Path('/workspace/work/camera-lidar-recovery-20261027/capture')/drive/run/'arrays.npz'
+        row=next(r for r in report.inputs if (r['drive'],r['run'])==(drive,run))
+        assert sha(p)==row['arrays_sha256']
+        with np.load(p,allow_pickle=False) as archive: candidate=archive['candidate'][:3,:3]
+        vector=np.zeros(3)
+        if RUNS[run] is not None:
+            axis,amount=RUNS[run].split(':');vector['xyz'.index(axis)]=np.radians(float(amount))
+        candidates[drive,run]=candidate
+        references[drive,run]=Rotation.from_rotvec(-vector).as_matrix()@candidate
+summary=Summary(provenance=dict(comparison_sha256=sha(base/'report.json'),git_commit=report.provenance['git_commit'],generator_sha256=sha(Path(__file__)),new_evaluation_started=False),code_parity_matches=sum(r.get('same_input_code_parity') is True for r in report.inputs),historical_parity_matches=sum(r.get('historical_profile_parity') is True for r in report.inputs),arms={})
+for arm in ['archived_pooled','current_pooled','training_only']:
+    stats=dict(expected_axis_controls=42,complete_inputs=0,failed_or_missing_inputs=[],detected=0,observed_axis_controls=0,elapsed_s=0.0,per_drive={d:dict(expected_axis_controls=21,observed=0,detected=0) for d in DRIVES})
+    summary.arms[arm]=stats
+    for drive in DRIVES:
+        for run in RUNS:
+            path=base/drive/run/arm/'report.json'
+            row=next((r for r in report.inputs if (r['drive'],r['run'])==(drive,run)),{})
+            stats['elapsed_s']+=row.get('arms',{}).get(arm,{}).get('elapsed_s',0)
+            r=ProfileReport.model_validate_json(path.read_bytes()) if path.exists() else None
+            if r is None or r.status!='complete':
+                stats['failed_or_missing_inputs'].append(dict(drive=drive,run=run,status=r.status if r else 'missing'))
+                continue
+            stats['complete_inputs']+=1
+            assert [a.axis for a in r.axes]==[0,1,2]
+            for a in r.axes:
+                stats['observed_axis_controls']+=1;stats['detected']+=int(a.profiled_control.detected)
+                stats['per_drive'][drive]['observed']+=1;stats['per_drive'][drive]['detected']+=int(a.profiled_control.detected)
+                errors=[float(np.degrees(Rotation.from_matrix(Rotation.from_rotvec(np.radians(f.base_theta[:3])).as_matrix()@candidates[drive,run]@references[drive,run].T).as_rotvec())[a.axis]) for f in a.folds]
+                summary.controls.append(dict(fold_active_axis_reference_errors_deg=errors,max_abs_fold_active_axis_reference_error_deg=max(map(abs,errors)),drive=drive,run=run,arm=arm,axis=a.axis,detected=a.profiled_control.detected,min_t_statistic=a.profiled_control.min_t_statistic,direct_detected=a.direct_control.detected,nuisance_bound_folds=sum(f.nuisance_at_bound for f in a.folds),report_sha256=sha(path),arrays_sha256=r.provenance['arrays_sha256']))
+# Every reported pair must refer to identical input arrays.
+for drive in DRIVES:
+    for run in RUNS:
+        assert len({c['arrays_sha256'] for c in summary.controls if (c['drive'],c['run'])==(drive,run)})<=1
+payload=json.loads(summary.model_dump_json());jsonschema.validate(payload,Summary.model_json_schema())
+(base/'summary.json').write_text(json.dumps(payload,indent=2)+'\n')
+(base/'summary.schema.json').write_text(json.dumps(Summary.model_json_schema(),indent=2)+'\n')
+print(json.dumps(summary.arms,indent=2))

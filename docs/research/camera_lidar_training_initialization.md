@@ -1,7 +1,7 @@
 # Camera–LiDAR: training-only initialization development
 
-Status on 2026-10-27: **fourteen inputs reacquired; numerical parity investigation
-required before interpreting the initialization comparison**. This is a research step toward the
+Status on 2026-10-27: **fourteen-input same-input comparison complete; no overall
+improvement demonstrated, historical numerical drift unresolved**. This is a research step toward the
 camera–LiDAR claim, not a new SOTA result or an evaluation pre-registration.
 
 ## Starting evidence
@@ -81,7 +81,7 @@ separate from inputs. This is development on spent recordings, not a fresh audit
 
 ## Data availability and decision boundary
 
-### Same-input code control planned after reacquisition
+### Same-input code control and completed development comparison
 
 The historical `1e-9` parity failure remains an investigation result. Before
 running further comparisons, the follow-up protocol separates two questions:
@@ -106,6 +106,59 @@ nuisance search, scalar objective and unchanged settings. Retain every failure,
 report and runtime. Any paired findings concern these reacquired inputs only;
 they cannot be presented as exact replay of the original cache. No claim of
 accuracy, native coverage, or SOTA support follows from their control counts.
+
+The [completed comparison](../assets/camera_lidar_initialization_20261027/report.json)
+uses frozen source `78eeeae6` in an isolated worktree. The
+[summary](../assets/camera_lidar_initialization_20261027/summary.json) lists every
+axis control, t statistic and active-axis reference disagreement of each saved
+training-fold pose. All reports, schemas, source capsules, timings and input
+hashes are bound by the publication manifest. The run completed all 14 conditional
+probes and all 42 profile executions (three arms per input), with no missing or
+failed inputs. The archived/current pooled arms match on all 14 identical inputs
+under the unchanged `1e-9` comparison. Historical cross-capture profile parity
+still fails on all 14; this is **not** exact restoration of the old cache.
+
+| Arm | 0005 detected controls | 0002 detected controls | Total | Profile runtime |
+| --- | ---: | ---: | ---: | ---: |
+| Archived pooled code, reacquired inputs | 20/21 | 0/21 | 20/42 | 140.6 s |
+| Current pooled code, same inputs | 20/21 | 0/21 | 20/42 | 138.9 s |
+| Training-only starts, same inputs | 19/21 | 0/21 | 19/42 | 151.3 s |
+
+These runtimes are one sequential execution per input on this environment;
+they exclude conditional-probe time and are not a controlled speed benchmark.
+All 42 correlated controls remain in each denominator.
+
+The only detection change is **0005 roll +3, yaw-axis control**: t falls from
+3.61925 to 2.22060, below the unchanged 2.5 threshold. With training-only starts,
+two saved training-fold poses have yaw reference disagreements of approximately
+-3.140 and +4.000 deg, versus a maximum absolute 0.153 deg across the pooled-start
+folds. The rejected control exposes fold/basin instability; it is not a new
+successful calibration or a demonstrated useful-detection improvement.
+
+On 0002, roll +3's roll control stays rejected (t 1.73237 to -0.61761), and
+pitch +3's pitch control stays missed (t 0.77397 in both arms). The latter's
+saved active-axis fold reference disagreement is at most 0.150 deg, showing
+again that a small conditional reference disagreement does not establish a
+detectable, jointly observable calibration. Among detected controls, maximum
+absolute active-axis fold reference disagreement is about 0.350 deg in either
+arm; these training-fold diagnostics are not native per-axis accuracy verdicts.
+
+**Decision:** retain training-only initialization as a research mode, with no
+default, gate or SOTA claim change. It removes the pooled-initializer dependency
+but does not restore useful controls on 0002. The next development question is
+why independently fitted folds select distant basins, and whether nuisance-axis
+ambiguity can be characterized without losing useful detection. Preserve all
+fourteen inputs and the all-55-drive denominator; do not tune the 2.5 threshold
+to this result. Historical drift remains unresolved because the original arrays
+and runtime were not recovered. Source inspection found the archived estimator,
+conditional probe and converter identical after newline normalization, but that
+does not prove equivalence of all numerical dependencies or sensor-array values.
+
+Validation: 36 focused tests passed, 58 experiment reports passed their JSON
+schemas, and all published files have digest bindings. A test exposed that
+Python's source loader wrote a bytecode cache into the archived evidence folder;
+`1b239d0d` changes future loading to avoid that side effect. The running experiment
+remained on `78eeeae6`; no imported numerical source was edited during the batch.
 
 ### Reacquisition, 2026-10-27
 
@@ -141,9 +194,9 @@ cause; platform arithmetic, compression and preprocessing equivalence have not
 been isolated. The original arrays are unavailable for elementwise comparison.
 
 This is a recovery and reproducibility result, not improved calibration evidence.
-The old-arm profile parity prerequisite remains unresolved; no pooled/training
-paired result is claimed. Investigate the differences before interpreting that
-comparison, retaining the original tolerance and all failed checks. Native
+At this recovery stage, old-arm profile parity was unresolved and no paired
+result existed. The later same-input code control above is a separately scoped
+development comparison; it retains the historical failure and tolerance. Native
 capture progress remains 2/55; no new recording or evaluation was read.
 
 ### Original-cache inventory
@@ -157,7 +210,7 @@ example or call it the 48-frame experiment. If originals cannot be recovered,
 reacquire only these spent recordings and create a separately identified capture;
 it cannot be claimed byte-identical to the previous experiment.
 
-No real-input result from the training-only mode exists yet. Rejecting a known false
+The real-input training-only result above does not demonstrate an overall improvement. Rejecting a known false
 control while losing all useful detections is not success. A promising result
 must be checked through native per-axis verdicts, with reference disagreement,
 1/3 deg detection, judged-axis coverage, failures and runtime reported together.

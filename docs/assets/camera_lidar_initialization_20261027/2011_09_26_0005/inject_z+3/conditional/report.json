@@ -1,0 +1,200 @@
+{
+  "schema_version": "calibrex.camera_lidar_conditional_axis_probe/v0.1",
+  "status": "complete",
+  "error": null,
+  "provenance": {
+    "created_at": "2026-10-27T12:55:54.046457+00:00",
+    "git_commit": "78eeeae6",
+    "generator_sha256": "444dae42791d6813d8621bc0138a597f7fb594eb5742b57cedb29d0c27c1fc99",
+    "estimator_sha256": "cc2b0b4b8967971c78a72213e9d63cfc077cc3e6bc704c61c03146d7d3d90a60",
+    "replay_sha256": "316d516d5eca611ee3d22fc38b4eeaade2c764bb98b45ae45cce5532aa4fd8b5",
+    "snapshot_sha256": "aa425e01e8f59a081f1242c798861f20cb05ca9eccbde7e49f4f02baa2932d65",
+    "arrays_sha256": "37687222455aaf5763844ced40463301474c80a99aecb6c219ed870cb8f18074",
+    "drive": "2011_09_26_0005",
+    "run": "inject_z+3",
+    "options": {
+      "spacing_s": 1.0,
+      "max_frames": 48,
+      "max_seconds": null,
+      "short_recording_spacing_s": 0.25,
+      "short_recording_min_view_change": 0.05,
+      "max_gap_s": 0.06,
+      "min_frames": 8,
+      "blocks": 6,
+      "min_jump_m": 0.3,
+      "jump_exponent": 0.5,
+      "max_edge_points_per_frame": 4000,
+      "min_edge_points_per_frame": 150,
+      "image_max_width": 960,
+      "spill_gamma": 0.98,
+      "spill_radius_px": 40,
+      "edge_background_sigma_px": 20.0,
+      "repeated_view_change": 0.05,
+      "image_margin_px": 80.0,
+      "rotation_bound_deg": 12.0,
+      "translation_bound_m": 0.2,
+      "rotation_levels_deg": [
+        1.0,
+        0.5,
+        0.25,
+        0.1,
+        0.05
+      ],
+      "translation_levels_m": [
+        0.02,
+        0.01,
+        0.005,
+        0.0025,
+        0.001
+      ],
+      "jackknife_first_level": 1,
+      "max_moves_per_level": 12,
+      "rotation_control_deg": 2.0,
+      "translation_control_m": 0.05,
+      "min_control_t": 2.5,
+      "observable_rotation_std_deg": 0.5,
+      "observable_translation_std_m": 0.03,
+      "min_ring_fraction": 0.5,
+      "min_gain": 0.00002,
+      "estimate_translation": false,
+      "start_scan_deg": 8.0,
+      "start_scan_step_deg": 0.5,
+      "start_scan_min_observed": 2,
+      "unstructured_lidar": true,
+      "start_scan_min_control_t": null,
+      "preparation_workers": 1
+    },
+    "analysis": "post hoc development",
+    "new_accuracy_claim": false,
+    "new_evaluation_started": false,
+    "nuisance_offset_source": "existing rotation_control_deg; no new tuned margin",
+    "reference_scope": "candidate with recorded injection undone; used only after fitting",
+    "prepared_frames": 48,
+    "dropped": []
+  },
+  "probes": [
+    {
+      "axis": 0,
+      "correction_deg": -1.0,
+      "conditional_std_deg": 0.1787300882460602,
+      "conditional_control": {
+        "amount": 2.0,
+        "unit": "deg",
+        "held_out_blocks": 6,
+        "detected_blocks": 3,
+        "mean_objective_drop": 0.002389120080549594,
+        "min_t_statistic": 0.41063141438751755,
+        "detected": false
+      },
+      "at_search_bound": false,
+      "nuisance": [
+        {
+          "fixed_axis": 1,
+          "fixed_offset_deg": -2.0,
+          "active_correction_deg": -3.5
+        },
+        {
+          "fixed_axis": 1,
+          "fixed_offset_deg": 2.0,
+          "active_correction_deg": -1.25
+        },
+        {
+          "fixed_axis": 2,
+          "fixed_offset_deg": -2.0,
+          "active_correction_deg": -0.1
+        },
+        {
+          "fixed_axis": 2,
+          "fixed_offset_deg": 2.0,
+          "active_correction_deg": -3.7
+        }
+      ],
+      "nuisance_correction_span_deg": 3.6,
+      "reference_error_deg": -0.9997715241758873
+    },
+    {
+      "axis": 1,
+      "correction_deg": 0.0,
+      "conditional_std_deg": 0.06454972243679029,
+      "conditional_control": {
+        "amount": 2.0,
+        "unit": "deg",
+        "held_out_blocks": 6,
+        "detected_blocks": 6,
+        "mean_objective_drop": 0.017786590360184578,
+        "min_t_statistic": 4.86370099013645,
+        "detected": true
+      },
+      "at_search_bound": false,
+      "nuisance": [
+        {
+          "fixed_axis": 0,
+          "fixed_offset_deg": -2.0,
+          "active_correction_deg": -0.05
+        },
+        {
+          "fixed_axis": 0,
+          "fixed_offset_deg": 2.0,
+          "active_correction_deg": -0.05
+        },
+        {
+          "fixed_axis": 2,
+          "fixed_offset_deg": -2.0,
+          "active_correction_deg": -0.05
+        },
+        {
+          "fixed_axis": 2,
+          "fixed_offset_deg": 2.0,
+          "active_correction_deg": 0.1
+        }
+      ],
+      "nuisance_correction_span_deg": 0.15000000000000002,
+      "reference_error_deg": 4.954070048104981e-17
+    },
+    {
+      "axis": 2,
+      "correction_deg": -2.9,
+      "conditional_std_deg": 0.10540925533894606,
+      "conditional_control": {
+        "amount": 2.0,
+        "unit": "deg",
+        "held_out_blocks": 6,
+        "detected_blocks": 6,
+        "mean_objective_drop": 0.014044459380383406,
+        "min_t_statistic": 4.111176970968432,
+        "detected": true
+      },
+      "at_search_bound": false,
+      "nuisance": [
+        {
+          "fixed_axis": 0,
+          "fixed_offset_deg": -2.0,
+          "active_correction_deg": -5.1
+        },
+        {
+          "fixed_axis": 0,
+          "fixed_offset_deg": 2.0,
+          "active_correction_deg": 0.1
+        },
+        {
+          "fixed_axis": 1,
+          "fixed_offset_deg": -2.0,
+          "active_correction_deg": -2.95
+        },
+        {
+          "fixed_axis": 1,
+          "fixed_offset_deg": 2.0,
+          "active_correction_deg": -3.1
+        }
+      ],
+      "nuisance_correction_span_deg": 5.199999999999999,
+      "reference_error_deg": 0.1000000000000006
+    }
+  ],
+  "limitations": [
+    "Conditional fits hold other coordinates fixed; precision is not joint observability.",
+    "Nuisance sweeps are sensitivity probes, not a calibrated uncertainty interval.",
+    "Dataset calibration is a reference, not ground truth; this is post hoc spent-data work.",
+    "No native verdict, adoption gate, audit threshold or default estimator is changed."
+  ]
+}

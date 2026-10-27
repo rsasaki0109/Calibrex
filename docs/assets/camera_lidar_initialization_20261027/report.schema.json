@@ -1,0 +1,46 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "calibrex.camera_lidar_initialization_comparison/v0.1",
+      "default": "calibrex.camera_lidar_initialization_comparison/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "default": "running",
+      "enum": [
+        "running",
+        "blocked",
+        "complete"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    },
+    "inputs": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Inputs",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "provenance"
+  ],
+  "title": "ComparisonReport",
+  "type": "object"
+}

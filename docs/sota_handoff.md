@@ -204,6 +204,17 @@ download-cap attempt. Inputs now exist under
 `/workspace/work/camera-lidar-recovery-20261027/capture/`; resolve numerical parity
 before interpreting the initialization ablation. No new SOTA evidence is claimed.
 
+The subsequent same-input code control at `78eeeae6` matches archived/current
+pooled profile evidence on all fourteen reacquired inputs at the unchanged
+`1e-9` tolerance. Historical cross-capture profile parity still fails on all
+fourteen. A separately scoped training-only comparison completes all arms and
+changes detected controls from 20/42 to 19/42: only 0005 roll +3's yaw control
+is lost, with two training-fold fits in distant yaw basins. Both arms retain
+zero detections on 0002, including missed pitch +3. Results and every fold are
+linked from the development page. Do not promote or retune thresholds from this
+result; investigate fold/basin stability and nuisance ambiguity next. Capture
+remains 2/55 and the historical numerical drift remains unresolved.
+
 ### INS-LiDAR after the first audit
 
 The first two-family, two-platform rotation audit is [refuted, 6/8](benchmarks/ins_lidar_rotation_v1.md).
