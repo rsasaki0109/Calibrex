@@ -1,0 +1,1422 @@
+{
+  "schema_version": "calibrex.camera_lidar_reacquisition/v0.1",
+  "provenance": {
+    "created_at": "2026-10-27T12:27:21.176784+00:00",
+    "git_commit": "5245d51c5b579672c67061d8d0cb7b981cf77cf6",
+    "driver_sha256": "ae823d71ec233789606a0c1f62327e2d96b167baaba185dc9341b36e963f7d2f",
+    "acquisition_sha256": "e3c19a101d70b0849635f7005fadb184c8dbbbee40734d0e0bef47bed0900e7e",
+    "retry_sha256": "39cac0e21eaaa54a5697e32528b65d6fe887dd4babb50f63799312c2f514b217",
+    "calibration_sha256": "25bd9b5f82c99324b5313668fcf9be90abe3002a5c8906b1d167cdf37b3b1ce8",
+    "sensor_data_read": true,
+    "new_evaluation_started": false,
+    "comparison_absolute_tolerance": 1e-9
+  },
+  "inputs": [
+    {
+      "drive": "2011_09_26_0005",
+      "run": "baseline",
+      "snapshot_path": "/workspace/work/camera-lidar-recovery-20261027/capture/2011_09_26_0005/baseline",
+      "snapshot_sha256": "0ee39ac0b63a72329683b1ac977ed4ef9d68f8a9447074b7b49d513ac5436d79",
+      "arrays_sha256": "aa9853d34d512c6e75a7268e1b98f9d6fd8716e37ebe1afdd3b3381db8e598fb",
+      "archived_arrays_sha256": "aad97d8a4b56ee08dee1ea5d30cf5548e153e21972730919d99281f745e3fa62",
+      "arrays_byte_identical": false,
+      "frame_count": 48,
+      "options_match": true,
+      "frame_metadata_match": true,
+      "native_evidence_sha256": "766555e25186cad9d575515b2a56faaf3b83de1f0780198e2b5d8ccf26a6d858",
+      "archived_evidence_sha256": "a14f28f24b502a8e8e46dd9499dbcac69741abdc382df14d9835833aba131a95",
+      "native_numerical_parity": false,
+      "differences": [
+        {
+          "path": "/dofs/0/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.02955299106669788,
+          "archived": 0.029552979997617284,
+          "absolute_delta": 1.1069080596559644e-8
+        },
+        {
+          "path": "/dofs/0/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 4.590052261465914,
+          "archived": 4.590051356174016,
+          "absolute_delta": 9.052918974461477e-7
+        },
+        {
+          "path": "/dofs/1/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.02870963940495944,
+          "archived": 0.028709629528107128,
+          "absolute_delta": 9.876852311713202e-9
+        },
+        {
+          "path": "/dofs/1/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 8.543907503292873,
+          "archived": 8.543909207968573,
+          "absolute_delta": 1.7046757001537571e-6
+        },
+        {
+          "path": "/dofs/2/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.012885012028759628,
+          "archived": 0.012885009147367869,
+          "absolute_delta": 2.8813917588715876e-9
+        },
+        {
+          "path": "/dofs/2/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 3.758176683950709,
+          "archived": 3.7581761956793724,
+          "absolute_delta": 4.882713366960445e-7
+        },
+        {
+          "path": "/dofs/3/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 4.062481895276276,
+          "archived": 4.062483553623275,
+          "absolute_delta": 1.658346998389959e-6
+        },
+        {
+          "path": "/dofs/4/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 0.05012709586382686,
+          "archived": 0.050127426242848765,
+          "absolute_delta": 3.303790219039149e-7
+        },
+        {
+          "path": "/dofs/5/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": -1.0289289944461133,
+          "archived": -1.0289290917071814,
+          "absolute_delta": 9.72610680882724e-8
+        },
+        {
+          "path": "/objective/start",
+          "kind": "numeric",
+          "new": 0.061060465824373696,
+          "archived": 0.061060452548399584,
+          "absolute_delta": 1.3275974111714994e-8
+        },
+        {
+          "path": "/objective/estimate",
+          "kind": "numeric",
+          "new": 0.0626817919087578,
+          "archived": 0.062681778148938,
+          "absolute_delta": 1.3759819811332008e-8
+        }
+      ]
+    },
+    {
+      "drive": "2011_09_26_0005",
+      "run": "inject_x+3",
+      "snapshot_path": "/workspace/work/camera-lidar-recovery-20261027/capture/2011_09_26_0005/inject_x+3",
+      "snapshot_sha256": "3a22787c27fef7398707e1674545aa636dae8249c7469c89dc6aac7e3f2e31df",
+      "arrays_sha256": "739c449871fb9b0a6199781a9c32508996b2f88e84e92e75746416b3fe27aeff",
+      "archived_arrays_sha256": "4ad0d97bd99d985cc22d33ee8f95e76be2b3bc90b01e7f64955cff535d601b87",
+      "arrays_byte_identical": false,
+      "frame_count": 48,
+      "options_match": true,
+      "frame_metadata_match": true,
+      "native_evidence_sha256": "8357ad78d48665979e5622b034e31790daa6c9d9e0a1d06febc87a1dcd627fbb",
+      "archived_evidence_sha256": "dd0bd3aa7f73f779a019b2973e0b8e5ddc19866022eea2a62d5e1b9ebf5fbca8",
+      "native_numerical_parity": false,
+      "differences": [
+        {
+          "path": "/dofs/0/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.02634771320971216,
+          "archived": 0.02634770304349253,
+          "absolute_delta": 1.0166219630014517e-8
+        },
+        {
+          "path": "/dofs/0/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 3.9843160031771947,
+          "archived": 3.9843153183542124,
+          "absolute_delta": 6.848229823219754e-7
+        },
+        {
+          "path": "/dofs/1/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.028001941975200794,
+          "archived": 0.028001932185891643,
+          "absolute_delta": 9.789309151492231e-9
+        },
+        {
+          "path": "/dofs/1/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 8.50366619363916,
+          "archived": 8.503667838932886,
+          "absolute_delta": 1.645293725260899e-6
+        },
+        {
+          "path": "/dofs/2/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.010730941891482252,
+          "archived": 0.010730939355941918,
+          "absolute_delta": 2.5355403332483206e-9
+        },
+        {
+          "path": "/dofs/2/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 2.988417354111535,
+          "archived": 2.988417012440457,
+          "absolute_delta": 3.4167107765270543e-7
+        },
+        {
+          "path": "/dofs/3/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 3.1943850097234083,
+          "archived": 3.1943862650357966,
+          "absolute_delta": 1.2553123882597106e-6
+        },
+        {
+          "path": "/dofs/4/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 0.11657948956510882,
+          "archived": 0.11657978888025138,
+          "absolute_delta": 2.9931514256009706e-7
+        },
+        {
+          "path": "/dofs/5/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": -1.0631628538970714,
+          "archived": -1.063162791027187,
+          "absolute_delta": 6.286988440962205e-8
+        },
+        {
+          "path": "/objective/start",
+          "kind": "numeric",
+          "new": 0.004670583830937919,
+          "archived": 0.00467058175904251,
+          "absolute_delta": 2.071895408711777e-9
+        },
+        {
+          "path": "/objective/estimate",
+          "kind": "numeric",
+          "new": 0.06197886652900748,
+          "archived": 0.061978853030639616,
+          "absolute_delta": 1.3498367860964589e-8
+        },
+        {
+          "path": "/objective/gain",
+          "kind": "numeric",
+          "new": 0.057308282698069556,
+          "archived": 0.05730827127159711,
+          "absolute_delta": 1.1426472448783365e-8
+        }
+      ]
+    },
+    {
+      "drive": "2011_09_26_0005",
+      "run": "inject_y+3",
+      "snapshot_path": "/workspace/work/camera-lidar-recovery-20261027/capture/2011_09_26_0005/inject_y+3",
+      "snapshot_sha256": "174938f666ce74d9a6709db79d2ab3e2bd4c660666d8cd6aeedfdd9bc8af50e3",
+      "arrays_sha256": "b58e564b3fdfea2a5761ef96b8ee7e86c389d61e94cda3540ea30f4c3a4da722",
+      "archived_arrays_sha256": "a89f932ca9a8170f27838d8895bf5e954b93e81df909467c51b3dab10fc9a756",
+      "arrays_byte_identical": false,
+      "frame_count": 48,
+      "options_match": true,
+      "frame_metadata_match": true,
+      "native_evidence_sha256": "7a0a53a19e54815899af06adbee43c378e50394d05fbb7f21fbf39f8471831fc",
+      "archived_evidence_sha256": "317fa02224de880aedfb5c618ce5c122ade783dc9a76d9a38e3d592c4bc7ded2",
+      "native_numerical_parity": false,
+      "differences": [
+        {
+          "path": "/dofs/0/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.026601585262199634,
+          "archived": 0.026601575128253552,
+          "absolute_delta": 1.0133946081597456e-8
+        },
+        {
+          "path": "/dofs/0/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 3.9819582835555565,
+          "archived": 3.981957637311906,
+          "absolute_delta": 6.462436505927371e-7
+        },
+        {
+          "path": "/dofs/1/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.02970218697302324,
+          "archived": 0.029702176695298666,
+          "absolute_delta": 1.0277724574181413e-8
+        },
+        {
+          "path": "/dofs/1/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 11.380760425482592,
+          "archived": 11.380763807590736,
+          "absolute_delta": 3.3821081437679368e-6
+        },
+        {
+          "path": "/dofs/2/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.012965670672244618,
+          "archived": 0.012965667796310977,
+          "absolute_delta": 2.8759336405392855e-9
+        },
+        {
+          "path": "/dofs/2/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 3.6836376754135345,
+          "archived": 3.6836372827176946,
+          "absolute_delta": 3.926958398459135e-7
+        },
+        {
+          "path": "/dofs/3/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 2.7345637864355403,
+          "archived": 2.7345642747995544,
+          "absolute_delta": 4.883640141173373e-7
+        },
+        {
+          "path": "/dofs/4/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 0.3941098990782264,
+          "archived": 0.39411019436561184,
+          "absolute_delta": 2.952873854322746e-7
+        },
+        {
+          "path": "/dofs/5/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": -0.7858309498644361,
+          "archived": -0.7858309868283406,
+          "absolute_delta": 3.696390449281495e-8
+        },
+        {
+          "path": "/objective/estimate",
+          "kind": "numeric",
+          "new": 0.061831837316882444,
+          "archived": 0.06183182380633685,
+          "absolute_delta": 1.351054559201037e-8
+        },
+        {
+          "path": "/objective/gain",
+          "kind": "numeric",
+          "new": 0.028791349549285077,
+          "archived": 0.028791336997802723,
+          "absolute_delta": 1.2551482353462262e-8
+        }
+      ]
+    },
+    {
+      "drive": "2011_09_26_0005",
+      "run": "inject_z+3",
+      "snapshot_path": "/workspace/work/camera-lidar-recovery-20261027/capture/2011_09_26_0005/inject_z+3",
+      "snapshot_sha256": "aa425e01e8f59a081f1242c798861f20cb05ca9eccbde7e49f4f02baa2932d65",
+      "arrays_sha256": "37687222455aaf5763844ced40463301474c80a99aecb6c219ed870cb8f18074",
+      "archived_arrays_sha256": "539693af8209f1fae186d26b8c817775fa5dfa1f2b6dec4cd9e329ad050ddffb",
+      "arrays_byte_identical": false,
+      "frame_count": 48,
+      "options_match": true,
+      "frame_metadata_match": true,
+      "native_evidence_sha256": "7618a46a8540fe6991d0189bf48f2f9c3c59bbd9d7e839a31ce33b417ffa880c",
+      "archived_evidence_sha256": "6581fdce18bc3655c098434bd33668a98515f8966673c2180eeffdde54c65b93",
+      "native_numerical_parity": false,
+      "differences": [
+        {
+          "path": "/dofs/0/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.029833658038071587,
+          "archived": 0.02983364715112441,
+          "absolute_delta": 1.0886947177102257e-8
+        },
+        {
+          "path": "/dofs/0/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 4.672402882865617,
+          "archived": 4.672402072118991,
+          "absolute_delta": 8.107466262785579e-7
+        },
+        {
+          "path": "/dofs/1/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.029516127376714107,
+          "archived": 0.029516117490927685,
+          "absolute_delta": 9.885786422109133e-9
+        },
+        {
+          "path": "/dofs/1/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 10.142121458709257,
+          "archived": 10.14212463106141,
+          "absolute_delta": 3.1723521534132715e-6
+        },
+        {
+          "path": "/dofs/2/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.013539965443450897,
+          "archived": 0.01353996277211295,
+          "absolute_delta": 2.671337945986396e-9
+        },
+        {
+          "path": "/dofs/2/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 3.926131103219037,
+          "archived": 3.9261307758114095,
+          "absolute_delta": 3.2740762767602405e-7
+        },
+        {
+          "path": "/dofs/3/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 3.190270204841589,
+          "archived": 3.1902713338940307,
+          "absolute_delta": 1.1290524417617576e-6
+        },
+        {
+          "path": "/dofs/4/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 0.42290094016750396,
+          "archived": 0.42290129210829847,
+          "absolute_delta": 3.5194079450739935e-7
+        },
+        {
+          "path": "/dofs/5/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": -1.0225604303597406,
+          "archived": -1.0225605579309744,
+          "absolute_delta": 1.2757123379891766e-7
+        },
+        {
+          "path": "/objective/start",
+          "kind": "numeric",
+          "new": 0.036168135141808416,
+          "archived": 0.036168126469144725,
+          "absolute_delta": 8.672663691366989e-9
+        },
+        {
+          "path": "/objective/estimate",
+          "kind": "numeric",
+          "new": 0.06255965631293203,
+          "archived": 0.06255964254148492,
+          "absolute_delta": 1.3771447107679968e-8
+        },
+        {
+          "path": "/objective/gain",
+          "kind": "numeric",
+          "new": 0.026391521171123616,
+          "archived": 0.0263915160723402,
+          "absolute_delta": 5.09878341631298e-9
+        }
+      ]
+    },
+    {
+      "drive": "2011_09_26_0005",
+      "run": "inject_x+1",
+      "snapshot_path": "/workspace/work/camera-lidar-recovery-20261027/capture/2011_09_26_0005/inject_x+1",
+      "snapshot_sha256": "dcf12e51ea0e2969bbe10f3529870b751dd1ef1ce9fa03b9033652f72bae93c9",
+      "arrays_sha256": "10515d8abbf77f489be51bba54b28363af198bef414bb2ad7d1a45ebed758a21",
+      "archived_arrays_sha256": "630a38172cb3a205e8d4eb3cbdc15d23737e44c330ee949a31f9235607afbdea",
+      "arrays_byte_identical": false,
+      "frame_count": 48,
+      "options_match": true,
+      "frame_metadata_match": true,
+      "native_evidence_sha256": "268055d4aa26c155ad7f175ec00eb884b3212c22636aee6509593cbcd80c5189",
+      "archived_evidence_sha256": "8fc297ba079c9c8de4bcdd3f22e87a10cf317b6d2d2deaf3f7ddfd2e303527cd",
+      "native_numerical_parity": false,
+      "differences": [
+        {
+          "path": "/dofs/0/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.02973542452188231,
+          "archived": 0.02973541361437799,
+          "absolute_delta": 1.0907504319895844e-8
+        },
+        {
+          "path": "/dofs/0/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 4.523958872588354,
+          "archived": 4.52395806022249,
+          "absolute_delta": 8.123658643555132e-7
+        },
+        {
+          "path": "/dofs/1/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.02939729770316961,
+          "archived": 0.02939728812055591,
+          "absolute_delta": 9.582613699071763e-9
+        },
+        {
+          "path": "/dofs/1/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 9.336244607575127,
+          "archived": 9.336247414681775,
+          "absolute_delta": 2.8071066484613993e-6
+        },
+        {
+          "path": "/dofs/2/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.013034225892175446,
+          "archived": 0.013034223298600033,
+          "absolute_delta": 2.593575413462057e-9
+        },
+        {
+          "path": "/dofs/2/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 3.6288909082040663,
+          "archived": 3.6288906284802525,
+          "absolute_delta": 2.7972381388963186e-7
+        },
+        {
+          "path": "/dofs/3/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 3.7241558668706767,
+          "archived": 3.7241575561478353,
+          "absolute_delta": 1.6892771586007882e-6
+        },
+        {
+          "path": "/dofs/4/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 0.22528200930359085,
+          "archived": 0.22528239068712094,
+          "absolute_delta": 3.813835300903179e-7
+        },
+        {
+          "path": "/dofs/5/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": -1.0779106805791283,
+          "archived": -1.077910838554945,
+          "absolute_delta": 1.5797581665033533e-7
+        },
+        {
+          "path": "/objective/start",
+          "kind": "numeric",
+          "new": 0.030939286366294484,
+          "archived": 0.030939279532211435,
+          "absolute_delta": 6.83408304946731e-9
+        },
+        {
+          "path": "/objective/estimate",
+          "kind": "numeric",
+          "new": 0.06251879018506754,
+          "archived": 0.06251877644700672,
+          "absolute_delta": 1.3738060813950348e-8
+        },
+        {
+          "path": "/objective/gain",
+          "kind": "numeric",
+          "new": 0.03157950381877305,
+          "archived": 0.03157949691479529,
+          "absolute_delta": 6.903977764483038e-9
+        }
+      ]
+    },
+    {
+      "drive": "2011_09_26_0005",
+      "run": "inject_y+1",
+      "snapshot_path": "/workspace/work/camera-lidar-recovery-20261027/capture/2011_09_26_0005/inject_y+1",
+      "snapshot_sha256": "ad4773ff2173b85825b966e4b67e53fb00735403ec7d2883dcafd18f6aa8ed31",
+      "arrays_sha256": "e6ed0e4826c843c89086d1ca664b279f829288249bd57085df4459a008d7b38d",
+      "archived_arrays_sha256": "ddb839a1c7d52bd210ab6a449c72b2670082a643fcd203619791842417498229",
+      "arrays_byte_identical": false,
+      "frame_count": 48,
+      "options_match": true,
+      "frame_metadata_match": true,
+      "native_evidence_sha256": "6188f59683f478f9d8885626b5cbbdc02b5100c263a213d52e6ae7e13209f412",
+      "archived_evidence_sha256": "f05573482e3acf75b5788931b1a2b0dbf9a4241cc3373d2e024f132862d749ae",
+      "native_numerical_parity": false,
+      "differences": [
+        {
+          "path": "/dofs/0/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.029226199306287032,
+          "archived": 0.029226188311204732,
+          "absolute_delta": 1.0995082299486425e-8
+        },
+        {
+          "path": "/dofs/0/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 4.4749427558390815,
+          "archived": 4.474941923945118,
+          "absolute_delta": 8.318939634932576e-7
+        },
+        {
+          "path": "/dofs/1/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.028620194041430087,
+          "archived": 0.028620184185083098,
+          "absolute_delta": 9.85634698857929e-9
+        },
+        {
+          "path": "/dofs/1/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 8.923393322643399,
+          "archived": 8.923395082089908,
+          "absolute_delta": 1.759446508486917e-6
+        },
+        {
+          "path": "/dofs/2/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.01275296923009525,
+          "archived": 0.012752966396881539,
+          "absolute_delta": 2.833213710515259e-9
+        },
+        {
+          "path": "/dofs/2/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 3.694194521586531,
+          "archived": 3.694193963475391,
+          "absolute_delta": 5.581111399699523e-7
+        },
+        {
+          "path": "/dofs/3/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 3.563206631701961,
+          "archived": 3.5632068143599915,
+          "absolute_delta": 1.8265803047867735e-7
+        },
+        {
+          "path": "/dofs/4/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": -0.056005140004196007,
+          "archived": -0.05600475521019774,
+          "absolute_delta": 3.847939982690174e-7
+        },
+        {
+          "path": "/dofs/5/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": -0.8879047533643712,
+          "archived": -0.8879047994423458,
+          "absolute_delta": 4.6077974547031886e-8
+        },
+        {
+          "path": "/objective/start",
+          "kind": "numeric",
+          "new": 0.039605232608226536,
+          "archived": 0.03960522823586611,
+          "absolute_delta": 4.372360425108912e-9
+        },
+        {
+          "path": "/objective/estimate",
+          "kind": "numeric",
+          "new": 0.06250955127808487,
+          "archived": 0.0625095375909473,
+          "absolute_delta": 1.3687137576101627e-8
+        },
+        {
+          "path": "/objective/gain",
+          "kind": "numeric",
+          "new": 0.022904318669858335,
+          "archived": 0.022904309355081184,
+          "absolute_delta": 9.314777150992715e-9
+        }
+      ]
+    },
+    {
+      "drive": "2011_09_26_0005",
+      "run": "inject_z+1",
+      "snapshot_path": "/workspace/work/camera-lidar-recovery-20261027/capture/2011_09_26_0005/inject_z+1",
+      "snapshot_sha256": "cc747689d9baa37aaec987140497da25baaf4166d98b20c864af770392e781a4",
+      "arrays_sha256": "d176b4854e75078ea90f4c111960ed2c7f3b04b02205e16e83c4a80c8709b6fc",
+      "archived_arrays_sha256": "b99200a4fd26f26e044330646cd851d9d625a030d840a6f22961329f0cae3fe3",
+      "arrays_byte_identical": false,
+      "frame_count": 48,
+      "options_match": true,
+      "frame_metadata_match": true,
+      "native_evidence_sha256": "d684ab8201b124f1699e8610abca43a5b690ca37f532c5640f8b2c743f75081f",
+      "archived_evidence_sha256": "737b98059c98948593b653fc3192ab25112130f5f0b3634ce1ffa3e63bdf4aab",
+      "native_numerical_parity": false,
+      "differences": [
+        {
+          "path": "/dofs/0/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.02946742699283442,
+          "archived": 0.029467416070610777,
+          "absolute_delta": 1.0922223642878537e-8
+        },
+        {
+          "path": "/dofs/0/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 4.63441665107722,
+          "archived": 4.634415796969175,
+          "absolute_delta": 8.541080447344029e-7
+        },
+        {
+          "path": "/dofs/1/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.02913771566797922,
+          "archived": 0.029137705747779213,
+          "absolute_delta": 9.920200005203439e-9
+        },
+        {
+          "path": "/dofs/1/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 8.828553502131282,
+          "archived": 8.828555290357025,
+          "absolute_delta": 1.7882257434820303e-6
+        },
+        {
+          "path": "/dofs/2/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.013315700589282874,
+          "archived": 0.013315697637132749,
+          "absolute_delta": 2.952150125051789e-9
+        },
+        {
+          "path": "/dofs/2/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 3.654815589849885,
+          "archived": 3.654815266903235,
+          "absolute_delta": 3.229466498666511e-7
+        },
+        {
+          "path": "/dofs/3/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 3.944109603636163,
+          "archived": 3.9441111578054646,
+          "absolute_delta": 1.5541693016984937e-6
+        },
+        {
+          "path": "/dofs/4/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 0.3113762195512976,
+          "archived": 0.31137647407356805,
+          "absolute_delta": 2.545222704819494e-7
+        },
+        {
+          "path": "/dofs/5/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": -1.1045836580587336,
+          "archived": -1.1045838172927853,
+          "absolute_delta": 1.5923405172202365e-7
+        },
+        {
+          "path": "/objective/start",
+          "kind": "numeric",
+          "new": 0.053659230569982966,
+          "archived": 0.053659218646442866,
+          "absolute_delta": 1.1923540099711971e-8
+        },
+        {
+          "path": "/objective/estimate",
+          "kind": "numeric",
+          "new": 0.06265399994535276,
+          "archived": 0.0626539861388362,
+          "absolute_delta": 1.3806516555026072e-8
+        },
+        {
+          "path": "/objective/gain",
+          "kind": "numeric",
+          "new": 0.00899476937536979,
+          "archived": 0.008994767492393335,
+          "absolute_delta": 1.8829764553141004e-9
+        }
+      ]
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "run": "baseline",
+      "snapshot_path": "/workspace/work/camera-lidar-recovery-20261027/capture/2011_09_28_0002/baseline",
+      "snapshot_sha256": "dfed22c30bc64c7345e90dbd0479cd5f161012f2cc26cb8717b5b1ab4ce3ea5d",
+      "arrays_sha256": "0bc9fbcbb42c83b71520753b0a1ba5b6a41134f455d403294826efe799a447f6",
+      "archived_arrays_sha256": "95510885b3aa1b3c2978b379bc1bc02cdbdea79e8e4453cee00b5ce2a953d285",
+      "arrays_byte_identical": false,
+      "frame_count": 38,
+      "options_match": true,
+      "frame_metadata_match": true,
+      "native_evidence_sha256": "f1fbe5f112db1b2f10ae1021981a1fc0de003ef457c2cd385892a1a346623fac",
+      "archived_evidence_sha256": "070463bd1320243bfac5f67dc0222b4c839834f89340e101ca7bf4a7ded4b70c",
+      "native_numerical_parity": false,
+      "differences": [
+        {
+          "path": "/dofs/0/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": -0.001906636010888031,
+          "archived": -0.0019066312955574691,
+          "absolute_delta": 4.715330561774755e-9
+        },
+        {
+          "path": "/dofs/0/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": -0.2877282614913315,
+          "archived": -0.287727529822712,
+          "absolute_delta": 7.316686195246724e-7
+        },
+        {
+          "path": "/dofs/1/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.012925364773144423,
+          "archived": 0.012925360836370395,
+          "absolute_delta": 3.936774028295842e-9
+        },
+        {
+          "path": "/dofs/1/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 3.612110676881993,
+          "archived": 3.6121104373648043,
+          "absolute_delta": 2.3951718874926087e-7
+        },
+        {
+          "path": "/dofs/2/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.0018211567939649808,
+          "archived": 0.0018211520217313165,
+          "absolute_delta": 4.772233664230435e-9
+        },
+        {
+          "path": "/dofs/2/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 0.4558533303633025,
+          "archived": 0.4558522150071814,
+          "absolute_delta": 1.1153561210730523e-6
+        },
+        {
+          "path": "/dofs/3/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 0.7541829689019143,
+          "archived": 0.7541839031827299,
+          "absolute_delta": 9.342808156009852e-7
+        },
+        {
+          "path": "/dofs/4/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 0.8968506095613094,
+          "archived": 0.89685018966281,
+          "absolute_delta": 4.198984993042387e-7
+        },
+        {
+          "path": "/dofs/5/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": -1.1432014235629542,
+          "archived": -1.1432006522344473,
+          "absolute_delta": 7.713285068433606e-7
+        },
+        {
+          "path": "/objective/start",
+          "kind": "numeric",
+          "new": 0.03876195722328622,
+          "archived": 0.03876195191262559,
+          "absolute_delta": 5.310660633472963e-9
+        },
+        {
+          "path": "/objective/estimate",
+          "kind": "numeric",
+          "new": 0.03893746430817482,
+          "archived": 0.03893745937149799,
+          "absolute_delta": 4.936676824274233e-9
+        }
+      ]
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "run": "inject_x+3",
+      "snapshot_path": "/workspace/work/camera-lidar-recovery-20261027/capture/2011_09_28_0002/inject_x+3",
+      "snapshot_sha256": "50fb893623400752513a1e1817036da4ba33df08faa15b77ce74befee05648c6",
+      "arrays_sha256": "8e8d866ed22d9d4e084194a9862faab7ce2120f8d33051f377235f015c2ebdc2",
+      "archived_arrays_sha256": "e56b316e4728c384c2409ea9000edf0241234f89f7bff746d2f5c757e97ecaad",
+      "arrays_byte_identical": false,
+      "frame_count": 38,
+      "options_match": true,
+      "frame_metadata_match": true,
+      "native_evidence_sha256": "e5b32f62414a70e1d82757c9362bd44ffea8f5b8a98dd923ac70773fda2ea2e7",
+      "archived_evidence_sha256": "099d2de5bbc9e525d8a6c09b66bd79972adf4a1bf4a2682ffe30417d447edc0a",
+      "native_numerical_parity": false,
+      "differences": [
+        {
+          "path": "/dofs/0/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.02345947268250448,
+          "archived": 0.023459460761386303,
+          "absolute_delta": 1.1921118175939327e-8
+        },
+        {
+          "path": "/dofs/0/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 2.6451958428982265,
+          "archived": 2.6451955253349895,
+          "absolute_delta": 3.1756323704001943e-7
+        },
+        {
+          "path": "/dofs/1/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 2.997144972471997,
+          "archived": 2.997145474082487,
+          "absolute_delta": 5.016104900334994e-7
+        },
+        {
+          "path": "/dofs/2/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.00626049285751468,
+          "archived": 0.006260489757216283,
+          "absolute_delta": 3.100298397347434e-9
+        },
+        {
+          "path": "/dofs/2/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 1.3415232904486132,
+          "archived": 1.3415232595428472,
+          "absolute_delta": 3.09057659464429e-8
+        },
+        {
+          "path": "/dofs/3/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 1.3969821779527631,
+          "archived": 1.3969813382108969,
+          "absolute_delta": 8.397418662653422e-7
+        },
+        {
+          "path": "/dofs/4/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 1.0986030294725961,
+          "archived": 1.0986039697780674,
+          "absolute_delta": 9.403054712642245e-7
+        },
+        {
+          "path": "/dofs/5/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": -0.863524732851146,
+          "archived": -0.8635241710888087,
+          "absolute_delta": 5.617623372033975e-7
+        },
+        {
+          "path": "/objective/start",
+          "kind": "numeric",
+          "new": -0.021049675168144523,
+          "archived": -0.02104966951972246,
+          "absolute_delta": 5.6484220634089866e-9
+        },
+        {
+          "path": "/objective/estimate",
+          "kind": "numeric",
+          "new": 0.04525377074029715,
+          "archived": 0.04525376299140889,
+          "absolute_delta": 7.748888260217246e-9
+        },
+        {
+          "path": "/objective/gain",
+          "kind": "numeric",
+          "new": 0.06630344590844167,
+          "archived": 0.06630343251113135,
+          "absolute_delta": 1.3397310316687339e-8
+        }
+      ]
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "run": "inject_y+3",
+      "snapshot_path": "/workspace/work/camera-lidar-recovery-20261027/capture/2011_09_28_0002/inject_y+3",
+      "snapshot_sha256": "159663f8abb726d35efe87fef480e4c63c7dc31b15a006d11781022a44680401",
+      "arrays_sha256": "b1a8971efa5c172abed169c51e4d79356b6c72304ffb55832e0fcbec10e465d5",
+      "archived_arrays_sha256": "706d68c395d33218e7ae7cb775ba1c24c26aacf341d66ee3894cbd355eb085b5",
+      "arrays_byte_identical": false,
+      "frame_count": 38,
+      "options_match": true,
+      "frame_metadata_match": true,
+      "native_evidence_sha256": "aa8e0cf7d8a33f039cc40ea56b5877f9d11a5212fc6cffdc603aec8fcefb3840",
+      "archived_evidence_sha256": "573c7c70b694ae3aede1b1903d50fd04af49ca93fce2e4f8cc087fa9cde6c9f4",
+      "native_numerical_parity": false,
+      "differences": [
+        {
+          "path": "/dofs/0/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.02310341163118083,
+          "archived": 0.02310339943143479,
+          "absolute_delta": 1.2199746039776027e-8
+        },
+        {
+          "path": "/dofs/0/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 2.621130555837211,
+          "archived": 2.621130200574456,
+          "absolute_delta": 3.5526275476982505e-7
+        },
+        {
+          "path": "/dofs/1/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.012577780736664513,
+          "archived": 0.012577779688893016,
+          "absolute_delta": 1.0477714963014195e-9
+        },
+        {
+          "path": "/dofs/1/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 2.9866770654054977,
+          "archived": 2.9866775901408613,
+          "absolute_delta": 5.247353636050889e-7
+        },
+        {
+          "path": "/dofs/2/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.0052290913256676655,
+          "archived": 0.00522908828574969,
+          "absolute_delta": 3.0399179753309857e-9
+        },
+        {
+          "path": "/dofs/2/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 1.0418941454410793,
+          "archived": 1.0418940653817044,
+          "absolute_delta": 8.005937490729309e-8
+        },
+        {
+          "path": "/dofs/3/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 1.4003828131877194,
+          "archived": 1.4003831699006601,
+          "absolute_delta": 3.567129407411329e-7
+        },
+        {
+          "path": "/dofs/4/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.0009503747351674053,
+          "archived": 0.0009503724431931688,
+          "absolute_delta": 2.2919742364863743e-9
+        },
+        {
+          "path": "/dofs/4/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 1.605865623068223,
+          "archived": 1.605862260846539,
+          "absolute_delta": 3.362221683955724e-6
+        },
+        {
+          "path": "/dofs/5/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": -0.7092646940698204,
+          "archived": -0.709265653705497,
+          "absolute_delta": 9.596356765895209e-7
+        },
+        {
+          "path": "/objective/start",
+          "kind": "numeric",
+          "new": 0.02340116357180152,
+          "archived": 0.023401162185533904,
+          "absolute_delta": 1.386267614589265e-9
+        },
+        {
+          "path": "/objective/estimate",
+          "kind": "numeric",
+          "new": 0.04507669242077902,
+          "archived": 0.04507668448592976,
+          "absolute_delta": 7.934849256818755e-9
+        },
+        {
+          "path": "/objective/gain",
+          "kind": "numeric",
+          "new": 0.0216755288489775,
+          "archived": 0.021675522300395857,
+          "absolute_delta": 6.5485816422294896e-9
+        }
+      ]
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "run": "inject_z+3",
+      "snapshot_path": "/workspace/work/camera-lidar-recovery-20261027/capture/2011_09_28_0002/inject_z+3",
+      "snapshot_sha256": "2e1edd03658201c5f0b709da812af8d880a1f8efe9e15a7fcae5215f44b5f323",
+      "arrays_sha256": "037d5016833d131853ce8ab4756987c16e56d0d9bd69249c3aa37fe888eda29b",
+      "archived_arrays_sha256": "91e827d29af351b034b932557193a701b695ad9dff72ebe670ef8592f4ef495c",
+      "arrays_byte_identical": false,
+      "frame_count": 38,
+      "options_match": true,
+      "frame_metadata_match": true,
+      "native_evidence_sha256": "e907cba47b247a257df6f020b92166492ffbc293fd115ca4840267aceca843e6",
+      "archived_evidence_sha256": "43b9be935b5f01a91e95b81ec2fee7d569f51cc2a7cfe439476859277f75e51a",
+      "native_numerical_parity": false,
+      "differences": [
+        {
+          "path": "/dofs/0/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.023350527660015153,
+          "archived": 0.023350515419988296,
+          "absolute_delta": 1.2240026856652486e-8
+        },
+        {
+          "path": "/dofs/0/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 2.6493418318574165,
+          "archived": 2.649341460141496,
+          "absolute_delta": 3.7171592026652434e-7
+        },
+        {
+          "path": "/dofs/1/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.01303117813735565,
+          "archived": 0.01303117688622823,
+          "absolute_delta": 1.2511274204152212e-9
+        },
+        {
+          "path": "/dofs/1/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 3.252264718453982,
+          "archived": 3.252265261180375,
+          "absolute_delta": 5.42726393160109e-7
+        },
+        {
+          "path": "/dofs/2/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.00567853946456607,
+          "archived": 0.005678536325782537,
+          "absolute_delta": 3.138783533432332e-9
+        },
+        {
+          "path": "/dofs/2/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 1.231049049236438,
+          "archived": 1.231049021682128,
+          "absolute_delta": 2.755431016687737e-8
+        },
+        {
+          "path": "/dofs/3/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 1.5881020784893254,
+          "archived": 1.5881018910571538,
+          "absolute_delta": 1.8743217156114156e-7
+        },
+        {
+          "path": "/dofs/4/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 1.276093042176093,
+          "archived": 1.2760940231784843,
+          "absolute_delta": 9.810023913203736e-7
+        },
+        {
+          "path": "/dofs/5/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": -0.12089998932061267,
+          "archived": -0.120900150381151,
+          "absolute_delta": 1.6106053832287692e-7
+        },
+        {
+          "path": "/objective/start",
+          "kind": "numeric",
+          "new": 0.011801243454873768,
+          "archived": 0.011801234900531655,
+          "absolute_delta": 8.554342113137325e-9
+        },
+        {
+          "path": "/objective/estimate",
+          "kind": "numeric",
+          "new": 0.04554812164364084,
+          "archived": 0.04554811350051916,
+          "absolute_delta": 8.143121676962295e-9
+        }
+      ]
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "run": "inject_x+1",
+      "snapshot_path": "/workspace/work/camera-lidar-recovery-20261027/capture/2011_09_28_0002/inject_x+1",
+      "snapshot_sha256": "8fe5f84273e8a8d17f4f5ccdbc871f5b1ed29801e4004d0644764d56b3ced6ec",
+      "arrays_sha256": "8054eff86af33b02fc8afee5f34435d3e9c7b716bb00af200ef381026fa43a94",
+      "archived_arrays_sha256": "4ce2eb5ee9572a2273ba72a6d85725528521fa61c04fc7d68808a2b19bd4f260",
+      "arrays_byte_identical": false,
+      "frame_count": 38,
+      "options_match": true,
+      "frame_metadata_match": true,
+      "native_evidence_sha256": "87ab0aa431b0bb450eae20d922bb7c6904b49bd3c5b772dffcc849a68921e1ce",
+      "archived_evidence_sha256": "29d1f3a629b9ad0eca026255d3435b3a4ddb763740c105298cfa349ab242cd0d",
+      "native_numerical_parity": false,
+      "differences": [
+        {
+          "path": "/dofs/0/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.0006466897642291783,
+          "archived": 0.0006466920475595503,
+          "absolute_delta": 2.283330371999348e-9
+        },
+        {
+          "path": "/dofs/0/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 0.08787228177603844,
+          "archived": 0.08787259231843036,
+          "absolute_delta": 3.10542391926405e-7
+        },
+        {
+          "path": "/dofs/1/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.010841620135013622,
+          "archived": 0.01084161879726222,
+          "absolute_delta": 1.3377514009732527e-9
+        },
+        {
+          "path": "/dofs/1/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 2.788301633494999,
+          "archived": 2.7883015570548793,
+          "absolute_delta": 7.644011956742247e-8
+        },
+        {
+          "path": "/dofs/2/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.0027517528551818803,
+          "archived": 0.002751746973887571,
+          "absolute_delta": 5.881294309201257e-9
+        },
+        {
+          "path": "/dofs/2/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 0.5293054246505636,
+          "archived": 0.5293043242232844,
+          "absolute_delta": 1.100427279188132e-6
+        },
+        {
+          "path": "/dofs/3/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 0.45752501289158026,
+          "archived": 0.4575250444499764,
+          "absolute_delta": 3.1558396118569476e-8
+        },
+        {
+          "path": "/dofs/4/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.0023413441584837153,
+          "archived": 0.0023413419530696022,
+          "absolute_delta": 2.2054141130510574e-9
+        },
+        {
+          "path": "/dofs/4/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 1.0837840954077613,
+          "archived": 1.0837829135019588,
+          "absolute_delta": 1.1819058025608342e-6
+        },
+        {
+          "path": "/dofs/5/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": -1.2914102898080344,
+          "archived": -1.2914100777950104,
+          "absolute_delta": 2.1201302402573674e-7
+        },
+        {
+          "path": "/objective/start",
+          "kind": "numeric",
+          "new": 0.00976505066699132,
+          "archived": 0.009765052575410927,
+          "absolute_delta": 1.9084196063723358e-9
+        },
+        {
+          "path": "/objective/estimate",
+          "kind": "numeric",
+          "new": 0.03886231382221268,
+          "archived": 0.038862306613784627,
+          "absolute_delta": 7.208428055849314e-9
+        },
+        {
+          "path": "/objective/gain",
+          "kind": "numeric",
+          "new": 0.029097263155221362,
+          "archived": 0.0290972540383737,
+          "absolute_delta": 9.11684766222165e-9
+        }
+      ]
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "run": "inject_y+1",
+      "snapshot_path": "/workspace/work/camera-lidar-recovery-20261027/capture/2011_09_28_0002/inject_y+1",
+      "snapshot_sha256": "cbbac63cb3b6f81b830cc64fd2f9564bf213ccc2ed51c466f9922debce1d1576",
+      "arrays_sha256": "4492fe70c5edebd03736c03d297d63f6496a2c510ac06f605f50310ceef73801",
+      "archived_arrays_sha256": "7a46a8e6f9323e19a976cf1ff4b0b422ac9e1f8c87193721bfe40d9c0a0b08dc",
+      "arrays_byte_identical": false,
+      "frame_count": 38,
+      "options_match": true,
+      "frame_metadata_match": true,
+      "native_evidence_sha256": "228e9f227b19c72fca9292da9cbc65027ba023964e7fa52bed08051cbb970052",
+      "archived_evidence_sha256": "4796a264ef767be44edb6aeb688029c5d92cd2b7ec8ac367d201d5855429e84a",
+      "native_numerical_parity": false,
+      "differences": [
+        {
+          "path": "/dofs/0/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.02302705261315241,
+          "archived": 0.02302704064075092,
+          "absolute_delta": 1.1972401490339957e-8
+        },
+        {
+          "path": "/dofs/0/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 2.5832110299615993,
+          "archived": 2.583210716015273,
+          "absolute_delta": 3.139463262691322e-7
+        },
+        {
+          "path": "/dofs/1/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.012527273644217247,
+          "archived": 0.012527272350332018,
+          "absolute_delta": 1.2938852298610692e-9
+        },
+        {
+          "path": "/dofs/1/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 2.9125823244338247,
+          "archived": 2.9125826480565453,
+          "absolute_delta": 3.236227206215858e-7
+        },
+        {
+          "path": "/dofs/2/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.005509623890818607,
+          "archived": 0.005509620872852356,
+          "absolute_delta": 3.0179662510385064e-9
+        },
+        {
+          "path": "/dofs/2/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 1.1327725132654514,
+          "archived": 1.1327724551456895,
+          "absolute_delta": 5.8119761892072574e-8
+        },
+        {
+          "path": "/dofs/3/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 1.6126688327331735,
+          "archived": 1.6126679852791277,
+          "absolute_delta": 8.474540458269786e-7
+        },
+        {
+          "path": "/dofs/4/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.0009807484308353928,
+          "archived": 0.000980746160243899,
+          "absolute_delta": 2.2705914936877597e-9
+        },
+        {
+          "path": "/dofs/4/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 1.333459266193605,
+          "archived": 1.3334565477949842,
+          "absolute_delta": 2.7183986208711985e-6
+        },
+        {
+          "path": "/dofs/5/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 0.1616668582239293,
+          "archived": 0.1616666745726589,
+          "absolute_delta": 1.836512703856652e-7
+        },
+        {
+          "path": "/objective/start",
+          "kind": "numeric",
+          "new": 0.026644376486364602,
+          "archived": 0.026644370634916884,
+          "absolute_delta": 5.8514477187243674e-9
+        },
+        {
+          "path": "/objective/estimate",
+          "kind": "numeric",
+          "new": 0.045255349423758126,
+          "archived": 0.045255341353366896,
+          "absolute_delta": 8.07039123029707e-9
+        },
+        {
+          "path": "/objective/gain",
+          "kind": "numeric",
+          "new": 0.018610972937393524,
+          "archived": 0.018610970718450012,
+          "absolute_delta": 2.218943511572702e-9
+        }
+      ]
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "run": "inject_z+1",
+      "snapshot_path": "/workspace/work/camera-lidar-recovery-20261027/capture/2011_09_28_0002/inject_z+1",
+      "snapshot_sha256": "8a522266df6eb60bbb7b069e8ed1f0783e1f08a5bfc237eae1088222da99e14c",
+      "arrays_sha256": "c4b4814dadc61cc004d7357470b235ee24c3646aecef1888e5ce5ce8f6cdd696",
+      "archived_arrays_sha256": "8f6d4abfa7b68d2aac58513e51c32f978d41e034ea75632566d47de35b09d348",
+      "arrays_byte_identical": false,
+      "frame_count": 38,
+      "options_match": true,
+      "frame_metadata_match": true,
+      "native_evidence_sha256": "d4a259ab033c8aae0d08a6c2949816b14fca7de3ce697a069a7cebaea4254b67",
+      "archived_evidence_sha256": "f3f7eb4dcbfaef084407a8674081654351724118b23fab01c64c45cc6ec81df9",
+      "native_numerical_parity": false,
+      "differences": [
+        {
+          "path": "/dofs/0/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": -0.0016538128651707902,
+          "archived": -0.0016538082164041501,
+          "absolute_delta": 4.648766640082472e-9
+        },
+        {
+          "path": "/dofs/0/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": -0.25118703201415504,
+          "archived": -0.25118630475968473,
+          "absolute_delta": 7.272544703118555e-7
+        },
+        {
+          "path": "/dofs/1/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.012776408511685567,
+          "archived": 0.012776404732626511,
+          "absolute_delta": 3.779059055269984e-9
+        },
+        {
+          "path": "/dofs/1/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 3.327439631115239,
+          "archived": 3.327439312609806,
+          "absolute_delta": 3.185054331389381e-7
+        },
+        {
+          "path": "/dofs/2/known_bad_control/mean_objective_drop",
+          "kind": "numeric",
+          "new": 0.002058174494162539,
+          "archived": 0.0020581696821453193,
+          "absolute_delta": 4.8120172195867394e-9
+        },
+        {
+          "path": "/dofs/2/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 0.5342280750987687,
+          "archived": 0.5342269205972473,
+          "absolute_delta": 1.1545015213831888e-6
+        },
+        {
+          "path": "/dofs/3/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 0.8019190624014453,
+          "archived": 0.801919614281428,
+          "absolute_delta": 5.518799827131105e-7
+        },
+        {
+          "path": "/dofs/4/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": 1.33340540466657,
+          "archived": 1.3334057715561036,
+          "absolute_delta": 3.668895336428335e-7
+        },
+        {
+          "path": "/dofs/5/known_bad_control/min_t_statistic",
+          "kind": "numeric",
+          "new": -1.1109619208951813,
+          "archived": -1.110961302511771,
+          "absolute_delta": 6.183834102557739e-7
+        },
+        {
+          "path": "/objective/start",
+          "kind": "numeric",
+          "new": 0.02897293562323645,
+          "archived": 0.0289729285528997,
+          "absolute_delta": 7.070336750097939e-9
+        },
+        {
+          "path": "/objective/estimate",
+          "kind": "numeric",
+          "new": 0.03872254469854473,
+          "archived": 0.038722539744119905,
+          "absolute_delta": 4.954424821790315e-9
+        },
+        {
+          "path": "/objective/gain",
+          "kind": "numeric",
+          "new": 0.009749609075308276,
+          "archived": 0.009749611191220205,
+          "absolute_delta": 2.1159119283076233e-9
+        }
+      ]
+    }
+  ],
+  "status": "investigation_required",
+  "limitations": [
+    "Reacquired spent inputs are not the original NPZ cache.",
+    "Native evidence parity is a prerequisite diagnostic, not the paired profile experiment.",
+    "No new accuracy claim, evaluation data, threshold, or estimator default change."
+  ]
+}

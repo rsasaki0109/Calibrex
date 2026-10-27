@@ -1,7 +1,7 @@
 # Camera–LiDAR: training-only initialization development
 
-Status on 2026-10-27: **implementation ready for development comparison; real-input
-comparison blocked by missing local arrays**. This is a research step toward the
+Status on 2026-10-27: **fourteen inputs reacquired; numerical parity investigation
+required before interpreting the initialization comparison**. This is a research step toward the
 camera–LiDAR claim, not a new SOTA result or an evaluation pre-registration.
 
 ## Starting evidence
@@ -81,6 +81,47 @@ separate from inputs. This is development on spent recordings, not a fresh audit
 
 ## Data availability and decision boundary
 
+### Reacquisition, 2026-10-27
+
+The [reacquisition verification](../assets/camera_lidar_reacquisition_20261027/verification.json)
+and its [schema](../assets/camera_lidar_reacquisition_20261027/verification.schema.json)
+record a completed recovery attempt from isolated source `5245d51c`. The source
+capsules, acquisition receipts, snapshot metadata and native evidence are retained
+in that directory, with a file digest manifest. Both spent recordings were fetched
+from their original size/ETag-pinned archives. Selected member inventories match
+the original receipts and every selected member passed CRC verification. Both
+calibration archives match their archived SHA-256 pins. Acquisition transferred
+432,575,704 and 995,875,492 bytes respectively. The first attempt's 512 MiB cap
+rejected 0002 before sensor payload acquisition; that failure is retained. A
+separate retry used a 1 GiB cap without changing selected members or archive pins.
+
+All fourteen native checks completed. Each 0005 input contains 48 frames; each
+0002 input contains 38 frames, matching its original metadata. Options and frame
+metadata match all archived snapshots. The new NPZ hashes differ on all fourteen
+inputs, so these are separately identified captures, **not restored original NPZs**.
+The verified local inputs are at
+`/workspace/work/camera-lidar-recovery-20261027/capture/<drive>/<run>/`;
+raw data, calibration and converted bags remain beside the capture directory.
+Large sensor arrays are not committed.
+
+Native numerical evidence fails the existing absolute `1e-9` parity check on
+all fourteen inputs. Differences are confined to objective values and known-bad
+control statistics: maximum absolute objective difference `1.381e-8`, control
+mean-drop difference `1.225e-8`, and t-statistic difference `3.383e-6` (rounded
+up for display). Other evidence fields, including estimated transforms and
+discrete decisions, match within the existing comparison rule. Every difference
+is listed in the verification receipt. Small differences do not establish their
+cause; platform arithmetic, compression and preprocessing equivalence have not
+been isolated. The original arrays are unavailable for elementwise comparison.
+
+This is a recovery and reproducibility result, not improved calibration evidence.
+The old-arm profile parity prerequisite remains unresolved; no pooled/training
+paired result is claimed. Investigate the differences before interpreting that
+comparison, retaining the original tolerance and all failed checks. Native
+capture progress remains 2/55; no new recording or evaluation was read.
+
+### Original-cache inventory
+
 All fourteen committed snapshot metadata files exist; **zero corresponding
 `arrays.npz` files are present beside them** in this workspace. A broader workspace
 search also did not find those arrays. The inventory lists each expected hash.
@@ -90,7 +131,7 @@ example or call it the 48-frame experiment. If originals cannot be recovered,
 reacquire only these spent recordings and create a separately identified capture;
 it cannot be claimed byte-identical to the previous experiment.
 
-No real-input result from this new mode exists yet. Rejecting a known false
+No real-input result from the training-only mode exists yet. Rejecting a known false
 control while losing all useful detections is not success. A promising result
 must be checked through native per-axis verdicts, with reference disagreement,
 1/3 deg detection, judged-axis coverage, failures and runtime reported together.

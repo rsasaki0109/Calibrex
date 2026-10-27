@@ -1,0 +1,19 @@
+import hashlib,json,subprocess,zipfile
+from pathlib import Path
+root=Path.cwd(); out=Path('/workspace/work/camera-lidar-recovery-20261027')
+rows=[]
+for folder in ['native_pilot_0005/attempt_2','native_development_20110928_0002/attempt_1']:
+    source=root/'docs/assets/kitti_camera_lidar_v3'/folder/'report.json'
+    pin=json.loads(source.read_text())['details']['calibration']
+    date=pin['url'].split('/')[-1][:10]
+    target=out/(date+'_calib.zip')
+    subprocess.run(['curl','-fsS','--max-time','30',pin['url'],'-o',str(target)],check=True)
+    digest=hashlib.sha256(target.read_bytes()).hexdigest()
+    if digest!=pin['sha256']: raise ValueError('calibration digest mismatch')
+    dest=out/'calibration'/date; dest.mkdir(parents=True,exist_ok=False)
+    with zipfile.ZipFile(target) as z:
+        for name in ['calib_cam_to_cam.txt','calib_velo_to_cam.txt','calib_imu_to_velo.txt']:
+            (dest/name).write_bytes(z.read(date+'/'+name))
+    rows.append(dict(date=date,url=pin['url'],sha256=digest,archived_pin_match=True,source_sha256=hashlib.sha256(source.read_bytes()).hexdigest()))
+(out/'calibration.json').write_text(json.dumps(dict(git_commit=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),driver_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),calibrations=rows),indent=2)+'\n')
+print('Both calibration archive SHA-256 pins matched')

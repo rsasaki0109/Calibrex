@@ -194,6 +194,16 @@ but their local NPZ arrays are absent in this workspace. Restore and hash-check
 them before the fixed fourteen-input paired comparison. No new evaluation data,
 audit verdict, threshold or estimator default changes; capture remains 2/55.
 
+Follow-up recovery reacquired the two spent raw archives and matched their member
+inventories/CRCs and calibration SHA-256 pins. All fourteen native captures
+completed, with matching options/frame metadata, but all NPZ hashes differ.
+Native evidence has small objective/control-statistic differences exceeding the
+existing `1e-9` parity tolerance; transforms and discrete decisions match under
+that rule. The linked development page retains every difference and the failed
+download-cap attempt. Inputs now exist under
+`/workspace/work/camera-lidar-recovery-20261027/capture/`; resolve numerical parity
+before interpreting the initialization ablation. No new SOTA evidence is claimed.
+
 ### INS-LiDAR after the first audit
 
 The first two-family, two-platform rotation audit is [refuted, 6/8](benchmarks/ins_lidar_rotation_v1.md).

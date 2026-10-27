@@ -1,0 +1,31 @@
+{
+  "status": "failed",
+  "created_at": "2026-10-27T12:24:16.264874+00:00",
+  "git_commit": "5245d51c5b579672c67061d8d0cb7b981cf77cf6",
+  "driver_sha256": "5116b3b8b7f9a692ba7b0ecf64f2a6acba028f647c7954d108da9a509fc08503",
+  "purpose": "Reacquire two spent development recordings; no fresh evaluation.",
+  "runs": [
+    {
+      "drive": "2011_09_26_0005",
+      "source": "docs/assets/kitti_camera_lidar_v3/native_pilot_0005/attempt_2/fetch.json",
+      "source_sha256": "a2f0be2e9cfbae27d3312b0139a30784b6ebb47804f3401a70d8c72fc2dcacfe",
+      "status": "completed",
+      "receipt_sha256": "a5dee408bac739327a5b27f82c68c85bfe16a984e54003dee594c68993f7f4de",
+      "fetched_bytes": 432575704,
+      "frames": {
+        "image_02": 154,
+        "velodyne_points": 154,
+        "oxts": 154
+      },
+      "members_match_archive": true,
+      "crc_verified": true
+    },
+    {
+      "drive": "2011_09_28_0002",
+      "source": "docs/assets/kitti_camera_lidar_v3/native_development_20110928_0002/attempt_1/fetch.json",
+      "source_sha256": "122c77e23a30855ceac4ebe4a4d2dfd636a173d8e9f741f4833eaa61f3fadb34",
+      "status": "failed",
+      "error": "ValueError: selected ranges need 995875492 bytes, above 536870912 cap"
+    }
+  ]
+}
