@@ -66,8 +66,16 @@ def fit_sliding_window_trajectory(
 
     if len(window_knot_counts) < 2:
         raise ValueError("sliding-window fit requires at least two windows")
-    if overlap_knot_count < 1:
-        raise ValueError("overlap knot count must be at least one")
+    if (isinstance(overlap_knot_count, (bool, np.bool_))
+            or not isinstance(overlap_knot_count, (int, np.integer))
+            or overlap_knot_count < 1):
+        raise ValueError("overlap knot count must be a positive integer")
+    if any(isinstance(size, (bool, np.bool_)) or not isinstance(size, (int, np.integer))
+           for size in window_knot_counts):
+        raise ValueError("window knot counts must be integers")
+    # Convert before arithmetic: NumPy fixed-width sums/products may overflow.
+    overlap_knot_count = int(overlap_knot_count)
+    window_knot_counts = tuple(int(size) for size in window_knot_counts)
     if any(size <= overlap_knot_count for size in window_knot_counts):
         raise ValueError("every window must extend beyond the overlap")
     knot_count = len(problem.knot_timestamps)

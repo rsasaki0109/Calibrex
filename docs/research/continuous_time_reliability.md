@@ -492,6 +492,15 @@ blocks or alter the existing numerical rank rules.
 
 ## Solver option validation
 
+Sliding-window layouts are validated before the batch reference fit. Window
+sizes and overlap counts must be actual integers rather than booleans or
+floating-point values. Overlap must be positive, every window must advance
+beyond it, and the complete layout must cover exactly the knot span. NumPy
+integer counts are converted to Python integers before coverage arithmetic,
+avoiding fixed-width overflow. Regression tests ensure malformed layouts never
+invoke the fitter and verify equivalent Python/NumPy layouts in both normal
+Schur and residual-space modes.
+
 Solver options now reject nonfinite numerical settings before optimization.
 The native fitter requires a positive integer iteration budget, finite positive
 initial damping and convergence tolerances, a damping decrease in `(0, 1]`,

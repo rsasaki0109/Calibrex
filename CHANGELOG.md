@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Validate sliding-window layout integer types before the batch reference fit.
+  Reject boolean/fractional sizes and overlaps, and convert NumPy integer counts
+  to Python integers before coverage arithmetic to avoid fixed-width overflow.
+
 - Require integer elimination dimensions and knot counts across marginalization
   APIs, rejecting booleans and oversized requests before arithmetic. Validate
   Schur input symmetry even for zero elimination; preserve valid no-op copies.
