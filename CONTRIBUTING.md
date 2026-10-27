@@ -32,6 +32,15 @@ These tests use synthetic fixtures and do not require ROS, GPU hardware or publi
 dataset downloads. Missing-codec error tests simulate unavailable imports and
 therefore also run when the compression extras are installed.
 
+## OpenCV adapter tests
+
+The `opencv-adapter` CI job installs `.[dev,opencv]` and covers hand-eye
+calibration, visual rotation, focal estimation, camera/LiDAR initialization,
+probabilistic PnP, fisheye rectification and correspondence-provider plumbing.
+It verifies that `cv2` imports before running the tests. Hilti calibration-file
+checks and PyTorch-dependent provider cases remain conditional on those separate
+resources; this job does not download recordings, model weights or PyTorch.
+
 ## Schema Changes
 
 Every artifact kind is declared once in `src/calibrex/core/schema_registry.py`.

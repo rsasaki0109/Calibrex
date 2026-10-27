@@ -243,8 +243,21 @@ jobs:
           python-version: "3.12"
       - name: Install OpenCV adapter
         run: python -m pip install -e ".[dev,opencv]"
-      - name: Test OpenCV hand-eye conventions
-        run: pytest tests/unit/test_opencv_hand_eye_adapters.py tests/unit/test_visual_rotation.py tests/unit/test_camera_focal.py
+      - name: Require OpenCV adapter
+        run: python -c "import cv2"
+      - name: Test OpenCV calibration and correspondence adapters
+        run: >-
+          python -m pytest
+          tests/unit/test_opencv_hand_eye_adapters.py
+          tests/unit/test_visual_rotation.py
+          tests/unit/test_camera_focal.py
+          tests/unit/test_camera_lidar_initializer_calibration.py
+          tests/unit/test_camera_lidar_pose_initializer_benchmark.py
+          tests/unit/test_opencv_probabilistic_pnp_adapter.py
+          tests/unit/test_fisheye_stereo.py
+          tests/unit/test_i2pnet_correspondence_provider.py
+          tests/unit/test_superglue_correspondence_provider.py
+          tests/unit/test_kitti_raw_lidar_window_integration.py
 
   numba-adapter:
     runs-on: ubuntu-latest

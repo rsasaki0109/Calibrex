@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Expand the OpenCV CI job beyond hand-eye, visual rotation and focal tests to
+  initialization, probabilistic PnP, fisheye and correspondence-provider coverage.
+  Require a successful OpenCV import before tests to prevent silent adapter skips.
+
 - Add CI coverage for optional MCAP, LZ4 and Zstandard bag interoperability.
   Require the adapters before testing and simulate missing codecs independently
   of installed extras, covering successful reads and missing-dependency errors
