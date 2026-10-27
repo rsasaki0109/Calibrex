@@ -1079,7 +1079,10 @@ def _iter_mcap_record_bytes(buffer: bytes) -> Iterator[tuple[int, bytes]]:
 def _parse_mcap_schema(content: bytes) -> tuple[int, str]:
     offset = 0
     schema_id, offset = _read_mcap_uint16(content, offset)
-    name, _offset = _read_mcap_string(content, offset)
+    name, offset = _read_mcap_string(content, offset)
+    _encoding, offset = _read_mcap_string(content, offset)
+    data_length, offset = _read_mcap_uint32(content, offset)
+    _require_mcap_range(content, offset, data_length)
     return schema_id, name
 
 

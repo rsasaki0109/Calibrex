@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Validate the entire required MCAP schema record layout, including its UTF-8
+  encoding label and binary definition length. Reject truncated schema records
+  both at the top level and inside chunks before registering their names.
+
 - Validate serialization in GNSS, vehicle-motion, static-TF and sensor-probing
   inputs used by checks, plus camera–LiDAR frame pairing. Incompatible streams
   fail before decoding or are marked unreadable by existing diagnostic handlers.

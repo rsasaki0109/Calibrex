@@ -266,3 +266,43 @@ def test_generic_decoder_checks_explicit_format_and_preserves_cdr_default():
         with pytest.raises(DatasetError, match='unsupported serialization format'):
             rosbag2.decode_rosbag2_message('/imu', rosbag2.IMU_TYPE, 10, payload,
                                            serialization_format=encoding)
+
+
+def schema_content(data=b'\xff\x80\x00', encoding=b'ros2msg', length=None):
+    return (struct.pack('<H', 1) + mcap_string(b'example/Message') + mcap_string(encoding)
+            + struct.pack('<I', len(data) if length is None else length) + data)
+
+
+@pytest.mark.parametrize('nested', [False, True])
+def test_public_readers_reject_every_incomplete_schema_prefix(tmp_path, nested):
+    complete = schema_content()
+    assert rosbag2._parse_mcap_schema(complete) == (1, 'example/Message')
+    bag = tmp_path / 'schema.mcap'
+    for end in range(len(complete)):
+        encoded = mcap_record(rosbag2.OP_SCHEMA, complete[:end])
+        if nested:
+            encoded = mcap_record(rosbag2.OP_CHUNK, chunk(encoded))
+        # Outer record framing and chunk size remain valid at every cut.
+        bag.write_bytes(rosbag2.MCAP_MAGIC + encoded)
+        with pytest.raises(DatasetError, match='truncated MCAP record field'):
+            list(rosbag2.iter_messages(bag))
+        with pytest.raises(DatasetError, match='truncated MCAP record field'):
+            rosbag2.list_rosbag2_connections(bag)
+
+
+@pytest.mark.parametrize('length', [4, 2**32 - 1])
+def test_schema_data_length_cannot_exceed_record(length):
+    with pytest.raises(DatasetError, match='truncated MCAP record field'):
+        rosbag2._parse_mcap_schema(schema_content(length=length))
+
+
+def test_schema_encoding_requires_utf8_but_definition_is_binary(tmp_path):
+    for data in (b'', b'\xff\x80\x00'):
+        assert rosbag2._parse_mcap_schema(schema_content(data)) == (1, 'example/Message')
+    bag = tmp_path / 'invalid-encoding.mcap'
+    bag.write_bytes(rosbag2.MCAP_MAGIC
+                    + mcap_record(rosbag2.OP_SCHEMA, schema_content(encoding=b'\xff')))
+    with pytest.raises(DatasetError, match='invalid UTF-8'):
+        list(rosbag2.iter_messages(bag))
+    with pytest.raises(DatasetError, match='invalid UTF-8'):
+        rosbag2.list_rosbag2_connections(bag)
