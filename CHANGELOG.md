@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Add an opt-in camera–LiDAR research profile mode that chooses each fold's
+  initialization from training frames only, without a pooled conditional report.
+  Preserve archived report serialization and default numerical behavior. Add a
+  reproducible archived-audit/development-input inventory; no new SOTA claim.
+
 - Bounds-check ROS 1 message integers, strings and PointCloud2 byte fields/data
   before reading. Reject zero point strides explicitly instead of dividing by
   zero; retain compatibility with an omitted trailing PointCloud2 `is_dense` byte.
