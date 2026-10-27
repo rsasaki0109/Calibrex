@@ -81,6 +81,32 @@ separate from inputs. This is development on spent recordings, not a fresh audit
 
 ## Data availability and decision boundary
 
+### Same-input code control planned after reacquisition
+
+The historical `1e-9` parity failure remains an investigation result. Before
+running further comparisons, the follow-up protocol separates two questions:
+historical cross-capture parity, which may remain unresolved, and whether adding
+the training-only option changed the pooled algorithm on identical input bytes.
+This is a post hoc development protocol extension, not a relaxation of the old
+parity check or an evaluation pre-registration.
+
+`tools/kitti_camera_lidar_initialization_compare.py` first runs the archived
+multiple-start profile source and the current pooled implementation on each of
+the fourteen reacquired snapshots, using the same newly computed conditional
+receipt. The archived conditional and estimator sources match the current files
+after newline normalization. Their dependencies and runtime are shared: this is
+a code control, not recreation of the historical Windows environment.
+All fourteen code controls must pass the unchanged absolute `1e-9` comparison
+of preparation settings, folds, poses, drops and control statistics before any
+training-only arm runs. Missing/duplicated inputs or failed arms block it.
+Historical profile parity is recorded independently and never replaced.
+
+If that gate passes, run all fourteen training-only arms with multiple-start
+nuisance search, scalar objective and unchanged settings. Retain every failure,
+report and runtime. Any paired findings concern these reacquired inputs only;
+they cannot be presented as exact replay of the original cache. No claim of
+accuracy, native coverage, or SOTA support follows from their control counts.
+
 ### Reacquisition, 2026-10-27
 
 The [reacquisition verification](../assets/camera_lidar_reacquisition_20261027/verification.json)
