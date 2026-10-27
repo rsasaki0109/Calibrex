@@ -51,6 +51,7 @@ from urllib.parse import quote
 import yaml
 
 from calibrex.core.exceptions import DatasetError
+from calibrex.data._compression import decompress_lz4_frames
 from calibrex.data.bag_formats import (
     ROSBAG1_STORAGE_ID,
     iter_ros1_messages,
@@ -1151,8 +1152,10 @@ def _lz4_decompress(data: bytes, size: int) -> bytes:
         )
         raise DatasetError(msg) from exc
     try:
-        if data.startswith(_LZ4_FRAME_MAGIC):
-            decompressed: bytes = lz4.frame.decompress(data)
+        if data.startswith(_LZ4_FRAME_MAGIC) or (
+            len(data) >= 4 and 0x50 <= data[0] <= 0x5F and data[1:4] == b"\x2a\x4d\x18"
+        ):
+            decompressed = decompress_lz4_frames(data)
         else:
             decompressed = lz4.block.decompress(data, uncompressed_size=size)
     except (RuntimeError, ValueError, lz4.block.LZ4BlockError) as exc:
@@ -1202,15 +1205,13 @@ def _zstd_decompress_message(data: bytes) -> bytes:
 
 def _lz4_decompress_message(data: bytes) -> bytes:
     try:
-        import lz4.frame
+        decompressed = decompress_lz4_frames(data)
     except ImportError as exc:  # pragma: no cover - exercised via error path test
         msg = (
             "lz4-compressed rosbag2 messages require the optional dependency "
             "calibrex[rosbag2-compression]"
         )
         raise DatasetError(msg) from exc
-    try:
-        decompressed: bytes = lz4.frame.decompress(data)
     except (RuntimeError, ValueError) as exc:
         raise DatasetError("invalid or truncated lz4-compressed rosbag2 message") from exc
     return decompressed

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Validate every LZ4 frame in ROS 1 chunks, MCAP chunks and ROS 2 compressed
+  messages. Decode concatenated and skippable frames, reject damaged trailing
+  data, and retain MCAP raw-block compatibility and total-size validation.
+
 - Consume every Zstandard frame in compressed messages and MCAP chunks instead
   of silently discarding bytes after the first frame. Preserve concatenated and
   skippable frames; reject trailing garbage and incomplete or corrupt later frames.

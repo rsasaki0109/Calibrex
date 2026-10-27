@@ -119,7 +119,7 @@ the format is detected from the file:
 | ROS 2 MCAP (`.mcap`) | chunks `none`, `zstd` or `lz4` |
 | ROS 1 `.bag` | chunks `none`, `bz2` or `lz4` (`calibrex[rosbag1-lz4]` for `lz4`) |
 
-Zstandard message and chunk readers consume and validate every frame, including
+Zstandard and LZ4 message and chunk readers consume and validate every frame, including
 concatenated and skippable frames, even when the uncompressed size is unspecified.
 They reject trailing garbage instead of ignoring it after the first frame.
 Truncated frames and codec-reported corruption

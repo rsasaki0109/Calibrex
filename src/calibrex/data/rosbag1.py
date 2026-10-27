@@ -35,6 +35,7 @@ from pathlib import Path
 from typing import BinaryIO
 
 from calibrex.core.exceptions import DatasetError
+from calibrex.data._compression import decompress_lz4_frames
 from calibrex.data.base import StreamSummary, TimestampedRecord
 from calibrex.data.ros_messages import (
     MAX_CAMERA_INFO_DISTORTION_COEFFICIENTS,
@@ -364,15 +365,13 @@ def _decompress_chunk(compression: str, size: int, data: bytes) -> bytes:
 
 def _lz4_decompress(data: bytes, size: int) -> bytes:
     try:
-        import lz4.frame
+        decompressed = decompress_lz4_frames(data)
     except ImportError as exc:  # pragma: no cover - exercised via error path test
         msg = (
             "lz4-compressed ROS bags require the optional dependency "
             "calibrex[rosbag1-lz4]"
         )
         raise DatasetError(msg) from exc
-    try:
-        decompressed: bytes = lz4.frame.decompress(data)
     except (RuntimeError, ValueError) as exc:
         raise DatasetError("invalid or truncated lz4-compressed ROS bag chunk") from exc
     if size and len(decompressed) != size:  # pragma: no cover - defensive

@@ -76,11 +76,16 @@ def test_ros1_bz2_corruption_is_a_dataset_error():
 
 @pytest.mark.parametrize('case', ['concatenated', 'checksum', 'junk', 'second_frame',
                                  'second_checksum'])
-def test_public_message_reader_validates_whole_zstd_payload(tmp_path, case):
-    zstd = pytest.importorskip('zstandard')
+@pytest.mark.parametrize('codec', ['zstd', 'lz4'])
+def test_public_message_reader_validates_whole_compressed_payload(tmp_path, case, codec):
     bag = tmp_path / 'bad-bag'
     bag.mkdir()
-    frame = zstd.ZstdCompressor(write_checksum=True).compress(b'complete message payload')
+    if codec == 'zstd':
+        frame = pytest.importorskip('zstandard').ZstdCompressor(write_checksum=True).compress(
+            b'complete message payload')
+    else:
+        frame = pytest.importorskip('lz4.frame').compress(
+            b'complete message payload', content_checksum=True)
     encoded = {
         'concatenated': frame + frame,
         'checksum': frame[:-1],
@@ -95,11 +100,11 @@ def test_public_message_reader_validates_whole_zstd_payload(tmp_path, case):
                    'timestamp INTEGER, data BLOB)')
         db.execute("INSERT INTO topics VALUES (1, '/imu', 'sensor_msgs/msg/Imu', 'cdr', '')")
         db.execute('INSERT INTO messages VALUES (1, 1, 1, ?)', (encoded,))
-    (bag / 'metadata.yaml').write_text('''rosbag2_bagfile_information:
+    (bag / 'metadata.yaml').write_text(f'''rosbag2_bagfile_information:
   version: 5
   storage_identifier: sqlite3
   relative_file_paths: [bag.db3]
-  compression_format: zstd
+  compression_format: {codec}
   compression_mode: message
 ''')
     if case == 'concatenated':
@@ -107,8 +112,39 @@ def test_public_message_reader_validates_whole_zstd_payload(tmp_path, case):
         assert len(messages) == 1
         assert messages[0][2] == b'complete message payload' * 2
     else:
-        with pytest.raises(DatasetError, match='zstd'):
+        with pytest.raises(DatasetError, match=codec):
             list(rosbag2.iter_messages(bag))
+
+
+@pytest.mark.parametrize('content_size', [False, True])
+def test_lz4_consumes_and_validates_every_frame(content_size):
+    lz4 = pytest.importorskip('lz4.frame')
+    first = lz4.compress(b'first', store_size=content_size, content_checksum=True)
+    second = lz4.compress(b'second', store_size=content_size, content_checksum=True)
+    empty = lz4.compress(b'')
+    readers = (rosbag2._lz4_decompress_message,
+               lambda data: rosbag1._lz4_decompress(data, 0),
+               lambda data: rosbag2._lz4_decompress(data, 0))
+    for magic in range(0x184D2A50, 0x184D2A60):
+        skip = struct.pack('<II', magic, 3) + b'abc'
+        for read in readers:
+            for encoded in (first + second, empty + first + empty + second + empty,
+                            skip + first + skip + second + skip):
+                assert read(encoded) == b'firstsecond'
+            assert read(skip + empty + skip) == b''
+    for read in readers:
+        for tail in (second, skip):
+            for end in range(1, len(tail)):
+                with pytest.raises(DatasetError, match='lz4'):
+                    read(first + tail[:end])
+        for tail in (b'junk', second[:-1] + bytes([second[-1] ^ 1])):
+            with pytest.raises(DatasetError, match='lz4') as error:
+                read(first + tail)
+            assert error.value.__cause__ is not None
+    for read_chunk in (rosbag1._lz4_decompress, rosbag2._lz4_decompress):
+        assert read_chunk(first + second, 11) == b'firstsecond'
+        with pytest.raises(DatasetError, match='unexpected size'):
+            read_chunk(first + second, 5)
 
 
 @pytest.mark.parametrize('content_size', [False, True])
