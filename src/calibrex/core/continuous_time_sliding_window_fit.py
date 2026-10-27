@@ -88,6 +88,12 @@ def fit_sliding_window_trajectory(
             or problem.imu_lever_arm_measurements or problem.knot_marginalization_priors
             or problem.joint_knot_marginalization_priors):
         raise ValueError("sliding windows support only plane and pose observations")
+    corrupt_marginalization_translation_m = _validated_control_translation(
+        corrupt_marginalization_translation_m, "corrupt_marginalization_translation_m",
+    )
+    bad_overlap_translation_m = _validated_control_translation(
+        bad_overlap_translation_m, "bad_overlap_translation_m",
+    )
     settings = options or ContinuousTimeTrajectoryFitOptions()
     batch_result = fit_continuous_trajectory(problem, settings)
     sliding_knots = list(problem.initial_knot_poses)
@@ -316,6 +322,24 @@ def _overlap_errors(
         translations.append(float(np.linalg.norm(delta[:3])))
         rotations.append(float(np.linalg.norm(delta[3:])))
     return translations, rotations
+
+
+def _validated_control_translation(
+    value: tuple[float, float, float] | None, name: str,
+) -> tuple[float, float, float] | None:
+    """Reject malformed controls before fitting or NumPy broadcasting."""
+    if value is None:
+        return None
+    message = f"{name} must contain exactly three finite real translation components"
+    try:
+        if np.iscomplexobj(value):
+            raise ValueError(message)
+        vector = np.asarray(value, dtype=float)
+    except (TypeError, ValueError, OverflowError) as error:
+        raise ValueError(message) from error
+    if vector.shape != (3,) or not np.all(np.isfinite(vector)):
+        raise ValueError(message)
+    return _tuple3(vector)
 
 
 def _corrupt_priors(

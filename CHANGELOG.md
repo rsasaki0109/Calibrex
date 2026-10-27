@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Validate sliding-window fault-injection translations as exactly three finite
+  real components before fitting. Prevent scalar/single-component broadcasting
+  from silently changing controls; preserve intended anchor and overlap shifts
+  in both normal and residual-space marginalization modes.
+
 - Validate sliding-window layout integer types before the batch reference fit.
   Reject boolean/fractional sizes and overlaps, and convert NumPy integer counts
   to Python integers before coverage arithmetic to avoid fixed-width overflow.

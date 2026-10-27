@@ -492,6 +492,14 @@ blocks or alter the existing numerical rank rules.
 
 ## Solver option validation
 
+Fault-injection translations (`corrupt_marginalization_translation_m` and
+`bad_overlap_translation_m`) must contain exactly three finite real components.
+Provided values are checked before any fit, even if the selected settings would
+not use that control. Scalar and single-component values are rejected rather
+than broadcast over all three axes. Tests reject malformed shapes, complex and
+nonfinite values before invoking the fitter, and check that valid controls shift
+only the intended anchors or overlap initial states in both prior modes.
+
 Sliding-window layouts are validated before the batch reference fit. Window
 sizes and overlap counts must be actual integers rather than booleans or
 floating-point values. Overlap must be positive, every window must advance
