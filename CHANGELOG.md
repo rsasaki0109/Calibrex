@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Validate selected ROS 2 LiDAR connection formats before offline pair loading.
+  Suppress the recording-motion recommendation when IMU serialization is not
+  CDR, rather than deriving recording advice from an unsupported encoding.
+
 - Reject non-CDR topics before creating or overwriting bags in timestamp-shift,
   IMU-rotation and Velodyne conversion tools. Validate copied topics as well as
   transformed ones to avoid relabelling bytes as CDR; excluded topics remain skippable.

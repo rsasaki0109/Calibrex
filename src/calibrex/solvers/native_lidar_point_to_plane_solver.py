@@ -46,6 +46,7 @@ from calibrex.data.rosbag2 import (
 from calibrex.data.rosbag2 import (
     iter_messages as iter_rosbag2_messages,
 )
+from calibrex.data.rosbag2 import require_cdr_connection
 from calibrex.evaluation.lidar import (
     build_rig_point_to_plane_observations,
     lidar_rig_point_to_plane_metrics_from_evaluation,
@@ -581,6 +582,7 @@ def _load_rosbag2_lidar_pair(
                 and len(source_windows) >= inputs.max_source_messages
             ):
                 continue
+            require_cdr_connection(connection)
             message = decode_rosbag2_lidar_message(
                 source_topic,
                 connection.message_type,
@@ -617,6 +619,7 @@ def _load_rosbag2_lidar_pair(
             and len(target_windows) >= inputs.max_target_messages
         ):
             break
+        require_cdr_connection(connection)
         message = decode_rosbag2_lidar_message(
             target_topic,
             connection.message_type,
