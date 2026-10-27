@@ -352,7 +352,10 @@ def _decompress_chunk(compression: str, size: int, data: bytes) -> bytes:
     if compression == "none":
         return data
     if compression == "bz2":
-        return bz2.decompress(data)
+        try:
+            return bz2.decompress(data)
+        except (OSError, ValueError, EOFError) as exc:
+            raise DatasetError("invalid or truncated bz2-compressed ROS bag chunk") from exc
     if compression == "lz4":
         return _lz4_decompress(data, size)
     msg = f"unsupported ROS bag chunk compression: {compression!r}"
@@ -368,7 +371,10 @@ def _lz4_decompress(data: bytes, size: int) -> bytes:
             "calibrex[rosbag1-lz4]"
         )
         raise DatasetError(msg) from exc
-    decompressed: bytes = lz4.frame.decompress(data)
+    try:
+        decompressed: bytes = lz4.frame.decompress(data)
+    except (RuntimeError, ValueError) as exc:
+        raise DatasetError("invalid or truncated lz4-compressed ROS bag chunk") from exc
     if size and len(decompressed) != size:  # pragma: no cover - defensive
         msg = "lz4 chunk decompressed to an unexpected size"
         raise DatasetError(msg)

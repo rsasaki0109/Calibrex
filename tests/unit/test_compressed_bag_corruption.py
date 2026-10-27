@@ -1,0 +1,96 @@
+"""Damaged compressed frames must never become successful partial bag reads."""
+import bz2
+import sqlite3
+
+import pytest
+
+from calibrex.core.exceptions import DatasetError
+from calibrex.data import rosbag1, rosbag2
+
+
+@pytest.mark.parametrize('content_size', [False, True])
+@pytest.mark.parametrize('checksum', [False, True])
+def test_zstd_requires_complete_frames_with_known_or_unknown_size(content_size, checksum):
+    zstd = pytest.importorskip('zstandard')
+    payload = b'calibrex payload' * 20
+    frame = zstd.ZstdCompressor(write_content_size=content_size,
+                               write_checksum=checksum).compress(payload)
+    assert rosbag2._zstd_decompress_message(frame) == payload
+    assert rosbag2._zstd_decompress(frame, len(payload)) == payload
+    assert rosbag2._zstd_decompress(frame, 0) == payload
+    for end in range(len(frame)):
+        with pytest.raises(DatasetError, match='zstd'):
+            rosbag2._zstd_decompress_message(frame[:end])
+        with pytest.raises(DatasetError, match='zstd'):
+            rosbag2._zstd_decompress(frame[:end], len(payload))
+    with pytest.raises(DatasetError, match='unexpected size'):
+        rosbag2._zstd_decompress(frame, len(payload) + 1)
+
+
+def test_zstd_invalid_checksum_and_empty_complete_frame():
+    zstd = pytest.importorskip('zstandard')
+    frame = zstd.ZstdCompressor(write_checksum=True).compress(b'payload')
+    corrupt = frame[:-1] + bytes([frame[-1] ^ 1])
+    for data in (b'invalid frame', corrupt):
+        with pytest.raises(DatasetError, match='invalid zstd') as error:
+            rosbag2._zstd_decompress_message(data)
+        assert isinstance(error.value.__cause__, zstd.ZstdError)
+    assert rosbag2._zstd_decompress_message(zstd.ZstdCompressor().compress(b'')) == b''
+
+
+def test_lz4_frame_corruption_is_a_dataset_error_for_each_reader():
+    lz4 = pytest.importorskip('lz4.frame')
+    payload = b'calibrex payload' * 20
+    frame = lz4.compress(payload)
+    readers = (lambda data: rosbag1._lz4_decompress(data, len(payload)),
+               lambda data: rosbag2._lz4_decompress(data, len(payload)),
+               rosbag2._lz4_decompress_message)
+    for read in readers:
+        assert read(frame) == payload
+        for data in (b'invalid frame', frame[:-1]):
+            with pytest.raises(DatasetError, match='lz4') as error:
+                read(data)
+            assert error.value.__cause__ is not None
+
+
+def test_lz4_raw_block_corruption_is_a_dataset_error():
+    lz4 = pytest.importorskip('lz4.block')
+    payload = b'calibrex payload' * 20
+    block = lz4.compress(payload, store_size=False)
+    assert rosbag2._lz4_decompress(block, len(payload)) == payload
+    with pytest.raises(DatasetError, match='lz4') as error:
+        rosbag2._lz4_decompress(block[:-1], len(payload))
+    assert isinstance(error.value.__cause__, lz4.LZ4BlockError)
+
+
+def test_ros1_bz2_corruption_is_a_dataset_error():
+    payload = b'calibrex payload' * 20
+    frame = bz2.compress(payload)
+    assert rosbag1._decompress_chunk('bz2', len(payload), frame) == payload
+    for data in (b'invalid frame', frame[:-1]):
+        with pytest.raises(DatasetError, match='bz2') as error:
+            rosbag1._decompress_chunk('bz2', len(payload), data)
+        assert error.value.__cause__ is not None
+
+
+def test_public_message_reader_rejects_truncated_checksum(tmp_path):
+    zstd = pytest.importorskip('zstandard')
+    bag = tmp_path / 'bad-bag'
+    bag.mkdir()
+    frame = zstd.ZstdCompressor(write_checksum=True).compress(b'complete message payload')
+    with sqlite3.connect(bag / 'bag.db3') as db:
+        db.execute('CREATE TABLE topics (id INTEGER PRIMARY KEY, name TEXT, type TEXT, '
+                   'serialization_format TEXT, offered_qos_profiles TEXT)')
+        db.execute('CREATE TABLE messages (id INTEGER PRIMARY KEY, topic_id INTEGER, '
+                   'timestamp INTEGER, data BLOB)')
+        db.execute("INSERT INTO topics VALUES (1, '/imu', 'sensor_msgs/msg/Imu', 'cdr', '')")
+        db.execute('INSERT INTO messages VALUES (1, 1, 1, ?)', (frame[:-1],))
+    (bag / 'metadata.yaml').write_text('''rosbag2_bagfile_information:
+  version: 5
+  storage_identifier: sqlite3
+  relative_file_paths: [bag.db3]
+  compression_format: zstd
+  compression_mode: message
+''')
+    with pytest.raises(DatasetError, match='truncated zstd'):
+        list(rosbag2.iter_messages(bag))

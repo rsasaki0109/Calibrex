@@ -231,6 +231,7 @@ jobs:
         run: >-
           python -m pytest
           tests/unit/test_bag_formats.py
+          tests/unit/test_compressed_bag_corruption.py
           tests/unit/test_rosbag2.py
           tests/unit/test_rosbag2_writer.py
 

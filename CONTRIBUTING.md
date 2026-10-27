@@ -40,7 +40,8 @@ dependencies so their interoperability tests run rather than skip. Run it locall
 
 ```bash
 python -m pip install -e ".[dev,mcap,rosbag1-lz4,rosbag2-compression]"
-python -m pytest tests/unit/test_bag_formats.py tests/unit/test_rosbag2.py tests/unit/test_rosbag2_writer.py
+python -m pytest tests/unit/test_bag_formats.py tests/unit/test_rosbag2.py \
+  tests/unit/test_rosbag2_writer.py tests/unit/test_compressed_bag_corruption.py
 ```
 
 These tests use synthetic fixtures and do not require ROS, GPU hardware or public

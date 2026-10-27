@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Reject incomplete Zstandard message/chunk frames instead of accepting partial
+  decompression, including frames missing checksum bytes. Normalize codec errors
+  from Zstandard, LZ4 and ROS 1 bz2 chunks to `DatasetError`, retaining their causes.
+  Exercise corruption and public-reader rejection in compressed-bag CI.
+
 - Check that unit-test files using literal optional CPU `pytest.importorskip`
   dependencies are registered in the matching extra-enabled CI job. Detect
   missing test paths and coverage omissions without importing optional packages;

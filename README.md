@@ -119,6 +119,10 @@ the format is detected from the file:
 | ROS 2 MCAP (`.mcap`) | chunks `none`, `zstd` or `lz4` |
 | ROS 1 `.bag` | chunks `none`, `bz2` or `lz4` (`calibrex[rosbag1-lz4]` for `lz4`) |
 
+Zstandard message and chunk readers require a complete frame, even when its
+uncompressed size is unspecified. Truncated frames and codec-reported corruption
+in Zstandard, LZ4 or ROS 1 bz2 chunks produce dataset read errors.
+
 `calibrex check my_bag/ --plan` prints which sensor pairs the bag can be checked for, and why the
 others are skipped, without running an estimator. Vehicle pairs are opt-in with
 `--vehicle-frame base_link`. Details: [supported input formats](docs/tutorials/calibrex_check.md#supported-input-formats).

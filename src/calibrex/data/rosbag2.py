@@ -1137,10 +1137,13 @@ def _lz4_decompress(data: bytes, size: int) -> bytes:
             "calibrex[rosbag2-compression]"
         )
         raise DatasetError(msg) from exc
-    if data.startswith(_LZ4_FRAME_MAGIC):
-        decompressed: bytes = lz4.frame.decompress(data)
-    else:
-        decompressed = lz4.block.decompress(data, uncompressed_size=size)
+    try:
+        if data.startswith(_LZ4_FRAME_MAGIC):
+            decompressed: bytes = lz4.frame.decompress(data)
+        else:
+            decompressed = lz4.block.decompress(data, uncompressed_size=size)
+    except (RuntimeError, ValueError, lz4.block.LZ4BlockError) as exc:
+        raise DatasetError("invalid or truncated lz4-compressed MCAP chunk") from exc
     if size and len(decompressed) != size:
         msg = "lz4 chunk decompressed to an unexpected size"
         raise DatasetError(msg)
@@ -1148,41 +1151,35 @@ def _lz4_decompress(data: bytes, size: int) -> bytes:
 
 
 def _zstd_decompress(data: bytes, size: int) -> bytes:
-    try:
-        import zstandard
-    except ImportError as exc:  # pragma: no cover - exercised via error path test
-        msg = (
-            "zstd-compressed MCAP chunks require the optional dependency "
-            "calibrex[rosbag2-compression]"
-        )
-        raise DatasetError(msg) from exc
-    decompressor = zstandard.ZstdDecompressor()
-    try:
-        decompressed: bytes = decompressor.decompress(data, max_output_size=size or 0)
-    except zstandard.ZstdError:  # a frame without a content size, or a streamed frame
-        decompressed = decompressor.decompressobj().decompress(data)
+    decompressed = _zstd_decompress_payload(data, "MCAP chunks")
     if size and len(decompressed) != size:
         msg = "zstd chunk decompressed to an unexpected size"
         raise DatasetError(msg)
     return decompressed
 
 
-def _zstd_decompress_message(data: bytes) -> bytes:
+def _zstd_decompress_payload(data: bytes, context: str) -> bytes:
+    """Decode a Zstandard frame, requiring completion even for unknown sizes."""
     try:
         import zstandard
     except ImportError as exc:  # pragma: no cover - exercised via error path test
         msg = (
-            "zstd-compressed rosbag2 messages require the optional dependency "
+            f"zstd-compressed {context} require the optional dependency "
             "calibrex[rosbag2-compression]"
         )
         raise DatasetError(msg) from exc
-    decompressor = zstandard.ZstdDecompressor()
+    decoder = zstandard.ZstdDecompressor().decompressobj()
     try:
-        decompressed: bytes = decompressor.decompress(data)
-        return decompressed
-    except zstandard.ZstdError:
-        streamed: bytes = decompressor.decompressobj().decompress(data)
-        return streamed
+        decompressed: bytes = decoder.decompress(data)
+    except zstandard.ZstdError as exc:
+        raise DatasetError(f"invalid zstd-compressed {context}") from exc
+    if not decoder.eof:
+        raise DatasetError(f"truncated zstd-compressed {context}")
+    return decompressed
+
+
+def _zstd_decompress_message(data: bytes) -> bytes:
+    return _zstd_decompress_payload(data, "rosbag2 messages")
 
 
 def _lz4_decompress_message(data: bytes) -> bytes:
@@ -1194,7 +1191,10 @@ def _lz4_decompress_message(data: bytes) -> bytes:
             "calibrex[rosbag2-compression]"
         )
         raise DatasetError(msg) from exc
-    decompressed: bytes = lz4.frame.decompress(data)
+    try:
+        decompressed: bytes = lz4.frame.decompress(data)
+    except (RuntimeError, ValueError) as exc:
+        raise DatasetError("invalid or truncated lz4-compressed rosbag2 message") from exc
     return decompressed
 
 
