@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Validate ROS 1 PointCloud2, Livox CustomMsg and PoseStamped header nanoseconds
+  before decoding sensor content. Reject values outside [0, 1e9), including empty
+  Livox scans, while retaining zero-header fallback to the bag record time.
+
 - Reject ROS 1 record timestamps whose nanosecond component is at least one
   billion instead of silently converting them to a different second. Preserve
   valid zero timestamps and the full uint32 seconds range.

@@ -320,6 +320,47 @@ def test_rosbag1_decodes_pose_stamped() -> None:
     assert message.orientation_xyzw == (0.0, 0.0, 0.0, 1.0)
 
 
+@pytest.mark.parametrize('kind', ['pointcloud', 'livox', 'empty_livox', 'pose'])
+@pytest.mark.parametrize('secs,nsecs', [(0, 0), (2, 999_999_999),
+                                       (2**32 - 1, 999_999_999),
+                                       (0, 1_000_000_000), (2, 2**32 - 1)])
+def test_sensor_header_timestamp_range(kind, secs, nsecs):
+    points = [(1.0, 2.0, 3.0, 10.0)]
+    if kind == 'pointcloud':
+        payload = _serialize_pointcloud2(points, frame_id='sensor', secs=secs,
+                                         nsecs=nsecs, with_intensity=True)
+        decode = decode_pointcloud2
+    elif kind in ('livox', 'empty_livox'):
+        payload = _serialize_livox_custommsg(points if kind == 'livox' else [],
+                                            frame_id='sensor', secs=secs, nsecs=nsecs,
+                                            timebase_ns=123)
+        decode = decode_livox_custommsg
+    else:
+        payload = (struct.pack('<IIII', 0, secs, nsecs, 6) + b'sensor'
+                   + struct.pack('<7d', 1, 2, 3, 0, 0, 0, 1))
+        decode = decode_pose_stamped
+    if nsecs >= 1_000_000_000:
+        with pytest.raises(DatasetError, match='header nanoseconds are outside'):
+            decode('/sensor', 99, payload)
+    else:
+        message = decode('/sensor', 99, payload)
+        assert message.timestamp_ns == (secs * 1_000_000_000 + nsecs or 99)
+        assert message.frame_id == 'sensor'
+
+
+def test_bag_reader_rejects_bad_sensor_time_even_with_valid_record_time(tmp_path):
+    payload = _serialize_pointcloud2([(1.0, 2.0, 3.0, 10.0)], frame_id='lidar',
+                                     secs=2, nsecs=1_000_000_000, with_intensity=True)
+    inner = (_connection_record(1, '/points', 'sensor_msgs/PointCloud2')
+             + _message_record(1, 2, 3, payload))
+    chunk = _record({'op': b'\x05', 'compression': b'none',
+                     'size': struct.pack('<I', len(inner))}, inner)
+    bag = tmp_path / 'sensor-time.bag'
+    bag.write_bytes(BAG_MAGIC + chunk)
+    with pytest.raises(DatasetError, match='header nanoseconds are outside'):
+        list(read_pointcloud2_messages(bag))
+
+
 def test_rosbag1_records_normalize_ros_time(tmp_path: Path) -> None:
     bag = _sample_bag(tmp_path / "sample.bag")
     records = list(Rosbag1Reader(bag).records("/livox/lidar"))

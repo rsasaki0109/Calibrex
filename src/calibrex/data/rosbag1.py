@@ -1097,6 +1097,8 @@ def decode_livox_custommsg(topic: str, timestamp_ns: int, data: bytes) -> LivoxC
     _seq, offset = _read_uint32(data, offset)
     stamp_secs, offset = _read_uint32(data, offset)
     stamp_nsecs, offset = _read_uint32(data, offset)
+    if stamp_nsecs >= 1_000_000_000:
+        raise DatasetError("livox_ros_driver/CustomMsg header nanoseconds are outside [0, 1e9)")
     frame_id, offset = _read_string(data, offset)
     if offset + 8 > len(data):
         msg = "truncated livox_ros_driver/CustomMsg (timebase)"
@@ -1184,6 +1186,8 @@ def decode_pose_stamped(
     _sequence, offset = _read_uint32(data, offset)
     stamp_secs, offset = _read_uint32(data, offset)
     stamp_nsecs, offset = _read_uint32(data, offset)
+    if stamp_nsecs >= 1_000_000_000:
+        raise DatasetError("geometry_msgs/PoseStamped header nanoseconds are outside [0, 1e9)")
     frame_id, offset = _read_string(data, offset)
     if offset + 56 > len(data):
         msg = "truncated geometry_msgs/PoseStamped payload"
@@ -1219,6 +1223,8 @@ def decode_pointcloud2(
     _seq, offset = _read_uint32(data, offset)
     stamp_secs, offset = _read_uint32(data, offset)
     stamp_nsecs, offset = _read_uint32(data, offset)
+    if stamp_nsecs >= 1_000_000_000:
+        raise DatasetError("sensor_msgs/PointCloud2 header nanoseconds are outside [0, 1e9)")
     frame_id, offset = _read_string(data, offset)
     height, offset = _read_uint32(data, offset)
     width, offset = _read_uint32(data, offset)
