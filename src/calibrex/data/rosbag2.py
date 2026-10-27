@@ -1268,10 +1268,14 @@ def _skip_mcap_string_map(buffer: bytes, offset: int) -> int:
 
 
 def _require_cdr_connection(connection: Rosbag2Connection) -> None:
-    if connection.serialization_format != "cdr":
+    _require_cdr_serialization(connection.topic, connection.serialization_format)
+
+
+def _require_cdr_serialization(topic: str, serialization_format: str) -> None:
+    if serialization_format != "cdr":
         raise DatasetError(
-            f"unsupported serialization format {connection.serialization_format!r} "
-            f"for topic {connection.topic!r}; expected 'cdr'"
+            f"unsupported serialization format {serialization_format!r} "
+            f"for topic {topic!r}; expected 'cdr'"
         )
 
 
@@ -1373,13 +1377,17 @@ def decode_rosbag2_message(
     data: bytes,
     *,
     include_image_data: bool = False,
+    serialization_format: str = "cdr",
 ) -> Rosbag2DecodedMessage:
     """Decode a supported rosbag2 CDR payload.
 
     Image bytes are omitted by default so inspection remains bounded while
     still validating the serialized payload completely.
+    Pass the connection's serialization format when available; non-CDR formats
+    are rejected before interpreting the payload.
     """
 
+    _require_cdr_serialization(topic, serialization_format)
     if message_type == POINTCLOUD2_TYPE:
         return decode_pointcloud2(topic, timestamp_ns, data)
     if message_type in LIVOX_CUSTOMMSG_TYPES:

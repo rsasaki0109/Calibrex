@@ -1523,6 +1523,7 @@ def _inventory_rosbag2(
                         connection.message_type,
                         int(timestamp_ns),
                         bytes(data),
+                        serialization_format=connection.serialization_format,
                     )
                     _record_decoded_message(state, message)
                     state["decode_status"] = "supported"

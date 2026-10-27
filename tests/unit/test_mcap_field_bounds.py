@@ -253,3 +253,16 @@ def test_typed_readers_check_format_after_message_type_filter(monkeypatch, reade
     monkeypatch.setattr(rosbag2, 'iter_messages', lambda *a, **kw: iter([(selected, 1, b'')]))
     with pytest.raises(DatasetError, match="unsupported serialization format 'json'"):
         list(reader('unused'))
+
+
+def test_generic_decoder_checks_explicit_format_and_preserves_cdr_default():
+    payload = encode_imu(frame_id='imu', timestamp_ns=10,
+                         angular_velocity=(1.0, 2.0, 3.0),
+                         linear_acceleration=(0.0, 0.0, 9.8))
+    for kwargs in ({}, {'serialization_format': 'cdr'}):
+        message = rosbag2.decode_rosbag2_message('/imu', rosbag2.IMU_TYPE, 10, payload, **kwargs)
+        assert message.angular_velocity == (1.0, 2.0, 3.0)
+    for encoding in ('json', 'protobuf', '', 'CDR'):
+        with pytest.raises(DatasetError, match='unsupported serialization format'):
+            rosbag2.decode_rosbag2_message('/imu', rosbag2.IMU_TYPE, 10, payload,
+                                           serialization_format=encoding)

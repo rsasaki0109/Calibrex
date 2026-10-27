@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Check declared serialization before decoding capture-inventory samples, so
+  non-CDR streams cannot gain supported decode status from CDR-shaped bytes.
+  Add an optional serialization-format argument to the generic rosbag2 decoder,
+  retaining CDR as its default for existing callers.
+
 - Preserve MCAP channel message encodings instead of labelling every payload CDR.
   Typed rosbag2 sensor readers and inspection reject selected non-CDR sensor
   messages before decoding; raw message iteration still returns their bytes.
