@@ -148,3 +148,59 @@ def test_public_reader_rejects_wrong_header_field_width(tmp_path, field, width, 
     bag.write_bytes(rosbag1.BAG_MAGIC + encoded)
     with pytest.raises(DatasetError, match=r'header.*(length|missing)'):
         list(rosbag1.iter_messages(bag))
+
+
+@pytest.mark.parametrize('field', ['topic', 'fallback_topic', 'type', 'md5sum',
+                                  'message_definition', 'field_name', 'compression'])
+@pytest.mark.parametrize('nested', [False, True])
+def test_public_reader_normalizes_invalid_header_text(tmp_path, field, nested):
+    header = {'op': bytes([rosbag1.OP_CONNECTION]), 'conn': struct.pack('<I', 1),
+              'topic': b'/imu'}
+    data = {'type': b'sensor_msgs/Imu', 'md5sum': b'*', 'message_definition': b'float64 value'}
+    if field == 'topic':
+        header['topic'] = b'\xff'
+    elif field == 'fallback_topic':
+        header.pop('topic')
+        data['topic'] = b'\xff'
+    elif field in data:
+        data[field] = b'\xff'
+    encoded_header = fields(**header)
+    if field == 'field_name':
+        encoded_header += struct.pack('<I', 3) + b'\xff=x'
+    encoded = record(encoded_header, fields(**data))
+    if nested or field == 'compression':
+        compression = b'\xff' if field == 'compression' else b'none'
+        encoded = record(fields(op=bytes([rosbag1.OP_CHUNK]), compression=compression,
+                                size=struct.pack('<I', len(encoded))), encoded)
+    bag = tmp_path / 'invalid-text.bag'
+    bag.write_bytes(rosbag1.BAG_MAGIC + encoded)
+    with pytest.raises(DatasetError, match=r'invalid .* in ROS bag') as error:
+        list(rosbag1.iter_messages(bag))
+    assert isinstance(error.value.__cause__, UnicodeDecodeError)
+
+
+@pytest.mark.parametrize('fallback_topic', [False, True])
+def test_valid_unicode_header_text_and_binary_message_data_are_preserved(tmp_path, fallback_topic):
+    topic = '/センサー/位置'
+    message_type = '独自/位置'
+    definition = '# 位置\nfloat64 value\n'
+    header = {'op': bytes([rosbag1.OP_CONNECTION]), 'conn': struct.pack('<I', 1)}
+    data = {'type': message_type.encode(), 'message_definition': definition.encode(),
+            'md5sum': b'*'}
+    (data if fallback_topic else header)['topic'] = topic.encode()
+    connection = record(fields(**header), fields(**data))
+    payload = b'\xff\x80\x00'
+    message = record(fields(op=bytes([rosbag1.OP_MSG_DATA]), conn=struct.pack('<I', 1),
+                            time=struct.pack('<II', 2, 3)), payload)
+    chunk = record(fields(op=bytes([rosbag1.OP_CHUNK]), compression=b'none',
+                          size=struct.pack('<I', len(message))), message)
+    bag = tmp_path / 'unicode.bag'
+    bag.write_bytes(rosbag1.BAG_MAGIC + connection + chunk)
+    messages = list(rosbag1.iter_messages(bag, topics={topic}))
+    assert len(messages) == 1
+    conn, stamp, actual = messages[0]
+    assert conn.topic == topic
+    assert conn.message_type == message_type
+    assert conn.message_definition == definition
+    assert conn.md5sum == '*'
+    assert (stamp, actual) == (2_000_000_003, payload)

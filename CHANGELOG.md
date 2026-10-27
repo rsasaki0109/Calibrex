@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Report malformed ROS 1 header text as field-specific `DatasetError` with the
+  original decoding cause. Reject invalid UTF-8 in message definitions instead
+  of replacing bytes; preserve valid Unicode names and binary message payloads.
+
 - Require exact ROS 1 header widths for opcodes, connection IDs, index positions,
   chunk counts and timestamps. Reject short or oversized present values instead
   of treating them as missing or silently ignoring trailing bytes; keep absent

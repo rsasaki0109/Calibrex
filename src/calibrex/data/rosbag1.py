@@ -325,6 +325,13 @@ def _read_exact(source: BinaryIO, size: int) -> bytes:
     return data
 
 
+def _decode_header_text(value: bytes, field: str, encoding: str = "utf-8") -> str:
+    try:
+        return value.decode(encoding)
+    except UnicodeDecodeError as exc:
+        raise DatasetError(f"invalid {encoding} in ROS bag {field}") from exc
+
+
 def _read_header_fields(header: bytes) -> dict[str, bytes]:
     fields: dict[str, bytes] = {}
     offset = 0
@@ -344,7 +351,7 @@ def _read_header_fields(header: bytes) -> dict[str, bytes]:
         if separator < 0:
             msg = "malformed ROS bag header field (missing '=')"
             raise DatasetError(msg)
-        name = chunk[:separator].decode("ascii", errors="strict")
+        name = _decode_header_text(chunk[:separator], "header field name", "ascii")
         fields[name] = chunk[separator + 1 :]
     return fields
 
@@ -536,7 +543,8 @@ def _iter_chunk_messages(
     connections: dict[int, Rosbag1Connection],
     topics: set[str] | None,
 ) -> Iterator[tuple[Rosbag1Connection, int, bytes]]:
-    compression = chunk_header.get("compression", b"none").decode("ascii")
+    compression = _decode_header_text(chunk_header.get("compression", b"none"),
+                                      "compression field", "ascii")
     raw_size = chunk_header.get("size")
     if raw_size is not None and len(raw_size) != 4:
         raise DatasetError("invalid ROS bag chunk size field")
@@ -568,22 +576,22 @@ def _iter_chunk_messages(
 
 def _parse_connection(header: dict[str, bytes], data: bytes) -> Rosbag1Connection:
     conn_id = _uint32(header.get("conn"))
-    topic = header.get("topic", b"").decode("utf-8")
+    topic = _decode_header_text(header.get("topic", b""), "topic field")
     if conn_id is None:
         msg = "ROS bag connection record missing 'conn'"
         raise DatasetError(msg)
     data_header = _read_header_fields(data)
-    message_type = data_header.get("type", b"").decode("utf-8")
+    message_type = _decode_header_text(data_header.get("type", b""), "type field")
     if not topic:
-        topic = data_header.get("topic", b"").decode("utf-8")
+        topic = _decode_header_text(data_header.get("topic", b""), "topic field")
     md5 = data_header.get("md5sum")
     definition = data_header.get("message_definition")
     return Rosbag1Connection(
         conn_id=conn_id,
         topic=topic,
         message_type=message_type,
-        md5sum=md5.decode("ascii") if md5 is not None else None,
-        message_definition=definition.decode("utf-8", errors="replace")
+        md5sum=_decode_header_text(md5, "md5sum field", "ascii") if md5 is not None else None,
+        message_definition=_decode_header_text(definition, "message_definition field")
         if definition is not None
         else None,
     )
