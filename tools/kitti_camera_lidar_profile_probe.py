@@ -236,6 +236,7 @@ def profile_snapshot(
     snapshot: Path, conditional_report: Path | None, output: Path, *, multi_start: bool = False,
     spatial_balance: bool = False,
     azimuth_orientation: bool = False,
+    boundary_tangent: bool = False,
     training_only_start: bool = False,
     control_seeded_baseline: bool = False,
 ) -> ProfileReport:
@@ -243,7 +244,7 @@ def profile_snapshot(
     from tools import kitti_camera_lidar_axis_probe as conditional
     from tools import kitti_camera_lidar_v3_replay as replay
 
-    if spatial_balance and azimuth_orientation:
+    if sum((spatial_balance, azimuth_orientation, boundary_tangent)) > 1:
         raise ValueError("choose one objective ablation at a time")
     if training_only_start == (conditional_report is not None):
         raise ValueError("choose either training-only starts or a conditional report")
@@ -289,7 +290,8 @@ def profile_snapshot(
         "nuisance_search": "profile_multistart" if multi_start else "local",
         "nuisance_selection": "maximum training objective; original local fit retained on ties",
         "spatial_weights": "candidate_fixed_2x2" if spatial_balance else "original",
-        "orientation_model": "projected_azimuth_gradient" if azimuth_orientation else "none",
+        "orientation_model": ("local_boundary_tangent" if boundary_tangent else
+                              "projected_azimuth_gradient" if azimuth_orientation else "none"),
     })
     if training_only_start:
         report.limitations = [item for item in report.limitations
@@ -321,7 +323,7 @@ def profile_snapshot(
                 "spatial_scope": "per-frame fixed preprocessing on train and held-out frames",
             })
         orientation_features = None
-        if azimuth_orientation:
+        if azimuth_orientation or boundary_tangent:
             from tools import kitti_camera_lidar_orientation as oriented
 
             images = {frame.time_s: frame.image for frame in frames}
@@ -343,8 +345,28 @@ def profile_snapshot(
                 "orientation_confidence": "existing scalar 99th-percentile gradient normalization",
             })
 
+        tangents = None
+        if boundary_tangent:
+            from tools import kitti_camera_lidar_boundary_orientation as boundary
+
+            tangents = [boundary.boundary_tangents(frame.points) for frame in prepared]
+            report.provenance.update({
+                "boundary_source_sha256": _sha(Path(boundary.__file__)),
+                "boundary_settings": boundary.SETTINGS,
+                "orientation_scope": "local PCA of prepared depth-discontinuity points",
+                "orientation_limit": "local lines may mix surfaces; not exact physical boundaries",
+                "boundary_support": [
+                    {"points": len(t),
+                     "supported": int(np.count_nonzero(np.linalg.norm(t, axis=1)))}
+                    for t in tangents],
+            })
+
         def objective_for(indices: Sequence[int]) -> edge.EdgeObjective:
             selected = [prepared[i] for i in indices]
+            if orientation_features is not None and tangents is not None:
+                return boundary.BoundaryObjective(
+                    selected, camera, candidate, [orientation_features[i] for i in indices],
+                    [tangents[i] for i in indices])
             if orientation_features is not None:
                 return oriented.OrientationObjective(
                     selected, camera, candidate, [orientation_features[i] for i in indices],
@@ -388,10 +410,12 @@ def main(argv: list[str] | None = None) -> int:
                         help="use fixed candidate-image 2x2 tile weights (research only)")
     parser.add_argument("--azimuth-orientation", action="store_true",
                         help="penalize gradient/azimuth-direction mismatch (research only)")
+    parser.add_argument("--boundary-tangent", action="store_true")
     args = parser.parse_args(argv)
     profile_snapshot(args.snapshot, args.conditional_report, args.output,
                      multi_start=args.multi_start, spatial_balance=args.spatial_balance,
                      azimuth_orientation=args.azimuth_orientation,
+                     boundary_tangent=args.boundary_tangent,
                      training_only_start=args.training_only_start,
                      control_seeded_baseline=args.control_seeded_baseline)
     return 0

@@ -1,4 +1,5 @@
 """One fixed ablation: release the tested axis from each training-only control seed."""
+
 from __future__ import annotations
 
 import argparse
@@ -18,45 +19,67 @@ from calibrex.core.provenance import git_commit
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def run(captures: Path, output: Path) -> ComparisonReport:
+def run(captures: Path, output: Path, *, boundary_tangent: bool = False) -> ComparisonReport:
     """Keep all fourteen inputs and failures; report controls and fold reference errors."""
     output.mkdir(parents=True, exist_ok=False)
-    report = ComparisonReport(provenance={
-        'experiment': 'one_pass_control_seeded_baseline', 'git_commit': git_commit(),
-        'generator_sha256': sha(Path(__file__)), 'probe_sha256': sha(Path(probe.__file__)),
-        'estimator_sha256': sha(Path(probe.edge.__file__)),
-        'new_evaluation_started': False, 'new_accuracy_claim': False,
-        'hypothesis': 'A baseline trapped in a local basin may underestimate pitch controls.',
-        'selection': 'all fourteen reacquired spent inputs, scalar objective, original settings',
-    })
-    (output / 'report.schema.json').write_text(json.dumps(report.model_json_schema(), indent=2))
+    report = ComparisonReport(
+        provenance={
+            "experiment": (
+                "local_boundary_tangent" if boundary_tangent else "one_pass_control_seeded_baseline"
+            ),
+            "git_commit": git_commit(),
+            "generator_sha256": sha(Path(__file__)),
+            "probe_sha256": sha(Path(probe.__file__)),
+            "estimator_sha256": sha(Path(probe.edge.__file__)),
+            "new_evaluation_started": False,
+            "new_accuracy_claim": False,
+            "hypothesis": (
+                "Local boundary directions reject incorrect edge alignments."
+                if boundary_tangent
+                else "A baseline trapped in a local basin may underestimate pitch controls."
+            ),
+            "selection": "all fourteen reacquired spent inputs, paired objective ablation, original search settings",
+        }
+    )
+    (output / "report.schema.json").write_text(json.dumps(report.model_json_schema(), indent=2))
 
     def write() -> None:
-        (output / 'report.json').write_text(report.model_dump_json(indent=2))
+        (output / "report.json").write_text(report.model_dump_json(indent=2))
 
     write()
     for drive in DRIVES:
         for name, injection in replay.RUNS.items():
-            row: dict[str, Any] = {'drive': drive, 'run': name, 'arms': {}}
+            row: dict[str, Any] = {"drive": drive, "run": name, "arms": {}}
             report.inputs.append(row)
             try:
                 snapshot = captures / drive / name
                 meta, _, _, candidate, _ = replay.load_snapshot(snapshot)
                 if (meta.drive, meta.run) != (drive, name):
-                    raise ValueError('wrong input identity')
-                row.update(arrays_sha256=meta.arrays_sha256,
-                           snapshot_sha256=sha(snapshot / 'snapshot.json'))
+                    raise ValueError("wrong input identity")
+                row.update(
+                    arrays_sha256=meta.arrays_sha256,
+                    snapshot_sha256=sha(snapshot / "snapshot.json"),
+                )
                 vector = np.zeros(3)
                 if injection:
-                    axis, degrees = injection.split(':')
-                    vector['xyz'.index(axis)] = np.radians(float(degrees))
+                    axis, degrees = injection.split(":")
+                    vector["xyz".index(axis)] = np.radians(float(degrees))
                 reference = Rotation.from_rotvec(-vector).as_matrix() @ candidate[:3, :3]
-                for arm, enabled in [('original', False), ('control_seeded', True)]:
+                for arm, enabled in [
+                    ("original", False),
+                    ("boundary_tangent" if boundary_tangent else "control_seeded", True),
+                ]:
                     tick = time.monotonic()
                     dest = output / drive / name / arm
                     result = probe.profile_snapshot(
-                        snapshot, None, dest, multi_start=True, training_only_start=True,
-                        control_seeded_baseline=enabled)
+                        snapshot,
+                        None,
+                        dest,
+                        multi_start=True,
+                        training_only_start=True,
+                        control_seeded_baseline=enabled and not boundary_tangent,
+                        boundary_tangent=enabled and boundary_tangent,
+                    )
                     values = []
                     for item in result.axes:
                         errors = []
@@ -64,38 +87,52 @@ def run(captures: Path, output: Path) -> ComparisonReport:
                             rotation = probe.edge._transform(candidate, np.array(fold.base_theta))
                             delta = Rotation.from_matrix(rotation[:3, :3] @ reference.T).as_rotvec()
                             errors.append(float(np.degrees(delta)[item.axis]))
-                        values.append({'axis': item.axis,
-                                       'control': item.profiled_control.model_dump(mode='json'),
-                                       'fold_active_axis_reference_errors_deg': errors})
-                    row['arms'][arm] = {'elapsed_s': time.monotonic() - tick, 'axes': values,
-                                        'report_sha256': sha(dest / 'report.json')}
+                        values.append(
+                            {
+                                "axis": item.axis,
+                                "control": item.profiled_control.model_dump(mode="json"),
+                                "fold_active_axis_reference_errors_deg": errors,
+                            }
+                        )
+                    row["arms"][arm] = {
+                        "elapsed_s": time.monotonic() - tick,
+                        "axes": values,
+                        "report_sha256": sha(dest / "report.json"),
+                    }
                     if not enabled:
-                        previous = ROOT / 'docs/assets/camera_lidar_initialization_20261027'
-                        path = previous / drive / name / 'training_only/report.json'
+                        previous = ROOT / "docs/assets/camera_lidar_initialization_20261027"
+                        path = previous / drive / name / "training_only/report.json"
                         prior = probe.ProfileReport.model_validate_json(path.read_bytes())
-                        row['original_parity'] = replay._same(
-                            [a.model_dump(mode='json') for a in result.axes],
-                            [a.model_dump(mode='json') for a in prior.axes])
-                        row['previous_report_sha256'] = sha(path)
-                        if not row['original_parity']:
-                            raise ValueError('original arm numerical parity failed')
+                        row["original_parity"] = replay._same(
+                            [a.model_dump(mode="json") for a in result.axes],
+                            [a.model_dump(mode="json") for a in prior.axes],
+                        )
+                        row["previous_report_sha256"] = sha(path)
+                        if not row["original_parity"]:
+                            raise ValueError("original arm numerical parity failed")
                     write()
             except Exception as exc:
-                row['error'] = f'{type(exc).__name__}: {exc}'
+                row["error"] = f"{type(exc).__name__}: {exc}"
             write()
-            print(drive, name, row.get('error', 'complete'), flush=True)
-    report.status = 'blocked' if any('error' in r for r in report.inputs) else 'complete'
+            print(drive, name, row.get("error", "complete"), flush=True)
+    report.status = "blocked" if any("error" in r for r in report.inputs) else "complete"
     write()
     return report
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('captures', type=Path)
-    parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument("captures", type=Path)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--boundary-tangent", action="store_true")
     args = parser.parse_args()
-    return 0 if run(args.captures, args.output).status == 'complete' else 2
+    return (
+        0
+        if run(args.captures, args.output, boundary_tangent=args.boundary_tangent).status
+        == "complete"
+        else 2
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     raise SystemExit(main())
