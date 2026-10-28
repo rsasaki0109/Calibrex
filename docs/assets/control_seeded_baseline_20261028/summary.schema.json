@@ -1,0 +1,56 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "calibrex.control_seeded_baseline_summary/v0.1",
+      "default": "calibrex.control_seeded_baseline_summary/v0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    },
+    "metrics": {
+      "additionalProperties": true,
+      "title": "Metrics",
+      "type": "object"
+    },
+    "changed_flags": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Changed Flags",
+      "type": "array"
+    },
+    "pitch_probe": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Pitch Probe",
+      "type": "array"
+    },
+    "limitations": {
+      "default": [
+        "Control detection and training-fold reference disagreement are not native calibration verdicts.",
+        "Two spent drives, correlated controls; no fresh evaluation or SOTA claim."
+      ],
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "provenance",
+    "metrics",
+    "changed_flags",
+    "pitch_probe"
+  ],
+  "title": "Summary",
+  "type": "object"
+}

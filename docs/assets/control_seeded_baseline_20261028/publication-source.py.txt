@@ -1,0 +1,67 @@
+"""Publish the fixed fourteen-input ablation; no threshold or input selection."""
+import hashlib,json,shutil
+from datetime import datetime,timezone
+from pathlib import Path
+from typing import Any,Literal
+import jsonschema
+import numpy as np
+from calibrex.core.result import StrictModel
+from calibrex.evaluation import camera_lidar_edge as edge
+from tools.kitti_camera_lidar_v3_replay import load_snapshot
+
+class Summary(StrictModel):
+    schema_version: Literal['calibrex.control_seeded_baseline_summary/v0.1']='calibrex.control_seeded_baseline_summary/v0.1'
+    provenance: dict[str,Any]
+    metrics: dict[str,Any]
+    changed_flags: list[dict[str,Any]]
+    pitch_probe: list[dict[str,Any]]
+    limitations: list[str]=['Control detection and training-fold reference disagreement are not native calibration verdicts.', 'Two spent drives, correlated controls; no fresh evaluation or SOTA claim.']
+
+base=Path('/workspace/work/control-baseline-20261028')
+root=Path('/workspace/Calibrex')
+sha=lambda p:hashlib.sha256(p.read_bytes()).hexdigest()
+r=json.loads((base/'report.json').read_text())
+assert r['status']=='complete' and len(r['inputs'])==14
+metrics={};changes=[]
+for arm in ['original','control_seeded']:
+    rows=[(x,a) for x in r['inputs'] for a in x['arms'][arm]['axes']]
+    passed=[a for _,a in rows if a['control']['detected']]
+    metrics[arm]=dict(total=len(rows),detected=len(passed),per_drive={d:sum(a['control']['detected'] for x,a in rows if x['drive']==d) for d in ['2011_09_26_0005','2011_09_28_0002']},max_abs_active_fold_error_among_detected_deg=max(abs(v) for a in passed for v in a['fold_active_axis_reference_errors_deg']) if passed else None,profile_seconds=sum(x['arms'][arm]['elapsed_s'] for x in r['inputs']))
+for row in r['inputs']:
+    assert row['original_parity']
+    old=Path('docs/assets/camera_lidar_initialization_20261027')/row['drive']/row['run']/'training_only/report.json'
+    assert json.loads((root/old).read_text())['provenance']['arrays_sha256']==row['arrays_sha256']
+    for a,b in zip(row['arms']['original']['axes'],row['arms']['control_seeded']['axes'],strict=True):
+        if a['control']['detected']!=b['control']['detected']:
+            changes.append(dict(drive=row['drive'],run=row['run'],axis=a['axis'],original=a,control_seeded=b))
+# Explain the targeted miss by scoring saved, fixed poses on the original folds.
+drive='2011_09_28_0002';run='inject_y+3'
+snapshot=Path('/workspace/work/camera-lidar-recovery-20261027/capture')/drive/run
+meta,frames,camera,candidate,options=load_snapshot(snapshot)
+prepared,_=edge.prepare_frames(frames,camera,candidate,options)
+pitch=[]
+for arm in ['original','control_seeded']:
+    p=base/drive/run/arm/'report.json'
+    saved=json.loads(p.read_text());assert saved['provenance']['arrays_sha256']==meta.arrays_sha256
+    for index,(indices,fold) in enumerate(zip(edge._block_slices(len(prepared),options.blocks),saved['axes'][1]['folds'],strict=True)):
+        train=edge._fixed_objective([x for i,x in enumerate(prepared) if i not in indices],camera,candidate)
+        held=edge._fixed_objective([prepared[i] for i in indices],camera,candidate)
+        pose=np.asarray(fold['base_theta']);base_train=train.score(pose);base_held=held.score(pose)
+        direct=[base_held-held.score(np.asarray(x)) for x in fold['shifted_theta']]
+        profiled=[base_held-held.score(np.asarray(x)) for x in fold['profiled_theta']]
+        assert np.allclose(direct,fold['direct_drops'],atol=1e-9,rtol=0)
+        assert np.allclose(profiled,fold['profiled_drops'],atol=1e-9,rtol=0)
+        pitch.append(dict(arm=arm,fold=index,base_theta=fold['base_theta'],training_base_score=base_train,training_profiled_drops=[base_train-train.score(np.asarray(x)) for x in fold['profiled_theta']],held_direct_drops=direct,held_profiled_drops=profiled))
+summary=Summary(provenance=dict(created_at=datetime.now(timezone.utc).isoformat(),experiment_git_commit=r['provenance']['git_commit'],report_sha256=sha(base/'report.json'),generator_sha256=sha(Path(__file__)),target_snapshot_sha256=sha(snapshot/'snapshot.json'),target_arrays_sha256=meta.arrays_sha256,new_evaluation_started=False),metrics=metrics,changed_flags=changes,pitch_probe=pitch)
+(base/'summary.json').write_text(summary.model_dump_json(indent=2))
+(base/'summary.schema.json').write_text(json.dumps(Summary.model_json_schema(),indent=2))
+out=root/'docs/assets/control_seeded_baseline_20261028'
+shutil.copytree(base,out)
+shutil.copyfile(__file__,out/'publication-source.py.txt')
+shutil.copyfile('/workspace/work/control-baseline-20261028.log',out/'batch.log')
+for schema in out.rglob('*.schema.json'):
+    p=schema.with_name(schema.name.replace('.schema.json','.json'))
+    jsonschema.validate(json.loads(p.read_text()),json.loads(schema.read_text()))
+manifest={'provenance':summary.provenance,'files':{str(p.relative_to(out)):sha(p) for p in sorted(out.rglob('*')) if p.is_file()}}
+(out/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
+print(json.dumps(metrics,indent=2));print('changed flags',len(changes))

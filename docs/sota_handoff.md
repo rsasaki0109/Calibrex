@@ -215,6 +215,14 @@ linked from the development page. Do not promote or retune thresholds from this
 result; investigate fold/basin stability and nuisance ambiguity next. Capture
 remains 2/55 and the historical numerical drift remains unresolved.
 
+The [control-seeded baseline ablation](research/camera_lidar_control_seeded_baseline.md)
+then removes the targeted pitch fold’s training-search deficit but still misses
+pitch +3 (t 0.774 to 0.848). Detected controls rise 19/42 to 26/42 while the worst
+active-axis training-fold reference disagreement among detected controls rises
+0.350 to 8.165 deg. Reject promotion; investigate correspondence quality rather
+than spending another iteration on search or thresholds. All fourteen inputs
+and both arms are retained; no fresh evaluation or default change.
+
 ### INS-LiDAR after the first audit
 
 The first two-family, two-platform rotation audit is [refuted, 6/8](benchmarks/ins_lidar_rotation_v1.md).

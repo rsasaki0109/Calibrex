@@ -1,0 +1,1323 @@
+{
+  "schema_version": "calibrex.camera_lidar_profile_probe/v0.1",
+  "status": "complete",
+  "error": null,
+  "provenance": {
+    "created_at": "2026-10-28T09:41:56.233486+00:00",
+    "git_commit": "f1ff144f",
+    "generator_sha256": "dc18834f404ddf393fb73426363d43273c809e2ade947e4956f67ebaa6131c64",
+    "estimator_sha256": "cc2b0b4b8967971c78a72213e9d63cfc077cc3e6bc704c61c03146d7d3d90a60",
+    "replay_sha256": "316d516d5eca611ee3d22fc38b4eeaade2c764bb98b45ae45cce5532aa4fd8b5",
+    "snapshot_sha256": "dfed22c30bc64c7345e90dbd0479cd5f161012f2cc26cb8717b5b1ab4ce3ea5d",
+    "arrays_sha256": "0bc9fbcbb42c83b71520753b0a1ba5b6a41134f455d403294826efe799a447f6",
+    "conditional_report_sha256": null,
+    "drive": "2011_09_28_0002",
+    "run": "baseline",
+    "options": {
+      "spacing_s": 1.0,
+      "max_frames": 48,
+      "max_seconds": null,
+      "short_recording_spacing_s": 0.25,
+      "short_recording_min_view_change": 0.05,
+      "max_gap_s": 0.06,
+      "min_frames": 8,
+      "blocks": 6,
+      "min_jump_m": 0.3,
+      "jump_exponent": 0.5,
+      "max_edge_points_per_frame": 4000,
+      "min_edge_points_per_frame": 150,
+      "image_max_width": 960,
+      "spill_gamma": 0.98,
+      "spill_radius_px": 40,
+      "edge_background_sigma_px": 20.0,
+      "repeated_view_change": 0.05,
+      "image_margin_px": 80.0,
+      "rotation_bound_deg": 12.0,
+      "translation_bound_m": 0.2,
+      "rotation_levels_deg": [
+        1.0,
+        0.5,
+        0.25,
+        0.1,
+        0.05
+      ],
+      "translation_levels_m": [
+        0.02,
+        0.01,
+        0.005,
+        0.0025,
+        0.001
+      ],
+      "jackknife_first_level": 1,
+      "max_moves_per_level": 12,
+      "rotation_control_deg": 2.0,
+      "translation_control_m": 0.05,
+      "min_control_t": 2.5,
+      "observable_rotation_std_deg": 0.5,
+      "observable_translation_std_m": 0.03,
+      "min_ring_fraction": 0.5,
+      "min_gain": 0.00002,
+      "estimate_translation": false,
+      "start_scan_deg": 8.0,
+      "start_scan_step_deg": 0.5,
+      "start_scan_min_observed": 2,
+      "unstructured_lidar": true,
+      "start_scan_min_control_t": null,
+      "preparation_workers": 1
+    },
+    "analysis": "post hoc development",
+    "new_accuracy_claim": false,
+    "new_evaluation_started": false,
+    "fit_scope": "training frames only, fixed translation; held-out frames score fixed poses",
+    "start_scope": "per-fold training-only axis profile and refinement; no pooled conditional input",
+    "training_only_start": true,
+    "control_seeded_baseline": false,
+    "baseline_restart_policy": "original",
+    "nuisance_search": "profile_multistart",
+    "nuisance_selection": "maximum training objective; original local fit retained on ties",
+    "spatial_weights": "original",
+    "orientation_model": "none",
+    "prepared_frames": 11,
+    "dropped": [
+      "t=1317212827.6s: repeats the last kept view (image change 0.037 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212828.7s: repeats the last kept view (image change 0.035 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212829.7s: repeats the last kept view (image change 0.035 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212830.7s: repeats the last kept view (image change 0.033 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212831.8s: repeats the last kept view (image change 0.031 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212832.8s: repeats the last kept view (image change 0.028 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212833.9s: repeats the last kept view (image change 0.032 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212834.9s: repeats the last kept view (image change 0.033 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212835.9s: repeats the last kept view (image change 0.031 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212837.0s: repeats the last kept view (image change 0.034 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212838.0s: repeats the last kept view (image change 0.036 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212839.0s: repeats the last kept view (image change 0.034 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212840.1s: repeats the last kept view (image change 0.035 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212841.1s: repeats the last kept view (image change 0.034 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212842.1s: repeats the last kept view (image change 0.035 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212843.2s: repeats the last kept view (image change 0.034 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212844.2s: repeats the last kept view (image change 0.034 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212845.3s: repeats the last kept view (image change 0.034 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212846.3s: repeats the last kept view (image change 0.034 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212847.3s: repeats the last kept view (image change 0.034 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212848.4s: repeats the last kept view (image change 0.036 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212849.4s: repeats the last kept view (image change 0.034 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212850.4s: repeats the last kept view (image change 0.034 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212851.5s: repeats the last kept view (image change 0.037 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212852.5s: repeats the last kept view (image change 0.035 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212853.6s: repeats the last kept view (image change 0.034 < 0.05; a spinning LiDAR at a standing rig adds no view)",
+      "t=1317212854.6s: repeats the last kept view (image change 0.034 < 0.05; a spinning LiDAR at a standing rig adds no view)"
+    ]
+  },
+  "axes": [
+    {
+      "axis": 0,
+      "direct_control": {
+        "amount": 2.0,
+        "unit": "deg",
+        "held_out_blocks": 6,
+        "detected_blocks": 2,
+        "mean_objective_drop": -0.003673108960326221,
+        "min_t_statistic": -0.6308649215300443,
+        "detected": false
+      },
+      "profiled_control": {
+        "amount": 2.0,
+        "unit": "deg",
+        "held_out_blocks": 6,
+        "detected_blocks": 1,
+        "mean_objective_drop": -0.010287096384436025,
+        "min_t_statistic": -1.3435878027496457,
+        "detected": false
+      },
+      "folds": [
+        {
+          "training_start_theta": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "base_theta": [
+            0.0,
+            0.05,
+            0.1,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "shifted_theta": [
+            [
+              -2.0,
+              0.05,
+              0.1,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              2.0,
+              0.05,
+              0.1,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "profiled_theta": [
+            [
+              -2.0,
+              -0.1,
+              -1.4999999999999998,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              2.0,
+              -0.45,
+              -9.55,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "direct_drops": [
+            -0.0061690649605427444,
+            0.03542817151455184
+          ],
+          "profiled_drops": [
+            -0.01236943282666423,
+            -0.03174888786642514
+          ],
+          "nuisance_at_bound": false
+        },
+        {
+          "training_start_theta": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "base_theta": [
+            0.0,
+            0.05,
+            0.05,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "shifted_theta": [
+            [
+              -2.0,
+              0.05,
+              0.05,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              2.0,
+              0.05,
+              0.05,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "profiled_theta": [
+            [
+              -2.0,
+              -0.1,
+              -1.45,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              2.0,
+              -0.35000000000000003,
+              -8.5,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "direct_drops": [
+            -0.024776271847348263,
+            0.039541550252928645
+          ],
+          "profiled_drops": [
+            -0.03708722245876089,
+            -0.024276002828835797
+          ],
+          "nuisance_at_bound": false
+        },
+        {
+          "training_start_theta": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "base_theta": [
+            0.0,
+            0.05,
+            0.05,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "shifted_theta": [
+            [
+              -2.0,
+              0.05,
+              0.05,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              2.0,
+              0.05,
+              0.05,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "profiled_theta": [
+            [
+              -2.0,
+              -0.1,
+              -1.5,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              2.0,
+              -0.4,
+              -9.6,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "direct_drops": [
+            -0.014505774994431973,
+            0.06531987507714812
+          ],
+          "profiled_drops": [
+            -0.025433706133112056,
+            0.01709674484560976
+          ],
+          "nuisance_at_bound": false
+        },
+        {
+          "training_start_theta": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "base_theta": [
+            -0.05,
+            0.05,
+            0.1,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "shifted_theta": [
+            [
+              -2.05,
+              0.05,
+              0.1,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              1.95,
+              0.05,
+              0.1,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "profiled_theta": [
+            [
+              -2.05,
+              -0.1,
+              -1.5,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              1.95,
+              -0.44999999999999996,
+              -9.6,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "direct_drops": [
+            0.004610729541402566,
+            0.03814593204339791
+          ],
+          "profiled_drops": [
+            -0.0030951952916142417,
+            -0.0023362072800545836
+          ],
+          "nuisance_at_bound": false
+        },
+        {
+          "training_start_theta": [
+            -2.4,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "base_theta": [
+            -2.0500000000000007,
+            -0.45,
+            -1.5500000000000005,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "shifted_theta": [
+            [
+              -4.050000000000001,
+              -0.45,
+              -1.5500000000000005,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              -0.05000000000000071,
+              -0.45,
+              -1.5500000000000005,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "profiled_theta": [
+            [
+              -4.050000000000001,
+              -0.25,
+              -2.35,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              -0.05000000000000071,
+              -0.05000000000000002,
+              -5.25,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "direct_drops": [
+            0.005065589493201208,
+            -0.0001223014407724446
+          ],
+          "profiled_drops": [
+            0.0019502080441344966,
+            -0.0001660333470611952
+          ],
+          "nuisance_at_bound": false
+        },
+        {
+          "training_start_theta": [
+            -2.4,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "base_theta": [
+            -1.6999999999999997,
+            -0.1,
+            -1.9000000000000004,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "shifted_theta": [
+            [
+              -3.6999999999999997,
+              -0.1,
+              -1.9000000000000004,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.30000000000000027,
+              -0.1,
+              -1.9000000000000004,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "profiled_theta": [
+            [
+              -3.6999999999999997,
+              -0.1,
+              -2.2500000000000004,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.30000000000000027,
+              1.65,
+              -6.25,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "direct_drops": [
+            0.013736139005761882,
+            0.009907050447460684
+          ],
+          "profiled_drops": [
+            0.014312770359400769,
+            0.02258023650413177
+          ],
+          "nuisance_at_bound": false
+        }
+      ]
+    },
+    {
+      "axis": 1,
+      "direct_control": {
+        "amount": 2.0,
+        "unit": "deg",
+        "held_out_blocks": 6,
+        "detected_blocks": 5,
+        "mean_objective_drop": 0.012881773612272893,
+        "min_t_statistic": 3.5934861452419393,
+        "detected": true
+      },
+      "profiled_control": {
+        "amount": 2.0,
+        "unit": "deg",
+        "held_out_blocks": 6,
+        "detected_blocks": 4,
+        "mean_objective_drop": 0.006785657261747668,
+        "min_t_statistic": 0.6793335240776309,
+        "detected": false
+      },
+      "folds": [
+        {
+          "training_start_theta": [
+            0.0,
+            0.05,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "base_theta": [
+            0.0,
+            0.05,
+            0.1,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "shifted_theta": [
+            [
+              0.0,
+              -1.95,
+              0.1,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              2.05,
+              0.1,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "profiled_theta": [
+            [
+              -1.9,
+              -1.95,
+              -1.9,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              -0.9,
+              2.05,
+              -0.04999999999999999,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "direct_drops": [
+            0.01013726280754317,
+            0.006012698080964463
+          ],
+          "profiled_drops": [
+            -0.0028537851112346614,
+            -0.008549946146674935
+          ],
+          "nuisance_at_bound": false
+        },
+        {
+          "training_start_theta": [
+            0.0,
+            0.05,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "base_theta": [
+            0.0,
+            0.05,
+            0.05,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "shifted_theta": [
+            [
+              0.0,
+              -1.95,
+              0.05,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              2.05,
+              0.05,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "profiled_theta": [
+            [
+              -1.0,
+              -1.95,
+              -3.65,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              -0.9,
+              2.05,
+              -0.15000000000000002,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "direct_drops": [
+            -0.002176786138371467,
+            -0.0000751148799581769
+          ],
+          "profiled_drops": [
+            -0.03792825193543711,
+            -0.023463152641823984
+          ],
+          "nuisance_at_bound": false
+        },
+        {
+          "training_start_theta": [
+            0.0,
+            0.05,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "base_theta": [
+            0.0,
+            0.05,
+            0.05,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "shifted_theta": [
+            [
+              0.0,
+              -1.95,
+              0.05,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              2.05,
+              0.05,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "profiled_theta": [
+            [
+              0.5,
+              -1.95,
+              -7.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.05,
+              2.05,
+              -5.85,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "direct_drops": [
+            0.010904461975619856,
+            0.009066801075146052
+          ],
+          "profiled_drops": [
+            0.029020862769643253,
+            0.013975255869967607
+          ],
+          "nuisance_at_bound": false
+        },
+        {
+          "training_start_theta": [
+            0.0,
+            0.05,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "base_theta": [
+            -0.05,
+            0.05,
+            0.1,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "shifted_theta": [
+            [
+              -0.05,
+              -1.95,
+              0.1,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              -0.05,
+              2.05,
+              0.1,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "profiled_theta": [
+            [
+              -1.55,
+              -1.95,
+              -2.4,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              -0.9,
+              2.05,
+              -0.09999999999999999,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "direct_drops": [
+            0.019758348873965943,
+            0.013492035707351597
+          ],
+          "profiled_drops": [
+            0.012449539782670164,
+            0.014106358827740667
+          ],
+          "nuisance_at_bound": false
+        },
+        {
+          "training_start_theta": [
+            0.0,
+            0.05,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "base_theta": [
+            -1.5,
+            -0.1,
+            -2.35,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "shifted_theta": [
+            [
+              -1.5,
+              -2.1,
+              -2.35,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              -1.5,
+              1.9,
+              -2.35,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "profiled_theta": [
+            [
+              -1.55,
+              -2.1,
+              -2.6,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              -1.55,
+              1.9,
+              -2.3000000000000003,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "direct_drops": [
+            0.01643793054732083,
+            0.013268635743950749
+          ],
+          "profiled_drops": [
+            0.01650764891667759,
+            0.013238727772886167
+          ],
+          "nuisance_at_bound": false
+        },
+        {
+          "training_start_theta": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "base_theta": [
+            -0.25,
+            -0.05,
+            0.3,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "shifted_theta": [
+            [
+              -0.25,
+              -2.05,
+              0.3,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              -0.25,
+              1.95,
+              0.3,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "profiled_theta": [
+            [
+              -1.5,
+              -2.05,
+              -0.49999999999999994,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              -1.4,
+              1.95,
+              -2.1,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "direct_drops": [
+            0.022229423607559022,
+            0.014717211702476841
+          ],
+          "profiled_drops": [
+            0.023517929148166767,
+            0.035723857861606145
+          ],
+          "nuisance_at_bound": false
+        }
+      ]
+    },
+    {
+      "axis": 2,
+      "direct_control": {
+        "amount": 2.0,
+        "unit": "deg",
+        "held_out_blocks": 6,
+        "detected_blocks": 1,
+        "mean_objective_drop": -0.001467783044648496,
+        "min_t_statistic": -0.5618480489191832,
+        "detected": false
+      },
+      "profiled_control": {
+        "amount": 2.0,
+        "unit": "deg",
+        "held_out_blocks": 6,
+        "detected_blocks": 0,
+        "mean_objective_drop": -0.006443019478994279,
+        "min_t_statistic": -1.2003640256967065,
+        "detected": false
+      },
+      "folds": [
+        {
+          "training_start_theta": [
+            0.0,
+            0.0,
+            0.1,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "base_theta": [
+            0.0,
+            0.05,
+            0.1,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "shifted_theta": [
+            [
+              0.0,
+              0.05,
+              -1.9,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.05,
+              2.1,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "profiled_theta": [
+            [
+              -1.75,
+              -0.1,
+              -1.9,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              -1.3,
+              0.10000000000000002,
+              2.1,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "direct_drops": [
+            -0.00943781543071797,
+            0.023404814598033327
+          ],
+          "profiled_drops": [
+            -0.01501179139757845,
+            0.007652009032023951
+          ],
+          "nuisance_at_bound": false
+        },
+        {
+          "training_start_theta": [
+            0.0,
+            0.0,
+            0.05,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "base_theta": [
+            0.0,
+            0.05,
+            0.05,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "shifted_theta": [
+            [
+              0.0,
+              0.05,
+              -1.95,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.05,
+              2.05,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "profiled_theta": [
+            [
+              -1.55,
+              -0.1,
+              -1.95,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              -1.2,
+              0.10000000000000002,
+              2.05,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "direct_drops": [
+            -0.006528059093961253,
+            0.013256552272775618
+          ],
+          "profiled_drops": [
+            -0.03745317554188897,
+            -0.008925243403167209
+          ],
+          "nuisance_at_bound": false
+        },
+        {
+          "training_start_theta": [
+            0.0,
+            0.0,
+            -5.15,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "base_theta": [
+            -0.5,
+            -0.1,
+            -5.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "shifted_theta": [
+            [
+              -0.5,
+              -0.1,
+              -7.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              -0.5,
+              -0.1,
+              -3.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "profiled_theta": [
+            [
+              0.65,
+              -0.24999999999999997,
+              -7.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              -1.15,
+              -0.1,
+              -3.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "direct_drops": [
+            0.004414849225842808,
+            -0.010574870017729655
+          ],
+          "profiled_drops": [
+            0.00971504225718758,
+            -0.029147244168923576
+          ],
+          "nuisance_at_bound": false
+        },
+        {
+          "training_start_theta": [
+            0.0,
+            0.0,
+            0.05,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "base_theta": [
+            -0.05,
+            0.05,
+            0.1,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "shifted_theta": [
+            [
+              -0.05,
+              0.05,
+              -1.9,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              -0.05,
+              0.05,
+              2.1,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "profiled_theta": [
+            [
+              -1.7,
+              -0.1,
+              -1.9,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              -1.4000000000000001,
+              0.10000000000000002,
+              2.1,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "direct_drops": [
+            -0.005357952276597348,
+            0.011824447637868267
+          ],
+          "profiled_drops": [
+            -0.004178286289709093,
+            0.005525695375883374
+          ],
+          "nuisance_at_bound": false
+        },
+        {
+          "training_start_theta": [
+            0.0,
+            0.0,
+            -5.2,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "base_theta": [
+            -0.45,
+            -0.05,
+            -4.7,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "shifted_theta": [
+            [
+              -0.45,
+              -0.05,
+              -6.7,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              -0.45,
+              -0.05,
+              -2.7,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "profiled_theta": [
+            [
+              -1.05,
+              -0.05,
+              -6.7,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              -1.3499999999999999,
+              -0.15000000000000002,
+              -2.7,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "direct_drops": [
+            0.005625708376615017,
+            -0.0031078929454030624
+          ],
+          "profiled_drops": [
+            0.004572568761202368,
+            -0.006450831350960515
+          ],
+          "nuisance_at_bound": false
+        },
+        {
+          "training_start_theta": [
+            0.0,
+            0.0,
+            -5.15,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "base_theta": [
+            -0.45,
+            0.45,
+            -4.6000000000000005,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "shifted_theta": [
+            [
+              -0.45,
+              0.45,
+              -6.6000000000000005,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              -0.45,
+              0.45,
+              -2.6000000000000005,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "profiled_theta": [
+            [
+              -1.0,
+              1.3877787807814457e-17,
+              -6.6000000000000005,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              -1.4,
+              -0.04999999999999999,
+              -2.6000000000000005,
+              0.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "direct_drops": [
+            0.0024765709309277698,
+            0.006962097590123808
+          ],
+          "profiled_drops": [
+            -0.0047508074234209365,
+            -0.00731250235882169
+          ],
+          "nuisance_at_bound": false
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Training-only local coordinate searches may miss distant nuisance optima.",
+    "Held-out drops need not decrease after training-only nuisance refitting.",
+    "Control detection is not accuracy, joint observability or a native verdict.",
+    "Dataset calibration is not ground truth; no new audit or default change.",
+    "Training-only initialization removes pooled-fit reuse, but does not establish independent data: preprocessing, candidate, settings and development drives are fixed."
+  ]
+}
